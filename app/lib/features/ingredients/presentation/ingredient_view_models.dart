@@ -47,8 +47,13 @@ const _uuid = Uuid();
 /// kept exactly as stored.
 String _seed(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : '$v';
 
-/// The four macro inputs as typed TEXT, so "half filled in" is a state the form
+/// The macro inputs as typed TEXT, so "half filled in" is a state the form
 /// can name rather than a silent zero.
+///
+/// [kcal], [protein], [carb] and [fat] are the panel and move together;
+/// [fiber] is the optional fifth ([Macros.fiber]) and may be left blank on a
+/// panel that is otherwise whole. What it may NOT be is the only thing typed:
+/// fibre qualifies a panel, it is not one.
 @freezed
 abstract class MacroDraft with _$MacroDraft {
   const factory MacroDraft({
@@ -56,9 +61,10 @@ abstract class MacroDraft with _$MacroDraft {
     @Default('') String protein,
     @Default('') String carb,
     @Default('') String fat,
+    @Default('') String fiber,
   }) = _MacroDraft;
 
-  /// Seeds the four fields from a stored panel.
+  /// Seeds the fields from a stored panel.
   ///
   /// **Lossless, deliberately.** These are not printed numbers — they are the
   /// editable text a Save reads back, so `60` must not open as `60.0` and a
@@ -72,19 +78,32 @@ abstract class MacroDraft with _$MacroDraft {
           protein: _seed(m.protein),
           carb: _seed(m.carb),
           fat: _seed(m.fat),
+          fiber: m.fiber == null ? '' : _seed(m.fiber!),
         );
 
   const MacroDraft._();
 
   List<String> get _fields => [kcal, protein, carb, fat];
 
-  bool get allBlank => _fields.every((f) => f.trim().isEmpty);
+  static bool _blank(String field) => field.trim().isEmpty;
+
+  static bool _parses(String field) =>
+      double.tryParse(field.trim())?.isFinite ?? false;
+
+  /// The four REQUIRED fields are empty. Fibre is not consulted: a lone fibre
+  /// figure is not a panel, so it must not read as one to a scan deciding what
+  /// it may fill ([DraftTarget.hasMacros]).
+  bool get allBlank => _fields.every(_blank);
 
   /// All four parse, or all four are blank. Anything between is a panel with a
   /// hole in it, which the form refuses rather than zero-filling.
-  bool get isCoherent =>
-      allBlank ||
-      _fields.every((f) => double.tryParse(f.trim())?.isFinite ?? false);
+  bool get fourCoherent => allBlank || _fields.every(_parses);
+
+  /// Fibre is blank, or it is a number ON a panel. It is an extra figure the
+  /// four carry, never a panel of its own.
+  bool get fiberCoherent => _blank(fiber) || (_parses(fiber) && !allBlank);
+
+  bool get isCoherent => fourCoherent && fiberCoherent;
 
   /// The macros this draft asserts, or null for "none" — the deliberate clear.
   Macros? toMacros() {
@@ -94,6 +113,7 @@ abstract class MacroDraft with _$MacroDraft {
       protein: double.parse(protein.trim()),
       carb: double.parse(carb.trim()),
       fat: double.parse(fat.trim()),
+      fiber: _blank(fiber) ? null : double.parse(fiber.trim()),
     );
   }
 }
@@ -283,9 +303,13 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     if (name.trim().isEmpty) {
       return 'A name is the one field an ingredient can’t go without.';
     }
-    if (!macros.isCoherent) {
+    if (!macros.fourCoherent) {
       return 'Enter all four macros, or leave them all blank — a part of a '
           'panel isn’t a panel.';
+    }
+    if (!macros.fiberCoherent) {
+      return 'Fibre is an extra figure on a panel, not a panel of its own — '
+          'give it a number beside the four, or clear it.';
     }
     if (perServing && printedMacros != null && serving.amountInBasis == null) {
       return 'One serving is how much? The label’s figures become per 100 '

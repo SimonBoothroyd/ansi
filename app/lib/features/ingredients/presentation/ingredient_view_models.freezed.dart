@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MacroDraft {
 
- String get kcal; String get protein; String get carb; String get fat;
+ String get kcal; String get protein; String get carb; String get fat; String get fiber;
 /// Create a copy of MacroDraft
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $MacroDraftCopyWith<MacroDraft> get copyWith => _$MacroDraftCopyWithImpl<MacroDr
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MacroDraft&&(identical(other.kcal, kcal) || other.kcal == kcal)&&(identical(other.protein, protein) || other.protein == protein)&&(identical(other.carb, carb) || other.carb == carb)&&(identical(other.fat, fat) || other.fat == fat));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MacroDraft&&(identical(other.kcal, kcal) || other.kcal == kcal)&&(identical(other.protein, protein) || other.protein == protein)&&(identical(other.carb, carb) || other.carb == carb)&&(identical(other.fat, fat) || other.fat == fat)&&(identical(other.fiber, fiber) || other.fiber == fiber));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,kcal,protein,carb,fat);
+int get hashCode => Object.hash(runtimeType,kcal,protein,carb,fat,fiber);
 
 @override
 String toString() {
-  return 'MacroDraft(kcal: $kcal, protein: $protein, carb: $carb, fat: $fat)';
+  return 'MacroDraft(kcal: $kcal, protein: $protein, carb: $carb, fat: $fat, fiber: $fiber)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $MacroDraftCopyWith<$Res>  {
   factory $MacroDraftCopyWith(MacroDraft value, $Res Function(MacroDraft) _then) = _$MacroDraftCopyWithImpl;
 @useResult
 $Res call({
- String kcal, String protein, String carb, String fat
+ String kcal, String protein, String carb, String fat, String fiber
 });
 
 
@@ -62,12 +62,13 @@ class _$MacroDraftCopyWithImpl<$Res>
 
 /// Create a copy of MacroDraft
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? kcal = null,Object? protein = null,Object? carb = null,Object? fat = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? kcal = null,Object? protein = null,Object? carb = null,Object? fat = null,Object? fiber = null,}) {
   return _then(_self.copyWith(
 kcal: null == kcal ? _self.kcal : kcal // ignore: cast_nullable_to_non_nullable
 as String,protein: null == protein ? _self.protein : protein // ignore: cast_nullable_to_non_nullable
 as String,carb: null == carb ? _self.carb : carb // ignore: cast_nullable_to_non_nullable
 as String,fat: null == fat ? _self.fat : fat // ignore: cast_nullable_to_non_nullable
+as String,fiber: null == fiber ? _self.fiber : fiber // ignore: cast_nullable_to_non_nullable
 as String,
   ));
 }
@@ -153,10 +154,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String kcal,  String protein,  String carb,  String fat)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String kcal,  String protein,  String carb,  String fat,  String fiber)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MacroDraft() when $default != null:
-return $default(_that.kcal,_that.protein,_that.carb,_that.fat);case _:
+return $default(_that.kcal,_that.protein,_that.carb,_that.fat,_that.fiber);case _:
   return orElse();
 
 }
@@ -174,10 +175,10 @@ return $default(_that.kcal,_that.protein,_that.carb,_that.fat);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String kcal,  String protein,  String carb,  String fat)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String kcal,  String protein,  String carb,  String fat,  String fiber)  $default,) {final _that = this;
 switch (_that) {
 case _MacroDraft():
-return $default(_that.kcal,_that.protein,_that.carb,_that.fat);case _:
+return $default(_that.kcal,_that.protein,_that.carb,_that.fat,_that.fiber);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -194,10 +195,10 @@ return $default(_that.kcal,_that.protein,_that.carb,_that.fat);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String kcal,  String protein,  String carb,  String fat)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String kcal,  String protein,  String carb,  String fat,  String fiber)?  $default,) {final _that = this;
 switch (_that) {
 case _MacroDraft() when $default != null:
-return $default(_that.kcal,_that.protein,_that.carb,_that.fat);case _:
+return $default(_that.kcal,_that.protein,_that.carb,_that.fat,_that.fiber);case _:
   return null;
 
 }
@@ -209,13 +210,14 @@ return $default(_that.kcal,_that.protein,_that.carb,_that.fat);case _:
 
 
 class _MacroDraft extends MacroDraft {
-  const _MacroDraft({this.kcal = '', this.protein = '', this.carb = '', this.fat = ''}): super._();
+  const _MacroDraft({this.kcal = '', this.protein = '', this.carb = '', this.fat = '', this.fiber = ''}): super._();
   
 
 @override@JsonKey() final  String kcal;
 @override@JsonKey() final  String protein;
 @override@JsonKey() final  String carb;
 @override@JsonKey() final  String fat;
+@override@JsonKey() final  String fiber;
 
 /// Create a copy of MacroDraft
 /// with the given fields replaced by the non-null parameter values.
@@ -227,16 +229,16 @@ _$MacroDraftCopyWith<_MacroDraft> get copyWith => __$MacroDraftCopyWithImpl<_Mac
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MacroDraft&&(identical(other.kcal, kcal) || other.kcal == kcal)&&(identical(other.protein, protein) || other.protein == protein)&&(identical(other.carb, carb) || other.carb == carb)&&(identical(other.fat, fat) || other.fat == fat));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MacroDraft&&(identical(other.kcal, kcal) || other.kcal == kcal)&&(identical(other.protein, protein) || other.protein == protein)&&(identical(other.carb, carb) || other.carb == carb)&&(identical(other.fat, fat) || other.fat == fat)&&(identical(other.fiber, fiber) || other.fiber == fiber));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,kcal,protein,carb,fat);
+int get hashCode => Object.hash(runtimeType,kcal,protein,carb,fat,fiber);
 
 @override
 String toString() {
-  return 'MacroDraft(kcal: $kcal, protein: $protein, carb: $carb, fat: $fat)';
+  return 'MacroDraft(kcal: $kcal, protein: $protein, carb: $carb, fat: $fat, fiber: $fiber)';
 }
 
 
@@ -247,7 +249,7 @@ abstract mixin class _$MacroDraftCopyWith<$Res> implements $MacroDraftCopyWith<$
   factory _$MacroDraftCopyWith(_MacroDraft value, $Res Function(_MacroDraft) _then) = __$MacroDraftCopyWithImpl;
 @override @useResult
 $Res call({
- String kcal, String protein, String carb, String fat
+ String kcal, String protein, String carb, String fat, String fiber
 });
 
 
@@ -264,12 +266,13 @@ class __$MacroDraftCopyWithImpl<$Res>
 
 /// Create a copy of MacroDraft
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? kcal = null,Object? protein = null,Object? carb = null,Object? fat = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? kcal = null,Object? protein = null,Object? carb = null,Object? fat = null,Object? fiber = null,}) {
   return _then(_MacroDraft(
 kcal: null == kcal ? _self.kcal : kcal // ignore: cast_nullable_to_non_nullable
 as String,protein: null == protein ? _self.protein : protein // ignore: cast_nullable_to_non_nullable
 as String,carb: null == carb ? _self.carb : carb // ignore: cast_nullable_to_non_nullable
 as String,fat: null == fat ? _self.fat : fat // ignore: cast_nullable_to_non_nullable
+as String,fiber: null == fiber ? _self.fiber : fiber // ignore: cast_nullable_to_non_nullable
 as String,
   ));
 }

@@ -85,6 +85,30 @@ void main() {
       expect(find.byKey(kReadFillItInKey), findsNothing);
     });
 
+    testWidgets('a row that states fibre says so on the same line — spelled '
+        'out, because F is already fat', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo([
+            mango.copyWith(
+              macros: const Macros(
+                kcal: 60,
+                protein: 1,
+                carb: 15,
+                fat: 0,
+                fiber: 2.6,
+              ),
+            ),
+          ]),
+          at: ingredientDetailRoute('mango'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('60 kcal · 1P 0F 15C · 3 fibre /100 g'), findsOneWidget);
+    });
+
     testWidgets('a row with no measures says so rather than saying nothing', (
       tester,
     ) async {

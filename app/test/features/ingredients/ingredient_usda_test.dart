@@ -438,4 +438,64 @@ void main() {
     expect(find.textContaining('from USDA'), findsNothing);
     expect(find.text('Look up in USDA'), findsOneWidget);
   });
+
+  group('the reference set’s fibre', () {
+    test('a candidate reads the fiber key when the row has one', () {
+      final candidate = UsdaCandidate.tryParse(const {
+        'fdc_id': 168879,
+        'description': 'Rice, white, long-grain',
+        'source': 'usda_fdc:168879',
+        'score': 1.0,
+        'macros': {
+          'kcal': 130,
+          'protein': 2.69,
+          'carb': 28.2,
+          'fat': 0.28,
+          'fiber': 0.4,
+        },
+      });
+      expect(candidate!.macros!.fiber, 0.4);
+    });
+
+    test('a reference row without fibre is a whole candidate all the same', () {
+      final candidate = UsdaCandidate.tryParse(const {
+        'fdc_id': 11216,
+        'description': 'Curry leaves, raw',
+        'source': 'usda_fdc:11216',
+        'score': 1.0,
+        'macros': {'kcal': 108, 'protein': 6, 'carb': 19, 'fat': 1},
+      });
+      expect(candidate!.macros, isNotNull);
+      expect(candidate.macros!.fiber, isNull);
+    });
+  });
+
+  testWidgets('a USDA pick carrying fibre fills the fifth field and the Save '
+      'stores it', (tester) async {
+    filterForuiSemanticsAssertions();
+    tallScreen(tester);
+    final repo = FakeIngredientRepo([
+      curryLeaves.copyWith(source: null, sourceLabel: null, sourceScore: null),
+    ]);
+    final probe = RecordingProbe(
+      const UsdaCandidate(
+        fdcId: 11216,
+        description: 'Curry leaves, raw',
+        source: 'usda_fdc:11216',
+        score: 1,
+        macros: Macros(kcal: 108, protein: 6, carb: 19, fat: 1, fiber: 6.4),
+      ),
+    );
+    await tester.pumpWidget(host(repo, at: editRoute('curry'), probe: probe));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Look up in USDA'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Curry leaves, raw').last);
+    await tester.pumpAndSettle();
+
+    expect(macroFieldText(tester, 'fibre'), '6.4');
+    await saveForm(tester, reopen: curryLeaves.canonicalName);
+    expect((await repo.byId('curry'))!.macros!.fiber, 6.4);
+  });
 }

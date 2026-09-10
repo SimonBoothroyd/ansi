@@ -43,7 +43,8 @@
 /// typed stays (and the card says which), provenance becomes `off:<barcode>`
 /// only where the row had none, and nothing confirms the row.
 ///
-/// The macros section has a **per serving** mode: the four fields take a
+/// The macros section holds four required figures and an optional fibre
+/// ([Macros.fiber]), and has a **per serving** mode: the fields take a
 /// label's figures as printed, a serving row says what they describe, and the
 /// row still stores per 100 of the basis — derived unrounded
 /// ([Macros.per100From]) and previewed live. The serving's "1 tbsp = 14 g" is
@@ -924,7 +925,10 @@ class _DetailForm extends ConsumerWidget {
                 basis: draft.basis,
               ),
 
-              const _Label('MACROS', hint: 'enter them as the label reads'),
+              const _Label(
+                'MACROS',
+                hint: 'as the label reads · fibre optional',
+              ),
               // One segment, in the section it changes. Per 100 of the basis is
               // the default; per serving reveals the row below and reads the
               // same four fields as the label prints them.
@@ -1387,12 +1391,14 @@ String _overriddenNumbers(Ingredient ingredient) {
   return 'edited here';
 }
 
-/// The four macro inputs. All four or none — a partial panel would compute
-/// totals out of numbers nobody supplied (invariant 3).
+/// The macro inputs. The first four are all-or-none — a partial panel would
+/// compute totals out of numbers nobody supplied (invariant 3). **Fibre is
+/// optional** ([Macros.fiber]): a label that prints it fills the fifth field,
+/// one that does not leaves it blank and the row is complete regardless.
 class _MacroFields extends StatelessWidget {
   const _MacroFields({required this.draft, required this.onChanged, super.key});
 
-  /// Seeds the four controllers when this widget is (re)built under a new key —
+  /// Seeds the controllers when this widget is (re)built under a new key —
   /// so it is the DRAFT, not the row: the form re-keys exactly when it has put
   /// something new in the draft, whether that came from the row (G1) or from a
   /// barcode scan.
@@ -1407,7 +1413,7 @@ class _MacroFields extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             FTextField(
-              // Keyed: the four read alike, and a test that targets them by
+              // Keyed: they read alike, and a test that targets them by
               // position breaks the moment a field moves.
               key: ValueKey('macro-$label'),
               // No hint: the caption below already names the field, and the
@@ -1435,6 +1441,7 @@ class _MacroFields extends StatelessWidget {
         field('protein', draft.protein, (t) => draft.copyWith(protein: t)),
         field('carb', draft.carb, (t) => draft.copyWith(carb: t)),
         field('fat', draft.fat, (t) => draft.copyWith(fat: t)),
+        field('fibre', draft.fiber, (t) => draft.copyWith(fiber: t)),
       ],
     );
   }

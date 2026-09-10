@@ -62,7 +62,10 @@ const _cases = <_Case>[
   (
     fixture: 'nutella_per_100g',
     barcode: '3017620422003',
-    why: 'a full per-100 g panel, and a `quantity` OFF stores as ""',
+    why:
+        'a full per-100 g panel, and a `quantity` OFF stores as "" — with no '
+        'fibre key anywhere in the payload, so the fifth figure is honestly '
+        'absent rather than zero and the panel is complete without it',
     suggestedName: 'Nutella',
     brand: 'Nutella',
     macros: Macros(kcal: 539, protein: 6.3, carb: 57.5, fat: 30.9),
@@ -75,10 +78,12 @@ const _cases = <_Case>[
   (
     fixture: 'oatly_per_100ml',
     barcode: '7394376616020',
-    why: 'a liquid label read per 100 ml — the basis rides through, 7.7',
+    why:
+        'a liquid label read per 100 ml — the basis rides through, 7.7 — '
+        'and the label’s `fiber_100g` rides with it as the optional fifth',
     suggestedName: 'Ruokaan Fraiche',
     brand: 'Oatly',
-    macros: Macros(kcal: 177, protein: 1, carb: 9, fat: 15),
+    macros: Macros(kcal: 177, protein: 1, carb: 9, fat: 15, fiber: 1),
     basis: MacrosBasis.perMl,
     gap: DraftMacrosGap.none,
     packSize: DraftPackSize(200, ml),
@@ -131,6 +136,8 @@ const _cases = <_Case>[
       protein: 0.42283298097252,
       carb: 9.3023255813953,
       fat: 2.1141649048626,
+      // A fibre OFF states as zero, which is a reading and not an absence.
+      fiber: 0,
     ),
     basis: MacrosBasis.perMl,
     gap: DraftMacrosGap.none,
@@ -155,6 +162,7 @@ const _cases = <_Case>[
       protein: 0,
       carb: 21.4285714285714,
       fat: 25,
+      fiber: 0,
     ),
     basis: MacrosBasis.perG,
     gap: DraftMacrosGap.none,
@@ -168,7 +176,7 @@ const _cases = <_Case>[
       amount: 28,
       unit: g,
       printedText: '0.25 cup (28 g)',
-      printed: Macros(kcal: 80, protein: 0, carb: 6, fat: 7),
+      printed: Macros(kcal: 80, protein: 0, carb: 6, fat: 7, fiber: 0),
     ),
   ),
   (
@@ -192,10 +200,10 @@ const _cases = <_Case>[
     barcode: '0851087000250',
     why:
         'A PER-SERVING PANEL (plan 0027 M-D5) — the four `*_serving` figures '
-        'ride through as printed, with OFF’s numeric serving_quantity; the '
-        'per-100 keys beside them are NOT read (the row derives its own, in '
-        'front of the person). Captured, with the flag flipped — see the '
-        'header',
+        'ride through as printed, with `fiber_serving` beside them and OFF’s '
+        'numeric serving_quantity; the per-100 keys are NOT read (the row '
+        'derives its own, in front of the person). Captured, with the flag '
+        'flipped — see the header',
     suggestedName: 'Peanut Butter (The Bees Knees)',
     brand: 'Peanut Butter & Co',
     macros: null,
@@ -203,7 +211,7 @@ const _cases = <_Case>[
     gap: DraftMacrosGap.perServingPanel,
     packSize: null,
     servingPanel: DraftServingPanel(
-      printed: Macros(kcal: 180, protein: 6, carb: 10, fat: 14),
+      printed: Macros(kcal: 180, protein: 6, carb: 10, fat: 14, fiber: 1.98),
       servingAmount: 32,
       servingBasis: MacrosBasis.perG,
       servingSize: '2 Tbsp (32 g)',

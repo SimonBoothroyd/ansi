@@ -2,9 +2,10 @@
 /// is tested off committed fixtures with no network.
 ///
 /// The mapping is deliberately narrow. OFF returns hundreds of nutriment
-/// keys, several of which *look* like the ones we want; this file reads four
-/// and explains why the near-misses are left alone. Anything the payload does
-/// not establish comes out null with a reason attached — never zero.
+/// keys, several of which *look* like the ones we want; this file reads the
+/// four required macros plus the optional fibre, and explains why the
+/// near-misses are left alone. Anything the payload does not establish comes
+/// out null with a reason attached — never zero.
 ///
 /// The one place it reads WIDELY is the basis — which 100 the four numbers are
 /// per. OFF files a per-100 ml label under the same `*_100g` keys as a per-100
@@ -232,8 +233,8 @@ String? _perKey(Map<String, Object?> p) => _text(
   p['nutrition_data_per'],
 )?.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '');
 
-/// The four macros under one OFF key [suffix] (`_100g`, `_serving`), or null
-/// unless all four are there.
+/// The macro panel under one OFF key [suffix] (`_100g`, `_serving`), or null
+/// unless all four required macros are there.
 ///
 /// Only the plain keys. The near-misses are real and wrong: `energy-kcal`
 /// (no suffix) is whatever column the contributor typed in, and
@@ -243,6 +244,11 @@ String? _perKey(Map<String, Object?> p) => _text(
 /// same rule a vocab row's macros obey ([Macros.tryParse]) — three numbers
 /// and an invented zero is exactly the dishonest total invariant 3 exists to
 /// prevent.
+///
+/// `fiber$suffix` rides along when OFF holds it, and its absence costs the
+/// panel nothing ([Macros.fiber]) — the same optional fifth key the rest of
+/// the app reads. `fiber_prepared_*` is a near-miss for the same reason its
+/// neighbours are, and is left alone.
 Macros? _four(Map<String, Object?> n, String suffix) {
   final kcal = _number(n['energy-kcal$suffix']);
   final protein = _number(n['proteins$suffix']);
@@ -251,7 +257,13 @@ Macros? _four(Map<String, Object?> n, String suffix) {
   if (kcal == null || protein == null || carb == null || fat == null) {
     return null;
   }
-  return Macros(kcal: kcal, protein: protein, carb: carb, fat: fat);
+  return Macros(
+    kcal: kcal,
+    protein: protein,
+    carb: carb,
+    fat: fat,
+    fiber: _number(n['fiber$suffix']),
+  );
 }
 
 /// OFF's numeric `serving_quantity` with the basis its unit names, or

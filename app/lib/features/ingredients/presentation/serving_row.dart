@@ -255,15 +255,21 @@ class ScannedServingLine extends StatelessWidget {
       printed: printed,
     );
     if (implied == null) return const SizedBox.shrink();
-    // All four are compared, not the calories alone: a contributor who
+    // Every figure is compared, not the calories alone: a contributor who
     // mistyped one gram figure leaves the kcal agreeing and the carb wrong,
     // and that is exactly the error a person holding the pack can catch.
+    // Fibre joins only when BOTH columns state it — an unstated figure has
+    // nothing to disagree with ([Macros.fiber]).
+    final impliedFiber = implied.fiber;
+    final heldFiber = per100.fiber;
     final differs = [
       for (final (label, a, b) in [
         ('kcal', implied.kcal, per100.kcal),
         ('protein', implied.protein, per100.protein),
         ('carb', implied.carb, per100.carb),
         ('fat', implied.fat, per100.fat),
+        if (impliedFiber != null && heldFiber != null)
+          ('fibre', impliedFiber, heldFiber),
       ])
         if ((a - b).abs() > _slack(label, b)) _gap(label, a, b),
     ];

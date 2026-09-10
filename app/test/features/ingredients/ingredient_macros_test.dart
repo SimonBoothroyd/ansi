@@ -351,7 +351,8 @@ void main() {
       await tester.tap(find.text('Look up'));
       await tester.pumpAndSettle();
 
-      expect(find.text('180 kcal · 6P 14F 10C'), findsOneWidget);
+      // The pack prints fibre, so the card's line carries the fifth figure.
+      expect(find.text('180 kcal · 6P 14F 10C · 2 fibre'), findsOneWidget);
       expect(
         find.textContaining('panel read per serving of 32 g (“2 Tbsp (32 g)”)'),
         findsOneWidget,
@@ -367,6 +368,9 @@ void main() {
       final created = repo.rows.single;
       expect(created.macros!.kcal, 562.5);
       expect(created.macros!.carb, 31.25);
+      // Fibre goes through the same per-100 derivation as the other four —
+      // 1.98 g per 32 g serving — and is stored beside them.
+      expect(created.macros!.fiber, closeTo(6.1875, 1e-9));
       expect(created.macrosBasis, MacrosBasis.perG);
       expect(created.source, 'off:0851087000250');
       // A new row is saved COMPLETE or not at all: the scan filled in the one

@@ -83,6 +83,69 @@ void main() {
       expect(find.text('CANONICAL NAME'), findsNothing);
     });
 
+    testWidgets('fibre is the fifth field and the optional one — the four '
+        'alone still complete the row', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final repo = FakeIngredientRepo(const [curryLeaves]);
+      await tester.pumpWidget(host(repo, at: editRoute('curry')));
+      await tester.pumpAndSettle();
+
+      expect(macroField('fibre'), findsOneWidget);
+      await typeMacros(tester, kcal: '108', protein: '6', carb: '19', fat: '1');
+
+      // Nothing is waiting on fibre: the CTA is live with the fibre field
+      // untouched.
+      expect(
+        tester.widget<FButton>(find.byKey(kFormCompleteKey)).onPress,
+        isNotNull,
+      );
+      await saveForm(tester);
+      final row = await repo.byId('curry');
+      expect(row!.macros!.fiber, isNull, reason: 'unstated, never a zero');
+    });
+
+    testWidgets('a fibre that IS typed is stored beside the four', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final repo = FakeIngredientRepo(const [curryLeaves]);
+      await tester.pumpWidget(host(repo, at: editRoute('curry')));
+      await tester.pumpAndSettle();
+
+      await typeMacros(
+        tester,
+        kcal: '108',
+        protein: '6',
+        carb: '19',
+        fat: '1',
+        fibre: '6.4',
+      );
+      await saveForm(tester);
+
+      expect(
+        (await repo.byId('curry'))!.macros,
+        const Macros(kcal: 108, protein: 6, carb: 19, fat: 1, fiber: 6.4),
+      );
+    });
+
+    testWidgets('fibre alone is refused — it qualifies a panel, it is not '
+        'one', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final repo = FakeIngredientRepo(const [curryLeaves]);
+      await tester.pumpWidget(host(repo, at: editRoute('curry')));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(macroField('fibre'), '6.4');
+      await tester.pump();
+      await saveForm(tester);
+
+      expect(find.textContaining('Fibre is an extra figure'), findsOneWidget);
+      expect((await repo.byId('curry'))!.macros, isNull);
+    });
+
     testWidgets(
       'a complete row opens here too, and the confirm is reversible',
       (tester) async {

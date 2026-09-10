@@ -273,12 +273,14 @@ Future<void> typeMacros(
   required String protein,
   required String carb,
   required String fat,
+  String? fibre,
 }) async {
   for (final (label, value) in [
     ('kcal', kcal),
     ('protein', protein),
     ('carb', carb),
     ('fat', fat),
+    if (fibre != null) ('fibre', fibre),
   ]) {
     await tester.enterText(macroField(label), value);
     await tester.pump();

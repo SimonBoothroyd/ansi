@@ -116,11 +116,16 @@ class UsdaCandidate {
     if (kcal is! num || protein is! num || carb is! num || fat is! num) {
       return null;
     }
+    // The reference set states fibre for most foods and not for all, so it is
+    // read when present and costs the candidate nothing when it is not
+    // ([Macros.fiber]).
+    final fiber = raw['fiber'];
     return Macros(
       kcal: kcal.toDouble(),
       protein: protein.toDouble(),
       carb: carb.toDouble(),
       fat: fat.toDouble(),
+      fiber: fiber is num ? fiber.toDouble() : null,
     );
   }
 
