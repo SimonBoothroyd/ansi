@@ -9,6 +9,7 @@ library;
 
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/ingredients/barcode/ingredient_draft.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
@@ -42,6 +43,15 @@ const _unweighedMango = Ingredient(
   category: 'produce',
   allowedUnits: [g, kg],
   source: 'seed',
+);
+
+/// A bare stub with nothing in its macro fields — the row a scan lands on.
+const _bareStub = Ingredient(
+  id: 'bare',
+  canonicalName: 'Cheddar shreds',
+  defaultUnit: g,
+  status: IngredientStatus.stub,
+  source: 'manual',
 );
 
 /// One open form over the fake repository: the notifier, and a reader for the
@@ -467,6 +477,95 @@ void main() {
       expect(saved!.canonicalName, 'Curry Leaves');
       expect(repo.rows.single.id, saved.id);
       expect(repo.savedForms.single.aliasesAdded.single.text, 'kadi patta');
+    });
+  });
+
+  group('which mode a scan lands the macros section in', () {
+    /// The cheddar shreds' shape: a per-100 panel, the serving the label
+    /// printed beside it, and that serving's own four figures.
+    const per100 = Macros(
+      kcal: 285.714285714286,
+      protein: 0,
+      carb: 21.4285714285714,
+      fat: 25,
+      fiber: 0,
+    );
+    const perServing = Macros(kcal: 80, protein: 0, carb: 6, fat: 7, fiber: 0);
+
+    IngredientDraft scan({DraftServing? serving}) => IngredientDraft(
+      suggestedName: 'Cheddar shreds',
+      source: DraftSource.barcode,
+      barcode: '0099482514778',
+      macros: per100,
+      serving: serving,
+    );
+
+    test('a serving AND the figures printed for it: the label’s numbers go in '
+        'the fields, and per 100 becomes the derivation', () async {
+      final repo = FakeIngredientRepo([_bareStub]);
+      final (:form, :at) = await _open(repo, id: 'bare');
+
+      form.applyScan(
+        scan(
+          serving: const DraftServing(
+            amount: 28,
+            unit: g,
+            printedText: '0.25 cup (28 g)',
+            printed: perServing,
+          ),
+        ),
+      );
+
+      final draft = at();
+      expect(draft.perServing, isTrue);
+      expect(draft.basis, MacrosBasis.perG);
+      expect(draft.macros, MacroDraft.from(perServing));
+      expect(draft.serving.amountText, '28');
+      expect(draft.serving.unit, g);
+      // Stored is still per 100, derived through the serving in front of the
+      // person.
+      expect(draft.storedMacros!.kcal, closeTo(285.7142857, 1e-6));
+      // And the pack's own per-100 column is kept, so leaving the mode with
+      // nothing typed puts the label's other reading back.
+      expect(draft.per100Macros, MacroDraft.from(per100));
+      expect(draft.scannedPer100NeedsServingHint, isFalse);
+    });
+
+    test('a serving with no figures of its own leaves the row per 100 — there '
+        'is no second reading to enter it in', () async {
+      final repo = FakeIngredientRepo([_bareStub]);
+      final (:form, :at) = await _open(repo, id: 'bare');
+
+      form.applyScan(
+        scan(
+          serving: const DraftServing(
+            amount: 28,
+            unit: g,
+            printedText: '0.25 cup (28 g)',
+          ),
+        ),
+      );
+
+      final draft = at();
+      expect(draft.perServing, isFalse);
+      expect(draft.macros, MacroDraft.from(per100));
+      expect(draft.serving.amountText, '28');
+      // The row already states a serving, so nothing points at the mode.
+      expect(draft.scannedPer100NeedsServingHint, isFalse);
+    });
+
+    test('figures with no serving at all stay per 100, and the nudge says the '
+        'mode is there', () async {
+      final repo = FakeIngredientRepo([_bareStub]);
+      final (:form, :at) = await _open(repo, id: 'bare');
+
+      form.applyScan(scan());
+
+      final draft = at();
+      expect(draft.perServing, isFalse);
+      expect(draft.macros, MacroDraft.from(per100));
+      expect(draft.serving.amount, isNull);
+      expect(draft.scannedPer100NeedsServingHint, isTrue);
     });
   });
 

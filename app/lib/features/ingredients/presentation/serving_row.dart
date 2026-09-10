@@ -244,22 +244,30 @@ class ScannedPerServingNudge extends StatelessWidget {
   );
 }
 
-/// The line under a **scanned per-100** row's figures: what the pack printed
-/// per serving, what that is per 100, and whether the two agree.
+/// The line under a **scanned** row's figures: what the pack printed per
+/// serving, what that is per 100, and whether the two agree.
 ///
-/// Drawn only when both readings exist — the label's per-serving figures and
-/// the panel in the fields. Nothing is invented and nothing is corrected: the
-/// pack printed both columns and the app says whether they say the same thing.
+/// Drawn only when both readings exist. Which of them is in the fields
+/// depends on the mode, and the host says which is which: a row entered per
+/// 100 holds the panel and the label's per-serving column rides on the
+/// serving; a row entered per serving holds the label's figures and the
+/// pack's per-100 column is the reading they are checked against. Nothing is
+/// invented and nothing is corrected — the pack printed both columns and the
+/// app says whether they say the same thing.
 class ScannedServingLine extends StatelessWidget {
   const ScannedServingLine({
     required this.serving,
+    required this.printed,
     required this.per100,
     super.key,
   });
 
   final ServingDraft serving;
 
-  /// The four fields as parsed — the per-100 panel the scan landed.
+  /// The label's figures for one serving.
+  final Macros? printed;
+
+  /// The label's own per-100 column, which [printed] is checked against.
   final Macros? per100;
 
   /// The gap either reading is allowed before the line says they differ. A
@@ -270,7 +278,7 @@ class ScannedServingLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final printed = serving.packPrinted;
+    final printed = this.printed;
     final per100 = this.per100;
     final inBasis = serving.amountInBasis;
     if (printed == null || per100 == null || inBasis == null) {

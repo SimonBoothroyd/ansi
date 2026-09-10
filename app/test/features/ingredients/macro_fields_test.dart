@@ -194,8 +194,8 @@ void main() {
       expect(find.text(_nudge), findsNothing);
     });
 
-    testWidgets('a pack that DID print its serving gets the comparison line '
-        'instead — advice would be the worse answer', (tester) async {
+    testWidgets('a pack that DID print its serving is entered in it — there '
+        'is nothing left to advise', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
@@ -209,6 +209,10 @@ void main() {
 
       await scanOnForm(tester, '0099482514778');
       expect(find.text(_nudge), findsNothing);
+      expect(basisChip(tester, 'per serving').selected, isTrue);
+      expect(macroFieldText(tester, 'kcal'), '80');
+      // The comparison holds in this mode too: the fields' figures against the
+      // pack's own per-100 column.
       expect(find.textContaining('the pack prints'), findsOneWidget);
     });
 

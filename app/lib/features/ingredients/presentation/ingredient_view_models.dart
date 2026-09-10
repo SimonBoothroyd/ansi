@@ -166,7 +166,9 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
 
     /// The per-100 figures the fields held before per-serving mode cleared
     /// them, so leaving the mode without typing anything puts the row back
-    /// exactly as it was found.
+    /// exactly as it was found. On a scan of a label that printed BOTH
+    /// columns it is the pack's own per-100 column, which is the same fact
+    /// said by the same pack.
     MacroDraft? per100Macros,
     @Default(DensityUnchanged()) DensityChange density,
 
@@ -254,6 +256,13 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
   /// The four fields as numbers, whatever mode they are in.
   Macros? get printedMacros => macros.toMacros();
 
+  /// The per-100 column a scan landed, when the pack printed one. It is the
+  /// other half of a label that printed both, kept so the comparison line can
+  /// check the two readings against each other from either mode — in
+  /// per-serving mode the fields hold the pack's per-serving column and this
+  /// is what their derivation is checked against.
+  Macros? get scannedPer100 => scanApplied?.macros;
+
   /// What Save would STORE: per 100 of the basis. In per-serving mode that is
   /// the derivation, which is null until the serving amount is in — nothing is
   /// stored that was divided by a blank.
@@ -299,8 +308,8 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
   /// Every clause earns its place. A hand-typed row is excluded because
   /// nobody there is reading a mode off a screen they did not choose; a pack
   /// whose panel WAS per serving already landed in that mode; and a per-100
-  /// pack that also printed its serving draws the comparison line
-  /// ([ScannedServingLine]) instead, which is a better answer than advice.
+  /// pack that also printed its serving already states one, so there is
+  /// nothing to point at.
   ///
   /// It reads the fields rather than a flag, so it goes as soon as the person
   /// touches either the mode or a figure: from then on what is on screen is
@@ -729,26 +738,38 @@ class IngredientForm extends _$IngredientForm {
       packAdded: false,
     );
     if (applied.macros != null) {
-      next = next.copyWith(
-        basis: applied.macrosBasis!,
-        macros: MacroDraft.from(applied.macros),
-        macroSeed: next.macroSeed + 1,
-        perServing: false,
-        per100Macros: null,
-      );
       // A per-100 label that ALSO names its serving ("0.25 cup (28 g)") states
-      // two things, and the row keeps both: the panel in the fields, and the
-      // serving as a measure, so the reading posture can print the pack's own
-      // line back. There is no reason to reach for per-serving mode here.
+      // two things, and the row keeps both: the serving as a measure, so the
+      // reading posture can print the pack's own line back, and the figures in
+      // the fields.
       final printedServing = applied.serving;
-      if (printedServing != null) {
+      final serving = printedServing == null
+          ? null
+          : ServingDraft(
+              amountText: _seed(printedServing.amount),
+              unit: printedServing.unit,
+              packPrinted: printedServing.printed,
+              packPrintedText: printedServing.printedText,
+            );
+      // **Which figures those are is the label's call.** A pack that printed
+      // its per-serving column beside its per-100 one is entered in the
+      // column a person reading the pack would type: the label's numbers are
+      // the fact, and per 100 is the derivation the app shows under them. A
+      // serving with no figures of its own, or figures with no serving to
+      // divide by, leaves the row per 100 — there is no second reading to
+      // enter it in.
+      final printed = printedServing?.printed;
+      final perServing = serving != null && printed != null;
+      next = next.copyWith(
+        basis: perServing ? serving.basis : applied.macrosBasis!,
+        macros: MacroDraft.from(perServing ? printed : applied.macros),
+        macroSeed: next.macroSeed + 1,
+        perServing: perServing,
+        per100Macros: perServing ? MacroDraft.from(applied.macros) : null,
+      );
+      if (serving != null) {
         next = next.copyWith(
-          serving: ServingDraft(
-            amountText: _seed(printedServing.amount),
-            unit: printedServing.unit,
-            packPrinted: printedServing.printed,
-            packPrintedText: printedServing.printedText,
-          ),
+          serving: serving,
           servingSeed: next.servingSeed + 1,
         );
       }

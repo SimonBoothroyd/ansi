@@ -49,8 +49,9 @@
 /// row still stores per 100 of the basis — derived unrounded
 /// ([Macros.per100From]) and previewed live. The serving's "1 tbsp = 14 g" is
 /// offered, opt-in, as this row's density (or a measure when it names a thing)
-/// in the same save. A barcode draft whose panel came per serving lands on that
-/// mode.
+/// in the same save. A barcode draft lands on that mode whenever the label it
+/// came from printed figures for one serving — whether that was the only
+/// column the pack carried or the one it printed beside its per-100 one.
 ///
 /// The form **names the food behind the numbers** at the head of that section,
 /// read off the row's own `source_label` / `source_score` so it is true
@@ -991,20 +992,28 @@ class _DetailForm extends ConsumerWidget {
                 onChanged: form.setMacros,
               ),
               // The derivation, in the person's sight before Save — one muted
-              // line, never in the fields' place. On a scanned per-100 row it
-              // is the other check: what the pack printed per serving against
-              // what its own per-100 column says — or, on a scan that named no
-              // serving at all, the one nudge that per-serving is there.
-              if (draft.perServing)
+              // line, never in the fields' place. On a scanned row the
+              // comparison sits under it: what the pack printed per serving
+              // against what its own per-100 column says, whichever of the two
+              // the fields happen to hold. On a scan that named no serving at
+              // all there is no comparison to draw, and the slot carries the
+              // one nudge that per-serving mode is there.
+              if (draft.perServing) ...[
                 StoredPer100Line(
                   serving: draft.serving,
                   printed: draft.printedMacros,
-                )
-              else if (draft.scannedPer100NeedsServingHint)
+                ),
+                ScannedServingLine(
+                  serving: draft.serving,
+                  printed: draft.printedMacros,
+                  per100: draft.scannedPer100,
+                ),
+              ] else if (draft.scannedPer100NeedsServingHint)
                 const ScannedPerServingNudge()
               else
                 ScannedServingLine(
                   serving: draft.serving,
+                  printed: draft.serving.packPrinted,
                   per100: draft.printedMacros,
                 ),
             ],

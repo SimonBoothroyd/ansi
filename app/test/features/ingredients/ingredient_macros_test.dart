@@ -419,10 +419,9 @@ void main() {
       source: 'manual',
     );
 
-    testWidgets('the cheddar shreds: per 100 g in the fields, the pack’s own '
-        'line checked against them, and the serving kept as a measure', (
-      tester,
-    ) async {
+    testWidgets('the cheddar shreds: the label’s own figures in the fields, '
+        'per-serving mode, the derivation under them and the serving kept as '
+        'a measure', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [bare]);
@@ -449,9 +448,21 @@ void main() {
       await tester.tap(find.text('Look up'));
       await tester.pumpAndSettle();
 
-      // The panel is per 100, so there is no reason to reach for per serving.
-      expect(find.text('One serving is'), findsNothing);
-      expect(macroFieldText(tester, 'kcal'), '285.714285714286');
+      // The label printed both columns, so the row is entered in the one a
+      // person holding the pack reads: 80 kcal per 28 g, as printed.
+      expect(basisChip(tester, 'per serving').selected, isTrue);
+      expect(find.text('One serving is'), findsOneWidget);
+      expect(fieldText(tester, servingAmountField), '28');
+      expect(macroFieldText(tester, 'kcal'), '80');
+      expect(macroFieldText(tester, 'protein'), '0');
+      expect(macroFieldText(tester, 'carb'), '6');
+      expect(macroFieldText(tester, 'fat'), '7');
+      expect(macroFieldText(tester, 'fibre'), '0');
+      // Per 100 is the derivation, and it reads as one.
+      expect(
+        find.textContaining('stored per 100 g · 285.7 kcal · 0P 25F 21.4C'),
+        findsOneWidget,
+      );
       // Both readings are the pack's, and they agree.
       expect(
         find.textContaining(
@@ -467,6 +478,11 @@ void main() {
       // exactly this purpose.
       expect(repo.savedForms.single.serving!.label, 'serving · 28 g');
       expect(repo.savedForms.single.serving!.amount, 28);
+      // The row still stores per 100, derived through the serving.
+      final saved = (await repo.byId('bare'))!;
+      expect(saved.macros!.kcal, closeTo(285.7142857, 1e-6));
+      expect(saved.macros!.carb, closeTo(21.4285714, 1e-6));
+      expect(saved.macrosBasis, MacrosBasis.perG);
     });
 
     testWidgets('the oat milk: per 100 ml, and no serving is invented', (
