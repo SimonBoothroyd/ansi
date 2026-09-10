@@ -182,23 +182,22 @@ class DayMacroLine extends StatelessWidget {
         ],
       );
     }
-    // 3/4 · the total, its denominator, and anything it left out.
+    // 3/4 · the total, its denominator, and anything it left out. The
+    // denominator sits UNDER the cells rather than beside them: five cells
+    // fill a day card's width on their own, and the strip can only scale
+    // itself down inside a bounded width — a row sharing it with a second
+    // text has none to give.
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            MacroCells(macros: macros.total!),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                denominatorLine(macros, scope: scope),
-                textAlign: TextAlign.right,
-                style: ansiMono(size: 10, color: AnsiColors.muted),
-              ),
-            ),
-          ],
+        MacroCells(macros: macros.total!),
+        Padding(
+          padding: const EdgeInsets.only(top: 3),
+          child: Text(
+            denominatorLine(macros, scope: scope),
+            textAlign: TextAlign.right,
+            style: ansiMono(size: 10, color: AnsiColors.muted),
+          ),
         ),
         if (macros.isPartial)
           Padding(
