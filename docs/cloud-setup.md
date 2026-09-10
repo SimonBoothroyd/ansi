@@ -516,6 +516,29 @@ Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
 
+### 2026-09-09 — fibre on cloud (v0.12.0): a reseed, and a rollout that had nothing to do
+
+- `deploy-supabase` run `34426524223` from `main@9708f50`, `reseed_template`
+  **ticked**: link ✓ · `db push` (nothing new — v0.12.0 carries no migration) ✓
+  · `functions deploy import-recipe` ✓ · sync streams ✓ · the five seeds ✓.
+  An earlier run the same evening (`34409373514`, `main@b2c03cb`, no reseed)
+  deployed the import function's timeout ladder and its 504 copy.
+- Read-only readback after the reseed: the template holds **319** live rows,
+  **271** of them with a `fiber` key — and the household **the same 271 of
+  319**. The seed had carried fibre inside `macros` since the USDA reference
+  was generated; the household's clone took it along, and only the app never
+  read the key until v0.12.0. The twelve rows without it are honest gaps in
+  the reference (vinegars, canned tomatoes, cooked rice, a few curated rows).
+- The §2b previews, both scripts: **0 on every leg** for the household
+  (`leg_d_fibre_fills` 0 · `own_macros_kept_as_is` 0 · 2 household-only rows
+  and 1 deleted row left alone · measures `to_insert` 0 of 272). Neither
+  rollout was run — there was nothing to carry, and an idempotent no-op is
+  not worth a write on a live household. Leg (d) (fibre under the sameness
+  guard) exists for the next reseed that changes a figure.
+- `cloud_verify.sh`: **9 ok · 0 warn · 0 fail**.
+- Shipped as `v0.12.0` (release run `34423455276`) before this cloud pass —
+  allowed by §4's order because the release carries no schema change.
+
 ### 2026-09-08 (evening) — the piece weight on cloud (v0.8.0): 0039 and a reseed
 
 - `deploy-supabase` run `34274932829` from `main@f52f8dc`, `reseed_template`
