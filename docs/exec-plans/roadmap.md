@@ -56,6 +56,7 @@ and where to read about it.
 | — | Four owner notes in parallel lanes — a camera door on the import form, an ingredient's name as a door onto its page, a chip's new word keeps the sentence's case, a per-line macros toggle on the recipe page. No migrations | 🟢 `v0.9.0` | — |
 | — | The ingredient page reads before it edits; every default-unit chip is live; typed names are tidied on leaving the field, with an ingredient's word change told and revertible. No migrations | 🟢 `v0.10.0` | — |
 | — | Five owner notes on v0.10.0 — chip case across every word, Title Case for every name kind, the default-unit row back to the sayable set with one note, a new ingredient saves complete or not at all, a beverage label per 100 ml, and the photo import's timeout and stage ladder. No migrations | 🟢 `v0.11.0` | — |
+| — | The serving, redrawn — any kitchen unit on the per-serving row, no free text, density with an amount in its own section, the label's figures printed first on the page, a scan seeding the serving; fibre as the optional fifth macro. No migrations | 🟢 `v0.12.0` | — |
 | 10 | Web UI (near-free with Flutter) | ⚪ stretch | — |
 | 11 | Anti-waste extras — freezer batching, monotony warnings, package-size flags | ⚪ stretch | — |
 
