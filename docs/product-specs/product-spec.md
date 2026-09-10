@@ -184,6 +184,26 @@ The column list is generated from the migrations —
   doctrine: a line whose unit family matches the basis computes directly;
   cross-basis bridges only via density; otherwise the total is honestly
   `incomplete`. USDA prefill rows are per-100 g.
+- **A US label is entered per serving, in the unit it prints in.** The macros
+  section's third mode takes an amount and any kitchen unit (`g kg oz lb · ml l
+  tsp tbsp fl oz cup pt qt`), and **the unit's family is the basis**: a mass
+  serving stores per 100 g, a volume one per 100 ml, converted through the unit
+  catalog alone — `2 tbsp` is 29.57 ml exactly, and no density is involved.
+  The four fields hold the label's figures as printed and one muted line under
+  them says what will be stored. Changing mode **clears** them: they meant per
+  100, and reading them as per serving is how a right number becomes a wrong
+  one.
+- **The serving is kept as the row's one `serving · 2 tbsp` measure**, so the
+  reading posture prints the label's own line back — `190 kcal · 7P 16F 7C per
+  2 tbsp` — by reversing the stored per-100 exactly, with the per-100 figures
+  muted under it. A save that states a serving replaces whatever serving the
+  row had; one that says nothing about it leaves it alone.
+- **A density is stated in the density sentence and nowhere else.** That
+  sentence takes an amount now — "2 tbsp weighs 32 g", as a pack prints it —
+  and reads back the same way, with the stored `g/ml` as the aside. When the
+  row's serving is a volume, the sentence is offered that amount and unit as
+  its left-hand side; a mass serving offers nothing, because what a millilitre
+  of it weighs is a separate fact.
 - Seed from USDA FoodData Central **Foundation Foods + SR Legacy** (CC0).
   Density from FDC volume food portions parsed out of the full portion text
   (7.8 took coverage to 211/291), fallback FAO/INFOODS Density DB v2.0, then

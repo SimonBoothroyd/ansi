@@ -97,8 +97,10 @@ save and the status flip in **one** transaction. Delete stays as it is.
   where before it had already landed. The form is a pushed page with a visible
   dock; this is the standard bargain, and the alternative is the present one
   where nothing is discardable.
-- **The M-D2 serving offer simplifies**: it already defers to Save by writing
-  through `setDensity` inside the save. It stops being the exception.
+- **The per-serving row simplifies**: what a label prints per serving already
+  deferred to Save, and now everything it says rides the same one write — the
+  macros as per-100, and the serving itself as the row's one `serving` measure.
+  It stops being the exception.
 - **The USDA pick stops writing.** It fills the draft; Save lands it. The
   "an explicit pick outranks a half-typed panel" reconciliation added in
   `5eb10cd` is deleted rather than extended — with one write model there is no

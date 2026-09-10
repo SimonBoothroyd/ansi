@@ -178,8 +178,9 @@ ingredients/
     usda_probe.dart          the probe interface + its offline contract
     measure_repository.dart  named per-ingredient measures
     apply_draft.dart         the one rule for landing a barcode draft on a form
-    serving_offer.dart       what a serving's "1 tbsp = 14 g" also says — a
-                             density (ADR-0008 §2) or a measure (§3)
+    serving_measure.dart     the serving a label prints, kept as the row's one
+                             `serving · 2 tbsp` measure — its label, and the
+                             amount and unit read back out of it
   data/
     ingredient_repository_impl.dart  SqliteIngredientRepository — read + write
     measure_repository_impl.dart     measures, with merge-on-read for dup labels
@@ -193,7 +194,10 @@ ingredients/
     usda_pick_sheet.dart        the USDA short-list and its candidate rows
     ingredient_picker.dart      the picker + the add-new chain's row
     measures_editor.dart        add/remove named measures, shared by two hosts
-    serving_row.dart            the per-serving macro mode's "1 tbsp (14 g)" row
+    serving_row.dart            the per-serving macro mode: "One serving is
+                                [2] [tbsp ▾]", the derivation line under the
+                                four fields, and the pack's own two columns
+                                checked against each other on a scanned row
     draft_card.dart             the barcode result card
     quantity_unit_sheet.dart    quantity + unit chips, manage measures
     unit_chips.dart             UnitChipRow/UnitChip, the shared unit dock
