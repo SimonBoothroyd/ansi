@@ -76,6 +76,24 @@ assertions in `begin … rollback` so runs leave no residue.
   is a no-op. pgTAP cannot include a file outside `tests/`, so the script's
   statement is mirrored verbatim between `>>>`/`<<<` markers inside a temp
   function — `make db-lint` diffs the two blocks.
+- `ingredient_rollout.sql` — the monotone `ingredient` rollout
+  ([`../rollout_ingredient_refresh.sql`](../rollout_ingredient_refresh.sql)),
+  the same mirrored-block shape as `measure_rollout.sql` (its own
+  `>>>`/`<<<` pair, its own `make db-lint` diff), wrapped in a plpgsql temp
+  function so the statement's `ROW_COUNT` — the number the operator reads off
+  the run — is itself assertable. All four legs: (a) a null density filled
+  from the template, and a household's own density kept on a row the
+  statement does rewrite; (b) `allowed_units` unioned — the household's unit
+  kept, the template's added; (c) a null piece weight filled with its
+  `piece_source` beside it, an own weight kept; and (d) **fibre**, the one
+  key inside `macros` this script writes: a row still holding exactly the
+  template's four figures on the same `macros_basis` gains the template's
+  `fiber` and nothing else moves (`status`, `source`, every other column
+  untouched; `updated_at` bumped), while a row with one figure edited, a
+  flipped basis, a `fiber` of its own, a tombstone, no template counterpart,
+  or no macros at all is left exactly as it is. Plus: a soft-deleted
+  household gains nothing, the template itself is never written, and a second
+  run touches 0 rows.
 - `default_measure.sql` — the default count measure (0023, plan 0024 seam D1),
   **retired by ADR-0015** and kept for one release because the data is durable.
   Nothing reads `ingredient.default_measure_id` any more and the generated seed

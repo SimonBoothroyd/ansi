@@ -42,11 +42,11 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
 supabase start            # local stack
 supabase db reset         # re-run migrations + seed
 supabase db lint
-supabase test db          # pgTAP tests — eleven suites in tests/ (RLS + the
+supabase test db          # pgTAP tests — fourteen suites in tests/ (RLS + the
                           #   usda server-only boundary, onboarding, the token
-                          #   hook, unit admission, nested recipes, measures +
-                          #   their rollout, portion factor, template seed,
-                          #   shopping/week, USDA search)
+                          #   hook, unit admission, nested recipes, measures,
+                          #   BOTH operator rollouts, portion factor, template
+                          #   seed, shopping/week, USDA search, and more)
 cd functions && deno task test  # edge-function tests (the task carries the
                           #   --allow-read the shared-vector and real-vocab
                           #   suites need; bare `deno test` fails on them)

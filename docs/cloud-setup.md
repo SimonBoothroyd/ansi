@@ -174,14 +174,33 @@ let into cup/tbsp/ml) needs an explicit rollout:
 
 It joins every non-template household's `ingredient` rows to the template's by
 **`match_text`** (the identity that survives cloning — `ensure_onboarded`
-copies it verbatim and re-associates aliases/measures by it), then moves
-exactly two columns, both monotonically: it **fills** `density_g_per_ml` where
-the household's is null and the template's is not, and **extends**
-`allowed_units` to the union of the two lists. `updated_at` is bumped so
-PowerSync replicates the rows down. It never overwrites a household's own
-density, never removes a unit it admitted, never touches rows the household
-created itself (no template counterpart) or soft-deleted, and never writes
-`source`/`status`/`macros`. Re-running it is a no-op.
+copies it verbatim and re-associates aliases/measures by it), then moves four
+things, every one of them monotone — they only ever ADD:
+
+- **(a) `density_g_per_ml`** — **filled** where the household's is null and
+  the template's is not. A household's own density is never overwritten.
+- **(b) `allowed_units`** — **extended** to the union of the two lists. A unit
+  the household admitted is never removed.
+- **(c) `piece_basis_amount`** (+ the `piece_source` that rides with it) — the
+  same fill-only rule as (a). A weight the household typed keeps its number
+  AND its provenance.
+- **(d) `macros -> 'fiber'`** — the one key inside `macros` the script writes,
+  and only under a **sameness guard**: the household's row must have macros,
+  lack a `fiber` key, share the template's `macros_basis`, and still hold
+  *exactly* the template's four figures (`macros - 'fiber'` equal on both
+  sides). Fibre became the optional fifth macro after the live households were
+  seeded, so their rows carry four keys where the reference set has known the
+  fifth all along — and filling it is honest only where nobody has edited the
+  figures, because an edited row's fibre is not the template's to give. The
+  four original figures are never rewritten; a row that already carries its
+  own `fiber` keeps it.
+
+`updated_at` is bumped so PowerSync replicates the rows down. It never touches
+rows the household created itself (no template counterpart) or soft-deleted,
+never writes `source` or `status`, and never moves `default_unit`, measures or
+aliases. Re-running it is a no-op. The pgTAP suite
+`supabase/tests/ingredient_rollout.sql` mirrors the statement verbatim and
+pins all four legs; `make db-lint` fails if the two drift.
 
 Human-run sequence, after the §2 reseed commands above:
 
@@ -203,12 +222,14 @@ Then **each family member signs out and back in, or just waits** — the rows
 arrive over normal sync; no re-onboarding, no reinstall. (Sign-out/in is only
 the impatient path; nothing about the rollout requires a new JWT.)
 
-This generalizes: it is written as "carry the template's `density_g_per_ml`
-and `allowed_units` forward", not as a one-off FAO patch, so re-run it after
-any future template reseed that fills densities or widens unit admission. A
-rollout that has to move a *different* ingredient column is this script with
-another monotone leg — keep the fill-only/union-only shape, or a household's
-own edits get clobbered.
+This generalizes: it is written as "carry the template's density, units, piece
+weight and fibre forward", not as a one-off FAO patch, so re-run it after any
+future template reseed that fills densities or piece weights, widens unit
+admission, or gains a macro key the households lack. A rollout that has to
+move a *different* ingredient column is this script with another monotone leg
+— keep the fill-only/union-only shape, and where the new value only makes
+sense beside numbers the household has not touched, guard it on sameness the
+way (d) does, or a household's own edits get clobbered.
 
 **Measures have their own leg, the same shape:**
 [`supabase/rollout_measure_refresh.sql`](../supabase/rollout_measure_refresh.sql).
@@ -229,8 +250,8 @@ ingredient whose `macros_basis` disagrees with the template's is skipped
 (`basis_mismatch_skipped` in its preview) rather than handed a number in the
 wrong unit. It neither reads nor resets `household.backfilled_at`.
 Re-running it is a no-op. It is a separate file on purpose: the `ingredient`
-script's contract is fill-only/union-only on two columns, this one's is
-insert-missing rows — one file each keeps both contracts legible.
+script's contract is fill-only/union-only on that row's own columns, this
+one's is insert-missing rows — one file each keeps both contracts legible.
 
 Human-run sequence for the measures leg — after the steps above, or alone
 (the two scripts are independent):
@@ -257,7 +278,10 @@ used to name, written where the model now keeps it, stamped
 `borrowed from <label>` in `piece_source`. It is a copy, not a derivation, and
 it fills a null only, so a household that has typed its own weight keeps it.
 Nothing here needs the measures leg above to have run first, and there is no
-follow-up statement to remember.
+follow-up statement to remember. (What needed no script was that column's own
+*arrival*. A **later** template reseed that fills a piece weight the household
+still lacks travels the ordinary way — leg (c) of the ingredient rollout
+above.)
 
 `ingredient.default_measure_id` and `ingredient_default_measure_backfill()`
 stay in the database for one release, **unread by every client** from the
