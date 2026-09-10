@@ -1,59 +1,65 @@
 /// The macros section's **per-serving** mode: the serving row ("One serving is
-/// 14 g · 1 Tbsp on the pack") and the stored-line preview under the four
-/// fields.
+/// 1 cup"), the derivation line under the four fields, and — on a scanned
+/// per-100 row — the line that checks the pack's two readings against each
+/// other.
 ///
-/// The ingredient form owns the mode, and a barcode draft whose panel came per
-/// serving lands on it. The arithmetic is [Macros.per100From] and the row
-/// stores per 100 like every row — this file is only how the person sees the
-/// derivation before Save.
+/// The row takes an amount and **any kitchen unit**, and the unit's family is
+/// the row's basis: a mass serving stores per 100 g, a volume serving per
+/// 100 ml. A volume serving therefore needs no density at all — `2 tbsp` is
+/// 29.57 ml by the catalog, exactly. Density is the density section's subject
+/// and is stated nowhere else.
+///
+/// The arithmetic is [Macros.per100From]'s and the row stores per 100 like
+/// every row — this file is only how the person sees the derivation before
+/// Save.
 library;
 
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
+import '../../../core/result/result.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
+import '../../../core/units/units.dart';
 import '../../../shared/format.dart';
-import '../barcode/barcode_add.dart' show DraftServingPanel;
-import 'density_entry.dart' show AnsiModeChip;
+import '../domain/serving_measure.dart';
 import 'macros_format.dart';
 
-/// The serving a per-serving panel describes, as typed: an amount in the
-/// basis unit, and — on the form only — what the pack calls it.
+/// The units a serving line may say — the mass and volume families of the
+/// catalog, in the catalog's own order. Count and imprecise words are not
+/// servings: a label prints a weight or a measure, and "1 pinch" is not a
+/// panel.
+const kServingUnits = <Unit>[
+  g, kg, oz, lb, //
+  ml, l, tsp, tbsp, flOz, cup, pint, quart,
+];
+
+/// The serving as typed: an amount, and the unit the pack says it in.
 @immutable
 class ServingDraft {
-  const ServingDraft({this.amountText = '', this.name = '', this.packSays});
-
-  /// The row a scanned per-serving panel seeds (M-D5): the amount when OFF
-  /// had a number, and the pack's own words with any trailing parenthetical
-  /// weight dropped ("2 Tbsp (32 g)" → "2 Tbsp"). A serving size that is
-  /// only a weight ("32.0g") names nothing and seeds no name; one OFF gave
-  /// no number for is kept whole as [packSays], beside the empty amount.
-  factory ServingDraft.fromPanel(DraftServingPanel panel) {
-    final amount = panel.servingAmount;
-    var name = (panel.servingSize ?? '')
-        .replaceAll(RegExp(r'\s*\([^)]*\)'), '')
-        .trim();
-    if (RegExp(r'^\d[\d.,]*\s*[a-zA-Z]{0,2}$').hasMatch(name)) name = '';
-    return ServingDraft(
-      amountText: amount == null ? '' : formatQuantity(amount),
-      name: name,
-      packSays: amount == null ? panel.servingSize : null,
-    );
-  }
+  const ServingDraft({
+    this.amountText = '',
+    this.unit = g,
+    this.packPrinted,
+    this.packPrintedText,
+  });
 
   /// The amount field's text. [amount] is its positive parse, or null.
   final String amountText;
 
-  /// What the pack calls one serving ("1 tbsp", "1 slice") — the M-D2 offer
-  /// reads this. Empty when nothing was typed or seeded.
-  final String name;
+  /// The unit the picker holds. It decides the row's [basis], so moving it
+  /// moves the stored fact's dimension with it.
+  final Unit unit;
 
-  /// OFF's free-text `serving_size` when it carried no number, kept to show
-  /// beside the empty amount ("the pack says “1 Tbsp (14 g)” — type the
-  /// weight"). Never parsed into the amount.
-  final String? packSays;
+  /// A scanned per-100 label's own per-serving figures, kept only to check
+  /// the pack's two readings against each other. Never entered into a field
+  /// and never stored.
+  final Macros? packPrinted;
+
+  /// The pack's `serving_size` verbatim ("1 Cup (237 mL)"), quoted in that
+  /// same line.
+  final String? packPrintedText;
 
   /// The serving amount, or null unless it is a positive finite number.
   double? get amount {
@@ -61,135 +67,125 @@ class ServingDraft {
     return v != null && v.isFinite && v > 0 ? v : null;
   }
 
-  ServingDraft copyWith({String? amountText, String? name}) => ServingDraft(
+  /// The basis this serving names: a mass serving is per 100 g, a volume one
+  /// per 100 ml. One fact, said by the unit the person picked.
+  MacrosBasis get basis =>
+      unit.family == UnitFamily.volume ? MacrosBasis.perMl : MacrosBasis.perG;
+
+  /// The serving in [basis]'s base unit — `1 cup` → 236.59 ml — through the
+  /// catalog alone. Null while the amount is blank or not positive.
+  double? get amountInBasis {
+    final a = amount;
+    if (a == null) return null;
+    return switch (convert(Quantity(a, unit), to: basis.baseUnit)) {
+      Ok(:final value) when value.amount > 0 => value.amount,
+      Ok() || Err() => null,
+    };
+  }
+
+  /// `1 cup` — the serving as the pack says it.
+  String get phrase => amount == null ? '' : formatServingPhrase(amount!, unit);
+
+  /// `1 cup = 236.59 ml` — the conversion the derivation line cites. Empty
+  /// for a serving already in its own base unit, where there is nothing to
+  /// convert and the line would only repeat itself.
+  String get conversion {
+    final inBasis = amountInBasis;
+    if (inBasis == null || unit == basis.baseUnit) return '';
+    return '$phrase = ${formatQuantity(inBasis)} ${basis.baseUnit.label}';
+  }
+
+  ServingDraft copyWith({String? amountText, Unit? unit}) => ServingDraft(
     amountText: amountText ?? this.amountText,
-    name: name ?? this.name,
-    packSays: packSays,
+    unit: unit ?? this.unit,
+    packPrinted: packPrinted,
+    packPrintedText: packPrintedText,
   );
 
   @override
   bool operator ==(Object other) =>
       other is ServingDraft &&
       other.amountText == amountText &&
-      other.name == name &&
-      other.packSays == packSays;
+      other.unit == unit &&
+      other.packPrinted == packPrinted &&
+      other.packPrintedText == packPrintedText;
 
   @override
-  int get hashCode => Object.hash(amountText, name, packSays);
+  int get hashCode =>
+      Object.hash(amountText, unit, packPrinted, packPrintedText);
 }
 
-/// "One serving is [14] g · ml [as the pack calls it]" (board frame a).
+/// "One serving is `[1]` `[cup ▾]`" — the whole row.
 ///
-/// The unit chips set the row's **basis** — a 14 g serving reads per 100 g,
-/// a 240 ml one per 100 ml — so there is one stored fact and the serving
-/// names it. The name field is the form's (M-D2) and is hidden when
-/// [withName] is false. Each field reports its own text rather than a whole
-/// draft, so the host folds it into whatever it holds *now* — two fields
-/// typed between rebuilds cannot lose each other.
+/// **A picker, not chips.** Twelve kitchen units is three runs of chips at
+/// 402 pt and one control as a select, and the sentence has to stay a
+/// sentence. The form already uses this idiom for the category, so the row
+/// borrows a shape the page has rather than inventing one.
+///
+/// The unit sets the row's **basis**, so the admission chips and the stored
+/// dimension follow it live. Each field reports its own value rather than a
+/// whole draft, so the host folds it into whatever it holds *now*.
 class ServingRow extends StatelessWidget {
   const ServingRow({
     required this.draft,
-    required this.basis,
     required this.onAmount,
-    required this.onBasis,
-    this.onName,
+    required this.onUnit,
     super.key,
   });
 
   final ServingDraft draft;
-  final MacrosBasis basis;
   final ValueChanged<String> onAmount;
-  final ValueChanged<MacrosBasis> onBasis;
-
-  /// Null hides the name field, for a host that makes no serving offer.
-  final ValueChanged<String>? onName;
-
-  bool get withName => onName != null;
+  final ValueChanged<Unit> onUnit;
 
   @override
-  Widget build(BuildContext context) {
-    final packSays = draft.packSays;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('One serving is', style: ansiMono(size: 11)),
-        const SizedBox(height: 6),
-        // A Wrap: amount · g · ml · the name field is wider than a phone with
-        // the keyboard up, and a Row cannot give room it has not got.
-        Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            SizedBox(
-              width: 72,
-              child: FTextField(
-                key: const ValueKey('serving-amount'),
-                hint: basis.baseUnit.label,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                control: FTextFieldControl.managed(
-                  initial: TextEditingValue(text: draft.amountText),
-                  onChange: (v) => onAmount(v.text),
-                ),
-              ),
-            ),
-            AnsiModeChip(
-              label: 'g',
-              selected: basis == MacrosBasis.perG,
-              onTap: () => onBasis(MacrosBasis.perG),
-            ),
-            AnsiModeChip(
-              label: 'ml',
-              selected: basis == MacrosBasis.perMl,
-              onTap: () => onBasis(MacrosBasis.perMl),
-            ),
-            if (withName)
-              SizedBox(
-                width: 170,
-                child: FTextField(
-                  key: const ValueKey('serving-name'),
-                  hint: 'as the pack calls it — “1 tbsp”',
-                  control: FTextFieldControl.managed(
-                    initial: TextEditingValue(text: draft.name),
-                    onChange: (v) => onName!(v.text),
-                  ),
-                ),
-              ),
-          ],
-        ),
-        Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Text(
-            draft.amount != null
-                ? 'the four fields take the label’s figures as printed, per '
-                      'this serving'
-                : packSays != null
-                ? 'the pack says “$packSays” — type the serving weight'
-                : 'type the serving weight from the pack',
-            style: ansiMono(
-              size: 10,
-              color: draft.amount != null ? AnsiColors.muted : AnsiColors.aging,
-            ),
+  Widget build(BuildContext context) => Row(
+    children: [
+      Text('One serving is', style: ansiMono(size: 11)),
+      const SizedBox(width: 8),
+      SizedBox(
+        width: 64,
+        child: FTextField(
+          key: const ValueKey('serving-amount'),
+          textAlign: TextAlign.center,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          control: FTextFieldControl.managed(
+            initial: TextEditingValue(text: draft.amountText),
+            onChange: (v) => onAmount(v.text),
           ),
         ),
-      ],
-    );
-  }
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: FSelect<Unit>.rich(
+          key: const ValueKey('serving-unit'),
+          format: (u) => u.label,
+          control: FSelectControl<Unit>.lifted(
+            value: draft.unit,
+            onChange: (u) => onUnit(u ?? draft.unit),
+          ),
+          children: [
+            for (final u in kServingUnits)
+              FSelectItem(title: Text(u.label), value: u),
+          ],
+        ),
+      ),
+    ],
+  );
 }
 
-/// The muted line under the four fields (M-D1's preview, M-D3's note): what
-/// the row will store, derived live from the serving and the printed four.
+/// The one muted line under the four fields in per-serving mode: what the row
+/// will store, derived live from the serving and the figures as printed.
+///
+/// `stored per 100 ml · 46 kcal · 0.4P 2.1F 7.2C · from 1 cup = 236.59 ml`.
+/// It is a derivation and reads like one — the fields keep the label's own
+/// numbers, and this says what the app made of them.
 class StoredPer100Line extends StatelessWidget {
   const StoredPer100Line({
-    required this.basis,
     required this.serving,
     required this.printed,
     super.key,
   });
 
-  final MacrosBasis basis;
   final ServingDraft serving;
 
   /// The four fields as parsed, or null while blank or incoherent.
@@ -197,27 +193,81 @@ class StoredPer100Line extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final amount = serving.amount;
+    final basis = serving.basis;
+    final inBasis = serving.amountInBasis;
     final printed = this.printed;
-    final stored = printed == null || amount == null
+    final stored = printed == null || inBasis == null
         ? null
-        : Macros.per100From(serving: amount, basis: basis, printed: printed);
+        : Macros.per100From(serving: inBasis, basis: basis, printed: printed);
     final String text;
     if (printed == null) {
       text = 'stored per 100 ${basis.dbValue} — once the four are in';
     } else if (stored == null) {
-      text = 'stored per 100 ${basis.dbValue}: needs the serving weight';
+      text = 'stored per 100 ${basis.dbValue}: needs the serving amount';
     } else {
-      // M-D3, said once, at entry: the label rounded to whole grams and the
-      // scale factor carries that rounding with it.
+      final from = serving.conversion;
       text =
-          'stored per 100 ${basis.dbValue}: ${formatMacroLine(stored)}\n'
-          'from a ${formatQuantity(amount)} ${basis.baseUnit.label} serving — '
-          'the label’s rounding scales with it';
+          'stored per 100 ${basis.dbValue} · ${formatMacroLineFine(stored)}'
+          '${from.isEmpty ? '' : ' · from $from'}';
     }
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Text(text, style: ansiMono(size: 10, color: AnsiColors.muted)),
     );
   }
+}
+
+/// The line under a **scanned per-100** row's figures: what the pack printed
+/// per serving, what that is per 100, and whether the two agree.
+///
+/// Drawn only when both readings exist — the label's per-serving figures and
+/// the panel in the fields. Nothing is invented and nothing is corrected: the
+/// pack printed both columns and the app says whether they say the same thing.
+class ScannedServingLine extends StatelessWidget {
+  const ScannedServingLine({
+    required this.serving,
+    required this.per100,
+    super.key,
+  });
+
+  final ServingDraft serving;
+
+  /// The four fields as parsed — the per-100 panel the scan landed.
+  final Macros? per100;
+
+  /// The gap either reading is allowed before the line says they differ. A
+  /// label rounds its per-serving column to whole kcal, so a percent of the
+  /// per-100 figure is the rounding the pack itself carries, not a
+  /// disagreement.
+  static const _tolerance = 0.01;
+
+  @override
+  Widget build(BuildContext context) {
+    final printed = serving.packPrinted;
+    final per100 = this.per100;
+    final inBasis = serving.amountInBasis;
+    if (printed == null || per100 == null || inBasis == null) {
+      return const SizedBox.shrink();
+    }
+    final implied = Macros.per100From(
+      serving: inBasis,
+      basis: serving.basis,
+      printed: printed,
+    );
+    if (implied == null) return const SizedBox.shrink();
+    final agree =
+        (implied.kcal - per100.kcal).abs() <= per100.kcal * _tolerance;
+    final says = serving.packPrintedText ?? serving.phrase;
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Text(
+        'the pack prints ${formatQuantity(printed.kcal)} kcal per $says · '
+        'that is ${formatQuantity(_round1(implied.kcal))} per 100 '
+        '${serving.basis.dbValue} — these ${agree ? 'agree' : 'differ'}',
+        style: ansiMono(size: 10, color: AnsiColors.muted),
+      ),
+    );
+  }
+
+  static double _round1(double v) => (v * 10).roundToDouble() / 10;
 }

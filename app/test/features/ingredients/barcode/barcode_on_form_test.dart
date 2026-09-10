@@ -197,8 +197,10 @@ void main() {
       await saveForm(tester, reopen: 'Hazelnut spread');
 
       expect((await repo.byId('bare'))!.sourceLabel, 'Nestlé NESQUIK Cacao');
+      // The head names the basis the four figures are per — the whole trap
+      // the mapper exists to avoid, said out loud on the row it landed on.
       expect(
-        find.text('Filled from a barcode · Nestlé NESQUIK Cacao'),
+        find.text('Filled from a barcode · per 100 g\nNestlé NESQUIK Cacao'),
         findsOneWidget,
       );
       // The code itself is never printed at anybody.

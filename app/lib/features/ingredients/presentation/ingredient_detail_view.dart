@@ -95,7 +95,7 @@ import '../domain/apply_draft.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
 import '../domain/normalize.dart';
-import '../domain/serving_offer.dart';
+import '../domain/serving_measure.dart';
 import '../domain/usda_probe.dart';
 import 'density_entry.dart';
 import 'draft_card.dart';
@@ -342,6 +342,14 @@ class _ReadPosture extends ConsumerWidget {
     final measuresAsync = ref.watch(ingredientMeasuresProvider(ing.id));
     final source = sourceProvenanceLine(ing);
     final pieceWeight = pieceWeightFact(ing);
+    // The row's own serving, when it states one: it is what lets the macro
+    // line print the label's own figures instead of a per-100 reading nobody
+    // holding the jar can check.
+    final serving = servingMeasureOf(
+      measuresAsync.asData?.value ?? const <Measure>[],
+    );
+    final per100 = per100Fact(ing, serving: serving);
+    final densityAside = densityAsideFact(ing, serving: serving);
 
     return FScaffold(
       childPad: false,
@@ -419,10 +427,22 @@ class _ReadPosture extends ConsumerWidget {
                 _Fact(source, muted: true)
               else
                 const SizedBox.shrink(),
-              const _Label('MACROS'),
+              _Label(
+                'MACROS',
+                hint: serving == null
+                    ? null
+                    : 'as the label '
+                          'reads',
+              ),
               // Never zeros: a row with no panel says what it is short of, in
               // the dock's own words (invariant 3).
-              _Fact(macrosFact(ing), muted: ing.macros == null),
+              _Fact(
+                macrosFact(ing, serving: serving),
+                muted: ing.macros == null,
+              ),
+              // The derivation under the label's own line, for the reader who
+              // wants to see what the totals actually use.
+              if (per100 != null) _Fact(per100, muted: true),
             ],
           ),
 
@@ -441,7 +461,11 @@ class _ReadPosture extends ConsumerWidget {
                 _Fact(pieceWeight),
               ],
               const _Label('DENSITY'),
-              _Fact(densityFact(ing), muted: ing.densityGPerMl == null),
+              _Fact(
+                densityFact(ing, serving: serving),
+                muted: ing.densityGPerMl == null,
+              ),
+              if (densityAside != null) _Fact(densityAside, muted: true),
               const _Label('MEASURES', hint: 'count-like, in the basis'),
               // Load-bearing emptiness: an errored stream rendered as "none"
               // would say this row carries no measures, which is a different
@@ -893,32 +917,48 @@ class _DetailForm extends ConsumerWidget {
                 onChooseAnother: busy ? null : pickUsda,
               ),
               // The same fact for a scanned row, with no doors to offer.
-              _BarcodeProvenance(ingredient: ing),
+              _BarcodeProvenance(
+                ingredient: ing,
+                source: draft.pendingSource ?? ing.source,
+                label: draft.pendingSourceLabel ?? ing.sourceLabel,
+                basis: draft.basis,
+              ),
 
               const _Label('MACROS', hint: 'enter them as the label reads'),
               // One segment, in the section it changes. Per 100 of the basis is
               // the default; per serving reveals the row below and reads the
               // same four fields as the label prints them.
+              //
+              // **Every leg puts the keyboard down first.** A mode change
+              // re-seeds the four fields around fresh controllers — that is
+              // what clearing and restoring them means — and a field that
+              // still holds focus when its render object leaves the tree goes
+              // on asking the framework where its caret is. Leaving the field
+              // is what tapping one of these IS.
               Row(
                 children: [
                   AnsiModeChip(
                     label: 'per 100 g',
                     selected:
                         !draft.perServing && draft.basis == MacrosBasis.perG,
-                    onTap: () => form.setBasis(MacrosBasis.perG),
+                    onTap: () => _leaveFields(() {
+                      form.setBasis(MacrosBasis.perG);
+                    }),
                   ),
                   const SizedBox(width: 6),
                   AnsiModeChip(
                     label: 'per 100 ml',
                     selected:
                         !draft.perServing && draft.basis == MacrosBasis.perMl,
-                    onTap: () => form.setBasis(MacrosBasis.perMl),
+                    onTap: () => _leaveFields(() {
+                      form.setBasis(MacrosBasis.perMl);
+                    }),
                   ),
                   const SizedBox(width: 6),
                   AnsiModeChip(
                     label: 'per serving',
                     selected: draft.perServing,
-                    onTap: form.setPerServing,
+                    onTap: () => _leaveFields(form.setPerServing),
                   ),
                 ],
               ),
@@ -932,10 +972,8 @@ class _DetailForm extends ConsumerWidget {
                 ServingRow(
                   key: ValueKey('serving-row-${draft.servingSeed}'),
                   draft: draft.serving,
-                  basis: draft.basis,
                   onAmount: form.setServingAmount,
-                  onName: form.setServingName,
-                  onBasis: form.setServingBasis,
+                  onUnit: form.setServingUnit,
                 )
               else
                 const SizedBox.shrink(),
@@ -947,22 +985,20 @@ class _DetailForm extends ConsumerWidget {
                 draft: draft.macros,
                 onChanged: form.setMacros,
               ),
+              // The derivation, in the person's sight before Save — one muted
+              // line, never in the fields' place. On a scanned per-100 row it
+              // is the other check: what the pack printed per serving against
+              // what its own per-100 column says.
               if (draft.perServing)
                 StoredPer100Line(
-                  basis: draft.basis,
                   serving: draft.serving,
                   printed: draft.printedMacros,
                 )
               else
-                const SizedBox.shrink(),
-              if (draft.offer case final offer?)
-                _ServingOfferLine(
-                  offer: offer,
-                  taken: draft.servingOfferTaken,
-                  onToggle: (v) => form.takeServingOffer(taken: v),
-                )
-              else
-                const SizedBox.shrink(),
+                ScannedServingLine(
+                  serving: draft.serving,
+                  per100: draft.printedMacros,
+                ),
             ],
           ),
 
@@ -1035,6 +1071,10 @@ class _DetailForm extends ConsumerWidget {
                 // replaced, or none where they have just typed one.
                 ingredient: draftRow,
                 redirectedSpoon: draft.redirectedSpoon,
+                // The one place a density is stated (the serving row does
+                // none), and the serving above is offered as its left-hand
+                // side so the pack's "2 tbsp (32 g)" is typed as it reads.
+                servingPrefill: draft.densityPrefill,
                 // Nothing is written here: the density goes in the draft and
                 // the form's Save lands it. The chips follow it because
                 // `draftRow` carries the draft density and the admission rule
@@ -1288,21 +1328,38 @@ class _UsdaProvenance extends StatelessWidget {
 /// **No label, no line.** A row stamped before the label was written says
 /// nothing rather than printing its barcode at somebody.
 class _BarcodeProvenance extends StatelessWidget {
-  const _BarcodeProvenance({required this.ingredient});
+  const _BarcodeProvenance({
+    required this.ingredient,
+    required this.source,
+    required this.label,
+    required this.basis,
+  });
 
   final Ingredient ingredient;
 
+  /// The provenance the next Save will write, falling back to the row's. A
+  /// scan's stamp is on the form before it is on the row, and the head line
+  /// is about the panel in the fields.
+  final String? source;
+  final String? label;
+
+  /// **The head names the basis**, so nobody has to work out which 100 the
+  /// four figures are per — the whole trap the mapper exists to avoid, said
+  /// out loud on the row it landed on. It is the DRAFT's basis: flipping the
+  /// chip moves it.
+  final MacrosBasis basis;
+
   @override
   Widget build(BuildContext context) {
-    final label = ingredient.sourceLabel;
-    if (!isBarcodeFilled(ingredient.source) || label == null || label.isEmpty) {
+    final label = this.label;
+    if (!isBarcodeFilled(source) || label == null || label.isEmpty) {
       return const SizedBox.shrink();
     }
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: Text(
         '${ingredient.sourceEdited ? 'edited · ' : ''}Filled from a barcode · '
-        '$label',
+        'per 100 ${basis.dbValue}\n$label',
         style: ansiMono(size: 10, color: AnsiColors.muted),
       ),
     );
@@ -1378,44 +1435,6 @@ class _MacroFields extends StatelessWidget {
         field('protein', draft.protein, (t) => draft.copyWith(protein: t)),
         field('carb', draft.carb, (t) => draft.copyWith(carb: t)),
         field('fat', draft.fat, (t) => draft.copyWith(fat: t)),
-      ],
-    );
-  }
-}
-
-/// M-D2's line — "This serving also says": the serving's "1 tbsp = 14 g"
-/// offered as this row's density, or "1 slice = 28 g" as a measure. Off by
-/// default: a pack's "about 1 tbsp" is sometimes a guess, and a density
-/// minted from a guess would decide what units the row admits.
-class _ServingOfferLine extends StatelessWidget {
-  const _ServingOfferLine({
-    required this.offer,
-    required this.taken,
-    required this.onToggle,
-  });
-
-  final ServingOffer offer;
-  final bool taken;
-  final ValueChanged<bool> onToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _Label('THIS SERVING ALSO SAYS'),
-        FCheckbox(
-          key: const ValueKey('serving-offer'),
-          value: taken,
-          onChange: onToggle,
-          label: Text(offer.sentence, style: ansiMono(size: 11)),
-        ),
-        _Note(
-          taken
-              ? offer.whenTaken
-              : 'not taken — the serving is stored as macros only; tick it '
-                    'and Save writes this too',
-        ),
       ],
     );
   }
@@ -2280,6 +2299,15 @@ class _ActionBar extends StatelessWidget {
   );
 }
 
+/// Runs [change] with the keyboard put down — for an intent that rebuilds the
+/// fields it is dispatched from. The same reason the form's own `leave` does
+/// it: a focused field whose render object goes keeps asking the framework
+/// where its caret is, and the framework asserts.
+void _leaveFields(VoidCallback change) {
+  FocusManager.instance.primaryFocus?.unfocus();
+  change();
+}
+
 class _Note extends StatelessWidget {
   const _Note(this.text);
 
@@ -2290,30 +2318,4 @@ class _Note extends StatelessWidget {
     padding: const EdgeInsets.only(top: 6),
     child: Text(text, style: ansiMono(size: 10, color: AnsiColors.muted)),
   );
-}
-
-/// How the offer reads on screen. The arithmetic is
-/// [servingOfferFor]'s; these are the only two sentences it needs, and they
-/// stay here because a domain rule does not own words.
-extension ServingOfferSentences on ServingOffer {
-  /// The tick's label: "1 tbsp weighs 14 g — set as density".
-  String get sentence => switch (this) {
-    DensityOffer(:final unit, :final gramsPerUnit) =>
-      '1 ${unit.label} weighs ${formatQuantity(gramsPerUnit)} g — set as '
-          'density',
-    MeasureOffer(:final label, :final amount, :final basis) =>
-      '1 $label = ${formatQuantity(amount)} ${basis.baseUnit.label} — add as '
-          'a measure',
-  };
-
-  /// The note under a taken tick: what Save will do with it.
-  String get whenTaken => switch (this) {
-    DensityOffer(:final gPerMl) =>
-      '= ${formatDensity(gPerMl)} g/ml, written with this Save through the '
-          'density entry — the volume chips unlock as they do when a density '
-          'is typed by hand',
-    MeasureOffer() =>
-      'lands in the measures below with this Save — rename it or bin it '
-          'there',
-  };
 }

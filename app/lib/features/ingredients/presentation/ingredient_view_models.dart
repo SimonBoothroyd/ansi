@@ -33,7 +33,7 @@ import '../domain/allowed_units.dart';
 import '../domain/apply_draft.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
-import '../domain/serving_offer.dart';
+import '../domain/serving_measure.dart';
 import '../domain/suggest_name.dart';
 import '../domain/usda_probe.dart';
 import 'serving_row.dart';
@@ -136,12 +136,18 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     /// label's figures AS PRINTED and the serving row says what they describe,
     /// and what is stored is still per 100 of the basis.
     @Default(false) bool perServing,
+
+    /// The serving the row's label prints — typed in per-serving mode, or
+    /// carried by a scan whose per-100 panel named one. Independent of
+    /// [perServing]: a per-100 label that says "80 kcal per 28 g" states a
+    /// serving without the row ever being entered in it, and Save keeps it as
+    /// the row's one `serving` measure either way.
     @Default(ServingDraft()) ServingDraft serving,
 
-    /// Whether the serving's "1 tbsp = 14 g" was taken as this row's density
-    /// (or a measure). Off by default — a pack's "about 1 tbsp" is sometimes a
-    /// guess, and a density minted from a guess decides what units admit.
-    @Default(false) bool servingOfferTaken,
+    /// The per-100 figures the fields held before per-serving mode cleared
+    /// them, so leaving the mode without typing anything puts the row back
+    /// exactly as it was found.
+    MacroDraft? per100Macros,
     @Default(DensityUnchanged()) DensityChange density,
 
     /// The piece weight as the form holds it — the count-side twin of
@@ -229,24 +235,42 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
   Macros? get printedMacros => macros.toMacros();
 
   /// What Save would STORE: per 100 of the basis. In per-serving mode that is
-  /// the derivation, which is null until the serving weight is in — nothing is
+  /// the derivation, which is null until the serving amount is in — nothing is
   /// stored that was divided by a blank.
+  ///
+  /// The serving converts into the basis through the catalog alone (`1 cup` is
+  /// 236.59 ml, exactly), so a volume serving needs no density.
   Macros? get storedMacros {
     if (!perServing) return printedMacros;
     final printed = printedMacros;
-    final amount = serving.amount;
+    final amount = serving.amountInBasis;
     if (printed == null || amount == null) return null;
     return Macros.per100From(serving: amount, basis: basis, printed: printed);
   }
 
-  /// What the serving row's name and weight ALSO say, or null.
-  ServingOffer? get offer => perServing
-      ? servingOfferFor(
-          amount: serving.amount,
-          name: serving.name,
-          basis: basis,
-        )
-      : null;
+  /// The serving to keep as the row's one measure, or null when the row states
+  /// none. It is the serving as typed or scanned, refused only when it cannot
+  /// be said in the basis the row is actually storing — a `cup` serving with
+  /// the basis flipped to per 100 g has no honest weight, and a measure that
+  /// needed a density would be smuggling one in (ADR-0008 §2).
+  ({double inBasis, String label})? get servingMeasure {
+    final amount = serving.amount;
+    final inBasis = serving.amountInBasis;
+    if (amount == null || inBasis == null || serving.basis != basis) {
+      return null;
+    }
+    return (inBasis: inBasis, label: servingMeasureLabel(amount, serving.unit));
+  }
+
+  /// The serving offered to the density sentence as its left-hand side — only
+  /// a **volume** one, because only a volume serving's weight is a density.
+  /// A mass serving prefills nothing new: the row already knows what it
+  /// weighs, and what a millilitre of it weighs is a separate fact.
+  ({double amount, Unit unit})? get densityPrefill {
+    final amount = serving.amount;
+    if (amount == null || serving.unit.family != UnitFamily.volume) return null;
+    return (amount: amount, unit: serving.unit);
+  }
 
   bool get stub => row.status == IngredientStatus.stub;
 
@@ -263,9 +287,9 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
       return 'Enter all four macros, or leave them all blank — a part of a '
           'panel isn’t a panel.';
     }
-    if (perServing && printedMacros != null && serving.amount == null) {
+    if (perServing && printedMacros != null && serving.amountInBasis == null) {
       return 'One serving is how much? The label’s figures become per 100 '
-          'only once the serving weight is typed.';
+          'only once the serving amount is typed.';
     }
     // D4c, held on the write side too. The chips refuse to OFFER a default
     // the row cannot say, but a basis flipped (or a USDA pick landed) after
@@ -391,6 +415,7 @@ class IngredientForm extends _$IngredientForm {
       // A row's own macros are per 100 by definition — the fields now hold
       // them, so the mode must say so.
       perServing: false,
+      per100Macros: null,
     );
   }
 
@@ -474,25 +499,54 @@ class IngredientForm extends _$IngredientForm {
   }
 
   /// Per 100 of the basis — the mode a row's own macros are in by definition.
-  void setBasis(MacrosBasis basis) =>
-      state = state.copyWith(perServing: false, basis: basis);
-
-  /// The serving's unit sets the BASIS, so the admission chips follow it live.
-  void setServingBasis(MacrosBasis basis) =>
+  ///
+  /// **Leaving per-serving mode refills the four fields with the derivation**,
+  /// because that is what they now mean. Nothing was typed in the mode yet?
+  /// Then the per-100 figures it cleared come back, so a mis-tap costs a
+  /// person nothing.
+  void setBasis(MacrosBasis basis) {
+    if (!state.perServing) {
       state = state.copyWith(basis: basis);
+      return;
+    }
+    final derived = state.storedMacros;
+    final macros = derived != null
+        ? MacroDraft.from(derived)
+        : state.per100Macros ?? const MacroDraft();
+    state = state.copyWith(
+      perServing: false,
+      basis: basis,
+      macros: macros,
+      macroSeed: state.macroSeed + 1,
+      per100Macros: null,
+    );
+  }
 
-  void setPerServing() => state = state.copyWith(perServing: true);
+  /// The serving's unit sets the BASIS — a `cup` serving stores per 100 ml —
+  /// so the admission chips and the stored dimension follow it live.
+  void setServingUnit(Unit unit) {
+    final serving = state.serving.copyWith(unit: unit);
+    state = state.copyWith(serving: serving, basis: serving.basis);
+  }
+
+  /// **The four fields CLEAR.** They held per-100 figures; carrying them into
+  /// fields that now mean per serving is how a right number becomes a wrong
+  /// one. What they held is remembered, so [setBasis] can put it back.
+  void setPerServing() {
+    if (state.perServing) return;
+    state = state.copyWith(
+      perServing: true,
+      basis: state.serving.basis,
+      per100Macros: state.macros,
+      macros: const MacroDraft(),
+      macroSeed: state.macroSeed + 1,
+    );
+  }
 
   void setMacros(MacroDraft macros) => state = state.copyWith(macros: macros);
 
   void setServingAmount(String text) =>
       state = state.copyWith(serving: state.serving.copyWith(amountText: text));
-
-  void setServingName(String text) =>
-      state = state.copyWith(serving: state.serving.copyWith(name: text));
-
-  void takeServingOffer({required bool taken}) =>
-      state = state.copyWith(servingOfferTaken: taken);
 
   // --- Density -------------------------------------------------------------
 
@@ -630,21 +684,44 @@ class IngredientForm extends _$IngredientForm {
         macros: MacroDraft.from(applied.macros),
         macroSeed: next.macroSeed + 1,
         perServing: false,
+        per100Macros: null,
       );
+      // A per-100 label that ALSO names its serving ("0.25 cup (28 g)") states
+      // two things, and the row keeps both: the panel in the fields, and the
+      // serving as a measure, so the reading posture can print the pack's own
+      // line back. There is no reason to reach for per-serving mode here.
+      final printedServing = applied.serving;
+      if (printedServing != null) {
+        next = next.copyWith(
+          serving: ServingDraft(
+            amountText: _seed(printedServing.amount),
+            unit: printedServing.unit,
+            packPrinted: printedServing.printed,
+            packPrintedText: printedServing.printedText,
+          ),
+          servingSeed: next.servingSeed + 1,
+        );
+      }
     }
     final panel = applied.servingPanel;
     if (panel != null) {
       // A per-serving panel lands on the per-serving mode: the four as printed,
       // the serving amount prefilled when the payload had a number and
       // otherwise left for the person, never parsed out of the free text.
+      final unit = (panel.servingBasis ?? next.basis).baseUnit;
+      final amount = panel.servingAmount;
+      final serving = ServingDraft(
+        amountText: amount == null ? '' : _seed(amount),
+        unit: unit,
+      );
       next = next.copyWith(
         perServing: true,
-        basis: panel.servingBasis ?? next.basis,
+        basis: serving.basis,
         macros: MacroDraft.from(panel.printed),
         macroSeed: next.macroSeed + 1,
-        serving: ServingDraft.fromPanel(panel),
+        per100Macros: null,
+        serving: serving,
         servingSeed: next.servingSeed + 1,
-        servingOfferTaken: false,
       );
     }
     // **The name, when there isn't one yet.** `applyDraft` returns one only
@@ -694,6 +771,7 @@ class IngredientForm extends _$IngredientForm {
         seededMacros: filled,
         macroSeed: next.macroSeed + 1,
         perServing: false,
+        per100Macros: null,
       );
     }
     state = next.copyWith(allowed: _admissionFor(next.editedRow, next.allowed));
@@ -765,7 +843,6 @@ class IngredientForm extends _$IngredientForm {
         pendingSource: null,
         pendingSourceLabel: null,
         pendingSourceScore: null,
-        servingOfferTaken: false,
         density: const DensityUnchanged(),
         pieceWeight: const PieceWeightUnchanged(),
         measuresAdded: const [],
@@ -779,12 +856,11 @@ class IngredientForm extends _$IngredientForm {
     }
   }
 
-  /// The whole form as one intent. The serving offer, when taken, rides the
-  /// same write as everything else.
+  /// The whole form as one intent. The serving, when the row states one, rides
+  /// the same write as everything else — as the row's one `serving` measure,
+  /// which is what lets the reading posture print the label's figures back.
   IngredientFormEdit _edit({required bool markComplete}) {
-    final taken = state.servingOfferTaken ? state.offer : null;
-    final offeredDensity = taken is DensityOffer ? taken.gPerMl : null;
-    final offeredMeasure = taken is MeasureOffer ? taken : null;
+    final serving = state.servingMeasure;
     return IngredientFormEdit(
       row: IngredientEdit(
         canonicalName: state.name,
@@ -797,18 +873,17 @@ class IngredientForm extends _$IngredientForm {
         sourceLabel: state.pendingSourceLabel,
         sourceScore: state.pendingSourceScore,
       ),
-      density: offeredDensity != null
-          ? DensitySet(offeredDensity)
-          : state.density,
+      density: state.density,
+      serving: serving == null
+          ? null
+          : PendingMeasure(
+              id: _uuid.v4(),
+              label: serving.label,
+              amount: serving.inBasis,
+            ),
       measuresAdded: [
         for (final m in state.measuresAdded)
           PendingMeasure(id: m.id, label: m.label, amount: m.amount),
-        if (offeredMeasure != null)
-          PendingMeasure(
-            id: _uuid.v4(),
-            label: offeredMeasure.label,
-            amount: offeredMeasure.amount,
-          ),
       ],
       measuresRemoved: state.measuresRemoved,
       aliasesAdded: [

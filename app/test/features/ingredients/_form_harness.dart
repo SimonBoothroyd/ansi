@@ -205,10 +205,17 @@ final Finder categorySelect = find.byWidgetPredicate(
   (w) => w is FSelect<String>,
 );
 
-/// The density entry's g/ml input (the only field it renders unless the
-/// spoon phrasing is picked).
+/// The density sentence's **grams** slot — `2 tbsp weighs [__] g`. The
+/// sentence takes an amount on its left now, so both number slots are keyed
+/// and neither is found by position.
 final Finder densityField = find.descendant(
-  of: find.byType(DensityEntry),
+  of: find.byKey(const ValueKey('density-grams')),
+  matching: find.byType(TextField),
+);
+
+/// The density sentence's **amount** slot — the `2` of `2 tbsp weighs 32 g`.
+final Finder densityAmountField = find.descendant(
+  of: find.byKey(const ValueKey('density-amount')),
   matching: find.byType(TextField),
 );
 
@@ -224,16 +231,38 @@ Finder macroField(String label) => find.descendant(
 String macroFieldText(WidgetTester tester, String label) =>
     tester.widget<TextField>(macroField(label)).controller!.text;
 
-/// The per-serving mode's serving amount / name inputs (plan 0027 M-D1),
-/// keyed on the shared row so both hosts' tests find the same field.
+/// The serving row's amount input, keyed on the shared row so both hosts'
+/// tests find the same field.
 final Finder servingAmountField = find.descendant(
   of: find.byKey(const ValueKey('serving-amount')),
   matching: find.byType(TextField),
 );
-final Finder servingNameField = find.descendant(
-  of: find.byKey(const ValueKey('serving-name')),
-  matching: find.byType(TextField),
-);
+
+/// The serving row's unit picker — a select over every kitchen unit, which is
+/// what replaced the `g · ml` chips and the free-text name beside them.
+final Finder servingUnitSelect = find.byKey(const ValueKey('serving-unit'));
+
+/// One unit's option inside the serving row's open select. Found by its
+/// VALUE, not by its text: the popover renders in an overlay that sorts
+/// *before* the page in finder order, so `find.text('cup').last` picks the
+/// density sentence's `cup` chip instead of the option.
+Finder servingUnitOption(Unit unit) =>
+    find.byWidgetPredicate((w) => w is FSelectItem<Unit> && w.value == unit);
+
+/// Opens the serving row's unit select and picks [unit].
+///
+/// The popover scrolls — twelve units is taller than it opens — so an option
+/// below the fold is laid out where a tap cannot reach it. Ensure it is
+/// visible first, or the tap lands on the page behind and the unit never moves.
+Future<void> pickServingUnit(WidgetTester tester, Unit unit) async {
+  await tester.tap(servingUnitSelect);
+  await tester.pumpAndSettle();
+  await tester.ensureVisible(servingUnitOption(unit));
+  await tester.pumpAndSettle();
+  await tester.tap(servingUnitOption(unit));
+  await tester.pumpAndSettle();
+}
+
 String fieldText(WidgetTester tester, Finder field) =>
     tester.widget<TextField>(field).controller!.text;
 
@@ -479,6 +508,7 @@ Widget densityHost(
   Ingredient ingredient, {
   String saveLabel = 'Add',
   Ingredient? landsAs,
+  ({double amount, Unit unit})? servingPrefill,
 }) {
   var shown = ingredient;
   return ProviderScope(
@@ -499,6 +529,7 @@ Widget densityHost(
                 ingredient: shown,
                 saveLabel: saveLabel,
                 redirectedSpoon: null,
+                servingPrefill: servingPrefill,
                 // This host measures LAYOUT, so the write seam is inert: the
                 // widget no longer knows a repository, and this stands in for
                 // the host that would land it.

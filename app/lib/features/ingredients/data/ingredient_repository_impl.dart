@@ -32,6 +32,7 @@ import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
 import '../domain/normalize.dart';
+import '../domain/serving_measure.dart';
 
 const _uuid = Uuid();
 
@@ -541,7 +542,8 @@ class SqliteIngredientRepository implements IngredientRepository {
         'must not be blank',
       );
     }
-    for (final m in edit.measuresAdded) {
+    for (final m in [edit.serving, ...edit.measuresAdded]) {
+      if (m == null) continue;
       final label = m.label.trim();
       if (label.isEmpty) {
         throw ArgumentError.value(m.label, 'label', 'must not be empty');
@@ -731,14 +733,27 @@ class SqliteIngredientRepository implements IngredientRepository {
         );
       }
 
-      if (edit.measuresAdded.isNotEmpty) {
+      // The serving is ONE measure per row, so the old one goes before the new
+      // one lands — in this same transaction, so the row is never seen with
+      // two servings or with none.
+      if (edit.serving != null) {
+        await tx.execute(
+          'UPDATE ingredient_measure SET deleted_at = ?, updated_at = ? '
+          'WHERE ingredient_id = ? AND deleted_at IS NULL '
+          "AND label LIKE ? || '%'",
+          [now, now, id, kServingMeasurePrefix],
+        );
+      }
+
+      final adding = [?edit.serving, ...edit.measuresAdded];
+      if (adding.isNotEmpty) {
         final maxRow = await tx.get(
           'SELECT COALESCE(MAX(sort_order), -1) AS m FROM ingredient_measure '
           'WHERE ingredient_id = ? AND deleted_at IS NULL',
           [id],
         );
         var sortOrder = (maxRow['m'] as int) + 1;
-        for (final m in edit.measuresAdded) {
+        for (final m in adding) {
           // A plain INSERT, never ON CONFLICT (view-backed local tables
           // reject UPSERT), and no label-collision check — a duplicate merges
           // on read instead of failing anywhere.

@@ -65,6 +65,7 @@ class IngredientFormEdit {
   const IngredientFormEdit({
     required this.row,
     this.density = const DensityUnchanged(),
+    this.serving,
     this.measuresAdded = const [],
     this.measuresRemoved = const {},
     this.aliasesAdded = const [],
@@ -82,6 +83,14 @@ class IngredientFormEdit {
   /// applied that unlock (or strip), so `row.allowedUnits` is authoritative
   /// and this is written beside it rather than deriving it.
   final DensityChange density;
+
+  /// The serving the row's label prints, kept as its **one**
+  /// `serving · 2 tbsp` measure. Writing one replaces whatever serving the row
+  /// already had rather than stacking a second beside it — a row has one
+  /// label, and a serving is a fact about that label. Null says nothing about
+  /// the serving, so a save that was about something else leaves it alone; the
+  /// measures editor is where one is binned.
+  final PendingMeasure? serving;
 
   final List<PendingMeasure> measuresAdded;
   final Set<String> measuresRemoved;

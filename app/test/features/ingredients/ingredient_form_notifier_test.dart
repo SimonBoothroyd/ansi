@@ -12,7 +12,6 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
-import 'package:ansi/features/ingredients/domain/serving_offer.dart';
 import 'package:ansi/features/ingredients/domain/usda_probe.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_view_models.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -168,14 +167,76 @@ void main() {
       expect(at().printedMacros!.kcal, 30);
       expect(at().storedMacros, isNull);
 
-      form
-        ..setServingAmount('50')
-        ..setServingName('1 tbsp');
+      form.setServingAmount('50');
       expect(at().storedMacros!.kcal, 60);
-      // And the serving's own second fact is offered, unticked.
-      expect(at().offer, isA<DensityOffer>());
-      expect(at().servingOfferTaken, isFalse);
+      // The serving states no density: that is the density section's subject,
+      // and the row is per 100 g because `g` is what the picker says.
+      expect(at().basis, MacrosBasis.perG);
+      expect(at().densityPrefill, isNull);
     });
+
+    test('a volume serving lands the row per 100 ml, through the catalog and '
+        'no density at all', () async {
+      final repo = FakeIngredientRepo([_mango]);
+      final (:form, :at) = await _open(repo, id: 'mango');
+      form
+        ..setPerServing()
+        ..setServingUnit(cup)
+        ..setServingAmount('1')
+        ..setMacros(
+          const MacroDraft(kcal: '110', protein: '1', carb: '17', fat: '5'),
+        );
+
+      // 1 cup is 236.5882365 ml by the catalog — exact, and nothing weighs it.
+      expect(at().basis, MacrosBasis.perMl);
+      expect(at().storedMacros!.kcal, closeTo(110 / 236.5882365 * 100, 1e-9));
+      expect(at().densityValue, isNull);
+      // The density section is offered the serving as its left-hand side, and
+      // that is the ONLY thing the serving says about density.
+      expect(at().densityPrefill, (amount: 1.0, unit: cup));
+    });
+
+    test(
+      'the mode chips clear the four fields, and put them back derived',
+      () async {
+        final repo = FakeIngredientRepo([_mango]);
+        final (:form, :at) = await _open(repo, id: 'mango');
+        // Per 100 → per serving CLEARS: those figures were per 100, and reading
+        // them as per serving is how a right number becomes a wrong one.
+        form
+          ..setMacros(
+            const MacroDraft(kcal: '60', protein: '1', carb: '15', fat: '0'),
+          )
+          ..setPerServing();
+        expect(at().macros.allBlank, isTrue);
+
+        // Back to per 100 and the fields hold the DERIVATION, not the label.
+        form
+          ..setServingAmount('2')
+          ..setServingUnit(tbsp)
+          ..setMacros(
+            const MacroDraft(kcal: '190', protein: '7', carb: '7', fat: '16'),
+          )
+          ..setBasis(MacrosBasis.perMl);
+        expect(at().perServing, isFalse);
+        expect(
+          double.parse(at().macros.kcal),
+          closeTo(190 / (2 * 14.78676478125) * 100, 1e-9),
+        );
+
+        // And a mode tapped by accident costs nothing: nothing typed in it, so
+        // what it cleared comes back.
+        form
+          ..setBasis(MacrosBasis.perG)
+          ..setMacros(
+            const MacroDraft(kcal: '60', protein: '1', carb: '15', fat: '0'),
+          )
+          ..setPerServing();
+        expect(at().macros.allBlank, isTrue);
+        form.setBasis(MacrosBasis.perG);
+        expect(at().macros.kcal, '60');
+      },
+    );
 
     test('the seeded fields are LOSSLESS — opening a row and saving it '
         'untouched writes back exactly what was stored', () async {
@@ -260,27 +321,32 @@ void main() {
       expect(asked.markComplete, isTrue);
     });
 
-    test('the taken serving offer rides the same write', () async {
+    test('the serving rides the same write, as ONE measure', () async {
       final repo = FakeIngredientRepo([_mango]);
       final (:form, at: _) = await _open(repo, id: 'mango');
       form
         ..setPerServing()
+        ..setServingUnit(tbsp)
+        ..setServingAmount('2')
         ..setMacros(
-          const MacroDraft(kcal: '30', protein: '1', carb: '7', fat: '0'),
-        )
-        ..setServingAmount('14')
-        ..setServingName('1 tbsp')
-        ..takeServingOffer(taken: true);
+          const MacroDraft(kcal: '190', protein: '7', carb: '7', fat: '16'),
+        );
 
       await form.save();
 
       final asked = repo.savedForms.single;
-      // A volume-named weight is a density (ADR-0008 §2), so it lands as one —
-      // in the same transaction as the macros it came with.
-      expect(asked.density, isA<DensitySet>());
+      // The serving is a measure on the row, named so the reading posture can
+      // print the label's own line back — and it states no density.
+      expect(asked.serving!.label, 'serving · 2 tbsp');
+      expect(asked.serving!.amount, closeTo(2 * 14.78676478125, 1e-9));
       expect(asked.measuresAdded, isEmpty);
+      expect(asked.density, isA<DensityUnchanged>());
       // And what is stored is per 100 of the basis, not what the label printed.
-      expect(asked.row.macros!.kcal, closeTo(30 / 14 * 100, 1e-9));
+      expect(
+        asked.row.macros!.kcal,
+        closeTo(190 / (2 * 14.78676478125) * 100, 1e-9),
+      );
+      expect(asked.row.macrosBasis, MacrosBasis.perMl);
     });
 
     test('a second Save does not write the draft twice', () async {
@@ -312,11 +378,13 @@ void main() {
       expect(await form.save(), isNull);
       expect(at().message, contains('all four macros'));
 
+      // Per-serving mode clears the four, so the refusal is about figures
+      // typed IN the mode with no serving under them.
       form
+        ..setPerServing()
         ..setMacros(
           const MacroDraft(kcal: '30', protein: '1', carb: '7', fat: '0'),
-        )
-        ..setPerServing();
+        );
       expect(await form.save(), isNull);
       expect(at().message, contains('One serving is how'));
 

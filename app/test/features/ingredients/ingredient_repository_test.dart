@@ -1250,6 +1250,63 @@ void main() {
       expect(live.single['basis_amount'], 125);
     });
 
+    test('the serving is ONE measure per row: a second save replaces it rather '
+        'than stacking a second beside it', () async {
+      await repo.saveForm(
+        '1',
+        IngredientFormEdit(
+          row: _edit(name: 'Onion'),
+          serving: const PendingMeasure(
+            id: 's-a',
+            label: 'serving · 2 tbsp',
+            amount: 29.57,
+          ),
+          measuresAdded: const [
+            PendingMeasure(id: 'm-a', label: 'medium', amount: 100),
+          ],
+        ),
+      );
+      await repo.saveForm(
+        '1',
+        IngredientFormEdit(
+          row: _edit(name: 'Onion'),
+          serving: const PendingMeasure(
+            id: 's-b',
+            label: 'serving · 1 cup',
+            amount: 236.59,
+          ),
+        ),
+      );
+      final live = await db.getAll(
+        'SELECT id, label FROM ingredient_measure '
+        "WHERE ingredient_id = '1' AND deleted_at IS NULL ORDER BY sort_order",
+      );
+      // The old serving is gone, the named measure beside it is untouched.
+      expect(live.map((r) => r['label']), ['medium', 'serving · 1 cup']);
+      expect(live.map((r) => r['id']), ['m-a', 's-b']);
+    });
+
+    test('a save that says nothing about the serving leaves the stored one '
+        'exactly where it is', () async {
+      await repo.saveForm(
+        '1',
+        IngredientFormEdit(
+          row: _edit(name: 'Onion'),
+          serving: const PendingMeasure(
+            id: 's-a',
+            label: 'serving · 2 tbsp',
+            amount: 29.57,
+          ),
+        ),
+      );
+      await repo.saveForm('1', IngredientFormEdit(row: _edit(name: 'Onion')));
+      final live = await db.getAll(
+        'SELECT id FROM ingredient_measure '
+        "WHERE ingredient_id = '1' AND deleted_at IS NULL",
+      );
+      expect(live.map((r) => r['id']), ['s-a']);
+    });
+
     test('markComplete flips the status IN THE SAME transaction as the save — '
         'no path leaves a row saved-but-not-marked', () async {
       final saved = await repo.saveForm(

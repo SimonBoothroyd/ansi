@@ -9,6 +9,7 @@ library;
 
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
+import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/presentation/density_entry.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart';
@@ -236,6 +237,80 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('CANONICAL NAME'), findsOneWidget);
       expect(find.text('FILL IT IN FROM'), findsOneWidget);
+    });
+  });
+
+  group('a row that states a serving reads the label first', () {
+    /// The owner's peanut butter, as the form would have left it: the macros
+    /// per 100 ml, the serving kept as a measure, and a density typed in the
+    /// density section as the jar prints it.
+    const peanutButter = Ingredient(
+      id: 'pb',
+      canonicalName: 'Peanut Butter',
+      defaultUnit: ml,
+      status: IngredientStatus.complete,
+      category: 'pantry',
+      densityGPerMl: 1.0820182,
+      macros: Macros(kcal: 642.464, protein: 23.669, carb: 23.669, fat: 54.101),
+      macrosBasis: MacrosBasis.perMl,
+      measureCount: 1,
+      source: 'manual',
+    );
+
+    testWidgets('the jar’s own line, with the per-100 under it — and the '
+        'density in the unit it was typed in', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [peanutButter]),
+          at: ingredientDetailRoute('pb'),
+          measures: FakeMeasureRepo(const [
+            Measure(
+              id: 's1',
+              label: 'serving · 2 tbsp',
+              amount: 29.5735295625,
+              basis: MacrosBasis.perMl,
+              source: 'manual',
+            ),
+          ]),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // A wrong number is checkable against the jar without a calculator: the
+      // jar says 190 per 2 tbsp, and so does the page.
+      expect(find.text('190 kcal · 7P 16F 7C per 2 tbsp'), findsOneWidget);
+      expect(find.text('as the label reads'), findsOneWidget);
+      // The derivation is under it, for the reader who wants what the totals
+      // actually use.
+      expect(
+        find.text('per 100 ml · 642.5 kcal · 23.7P 54.1F 23.7C'),
+        findsOneWidget,
+      );
+      // The density reads back as the sentence it was entered as, with the
+      // ratio as the aside rather than as the sentence.
+      expect(find.text('2 tbsp weighs 32 g'), findsOneWidget);
+      expect(find.text('1.08 g/ml'), findsOneWidget);
+      // And the serving is a measure like any other, listed as one.
+      expect(find.text('serving · 2 tbsp · 29.57 ml'), findsOneWidget);
+    });
+
+    testWidgets('with no serving on the row, both lines are the ones they '
+        'have always been', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [peanutButter]),
+          at: ingredientDetailRoute('pb'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('642 kcal · 24P 54F 24C /100 ml'), findsOneWidget);
+      expect(find.textContaining('per 100 ml · 642.5'), findsNothing);
+      expect(find.text('1 cup weighs 255.99 g · 1.08 g/ml'), findsOneWidget);
     });
   });
 

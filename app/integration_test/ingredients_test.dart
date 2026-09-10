@@ -435,17 +435,14 @@ void main() {
       // --- macros from a per-serving label --------
       // The label as printed — "14 g · 100 kcal · 0 P · 0 C · 11 F" — and the
       // row stores per 100 g, unrounded, previewed before Save. The serving
-      // is a spoon, so M-D2 offers it as the density; ticked, it lands in the
-      // same Save through `setDensity` and REPLACES the 1.2 above — the
-      // number is distinct, so the round trip below says which save wrote it.
+      // states no density: that is the density section's subject alone, so
+      // the 1.2 typed above survives this save untouched.
       await scrollTo(tester, find.text('per serving'));
       await centerOn(tester, find.text('per serving'));
       await tester.tap(find.text('per serving'));
       await tester.pumpAndSettle();
       await pumpUntilFound(tester, find.text('One serving is'));
       await tester.enterText(keyedField('serving-amount'), '14');
-      await tester.pumpAndSettle();
-      await tester.enterText(keyedField('serving-name'), '1 tbsp');
       await tester.pumpAndSettle();
       for (final (label, value) in [
         ('kcal', '100'),
@@ -458,21 +455,12 @@ void main() {
       }
       await tester.pumpAndSettle();
       // The derivation, before Save, in the person's sight (invariant 3).
-      expect(find.textContaining('stored per 100 g: 714 kcal'), findsOneWidget);
       expect(
-        find.textContaining(
-          'from a 14 g serving — the label’s rounding scales with it',
-        ),
+        find.textContaining('stored per 100 g · 714.3 kcal'),
         findsOneWidget,
       );
-      // M-D2: the offer, drawn and unticked; one tap takes it.
-      await scrollTo(tester, find.text('1 tbsp weighs 14 g — set as density'));
-      final tick = find.byKey(const ValueKey('serving-offer'));
-      await centerOn(tester, tick);
-      expect(tester.widget<FCheckbox>(tick).value, isFalse);
-      await tester.tap(tick);
-      await tester.pumpAndSettle();
-      expect(tester.widget<FCheckbox>(tick).value, isTrue);
+      // And the serving row carries no free text at all any more.
+      expect(find.byKey(const ValueKey('serving-name')), findsNothing);
 
       await saveFormAndReopen(tester, renamed);
       await waitForDb(
@@ -499,13 +487,19 @@ void main() {
       expect(labelled['macros_basis'], 'g');
       // A label fills fields; confirming stays a human act.
       expect(labelled['status'], 'stub');
-      // The M-D2 tick: the density entry's own spoon arithmetic (ADR-0008
-      // §2), landed by the form's Save — and it is the tick's number, not
-      // the g/ml leg's.
-      expect(
-        (labelled['density_g_per_ml'] as num).toDouble(),
-        closeTo(densityFromVolumeWeight(tbsp, 14)!, 1e-9),
+      // The density is the one typed in the density section, untouched: a
+      // serving says nothing about it.
+      expect((labelled['density_g_per_ml'] as num).toDouble(), 1.2);
+      // The serving IS kept — as the row's one named measure, which is what
+      // lets the reading posture print the label's own line back.
+      final servingRow = await db.get(
+        'SELECT label, basis_amount FROM ingredient_measure '
+        "WHERE ingredient_id = ? AND label LIKE 'serving · %' "
+        'AND deleted_at IS NULL',
+        [stubId],
       );
+      expect(servingRow['label'], 'serving · 14 g');
+      expect((servingRow['basis_amount'] as num).toDouble(), 14);
 
       // --- the piece weight (ADR-0015) ------------------------------------
       // A count default is not saveable without what one of these weighs.

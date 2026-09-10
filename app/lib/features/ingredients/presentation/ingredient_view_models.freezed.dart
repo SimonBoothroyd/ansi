@@ -285,13 +285,23 @@ mixin _$IngredientFormDraft {
 /// is as re-seedable as an empty one.
  MacroDraft get seededMacros;/// Bumped on every re-seed, and used as the macro fields' key: `initial`
 /// seeds a controller once, so new text needs a new field to seed it into.
- int get macroSeed; int get nameSeed; int get servingSeed;/// The macros section's per-serving mode: the four fields then hold the
+ int get macroSeed;/// Bumped whenever the name moved by something other than typing — a scan,
+/// or a tidy. The name field pushes the new text into the controller it
+/// already has rather than being replaced around a fresh one, because
+/// replacing a *focused* field is what a Save tapped straight from the
+/// keyboard would do.
+ int get nameSeed; int get servingSeed;/// The macros section's per-serving mode: the four fields then hold the
 /// label's figures AS PRINTED and the serving row says what they describe,
 /// and what is stored is still per 100 of the basis.
- bool get perServing; ServingDraft get serving;/// Whether the serving's "1 tbsp = 14 g" was taken as this row's density
-/// (or a measure). Off by default — a pack's "about 1 tbsp" is sometimes a
-/// guess, and a density minted from a guess decides what units admit.
- bool get servingOfferTaken; DensityChange get density;/// The piece weight as the form holds it — the count-side twin of
+ bool get perServing;/// The serving the row's label prints — typed in per-serving mode, or
+/// carried by a scan whose per-100 panel named one. Independent of
+/// [perServing]: a per-100 label that says "80 kcal per 28 g" states a
+/// serving without the row ever being entered in it, and Save keeps it as
+/// the row's one `serving` measure either way.
+ ServingDraft get serving;/// The per-100 figures the fields held before per-serving mode cleared
+/// them, so leaving the mode without typing anything puts the row back
+/// exactly as it was found.
+ MacroDraft? get per100Macros; DensityChange get density;/// The piece weight as the form holds it — the count-side twin of
 /// [density], and drafted the same way (ADR-0015).
  PieceWeightChange get pieceWeight; List<Measure> get measuresAdded; Set<String> get measuresRemoved; List<IngredientAlias> get aliasesAdded; Set<String> get aliasesRemoved;/// A provenance the scan or the USDA pick stamped and the next Save writes
 /// — held with the macros it explains rather than written on its own, so
@@ -327,16 +337,16 @@ $IngredientFormDraftCopyWith<IngredientFormDraft> get copyWith => _$IngredientFo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is IngredientFormDraft&&(identical(other.row, row) || other.row == row)&&(identical(other.creating, creating) || other.creating == creating)&&(identical(other.name, name) || other.name == name)&&(identical(other.category, category) || other.category == category)&&(identical(other.defaultUnit, defaultUnit) || other.defaultUnit == defaultUnit)&&(identical(other.basis, basis) || other.basis == basis)&&const DeepCollectionEquality().equals(other.allowed, allowed)&&(identical(other.macros, macros) || other.macros == macros)&&(identical(other.seededMacros, seededMacros) || other.seededMacros == seededMacros)&&(identical(other.macroSeed, macroSeed) || other.macroSeed == macroSeed)&&(identical(other.nameSeed, nameSeed) || other.nameSeed == nameSeed)&&(identical(other.servingSeed, servingSeed) || other.servingSeed == servingSeed)&&(identical(other.perServing, perServing) || other.perServing == perServing)&&(identical(other.serving, serving) || other.serving == serving)&&(identical(other.servingOfferTaken, servingOfferTaken) || other.servingOfferTaken == servingOfferTaken)&&(identical(other.density, density) || other.density == density)&&(identical(other.pieceWeight, pieceWeight) || other.pieceWeight == pieceWeight)&&const DeepCollectionEquality().equals(other.measuresAdded, measuresAdded)&&const DeepCollectionEquality().equals(other.measuresRemoved, measuresRemoved)&&const DeepCollectionEquality().equals(other.aliasesAdded, aliasesAdded)&&const DeepCollectionEquality().equals(other.aliasesRemoved, aliasesRemoved)&&(identical(other.pendingSource, pendingSource) || other.pendingSource == pendingSource)&&(identical(other.pendingSourceLabel, pendingSourceLabel) || other.pendingSourceLabel == pendingSourceLabel)&&(identical(other.pendingSourceScore, pendingSourceScore) || other.pendingSourceScore == pendingSourceScore)&&(identical(other.scanned, scanned) || other.scanned == scanned)&&(identical(other.scanApplied, scanApplied) || other.scanApplied == scanApplied)&&(identical(other.packAdded, packAdded) || other.packAdded == packAdded)&&(identical(other.redirectedSpoon, redirectedSpoon) || other.redirectedSpoon == redirectedSpoon)&&(identical(other.nameWas, nameWas) || other.nameWas == nameWas)&&(identical(other.namePinned, namePinned) || other.namePinned == namePinned)&&(identical(other.nameEdited, nameEdited) || other.nameEdited == nameEdited)&&(identical(other.message, message) || other.message == message)&&(identical(other.busy, busy) || other.busy == busy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is IngredientFormDraft&&(identical(other.row, row) || other.row == row)&&(identical(other.creating, creating) || other.creating == creating)&&(identical(other.name, name) || other.name == name)&&(identical(other.category, category) || other.category == category)&&(identical(other.defaultUnit, defaultUnit) || other.defaultUnit == defaultUnit)&&(identical(other.basis, basis) || other.basis == basis)&&const DeepCollectionEquality().equals(other.allowed, allowed)&&(identical(other.macros, macros) || other.macros == macros)&&(identical(other.seededMacros, seededMacros) || other.seededMacros == seededMacros)&&(identical(other.macroSeed, macroSeed) || other.macroSeed == macroSeed)&&(identical(other.nameSeed, nameSeed) || other.nameSeed == nameSeed)&&(identical(other.servingSeed, servingSeed) || other.servingSeed == servingSeed)&&(identical(other.perServing, perServing) || other.perServing == perServing)&&(identical(other.serving, serving) || other.serving == serving)&&(identical(other.per100Macros, per100Macros) || other.per100Macros == per100Macros)&&(identical(other.density, density) || other.density == density)&&(identical(other.pieceWeight, pieceWeight) || other.pieceWeight == pieceWeight)&&const DeepCollectionEquality().equals(other.measuresAdded, measuresAdded)&&const DeepCollectionEquality().equals(other.measuresRemoved, measuresRemoved)&&const DeepCollectionEquality().equals(other.aliasesAdded, aliasesAdded)&&const DeepCollectionEquality().equals(other.aliasesRemoved, aliasesRemoved)&&(identical(other.pendingSource, pendingSource) || other.pendingSource == pendingSource)&&(identical(other.pendingSourceLabel, pendingSourceLabel) || other.pendingSourceLabel == pendingSourceLabel)&&(identical(other.pendingSourceScore, pendingSourceScore) || other.pendingSourceScore == pendingSourceScore)&&(identical(other.scanned, scanned) || other.scanned == scanned)&&(identical(other.scanApplied, scanApplied) || other.scanApplied == scanApplied)&&(identical(other.packAdded, packAdded) || other.packAdded == packAdded)&&(identical(other.redirectedSpoon, redirectedSpoon) || other.redirectedSpoon == redirectedSpoon)&&(identical(other.nameWas, nameWas) || other.nameWas == nameWas)&&(identical(other.namePinned, namePinned) || other.namePinned == namePinned)&&(identical(other.nameEdited, nameEdited) || other.nameEdited == nameEdited)&&(identical(other.message, message) || other.message == message)&&(identical(other.busy, busy) || other.busy == busy));
 }
 
 
 @override
-int get hashCode => Object.hashAll([runtimeType,row,creating,name,category,defaultUnit,basis,const DeepCollectionEquality().hash(allowed),macros,seededMacros,macroSeed,nameSeed,servingSeed,perServing,serving,servingOfferTaken,density,pieceWeight,const DeepCollectionEquality().hash(measuresAdded),const DeepCollectionEquality().hash(measuresRemoved),const DeepCollectionEquality().hash(aliasesAdded),const DeepCollectionEquality().hash(aliasesRemoved),pendingSource,pendingSourceLabel,pendingSourceScore,scanned,scanApplied,packAdded,redirectedSpoon,nameWas,namePinned,nameEdited,message,busy]);
+int get hashCode => Object.hashAll([runtimeType,row,creating,name,category,defaultUnit,basis,const DeepCollectionEquality().hash(allowed),macros,seededMacros,macroSeed,nameSeed,servingSeed,perServing,serving,per100Macros,density,pieceWeight,const DeepCollectionEquality().hash(measuresAdded),const DeepCollectionEquality().hash(measuresRemoved),const DeepCollectionEquality().hash(aliasesAdded),const DeepCollectionEquality().hash(aliasesRemoved),pendingSource,pendingSourceLabel,pendingSourceScore,scanned,scanApplied,packAdded,redirectedSpoon,nameWas,namePinned,nameEdited,message,busy]);
 
 @override
 String toString() {
-  return 'IngredientFormDraft(row: $row, creating: $creating, name: $name, category: $category, defaultUnit: $defaultUnit, basis: $basis, allowed: $allowed, macros: $macros, seededMacros: $seededMacros, macroSeed: $macroSeed, nameSeed: $nameSeed, servingSeed: $servingSeed, perServing: $perServing, serving: $serving, servingOfferTaken: $servingOfferTaken, density: $density, pieceWeight: $pieceWeight, measuresAdded: $measuresAdded, measuresRemoved: $measuresRemoved, aliasesAdded: $aliasesAdded, aliasesRemoved: $aliasesRemoved, pendingSource: $pendingSource, pendingSourceLabel: $pendingSourceLabel, pendingSourceScore: $pendingSourceScore, scanned: $scanned, scanApplied: $scanApplied, packAdded: $packAdded, redirectedSpoon: $redirectedSpoon, nameWas: $nameWas, namePinned: $namePinned, nameEdited: $nameEdited, message: $message, busy: $busy)';
+  return 'IngredientFormDraft(row: $row, creating: $creating, name: $name, category: $category, defaultUnit: $defaultUnit, basis: $basis, allowed: $allowed, macros: $macros, seededMacros: $seededMacros, macroSeed: $macroSeed, nameSeed: $nameSeed, servingSeed: $servingSeed, perServing: $perServing, serving: $serving, per100Macros: $per100Macros, density: $density, pieceWeight: $pieceWeight, measuresAdded: $measuresAdded, measuresRemoved: $measuresRemoved, aliasesAdded: $aliasesAdded, aliasesRemoved: $aliasesRemoved, pendingSource: $pendingSource, pendingSourceLabel: $pendingSourceLabel, pendingSourceScore: $pendingSourceScore, scanned: $scanned, scanApplied: $scanApplied, packAdded: $packAdded, redirectedSpoon: $redirectedSpoon, nameWas: $nameWas, namePinned: $namePinned, nameEdited: $nameEdited, message: $message, busy: $busy)';
 }
 
 
@@ -347,11 +357,11 @@ abstract mixin class $IngredientFormDraftCopyWith<$Res>  {
   factory $IngredientFormDraftCopyWith(IngredientFormDraft value, $Res Function(IngredientFormDraft) _then) = _$IngredientFormDraftCopyWithImpl;
 @useResult
 $Res call({
- Ingredient row, bool creating, String name, String category, Unit defaultUnit, MacrosBasis basis, Set<Unit> allowed, MacroDraft macros, MacroDraft seededMacros, int macroSeed, int nameSeed, int servingSeed, bool perServing, ServingDraft serving, bool servingOfferTaken, DensityChange density, PieceWeightChange pieceWeight, List<Measure> measuresAdded, Set<String> measuresRemoved, List<IngredientAlias> aliasesAdded, Set<String> aliasesRemoved, String? pendingSource, String? pendingSourceLabel, double? pendingSourceScore, IngredientDraft? scanned, DraftApplication? scanApplied, bool packAdded, Unit? redirectedSpoon, String? nameWas, String? namePinned, bool nameEdited, String? message, bool busy
+ Ingredient row, bool creating, String name, String category, Unit defaultUnit, MacrosBasis basis, Set<Unit> allowed, MacroDraft macros, MacroDraft seededMacros, int macroSeed, int nameSeed, int servingSeed, bool perServing, ServingDraft serving, MacroDraft? per100Macros, DensityChange density, PieceWeightChange pieceWeight, List<Measure> measuresAdded, Set<String> measuresRemoved, List<IngredientAlias> aliasesAdded, Set<String> aliasesRemoved, String? pendingSource, String? pendingSourceLabel, double? pendingSourceScore, IngredientDraft? scanned, DraftApplication? scanApplied, bool packAdded, Unit? redirectedSpoon, String? nameWas, String? namePinned, bool nameEdited, String? message, bool busy
 });
 
 
-$IngredientCopyWith<$Res> get row;$MacroDraftCopyWith<$Res> get macros;$MacroDraftCopyWith<$Res> get seededMacros;
+$IngredientCopyWith<$Res> get row;$MacroDraftCopyWith<$Res> get macros;$MacroDraftCopyWith<$Res> get seededMacros;$MacroDraftCopyWith<$Res>? get per100Macros;
 
 }
 /// @nodoc
@@ -364,7 +374,7 @@ class _$IngredientFormDraftCopyWithImpl<$Res>
 
 /// Create a copy of IngredientFormDraft
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? row = null,Object? creating = null,Object? name = null,Object? category = null,Object? defaultUnit = null,Object? basis = null,Object? allowed = null,Object? macros = null,Object? seededMacros = null,Object? macroSeed = null,Object? nameSeed = null,Object? servingSeed = null,Object? perServing = null,Object? serving = null,Object? servingOfferTaken = null,Object? density = null,Object? pieceWeight = null,Object? measuresAdded = null,Object? measuresRemoved = null,Object? aliasesAdded = null,Object? aliasesRemoved = null,Object? pendingSource = freezed,Object? pendingSourceLabel = freezed,Object? pendingSourceScore = freezed,Object? scanned = freezed,Object? scanApplied = freezed,Object? packAdded = null,Object? redirectedSpoon = freezed,Object? nameWas = freezed,Object? namePinned = freezed,Object? nameEdited = null,Object? message = freezed,Object? busy = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? row = null,Object? creating = null,Object? name = null,Object? category = null,Object? defaultUnit = null,Object? basis = null,Object? allowed = null,Object? macros = null,Object? seededMacros = null,Object? macroSeed = null,Object? nameSeed = null,Object? servingSeed = null,Object? perServing = null,Object? serving = null,Object? per100Macros = freezed,Object? density = null,Object? pieceWeight = null,Object? measuresAdded = null,Object? measuresRemoved = null,Object? aliasesAdded = null,Object? aliasesRemoved = null,Object? pendingSource = freezed,Object? pendingSourceLabel = freezed,Object? pendingSourceScore = freezed,Object? scanned = freezed,Object? scanApplied = freezed,Object? packAdded = null,Object? redirectedSpoon = freezed,Object? nameWas = freezed,Object? namePinned = freezed,Object? nameEdited = null,Object? message = freezed,Object? busy = null,}) {
   return _then(_self.copyWith(
 row: null == row ? _self.row : row // ignore: cast_nullable_to_non_nullable
 as Ingredient,creating: null == creating ? _self.creating : creating // ignore: cast_nullable_to_non_nullable
@@ -380,8 +390,8 @@ as int,nameSeed: null == nameSeed ? _self.nameSeed : nameSeed // ignore: cast_nu
 as int,servingSeed: null == servingSeed ? _self.servingSeed : servingSeed // ignore: cast_nullable_to_non_nullable
 as int,perServing: null == perServing ? _self.perServing : perServing // ignore: cast_nullable_to_non_nullable
 as bool,serving: null == serving ? _self.serving : serving // ignore: cast_nullable_to_non_nullable
-as ServingDraft,servingOfferTaken: null == servingOfferTaken ? _self.servingOfferTaken : servingOfferTaken // ignore: cast_nullable_to_non_nullable
-as bool,density: null == density ? _self.density : density // ignore: cast_nullable_to_non_nullable
+as ServingDraft,per100Macros: freezed == per100Macros ? _self.per100Macros : per100Macros // ignore: cast_nullable_to_non_nullable
+as MacroDraft?,density: null == density ? _self.density : density // ignore: cast_nullable_to_non_nullable
 as DensityChange,pieceWeight: null == pieceWeight ? _self.pieceWeight : pieceWeight // ignore: cast_nullable_to_non_nullable
 as PieceWeightChange,measuresAdded: null == measuresAdded ? _self.measuresAdded : measuresAdded // ignore: cast_nullable_to_non_nullable
 as List<Measure>,measuresRemoved: null == measuresRemoved ? _self.measuresRemoved : measuresRemoved // ignore: cast_nullable_to_non_nullable
@@ -428,6 +438,18 @@ $MacroDraftCopyWith<$Res> get seededMacros {
   
   return $MacroDraftCopyWith<$Res>(_self.seededMacros, (value) {
     return _then(_self.copyWith(seededMacros: value));
+  });
+}/// Create a copy of IngredientFormDraft
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MacroDraftCopyWith<$Res>? get per100Macros {
+    if (_self.per100Macros == null) {
+    return null;
+  }
+
+  return $MacroDraftCopyWith<$Res>(_self.per100Macros!, (value) {
+    return _then(_self.copyWith(per100Macros: value));
   });
 }
 }
@@ -511,10 +533,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Ingredient row,  bool creating,  String name,  String category,  Unit defaultUnit,  MacrosBasis basis,  Set<Unit> allowed,  MacroDraft macros,  MacroDraft seededMacros,  int macroSeed,  int nameSeed,  int servingSeed,  bool perServing,  ServingDraft serving,  bool servingOfferTaken,  DensityChange density,  PieceWeightChange pieceWeight,  List<Measure> measuresAdded,  Set<String> measuresRemoved,  List<IngredientAlias> aliasesAdded,  Set<String> aliasesRemoved,  String? pendingSource,  String? pendingSourceLabel,  double? pendingSourceScore,  IngredientDraft? scanned,  DraftApplication? scanApplied,  bool packAdded,  Unit? redirectedSpoon,  String? nameWas,  String? namePinned,  bool nameEdited,  String? message,  bool busy)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Ingredient row,  bool creating,  String name,  String category,  Unit defaultUnit,  MacrosBasis basis,  Set<Unit> allowed,  MacroDraft macros,  MacroDraft seededMacros,  int macroSeed,  int nameSeed,  int servingSeed,  bool perServing,  ServingDraft serving,  MacroDraft? per100Macros,  DensityChange density,  PieceWeightChange pieceWeight,  List<Measure> measuresAdded,  Set<String> measuresRemoved,  List<IngredientAlias> aliasesAdded,  Set<String> aliasesRemoved,  String? pendingSource,  String? pendingSourceLabel,  double? pendingSourceScore,  IngredientDraft? scanned,  DraftApplication? scanApplied,  bool packAdded,  Unit? redirectedSpoon,  String? nameWas,  String? namePinned,  bool nameEdited,  String? message,  bool busy)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _IngredientFormDraft() when $default != null:
-return $default(_that.row,_that.creating,_that.name,_that.category,_that.defaultUnit,_that.basis,_that.allowed,_that.macros,_that.seededMacros,_that.macroSeed,_that.nameSeed,_that.servingSeed,_that.perServing,_that.serving,_that.servingOfferTaken,_that.density,_that.pieceWeight,_that.measuresAdded,_that.measuresRemoved,_that.aliasesAdded,_that.aliasesRemoved,_that.pendingSource,_that.pendingSourceLabel,_that.pendingSourceScore,_that.scanned,_that.scanApplied,_that.packAdded,_that.redirectedSpoon,_that.nameWas,_that.namePinned,_that.nameEdited,_that.message,_that.busy);case _:
+return $default(_that.row,_that.creating,_that.name,_that.category,_that.defaultUnit,_that.basis,_that.allowed,_that.macros,_that.seededMacros,_that.macroSeed,_that.nameSeed,_that.servingSeed,_that.perServing,_that.serving,_that.per100Macros,_that.density,_that.pieceWeight,_that.measuresAdded,_that.measuresRemoved,_that.aliasesAdded,_that.aliasesRemoved,_that.pendingSource,_that.pendingSourceLabel,_that.pendingSourceScore,_that.scanned,_that.scanApplied,_that.packAdded,_that.redirectedSpoon,_that.nameWas,_that.namePinned,_that.nameEdited,_that.message,_that.busy);case _:
   return orElse();
 
 }
@@ -532,10 +554,10 @@ return $default(_that.row,_that.creating,_that.name,_that.category,_that.default
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Ingredient row,  bool creating,  String name,  String category,  Unit defaultUnit,  MacrosBasis basis,  Set<Unit> allowed,  MacroDraft macros,  MacroDraft seededMacros,  int macroSeed,  int nameSeed,  int servingSeed,  bool perServing,  ServingDraft serving,  bool servingOfferTaken,  DensityChange density,  PieceWeightChange pieceWeight,  List<Measure> measuresAdded,  Set<String> measuresRemoved,  List<IngredientAlias> aliasesAdded,  Set<String> aliasesRemoved,  String? pendingSource,  String? pendingSourceLabel,  double? pendingSourceScore,  IngredientDraft? scanned,  DraftApplication? scanApplied,  bool packAdded,  Unit? redirectedSpoon,  String? nameWas,  String? namePinned,  bool nameEdited,  String? message,  bool busy)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Ingredient row,  bool creating,  String name,  String category,  Unit defaultUnit,  MacrosBasis basis,  Set<Unit> allowed,  MacroDraft macros,  MacroDraft seededMacros,  int macroSeed,  int nameSeed,  int servingSeed,  bool perServing,  ServingDraft serving,  MacroDraft? per100Macros,  DensityChange density,  PieceWeightChange pieceWeight,  List<Measure> measuresAdded,  Set<String> measuresRemoved,  List<IngredientAlias> aliasesAdded,  Set<String> aliasesRemoved,  String? pendingSource,  String? pendingSourceLabel,  double? pendingSourceScore,  IngredientDraft? scanned,  DraftApplication? scanApplied,  bool packAdded,  Unit? redirectedSpoon,  String? nameWas,  String? namePinned,  bool nameEdited,  String? message,  bool busy)  $default,) {final _that = this;
 switch (_that) {
 case _IngredientFormDraft():
-return $default(_that.row,_that.creating,_that.name,_that.category,_that.defaultUnit,_that.basis,_that.allowed,_that.macros,_that.seededMacros,_that.macroSeed,_that.nameSeed,_that.servingSeed,_that.perServing,_that.serving,_that.servingOfferTaken,_that.density,_that.pieceWeight,_that.measuresAdded,_that.measuresRemoved,_that.aliasesAdded,_that.aliasesRemoved,_that.pendingSource,_that.pendingSourceLabel,_that.pendingSourceScore,_that.scanned,_that.scanApplied,_that.packAdded,_that.redirectedSpoon,_that.nameWas,_that.namePinned,_that.nameEdited,_that.message,_that.busy);case _:
+return $default(_that.row,_that.creating,_that.name,_that.category,_that.defaultUnit,_that.basis,_that.allowed,_that.macros,_that.seededMacros,_that.macroSeed,_that.nameSeed,_that.servingSeed,_that.perServing,_that.serving,_that.per100Macros,_that.density,_that.pieceWeight,_that.measuresAdded,_that.measuresRemoved,_that.aliasesAdded,_that.aliasesRemoved,_that.pendingSource,_that.pendingSourceLabel,_that.pendingSourceScore,_that.scanned,_that.scanApplied,_that.packAdded,_that.redirectedSpoon,_that.nameWas,_that.namePinned,_that.nameEdited,_that.message,_that.busy);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -552,10 +574,10 @@ return $default(_that.row,_that.creating,_that.name,_that.category,_that.default
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Ingredient row,  bool creating,  String name,  String category,  Unit defaultUnit,  MacrosBasis basis,  Set<Unit> allowed,  MacroDraft macros,  MacroDraft seededMacros,  int macroSeed,  int nameSeed,  int servingSeed,  bool perServing,  ServingDraft serving,  bool servingOfferTaken,  DensityChange density,  PieceWeightChange pieceWeight,  List<Measure> measuresAdded,  Set<String> measuresRemoved,  List<IngredientAlias> aliasesAdded,  Set<String> aliasesRemoved,  String? pendingSource,  String? pendingSourceLabel,  double? pendingSourceScore,  IngredientDraft? scanned,  DraftApplication? scanApplied,  bool packAdded,  Unit? redirectedSpoon,  String? nameWas,  String? namePinned,  bool nameEdited,  String? message,  bool busy)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Ingredient row,  bool creating,  String name,  String category,  Unit defaultUnit,  MacrosBasis basis,  Set<Unit> allowed,  MacroDraft macros,  MacroDraft seededMacros,  int macroSeed,  int nameSeed,  int servingSeed,  bool perServing,  ServingDraft serving,  MacroDraft? per100Macros,  DensityChange density,  PieceWeightChange pieceWeight,  List<Measure> measuresAdded,  Set<String> measuresRemoved,  List<IngredientAlias> aliasesAdded,  Set<String> aliasesRemoved,  String? pendingSource,  String? pendingSourceLabel,  double? pendingSourceScore,  IngredientDraft? scanned,  DraftApplication? scanApplied,  bool packAdded,  Unit? redirectedSpoon,  String? nameWas,  String? namePinned,  bool nameEdited,  String? message,  bool busy)?  $default,) {final _that = this;
 switch (_that) {
 case _IngredientFormDraft() when $default != null:
-return $default(_that.row,_that.creating,_that.name,_that.category,_that.defaultUnit,_that.basis,_that.allowed,_that.macros,_that.seededMacros,_that.macroSeed,_that.nameSeed,_that.servingSeed,_that.perServing,_that.serving,_that.servingOfferTaken,_that.density,_that.pieceWeight,_that.measuresAdded,_that.measuresRemoved,_that.aliasesAdded,_that.aliasesRemoved,_that.pendingSource,_that.pendingSourceLabel,_that.pendingSourceScore,_that.scanned,_that.scanApplied,_that.packAdded,_that.redirectedSpoon,_that.nameWas,_that.namePinned,_that.nameEdited,_that.message,_that.busy);case _:
+return $default(_that.row,_that.creating,_that.name,_that.category,_that.defaultUnit,_that.basis,_that.allowed,_that.macros,_that.seededMacros,_that.macroSeed,_that.nameSeed,_that.servingSeed,_that.perServing,_that.serving,_that.per100Macros,_that.density,_that.pieceWeight,_that.measuresAdded,_that.measuresRemoved,_that.aliasesAdded,_that.aliasesRemoved,_that.pendingSource,_that.pendingSourceLabel,_that.pendingSourceScore,_that.scanned,_that.scanApplied,_that.packAdded,_that.redirectedSpoon,_that.nameWas,_that.namePinned,_that.nameEdited,_that.message,_that.busy);case _:
   return null;
 
 }
@@ -567,7 +589,7 @@ return $default(_that.row,_that.creating,_that.name,_that.category,_that.default
 
 
 class _IngredientFormDraft extends IngredientFormDraft {
-  const _IngredientFormDraft({required this.row, required this.creating, required this.name, required this.category, required this.defaultUnit, required this.basis, required final  Set<Unit> allowed, required this.macros, required this.seededMacros, this.macroSeed = 0, this.nameSeed = 0, this.servingSeed = 0, this.perServing = false, this.serving = const ServingDraft(), this.servingOfferTaken = false, this.density = const DensityUnchanged(), this.pieceWeight = const PieceWeightUnchanged(), final  List<Measure> measuresAdded = const <Measure>[], final  Set<String> measuresRemoved = const <String>{}, final  List<IngredientAlias> aliasesAdded = const <IngredientAlias>[], final  Set<String> aliasesRemoved = const <String>{}, this.pendingSource, this.pendingSourceLabel, this.pendingSourceScore, this.scanned, this.scanApplied, this.packAdded = false, this.redirectedSpoon, this.nameWas, this.namePinned, this.nameEdited = false, this.message, this.busy = false}): _allowed = allowed,_measuresAdded = measuresAdded,_measuresRemoved = measuresRemoved,_aliasesAdded = aliasesAdded,_aliasesRemoved = aliasesRemoved,super._();
+  const _IngredientFormDraft({required this.row, required this.creating, required this.name, required this.category, required this.defaultUnit, required this.basis, required final  Set<Unit> allowed, required this.macros, required this.seededMacros, this.macroSeed = 0, this.nameSeed = 0, this.servingSeed = 0, this.perServing = false, this.serving = const ServingDraft(), this.per100Macros, this.density = const DensityUnchanged(), this.pieceWeight = const PieceWeightUnchanged(), final  List<Measure> measuresAdded = const <Measure>[], final  Set<String> measuresRemoved = const <String>{}, final  List<IngredientAlias> aliasesAdded = const <IngredientAlias>[], final  Set<String> aliasesRemoved = const <String>{}, this.pendingSource, this.pendingSourceLabel, this.pendingSourceScore, this.scanned, this.scanApplied, this.packAdded = false, this.redirectedSpoon, this.nameWas, this.namePinned, this.nameEdited = false, this.message, this.busy = false}): _allowed = allowed,_measuresAdded = measuresAdded,_measuresRemoved = measuresRemoved,_aliasesAdded = aliasesAdded,_aliasesRemoved = aliasesRemoved,super._();
   
 
 @override final  Ingredient row;
@@ -591,17 +613,27 @@ class _IngredientFormDraft extends IngredientFormDraft {
 /// Bumped on every re-seed, and used as the macro fields' key: `initial`
 /// seeds a controller once, so new text needs a new field to seed it into.
 @override@JsonKey() final  int macroSeed;
+/// Bumped whenever the name moved by something other than typing — a scan,
+/// or a tidy. The name field pushes the new text into the controller it
+/// already has rather than being replaced around a fresh one, because
+/// replacing a *focused* field is what a Save tapped straight from the
+/// keyboard would do.
 @override@JsonKey() final  int nameSeed;
 @override@JsonKey() final  int servingSeed;
 /// The macros section's per-serving mode: the four fields then hold the
 /// label's figures AS PRINTED and the serving row says what they describe,
 /// and what is stored is still per 100 of the basis.
 @override@JsonKey() final  bool perServing;
+/// The serving the row's label prints — typed in per-serving mode, or
+/// carried by a scan whose per-100 panel named one. Independent of
+/// [perServing]: a per-100 label that says "80 kcal per 28 g" states a
+/// serving without the row ever being entered in it, and Save keeps it as
+/// the row's one `serving` measure either way.
 @override@JsonKey() final  ServingDraft serving;
-/// Whether the serving's "1 tbsp = 14 g" was taken as this row's density
-/// (or a measure). Off by default — a pack's "about 1 tbsp" is sometimes a
-/// guess, and a density minted from a guess decides what units admit.
-@override@JsonKey() final  bool servingOfferTaken;
+/// The per-100 figures the fields held before per-serving mode cleared
+/// them, so leaving the mode without typing anything puts the row back
+/// exactly as it was found.
+@override final  MacroDraft? per100Macros;
 @override@JsonKey() final  DensityChange density;
 /// The piece weight as the form holds it — the count-side twin of
 /// [density], and drafted the same way (ADR-0015).
@@ -680,16 +712,16 @@ _$IngredientFormDraftCopyWith<_IngredientFormDraft> get copyWith => __$Ingredien
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _IngredientFormDraft&&(identical(other.row, row) || other.row == row)&&(identical(other.creating, creating) || other.creating == creating)&&(identical(other.name, name) || other.name == name)&&(identical(other.category, category) || other.category == category)&&(identical(other.defaultUnit, defaultUnit) || other.defaultUnit == defaultUnit)&&(identical(other.basis, basis) || other.basis == basis)&&const DeepCollectionEquality().equals(other._allowed, _allowed)&&(identical(other.macros, macros) || other.macros == macros)&&(identical(other.seededMacros, seededMacros) || other.seededMacros == seededMacros)&&(identical(other.macroSeed, macroSeed) || other.macroSeed == macroSeed)&&(identical(other.nameSeed, nameSeed) || other.nameSeed == nameSeed)&&(identical(other.servingSeed, servingSeed) || other.servingSeed == servingSeed)&&(identical(other.perServing, perServing) || other.perServing == perServing)&&(identical(other.serving, serving) || other.serving == serving)&&(identical(other.servingOfferTaken, servingOfferTaken) || other.servingOfferTaken == servingOfferTaken)&&(identical(other.density, density) || other.density == density)&&(identical(other.pieceWeight, pieceWeight) || other.pieceWeight == pieceWeight)&&const DeepCollectionEquality().equals(other._measuresAdded, _measuresAdded)&&const DeepCollectionEquality().equals(other._measuresRemoved, _measuresRemoved)&&const DeepCollectionEquality().equals(other._aliasesAdded, _aliasesAdded)&&const DeepCollectionEquality().equals(other._aliasesRemoved, _aliasesRemoved)&&(identical(other.pendingSource, pendingSource) || other.pendingSource == pendingSource)&&(identical(other.pendingSourceLabel, pendingSourceLabel) || other.pendingSourceLabel == pendingSourceLabel)&&(identical(other.pendingSourceScore, pendingSourceScore) || other.pendingSourceScore == pendingSourceScore)&&(identical(other.scanned, scanned) || other.scanned == scanned)&&(identical(other.scanApplied, scanApplied) || other.scanApplied == scanApplied)&&(identical(other.packAdded, packAdded) || other.packAdded == packAdded)&&(identical(other.redirectedSpoon, redirectedSpoon) || other.redirectedSpoon == redirectedSpoon)&&(identical(other.nameWas, nameWas) || other.nameWas == nameWas)&&(identical(other.namePinned, namePinned) || other.namePinned == namePinned)&&(identical(other.nameEdited, nameEdited) || other.nameEdited == nameEdited)&&(identical(other.message, message) || other.message == message)&&(identical(other.busy, busy) || other.busy == busy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _IngredientFormDraft&&(identical(other.row, row) || other.row == row)&&(identical(other.creating, creating) || other.creating == creating)&&(identical(other.name, name) || other.name == name)&&(identical(other.category, category) || other.category == category)&&(identical(other.defaultUnit, defaultUnit) || other.defaultUnit == defaultUnit)&&(identical(other.basis, basis) || other.basis == basis)&&const DeepCollectionEquality().equals(other._allowed, _allowed)&&(identical(other.macros, macros) || other.macros == macros)&&(identical(other.seededMacros, seededMacros) || other.seededMacros == seededMacros)&&(identical(other.macroSeed, macroSeed) || other.macroSeed == macroSeed)&&(identical(other.nameSeed, nameSeed) || other.nameSeed == nameSeed)&&(identical(other.servingSeed, servingSeed) || other.servingSeed == servingSeed)&&(identical(other.perServing, perServing) || other.perServing == perServing)&&(identical(other.serving, serving) || other.serving == serving)&&(identical(other.per100Macros, per100Macros) || other.per100Macros == per100Macros)&&(identical(other.density, density) || other.density == density)&&(identical(other.pieceWeight, pieceWeight) || other.pieceWeight == pieceWeight)&&const DeepCollectionEquality().equals(other._measuresAdded, _measuresAdded)&&const DeepCollectionEquality().equals(other._measuresRemoved, _measuresRemoved)&&const DeepCollectionEquality().equals(other._aliasesAdded, _aliasesAdded)&&const DeepCollectionEquality().equals(other._aliasesRemoved, _aliasesRemoved)&&(identical(other.pendingSource, pendingSource) || other.pendingSource == pendingSource)&&(identical(other.pendingSourceLabel, pendingSourceLabel) || other.pendingSourceLabel == pendingSourceLabel)&&(identical(other.pendingSourceScore, pendingSourceScore) || other.pendingSourceScore == pendingSourceScore)&&(identical(other.scanned, scanned) || other.scanned == scanned)&&(identical(other.scanApplied, scanApplied) || other.scanApplied == scanApplied)&&(identical(other.packAdded, packAdded) || other.packAdded == packAdded)&&(identical(other.redirectedSpoon, redirectedSpoon) || other.redirectedSpoon == redirectedSpoon)&&(identical(other.nameWas, nameWas) || other.nameWas == nameWas)&&(identical(other.namePinned, namePinned) || other.namePinned == namePinned)&&(identical(other.nameEdited, nameEdited) || other.nameEdited == nameEdited)&&(identical(other.message, message) || other.message == message)&&(identical(other.busy, busy) || other.busy == busy));
 }
 
 
 @override
-int get hashCode => Object.hashAll([runtimeType,row,creating,name,category,defaultUnit,basis,const DeepCollectionEquality().hash(_allowed),macros,seededMacros,macroSeed,nameSeed,servingSeed,perServing,serving,servingOfferTaken,density,pieceWeight,const DeepCollectionEquality().hash(_measuresAdded),const DeepCollectionEquality().hash(_measuresRemoved),const DeepCollectionEquality().hash(_aliasesAdded),const DeepCollectionEquality().hash(_aliasesRemoved),pendingSource,pendingSourceLabel,pendingSourceScore,scanned,scanApplied,packAdded,redirectedSpoon,nameWas,namePinned,nameEdited,message,busy]);
+int get hashCode => Object.hashAll([runtimeType,row,creating,name,category,defaultUnit,basis,const DeepCollectionEquality().hash(_allowed),macros,seededMacros,macroSeed,nameSeed,servingSeed,perServing,serving,per100Macros,density,pieceWeight,const DeepCollectionEquality().hash(_measuresAdded),const DeepCollectionEquality().hash(_measuresRemoved),const DeepCollectionEquality().hash(_aliasesAdded),const DeepCollectionEquality().hash(_aliasesRemoved),pendingSource,pendingSourceLabel,pendingSourceScore,scanned,scanApplied,packAdded,redirectedSpoon,nameWas,namePinned,nameEdited,message,busy]);
 
 @override
 String toString() {
-  return 'IngredientFormDraft(row: $row, creating: $creating, name: $name, category: $category, defaultUnit: $defaultUnit, basis: $basis, allowed: $allowed, macros: $macros, seededMacros: $seededMacros, macroSeed: $macroSeed, nameSeed: $nameSeed, servingSeed: $servingSeed, perServing: $perServing, serving: $serving, servingOfferTaken: $servingOfferTaken, density: $density, pieceWeight: $pieceWeight, measuresAdded: $measuresAdded, measuresRemoved: $measuresRemoved, aliasesAdded: $aliasesAdded, aliasesRemoved: $aliasesRemoved, pendingSource: $pendingSource, pendingSourceLabel: $pendingSourceLabel, pendingSourceScore: $pendingSourceScore, scanned: $scanned, scanApplied: $scanApplied, packAdded: $packAdded, redirectedSpoon: $redirectedSpoon, nameWas: $nameWas, namePinned: $namePinned, nameEdited: $nameEdited, message: $message, busy: $busy)';
+  return 'IngredientFormDraft(row: $row, creating: $creating, name: $name, category: $category, defaultUnit: $defaultUnit, basis: $basis, allowed: $allowed, macros: $macros, seededMacros: $seededMacros, macroSeed: $macroSeed, nameSeed: $nameSeed, servingSeed: $servingSeed, perServing: $perServing, serving: $serving, per100Macros: $per100Macros, density: $density, pieceWeight: $pieceWeight, measuresAdded: $measuresAdded, measuresRemoved: $measuresRemoved, aliasesAdded: $aliasesAdded, aliasesRemoved: $aliasesRemoved, pendingSource: $pendingSource, pendingSourceLabel: $pendingSourceLabel, pendingSourceScore: $pendingSourceScore, scanned: $scanned, scanApplied: $scanApplied, packAdded: $packAdded, redirectedSpoon: $redirectedSpoon, nameWas: $nameWas, namePinned: $namePinned, nameEdited: $nameEdited, message: $message, busy: $busy)';
 }
 
 
@@ -700,11 +732,11 @@ abstract mixin class _$IngredientFormDraftCopyWith<$Res> implements $IngredientF
   factory _$IngredientFormDraftCopyWith(_IngredientFormDraft value, $Res Function(_IngredientFormDraft) _then) = __$IngredientFormDraftCopyWithImpl;
 @override @useResult
 $Res call({
- Ingredient row, bool creating, String name, String category, Unit defaultUnit, MacrosBasis basis, Set<Unit> allowed, MacroDraft macros, MacroDraft seededMacros, int macroSeed, int nameSeed, int servingSeed, bool perServing, ServingDraft serving, bool servingOfferTaken, DensityChange density, PieceWeightChange pieceWeight, List<Measure> measuresAdded, Set<String> measuresRemoved, List<IngredientAlias> aliasesAdded, Set<String> aliasesRemoved, String? pendingSource, String? pendingSourceLabel, double? pendingSourceScore, IngredientDraft? scanned, DraftApplication? scanApplied, bool packAdded, Unit? redirectedSpoon, String? nameWas, String? namePinned, bool nameEdited, String? message, bool busy
+ Ingredient row, bool creating, String name, String category, Unit defaultUnit, MacrosBasis basis, Set<Unit> allowed, MacroDraft macros, MacroDraft seededMacros, int macroSeed, int nameSeed, int servingSeed, bool perServing, ServingDraft serving, MacroDraft? per100Macros, DensityChange density, PieceWeightChange pieceWeight, List<Measure> measuresAdded, Set<String> measuresRemoved, List<IngredientAlias> aliasesAdded, Set<String> aliasesRemoved, String? pendingSource, String? pendingSourceLabel, double? pendingSourceScore, IngredientDraft? scanned, DraftApplication? scanApplied, bool packAdded, Unit? redirectedSpoon, String? nameWas, String? namePinned, bool nameEdited, String? message, bool busy
 });
 
 
-@override $IngredientCopyWith<$Res> get row;@override $MacroDraftCopyWith<$Res> get macros;@override $MacroDraftCopyWith<$Res> get seededMacros;
+@override $IngredientCopyWith<$Res> get row;@override $MacroDraftCopyWith<$Res> get macros;@override $MacroDraftCopyWith<$Res> get seededMacros;@override $MacroDraftCopyWith<$Res>? get per100Macros;
 
 }
 /// @nodoc
@@ -717,7 +749,7 @@ class __$IngredientFormDraftCopyWithImpl<$Res>
 
 /// Create a copy of IngredientFormDraft
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? row = null,Object? creating = null,Object? name = null,Object? category = null,Object? defaultUnit = null,Object? basis = null,Object? allowed = null,Object? macros = null,Object? seededMacros = null,Object? macroSeed = null,Object? nameSeed = null,Object? servingSeed = null,Object? perServing = null,Object? serving = null,Object? servingOfferTaken = null,Object? density = null,Object? pieceWeight = null,Object? measuresAdded = null,Object? measuresRemoved = null,Object? aliasesAdded = null,Object? aliasesRemoved = null,Object? pendingSource = freezed,Object? pendingSourceLabel = freezed,Object? pendingSourceScore = freezed,Object? scanned = freezed,Object? scanApplied = freezed,Object? packAdded = null,Object? redirectedSpoon = freezed,Object? nameWas = freezed,Object? namePinned = freezed,Object? nameEdited = null,Object? message = freezed,Object? busy = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? row = null,Object? creating = null,Object? name = null,Object? category = null,Object? defaultUnit = null,Object? basis = null,Object? allowed = null,Object? macros = null,Object? seededMacros = null,Object? macroSeed = null,Object? nameSeed = null,Object? servingSeed = null,Object? perServing = null,Object? serving = null,Object? per100Macros = freezed,Object? density = null,Object? pieceWeight = null,Object? measuresAdded = null,Object? measuresRemoved = null,Object? aliasesAdded = null,Object? aliasesRemoved = null,Object? pendingSource = freezed,Object? pendingSourceLabel = freezed,Object? pendingSourceScore = freezed,Object? scanned = freezed,Object? scanApplied = freezed,Object? packAdded = null,Object? redirectedSpoon = freezed,Object? nameWas = freezed,Object? namePinned = freezed,Object? nameEdited = null,Object? message = freezed,Object? busy = null,}) {
   return _then(_IngredientFormDraft(
 row: null == row ? _self.row : row // ignore: cast_nullable_to_non_nullable
 as Ingredient,creating: null == creating ? _self.creating : creating // ignore: cast_nullable_to_non_nullable
@@ -733,8 +765,8 @@ as int,nameSeed: null == nameSeed ? _self.nameSeed : nameSeed // ignore: cast_nu
 as int,servingSeed: null == servingSeed ? _self.servingSeed : servingSeed // ignore: cast_nullable_to_non_nullable
 as int,perServing: null == perServing ? _self.perServing : perServing // ignore: cast_nullable_to_non_nullable
 as bool,serving: null == serving ? _self.serving : serving // ignore: cast_nullable_to_non_nullable
-as ServingDraft,servingOfferTaken: null == servingOfferTaken ? _self.servingOfferTaken : servingOfferTaken // ignore: cast_nullable_to_non_nullable
-as bool,density: null == density ? _self.density : density // ignore: cast_nullable_to_non_nullable
+as ServingDraft,per100Macros: freezed == per100Macros ? _self.per100Macros : per100Macros // ignore: cast_nullable_to_non_nullable
+as MacroDraft?,density: null == density ? _self.density : density // ignore: cast_nullable_to_non_nullable
 as DensityChange,pieceWeight: null == pieceWeight ? _self.pieceWeight : pieceWeight // ignore: cast_nullable_to_non_nullable
 as PieceWeightChange,measuresAdded: null == measuresAdded ? _self._measuresAdded : measuresAdded // ignore: cast_nullable_to_non_nullable
 as List<Measure>,measuresRemoved: null == measuresRemoved ? _self._measuresRemoved : measuresRemoved // ignore: cast_nullable_to_non_nullable
@@ -782,6 +814,18 @@ $MacroDraftCopyWith<$Res> get seededMacros {
   
   return $MacroDraftCopyWith<$Res>(_self.seededMacros, (value) {
     return _then(_self.copyWith(seededMacros: value));
+  });
+}/// Create a copy of IngredientFormDraft
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MacroDraftCopyWith<$Res>? get per100Macros {
+    if (_self.per100Macros == null) {
+    return null;
+  }
+
+  return $MacroDraftCopyWith<$Res>(_self.per100Macros!, (value) {
+    return _then(_self.copyWith(per100Macros: value));
   });
 }
 }
