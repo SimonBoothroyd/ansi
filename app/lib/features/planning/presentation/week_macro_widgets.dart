@@ -29,6 +29,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/words.dart';
 import '../../../shared/incomplete_macros.dart';
+import '../../ingredients/presentation/macro_line_text.dart';
 import '../../ingredients/presentation/macros_format.dart';
 import '../domain/week_macros.dart';
 
@@ -109,16 +110,20 @@ class MacroCells extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final style = ansiMono(size: size, weight: FontWeight.w500);
     final fiber = macros.fiber;
-    final cells = <(String, String)>[
-      (formatMacroNumber(macros.kcal), 'kcal'),
+    // The unit of each cell: a word for the three grams, and a GLYPH for the
+    // two that never change and are longest — energy and fibre. This is the
+    // densest macro line the app draws (five cells inside a day card), and it
+    // is the one that pays most for a spelled-out unit.
+    final cells = <(String, Object)>[
+      (formatMacroNumber(macros.kcal), kMacroEnergyIcon),
       ('${formatMacroGrams(macros.protein)} g', 'p'),
       ('${formatMacroGrams(macros.carb)} g', 'c'),
       ('${formatMacroGrams(macros.fat)} g', 'f'),
       // Fibre is optional, so the cell appears only where the figure does — an
-      // empty fifth cell would read as a zero (invariant 3). `fib`, not `f`,
-      // which this strip already spends on fat.
-      if (fiber != null) ('${formatMacroGrams(fiber)} g', 'fib'),
+      // empty fifth cell would read as a zero (invariant 3).
+      if (fiber != null) ('${formatMacroGrams(fiber)} g', kMacroFibreIcon),
     ];
     // A macro number is never clipped or ellipsised — a truncated `1 234` is
     // a wrong number, not a shortened one (invariant 3). So when the widest
@@ -140,9 +145,20 @@ class MacroCells extends StatelessWidget {
                   color: AnsiColors.line,
                 ),
               ),
-            Text(
-              '${cells[i].$1} ${cells[i].$2}',
-              style: ansiMono(size: size, weight: FontWeight.w500),
+            Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: '${cells[i].$1} ', style: style),
+                  if (cells[i].$2 case final IconData icon)
+                    macroUnitSpan(
+                      icon,
+                      label: icon == kMacroEnergyIcon ? 'kcal' : 'fibre',
+                      style: style,
+                    )
+                  else
+                    TextSpan(text: cells[i].$2 as String, style: style),
+                ],
+              ),
             ),
           ],
         ],

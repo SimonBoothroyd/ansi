@@ -19,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/forui_semantics.dart';
+import '../../helpers/macro_line.dart';
 import '_form_harness.dart';
 
 /// Mango's facts as the reading posture states them — the strings the shared
@@ -70,7 +71,7 @@ void main() {
       expect(find.text('Nutrition'), findsOneWidget);
       expect(find.text('Units & measures'), findsOneWidget);
       expect(find.text('produce'), findsOneWidget);
-      expect(find.text(mangoMacroLine), findsOneWidget);
+      expect(macroText(mangoMacroLine), findsOneWidget);
       expect(find.text('piece'), findsOneWidget);
       expect(find.text(mangoPieceWeight), findsOneWidget);
       expect(find.text(mangoDensity), findsOneWidget);
@@ -107,7 +108,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        find.text('60 kcal · 1P 0F 15C · 2.6 fibre /100 g'),
+        macroText('60 kcal · 1P 0F 15C · 2.6 fibre /100 g'),
         findsOneWidget,
       );
     });
@@ -152,7 +153,7 @@ void main() {
 
       expect(find.text('CANONICAL NAME'), findsOneWidget);
       expect(find.byKey(kFormSaveKey), findsOneWidget);
-      expect(find.text(mangoMacroLine), findsNothing);
+      expect(macroText(mangoMacroLine), findsNothing);
     });
 
     testWidgets('/ingredients/new opens the form — there is nothing to read', (
@@ -181,7 +182,7 @@ void main() {
       final repo = FakeIngredientRepo(const [mango]);
       await tester.pumpWidget(host(repo, at: ingredientDetailRoute('mango')));
       await tester.pumpAndSettle();
-      expect(find.text(mangoMacroLine), findsOneWidget);
+      expect(macroText(mangoMacroLine), findsOneWidget);
 
       await openMoreMenu(tester);
       await tester.tap(find.text('Edit'));
@@ -207,7 +208,7 @@ void main() {
       await saveForm(tester);
       expect(find.text('CANONICAL NAME'), findsNothing);
       expect(find.text('Mango, ripe'), findsOneWidget);
-      expect(find.text(mangoMacroLine), findsOneWidget);
+      expect(macroText(mangoMacroLine), findsOneWidget);
     });
 
     testWidgets('the system back leaves the MODE, not the page — back means '
@@ -226,7 +227,7 @@ void main() {
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(find.text('CANONICAL NAME'), findsNothing);
-      expect(find.text(mangoMacroLine), findsOneWidget);
+      expect(macroText(mangoMacroLine), findsOneWidget);
       // The fact sheet itself pops like any other pushed page — the mode is
       // what holds the gesture, and only while it is open.
     });
@@ -251,7 +252,7 @@ void main() {
       );
       // The dock's own words, not four zeros (invariant 3).
       expect(find.text('needs macros'), findsOneWidget);
-      expect(find.textContaining('0 kcal'), findsNothing);
+      expect(macroTextContaining('0 kcal'), findsNothing);
       // The density says what it is short of in the entry's own words.
       expect(find.text('none yet — unlocks volume⇄weight'), findsOneWidget);
       // Which food the prefill came from, in the line the manager already
@@ -307,7 +308,7 @@ void main() {
 
       // A wrong number is checkable against the jar without a calculator: the
       // jar says 190 per 2 tbsp, and so does the page.
-      expect(find.text('190 kcal · 7P 16F 7C per 2 tbsp'), findsOneWidget);
+      expect(macroText('190 kcal · 7P 16F 7C per 2 tbsp'), findsOneWidget);
       expect(find.text('as the label reads'), findsOneWidget);
       // The derivation is under it, for the reader who wants what the totals
       // actually use.
@@ -335,7 +336,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('642 kcal · 23.7P 54.1F 23.7C /100 ml'), findsOneWidget);
+      expect(macroText('642 kcal · 23.7P 54.1F 23.7C /100 ml'), findsOneWidget);
       expect(find.textContaining('per 100 ml · 642 kcal'), findsNothing);
       expect(find.text('1 cup weighs 255.99 g · 1.08 g/ml'), findsOneWidget);
     });
@@ -355,7 +356,7 @@ void main() {
 
       // Reading: the sentences.
       expect(find.text('Mango'), findsOneWidget);
-      expect(find.text(mangoMacroLine), findsOneWidget);
+      expect(macroText(mangoMacroLine), findsOneWidget);
       expect(find.textContaining('0.66 g/ml'), findsOneWidget);
       expect(find.text(mangoPieceWeight), findsOneWidget);
       expect(find.text('piece'), findsOneWidget);

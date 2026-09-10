@@ -104,6 +104,7 @@ import 'density_entry.dart';
 import 'draft_card.dart';
 import 'ingredient_facts.dart';
 import 'ingredient_view_models.dart';
+import 'macro_line_text.dart';
 import 'macros_format.dart';
 import 'measures_editor.dart';
 import 'piece_weight_entry.dart';
@@ -352,6 +353,7 @@ class _ReadPosture extends ConsumerWidget {
     final serving = servingMeasureOf(
       measuresAsync.asData?.value ?? const <Measure>[],
     );
+    final macroFigures = macrosFactFigures(ing, serving: serving);
     final per100 = per100Fact(ing, serving: serving);
     final densityAside = densityAsideFact(ing, serving: serving);
 
@@ -439,11 +441,20 @@ class _ReadPosture extends ConsumerWidget {
                           'reads',
               ),
               // Never zeros: a row with no panel says what it is short of, in
-              // the dock's own words (invariant 3).
-              _Fact(
-                macrosFact(ing, serving: serving),
-                muted: ing.macros == null,
-              ),
+              // the dock's own words (invariant 3). A row that HAS one is a
+              // dense line and draws its energy as a glyph, the way the
+              // picker row it restates does.
+              if (macroFigures case final figures?)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: MacroLineText(
+                    figures.macros,
+                    style: ansiMono(size: 12),
+                    suffix: figures.per,
+                  ),
+                )
+              else
+                _Fact(macrosFact(ing, serving: serving), muted: true),
               // The derivation under the label's own line, for the reader who
               // wants to see what the totals actually use.
               if (per100 != null) _Fact(per100, muted: true),

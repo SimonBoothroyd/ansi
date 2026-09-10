@@ -38,15 +38,29 @@ const kDensityReadingUnit = cup;
 /// check against the jar in their hand without a calculator. The per-100
 /// figures then read as the aside they are ([per100Fact]).
 String macrosFact(Ingredient ingredient, {Measure? serving}) {
+  final figures = macrosFactFigures(ingredient, serving: serving);
+  if (figures == null) return 'needs macros';
+  return '${formatMacroLine(figures.macros)} ${figures.per}';
+}
+
+/// The same fact as its two parts — the figures, and the tail that says what
+/// they are per — for the posture that draws it as one dense line, energy as
+/// a glyph. Null on a row with no panel, where [macrosFact]'s words are the
+/// whole answer.
+({Macros macros, String per})? macrosFactFigures(
+  Ingredient ingredient, {
+  Measure? serving,
+}) {
   final macros = ingredient.macros;
-  if (macros == null) return 'needs macros';
+  if (macros == null) return null;
   final printed = servingPrintedMacros(ingredient, serving: serving);
   if (printed == null || serving == null) {
-    return '${formatMacroLine(macros)} '
-        '${macroBasisSuffix(ingredient.macrosBasis)}';
+    return (macros: macros, per: macroBasisSuffix(ingredient.macrosBasis));
   }
-  return '${formatMacroLine(printed)} per '
-      '${serving.label.substring(kServingMeasurePrefix.length)}';
+  return (
+    macros: printed,
+    per: 'per ${serving.label.substring(kServingMeasurePrefix.length)}',
+  );
 }
 
 /// The label's figures, reversed out of the stored per-100 and the serving —

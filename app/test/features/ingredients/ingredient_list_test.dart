@@ -12,6 +12,7 @@ import 'package:forui/forui.dart';
 
 import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/forui_semantics.dart';
+import '../../helpers/macro_line.dart';
 import '_form_harness.dart';
 
 void main() {
@@ -118,8 +119,8 @@ void main() {
       );
       // A stub shows no macro line at all — never a row of zeros. Only the
       // two complete rows carry one.
-      expect(find.textContaining('kcal ·'), findsNWidgets(2));
-      expect(find.textContaining('60 kcal · 1P 0F 15C'), findsOneWidget);
+      expect(macroTextContaining('kcal ·'), findsNWidgets(2));
+      expect(macroTextContaining('60 kcal · 1P 0F 15C'), findsOneWidget);
     });
 
     testWidgets('a prefilled-but-unconfirmed stub hints NEEDS COMPLETING — the '
@@ -161,7 +162,7 @@ void main() {
       await tester.tap(find.text('Mango').last);
       await tester.pumpAndSettle();
       expect(find.text('CANONICAL NAME'), findsNothing);
-      expect(find.text('60 kcal · 1P 0F 15C /100 g'), findsOneWidget);
+      expect(macroText('60 kcal · 1P 0F 15C /100 g'), findsOneWidget);
       await tapBack(tester);
 
       // The stub band is a work queue: its rows land on the fields.

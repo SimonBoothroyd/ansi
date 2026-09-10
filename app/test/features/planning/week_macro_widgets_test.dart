@@ -7,6 +7,8 @@ import 'package:ansi/features/planning/presentation/week_macro_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/macro_line.dart';
+
 /// The band's inner width on a phone, measured from the overflow this test
 /// exists to keep fixed.
 const _bandWidth = 316.0;
@@ -31,8 +33,8 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
-    expect(find.text('${formatMacroNumber(1234)} kcal'), findsOneWidget);
-    expect(find.text('${formatMacroNumber(321)} g f'), findsOneWidget);
+    expect(macroText('${formatMacroNumber(1234)} kcal'), findsOneWidget);
+    expect(macroText('${formatMacroGrams(321)} g f'), findsOneWidget);
     expect(
       tester.getSize(find.byType(MacroCells)).width,
       lessThanOrEqualTo(_bandWidth),
@@ -52,7 +54,7 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
-    expect(find.text('${formatMacroNumber(24500)} kcal'), findsOneWidget);
+    expect(macroText('${formatMacroNumber(24500)} kcal'), findsOneWidget);
     expect(
       tester.getSize(find.byType(MacroCells)).width,
       lessThanOrEqualTo(_bandWidth),
@@ -79,7 +81,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     // `fib`, not `f` — this strip already spends `f` on fat.
-    expect(find.text('${formatMacroNumber(245)} g fib'), findsOneWidget);
+    expect(macroText('${formatMacroGrams(245)} g fibre'), findsOneWidget);
     expect(
       tester.getSize(find.byType(MacroCells)).width,
       lessThanOrEqualTo(_bandWidth),

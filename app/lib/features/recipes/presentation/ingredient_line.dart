@@ -27,10 +27,10 @@
 /// the amount column: "1 lime" is still what the recipe says.
 ///
 /// **[RecipeIngredientLine.macroLine] is opt-in**, because the import preview
-/// shares this widget and has no summation behind it: the recipe page passes a
-/// string when its per-line toggle is on, and everything else passes nothing.
-/// The caller decides what it says — the line's figures, or the reason there
-/// are none — so this file never computes a number.
+/// shares this widget and has no summation behind it: the recipe page passes
+/// the line's own figures when its per-line toggle is on, or the reason there
+/// are none, and everything else passes neither. The caller decides which of
+/// the two it is — this file never computes a number.
 library;
 
 import 'package:flutter/gestures.dart';
@@ -39,8 +39,10 @@ import 'package:forui/forui.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/format.dart';
+import '../../ingredients/presentation/macro_line_text.dart';
 import '../domain/line_display.dart';
 import '../domain/recipe.dart';
 import 'recipe_chip.dart';
@@ -101,15 +103,15 @@ class RecipeIngredientLine extends StatelessWidget {
     this.onOpenIngredient,
     this.macroMarker,
     this.macroLine,
+    this.macroLineNote,
     this.onFixMacro,
     super.key,
   });
 
   final LineUses uses;
 
-  /// This row's own macros, at the amount the row is showing — `142 kcal ·
-  /// 3P 11F 8C` — or, for a row the total left out, the reason in the macro
-  /// panel's words. Null when the page's per-line toggle is off, and null on
+  /// This row's own macros, at the amount the row is showing — `142 🔥 ·
+  /// 3P 11F 8C`. Null when the page's per-line toggle is off, and null on
   /// every surface that has no summary to read.
   ///
   /// It sits under the identity, not under the amount: it is a fact about the
@@ -117,7 +119,15 @@ class RecipeIngredientLine extends StatelessWidget {
   /// recipe says. [macroMarker] is the amount column's, and the two never say
   /// the same thing twice — the caller passes null here when the marker is
   /// already printing the reason.
-  final String? macroLine;
+  ///
+  /// It is a dense line, so energy is a glyph rather than the word
+  /// ([MacroLineText]).
+  final Macros? macroLine;
+
+  /// The line's slot when there are no figures for it: the reason the total
+  /// left this row out, in the macro panel's own words. Never set beside
+  /// [macroLine] — a row has figures or it has a reason.
+  final String? macroLineNote;
 
   /// Why this row is left out of the macro total, in the shared per-line
   /// words (seam **D5**) — `needs a piece weight`, `stub ingredient`. Null
@@ -135,6 +145,14 @@ class RecipeIngredientLine extends StatelessWidget {
   /// is tappable — the editable preview's tap-to-edit-amount gesture. Null on
   /// the read-only recipe page.
   final VoidCallback? onEditAmount;
+
+  /// The muted mono the macro slot is drawn in, whichever of its two things
+  /// it is holding — one style, so the figures and the reason read as the
+  /// same aside under the name.
+  static final _lineStyle = ansiMono(
+    size: 10.5,
+    color: AnsiColors.muted,
+  ).copyWith(height: 1.3);
 
   /// Pushes a component row's target recipe (step 8.6). Null where navigating
   /// away would be wrong — the import review preview, where the recipe does
@@ -206,13 +224,12 @@ class RecipeIngredientLine extends StatelessWidget {
                     if (macroLine != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 3),
-                        child: Text(
-                          macroLine!,
-                          style: ansiMono(
-                            size: 10.5,
-                            color: AnsiColors.muted,
-                          ).copyWith(height: 1.3),
-                        ),
+                        child: MacroLineText(macroLine!, style: _lineStyle),
+                      )
+                    else if (macroLineNote != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 3),
+                        child: Text(macroLineNote!, style: _lineStyle),
                       ),
                   ],
                 ),

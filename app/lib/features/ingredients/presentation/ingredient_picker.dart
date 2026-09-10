@@ -34,6 +34,7 @@ import '../../../shared/write.dart' show hostContextOf;
 import '../data/ingredient_providers.dart';
 import '../domain/ingredient.dart';
 import 'ingredient_detail_view.dart' show newIngredientRoute;
+import 'macro_line_text.dart';
 import 'macros_format.dart';
 
 /// Opens the picker as a bottom sheet; resolves to the chosen ingredient — an
@@ -358,17 +359,11 @@ class IngredientRow extends StatelessWidget {
                   // Honest numbers: only a complete row shows a macro line.
                   if (!stub && macros != null) ...[
                     const SizedBox(height: 3),
-                    Text.rich(
-                      TextSpan(
-                        text: formatMacroLine(macros),
-                        style: ansiMono(size: 10, color: AnsiColors.herbDeep),
-                        children: [
-                          TextSpan(
-                            text: ' ${macroBasisSuffix(ing.macrosBasis)}',
-                            style: ansiMono(size: 10, color: AnsiColors.muted),
-                          ),
-                        ],
-                      ),
+                    MacroLineText(
+                      macros,
+                      style: ansiMono(size: 10, color: AnsiColors.herbDeep),
+                      suffix: macroBasisSuffix(ing.macrosBasis),
+                      suffixStyle: ansiMono(size: 10, color: AnsiColors.muted),
                     ),
                   ],
                 ],

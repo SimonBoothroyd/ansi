@@ -189,6 +189,13 @@ The column list is generated from the migrations —
     fat), the recipe panel gains a fifth cell, and the week's strip gains a
     `fib` cell. Each appears only where the figure does; a blank cell would
     read as a zero.
+- **Where the line is dense, the two fixed units are glyphs.** On a picker
+  row, a recipe line's own macros, the week's strip and the ingredient page's
+  read line, energy is drawn as a flame after its figure and fibre as a sheaf
+  of wheat after its own; each carries the word it replaced to a screen
+  reader, so nothing is lost to anyone who cannot see it. The words stay where
+  there is room for them — the recipe panel's cells, and the form's field
+  labels, where a person is typing into the slot the word names.
 - **One rounding rule, and it is display only.** Everywhere a macro figure is
   printed — a form field's seed text, the derivation under it, a picker row,
   the recipe panel's cells, the week's strip — energy prints whole and a gram

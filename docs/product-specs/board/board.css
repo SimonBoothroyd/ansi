@@ -380,6 +380,12 @@
 
         /* pickers v2 (proposed, step 7.7) */
         
+        /* A unit drawn as a GLYPH, the way the app's dense macro lines
+           draw energy and fibre: a Lucide icon at the line's own size and
+           colour, sitting on the line rather than beside it. The word it
+           replaces stays in its aria-label, exactly as the widget keeps a
+           semantics label. */
+        .gly{width:1.05em;height:1.05em;vertical-align:-0.16em;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
         .mline{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--herb-deep);margin-top:3px;}
         .mline .per{color:var(--muted);}
         .dock{border-top:1px solid var(--line);margin-top:12px;padding:10px 12px 12px;background:var(--paper);}

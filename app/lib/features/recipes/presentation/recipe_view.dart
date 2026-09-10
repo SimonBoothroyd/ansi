@@ -42,7 +42,6 @@ import '../../../shared/method_step_text.dart';
 import '../../../shared/write.dart';
 import '../../ingredients/presentation/ingredient_detail_view.dart'
     show ingredientDetailRoute;
-import '../../ingredients/presentation/macros_format.dart';
 import '../data/recipe_providers.dart';
 import '../domain/line_display.dart';
 import '../domain/method_step.dart';
@@ -584,29 +583,32 @@ class _IngredientsTab extends StatelessWidget {
   /// why a folded multi-use row prints figures only when EVERY use joined.
   /// [marked] rows already carry that reason under their amount, so they say
   /// nothing here rather than saying it twice.
-  String? _macroLine(
+  ({Macros? figures, String? note}) _macroLine(
     LineUses uses,
     RecipeMacroSummary summary,
     double factor, {
     required bool marked,
   }) {
-    if (!showLineMacros) return null;
+    const nothing = (figures: null, note: null);
+    if (!showLineMacros) return nothing;
     // `fiber: 0` is the additive identity, so folding one use does not strip
     // the fibre a row does state ([Macros.fiber]).
     var total = const Macros(kcal: 0, protein: 0, carb: 0, fat: 0, fiber: 0);
     for (final use in uses.uses) {
       final contribution = summary.lineMacros[use.id];
       if (contribution == null) {
-        if (marked) return null;
+        if (marked) return nothing;
         final reason = summary.notes
             .where((n) => n.lineId == use.id)
             .firstOrNull
             ?.reason;
-        return reason == null ? null : incompleteLineNote(reason);
+        return reason == null
+            ? nothing
+            : (figures: null, note: incompleteLineNote(reason));
       }
       total += contribution;
     }
-    return formatMacroLine(total.scaledBy(factor));
+    return (figures: total.scaledBy(factor), note: null);
   }
 
   @override
@@ -651,6 +653,12 @@ class _IngredientsTab extends StatelessWidget {
           for (final uses in groupLineUses(group.items))
             () {
               final note = _firstNote(uses, markers);
+              final macros = _macroLine(
+                uses,
+                summary,
+                factor,
+                marked: note != null,
+              );
               return RecipeIngredientLine(
                 uses: uses,
                 // A component's chip pushes its target's page (D7); an
@@ -663,12 +671,8 @@ class _IngredientsTab extends StatelessWidget {
                 macroMarker: note == null
                     ? null
                     : incompleteLineNote(note.reason),
-                macroLine: _macroLine(
-                  uses,
-                  summary,
-                  factor,
-                  marked: note != null,
-                ),
+                macroLine: macros.figures,
+                macroLineNote: macros.note,
                 onFixMacro: note == null ? null : () => _fix(context, note),
               );
             }(),

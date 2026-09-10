@@ -32,6 +32,7 @@ import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/fake_planning_repository.dart';
 import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/forui_semantics.dart';
+import '../../helpers/macro_line.dart';
 import '../../helpers/pump_app.dart';
 
 /// A canned planner: emits [week] for the current week and [last] as the
@@ -431,7 +432,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('no meals yet — nothing to add up'), findsOneWidget);
-      expect(find.textContaining('kcal'), findsNothing);
+      expect(macroTextContaining('kcal'), findsNothing);
     });
 
     testWidgets('"copy last week" is offered inline ONLY while the week is '
@@ -487,13 +488,13 @@ void main() {
       );
 
       // One eater × 500 kcal/serving.
-      expect(find.text('500 kcal'), findsWidgets);
+      expect(macroText('500 kcal'), findsWidgets);
       // The denominator is mandatory — a bare number is never drawn.
       expect(find.text('1 meal'), findsWidgets);
       // A day with nothing on it shows its quiet add door instead of a macro
       // line — and NEVER a zero.
       expect(find.text('nothing planned'), findsWidgets);
-      expect(find.text('0 kcal'), findsNothing);
+      expect(macroText('0 kcal'), findsNothing);
     });
 
     testWidgets('a day whose only meal is incomplete draws NO number', (
@@ -513,7 +514,7 @@ void main() {
       );
       // …and not one kcal figure anywhere on the screen (the week is that one
       // meal, so the band refuses too).
-      expect(find.textContaining('kcal'), findsNothing);
+      expect(macroTextContaining('kcal'), findsNothing);
     });
 
     testWidgets('the week band is labelled PLANNED and refuses a target '
@@ -550,7 +551,7 @@ void main() {
       await tester.tap(find.text('Jun'));
       await tester.pumpAndSettle();
       expect(find.text('no meals for Jun'), findsWidgets);
-      expect(find.textContaining('kcal'), findsNothing);
+      expect(macroTextContaining('kcal'), findsNothing);
     });
 
     testWidgets('the lens DIMS rather than removes', (tester) async {
@@ -829,16 +830,16 @@ void main() {
       );
 
       // Everyone: 1¾ servings × 500, and the meal count alone.
-      expect(find.text('875 kcal'), findsWidgets);
+      expect(macroText('875 kcal'), findsWidgets);
       expect(find.text('1 meal'), findsWidgets);
       expect(find.textContaining('of 1¾ portions'), findsNothing);
 
       await tester.tap(find.text('Jun'));
       await tester.pumpAndSettle();
       // Jun: ¾ × 500, and the denominator named beside the meal count.
-      expect(find.text('375 kcal'), findsWidgets);
+      expect(macroText('375 kcal'), findsWidgets);
       expect(find.text('1 meal · Jun · ¾ of 1¾ portions'), findsWidgets);
-      expect(find.text('875 kcal'), findsNothing);
+      expect(macroText('875 kcal'), findsNothing);
     });
   });
 
@@ -872,7 +873,7 @@ void main() {
         recipes: _recipesRepo(null),
       );
       // 60 g of a 350 kcal/100 g bar = 210 per portion, two eaters.
-      expect(find.text('420 kcal'), findsWidgets);
+      expect(macroText('420 kcal'), findsWidgets);
     });
 
     testWidgets('a stub row draws no number and says so in a stub '
@@ -882,7 +883,7 @@ void main() {
         planning: _FakePlanningRepo(week: _snackWeek(macros: null)),
         recipes: _recipesRepo(null),
       );
-      expect(find.textContaining('0 kcal'), findsNothing);
+      expect(macroTextContaining('0 kcal'), findsNothing);
       expect(find.textContaining('stub ingredient'), findsWidgets);
     });
 

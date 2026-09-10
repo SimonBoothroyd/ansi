@@ -206,7 +206,12 @@ ingredients/
     piece_weight_entry.dart     "1 piece weighs [__] g" — the same sentence
                                 shape for the count fact; drawn only on a
                                 piece-default row. Shared by both hosts
-    macros_format.dart          the per-100 macro line
+    macros_format.dart          the macro line as a string, and the one
+                                display rounding rule behind every printed
+                                figure — energy whole, grams to a decimal
+    macro_line_text.dart        the same line as a widget, for the DENSE
+                                surfaces: energy a flame, fibre a sheaf,
+                                each carrying its word to a screen reader
   barcode/        the scan → lookup → draft module
     barcode_add.dart      scanBarcodeForDraft(context) — the ONLY public door
     barcode_scan_sheet.dart camera reticle + a permanent typed-number field
