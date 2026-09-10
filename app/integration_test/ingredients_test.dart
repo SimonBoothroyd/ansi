@@ -336,8 +336,10 @@ void main() {
               ?.toDouble();
       expect(await storedDensity(), isNull, reason: 'the leg starts bare');
 
+      // The sentence has two fields now — an amount on the left and the
+      // weight on the right — so the weight is found by its own key.
       final densityField = find.descendant(
-        of: find.byType(DensityEntry),
+        of: find.byKey(const ValueKey('density-grams')),
         matching: find.byType(EditableText),
       );
       // `Add`, not `Save`: the entry puts the number in the form's draft and
