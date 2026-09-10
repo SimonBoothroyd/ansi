@@ -1,0 +1,76 @@
+/// The serving kept as one named measure: the label it is written under, and
+/// the amount and unit read back out of it.
+///
+/// The round trip is what lets the reading posture print the pack's own line —
+/// `190 kcal per 2 tbsp` — so it has to survive every phrase this app writes
+/// and refuse everything it did not.
+library;
+
+import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/core/units/measure.dart';
+import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/ingredients/domain/serving_measure.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  group('the label', () {
+    test('is the reserved prefix and the serving as the pack says it', () {
+      expect(servingMeasureLabel(2, tbsp), 'serving · 2 tbsp');
+      expect(servingMeasureLabel(0.25, cup), 'serving · 0.25 cup');
+      expect(servingMeasureLabel(28, g), 'serving · 28 g');
+    });
+
+    test('round-trips through the parse, whatever the app wrote', () {
+      for (final (amount, unit) in [
+        (2.0, tbsp),
+        (0.25, cup),
+        (28.0, g),
+        (1.0, flOz),
+        (236.59, ml),
+      ]) {
+        final read = servingFromMeasureLabel(servingMeasureLabel(amount, unit));
+        expect(read, (amount: amount, unit: unit));
+      }
+    });
+
+    test('refuses a label this file did not write', () {
+      // A household can rename or bin the serving like any other measure; a
+      // label that stops parsing stops being read as one, rather than
+      // becoming a second source of truth.
+      expect(servingFromMeasureLabel('medium'), isNull);
+      expect(servingFromMeasureLabel('serving · a spoonful'), isNull);
+      expect(servingFromMeasureLabel('serving · 2 slices'), isNull);
+      expect(servingFromMeasureLabel('2 tbsp'), isNull);
+    });
+  });
+
+  group('the phrase', () {
+    test('reads a decimal, a fraction and a capitalised unit', () {
+      expect(parseServingPhrase('0.25 cup'), (amount: 0.25, unit: cup));
+      expect(parseServingPhrase('1/4 cup'), (amount: 0.25, unit: cup));
+      expect(parseServingPhrase(' 1 Cup '), (amount: 1.0, unit: cup));
+      expect(parseServingPhrase('2 Tbsp'), (amount: 2.0, unit: tbsp));
+      expect(parseServingPhrase('237 mL'), (amount: 237.0, unit: ml));
+    });
+
+    test('refuses a word that is not a kitchen unit, and a zero amount', () {
+      // Never approximated into a unit — the unit table's own rule.
+      expect(parseServingPhrase('1 serving'), isNull);
+      expect(parseServingPhrase('2 pieces'), isNull);
+      expect(parseServingPhrase('0 tbsp'), isNull);
+      expect(parseServingPhrase('tbsp'), isNull);
+      expect(parseServingPhrase('1/0 cup'), isNull);
+    });
+  });
+
+  test('the row’s serving is found among its measures, and only it', () {
+    const measures = [
+      Measure(id: 'a', label: 'medium', amount: 110),
+      Measure(id: 'b', label: 'serving · 2 tbsp', amount: 29.57),
+      Measure(id: 'c', label: 'pack', amount: 400, basis: MacrosBasis.perMl),
+    ];
+    expect(servingMeasureOf(measures)!.id, 'b');
+    expect(servingMeasureOf(measures.where((m) => m.id != 'b')), isNull);
+    expect(servingMeasureOf(const <Measure>[]), isNull);
+  });
+}

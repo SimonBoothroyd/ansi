@@ -15,6 +15,7 @@ library;
 import '../../../core/units/macros.dart';
 import '../../../core/units/unit_words.dart';
 import '../../../core/units/units.dart';
+import '../domain/serving_measure.dart';
 import 'ingredient_draft.dart';
 
 /// Maps a decoded `/api/v2/product/{barcode}.json` body to a draft.
@@ -45,6 +46,7 @@ IngredientDraft? draftFromOffBody(Map<String, Object?> body) {
     macrosBasis: panel.basis,
     macrosGap: panel.gap,
     servingPanel: panel.serving,
+    serving: panel.printedServing,
     // densityGPerMl stays null on purpose: OFF holds no density, and a pack
     // size is a volume OR a mass, never the ratio between them.
     packSize: parsePackQuantity(_text(product['quantity'])),
@@ -53,11 +55,14 @@ IngredientDraft? draftFromOffBody(Map<String, Object?> body) {
 
 /// What the panel read as: per-100 macros in their basis, or a per-serving
 /// panel carried as printed, or nothing — with the gap saying which.
+/// The `printedServing` field rides beside per-100 macros when the label
+/// also named the serving they are printed per.
 typedef _Panel = ({
   Macros? macros,
   MacrosBasis basis,
   DraftMacrosGap gap,
   DraftServingPanel? serving,
+  DraftServing? printedServing,
 });
 
 _Panel _readPanel(Map<String, Object?> p) {
@@ -82,6 +87,7 @@ _Panel _readPanel(Map<String, Object?> p) {
         basis: _basisFor(p),
         gap: DraftMacrosGap.noPanel,
         serving: null,
+        printedServing: null,
       );
     }
     final (amount, servingBasis) = _servingQuantity(p);
@@ -95,16 +101,52 @@ _Panel _readPanel(Map<String, Object?> p) {
         servingBasis: servingBasis,
         servingSize: _text(p['serving_size']),
       ),
+      printedServing: null,
     );
   }
   final macros = _four(nutriments, '_100g');
+  final basis = _basisFor(p);
   return (
     macros: macros,
-    basis: _basisFor(p),
+    basis: basis,
     gap: macros == null ? DraftMacrosGap.noPanel : DraftMacrosGap.none,
     serving: null,
+    printedServing: macros == null ? null : _printedServing(p, basis),
   );
 }
+
+/// The serving a per-100 label prints beside its panel — "0.25 cup (28 g)".
+///
+/// **The pack's own words first, its bracket second.** A label says the
+/// serving in the unit a person measures with and converts it in parentheses
+/// for the panel; whichever of the two the row's basis can actually say is the
+/// one carried. A quarter-cup on a per-100 **g** panel is not it — the app
+/// would need a density to weigh it, and Open Food Facts holds none — so that
+/// label falls back to its own `(28 g)`. Nothing is converted here and nothing
+/// is implied: both readings are the pack's, printed on it side by side.
+DraftServing? _printedServing(Map<String, Object?> p, MacrosBasis basis) {
+  final text = _text(p['serving_size']);
+  if (text == null) return null;
+  final family = basis.baseUnit.family;
+  final candidates = [_servingLeading(text), _servingParenthetical(text)];
+  for (final candidate in candidates) {
+    if (candidate == null || candidate.unit.family != family) continue;
+    final n = p['nutriments'];
+    return DraftServing(
+      amount: candidate.amount,
+      unit: candidate.unit,
+      printedText: text,
+      printed: n is Map<String, Object?> ? _four(n, '_serving') : null,
+    );
+  }
+  return null;
+}
+
+/// The amount and unit a serving line **opens** with — the `0.25 cup` of
+/// "0.25 cup (28 g)", the `1 Cup` of "1 Cup (237 mL)" — or null when the line
+/// starts with something this app has no unit for ("1 serving", "2 pieces").
+({double amount, Unit unit})? _servingLeading(String servingSize) =>
+    parseServingPhrase(servingSize.split('(').first);
 
 /// **Which 100 the panel is per** — grams or millilitres.
 ///
@@ -142,7 +184,7 @@ MacrosBasis _basisFor(Map<String, Object?> p) {
   if (_perKey(p)?.endsWith('ml') ?? false) return MacrosBasis.perMl;
 
   final packUnit = parsePackQuantity(_text(p['quantity']))?.unit;
-  final printedUnit = _servingParentheticalUnit(_text(p['serving_size']));
+  final printedUnit = _servingParenthetical(_text(p['serving_size']))?.unit;
   final servingUnit = unitFromWord(
     _text(p['serving_quantity_unit']) ?? '',
     families: const {UnitFamily.mass, UnitFamily.volume},
@@ -161,19 +203,26 @@ MacrosBasis _basisFor(Map<String, Object?> p) {
   return MacrosBasis.perG;
 }
 
-/// The mass or volume unit a label prints in parentheses beside its serving
-/// — the `g` of `0.25 cup (28 g)`, the `mL` of `1 Cup (237 mL)` — or null
+/// The mass or volume a label prints in parentheses beside its serving — the
+/// `28 g` of `0.25 cup (28 g)`, the `237 mL` of `1 Cup (237 mL)` — or null
 /// when the text carries no such conversion.
-Unit? _servingParentheticalUnit(String? servingSize) {
+///
+/// It answers two questions off one regex, because they are the same fact: the
+/// unit says which 100 the panel is per ([_basisFor]), and the amount is the
+/// serving that panel is printed for ([_printedServing]).
+({double amount, Unit unit})? _servingParenthetical(String? servingSize) {
   if (servingSize == null) return null;
   final m = RegExp(
-    r'\(\s*[0-9]+(?:[.,][0-9]+)?\s*([a-zA-Z][a-zA-Z ]*?)\s*\)',
+    r'\(\s*([0-9]+(?:[.,][0-9]+)?)\s*([a-zA-Z][a-zA-Z ]*?)\s*\)',
   ).firstMatch(servingSize);
   if (m == null) return null;
-  return unitFromWord(
-    m.group(1)!,
+  final amount = double.tryParse(m.group(1)!.replaceAll(',', '.'));
+  if (amount == null || !(amount > 0)) return null;
+  final unit = unitFromWord(
+    m.group(2)!,
     families: const {UnitFamily.mass, UnitFamily.volume},
   );
+  return unit == null ? null : (amount: amount, unit: unit);
 }
 
 /// `nutrition_data_per`, reduced to the letters and digits contributors agree

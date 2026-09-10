@@ -79,6 +79,55 @@ class DraftPackSize {
   String toString() => 'DraftPackSize($amount ${unit.id})';
 }
 
+/// The serving a **per-100** label also prints — "0.25 cup (28 g)", "1 Cup
+/// (237 mL)" — read off Open Food Facts' free-text `serving_size`.
+///
+/// It is not the panel's basis and it is never a density: [amount] and [unit]
+/// are the pack's own words for one serving, chosen so they convert into the
+/// row's basis through the catalog alone. The host seeds the row's `serving`
+/// measure from it, which is what lets the reading posture print "80 kcal per
+/// 28 g" — the label's own line — beside the per-100 figures.
+@immutable
+class DraftServing {
+  const DraftServing({
+    required this.amount,
+    required this.unit,
+    this.printedText,
+    this.printed,
+  });
+
+  final double amount;
+
+  /// A catalog unit in the panel's own family: a per-100 g label's serving is
+  /// a mass, a per-100 ml label's a volume. Crossing the two would need a
+  /// density Open Food Facts does not hold, so a serving that cannot be said
+  /// in the basis is simply not carried.
+  final Unit unit;
+
+  /// OFF's `serving_size` verbatim ("1 Cup (237 mL)") — quoted back in the
+  /// line that checks the pack's own arithmetic against the app's.
+  final String? printedText;
+
+  /// The label's per-serving figures, when OFF carried all four of them
+  /// alongside the per-100 column. The two readings are checked against each
+  /// other and nothing more: neither is derived from the other.
+  final Macros? printed;
+
+  @override
+  bool operator ==(Object other) =>
+      other is DraftServing &&
+      other.amount == amount &&
+      other.unit == unit &&
+      other.printedText == printedText &&
+      other.printed == printed;
+
+  @override
+  int get hashCode => Object.hash(amount, unit, printedText, printed);
+
+  @override
+  String toString() => 'DraftServing($amount ${unit.id} · $printedText)';
+}
+
 /// A nutrition panel as a pack prints it **per serving** — the four figures
 /// verbatim, and what Open Food Facts knows about the serving they describe.
 ///
@@ -142,6 +191,7 @@ class IngredientDraft {
     this.macrosBasis = MacrosBasis.perG,
     this.macrosGap = DraftMacrosGap.none,
     this.servingPanel,
+    this.serving,
     this.densityGPerMl,
     this.packSize,
   });
@@ -192,6 +242,12 @@ class IngredientDraft {
   /// [macros] stays null alongside it: the per-100 reading is derived on the
   /// host, in front of the person, from a serving amount they can see.
   final DraftServingPanel? servingPanel;
+
+  /// The serving a **per-100** panel also printed, when the label's
+  /// `serving_size` says one in the panel's own family. Null on a per-serving
+  /// panel — there the serving is [servingPanel]'s, and the row is entered in
+  /// it rather than beside it.
+  final DraftServing? serving;
 
   /// Always null from a barcode lookup: Open Food Facts holds no density,
   /// and one is not derivable from a pack size. The field exists so the

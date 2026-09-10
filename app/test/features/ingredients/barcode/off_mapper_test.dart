@@ -51,6 +51,11 @@ typedef _Case = ({
   DraftMacrosGap gap,
   DraftPackSize? packSize,
   DraftServingPanel? servingPanel,
+
+  /// The serving a per-100 label ALSO printed, seeded onto the row as its one
+  /// `serving` measure. Null everywhere the label named none in the panel's
+  /// own family.
+  DraftServing? serving,
 });
 
 const _cases = <_Case>[
@@ -65,6 +70,7 @@ const _cases = <_Case>[
     gap: DraftMacrosGap.none,
     packSize: null,
     servingPanel: null,
+    serving: null,
   ),
   (
     fixture: 'oatly_per_100ml',
@@ -77,6 +83,7 @@ const _cases = <_Case>[
     gap: DraftMacrosGap.none,
     packSize: DraftPackSize(200, ml),
     servingPanel: null,
+    serving: null,
   ),
   (
     fixture: 'monster_per_100ml',
@@ -96,6 +103,16 @@ const _cases = <_Case>[
     gap: DraftMacrosGap.none,
     packSize: DraftPackSize(16, oz),
     servingPanel: null,
+    // "1 serving (16 fl oz)" — the leading words are no unit this app knows,
+    // so the bracket is what the label actually measured, and a volume is
+    // sayable on a per-100 ml row. The can IS the serving, and its own
+    // `*_serving` column rides along to be checked against the per-100 one.
+    serving: DraftServing(
+      amount: 16,
+      unit: flOz,
+      printedText: '1 serving (16 fl oz)',
+      printed: Macros(kcal: 230, protein: 0, carb: 58, fat: 0),
+    ),
   ),
   (
     fixture: 'oat_milk_ml_label_as_100g',
@@ -119,6 +136,7 @@ const _cases = <_Case>[
     gap: DraftMacrosGap.none,
     packSize: null,
     servingPanel: null,
+    serving: null,
   ),
   (
     fixture: 'cheddar_shreds_cup_serving_as_ml',
@@ -142,6 +160,16 @@ const _cases = <_Case>[
     gap: DraftMacrosGap.none,
     packSize: DraftPackSize(226, g),
     servingPanel: null,
+    // The pack's own "0.25 cup" is a volume and this row is per 100 g, so
+    // the serving carried is the bracket the label printed for exactly that
+    // purpose. Its per-serving figures ride along, unconverted, so the form
+    // can check the pack's two columns against each other.
+    serving: DraftServing(
+      amount: 28,
+      unit: g,
+      printedText: '0.25 cup (28 g)',
+      printed: Macros(kcal: 80, protein: 0, carb: 6, fat: 7),
+    ),
   ),
   (
     fixture: 'nesquik_no_panel',
@@ -157,6 +185,7 @@ const _cases = <_Case>[
     gap: DraftMacrosGap.noPanel,
     packSize: DraftPackSize(1, kg),
     servingPanel: null,
+    serving: null,
   ),
   (
     fixture: 'peanut_butter_per_serving',
@@ -179,6 +208,7 @@ const _cases = <_Case>[
       servingBasis: MacrosBasis.perG,
       servingSize: '2 Tbsp (32 g)',
     ),
+    serving: null,
   ),
   (
     fixture: 'kraft_mac_per_serving',
@@ -195,6 +225,7 @@ const _cases = <_Case>[
     gap: DraftMacrosGap.noPanel,
     packSize: DraftPackSize(7.25, oz),
     servingPanel: null,
+    serving: null,
   ),
 ];
 
@@ -213,6 +244,13 @@ void main() {
         expect(draft.macrosGap, c.gap);
         expect(draft.packSize, c.packSize);
         expect(draft.servingPanel, c.servingPanel);
+        expect(draft.serving, c.serving);
+        // A serving rides only beside per-100 macros: on a per-serving panel
+        // the row is entered IN the serving, not beside it.
+        expect(
+          draft.serving == null || draft.macrosGap == DraftMacrosGap.none,
+          isTrue,
+        );
         // A per-serving panel is carried iff the gap says so — and never
         // beside per-100 macros (M-D5: the per-100 reading is the host's).
         expect(

@@ -95,6 +95,7 @@ class DraftApplication {
     this.macros,
     this.macrosBasis,
     this.servingPanel,
+    this.serving,
     this.source,
     this.sourceLabel,
     this.packMeasure,
@@ -118,6 +119,12 @@ class DraftApplication {
   /// stays. [macros] is null whenever this is set; the per-100 reading is the
   /// host's to derive, in front of the person.
   final DraftServingPanel? servingPanel;
+
+  /// The serving a per-100 panel also printed, to seed the row's one `serving`
+  /// measure. It rides with [macros] and is dropped on the same terms: a
+  /// serving describes the panel it was printed beside, so a panel that was
+  /// not taken brings no serving with it.
+  final DraftServing? serving;
 
   /// The provenance to write (`off:<barcode>`), or null to keep the stored one.
   final String? source;
@@ -159,6 +166,7 @@ DraftApplication applyDraft(
   Macros? macros;
   MacrosBasis? macrosBasis;
   DraftServingPanel? servingPanel;
+  DraftServing? serving;
   if (draft.macros != null || draft.servingPanel != null) {
     if (target.hasMacros) {
       skipped.add(DraftSkip.macros);
@@ -166,6 +174,7 @@ DraftApplication applyDraft(
       macros = draft.macros;
       macrosBasis = draft.macrosBasis;
       servingPanel = draft.servingPanel;
+      serving = draft.serving;
     }
   }
 
@@ -192,6 +201,7 @@ DraftApplication applyDraft(
     macros: macros,
     macrosBasis: macrosBasis,
     servingPanel: servingPanel,
+    serving: serving,
     source: source,
     sourceLabel: sourceLabel,
     packMeasure: packAmount == null
