@@ -24,9 +24,9 @@ import 'package:forui/forui.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/number_format.dart';
+import '../../../shared/inline_amount_field.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
-import 'density_entry.dart' show InlineAmountField;
 import 'ingredient_facts.dart' show pieceWeightSourceSuffix;
 
 class PieceWeightEntry extends HookWidget {
@@ -142,7 +142,7 @@ class PieceWeightEntry extends HookWidget {
               Text('1 piece weighs', style: ansiMono(size: 12)),
               InlineAmountField(
                 key: const ValueKey('piece-weight-field'),
-                onChange: (v) => input.value = v,
+                onChange: (t) => input.value = double.tryParse(t.trim()),
                 onSubmit: save,
               ),
               Text(baseLabel, style: ansiMono(size: 12)),

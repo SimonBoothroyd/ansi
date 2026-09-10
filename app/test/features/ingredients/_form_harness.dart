@@ -565,6 +565,22 @@ final Finder scanField = find.descendant(
   matching: find.byType(TextField),
 );
 
+/// An `OffLookup` that answers every code with one committed fixture — the
+/// same payloads the mapper's table-driven test reads.
+OffLookup lookupAnswering(String fixture) => OffLookup(
+  client: MockClient((_) async => http.Response(offFixture(fixture), 200)),
+);
+
+/// Opens the form's own scan surface and types [barcode] in.
+Future<void> scanOnForm(WidgetTester tester, String barcode) async {
+  await tester.tap(find.text('Scan a barcode'));
+  await tester.pumpAndSettle();
+  await tester.enterText(scanField, barcode);
+  await tester.pump();
+  await tester.tap(find.text('Look up'));
+  await tester.pumpAndSettle();
+}
+
 /// The create form as the `＋` opens it (plan 0029 C2), over a router that
 /// can receive it. [body] is what Open Food Facts answers with.
 ///

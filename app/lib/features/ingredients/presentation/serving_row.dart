@@ -217,6 +217,33 @@ class StoredPer100Line extends StatelessWidget {
   }
 }
 
+/// The line a scanned per-100 row shows **in place of** the comparison, when
+/// the payload named no serving at all.
+///
+/// Open Food Facts holds plenty of packs as per-100 figures with nothing said
+/// about a serving, and the form then draws `per 100 g` over numbers a person
+/// is reading off a panel that prints per serving. There is nothing wrong to
+/// correct — the record says per 100 and the app believes it — so this says
+/// only that the other mode exists and what to do in it.
+///
+/// It is the [ScannedServingLine]'s slot and its style: one muted mono line
+/// under the macro fields. It goes the moment the mode moves or a figure is
+/// typed, because from then on the person is not looking at what the scan
+/// landed.
+class ScannedPerServingNudge extends StatelessWidget {
+  const ScannedPerServingNudge({super.key});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 6),
+    child: Text(
+      'the pack printed it per serving? switch to per serving and type it '
+      'as read',
+      style: ansiMono(size: 10, color: AnsiColors.muted),
+    ),
+  );
+}
+
 /// The line under a **scanned per-100** row's figures: what the pack printed
 /// per serving, what that is per 100, and whether the two agree.
 ///

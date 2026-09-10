@@ -86,6 +86,7 @@ import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/format.dart';
 import '../../../shared/guarded_navigation.dart';
+import '../../../shared/inline_amount_field.dart';
 import '../../../shared/was_word_line.dart';
 import '../../../shared/write.dart';
 import '../../books/presentation/text_prompt.dart';
@@ -992,12 +993,15 @@ class _DetailForm extends ConsumerWidget {
               // The derivation, in the person's sight before Save — one muted
               // line, never in the fields' place. On a scanned per-100 row it
               // is the other check: what the pack printed per serving against
-              // what its own per-100 column says.
+              // what its own per-100 column says — or, on a scan that named no
+              // serving at all, the one nudge that per-serving is there.
               if (draft.perServing)
                 StoredPer100Line(
                   serving: draft.serving,
                   printed: draft.printedMacros,
                 )
+              else if (draft.scannedPer100NeedsServingHint)
+                const ScannedPerServingNudge()
               else
                 ScannedServingLine(
                   serving: draft.serving,
@@ -1391,10 +1395,19 @@ String _overriddenNumbers(Ingredient ingredient) {
   return 'edited here';
 }
 
-/// The macro inputs. The first four are all-or-none — a partial panel would
-/// compute totals out of numbers nobody supplied (invariant 3). **Fibre is
-/// optional** ([Macros.fiber]): a label that prints it fills the fifth field,
-/// one that does not leaves it blank and the row is complete regardless.
+/// The macro inputs, as one **sentence**: `[285.7] kcal · [0] protein ·
+/// [21.4] carb · [21.4] fat · [ ] fibre`.
+///
+/// They were five tall boxes with a caption under each, which is a form's
+/// height for a line a person reads off a label in one breath. The slots are
+/// the density sentence's own [InlineAmountField] — stripped chrome, a width
+/// that fits the widest plausible reading — with the name after the number the
+/// way a panel prints it, so the five sit on one or two runs instead of five.
+///
+/// The first four are all-or-none — a partial panel would compute totals out
+/// of numbers nobody supplied (invariant 3). **Fibre is optional**
+/// ([Macros.fiber]): a label that prints it fills the fifth slot, one that
+/// does not leaves it blank and the row is complete regardless.
 class _MacroFields extends StatelessWidget {
   const _MacroFields({required this.draft, required this.onChanged, super.key});
 
@@ -1405,43 +1418,62 @@ class _MacroFields extends StatelessWidget {
   final MacroDraft draft;
   final ValueChanged<MacroDraft> onChanged;
 
+  /// Wide enough for a kcal reading of four digits and a decimal (`1234.5`,
+  /// `285.7`); the gram slots take three and a decimal (`21.4`, `100`), which
+  /// is the density sentence's own slot width. A slot sized for the longest
+  /// number anyone has ever *stored* — a USDA-derived `285.714285714286` —
+  /// would cost the sentence a run to hold text a field scrolls anyway.
+  static const _kcalWidth = 60.0;
+  static const _gramsWidth = 46.0;
+
   @override
   Widget build(BuildContext context) {
-    Widget field(String label, String seed, MacroDraft Function(String) put) {
-      return Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            FTextField(
-              // Keyed: they read alike, and a test that targets them by
-              // position breaks the moment a field moves.
-              key: ValueKey('macro-$label'),
-              // No hint: the caption below already names the field, and the
-              // hint said the same word a second time — badly, since "protein"
-              // did not fit a quarter of a phone and rendered as "prot…".
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              control: FTextFieldControl.managed(
-                initial: TextEditingValue(text: seed),
-                onChange: (v) => onChanged(put(v.text)),
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(label, style: ansiMono(size: 9, color: AnsiColors.muted)),
-          ],
-        ),
-      );
-    }
-
-    return Row(
-      spacing: 6,
+    Widget slot(
+      String label,
+      String seed,
+      MacroDraft Function(String) put, {
+      required bool last,
+    }) => Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        field('kcal', draft.kcal, (t) => draft.copyWith(kcal: t)),
-        field('protein', draft.protein, (t) => draft.copyWith(protein: t)),
-        field('carb', draft.carb, (t) => draft.copyWith(carb: t)),
-        field('fat', draft.fat, (t) => draft.copyWith(fat: t)),
-        field('fibre', draft.fiber, (t) => draft.copyWith(fiber: t)),
+        InlineAmountField(
+          // Keyed: they read alike, and a test that targets them by
+          // position breaks the moment a slot moves.
+          fieldKey: ValueKey('macro-$label'),
+          width: label == 'kcal' ? _kcalWidth : _gramsWidth,
+          initial: seed,
+          onChange: (t) => onChanged(put(t)),
+          onSubmit: () {},
+        ),
+        const SizedBox(width: 4),
+        Text(label, style: ansiMono(size: 9, color: AnsiColors.muted)),
+        // The separator travels with the slot it follows, so a run that breaks
+        // can never leave a number on one line and its name on the next.
+        if (!last) ...[
+          const SizedBox(width: 5),
+          Text('·', style: ansiMono(size: 10, color: AnsiColors.muted)),
+        ],
+      ],
+    );
+
+    // One Wrap, exactly as the density sentence is: the five read as a list and
+    // fold onto a second run at 402 pt rather than shrinking to fit.
+    return Wrap(
+      key: const ValueKey('macro-sentence'),
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 5,
+      runSpacing: 6,
+      children: [
+        slot('kcal', draft.kcal, (t) => draft.copyWith(kcal: t), last: false),
+        slot(
+          'protein',
+          draft.protein,
+          (t) => draft.copyWith(protein: t),
+          last: false,
+        ),
+        slot('carb', draft.carb, (t) => draft.copyWith(carb: t), last: false),
+        slot('fat', draft.fat, (t) => draft.copyWith(fat: t), last: false),
+        slot('fibre', draft.fiber, (t) => draft.copyWith(fiber: t), last: true),
       ],
     );
   }

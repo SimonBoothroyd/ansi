@@ -24,7 +24,6 @@
 /// allowed list shrinks; everything else unions.
 library;
 
-import 'package:flutter/services.dart' show TextInputAction;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
@@ -33,6 +32,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/format.dart';
+import '../../../shared/inline_amount_field.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 
@@ -262,7 +262,7 @@ class DensityEntry extends HookWidget {
                 // needs to stay one run at 402 pt.
                 width: 40,
                 initial: _phrase(amount.value, null),
-                onChange: (v) => amount.value = v ?? 0,
+                onChange: (t) => amount.value = double.tryParse(t.trim()) ?? 0,
                 onSubmit: save,
               ),
               for (final u in _measures)
@@ -282,7 +282,7 @@ class DensityEntry extends HookWidget {
               Text('weighs', style: ansiMono(size: 12)),
               InlineAmountField(
                 fieldKey: const ValueKey('density-grams'),
-                onChange: (v) => input.value = v,
+                onChange: (t) => input.value = double.tryParse(t.trim()),
                 onSubmit: save,
               ),
               Text('g', style: ansiMono(size: 12)),
@@ -368,63 +368,6 @@ double? densityForAmount(double amount, Unit volumeUnit, double grams) {
 /// rule. A null [unit] gives the bare amount, which is what seeds the field.
 String _phrase(double amount, Unit? unit) =>
     '${formatQuantity(amount)}${unit == null ? '' : ' ${unit.label}'}';
-
-/// A number slot INSIDE a line of prose, not a form field with a line of its
-/// own — the density sentence's two, and the piece-weight sentence's one.
-///
-/// The full [FTextField] chrome (its content padding and minimum height) is
-/// what pushed the sentence onto three rows: at 44 pt tall and 72 pt wide it
-/// could not share a run with the words around it. Here the padding is
-/// trimmed to what a single line of digits needs and the width to what a
-/// plausible gram weight is (`1000` still fits).
-class InlineAmountField extends StatelessWidget {
-  const InlineAmountField({
-    required this.onChange,
-    required this.onSubmit,
-    this.initial,
-    this.width = 46,
-    this.fieldKey,
-    super.key,
-  });
-
-  final ValueChanged<double?> onChange;
-  final VoidCallback onSubmit;
-
-  /// Seeds the controller once, when this widget is built. Give the widget a
-  /// key that moves with the text to re-seed it.
-  final String? initial;
-
-  final double width;
-
-  /// Keyed on the [FTextField] itself, so a test targets one slot of a
-  /// sentence that now has two.
-  final Key? fieldKey;
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    width: width,
-    child: FTextField(
-      key: fieldKey,
-      textAlign: TextAlign.center,
-      textInputAction: TextInputAction.done,
-      onSubmit: (_) => onSubmit(),
-      style: const FTextFieldStyleDelta.delta(
-        // Forui's touch sizing floors a field at 44 pt tall with 10 pt of
-        // vertical padding — right for a form field, and a whole row's worth
-        // of height for a slot inside a sentence.
-        constraints: BoxConstraints(minHeight: 32),
-        contentPadding: EdgeInsetsGeometryDelta.value(
-          EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-        ),
-      ),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      control: FTextFieldControl.managed(
-        initial: initial == null ? null : TextEditingValue(text: initial!),
-        onChange: (v) => onChange(double.tryParse(v.text.trim())),
-      ),
-    ),
-  );
-}
 
 /// Deleting the stored density — the one write in the whole admission model
 /// that makes the allowed list *shrink*.

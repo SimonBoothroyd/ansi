@@ -9,15 +9,12 @@ library;
 
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
-import 'package:ansi/features/ingredients/barcode/barcode_add.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart';
 import 'package:ansi/features/ingredients/presentation/measures_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 
 import '../../../helpers/fake_ingredient_repository.dart';
 import '../../../helpers/fake_measure_repository.dart';
@@ -35,20 +32,6 @@ void main() {
       status: IngredientStatus.stub,
       source: 'manual',
     );
-
-    OffLookup lookupAnswering(String fixture) => OffLookup(
-      client: MockClient((_) async => http.Response(offFixture(fixture), 200)),
-    );
-
-    /// Opens the form's scan surface and types [barcode] in.
-    Future<void> scanOnForm(WidgetTester tester, String barcode) async {
-      await tester.tap(find.text('Scan a barcode'));
-      await tester.pumpAndSettle();
-      await tester.enterText(scanField, barcode);
-      await tester.pump();
-      await tester.tap(find.text('Look up'));
-      await tester.pumpAndSettle();
-    }
 
     testWidgets('fills the EMPTY macro fields, keeps the name and a USDA '
         'provenance — and writes nothing until Save', (tester) async {

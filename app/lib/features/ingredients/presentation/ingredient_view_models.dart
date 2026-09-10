@@ -292,6 +292,32 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     return (amount: amount, unit: serving.unit);
   }
 
+  /// A scan that landed a **per-100** panel and named no serving — the one
+  /// state where the macros section says, unprompted, that per-serving is
+  /// there.
+  ///
+  /// Every clause earns its place. A hand-typed row is excluded because
+  /// nobody there is reading a mode off a screen they did not choose; a pack
+  /// whose panel WAS per serving already landed in that mode; and a per-100
+  /// pack that also printed its serving draws the comparison line
+  /// ([ScannedServingLine]) instead, which is a better answer than advice.
+  ///
+  /// It reads the fields rather than a flag, so it goes as soon as the person
+  /// touches either the mode or a figure: from then on what is on screen is
+  /// theirs, not the scan's.
+  bool get scannedPer100NeedsServingHint {
+    final scanned = this.scanned;
+    final applied = scanApplied;
+    if (scanned == null || applied == null) return false;
+    if (scanned.macrosGap != DraftMacrosGap.none) return false;
+    if (applied.serving != null) return false;
+    final landed = applied.macros;
+    if (landed == null) return false;
+    return !perServing &&
+        basis == applied.macrosBasis &&
+        macros == MacroDraft.from(landed);
+  }
+
   bool get stub => row.status == IngredientStatus.stub;
 
   /// Why this form cannot be saved yet, in the user's words, or null.
