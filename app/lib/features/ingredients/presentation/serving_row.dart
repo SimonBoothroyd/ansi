@@ -255,19 +255,42 @@ class ScannedServingLine extends StatelessWidget {
       printed: printed,
     );
     if (implied == null) return const SizedBox.shrink();
-    final agree =
-        (implied.kcal - per100.kcal).abs() <= per100.kcal * _tolerance;
+    // All four are compared, not the calories alone: a contributor who
+    // mistyped one gram figure leaves the kcal agreeing and the carb wrong,
+    // and that is exactly the error a person holding the pack can catch.
+    final differs = [
+      for (final (label, a, b) in [
+        ('kcal', implied.kcal, per100.kcal),
+        ('protein', implied.protein, per100.protein),
+        ('carb', implied.carb, per100.carb),
+        ('fat', implied.fat, per100.fat),
+      ])
+        if ((a - b).abs() > _slack(label, b)) _gap(label, a, b),
+    ];
     final says = serving.packPrintedText ?? serving.phrase;
+    final verdict = differs.isEmpty
+        ? 'these agree'
+        : 'these differ: ${differs.join(' · ')}';
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Text(
         'the pack prints ${formatQuantity(printed.kcal)} kcal per $says · '
         'that is ${formatQuantity(_round1(implied.kcal))} per 100 '
-        '${serving.basis.dbValue} — these ${agree ? 'agree' : 'differ'}',
+        '${serving.basis.dbValue} — $verdict',
         style: ansiMono(size: 10, color: AnsiColors.muted),
       ),
     );
   }
+
+  /// A percent of the held figure, with a floor a label's own rounding can
+  /// reach: whole kcal, and grams printed to the nearest 0.5 g on a 28 g
+  /// serving are ~1.8 g per 100.
+  static double _slack(String label, double held) =>
+      (held * _tolerance).clamp(label == 'kcal' ? 2.0 : 0.3, double.infinity);
+
+  static String _gap(String label, double printed, double held) =>
+      '$label ${formatQuantity(_round1(printed))} printed, '
+      '${formatQuantity(_round1(held))} held';
 
   static double _round1(double v) => (v * 10).roundToDouble() / 10;
 }
