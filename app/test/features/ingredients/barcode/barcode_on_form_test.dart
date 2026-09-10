@@ -101,7 +101,7 @@ void main() {
 
       expect(basisChip(tester, 'per 100 ml').selected, isTrue);
       expect(basisChip(tester, 'per 100 g').selected, isFalse);
-      expect(macroFieldText(tester, 'kcal'), '46.511627906977');
+      expect(macroFieldText(tester, 'kcal'), '47');
 
       // Nothing pretends to know what a millilitre of it weighs, so the `g`
       // default the stub was born with is now stranded — named on the line

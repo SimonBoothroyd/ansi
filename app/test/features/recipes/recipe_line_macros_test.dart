@@ -146,7 +146,7 @@ void main() {
 
     // 5 servings of a 4-serving recipe: 750 g of chicken, and its macros with
     // it. The strip above is unmoved — a serving is the same serving.
-    expect(find.text('750 kcal · 75P 38F 150C'), findsOneWidget);
+    expect(find.text('750 kcal · 75P 37.5F 150C'), findsOneWidget);
     expect(find.text('600 kcal · 60P 30F 120C'), findsNothing);
   });
 

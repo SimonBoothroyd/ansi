@@ -72,7 +72,7 @@ String? per100Fact(Ingredient ingredient, {Measure? serving}) {
     return null;
   }
   return 'per 100 ${ingredient.macrosBasis.dbValue} · '
-      '${formatMacroLineFine(macros)}';
+      '${formatMacroLine(macros)}';
 }
 
 /// The row's category, in the picker's own word for a row without one — a

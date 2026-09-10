@@ -75,11 +75,11 @@ void main() {
     expect(find.text('PER SERVING'), findsOneWidget);
     expect(find.text('612'), findsOneWidget); // kcal, rounded
     expect(find.text('KCAL'), findsOneWidget);
-    expect(find.text('41 g'), findsOneWidget);
+    expect(find.text('41.4 g'), findsOneWidget);
     expect(find.text('PROTEIN'), findsOneWidget);
-    expect(find.text('18 g'), findsOneWidget);
+    expect(find.text('17.7 g'), findsOneWidget);
     expect(find.text('CARB'), findsOneWidget);
-    expect(find.text('39 g'), findsOneWidget);
+    expect(find.text('38.5 g'), findsOneWidget);
     expect(find.text('FAT'), findsOneWidget);
     expect(find.byType(IncompleteBadge), findsNothing);
     // Nothing stated fibre, so there is no fifth cell and no empty one.
@@ -99,7 +99,7 @@ void main() {
     await tester.pumpWidget(_host(const RecipeMacroPanel(summary: summary)));
 
     expect(find.text('FIBRE'), findsOneWidget);
-    expect(find.text('6 g'), findsOneWidget);
+    expect(find.text('6.2 g'), findsOneWidget);
     expect(find.textContaining('fibre not counted'), findsNothing);
   });
 
@@ -207,7 +207,7 @@ void main() {
     // The lines scaled (5 servings ⇒ ×1.25) but a serving is still a serving.
     expect(find.text('750 g'), findsOneWidget);
     expect(find.text('612'), findsOneWidget);
-    expect(find.text('41 g'), findsOneWidget);
+    expect(find.text('41.4 g'), findsOneWidget);
   });
 
   testWidgets('the panel is derived from the watched aggregate, not a one-shot '

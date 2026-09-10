@@ -104,6 +104,7 @@ import 'density_entry.dart';
 import 'draft_card.dart';
 import 'ingredient_facts.dart';
 import 'ingredient_view_models.dart';
+import 'macros_format.dart';
 import 'measures_editor.dart';
 import 'piece_weight_entry.dart';
 import 'serving_row.dart';
@@ -1429,9 +1430,9 @@ class _MacroFields extends StatelessWidget {
 
   /// Wide enough for a kcal reading of four digits and a decimal (`1234.5`,
   /// `285.7`); the gram slots take three and a decimal (`21.4`, `100`), which
-  /// is the density sentence's own slot width. A slot sized for the longest
-  /// number anyone has ever *stored* — a USDA-derived `285.714285714286` —
-  /// would cost the sentence a run to hold text a field scrolls anyway.
+  /// is the density sentence's own slot width. A slot sized for a number
+  /// somebody types into it rather than for one they leave alone — a field
+  /// scrolls, and a run lost to a width nobody fills is a run lost.
   static const _kcalWidth = 60.0;
   static const _gramsWidth = 46.0;
 
@@ -1450,7 +1451,10 @@ class _MacroFields extends StatelessWidget {
           // position breaks the moment a slot moves.
           fieldKey: ValueKey('macro-$label'),
           width: label == 'kcal' ? _kcalWidth : _gramsWidth,
-          initial: seed,
+          // Seeded through the display rule, and only seeded: the draft goes
+          // on holding the full figure, so a field nobody touches saves what
+          // it was given rather than what it was showing.
+          initial: macroFieldText(seed, energy: label == 'kcal'),
           onChange: (t) => onChanged(put(t)),
           onSubmit: () {},
         ),

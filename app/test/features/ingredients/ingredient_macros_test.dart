@@ -77,7 +77,7 @@ void main() {
       await tester.pumpAndSettle();
       // The derivation, before Save, in the person's sight (invariant 3).
       expect(
-        find.textContaining('stored per 100 g · 714.3 kcal · 0P 78.6F 0C'),
+        find.textContaining('stored per 100 g · 714 kcal · 0P 78.6F 0C'),
         findsOneWidget,
       );
 
@@ -134,7 +134,7 @@ void main() {
       // 1 cup is 236.59 ml by the catalog. Nothing weighs it, and the line
       // says which conversion it took.
       expect(
-        find.textContaining('stored per 100 ml · 46.5 kcal'),
+        find.textContaining('stored per 100 ml · 46 kcal'),
         findsOneWidget,
       );
       expect(find.textContaining('from 1 cup = 236.59 ml'), findsOneWidget);
@@ -283,7 +283,7 @@ void main() {
       expect(macroFieldText(tester, 'kcal'), '180');
       expect(macroFieldText(tester, 'fat'), '14');
       expect(
-        find.textContaining('stored per 100 g · 562.5 kcal · 18.8P 43.8F'),
+        find.textContaining('stored per 100 g · 563 kcal · 18.8P 43.8F'),
         findsOneWidget,
       );
       // The card says what it read.
@@ -359,7 +359,7 @@ void main() {
       );
       expect(fieldText(tester, servingAmountField), '32');
       expect(
-        find.textContaining('stored per 100 g · 562.5 kcal'),
+        find.textContaining('stored per 100 g · 563 kcal'),
         findsOneWidget,
       );
 
@@ -460,13 +460,13 @@ void main() {
       expect(macroFieldText(tester, 'fibre'), '0');
       // Per 100 is the derivation, and it reads as one.
       expect(
-        find.textContaining('stored per 100 g · 285.7 kcal · 0P 25F 21.4C'),
+        find.textContaining('stored per 100 g · 286 kcal · 0P 25F 21.4C'),
         findsOneWidget,
       );
       // Both readings are the pack's, and they agree.
       expect(
         find.textContaining(
-          'the pack prints 80 kcal per 0.25 cup (28 g) · that is 285.7 per '
+          'the pack prints 80 kcal per 0.25 cup (28 g) · that is 286 per '
           '100 g — these agree',
         ),
         findsOneWidget,
@@ -512,7 +512,7 @@ void main() {
       await tester.tap(find.text('Look up'));
       await tester.pumpAndSettle();
 
-      expect(macroFieldText(tester, 'kcal'), '46.511627906977');
+      expect(macroFieldText(tester, 'kcal'), '47');
       expect(basisChip(tester, 'per 100 ml').selected, isTrue);
       // The carton names no serving, so nothing here says one.
       expect(find.textContaining('the pack prints'), findsNothing);

@@ -45,6 +45,7 @@ import '../../books/presentation/book_view_models.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/ingredient_picker.dart'
     show IngredientRow, useIngredientSearch;
+import '../../ingredients/presentation/macros_format.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
 import '../domain/planning.dart';
@@ -689,8 +690,8 @@ class _MacroLine extends StatelessWidget {
         child: Text.rich(
           TextSpan(
             text:
-                '$serves · ~${perServing.kcal.round()} kcal · '
-                '${perServing.protein.round()}P',
+                '$serves · ~${formatKcal(perServing.kcal)} kcal · '
+                '${formatGrams(perServing.protein)}P',
             style: ansiMono(size: 10, color: AnsiColors.herbDeep),
             children: [
               TextSpan(

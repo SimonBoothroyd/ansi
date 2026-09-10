@@ -106,7 +106,10 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('60 kcal · 1P 0F 15C · 3 fibre /100 g'), findsOneWidget);
+      expect(
+        find.text('60 kcal · 1P 0F 15C · 2.6 fibre /100 g'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a row with no measures says so rather than saying nothing', (
@@ -309,7 +312,7 @@ void main() {
       // The derivation is under it, for the reader who wants what the totals
       // actually use.
       expect(
-        find.text('per 100 ml · 642.5 kcal · 23.7P 54.1F 23.7C'),
+        find.text('per 100 ml · 642 kcal · 23.7P 54.1F 23.7C'),
         findsOneWidget,
       );
       // The density reads back as the sentence it was entered as, with the
@@ -332,8 +335,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('642 kcal · 24P 54F 24C /100 ml'), findsOneWidget);
-      expect(find.textContaining('per 100 ml · 642.5'), findsNothing);
+      expect(find.text('642 kcal · 23.7P 54.1F 23.7C /100 ml'), findsOneWidget);
+      expect(find.textContaining('per 100 ml · 642 kcal'), findsNothing);
       expect(find.text('1 cup weighs 255.99 g · 1.08 g/ml'), findsOneWidget);
     });
   });

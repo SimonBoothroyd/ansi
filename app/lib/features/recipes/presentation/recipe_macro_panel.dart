@@ -40,6 +40,7 @@ import 'package:forui/forui.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/incomplete_macros.dart';
+import '../../ingredients/presentation/macros_format.dart';
 import '../domain/recipe_macros.dart';
 
 class RecipeMacroPanel extends StatelessWidget {
@@ -212,14 +213,14 @@ class _Cells extends StatelessWidget {
     final m = summary.perServing!;
     final fiber = m.fiber;
     final cells = <(String, String)>[
-      ('${m.kcal.round()}', 'kcal'),
-      ('${m.protein.round()} g', 'protein'),
-      ('${m.carb.round()} g', 'carb'),
-      ('${m.fat.round()} g', 'fat'),
+      (formatKcal(m.kcal), 'kcal'),
+      ('${formatGrams(m.protein)} g', 'protein'),
+      ('${formatGrams(m.carb)} g', 'carb'),
+      ('${formatGrams(m.fat)} g', 'fat'),
       // A fifth cell only where there is a fifth fact: fibre is optional, and
       // an empty cell would read as a zero (invariant 3). What its absence
       // means is said in words underneath instead.
-      if (fiber != null) ('${fiber.round()} g', 'fibre'),
+      if (fiber != null) ('${formatGrams(fiber)} g', 'fibre'),
     ];
     return Row(
       children: [

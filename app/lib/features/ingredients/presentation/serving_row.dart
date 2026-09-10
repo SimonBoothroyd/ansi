@@ -207,7 +207,7 @@ class StoredPer100Line extends StatelessWidget {
     } else {
       final from = serving.conversion;
       text =
-          'stored per 100 ${basis.dbValue} · ${formatMacroLineFine(stored)}'
+          'stored per 100 ${basis.dbValue} · ${formatMacroLine(stored)}'
           '${from.isEmpty ? '' : ' · from $from'}';
     }
     return Padding(
@@ -315,8 +315,8 @@ class ScannedServingLine extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Text(
-        'the pack prints ${formatQuantity(printed.kcal)} kcal per $says · '
-        'that is ${formatQuantity(_round1(implied.kcal))} per 100 '
+        'the pack prints ${formatKcal(printed.kcal)} kcal per $says · '
+        'that is ${formatKcal(implied.kcal)} per 100 '
         '${serving.basis.dbValue} — $verdict',
         style: ansiMono(size: 10, color: AnsiColors.muted),
       ),
@@ -329,9 +329,8 @@ class ScannedServingLine extends StatelessWidget {
   static double _slack(String label, double held) =>
       (held * _tolerance).clamp(label == 'kcal' ? 2.0 : 0.3, double.infinity);
 
-  static String _gap(String label, double printed, double held) =>
-      '$label ${formatQuantity(_round1(printed))} printed, '
-      '${formatQuantity(_round1(held))} held';
-
-  static double _round1(double v) => (v * 10).roundToDouble() / 10;
+  static String _gap(String label, double printed, double held) {
+    final show = label == 'kcal' ? formatKcal : formatGrams;
+    return '$label ${show(printed)} printed, ${show(held)} held';
+  }
 }

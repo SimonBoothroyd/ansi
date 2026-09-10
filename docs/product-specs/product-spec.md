@@ -189,6 +189,13 @@ The column list is generated from the migrations —
     fat), the recipe panel gains a fifth cell, and the week's strip gains a
     `fib` cell. Each appears only where the figure does; a blank cell would
     read as a zero.
+- **One rounding rule, and it is display only.** Everywhere a macro figure is
+  printed — a form field's seed text, the derivation under it, a picker row,
+  the recipe panel's cells, the week's strip — energy prints whole and a gram
+  figure to one decimal with a trailing `.0` dropped (`286`, `21.4`, `0`).
+  What is stored is untouched by it: a field nobody typed in saves the figure
+  it was seeded with, so a row derived from a serving reverses to the label's
+  own numbers exactly.
 - **Macros are stored WITH the basis the label read them in** (per-100 g or
   per-100 ml — liquid labels read per 100 ml, and densities are sparse, so
   converting at entry can't be the design). A **barcode** scan has to work that
@@ -210,7 +217,12 @@ The column list is generated from the migrations —
   The four fields hold the label's figures as printed and one muted line under
   them says what will be stored. Changing mode **clears** them: they meant per
   100, and reading them as per serving is how a right number becomes a wrong
-  one.
+  one. A **scan lands in this mode whenever the label printed figures for one
+  serving** — whether that was the pack's only column or the one it printed
+  beside its per-100 one: the label's numbers are the fact and per 100 is the
+  derivation. A serving with no figures of its own, or figures with no serving
+  to divide by, lands per 100; a per-100 scan that named no serving at all is
+  the one state the form says, unprompted, that the mode is there.
 - **The serving is kept as the row's one `serving · 2 tbsp` measure**, so the
   reading posture prints the label's own line back — `190 kcal · 7P 16F 7C per
   2 tbsp` — by reversing the stored per-100 exactly, with the per-100 figures

@@ -26,6 +26,7 @@ import '../../account/presentation/account_view.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/presentation/ingredient_list_view.dart'
     show kIngredientsRoute;
+import '../../ingredients/presentation/macros_format.dart';
 import '../../recipes/data/recipe_providers.dart';
 import '../../recipes/domain/recipe.dart';
 import '../data/book_providers.dart';
@@ -606,8 +607,8 @@ String recipeStatsLine(RecipeSummary recipe) {
   final serves = 'serves ${formatQuantity(recipe.servingsBase)}';
   final perServing = recipe.macros?.perServing;
   if (perServing == null) return serves;
-  return '$serves · ${perServing.kcal.round()} kcal · '
-      '${perServing.protein.round()} g protein';
+  return '$serves · ${formatKcal(perServing.kcal)} kcal · '
+      '${formatGrams(perServing.protein)} g protein';
 }
 
 /// One section (or the synthetic Unsectioned bucket, when [section] is null)

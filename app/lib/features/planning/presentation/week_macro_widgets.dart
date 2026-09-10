@@ -29,16 +29,31 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/words.dart';
 import '../../../shared/incomplete_macros.dart';
+import '../../ingredients/presentation/macros_format.dart';
 import '../domain/week_macros.dart';
 
-/// A macro number with a thin thousands separator: `1 900`, `90`.
-String formatMacroNumber(double value) {
-  final digits = value.round().abs().toString();
-  final buffer = StringBuffer(value < 0 ? '-' : '');
+/// An energy figure with a thin thousands separator: `1 900`, `90`.
+/// Whole, like every printed kcal ([formatKcal]) — a week's total runs to
+/// four digits, and the separator is what keeps them readable.
+String formatMacroNumber(double value) => _separated(formatKcal(value));
+
+/// The same separator over a gram figure's one decimal ([formatGrams]):
+/// `1 900.5`, `21.4`, `90`.
+String formatMacroGrams(double value) => _separated(formatGrams(value));
+
+/// Thin spaces every three digits of the integer part; a decimal tail and
+/// the sign ride along untouched.
+String _separated(String number) {
+  final sign = number.startsWith('-') ? '-' : '';
+  final rest = sign.isEmpty ? number : number.substring(1);
+  final dot = rest.indexOf('.');
+  final digits = dot == -1 ? rest : rest.substring(0, dot);
+  final buffer = StringBuffer(sign);
   for (var i = 0; i < digits.length; i++) {
     if (i > 0 && (digits.length - i) % 3 == 0) buffer.write(' ');
     buffer.write(digits[i]);
   }
+  buffer.write(dot == -1 ? '' : rest.substring(dot));
   return buffer.toString();
 }
 
@@ -97,13 +112,13 @@ class MacroCells extends StatelessWidget {
     final fiber = macros.fiber;
     final cells = <(String, String)>[
       (formatMacroNumber(macros.kcal), 'kcal'),
-      ('${formatMacroNumber(macros.protein)} g', 'p'),
-      ('${formatMacroNumber(macros.carb)} g', 'c'),
-      ('${formatMacroNumber(macros.fat)} g', 'f'),
+      ('${formatMacroGrams(macros.protein)} g', 'p'),
+      ('${formatMacroGrams(macros.carb)} g', 'c'),
+      ('${formatMacroGrams(macros.fat)} g', 'f'),
       // Fibre is optional, so the cell appears only where the figure does — an
       // empty fifth cell would read as a zero (invariant 3). `fib`, not `f`,
       // which this strip already spends on fat.
-      if (fiber != null) ('${formatMacroNumber(fiber)} g', 'fib'),
+      if (fiber != null) ('${formatMacroGrams(fiber)} g', 'fib'),
     ];
     // A macro number is never clipped or ellipsised — a truncated `1 234` is
     // a wrong number, not a shortened one (invariant 3). So when the widest

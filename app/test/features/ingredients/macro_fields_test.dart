@@ -10,6 +10,7 @@
 // ignore_for_file: scoped_providers_should_specify_dependencies
 library;
 
+import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/presentation/serving_row.dart';
@@ -122,6 +123,33 @@ void main() {
         );
       }
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a derived panel is SHOWN through the display rule and SAVED '
+        'whole — opening a row is not an edit of its macros', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      // What a per-serving entry leaves behind: 80 kcal per 28 g, per 100.
+      const derived = Macros(
+        kcal: 285.7142857142857,
+        protein: 0,
+        carb: 21.428571428571427,
+        fat: 25,
+        fiber: 0,
+      );
+      final repo = FakeIngredientRepo([mango.copyWith(macros: derived)]);
+      await tester.pumpWidget(host(repo, at: editRoute('mango')));
+      await tester.pumpAndSettle();
+
+      // The fields read like a label, not like a division.
+      expect(macroFieldText(tester, 'kcal'), '286');
+      expect(macroFieldText(tester, 'carb'), '21.4');
+      expect(macroFieldText(tester, 'fat'), '25');
+
+      await saveForm(tester);
+      // …and the row still holds every digit, so the label's own figures
+      // reverse out of it exactly.
+      expect((await repo.byId('mango'))!.macros, derived);
     });
 
     testWidgets('the fifth slot still reaches the draft: typing fibre saves '
