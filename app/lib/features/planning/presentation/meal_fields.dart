@@ -1,5 +1,5 @@
-/// The controls a meal is described with — the picked recipe card, the
-/// combined `Day · Slot` dropdown, the eater row and the portions stepper.
+/// The controls a meal is described with — the picked recipe card, the slot
+/// picker, the eater row and the portions stepper.
 ///
 /// They live here because **two** sheets use them: `confirm_meal_sheet.dart`
 /// places a NEW meal on the week, and `meal_editor_sheet.dart` changes who's
@@ -8,9 +8,11 @@
 /// the first time one of them was touched (the same argument that hoisted
 /// `MethodStepText` and [incompleteNote]).
 ///
-/// Not every control is shared. [MealDaySlotPicker] is the confirm sheet's
-/// alone: a row does not print a day as a value (its *position* is its day), so
-/// a meal's day is chosen on the way in and changed by remove-and-re-add.
+/// Not every control is shared. [MealSlotPicker] is the confirm sheet's alone:
+/// a row does not print a day OR a slot as a value (its *position* is both), so
+/// a meal's slot is chosen on the way in and changed by remove-and-re-add.
+/// There is no day control here at all — the add flow starts from a day, so the
+/// day is a fact the sheet is opened with rather than a question it asks.
 ///
 /// [MealBatchBanner] rides along for the same reason: both sheets say the same
 /// sentence about a meal joining an existing batch.
@@ -244,21 +246,25 @@ class MealSnackCard extends StatelessWidget {
   }
 }
 
-/// The combined "Day · Slot" dropdown (confirm v2): one control carrying the
-/// pair, so a meal can land on — or move to — a different day from the sheet.
-/// A non-default slot (a custom "Brunch") joins the menu for every day; the
-/// trailing + prompts a new custom slot, keeping the selected day.
-class MealDaySlotPicker extends StatelessWidget {
-  const MealDaySlotPicker({
-    required this.day,
+/// The slot picker: the three default slots plus whatever custom slot the meal
+/// already carries, with a trailing `+` that prompts a new one — `meal_slot` is
+/// free text, so a household names its own.
+///
+/// **The day is not here, and that is the ruling.** Every add starts from a day
+/// card, so the day is a fact the sheet was *opened with*: it is printed as the
+/// sheet's subtitle and the button repeats it. The combined "Day · Slot" menu
+/// this replaced asked it again as one of 49 pairs, which made the one question
+/// actually open — the slot — the harder half of a pair nobody had asked for. A
+/// wrong day is one back-tap away, or remove-and-re-add once it is placed.
+class MealSlotPicker extends StatelessWidget {
+  const MealSlotPicker({
     required this.slot,
     required this.onChanged,
     super.key,
   });
 
-  final int day;
   final String slot;
-  final void Function(int day, String slot) onChanged;
+  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -269,21 +275,16 @@ class MealDaySlotPicker extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: FSelect<(int, String)>.rich(
-            format: (v) => '${kWeekdayFull[v.$1]} · ${v.$2}',
-            control: FSelectControl<(int, String)>.lifted(
-              value: (day, slot),
+          child: FSelect<String>.rich(
+            format: (v) => v,
+            control: FSelectControl<String>.lifted(
+              value: slot,
               onChange: (v) {
-                if (v != null) onChanged(v.$1, v.$2);
+                if (v != null) onChanged(v);
               },
             ),
             children: [
-              for (var d = 0; d < 7; d++)
-                for (final s in slots)
-                  FSelectItem(
-                    title: Text('${kWeekdayFull[d]} · $s'),
-                    value: (d, s),
-                  ),
+              for (final s in slots) FSelectItem(title: Text(s), value: s),
             ],
           ),
         ),
@@ -298,7 +299,7 @@ class MealDaySlotPicker extends StatelessWidget {
               confirm: 'Use',
             );
             if (custom != null && custom.trim().isNotEmpty) {
-              onChanged(day, custom.trim());
+              onChanged(custom.trim());
             }
           },
           child: const Icon(FLucideIcons.plus),

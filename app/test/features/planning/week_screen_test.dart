@@ -11,6 +11,7 @@ import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/domain/planning_repository.dart';
+import 'package:ansi/features/planning/presentation/meal_fields.dart';
 import 'package:ansi/features/planning/presentation/week_format.dart';
 import 'package:ansi/features/planning/presentation/week_header.dart';
 import 'package:ansi/features/planning/presentation/week_view.dart';
@@ -630,6 +631,76 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.text('Add to plan'), findsOneWidget, reason: 'confirm sheet');
+  });
+
+  group('the confirm sheet asks only the slot', () {
+    /// Drives the add flow from Thursday — the day `_plannedWeek` plans, and
+    /// so the only card whose add line reads `add a meal` — to the confirm
+    /// sheet.
+    Future<void> openConfirm(WidgetTester tester) async {
+      filterForuiSemanticsAssertions();
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _plannedWeek()),
+        recipes: _recipesRepo(null),
+      );
+      await tester.tap(find.text('add a meal').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Weeknight Chicken Curry').last);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the day it was opened from is stated, never asked', (
+      tester,
+    ) async {
+      await openConfirm(tester);
+      expect(find.text('Add to plan'), findsOneWidget);
+      // The day arrived with the flow: subtitle above, button below.
+      expect(find.text('to · Thursday'), findsOneWidget);
+      expect(find.text('Add to Thursday'), findsOneWidget);
+      // And no day control: the 49-item `Day · Slot` menu is gone, with every
+      // `<day> · <slot>` pair it used to offer.
+      expect(find.textContaining('Thursday · '), findsNothing);
+      expect(find.textContaining('Monday · '), findsNothing);
+      expect(find.byType(MealSlotPicker), findsOneWidget);
+    });
+
+    testWidgets('the slot is the one question, and it defaults to Dinner', (
+      tester,
+    ) async {
+      await openConfirm(tester);
+      expect(find.text('SLOT'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(MealSlotPicker),
+          matching: find.text('Dinner'),
+        ),
+        findsWidgets,
+      );
+    });
+
+    testWidgets('the custom-slot escape survives the split', (tester) async {
+      await openConfirm(tester);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(MealSlotPicker),
+          matching: find.byIcon(FLucideIcons.plus),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Custom meal'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).last, 'Brunch');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Use'));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byType(MealSlotPicker),
+          matching: find.text('Brunch'),
+        ),
+        findsWidgets,
+      );
+    });
   });
 
   testWidgets('one state: no Edit, and every day carries its add line', (

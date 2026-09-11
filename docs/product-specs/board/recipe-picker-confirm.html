@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe picker &amp; confirm</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>features/planning</code> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a></p>
+    <p class="view-status">built · matches code 2026-09-11 · <code>features/planning</code> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a></p>
     <p class="view-blurb">Pick a recipe for a slot, then say who is eating and how much — the two steps between a day’s ＋ and a meal on the week.</p>
 </header>
 
@@ -67,18 +67,19 @@
         </div>
 
         <div class="frame" id="pv2-c2">
-            <p class="frame-name"><b>Confirm &amp; place</b> · the batch hint under the card, one combined day-and-slot control, the roster, and portions that default to the eaters’ own factors</p>
+            <p class="frame-name"><b>Confirm &amp; place</b> · the batch hint under the card, the slot on its own, the roster, and portions that default to the eaters’ own factors. The day came with the flow, so it is the subtitle and the button — never a question</p>
             <div class="phone"><div class="notch"></div><div class="screen sheet">
                 <div class="grab"></div>
                 <div class="c-h">Add to plan</div>
+                <p class="target">to · <b>Wednesday</b></p>
                 <div class="picked"><div class="rthumb">◍</div>
                     <div class="pn"><div class="ptitle">Weeknight Chicken Curry</div>
                         <div class="rkeep"><span class="kpill keeps"><span class="mini-fresh"></span>keeps 4 d</span><span class="kpill frz">freezable</span></div>
                         <div class="rml">serves 4 · ~520 kcal · 31P <span class="per" style="color:var(--muted)">/serving</span></div></div></div>
                 <div class="batch-note" style="margin-top:10px">Chicken Curry already cooks <b>Monday</b> and keeps 4 days — Wednesday is inside that window, so this joins Monday’s batch instead of a second cook.</div>
                 <p class="clabel">Slot</p>
-                <div class="slotchip">Wednesday · Dinner<span class="caret">▾</span></div>
-                <p class="conv-note" style="margin:8px 20px 0">one control carries the day <i>and</i> the slot. The list ends in <b>Custom meal</b>, prompting <i>“e.g. Brunch, Snack”</i> — <code>meal_slot</code> is free text, so a household names its own</p>
+                <div class="slotchip">Dinner<span class="caret">▾</span></div>
+                <p class="conv-note" style="margin:8px 20px 0">the slot is the only question here, defaulted to <b>Dinner</b>. Every add starts from a day card, so the day is stated above and repeated on the button; a wrong day is one back-tap, or remove-and-re-add. The trailing <b>+</b> prompts <b>Custom meal</b> — <i>“e.g. Brunch, Snack”</i> — because <code>meal_slot</code> is free text, so a household names its own</p>
                 <p class="clabel">Who's eating</p>
                 <div class="eater-row"><span class="eaters"><span class="ep on a">A</span></span><span class="lab" style="flex:none;margin-left:2px">Ada</span><span class="eaters" style="margin-left:14px"><span class="ep on j">J</span></span><span class="lab" style="flex:none;margin-left:2px">Jun</span></div>
                 <p class="clabel">Portions</p>

@@ -1,11 +1,9 @@
 /// Step 3 of the add-a-meal flow: confirm the slot, who's eating, and how many
 /// portions, then place the meal on the week.
 ///
-/// v2 (step 7.7, design board "Confirm & place v2"): one combined
-/// "Day · Slot" dropdown (the day can still change here), the picked card
-/// carries the honest per-serving macro line, and the batch cue is the full
-/// prose ("Chicken Curry already cooks Monday and keeps 4 days — …") instead
-/// of a truncated one-liner.
+/// The picked card carries the honest per-serving macro line, and the batch cue
+/// is the full prose ("Chicken Curry already cooks Monday and keeps 4 days —
+/// …") rather than a truncated one-liner.
 ///
 /// Portions default to the eater count and can be bumped for big appetites
 /// (spec §8); a null override means "track |eaters|". The sheet does the
@@ -16,9 +14,14 @@
 /// meal already on the week. Hoisting them is what stops the add path and the
 /// edit path drifting apart.
 ///
-/// The `Day · Slot` dropdown is this sheet's alone. The editor holds no day and
-/// no slot — a row does not print a day as a value, its *position* is its day —
-/// so this is the only place a meal's day is chosen, on the way in.
+/// **The day is not asked here.** Every add starts from a day card, so the day
+/// arrived with the flow: it is the sheet's subtitle and the button repeats it
+/// ("Add to Wednesday"), and the only question left is the slot, defaulted to
+/// Dinner. A wrong day is one back-tap away while the sheet is open, and
+/// remove-and-re-add once it is placed — the same way the editor documents.
+/// The slot picker is this sheet's alone: the editor holds neither field,
+/// because a row does not print a day or a slot as a value, its *position* is
+/// both.
 ///
 /// Since step 8.14 it places EITHER kind of meal — a recipe, or a bare
 /// ingredient whose amount the quantity sheet already settled ([MealTarget]).
@@ -111,7 +114,6 @@ class _ConfirmMealSheet extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final dayState = useState(dayOfWeek);
     final slotState = useState(slot);
     final eaters = useState<Set<String>>({});
     // Null = track the eater count; a number is an explicit override (spec §8).
@@ -138,7 +140,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
         ? null
         : batchHintFor(
             plannedDays: plannedDays ?? const [],
-            newDay: dayState.value,
+            newDay: dayOfWeek,
             keepsForDays: recipe.keepsForDays,
             freezable: recipe.freezable,
             freezerDays: recipe.freezerDays,
@@ -160,11 +162,11 @@ class _ConfirmMealSheet extends HookConsumerWidget {
       final repo = ref.read(planningRepositoryProvider);
       final added = await ref.write(
         context,
-        "add ${kWeekdayFull[dayState.value]}'s meal",
+        "add ${kWeekdayFull[dayOfWeek]}'s meal",
         () => switch (target) {
           RecipeMeal(:final recipe) => repo.addEntry(
             weekStart: weekStart,
-            dayOfWeek: dayState.value,
+            dayOfWeek: dayOfWeek,
             mealSlot: slotState.value,
             recipeId: recipe.id,
             eaterIds: eaters.value.toList(),
@@ -173,7 +175,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
           SnackMeal(:final ingredient, :final quantity, :final unit) =>
             repo.addIngredientEntry(
               weekStart: weekStart,
-              dayOfWeek: dayState.value,
+              dayOfWeek: dayOfWeek,
               mealSlot: slotState.value,
               ingredientId: ingredient.id,
               eaterIds: eaters.value.toList(),
@@ -189,6 +191,10 @@ class _ConfirmMealSheet extends HookConsumerWidget {
 
     return AnsiSheetShell(
       title: 'Add to plan',
+      // The day, stated rather than asked — the flow started on this card, so
+      // the sheet names it back the way the meal editor names the row it was
+      // opened from.
+      subtitle: 'to · ${kWeekdayFull[dayOfWeek]}',
       titleSize: 22,
       centerTitle: false,
       dismiss: AnsiSheetDismiss.none,
@@ -201,17 +207,13 @@ class _ConfirmMealSheet extends HookConsumerWidget {
         },
         if (hint != null) ...[
           const SizedBox(height: 10),
-          MealBatchBanner(hint: hint, recipe: recipe!, newDay: dayState.value),
+          MealBatchBanner(hint: hint, recipe: recipe!, newDay: dayOfWeek),
         ],
         const SizedBox(height: 18),
         const AnsiMicroLabel('Slot'),
-        MealDaySlotPicker(
-          day: dayState.value,
+        MealSlotPicker(
           slot: slotState.value,
-          onChanged: (day, s) {
-            dayState.value = day;
-            slotState.value = s;
-          },
+          onChanged: (s) => slotState.value = s,
         ),
         const SizedBox(height: 18),
         const AnsiMicroLabel("Who's eating"),
@@ -239,7 +241,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
         const SizedBox(height: 20),
         FButton(
           onPress: add,
-          child: Text('Add to ${kWeekdayFull[dayState.value]}'),
+          child: Text('Add to ${kWeekdayFull[dayOfWeek]}'),
         ),
       ],
     );
