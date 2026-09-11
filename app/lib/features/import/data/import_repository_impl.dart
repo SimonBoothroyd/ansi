@@ -67,7 +67,10 @@ class SqliteImportRepository implements ImportRepository {
   final String _payloadJson;
 
   @override
-  Future<ReconciliationPayload> startImport(ImportSource source) async {
+  Future<ReconciliationPayload> startImport(
+    ImportSource source, {
+    void Function(ImportProgress)? onProgress,
+  }) async {
     // The canned stand-in ignores the source and returns a fixed payload, with
     // candidate ids re-pointed at whatever the local vocab actually holds.
     final payload = ReconciliationPayload.fromJson(

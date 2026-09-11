@@ -19,8 +19,10 @@ class FakeImportRepo implements ImportRepository {
   CommitPayload? committed;
 
   @override
-  Future<ReconciliationPayload> startImport(ImportSource source) async =>
-      payload;
+  Future<ReconciliationPayload> startImport(
+    ImportSource source, {
+    void Function(ImportProgress)? onProgress,
+  }) async => payload;
 
   @override
   Future<String> commit(CommitPayload payload) async {

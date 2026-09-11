@@ -340,45 +340,78 @@ Steps render with inline ingredient chips, and cook mode highlights the same ref
 
 ### 4.7 The wait — what bounds it, and what the person sees
 
-Extraction is one non-streaming POST to `import-recipe`, and behind it the server
-runs intake → extract → match in sequence. From photos it runs the model **twice**
-(transcribe the pages, then write the recipe out), which is why the photo door is
-the slow one and the one every deadline has to be sized for.
+Behind one call to `import-recipe` the server runs intake → extract → match in
+sequence. From photos it runs the model **twice** (transcribe the pages, then
+write the recipe out), which is why the photo door is the slow one and the one
+every deadline has to be sized for.
 
-**The timeout ladder.** Each rung must exceed everything beneath it, or a layer
-gives up on work the layer below would have finished — and a client that abandons
-a request the server completes has paid for the model call and shows a failure for
-it anyway. The numbers, written out in full where the client timeout lives
+**The answer is a stream.** `import-recipe` responds `text/event-stream` and
+emits an event as each stage lands, so the phone is *told* where the server has
+got to rather than guessing from a clock:
+
+| Event | Data | When |
+|---|---|---|
+| `plan` | `{stages}` | first, before any work — the ids this import will walk |
+| `stage` | `{stage, elapsed_ms}` | as each one completes; `elapsed_ms` is the server's clock from the moment the request arrived, so `received` covers the upload |
+| `result` | the `ReconciliationPayload` | last, on success |
+| `error` | `{error}` | last, instead, on failure |
+
+The stage ids are the contract — `received`, then `fetched` (link) or
+`transcribed` (photos), then `sanitised`, then `matched`. The **wording is the
+app's** (`app/lib/features/import/domain/import_stage.dart`), because copy
+belongs where the screen is, and a stage id a build does not recognise is
+ignored rather than drawn as a blank row.
+
+One consequence is load-bearing: **the HTTP status is committed before the work
+runs**. A failure after the first byte therefore arrives as an `error` event
+carrying the same sentence the JSON status path used to carry, not as a 4xx/5xx.
+Everything knowable *before* the pipeline starts — the method, a malformed body,
+an unusable request — is still a plain JSON status, because nothing has been
+promised yet.
+
+**The timeout ladder.** The stream moves what each rung measures. The platform's
+idle timeout now bounds the longest **silence** inside the call rather than the
+call itself, and the client holds two deadlines because there are two different
+ways for this to go wrong and only one of them is a duration. The numbers are
+written out in full where the client's live
 (`app/lib/features/import/data/remote_import_repository.dart`):
 
 | Rung | Budget | Where |
 |---|---|---|
-| client invoke | 180 s | `edgeInvokeTimeout` |
-| platform idle timeout | 150 s | Supabase's own cut-off — a function that has sent nothing by then gets a gateway 504 |
+| client, longest silence | 90 s | `edgeSilenceTimeout` — the gap between events, restarted by every one of them |
+| platform idle timeout | 150 s | Supabase's own cut-off for a response that has sent **nothing** |
+| client, total | 180 s | `edgeInvokeTimeout` |
 | intake, whole (all redirect hops) | 25 s | `FETCH_TOTAL_TIMEOUT_MS` (`_shared/jsonld.ts`) |
 | one model call, all retries | 60 s | `DEFAULT_DEADLINE_MS` (`_shared/adapters/http.ts`) |
 | one model attempt | 45 s | `DEFAULT_ATTEMPT_TIMEOUT_MS` |
 
-So the worst case is ~90 s from a link and ~125 s from photos, and the client sits
-*above* the platform's cut-off rather than below the function's worst case. The
-arithmetic is a test (`supabase/functions/_shared/timeouts.test.ts`), because the
-numbers live in files nobody edits together and the failure is silent.
+Bytes arriving prove the server is alive, so an import must never be abandoned
+merely for taking a while: the silence rung sits above the widest gap the
+pipeline can produce (one model call, 60 s) and below the platform's 150 s, so
+the app is what gives up, with a sentence, rather than a gateway cutting in. The
+total rung still exists because a stream that dribbles forever would never trip
+the silence one, and it stays above the pipeline's worst case (~90 s from a
+link, ~125 s from photos). The arithmetic is a test on both sides
+(`supabase/functions/_shared/timeouts.test.ts` and
+`app/test/features/import/edge_import_failures_test.dart`), because the numbers
+live in files nobody edits together and the failure is silent.
 
-**Three failures, three different sentences.** A person needs to know which thing
-went wrong, because the remedies differ: a site that will not serve the page wants
-the *photo* door ("that site blocked the fetch … — try the photo import instead"),
-and a model that ran long wants the *same button* again ("the model took too long
-… nothing has been saved, so it is safe to try again", a 504 rather than the
-opaque 500 a timeout would otherwise land in). Every one of them is safe to
-repeat: the import writes nothing until Save at review (§8).
+**Four failures, four different sentences.** A person needs to know which thing
+went wrong, because the remedies differ: a site that will not serve the page
+wants the *photo* door ("that site blocked the fetch … — try the photo import
+instead"); a model that ran long wants the *same button* again ("the model took
+too long … nothing has been saved, so it is safe to try again"); a stream that
+went quiet says so ("stopped answering part way through"); and a stream that
+ended without a recipe says that instead of showing a blank review screen. Every
+one is safe to repeat: the import writes nothing until Save at review (§8).
 
-**The screen says which stage.** A single non-streaming call cannot report the
-server's progress, so the loading screen climbs a **time-driven ladder**
-(`app/lib/features/import/domain/import_stage.dart`): the rungs name the real
-stages in the order they run, timed off the extraction runs, and each is worded to
-stay true if it lands early or late. It is drawn on the board's Import review
-view. A frozen "Reading the recipe…" for two minutes reads as a hang; a sentence
-that moves reads as work.
+**The screen is a checklist.** The reading screen draws one row per planned
+stage — name, `m:ss`, and a done / running / pending mark — with each finished
+row frozen at the elapsed time the server reported for it and the running one
+ticking. Nothing on it is estimated, which is the point: before the `plan`
+arrives it claims no stages at all. It is drawn on the board's Import review
+view. A frozen "Reading the recipe…" for two minutes reads as a hang; a list
+that fills in reads as work, and says *where the time went*.
 
 ---
 

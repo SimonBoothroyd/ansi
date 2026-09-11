@@ -27,6 +27,7 @@ import type {
 import { fixedMock } from "../_shared/adapters/mock.ts";
 import { titleCaseIfUncased } from "../_shared/adapters/schema.ts";
 import { matchLines } from "../_shared/match.ts";
+import { collectSse } from "./sse_test_helper.ts";
 import {
   inMemoryVocabMatcher,
   type VocabEntry,
@@ -102,7 +103,11 @@ async function importGold(id: string): Promise<{
     }),
   );
   assertEquals(res.status, 200);
-  return { gold, payload: await res.json() as ReconciliationPayload };
+  // The payload is the stage stream's last event (§4.7).
+  const events = await collectSse(res);
+  const result = events[events.length - 1];
+  assertEquals(result.event, "result");
+  return { gold, payload: result.data as ReconciliationPayload };
 }
 
 // `gumbo` is the richest gold case: 32 lines in one group, printed ranges,

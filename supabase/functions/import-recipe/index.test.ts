@@ -1,13 +1,22 @@
-import { assertEquals, assertRejects, assertStringIncludes } from "@std/assert";
+import {
+  assert,
+  assertEquals,
+  assertRejects,
+  assertStringIncludes,
+} from "@std/assert";
 import {
   type ImportDeps,
   ImportError,
   importRecipe,
+  type ImportStageId,
   makeHandler,
   MAX_IMAGE_BYTES,
   MAX_IMAGES,
   parseRequestBody,
+  PHOTO_STAGES,
+  URL_STAGES,
 } from "./index.ts";
+import { collectSse, type SseEvent } from "./sse_test_helper.ts";
 import type {
   ExtractAdapter,
   ExtractionResult,
@@ -282,6 +291,24 @@ Deno.test("importRecipe — rejects a matcher line-count mismatch", async () => 
 
 // --- HTTP boundary ------------------------------------------------------------
 
+/** POSTs `body` through a default-`deps` handler. */
+function post(body: unknown): Promise<Response> {
+  return makeHandler(deps())(
+    new Request("https://fn.test", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  );
+}
+
+const last = (events: SseEvent[]): SseEvent => events[events.length - 1];
+
+/** The stage ids, in arrival order. */
+const stageIds = (events: SseEvent[]): ImportStageId[] =>
+  events
+    .filter((e) => e.event === "stage")
+    .map((e) => (e.data as { stage: ImportStageId }).stage);
+
 Deno.test("parseRequestBody — url, images, and errors", () => {
   assertEquals(parseRequestBody({ url: "u" }), { request: { url: "u" } });
   const imgs = parseRequestBody({ images: [btoa("abc")] });
@@ -369,10 +396,12 @@ Deno.test("makeHandler — an unexpected failure returns an OPAQUE 500", async (
       body: JSON.stringify({ url: "https://example.test/x" }),
     }),
   );
-  assertEquals(res.status, 500);
-  const body = await res.json();
-  assertEquals(body, { error: "import failed" });
-  assertEquals("detail" in body, false);
+  // The answer streams, so the STATUS was committed before the failure
+  // happened; the sentence arrives as the last event instead.
+  assertEquals(res.status, 200);
+  const events = await collectSse(res);
+  assertEquals(last(events).event, "error");
+  assertEquals(last(events).data, { error: "import failed" });
 });
 
 Deno.test("makeHandler — a model that ran long is a 504 that says so, not the opaque 500", async () => {
@@ -397,26 +426,73 @@ Deno.test("makeHandler — a model that ran long is a 504 that says so, not the 
         body: JSON.stringify({ url: "https://example.test/dirty-rice" }),
       }),
     );
-    assertEquals(res.status, 504);
-    const body = await res.json();
-    assertStringIncludes(body.error, "took too long");
-    assertStringIncludes(body.error, "safe to try again");
+    assertEquals(res.status, 200);
+    const events = await collectSse(res);
+    const failure = last(events);
+    assertEquals(failure.event, "error");
+    const { error } = failure.data as { error: string };
+    assertStringIncludes(error, "took too long");
+    assertStringIncludes(error, "safe to try again");
     // The provider's own words never reach the caller.
-    assertEquals(body.error.includes("60000ms"), false);
+    assertEquals(error.includes("60000ms"), false);
   }
 });
 
-Deno.test("makeHandler — POST url returns 200 payload", async () => {
-  const handler = makeHandler(deps());
+Deno.test("makeHandler — POST url streams its stages, then the payload LAST", async () => {
+  const res = await post({ url: "https://example.test/curry" });
+  assertEquals(res.status, 200);
+  assertEquals(res.headers.get("content-type"), "text/event-stream");
+
+  const events = await collectSse(res);
+  assertEquals(events[0].event, "plan");
+  assertEquals(events[0].data, { stages: URL_STAGES });
+  // Every stage of the plan, in the plan's order, each one an event of its own.
+  assertEquals(stageIds(events), URL_STAGES);
+  // The payload is the last thing on the wire — a client that stops at the
+  // first `result` has the whole answer.
+  assertEquals(last(events).event, "result");
+  assertEquals((last(events).data as { title: string }).title, "Test Curry");
+  assertEquals(events.filter((e) => e.event === "result").length, 1);
+});
+
+Deno.test("makeHandler — the photo door names the transcribe stage, and the clock only goes forwards", async () => {
+  const handler = makeHandler(
+    deps({ adapter: fakeAdapter({ withVision: true }) }),
+  );
   const res = await handler(
     new Request("https://fn.test", {
       method: "POST",
-      body: JSON.stringify({ url: "https://example.test/curry" }),
+      body: JSON.stringify({ images: [btoa("x")] }),
     }),
   );
-  assertEquals(res.status, 200);
-  const body = await res.json();
-  assertEquals(body.title, "Test Curry");
+  const events = await collectSse(res);
+  assertEquals(events[0].data, { stages: PHOTO_STAGES });
+  assertEquals(stageIds(events), PHOTO_STAGES);
+
+  const elapsed = events
+    .filter((e) => e.event === "stage")
+    .map((e) => (e.data as { elapsed_ms: number }).elapsed_ms);
+  assertEquals(elapsed.length, PHOTO_STAGES.length);
+  for (let i = 1; i < elapsed.length; i++) {
+    assert(
+      elapsed[i] >= elapsed[i - 1],
+      `elapsed went backwards: ${elapsed.join(",")}`,
+    );
+  }
+});
+
+Deno.test("makeHandler — a failure ends the stream with an error and NO result", async () => {
+  const res = await post({ images: [btoa("x")] }); // the fake cannot transcribe
+  const events = await collectSse(res);
+  assertEquals(events.filter((e) => e.event === "result").length, 0);
+  assertEquals(last(events).event, "error");
+  assertStringIncludes(
+    (last(events).data as { error: string }).error,
+    "cannot transcribe",
+  );
+  // The stages that DID complete before it still arrived, so the screen shows
+  // how far the import got rather than blanking.
+  assertEquals(stageIds(events), ["received"]);
 });
 
 Deno.test("makeHandler — method, body, and pipeline errors map to codes", async () => {
@@ -431,13 +507,8 @@ Deno.test("makeHandler — method, body, and pipeline errors map to codes", asyn
   );
   assertEquals(empty.status, 400); // parseRequestBody rejects before orchestration
 
-  // A request that parses but fails IN orchestration → ImportError → 422. Images
-  // reach a fake adapter with no `transcribe`, which throws "cannot transcribe".
-  const noVision = await handler(
-    new Request("https://fn.test", {
-      method: "POST",
-      body: JSON.stringify({ images: [btoa("x")] }),
-    }),
-  );
-  assertEquals(noVision.status, 422);
+  // A request that parses but fails IN orchestration is past the point where a
+  // status can still be chosen — the stream has started — so it is a 200
+  // carrying an `error` event. Covered above; what this pins is that the
+  // pre-pipeline rejections are still plain statuses.
 });

@@ -29,6 +29,7 @@
 
 import { assert, assertEquals } from "@std/assert";
 import { type ImportDeps, makeHandler } from "./index.ts";
+import { collectSse } from "./sse_test_helper.ts";
 import type {
   ExtractionResult,
   RawBlob,
@@ -293,7 +294,7 @@ function goldenDeps(): ImportDeps {
   };
 }
 
-/** Runs a URL import through the REAL HTTP handler and returns the body. */
+/** Runs a URL import through the REAL HTTP handler and returns the payload. */
 async function producePayload(): Promise<ReconciliationPayload> {
   const res = await makeHandler(goldenDeps())(
     new Request("https://edge.test/import-recipe", {
@@ -303,7 +304,13 @@ async function producePayload(): Promise<ReconciliationPayload> {
     }),
   );
   assertEquals(res.status, 200, "the sampler must import cleanly");
-  return await res.json() as ReconciliationPayload;
+  // The answer is a stage stream now; the payload is its last event. The
+  // CONTRACT this file pins is that payload, unchanged — the stream is how it
+  // travels, not what it is.
+  const events = await collectSse(res);
+  const result = events[events.length - 1];
+  assertEquals(result.event, "result", "the payload is the last event");
+  return result.data as ReconciliationPayload;
 }
 
 const serialize = (p: ReconciliationPayload) =>

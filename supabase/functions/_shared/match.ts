@@ -20,9 +20,10 @@
 //
 // The seam is SET-SHAPED: a tier takes every identity still unanswered and
 // returns candidates for all of them, so a whole import costs ONE round trip
-// per tier rather than one per line. The tiers themselves still run in order,
-// and the trigram tier still only sees what the exact tier did not answer — the
-// cascade is unchanged, it is the fan-out underneath it that is gone.
+// per tier rather than one per line. The tiers run in order and the trigram
+// tier sees only what the exact tier did not answer, so the rulings below are
+// a function of the identity text alone — batching changes what is asked, not
+// what is decided.
 
 import { normalize, stripParentheticals } from "./normalize.ts";
 import type {

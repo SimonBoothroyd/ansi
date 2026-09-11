@@ -38,12 +38,12 @@ export type SqlExecutor = <T = Record<string, unknown>>(
 // --- Tier 1 + 2: the household-scoped vocab matcher --------------------------
 //
 // Both tiers take the WHOLE set of identities as one `text[]` parameter and
-// answer for all of them at once, keyed by `match_text`. A 35-line recipe used
-// to spend 70 round trips here, fanned out concurrently through a pool of ten
-// against the transaction pooler; it now spends two. `unnest($2::text[])` is
-// what makes that one query instead of a generated `in (…)` list: the driver
-// binds one parameter whatever the line count, so nothing about this SQL grows
-// with the recipe.
+// answer for all of them at once, keyed by `match_text`. That is what keeps a
+// 35-line recipe to two round trips rather than seventy fanned out through a
+// pool of ten against the transaction pooler. `unnest($2::text[])` is what
+// makes it one query instead of a generated `in (…)` list: the driver binds one
+// parameter whatever the line count, so nothing about this SQL grows with the
+// recipe.
 
 // Exact `match_text` equality across ingredient + alias, one row per distinct
 // (identity, ingredient). Household-scoped and soft-delete aware (mirrors RLS +

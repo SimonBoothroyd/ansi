@@ -36,34 +36,40 @@
         </div>
 
         <div class="frame">
-            <p class="frame-name"><b>Reading</b> · one spinner, and a sentence that <i>moves</i> — the wait is a single call, but several server stages run behind it, so the screen climbs a ladder instead of freezing on one line</p>
+            <p class="frame-name"><b>Reading</b> · a vertical checklist, fed by the server — the function streams an event as each stage lands, so every row is something that <i>happened</i> and carries the time it took</p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">‹</span><span class="ttl">Import a recipe</span><span class="dots"></span></div>
-                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:260px;gap:12px">
-                    <div style="width:26px;height:26px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--herb)"></div>
-                    <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">Reading the photos…</div>
+                <div style="display:flex;flex-direction:column;justify-content:center;height:240px;padding:0 40px">
+                    <div style="display:flex;align-items:center;gap:10px;padding:7px 0">
+                        <span style="width:22px;text-align:center;color:var(--herb);font-size:13px">✓</span>
+                        <span style="flex:1;font-size:13px">Photos received</span>
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">0:03</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;padding:7px 0">
+                        <span style="width:22px;text-align:center;color:var(--herb);font-size:13px">✓</span>
+                        <span style="flex:1;font-size:13px">Photos read</span>
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">0:22</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;padding:7px 0">
+                        <span style="width:22px;text-align:center"><span style="display:inline-block;width:13px;height:13px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--herb);vertical-align:middle"></span></span>
+                        <span style="flex:1;font-size:13px;font-weight:600">Recipe written out</span>
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--herb)">0:14</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;padding:7px 0">
+                        <span style="width:22px;text-align:center"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--line);vertical-align:middle"></span></span>
+                        <span style="flex:1;font-size:13px;color:var(--muted)">Ingredients matched</span>
+                    </div>
                 </div>
-                <p class="conv-note">one <b>FCircularProgress</b> and one line of mono, unchanged — the ladder replaces the <i>words</i>, not the screen</p>
-                <p class="rc-note">The stages are real and they run in this order; the <b style="color:var(--ink)">clock</b> is the estimate. A single non-streaming call cannot report where the server got to, so each rung is timed off the extraction runs and written to stay true if it lands early or late — no rung claims a stage has <i>finished</i>.</p>
+                <p class="conv-note">a <b>check</b> for done, an <b>FCircularProgress</b> for the one running, a dot for one that has not started — and a pending row shows <b>no clock at all</b>, because it has no honest duration yet</p>
+                <p class="rc-note">The stages are real, they run in this order, and <b style="color:var(--ink)">so are the times</b>: <code>import-recipe</code> answers <code>text/event-stream</code> and emits an event as each stage completes, carrying its own elapsed. A finished row freezes at the server's number; the running row ticks. Nothing here is estimated — before the server's first event the screen claims no stages at all and shows only <b style="color:var(--ink)">Sending…</b>.</p>
                 <div style="margin:12px 20px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden">
                     <div style="display:flex;gap:8px;align-items:center;padding:8px 11px;background:var(--frame);font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--herb-deep)">From a link</div>
-                    <div style="display:grid;grid-template-columns:46px 1fr;gap:4px 10px;padding:9px 11px;font-size:12px">
-                        <span style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">0:00</span><span>Fetching the page…</span>
-                        <span style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">0:05</span><span>Reading the recipe…</span>
-                        <span style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">0:25</span><span>Still reading — a long recipe takes a while…</span>
-                        <span style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">0:55</span><span>Matching the ingredients…</span>
-                    </div>
+                    <div style="padding:9px 11px;font-size:12px">Request received · Page fetched · Recipe written out · Ingredients matched</div>
                     <div style="display:flex;gap:8px;align-items:center;padding:8px 11px;background:var(--frame);border-top:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--herb-deep)">From photos</div>
-                    <div style="display:grid;grid-template-columns:46px 1fr;gap:4px 10px;padding:9px 11px;font-size:12px">
-                        <span style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">0:00</span><span>Sending the photos…</span>
-                        <span style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">0:05</span><span>Reading the photos…</span>
-                        <span style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">0:35</span><span>Writing out the recipe…</span>
-                        <span style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">1:15</span><span>Still working — a multi-page recipe takes a while…</span>
-                        <span style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">1:50</span><span>Matching the ingredients…</span>
-                    </div>
+                    <div style="padding:9px 11px;font-size:12px">Photos received · Photos read · Recipe written out · Ingredients matched</div>
                 </div>
-                <p class="conv-note" style="margin-top:10px">the photo door has <b>two</b> model calls — the pages are transcribed, then the recipe is written out — which is why its ladder is twice as long and why it is the door that outlives a short client deadline</p>
-                <p class="rc-note">The wait ends one of three ways, and all three come back to the intake form with the reason under it: the review screen, <b style="color:var(--ink)">“that site blocked the fetch … — try the photo import instead”</b>, or <b style="color:var(--ink)">“the model took too long … nothing has been saved, so it is safe to try again”</b>. Nothing is written until <b style="color:var(--ink)">Save</b> at review, so every failure here is safe to repeat.</p>
+                <p class="conv-note" style="margin-top:10px">the photo door has <b>two</b> model calls — the pages are transcribed, then the recipe is written out — so it carries a row the link door does not, and it is the door the long waits come from</p>
+                <p class="rc-note">The wait ends one of four ways, and all of them come back to the intake form with the reason under it: the review screen, <b style="color:var(--ink)">“that site blocked the fetch … — try the photo import instead”</b>, <b style="color:var(--ink)">“the model took too long … nothing has been saved, so it is safe to try again”</b>, or — now that bytes arrive all the way through — <b style="color:var(--ink)">“the import service stopped answering part way through”</b>. Nothing is written until <b style="color:var(--ink)">Save</b> at review, so every failure here is safe to repeat.</p>
             </div></div>
         </div>
 

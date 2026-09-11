@@ -49,7 +49,10 @@ class _UnconfiguredImport implements ImportRepository {
   final ImportRepository _commit;
 
   @override
-  Future<ReconciliationPayload> startImport(ImportSource source) async {
+  Future<ReconciliationPayload> startImport(
+    ImportSource source, {
+    void Function(ImportProgress)? onProgress,
+  }) async {
     throw const ImportException(
       'importing needs a connection to the Ansi backend, and this build has '
       'none configured — sign in against a configured backend to import',

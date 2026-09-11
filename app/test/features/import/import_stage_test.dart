@@ -1,70 +1,127 @@
-/// The loading ladder itself: the rungs a URL and a photo import climb, and
-/// the rule that picks one from an elapsed time.
+/// The reading screen's checklist model: the wire ids, and how the server's
+/// cumulative elapsed times become one duration per row.
 library;
 
 import 'package:ansi/features/import/domain/import_stage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-String _url(int seconds) =>
-    importStageAt(Duration(seconds: seconds), fromPhotos: false).label;
-
-String _photos(int seconds) =>
-    importStageAt(Duration(seconds: seconds), fromPhotos: true).label;
+List<StageProgress> _rows({
+  List<ImportStage> plan = const [
+    ImportStage.received,
+    ImportStage.transcribed,
+    ImportStage.sanitised,
+    ImportStage.matched,
+  ],
+  Map<ImportStage, Duration> finished = const {},
+  Duration elapsed = Duration.zero,
+}) => stageChecklist(plan: plan, finished: finished, elapsed: elapsed);
 
 void main() {
-  test('both ladders start at their first rung and never run backwards', () {
-    for (final fromPhotos in [false, true]) {
-      final stages = importStages(fromPhotos: fromPhotos);
-      expect(stages.first.after, Duration.zero);
+  test('the wire ids round-trip, and an id this build does not know is not '
+      'guessed at', () {
+    for (final stage in ImportStage.values) {
+      expect(ImportStage.byId(stage.id), stage);
+    }
+    expect(ImportStage.byId('embedded'), isNull);
+    expect(ImportStage.byId(''), isNull);
+  });
+
+  test('only the first row differs by door — from a link there are no photos '
+      'to name', () {
+    expect(
+      ImportStage.received.label(fromPhotos: true),
+      isNot(ImportStage.received.label(fromPhotos: false)),
+    );
+    for (final stage in ImportStage.values.skip(1)) {
       expect(
-        importStageAt(Duration.zero, fromPhotos: fromPhotos).label,
-        stages.first.label,
-      );
-      // Strictly increasing thresholds: two rungs sharing a moment would make
-      // "which sentence is showing" depend on list order rather than on time.
-      for (var i = 1; i < stages.length; i++) {
-        expect(stages[i].after, greaterThan(stages[i - 1].after));
-      }
-      // Every rung is reachable, and the last one holds however long the call
-      // runs past it.
-      for (final stage in stages) {
-        expect(
-          importStageAt(stage.after, fromPhotos: fromPhotos).label,
-          stage.label,
-        );
-      }
-      expect(
-        importStageAt(
-          const Duration(minutes: 30),
-          fromPhotos: fromPhotos,
-        ).label,
-        stages.last.label,
+        stage.label(fromPhotos: true),
+        stage.label(fromPhotos: false),
+        reason: '${stage.id} should read the same through either door',
       );
     }
   });
 
-  test('a URL import climbs fetch → read → still reading → match', () {
-    expect(_url(0), 'Fetching the page…');
-    expect(_url(4), 'Fetching the page…');
-    expect(_url(6), 'Reading the recipe…');
-    expect(_url(24), 'Reading the recipe…');
-    expect(_url(30), startsWith('Still reading'));
-    expect(_url(60), 'Matching the ingredients…');
+  test('nothing said yet: the first row is running and the rest are pending, '
+      'with no duration invented for them', () {
+    final rows = _rows(elapsed: const Duration(seconds: 3));
+    expect(rows.map((r) => r.status), [
+      StageStatus.active,
+      StageStatus.pending,
+      StageStatus.pending,
+      StageStatus.pending,
+    ]);
+    expect(rows.first.elapsed, const Duration(seconds: 3));
+    expect(rows.skip(1).map((r) => r.elapsed), everyElement(isNull));
   });
 
-  test('a photo import names the vision pass and the extraction pass '
-      'separately — it makes two model calls, not one', () {
-    expect(_photos(0), 'Sending the photos…');
-    expect(_photos(10), 'Reading the photos…');
-    expect(_photos(40), 'Writing out the recipe…');
-    expect(_photos(80), startsWith('Still working'));
-    expect(_photos(120), 'Matching the ingredients…');
+  test("a row's time is its OWN, not the server's running total", () {
+    // The server reports cumulative elapsed; a row shows the slice it owns.
+    final rows = _rows(
+      finished: const {
+        ImportStage.received: Duration(seconds: 4),
+        ImportStage.transcribed: Duration(seconds: 22),
+      },
+      elapsed: const Duration(seconds: 30),
+    );
+    expect(rows[0].status, StageStatus.done);
+    expect(rows[0].elapsed, const Duration(seconds: 4));
+    expect(rows[1].status, StageStatus.done);
+    expect(rows[1].elapsed, const Duration(seconds: 18)); // 22 - 4
+    // The running row ticks on from where the last finished one ended.
+    expect(rows[2].status, StageStatus.active);
+    expect(rows[2].elapsed, const Duration(seconds: 8)); // 30 - 22
+    expect(rows[3].status, StageStatus.pending);
   });
 
-  test('the rung at a moment is one INSTANCE, so a caller can skip a rebuild '
-      'with identical()', () {
-    final a = importStageAt(const Duration(seconds: 10), fromPhotos: false);
-    final b = importStageAt(const Duration(seconds: 11), fromPhotos: false);
-    expect(identical(a, b), isTrue);
+  test('every stage done leaves the last row done — nothing is left ticking '
+      'while the payload is on the wire', () {
+    final rows = _rows(
+      finished: const {
+        ImportStage.received: Duration(seconds: 1),
+        ImportStage.transcribed: Duration(seconds: 20),
+        ImportStage.sanitised: Duration(seconds: 44),
+        ImportStage.matched: Duration(seconds: 45),
+      },
+      elapsed: const Duration(seconds: 50),
+    );
+    expect(rows.map((r) => r.status), everyElement(StageStatus.done));
+    expect(rows.last.elapsed, const Duration(seconds: 1)); // 45 - 44
+  });
+
+  test('a clock that went backwards prints zero, never a negative wait', () {
+    final rows = _rows(
+      finished: const {
+        ImportStage.received: Duration(seconds: 30),
+        ImportStage.transcribed: Duration(seconds: 12),
+      },
+    );
+    expect(rows[1].elapsed, Duration.zero);
+    expect(rows[2].elapsed, Duration.zero);
+  });
+
+  test('the link plan has no transcribe row — a link import makes one model '
+      'call, not two', () {
+    final rows = _rows(
+      plan: const [
+        ImportStage.received,
+        ImportStage.fetched,
+        ImportStage.sanitised,
+        ImportStage.matched,
+      ],
+    );
+    expect(rows.map((r) => r.stage), isNot(contains(ImportStage.transcribed)));
+  });
+
+  test('a plan with nothing in it draws nothing', () {
+    expect(_rows(plan: const []), isEmpty);
+  });
+
+  test('durations read m:ss', () {
+    expect(formatStageDuration(Duration.zero), '0:00');
+    expect(formatStageDuration(const Duration(seconds: 7)), '0:07');
+    expect(formatStageDuration(const Duration(seconds: 65)), '1:05');
+    expect(formatStageDuration(const Duration(minutes: 12)), '12:00');
+    // Sub-second is 0:00, not a rounded-up lie.
+    expect(formatStageDuration(const Duration(milliseconds: 900)), '0:00');
   });
 }

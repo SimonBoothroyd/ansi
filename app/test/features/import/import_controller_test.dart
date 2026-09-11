@@ -29,7 +29,10 @@ class _GatedImportRepo extends FakeImportRepo {
   Completer<void>? gate;
 
   @override
-  Future<ReconciliationPayload> startImport(ImportSource source) async {
+  Future<ReconciliationPayload> startImport(
+    ImportSource source, {
+    void Function(ImportProgress)? onProgress,
+  }) async {
     startCalls++;
     if (gate != null) await gate!.future;
     return payload;

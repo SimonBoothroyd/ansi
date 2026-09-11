@@ -50,11 +50,16 @@ function jsonResponse(status: number, body: unknown): Response {
   });
 }
 
-/** Copies a spine response through, stamping the CORS headers onto it. */
-async function withCors(res: Response): Promise<Response> {
+/**
+ * Copies a spine response through, stamping the CORS headers onto it. The body
+ * is passed as a STREAM, never read: the success answer is `text/event-stream`
+ * and buffering it here would hold every stage event back until the import was
+ * already over — which is the whole thing the stream exists to avoid.
+ */
+function withCors(res: Response): Response {
   const headers = new Headers(res.headers);
   for (const [k, v] of Object.entries(CORS_HEADERS)) headers.set(k, v);
-  return new Response(await res.text(), { status: res.status, headers });
+  return new Response(res.body, { status: res.status, headers });
 }
 
 // --- Postgres seam -----------------------------------------------------------
@@ -67,10 +72,9 @@ async function withCors(res: Response): Promise<Response> {
 // `max` is small ON PURPOSE, and it is a statement about the cascade rather
 // than a throttle: one import asks for at most two connections at once — a
 // vocab tier and, overlapping it, the household's recipe titles — because each
-// tier is now a single batched query (match_db.ts) instead of one per line. A
-// pool wider than the work is how a long recipe used to put dozens of queries
-// in flight against a transaction pooler at once; naming the real number keeps
-// that from creeping back unnoticed.
+// tier is a single batched query (match_db.ts) rather than one per line. A pool
+// wider than the work is what lets a per-line fan-out hide: naming the real
+// number means anything that reintroduces one has to raise this too.
 const POOL_MAX = 4;
 
 let pool: ReturnType<typeof postgres> | null = null;
@@ -133,7 +137,7 @@ async function handle(req: Request): Promise<Response> {
     );
     return jsonResponse(500, { error: "import pipeline is not configured" });
   }
-  return await withCors(await makeHandler(deps)(req));
+  return withCors(await makeHandler(deps)(req));
 }
 
 /** Starts the edge server. Called only from `index.ts`'s `import.meta.main`. */

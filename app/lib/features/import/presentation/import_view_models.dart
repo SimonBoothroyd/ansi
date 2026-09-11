@@ -42,14 +42,20 @@ class ImportIdle extends ImportState {
 /// Extraction + matching is running server-side (the `import-recipe` edge
 /// function).
 ///
-/// It carries the rung of the loading ladder currently showing, so the screen
-/// says which server stage the request is most likely in rather than one
-/// sentence for a call that can run past a minute. See [ImportStage] for why
-/// the rung is inferred from elapsed time rather than reported by the server.
+/// It carries the checklist the reading screen draws: one row per stage the
+/// SERVER said this import would walk, each finished row frozen at the elapsed
+/// time the server reported for it, the running one ticking. Nothing here is
+/// an estimate — before the plan's first event arrives, [rows] is simply
+/// empty.
 class ImportLoading extends ImportState {
-  const ImportLoading(this.stage);
+  const ImportLoading({required this.rows, required this.fromPhotos});
 
-  final ImportStage stage;
+  /// The checklist, in the server's order. Empty until the plan arrives.
+  final List<StageProgress> rows;
+
+  /// Which door this import came through — the only thing the screen's wording
+  /// needs beyond the stage ids.
+  final bool fromPhotos;
 }
 
 /// The payload is back; the user is resolving lines. Immutable — every edit
@@ -226,39 +232,62 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
   /// double-tapped "Import" must not fire two of them.
   bool _starting = false;
 
-  /// Drives the loading ladder while the one edge-function call is in flight.
+  /// Ticks the running stage's clock while the call is in flight. The rows
+  /// themselves come from the server; this only moves the one that is running.
   Timer? _stageTimer;
 
-  /// How often the ladder re-reads the clock. The rungs are tens of seconds
-  /// apart, so this only has to be fine enough that a rung appears promptly.
+  /// How often the running row's clock advances. It prints m:ss, so a second.
   static const _stageTick = Duration(seconds: 1);
 
-  /// Starts the ladder at its first rung and climbs it as the call runs.
-  ///
-  /// Elapsed time is ACCUMULATED from the ticks rather than read off the wall
-  /// clock, so the ladder advances with whatever clock the caller is pumping —
-  /// which is what makes it testable.
-  void _startStageLadder({required bool fromPhotos}) {
+  /// The plan the server sent, and how far through it the import is.
+  List<ImportStage> _plan = const [];
+  final Map<ImportStage, Duration> _finished = {};
+
+  /// Time since the call started, ACCUMULATED from the ticks rather than read
+  /// off the wall clock, so the screen advances with whatever clock the caller
+  /// is pumping — which is what makes it testable.
+  Duration _elapsed = Duration.zero;
+
+  /// Opens the reading screen with nothing claimed yet and starts the clock.
+  void _startStageClock({required bool fromPhotos}) {
     _stageTimer?.cancel();
-    var elapsed = Duration.zero;
-    state = ImportLoading(importStageAt(elapsed, fromPhotos: fromPhotos));
+    _plan = const [];
+    _finished.clear();
+    _elapsed = Duration.zero;
+    _publishStages(fromPhotos: fromPhotos);
     _stageTimer = Timer.periodic(_stageTick, (timer) {
       // The notifier is autoDispose and the user can leave mid-import; writing
       // `state` — or even reading it — on a disposed notifier throws.
-      if (!ref.mounted) {
+      if (!ref.mounted || state is! ImportLoading) {
         timer.cancel();
         return;
       }
-      elapsed += _stageTick;
-      final current = state;
-      if (current is! ImportLoading) {
-        timer.cancel();
-        return;
-      }
-      final next = importStageAt(elapsed, fromPhotos: fromPhotos);
-      if (identical(current.stage, next)) return;
-      state = ImportLoading(next);
+      _elapsed += _stageTick;
+      _publishStages(fromPhotos: fromPhotos);
     });
+  }
+
+  /// Folds a server event into the checklist. Called from the repository's
+  /// `onProgress`, which can fire after the user has left the screen.
+  void _onProgress(ImportProgress progress, {required bool fromPhotos}) {
+    if (!ref.mounted || state is! ImportLoading) return;
+    switch (progress) {
+      case ImportPlanned(:final stages):
+        _plan = stages;
+      case ImportStageDone(:final stage, :final elapsed):
+        _finished[stage] = elapsed;
+        // The server's clock is the authority on how far in we are; keeping
+        // the local one behind it would make the running row start negative.
+        if (elapsed > _elapsed) _elapsed = elapsed;
+    }
+    _publishStages(fromPhotos: fromPhotos);
+  }
+
+  void _publishStages({required bool fromPhotos}) {
+    state = ImportLoading(
+      rows: stageChecklist(plan: _plan, finished: _finished, elapsed: _elapsed),
+      fromPhotos: fromPhotos,
+    );
   }
 
   void _stopStageLadder() {
@@ -278,13 +307,17 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
     // A new page is a new sitting: nothing the last one relabelled has a chip
     // left to put its word back on.
     clearRelabels();
-    _startStageLadder(fromPhotos: source is ImportFromPhotos);
+    final fromPhotos = source is ImportFromPhotos;
+    _startStageClock(fromPhotos: fromPhotos);
     try {
       // Both keepAlive repositories are resolved BEFORE the first await: this
       // notifier can be disposed across the gap, and `ref` goes with it.
       final importRepo = ref.read(importRepositoryProvider);
       final bookRepo = ref.read(bookRepositoryProvider);
-      final payload = await importRepo.startImport(source);
+      final payload = await importRepo.startImport(
+        source,
+        onProgress: (p) => _onProgress(p, fromPhotos: fromPhotos),
+      );
       // The draft is FILED from the start, so FILE UNDER shows where the
       // recipe will land rather than a blank a human has to fill before
       // anything is honest. The shelf the door knew about when there was one

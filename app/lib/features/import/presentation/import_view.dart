@@ -14,6 +14,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../data/photo_intake.dart';
 import '../domain/import_repository.dart';
+import '../domain/import_stage.dart';
 import 'import_view_models.dart';
 import 'reconciliation_view.dart';
 
@@ -106,7 +107,10 @@ class ImportView extends HookConsumerWidget {
           initialBookId: initialBookId,
           initialSectionId: initialSectionId,
         ),
-        ImportLoading(:final stage) => _Busy(label: stage.label),
+        ImportLoading(:final rows, :final fromPhotos) => _Reading(
+          rows: rows,
+          fromPhotos: fromPhotos,
+        ),
         ImportReconciling() => ReconciliationBody(state: state),
         ImportCommitting() => const _Busy(label: 'Saving…'),
         ImportCommitted() => const _Busy(label: 'Done'),
@@ -129,6 +133,109 @@ class _Busy extends StatelessWidget {
           const FCircularProgress(),
           const SizedBox(height: 12),
           Text(label, style: ansiMono(size: 12, color: AnsiColors.muted)),
+        ],
+      ),
+    );
+  }
+}
+
+/// The reading screen: the server's stages as a vertical checklist, each row
+/// carrying the time it actually took.
+///
+/// The wait is a minute or more from photos, and a screen that says one frozen
+/// sentence through all of it reads as a hang. What makes this honest rather
+/// than reassuring is that every row is something the server SAID — the list,
+/// the order and the elapsed times all arrive on the wire (import spec §4.7),
+/// so nothing here is a guess about progress.
+class _Reading extends StatelessWidget {
+  const _Reading({required this.rows, required this.fromPhotos});
+
+  final List<StageProgress> rows;
+  final bool fromPhotos;
+
+  @override
+  Widget build(BuildContext context) {
+    // Before the first event there is nothing true to draw a checklist from.
+    if (rows.isEmpty) return const _Busy(label: 'Sending…');
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final row in rows) _StageRow(row: row, fromPhotos: fromPhotos),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StageRow extends StatelessWidget {
+  const _StageRow({required this.row, required this.fromPhotos});
+
+  final StageProgress row;
+  final bool fromPhotos;
+
+  @override
+  Widget build(BuildContext context) {
+    final done = row.status == StageStatus.done;
+    final active = row.status == StageStatus.active;
+    final ink = done
+        ? AnsiColors.ink
+        : active
+        ? AnsiColors.ink
+        : AnsiColors.muted;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 22,
+            child: Center(
+              child: done
+                  ? const Icon(
+                      FLucideIcons.check,
+                      size: 14,
+                      color: AnsiColors.herb,
+                    )
+                  : active
+                  ? const SizedBox(
+                      width: 13,
+                      height: 13,
+                      child: FCircularProgress(),
+                    )
+                  : Container(
+                      width: 7,
+                      height: 7,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AnsiColors.line,
+                      ),
+                    ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              row.stage.label(fromPhotos: fromPhotos),
+              style: ansiSans(
+                size: 13,
+                color: ink,
+                weight: active ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+          ),
+          // A pending stage has no honest duration, so it shows none.
+          if (row.elapsed case final elapsed?)
+            Text(
+              formatStageDuration(elapsed),
+              style: ansiMono(
+                size: 12,
+                color: done ? AnsiColors.muted : AnsiColors.herb,
+              ),
+            ),
         ],
       ),
     );

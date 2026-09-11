@@ -59,18 +59,66 @@ export interface ImportRequest {
   images?: Uint8Array[];
 }
 
+// --- The stages the caller is told about (§4.7) -------------------------------
+//
+// The server has always run these in order; what changed is that it now SAYS so
+// as each one lands, instead of leaving the phone to guess from a clock. The
+// ids are the contract — the wording is the app's, because copy belongs where
+// the screen is.
+
+/** One completed step of the pipeline, as named on the wire. */
+export type ImportStageId =
+  | "received"
+  | "fetched"
+  | "transcribed"
+  | "sanitised"
+  | "matched";
+
+/** From a link: the page is fetched, then read, then matched. */
+export const URL_STAGES: ImportStageId[] = [
+  "received",
+  "fetched",
+  "sanitised",
+  "matched",
+];
+
+/** From photos: the pages are transcribed FIRST, so there are two model calls. */
+export const PHOTO_STAGES: ImportStageId[] = [
+  "received",
+  "transcribed",
+  "sanitised",
+  "matched",
+];
+
+/** The stage list a request will walk, decided the moment the body is parsed. */
+export function stagesFor(req: ImportRequest): ImportStageId[] {
+  return req.images && req.images.length > 0 ? PHOTO_STAGES : URL_STAGES;
+}
+
+/** Told each stage's id and the milliseconds since the request reached us. */
+export type StageSink = (stage: ImportStageId, elapsedMs: number) => void;
+
 /**
  * Runs intake → ① → ⑥ and assembles the {@link ReconciliationPayload}. Pure
  * orchestration over the injected `deps`; deterministic given deterministic
  * collaborators.
+ *
+ * `onStage` is told as each stage completes, with the elapsed time measured
+ * from `startedAt` — the caller's clock, so the numbers on the screen and the
+ * numbers in the log are the same numbers. It never changes what is produced.
  */
 export async function importRecipe(
   req: ImportRequest,
   deps: ImportDeps,
+  onStage: StageSink = () => {},
+  startedAt: number = Date.now(),
 ): Promise<ReconciliationPayload> {
+  const done = (stage: ImportStageId) => onStage(stage, Date.now() - startedAt);
   const blob = await intake(req, deps);
+  done(req.images && req.images.length > 0 ? "transcribed" : "fetched");
   const hints = deriveUnitHints();
   const extraction = await deps.adapter.sanitize(blob, hints);
+  done("sanitised");
   const flat = flattenLines(extraction.groups);
   const matched = await deps.matchLines(flat);
   if (matched.length !== flat.length) {
@@ -78,6 +126,7 @@ export async function importRecipe(
       `matcher returned ${matched.length} lines for ${flat.length} inputs`,
     );
   }
+  done("matched");
   return assemble(extraction, matched);
 }
 
@@ -244,11 +293,124 @@ function oversizeMessage(index: number, bytes: number): string {
   }MB per image`;
 }
 
+// --- Failures: one wording, wherever it is delivered -------------------------
+
+/**
+ * What a person is told when the pipeline throws, and the status that would
+ * carry it if the answer had not already started streaming. Logging the
+ * un-showable detail is part of it: the caller gets the sentence, the function
+ * log gets the stack.
+ */
+export function failureFor(e: unknown): { status: number; error: string } {
+  if (e instanceof ImportError) return { status: 422, error: e.message };
+  // Running out of time is not an unexpected failure, and it is not the
+  // recipe's fault — say so, and say that retrying costs nothing. Intake's own
+  // timeout arrives as an ImportError above ("could not reach that site"), so
+  // anything reaching here ran long in the MODEL.
+  if (isTimeoutFailure(e)) {
+    console.error(
+      `import-recipe: extraction timed out: ${
+        e instanceof Error ? e.message : String(e)
+      }`,
+    );
+    return {
+      status: 504,
+      error: "the model took too long to read this recipe — nothing has been " +
+        "saved, so it is safe to try again",
+    };
+  }
+  // An unexpected failure. The detail can carry provider URLs, prompt
+  // fragments, or a driver's connection string — log it, return an opaque
+  // message.
+  console.error(
+    `import-recipe: unhandled failure: ${
+      e instanceof Error ? e.stack ?? e.message : String(e)
+    }`,
+  );
+  return { status: 500, error: "import failed" };
+}
+
+// --- The answer is a STREAM (§4.7) -------------------------------------------
+//
+// A photo import is two model calls and takes a minute or more, and a single
+// non-streaming POST could say nothing at all until it was over — so the screen
+// had to guess the server's progress off a clock. It does not have to any more:
+// the response is `text/event-stream`, and each stage is an event as it lands.
+//
+// Two consequences worth stating, because both are load-bearing:
+//
+//   * the STATUS is committed before the work runs. A failure after the first
+//     byte therefore arrives as an `error` event carrying the sentence
+//     `failureFor` gives it, not as a 4xx/5xx. Everything that is known BEFORE
+//     the pipeline starts — the method, a malformed body, an unusable request —
+//     is still a plain JSON status, because nothing has been promised yet.
+//   * the platform's idle timeout bounds only the longest SILENCE inside the
+//     call — one model deadline — rather than the call itself. The client's
+//     ladder rests on that; it is written out in
+//     `remote_import_repository.dart`.
+
+const SSE_HEADERS: Record<string, string> = {
+  "content-type": "text/event-stream",
+  "cache-control": "no-cache",
+  // Long-lived responses die to proxy buffering more often than to anything
+  // else; this is the header that turns it off where it is honoured.
+  "x-accel-buffering": "no",
+};
+
+/** One SSE frame. Data is single-line JSON, so no multi-line `data:` folding. */
+function sseFrame(event: string, data: unknown): string {
+  return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+}
+
+/**
+ * Runs the pipeline and narrates it as Server-Sent Events:
+ *
+ *   `plan`   `{stages}`                  — once, first: what this import will walk
+ *   `stage`  `{stage, elapsed_ms}`       — one per stage as it completes
+ *   `result` the `ReconciliationPayload` — last, on success
+ *   `error`  `{error}`                   — last, instead, on failure
+ */
+function streamImport(
+  request: ImportRequest,
+  deps: ImportDeps,
+  startedAt: number,
+): Response {
+  const encoder = new TextEncoder();
+  const body = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (event: string, data: unknown) =>
+        controller.enqueue(encoder.encode(sseFrame(event, data)));
+      try {
+        send("plan", { stages: stagesFor(request) });
+        // The body is in hand and usable: that IS the first stage, and its
+        // elapsed covers reading however many megabytes of photo off the wire.
+        send("stage", {
+          stage: "received",
+          elapsed_ms: Date.now() - startedAt,
+        });
+        const payload = await importRecipe(
+          request,
+          deps,
+          (stage, elapsed_ms) => send("stage", { stage, elapsed_ms }),
+          startedAt,
+        );
+        send("result", payload);
+      } catch (e) {
+        send("error", { error: failureFor(e).error });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+  return new Response(body, { status: 200, headers: SSE_HEADERS });
+}
+
 /** Builds the HTTP handler over injected `deps` (real ones supplied at integration). */
 export function makeHandler(
   deps: ImportDeps,
 ): (req: Request) => Promise<Response> {
   return async (req: Request): Promise<Response> => {
+    const startedAt = Date.now();
     if (req.method !== "POST") {
       return jsonResponse(405, { error: "POST required" });
     }
@@ -260,39 +422,7 @@ export function makeHandler(
     }
     const parsed = parseRequestBody(body);
     if ("error" in parsed) return jsonResponse(400, { error: parsed.error });
-    try {
-      const payload = await importRecipe(parsed.request, deps);
-      return jsonResponse(200, payload);
-    } catch (e) {
-      if (e instanceof ImportError) {
-        return jsonResponse(422, { error: e.message });
-      }
-      // Running out of time is not an unexpected failure, and it is not the
-      // recipe's fault — say so, and say that retrying costs nothing. Intake's
-      // own timeout arrives as an ImportError above ("could not reach that
-      // site"), so anything reaching here ran long in the MODEL.
-      if (isTimeoutFailure(e)) {
-        console.error(
-          `import-recipe: extraction timed out: ${
-            e instanceof Error ? e.message : String(e)
-          }`,
-        );
-        return jsonResponse(504, {
-          error:
-            "the model took too long to read this recipe — nothing has been " +
-            "saved, so it is safe to try again",
-        });
-      }
-      // An unexpected failure. The detail can carry provider URLs, prompt
-      // fragments, or a driver's connection string — log it, return an opaque
-      // message.
-      console.error(
-        `import-recipe: unhandled failure: ${
-          e instanceof Error ? e.stack ?? e.message : String(e)
-        }`,
-      );
-      return jsonResponse(500, { error: "import failed" });
-    }
+    return streamImport(parsed.request, deps, startedAt);
   };
 }
 

@@ -3,10 +3,14 @@
 ///
 /// `startImport` calls `supabase.functions.invoke('import-recipe', …)` — a URL
 /// goes up as `{url}`, picked photos are read from disk and base64-encoded as
-/// `{images: [...]}` — and parses the returned [ReconciliationPayload] into its
-/// Dart mirror, which feeds the existing reconciliation UI unchanged. The
-/// function is auth-scoped: `supabase_flutter` attaches the signed-in user's
-/// access token, whose `household_id` claim scopes matching to the household.
+/// `{images: [...]}`. The function answers `text/event-stream` and narrates its
+/// stages as they land (import spec §4.7), so `functions_client` hands back a
+/// live byte stream rather than a decoded body: this file parses the events,
+/// reports each finished stage through `onProgress`, and returns the
+/// [ReconciliationPayload] carried by the last one — which feeds the existing
+/// reconciliation UI unchanged. The function is auth-scoped: `supabase_flutter`
+/// attaches the signed-in user's access token, whose `household_id` claim
+/// scopes matching to the household.
 ///
 /// `commit` is unchanged — it always writes locally through PowerSync — so this
 /// class delegates it to the SQLite repository. Only the extract→match step
@@ -26,7 +30,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/commit_payload.dart';
 import '../domain/import_repository.dart';
+import '../domain/import_stage.dart';
 import '../domain/reconciliation_payload.dart';
+import 'sse.dart';
 
 /// Longest-edge cap for an uploaded page (px) — mirrors the server adapter's
 /// `UPLOAD_MAX_EDGE`. A recipe photo gains nothing above this and costs 3–5 MB
@@ -38,34 +44,49 @@ const _uploadMaxEdge = 1568;
 /// Re-encode quality for the downscaled JPEG (matches the server's ~85).
 const _uploadJpegQuality = 85;
 
-/// How long the client waits for `import-recipe`.
+/// How long the client waits for the whole of `import-recipe`.
 ///
-/// **The timeout ladder.** Every rung must be strictly larger than everything
-/// beneath it, or the layer above gives up on work the layer below would have
-/// finished — and a client that abandons a request the server completes bills
-/// the model call and shows a failure for it.
+/// **The timeout ladder, re-derived for the stage stream.** The function now
+/// answers `text/event-stream` and sends an event as each stage lands, which
+/// moves what every rung is measuring:
 ///
 /// ```text
-/// client   180s  this constant
-/// platform 150s  Supabase's request idle timeout — a function that has sent
-///                nothing by then is cut off with a gateway 504
-/// function       the worst case the pipeline can actually reach:
-///   from a link   ≤ 25s intake (jsonld.ts FETCH_TOTAL_TIMEOUT_MS)
-///               + ≤ 60s one model call (adapters/http.ts DEFAULT_DEADLINE_MS)
-///               +   match, a handful of Postgres round-trips      ⇒ ~90s
-///   from photos   ≤ 60s transcribe + ≤ 60s extract + match        ⇒ ~125s
+/// client, silence   90s  edgeSilenceTimeout — the longest GAP this will sit
+///                        through before deciding the server is gone
+/// platform idle    150s  Supabase's cut-off for a response that has sent
+///                        NOTHING since the last byte. It bounds one GAP, not
+///                        the call: the stream keeps the connection warm
+///                        through the stages either side of it.
+/// function, longest gap:
+///   ≤ 25s intake (jsonld.ts FETCH_TOTAL_TIMEOUT_MS), or
+///   ≤ 60s one model call (adapters/http.ts DEFAULT_DEADLINE_MS)
+///
+/// client, total    180s  this constant
+/// function, total        the worst case the pipeline can reach:
+///   from a link   ≤ 25s intake + ≤ 60s model + match       ⇒ ~90s
+///   from photos   ≤ 60s transcribe + ≤ 60s extract + match ⇒ ~125s
 /// ```
 ///
-/// So this sits ABOVE the platform's own cut-off, not below the function's
-/// worst case. A client deadline under either number abandons a request the
-/// server is still working on — and a photo import, two model calls back to
-/// back, reaches those numbers routinely — which surfaces as a network-shaped
-/// failure for a request that was merely slow.
+/// Two rungs, because there are two ways for this to go wrong and only one of
+/// them is a duration. **Silence** is the honest signal that the connection is
+/// dead: bytes arriving prove the server is alive, so an import must not be
+/// abandoned merely for taking a while — but a gap wider than any stage can
+/// account for is not slowness. It sits above the widest real gap (60s) with
+/// room for a cold start, and below the platform's own 150s so the app is the
+/// one that gives up, with a sentence, rather than a gateway cutting in.
+/// **Total** still exists because a stream that dribbles forever would never
+/// trip the silence rung, and because `functions.invoke` has no deadline of
+/// its own — a hung request would leave the user on the spinner with no way
+/// back but killing the app. It stays above the function's worst case (~125s).
 ///
-/// Unbounded is still not an option: `functions.invoke` has no deadline of its
-/// own, and a hung request would leave the user on the spinner with no way back
-/// but killing the app.
+/// The server half of this arithmetic is a test
+/// (`supabase/functions/_shared/timeouts.test.ts`); this half is
+/// `edge_import_failures_test.dart`.
 const edgeInvokeTimeout = Duration(seconds: 180);
+
+/// The longest the stage stream may go quiet before the app gives up. See the
+/// ladder on [edgeInvokeTimeout].
+const edgeSilenceTimeout = Duration(seconds: 90);
 
 /// Downscales one page's [bytes] so its longest edge is ≈ [_uploadMaxEdge],
 /// re-encoded as JPEG. Runs off the UI isolate (decoding a full-res phone photo
@@ -111,6 +132,20 @@ String importTimeoutMessage(ImportSource source) {
   };
 }
 
+/// What a person is told when the stream goes quiet for longer than any stage
+/// can account for. A different failure from the one above and it deserves
+/// different words: the import was not slow, the connection stopped answering.
+String importSilenceMessage() =>
+    'the import service stopped answering part way through '
+    '(nothing for ${edgeSilenceTimeout.inSeconds} seconds) — nothing was '
+    'saved, so it is safe to try again';
+
+/// What a person is told when the stream ends tidily without ever handing over
+/// a recipe. It should not happen; saying so plainly beats a blank screen.
+String importIncompleteMessage() =>
+    'the import service stopped before it finished reading this recipe — '
+    'nothing was saved, so it is safe to try again';
+
 /// A user-facing import failure raised by the edge-backed repository (the
 /// controller wraps it into an `ImportFailed` message).
 class ImportException implements Exception {
@@ -120,6 +155,149 @@ class ImportException implements Exception {
 
   @override
   String toString() => message;
+}
+
+/// Consumes the function's stage stream: reports each stage through
+/// [onProgress] and returns the [ReconciliationPayload] the `result` event
+/// carries.
+///
+/// Separate from the HTTP call on purpose — this is the half with the rules in
+/// it (which events mean what, what a silent stream means, what an `error`
+/// event costs), and it takes a plain byte stream so those rules can be tested
+/// without a socket.
+///
+/// [silence] is the SILENCE rung of the ladder on [edgeInvokeTimeout]: a
+/// deadline on the GAP between events, restarted by every one of them, never on
+/// the import's length.
+///
+/// It is an explicit [Timer] and a `listen`, rather than `Stream.timeout` and
+/// an `await for`, because those two do not compose: `await for` pauses its
+/// subscription between events and the timeout's clock does not survive the
+/// pause, so the deadline silently never fires. A stream deadline that cannot
+/// fire is worse than none — it reads as protection that is not there.
+Future<ReconciliationPayload> readImportStream(
+  Stream<List<int>> bytes, {
+  void Function(ImportProgress)? onProgress,
+  Duration silence = edgeSilenceTimeout,
+}) {
+  final result = Completer<ReconciliationPayload>();
+  late final StreamSubscription<SseEvent> events;
+  Timer? idle;
+
+  void settle(void Function() complete) {
+    if (result.isCompleted) return;
+    idle?.cancel();
+    complete();
+    unawaited(events.cancel());
+  }
+
+  void waitAgain() {
+    idle?.cancel();
+    idle = Timer(
+      silence,
+      () => settle(
+        () => result.completeError(ImportException(importSilenceMessage())),
+      ),
+    );
+  }
+
+  events = decodeSse(bytes).listen(
+    (event) {
+      waitAgain();
+      try {
+        switch (event.event) {
+          case 'plan':
+            onProgress?.call(ImportPlanned(_planFrom(event.data)));
+          case 'stage':
+            final stage = _stageFrom(event.data);
+            if (stage != null) onProgress?.call(stage);
+          case 'error':
+            // The status is committed before the work runs, so a failure past
+            // the first byte arrives here rather than as a 4xx/5xx. The
+            // sentence is the function's own, as it was on the JSON path.
+            throw ImportException(_errorFrom(event.data));
+          case 'result':
+            final payload = ReconciliationPayload.fromJson(
+              _objectFrom(event.data),
+            );
+            settle(() => result.complete(payload));
+        }
+      } on ImportException catch (e) {
+        settle(() => result.completeError(e));
+      } on Object {
+        // A frame shaped like a payload but not one. The person gets a
+        // sentence rather than a spinner that never stops.
+        settle(
+          () => result.completeError(
+            const ImportException(
+              'the import service returned an unexpected response',
+            ),
+          ),
+        );
+      }
+    },
+    onError: (Object e, StackTrace stack) =>
+        settle(() => result.completeError(e, stack)),
+    // Ended tidily, with no recipe and no reason.
+    onDone: () => settle(
+      () => result.completeError(ImportException(importIncompleteMessage())),
+    ),
+    cancelOnError: true,
+  );
+  waitAgain();
+  return result.future;
+}
+
+/// The stage list from a `plan` event. Ids this build does not know are dropped
+/// rather than drawn as a blank row.
+List<ImportStage> _planFrom(String data) {
+  final stages = _objectFrom(data)['stages'];
+  if (stages is! List) return const [];
+  return [
+    for (final id in stages)
+      if (id is String && ImportStage.byId(id) != null) ImportStage.byId(id)!,
+  ];
+}
+
+/// A `stage` event, or null when it names a stage this build does not know.
+ImportStageDone? _stageFrom(String data) {
+  final json = _objectFrom(data);
+  final stage = json['stage'] is String
+      ? ImportStage.byId(json['stage']! as String)
+      : null;
+  if (stage == null) return null;
+  final ms = json['elapsed_ms'];
+  return ImportStageDone(
+    stage,
+    Duration(milliseconds: ms is num ? ms.round() : 0),
+  );
+}
+
+/// The sentence an `error` event carries, or a stand-in if it carries none.
+String _errorFrom(String data) {
+  final error = _objectFrom(data)['error'];
+  return error is String && error.isNotEmpty
+      ? error
+      : 'the import service could not process this recipe';
+}
+
+/// One event's JSON object. A frame that is not one is a broken stream, and the
+/// person is told that rather than shown an empty recipe.
+Map<String, Object?> _objectFrom(String data) {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(data);
+  } on FormatException {
+    throw const ImportException(
+      'the import service returned an unexpected response',
+    );
+  }
+  if (decoded is! Map) {
+    throw const ImportException(
+      'the import service returned an unexpected response',
+    );
+  }
+  return Map<String, Object?>.from(decoded);
 }
 
 class EdgeImportRepository implements ImportRepository {
@@ -135,17 +313,32 @@ class EdgeImportRepository implements ImportRepository {
   final ImportRepository _commit;
 
   @override
-  Future<ReconciliationPayload> startImport(ImportSource source) async {
+  Future<ReconciliationPayload> startImport(
+    ImportSource source, {
+    void Function(ImportProgress)? onProgress,
+  }) async {
     final body = await _bodyFor(source);
+    try {
+      return await _stream(body, onProgress).timeout(edgeInvokeTimeout);
+    } on TimeoutException {
+      // Past the TOTAL rung: the stream was still arriving, it was just never
+      // going to finish inside a wait anybody should be asked to sit through.
+      throw ImportException(importTimeoutMessage(source));
+    }
+  }
+
+  /// Invokes the function and consumes its stage stream, reporting each stage
+  /// and returning the payload the `result` event carries.
+  Future<ReconciliationPayload> _stream(
+    Map<String, Object?> body,
+    void Function(ImportProgress)? onProgress,
+  ) async {
     final FunctionResponse response;
     try {
-      response = await _functions
-          .invoke('import-recipe', body: body)
-          .timeout(edgeInvokeTimeout);
-    } on TimeoutException {
-      // Past the whole ladder — the request outlived even the platform's own
-      // cut-off.
-      throw ImportException(importTimeoutMessage(source));
+      // The stream's own deadline is the SILENCE rung below, not this: with
+      // `text/event-stream` this future completes as soon as the headers are
+      // back, which is long before the work is done.
+      response = await _functions.invoke('import-recipe', body: body);
     } on FunctionException catch (e) {
       // The edge fn returns `{error}` on a handled failure (4xx/5xx); surface
       // the human-readable message when present. It is what tells a person
@@ -175,12 +368,12 @@ class EdgeImportRepository implements ImportRepository {
       });
     }
     final data = response.data;
-    if (data is! Map) {
+    if (data is! Stream<List<int>>) {
       throw const ImportException(
         'the import service returned an unexpected response',
       );
     }
-    return ReconciliationPayload.fromJson(Map<String, Object?>.from(data));
+    return readImportStream(data, onProgress: onProgress);
   }
 
   /// What the app knows about a failure the function did not explain: the
