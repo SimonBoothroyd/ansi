@@ -80,25 +80,20 @@ Measure? servingMeasureOf(Iterable<Measure> measures) {
   return parseServingPhrase(label.substring(kServingMeasurePrefix.length));
 }
 
-/// `2 tbsp`, `0.25 cup`, `1/4 cup`, `1 Cup` → an amount and a catalog unit, or
-/// null when the words are not a kitchen measure this app knows.
+/// `2 tbsp`, `0.25 cup`, `1/4 cup`, `1 1/2 fl oz`, `1 Cup` → an amount and a
+/// catalog unit, or null when the words are not a kitchen measure this app
+/// knows. The numeric head is read by [parseAmount], the same reader every
+/// amount field uses, so whatever [formatAmount] wrote reads back.
 ({double amount, Unit unit})? parseServingPhrase(String phrase) {
   final m = RegExp(
-    r'^\s*([0-9]+(?:[.,][0-9]+)?)\s*(?:/\s*([0-9]+(?:[.,][0-9]+)?)\s*)?'
+    r'^\s*([0-9][0-9 .,/\u00bc-\u00be\u2150-\u215e]*?)\s*'
     r'([a-zA-Z][a-zA-Z ]*?)\s*$',
   ).firstMatch(phrase);
   if (m == null) return null;
-  final numerator = double.tryParse(m.group(1)!.replaceAll(',', '.'));
-  final denominator = m.group(2) == null
-      ? 1.0
-      : double.tryParse(m.group(2)!.replaceAll(',', '.'));
-  if (numerator == null || denominator == null || !(denominator > 0)) {
-    return null;
-  }
-  final amount = numerator / denominator;
-  if (!(amount > 0) || !amount.isFinite) return null;
+  final amount = parseAmount(m.group(1)!);
+  if (amount == null || !(amount > 0) || !amount.isFinite) return null;
   final unit = unitFromWord(
-    m.group(3)!,
+    m.group(2)!,
     families: const {UnitFamily.mass, UnitFamily.volume},
   );
   if (unit == null) return null;

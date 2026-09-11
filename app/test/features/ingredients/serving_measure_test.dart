@@ -35,6 +35,7 @@ void main() {
         (212.5, g),
         (1.0, flOz),
         (0.25, flOz),
+        (1.5, flOz),
         (236.59, ml),
       ]) {
         final read = servingFromMeasureLabel(servingMeasureLabel(amount, unit));
@@ -57,6 +58,8 @@ void main() {
     test('reads a decimal, a fraction and a capitalised unit', () {
       expect(parseServingPhrase('0.25 cup'), (amount: 0.25, unit: cup));
       expect(parseServingPhrase('1/4 cup'), (amount: 0.25, unit: cup));
+      expect(parseServingPhrase('1 1/2 fl oz'), (amount: 1.5, unit: flOz));
+      expect(parseServingPhrase('2/3 cup'), (amount: 2 / 3, unit: cup));
       expect(parseServingPhrase(' 1 Cup '), (amount: 1.0, unit: cup));
       expect(parseServingPhrase('2 Tbsp'), (amount: 2.0, unit: tbsp));
       expect(parseServingPhrase('237 mL'), (amount: 237.0, unit: ml));
