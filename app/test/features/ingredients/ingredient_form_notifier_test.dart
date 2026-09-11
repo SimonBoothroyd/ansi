@@ -8,6 +8,7 @@
 library;
 
 import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/barcode/ingredient_draft.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
@@ -19,6 +20,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/fake_measure_repository.dart';
 
 /// A weighed count row (ADR-0015): the piece weight is what keeps `piece` in
 /// its admission set, and what keeps its own default off the stranded list.
@@ -78,15 +80,32 @@ Future<_OpenForm> _open(
   FakeIngredientRepo repo, {
   String? id,
   String initialName = '',
+  FakeMeasureRepo? measures,
 }) async {
   final container = ProviderContainer(
-    overrides: [ingredientRepositoryProvider.overrideWithValue(repo)],
+    overrides: [
+      ingredientRepositoryProvider.overrideWithValue(repo),
+      if (measures != null)
+        measureRepositoryProvider.overrideWithValue(measures),
+    ],
   );
   addTearDown(container.dispose);
   if (id != null) {
     final row = container.listen(ingredientByIdProvider(id), (_, _) {});
     addTearDown(row.close);
     await container.read(ingredientByIdProvider(id).future);
+    if (measures != null) {
+      // The row's own serving reaches the draft through this stream, so it
+      // has to have arrived before the form opens — the same reason the row
+      // above is awaited. (The late-arrival path has its own test.)
+      final list = container.listen(ingredientMeasuresProvider(id), (_, _) {});
+      addTearDown(list.close);
+      await container.read(ingredientMeasuresProvider(id).future);
+      // The fake's change stream is a broadcast one and the generator behind
+      // it subscribes only once its first value has been consumed, so an add
+      // made before this point is dropped rather than delivered.
+      await pumpEventQueue();
+    }
   }
   final provider = ingredientFormProvider(id, initialName: initialName);
   final open = container.listen(provider, (_, _) {});
@@ -408,6 +427,187 @@ void main() {
       expect(at().pendingSourceLabel, 'Mango, raw');
       expect(at().macros.kcal, '60');
       expect(at().densityValue, 0.35);
+    });
+  });
+
+  group('a row that states a serving reopens in it', () {
+    /// A carton entered from its label: the panel is stored per 100 ml and the
+    /// serving it was typed in is half of that.
+    const carton = Ingredient(
+      id: 'carton',
+      canonicalName: 'Oat Milk',
+      defaultUnit: ml,
+      status: IngredientStatus.complete,
+      category: 'pantry',
+      macrosBasis: MacrosBasis.perMl,
+      macros: Macros(kcal: 500, protein: 10, carb: 20, fat: 30, fiber: 4),
+      source: 'manual',
+    );
+    const cartonServing = Measure(
+      id: 's1',
+      label: 'serving · 50 ml',
+      amount: 50,
+      basis: MacrosBasis.perMl,
+      source: 'manual',
+    );
+
+    /// A pack whose serving is a weight — the per-100 g leg of the same rule.
+    const pack = Ingredient(
+      id: 'pack',
+      canonicalName: 'Cheddar Shreds',
+      defaultUnit: g,
+      status: IngredientStatus.complete,
+      category: 'dairy',
+      macros: Macros(kcal: 400, protein: 24, carb: 4, fat: 32),
+      source: 'manual',
+    );
+
+    test('the form opens per serving, with the label’s own figures in the '
+        'fields', () async {
+      final repo = FakeIngredientRepo([carton]);
+      final (:form, :at) = await _open(
+        repo,
+        id: 'carton',
+        measures: FakeMeasureRepo(const [cartonServing]),
+      );
+
+      final draft = at();
+      expect(draft.perServing, isTrue);
+      expect(draft.basis, MacrosBasis.perMl);
+      // The label's words, not a conversion of them.
+      expect(draft.serving.amountText, '50');
+      expect(draft.serving.unit, ml);
+      // Half of 100 ml, so half of every figure — the reverse of the
+      // arithmetic that stored them, unrounded.
+      expect(
+        draft.macros,
+        const MacroDraft(
+          kcal: '250',
+          protein: '5',
+          carb: '10',
+          fat: '15',
+          fiber: '2',
+        ),
+      );
+      // The fields were seeded, so their controllers have to be rebuilt.
+      expect(draft.macroSeed, greaterThan(0));
+      expect(draft.servingSeed, greaterThan(0));
+      // And what Save would store is what the row already says.
+      expect(draft.storedMacros, carton.macros);
+      // Leaving the mode puts the row's own per-100 column back.
+      form.setBasis(MacrosBasis.perMl);
+      expect(at().perServing, isFalse);
+      expect(at().macros, MacroDraft.from(carton.macros));
+    });
+
+    test('a Save straight from the reopened form writes the same per 100 '
+        'back, and the same serving', () async {
+      final repo = FakeIngredientRepo([carton]);
+      final (:form, :at) = await _open(
+        repo,
+        id: 'carton',
+        measures: FakeMeasureRepo(const [cartonServing]),
+      );
+
+      await form.save();
+
+      final asked = repo.savedForms.single;
+      expect(asked.row.macros, carton.macros);
+      expect(asked.row.macrosBasis, MacrosBasis.perMl);
+      expect(asked.serving!.label, 'serving · 50 ml');
+      expect(asked.serving!.amount, 50);
+    });
+
+    test('a serving the label states in spoons comes back in spoons', () async {
+      final repo = FakeIngredientRepo([carton]);
+      final (:form, :at) = await _open(
+        repo,
+        id: 'carton',
+        measures: FakeMeasureRepo(const [
+          Measure(
+            id: 's1',
+            label: 'serving · 2 tsp',
+            amount: 9.8578431875,
+            basis: MacrosBasis.perMl,
+            source: 'manual',
+          ),
+        ]),
+      );
+
+      expect(at().serving.amountText, '2');
+      expect(at().serving.unit, tsp);
+      // 2 tsp is 9.86 ml by the catalog, and the round trip through it is
+      // exact: what Save would store is what is stored.
+      expect(at().storedMacros!.kcal, closeTo(500, 1e-9));
+      expect(at().storedMacros!.fat, closeTo(30, 1e-9));
+    });
+
+    test('a row with no serving opens per 100, exactly as it always '
+        'has', () async {
+      final repo = FakeIngredientRepo([carton]);
+      final (:form, :at) = await _open(
+        repo,
+        id: 'carton',
+        measures: FakeMeasureRepo(),
+      );
+
+      expect(at().perServing, isFalse);
+      expect(at().macros, MacroDraft.from(carton.macros));
+      expect(at().serving.amount, isNull);
+    });
+
+    test('a measure that is not the serving is not read as one', () async {
+      final repo = FakeIngredientRepo([pack]);
+      final (:form, :at) = await _open(
+        repo,
+        id: 'pack',
+        measures: FakeMeasureRepo(const [
+          Measure(id: 'm1', label: 'handful', amount: 30, source: 'manual'),
+        ]),
+      );
+
+      expect(at().perServing, isFalse);
+    });
+
+    test('a serving that arrives after the form is open still seeds '
+        'it', () async {
+      final repo = FakeIngredientRepo([pack]);
+      final measures = FakeMeasureRepo();
+      final (:form, :at) = await _open(repo, id: 'pack', measures: measures);
+      expect(at().perServing, isFalse);
+
+      // The measures are a watched query: the first frame can precede them.
+      await measures.addMeasure(
+        ingredientId: 'pack',
+        label: 'serving · 50 g',
+        amount: 50,
+      );
+      await pumpEventQueue();
+
+      expect(at().perServing, isTrue);
+      expect(at().serving.amountText, '50');
+      expect(at().serving.unit, g);
+      expect(at().macros.kcal, '200');
+    });
+
+    test('a panel somebody is typing is never relabelled per serving under '
+        'their hands', () async {
+      final repo = FakeIngredientRepo([pack]);
+      final measures = FakeMeasureRepo();
+      final (:form, :at) = await _open(repo, id: 'pack', measures: measures);
+
+      form.setMacros(
+        const MacroDraft(kcal: '111', protein: '1', carb: '2', fat: '3'),
+      );
+      await measures.addMeasure(
+        ingredientId: 'pack',
+        label: 'serving · 50 g',
+        amount: 50,
+      );
+      await pumpEventQueue();
+
+      expect(at().perServing, isFalse);
+      expect(at().macros.kcal, '111');
     });
   });
 

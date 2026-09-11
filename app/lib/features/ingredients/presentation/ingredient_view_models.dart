@@ -37,6 +37,7 @@ import '../domain/name_namespace.dart';
 import '../domain/serving_measure.dart';
 import '../domain/suggest_name.dart';
 import '../domain/usda_probe.dart';
+import 'ingredient_facts.dart';
 import 'macros_format.dart';
 import 'serving_row.dart';
 
@@ -470,8 +471,14 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
 /// (a null id, which is what makes this the app's one add flow).
 @riverpod
 class IngredientForm extends _$IngredientForm {
+  /// Whether the row's own serving has been read into this draft yet. The
+  /// measures are a stream and emit again for every measure the form adds;
+  /// the serving is seeded ONCE, from the first list that carries one.
+  bool _servingSeeded = false;
+
   @override
   IngredientFormDraft build(String? ingredientId, {String initialName = ''}) {
+    _servingSeeded = false;
     // The row is a WATCHED query, and it moves under an open form: this
     // device's own Save, and a second device's edit. Listened to rather than
     // watched, because rebuilding this notifier on every row change would
@@ -481,6 +488,14 @@ class IngredientForm extends _$IngredientForm {
       ref.listen(ingredientByIdProvider(ingredientId), (_, next) {
         final row = next.asData?.value;
         if (row != null) _rowMoved(row);
+      });
+      // The measures are watched the same way, and for one thing: the row's
+      // own serving is one of them. A list that has not arrived yet is why
+      // this is a listen as well as a read — the form opens before the stream
+      // does, and the serving is seeded when it lands.
+      ref.listen(ingredientMeasuresProvider(ingredientId), (_, next) {
+        final measures = next.asData?.value;
+        if (measures != null) _servingArrived(servingMeasureOf(measures));
       });
     }
     final row =
@@ -498,7 +513,7 @@ class IngredientForm extends _$IngredientForm {
           status: IngredientStatus.stub,
         );
     final seeded = MacroDraft.from(row.macros);
-    return IngredientFormDraft(
+    final draft = IngredientFormDraft(
       row: row,
       creating: ingredientId == null,
       name: row.canonicalName,
@@ -509,6 +524,72 @@ class IngredientForm extends _$IngredientForm {
       macros: seeded,
       seededMacros: seeded,
     );
+    // The serving, when the stream already has it — the ordinary case on a
+    // row whose page was open a moment ago.
+    final measures = ingredientId == null
+        ? null
+        : ref.read(ingredientMeasuresProvider(ingredientId)).asData?.value;
+    return measures == null
+        ? draft
+        : _withServing(draft, servingMeasureOf(measures));
+  }
+
+  /// **A row that states a serving reopens in it.** The label's own figures
+  /// are what a person typed and what the fact sheet prints back, so the form
+  /// that edits them opens on the same reading rather than on the per-100 the
+  /// row happens to store.
+  ///
+  /// The serving is a measure — `serving · 2 tsp` — so its words are the
+  /// truth and the arithmetic reverses exactly: the four fields hold the
+  /// stored per-100 scaled by the serving amount ([servingPrintedMacros]),
+  /// unrounded, and a Save that changes nothing writes the same per-100 back.
+  ///
+  /// The fields then hold the LABEL's column rather than the row's, which is
+  /// also what stops [_rowMoved] overwriting them — the same guard that
+  /// protects typing, doing the same job for figures the form derived.
+  IngredientFormDraft _withServing(
+    IngredientFormDraft draft,
+    Measure? measure,
+  ) {
+    if (measure == null) return draft;
+    final stated = servingFromMeasureLabel(measure.label);
+    // A serving the household renamed no longer parses, and one in a
+    // dimension the row does not store cannot be read back into the fields
+    // (the reversal would be a conversion nobody stated). Either way the form
+    // opens per 100, which is what the row stores.
+    if (stated == null || measure.basis != draft.row.macrosBasis) return draft;
+    final serving = ServingDraft(
+      amountText: macroFieldSeed(stated.amount),
+      unit: stated.unit,
+    );
+    if (serving.basis != draft.row.macrosBasis) return draft;
+    _servingSeeded = true;
+    final printed = servingPrintedMacros(draft.row, serving: measure);
+    return draft.copyWith(
+      perServing: true,
+      basis: serving.basis,
+      serving: serving,
+      servingSeed: draft.servingSeed + 1,
+      // A row with a serving and no panel has nothing to put in the fields;
+      // the mode is still the truth about the row.
+      macros: printed == null ? draft.macros : MacroDraft.from(printed),
+      macroSeed: draft.macroSeed + 1,
+      // Leaving the mode puts the row's own per-100 back, which is exactly
+      // what these fields were derived from.
+      per100Macros: MacroDraft.from(draft.row.macros),
+    );
+  }
+
+  /// The serving arriving after the form opened.
+  ///
+  /// It seeds once, and only into a form nobody has touched — the guard is
+  /// [IngredientFormDraft.seededMacros], the one [_rowMoved] uses, so a panel
+  /// somebody is typing is never relabelled per serving under their hands.
+  void _servingArrived(Measure? measure) {
+    if (_servingSeeded || state.perServing) return;
+    if (state.macros != state.seededMacros) return;
+    if (state.serving.amount != null) return;
+    state = _withServing(state, measure);
   }
 
   /// The admission set [allowed] would be, given the density and the piece
