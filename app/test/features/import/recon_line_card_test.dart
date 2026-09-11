@@ -599,10 +599,9 @@ void main() {
 
   /// Which flagged lines get the door, by the shape of the row behind them.
   /// The first three are the gap the door exists for — a count on a row that
-  /// says nothing about what one weighs. The last two are the near misses it
-  /// must not claim: a row that HAS the number (its `piece` is refused for the
-  /// ordinary reason — the household pruned it off the list), and a line that
-  /// printed a word of its own, which is no count at all.
+  /// says nothing about what one weighs. The last is the near miss it must
+  /// not claim: a line that printed a word of its own, which is no count at
+  /// all.
   final gate =
       <
         ({
@@ -641,15 +640,6 @@ void main() {
           measures: broccoliParts,
           unit: 'piece',
           door: true,
-        ),
-        (
-          what: 'the same sized row once somebody weighed a piece',
-          payload: _piecePayload('Red Pepper', pepperWeighed.id),
-          row: pepperWeighed,
-          name: 'Red Pepper',
-          measures: pepperSizes,
-          unit: 'piece',
-          door: false,
         ),
         (
           what: 'a line that PRINTED a word of its own — no count, no gap',
@@ -718,6 +708,29 @@ void main() {
       findsNothing,
     );
     expect(find.text('UNIT'), findsNothing);
+  });
+
+  testWidgets('a weighed count row says its OWN default even where the stored '
+      'list forgot it', (tester) async {
+    filterForuiSemanticsAssertions();
+    // The same sized row as above, weighed, with an explicit list that does
+    // not name `piece`. The row is bought in pieces and says what one weighs,
+    // so `1 large Red Pepper` stands rather than being flagged for the word
+    // the page printed.
+    final container = pieceLineContainer(
+      _piecePayload('Red Pepper', pepperWeighed.id),
+      pepperWeighed,
+      pepperSizes,
+    );
+    await pumpPieceLine(tester, container);
+
+    expect(find.text('Pick a supported unit'), findsNothing);
+    await tester.tap(find.byIcon(FLucideIcons.pencil));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(ValueKey('piece-weight-door-${pepperWeighed.id}')),
+      findsNothing,
+    );
   });
 
   testWidgets('the door opens the INGREDIENT — the weight is the row’s fact, '

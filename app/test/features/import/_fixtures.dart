@@ -122,9 +122,10 @@ const pepper = Ingredient(
   allowedUnits: [g, tsp, tbsp, cup, ml, handful],
 );
 
-/// The same row once somebody entered what one weighs. `piece` is still not
-/// sayable on it — the household pruned it out of the explicit list — so the
-/// line keeps its ordinary `unitNotAllowed` flag, WITHOUT the piece-weight
+/// The same row once somebody entered what one weighs, and with a stored list
+/// that does not name `piece`. A row's own default unit is sayable whatever
+/// the list says — the admission rule unions it back in — and the weight is
+/// what admits a count — so the line stands, unflagged, with no piece-weight
 /// door: the door names a gap this row no longer has.
 const pepperWeighed = Ingredient(
   id: 'ing-pepper',
