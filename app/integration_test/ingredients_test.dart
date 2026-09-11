@@ -370,10 +370,20 @@ void main() {
         of: find.byType(DensityEntry),
         matching: find.widgetWithText(FButton, 'Add'),
       );
-      // One sentence since the v2 pass — "1 [tbsp] weighs [__] g" —
-      // so there is no phrasing mode to enter. `tbsp` is the standing pick.
+      // One sentence — "1 [unit] weighs [__] g". It opens on the row's own
+      // reading unit (a cup, for a row that states no serving and is not
+      // bought by volume), so the spoon is picked, not assumed.
       await scrollTo(tester, find.text('weighs'));
       await centerOn(tester, find.text('weighs'));
+      final spoonChip = find.byKey(const ValueKey('density-amount-unit'));
+      await centerOn(tester, spoonChip);
+      await tester.tap(spoonChip);
+      await tester.pumpAndSettle();
+      final tbspPick = find.text('tbsp').last;
+      await tester.ensureVisible(tbspPick);
+      await tester.pumpAndSettle();
+      await tester.tap(tbspPick);
+      await tester.pumpAndSettle();
       await tester.enterText(densityField, '15');
       await tester.pumpAndSettle();
       // The live equivalence: both phrasings are the same fact.
