@@ -240,12 +240,6 @@ abstract class ShoppingItem with _$ShoppingItem {
   /// Whether this line has a numeric total (a non-food staple may not).
   bool get hasTotal => totals.isNotEmpty;
 
-  /// True once the item has any provenance worth showing (more than a single
-  /// source, or a manual top-up alongside cook sources).
-  bool get hasBreakdown =>
-      contributions.length > 1 ||
-      contributions.any((c) => c.source == ContributionSource.manual);
-
   /// Whether any of this item's total comes from the cook plan.
   bool get hasCookContribution =>
       contributions.any((c) => c.source == ContributionSource.cookSession);

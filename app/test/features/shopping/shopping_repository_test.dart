@@ -235,7 +235,6 @@ void main() {
         (await repo.watchShoppingList(_week).first).groups.single.items.single;
     expect(onion.totals.single.amount, 5); // 3 + 2
     expect(onion.contributions, hasLength(2));
-    expect(onion.hasBreakdown, isTrue);
   });
 
   test('check-off lazily creates a persisted entry', () async {

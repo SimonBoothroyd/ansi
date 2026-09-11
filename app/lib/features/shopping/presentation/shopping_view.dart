@@ -379,7 +379,10 @@ class _ItemRow extends ConsumerWidget {
                 ),
               ),
             ],
-            if (!item.checked && item.hasBreakdown) ...[
+            // Every row says where it came from — a single source is still a
+            // source, and a shopper reading one line should not have to
+            // remember which recipe asked for it.
+            if (!item.checked && item.contributions.isNotEmpty) ...[
               const SizedBox(height: 6),
               Padding(
                 padding: const EdgeInsets.only(left: 31),

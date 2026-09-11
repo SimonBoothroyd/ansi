@@ -212,6 +212,46 @@ void main() {
     expect(find.textContaining('add item or top up'), findsOneWidget);
   });
 
+  testWidgets('a single-source row still says where it came from', (
+    tester,
+  ) async {
+    final list = ShoppingList(
+      groups: [
+        ShoppingGroup(
+          label: 'Dairy',
+          items: [
+            ShoppingItem(
+              name: 'Halloumi',
+              ingredientId: 'halloumi',
+              totals: [Quantity(250, g)],
+              contributions: const [
+                ShoppingContribution(
+                  source: ContributionSource.cookSession,
+                  label: 'Charred Broccoli & Halloumi Salad · cook Wed',
+                  quantity: 250,
+                  unit: g,
+                  cookDay: 2,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _host([
+        shoppingRepositoryProvider.overrideWithValue(_FakeShoppingRepo(list)),
+      ]),
+    );
+    await tester.pump();
+
+    expect(
+      find.text('Charred Broccoli & Halloumi Salad · cook Wed'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('a nested contribution names both levels', (tester) async {
     // The provenance segment the domain builds for a component session: the
     // sub-recipe's own line, then the plan it is cooked for.

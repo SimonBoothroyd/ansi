@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Cook &amp; Shop</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a></p>
+    <p class="view-status">built · matches code 2026-09-10 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a></p>
     <p class="view-blurb">Two tabs derived from the week on screen — sessions grouped by recipe and split by shelf life, then one list summed from them, saying where every line came from.</p>
 </header>
 
@@ -116,14 +116,15 @@
             <div class="sl-group">Produce</div>
             <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Charred broccoli</span><span class="item-total">1 head</span></div>
                 <div class="prov"><div class="prov-line"><span class="src">Charred Broccoli &amp; Halloumi Salad · cook Wed</span><span>1 head</span></div></div></div>
-            <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Halloumi</span><span class="item-total">250 g</span></div></div>
+            <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Halloumi</span><span class="item-total">250 g</span></div>
+                <div class="prov"><div class="prov-line"><span class="src">Charred Broccoli &amp; Halloumi Salad · cook Wed</span><span>250 g</span></div></div></div>
             <div class="topup">＋ add item or top up an ingredient</div>
             <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni on"><span class="ic">▤</span>Shop</div></div>
         </div></div>
     </div>
 
         <div class="frame">
-            <p class="frame-name"><b>The list</b> · summed and grouped, every total opening into where it came from — including a manual top-up</p>
+            <p class="frame-name"><b>The list</b> · summed and grouped, every total opening into where it came from — a single source included, and a manual top-up</p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span></div>
                 <p class="conv-note" style="margin:6px 20px 0;letter-spacing:.04em">summed from the cook plan · with provenance</p>
@@ -198,10 +199,13 @@
                 <div class="prov"><div class="prov-line"><span class="src">Weeknight Curry ×2</span><span>400 g</span></div>
                     <div class="prov-line manual"><span class="src">your top-up</span><span>200 g</span></div></div></div>
             <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Red onion</span><span class="item-total">3</span></div></div>
-            <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Flat-leaf parsley</span><span class="item-total">1 bunch</span></div></div>
+            <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Flat-leaf parsley</span><span class="item-total">1 bunch</span></div>
+                <div class="prov"><div class="prov-line"><span class="src">Weeknight Curry ×2</span><span>1 bunch</span></div></div></div>
             <p class="sl-group">Dairy</p>
-            <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Greek yoghurt</span><span class="item-total">500 g</span></div></div>
-            <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Unsalted butter</span><span class="item-total">250 g</span></div></div>
+            <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Greek yoghurt</span><span class="item-total">500 g</span></div>
+                <div class="prov"><div class="prov-line"><span class="src">Weeknight Curry ×2</span><span>500 g</span></div></div></div>
+            <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Unsalted butter</span><span class="item-total">250 g</span></div>
+                <div class="prov"><div class="prov-line"><span class="src">Oat Cookies</span><span>250 g</span></div></div></div>
             <p class="conv-note" style="margin-top:12px">the two ticked rows look exactly like any other ticked row — <b>no dot, no spinner, no grey</b></p>
             <p class="conv-note" style="margin-top:14px">— the same line, all four states —</p>
             <div class="er-strip" style="margin-top:8px">

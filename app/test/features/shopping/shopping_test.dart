@@ -472,7 +472,6 @@ void main() {
         item.contributions.where((c) => c.source == ContributionSource.manual),
         hasLength(1),
       );
-      expect(item.hasBreakdown, isTrue);
     });
 
     test('carries the entry check-off state onto the item', () {

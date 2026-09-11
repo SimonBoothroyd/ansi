@@ -553,7 +553,7 @@ stored ([ADR-0007](../decisions/0007-shopping-list-thin-overlay.md)):
   item's own name is already the *what*; it degrades on an unrecognised unit or
   an unusable measure exactly as a cook line does, and sums into the same line
   as any recipe that also uses the ingredient, so it is bought once.
-- Display groups by ingredient, sums derived + manual contributions in canonical base (density-converted; measure-quantified lines fold into the mass subtotal via their gram weights), shows breakdown: *"Flour — 500g · Curry batch (cook Mon) 300g · Cookies 150g · +50g manual."*
+- Display groups by ingredient, sums derived + manual contributions in canonical base (density-converted; measure-quantified lines fold into the mass subtotal via their gram weights), shows breakdown: *"Flour — 500g · Curry batch (cook Mon) 300g · Cookies 150g · +50g manual."* **Every unchecked row shows its breakdown**, a single-source one included — a shopper reading a line should never have to remember which recipe asked for it; ticking a row collapses it.
 - **Whole-unit hint (step 7.6):** a count-family ingredient *with a measure* whose single total is fractional gets an honest round-up hint beside the total ("2.25 → buy 3", or "≈ 2.25 potato, large → buy 3" derived from a mass total via the primary measure) — a hint, never a replaced total.
 - **Top up** = persist a `manual` contribution against the entry (find-or-create).
 - **Check-off** = on the entry (rolled-up ingredient), not per contribution.
