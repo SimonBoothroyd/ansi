@@ -521,6 +521,30 @@ Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
 
+### 2026-09-11 — round seven on cloud (v0.13.0): 0040, the streamed function, and the owner's vocabulary as the template
+
+- `deploy-supabase` run `34561587312` from `main@50d9213`, `reseed_template`
+  **ticked**: link ✓ · `db push` applied **`0040`** (`week_recipe_line_override`
+  — one variant per week and recipe, RLS trio, indexes) ✓ · `functions deploy
+  import-recipe` ✓ — the function now answers as an event stream (one event
+  per stage, the payload last), and the app it ships with reads nothing
+  else, so the two went out together per §4's order · sync streams ✓ (the
+  new table rides the same button) · the seed ✓ — `seed_vocab.sql`, generated
+  from the owner's live household, was applied over the old template.
+- Read-only readback after the deploy (the same export the seed is built
+  from): the template holds **315** live rows, **297** `complete` and **18**
+  `stub`, **296** measures and **148** aliases — the owner's household, row
+  for row. The four rows the old template carried that the snapshot did not
+  (eight deleted stubs, eight renamed keys) were retired by the reseed's own
+  retire step, so the template holds no name the household does not.
+- `cloud_verify.sh`: first pass **8 ok · 0 warn · 1 fail** — the PowerSync
+  instance was still restarting after the sync-config deploy; second pass a
+  minute later **9 ok · 0 warn · 0 fail**.
+- **No §2b rollout:** the only household is the owner's, and it is the
+  snapshot's source. A second household would clone the new template on
+  onboarding; an existing one would need the rollout, which is fill-only —
+  a value the owner corrected does not overwrite a wrong one already held.
+
 ### 2026-09-09 — fibre on cloud (v0.12.0): a reseed, and a rollout that had nothing to do
 
 - `deploy-supabase` run `34426524223` from `main@9708f50`, `reseed_template`

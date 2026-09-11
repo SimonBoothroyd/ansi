@@ -1,6 +1,6 @@
 # Exec plan: this week's variant — a recipe edited for one planned week
 
-- **Status:** active
+- **Status:** done
 - **Owner:** agent (build lane `week-variant`)
 - **Roadmap step:** — (backlog row "Per-week recipe override")
 - **Created:** 2026-09-10
@@ -164,9 +164,8 @@ recorded here because the board draws pixels and does not hold decisions.
 - [x] Tech-debt rows: none added, none retired. The corners cut are recorded
       as rulings above (sub-recipe swaps suppressed, reorder not storable),
       not as debt — neither is a shortcut somebody owes for.
-- [ ] Migration `0040` has **not** reached cloud. Append a
-      `docs/cloud-setup.md` ledger entry when it does, and deploy the sync
-      config with it — a rebuilt database with stale streams starves devices
-      of every table added since.
+- [x] Migration `0040` is on cloud (deploy-supabase run `34561587312`, with
+      the sync config deployed beside it) — the ledger entry is in
+      `docs/cloud-setup.md`.
 - [x] `make ci` green (`analyze` + `test` + `docs-check`; `ci-full` where the
       local stack was free).
