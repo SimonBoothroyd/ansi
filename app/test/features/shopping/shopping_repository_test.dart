@@ -516,9 +516,10 @@ void main() {
     expect((await repo.watchShoppingList(_week).first).isEmpty, isTrue);
   });
 
-  test('a measure line sums in basis_amount, with a whole-unit hint', () async {
-    // "3 × onion, medium (110 g)" scaled ×0.75 → 2.25 onions = 247.5 g, and
-    // the count food's line offers the honest "buy 3" hint (step 7.6).
+  test('a measure line is counted in its measure, and weighs its '
+      'basis_amount', () async {
+    // "3 × onion, medium (110 g)" scaled ×0.75 → 2.25 onions, which weigh
+    // 247.5 g.
     await db.execute(
       'INSERT INTO ingredient_measure '
       '(id, household_id, ingredient_id, label, basis_amount, sort_order) '
@@ -553,9 +554,12 @@ void main() {
     final line = onion.contributions.single;
     expect(line.measure?.label, 'onion, medium');
     expect(line.quantity, closeTo(2.25, 1e-9));
-    expect(onion.wholeUnitHint, isNotNull);
-    expect(onion.wholeUnitHint!.buy, 3);
-    expect(onion.wholeUnitHint!.unitLabel, 'onion, medium');
+    // One measure asked for, so the row is counted in it — and the count
+    // already says "2.25 onions", which is what the round-up hint used to
+    // reconstruct from grams.
+    expect(onion.measureTotal!.measure.label, 'onion, medium');
+    expect(onion.measureTotal!.amount, closeTo(2.25, 1e-9));
+    expect(onion.wholeUnitHint, isNull);
   });
 
   test('a measure top-up persists measure_id and resolves in the '

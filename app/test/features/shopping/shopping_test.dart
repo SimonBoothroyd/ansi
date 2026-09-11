@@ -258,44 +258,6 @@ void main() {
       expect(hint.approx, isTrue);
     });
 
-    test('prefers the measure the contributions actually used', () {
-      // Primary is "medium" (sort 0) but the total came from LARGE potatoes:
-      // 598 g must hint in large (whole → no hint at 2.0; 674 g → 2.25),
-      // never "≈ 2.81 medium → buy 3" off the wrong denominator.
-      const medium = Measure(id: 'mm', label: 'potato, medium', amount: 213);
-      expect(
-        wholeUnitHintFor(
-          totals: [Quantity(2 * 299, g)],
-          measures: const [medium, _potatoLarge],
-          usedMeasures: const [_potatoLarge],
-        ),
-        isNull, // exactly 2 large — nothing fractional to round
-      );
-      final hint = wholeUnitHintFor(
-        totals: [Quantity(674, g)],
-        measures: const [medium, _potatoLarge],
-        usedMeasures: const [_potatoLarge],
-      );
-      expect(hint, isNotNull);
-      expect(hint!.unitLabel, 'potato, large');
-      expect(hint.count, closeTo(674 / 299, 1e-9));
-      expect(hint.buy, 3);
-    });
-
-    test('disagreeing measure provenance gets no hint', () {
-      // Contributions counted in two different measures: no single honest
-      // unit to round the mass total to.
-      const medium = Measure(id: 'mm', label: 'potato, medium', amount: 213);
-      expect(
-        wholeUnitHintFor(
-          totals: [Quantity(674, g)],
-          measures: const [medium, _potatoLarge],
-          usedMeasures: const [medium, _potatoLarge],
-        ),
-        isNull,
-      );
-    });
-
     test('a mass total without any measure never hints', () {
       expect(
         wholeUnitHintFor(totals: [Quantity(674, g)], measures: const []),
@@ -627,9 +589,10 @@ void main() {
       expect(paper.isUserAdded, isTrue);
     });
 
-    test('measure contributions sum in grams with provenance intact', () {
-      // "2 × potato, large" from a cook line + a 1-potato manual top-up:
-      // one mass total (3 × 299 g), each breakdown line in its measure.
+    test('one measure everywhere: the total is a count of it', () {
+      // "2 × potato, large" from a cook line + a 1-potato manual top-up: the
+      // row reads 3 potatoes, with the grams they weigh beside it, and each
+      // breakdown line keeps its own measure.
       final list = build(
         cook: [
           _cook('potato', 2, pieces, measure: _potatoLarge, recipe: 'Curry'),
@@ -648,6 +611,10 @@ void main() {
         },
       );
       final item = list.groups.single.items.single;
+      expect(item.measureTotal, isNotNull);
+      expect(item.measureTotal!.amount, 3);
+      expect(item.measureTotal!.measure, _potatoLarge);
+      // The mass the count weighs stays beside it, honest and untouched.
       expect(item.totals.single.unit.family, UnitFamily.mass);
       expect(item.totals.single.amount, closeTo(3 * 299, 1e-9));
       final cookLine = item.contributions.first;
@@ -659,8 +626,69 @@ void main() {
       expect(manualLine.quantity, 1);
     });
 
-    test('a whole-unit hint rides a fractional measure-derived total', () {
-      // ×0.75 scaling left 2.25 potatoes' worth of grams on the list.
+    group('a can of lentils', () {
+      // The live repro: "1 can (400 g), drained" of Canned Lentils, whose can
+      // is 240 g drained and whose default unit is oz. The shop used to print
+      // "8.47 oz" — a number nobody asked for and nothing sells.
+      const can = Measure(id: 'ml', label: 'can (400 g), drained', amount: 240);
+      IngredientMetaInput lentils() =>
+          metaFor('Canned Lentils', 'pantry', unit: oz, measures: const [can]);
+
+      test('one measure everywhere: the row is counted in cans', () {
+        final item = build(
+          cook: [_cook('lentils', 1, pieces, measure: can, recipe: 'Dal')],
+          meta: {'lentils': lentils()},
+        ).groups.single.items.single;
+        expect(item.measureTotal!.amount, 1);
+        expect(item.measureTotal!.measure, can);
+        // The default unit never reaches a measure-only sum: the mass beside
+        // the count stays in the basis the can folded into.
+        expect(item.totals.single.unit, g);
+        expect(item.totals.single.amount, closeTo(240, 1e-9));
+      });
+
+      test('two cans are two cans, not 16.93 oz', () {
+        final item = build(
+          cook: [
+            _cook('lentils', 1, pieces, measure: can, recipe: 'Dal'),
+            _cook(
+              'lentils',
+              1,
+              pieces,
+              measure: can,
+              recipe: 'Soup',
+              cookDay: 2,
+            ),
+          ],
+          meta: {'lentils': lentils()},
+        ).groups.single.items.single;
+        expect(item.measureTotal!.amount, 2);
+        expect(item.totals.single.amount, closeTo(480, 1e-9));
+      });
+
+      test('a can plus 200 g has no count — the family sum prints as ever', () {
+        final item = build(
+          cook: [
+            _cook('lentils', 1, pieces, measure: can, recipe: 'Dal'),
+            _cook('lentils', 200, g, recipe: 'Salad', cookDay: 2),
+          ],
+          meta: {'lentils': lentils()},
+        ).groups.single.items.single;
+        expect(item.measureTotal, isNull);
+        // A real mass line was stated, so the default unit biases it again.
+        expect(item.totals.single.unit, oz);
+        expect(item.totals.single.amount, closeTo(440 / 28.349523125, 1e-9));
+        // …and each provenance line still keeps its own words.
+        expect(item.contributions.first.measure, can);
+        expect(item.contributions.first.quantity, 1);
+        expect(item.contributions.last.unit, g);
+        expect(item.contributions.last.quantity, 200);
+      });
+    });
+
+    test('a measure-counted total needs no round-up hint', () {
+      // ×0.75 scaling left 2.25 potatoes on the list. The count says so
+      // itself, so the hint that used to reconstruct it from grams is gone.
       final list = build(
         cook: [
           _cook('potato', 2.25, pieces, measure: _potatoLarge, recipe: 'Stew'),
@@ -675,10 +703,9 @@ void main() {
         },
       );
       final item = list.groups.single.items.single;
-      expect(item.wholeUnitHint, isNotNull);
-      expect(item.wholeUnitHint!.buy, 3);
-      expect(item.wholeUnitHint!.approx, isTrue);
-      // The honest total is untouched — the hint never replaces it.
+      expect(item.measureTotal!.amount, closeTo(2.25, 1e-9));
+      expect(item.wholeUnitHint, isNull);
+      // The honest total is untouched — the count never replaces it.
       expect(item.totals.single.amount, closeTo(2.25 * 299, 1e-9));
     });
 
@@ -701,10 +728,10 @@ void main() {
       expect(item.wholeUnitHint!.approx, isFalse);
     });
 
-    test('the hint denominates in the measure the contributions used', () {
-      // Live repro from review: "2 × potato, large" (598 g) with "medium"
-      // sorted first must NOT hint "≈ 2.81 medium → buy 3" — the total is
-      // exactly 2 large, so there is no hint at all.
+    test('the count is said in the measure asked for, not the primary one', () {
+      // Live repro from review: "2 × potato, large" with "medium" sorted
+      // first must never be restated off the wrong denominator — the row
+      // says 2 large, because that is what was asked for.
       const medium = Measure(id: 'mm', label: 'potato, medium', amount: 213);
       final list = build(
         cook: [
@@ -720,13 +747,20 @@ void main() {
         },
       );
       final item = list.groups.single.items.single;
+      expect(item.measureTotal!.measure, _potatoLarge);
+      expect(item.measureTotal!.amount, 2);
       expect(item.totals.single.amount, closeTo(598, 1e-9));
       expect(item.wholeUnitHint, isNull);
+    });
 
-      // And a genuinely fractional large-derived total hints in LARGE.
-      final fractional = build(
+    test('two different measures have no single count — the mass sum wins', () {
+      // A large potato and a medium one are not 3 of anything. The canonical
+      // family sum is the only honest total, and each line keeps its words.
+      const medium = Measure(id: 'mm', label: 'potato, medium', amount: 213);
+      final list = build(
         cook: [
-          _cook('potato', 2.25, pieces, measure: _potatoLarge, recipe: 'Stew'),
+          _cook('potato', 2, pieces, measure: _potatoLarge, recipe: 'Stew'),
+          _cook('potato', 1, pieces, measure: medium, recipe: 'Curry'),
         ],
         meta: {
           'potato': metaFor(
@@ -737,10 +771,11 @@ void main() {
           ),
         },
       );
-      final hint = fractional.groups.single.items.single.wholeUnitHint;
-      expect(hint, isNotNull);
-      expect(hint!.unitLabel, 'potato, large');
-      expect(hint.buy, 3);
+      final item = list.groups.single.items.single;
+      expect(item.measureTotal, isNull);
+      expect(item.totals.single.amount, closeTo(2 * 299 + 213, 1e-9));
+      expect(item.contributions.first.measure, _potatoLarge);
+      expect(item.contributions.last.measure, medium);
     });
 
     test('an invalid measure is a visible note, never a silent drop', () {

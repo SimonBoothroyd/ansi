@@ -313,6 +313,7 @@
         .item-name{flex:1;font-size:14px;}
         .item.done .item-name{color:var(--muted);text-decoration:line-through;}
         .item-total{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;}
+        .item-sub{margin:3px 0 0 31px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--herb-deep);}
         .prov{margin:6px 0 0 31px;display:flex;flex-direction:column;gap:3px;}
         .prov-line{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);}
         .prov-line .src{color:var(--herb-deep);}

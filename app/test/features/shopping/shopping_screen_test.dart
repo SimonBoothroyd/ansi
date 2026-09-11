@@ -1,4 +1,5 @@
 import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
@@ -250,6 +251,51 @@ void main() {
       find.text('Charred Broccoli & Halloumi Salad · cook Wed'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('a row asked for in one measure is shopped in it', (
+    tester,
+  ) async {
+    const can = Measure(id: 'ml', label: 'can (400 g), drained', amount: 240);
+    final list = ShoppingList(
+      groups: [
+        ShoppingGroup(
+          label: 'Pantry',
+          items: [
+            ShoppingItem(
+              name: 'Canned Lentils',
+              ingredientId: 'lentils',
+              totals: [Quantity(240, g)],
+              measureTotal: const (amount: 1, measure: can),
+              contributions: const [
+                ShoppingContribution(
+                  source: ContributionSource.cookSession,
+                  label: 'Dal · cook Mon',
+                  quantity: 1,
+                  measure: can,
+                  cookDay: 0,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _host([
+        shoppingRepositoryProvider.overrideWithValue(_FakeShoppingRepo(list)),
+      ]),
+    );
+    await tester.pump();
+
+    // The total is what goes in the basket, not the 8.47 oz it weighs —
+    // twice over, because the one line behind it says the same words.
+    expect(find.text('1 can (400 g), drained'), findsNWidgets(2));
+    // …with the honest mass beside the total, never instead of it.
+    expect(find.text('240 g'), findsOneWidget);
+    expect(find.text('Dal · cook Mon'), findsOneWidget);
+    expect(find.textContaining('oz'), findsNothing);
   });
 
   testWidgets('a nested contribution names both levels', (tester) async {

@@ -22,6 +22,12 @@
 /// within a unit family, bridges mass↔volume only when a density is supplied,
 /// and NEVER invents a number to force a single total — an ingredient with
 /// mixed families and no density yields two honest subtotals, not a guess.
+///
+/// A measure-quantified contribution folds into that sum via its basis amount,
+/// but folding is not the whole answer: when every contribution to an item
+/// asked for the SAME measure, the item also carries a
+/// [ShoppingItem.measureTotal] and the row reads "1 can (400 g), drained"
+/// rather than the 8.47 oz the can happens to weigh. You buy cans.
 library;
 
 // Freezed needs each class's private `._` constructor before the factory (for
@@ -209,6 +215,10 @@ abstract class ShoppingContribution with _$ShoppingContribution {
 /// A rolled-up shopping line: one ingredient (or free-text item), its check-off
 /// state, its aggregated [totals] (usually one [Quantity]; more when families
 /// can't be merged honestly), and the [contributions] behind it.
+///
+/// A line every contribution asked for in the SAME measure also carries a
+/// [measureTotal] — the count you put in the basket, with [totals] as what it
+/// weighs.
 @freezed
 abstract class ShoppingItem with _$ShoppingItem {
   const ShoppingItem._();
@@ -227,10 +237,21 @@ abstract class ShoppingItem with _$ShoppingItem {
     @Default(<Quantity>[]) List<Quantity> totals,
     @Default(<ShoppingContribution>[]) List<ShoppingContribution> contributions,
 
+    /// The item's total counted in ONE measure — "1 can (400 g), drained" —
+    /// set only when every quantified contribution asked for that same
+    /// measure. You buy the can, so the row says cans; [totals] still carries
+    /// the canonical mass/volume the cans weigh, which the row shows beside
+    /// it. Null the moment a plain mass/volume line or a second measure joins
+    /// the sum — neither has a single countable answer, so the family sum is
+    /// the only honest total.
+    MeasureAmount? measureTotal,
+
     /// An honest round-up hint ("2.25 → buy 3") for a measure-bearing count
     /// ingredient — a HINT beside the total, never a replaced total
     /// (invariant 3). Null when the item doesn't qualify (see
-    /// [wholeUnitHintFor]).
+    /// [wholeUnitHintFor]), and null whenever [measureTotal] is set: a row
+    /// already counted in its measure needs no second way to say the same
+    /// thing.
     WholeUnitHint? wholeUnitHint,
   }) = _ShoppingItem;
 
@@ -280,8 +301,9 @@ abstract class ShoppingList with _$ShoppingList {
 
 // --- Aggregation (honest summation core) -------------------------------------
 
-/// An amount counted in a [Measure] ("2 × potato, large"), awaiting honest
-/// summation via the measure's gram weight.
+/// An amount counted in a [Measure] ("2 × potato, large") — an input awaiting
+/// honest summation via the measure's gram weight, and, once summed, the shape
+/// of a [ShoppingItem.measureTotal].
 typedef MeasureAmount = ({double amount, Measure measure});
 
 /// Sums [qs] into as few totals as it can *honestly* (invariant 3).
@@ -425,22 +447,21 @@ typedef WholeUnitHint = ({
 /// - a fractional count total ("2.25 piece") rounds up directly — a count is
 ///   already a whole-thing tally, so it needs no measure and no default-unit
 ///   gate;
-/// - a mass or volume total converts through a measure of the SAME family
-///   as its basis — "674 g ≈ 2.25 × potato, large → buy 3" — marked
-///   `approx` (a cross-family pair would need a density this hint doesn't
-///   carry, and [amountInMeasure] refuses it honestly). The measure used is
-///   the one the total's contributions were actually counted in
-///   ([usedMeasures], when they all agree — hinting "buy 3 medium" against
-///   a total built from large potatoes would misprice it); an item with NO
-///   measure provenance falls back to the ingredient's primary measure
-///   (lowest `sort_order`), and one with *disagreeing* provenance gets no
-///   hint (no single honest unit to round to).
+/// - a mass or volume total converts through the ingredient's primary measure
+///   (lowest `sort_order`) of the SAME family as its basis — "674 g ≈ 2.25 ×
+///   potato, large → buy 3" — marked `approx` (a cross-family pair would need
+///   a density this hint doesn't carry, and [amountInMeasure] refuses it
+///   honestly).
+///
+/// A total whose contributions were ALL counted in one measure never reaches
+/// here: it is a [ShoppingItem.measureTotal], already said in that measure.
+/// This hint exists for the other shape — a mass total the shopper has to
+/// translate into things on a shelf.
 ///
 /// Always a hint BESIDE the honest total, never a replacement (invariant 3).
 WholeUnitHint? wholeUnitHintFor({
   required List<Quantity> totals,
   required List<Measure> measures,
-  List<Measure> usedMeasures = const [],
 }) {
   if (totals.length != 1) return null;
   final total = totals.single;
@@ -457,16 +478,8 @@ WholeUnitHint? wholeUnitHintFor({
   }
   if (total.unit.family == UnitFamily.mass ||
       total.unit.family == UnitFamily.volume) {
-    final usedIds = {for (final m in usedMeasures) m.id};
-    final Measure? measure;
-    if (usedIds.length > 1) {
-      return null; // disagreeing provenance — no single honest unit
-    } else if (usedMeasures.isNotEmpty) {
-      measure = usedMeasures.first;
-    } else {
-      measure = measures.isEmpty ? null : measures.first;
-    }
-    if (measure == null) return null;
+    if (measures.isEmpty) return null;
+    final measure = measures.first;
     final inMeasure = amountInMeasure(total, measure);
     if (inMeasure case Ok(:final value) when fractional(value)) {
       return (
@@ -581,6 +594,27 @@ ShoppingContribution _derivedContribution({
     unit: measure == null ? unit : null,
     measure: measure,
     cookDay: day,
+  );
+}
+
+/// The item's total as a count of ONE measure, or null.
+///
+/// Set only when nothing else was asked for: every quantified contribution
+/// named the same measure and no plain mass/volume/count line joined them. A
+/// can plus 200 g, or a large potato plus a medium one, has no single
+/// countable answer — the canonical family sum is then the only honest total
+/// (invariant 3), and each provenance line keeps its own words regardless.
+MeasureAmount? _measureTotal(
+  List<Quantity> quantities,
+  List<MeasureAmount> measured,
+) {
+  if (quantities.isNotEmpty || measured.isEmpty) return null;
+  final measure = measured.first.measure;
+  if (!(measure.amount > 0)) return null;
+  if (measured.any((e) => e.measure.id != measure.id)) return null;
+  return (
+    amount: measured.fold<double>(0, (sum, e) => sum + e.amount),
+    measure: measure,
   );
 }
 
@@ -766,12 +800,23 @@ ShoppingList buildShoppingList({
           (amount: c.quantity!, measure: c.measure!),
     ];
 
+    // The ingredient's default unit is a *display* preference for amounts the
+    // recipes actually stated — 500 g + 500 g of flour reading in kg. A sum
+    // that exists only because measures were folded into their basis has no
+    // stated unit to honour, so restating it in oz would answer a question
+    // nobody asked: it stays in the basis it was folded into.
+    final statesMassOrVolume = quantities.any(
+      (q) =>
+          q.unit.family == UnitFamily.mass ||
+          q.unit.family == UnitFamily.volume,
+    );
     final totals = aggregateQuantities(
       quantities,
       measured: measured,
       densityGPerMl: m?.densityGPerMl,
-      preferred: m?.defaultUnit,
+      preferred: statesMassOrVolume ? m?.defaultUnit : null,
     );
+    final measureTotal = _measureTotal(quantities, measured);
     items.add(
       ShoppingItem(
         entryId: entry?.id,
@@ -779,20 +824,11 @@ ShoppingList buildShoppingList({
         name: m?.name ?? '(unknown ingredient)',
         checked: checked,
         totals: totals,
+        measureTotal: measureTotal,
         contributions: contributions,
-        wholeUnitHint: m == null
+        wholeUnitHint: m == null || measureTotal != null
             ? null
-            : wholeUnitHintFor(
-                totals: totals,
-                measures: m.measures,
-                // The measures this total was actually counted in (deduped by
-                // id): the hint prices in these when they agree, rather than
-                // whichever measure happens to sort first.
-                usedMeasures: [
-                  for (final id in {for (final e in measured) e.measure.id})
-                    measured.firstWhere((e) => e.measure.id == id).measure,
-                ],
-              ),
+            : wholeUnitHintFor(totals: totals, measures: m.measures),
       ),
     );
   }

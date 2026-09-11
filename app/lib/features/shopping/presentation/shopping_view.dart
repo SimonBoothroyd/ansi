@@ -317,6 +317,7 @@ class _ItemRow extends ConsumerWidget {
   }
 
   Widget _rowBody(BuildContext context, WidgetRef ref) {
+    final secondary = item.checked ? '' : itemSecondary(item);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => _toggle(context, ref),
@@ -364,16 +365,17 @@ class _ItemRow extends ConsumerWidget {
                 ),
               ],
             ),
-            // The whole-unit round-up hint ("≈ 2.25 potato, large → buy 3")
-            // sits under the honest total, never replacing it (invariant 3).
-            if (!item.checked && item.wholeUnitHint != null) ...[
+            // What a measure-counted row weighs ("400 g"), or the whole-unit
+            // round-up ("≈ 2.25 potato, large → buy 3"). Either way it sits
+            // under the honest total, never replacing it (invariant 3).
+            if (secondary.isNotEmpty) ...[
               const SizedBox(height: 3),
               Padding(
                 padding: const EdgeInsets.only(left: 31),
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: Text(
-                    wholeUnitHintText(item.wholeUnitHint!),
+                    secondary,
                     style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
                   ),
                 ),
