@@ -10,7 +10,7 @@
 //
 // So this file runs a blessed gold recipe (`evals/datasets/extraction/gold/`)
 // through MockAdapter → real `matchLines` → `inMemoryVocabMatcher` over
-// `supabase/seed/vocab.jsonl`, and asserts the PROPERTIES that must hold for
+// `supabase/seed/snapshot.jsonl`, and asserts the PROPERTIES that must hold for
 // any vocab: a sane band mix, the `none`-carries-no-candidates invariant, and
 // the flattened line order the step refs depend on. It deliberately does NOT
 // assert per-line matches — the vocab is edited often, and pinning individual
@@ -38,26 +38,35 @@ const REPO = new URL("../../../", import.meta.url);
 /** The real seed vocabulary as a `VocabMatcher` (canonical name + aliases). */
 function realVocabMatcher(): ReturnType<typeof inMemoryVocabMatcher> {
   const raw = Deno.readTextFileSync(
-    new URL("supabase/seed/vocab.jsonl", REPO).pathname,
+    new URL("supabase/seed/snapshot.jsonl", REPO).pathname,
   );
   const entries: VocabEntry[] = raw
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean)
-    .map((l) => JSON.parse(l) as { canonical_name: string; aliases?: string[] })
+    .map((l) =>
+      JSON.parse(l) as {
+        canonical_name: string;
+        aliases?: { alias_text: string }[];
+      }
+    )
     .map((v, i) => ({
       ingredient_id: `v-${i}`,
       canonical_name: v.canonical_name,
       match_texts: [
         ...new Set(
-          [v.canonical_name, ...(v.aliases ?? [])].map(normalize).filter(
-            Boolean,
-          ),
+          [
+            v.canonical_name,
+            ...(v.aliases ?? []).map((a) => a.alias_text),
+          ].map(normalize).filter(Boolean),
         ),
       ],
     }));
   // A silent empty vocab would make every assertion below pass vacuously.
-  assert(entries.length > 100, `vocab.jsonl looks empty (${entries.length})`);
+  assert(
+    entries.length > 100,
+    `snapshot.jsonl looks empty (${entries.length})`,
+  );
   return inMemoryVocabMatcher(entries);
 }
 
@@ -109,7 +118,7 @@ Deno.test("URL import over the REAL vocab — band mix is sane", async () => {
   assertEquals(auto + suggest + none, flat.length, "every line got a band");
 
   console.log(
-    `  gumbo over vocab.jsonl: auto=${auto} suggest=${suggest} none=${none}`,
+    `  gumbo over snapshot.jsonl: auto=${auto} suggest=${suggest} none=${none}`,
   );
 
   // A household stocked with a 300-row vocab should recognise a good share of a

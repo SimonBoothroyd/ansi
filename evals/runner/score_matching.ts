@@ -7,9 +7,9 @@
 //   supabase/functions/_shared/match.ts       the cascade (exact → trigram → none)
 //   supabase/functions/_shared/match_trgm.ts  the offline pg_trgm-compatible matcher
 //
-// The matcher is built in-memory from `supabase/seed/vocab.jsonl` — the same
-// curated household vocabulary that generated the expectations, so this measures
-// the CASCADE, not vocab coverage. `match_trgm.ts` mirrors Postgres `similarity()`
+// The matcher is built in-memory from `supabase/seed/snapshot.jsonl` — the same
+// curated household vocabulary that generated the expectations (and that the
+// seed is generated from), so this measures the CASCADE, not vocab coverage. `match_trgm.ts` mirrors Postgres `similarity()`
 // closely enough for band calibration (the production path uses `match_db.ts`).
 //
 // It is a CALIBRATION TOOL, not a merge gate (evals/AGENTS.md): it reports the
@@ -39,9 +39,14 @@ interface Case {
   expect_candidates?: string[];
 }
 
+/**
+ * One snapshot row. The export carries far more than this (macros, density,
+ * units, measures); the cascade only ever sees a row's NAME SURFACE, so this
+ * reads the two fields that make it and ignores the rest.
+ */
 interface VocabRow {
   canonical_name: string;
-  aliases?: string[];
+  aliases?: { alias_text: string }[];
 }
 
 function jsonl<T>(text: string): T[] {
@@ -53,7 +58,7 @@ function jsonl<T>(text: string): T[] {
 /**
  * Builds the offline matcher from the seed vocab. `ingredient_id` is the
  * canonical name — the eval has no database, and the name is unique in
- * `vocab.jsonl`, so it is a stable stand-in for the row's uuid.
+ * `snapshot.jsonl`, so it is a stable stand-in for the row's uuid.
  */
 function buildMatcher(rows: VocabRow[]) {
   const entries: VocabEntry[] = rows.map((v) => ({
@@ -61,7 +66,7 @@ function buildMatcher(rows: VocabRow[]) {
     canonical_name: v.canonical_name,
     match_texts: [
       ...new Set(
-        [v.canonical_name, ...(v.aliases ?? [])]
+        [v.canonical_name, ...(v.aliases ?? []).map((a) => a.alias_text)]
           .map(normalize)
           .filter(Boolean),
       ),
@@ -106,7 +111,7 @@ interface LaneResult {
 async function main(): Promise<void> {
   const root = new URL("../../", import.meta.url);
   const vocab = jsonl<VocabRow>(
-    await Deno.readTextFile(new URL("supabase/seed/vocab.jsonl", root)),
+    await Deno.readTextFile(new URL("supabase/seed/snapshot.jsonl", root)),
   );
   const cases = jsonl<Case>(
     await Deno.readTextFile(

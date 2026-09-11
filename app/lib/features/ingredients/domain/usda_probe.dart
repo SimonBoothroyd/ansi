@@ -24,7 +24,8 @@ import '../../../core/units/macros.dart';
 /// It is coverage, not confidence: a person picks the food, so how sure a
 /// machine was is not the useful thing to say, and `score` is the query's
 /// idf-weighted coverage rather than a graded likelihood. Measured over the 267
-/// curated pairs in `seed_prefill.sql` it is **bimodal**: 226 of 264 top picks
+/// curated ingredient → FDC pairs the vocabulary was built from it is
+/// **bimodal**: 226 of 264 top picks
 /// sit at exactly 1.0 and *nothing* falls between 0.85 and 1.0, so every
 /// threshold in that range asks the same yes/no question. A band with no middle
 /// is a boolean wearing a threshold's clothes.

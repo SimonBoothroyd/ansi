@@ -16,7 +16,7 @@
 //     `coerceExtractionResult` + `validateExtractionResult`, so schema.ts is on
 //     the path too),
 //   - the REAL `matchLines` cascade runs over `inMemoryVocabMatcher` with a small
-//     vocab pinned in this file (NOT `vocab.jsonl` — the golden must not churn
+//     vocab pinned in this file (NOT `snapshot.jsonl` — the golden must not churn
 //     when the seed vocab is edited; the real-vocab run is
 //     `index_vocab.test.ts`),
 //   - the request goes through the REAL `makeHandler` HTTP boundary, so the

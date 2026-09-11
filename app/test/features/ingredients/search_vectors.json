@@ -3,7 +3,7 @@
     "SHARED VECTORS for searchRank — the one tiered rule every phone-side search",
     "uses (docs/design-docs/search-and-matching.md).",
     "",
-    "The corpus rows and titles below are REAL rows of supabase/seed/vocab.jsonl",
+    "The corpus rows and titles below are REAL rows of supabase/seed/snapshot.jsonl",
     "and of the extraction gold set, so every expectation here was measured",
     "against the shipped 308-row vocabulary before it was written down. Three",
     "test groups read this file: searchRank alone (search_rank_test.dart), the",

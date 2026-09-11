@@ -138,11 +138,15 @@ vocab: named per-ingredient measures with gram weights ("1 potato, medium =
 (`app/lib/core/units/measure.dart`), referenced by nullable `measure_id` FKs
 on `recipe_line_item` and `shopping_list_contribution`, each row carrying its
 weight's provenance (`source`, 0010). The rows that fill them come from the
-checked-in seeds (`supabase/seed.sql` — the 319-ingredient household vocab;
-`seed_usda.sql` + `seed_prefill.sql` — the USDA reference and the macro
-prefill onto matched vocab rows; `seed_measures.sql` — GENERATED starter
-measures mined from FDC food portions, `supabase/seed/README.md`), run in
-that order by `supabase db reset`.
+checked-in seeds (`supabase/seed_vocab.sql` — the whole curated household
+vocabulary in one generated file: ingredients with their densities, macros,
+piece weights and explicit `allowed_units`, plus their aliases and measures;
+`seed_usda.sql` + `seed_usda_index.sql` — the server-only USDA reference and
+its search index), run in that order by `supabase db reset`. The vocabulary
+is not derived from raw sources any more: `seed_vocab.sql` is generated from
+`supabase/seed/snapshot.jsonl`, an export of the owner's live household, so
+the direction is **cloud → seed** and the curated rows ARE the input
+(`supabase/seed/README.md`).
 
 ## Data flow: plan → cook → shop
 
@@ -183,7 +187,7 @@ this table stays one line per area.
 | Area | Grade | The gap | Link |
 |---|---|---|---|
 | Unit system (`core/units`) | 🟢 | Conversions, named measures and the count↔basis bridge are pure Dart, and a missing density or a bad amount refuses instead of guessing. | [ADR-0008](./docs/decisions/0008-unit-admission-model.md) · [unit-and-measure-matching.md](./docs/design-docs/unit-and-measure-matching.md) |
-| Ingredient data model + vocab | 🟢 | 319 seeded rows with curated measures, explicit per-ingredient `allowed_units` and 307 densities; one admission rule with a Dart mirror and shared vectors keeps SQL and app honest. | [ADR-0009](./docs/decisions/0009-density-unlocks-both-families.md) · [db-schema.md](./docs/generated/db-schema.md) |
+| Ingredient data model + vocab | 🟢 | The seed is an export of the live curated household (cloud → seed), so seeded rows carry the measures, densities, piece weights and explicit `allowed_units` a person actually chose; one admission rule with a Dart mirror and shared vectors keeps SQL and app honest, and the generator lists every row that overrules it. | [ADR-0009](./docs/decisions/0009-density-unlocks-both-families.md) · [db-schema.md](./docs/generated/db-schema.md) |
 | Ingredients manager (`features/ingredients`) | 🟢 | `/ingredients` and the flesh-out form own the vocabulary; the form writes once, on Save, in one transaction, and a null id creates — so a row and its children land together. A USDA fill is named wherever a mismatch is scanned for, and a row whose numbers a human has since edited says so rather than still claiming the source's. | [ADR-0011](./docs/decisions/0011-one-save-one-write.md) |
 | Barcode add (`features/ingredients/barcode`) | 🟡 | No camera leg has run on physical hardware — a live scan, in-app capture and the camera-denied notice are one device errand — and nothing tests the live Open Food Facts API, so an upstream shape change would surface in a user's hands. | [tracker](./docs/exec-plans/tech-debt-tracker.md) |
 | Recipes (`features/recipes`) | 🟢 | Editor, page, scaling, nested components and per-serving macros run off one summation that reports `incomplete` rather than a wrong number; a line reads the same three-part way on every surface and is dragged to reorder or re-file, keeping its id so method chips survive the move. | [product-spec.md](./docs/product-specs/product-spec.md) |

@@ -201,11 +201,12 @@ const PREP_VERBS = new Set([
  *
  * **"crushed" is deliberately absent.** It is the one cut word already acting
  * as identity: `Canned Crushed Tomatoes` holds the generic `tomato canned`
- * key today, and `supabase/seed_measures.sql` — generated, never hand-edited
- * — keys its two `can` measures on it and raises at `db reset` if that
- * match_text stops existing. Regenerating needs the ~40 MB FDC CSV bundles,
- * which are not committed. Adding "crushed" here is a one-line change once
- * they can be re-run; until then it keeps the generic slot it already owns.
+ * key today, and the seeded measures hang off that key. Adding "crushed" here
+ * RE-KEYS that row, so it is a vocabulary move, not a normalizer tweak: the
+ * row is renamed in the app, the household re-exported, and the seed
+ * regenerated (`gen_seed.ts` asserts every stored match_text against this
+ * function and fails naming both sides). Until someone makes that move
+ * deliberately, the row keeps the generic slot it already owns.
  */
 const CANNED_CUT_WORDS = new Set(["chopped", "diced"]);
 

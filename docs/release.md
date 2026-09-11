@@ -398,13 +398,16 @@ Actions → **deploy-supabase** → Run workflow. One job, in order:
    even one with no migration changes.
 
 5. **reseed the template vocabulary** — only when the run was dispatched with
-   **`reseed_template` ticked**: `seed.sql` → `seed_usda.sql` (skipped when
-   the reference table is already populated; its 8,204 plain inserts never
-   change between releases) → `seed_prefill.sql` → `seed_measures.sql` →
-   `seed_curation.sql`, in the runbook's order, against the member-less
-   template household only. Re-runnable since migration `0020` (one live
-   template row per `match_text`; the generated seed upserts on it). Tick it
-   whenever `supabase/seed/**` or a generated `seed_*.sql` changed.
+   **`reseed_template` ticked**: `seed_vocab.sql` → `seed_usda.sql` (skipped
+   when the reference table is already populated; its 8,204 plain inserts
+   never change between releases) → `seed_usda_index.sql`, in the runbook's
+   order, against the member-less template household only. This is the
+   **promote-to-template** leg of the cloud → seed direction: `seed_vocab.sql`
+   is generated from an export of the owner's live household, and the button
+   puts those curated rows back as the template new households clone.
+   Re-runnable since migration `0020` (one live template row per
+   `match_text`; the generated seed upserts on it). Tick it whenever
+   `supabase/seed/**` or `supabase/seed_vocab.sql` changed.
 
 Then it prints a step summary naming the legs it deliberately did not do.
 
@@ -450,12 +453,13 @@ record the run in cloud-setup's ledger.
 3. Seed changed? Tick **`reseed_template`** on that same run (§4.2 step 5),
    then do cloud-setup §2b (§4.4) by hand if existing households need it.
    **A RENAME must be applied in place BEFORE the reseed, never after.** The
-   template on cloud is long-lived, and the seed inserts by `match_text`: a row
-   renamed in `vocab.jsonl` arrives as a NEW row and the old one stays, so the
-   reseed's own guards fail (`seed_curation R3: 136 of 133 …`) and the template
-   is left holding both names. Run the rename statement first — then the
-   reseed matches the rows it means to update. Learned on 2026-09-05, when six
-   renames left five orphans that had to be tombstoned by hand.
+   template on cloud is long-lived, and the seed inserts by `match_text`: a
+   row whose `match_text` changed between snapshots arrives as a NEW row and
+   the old one stays, so the reseed's own guards fail (R3 counts rows the
+   renamed twin left stranded) and the template is left holding both names.
+   Run the rename statement first — then the reseed matches the rows it means
+   to update. Learned on 2026-09-05, when six renames left five orphans that
+   had to be tombstoned by hand.
 4. `scripts/cloud_verify.sh` clean.
 5. `git tag vX.Y.Z && git push origin vX.Y.Z`. (No pubspec bump needed — the
    tag is the version of record, §3c.)

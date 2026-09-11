@@ -1,7 +1,9 @@
 // Builds the matching calibration set (datasets/matching/cases.jsonl) from the
-// mined gold lines + the curated household vocabulary. The label for each raw
-// line is the ingredient(s) the ARBITER assigned it — the oracle — recovered by
-// resolving the line's match_text against the vocab's ingredient + alias keys.
+// mined gold lines + the curated household vocabulary (supabase/seed/
+// snapshot.jsonl — the export the seed itself is generated from). The label for
+// each raw line is the ingredient(s) the ARBITER assigned it — the oracle —
+// recovered by resolving the line's match_text against the vocabulary's
+// ingredient + alias keys.
 // The future server-side cascade (step 8) is graded against these labels.
 //
 // Bands (§6):
@@ -23,12 +25,16 @@ const jsonl = (s: string) =>
 // --- vocabulary index: match_text -> canonical_name -------------------------
 interface Vocab {
   canonical_name: string;
-  aliases?: string[];
+  aliases?: { alias_text: string }[];
 }
 const byMatch = new Map<string, string>();
-const vocab: Vocab[] = jsonl(read("supabase/seed/vocab.jsonl"));
+const vocab: Vocab[] = jsonl(read("supabase/seed/snapshot.jsonl"));
 for (const v of vocab) {
-  for (const s of [v.canonical_name, ...(v.aliases ?? [])]) {
+  const surface = [
+    v.canonical_name,
+    ...(v.aliases ?? []).map((a) => a.alias_text),
+  ];
+  for (const s of surface) {
     const m = normalize(s);
     if (m && !byMatch.has(m)) byMatch.set(m, v.canonical_name);
   }
@@ -64,8 +70,8 @@ interface Gold {
  * so when it is absent we recover the very same pairs from the committed
  * `cases.jsonl` — `expect_normalized` is exactly `match_texts.join(" | ")`, so
  * the round-trip is lossless. Either way the LABELS (which vocab entry each
- * match_text resolves to) are recomputed from the CURRENT `vocab.jsonl`, which
- * is the whole point of regenerating: the committed set drifted when the vocab
+ * match_text resolves to) are recomputed from the CURRENT `snapshot.jsonl`,
+ * which is the whole point of regenerating: the set drifted when the vocab
  * was re-curated (`Cashew` → `Cashews`, the new `Canned X` rows) and ~9% of the
  * cascade's apparent misses were stale labels, not defects (ledger 0019).
  */

@@ -8,8 +8,13 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
 - `functions/` — Deno edge functions. The **import + match engine** lives here;
   it is the ONLY place fuzzy matching happens (ADR-0004). Matching never runs
   on-device.
-- `seed/` — USDA FoodData Central seed (server-side reference `usda_food`, +
-  the initial household vocabulary).
+- `seed/` — two seeds with different owners. The **household vocabulary** is
+  an export of the owner's live household (`seed/snapshot.jsonl`) turned into
+  one `../seed_vocab.sql` by `seed/scripts/gen_seed.ts` — the direction is
+  **cloud → seed**, and the curated rows are the input, not a first draft
+  something re-derives. The **USDA FoodData Central reference** (`usda_food`,
+  server-side only) is generated separately into `../seed_usda.sql`. See
+  `seed/README.md`.
 
 ## Rules
 

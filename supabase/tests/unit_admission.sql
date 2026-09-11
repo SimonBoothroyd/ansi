@@ -880,7 +880,7 @@ select is(
 -- 0014 / plan 0020 D4: the retired seed produce patch, as an assertion.
 --
 -- The template vocab used to carry cup/tbsp/ml on 49 piece-default produce
--- rows via an explicit `seed_curation.sql` patch, labelled "until ADR-0008 is
+-- rows via an explicit seed-time patch, labelled "until ADR-0008 is
 -- amended". ADR-0009 amended it, the patch is gone, and this is the safety
 -- net that replaced it: the admissions must now fall out of the rule.
 -- ---------------------------------------------------------------------------
@@ -924,9 +924,9 @@ select ok(
 -- ---------------------------------------------------------------------------
 -- ADR-0015: a piece weight is a row fact, and it is what admits `piece`.
 --
--- ADR-0010 made this a hand-curated removal per row — 143 lines of
--- `{"remove": ["piece"]}` in seed/curation_overrides.jsonl, one judgment per
--- ingredient, re-decided for every new one. The owner's ruling (2026-09-08)
+-- ADR-0010 made this a hand-curated removal per row — 143 of them in the
+-- old overrides file, one judgment per ingredient, re-decided for every new
+-- one. The owner's ruling (2026-09-08)
 -- replaces the taste question with an honesty question, the same one the
 -- density gate already asks:
 --
@@ -941,13 +941,13 @@ select ok(
 -- ---------------------------------------------------------------------------
 
 -- The canary. Both guards below are vacuous if this set is empty, and a row
--- that has FLIPPED to a count default is a row that needs a piece weight in
--- curation_overrides.jsonl — so pin the count rather than only the property.
+-- that has FLIPPED to a count default is a row that needs a piece weight —
+-- so pin the count rather than only the property.
 --
 -- The number is 76, not the 77 the vocabulary held before this ruling: `mint`
 -- moved off a count default because it has no honest whole (a 2 g sprig and a
 -- 25 g bunch, 12× apart, and neither is "one mint"). Bumping this number
--- without reading the new row's overrides is how the guard goes quiet.
+-- without reading what the new row actually says is how the guard goes quiet.
 select is(
   (select count(*)::int from ingredient
     where household_id = '00000000-0000-0000-0000-0000000000aa'
@@ -957,8 +957,8 @@ select is(
 );
 
 -- (a) Every one of them says what one weighs. Named row by row so a failure
---     says WHICH row is stranded — this is seed_curation.sql's R3a, held
---     again here against the database that actually landed.
+--     says WHICH row is stranded — this is seed_vocab.sql's R3a, held again
+--     here against the database that actually landed.
 select is(
   (select coalesce(string_agg(match_text, ', ' order by match_text), '')
      from ingredient

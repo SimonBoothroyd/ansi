@@ -39,7 +39,8 @@ data.
 - **Density** (g/ml) derived from the best-ranked volume `food_portion` (unit
   words matched in the whole portion text — SR Legacy stores most volume
   portions as free-text modifiers, which is why keying on the unit table alone
-  found almost none). Where this still leaves a vocab row bare, the FAO/INFOODS
-  Density DB fallback picks it up — see `fao_density.md`.
+  found almost none). This is the reference's own density; the household
+  vocabulary no longer derives anything from it — a vocab row's density is
+  whatever a person curated, exported into the seed (`../README.md`).
 - **`match_text`** = the shared §7 normalizer over the description, so the same
   normalizer the household vocab and cascade use also indexes the reference.

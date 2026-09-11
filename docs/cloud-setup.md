@@ -80,50 +80,55 @@ the memory note referenced from the step-7 exec plan; this doc is cloud-only.
 
 > **Since 2026-09-03 this whole section is one button:** Actions →
 > **deploy-supabase** → Run workflow with **`reseed_template`** ticked runs
-> the five files below in this order (release.md §4.2 step 5). Migration
-> `0020` made the seed **re-runnable** — the template holds one live row per
-> `match_text` and the generated `seed.sql` upserts on it. (A hand-run on
-> 2026-09-03 had doubled the template, 616 rows for 308 names; the answer was
-> a **full cloud reset**, not a repair migration — see the posture below.)
-> One file is NOT re-runnable and
-> the button knows it: `seed_usda.sql` is 8,204 plain inserts into a
-> primary-keyed reference table, so it is skipped when the table is already
-> populated (it never changes between releases; regenerate + `db reset` if it
-> ever does). The commands stay below for the by-hand path.
+> the files below in this order (release.md §4.2 step 5). Migration `0020`
+> made the seed **re-runnable** — the template holds one live row per
+> `match_text` and the generated `seed_vocab.sql` upserts on it. (A hand-run
+> on 2026-09-03 had doubled the template, 616 rows for 308 names; the answer
+> was a **full cloud reset**, not a repair migration — see the posture
+> below.) One file is NOT re-runnable and the button knows it:
+> `seed_usda.sql` is 8,204 plain inserts into a primary-keyed reference
+> table, so it is skipped when the table is already populated (it never
+> changes between releases; regenerate + `db reset` if it ever does). The
+> commands stay below for the by-hand path.
+
+**The direction is cloud → seed.** The owner's live household rows are the
+curated truth; `supabase/seed/snapshot.jsonl` is an export of them and
+`supabase/seed_vocab.sql` is generated from it (`supabase/seed/README.md` has
+the export command and the regeneration). What this section does is the other
+half of that loop: it **promotes the snapshot back to the template**, so every
+household created after it clones the curated rows.
 
 Run the vocab seed via the **Management API** (uses your CLI login, no DB
 password):
 
 ```bash
-supabase db query --linked -f supabase/seed.sql
+supabase db query --linked -f supabase/seed_vocab.sql
 ```
 
 This creates the "Home" **template** household (`00000000-…-aa`, `is_template
-= true` since migration 0008) + 308 ingredients + 112 aliases (counts as of
-2026-09-01; `supabase/seed/vocab.jsonl` is the source they are generated from).
-Onboarding users
-never join a template: `ensure_onboarded` **clones** its vocab (minus
-`manual`/`import_correction` rows) into each fresh household. Run the other
-two seeds as well so the cloud vocab carries macros — without them every cloud
-ingredient is an honest-but-empty stub (this bit us: cloud showed no macros):
+= true` since migration 0008) and its whole curated vocabulary in one file:
+ingredients with their densities, macros, provenance, piece weights and
+explicit `allowed_units`, plus their aliases and measures. The counts are
+computed into `supabase/seed/counts.json` when the seed is generated, never
+typed into a doc. Onboarding users never join a template: `ensure_onboarded`
+**clones** its vocab (minus `manual`/`import_correction` rows) into each fresh
+household. Run the reference seeds as well — without them the "create a new
+ingredient" USDA search has nothing to search:
 
 ```bash
 supabase db query --linked -f supabase/seed_usda.sql     # 8204-food reference (Foundation 2025-04-24 + SR Legacy)
 supabase db query --linked -f supabase/seed_usda_index.sql # BM25 search index over it (0029) — probe_usda RAISES without it
-supabase db query --linked -f supabase/seed_prefill.sql  # macros/density onto vocab
-supabase db query --linked -f supabase/seed_measures.sql # starter measures (basis_amount since 0012)
-supabase db query --linked -f supabase/seed_curation.sql # allowed_units refresh + curation overrides (0012/7.8)
 ```
 
-`seed_curation.sql` must run LAST: it re-materializes the template's
-`allowed_units` with the densities prefill just landed, then applies the
-audited curation overrides (`supabase/seed/curation_overrides.jsonl`).
+`seed_vocab.sql` ends with its own invariants (R1 volume-default ⇒ density,
+R2 kitchen density band, R3 the piece rule, plus "every measure resolves to a
+live row"). It is transactional: a violation rolls the whole file back and
+names the offending rows.
 
-`seed_measures.sql` (GENERATED — see `supabase/seed/README.md`) adds the
-starter measures ("1 potato, medium = 213 g", USDA-FDC-sourced with per-row
-provenance since 0010) onto the **template** vocab only. It is idempotent:
-re-running it no-ops on labels the template already has. How they reach
-households:
+The measures ride in the same file now ("1 potato, medium = 213 g",
+USDA-FDC-sourced with per-row provenance since 0010) and land on the
+**template** vocab only. That insert is idempotent: re-running it no-ops on
+labels the template already has. How they reach households:
 
 - **New households** get them cloned at onboarding (`ensure_onboarded`),
   which stamps `household.backfilled_at` at creation.
@@ -205,7 +210,7 @@ pins all four legs; `make db-lint` fails if the two drift.
 Human-run sequence, after the §2 reseed commands above:
 
 ```bash
-# 1. reseed the template — the §2 block, unchanged (seed_curation.sql LAST).
+# 1. reseed the template — the §2 block, unchanged (seed_vocab.sql).
 
 # 2. PREVIEW (read-only): per-household blast radius. Copy the commented
 #    preview block from the top of the script into the SQL editor, or:
@@ -233,7 +238,7 @@ way (d) does, or a household's own edits get clobbered.
 
 **Measures have their own leg, the same shape:**
 [`supabase/rollout_measure_refresh.sql`](../supabase/rollout_measure_refresh.sql).
-A regenerated `seed_measures.sql` lands new measures on the template only;
+A regenerated `seed_vocab.sql` lands new measures on the template only;
 this script joins each non-template household's live `ingredient` rows to
 the template's by **`match_text`**, then for every live template measure on
 that ingredient **inserts** it where the household's ingredient has no row

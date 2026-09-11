@@ -137,9 +137,9 @@ const _prepVerbs = {
 /// these stay prep — "2 diced tomatoes" is still `tomato`, the fresh one.
 ///
 /// "crushed" is deliberately absent — see the note in `normalize.ts`: it
-/// already holds the generic `tomato canned` key that the generated
-/// `seed_measures.sql` keys measures on, and that file cannot be regenerated
-/// without the uncommitted FDC bundles.
+/// already holds the generic `tomato canned` key the seeded measures hang
+/// off, so adding it here re-keys that row and is a vocabulary move (rename,
+/// re-export, regenerate the seed), not a normalizer tweak.
 const _cannedCutWords = {'chopped', 'diced'};
 
 /// Form/state words that DO change identity. Kept, and moved to the end so

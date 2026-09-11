@@ -63,10 +63,11 @@ free 100%.
 The two `cases.jsonl` differ on purpose. **Normalization is hand-labelled** —
 its expected outputs must be written independently, since grading `normalize`
 against `normalize(raw)` proves nothing. **Matching is generated** from the
-curated household vocabulary (`supabase/seed/vocab.jsonl`), which is the human
-oracle for "what should this line resolve to"; regenerate it after re-mining or
-editing the vocab, or its labels go stale and the cascade takes the blame for
-vocab drift.
+curated household vocabulary (`supabase/seed/snapshot.jsonl` — the export of
+the owner's live household that the seed itself is generated from), which is
+the human oracle for "what should this line resolve to"; regenerate it after
+re-mining or after a fresh export, or its labels go stale and the cascade takes
+the blame for vocab drift.
 
 Add a hand case whenever you hit a real mis-match — the dataset is how taste gets
 captured and defended over time.

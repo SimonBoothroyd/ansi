@@ -13,11 +13,13 @@ major_version = 17
 
 [db.seed]
 enabled = true
-# Order matters: seed.sql (household + vocab) → seed_usda.sql (the server-only
-# usda_food reference) → seed_usda_index.sql (the BM25 search index over it,
-# plan 0029 — usda_probe raises without it) → seed_prefill.sql (copies macros
-# onto matched vocab rows) → seed_measures.sql (starter measures on the vocab).
-sql_paths = ["./seed.sql", "./seed_usda.sql", "./seed_usda_index.sql", "./seed_prefill.sql", "./seed_measures.sql", "./seed_curation.sql"]
+# Three files, and the order matters: seed_vocab.sql (the template household
+# and its whole curated vocabulary — ingredients, aliases, measures, generated
+# from seed/snapshot.jsonl) → seed_usda.sql (the server-only usda_food
+# reference) → seed_usda_index.sql (the BM25 search index over it, plan 0029 —
+# usda_probe raises without it). The vocabulary needs nothing from the
+# reference set: the cloud rows it is generated from are already curated.
+sql_paths = ["./seed_vocab.sql", "./seed_usda.sql", "./seed_usda_index.sql"]
 
 [auth]
 enable_signup = true

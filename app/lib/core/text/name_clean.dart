@@ -26,7 +26,7 @@ library;
 /// on a shelf and reads as one, so they all get the same Title Case:
 /// `Wild Garlic Pesto` sits beside `Cream of Tartar` and `Desserts` without
 /// one of them looking like a sentence somebody forgot to finish. An alias is
-/// stored lowercase by the vocabulary (`supabase/seed/vocab.jsonl`), so
+/// stored lowercase by the vocabulary (`supabase/seed/snapshot.jsonl`), so
 /// recasing it would only be undone.
 enum NameKind {
   /// A name a household gives something — Title Case, small words excepted.

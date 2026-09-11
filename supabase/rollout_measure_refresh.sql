@@ -4,8 +4,9 @@
 -- measures into a household exactly once — at creation, or once more through
 -- the run-once `household.backfilled_at` gate (migration 0011), which only
 -- fires for a household holding ZERO live measures. So a measure that joins
--- the template later (a regenerated `seed_measures.sql` — the "Canned Diced
--- Tomatoes has no `can` measure" tracker rows) reaches NEW households only.
+-- the template later (a reseed from a re-exported snapshot — someone kept a
+-- new measure on a row in the app, and it became part of the seed) reaches
+-- NEW households only.
 -- The old answer for existing households — soft-delete their measures, clear
 -- the marker, let the clone re-run — wipes their user-authored measures too,
 -- and since 2026-09-03 household data is durable (docs/cloud-setup.md §2c).
@@ -33,7 +34,7 @@
 -- (`ensure_onboarded()` mints fresh ids and re-associates measures by
 -- `di.match_text = si.match_text`, migration 0012). A measure has no
 -- identity of its own beyond its `label` on its ingredient: that is the key
--- the generated `seed_measures.sql` guards on, the key 0010's (since
+-- the generated `seed_vocab.sql` guards on, the key 0010's (since
 -- dropped) unique index enforced, and the key the client merges duplicates
 -- on at read time (0011, oldest row canonical). Label comparison is exact —
 -- the seed writes the label verbatim and the clone copies it verbatim.

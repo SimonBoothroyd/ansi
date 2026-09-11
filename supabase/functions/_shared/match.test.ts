@@ -260,8 +260,8 @@ Deno.test("sub-recipe tier — candidates are capped at TOP_N and deterministic"
 
 // --- Calibration against the household vocab + lane-D eval set ----------------
 // Exercises the cascade over the REAL vocab (evals note: cases.jsonl may be stale
-// vs vocab.jsonl — this asserts a precision FLOOR + reports, it is not a per-case
-// gate). We isolate the cascade from extraction by feeding the gold-normalized
+// vs snapshot.jsonl — this asserts a precision FLOOR + reports, it is not a
+// per-case gate). We isolate the cascade from extraction by feeding the gold-normalized
 // identity (expect_normalized) as the line's ingredient_text.
 
 const REPO = new URL("../../../", import.meta.url); // repo root from _shared/
@@ -276,17 +276,21 @@ const jsonl = (s: string) =>
   s.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => JSON.parse(l));
 
 function loadVocabMatcher(): ReturnType<typeof inMemoryVocabMatcher> | null {
-  const raw = readIf("supabase/seed/vocab.jsonl");
+  const raw = readIf("supabase/seed/snapshot.jsonl");
   if (!raw) return null;
   const entries: VocabEntry[] = jsonl(raw).map(
-    (v: { canonical_name: string; aliases?: string[] }, i: number) => ({
+    (
+      v: { canonical_name: string; aliases?: { alias_text: string }[] },
+      i: number,
+    ) => ({
       ingredient_id: `v-${i}`,
       canonical_name: v.canonical_name,
       match_texts: [
         ...new Set(
-          [v.canonical_name, ...(v.aliases ?? [])].map(normalize).filter(
-            Boolean,
-          ),
+          [
+            v.canonical_name,
+            ...(v.aliases ?? []).map((a) => a.alias_text),
+          ].map(normalize).filter(Boolean),
         ),
       ],
     }),
@@ -303,7 +307,7 @@ Deno.test("calibration — cascade over the real vocab hits a precision floor", 
   // all. A missing fixture is a broken test run, not a passing one.
   assert(
     matcher,
-    "supabase/seed/vocab.jsonl is missing or unreadable — the calibration " +
+    "supabase/seed/snapshot.jsonl is missing or unreadable — the calibration " +
       "test needs it (run via `deno task test`, which grants --allow-read)",
   );
   assert(

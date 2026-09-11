@@ -70,10 +70,10 @@ both surfaces.
 
 ## 3. The guards, and why each number
 
-Every value below was measured against the shipped 308-row seed vocabulary
-(`supabase/seed/vocab.jsonl`) over 30 hand-written single-word typos, 9
-multi-word probes, 34 must-stay-quiet queries and 477 machine-generated
-one-edit typos.
+Every value below was measured against the shipped seed vocabulary
+(`supabase/seed/snapshot.jsonl`, 308 rows when these were measured) over 30
+hand-written single-word typos, 9 multi-word probes, 34 must-stay-quiet
+queries and 477 machine-generated one-edit typos.
 
 | Guard | Value | Why |
 |---|---|---|

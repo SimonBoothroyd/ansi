@@ -85,9 +85,10 @@ right.
   it will never say, per row, in the flesh-out form — and `mg` is not a unit
   at all any more. Materialized at
   creation from `default_allowed_units()` (Dart mirror
-  `defaultAllowedUnitSet` — shared test vectors), curated for the seed
-  vocab (`curation_overrides.jsonl`), and **editable per ingredient in the
-  step-8.5 flesh-out form** (`/ingredients/:id`). Since
+  `defaultAllowedUnitSet` — shared test vectors), **editable per ingredient in
+  the flesh-out form** (`/ingredients/:id`), and carried verbatim into the
+  seed — which lists every row whose list overrules the derived one
+  (`supabase/seed/README.md`, R4). Since
   [ADR-0009](../decisions/0009-density-unlocks-both-families.md) the density leg
   is ungated — a stored density unlocks the other family whatever the default
   unit's family, so "1 cup diced mango" is sayable on a piece-default row — and
@@ -253,8 +254,9 @@ An `ingredient_measure` row names one countable thing and says what it weighs:
 (g or ml, 0012), which is what lets a count bridge to the numbers.
 - Per-household, synced, user-editable rows — households disagree about what
   "1 portion" is, and import (step 8) will create them from labels. The
-  starter set is GENERATED from FDC food portions
-  (`supabase/seed_measures.sql`, per-row `source` provenance) and clones with
+  starter set is the curated household's own measures, exported into the
+  seed (`supabase/seed_vocab.sql`, per-row `source` provenance) and clones
+  with
   the vocab at onboarding (backfill gated run-once by
   `household.backfilled_at`, 0011 — deleting your measures never resurrects
   them).

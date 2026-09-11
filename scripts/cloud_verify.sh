@@ -110,7 +110,17 @@ fi
 echo "• sync-rule boundary (repo copies)"
 if ./scripts/check_stream_drift.sh; then pass=$((pass+1)); else fail=$((fail+1)); fi
 
-cat <<'SQL'
+# The vocabulary's own numbers are COMPUTED, not remembered: gen_seed.ts writes
+# them beside the seed it generated. Read them from there so this script cannot
+# drift from the seed the deploy actually loads.
+counts=supabase/seed/counts.json
+vocab_expect=$(python3 -c "
+import json, sys
+c = json.load(open('$counts'))
+print(f\"{c['complete']} of {c['ingredients']}\")
+" 2>/dev/null || echo "the numbers in $counts")
+
+cat <<SQL
 
 ── human-run, read-only (agents are permission-gated from --linked on purpose) ──
 Run:  supabase db query --linked "<paste each>"
@@ -131,8 +141,9 @@ Run:  supabase db query --linked "<paste each>"
   select n_docs, avg_doc_len from usda_search_stats;
   -- WAL bounded (runbook §1.3; an idle slot must not fill the disk)
   select name, setting from pg_settings where name in ('max_wal_size','max_slot_wal_keep_size');
-  -- vocab carries macros (expect 283 of 319 — the numbers seed/README.md states;
-  -- both move together when the curated vocabulary changes, so read them there)
+  -- vocab carries macros (expect $vocab_expect — computed by
+  -- seed/scripts/gen_seed.ts into supabase/seed/counts.json when the seed was
+  -- generated, never typed here, so it moves with the curated vocabulary)
   select count(*) filter (where macros is not null), count(*) from ingredient i
   join household h on h.id = i.household_id where h.is_template;
   -- junk-household census (smoke users accumulate; see smoke_auth teardown)

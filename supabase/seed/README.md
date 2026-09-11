@@ -1,297 +1,167 @@
 # Seed data
 
-Two things get seeded (spec §6):
+Two things get seeded, and they have different owners:
 
-1. **`usda_food`** — USDA FoodData Central (Foundation Foods + SR Legacy, CC0),
-   server-side only. The reference set for *creating* ingredients and prefilling
-   stubs. Never synced, never matched against at import (ADR-0005).
-2. **Initial household `ingredient` vocabulary** — mined from real recipes and
-   curated (currently 319 rows), so the app isn't empty on first run. Macros +
-   density are prefilled from `usda_food` where a true match exists, plus a
-   handful of label-sourced macro fills in the curation pass (283
-   `complete`); the rest stay honest `stub`s for the flesh-out queue.
-   These two numbers are the ones `scripts/cloud_verify.sh` checks a deployed
-   template against, so they are stated once, here.
+1. **The household vocabulary** — `snapshot.jsonl` in, `../seed_vocab.sql`
+   out. The owner's **live household rows are the curated truth**, and the
+   seed is a copy of them. The direction is **cloud → seed**.
+2. **`usda_food`** — the USDA FoodData Central reference (Foundation Foods +
+   SR Legacy, CC0), server-side only, never synced and never matched against
+   at import (ADR-0005). Generated separately by `scripts/gen_usda.ts` into
+   `../seed_usda.sql` — see `scripts/seed_usda.md`. Nothing on this page
+   touches it.
 
-Density comes from three sources, in this order, each filling only what the
-one before it left empty:
-
-1. **FDC volume food portions**, parsed out of the full portion text (7.8 —
-   SR Legacy keys most volume portions by `modifier`, not `measure_unit`,
-   which is why the old parser found almost none). Ranked cup > tbsp > tsp,
-   unqualified before prepared-state, sanity 0.1–2.0 g/ml.
-2. **Curation-pass** corrections and fills on top (audits 2026-08-29 and the
-   D4d density pass 2026-09-01). A fill may carry a `source` —
-   `fdc_density:<fdc_id>` when it borrows a portion-derived density from
-   another FDC record of the same food, `label:…`, or `typical:…` — which is
-   appended to the row's own `source` so the density's provenance is
-   readable off the row, like the FAO tag below. Never `usda_fdc:<id>`:
-   that prefix means the MACROS came from FDC and the generator refuses it.
-3. **FAO/INFOODS Density Database v2.0** as the fallback for the tail, via a
-   reviewed mapping — see `scripts/fao_density.md`. Never overwrites 1 or 2:
-   every fill carries a `density_g_per_ml is null` guard.
-
-Current vocab coverage: **307/319** (264 → 277 when the FAO fallback landed,
-then → 297 in the **D4d density pass**, plan 0020 batch 5). D4c admits only
-the BASIS family on a density-less row, so a bare row silently refuses every
-volume line; the pass re-read all 30 remaining rows and filled 19 of them.
-Most were bare only because `usda_links.jsonl` links them to an FDC record
-with no volume `food_portion` while a **sibling record of the same food**
-carries one (gala apple, dill pickle, plantain, tofu…) — cited per row as
-`fdc_density:<fdc_id>` in `curation_overrides.jsonl`. The FAO rejections
-were not relitigated: FAO v2.0 still has no tofu, tortilla, seaweed or
-mushroom row. The 12 rows still bare are enumerated with their reasons in
-the overrides file's round-3 header — each is a decision, not a gap. A row
-whose only citable number describes a different physical form of the food
-belongs there too: the whole spices (`star anise`, `cinnamon stick`) are
-counted, and FDC carries only the ground powder.
-
-Three invariants hold at `db reset` (`seed_curation.sql`): **R1**, a volume
-`default_unit` requires a density; **R2**, every stored density lands in the
-kitchen band 0.03–2.0 g/ml; **R3**, every `piece`-default row carries a piece
-weight and nothing else admits `piece`.
-
-## Building the household vocabulary (`scripts/mine_recipes.ts`)
-
-The initial `ingredient` vocab is mined from recipes you actually cook, not typed
-by hand. The pipeline is deterministic where correctness demands it, with an LLM
-pass only for offline judgment (never in the runtime matcher — ADR-0004):
-
-1. Paste recipe URLs into `scripts/recipe_urls.txt` (one per line).
-2. `cd scripts && deno task mine` — fetches each, reads schema.org/Recipe
-   JSON-LD, parses ingredient lines, normalizes with the shared §7 normalizer,
-   and writes the raw mining outputs to `scripts/out/` (git-ignored; regenerable).
-3. **Curate** `out/gold_labels.jsonl` into the true vocabulary — resolving the
-   judgment cases rules can't (a choice like "avocado or sunflower oil" becomes
-   *two* ingredients; "fat garlic" folds into Garlic as an alias). This produced
-   `vocab.jsonl` (committed — it's judgment, not regenerable). See the flow that
-   built it in the git history / `out/audit.md`.
-4. `deno task gen-seed` — deterministically turns `vocab.jsonl` into
-   `../seed.sql`, computing each `match_text` with the shared normalizer (so
-   stored keys stay symmetric with the runtime cascade) and failing on
-   collisions — in **one namespace across every ingredient key and every
-   alias**, because the cascade's exact tier searches both tables as one
-   surface. An alias that normalizes onto another ingredient's key (or
-   another ingredient's alias) fails the build naming both sides
-   (`planSeed`, tested in `gen_seed.test.ts`); only an alias its own
-   ingredient already covers is dropped quietly. Everything seeds
-   `status='stub'` (density/macros come later).
-5. `supabase db reset` applies it.
-
-`vocab.jsonl` is the source of truth; edit it and re-run `gen-seed` to change the
-seed — never hand-edit `seed.sql`.
-
-It also emits `gold_labels.jsonl` (for `evals/`), `needs_fallback.txt` (URLs
-without JSON-LD, held for the step-8 photo path), `parse_failures.jsonl`, and
-`ambiguous_pairs.txt` (near-duplicates to eyeball — never auto-merged).
-
-### The human-merge pass (why curation isn't optional)
-
-The normalizer is deliberately conservative: it will not strip a word that is
-noise in one context but identity in another. "fat" is dropped nowhere, because
-`duck fat` is a real ingredient — so `fat garlic` survives as its own candidate
-even though a human instantly knows it's just `garlic`. "cracked" stays because
-`cracked wheat` exists, so `cracked black pepper` won't auto-fold into
-`black pepper`. These are correct refusals, not bugs.
-
-Resolving them is a **human pass** on top of the deterministic one: a person maps
-the messy surface form onto the real ingredient, and that surface form is kept as
-an **alias** (never discarded). `ambiguous_pairs.txt` is the worklist for it.
-This is the same shape as the import-time learning loop (import-and-matching.md
-§8) — a human correction becomes an alias — and the app's GUI should expose the
-same move (merge a stub/ingredient into another, keeping the old name as an
-alias) so the vocabulary keeps getting cleaner after seeding, not just during it.
-
-## The USDA reference (`scripts/gen_usda.ts`)
-
-`usda_food` (8262 foods, macros incl. fiber) is built from the USDA FoodData
-Central CSV bundles (Foundation Foods + SR Legacy, CC0). The bundles are **not
-committed** (~40MB); only the compact generated `../seed_usda.sql` is. To
-regenerate:
-
-1. Download + unzip the two CSV bundles from
-   <https://fdc.nal.usda.gov/download-datasets> (Foundation Foods, SR Legacy).
-2. `deno run --allow-read --allow-write gen_usda.ts <foundation_dir> <sr_legacy_dir>`
-   — pass Foundation first so it wins on overlap. Keeps the four macros + fiber
-   (per 100 g) and a density derived from the best-ranked volume
-   `food_portion` (unit words matched in the whole portion text — see the
-   density note above); `match_text` uses the shared normalizer so the
-   reference is indexed the same way.
-
-> **A normalizer change reaches this file too.** When the shared normalizer
-> changes what it writes, the committed `seed_usda.sql` is stale until the
-> bundles are re-run — and it is 8,204 plain inserts, so it seeds a *fresh*
-> database only. The plan-0023 invariant-word fix (`molasses`, migration
-> `0022`) applied the identical whole-word rewrite (`molass` → `molasses`,
-> five rows) to the committed file by hand, the same precedent as the
-> measure edits below, so a fresh reset and a migrated database agree. A
-> regeneration from the bundles reproduces it verbatim.
-
-## Ingredient measures (`scripts/gen_measures.ts`)
-
-`../seed_measures.sql` — the template vocab's starter **measures** ("1 potato,
-medium = 213 g", step 7.6; amounts in the ingredient's basis unit since
-0012's `basis_amount`) — is GENERATED from the same FDC bundles' piece-type
-`food_portion` rows, joined through `usda_links.jsonl`, with per-row
-provenance in `ingredient_measure.source` (migration 0010). Never hand-edit
-the SQL.
+## The vocabulary: one input, one output
 
 ```
-deno task gen-measures <foundation_dir> <sr_legacy_dir>
+supabase/seed/snapshot.jsonl   →   deno task gen-seed   →   supabase/seed_vocab.sql
 ```
 
-**Extraction is generous; curation decides** (plan 0013): every portion that
-names a physical human unit is emitted — all size classes, fragments (slice,
-wedge, strip, cube…), containers, dimension-described portions — ordered
-most-kitchen-useful first (container > medium > large > small > extra sizes >
-whole > fragment). Still excluded at extraction: pure volume rows (they
-become density — see above), prepared-state volume qualifiers, mass aliases,
-and nutrition-label servings — except *physically disguised* servings
-("serving packet", "slice 1 serving"), which are rescued under their real
-names. Then two tiers plus survivors, as before:
+`snapshot.jsonl` is one JSON object per ingredient, exactly the shape
+`export_all.sql` produces: the curated columns (`canonical_name`, `category`,
+`default_unit`, `macros_basis`, `density_g_per_ml`, `macros`, `status`,
+`source`, `source_label`, `source_score`, `source_edited`,
+`piece_basis_amount`, `piece_source`, `allowed_units`, `match_text`), plus
+`derived_allowed_units` (what `default_allowed_units()` would have said), plus
+the row's `aliases` and `measures` with their own `source` stamps. Ids and
+timestamps are stripped when the file is written, and the generator ignores
+them if they are there — the seed mints its own row identity wherever it
+lands.
 
-- **Tier 1** — each ingredient's OWN linked food's portions; a variety linked
-  to a broader food keeps only portions naming the variety, and a food whose
-  description carries a basis qualifier (without peel / drained / …) emits no
-  whole-item measure unless the row or label owns that basis.
-  `source = usda_fdc:<fdc_id> (<portion>)`.
-- **Tier 2** — the explicit borrow map (`— borrowed`), plus the automatic
-  borrow marker when several vocab rows share one FDC food.
-- **`seed:typical` survivors** — the short curated list (incl. the 7 g yeast
-  sachet — the near-universal printed standard).
+`seed_vocab.sql` is ONE file and replaces the five-stage pipeline that came
+before it (mined vocab → USDA prefill → generated measures → curation
+overrides → FAO density fallback). There is nothing left to re-derive: a
+density somebody filled in the app, a unit they admitted, a measure they kept,
+a piece weight they borrowed — those decisions already happened, in the app,
+on the row. Re-deriving them from raw sources was the old pipeline's whole
+job, and it is over.
 
-Finally the committed **`../curation_overrides.jsonl`** is applied
-(`drop_measure`/`add_measure` here; `density`/`allowed_units` in
-`seed_curation.sql`): the audited LLM-curation pass over the generated
-output, every override with a reason — rules are scaffolding, the pass is
-the decider. A stale drop fails the run.
+**Current counts** (computed by the generator into `counts.json`, never typed
+by hand — `scripts/cloud_verify.sh` and the deploy job read that file):
 
-The generated SQL is idempotent (a `where not exists` guard per live label)
-and ends with a check that every seeded match_text still resolves to a live
-vocab ingredient.
+- **319** ingredients — **283** `complete`, **36** honest `stub`s
+- **138** aliases · **272** measures
+- **60** rows whose `allowed_units` differs from what the rule derives
 
-> **Regenerating without the CSV bundles.** `gen-measures` needs the ~40 MB
-> FDC bundles, which are deliberately not committed. The plan-0022 measure
-> edits (broccoli `bunch` → `whole`, cherry tomato's borrowed `cherry`
-> dropped, ginger's `piece, 1 inch`) were therefore recorded as
-> `drop_measure`/`add_measure` overrides — the real source of truth — and the
-> identical transformation was applied to the committed `seed_measures.sql`
-> by hand. Any run of `gen-measures` against the bundles reproduces it
-> verbatim: drops are label-exact, and an added row lands by its
-> `sort_order`. If a future edit is bigger than a handful of rows, fetch the
-> bundles and re-run the generator rather than extending the hand pass.
+## Re-exporting from the cloud (the owner runs this)
 
-## Curation overrides (`curation_overrides.jsonl`) & `seed_curation.sql`
+The cloud is the owner's; agents are permission-gated from `--linked` on
+purpose. So this leg is human-run:
 
-`curation_overrides.jsonl` (committed, one JSON object per line, every entry
-with a `reason`) records the human/LLM judgment pass over ALL generated
-per-ingredient defaults — measures, densities, allowed units, piece weights,
-and label-sourced macros (`kind: "macros"` — per-100 g numbers with a visible
-`label:…` source, for rows the no-analogue rule keeps link-less). Consumers:
-`gen_measures.ts` (measure drops/adds) and `gen_seed.ts`, which emits
-`../seed_curation.sql` — the LAST seed step, in this order: macro fills →
-density overrides → **FAO density fallback** (`scripts/fao_density.md`) →
-**piece weights** (borrowed off the measures `seed_measures.sql` has just laid
-down) → re-materialize `allowed_units` via `default_allowed_units()` now that
-every density source AND every piece weight has run (the insert-time trigger
-fired before prefill) → allowed-unit overrides. Every override's reason is
-emitted as a SQL comment so the generated file stays auditable on its own.
+```sh
+supabase db query --linked -f supabase/seed/export_all.sql \
+  | sed -n '/^{/,$p' \
+  | jq -c '.rows[0].snapshot[]
+           | del(.id, .created_at, .updated_at)
+           | .aliases  = [ (.aliases  // [])[] | del(.updated_at) ]
+           | .measures = [ (.measures // [])[] | del(.id, .updated_at) ]' \
+  > supabase/seed/snapshot.jsonl
+cd supabase/seed/scripts && deno task gen-seed
+```
 
-**The piece pass (2026-09-08, ADR-0015 — supersedes ADR-0010).** A **piece
-weight** is a row fact exactly like a density: `piece_basis_amount` says what
-ONE of this ingredient weighs, in the row's macros basis unit, and `piece` is
-admitted **iff** the row's `default_unit` is `piece` AND that number is stored.
-A `piece` you can weigh converts, totals and shops; one you cannot is not
-offered, and the flesh-out form asks for the number. That makes admission a
-derived rule again — `default_allowed_units()` (migration 0039) and its Dart
-mirror both carry it — where ADR-0010 needed one hand-written removal per row.
+The `sed` is not optional: the CLI chats before its JSON ("Initialising login
+role…", the update nag), so only the document from the first `{` is fed to
+`jq`. `export_all.sql` returns **one row per household** — the template first,
+then every household with a member — so `.rows[0]` is the template. To promote
+a PERSON's household instead, pick its row by id and read that `.snapshot`;
+that is the move the "cloud rows are the curated truth" ruling describes.
 
-The 2026-09-02 pass that wrote 143 `{"kind": "allowed_units", …, "remove":
-["piece"]}` lines is gone from `curation_overrides.jsonl`, and so are the 65
-`default_measure` rulings that named a row nobody counts. What remains is
-**76 `piece_weight` rulings**, one per piece-default row, carrying the same
-curated judgment and the same reasons the owner signed off on 2026-09-03:
+`rows` order and the snapshot's own order are stable (`order by
+h.is_template desc, h.created_at`, and `order by r->>'match_text'` inside), so
+re-exporting an unchanged household produces a byte-identical file and a
+no-op diff.
 
-- `{"kind": "piece_weight", "match_text": …, "label": "<measure label>",
-  "reason": …}` **borrows** that curated measure's `basis_amount` (onion takes
-  its 110 g `onion, medium`) and stamps `piece_source = 'borrowed from
-  <label>'`. A copy of a stated fact, never a guess.
-- `{"kind": "piece_weight", …, "basis_amount": <number>, "reason": …}` states
-  a weight outright, stamped `seed:typical` so a guess stays visible.
+## What the generator decides
 
-A row with no honest whole does not get a made-up one: it stops being counted.
-`Mint` was the only such row (a 2 g sprig against a 25 g bunch, 12× apart, and
-neither is "one mint"), so its `default_unit` moved to `g` in `vocab.jsonl` —
-the sprig and the bunch stay as measures, and its curated density keeps the cup
-sayable. `Red Cabbage`, the other flagged row, simply took the whole item it
-always had (`head, medium`, 839 g).
+A snapshot is data; these four things are judgments the generator makes, and
+each one can fail the build rather than emit a broken seed.
 
-Rollout to existing households is a **migration** this time, and it can be:
-0039 copies each row's `default_measure_id` measure into `piece_basis_amount`
-and then UNIONS `piece` in, which is ADR-0009 rule 3's direction. It removes
-`piece` from nothing — the app strips it at read on rows the rule does not
-admit it for, exactly as it strips density-locked units. The safety net is a
-pgTAP assertion in `../tests/unit_admission.sql` plus **R3** below.
+1. **`match_text` is recomputed, then asserted.** Every key is re-derived with
+   the shared §7 normalizer (`functions/_shared/normalize.ts`) and compared
+   with the exported value — for ingredients and for aliases. A disagreement
+   means the stored vocabulary and the runtime cascade have drifted apart, so
+   the build fails naming both values. (This is also the gate on any
+   normalizer change: edit the normalizer, and the seed tells you which rows
+   need renaming before it will regenerate.)
+2. **One namespace for every key.** Ingredient keys and alias keys live in a
+   single space, because the cascade's exact tier searches both tables as one
+   surface. An alias that normalizes onto another ingredient's key — or
+   another ingredient's alias — fails the build naming both sides. Only an
+   alias its own ingredient already covers is dropped quietly. (`planSeed`,
+   tested in `scripts/gen_seed.test.ts`.)
+3. **A seed row must clone.** `ensure_onboarded()` (migration 0039)
+   deliberately leaves a household's private typed-in data behind: it skips
+   `source = 'manual'` ingredients and `source = 'import_correction'` aliases.
+   A seed row carrying either would seed and then reach no household at all,
+   so the generator re-stamps exactly those two to `'seed'` and says how many
+   in a comment in the generated file. Every other stamp is the row's real
+   provenance and is carried verbatim.
+4. **`allowed_units` is written explicitly, and gets the last word.** 0012's
+   insert trigger fills the list from `default_allowed_units()` only when the
+   writer leaves it NULL, so passing the curated list is what preserves a
+   curator's admissions *and* their refusals. On a refresh, two AFTER UPDATE
+   triggers (0014's density leg, 0039's piece leg) would union units back in
+   when a density or piece weight arrives, so the generated file re-asserts
+   the snapshot's list in one closing statement.
 
-**"Counts as" (`ingredient.default_measure_id`, 0023) is retired** by the same
-ruling: it pointed at a measure to answer a narrower version of the same
-question. The column, its trigger and its backfill stay for one release
-because the data is durable; nothing reads or writes them.
+## The invariants the generated file carries
 
-**Produce volume leg.** ADR-0008's density leg fires only for mass/volume
-defaults — a count default gets nothing from a density, because "a density
-can't describe a piece". Produce is where that stops being true: "1 cup diced
-mango" is an ordinary recipe line, the row is legitimately piece-default, and
-the density is exactly what makes the cup computable. Without this, every
-cup-measured produce import failed *"Pick a supported unit"* despite the row
-carrying an honest density all along. It is category-gated (like the imprecise
-leg beside it) and applies only where a density exists. **The rule belongs in
-`default_allowed_units()` and its `allowed_units.dart` mirror** — until
-ADR-0008 is amended, the template vocab carries the honest list explicitly,
-which `allowed_units` being an explicit stored attribute exists to allow.
+`supabase db reset` FAILS loudly on any of these. They are checks on the
+exported data now — the rows are curated rather than derived, so the only
+thing left to be wrong is that the curation itself is dishonest.
 
-`seed_curation.sql` ends with three invariants — `supabase db reset` FAILS
-loudly on any of them:
+- **R1** — a volume `default_unit` REQUIRES a density. A volume line on a
+  density-less per-g ingredient can never compute macros. Fix it by filling an
+  honest density on the row in the app, or flipping its default to a weight,
+  then re-exporting.
+- **R2** — every stored density lands in the kitchen band **0.03–2.0 g/ml**.
+  This catches the wrong physical quantity (2.165 is crystal salt, not what a
+  spoonful weighs) without second-guessing the genuinely light end (dill at
+  0.038).
+- **R3** (ADR-0015) — the two halves of the piece rule: **(a)** every
+  `piece`-default row says what one of it weighs, and **(b)** no row with any
+  other default admits `piece`.
+- **R4** — every row whose `allowed_units` differs from
+  `derived_allowed_units` is listed in the generated file as an auditable
+  comment block with its diff (`+unit` admitted, `-unit` withheld). This is
+  what the old overrides file's `allowed_units` entries were for: a curated
+  refusal must survive the reseed, but it must not survive invisibly.
+- …and every measure resolves to a live vocab row, by the same `where not
+  exists` guard per live label the measures insert uses (0011 dropped the
+  unique index an `on conflict` would have needed, because offline duplicates
+  must never fail an upload).
 
-- **R1** (adopted 2026-08-29): a volume `default_unit` REQUIRES a density (a
-  volume line on a density-less per-g ingredient can never compute macros).
-  Fix by filling an honest density (FDC / FAO / label / tagged typical) or
-  flipping the default to a weight — always through the pipeline inputs.
-- **R2**: every stored density lands in the kitchen band **0.03–2.0 g/ml**,
-  whatever its source. Catches the wrong physical quantity (FAO publishes
-  salt at 2.165 — a crystal density, not what a spoonful weighs) without
-  second-guessing the genuinely light end (dill 0.038).
-- **R3** (ADR-0015): the two halves of the piece rule. **(a)** every
-  `piece`-default row says what one of it weighs — a stranded count default
-  would offer a `piece` nothing can convert; **(b)** no row with any other
-  default admits `piece`. Fix (a) by borrowing the curated whole-item measure,
-  stating an honest typical weight, or moving the row off a count default.
+## Loading it
 
-## Prefill: promoting stubs to `complete` (`usda_links.jsonl`)
+`config.toml` `[db.seed].sql_paths` runs three files, in order:
+`seed_vocab.sql` (the template household + its whole vocabulary) →
+`seed_usda.sql` (the reference) → `seed_usda_index.sql` (the BM25 index over
+it — `usda_probe` raises without it). `supabase db reset` applies all three.
 
-`usda_links.jsonl` (committed) maps an ingredient's `match_text` → the `fdc_id`
-of the USDA row whose food it truly is. These were resolved by trigram for the
-easy cases and an LLM arbiter for the judgment ones, under a strict
-**no-analogue** rule: a link is only made where the USDA food genuinely *is* the
-ingredient — never a stand-in (canned ≠ dry, fruit ≠ its oil, vegan ≠ dairy).
-Unmatched ingredients stay `stub`. `gen-seed` reads `usda_links.jsonl` and emits
-`../seed_prefill.sql`, which copies macros/density and the food's name
-(`source_label`) onto matched rows and flips
-them to `complete` (a guard skips USDA rows with no macros).
+The file is **re-runnable** (migration 0020): the template holds one live row
+per `match_text`, so an existing row is refreshed in place and a new one is
+inserted, and a reseed of an unchanged snapshot is a complete no-op. On cloud
+that is the deploy workflow's **`reseed_template`** button — the
+promote-to-template leg. It touches the member-less template household only.
 
-## Density fallback (`fao_density_links.jsonl`)
+> **Existing households do not move with it.** `ensure_onboarded()` clones the
+> template once, at creation. Carrying a reseeded template forward onto
+> households that already exist is a separate, operator-run leg:
+> `../rollout_ingredient_refresh.sql` and `../rollout_measure_refresh.sql`
+> (docs/cloud-setup.md §2b). Both are deliberately **fill-only / union-only**
+> for other households: they add a missing fibre figure or a newly admitted
+> unit, they add measures nobody has, and they never overwrite a number
+> somebody edited. A row a person has made their own stays theirs.
 
-`fao_density.jsonl` (the FAO/INFOODS Density Database v2.0 table, derived and
-committed) + `fao_density_links.jsonl` (the reviewed vocab → FAO mapping, every
-line with a reason, `"fao_food": null` recording an audited rejection). The
-last density source, filling only the tail the FDC derivation and the curation
-overrides leave. Full detail, licence note and refresh steps:
-**`scripts/fao_density.md`**.
+## Mining recipes (`scripts/mine_recipes.ts`)
 
-## Load order
+Still here, and no longer a seed input. It fetches the recipe URLs in
+`scripts/recipe_urls.txt`, reads schema.org/Recipe JSON-LD, parses ingredient
+lines and normalizes them with the shared §7 normalizer, writing to
+`scripts/out/` (git-ignored, regenerable). What it produces now is
+`gold_labels.jsonl` for `evals/` — the raw → match_text ground truth the
+matching calibration set is built from — plus `needs_fallback.txt`,
+`parse_failures.jsonl` and `ambiguous_pairs.txt`.
 
-`config.toml` `[db.seed].sql_paths` runs, in order: `seed.sql` (household +
-vocab) → `seed_usda.sql` (reference) → `seed_prefill.sql` (macros + density)
-→ `seed_measures.sql` (measures) → `seed_curation.sql` (curation overrides +
-FAO density fallback + allowed-units refresh). `supabase db reset` applies
-all five.
+The vocabulary it once bootstrapped has since been curated in the app, row by
+row, which is precisely why the snapshot replaced it.

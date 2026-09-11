@@ -34,11 +34,11 @@ on:
     inputs:
       reseed_template:
         description: >-
-          Also reseed the TEMPLATE vocabulary (seed.sql → seed_usda (only if the
-          reference table is empty) → seed_prefill → seed_measures →
-          seed_curation). Touches the member-less template household only;
-          re-runnable since 0020. Existing households still need the §2b
-          rollout by hand.
+          Also reseed the TEMPLATE vocabulary (seed_vocab.sql → seed_usda
+          (only if the reference table is empty) → seed_usda_index). This is
+          the promote-to-template leg of the cloud → seed direction. Touches
+          the member-less template household only; re-runnable since 0020.
+          Existing households still need the §2b rollout by hand.
         type: boolean
         default: false
 
@@ -134,7 +134,12 @@ jobs:
           q() { supabase db query --linked "$1" 2>/dev/null | sed -n '/^{/,$p' | jq -r '.rows[0] | to_entries[0].value'; }
           usda="$(q 'select count(*) from usda_food')"
           echo "usda_food rows: ${usda:-unreadable}"
-          supabase db query --linked -f supabase/seed.sql
+          # One file now: the template household and its whole curated
+          # vocabulary (ingredients, aliases, measures), generated from
+          # supabase/seed/snapshot.jsonl. It is the PROMOTE-TO-TEMPLATE leg of
+          # the cloud → seed direction: the rows came out of a live household
+          # and this puts them back as the template every new household clones.
+          supabase db query --linked -f supabase/seed_vocab.sql
           if [ "$usda" = "0" ]; then
             supabase db query --linked -f supabase/seed_usda.sql
           else
@@ -147,10 +152,7 @@ jobs:
           # sheet. A sub-second truncate+rebuild is cheaper than reasoning about
           # whether this run needed it. Same order config.toml documents.
           supabase db query --linked -f supabase/seed_usda_index.sql
-          supabase db query --linked -f supabase/seed_prefill.sql
-          supabase db query --linked -f supabase/seed_measures.sql
-          supabase db query --linked -f supabase/seed_curation.sql
-          echo "template: $(q "select count(*) from ingredient where household_id='00000000-0000-0000-0000-0000000000aa' and deleted_at is null") live ingredients"
+          echo "template: $(q "select count(*) from ingredient where household_id='00000000-0000-0000-0000-0000000000aa' and deleted_at is null") live ingredients (seed/counts.json says $(jq -r .ingredients supabase/seed/counts.json))"
 
       # The deploy is only half the story whenever a change also altered the
       # curated vocabulary. Nothing here can safely do that leg, so it ends by
@@ -172,7 +174,7 @@ jobs:
             else
               echo "- **cloud-setup §2 — reseed the template vocab.** Not ticked on"
               echo "  this run: re-dispatch with \`reseed_template\` if \`supabase/seed/**\`"
-              echo "  or a generated \`seed_*.sql\` changed."
+              echo "  or \`supabase/seed_vocab.sql\` changed."
             fi
             echo "- **cloud-setup §2b — roll reseeded \`ingredient\` columns onto"
             echo "  existing households.** A reseed updates the TEMPLATE household;"
