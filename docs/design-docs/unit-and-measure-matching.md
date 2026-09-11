@@ -398,7 +398,7 @@ honest unit to round to).
 
 | Thing | Where | Mechanism |
 |---|---|---|
-| **Unit of a line** | step-7.7 quantity sheet (`quantity_unit_sheet.dart`) — recipe editor, shopping add sheet, edit-top-up sheet | `UnitChipRow` → picks a `UnitOption` from `allowedUnitChoicesFor` |
+| **Unit of a line** | step-7.7 quantity sheet (`quantity_unit_sheet.dart`) — recipe editor, method editor, shopping add sheet, edit-top-up sheet, the week's own amounts (a meal, and a week variant's lines) | `UnitChipRow` → picks a `UnitOption` from `allowedUnitChoicesFor` |
 | **Measure of a line** | same sheet | picks a `MeasureOption`; writes `measure_id`, `unit='piece'` |
 | **Amount / quantity** | same sheet | the quantity field (nullable — "to taste" is allowed) |
 | **Add / rename / re-weigh / delete a measure** | manage state of the sheet (`_MeasureManager`), **and the ingredients manager's flesh-out form**, which embeds that same editor (8.5/F2) | `addMeasure` (saved `manual`), `renameMeasure` / `setMeasureAmount` (a row is the tap target; the id is kept, so every line already pointing at it follows the correction), `softDeleteMeasure` |
@@ -465,7 +465,7 @@ grams.
 | §6.2 seeding the sheet | **shipped** | the card opens the 7.7 sheet seeded from the `RawLineItem`; `raw_amount` shows as the "from source" caption on every line, resolved or not |
 | §6.3 measure-from-label | **NOT shipped — still the open piece** | no "can = 400 g?" proposal anywhere |
 | §6.4 honesty properties | **shipped** | no grams are written that the source didn't supply; unresolvable units degrade to an honest count |
-| §6.5 plug-in points | **shipped** | reconciliation is the fifth caller of `showQuantityUnitSheet` (with the editor's two, the method editor's and the shopping sheet's); a picked measure rides the line as its label and resolves to the FK at commit |
+| §6.5 plug-in points | **shipped** | reconciliation is one more caller of `showQuantityUnitSheet`, beside the recipe editor's, the method editor's, the shopping add sheet's and the week's (a meal's amount, and a week variant's lines); a picked measure rides the line as its label and resolves to the FK at commit |
 
 Step 8 also went one step further than this section proposed: rather than only
 *offering* the sheet, the review screen **enforces admission** — a line whose unit
@@ -541,9 +541,10 @@ measure>` — and from that point the duality of §3 applies: the recipe reads
 ### 6.5 Where it plugs in
 
 - **Component:** reuse `showQuantityUnitSheet` / `QuantityUnitEditor` verbatim —
-  it is already the single entry surface for "recipe editor line items, the
-  shopping add sheet, and the edit-top-up sheet." Reconciliation becomes a fourth
-  caller.
+  it is already the single entry surface for every amount that has a unit
+  beside it: recipe editor line items, the method editor's chips, the shopping
+  add and edit-top-up sheets, and the week's own amounts. Reconciliation is one
+  more caller, not a new control.
 - **Seed:** a small adapter `RawLineItem → (initialQuantity, initialChoice,
   pendingMeasure, rawAmountCaption)` at the commit boundary (app-side, where step
   refs are already remapped to `line_item_id`s).

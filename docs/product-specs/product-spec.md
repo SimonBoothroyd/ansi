@@ -184,6 +184,18 @@ The column list is generated from the migrations —
   it is edited again. It fires in editors only: **not** in the ingredient
   picker, not on method prose or line notes, not on shopping item names or meal
   labels, and never on a name a save left untouched.
+- **A household's ingredient names and its aliases are ONE namespace**, keyed
+  by `match_text` (`domain/name_namespace.dart`). A name that lands on one
+  already there — a canonical name or somebody's alias, `Sauerkraut`,
+  `sauerkraut ` and `Sauer-Kraut` being one name here — **refuses the save**,
+  in the row's own words (*Already an ingredient: Sauerkraut*) with that row as
+  a door. A row is always saveable under the name it already has. A name that
+  is merely *near* one is not refused: up to three rows surface under the
+  pickers' `DID YOU MEAN` band, and on `/ingredients/new` a tap **asks** ("Use
+  Sauerkraut instead?") before it pops the form with the existing row — the
+  person resolved it, not the rule. Nothing renames onto an occupied name and
+  nothing merges two rows. Detail:
+  [`search-and-matching.md`](../design-docs/search-and-matching.md) §4.
 - **`source_label` says which food the numbers came from, by name.**
   `source` holds a key — an FDC id, a barcode — and no screen ever prints one;
   `source_label` is what a person reads. A USDA pick stores that food's
@@ -288,6 +300,14 @@ The column list is generated from the migrations —
   2 tbsp` — by reversing the stored per-100 exactly, with the per-100 figures
   muted under it. A save that states a serving replaces whatever serving the
   row had; one that says nothing about it leaves it alone.
+  - **It is stored as a measure and listed as none.** The reserved
+    `serving · ` prefix (`domain/serving_measure.dart`) is what every list of
+    measures filters on, in the read posture and in the editor alike: the
+    serving is not a word the household coined, and it is stated in
+    *Nutrition*, beside the figures it is printed per. Its one remaining
+    appearance is the quantity sheet's chip row, labelled by its **size** —
+    `serving (237 ml)`, the way `piece (110 g)` reads — because "1 serving"
+    is an amount a week's ingredient slot can genuinely say.
 - **A density is stated in the density sentence and nowhere else.** That
   sentence takes an amount now — "2 tbsp weighs 32 g", as a pack prints it —
   and reads back the same way, with the stored `g/ml` as the aside. When the
@@ -305,31 +325,56 @@ The column list is generated from the migrations —
     either half is the ordinary case. A serving with no volume anywhere —
     typed or printed — offers nothing, because what a millilitre of a gram
     weighs is not a fact.
-- Seed from USDA FoodData Central **Foundation Foods + SR Legacy** (CC0).
-  Density from FDC volume food portions parsed out of the full portion text
-  (7.8 took coverage to 211/291), fallback FAO/INFOODS Density DB v2.0, then
-  step 8.5's D4d hand pass — **307/319 today**; the 12-row tail is audited and
-  tracked, not accidental (tracker).
+- **The seed is the owner's household, exported.** `supabase/seed/snapshot.jsonl`
+  holds one JSON object per curated ingredient — its columns, its aliases and
+  its measures, each with the `source` stamp the row already carries — and
+  `supabase/seed/scripts/gen_seed.ts` generates `supabase/seed_vocab.sql` from
+  it. Nothing is re-derived: a density, an admitted unit, a kept measure, a
+  borrowed piece weight are decisions somebody made in the app, on the row, and
+  the seed copies them rather than mining them back out of USDA FoodData
+  Central, Open Food Facts or FAO/INFOODS — which is what every row's `source`
+  names instead. The counts are computed by the generator into
+  `supabase/seed/counts.json` and never typed by hand. Most rows state a
+  density; the handful that do not are honest gaps for a person to fill, not a
+  pipeline that missed. The pipeline and the invariants it fails a reset on:
+  `supabase/seed/README.md`.
 
 ### Ingredient measure (steps 7.6–7.8)
 An `ingredient_measure` row names one countable thing and says what it weighs:
 `basis_amount` is `> 0` and denominated in the ingredient's `macros_basis`
 (g or ml, 0012), which is what lets a count bridge to the numbers.
 - Per-household, synced, user-editable rows — households disagree about what
-  "1 portion" is, and import (step 8) will create them from labels. The
-  starter set is the curated household's own measures, exported into the
+  "1 portion" is. An imported line lands on a measure the row **already** has,
+  by exact label (`clove` → the `clove` measure); minting one from a printed
+  "400 g tin" is a tap in the measures editor, never something the import does
+  on a household's behalf. The starter set is the curated household's own
+  measures, exported into the
   seed (`supabase/seed_vocab.sql`, per-row `source` provenance) and clones
   with
   the vocab at onboarding (backfill gated run-once by
   `household.backfilled_at`, 0011 — deleting your measures never resurrects
   them).
 - **In-app measure editor (7.7; density entry 7.8):** authors
-  `source = 'manual'` rows ("half can = 200 g"), soft-deletes unwanted ones,
+  `source = 'manual'` rows ("half can = 200 g"), **renames and re-weighs one
+  in place** (the row is the tap target and the id is kept, so every line
+  already pointing at it follows the correction), **reorders the list by
+  drag** — the first row is the ingredient's *typical* measure, which is what
+  fronts the chip row — soft-deletes unwanted ones,
   and sits beside the DENSITY entry ("1 tbsp weighs N g", which folds to
   `0.13 g/ml · change` once the row states a number).
+  - **A measure a recipe still uses cannot be deleted.** The FKs carry no
+    `on delete` and a delete is a tombstone, so the lines naming it would
+    simply stop counting — dropped from the macro totals, degraded to a bare
+    count on the shop. So the delete counts the lines first and refuses with
+    something to act on: *2 lines still say it, in 1 recipe*, and a **Show me
+    where** door listing every recipe that does. Both delete paths — the
+    sheet's manage state and the flesh-out form — go through the one gate.
   Labels that merely name a volume unit are redirected into that density
   entry — density owns volume conversion. Provenance is shown humanized
-  (USDA portion / borrowed / typical / yours), never as raw machine strings.
+  (USDA portion / borrowed / estimate / yours), never as raw machine strings.
+  A curated `seed:typical` row reads **estimate**: the list's *order* is what
+  says which measure is the typical one, so the word would have read as a flag
+  on the row rather than as where the number came from.
   - **The editor reports intent; the host decides when it becomes a write**
     ([ADR-0011](../decisions/0011-one-save-one-write.md)). The same two
     widgets serve two screens with two persistence models, and neither is a
@@ -404,9 +449,12 @@ its steps.
   the recipe's muted echo row on Shop), never a silent drop; the cook plan
   is unaffected — a batch is a batch whether the lime comes. A recipe whose
   every line is optional summed nothing and refuses, like an all-imprecise
-  one. Deliberately not built: the per-week override (tick an optional line
-  back in for one planned week, substitute an ingredient) — the seam's
-  unread `planEntryId` is where it joins (tracker).
+  one. **A planned week may overrule the recipe** through the same seam:
+  `effectiveLines(lines, overrides:)` applies that week's variant *first* — a
+  line ticked back in, left out, swapped, re-amounted or added — and hands
+  back what is left with `optional` cleared on anything the week already ruled
+  on, so a second pass changes nothing. A caller holding no week passes no
+  overrides and reads the recipe as it stands.
 - `favorite` is the household-shared curated shortlist behind the recipe
   picker's Favorites tab; marked from the recipe page's header menu.
 - **Per-serving macro summation (step 7.7, pulled from step 9):** pure-Dart
@@ -459,10 +507,11 @@ its steps.
     yet`), the same shape as `no ingredients yet`. If a household ever wants
     a handful weighed, the answer is a **measure** on that row
     (`handful ≈ 25 g`, with provenance), not an engine special case.
-  *Reality check, resolved:* this read `incomplete` on most real
-  recipes when density coverage was 7/291; 7.8's FDC-spoons→density work, the
-  FAO fallback and 8.5's D4d pass took it to **307/319**, so most recipes now
-  read as numbers and the residual `incomplete` is the honest 12-row tail.
+  *Reality check:* this rule is only bearable because the seeded vocabulary
+  states a density on all but a handful of its rows, so most real recipes read
+  as numbers. The rows that still cannot bridge are an honest tail for a person
+  to fill in — the `incomplete` they produce is the rule working, not the rule
+  misfiring.
 
 #### The method (step 8 tokens · the 0022 editor)
 
@@ -589,6 +638,33 @@ go. There is no re-chip — tokenization happens only inside the import call.
     `1¾`, not `2`; and an eater the roster no longer holds counts as one
     portion, exactly as the head-count did. Demand is a `double` and is
     printed as a fraction everywhere, never rounded.
+- `week_recipe_line_override: id · household_id · week_plan_id · recipe_id ·
+  recipe_line_item_id (null only when the row ADDS a line) · action (include ·
+  exclude · replace · add) · ingredient_id · sub_recipe_id · quantity · unit ·
+  measure_id · note · sort_order` (migration 0040)
+  - **A recipe cooked differently for ONE week.** The row is a **delta**
+    against a recipe line, never a copy of the recipe: a swap, an amount, an
+    addition, an exclusion, or an optional line ticked back in. The recipe is
+    untouched, so the Library, the recipe page and every other week read
+    exactly what they read before.
+  - **One variant per (week, recipe)**, all days of that week. A cook session
+    is one pot, one scale, one line set, so two meals of the same dish in one
+    week that disagreed about what goes in could not share it.
+  - **Amounts are absolute, never a factor.** The recipe moving 400 g to 500 g
+    later leaves that week at the 400 g somebody asked for.
+  - The **shopping list is where lines meet the week**, so it is where the
+    variant joins: the derivation runs the week's overrides through
+    `effectiveLines` before it expands a session, and names what the week left
+    out the same way it names an optional line.
+  - `sub_recipe_id` is a column and not yet a door — the component graph is
+    read household-wide with no week, so swapping a sub-recipe in for one week
+    would make that graph week-dependent. The line picker suppresses its "Your
+    recipes" section in week mode.
+  - **One door**, a row at the foot of the meal editor sheet — *edit for this
+    week* — which states its own scope ("a change covers every day this week —
+    Tue and Sat") because the sheet is per meal and the variant is per week.
+    Not a fourth target on the dish row: a control drawn on every row is a
+    target every row pays for.
 
 ### Batch cook plan (DERIVED) — the second view
 Groups the week's `plan_entry` rows **by recipe** — the ingredient entries are
@@ -709,7 +785,9 @@ a line starts, never whether it can be changed:
 whole vocabulary under **aisle headers**, in the same shop-walk order the Shop
 tab groups by (`core/aisles.dart` — one order, shared, because somebody who
 learned it on one screen should not meet a different one two taps away), A–Z
-within a section and the coined categories after the known aisles. A header
+within a section. **Other** follows the eight named aisles — it is where you
+look once they have run out — and the categories a household coined come
+after it, alphabetically. A header
 says the section, so the row's fact line no longer repeats it. **Search still
 replaces the whole list** with one flat run of results — and those rows keep
 their category, because nothing else there says where they live.
@@ -780,7 +858,8 @@ books, their user-named sections, and the recipes filed under each.
   the book `⋯`'s item, which it always was.
 - **The vocabulary is a shelf, not a menu item.** An Ingredients card closes
   the library with the book anatomy exactly — a name, a count line
-  (`319 ingredients · 3 stubs`), one control — and a `›` rather than a fold,
+  (`315 ingredients · 18 stubs` on a household fresh off the seed), one
+  control — and a `›` rather than a fold,
   because 300 rows do not belong inside a card. It is not reference data filed
   under a menu: `shopping_list_entry` has carried `ingredient_id` beside
   `free_text` since `0006`, under a check that exactly one is set, so a top-up
@@ -857,8 +936,10 @@ source-tab slot, footer slot):
   quantity opens a sheet — ingredient card (name + macro line), quantity
   input, a live honest conversion line ("≈ 610 g · via density
   1.02 g/ml" — shown only when the unit system can actually bridge), then
-  the chip row (precise units · measure chips with provenance dots ·
-  imprecise after a divider · a `+` chip) riding the keyboard at the
+  the chip row (**the row's own measures first**, with their provenance
+  dots and in the order the household dragged them · the default unit and
+  the rest of its family · the demoted other family · imprecise after a
+  divider · a `+` chip) riding the keyboard at the
   sheet's bottom — the stack above the keyboard reads chips → Done →
   keyboard (Done sits between the chips and the keyboard; no native
   accessory view). The `+` chip opens the manage-measures state (list +
@@ -872,8 +953,13 @@ source-tab slot, footer slot):
   shelf-life chips, and per-serving macros or the `incomplete` badge with
   its reason; an "Eating: Ada & Jun · shared" footer. Title search is the same
   three-tier rule the ingredient picker uses — as is the editor's "Your
-  recipes" section, pinned by a cross-picker test. Planning search is
-  recipes-only in v1 (foods-as-ad-hoc-meals revisited with step 8).
+  recipes" section, pinned by a cross-picker test. It searches **recipes and
+  ingredients together**: under a typed query an INGREDIENTS section follows
+  the recipe rows, carrying its own `DID YOU MEAN` band, so a meal that is a
+  bare ingredient is planned through the same door and a cook never has to know
+  before searching which of the two the thing they want is. With an empty query
+  there is no such section — nobody opened *add a meal* to browse the
+  vocabulary.
 - **Confirm & place:** picked card with the honest macro line, one combined
   "Day · Slot" dropdown (day changeable at confirm), and the full batch
   prose ("Chicken Curry already cooks Monday and keeps 4 days — Wednesday is
