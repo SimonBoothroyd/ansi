@@ -17,6 +17,14 @@ import 'package:flutter/services.dart' show TextInputAction;
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
+/// The height of one control inside a line of prose — this slot, the unit
+/// chip beside it, and every neighbour a host puts on the same run.
+///
+/// Forui's touch sizing floors a field at 44 pt and a button at 32; a
+/// sentence needs one number, so there is one height and it is stated here
+/// rather than trimmed to taste at five call sites.
+const double kInlineControlHeight = 32;
+
 class InlineAmountField extends StatelessWidget {
   const InlineAmountField({
     required this.onChange,
@@ -65,7 +73,7 @@ class InlineAmountField extends StatelessWidget {
         // Forui's touch sizing floors a field at 44 pt tall with 10 pt of
         // vertical padding — right for a form field, and a whole row's worth
         // of height for a slot inside a sentence.
-        constraints: BoxConstraints(minHeight: 32),
+        constraints: BoxConstraints(minHeight: kInlineControlHeight),
         contentPadding: EdgeInsetsGeometryDelta.value(
           EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         ),

@@ -32,6 +32,7 @@ import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/ansi_stepper_row.dart';
 import '../../../shared/format.dart';
+import '../../../shared/inline_amount_field.dart';
 import '../../../shared/write.dart';
 import '../../books/data/book_providers.dart';
 import '../../books/presentation/book_view_models.dart';
@@ -317,7 +318,9 @@ class _MakesSection extends HookWidget {
 ///
 /// The pair is [AmountAndUnitField] — the same control the density, the piece
 /// weight, a measure's amount and the serving use, so a number with a unit is
-/// stated the same way wherever it is stated.
+/// stated the same way wherever it is stated. The remove glyph is sized to
+/// the control rather than to Forui's touch default: the row is a sentence,
+/// and a 44 pt button beside a 32 pt control sets its height on its own.
 class _YieldRow extends StatelessWidget {
   const _YieldRow({
     required this.quantity,
@@ -340,7 +343,6 @@ class _YieldRow extends StatelessWidget {
       children: [
         AmountAndUnitField(
           amountWidth: 64,
-          unitWidth: 120,
           amount: formatQuantityIn(quantity, unit),
           unit: unit,
           units: units,
@@ -350,8 +352,19 @@ class _YieldRow extends StatelessWidget {
         ),
         if (onRemove != null) ...[
           const SizedBox(width: 4),
+          // Forui's default icon button is a 44 pt touch target, which beside
+          // a 32 pt control sets the row's height on its own.
           FButton.icon(
             variant: FButtonVariant.ghost,
+            size: FButtonSizeVariant.xs,
+            style: const FButtonStyleDelta.delta(
+              iconContentStyle: FButtonIconContentStyleDelta.delta(
+                constraints: BoxConstraints.tightFor(
+                  width: kInlineControlHeight,
+                  height: kInlineControlHeight,
+                ),
+              ),
+            ),
             onPress: onRemove,
             child: const Icon(FLucideIcons.x),
           ),

@@ -171,7 +171,6 @@ class PieceWeightEntry extends HookWidget {
                 amountKey: const ValueKey('piece-weight-field'),
                 unitKey: const ValueKey('piece-weight-unit'),
                 amountWidth: 40,
-                unitWidth: 66,
                 amount: '',
                 unit: unit.value,
                 units: basisConvertibleUnits(ingredient),

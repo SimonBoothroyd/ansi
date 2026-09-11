@@ -20,6 +20,8 @@ import 'package:ansi/features/import/presentation/import_view_models.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/presentation/recipe_header_form.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view_models.dart';
+import 'package:ansi/shared/inline_amount_field.dart';
+import 'package:ansi/shared/unit_chip.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -93,6 +95,32 @@ Widget _form(ProviderContainer container, RecipeHeaderHost host) =>
     );
 
 void main() {
+  testWidgets('a yield row is one run: the control and its remove glyph are '
+      'the same height', (tester) async {
+    filterForuiSemanticsAssertions();
+    tallSurface(tester);
+    final container = _container();
+    final host = await _editorHost(container);
+    host
+      ..setYield(250, g)
+      ..setSecondYield(16, tbsp);
+    await tester.pumpWidget(_form(container, host));
+    await tester.pumpAndSettle();
+
+    final row = find.byKey(const ValueKey('yield-2'));
+    for (final part in [
+      find.descendant(of: row, matching: find.byType(FTextField)),
+      find.descendant(of: row, matching: find.byType(UnitChip)),
+      find.descendant(of: row, matching: find.byType(FButton)),
+    ]) {
+      expect(
+        tester.getSize(part.first).height,
+        kInlineControlHeight,
+        reason: part.describeMatch(Plurality.one),
+      );
+    }
+  });
+
   group('every section in kRecipeHeaderSections renders under', () {
     for (final MapEntry(key: name, value: hostOf) in _hosts.entries) {
       testWidgets(name, (tester) async {

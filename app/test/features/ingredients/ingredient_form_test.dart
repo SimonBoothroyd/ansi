@@ -19,6 +19,7 @@ import 'package:ansi/features/ingredients/presentation/density_entry.dart'
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart';
 import 'package:ansi/features/ingredients/presentation/measures_editor.dart';
 import 'package:ansi/features/ingredients/presentation/piece_weight_entry.dart';
+import 'package:ansi/shared/inline_amount_field.dart';
 import 'package:ansi/shared/reorder_grip.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -613,6 +614,36 @@ void main() {
       expect(asked.measuresAdded.single.label, 'quarter cheek');
       expect(asked.measuresAdded.single.amount, 45);
       expect(asked.measuresRemoved, isEmpty);
+    });
+
+    testWidgets('the add row is one run: label, amount, unit and button are '
+        'the same height', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [mango]),
+          at: editRoute('mango'),
+          measures: FakeMeasureRepo(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      for (final part in [
+        find.byKey(const ValueKey('add-measure-label')),
+        find.byKey(const ValueKey('add-measure-amount')),
+        find.byKey(const ValueKey('add-measure-unit')),
+        find.descendant(
+          of: find.byType(MeasuresEditor),
+          matching: find.widgetWithText(FButton, 'Add'),
+        ),
+      ]) {
+        expect(
+          tester.getSize(part.first).height,
+          kInlineControlHeight,
+          reason: part.describeMatch(Plurality.one),
+        );
+      }
     });
 
     testWidgets("a measure's amount takes the unit it was weighed in, and is "

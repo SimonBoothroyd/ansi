@@ -35,6 +35,7 @@ import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/amount_and_unit.dart';
 import '../../../shared/format.dart';
+import '../../../shared/inline_amount_field.dart';
 import '../../../shared/reorder_grip.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
@@ -494,6 +495,11 @@ class _EditMeasureForm extends HookWidget {
 
 /// The one label-and-amount form both the add and the edit paths draw, so a
 /// measure is stated in the same shape whether it is new or being corrected.
+///
+/// Its three controls sit on one run at [kInlineControlHeight]: the label
+/// field is the small variant trimmed to it, the amount and its unit are
+/// [AmountAndUnitField], and the button is the `xs` the density sentence
+/// ends with.
 class _MeasureForm extends StatelessWidget {
   const _MeasureForm({
     required this.icon,
@@ -560,10 +566,20 @@ class _MeasureForm extends StatelessWidget {
         Row(
           children: [
             Expanded(
+              // The small variant, trimmed to the run's height: a full-height
+              // field beside a 32 pt control is what made this row read as
+              // two rows stacked rather than as one line.
               child: FTextField(
                 key: ValueKey('$slot-measure-label'),
                 autofocus: autofocus,
                 hint: 'label — “half can”',
+                size: FTextFieldSizeVariant.sm,
+                style: const FTextFieldStyleDelta.delta(
+                  constraints: BoxConstraints(minHeight: kInlineControlHeight),
+                  contentPadding: EdgeInsetsGeometryDelta.value(
+                    EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
+                ),
                 control: FTextFieldControl.managed(
                   initial: initialLabel == null
                       ? null
@@ -577,7 +593,6 @@ class _MeasureForm extends StatelessWidget {
               amountKey: ValueKey('$slot-measure-amount'),
               unitKey: ValueKey('$slot-measure-unit'),
               amountWidth: 40,
-              unitWidth: 64,
               amount: initialAmount ?? '',
               unit: unit,
               units: units,
@@ -586,8 +601,17 @@ class _MeasureForm extends StatelessWidget {
               onSubmit: onSave,
             ),
             const SizedBox(width: 8),
+            // The density sentence's button, to the point: `sm` floors at
+            // 40 pt on a touch platform, which is a row of its own.
             FButton(
-              size: FButtonSizeVariant.sm,
+              size: FButtonSizeVariant.xs,
+              style: const FButtonStyleDelta.delta(
+                contentStyle: FButtonContentStyleDelta.delta(
+                  padding: EdgeInsetsGeometryDelta.value(
+                    EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+                  ),
+                ),
+              ),
               onPress: onSave,
               child: Text(saveLabel),
             ),

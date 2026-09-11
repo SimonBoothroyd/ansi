@@ -8,20 +8,29 @@
 /// head before typing — "density is in science, not on some packages" — so
 /// wherever an amount has a unit, the unit is part of the control.
 ///
+/// **The unit is picked the way units are picked everywhere else**: the slot is
+/// a single [UnitChip], drawn selected and carrying the unit's own label, and
+/// tapping it opens [showUnitPickSheet] — the same chips the quantity sheet
+/// docks over its keypad, in a room the size of one question. Two text boxes
+/// side by side, one of them a dropdown, made the sentence read as a form.
+///
 /// It is built from [InlineAmountField] and so inherits its discipline: the
 /// slot is as tall as a line of digits and as wide as a plausible value, and
-/// the select is trimmed to the same height, so the sentence around it stays a
-/// sentence at 402 pt rather than becoming three rows.
+/// the chip is trimmed to the same [kInlineControlHeight], so the sentence
+/// around it stays a sentence at 402 pt rather than becoming three rows. That
+/// height is the control's contract with its hosts: whatever a host puts
+/// beside it — a label field, an Add button, a remove glyph — sits at the same
+/// height, or the run reads as two.
 ///
 /// The text is handed back **exactly as typed** — the parse
 /// belongs to the caller, for the reason [InlineAmountField] documents.
 library;
 
 import 'package:flutter/widgets.dart';
-import 'package:forui/forui.dart';
 
 import '../core/units/units.dart';
 import 'inline_amount_field.dart';
+import 'unit_chip.dart';
 
 class AmountAndUnitField extends StatelessWidget {
   const AmountAndUnitField({
@@ -34,7 +43,6 @@ class AmountAndUnitField extends StatelessWidget {
     this.amountKey,
     this.unitKey,
     this.amountWidth = 46,
-    this.unitWidth = 96,
     this.seed = 0,
     super.key,
   });
@@ -55,13 +63,12 @@ class AmountAndUnitField extends StatelessWidget {
   /// What the keyboard's done key does. Null unfocuses.
   final VoidCallback? onSubmit;
 
-  /// Keyed on the field and the select themselves, so a test targets one slot
+  /// Keyed on the field and the chip themselves, so a test targets one slot
   /// of a sentence that has two.
   final Key? amountKey;
   final Key? unitKey;
 
   final double amountWidth;
-  final double unitWidth;
 
   /// Bumped to re-seed the amount slot from [amount] — the field seeds its
   /// controller once, so new text needs a new field to seed it into.
@@ -83,34 +90,24 @@ class AmountAndUnitField extends StatelessWidget {
             onSubmit ?? () => FocusManager.instance.primaryFocus?.unfocus(),
       ),
       const SizedBox(width: 5),
+      // The chip sizes to its own label rather than to a column width: a
+      // sentence saying `tbsp` should not reserve the room `fl oz` needs.
       SizedBox(
-        width: unitWidth,
-        child: FSelect<Unit>.rich(
+        height: kInlineControlHeight,
+        child: UnitChip(
           key: unitKey,
-          size: FTextFieldSizeVariant.sm,
-          // The small variant still floors at Forui's touch height; trim it to
-          // the inline slot's 32 pt so the sentence sits at one height.
-          style: FSelectStyleDelta.delta(
-            fieldStyles: FVariantsDelta.delta([
-              FVariantOperation.match(
-                {FTextFieldSizeVariant.sm},
-                const FTextFieldStyleDelta.delta(
-                  constraints: BoxConstraints(minHeight: 32),
-                  contentPadding: EdgeInsetsGeometryDelta.value(
-                    EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  ),
-                ),
-              ),
-            ]),
-          ),
-          format: (u) => u.label,
-          control: FSelectControl<Unit>.lifted(
-            value: unit,
-            onChange: (u) => onUnit(u ?? unit),
-          ),
-          children: [
-            for (final u in units) FSelectItem(title: Text(u.label), value: u),
-          ],
+          label: unit.label,
+          // Always the chosen one — a lone chip is not an offer, it is what
+          // this sentence currently says.
+          selected: true,
+          onTap: () async {
+            final picked = await showUnitPickSheet(
+              context,
+              units: units,
+              selected: unit,
+            );
+            if (picked != null) onUnit(picked);
+          },
         ),
       ),
     ],

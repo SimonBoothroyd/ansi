@@ -25,6 +25,7 @@ import 'package:ansi/features/ingredients/presentation/density_entry.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_list_view.dart';
 import 'package:ansi/features/ingredients/presentation/piece_weight_entry.dart';
+import 'package:ansi/shared/ansi_sheet_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -236,7 +237,7 @@ final Finder densityAmountField = find.descendant(
   matching: find.byType(TextField),
 );
 
-/// The two unit pickers in the density sentence — its volume side and its
+/// The two unit chips in the density sentence — its volume side and its
 /// weight side.
 final Finder densityAmountUnit = find.byKey(
   const ValueKey('density-amount-unit'),
@@ -264,24 +265,21 @@ final Finder servingAmountField = find.descendant(
   matching: find.byType(TextField),
 );
 
-/// The serving row's unit picker — a select over every kitchen unit, which is
-/// what replaced the `g · ml` chips and the free-text name beside them.
-final Finder servingUnitSelect = find.byKey(const ValueKey('serving-unit'));
+/// The serving row's unit half — one chip carrying the unit the row says,
+/// which opens the pick sheet.
+final Finder servingUnitChip = find.byKey(const ValueKey('serving-unit'));
 
-/// One unit's option inside the serving row's open select. Found by its
-/// VALUE, not by its text: the popover renders in an overlay that sorts
-/// *before* the page in finder order, so `find.text('cup').last` picks the
-/// density sentence's `cup` chip instead of the option.
-Finder servingUnitOption(Unit unit) =>
-    find.byWidgetPredicate((w) => w is FSelectItem<Unit> && w.value == unit);
+/// One unit's chip inside the OPEN pick sheet. Scoped to the sheet rather
+/// than found by text alone: the same word is on the page behind it — the
+/// closed chip says one of these, and the density sentence says another.
+Finder servingUnitOption(Unit unit) => find.descendant(
+  of: find.byType(AnsiSheetShell),
+  matching: find.text(unit.label),
+);
 
-/// Opens the serving row's unit select and picks [unit].
-///
-/// The popover scrolls — twelve units is taller than it opens — so an option
-/// below the fold is laid out where a tap cannot reach it. Ensure it is
-/// visible first, or the tap lands on the page behind and the unit never moves.
+/// Opens the serving row's unit sheet and picks [unit].
 Future<void> pickServingUnit(WidgetTester tester, Unit unit) async {
-  await tester.tap(servingUnitSelect);
+  await tester.tap(servingUnitChip);
   await tester.pumpAndSettle();
   await tester.ensureVisible(servingUnitOption(unit));
   await tester.pumpAndSettle();
@@ -364,7 +362,7 @@ final Finder measureAmountField = find.descendant(
   of: find.byKey(const ValueKey('add-measure-amount')),
   matching: find.byType(TextField),
 );
-final Finder measureUnitPicker = find.byKey(const ValueKey('add-measure-unit'));
+final Finder measureUnitChip = find.byKey(const ValueKey('add-measure-unit'));
 
 /// The same two, in the form a tapped row opens into.
 final Finder editMeasureLabelField = find.descendant(
@@ -512,10 +510,13 @@ final Finder pieceWeightField = find.descendant(
   matching: find.byType(TextField),
 );
 
-/// Picks [label] in one amount-and-unit control's unit select — the control
-/// every amount-with-a-unit in the form now wears.
-Future<void> pickUnit(WidgetTester tester, Finder select, String label) async {
-  await tester.tap(select);
+/// Picks [label] in one amount-and-unit control — taps its unit chip, which
+/// opens the pick sheet, and taps the chip for [label] in there.
+///
+/// `.last`: the sheet is a route above the page, so its chip is later in the
+/// tree than the closed chip showing the current unit.
+Future<void> pickUnit(WidgetTester tester, Finder chip, String label) async {
+  await tester.tap(chip);
   await tester.pumpAndSettle();
   await tester.tap(find.text(label).last);
   await tester.pumpAndSettle();

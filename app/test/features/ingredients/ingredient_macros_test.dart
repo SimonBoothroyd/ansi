@@ -18,6 +18,8 @@ import 'package:ansi/features/ingredients/barcode/barcode_add.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart';
 import 'package:ansi/features/ingredients/presentation/serving_row.dart';
+import 'package:ansi/shared/ansi_sheet_shell.dart';
+import 'package:ansi/shared/unit_chip.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -60,7 +62,7 @@ void main() {
       // of it.
       expect(find.byKey(const ValueKey('serving-amount')), findsOneWidget);
       expect(find.byKey(const ValueKey('serving-name')), findsNothing);
-      expect(servingUnitSelect, findsOneWidget);
+      expect(servingUnitChip, findsOneWidget);
 
       await typeMacros(tester, kcal: '100', protein: '0', carb: '0', fat: '11');
       // The four are in, the serving is not: the preview says what it needs
@@ -108,12 +110,15 @@ void main() {
 
       await tester.tap(find.text('per serving'));
       await tester.pumpAndSettle();
-      await tester.tap(servingUnitSelect);
+      await tester.tap(servingUnitChip);
       await tester.pumpAndSettle();
       // Every mass and volume unit the catalog holds, and nothing else — no
       // `piece`, no `pinch`: a label prints a weight or a measure.
       expect(
-        find.byWidgetPredicate((w) => w is FSelectItem<Unit>),
+        find.descendant(
+          of: find.byType(AnsiSheetShell),
+          matching: find.byType(UnitChip),
+        ),
         findsNWidgets(kServingUnits.length),
       );
       for (final u in kServingUnits) {

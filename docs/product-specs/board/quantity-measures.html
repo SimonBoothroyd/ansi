@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Quantity &amp; measures</h1>
-    <p class="view-status">built · matches code 2026-09-10 · <code>features/ingredients</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a></p>
+    <p class="view-status">built · matches code 2026-09-11 · <code>features/ingredients</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a></p>
     <p class="view-blurb">One dock everywhere an amount is set: this ingredient’s admitted units as chips over a keypad, and the conversion said out loud above them.</p>
 </header>
 
@@ -157,7 +157,7 @@
                     <div class="msr-row"><span class="grip">&#8942;&#8942;</span><span class="srcdot typ"></span><span class="mlab">can</span><span class="mg">400 g</span><span class="msrc">estimate</span></div>
                     <div class="addm-card" style="margin:6px 0 0">
                         <div class="addm-h">✎ edit measure</div>
-                        <div class="addm-fields"><span class="addm-in">half can</span><span class="addm-in g">200</span><span class="usel">g <b>&#9662;</b></span><span class="addm-save">Save</span></div>
+                        <div class="addm-fields"><span class="addm-in">half can</span><span class="addm-in g">200</span><span class="uchip on">g</span><span class="addm-save">Save</span></div>
                         <div class="addm-note">leave it as it was</div>
                     </div>
                 </div>
@@ -167,16 +167,30 @@
                 <div class="field" style="margin-top:16px">
                     <div class="addm-card" style="margin-bottom:0">
                         <div class="addm-h">＋ add measure</div>
-                        <div class="addm-fields"><span class="addm-in" style="color:var(--muted)">label — “half can”</span><span class="addm-in g">7</span><span class="usel">oz <b>&#9662;</b></span><span class="addm-save">Save</span></div>
+                        <div class="addm-fields"><span class="addm-in" style="color:var(--muted)">label — “half can”</span><span class="addm-in g">7</span><span class="uchip on">oz</span><span class="addm-save">Save</span></div>
                         <div class="addm-note"><span class="srcdot you"></span>saved as yours — synced &amp; editable</div>
                     </div>
                 </div>
-                <p class="conv-note" style="margin-top:14px">the amount takes <b>the unit it was weighed in</b> — a scale says 7 oz and the row stores 198.4 g. The picker offers what this row can convert to its basis, and nothing else.</p>
+                <p class="conv-note" style="margin-top:14px">the amount takes <b>the unit it was weighed in</b> — a scale says 7 oz and the row stores 198.4 g. The unit is <b>one chip</b>, tapped to open the pick sheet, and it offers what this row can convert to its basis and nothing else.</p>
+                <p class="conv-note" style="margin-top:8px"><b>The form is one run at one height.</b> The label field, the amount, its unit chip and the button are all <b>32 pt</b>: this row used to draw a full-height label field beside a 32 pt control and a touch-sized button beside both, which read as three controls from three different screens.</p>
                 <p class="conv-note" style="margin-top:8px"><b>the bin is refused while anything still says it</b> &mdash; <span style="font-family:'IBM Plex Mono',monospace">Can&rsquo;t delete &ldquo;half can&rdquo; yet &middot; 3 lines still say it, in 2 recipes.</span> The door, <b>Show me where</b>, lists them. A tombstoned measure is not an error anywhere downstream: the totals just quietly stop counting those lines.</p>
                 <p class="conv-note" style="margin-top:8px">density is <b>not</b> here: it is one row on the ingredient’s own form — see <a href="./ingredient-detail.html" style="color:var(--herb)">Ingredient detail</a></p>
                 <p class="rc-note">Measures bridge count ↔ the basis only — volume is density’s job, so a “cup” label redirects here (7.8): the spoon mapping <b>is</b> the density, and saving it unlocks the other family’s chips.</p>
             </div></div>
         </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>The unit pick sheet</b> · what a unit <b>chip</b> in a sentence opens — the same offer as the dock above, laid out rather than scrolled, because nothing here sits over a keypad</p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet">
+            <div class="grab"></div>
+            <p class="c-h" style="font-size:18px">Unit</p>
+            <div class="uchips wrapped" style="margin:14px 20px 0">
+                <span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip on">ml</span><span class="uchip">l</span><span class="uchip">tsp</span><span class="uchip">tbsp</span><span class="uchip">fl oz</span><span class="uchip">cup</span><span class="uchip">pt</span><span class="uchip">qt</span>
+            </div>
+            <p class="conv-note" style="margin:14px 20px 0">The offer is <b>the caller's own list</b> in the caller's order — every kitchen unit for a serving, only what a basis can reach for a piece weight or a measure, only the yield's denominations for a component. No measures and no imprecise words: those need an ingredient and its measures, which is the dock's business, not a sentence's.</p>
+            <p class="conv-note" style="margin:8px 20px 0">One tap picks and closes. Backing out changes nothing — the sentence keeps the unit it was already saying.</p>
+        </div></div>
+    </div>
 
     <div class="frame">
         <p class="frame-name"><b>The piece weight, in the manage state</b> · on a piece-default row it sits under the measures list — folded to its headline once the number is stated; this host has no Save, so a number written here admits <code>piece</code> on the next chip row</p>

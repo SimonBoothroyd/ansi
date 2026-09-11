@@ -437,11 +437,11 @@ void main() {
       await tester.tap(find.text('· change'));
       await tester.pumpAndSettle();
       await scrollTo(tester, find.text('weighs'));
-      // The sentence's left side is the one amount-and-unit control: a
-      // select, opened and picked, not a chip.
-      final mlSelect = find.byKey(const ValueKey('density-amount-unit'));
-      await centerOn(tester, mlSelect);
-      await tester.tap(mlSelect);
+      // The sentence's left side is the one amount-and-unit control: its
+      // unit chip, tapped, and the pick taken off the sheet it opens.
+      final mlChip = find.byKey(const ValueKey('density-amount-unit'));
+      await centerOn(tester, mlChip);
+      await tester.tap(mlChip);
       await tester.pumpAndSettle();
       final ml = find.text('ml').last;
       await tester.ensureVisible(ml);

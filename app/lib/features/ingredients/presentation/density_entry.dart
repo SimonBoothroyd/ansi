@@ -331,7 +331,6 @@ class DensityEntry extends HookWidget {
                 // every point here is a point the sentence needs to stay one
                 // run at 402 pt.
                 amountWidth: 34,
-                unitWidth: 68,
                 amount: formatQuantityIn(amount.value, spoon.value),
                 unit: spoon.value,
                 units: _units,
@@ -361,7 +360,6 @@ class DensityEntry extends HookWidget {
                 amountKey: const ValueKey('density-grams'),
                 unitKey: const ValueKey('density-grams-unit'),
                 amountWidth: 34,
-                unitWidth: 62,
                 // In the unit the slot beside it names: a weight seeded from
                 // the stored density is a scale reading — `156.15 g`, never
                 // `156 1/8` — and it has to read as the fact sheet says it.

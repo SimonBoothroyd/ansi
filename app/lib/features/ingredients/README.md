@@ -233,12 +233,15 @@ ingredients/
     ingredient_picker.dart      the picker + the add-new chain's row
     measures_editor.dart        add/remove named measures, shared by two hosts
     serving_row.dart            the per-serving macro mode: "One serving is
-                                [2] [tbsp ▾]", the derivation line under the
+                                [2] [tbsp]", the derivation line under the
                                 four fields, and the pack's own two columns
                                 checked against each other on a scanned row
     draft_card.dart             the barcode result card
     quantity_unit_sheet.dart    quantity + unit chips, manage measures
-    unit_chips.dart             UnitChipRow/UnitChip, the shared unit dock
+    unit_chips.dart             UnitChipRow, the unit dock over the keypad
+                                (the chip itself is shared/unit_chip.dart,
+                                which also holds the pick sheet a sentence's
+                                unit chip opens)
     density_entry.dart          "1 [tbsp] weighs [__] g" on one row; folds
                                 to "0.13 g/ml · change" once stated. Shared
     piece_weight_entry.dart     "1 piece weighs [__] g" — the same sentence

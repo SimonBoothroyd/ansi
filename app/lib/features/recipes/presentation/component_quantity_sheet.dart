@@ -37,7 +37,7 @@ import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/format.dart';
-import '../../ingredients/presentation/unit_chips.dart' show UnitChip;
+import '../../../shared/unit_chip.dart';
 import '../domain/component_math.dart';
 import '../domain/component_units.dart';
 import '../domain/recipe.dart';
@@ -171,7 +171,7 @@ class ComponentQuantityEditor extends HookWidget {
         ),
         const SizedBox(height: 8),
         SizedBox(
-          height: 34,
+          height: kUnitChipHeight,
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(

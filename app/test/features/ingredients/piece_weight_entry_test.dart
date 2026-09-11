@@ -13,6 +13,7 @@ import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/presentation/piece_weight_entry.dart';
+import 'package:ansi/shared/inline_amount_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -236,6 +237,27 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.widgetWithText(FButton, 'Save'), findsOneWidget);
     });
+  });
+
+  testWidgets('every control on the sentence is the same height', (
+    tester,
+  ) async {
+    filterForuiSemanticsAssertions();
+    phoneWidth(tester);
+    await tester.pumpWidget(_host(_shallot));
+    await tester.pumpAndSettle();
+
+    for (final part in [
+      find.byKey(const ValueKey('piece-weight-field')),
+      find.byKey(const ValueKey('piece-weight-unit')),
+      find.byKey(const ValueKey('piece-weight-save')),
+    ]) {
+      expect(
+        tester.getSize(part).height,
+        kInlineControlHeight,
+        reason: part.describeMatch(Plurality.one),
+      );
+    }
   });
 
   group('the weight takes a unit', () {

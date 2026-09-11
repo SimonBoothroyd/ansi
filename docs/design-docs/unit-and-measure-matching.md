@@ -94,9 +94,23 @@ the density field (`volumeUnitFromLabel` / `DensityEntry`).
 
 Every amount this app stores alongside a unit is entered through one widget,
 `shared/amount_and_unit.dart` (`AmountAndUnitField`): an inline number slot and
-a unit picker trimmed to the same height, so the sentence around it stays a
-sentence at 402 pt. It is what the serving row, both sides of the density
-sentence, the piece weight, a measure's amount and the recipe's yield draw.
+the unit beside it as **one selected chip** — the same `UnitChip` the quantity
+sheet docks over its keypad (`shared/unit_chip.dart`) — which opens a small
+pick sheet holding the control's whole offer as chips. It is what the serving
+row, both sides of the density sentence, the piece weight, a measure's amount
+and the recipe's yield draw.
+
+**One height, everywhere.** `kInlineControlHeight` (32 pt,
+`shared/inline_amount_field.dart`) is the control's contract with its hosts:
+the number slot, the unit chip, and whatever a host puts on the same run — a
+label field, an Add button, a remove glyph — all sit at it, because Forui's
+touch defaults (a 44 pt field, a 40 pt `sm` button, a 44 pt icon button) turn
+one sentence into a stack of rows. Four widget tests hold the five hosts to
+it.
+
+**There is no unit dropdown anywhere**, this control included: it shipped as a
+select beside the number, which read as a form asking two questions rather
+than as one sentence stating a fact.
 
 The unit is **picked, not printed**, because a scale or a pack states one and
 it is rarely the row's basis: "1 onion weighs 4 oz", "half can = 7 oz". The

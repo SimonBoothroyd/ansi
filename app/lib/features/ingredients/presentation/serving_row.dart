@@ -117,12 +117,14 @@ class ServingDraft {
       Object.hash(amountText, unit, packPrinted, packPrintedText);
 }
 
-/// "One serving is `[1]` `[cup ▾]`" — the whole row.
+/// "One serving is `1` `cup`" — the whole row.
 ///
-/// **A picker, not chips.** Twelve kitchen units is three runs of chips at
-/// 402 pt and one control as a select, and the sentence has to stay a
-/// sentence. The form already uses this idiom for the category, so the row
-/// borrows a shape the page has rather than inventing one.
+/// **The unit is one chip, and the twelve are behind it.** Twelve kitchen
+/// units is three runs of chips at 402 pt, so the row wears
+/// [AmountAndUnitField]: the unit it currently says drawn as the chip it
+/// would be in any dock, and the whole offer one tap away. The sentence stays
+/// a sentence, and a unit is still picked the way units are picked everywhere
+/// else.
 ///
 /// The unit sets the row's **basis**, so the admission chips and the stored
 /// dimension follow it live. Each field reports its own value rather than a
@@ -152,7 +154,6 @@ class ServingRow extends StatelessWidget {
         amountKey: const ValueKey('serving-amount'),
         unitKey: const ValueKey('serving-unit'),
         amountWidth: 52,
-        unitWidth: 112,
         amount: draft.amountText,
         unit: draft.unit,
         units: kServingUnits,

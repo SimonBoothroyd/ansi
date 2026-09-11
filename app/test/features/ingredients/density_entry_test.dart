@@ -14,6 +14,7 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/presentation/density_entry.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_facts.dart';
+import 'package:ansi/shared/inline_amount_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -72,6 +73,32 @@ void main() {
       final available = tester.getRect(wrap);
       expect(rects.last.right, lessThanOrEqualTo(available.right));
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('every control on the run is the same height', (tester) async {
+      filterForuiSemanticsAssertions();
+      phoneWidth(tester);
+      await tester.pumpWidget(densityHost(curryLeaves));
+      await tester.pumpAndSettle();
+
+      // The words are as tall as the words; the CONTROLS are one height, and
+      // that is what stops a sentence reading as a form.
+      for (final part in [
+        find.byKey(const ValueKey('density-amount')),
+        find.byKey(const ValueKey('density-amount-unit')),
+        find.byKey(const ValueKey('density-grams')),
+        find.byKey(const ValueKey('density-grams-unit')),
+        find.descendant(
+          of: find.byType(DensityEntry),
+          matching: find.byType(FButton),
+        ),
+      ]) {
+        expect(
+          tester.getSize(part.first).height,
+          kInlineControlHeight,
+          reason: part.describeMatch(Plurality.one),
+        );
+      }
     });
 
     testWidgets('the longest label ("Save", the quantity sheet’s) still fits', (

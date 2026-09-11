@@ -1,18 +1,18 @@
-/// The unit chip row and its chip — the dock every quantity surface rides.
+/// The unit chip row — the dock every quantity surface rides.
 ///
-/// It lives on its own because it is shared: the quantity sheet builds the row
-/// from an ingredient's admission set and its measures, and the **component**
-/// quantity sheet builds its own row of [UnitChip]s over batch math instead.
-/// The two are the same object, not two skins that drift.
+/// The chip itself is [UnitChip], in `shared/`, because a third surface wears
+/// one outside any row: the amount-and-unit control's sentence. This row is
+/// the part that needs an [Ingredient] and its measures, which is exactly why
+/// it is not the reusable piece.
 library;
 
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
-import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/unit_chip.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 import '../domain/serving_measure.dart';
@@ -160,89 +160,13 @@ class _UnitChipRowState extends State<UnitChipRow> {
     );
 
     return SizedBox(
-      height: 34,
+      height: kUnitChipHeight,
       // A single scrollable Row (not a lazy ListView): every chip keeps a
       // live context, so the open-scroll can ensureVisible the selected one
       // even when it sits past the fold.
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(children: children),
-      ),
-    );
-  }
-}
-
-/// One chip of the row. Public because the **component** quantity sheet
-/// (step 8.6 / D2) rides the same dock with a different offer — batch math
-/// instead of measures — and the two must be the same object, not two skins
-/// that drift.
-class UnitChip extends StatelessWidget {
-  const UnitChip({
-    required this.onTap,
-    this.label,
-    this.icon,
-    this.selected = false,
-    this.imprecise = false,
-    this.accent = false,
-    this.dot,
-    this.suffix,
-    super.key,
-  }) : assert(label != null || icon != null, 'a chip needs a label or icon');
-
-  final String? label;
-  final Widget? icon;
-  final bool selected;
-  final bool imprecise;
-  final bool accent;
-  final Widget? dot;
-
-  /// A subtle annotation after the label ("not in filter") — the admitted
-  /// off-filter selection reads as such without being hidden.
-  final String? suffix;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final fg = selected
-        ? AnsiColors.surface
-        : accent
-        ? AnsiColors.herb
-        : imprecise
-        ? AnsiColors.muted
-        : AnsiColors.ink;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(right: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected ? AnsiColors.herb : AnsiColors.surface,
-          border: Border.all(
-            color: selected || accent ? AnsiColors.herb : AnsiColors.line,
-          ),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (dot != null) ...[dot!, const SizedBox(width: 5)],
-            if (icon != null) icon!,
-            if (label != null)
-              Text(label!, style: ansiMono(size: 11.5, color: fg)),
-            if (suffix != null) ...[
-              const SizedBox(width: 5),
-              Text(
-                suffix!,
-                style: ansiMono(
-                  size: 9,
-                  color: selected ? AnsiColors.surface : AnsiColors.muted,
-                ),
-              ),
-            ],
-          ],
-        ),
       ),
     );
   }

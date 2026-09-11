@@ -31,7 +31,7 @@ import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.da
 import 'package:ansi/features/ingredients/presentation/quantity_unit_sheet.dart'
     show QuantityUnitEditor;
 import 'package:ansi/features/ingredients/presentation/unit_chips.dart'
-    show UnitChip, UnitChipRow;
+    show UnitChipRow;
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/presentation/ingredient_line.dart'
@@ -40,6 +40,7 @@ import 'package:ansi/features/recipes/presentation/recipe_editor_view.dart'
     show RecipeEditorView;
 import 'package:ansi/shared/method_step_text.dart' show MethodChip;
 import 'package:ansi/shared/picker_shell.dart' show PickerShell;
+import 'package:ansi/shared/unit_chip.dart' show UnitChip;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';

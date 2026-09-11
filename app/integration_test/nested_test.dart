@@ -12,13 +12,13 @@
 /// backend running (`make db-up`) and the usual `--dart-define`s.
 library;
 
-import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/presentation/component_quantity_sheet.dart'
     show ComponentQuantityEditor;
 import 'package:ansi/features/recipes/presentation/recipe_chip.dart'
     show RecipeChip;
 import 'package:ansi/features/shopping/presentation/shopping_view.dart'
     show ShoppingView;
+import 'package:ansi/shared/unit_chip.dart' show UnitChip;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -40,8 +40,6 @@ Future<void> enterYieldAmount(
   String amount,
 ) async {
   await scrollTo(tester, yieldSlot(slot));
-  // `.first`: the row's OTHER editable is the unit `FSelect`'s own (forui
-  // builds the select on a read-only text field), and it trails the amount.
   await tester.enterText(
     find
         .descendant(of: yieldSlot(slot), matching: find.byType(EditableText))
@@ -51,25 +49,21 @@ Future<void> enterYieldAmount(
   await tester.pumpAndSettle();
 }
 
-/// Opens a MAKES slot's unit select and leaves it open for inspection. The
-/// popover builds every item eagerly (forui's select content is a
-/// `SingleChildScrollView`, not a lazy list), so an item below its fold is
-/// findable — it just has to be scrolled to before it can be tapped.
+/// Taps a MAKES slot's unit chip and leaves the pick sheet open for
+/// inspection. The sheet lays its whole offer out in a `Wrap`, so a chip
+/// below the fold is findable — it just has to be scrolled to before it can
+/// be tapped.
 Future<void> openYieldUnits(WidgetTester tester, String slot) async {
   await scrollTo(tester, yieldSlot(slot));
-  // `byWidgetPredicate`, not `byType`: forui's `FSelect.rich` builds a
-  // private subclass, which an exact runtime-type finder never matches.
   await tester.tap(
-    find.descendant(
-      of: yieldSlot(slot),
-      matching: find.byWidgetPredicate((w) => w is FSelect<Unit>),
-    ),
+    find.descendant(of: yieldSlot(slot), matching: find.byType(UnitChip)),
   );
   await tester.pumpAndSettle();
 }
 
-/// Picks [label] in a MAKES slot's unit select. `.last`: the popover's item
-/// is later in the tree than the closed select showing its current value.
+/// Picks [label] in a MAKES slot's unit sheet. `.last`: the sheet is a route
+/// above the page, so its chip is later in the tree than the closed chip
+/// showing the slot's current unit.
 Future<void> pickYieldUnit(
   WidgetTester tester,
   String slot,
