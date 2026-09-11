@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Week</h1>
-    <p class="view-status">built · matches code 2026-09-10 · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0038-plan-an-ingredient.md">plan 0038</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a></p>
+    <p class="view-status">built · matches code 2026-09-11 · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0038-plan-an-ingredient.md">plan 0038</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a></p>
     <p class="view-blurb">One screen with one state — no mode, no separate page. The switcher is the only title, and the week on screen is the week Cook and Shop follow.</p>
 </header>
 
@@ -129,6 +129,7 @@
         <p class="conv-note" style="margin:10px 4px 0"><b>Both rows say it, and they cannot disagree.</b> One variant per <i>(week, recipe)</i> is what makes this drawable: a per-meal override would put “edited” on Tuesday and not Saturday, and then the two rows would be describing two different pots</p>
         <p class="conv-note" style="margin:6px 4px 0">the mark is the <b>cook marker's</b> second, quieter variant — paper ground, hairline, muted (<code>.cookmark.from</code>), the voice the board already uses for <i>“from Monday's batch”</i>: derived, not fresh. It sits beside the cook marker on the row's second line, never on the title line, because it is a fact the row prints and not a target</p>
         <p class="conv-note" style="margin:6px 4px 0">the week's <b>macro strip reads the variant too</b>: a varied recipe is re-summed over the lines this week actually cooks, while every recipe the week leaves alone keeps the Library's own figure</p>
+        <p class="conv-note" style="margin:6px 4px 0">the <b>title carries the week</b> it is planned in (<code>/recipes/:id?week=…</code>), so the recipe page it opens can print <i>“Planned Tue · Sat this week”</i> and offer <b>Edit for this week</b> beside its own Edit. The tap is unchanged — the title still opens the dish it names; it just no longer arrives having forgotten where it came from</p>
     </div>
 
     <div class="frame">

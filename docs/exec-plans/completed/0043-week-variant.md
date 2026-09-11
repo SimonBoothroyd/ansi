@@ -84,6 +84,11 @@ recorded here because the board draws pixels and does not hold decisions.
   its own scope — "a change covers every day this week — Tue and Sat". Without
   that sub-line the row lies about what a tap changes. No new route: the week
   is a query param, exactly as `initialTitle` already is.
+  - *Field use amended this.* One door was one door too few: the owner went
+    looking on Cook and on the Week and could not find it. The sheet's row
+    stays, and the two surfaces that actually hold a week now carry it to the
+    recipe page — see the week-variant paragraph in the product spec for the
+    three doors as they stand.
 - 2026-09-10 — **D2 · Week mode does not draw what it cannot edit.** The whole
   header form and the whole method are absent rather than locked: a control
   drawn and refused has to be explained on every tap. Two carve-outs — serves

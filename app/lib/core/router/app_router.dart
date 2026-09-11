@@ -197,11 +197,19 @@ GoRouter router(Ref ref) {
               state.uri.queryParameters[kHandBackQueryParam] == '1',
         ),
       ),
+      // `?week=YYYY-MM-DD` says the page was opened FROM a week that plans
+      // this recipe — the Week's dish row and the Cook card's title both carry
+      // it. Read exactly as `/recipes/:id/edit` reads it below. It changes
+      // nothing about the page itself; it is what lets the page offer the
+      // week door beside its own Edit, and the page re-checks it against the
+      // week before it does.
       GoRoute(
         path: '/recipes/:id',
         name: 'recipe',
-        builder: (context, state) =>
-            RecipeView(recipeId: state.pathParameters['id']!),
+        builder: (context, state) => RecipeView(
+          recipeId: state.pathParameters['id']!,
+          weekKey: state.uri.queryParameters['week'],
+        ),
       ),
       // `?week=YYYY-MM-DD` opens the editor in WEEK MODE — the same list,
       // saving a diff against the recipe instead of the recipe (exec plan

@@ -528,6 +528,264 @@ final class ViewedWeekOverridesProvider
 String _$viewedWeekOverridesHash() =>
     r'd3d4d070dc3274e8a5ddc4502f50f6f39e373e7b';
 
+@ProviderFor(weekRecipePlacement)
+const weekRecipePlacementProvider = WeekRecipePlacementFamily._();
+
+final class WeekRecipePlacementProvider
+    extends
+        $FunctionalProvider<
+          WeekRecipePlacement,
+          WeekRecipePlacement,
+          WeekRecipePlacement
+        >
+    with $Provider<WeekRecipePlacement> {
+  const WeekRecipePlacementProvider._({
+    required WeekRecipePlacementFamily super.from,
+    required (String, String) super.argument,
+  }) : super(
+         retry: null,
+         name: r'weekRecipePlacementProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$weekRecipePlacementHash();
+
+  @override
+  String toString() {
+    return r'weekRecipePlacementProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  $ProviderElement<WeekRecipePlacement> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  WeekRecipePlacement create(Ref ref) {
+    final argument = this.argument as (String, String);
+    return weekRecipePlacement(ref, argument.$1, argument.$2);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(WeekRecipePlacement value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<WeekRecipePlacement>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is WeekRecipePlacementProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$weekRecipePlacementHash() =>
+    r'59f2525a9cf8129e44dd6a43efcff55d873c79ce';
+
+final class WeekRecipePlacementFamily extends $Family
+    with $FunctionalFamilyOverride<WeekRecipePlacement, (String, String)> {
+  const WeekRecipePlacementFamily._()
+    : super(
+        retry: null,
+        name: r'weekRecipePlacementProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  WeekRecipePlacementProvider call(String recipeId, String weekKey) =>
+      WeekRecipePlacementProvider._(argument: (recipeId, weekKey), from: this);
+
+  @override
+  String toString() => r'weekRecipePlacementProvider';
+}
+
+/// The week [weekKey] names, with its meals — a sibling of [viewedWeek] keyed
+/// by the link rather than by what is on screen.
+
+@ProviderFor(weekPlanFor)
+const weekPlanForProvider = WeekPlanForFamily._();
+
+/// The week [weekKey] names, with its meals — a sibling of [viewedWeek] keyed
+/// by the link rather than by what is on screen.
+
+final class WeekPlanForProvider
+    extends
+        $FunctionalProvider<AsyncValue<WeekPlan?>, WeekPlan?, Stream<WeekPlan?>>
+    with $FutureModifier<WeekPlan?>, $StreamProvider<WeekPlan?> {
+  /// The week [weekKey] names, with its meals — a sibling of [viewedWeek] keyed
+  /// by the link rather than by what is on screen.
+  const WeekPlanForProvider._({
+    required WeekPlanForFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'weekPlanForProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$weekPlanForHash();
+
+  @override
+  String toString() {
+    return r'weekPlanForProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<WeekPlan?> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<WeekPlan?> create(Ref ref) {
+    final argument = this.argument as String;
+    return weekPlanFor(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is WeekPlanForProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$weekPlanForHash() => r'f47025e4ea7022c50416f643ba3731bed97246d7';
+
+/// The week [weekKey] names, with its meals — a sibling of [viewedWeek] keyed
+/// by the link rather than by what is on screen.
+
+final class WeekPlanForFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<WeekPlan?>, String> {
+  const WeekPlanForFamily._()
+    : super(
+        retry: null,
+        name: r'weekPlanForProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// The week [weekKey] names, with its meals — a sibling of [viewedWeek] keyed
+  /// by the link rather than by what is on screen.
+
+  WeekPlanForProvider call(String weekKey) =>
+      WeekPlanForProvider._(argument: weekKey, from: this);
+
+  @override
+  String toString() => r'weekPlanForProvider';
+}
+
+/// That same week's overrides, keyed by recipe id.
+
+@ProviderFor(weekOverridesFor)
+const weekOverridesForProvider = WeekOverridesForFamily._();
+
+/// That same week's overrides, keyed by recipe id.
+
+final class WeekOverridesForProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Map<String, List<LineOverride>>>,
+          Map<String, List<LineOverride>>,
+          Stream<Map<String, List<LineOverride>>>
+        >
+    with
+        $FutureModifier<Map<String, List<LineOverride>>>,
+        $StreamProvider<Map<String, List<LineOverride>>> {
+  /// That same week's overrides, keyed by recipe id.
+  const WeekOverridesForProvider._({
+    required WeekOverridesForFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'weekOverridesForProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$weekOverridesForHash();
+
+  @override
+  String toString() {
+    return r'weekOverridesForProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<Map<String, List<LineOverride>>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<Map<String, List<LineOverride>>> create(Ref ref) {
+    final argument = this.argument as String;
+    return weekOverridesFor(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is WeekOverridesForProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$weekOverridesForHash() => r'4adc11a8c655c9f068ef2616864485034100c617';
+
+/// That same week's overrides, keyed by recipe id.
+
+final class WeekOverridesForFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          Stream<Map<String, List<LineOverride>>>,
+          String
+        > {
+  const WeekOverridesForFamily._()
+    : super(
+        retry: null,
+        name: r'weekOverridesForProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// That same week's overrides, keyed by recipe id.
+
+  WeekOverridesForProvider call(String weekKey) =>
+      WeekOverridesForProvider._(argument: weekKey, from: this);
+
+  @override
+  String toString() => r'weekOverridesForProvider';
+}
+
 /// Per-recipe macro summaries **for the viewed week**, indexed by recipe id.
 ///
 /// The Library's figure underneath, the week's own on top. A recipe the week

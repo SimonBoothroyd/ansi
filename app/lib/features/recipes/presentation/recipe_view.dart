@@ -31,6 +31,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
+import '../../../core/words.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_stepper_row.dart';
@@ -42,6 +43,9 @@ import '../../../shared/method_step_text.dart';
 import '../../../shared/write.dart';
 import '../../ingredients/presentation/ingredient_detail_view.dart'
     show ingredientDetailRoute;
+import '../../planning/presentation/week_recipe_band.dart';
+import '../../planning/presentation/week_variant_format.dart';
+import '../../planning/presentation/week_view_models.dart';
 import '../data/recipe_providers.dart';
 import '../domain/line_display.dart';
 import '../domain/method_step.dart';
@@ -56,9 +60,15 @@ import 'recipe_macro_panel.dart';
 import 'recipe_view_models.dart';
 
 class RecipeView extends ConsumerWidget {
-  const RecipeView({required this.recipeId, super.key});
+  const RecipeView({required this.recipeId, this.weekKey, super.key});
 
   final String recipeId;
+
+  /// The week this page was opened FROM (`?week=YYYY-MM-DD`), carried by the
+  /// Week's dish row and the Cook card's title. Null from the Library, and
+  /// treated as null whenever that week does not actually plan this recipe —
+  /// see [_RecipeBody].
+  final String? weekKey;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -80,15 +90,18 @@ class RecipeView extends ConsumerWidget {
                 child: Text('Recipe not found', style: ansiSerif(size: 20)),
               ),
             )
-          : _RecipeBody(recipe: recipe),
+          : _RecipeBody(recipe: recipe, weekKey: weekKey),
     );
   }
 }
 
 class _RecipeBody extends HookConsumerWidget {
-  const _RecipeBody({required this.recipe});
+  const _RecipeBody({required this.recipe, this.weekKey});
 
   final Recipe recipe;
+
+  /// See [RecipeView.weekKey].
+  final String? weekKey;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -130,6 +143,17 @@ class _RecipeBody extends HookConsumerWidget {
     // A reading posture, held for the session (see [ShowLineMacros]) — the
     // menu offers it only from the tab it changes.
     final lineMacros = ref.watch(showLineMacrosProvider);
+    // A PLANNED arrival: opened from the Week's dish row or the Cook card,
+    // and still planned by the week that link names. The guard is the second
+    // half — a link kept in a back stack after the meal was removed must not
+    // offer a week the person has left — so the page asks the week rather
+    // than trusting the parameter. From the Library there is no key, nothing
+    // is watched, and the page is exactly what it was.
+    final key = weekKey;
+    final placement = key == null
+        ? const (days: <int>[], edited: false)
+        : ref.watch(weekRecipePlacementProvider(recipe.id, key));
+    final plannedWeek = placement.days.isEmpty ? null : key;
 
     return FScaffold(
       childPad: false,
@@ -186,14 +210,40 @@ class _RecipeBody extends HookConsumerWidget {
                         ref.read(showLineMacrosProvider.notifier).toggle();
                       },
                     ),
+                  // Named "Edit recipe" only where the week door stands
+                  // beside it: the rename exists so the two doors read as
+                  // two, and from the Library there is only one.
                   FItem(
                     prefix: const Icon(FLucideIcons.pencil),
-                    title: const Text('Edit'),
+                    title: Text(plannedWeek == null ? 'Edit' : 'Edit recipe'),
                     onPress: () {
                       unawaited(controller.hide());
                       context.pushOnce('/recipes/${recipe.id}/edit');
                     },
                   ),
+                  // The second door into week mode (the first is the row at
+                  // the foot of the meal editor sheet). It is here because
+                  // this is where a planned recipe is LOOKED at — the owner
+                  // went looking on Cook and on the Week and found nothing.
+                  // It names the days it covers, because what it changes is
+                  // those days and not the recipe.
+                  if (plannedWeek != null)
+                    FItem(
+                      prefix: const Icon(FLucideIcons.calendarCog),
+                      title: Text(
+                        editForThisWeekItem(
+                          placement.days,
+                          kWeekdayShort,
+                          weekKey: plannedWeek,
+                        ),
+                      ),
+                      onPress: () {
+                        unawaited(controller.hide());
+                        context.pushOnce(
+                          '/recipes/${recipe.id}/edit?week=$plannedWeek',
+                        );
+                      },
+                    ),
                   FItem(
                     prefix: const Icon(FLucideIcons.trash2),
                     title: const Text('Delete'),
@@ -218,6 +268,13 @@ class _RecipeBody extends HookConsumerWidget {
           Text(_breadcrumb(recipe), style: ansiLabel(color: AnsiColors.herb)),
           const SizedBox(height: 8),
           Text(title, style: ansiSerif(size: 33, weight: FontWeight.w700)),
+          // One band, under the title: which days of the week you came from
+          // cook this, and whether the week varies it. It is what makes the
+          // ⋯ menu's second item legible before it is opened.
+          if (plannedWeek != null) ...[
+            const SizedBox(height: 10),
+            PlannedThisWeekBand(days: placement.days, edited: placement.edited),
+          ],
           const SizedBox(height: 12),
           _Chips(recipe: recipe),
           const SizedBox(height: 20),

@@ -557,6 +557,10 @@ class _DishRow extends ConsumerWidget {
             dayOfWeek: entry.dayOfWeek,
             mealSlot: entry.mealSlot,
           );
+    // The week this row belongs to, carried into the dish's page: the recipe
+    // page's week door is only offered to an arrival that names a week which
+    // actually plans the recipe.
+    final weekKey = weekKeyOf(ref.watch(viewedWeekStartProvider));
     // Every planned day of a varied recipe says so, because the variant is
     // per (week, recipe) — two rows describing one pot cannot disagree.
     final edited =
@@ -587,12 +591,16 @@ class _DishRow extends ConsumerWidget {
                   // not a recipe). A deleted target has no page to open, so
                   // the title is inert — the row's other two targets still
                   // work, because the meal is still a real row on the week.
+                  // The dish's page is opened WITH the week it is planned in
+                  // (`?week=`), so the page can offer the week door beside
+                  // its own Edit. A snack has no recipe to vary, so its
+                  // ingredient page is opened plain.
                   onTap: deleted
                       ? null
                       : () => context.pushOnce(
                           snack
                               ? '/ingredients/${entry.ingredientId}'
-                              : '/recipes/${entry.recipeId}',
+                              : '/recipes/${entry.recipeId}?week=$weekKey',
                         ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10),

@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Cook &amp; Shop</h1>
-    <p class="view-status">built · matches code 2026-09-10 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a></p>
+    <p class="view-status">built · matches code 2026-09-11 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a></p>
     <p class="view-blurb">Two tabs derived from the week on screen — sessions grouped by recipe and split by shelf life, then one list summed from them, saying where every line came from.</p>
 </header>
 
@@ -251,6 +251,7 @@
         <p class="conv-note" style="margin:10px 4px 0"><b>The card says four words and no more.</b> <i>edited for this week</i>, appended to the sub-line the card already prints. There is no note, no amber band, no second session &mdash; because <b>nothing about the cook changed</b>: one recipe, one week, one line set, one pot, one scale. The whole reason the override is keyed on <i>(week, recipe)</i> rather than on the meal is to keep this card exactly as it is</p>
         <p class="conv-note" style="margin:6px 4px 0"><b>What it would have cost keyed per meal.</b> A session is one pot, one scale, one line set; two covered meals that disagreed about what goes in could not share it. Tuesday and Saturday would split into two sessions, the freezer rescue would stop applying across the split (it merges distant instances of the <i>same</i> dish), and one swapped ingredient would silently cost a whole extra cook</p>
         <p class="conv-note" style="margin:6px 4px 0">the session builder is untouched: the plan still clusters by recipe, and the lines it expands are read once per recipe across all its sessions &mdash; which stays correct, because the variant is per week and recipe too</p>
+        <p class="conv-note" style="margin:6px 4px 0">the <b>card title carries the week</b> it is cooking for (<code>/recipes/:id?week=…</code>), so the recipe page it opens can print <i>&ldquo;Planned Tue &middot; Sat this week&rdquo;</i> and offer <b>Edit for this week</b>. Cook itself stays <b>read-only</b> &mdash; the week rides along on a tap that already existed; nothing here writes it</p>
     </div>
 
     <div class="frame">

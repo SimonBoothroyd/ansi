@@ -45,6 +45,43 @@ String weekScopeLine(
       : '$week · $named both cook these lines';
 }
 
+/// The band a recipe page prints when it was opened FROM a week that plans it
+/// — the fact that makes the page's second door legible before it is tapped.
+///
+/// Dot-joined, not "Tue and Sat": this is a label the eye scans beside the
+/// title, where the door's sub-line is a sentence about scope.
+String plannedThisWeekLine(
+  List<int> days,
+  List<String> weekdayShort, {
+  required bool edited,
+}) {
+  final named = _dayNames(days, weekdayShort).join(' · ');
+  final planned = named.isEmpty
+      ? 'Planned this week'
+      : 'Planned $named this week';
+  return edited ? '$planned · $kEditedForThisWeek' : planned;
+}
+
+/// The recipe page's week door, in its ⋯ menu beside "Edit recipe". It names
+/// the days because the two doors change different things: one changes the
+/// recipe everywhere, this one changes what these days cook.
+String editForThisWeekItem(
+  List<int> days,
+  List<String> weekdayShort, {
+  String? weekKey,
+}) {
+  final names = _dayNames(days, weekdayShort);
+  if (names.isEmpty) {
+    return weekKey == null
+        ? 'Edit for this week'
+        : 'Edit for this week · Week of ${_shortDate(weekKey)}';
+  }
+  final named = names.length == 1
+      ? names.single
+      : '${names.sublist(0, names.length - 1).join(', ')} & ${names.last}';
+  return 'Edit for this week · $named only';
+}
+
 /// The door row's own first line: what the meal is cooking from.
 String weekDoorTitle(int changes) =>
     changes == 0 ? 'As the recipe has them' : 'Edited for this week';
@@ -69,12 +106,16 @@ String fromTheRecipeLine(Recipe recipe) {
 String _servings(double value) =>
     value == value.roundToDouble() ? value.round().toString() : '$value';
 
+/// The weekday names a day list actually names — an out-of-range day is not
+/// invented a name for.
+List<String> _dayNames(List<int> days, List<String> weekdayShort) => [
+  for (final d in days)
+    if (d >= 0 && d < weekdayShort.length) weekdayShort[d],
+];
+
 /// "Tue and Sat", "Tue, Thu and Sat", or null when nothing is planned.
 String? _daysSentence(List<int> days, List<String> weekdayShort) {
-  final names = [
-    for (final d in days)
-      if (d >= 0 && d < weekdayShort.length) weekdayShort[d],
-  ];
+  final names = _dayNames(days, weekdayShort);
   if (names.isEmpty) return null;
   if (names.length == 1) return names.single;
   return '${names.sublist(0, names.length - 1).join(', ')} and ${names.last}';

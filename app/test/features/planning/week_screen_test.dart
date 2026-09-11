@@ -781,10 +781,15 @@ void main() {
       expose: (r) => router = r,
     );
 
-    // E2 — the title opens the recipe it names, with no mode in the way.
+    // E2 — the title opens the recipe it names, with no mode in the way, and
+    // carries the week it is planned in: that is what lets the recipe page
+    // offer "Edit for this week" beside its own Edit.
     await tester.tap(find.text('Weeknight Chicken Curry'));
     await tester.pumpAndSettle();
-    expect(router.state.uri.toString(), '/recipes/r1');
+    expect(
+      router.state.uri.toString(),
+      '/recipes/r1?week=${weekKeyOf(DateTime.now())}',
+    );
     expect(find.text('recipe r1'), findsOneWidget);
 
     router.go('/week');

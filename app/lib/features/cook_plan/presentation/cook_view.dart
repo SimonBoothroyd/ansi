@@ -21,6 +21,7 @@ import '../../../core/words.dart';
 import '../../../shared/ansi_callout.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/guarded_navigation.dart';
+import '../../planning/domain/planning.dart' show weekKeyOf;
 import '../../planning/presentation/week_format.dart';
 import '../../planning/presentation/week_header.dart';
 import '../../planning/presentation/week_view_models.dart';
@@ -138,11 +139,16 @@ class _RecipeCard extends ConsumerWidget {
                     ?.value[recipe.recipeId] ??
                 const [])
             .isNotEmpty;
+    // The title carries the week it is cooking for (`?week=`), so the recipe
+    // page can offer "Edit for this week" beside its own Edit. Cook itself
+    // stays read-only — the week rides along, nothing here writes it.
+    final weekKey = weekKeyOf(ref.watch(viewedWeekStartProvider));
     return _Card(
       accent: split,
       title: recipe.title,
       subtitle: recipeSummaryLine(recipe, editedThisWeek: edited),
-      onTitleTap: () => context.pushOnce('/recipes/${recipe.recipeId}'),
+      onTitleTap: () =>
+          context.pushOnce('/recipes/${recipe.recipeId}?week=$weekKey'),
       children: [
         for (final (i, session) in meals.indexed) ...[
           if (i > 0) const SizedBox(height: 8),

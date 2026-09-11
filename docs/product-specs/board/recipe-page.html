@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe page</h1>
-    <p class="view-status">built · matches code 2026-09-10 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
+    <p class="view-status">built · matches code 2026-09-11 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
     <p class="view-blurb">Two tabs, a scaler, and one per-serving panel closing the ingredients tab — with a total, or with the reason there isn’t one. The <b>⋯</b> menu can also print each line’s own macros under its name.</p>
 </header>
 
@@ -155,6 +155,30 @@
             <div class="macro tight"><div class="m"><div class="mv">520</div><div class="ml">kcal</div></div><div class="m"><div class="mv">34 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">48 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">19 g</div><div class="ml">fat</div></div></div>
             <p class="notcounted"><span class="nk">not counted</span> · <b>2 optional lines:</b> Lime, Coriander<br>optional lines are left out by rule, not by failure — untick <b>Optional</b> on a line to count it.</p>
             <p class="conv-note" style="margin-top:10px">the tag reads in the stub badge’s voice — the same small mono, the same soft ground — after the note, never in the amount column</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Opened from a week that plans it</b> &middot; one band under the title, and a second door in the <b>⋯</b> menu &mdash; the page is otherwise unchanged</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
+            <div class="r-hero">
+                <span class="r-book">Our Cookbook &middot; Slow Sundays</span>
+                <h2 class="r-title">Slow-Cooker Beef Rag&ugrave;</h2>
+                <div class="batch-note" style="margin:10px 0 0">Planned Tue &middot; Sat this week &middot; edited for this week</div>
+                <div class="meta-row"><span class="pill keeps"><span class="mini-fresh"></span>keeps 4 d</span><span class="pill">serves 4</span></div>
+            </div>
+            <div class="lib-menu">
+                <div class="mi"><span class="ic">&#9734;</span><span class="lb">Favorite</span></div>
+                <div class="mi"><span class="ic">&Sigma;</span><span class="lb">Show line macros</span></div>
+                <div class="mi"><span class="ic">&#9998;</span><span class="lb">Edit recipe</span></div>
+                <div class="mi"><span class="ic">&#9744;</span><span class="lb">Edit for this week &middot; Tue &amp; Sat only</span></div>
+                <div class="mi danger"><span class="ic">&times;</span><span class="lb">Delete</span></div>
+            </div>
+            <p class="conv-note">the <b>Week's dish row</b> and the <b>Cook card's title</b> both open the page with the week they belong to (<code>?week=&hellip;</code>). Before this the variant had exactly one door &mdash; a row at the foot of the meal editor sheet &mdash; and the two surfaces that actually hold a week dropped it on the way here</p>
+            <p class="conv-note">the band is the <b>condition</b> of the second item, not decoration: it says which days a tap would change, so <i>Edit for this week</i> is legible before it is opened. It reads <b>Planned Tue &middot; Sat this week</b>, and gains <b>&middot; edited for this week</b> only once the week varies the recipe</p>
+            <p class="conv-note">arriving from the <b>Library</b> the page is untouched &mdash; no band, and the menu is <b>Favorite &middot; Show line macros &middot; Edit &middot; Delete</b>. The rename to <b>Edit recipe</b> happens only where the two doors stand together, so they read as two: one changes the recipe everywhere, one changes what these days cook</p>
+            <p class="conv-note">the week is <b>re-checked against the plan</b>, never trusted: a link left in a back stack after the meal was removed offers neither the band nor the door. Same for a week key that is not a date</p>
         </div></div>
     </div>
 

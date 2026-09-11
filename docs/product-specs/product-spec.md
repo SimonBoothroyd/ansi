@@ -660,11 +660,22 @@ go. There is no re-chip — tokenization happens only inside the import call.
     read household-wide with no week, so swapping a sub-recipe in for one week
     would make that graph week-dependent. The line picker suppresses its "Your
     recipes" section in week mode.
-  - **One door**, a row at the foot of the meal editor sheet — *edit for this
-    week* — which states its own scope ("a change covers every day this week —
-    Tue and Sat") because the sheet is per meal and the variant is per week.
-    Not a fourth target on the dish row: a control drawn on every row is a
-    target every row pays for.
+  - **Three doors, one screen.** The first is a row at the foot of the meal
+    editor sheet — *edit for this week* — which states its own scope ("a change
+    covers every day this week — Tue and Sat") because the sheet is per meal and
+    the variant is per week. The other two are where a planned recipe is
+    *looked at*: the Week's dish row and the Cook card's title open the recipe
+    page **with the week they belong to** (`/recipes/:id?week=…`), and that page
+    then prints one band under its title — "Planned Tue · Sat this week", plus
+    "edited for this week" once there is a variant — and gains a second ⋯ item
+    beside its own, renamed, "Edit recipe": **"Edit for this week · Tue & Sat
+    only"**. The band is the condition of that item, not decoration: it says
+    which days a tap would change. The week is re-checked against the plan
+    rather than trusted, so a stale link offers neither. From the Library the
+    page is untouched (Favorite · Show line macros · Edit · Delete), and Cook
+    stays read-only — its title carries the week, it does not write it.
+    Still not a fourth target on the dish row: a control drawn on every row is
+    a target every row pays for.
 
 ### Batch cook plan (DERIVED) — the second view
 Groups the week's `plan_entry` rows **by recipe** — the ingredient entries are

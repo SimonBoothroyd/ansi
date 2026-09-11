@@ -140,6 +140,62 @@ Stream<Map<String, List<LineOverride>>> viewedWeekOverrides(Ref ref) => ref
     .watch(weekVariantRepositoryProvider)
     .watchWeekOverrides(ref.watch(viewedWeekStartProvider));
 
+/// How the week a `?week=` link names holds one recipe: the days it plans it
+/// on, in order, and whether the week varies it.
+///
+/// An empty `days` is the GUARD the recipe page's planned-arrival band and its
+/// week door both stand on. The link is a fact about where the tap came from,
+/// and the week can have moved on since — the meal removed, the link kept in a
+/// back stack — so the page asks the week itself rather than trusting the
+/// parameter. An unparseable key answers the same way.
+typedef WeekRecipePlacement = ({List<int> days, bool edited});
+
+@riverpod
+WeekRecipePlacement weekRecipePlacement(
+  Ref ref,
+  String recipeId,
+  String weekKey,
+) {
+  final monday = mondayOfKey(weekKey);
+  if (monday == null) return const (days: <int>[], edited: false);
+  final plan = ref.watch(weekPlanForProvider(weekKey)).asData?.value;
+  final days = <int>{
+    for (final e in plan?.entries ?? const <PlanEntry>[])
+      if (e.recipeId == recipeId) e.dayOfWeek,
+  }.toList()..sort();
+  final overrides =
+      ref.watch(weekOverridesForProvider(weekKey)).asData?.value ?? const {};
+  return (days: days, edited: (overrides[recipeId] ?? const []).isNotEmpty);
+}
+
+/// The week [weekKey] names, with its meals — a sibling of [viewedWeek] keyed
+/// by the link rather than by what is on screen.
+@riverpod
+Stream<WeekPlan?> weekPlanFor(Ref ref, String weekKey) {
+  final monday = mondayOfKey(weekKey);
+  return monday == null
+      ? Stream.value(null)
+      : ref.watch(planningRepositoryProvider).watchWeek(monday);
+}
+
+/// That same week's overrides, keyed by recipe id.
+@riverpod
+Stream<Map<String, List<LineOverride>>> weekOverridesFor(
+  Ref ref,
+  String weekKey,
+) {
+  final monday = mondayOfKey(weekKey);
+  return monday == null
+      ? Stream.value(const {})
+      : ref.watch(weekVariantRepositoryProvider).watchWeekOverrides(monday);
+}
+
+/// An ISO `YYYY-MM-DD` week key as its Monday, or null when it is not a date.
+DateTime? mondayOfKey(String weekKey) {
+  final date = DateTime.tryParse(weekKey);
+  return date == null ? null : mondayOf(date);
+}
+
 /// Per-recipe macro summaries **for the viewed week**, indexed by recipe id.
 ///
 /// The Library's figure underneath, the week's own on top. A recipe the week
