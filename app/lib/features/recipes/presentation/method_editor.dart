@@ -135,6 +135,20 @@ class MethodEditor extends StatelessWidget {
   }
 }
 
+/// Hands the keyboard back to nobody when a step's sheet closes.
+///
+/// The sentence is an editable, so the tap that opens a chip's sheet also
+/// asks the field for focus — and the request is still pending when
+/// [showAnsiSheet] drops focus on the way in, so the field ends up holding it
+/// behind the sheet. The navigator then restores it on the way out: the
+/// keyboard springs up and the card re-expands over a step the reader has
+/// finished with. Dropping it twice is not superstition — a focus change is
+/// applied in a microtask, which can land either side of the next frame.
+void _keepTheKeyboardDown(FocusNode node) {
+  node.unfocus();
+  WidgetsBinding.instance.addPostFrameCallback((_) => node.unfocus());
+}
+
 /// One step card: the sentence, its reorder/delete controls, and — while it
 /// has focus — the insert toolbar and the "Reads as" preview.
 class MethodStepCard extends HookConsumerWidget {
@@ -227,12 +241,12 @@ class MethodStepCard extends HookConsumerWidget {
             // onTap fires AFTER the tap has set the selection, so the span
             // lookup is exact and needs no hit-testing of its own;
             // onTapAlwaysCalled so a second tap on the same chip re-opens it.
-            onTap: () => _openSpanSheet(context, controller),
+            onTap: () => _openSpanSheet(context, controller, focusNode),
             onTapAlwaysCalled: true,
             // The CARD's context, not the toolbar's: the toolbar's is
             // unmounted by `hideToolbar` before the sheet ever opens.
             contextMenuBuilder: (_, state) =>
-                _selectionToolbar(context, state, controller),
+                _selectionToolbar(context, state, controller, focusNode),
             control: FTextFieldControl.managed(
               controller: controller,
               // The ECHO, refused at the door. Forui registers this as a
@@ -299,6 +313,7 @@ class MethodStepCard extends HookConsumerWidget {
     BuildContext context,
     EditableTextState state,
     MethodSpanController controller,
+    FocusNode focusNode,
   ) {
     final items = [...state.contextMenuButtonItems];
     // Captured BEFORE the toolbar hides and the field loses focus: the sheet
@@ -313,14 +328,16 @@ class MethodStepCard extends HookConsumerWidget {
           label: 'To ingredient',
           onPressed: () {
             state.hideToolbar();
-            unawaited(_selectionToIngredient(context, controller, selection));
+            unawaited(
+              _selectionToIngredient(context, controller, selection, focusNode),
+            );
           },
         ),
         ContextMenuButtonItem(
           label: 'To timer',
           onPressed: () {
             state.hideToolbar();
-            unawaited(_selectionToTimer(context, selection));
+            unawaited(_selectionToTimer(context, selection, focusNode));
           },
         ),
       ]);
@@ -339,6 +356,7 @@ class MethodStepCard extends HookConsumerWidget {
     BuildContext context,
     MethodSpanController controller,
     TextSelection selection,
+    FocusNode focusNode,
   ) async {
     final word = step.text.substring(selection.start, selection.end);
     final lineId = await pickOrAddLine(
@@ -353,6 +371,7 @@ class MethodStepCard extends HookConsumerWidget {
           if (span is RefSpan) ...span.refs,
       },
     );
+    _keepTheKeyboardDown(focusNode);
     if (lineId == null) return;
     notifier.chipRange(
       step.id,
@@ -378,6 +397,7 @@ class MethodStepCard extends HookConsumerWidget {
   Future<void> _selectionToTimer(
     BuildContext context,
     TextSelection selection,
+    FocusNode focusNode,
   ) async {
     final parsed = parseSelectedDuration(
       step.text.substring(selection.start, selection.end),
@@ -389,6 +409,7 @@ class MethodStepCard extends HookConsumerWidget {
       prosePrefix: step.text.substring(0, selection.start),
       proseSuffix: step.text.substring(selection.end),
     );
+    _keepTheKeyboardDown(focusNode);
     if (result is! TimerSet) return;
     notifier.timerRange(
       step.id,
@@ -404,6 +425,7 @@ class MethodStepCard extends HookConsumerWidget {
   Future<void> _openSpanSheet(
     BuildContext context,
     MethodSpanController controller,
+    FocusNode focusNode,
   ) async {
     final selection = controller.selection;
     if (!selection.isCollapsed) return;
@@ -442,6 +464,7 @@ class MethodStepCard extends HookConsumerWidget {
             ..setChipAmountRule(step.id, index, edit.amountRule),
           onRemove: () => notifier.removeChip(step.id, index),
         );
+        _keepTheKeyboardDown(focusNode);
       case TimerSpan(:final lowSeconds, :final highSeconds):
         final span = step.spans[index];
         final result = await showMethodTimerSheet(
@@ -452,6 +475,7 @@ class MethodStepCard extends HookConsumerWidget {
           prosePrefix: step.text.substring(0, span.start),
           proseSuffix: step.text.substring(span.end),
         );
+        _keepTheKeyboardDown(focusNode);
         switch (result) {
           case TimerSet(:final lowSeconds, :final highSeconds):
             notifier.setTimerSpan(step.id, index, lowSeconds, highSeconds);

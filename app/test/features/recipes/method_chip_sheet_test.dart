@@ -29,6 +29,16 @@ Future<void> tapAt(WidgetTester tester, int offset) async {
   await tester.pumpAndSettle();
 }
 
+/// The centre of the caret at [offset] of the first step's sentence, in
+/// global coordinates — so a tap can land inside a chip rather than at the
+/// field's midpoint.
+Offset caretCentre(WidgetTester tester, int offset) {
+  final field = methodFields().first;
+  final editable = tester.state<EditableTextState>(field).renderEditable;
+  return tester.getTopLeft(field) +
+      editable.getLocalRectForCaret(TextPosition(offset: offset)).center;
+}
+
 Future<FakeRecipeRepo> openEditor(WidgetTester tester) async {
   filterForuiSemanticsAssertions();
   tallSurface(tester);
@@ -162,5 +172,27 @@ void main() {
     final step = repo.saved.single.methodSteps!.first;
     expect(step.tokens.whereType<MethodTimer>(), isEmpty);
     expect(step.tokens.whereType<MethodRef>(), hasLength(1));
+  });
+
+  testWidgets('dismissing a chip sheet leaves the sentence unfocused', (
+    tester,
+  ) async {
+    await openEditor(tester);
+    final node = tester.widget<EditableText>(methodFields().first).focusNode;
+
+    // A REAL tap, landing inside the chip: the gesture asks for focus first
+    // and calls onTap second, so the field is still coming into focus as the
+    // sheet opens over it — which is how it was holding focus behind the
+    // sheet and taking it back on the way out.
+    await tester.tapAt(caretCentre(tester, 13));
+    await tester.pumpAndSettle();
+    expect(find.text('POINTS AT'), findsOneWidget);
+
+    await tester.tap(find.byIcon(FLucideIcons.x).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('POINTS AT'), findsNothing, reason: 'the sheet closed');
+    expect(node.hasFocus, isFalse);
+    expect(find.text('READS AS'), findsNothing, reason: 'the card collapses');
   });
 }
