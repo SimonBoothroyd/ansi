@@ -19,11 +19,12 @@
 /// tree.
 ///
 /// It is an **editor**, not a one-way queue: a `complete` row edits here too.
-/// What it owns, in order — canonical name (a rename rewrites `match_text`),
-/// aliases, category + default unit, macros with their basis, density (the
-/// shared [DensityEntry]), the piece weight on a count-default row (the shared
-/// [PieceWeightEntry], ADR-0015), and the explicit ADR-0008 `allowed_units`
-/// list.
+/// What it owns, in order — canonical name (its save rewrites the row's
+/// `match_text` with it, which is nothing a person acts on and nothing this
+/// screen says out loud), aliases, category + default unit, macros with their
+/// basis, density (the shared [DensityEntry]), the piece weight on a
+/// count-default row (the shared [PieceWeightEntry], ADR-0015), and the
+/// explicit ADR-0008 `allowed_units` list.
 ///
 /// Three rules the screen exists to enforce:
 /// - **Nothing is written until Save** (ADR-0011). Everything the form intends
@@ -881,7 +882,6 @@ class _DetailForm extends ConsumerWidget {
               ),
               if (draft.nameWas != null)
                 WasWordLine(oldWord: draft.nameWas!, onKeep: form.keepName),
-              const _Note('renaming rewrites the match text'),
 
               const _Label('ALSO KNOWN AS'),
               _AliasEditor(

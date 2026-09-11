@@ -6,7 +6,9 @@
 /// holds: no index, no model, no reference set on the device, and nothing
 /// resolved without someone looking. Step 7.7 added the recents feed
 /// and the add-new stub path; step 8.5 adds the write half the manager needs
-/// — rename (which rewrites `match_text`), the fact edits, the explicit
+/// — rename (one write: the stored name and its `match_text` move together,
+/// or the cascade searches for a name nothing carries), the fact edits, the
+/// explicit
 /// `allowed_units` list, aliases, the D5 confirm/unconfirm pair, and the
 /// guarded soft-delete.
 library;

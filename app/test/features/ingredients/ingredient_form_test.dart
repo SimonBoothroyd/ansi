@@ -383,18 +383,17 @@ void main() {
       expect(repo.rows, isEmpty);
     });
 
-    testWidgets('renaming rewrites the match text and says so on the '
-        'form', (tester) async {
+    testWidgets('renaming rewrites the match text, and the form says nothing '
+        'about it', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [curryLeaves]);
       await tester.pumpWidget(host(repo, at: editRoute('curry')));
       await tester.pumpAndSettle();
 
-      expect(
-        find.textContaining('renaming rewrites the match text'),
-        findsOneWidget,
-      );
+      // `match_text` is a column the save maintains, not a thing a person
+      // does — captioning it under the name field spent a line on nobody.
+      expect(find.textContaining('match text'), findsNothing);
       await tester.enterText(find.byType(TextField).first, 'Curry leaf, dried');
       // The last "Save" is the form's; the density entry has one too.
       await tester.tap(find.widgetWithText(FButton, 'Save').last);
