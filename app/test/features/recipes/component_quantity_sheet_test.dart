@@ -18,6 +18,7 @@ Widget _host({
   required ValueChanged<ComponentQuantity> onDone,
   double? initialQuantity,
   Unit? initialUnit,
+  bool initialOptional = false,
   VoidCallback? onSetYield,
 }) => MaterialApp(
   home: FTheme(
@@ -27,6 +28,7 @@ Widget _host({
         target: target,
         initialQuantity: initialQuantity,
         initialUnit: initialUnit,
+        initialOptional: initialOptional,
         onSetYield: onSetYield,
         onDone: onDone,
       ),
@@ -171,5 +173,47 @@ void main() {
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
     expect(saved!.unit, batches);
+  });
+
+  testWidgets('the Optional switch rides on a component line too, and Done '
+      'carries it back', (tester) async {
+    filterForuiSemanticsAssertions();
+    ComponentQuantity? saved;
+    await tester.pumpWidget(
+      _host(target: _aioli, initialQuantity: 1, onDone: (q) => saved = q),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Optional'), findsOneWidget);
+    expect(
+      find.text('left out of macros and the shop list, and named where it '
+          'left'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byType(FSwitch));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    expect(saved!.optional, isTrue);
+  });
+
+  testWidgets('a line that already says optional opens with the switch on', (
+    tester,
+  ) async {
+    filterForuiSemanticsAssertions();
+    ComponentQuantity? saved;
+    await tester.pumpWidget(
+      _host(
+        target: _aioli,
+        initialQuantity: 1,
+        initialOptional: true,
+        onDone: (q) => saved = q,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    expect(saved!.optional, isTrue);
   });
 }

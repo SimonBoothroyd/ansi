@@ -440,6 +440,7 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
     String? recipeId,
     double? quantity,
     String? unit,
+    bool optional = false,
   }) {
     final s = state;
     if (s is! ImportReconciling) return null;
@@ -454,6 +455,7 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
           recipeId: recipeId,
           quantity: quantity,
           unit: unit,
+          optional: optional,
         ),
       ],
       sections: addLineToGroup(s.sections, groupId, index),

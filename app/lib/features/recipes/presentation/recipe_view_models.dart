@@ -273,6 +273,7 @@ class RecipeEditor extends _$RecipeEditor
     SubRecipeTarget target, {
     double? quantity,
     Unit? unit,
+    bool optional = false,
   }) => _mapGroup(
     groupId,
     (g) => g.copyWith(
@@ -285,6 +286,7 @@ class RecipeEditor extends _$RecipeEditor
           ingredientName: target.title,
           quantity: quantity,
           unit: unit ?? batches,
+          optional: optional,
         ),
       ],
     ),

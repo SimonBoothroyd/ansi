@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
+import 'package:ansi/features/recipes/domain/effective_lines.dart';
 import 'package:ansi/features/recipes/domain/method_step.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
@@ -990,6 +991,46 @@ void main() {
           ['si2'],
         );
         expect(row['measure_id'], isNull);
+      },
+    );
+
+    test(
+      'a component line can be optional, and the seam names its title',
+      () async {
+        await seedAioli();
+        await repo.saveRecipe(
+          parent().copyWith(
+            groups: [
+              IngredientGroup(
+                id: 'sg',
+                items: [
+                  parent().groups[0].items[0],
+                  parent().groups[0].items[1].copyWith(optional: true),
+                ],
+              ),
+            ],
+          ),
+        );
+
+        final row = await db.get(
+          'SELECT optional, sub_recipe_id FROM recipe_line_item WHERE id = ?',
+          ['si2'],
+        );
+        expect(row['optional'], 1);
+        expect(row['sub_recipe_id'], 'aioli');
+
+        final loaded = (await repo.watchRecipe('sliders').first)!;
+        final component = loaded.groups[0].items[1];
+        expect(component.optional, isTrue);
+        expect(component.isComponent, isTrue);
+
+        // The one seam every derivation shares drops it, and names the recipe
+        // it points at rather than the text the line stored.
+        final effective = effectiveLines(loaded.groups[0].items);
+        expect(effective.kept.map((l) => l.id), ['si1']);
+        expect(droppedNames(effective, LineDropReason.optional), [
+          'Romesco Aioli',
+        ]);
       },
     );
 

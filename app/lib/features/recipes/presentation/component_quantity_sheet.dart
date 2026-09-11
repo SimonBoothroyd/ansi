@@ -2,9 +2,9 @@
 /// design board frame d) — the 7.7 sheet's anatomy with batch math on the
 /// chips.
 ///
-/// Same dock, same [UnitChip]s, same live conversion line. Three things
-/// differ, and each is a consequence of a component being a recipe rather than
-/// an ingredient:
+/// Same dock, same [UnitChip]s, same live conversion line, same Optional row.
+/// Three things differ, and each is a consequence of a component being a
+/// recipe rather than an ingredient:
 ///
 /// - the chips are **`batch` ∪ the yields' families**, kitchen-trimmed
 ///   ([componentUnitChips]) — `batch` is always sayable, and a family opens
@@ -43,8 +43,9 @@ import '../domain/recipe.dart';
 import 'component_format.dart';
 import 'recipe_chip.dart';
 
-/// What the component sheet resolved to: the amount and the unit it counts.
-typedef ComponentQuantity = ({double? quantity, Unit unit});
+/// What the component sheet resolved to: the amount, the unit it counts, and
+/// whether the line is optional.
+typedef ComponentQuantity = ({double? quantity, Unit unit, bool optional});
 
 /// Opens the component quantity sheet for [target]; resolves to the chosen
 /// amount, or null if dismissed.
@@ -56,6 +57,7 @@ Future<ComponentQuantity?> showComponentQuantitySheet(
   required SubRecipeTarget target,
   double? initialQuantity,
   Unit? initialUnit,
+  bool initialOptional = false,
   VoidCallback? onSetYield,
 }) {
   return showAnsiSheet<ComponentQuantity>(
@@ -64,6 +66,7 @@ Future<ComponentQuantity?> showComponentQuantitySheet(
       target: target,
       initialQuantity: initialQuantity,
       initialUnit: initialUnit,
+      initialOptional: initialOptional,
       onSetYield: onSetYield == null
           ? null
           : () {
@@ -81,6 +84,7 @@ class ComponentQuantityEditor extends HookWidget {
     required this.onDone,
     this.initialQuantity,
     this.initialUnit,
+    this.initialOptional = false,
     this.onSetYield,
     super.key,
   });
@@ -91,6 +95,9 @@ class ComponentQuantityEditor extends HookWidget {
   /// The line's stored unit — always an admissible chip (the 7.7 rule).
   final Unit? initialUnit;
 
+  /// Whether the line already says it may be left out.
+  final bool initialOptional;
+
   final ValueChanged<ComponentQuantity> onDone;
   final VoidCallback? onSetYield;
 
@@ -99,6 +106,7 @@ class ComponentQuantityEditor extends HookWidget {
     final yields = target.yields;
     final quantity = useState<double?>(initialQuantity);
     final unit = useState<Unit>(initialUnit ?? _defaultUnit(yields));
+    final optional = useState<bool>(initialOptional);
     final offer = componentUnitChips(yields: yields, stored: initialUnit);
 
     final note = componentConversionLine(
@@ -200,9 +208,26 @@ class ComponentQuantityEditor extends HookWidget {
             ),
           ),
         ],
+        // The Optional row is the ingredient sheet's, word for word: a
+        // sub-recipe may be left out of a total exactly as a garnish may.
+        const SizedBox(height: 14),
+        FSwitch(
+          label: Text('Optional', style: ansiSans(size: 15)),
+          value: optional.value,
+          onChange: (on) => optional.value = on,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'left out of macros and the shop list, and named where it left',
+          style: ansiMono(size: 11, color: AnsiColors.muted),
+        ),
         const SizedBox(height: 14),
         FButton(
-          onPress: () => onDone((quantity: quantity.value, unit: unit.value)),
+          onPress: () => onDone((
+            quantity: quantity.value,
+            unit: unit.value,
+            optional: optional.value,
+          )),
           child: const Text('Done'),
         ),
       ],

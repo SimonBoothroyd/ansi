@@ -133,5 +133,6 @@ abstract interface class MethodEditing {
     SubRecipeTarget target, {
     double? quantity,
     Unit? unit,
+    bool optional,
   });
 }

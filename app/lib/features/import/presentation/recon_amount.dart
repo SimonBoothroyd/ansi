@@ -166,9 +166,6 @@ Future<void> editLineAmount(
     initialChoice: preselect != null
         ? MeasureOption(preselect)
         : (unit != null ? UnitOption(unit) : null),
-    // The same sheet the editor uses, so the review gets the Optional switch
-    // for free (D6a) — seeded from the extractor's flag, and the raw tag on
-    // the card keeps saying what the source said.
     initialOptional: resolution.optional,
   );
   if (result is! QuantitySaved) return;
@@ -253,6 +250,7 @@ Future<void> editComponentAmount(
     // The 7.7 stored-selection rule: the line's printed unit is admissible on
     // this line whatever the sheet would otherwise offer.
     initialUnit: stored,
+    initialOptional: resolution.optional,
   );
   if (result == null) return;
   // Read AFTER the awaited sheet through the container, never captured before
@@ -261,7 +259,9 @@ Future<void> editComponentAmount(
       .read(importControllerProvider.notifier)
       .updateResolution(
         lineIndex,
-        (r) => r.setAmount(quantity: result.quantity, unit: result.unit.id),
+        (r) => r
+            .setAmount(quantity: result.quantity, unit: result.unit.id)
+            .setOptional(optional: result.optional),
       );
 }
 

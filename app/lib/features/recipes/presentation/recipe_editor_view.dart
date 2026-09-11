@@ -348,6 +348,7 @@ Future<void> addLineToGroup(
         target,
         quantity: result?.quantity,
         unit: result?.unit,
+        optional: result?.optional ?? false,
       );
   }
 }
@@ -437,9 +438,6 @@ class _LineItemEditor extends ConsumerWidget {
             ? MeasureOption(measure)
             : UnitOption(item.unit),
         pendingMeasure: pending,
-        // An ingredient line offers the Optional switch (D6a); the component
-        // branch above never reaches here, so the sheet never offers it
-        // on a sub-recipe.
         initialOptional: item.optional,
       );
       if (result is! QuantitySaved) return;
@@ -523,6 +521,7 @@ class _ComponentLineEditor extends StatelessWidget {
             ),
         initialQuantity: item.quantity,
         initialUnit: item.unit,
+        initialOptional: item.optional,
         onSetYield: target == null
             ? null
             : () => host.context.pushOnce('/recipes/${target.id}/edit'),
@@ -530,7 +529,8 @@ class _ComponentLineEditor extends StatelessWidget {
       if (result == null) return;
       notifier
         ..setLineItemQuantity(item.id, result.quantity)
-        ..setLineItemUnit(item.id, result.unit);
+        ..setLineItemUnit(item.id, result.unit)
+        ..setLineItemOptional(item.id, optional: result.optional);
     }
 
     return _LineRow(

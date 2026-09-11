@@ -364,11 +364,13 @@ class ImportMethodEditing implements MethodEditing {
     SubRecipeTarget target, {
     double? quantity,
     Unit? unit,
+    bool optional = false,
   }) => controller.addLine(
     groupId,
     name: target.title,
     recipeId: target.id,
     quantity: quantity,
     unit: (unit ?? batches).id,
+    optional: optional,
   );
 }

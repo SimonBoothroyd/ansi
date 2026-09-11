@@ -393,6 +393,7 @@ class _ListDoors extends ConsumerWidget {
           recipeId: target.id,
           quantity: result?.quantity,
           unit: (result?.unit ?? batches).id,
+          optional: result?.optional ?? false,
         );
     }
   }

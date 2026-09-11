@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Quantity &amp; measures</h1>
-    <p class="view-status">built · matches code 2026-09-08 · <code>features/ingredients</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a></p>
+    <p class="view-status">built · matches code 2026-09-10 · <code>features/ingredients</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a></p>
     <p class="view-blurb">One dock everywhere an amount is set: this ingredient’s admitted units as chips over a keypad, and the conversion said out loud above them.</p>
 </header>
 
@@ -117,7 +117,7 @@
     </div>
 
         <div class="frame">
-            <p class="frame-name"><b>A component’s amount</b> · the same chips over the same keypad; the conversion line reads batches, and a yieldless recipe offers only <i>batch</i></p>
+            <p class="frame-name"><b>A component’s amount</b> · the same chips over the same keypad, and the same Optional row; the conversion line reads batches, and a yieldless recipe offers only <i>batch</i></p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">✕</span><span class="ttl">Add to “for the sliders”</span><span class="dots"></span></div>
                 <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle"><span class="ichip">↪ Romesco Aioli</span></div>
@@ -127,6 +127,7 @@
                 <div class="dock">
                     <p class="conv-note" style="margin:0 0 9px"><b>0.25 cup</b> = 0.25 of a batch · makes 1 cup</p>
                     <div class="uchips"><span class="uchip">batch</span><span class="uchip-sep"></span><span class="uchip on">cup</span><span class="uchip">tbsp</span><span class="uchip">tsp</span><span class="uchip">ml</span></div>
+                    <div class="crow" style="margin:0 0 10px;background:var(--frame)"><span class="cl">Optional<small>left out of macros and the shop list — and named where it left</small></span><span class="fsw"></span></div>
                     <div class="kbd numpad">
                         <div class="kbd-row"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
                         <div class="kbd-row"><span class="key">4</span><span class="key">5</span><span class="key">6</span></div>

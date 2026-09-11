@@ -615,6 +615,7 @@ Future<String?> pickOrAddLine(
         target,
         quantity: result?.quantity,
         unit: result?.unit,
+        optional: result?.optional ?? false,
       );
   }
   for (final id in notifier.lineById().keys) {

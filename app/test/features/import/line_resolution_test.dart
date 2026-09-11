@@ -969,16 +969,15 @@ void main() {
       expect(r.setOptional(optional: false).optional, isFalse);
     });
 
-    test(
-      'linking to a recipe clears it — a component line is never optional',
-      () {
-        final r = initialResolution(
-          0,
-          _line('aioli', optional: true, qty: 1, unit: 'cup'),
-        ).linkToRecipe('r-aioli', 'Romesco Aioli');
-        expect(r.optional, isFalse);
-      },
-    );
+    test('linking to a recipe keeps it — a sub-recipe may be left out too', () {
+      final r = initialResolution(
+        0,
+        _line('aioli', optional: true, qty: 1, unit: 'cup'),
+      ).linkToRecipe('r-aioli', 'Romesco Aioli');
+      expect(r.optional, isTrue);
+      expect(r.isComponent, isTrue);
+      expect(r.setOptional(optional: false).optional, isFalse);
+    });
 
     test('buildCommit carries it onto the CommitLine', () {
       final payload = _payload([

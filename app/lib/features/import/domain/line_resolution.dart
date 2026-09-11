@@ -72,6 +72,7 @@ class LineResolution {
     String? recipeId,
     double? quantity,
     String? unit,
+    bool optional = false,
   }) => LineResolution(
     lineIndex: lineIndex,
     band: MatchBand.auto,
@@ -83,6 +84,7 @@ class LineResolution {
     linkedRecipeId: recipeId,
     linkedRecipeTitle: recipeId == null ? null : name,
     quantity: quantity,
+    optional: optional,
     addedAtReview: true,
   );
 
@@ -137,10 +139,9 @@ class LineResolution {
   final bool isDropped;
 
   /// The recipe says this line may be left out — seeded from the extractor's
-  /// raw flag, toggled in the amount sheet at review, committed to
-  /// `recipe_line_item.optional`. Always false while the line is a component
-  /// ([linkToRecipe] clears it): an optional sub-recipe is a week-level
-  /// question, not a line fact.
+  /// raw flag, toggled on the review card, committed to
+  /// `recipe_line_item.optional`. It survives a link: a sub-recipe may be left
+  /// out exactly as a garnish may.
   final bool optional;
 
   /// The review minted this line; the page never printed it.
@@ -252,14 +253,10 @@ class LineResolution {
     clearIngredient: true,
     // A link is not an ingredient correction — there is no alias to write.
     isCorrection: false,
-    // Nor is a component line ever optional (D6b's stated scope) — the raw
-    // flag was about an ingredient, and the sheet does not offer the switch
-    // on a component.
-    optional: false,
   );
 
-  /// Marks the line optional, or not — the amount sheet's switch at review. A
-  /// fact about the line, not its amount.
+  /// Marks the line optional, or not — the review card's switch. A fact about
+  /// the line, not its amount.
   LineResolution setOptional({required bool optional}) =>
       copyWith(optional: optional);
 
@@ -498,10 +495,7 @@ CommitPayload buildCommit(
           quantity: r.quantity,
           unit: r.unit,
           note: (r.notes?.isEmpty ?? true) ? null : r.notes,
-          // Re-asserted at the seam like the identity rules above: a
-          // component line commits as not optional whatever the raw flag
-          // said about the text it was linked from.
-          optional: !r.isComponent && r.optional,
+          optional: r.optional,
         ),
       );
     }

@@ -180,8 +180,8 @@ abstract class IngredientGroup with _$IngredientGroup {
 /// "1 lime" is still what the recipe says. What the flag changes is what a
 /// TOTAL covers, through one seam (`effectiveLines`): the macro summary and the
 /// shopping list leave the line out and name it where it left; the cook plan is
-/// unaffected. Never offered on a component line — an optional sub-recipe is a
-/// week-level question, the override seam's job.
+/// unaffected. A component line carries it too — "aioli (optional)" is a thing
+/// a recipe says — and the seam names the sub-recipe's title where it left.
 @freezed
 abstract class LineItem with _$LineItem {
   const LineItem._();
