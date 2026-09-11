@@ -492,6 +492,7 @@ void main() {
         'transaction', () async {
       final repo = FakeIngredientRepo(const []);
       final (:form, at: _) = await _open(repo, initialName: 'Curry leaves');
+      form.setCategory('produce');
       await form.addAlias('kadi patta');
 
       final saved = await form.save();
@@ -499,6 +500,57 @@ void main() {
       expect(saved!.canonicalName, 'Curry Leaves');
       expect(repo.rows.single.id, saved.id);
       expect(repo.savedForms.single.aliasesAdded.single.text, 'kadi patta');
+    });
+  });
+
+  group('a new row states its category', () {
+    test('the create form refuses until one is picked, and says which '
+        'question it is asking', () async {
+      final repo = FakeIngredientRepo(const []);
+      final (:form, :at) = await _open(repo, initialName: 'Curry leaves');
+      form.setMacros(
+        const MacroDraft(kcal: '108', protein: '6', carb: '19', fat: '1'),
+      );
+
+      expect(at().refusal, startsWith('Which aisle is it in?'));
+      expect(at().completable, isFalse);
+      expect(await form.save(), isNull);
+      expect(repo.savedForms, isEmpty);
+
+      form.setCategory('produce');
+
+      expect(at().refusal, isNull);
+      expect(at().completable, isTrue);
+      expect(await form.save(), isNotNull);
+      expect(repo.rows.single.category, 'produce');
+    });
+
+    test('whitespace is not a category', () async {
+      final repo = FakeIngredientRepo(const []);
+      final (:form, :at) = await _open(repo, initialName: 'Curry leaves');
+      form.setCategory('   ');
+
+      expect(at().refusal, startsWith('Which aisle is it in?'));
+    });
+
+    // The rows already here that never named one are not a backlog to be
+    // cleared through this form: an edit about the macros must still be
+    // puttable down.
+    test('a row that already exists without one is still saveable', () async {
+      const uncategorised = Ingredient(
+        id: 'bare',
+        canonicalName: 'Cheddar Shreds',
+        defaultUnit: g,
+        status: IngredientStatus.stub,
+        source: 'manual',
+      );
+      final repo = FakeIngredientRepo(const [uncategorised]);
+      final (:form, :at) = await _open(repo, id: 'bare');
+
+      expect(at().category, '');
+      expect(at().refusal, isNull);
+      expect(await form.save(), isNotNull);
+      expect(repo.savedForms.single.row.category, isNull);
     });
   });
 
@@ -623,6 +675,7 @@ void main() {
         'text', () async {
       final repo = FakeIngredientRepo([sauerkraut]);
       final (:form, :at) = await _open(repo, initialName: 'sauerkraut');
+      form.setCategory('pantry');
       await form.leaveNameField();
 
       form.setName('Sauerkraut Juice');
@@ -657,6 +710,7 @@ void main() {
       final (:form, :at) = await _open(repo, initialName: 'Sauerkraut');
       // Straight to Save, without leaving the field — the backstop path.
       form
+        ..setCategory('pantry')
         ..setName('Sauerkraut')
         ..setMacros(
           const MacroDraft(kcal: '19', protein: '1', carb: '4', fat: '0'),

@@ -363,6 +363,9 @@ void main() {
         findsOneWidget,
       );
 
+      // A scan fills the panel, not the aisle: a new row still says which one
+      // it is in before it can be put down.
+      await coinCategory(tester, 'pantry');
       await saveForm(tester);
 
       final created = repo.rows.single;
@@ -394,6 +397,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(fieldText(tester, servingAmountField), isEmpty);
+      await coinCategory(tester, 'pantry');
 
       // Without the amount there is nothing to divide by, so a new row cannot
       // be saved at all — the dock's one button is dark and the line above it

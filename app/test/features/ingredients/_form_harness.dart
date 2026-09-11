@@ -204,6 +204,23 @@ final Finder categorySelect = find.byWidgetPredicate(
   (w) => w is FSelect<String>,
 );
 
+/// Coins a category through the picker's `New` door.
+///
+/// The dropdown offers the household's OWN categories, so on the empty
+/// vocabulary a create-form suite pumps there is nothing in it to pick — this
+/// is the route a person has, and the one a new row's refusal points at.
+Future<void> coinCategory(WidgetTester tester, String category) async {
+  await tester.tap(find.widgetWithText(FButton, 'New'));
+  await tester.pumpAndSettle();
+  await tester.enterText(
+    find.descendant(of: find.byType(FDialog), matching: find.byType(TextField)),
+    category,
+  );
+  await tester.pump();
+  await tester.tap(find.widgetWithText(FButton, 'Use it'));
+  await tester.pumpAndSettle();
+}
+
 /// The density sentence's **grams** slot — `2 tbsp weighs [__] g`. The
 /// sentence takes an amount on its left now, so both number slots are keyed
 /// and neither is found by position.

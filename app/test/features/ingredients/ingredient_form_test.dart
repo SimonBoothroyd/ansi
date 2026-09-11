@@ -1343,6 +1343,7 @@ void main() {
 
       await tester.enterText(find.byType(TextField).first, 'Vanilla extract');
       await tester.pump();
+      await coinCategory(tester, 'baking');
       await typeMacros(
         tester,
         kcal: '288',
@@ -1414,6 +1415,7 @@ void main() {
 
       await tester.enterText(find.byType(TextField).first, 'Curry leaves');
       await tester.pump();
+      await coinCategory(tester, 'produce');
       await draftDensity(tester, '0.4');
       await typeMacros(tester, kcal: '108', protein: '6', carb: '19', fat: '1');
       // Still nothing written — the whole point of C2, and what makes backing
@@ -1455,6 +1457,12 @@ void main() {
 
       await tester.enterText(find.byType(TextField).first, 'Curry leaves');
       await tester.pump();
+      // A new row says which aisle it is in. The dock asks in the form's own
+      // refusal voice, and nothing is defaulted for it.
+      expect(saveButton(tester).onPress, isNull);
+      expect(find.textContaining('Which aisle is it in?'), findsOne);
+
+      await coinCategory(tester, 'produce');
       expect(saveButton(tester).onPress, isNull);
       expect(find.text('needs macros'), findsOneWidget);
 
@@ -1489,6 +1497,49 @@ void main() {
       expect(find.byKey(kFormCompleteKey), findsOneWidget);
       // And its Save is live with no macros: putting a stub down half-filled
       // is exactly what a stub is for.
+      expect(saveButton(tester).onPress, isNotNull);
+    });
+
+    testWidgets('the category is a gate on a NEW row and advice on an old '
+        'one — and nothing is defaulted into it', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final repo = FakeIngredientRepo(const []);
+      await tester.pumpWidget(host(repo, at: '/ingredients/new'));
+      await tester.pumpAndSettle();
+
+      // The picker opens on the sentinel, not on a guess at an aisle.
+      expect(find.text('no category'), findsWidgets);
+      expect(find.text('pantry'), findsNothing);
+
+      await tester.enterText(find.byType(TextField).first, 'Curry Leaves');
+      await tester.pump();
+      await typeMacros(tester, kcal: '108', protein: '6', carb: '19', fat: '1');
+      expect(saveButton(tester).onPress, isNull);
+      expect(find.textContaining('Which aisle is it in?'), findsOne);
+
+      await coinCategory(tester, 'produce');
+      expect(saveButton(tester).onPress, isNotNull);
+      await saveForm(tester);
+      expect(repo.savedForms.single.row.category, 'produce');
+
+      // The rows already here that never named one are not this form's
+      // backlog: an edit about something else must still be puttable down.
+      const uncategorised = Ingredient(
+        id: 'bare',
+        canonicalName: 'Cheddar Shreds',
+        defaultUnit: g,
+        status: IngredientStatus.stub,
+        source: 'manual',
+      );
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [uncategorised]),
+          at: editRoute('bare'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Which aisle is it in?'), findsNothing);
       expect(saveButton(tester).onPress, isNotNull);
     });
 

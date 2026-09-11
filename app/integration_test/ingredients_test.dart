@@ -852,6 +852,25 @@ void main() {
         isEmpty,
         reason: 'a scan writes nothing on its own',
       );
+      // A scan fills the panel, not the aisle: a new row states its category
+      // before Save comes alive, and nothing is defaulted into it.
+      expect(
+        tester.widget<FButton>(find.byKey(kFormSaveKey)).onPress,
+        isNull,
+        reason: 'a new row with no category is not saveable',
+      );
+      await tester.tap(find.widgetWithText(FButton, 'New'));
+      await pumpUntilFound(tester, find.text('New category'));
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(FDialog),
+          matching: find.byType(EditableText),
+        ),
+        'pantry',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FButton, 'Use it'));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(kFormSaveKey));
       await tester.pumpAndSettle();
 

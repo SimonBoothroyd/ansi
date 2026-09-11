@@ -150,6 +150,16 @@ The column list is generated from the migrations —
   names a household calls a row (`ingredient_alias.alias`, per household,
   soft-deleted like everything else); the matcher searches them beside the
   canonical name.
+- **A row coined here states its category.** `/ingredients/new` keeps Save
+  down until one is picked, in the form's own refusal voice, because a
+  category decides two things a guess gets wrong: where the row sits in the
+  shop walk (`core/aisles.dart` — uncategorised sorts ahead of every aisle,
+  under *Other*) and which imprecise words it may ever say
+  (`kImpreciseCategoryGates` — no category, no `pinch`, no `handful`). Nothing
+  is defaulted to `pantry`, and a scan or a USDA pick does not fill it: the
+  sources have no opinion the household's aisles would recognise. Rows that
+  already exist without one stay saveable — the rule is about coining a row,
+  not about editing one.
 - **A typed name is tidied when the field is left, and the form says what it
   changed.** Every name a person writes in an editor — an ingredient's
   canonical name, a recipe title, a book or section name, an alias — is

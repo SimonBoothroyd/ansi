@@ -351,6 +351,15 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     if (nameCollision case final taken?) {
       return nameTakenMessage(taken.ingredientName);
     }
+    // Asked of a NEW row only. A category is what puts a thing in the shop's
+    // walk and what earns it the imprecise words, so a row coined today states
+    // one; the rows already here that never did stay saveable, because
+    // refusing them would make an unrelated edit impossible to put down.
+    if (creating && category.trim().isEmpty) {
+      return 'Which aisle is it in? Pick a category — an uncategorised row '
+          'sorts ahead of every aisle, and words like pinch and handful are '
+          'earned by one.';
+    }
     if (!macros.fourCoherent) {
       return 'Enter all four macros, or leave them all blank — a part of a '
           'panel isn’t a panel.';
