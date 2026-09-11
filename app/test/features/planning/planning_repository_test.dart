@@ -4,7 +4,9 @@ import 'dart:io';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/planning/data/planning_repository_impl.dart';
+import 'package:ansi/features/planning/data/week_variant_repository_impl.dart';
 import 'package:ansi/features/planning/domain/week_macros.dart';
+import 'package:ansi/features/recipes/domain/line_override.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
@@ -331,7 +333,7 @@ void main() {
         eaterIds: const ['m1'],
       );
 
-      final copied = await repo.copyLastWeek(_thisWeek);
+      final copied = (await repo.copyLastWeek(_thisWeek)).meals;
       expect(copied, 2);
 
       final week = await repo.watchWeek(_thisWeek).first;
@@ -342,8 +344,67 @@ void main() {
       expect(dinner.eaterIds, ['m1', 'm2']);
     });
 
+    test("copyLastWeek leaves last week's variant behind, and names it",
+        () async {
+      await _insertRecipe(db, 'r1', 'Slow-Cooker Beef Ragù');
+      await repo.addEntry(
+        weekStart: _lastWeek,
+        dayOfWeek: 1,
+        mealSlot: 'Dinner',
+        recipeId: 'r1',
+        eaterIds: ['m1'],
+      );
+      // A line of that recipe, and a change to it on LAST week.
+      final now = DateTime.now().toUtc().toIso8601String();
+      await db.execute(
+        'INSERT INTO ingredient_group (id, household_id, recipe_id, '
+        'sort_order, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)',
+        ['g1', 'h', 'r1', now, now],
+      );
+      await db.execute(
+        'INSERT INTO recipe_line_item (id, household_id, group_id, '
+        'ingredient_id, quantity, unit, sort_order, created_at, updated_at) '
+        "VALUES (?, ?, ?, ?, 400, 'g', 0, ?, ?)",
+        ['l1', 'h', 'g1', 'i1', now, now],
+      );
+      final variants = SqliteWeekVariantRepository(db, householdId: 'h');
+      await variants.saveOverrides(
+        _lastWeek,
+        'r1',
+        overrides: const [
+          LineOverride(
+            action: LineOverrideAction.exclude,
+            recipeLineItemId: 'l1',
+          ),
+        ],
+      );
+
+      final result = await repo.copyLastWeek(_thisWeek);
+      expect(result.meals, 1);
+      expect(result.variantsLeftBehind, [
+        (recipeTitle: 'Slow-Cooker Beef Ragù', changes: 1),
+      ]);
+      // Not copied is already the behaviour — this pins that it stays so.
+      expect(await variants.loadOverrides(_thisWeek, 'r1'), isEmpty);
+      expect(await variants.loadOverrides(_lastWeek, 'r1'), hasLength(1));
+    });
+
+    test('a copy with no variant behind it reports none', () async {
+      await _insertRecipe(db, 'r1', 'Curry');
+      await repo.addEntry(
+        weekStart: _lastWeek,
+        dayOfWeek: 1,
+        mealSlot: 'Dinner',
+        recipeId: 'r1',
+        eaterIds: ['m1'],
+      );
+      final result = await repo.copyLastWeek(_thisWeek);
+      expect(result.meals, 1);
+      expect(result.variantsLeftBehind, isEmpty);
+    });
+
     test('copyLastWeek is a no-op with no earlier week', () async {
-      expect(await repo.copyLastWeek(_thisWeek), 0);
+      expect((await repo.copyLastWeek(_thisWeek)).meals, 0);
       expect(await repo.watchWeek(_thisWeek).first, isNull);
     });
   });
@@ -559,7 +620,7 @@ void main() {
         measureId: 'mz',
       );
 
-      expect(await repo.copyLastWeek(_thisWeek), 1);
+      expect((await repo.copyLastWeek(_thisWeek)).meals, 1);
       final copied = (await repo.watchWeek(_thisWeek).first)!.entries.single;
       expect(copied.ingredientId, 'i1');
       expect(copied.quantity, 1);

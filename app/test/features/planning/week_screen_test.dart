@@ -60,9 +60,9 @@ class _FakePlanningRepo extends FakePlanningRepository {
   Future<WeekPlan?> mostRecentWeekBefore(DateTime weekStart) async => last;
 
   @override
-  Future<int> copyLastWeek(DateTime weekStart) async {
+  Future<CopyLastWeekResult> copyLastWeek(DateTime weekStart) async {
     onCopy?.call(weekStart);
-    return 0;
+    return (meals: 0, variantsLeftBehind: const <VariantLeftBehind>[]);
   }
 }
 

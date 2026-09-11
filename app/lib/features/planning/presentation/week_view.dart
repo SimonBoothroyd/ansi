@@ -58,6 +58,7 @@ import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
 import 'confirm_meal_sheet.dart';
+import 'copy_last_week.dart';
 import 'meal_editor_sheet.dart';
 import 'recipe_picker_sheet.dart';
 import 'week_format.dart';
@@ -164,7 +165,6 @@ class WeekView extends HookConsumerWidget {
         : null;
 
     final lastWeek = ref.watch(lastWeekProvider).asData?.value;
-    final repo = ref.read(planningRepositoryProvider);
 
     // null = Everyone; a member id = that person's lens (D8: it dims, it does
     // not remove).
@@ -213,13 +213,10 @@ class WeekView extends HookConsumerWidget {
                   weekStart: weekStart,
                   hasLastWeek: lastWeek != null,
                   onCopyLastWeek: () => unawaited(
-                    ref.write(
-                      context,
-                      'copy last week',
-                      () => repo.copyLastWeek(weekStart),
-                    ),
+                    copyLastWeekInto(context, ref, weekStart: weekStart),
                   ),
                 ),
+              CopyLastWeekNotice(weekStart: weekStart),
               _LensRow(lens: lens, roster: roster),
               for (var d = 0; d < 7; d++)
                 _DayCard(

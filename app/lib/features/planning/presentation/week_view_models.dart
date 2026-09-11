@@ -167,6 +167,23 @@ Stream<Map<String, RecipeMacroSummary>> variantRecipeMacros(Ref ref) => ref
     .watch(weekVariantRepositoryProvider)
     .watchVariantRecipeMacros(ref.watch(viewedWeekStartProvider));
 
+/// What the last copy carried, and what it left behind — held for the week it
+/// is about, so moving off that week and back does not re-announce it.
+///
+/// A **state**, not a toast: it reports a part of an act that did not happen,
+/// it stays true until the person does something about it, and it names rows
+/// they may want to open. Cleared by reading it once the week moves.
+@Riverpod(keepAlive: true)
+class LastCopyReport extends _$LastCopyReport {
+  @override
+  ({DateTime weekStart, CopyLastWeekResult result})? build() => null;
+
+  void record(DateTime weekStart, CopyLastWeekResult result) =>
+      state = (weekStart: weekStart, result: result);
+
+  void clear() => state = null;
+}
+
 /// The roster keyed by id — the portion factors every demand and lens share is
 /// weighted by.
 @riverpod

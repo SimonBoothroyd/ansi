@@ -108,5 +108,6 @@ class FakePlanningRepository implements PlanningRepository {
   Future<void> removeEntry(String entryId) async {}
 
   @override
-  Future<int> copyLastWeek(DateTime weekStart) async => 0;
+  Future<CopyLastWeekResult> copyLastWeek(DateTime weekStart) async =>
+      (meals: 0, variantsLeftBehind: const <VariantLeftBehind>[]);
 }

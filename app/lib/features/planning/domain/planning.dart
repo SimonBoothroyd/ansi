@@ -221,6 +221,19 @@ int mealSlotRank(String slot) {
   return i < 0 ? kDefaultMealSlots.length : i;
 }
 
+/// One recipe whose this-week changes a copy did NOT carry, and how many.
+///
+/// "Just this week" is the whole promise, so carrying a variant forward would
+/// turn it into a recipe edit made by accretion. A silent drop is the same bug
+/// as a silent carry, pointing the other way — so the copy names what it left.
+typedef VariantLeftBehind = ({String recipeTitle, int changes});
+
+/// What a copy of last week carried, and what it could not.
+typedef CopyLastWeekResult = ({
+  int meals,
+  List<VariantLeftBehind> variantsLeftBehind,
+});
+
 /// The Monday (date-only, UTC) of the week containing [date] — the app's active
 /// week. Dart weekdays are 1=Mon..7=Sun, so Monday is `date - (weekday - 1)`.
 DateTime mondayOf(DateTime date) {

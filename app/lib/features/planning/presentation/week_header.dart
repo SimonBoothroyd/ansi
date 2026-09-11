@@ -25,8 +25,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
-import '../../../shared/write.dart';
-import '../data/planning_providers.dart';
+import 'copy_last_week.dart';
 import 'week_format.dart';
 import 'week_view_models.dart';
 
@@ -180,13 +179,7 @@ class _WeekMenu extends ConsumerWidget {
                 onPress: () {
                   unawaited(controller.hide());
                   unawaited(
-                    ref.write(
-                      context,
-                      'copy last week',
-                      () => ref
-                          .read(planningRepositoryProvider)
-                          .copyLastWeek(viewed),
-                    ),
+                    copyLastWeekInto(context, ref, weekStart: viewed),
                   );
                 },
               ),

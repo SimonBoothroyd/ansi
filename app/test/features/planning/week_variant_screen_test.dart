@@ -9,6 +9,7 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
+import 'package:ansi/features/planning/presentation/copy_last_week.dart';
 import 'package:ansi/features/planning/presentation/meal_editor_sheet.dart';
 import 'package:ansi/features/planning/presentation/week_variant_editor.dart';
 import 'package:ansi/features/planning/presentation/week_view.dart';
@@ -31,6 +32,9 @@ import '../../helpers/pump_app.dart';
 
 const _weekKey = '2026-09-14';
 final _monday = DateTime.utc(2026, 9, 14);
+
+/// A week nothing has been copied into — the notice's silent case.
+final _copyWeek = _monday;
 
 const _recipe = Recipe(
   id: 'r1',
@@ -443,6 +447,41 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(EditedForThisWeekMark), findsNothing);
+    });
+  });
+  group('copy last week', () {
+    test('says what it left behind, naming each recipe and its count', () {
+      expect(
+        variantsLeftBehindLine(const [
+          (recipeTitle: 'Slow-Cooker Beef Ragù', changes: 5),
+        ]),
+        startsWith(
+          "One recipe's this-week changes were left behind — "
+          'Slow-Cooker Beef Ragù (5 changes).',
+        ),
+      );
+    });
+
+    test('and counts the recipes when there is more than one', () {
+      expect(
+        variantsLeftBehindLine(const [
+          (recipeTitle: 'Ragù', changes: 5),
+          (recipeTitle: 'Curry', changes: 1),
+        ]),
+        startsWith(
+          "2 recipes' this-week changes were left behind — "
+          'Ragù (5 changes), Curry (1 change).',
+        ),
+      );
+    });
+
+    testWidgets('a copy that left nothing behind says nothing', (tester) async {
+      await tester.pumpAnsiApp(
+        CopyLastWeekNotice(weekStart: _copyWeek),
+        overrides: _overrides(FakeWeekVariantRepository()),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(Text), findsNothing);
     });
   });
 }

@@ -650,6 +650,103 @@ final class VariantRecipeMacrosProvider
 String _$variantRecipeMacrosHash() =>
     r'e6ddb6b66e2e9c6151a9146f1d16399466c9c103';
 
+/// What the last copy carried, and what it left behind — held for the week it
+/// is about, so moving off that week and back does not re-announce it.
+///
+/// A **state**, not a toast: it reports a part of an act that did not happen,
+/// it stays true until the person does something about it, and it names rows
+/// they may want to open. Cleared by reading it once the week moves.
+
+@ProviderFor(LastCopyReport)
+const lastCopyReportProvider = LastCopyReportProvider._();
+
+/// What the last copy carried, and what it left behind — held for the week it
+/// is about, so moving off that week and back does not re-announce it.
+///
+/// A **state**, not a toast: it reports a part of an act that did not happen,
+/// it stays true until the person does something about it, and it names rows
+/// they may want to open. Cleared by reading it once the week moves.
+final class LastCopyReportProvider
+    extends
+        $NotifierProvider<
+          LastCopyReport,
+          ({CopyLastWeekResult result, DateTime weekStart})?
+        > {
+  /// What the last copy carried, and what it left behind — held for the week it
+  /// is about, so moving off that week and back does not re-announce it.
+  ///
+  /// A **state**, not a toast: it reports a part of an act that did not happen,
+  /// it stays true until the person does something about it, and it names rows
+  /// they may want to open. Cleared by reading it once the week moves.
+  const LastCopyReportProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'lastCopyReportProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$lastCopyReportHash();
+
+  @$internal
+  @override
+  LastCopyReport create() => LastCopyReport();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(
+    ({CopyLastWeekResult result, DateTime weekStart})? value,
+  ) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride:
+          $SyncValueProvider<
+            ({CopyLastWeekResult result, DateTime weekStart})?
+          >(value),
+    );
+  }
+}
+
+String _$lastCopyReportHash() => r'608644f5bdeaa870518ce8fcad952377f6e244ec';
+
+/// What the last copy carried, and what it left behind — held for the week it
+/// is about, so moving off that week and back does not re-announce it.
+///
+/// A **state**, not a toast: it reports a part of an act that did not happen,
+/// it stays true until the person does something about it, and it names rows
+/// they may want to open. Cleared by reading it once the week moves.
+
+abstract class _$LastCopyReport
+    extends $Notifier<({CopyLastWeekResult result, DateTime weekStart})?> {
+  ({CopyLastWeekResult result, DateTime weekStart})? build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref =
+        this.ref
+            as $Ref<
+              ({CopyLastWeekResult result, DateTime weekStart})?,
+              ({CopyLastWeekResult result, DateTime weekStart})?
+            >;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<
+                ({CopyLastWeekResult result, DateTime weekStart})?,
+                ({CopyLastWeekResult result, DateTime weekStart})?
+              >,
+              ({CopyLastWeekResult result, DateTime weekStart})?,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
+}
+
 /// The roster keyed by id — the portion factors every demand and lens share is
 /// weighted by.
 

@@ -85,7 +85,10 @@ abstract interface class PlanningRepository {
   Future<void> removeEntry(String entryId);
 
   /// Copies every meal from [mostRecentWeekBefore] into the week beginning
-  /// [weekStart] (creating it if needed). Returns the number of meals copied;
-  /// 0 when there is no earlier week to copy.
-  Future<int> copyLastWeek(DateTime weekStart);
+  /// [weekStart] (creating it if needed).
+  ///
+  /// It copies `plan_entry` columns only, so a recipe's **this-week changes**
+  /// do not come with it — and the result names each recipe whose variant was
+  /// left behind, because a silent drop is the same bug as a silent carry.
+  Future<CopyLastWeekResult> copyLastWeek(DateTime weekStart);
 }

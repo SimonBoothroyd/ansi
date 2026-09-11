@@ -348,9 +348,11 @@ class SqlitePlanningRepository implements PlanningRepository {
   }
 
   @override
-  Future<int> copyLastWeek(DateTime weekStart) async {
+  Future<CopyLastWeekResult> copyLastWeek(DateTime weekStart) async {
     final source = await mostRecentWeekBefore(weekStart);
-    if (source == null) return 0;
+    if (source == null) {
+      return (meals: 0, variantsLeftBehind: const <VariantLeftBehind>[]);
+    }
     final key = _weekKey(weekStart);
     final now = _now();
     await _db.writeTransaction((tx) async {
@@ -386,7 +388,28 @@ class SqlitePlanningRepository implements PlanningRepository {
         );
       }
     });
-    return source.entries.length;
+    return (
+      meals: source.entries.length,
+      variantsLeftBehind: await _variantsLeftBehind(source.id),
+    );
+  }
+
+  /// The variants the copy did not bring: one row per recipe the SOURCE week
+  /// varied, named and counted. Nothing is written for them — not copying is
+  /// already the behaviour, and this is the saying of it.
+  Future<List<VariantLeftBehind>> _variantsLeftBehind(String weekPlanId) async {
+    final rows = await _db.getAll(
+      'SELECT r.title, COUNT(*) AS n '
+      'FROM week_recipe_line_override wro '
+      'JOIN recipe r ON r.id = wro.recipe_id AND r.deleted_at IS NULL '
+      'WHERE wro.week_plan_id = ? AND wro.deleted_at IS NULL '
+      'GROUP BY r.id, r.title ORDER BY r.title',
+      [weekPlanId],
+    );
+    return [
+      for (final r in rows)
+        (recipeTitle: r['title'] as String, changes: r['n'] as int),
+    ];
   }
 
   String _now() => DateTime.now().toUtc().toIso8601String();
