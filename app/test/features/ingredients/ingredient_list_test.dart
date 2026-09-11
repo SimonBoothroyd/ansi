@@ -29,10 +29,14 @@ void main() {
       expect(find.text('Needs fleshing out'), findsOneWidget);
       expect(find.text('1 stub'), findsOneWidget);
       expect(find.text('needs macros · usda prefilled'), findsOneWidget);
-      // …and the full vocabulary is below it, not replaced by it.
-      expect(find.text('All ingredients · 3'), findsOneWidget);
+      // …and the full vocabulary is below it, grouped by aisle in the same
+      // shop-walk order the Shop tab uses — produce before pantry, never
+      // one flat A–Z run.
+      expect(find.text('Produce · 2'), findsOneWidget);
+      expect(find.text('Pantry · 1'), findsOneWidget);
       expect(find.text('Mango'), findsWidgets);
       expect(find.text('Nutritional yeast'), findsWidgets);
+      expect(find.text('All ingredients · 3'), findsNothing);
     });
 
     testWidgets('the list comes back from the detail route still showing the '
@@ -45,7 +49,7 @@ void main() {
 
       // Initial render is fine — this is the state we must get back to.
       expect(find.text('Needs fleshing out'), findsOneWidget);
-      expect(find.text('All ingredients · 3'), findsOneWidget);
+      expect(find.text('Produce · 2'), findsOneWidget);
 
       // Push the detail, edit, rename + save, pop back. A vocabulary row
       // opens as a row now — `⋯ ▸ Edit` is the way into the fields.
@@ -69,7 +73,7 @@ void main() {
       // The user typed nothing into search, so the list must not be in its
       // search-results branch.
       expect(find.text('Needs fleshing out'), findsOneWidget);
-      expect(find.text('All ingredients · 3'), findsOneWidget);
+      expect(find.text('Produce · 2'), findsOneWidget);
       expect(find.text('Mango, ripe'), findsWidgets);
     });
 
@@ -82,20 +86,45 @@ void main() {
         host(FakeIngredientRepo(const [mango, curryLeaves, yeast])),
       );
       await tester.pumpAndSettle();
-      expect(find.text('All ingredients · 3'), findsOneWidget);
+      expect(find.text('Produce · 2'), findsOneWidget);
 
       await tester.enterText(find.byType(TextField).first, 'mang');
       await tester.pumpAndSettle();
-      // A search is a search: the band and the header collapse into results.
+      // A search is a search: the band and the section headers collapse into
+      // one flat run of results.
       expect(find.text('Needs fleshing out'), findsNothing);
-      expect(find.text('All ingredients · 3'), findsNothing);
+      expect(find.text('Produce · 2'), findsNothing);
+      expect(find.text('Pantry · 1'), findsNothing);
 
       await tester.enterText(find.byType(TextField).first, '');
       await tester.pumpAndSettle();
       // An empty field is the whole vocabulary — the branch follows the text
       // the user can actually see, never a query that outlived it.
       expect(find.text('Needs fleshing out'), findsOneWidget);
-      expect(find.text('All ingredients · 3'), findsOneWidget);
+      expect(find.text('Produce · 2'), findsOneWidget);
+    });
+
+    testWidgets('sections run in shop-walk order, not alphabetically', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      // Pantry sorts before Produce alphabetically; the aisle order the Shop
+      // tab walks puts Produce first, and both screens read the one order.
+      await tester.pumpWidget(
+        host(FakeIngredientRepo(const [yeast, mango, chex])),
+      );
+      await tester.pumpAndSettle();
+
+      final produce = tester.getTopLeft(find.text('Produce · 1')).dy;
+      final pantry = tester.getTopLeft(find.text('Pantry · 2')).dy;
+      expect(produce, lessThan(pantry));
+      // Bucketing is stable, so a section keeps the order the vocabulary
+      // arrived in — which the query makes A–Z.
+      expect(
+        tester.getTopLeft(find.text('Nutritional yeast')).dy,
+        lessThan(tester.getTopLeft(find.text('Chex Cereal')).dy),
+      );
     });
 
     testWidgets('rows are the picker rows: honest hints, no zeros for a stub, '
@@ -110,10 +139,11 @@ void main() {
       // table in ingredient_row_hints_test.dart — this is the stub, carrying
       // both the advisory (no density) and the blocker (needs macros), which
       // stay distinct sentences.
+      // The Produce header has just said "produce", so the row does not
+      // repeat it — the fact line starts at what the row is short of.
       expect(
         find.text(
-          'produce · no density — volume units locked · needs macros — '
-          'no zeros shown',
+          'no density — volume units locked · needs macros — no zeros shown',
         ),
         findsOneWidget,
       );
@@ -146,7 +176,7 @@ void main() {
       await tester.pumpWidget(host(FakeIngredientRepo(const [mango])));
       await tester.pumpAndSettle();
       expect(find.text('Needs fleshing out'), findsNothing);
-      expect(find.text('All ingredients · 1'), findsOneWidget);
+      expect(find.text('Produce · 1'), findsOneWidget);
     });
 
     testWidgets('tapping a row opens it as a row, and the band opens the '
@@ -226,7 +256,7 @@ void main() {
 
       await tester.enterText(find.byType(TextField).first, 'chex');
       await tester.pumpAndSettle();
-      expect(find.text('All ingredients · 3'), findsNothing);
+      expect(find.text('Pantry · 1'), findsNothing);
       expect(
         find.text(
           'edited · usda · Cereals ready-to-eat, GENERAL MILLS, Corn CHEX',

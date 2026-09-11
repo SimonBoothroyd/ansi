@@ -636,11 +636,20 @@ a line starts, never whether it can be changed:
   dropped demotes to plain prose. The one thing the review cannot do is mint
   a brand-new line, and the picker's add-a-line door says so.
 
+**The vocabulary is grouped by section (shipped):** `/ingredients` lists the
+whole vocabulary under **aisle headers**, in the same shop-walk order the Shop
+tab groups by (`core/aisles.dart` — one order, shared, because somebody who
+learned it on one screen should not meet a different one two taps away), A–Z
+within a section and the coined categories after the known aisles. A header
+says the section, so the row's fact line no longer repeats it. **Search still
+replaces the whole list** with one flat run of results — and those rows keep
+their category, because nothing else there says where they live.
+
 **Fleshing out a stub (step 8.5, shipped):** a stub needs density/macros before
-it counts toward conversions or macro totals. It surfaces as a **band on top of
-the whole vocabulary** in the ingredients manager (`/ingredients`), not as a
-separate queue screen — a vocabulary you can only see when it is broken is not a
-vocabulary you can edit. **Nothing prefills a stub.** A row is matched to the
+it counts toward conversions or macro totals. It surfaces as a **band pinned on
+top of the whole vocabulary** in the ingredients manager (`/ingredients`), above
+the aisle sections and not as a separate queue screen — a vocabulary you can
+only see when it is broken is not a vocabulary you can edit. **Nothing prefills a stub.** A row is matched to the
 USDA reference set only when a person opens the form's `Fill it in from ▸ Look
 up in USDA`, searches it and picks a food; the pick fills the *draft* — the
 description, the density and the macros — and one Save writes the row with

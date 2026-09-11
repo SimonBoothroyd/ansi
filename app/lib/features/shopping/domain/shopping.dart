@@ -35,6 +35,7 @@ library;
 // ignore_for_file: sort_unnamed_constructors_first
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../core/aisles.dart';
 import '../../../core/result/result.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
@@ -495,27 +496,10 @@ WholeUnitHint? wholeUnitHintFor({
 
 // --- Builder -----------------------------------------------------------------
 
-// Aisle order for the grouped list. Anything unknown sorts after these,
-// alphabetically; free-text "Non-food" always sits last.
-const _aisleOrder = <String>[
-  'produce',
-  'meat',
-  'dairy',
-  'baking',
-  'grains',
-  'pantry',
-  'spices & seasoning',
-  'fats & oils',
-];
-
+// The aisle order is `core/aisles.dart` — one walk through a shop, shared with
+// the ingredients manager so the two screens never disagree about it.
+// Free-text "Non-food" is this list's own, and always sits last.
 const _nonFoodLabel = 'Non-food';
-
-/// Title-cases an aisle label for display ("spices & seasoning" → "Spices &
-/// Seasoning").
-String _titleCase(String s) => s
-    .split(' ')
-    .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
-    .join(' ');
 
 /// The provenance label for a cook contribution: the recipe title, plus its
 /// cook day when the recipe is batched into more than one session (so the
@@ -836,25 +820,15 @@ ShoppingList buildShoppingList({
   // Bucket food items by their ingredient's aisle (free-text = non-food).
   final byAisle = <String, List<ShoppingItem>>{};
   for (final item in items) {
-    final category = meta[item.ingredientId]?.category?.toLowerCase();
-    (byAisle[category ?? _uncategorised] ??= []).add(item);
+    (byAisle[aisleKey(meta[item.ingredientId]?.category)] ??= []).add(item);
   }
 
   final groups = <ShoppingGroup>[];
-  final aisles = byAisle.keys.toList()
-    ..sort((a, b) {
-      final ai = _aisleOrder.indexOf(a);
-      final bi = _aisleOrder.indexOf(b);
-      if (ai != -1 && bi != -1) return ai.compareTo(bi);
-      if (ai != -1) return -1;
-      if (bi != -1) return 1;
-      return a.compareTo(b);
-    });
+  final aisles = byAisle.keys.toList()..sort(compareAisles);
   for (final aisle in aisles) {
-    final label = aisle == _uncategorised ? 'Other' : _titleCase(aisle);
     groups.add(
       ShoppingGroup(
-        label: label,
+        label: aisleLabel(aisle),
         items: byAisle[aisle]!
           ..sort(
             (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
@@ -910,5 +884,3 @@ ShoppingList buildShoppingList({
     optionalLines: optionalLines,
   );
 }
-
-const _uncategorised = '\u0000other';

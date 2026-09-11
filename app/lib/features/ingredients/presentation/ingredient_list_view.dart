@@ -24,6 +24,7 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/aisles.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/words.dart';
@@ -143,16 +144,24 @@ class IngredientListView extends HookConsumerWidget {
                   else ...[
                     if (stubs.isNotEmpty)
                       _StubBand(stubs: stubs, onOpen: fleshOut),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16, bottom: 4),
-                      child: Text(
-                        'All ingredients · ${all.length}',
-                        style: ansiLabel(),
+                    for (final section in _sections(all)) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16, bottom: 4),
+                        child: Text(
+                          '${section.label} · ${section.rows.length}',
+                          style: ansiLabel(),
+                        ),
                       ),
-                    ),
-                    for (final (i, ing) in all.indexed) ...[
-                      if (i > 0) Container(height: 1, color: AnsiColors.line),
-                      _ManagerRow(ingredient: ing, onOpen: open),
+                      for (final (i, ing) in section.rows.indexed) ...[
+                        if (i > 0) Container(height: 1, color: AnsiColors.line),
+                        // The header already said the section, so the row
+                        // does not repeat it.
+                        _ManagerRow(
+                          ingredient: ing,
+                          onOpen: open,
+                          showCategory: false,
+                        ),
+                      ],
                     ],
                   ],
                   const SizedBox(height: 16),
@@ -174,6 +183,23 @@ class IngredientListView extends HookConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// The vocabulary cut into aisle sections, in the same shop-walk order the
+  /// Shop tab groups by ([kAisleOrder]) — you learn one order, not two.
+  /// [all] arrives ordered by canonical name, so each section stays A–Z by
+  /// construction.
+  List<({String label, List<Ingredient> rows})> _sections(
+    List<Ingredient> all,
+  ) {
+    final byAisle = <String, List<Ingredient>>{};
+    for (final ing in all) {
+      (byAisle[aisleKey(ing.category)] ??= []).add(ing);
+    }
+    final keys = byAisle.keys.toList()..sort(compareAisles);
+    return [
+      for (final key in keys) (label: aisleLabel(key), rows: byAisle[key]!),
+    ];
   }
 
   List<Widget> _searchResults(
@@ -205,16 +231,25 @@ class IngredientListView extends HookConsumerWidget {
 /// The picker row, wearing the manager's chevron. Rendering it twice in two
 /// places is how the same ingredient starts telling two stories.
 class _ManagerRow extends StatelessWidget {
-  const _ManagerRow({required this.ingredient, required this.onOpen});
+  const _ManagerRow({
+    required this.ingredient,
+    required this.onOpen,
+    this.showCategory = true,
+  });
 
   final Ingredient ingredient;
   final ValueChanged<Ingredient> onOpen;
+
+  /// False under a section header, which has already said it. Search results
+  /// replace the headers with one flat list, so there the row says it again.
+  final bool showCategory;
 
   @override
   Widget build(BuildContext context) => IngredientRow(
     ingredient: ingredient,
     onPick: onOpen,
     advisoryDensityGap: true,
+    showCategory: showCategory,
     // A-D1: the manager names the USDA food behind a filled row, so a wrong
     // match is caught in the scan rather than one opened row at a time. The
     // picker sets this false — see [IngredientRow.showSource].

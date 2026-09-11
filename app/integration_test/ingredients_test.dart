@@ -249,21 +249,24 @@ void main() {
                 'AND deleted_at IS NULL',
               ))['c']
               as int;
-      final vocabSize =
+      final produce =
           (await db.get(
-                'SELECT COUNT(*) AS c FROM ingredient WHERE deleted_at IS NULL',
+                'SELECT COUNT(*) AS c FROM ingredient WHERE deleted_at IS NULL '
+                "AND LOWER(TRIM(category)) = 'produce'",
               ))['c']
               as int;
       expect(stubTotal, greaterThan(0), reason: 'the stub band needs a stub');
+      expect(produce, greaterThan(0), reason: 'the first aisle needs a row');
       expect(
         find.text('$stubTotal ${stubTotal == 1 ? 'stub' : 'stubs'}'),
         findsOneWidget,
         reason: "the band's count must be the vocabulary's real stub count",
       );
-      // The header sits BELOW the whole stub band in a virtualized list — it
-      // is not built until scrolled to (the import review's lesson, one
+      // The list is grouped by aisle, so the first header below the band is
+      // Produce — and it sits BELOW the whole stub band in a virtualized
+      // list, not built until scrolled to (the import review's lesson, one
       // screen later).
-      await scrollTo(tester, find.text('All ingredients · $vocabSize'));
+      await scrollTo(tester, find.text('Produce · $produce'));
 
       // --- open the stub and flesh it out ----------------------------------
       // The row is in the band AND in the all-ingredients list below; scroll

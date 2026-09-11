@@ -252,8 +252,17 @@ class _EmptyState extends StatelessWidget {
 /// [advisoryDensityGap] makes a missing density a clause of its own. Only a
 /// screen that can fix it asks for it — the manager list passes true, the
 /// picker leaves it false, because an advisory nobody can act on is noise.
-String vocabRowHints(Ingredient ing, {bool advisoryDensityGap = false}) => [
-  if (ing.category != null) ing.category!,
+///
+/// [showCategory] is false under a section header that has already said it —
+/// the manager's grouped list. A flat list (the picker, and the manager's own
+/// search results) keeps it, because nothing else there says where the row
+/// lives.
+String vocabRowHints(
+  Ingredient ing, {
+  bool advisoryDensityGap = false,
+  bool showCategory = true,
+}) => [
+  if (showCategory && ing.category != null) ing.category!,
   if (ing.densityGPerMl != null)
     'has density'
   else if (advisoryDensityGap)
@@ -276,6 +285,7 @@ class IngredientRow extends StatelessWidget {
     this.trailing,
     this.advisoryDensityGap = false,
     this.showSource = false,
+    this.showCategory = true,
     super.key,
   });
 
@@ -299,12 +309,21 @@ class IngredientRow extends StatelessWidget {
   /// typing.
   final bool showSource;
 
+  /// Whether the fact line opens with the row's category. False under a
+  /// section header that has just said it (the manager's grouped list); true
+  /// anywhere the rows are flat.
+  final bool showCategory;
+
   @override
   Widget build(BuildContext context) {
     final ing = ingredient;
     final stub = ing.status == IngredientStatus.stub;
     final macros = ing.macros;
-    final hints = vocabRowHints(ing, advisoryDensityGap: advisoryDensityGap);
+    final hints = vocabRowHints(
+      ing,
+      advisoryDensityGap: advisoryDensityGap,
+      showCategory: showCategory,
+    );
     final sourceLine = showSource ? sourceProvenanceLine(ing) : null;
 
     return GestureDetector(
