@@ -109,6 +109,7 @@ import 'draft_card.dart';
 import 'ingredient_facts.dart';
 import 'ingredient_view_models.dart';
 import 'macro_line_text.dart';
+import 'macros_doubt_line.dart';
 import 'macros_format.dart';
 import 'measure_delete.dart';
 import 'measures_editor.dart';
@@ -1084,6 +1085,10 @@ class _DetailForm extends ConsumerWidget {
                   printed: draft.serving.packPrinted,
                   per100: draft.printedMacros,
                 ),
+              // Once, under all of it, whatever mode the section is in: the
+              // doubt is about what will be STORED, and a panel that argues
+              // with itself does so in every mode.
+              MacrosDoubtLine(stored: draft.storedMacros),
             ],
           ),
 

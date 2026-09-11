@@ -224,6 +224,18 @@ The column list is generated from the migrations —
     fat), the recipe panel gains a fifth cell, and the week's strip gains a
     `fib` cell. Each appears only where the figure does; a blank cell would
     read as a zero.
+- **A panel that argues with itself says so, and blocks nothing.** One muted
+  line under the macro fields, in the derivation's own slot, about what Save
+  would *store*: protein, fat and carb all zero on a food that states calories
+  ("the label's macros are all zero for a food with calories"), or a
+  fibre-adjusted Atwater gap — `4P + 9F + 4C` with a stated fibre moved off
+  the 4 and onto a 2 — that misses the stated energy by more than **both**
+  150 kcal and half of it ("these numbers don't add up: about N kcal from the
+  macros"). Both thresholds are deliberately loose: acetic acid and alcohol
+  are not Atwater macros, so a vinegar and a glass of red wine break the
+  arithmetic honestly, and so do a mineral raising agent and a high-fibre
+  cocoa. It is advice — the dock owns the refusals, and a panel read off a
+  label is the household's whatever the arithmetic makes of it.
 - **Where the line is dense, the two fixed units are glyphs.** On a picker
   row, a recipe line's own macros, the week's strip and the ingredient page's
   read line, energy is drawn as a flame after its figure and fibre as a sheaf

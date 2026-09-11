@@ -526,4 +526,92 @@ void main() {
       expect(repo.savedForms.single.serving, isNull);
     });
   });
+
+  // Advice, in the derivation's own voice and slot. It blocks nothing: the
+  // dock owns the refusals, and a panel read off a pack is the person's
+  // whatever the arithmetic makes of it.
+  group('a panel that argues with itself says so, under the fields', () {
+    const bare = Ingredient(
+      id: 'bare',
+      canonicalName: 'Crispy Onion',
+      defaultUnit: g,
+      status: IngredientStatus.stub,
+      category: 'pantry',
+      source: 'manual',
+    );
+
+    testWidgets('calories out of nothing, and calories the macros cannot '
+        'account for', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final repo = FakeIngredientRepo(const [bare]);
+      await tester.pumpWidget(host(repo, at: editRoute('bare')));
+      await tester.pumpAndSettle();
+
+      // A half-typed panel is not a panel: there is nothing to doubt yet.
+      await tester.enterText(macroField('kcal'), '571');
+      await tester.pump();
+      expect(find.textContaining('don’t add up'), findsNothing);
+
+      // Every gram figure zero on a food with calories.
+      await typeMacros(tester, kcal: '60.9', protein: '0', carb: '0', fat: '0');
+      expect(
+        find.text('the label’s macros are all zero for a food with calories'),
+        findsOneWidget,
+      );
+
+      // The fried onion the owner scanned: no fat at all against 571 kcal.
+      await typeMacros(
+        tester,
+        kcal: '571',
+        protein: '0',
+        carb: '42.9',
+        fat: '0',
+      );
+      expect(
+        find.text('these numbers don’t add up: about 172 kcal from the macros'),
+        findsOneWidget,
+      );
+      // Non-blocking, all of it — the row is still saveable.
+      expect(saveButton(tester).onPress, isNotNull);
+
+      // A panel that adds up says nothing at all.
+      await typeMacros(
+        tester,
+        kcal: '571',
+        protein: '6',
+        carb: '42.9',
+        fat: '38',
+      );
+      expect(find.textContaining('don’t add up'), findsNothing);
+      expect(find.textContaining('all zero'), findsNothing);
+    });
+
+    testWidgets('it is drawn once, and it is about what will be STORED — not '
+        'about the label’s own column', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(FakeIngredientRepo(const [bare]), at: editRoute('bare')),
+      );
+      await tester.pumpAndSettle();
+
+      // Per serving: 4 kcal on a 1 g serving is 400 per 100, and 400 is what
+      // 100 g of carbohydrate accounts for. The label's own column would have
+      // looked like a gap; the derivation is what the row will hold.
+      await tester.tap(find.text('per serving'));
+      await tester.pumpAndSettle();
+      await tester.enterText(servingAmountField, '1');
+      await tester.pump();
+      await typeMacros(tester, kcal: '4', protein: '0', carb: '1', fat: '0');
+      expect(find.textContaining('don’t add up'), findsNothing);
+
+      // And with the serving amount still blank there is no stored panel to
+      // doubt, whatever the fields say.
+      await tester.enterText(servingAmountField, '');
+      await tester.pump();
+      await typeMacros(tester, kcal: '900', protein: '0', carb: '0', fat: '0');
+      expect(find.textContaining('all zero'), findsNothing);
+    });
+  });
 }
