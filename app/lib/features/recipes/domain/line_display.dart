@@ -18,6 +18,8 @@
 /// ingredient first appears.
 library;
 
+import '../../../core/units/number_format.dart';
+import '../../../core/units/units.dart';
 import 'recipe.dart';
 
 /// One inline recipe-page row: an ingredient identity and its ordered [uses].
@@ -153,4 +155,29 @@ List<LineUses> groupLineUses(List<LineItem> items) {
         uses: byKey[key]!,
       ),
   ];
+}
+
+/// One line's amount string: quantity + measure/unit, in the recipe page's
+/// data voice. A count unit shows only its number ("6"); a measure or a
+/// mass/volume unit shows "2 tin" / "400 g"; an imprecise unit its label ("a
+/// pinch"); a numberless line the unit alone.
+///
+/// It lives here rather than beside the widget that first printed it because
+/// the words are also a FACT about the line — the week's variant quotes the
+/// recipe's amount back ("was 400 g Pork sausage") and the shopping list's
+/// provenance segment quotes it too, and neither may phrase it its own way.
+String amountOfLine(LineItem item) {
+  final measure = item.measure;
+  if (measure != null) {
+    final counted = item.quantity == null ? '' : formatAmount(item.quantity!);
+    return counted.isEmpty ? measure.label : '$counted ${measure.label}';
+  }
+  final qty = item.quantity == null
+      ? ''
+      : formatAmountIn(item.quantity!, item.unit);
+  if (item.unit.family == UnitFamily.count) {
+    return qty.isEmpty ? item.unit.label : qty;
+  }
+  if (qty.isEmpty) return item.unit.label;
+  return '$qty ${item.unit.label}';
 }

@@ -1,5 +1,6 @@
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/domain/effective_lines.dart';
+import 'package:ansi/features/recipes/domain/line_override.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -43,15 +44,9 @@ void main() {
       ]);
     });
 
-    test('planEntryId is the override seam: accepted, and unread today', () {
-      // The per-week override (tick an optional line back in for one planned
-      // week) is designed for, not built. Passing an entry must not change the
-      // answer until it is — this pins the "nothing reads it yet" half.
+    test('no overrides: the recipe as it stands', () {
       final lines = [_line('rice'), _line('lime', optional: true)];
-      final withEntry = effectiveLines(lines, planEntryId: 'pe-1');
-      final without = effectiveLines(lines);
-      expect(withEntry.kept, without.kept);
-      expect(withEntry.dropped, without.dropped);
+      expect(effectiveLines(lines).kept.map((l) => l.id), ['rice']);
     });
 
     test(
@@ -69,5 +64,122 @@ void main() {
         ]);
       },
     );
+  });
+
+  group("effectiveLines — this week's variant, applied", () {
+    test("exclude drops the line with the week's own reason", () {
+      final wine = _line('wine');
+      final result = effectiveLines(
+        [_line('rice'), wine],
+        overrides: const [
+          LineOverride(
+            action: LineOverrideAction.exclude,
+            recipeLineItemId: 'wine',
+          ),
+        ],
+      );
+      expect(result.kept.map((l) => l.id), ['rice']);
+      expect(result.dropped, [(line: wine, reason: LineDropReason.thisWeek)]);
+      expect(droppedNames(result, LineDropReason.thisWeek), ['wine']);
+    });
+
+    test("replace carries absolute values, and keeps the line's id", () {
+      final result = effectiveLines(
+        [_line('sausage')],
+        overrides: const [
+          LineOverride(
+            action: LineOverrideAction.replace,
+            recipeLineItemId: 'sausage',
+            ingredientId: 'ing-mince',
+            ingredientName: 'Beef mince',
+            quantity: 400,
+            unit: g,
+            note: 'browned',
+          ),
+        ],
+      );
+      final line = result.kept.single;
+      expect(line.id, 'sausage');
+      expect(line.ingredientId, 'ing-mince');
+      expect(line.ingredientName, 'Beef mince');
+      expect(line.quantity, 400);
+      expect(line.note, 'browned');
+    });
+
+    test('include keeps an optional line, and clears the flag so a second '
+        'pass is a no-op', () {
+      final result = effectiveLines(
+        [_line('parmesan', optional: true)],
+        overrides: const [
+          LineOverride(
+            action: LineOverrideAction.include,
+            recipeLineItemId: 'parmesan',
+          ),
+        ],
+      );
+      expect(result.kept.single.optional, isFalse);
+      expect(result.dropped, isEmpty);
+      expect(effectiveLines(result.kept).kept, result.kept);
+    });
+
+    test('a replaced optional line counts too', () {
+      final result = effectiveLines(
+        [_line('parmesan', optional: true)],
+        overrides: const [
+          LineOverride(
+            action: LineOverrideAction.replace,
+            recipeLineItemId: 'parmesan',
+            ingredientId: 'ing-parmesan',
+            ingredientName: 'Parmesan, grated',
+            quantity: 60,
+            unit: g,
+          ),
+        ],
+      );
+      expect(result.kept.single.quantity, 60);
+      expect(result.kept.single.optional, isFalse);
+    });
+
+    test("add lands at the end, carrying the override row's id", () {
+      final result = effectiveLines(
+        [_line('rice')],
+        overrides: const [
+          LineOverride(
+            id: 'ov-basil',
+            action: LineOverrideAction.add,
+            ingredientId: 'ing-basil',
+            ingredientName: 'Basil',
+            quantity: 1,
+            unit: pieces,
+            note: 'torn',
+          ),
+        ],
+      );
+      expect(result.kept.map((l) => l.id), ['rice', 'ov-basil']);
+      expect(result.kept.last.ingredientName, 'Basil');
+      expect(result.kept.last.note, 'torn');
+    });
+
+    test("an override for another recipe's line is simply not found", () {
+      // The guard behind "a variant never leaks into another week": the seam
+      // only ever applies an override whose line is in front of it, so a set
+      // read for the wrong week changes nothing rather than half-applying.
+      final lines = [_line('rice'), _line('lime', optional: true)];
+      final result = effectiveLines(
+        lines,
+        overrides: const [
+          LineOverride(
+            action: LineOverrideAction.exclude,
+            recipeLineItemId: 'some-other-recipes-line',
+          ),
+          LineOverride(
+            action: LineOverrideAction.include,
+            recipeLineItemId: 'also-not-here',
+          ),
+        ],
+      );
+      expect(result.kept, effectiveLines(lines).kept);
+      expect(result.dropped, effectiveLines(lines).dropped);
+    });
   });
 }

@@ -41,7 +41,6 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
-import '../../../shared/format.dart';
 import '../../ingredients/presentation/macro_line_text.dart';
 import '../domain/line_display.dart';
 import '../domain/recipe.dart';
@@ -391,19 +390,7 @@ class OptionalTag extends StatelessWidget {
   }
 }
 
-/// One use's amount string: quantity + measure/unit, in the recipe page's data
-/// voice. A count unit shows only its number ("6"); a measure or a mass/volume
-/// unit shows "2 tin" / "400 g"; an imprecise unit its label ("a pinch").
-String amountOfLineItem(LineItem item) {
-  final measure = item.measure;
-  if (measure != null) {
-    final counted = formatQuantity(item.quantity);
-    return counted.isEmpty ? measure.label : '$counted ${measure.label}';
-  }
-  final qty = formatQuantityIn(item.quantity, item.unit);
-  if (item.unit.family == UnitFamily.count) {
-    return qty.isEmpty ? item.unit.label : qty;
-  }
-  if (qty.isEmpty) return item.unit.label;
-  return '$qty ${item.unit.label}';
-}
+/// One use's amount string — [amountOfLine], which is where the words live so
+/// that the week's variant and the shopping list can quote a line's amount in
+/// exactly the voice the recipe page prints it in.
+String amountOfLineItem(LineItem item) => amountOfLine(item);
