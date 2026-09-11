@@ -155,14 +155,24 @@ class EdgeImportRepository implements ImportRepository {
       if (details is Map && details['error'] is String) {
         throw ImportException(details['error'] as String);
       }
-      // No JSON body: the function never answered and something in front of it
-      // did. A 504 here is the platform's gateway timeout, not a rejection.
-      throw ImportException(
-        e.status == 504 || e.status == 408
-            ? 'the import service was still working when it ran out of time — '
-                  'nothing was saved, so it is safe to try again'
-            : 'the import service could not process this recipe',
-      );
+      // No message of its own: the function never answered, and something in
+      // front of it did. A 504 here is the platform's gateway timeout, not a
+      // rejection; every other status carries what the platform said, because
+      // the remedies differ and a sentence without the status cannot tell
+      // them apart — a relay 546 is the worker hitting its limits (send fewer
+      // pages), a status 0 is this phone never reaching the service at all.
+      final detail = _platformDetail(e.status, details);
+      throw ImportException(switch (e.status) {
+        504 || 408 =>
+          'the import service was still working when it ran out of time '
+              '($detail) — nothing was saved, so it is safe to try again',
+        // Nothing was sent anywhere, so "could not process this recipe"
+        // would name the wrong thing as broken.
+        0 =>
+          'the import service could not be reached ($detail) — nothing was '
+              'saved, so it is safe to try again',
+        _ => 'the import service could not process this recipe ($detail)',
+      });
     }
     final data = response.data;
     if (data is! Map) {
@@ -171,6 +181,19 @@ class EdgeImportRepository implements ImportRepository {
       );
     }
     return ReconciliationPayload.fromJson(Map<String, Object?>.from(data));
+  }
+
+  /// What the app knows about a failure the function did not explain: the
+  /// platform's status and whatever it said with it, on one line and short
+  /// enough to survive a toast. Status 0 is the client's own "never got
+  /// there", so there is no HTTP status to print for it.
+  static String _platformDetail(int status, Object? details) {
+    final head = status == 0 ? 'no response' : 'HTTP $status';
+    final said = (details?.toString() ?? '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    if (said.isEmpty) return head;
+    return '$head: ${said.length > 200 ? '${said.substring(0, 200)}…' : said}';
   }
 
   /// Builds the invoke body: a URL passes straight through; photos are read

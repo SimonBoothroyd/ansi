@@ -105,6 +105,47 @@ void main() {
     expect(message, contains('safe to try again'));
   });
 
+  test('a relay error says its status and what the platform said — the worker '
+      'limit is not the same failure as a rejection', () async {
+    // 546 is the edge platform's own "this worker hit its limits", handed
+    // back with `x-relay-error` rather than through the function.
+    final relay = _repo(
+      (_) async => http.Response(
+        'WORKER_LIMIT: memory limit reached\n  during the vision tier',
+        546,
+        headers: const {'x-relay-error': 'true'},
+      ),
+    );
+    final message = await _messageFor(relay);
+    expect(message, contains('HTTP 546'));
+    expect(message, contains('WORKER_LIMIT: memory limit reached'));
+    // One line: a toast cannot show the platform's own line breaks.
+    expect(message, isNot(contains('\n')));
+  });
+
+  test('a request that never reached the service says so, and carries the '
+      'error the socket raised', () async {
+    final offline = _repo(
+      (_) async => throw http.ClientException('Failed host lookup'),
+    );
+    final message = await _messageFor(offline);
+    // No HTTP status exists for a request that was never answered, so none is
+    // invented — and the socket's own words are what tell this apart from a
+    // service that answered badly.
+    expect(message, contains('could not be reached'));
+    expect(message, contains('no response'));
+    expect(message, isNot(contains('HTTP')));
+    expect(message, contains('Failed host lookup'));
+  });
+
+  test('a platform page is trimmed to something a toast can hold', () async {
+    final shouty = _repo((_) async => http.Response('x' * 900, 500));
+    final message = await _messageFor(shouty);
+    expect(message, contains('HTTP 500'));
+    expect(message, contains('…'));
+    expect(message.length, lessThan(320));
+  });
+
   test('past the whole ladder the copy says what was being waited on, that '
       'nothing was saved, and — for photos — what reads faster', () {
     final photos = importTimeoutMessage(
