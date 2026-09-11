@@ -383,9 +383,16 @@ List<Unit> _orderUnits(Iterable<Unit> unitsIn, Ingredient ingredient) {
 /// being rewritten.
 List<Unit> allowedUnitsFor(Ingredient ingredient) {
   final explicit = ingredient.allowedUnits;
-  final set = explicit == null || explicit.isEmpty
-      ? defaultAllowedUnitSet(ingredient)
-      : {...explicit};
+  // **A row can always say its own default unit.** An explicit list that does
+  // not name it is a list written where the default has since moved, and
+  // honouring it literally leaves the row unable to say the word it is bought
+  // in. Unioned BEFORE the fences below, never after: a default the numbers
+  // cannot support is still stranded, and that is the flag's business.
+  final set =
+      (explicit == null || explicit.isEmpty
+            ? defaultAllowedUnitSet(ingredient)
+            : {...explicit})
+        ..add(ingredient.defaultUnit);
   if (ingredient.densityGPerMl == null) {
     set.removeAll(densityStrippedUnits(ingredient));
   }

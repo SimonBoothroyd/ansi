@@ -148,6 +148,29 @@ void main() {
       expect(at().allowed, contains(pieces));
     });
 
+    test('the default unit cannot be toggled off — a row keeps the word it is '
+        'bought in', () async {
+      final repo = FakeIngredientRepo([_bareStub]);
+      final (:form, :at) = await _open(repo, id: 'bare');
+      expect(at().defaultUnit, g);
+
+      form.toggleUnit(g);
+      expect(at().allowed, contains(g), reason: 'the default is not prunable');
+
+      // Every other chip is still the household's to turn off…
+      form.toggleUnit(kg);
+      expect(at().allowed, isNot(contains(kg)));
+
+      // …and the lock follows the row rather than the unit: move the default
+      // onto `oz` and `g` prunes like anything else, while `oz` stops.
+      form.setDefaultUnit(oz);
+      expect(at().defaultUnit, oz);
+      form.toggleUnit(g);
+      expect(at().allowed, isNot(contains(g)));
+      form.toggleUnit(oz);
+      expect(at().allowed, contains(oz));
+    });
+
     test('a density unlocks the volume units, and removing it strips '
         'them', () async {
       final repo = FakeIngredientRepo([_mango]);

@@ -551,7 +551,14 @@ class IngredientForm extends _$IngredientForm {
     state = next.copyWith(allowed: _admissionFor(next.editedRow, next.allowed));
   }
 
+  /// A tap turns a unit on or off — except the row's own default, which stays
+  /// on. Pruning is the household's to do, but not down to a row that cannot
+  /// say the word it is bought in; [allowedUnitsFor] unions the default back
+  /// in on the next read anyway, so honouring the tap would only make the
+  /// chips lie until then. The chip is drawn locked, with the note under the
+  /// row saying why.
   void toggleUnit(Unit unit) {
+    if (unit == state.defaultUnit) return;
     final next = {...state.allowed};
     if (!next.remove(unit)) next.add(unit);
     state = state.copyWith(allowed: next);

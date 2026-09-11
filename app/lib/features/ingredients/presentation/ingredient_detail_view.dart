@@ -1587,6 +1587,7 @@ class _AdmissionChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final candidates = allowedUnitCandidates(ingredient).toList();
+    final fixed = ingredient.defaultUnit;
     final sayable = [
       for (final c in candidates)
         if (!c.locked && c.unit.family != UnitFamily.imprecise) c,
@@ -1610,6 +1611,7 @@ class _AdmissionChips extends StatelessWidget {
               _UnitChip(
                 unit: c.unit,
                 selected: selected.contains(c.unit),
+                locked: c.unit == fixed,
                 onTap: () => onToggle(c.unit),
               ),
             // The divider the quantity sheet draws before the same words.
@@ -1624,11 +1626,17 @@ class _AdmissionChips extends StatelessWidget {
                 _UnitChip(
                   unit: c.unit,
                   selected: selected.contains(c.unit),
+                  locked: c.unit == fixed,
                   onTap: () => onToggle(c.unit),
                 ),
             ],
           ],
         ),
+        // The one chip that is not the household's to turn off, named for
+        // the same reason the locked ones are: a tap that does nothing needs
+        // a visible answer.
+        if (candidates.any((c) => !c.locked && c.unit == fixed))
+          _Note('${fixed.label} stays on — the row is bought in it'),
         // The density note is printed ONCE, under the default-unit row above:
         // the same family is dashed here for the same reason, and saying it
         // twice on one screen is what the owner asked to have removed.
@@ -1644,17 +1652,24 @@ class _UnitChip extends StatelessWidget {
     required this.unit,
     required this.selected,
     required this.onTap,
+    this.locked = false,
   });
 
   final Unit unit;
   final bool selected;
+
+  /// The row's own default unit: drawn ON like any other sayable chip — it is
+  /// on, and stays on — but inert, because a row has to be able to say the
+  /// word it is bought in. The note under the chips is where that is said.
+  final bool locked;
+
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: onTap,
+      onTap: locked ? null : onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
         decoration: BoxDecoration(

@@ -435,9 +435,28 @@ void main() {
       // The list is not rewritten — only read strictly. Give the row its
       // density and every unit it names is offered again.
       expect(
-        allowedUnitsFor(_ing(tsp, density: 0.4, allowed: const [kg, tbsp, g])),
-        [tbsp, g, kg],
+        allowedUnitsFor(
+          _ing(tsp, density: 0.4, allowed: const [kg, tbsp, g, tsp]),
+        ),
+        [tsp, tbsp, g, kg],
       );
+    });
+
+    test('a list that does not name the default unit self-heals on read — '
+        'the word a row is bought in is always sayable', () {
+      // The shape a default moved after the list was written leaves behind:
+      // the household pruned to grams, then started buying it by the cup.
+      expect(allowedUnitsFor(_ing(cup, density: 0.59, allowed: const [g])), [
+        cup,
+        g,
+      ]);
+    });
+
+    test('…but the self-heal never re-admits a STRANDED default — the number, '
+        'not the default, says what is sayable', () {
+      // `cup` with no density is flagged on the form and repaired there, not
+      // quietly offered by this rule.
+      expect(allowedUnitsFor(_ing(cup, allowed: const [g])), [g]);
     });
 
     test('an empty explicit list falls back to the derived defaults (a row '

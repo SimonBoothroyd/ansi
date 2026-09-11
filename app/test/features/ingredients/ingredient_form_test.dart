@@ -187,6 +187,22 @@ void main() {
       );
     });
 
+    testWidgets('the default unit is one chip the household cannot prune, and '
+        'a line says so', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(FakeIngredientRepo(const [mango]), at: editRoute('mango')),
+      );
+      await tester.pumpAndSettle();
+
+      // The mango is counted, so `piece` is the word every line of it says.
+      expect(
+        find.text('piece stays on — the row is bought in it'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('two locks, two lines: piece waits on a piece weight, never '
         'on the density (ADR-0015)', (tester) async {
       filterForuiSemanticsAssertions();
