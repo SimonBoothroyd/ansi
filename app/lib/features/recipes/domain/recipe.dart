@@ -198,6 +198,13 @@ abstract class LineItem with _$LineItem {
     Measure? measure,
     String? note,
     @Default(false) bool optional,
+
+    /// Whether [measureId] points at a measure the household has DELETED, as
+    /// opposed to one that simply has not arrived yet. Both leave [measure]
+    /// null and the line reading its stored count, and only this tells the
+    /// two apart — so a line can say which it is instead of promising a sync
+    /// that is never coming.
+    @Default(false) bool measureDeleted,
   }) = _LineItem;
 
   /// Whether this line is a sub-recipe component rather than an ingredient.

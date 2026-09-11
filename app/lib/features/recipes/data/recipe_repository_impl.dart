@@ -267,6 +267,12 @@ class SqliteRecipeRepository implements RecipeRepository {
       'ing.deleted_at AS ingredient_deleted_at, '
       'im.label AS measure_label, im.basis_amount AS measure_amount, '
       'im.sort_order AS measure_sort, im.source AS measure_source, '
+      // The same measure WITHOUT the liveness guard, so an unresolved
+      // measure_id can say which kind it is: a tombstone the household made,
+      // or a row that has not synced down yet. A column of its own is
+      // selected, not just joined — an unselected LEFT JOIN is optimized away
+      // and `watch` then never re-fires on that table.
+      'imx.deleted_at AS measure_deleted_at, '
       // The component target (step 8.6 / D1): title for the identity cell,
       // yields for the batch math.
       'sub.title AS sub_title, sub.yield_qty AS sub_yield_qty, '
@@ -277,6 +283,7 @@ class SqliteRecipeRepository implements RecipeRepository {
       'LEFT JOIN ingredient ing ON ing.id = li.ingredient_id '
       'LEFT JOIN ingredient_measure im '
       'ON im.id = li.measure_id AND im.deleted_at IS NULL '
+      'LEFT JOIN ingredient_measure imx ON imx.id = li.measure_id '
       'LEFT JOIN recipe sub '
       'ON sub.id = li.sub_recipe_id AND sub.deleted_at IS NULL '
       'WHERE g.recipe_id = ? AND li.deleted_at IS NULL '
@@ -388,6 +395,9 @@ class SqliteRecipeRepository implements RecipeRepository {
       quantity: (r['quantity'] as num?)?.toDouble(),
       optional: _flag(r['optional']),
       measureId: measureId,
+      // Null on every query that does not ask (the flag is a display fact,
+      // and the surfaces that print it all read this one).
+      measureDeleted: r['measure_deleted_at'] != null,
       measure:
           measureId == null || measureLabel == null || measureAmount == null
           ? null

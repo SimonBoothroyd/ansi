@@ -307,6 +307,61 @@ void main() {
     expect(find.text('Add ingredient'), findsOneWidget);
   });
 
+  testWidgets('an unresolved measure says WHICH kind it is — deleted, or not '
+      'here yet', (tester) async {
+    filterForuiSemanticsAssertions();
+    // The form is one long scroll; give it room so both lines are built.
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    const withGhosts = Recipe(
+      id: '1',
+      title: 'Weeknight Curry',
+      servingsBase: 2,
+      groups: [
+        IngredientGroup(
+          id: 'g1',
+          items: [
+            LineItem(
+              id: 'i-onion',
+              ingredientId: 'ing-onion',
+              ingredientName: 'Onion',
+              unit: pieces,
+              quantity: 2,
+              measureId: 'm-gone',
+              measureDeleted: true,
+            ),
+            LineItem(
+              id: 'i-carrot',
+              ingredientId: 'ing-carrot',
+              ingredientName: 'Carrot',
+              unit: pieces,
+              quantity: 3,
+              measureId: 'm-unsynced',
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _host(const RecipeEditorView(recipeId: '1'), [
+        recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(withGhosts)),
+        ingredientRepositoryProvider.overrideWithValue(
+          const ReadOnlyIngredientRepo(),
+        ),
+        bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
+      ]),
+    );
+    await tester.pumpAndSettle();
+
+    // Both lines fall back to the stored count; only one of them is waiting
+    // on anything, and the other must not promise a sync that never comes.
+    expect(find.text('2 piece · measure deleted'), findsOneWidget);
+    expect(find.text('3 piece · measure pending sync'), findsOneWidget);
+  });
+
   testWidgets('the editor draws the second MAKES denomination, with the ✕ that '
       'drops it', (tester) async {
     filterForuiSemanticsAssertions();

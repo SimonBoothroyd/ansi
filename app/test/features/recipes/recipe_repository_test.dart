@@ -300,6 +300,37 @@ void main() {
     expect(reloaded!.groups.first.items.first.measureId, 'm-ghost');
   });
 
+  test('a DELETED measure is told apart from one that has not '
+      'synced', () async {
+    await db.execute(
+      'INSERT INTO ingredient_measure '
+      '(id, household_id, ingredient_id, label, basis_amount, sort_order, '
+      'deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      ['m-gone', 'h', 'ing-onion', 'onion, medium', 110, 0, '2026-01-01'],
+    );
+    final recipe = _sampleRecipe();
+    await repo.saveRecipe(
+      recipe.copyWith(
+        groups: [
+          recipe.groups.first.copyWith(
+            items: [
+              recipe.groups.first.items.first.copyWith(measureId: 'm-gone'),
+              recipe.groups.first.items.last.copyWith(measureId: 'm-ghost'),
+            ],
+          ),
+          ...recipe.groups.skip(1),
+        ],
+      ),
+    );
+
+    final items = (await repo.watchRecipe('r1').first)!.groups.first.items;
+    // Both read as their stored count; only one of them is ever coming back.
+    expect(items.first.measure, isNull);
+    expect(items.first.measureDeleted, isTrue);
+    expect(items.last.measure, isNull);
+    expect(items.last.measureDeleted, isFalse, reason: 'no row at all yet');
+  });
+
   test('watchRecipe re-fires when a measure is renamed', () async {
     await db.execute(
       'INSERT INTO ingredient_measure '

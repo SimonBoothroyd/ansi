@@ -1007,7 +1007,12 @@ as List<LineItem>,
 /// @nodoc
 mixin _$LineItem {
 
- String get id; String get ingredientName; Unit get unit; String? get ingredientId; String? get subRecipeId; SubRecipeTarget? get subRecipe; double? get quantity; String? get measureId; Measure? get measure; String? get note; bool get optional;
+ String get id; String get ingredientName; Unit get unit; String? get ingredientId; String? get subRecipeId; SubRecipeTarget? get subRecipe; double? get quantity; String? get measureId; Measure? get measure; String? get note; bool get optional;/// Whether [measureId] points at a measure the household has DELETED, as
+/// opposed to one that simply has not arrived yet. Both leave [measure]
+/// null and the line reading its stored count, and only this tells the
+/// two apart — so a line can say which it is instead of promising a sync
+/// that is never coming.
+ bool get measureDeleted;
 /// Create a copy of LineItem
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1018,16 +1023,16 @@ $LineItemCopyWith<LineItem> get copyWith => _$LineItemCopyWithImpl<LineItem>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LineItem&&(identical(other.id, id) || other.id == id)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.subRecipeId, subRecipeId) || other.subRecipeId == subRecipeId)&&(identical(other.subRecipe, subRecipe) || other.subRecipe == subRecipe)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.note, note) || other.note == note)&&(identical(other.optional, optional) || other.optional == optional));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LineItem&&(identical(other.id, id) || other.id == id)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.subRecipeId, subRecipeId) || other.subRecipeId == subRecipeId)&&(identical(other.subRecipe, subRecipe) || other.subRecipe == subRecipe)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.note, note) || other.note == note)&&(identical(other.optional, optional) || other.optional == optional)&&(identical(other.measureDeleted, measureDeleted) || other.measureDeleted == measureDeleted));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,ingredientName,unit,ingredientId,subRecipeId,subRecipe,quantity,measureId,measure,note,optional);
+int get hashCode => Object.hash(runtimeType,id,ingredientName,unit,ingredientId,subRecipeId,subRecipe,quantity,measureId,measure,note,optional,measureDeleted);
 
 @override
 String toString() {
-  return 'LineItem(id: $id, ingredientName: $ingredientName, unit: $unit, ingredientId: $ingredientId, subRecipeId: $subRecipeId, subRecipe: $subRecipe, quantity: $quantity, measureId: $measureId, measure: $measure, note: $note, optional: $optional)';
+  return 'LineItem(id: $id, ingredientName: $ingredientName, unit: $unit, ingredientId: $ingredientId, subRecipeId: $subRecipeId, subRecipe: $subRecipe, quantity: $quantity, measureId: $measureId, measure: $measure, note: $note, optional: $optional, measureDeleted: $measureDeleted)';
 }
 
 
@@ -1038,7 +1043,7 @@ abstract mixin class $LineItemCopyWith<$Res>  {
   factory $LineItemCopyWith(LineItem value, $Res Function(LineItem) _then) = _$LineItemCopyWithImpl;
 @useResult
 $Res call({
- String id, String ingredientName, Unit unit, String? ingredientId, String? subRecipeId, SubRecipeTarget? subRecipe, double? quantity, String? measureId, Measure? measure, String? note, bool optional
+ String id, String ingredientName, Unit unit, String? ingredientId, String? subRecipeId, SubRecipeTarget? subRecipe, double? quantity, String? measureId, Measure? measure, String? note, bool optional, bool measureDeleted
 });
 
 
@@ -1055,7 +1060,7 @@ class _$LineItemCopyWithImpl<$Res>
 
 /// Create a copy of LineItem
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? ingredientName = null,Object? unit = null,Object? ingredientId = freezed,Object? subRecipeId = freezed,Object? subRecipe = freezed,Object? quantity = freezed,Object? measureId = freezed,Object? measure = freezed,Object? note = freezed,Object? optional = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? ingredientName = null,Object? unit = null,Object? ingredientId = freezed,Object? subRecipeId = freezed,Object? subRecipe = freezed,Object? quantity = freezed,Object? measureId = freezed,Object? measure = freezed,Object? note = freezed,Object? optional = null,Object? measureDeleted = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,ingredientName: null == ingredientName ? _self.ingredientName : ingredientName // ignore: cast_nullable_to_non_nullable
@@ -1068,6 +1073,7 @@ as double?,measureId: freezed == measureId ? _self.measureId : measureId // igno
 as String?,measure: freezed == measure ? _self.measure : measure // ignore: cast_nullable_to_non_nullable
 as Measure?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
 as String?,optional: null == optional ? _self.optional : optional // ignore: cast_nullable_to_non_nullable
+as bool,measureDeleted: null == measureDeleted ? _self.measureDeleted : measureDeleted // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -1165,10 +1171,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String ingredientName,  Unit unit,  String? ingredientId,  String? subRecipeId,  SubRecipeTarget? subRecipe,  double? quantity,  String? measureId,  Measure? measure,  String? note,  bool optional)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String ingredientName,  Unit unit,  String? ingredientId,  String? subRecipeId,  SubRecipeTarget? subRecipe,  double? quantity,  String? measureId,  Measure? measure,  String? note,  bool optional,  bool measureDeleted)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LineItem() when $default != null:
-return $default(_that.id,_that.ingredientName,_that.unit,_that.ingredientId,_that.subRecipeId,_that.subRecipe,_that.quantity,_that.measureId,_that.measure,_that.note,_that.optional);case _:
+return $default(_that.id,_that.ingredientName,_that.unit,_that.ingredientId,_that.subRecipeId,_that.subRecipe,_that.quantity,_that.measureId,_that.measure,_that.note,_that.optional,_that.measureDeleted);case _:
   return orElse();
 
 }
@@ -1186,10 +1192,10 @@ return $default(_that.id,_that.ingredientName,_that.unit,_that.ingredientId,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String ingredientName,  Unit unit,  String? ingredientId,  String? subRecipeId,  SubRecipeTarget? subRecipe,  double? quantity,  String? measureId,  Measure? measure,  String? note,  bool optional)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String ingredientName,  Unit unit,  String? ingredientId,  String? subRecipeId,  SubRecipeTarget? subRecipe,  double? quantity,  String? measureId,  Measure? measure,  String? note,  bool optional,  bool measureDeleted)  $default,) {final _that = this;
 switch (_that) {
 case _LineItem():
-return $default(_that.id,_that.ingredientName,_that.unit,_that.ingredientId,_that.subRecipeId,_that.subRecipe,_that.quantity,_that.measureId,_that.measure,_that.note,_that.optional);case _:
+return $default(_that.id,_that.ingredientName,_that.unit,_that.ingredientId,_that.subRecipeId,_that.subRecipe,_that.quantity,_that.measureId,_that.measure,_that.note,_that.optional,_that.measureDeleted);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1206,10 +1212,10 @@ return $default(_that.id,_that.ingredientName,_that.unit,_that.ingredientId,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String ingredientName,  Unit unit,  String? ingredientId,  String? subRecipeId,  SubRecipeTarget? subRecipe,  double? quantity,  String? measureId,  Measure? measure,  String? note,  bool optional)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String ingredientName,  Unit unit,  String? ingredientId,  String? subRecipeId,  SubRecipeTarget? subRecipe,  double? quantity,  String? measureId,  Measure? measure,  String? note,  bool optional,  bool measureDeleted)?  $default,) {final _that = this;
 switch (_that) {
 case _LineItem() when $default != null:
-return $default(_that.id,_that.ingredientName,_that.unit,_that.ingredientId,_that.subRecipeId,_that.subRecipe,_that.quantity,_that.measureId,_that.measure,_that.note,_that.optional);case _:
+return $default(_that.id,_that.ingredientName,_that.unit,_that.ingredientId,_that.subRecipeId,_that.subRecipe,_that.quantity,_that.measureId,_that.measure,_that.note,_that.optional,_that.measureDeleted);case _:
   return null;
 
 }
@@ -1221,7 +1227,7 @@ return $default(_that.id,_that.ingredientName,_that.unit,_that.ingredientId,_tha
 
 
 class _LineItem extends LineItem {
-  const _LineItem({required this.id, required this.ingredientName, required this.unit, this.ingredientId, this.subRecipeId, this.subRecipe, this.quantity, this.measureId, this.measure, this.note, this.optional = false}): super._();
+  const _LineItem({required this.id, required this.ingredientName, required this.unit, this.ingredientId, this.subRecipeId, this.subRecipe, this.quantity, this.measureId, this.measure, this.note, this.optional = false, this.measureDeleted = false}): super._();
   
 
 @override final  String id;
@@ -1235,6 +1241,12 @@ class _LineItem extends LineItem {
 @override final  Measure? measure;
 @override final  String? note;
 @override@JsonKey() final  bool optional;
+/// Whether [measureId] points at a measure the household has DELETED, as
+/// opposed to one that simply has not arrived yet. Both leave [measure]
+/// null and the line reading its stored count, and only this tells the
+/// two apart — so a line can say which it is instead of promising a sync
+/// that is never coming.
+@override@JsonKey() final  bool measureDeleted;
 
 /// Create a copy of LineItem
 /// with the given fields replaced by the non-null parameter values.
@@ -1246,16 +1258,16 @@ _$LineItemCopyWith<_LineItem> get copyWith => __$LineItemCopyWithImpl<_LineItem>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LineItem&&(identical(other.id, id) || other.id == id)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.subRecipeId, subRecipeId) || other.subRecipeId == subRecipeId)&&(identical(other.subRecipe, subRecipe) || other.subRecipe == subRecipe)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.note, note) || other.note == note)&&(identical(other.optional, optional) || other.optional == optional));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LineItem&&(identical(other.id, id) || other.id == id)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.subRecipeId, subRecipeId) || other.subRecipeId == subRecipeId)&&(identical(other.subRecipe, subRecipe) || other.subRecipe == subRecipe)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.note, note) || other.note == note)&&(identical(other.optional, optional) || other.optional == optional)&&(identical(other.measureDeleted, measureDeleted) || other.measureDeleted == measureDeleted));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,ingredientName,unit,ingredientId,subRecipeId,subRecipe,quantity,measureId,measure,note,optional);
+int get hashCode => Object.hash(runtimeType,id,ingredientName,unit,ingredientId,subRecipeId,subRecipe,quantity,measureId,measure,note,optional,measureDeleted);
 
 @override
 String toString() {
-  return 'LineItem(id: $id, ingredientName: $ingredientName, unit: $unit, ingredientId: $ingredientId, subRecipeId: $subRecipeId, subRecipe: $subRecipe, quantity: $quantity, measureId: $measureId, measure: $measure, note: $note, optional: $optional)';
+  return 'LineItem(id: $id, ingredientName: $ingredientName, unit: $unit, ingredientId: $ingredientId, subRecipeId: $subRecipeId, subRecipe: $subRecipe, quantity: $quantity, measureId: $measureId, measure: $measure, note: $note, optional: $optional, measureDeleted: $measureDeleted)';
 }
 
 
@@ -1266,7 +1278,7 @@ abstract mixin class _$LineItemCopyWith<$Res> implements $LineItemCopyWith<$Res>
   factory _$LineItemCopyWith(_LineItem value, $Res Function(_LineItem) _then) = __$LineItemCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String ingredientName, Unit unit, String? ingredientId, String? subRecipeId, SubRecipeTarget? subRecipe, double? quantity, String? measureId, Measure? measure, String? note, bool optional
+ String id, String ingredientName, Unit unit, String? ingredientId, String? subRecipeId, SubRecipeTarget? subRecipe, double? quantity, String? measureId, Measure? measure, String? note, bool optional, bool measureDeleted
 });
 
 
@@ -1283,7 +1295,7 @@ class __$LineItemCopyWithImpl<$Res>
 
 /// Create a copy of LineItem
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? ingredientName = null,Object? unit = null,Object? ingredientId = freezed,Object? subRecipeId = freezed,Object? subRecipe = freezed,Object? quantity = freezed,Object? measureId = freezed,Object? measure = freezed,Object? note = freezed,Object? optional = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? ingredientName = null,Object? unit = null,Object? ingredientId = freezed,Object? subRecipeId = freezed,Object? subRecipe = freezed,Object? quantity = freezed,Object? measureId = freezed,Object? measure = freezed,Object? note = freezed,Object? optional = null,Object? measureDeleted = null,}) {
   return _then(_LineItem(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,ingredientName: null == ingredientName ? _self.ingredientName : ingredientName // ignore: cast_nullable_to_non_nullable
@@ -1296,6 +1308,7 @@ as double?,measureId: freezed == measureId ? _self.measureId : measureId // igno
 as String?,measure: freezed == measure ? _self.measure : measure // ignore: cast_nullable_to_non_nullable
 as Measure?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
 as String?,optional: null == optional ? _self.optional : optional // ignore: cast_nullable_to_non_nullable
+as bool,measureDeleted: null == measureDeleted ? _self.measureDeleted : measureDeleted // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }

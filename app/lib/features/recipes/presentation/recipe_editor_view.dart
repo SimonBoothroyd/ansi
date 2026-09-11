@@ -373,11 +373,19 @@ class _LineItemEditor extends ConsumerWidget {
 
   /// The amount cell's label. Every line prints what the recipe page prints;
   /// only an unresolved measure id adds anything, and what it adds is the
-  /// honest count fallback with a note that the row has not arrived.
+  /// honest count fallback with a note saying why the measure is not there.
+  ///
+  /// **Two reasons, two words.** A measure whose row has not synced down yet
+  /// arrives on its own, and "pending sync" is a promise the app keeps; one
+  /// the household deleted never arrives, and the same words would have the
+  /// reader waiting on nothing.
   String get _label {
     if (item.measure == null && item.measureId != null) {
       final qty = formatQuantity(item.quantity);
-      final unit = '${item.unit.label} · measure pending sync';
+      final why = item.measureDeleted
+          ? 'measure deleted'
+          : 'measure pending sync';
+      final unit = '${item.unit.label} · $why';
       return qty.isEmpty ? unit : '$qty $unit';
     }
     return amountOfLineItem(item);

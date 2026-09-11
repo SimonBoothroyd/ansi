@@ -303,7 +303,9 @@ mixin _$IngredientFormDraft {
 /// the row's one `serving` measure either way.
  ServingDraft get serving;/// The per-100 figures the fields held before per-serving mode cleared
 /// them, so leaving the mode without typing anything puts the row back
-/// exactly as it was found.
+/// exactly as it was found. On a scan of a label that printed BOTH
+/// columns it is the pack's own per-100 column, which is the same fact
+/// said by the same pack.
  MacroDraft? get per100Macros; DensityChange get density;/// The piece weight as the form holds it — the count-side twin of
 /// [density], and drafted the same way (ADR-0015).
  PieceWeightChange get pieceWeight; List<Measure> get measuresAdded; Set<String> get measuresRemoved; List<IngredientAlias> get aliasesAdded; Set<String> get aliasesRemoved;/// A provenance the scan or the USDA pick stamped and the next Save writes
@@ -635,7 +637,9 @@ class _IngredientFormDraft extends IngredientFormDraft {
 @override@JsonKey() final  ServingDraft serving;
 /// The per-100 figures the fields held before per-serving mode cleared
 /// them, so leaving the mode without typing anything puts the row back
-/// exactly as it was found.
+/// exactly as it was found. On a scan of a label that printed BOTH
+/// columns it is the pack's own per-100 column, which is the same fact
+/// said by the same pack.
 @override final  MacroDraft? per100Macros;
 @override@JsonKey() final  DensityChange density;
 /// The piece weight as the form holds it — the count-side twin of
