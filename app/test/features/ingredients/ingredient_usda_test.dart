@@ -107,7 +107,8 @@ void main() {
 
   testWidgets(
     'a DECLINED row names the food it refused, says the numbers were cleared, '
-    'offers Choose another alone, and warns that a rename will not refill it',
+    'offers Choose another alone beside the plain lookup door, and warns that '
+    'a rename will not refill it',
     (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
@@ -130,7 +131,9 @@ void main() {
         find.text('renaming this row will not refill it — you said no once'),
         findsOneWidget,
       );
-      expect(find.text('Look up in USDA'), findsNothing);
+      // A refusal is not a dead end: the plain door stands too, because the
+      // card is a record of what was said no to rather than an offer.
+      expect(find.text('Look up in USDA'), findsOneWidget);
     },
   );
 
@@ -424,6 +427,100 @@ void main() {
     expect(row.source, 'usda_fdc:11216');
     expect(row.sourceEdited, isFalse);
     expect(find.text('Filled from USDA · edited here'), findsNothing);
+  });
+
+  // --- The door on a row USDA does not author, and the card before Save -----
+
+  testWidgets(
+    'a COMPLETE row stamped by something else keeps the lookup door, and the '
+    'pick it lands is on the CARD before any Save',
+    (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      // The owner's row: scanned off a pack after a USDA match was refused,
+      // so its stamp is the barcode's. It was complete, so the fill-in block
+      // was not drawn, and not `usda_fdc:`, so no card was either — USDA
+      // cleared, and no way back to it.
+      final repo = FakeIngredientRepo([
+        scannedSpread.copyWith(
+          status: IngredientStatus.complete,
+          macros: const Macros(kcal: 539, protein: 6.3, carb: 57.5, fat: 30.9),
+        ),
+      ]);
+      final probe = RecordingProbe(
+        const UsdaCandidate(
+          fdcId: 168588,
+          description: 'Sweets, chocolate hazelnut spread',
+          source: 'usda_fdc:168588',
+          score: 0.8,
+          macros: Macros(kcal: 541, protein: 5.4, carb: 57.9, fat: 30.3),
+        ),
+      );
+      await tester.pumpWidget(
+        host(repo, at: editRoute('spread'), probe: probe),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Look up in USDA'), findsOneWidget);
+      // The other door stays a stub's: a draft fills what is EMPTY, and
+      // nothing on a complete row is.
+      expect(find.text('Scan a barcode'), findsNothing);
+
+      await lookUpUsdaAndPick(tester, 'Sweets, chocolate hazelnut spread');
+
+      // The card is about the FIELDS, in the tense that says so.
+      expect(find.text('From USDA · not saved'), findsOneWidget);
+      expect(
+        find.textContaining(
+          'will be filled from Sweets, chocolate hazelnut spread',
+        ),
+        findsOneWidget,
+      );
+      expect(macroFieldText(tester, 'kcal'), '541');
+      // Both doors, exactly as after a Save: refusing a pick and re-choosing
+      // are no less available before one.
+      expect(find.widgetWithText(FButton, 'Not this food'), findsOneWidget);
+      expect(find.widgetWithText(FButton, 'Choose another ›'), findsOneWidget);
+      // And the plain door closes while the card carries the same search.
+      expect(find.text('Look up in USDA'), findsNothing);
+      // The pack's own line goes with the stamp it explained.
+      expect(find.textContaining('Filled from a barcode'), findsNothing);
+      expect((await repo.byId('spread'))!.source, 'off:3017620422003');
+
+      await saveForm(tester, reopen: 'Hazelnut spread');
+      expect((await repo.byId('spread'))!.source, 'usda_fdc:168588');
+      expect(find.text('Filled from USDA · confirmed'), findsOneWidget);
+    },
+  );
+
+  testWidgets('refusing a pick nobody has saved takes its numbers back out '
+      'and hands the lookup door back', (tester) async {
+    filterForuiSemanticsAssertions();
+    tallScreen(tester);
+    final repo = FakeIngredientRepo([
+      curryLeaves.copyWith(source: 'manual', sourceLabel: null),
+    ]);
+    await tester.pumpWidget(
+      host(
+        repo,
+        at: editRoute('curry'),
+        probe: RecordingProbe.list(const [usdaAnswer]),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await lookUpUsdaAndPick(tester, 'Curry leaves, raw');
+    expect(macroFieldText(tester, 'kcal'), '108');
+
+    await tester.tap(find.widgetWithText(FButton, 'Not this food'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('From USDA'), findsNothing);
+    expect(macroFieldText(tester, 'kcal'), isEmpty);
+    expect(find.text('Look up in USDA'), findsOneWidget);
+    // Nothing was written at either end of that: the row never carried the
+    // pick, so the undo had nothing to clear.
+    expect((await repo.byId('curry'))!.source, 'manual');
+    expect(repo.savedForms, isEmpty);
   });
 
   testWidgets('a row USDA never touched carries no provenance line at '

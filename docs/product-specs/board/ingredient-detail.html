@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Ingredient detail</h1>
-    <p class="view-status">built · matches code 2026-09-10 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
+    <p class="view-status">built · matches code 2026-09-11 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
     <p class="view-blurb"><b>One route, two postures.</b> A row that exists opens as a <b>fact sheet</b> — the same three groups (Identity, Nutrition, Units &amp; measures) with each field’s value stated instead of offered, no dock, and <code>Edit</code> in the header’s <code>⋯</code> exactly where the recipe page keeps it. <code>Edit</code> turns the same page into <b>the form</b>; Save and back turn it back. <code>/ingredients/new</code> opens the form directly — there is nothing yet to read — and so does every door that exists to <i>change</i> a field.</p>
 </header>
 
@@ -125,7 +125,8 @@
                 <div class="sb" style="font-family:'IBM Plex Mono',monospace;font-size:10px">Rice, black, unenriched, raw · matches every word of “Black Rice”</div>
                 <div style="display:flex;gap:8px;margin-top:9px"><span class="ghostbtn" style="margin-top:0">Not this food</span><span class="ghostbtn" style="margin-top:0">Choose another ›</span></div>
             </div>
-            <p class="conv-note" style="margin:-6px 20px 12px"><b>Not drawn on arrival.</b> This card appears only <i>after</i> a pick — a stub you have not searched has no card, and the <span style="font-family:'IBM Plex Mono',monospace">Fill it in from</span> row above is the whole offer.</p>
+            <p class="conv-note" style="margin:-6px 20px 12px"><b>Not drawn on arrival.</b> This card appears only <i>after</i> a pick — a stub you have not searched has no card, and the <span style="font-family:'IBM Plex Mono',monospace">Fill it in from</span> row above is the whole offer. It reads <b>the draft</b>: a pick is on the card before it is on the row, in the tense that says so.</p>
+            <p class="conv-note" style="margin:-6px 20px 12px"><b>Each door is drawn where it has something to offer</b>, and the block is gone when neither does. <span style="font-family:'IBM Plex Mono',monospace">Scan a barcode</span> is a stub&rsquo;s — a draft fills what is EMPTY, and nothing on a complete row is. <span style="font-family:'IBM Plex Mono',monospace">Look up in USDA</span> is every row&rsquo;s, and closes only where the card below already carries <span style="font-family:'IBM Plex Mono',monospace">Choose another &rsaquo;</span> for the food that filled it.</p>
             <p class="flabel" style="margin-bottom:2px">Macros</p>
             <p class="conv-note" style="margin:0 20px 6px">as the label reads &middot; fibre optional</p>
             <div class="frow"><div class="seg"><span class="segopt on">per 100 g</span><span class="segopt">per 100 ml</span><span class="segopt">per serving</span></div></div>
@@ -484,6 +485,27 @@
     </div>
 
     <div class="frame">
+        <p class="frame-name"><b>The pick, before Save</b> · the card reads the draft, so the food is named the moment it is chosen — in the tense that says nothing is written</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Hazelnut Spread</span><span class="dots">⋯</span></div>
+            <div class="state" style="margin-top:4px">
+                <div class="sh" style="font-weight:400;font-size:12px;color:var(--muted)"><span class="sdot" style="background:var(--fresh)"></span><span>Complete — counts in conversions and macro totals.</span></div>
+            </div>
+            <div class="state warn" style="margin-top:16px">
+                <div class="sh" style="font-weight:400"><span style="font-size:13px">From USDA · not saved</span></div>
+                <div class="sb" style="font-family:'IBM Plex Mono',monospace;font-size:10px">will be filled from Sweets, chocolate hazelnut spread · matches only part of “Hazelnut Spread”</div>
+                <div style="display:flex;gap:8px;margin-top:9px"><span class="ghostbtn" style="margin-top:0">Not this food</span><span class="ghostbtn" style="margin-top:0">Choose another ›</span></div>
+            </div>
+            <p class="flabel" style="margin-bottom:2px">Macros</p>
+            <p class="conv-note" style="margin:0 20px 6px">as the label reads &middot; fibre optional</p>
+            <div class="frow"><div class="macro-fields"><div class="mi"><div class="miv">541</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">5.4</div><div class="mil">protein</div></div><div class="mi"><div class="miv">57.9</div><div class="mil">carb</div></div><div class="mi"><div class="miv">30.3</div><div class="mil">fat</div></div><div class="mi"><div class="miv">&nbsp;</div><div class="mil">fibre</div></div></div></div>
+            <p class="conv-note" style="margin-top:12px"><b>The row this state was invisible on</b>: complete, stamped <span style="font-family:'IBM Plex Mono',monospace">off:&lt;barcode&gt;</span>, so no card — and the card, when it came, read the stored row and showed the <i>old</i> food. It reads the draft now.</p>
+            <p class="conv-note"><b>Both doors, exactly as after a Save.</b> <b>Not this food</b> takes the stamp and its numbers back out of the form — nothing was written, so there is nothing to clear on the row, and the next Save cannot write back the food that was just refused.</p>
+            <p class="conv-note">amber, because there <i>is</i> something to do: the dock&rsquo;s Save is what makes these numbers the row&rsquo;s. Every other card on this page is muted provenance.</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
         <p class="frame-name"><b>Filled from a USDA pick</b> · the card names the food and how much of the typed name it matched — and stays <i>not confirmed</i> until a human says so</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl">Kale</span><span class="dots">⋯</span></div>
@@ -542,6 +564,12 @@
                 <div class="sb" style="font-family:'IBM Plex Mono',monospace;font-size:10px">Kale, raw — not this food · the filled numbers were cleared</div>
                 <div style="display:flex;gap:8px;margin-top:9px"><span class="ghostbtn" style="margin-top:0">Choose another ›</span></div>
             </div>
+            <p class="flabel">Fill it in from</p>
+            <div class="frow" style="display:flex;gap:8px">
+                <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Scan a barcode</div>
+                <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Look up in USDA</div>
+            </div>
+            <p class="conv-note" style="margin:-6px 20px 12px"><b>A refusal is not a dead end.</b> The plain lookup door stands on a declined row — the card is a record of what was said no to, and the door is the way forward. It is the state that had neither: a row stamped by something else (a pack) after a decline drew no card and, once complete, no block either.</p>
             <p class="flabel" style="margin-bottom:2px">Macros</p>
             <p class="conv-note" style="margin:0 20px 6px">as the label reads &middot; fibre optional</p>
             <div class="frow"><div class="seg"><span class="segopt on">per 100 g</span><span class="segopt">per 100 ml</span><span class="segopt">per serving</span></div></div>

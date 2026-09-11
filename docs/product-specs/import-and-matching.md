@@ -769,6 +769,13 @@ it, stamping `source = usda_fdc:<id>` with `source_label` and `source_score`
 ([ADR-0011](../decisions/0011-one-save-one-write.md)). A barcode scan fills
 the draft the same way from Open Food Facts.
 
+**The lookup door is on every row the form opens**, not only on a stub — it
+closes only where the provenance card already carries `Choose another ›` for
+the food that filled the row, because that door opens the same search. A
+complete row whose numbers came off a pack, and a row whose match was refused,
+are both re-sourceable. The *scan* door stays a stub's: a draft fills what is
+empty, and nothing on a complete row is.
+
 One server-side companion survives from the trigger era and still matters:
 
 - **A landed density extends `allowed_units`** through the

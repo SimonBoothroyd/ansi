@@ -379,6 +379,28 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
 
   bool get stub => row.status == IngredientStatus.stub;
 
+  /// Whether the provenance the form holds is a pick or a scan that has not
+  /// been written yet — the state the card says *not saved* in.
+  bool get sourcePending => pendingSource != null;
+
+  /// The row as the form reads its **provenance**: the pick or the scan the
+  /// draft is holding, or the stored stamp when it holds none.
+  ///
+  /// The three source fields travel together or not at all — a stamp carrying
+  /// the previous food's label would name the wrong food — and a fill that has
+  /// just landed is nobody's override yet, so [Ingredient.sourceEdited] comes
+  /// off with them. Every door and card that asks "where did these numbers
+  /// come from" asks this, so a fresh pick is on the card before it is on the
+  /// row.
+  Ingredient get sourcedRow => pendingSource == null
+      ? row
+      : row.copyWith(
+          source: pendingSource,
+          sourceLabel: pendingSourceLabel,
+          sourceScore: pendingSourceScore,
+          sourceEdited: false,
+        );
+
   /// Why this form cannot be saved yet, in the user's words, or null.
   ///
   /// It lives on the draft rather than inside [IngredientForm.save] because a
@@ -1038,10 +1060,29 @@ class IngredientForm extends _$IngredientForm {
     state = next.copyWith(allowed: _admissionFor(next.editedRow, next.allowed));
   }
 
-  /// *Not this food*: one write clears the prefilled density and macros and
-  /// marks the row declined. The macro fields follow through the row's own
-  /// re-seed, the chips through the admission rule.
+  /// *Not this food*: the fill comes out of the **form** always, and out of
+  /// the **row** when the row is the one carrying it.
+  ///
+  /// Both halves are needed because a pick reaches the draft before it reaches
+  /// the row (ADR-0011). Refusing a food while its stamp sat in the draft
+  /// cleared the row and left the stamp, so the next Save wrote back the food
+  /// that had just been refused; and refusing one that was never saved had
+  /// nothing to write at all, so the card said cleared while the fields still
+  /// held the food's numbers.
   Future<void> declineUsda() async {
+    final stored = isUsdaPrefilled(state.row.source);
+    _dropUsdaFill();
+    // A pick that only ever sat in the draft has no row to clear — the write
+    // refuses it by design (`declineUsdaPrefill` writes only on a row the
+    // prefill still authors), and there is nothing to say about renames.
+    if (!stored) {
+      state = state.copyWith(
+        message:
+            'Not this food — the pick is off the form, and nothing was '
+            'saved.',
+      );
+      return;
+    }
     state = state.copyWith(busy: true);
     try {
       final cleared = await ref
@@ -1057,6 +1098,35 @@ class IngredientForm extends _$IngredientForm {
     } finally {
       if (ref.mounted) state = state.copyWith(busy: false);
     }
+  }
+
+  /// The refused fill, out of the draft: the stamp the next Save would write,
+  /// the density it asserted, and — while nobody has typed over them — the
+  /// macro fields it seeded.
+  ///
+  /// The density goes back to *unchanged* rather than to *cleared*: the form
+  /// stops asserting the pick's number, and what is left is whatever the row
+  /// itself says — none, once the write below has run, and the row's own
+  /// again on a pick that never landed. The macro guard is the row-move
+  /// guard ([_rowMoved]): a field somebody has typed in is theirs.
+  void _dropUsdaFill() {
+    var next = state.copyWith(
+      pendingSource: null,
+      pendingSourceLabel: null,
+      pendingSourceScore: null,
+      density: const DensityUnchanged(),
+    );
+    if (state.macros == state.seededMacros) {
+      final fresh = MacroDraft.from(state.row.macros);
+      next = next.copyWith(
+        macros: fresh,
+        seededMacros: fresh,
+        macroSeed: next.macroSeed + 1,
+        perServing: false,
+        per100Macros: null,
+      );
+    }
+    state = next.copyWith(allowed: _admissionFor(next.editedRow, next.allowed));
   }
 
   // --- The three writes ----------------------------------------------------

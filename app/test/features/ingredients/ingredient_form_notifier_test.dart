@@ -45,6 +45,17 @@ const _unweighedMango = Ingredient(
   source: 'seed',
 );
 
+/// A candidate carrying both numbers a pick can fill — what the draft holds
+/// after one, and what refusing it has to take back out.
+const _mangoRaw = UsdaCandidate(
+  fdcId: 11216,
+  description: 'Mango, raw',
+  source: 'usda_fdc:11216',
+  score: 1,
+  densityGPerMl: 0.35,
+  macros: Macros(kcal: 60, protein: 1, carb: 15, fat: 0),
+);
+
 /// A bare stub with nothing in its macro fields — the row a scan lands on.
 const _bareStub = Ingredient(
   id: 'bare',
@@ -349,16 +360,7 @@ void main() {
     test('a USDA pick fills the draft and writes nothing', () async {
       final repo = FakeIngredientRepo([_mango]);
       final (:form, :at) = await _open(repo, id: 'mango');
-      form.applyUsdaPick(
-        const UsdaCandidate(
-          fdcId: 11216,
-          description: 'Mango, raw',
-          source: 'usda_fdc:11216',
-          score: 1,
-          densityGPerMl: 0.35,
-          macros: Macros(kcal: 60, protein: 1, carb: 15, fat: 0),
-        ),
-      );
+      form.applyUsdaPick(_mangoRaw);
 
       final draft = at();
       expect(draft.pendingSource, 'usda_fdc:11216');
@@ -367,6 +369,45 @@ void main() {
       expect(draft.densityValue, 0.35);
       expect(repo.savedForms, isEmpty, reason: 'a pick writes nothing');
       expect(repo.rows.single.macros, isNull);
+    });
+
+    test('refusing a pick that is still in the draft takes the stamp AND its '
+        'numbers back out — the next Save must not write the food that was '
+        'just refused', () async {
+      final repo = FakeIngredientRepo([_mango]);
+      final (:form, :at) = await _open(repo, id: 'mango');
+      form.applyUsdaPick(_mangoRaw);
+      await form.declineUsda();
+
+      final draft = at();
+      expect(draft.pendingSource, isNull);
+      expect(draft.pendingSourceLabel, isNull);
+      expect(draft.pendingSourceScore, isNull);
+      // The fields and the density go back to the row's own — nothing was
+      // written, so there is nothing for the undo to have cleared.
+      expect(draft.macros.kcal, isEmpty);
+      expect(draft.densityValue, isNull);
+      // The row never carried the pick, so the decline had nothing to write.
+      expect(repo.rows.single.source, 'seed');
+      expect(repo.savedForms, isEmpty);
+
+      await form.save();
+      expect(repo.savedForms.single.row.source, isNull);
+      expect(repo.savedForms.single.row.sourceLabel, isNull);
+    });
+
+    test('picking again after a decline puts the new food in the draft — a '
+        'refusal is not a lock', () async {
+      final repo = FakeIngredientRepo([_mango]);
+      final (:form, :at) = await _open(repo, id: 'mango');
+      form.applyUsdaPick(_mangoRaw);
+      await form.declineUsda();
+      form.applyUsdaPick(_mangoRaw);
+
+      expect(at().pendingSource, 'usda_fdc:11216');
+      expect(at().pendingSourceLabel, 'Mango, raw');
+      expect(at().macros.kcal, '60');
+      expect(at().densityValue, 0.35);
     });
   });
 

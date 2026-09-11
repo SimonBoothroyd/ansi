@@ -627,6 +627,11 @@ class _DetailForm extends ConsumerWidget {
     final ing = draft.row;
     final creating = draft.creating;
     final draftRow = draft.editedRow;
+    // The row as the form reads WHERE ITS NUMBERS CAME FROM — the pick or
+    // scan in the draft, or the stored stamp. Every door and card in this
+    // build reads it, so a pick is on the card the moment it is made instead
+    // of only after a Save.
+    final sourcedRow = draft.sourcedRow;
     final stub = draft.stub;
     final busy = draft.busy;
     // A row that does not exist has no stored children to watch — and asking
@@ -664,7 +669,10 @@ class _DetailForm extends ConsumerWidget {
     Future<void> pickUsda() async {
       final pick = await showUsdaPickSheet(
         context,
-        ingredient: ing,
+        // The DRAFT's provenance: the short-list marks the row's own match
+        // *current* and its refused food *declined*, and a pick made a moment
+        // ago is as much this row's match as one that has been saved.
+        ingredient: draft.sourcedRow,
         name: draft.name.trim().isEmpty ? ing.canonicalName : draft.name,
       );
       if (pick == null) return;
@@ -874,21 +882,30 @@ class _DetailForm extends ConsumerWidget {
           // resets its state.
           _StatusStrip(ingredient: ing, creating: creating),
 
-          // The two prefill doors, in one place: they are the same offer, and
-          // both are mutually exclusive with the provenance card that replaces
-          // them.
-          if (stub)
-            _FillItIn(
-              onScan: busy ? null : scan,
-              usda: isUsdaPrefilled(ing.source) || isUsdaDeclined(ing.source)
-                  ? null
-                  : _GhostButton(
-                      label: 'Look up in USDA',
-                      onTap: busy ? null : pickUsda,
-                    ),
-            )
-          else
-            const SizedBox.shrink(),
+          // The two prefill doors, in one place — each drawn where it has
+          // something to offer, and the block itself gone when neither does.
+          //
+          // The **scan** is a stub's door: a draft fills what is EMPTY, and
+          // nothing on a complete row is. The **lookup** is every row's, and
+          // closes only where the card below already carries `Choose another
+          // ›` for the food that filled it. That is the state a barcode row
+          // stamped after a decline fell through: complete, so no block at
+          // all, and not `usda_fdc:`, so no card either — USDA cleared, with
+          // no way back to it.
+          _FillItIn(
+            scan: stub
+                ? _GhostButton(
+                    label: 'Scan a barcode',
+                    onTap: busy ? null : scan,
+                  )
+                : null,
+            usda: isUsdaPrefilled(sourcedRow.source)
+                ? null
+                : _GhostButton(
+                    label: 'Look up in USDA',
+                    onTap: busy ? null : pickUsda,
+                  ),
+          ),
 
           if (draft.scanned != null && draft.scanApplied != null)
             _ScanResult(
@@ -970,10 +987,11 @@ class _DetailForm extends ConsumerWidget {
             children: [
               // Where the numbers came from, at the head of the section that
               // holds them. A slot again (it renders nothing on a row USDA
-              // never touched), and the two doors are the only place the
-              // prefill can be refused or re-chosen.
+              // never touched), and it reads the DRAFT's provenance so a pick
+              // made a moment ago is named by the card that explains it.
               _UsdaProvenance(
-                ingredient: ing,
+                ingredient: sourcedRow,
+                pending: draft.sourcePending,
                 onDecline: busy
                     ? null
                     : () => ref.writeOk(
@@ -984,12 +1002,7 @@ class _DetailForm extends ConsumerWidget {
                 onChooseAnother: busy ? null : pickUsda,
               ),
               // The same fact for a scanned row, with no doors to offer.
-              _BarcodeProvenance(
-                ingredient: ing,
-                source: draft.pendingSource ?? ing.source,
-                label: draft.pendingSourceLabel ?? ing.sourceLabel,
-                basis: draft.basis,
-              ),
+              _BarcodeProvenance(ingredient: sourcedRow, basis: draft.basis),
 
               const _Label(
                 'MACROS',
@@ -1311,13 +1324,17 @@ class _DetailForm extends ConsumerWidget {
 /// written down — because there is then nothing else true to say about which
 /// food this was.
 ///
-/// Read off the row's own `source_label` / `source_score`, never off a live
-/// probe — the form is offline-first, and after a rename a fresh probe would
-/// name a different food than the one that actually filled the row. Nothing
-/// here confirms: the header says *not confirmed* until a human taps Confirm
-/// below.
+/// Read off the `source_label` / `source_score` the FORM holds — the pick in
+/// the draft, or the row's own stamp where the draft holds none — and never
+/// off a live probe: the form is offline-first, and after a rename a fresh
+/// probe would name a different food than the one that actually filled the
+/// row. Nothing here confirms: the header says *not confirmed* until a human
+/// taps Confirm below.
 ///
-/// Three states, one widget, because they are the same fact at three moments:
+/// Four states, one widget, because they are the same fact at four moments:
+/// - **pending** ([pending]): a pick that is in the fields and not yet in the
+///   row — the food's name and *not saved*, with both doors, because refusing
+///   it and re-choosing are exactly as available before a Save as after one;
 /// - **prefilled** (`usda_fdc:<id>`): the food's name, how much of the typed
 ///   name it answers, and both doors;
 /// - **edited** (`source_edited`, migration 0034): the same food, still named
@@ -1328,14 +1345,23 @@ class _DetailForm extends ConsumerWidget {
 /// - **declined** (`usda_declined`, after *Not this food*): the refused
 ///   name, what the undo did, and *Choose another* alone — plus the one
 ///   sentence a person needs to hear once, that a rename will not refill it.
+///   The plain `Look up in USDA` door is drawn above it too: the card is a
+///   record of what was refused, and a refusal is not a dead end.
 class _UsdaProvenance extends StatelessWidget {
   const _UsdaProvenance({
     required this.ingredient,
+    required this.pending,
     required this.onDecline,
     required this.onChooseAnother,
   });
 
+  /// The row as the form reads its provenance — the draft's pick folded in
+  /// (`IngredientFormDraft.sourcedRow`), so this card names the food whose
+  /// numbers are in the fields.
   final Ingredient ingredient;
+
+  /// The stamp is the draft's and no Save has written it yet.
+  final bool pending;
 
   /// *Not this food*. Null disables the door (a write in flight).
   final Future<void> Function()? onDecline;
@@ -1356,6 +1382,13 @@ class _UsdaProvenance extends StatelessWidget {
     final score = ingredient.sourceScore;
     final name = ingredient.canonicalName;
 
+    // The food this card is about, named: the id is the last resort, not a
+    // caption, so a row that can name its food says the name and nothing else.
+    final food = label != null && label.isNotEmpty
+        ? label
+        : 'FDC ${usdaFdcId(source) ?? '?'}';
+    final fit = score == null ? null : UsdaMatchFit.of(score).phraseFor(name);
+
     final String header;
     final String line;
     if (declined) {
@@ -1363,6 +1396,11 @@ class _UsdaProvenance extends StatelessWidget {
       line =
           '${label ?? 'that USDA food'} — not this food · the filled numbers '
           'were cleared';
+    } else if (pending) {
+      // The tense is the whole point: these numbers are in the fields and
+      // nowhere else, and the dock's Save is what makes them the row's.
+      header = 'From USDA · not saved';
+      line = ['will be filled from $food', ?fit].join(' · ');
     } else {
       // B-D2: *edited here* replaces the confirm word, because it is the more
       // interesting fact about the row — a confirmed row whose numbers you
@@ -1370,37 +1408,27 @@ class _UsdaProvenance extends StatelessWidget {
       header = edited
           ? 'Filled from USDA · edited here'
           : 'Filled from USDA · ${stub ? 'not confirmed' : 'confirmed'}';
-      line = [
-        // The id is the last resort, not a caption: a row that can name its
-        // food says the name and nothing else.
-        if (label != null && label.isNotEmpty)
-          label
-        else
-          'FDC ${usdaFdcId(source) ?? '?'}',
-        if (score != null) UsdaMatchFit.of(score).phraseFor(name),
-      ].join(' · ');
+      line = [food, ?fit].join(' · ');
     }
     // Amber is a call to action, so it is spent only where there is one: an
-    // unconfirmed machine fill. A CONFIRMED row's card is provenance — a
-    // statement of where the numbers came from — and it drew a ⚠ over the
-    // word "confirmed", which reads as an error about a row that is fine.
+    // unconfirmed machine fill, or a pick waiting on the Save that would make
+    // it the row's. A CONFIRMED row's card is provenance — a statement of
+    // where the numbers came from — and it drew a ⚠ over the word
+    // "confirmed", which reads as an error about a row that is fine.
     //
     // An EDITED row is the same argument (B-D2): you typed those numbers on
     // purpose, and nothing is wrong with the row. It stays muted even while it
     // is still a stub, because the thing amber would be asking for — look at
     // these machine numbers — is exactly what already happened.
-    final tone = declined || edited || !stub
-        ? AnsiColors.muted
-        : AnsiColors.aging;
+    final calm = declined || (!pending && (edited || !stub));
+    final tone = calm ? AnsiColors.muted : AnsiColors.aging;
 
     return Container(
       margin: const EdgeInsets.only(top: 20),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AnsiColors.paper,
-        border: Border.all(
-          color: declined || edited || !stub ? AnsiColors.line : tone,
-        ),
+        border: Border.all(color: calm ? AnsiColors.line : tone),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -1411,6 +1439,11 @@ class _UsdaProvenance extends StatelessWidget {
               Icon(
                 declined
                     ? FLucideIcons.circleOff
+                    // A pick in the fields and not in the row: the card is
+                    // about what a Save would write, so it wears the dock's
+                    // own verb rather than a warning.
+                    : pending
+                    ? FLucideIcons.save
                     // A pencil, not a ⚠: the row was written on, not broken.
                     : edited
                     ? FLucideIcons.pencil
@@ -1480,20 +1513,12 @@ class _UsdaProvenance extends StatelessWidget {
 /// **No label, no line.** A row stamped before the label was written says
 /// nothing rather than printing its barcode at somebody.
 class _BarcodeProvenance extends StatelessWidget {
-  const _BarcodeProvenance({
-    required this.ingredient,
-    required this.source,
-    required this.label,
-    required this.basis,
-  });
+  const _BarcodeProvenance({required this.ingredient, required this.basis});
 
+  /// The row as the form reads its provenance — the scan's stamp is on the
+  /// form before it is on the row, and this line is about the panel in the
+  /// fields (`IngredientFormDraft.sourcedRow`).
   final Ingredient ingredient;
-
-  /// The provenance the next Save will write, falling back to the row's. A
-  /// scan's stamp is on the form before it is on the row, and the head line
-  /// is about the panel in the fields.
-  final String? source;
-  final String? label;
 
   /// **The head names the basis**, so nobody has to work out which 100 the
   /// four figures are per — the whole trap the mapper exists to avoid, said
@@ -1503,8 +1528,8 @@ class _BarcodeProvenance extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = this.label;
-    if (!isBarcodeFilled(source) || label == null || label.isEmpty) {
+    final label = ingredient.sourceLabel;
+    if (!isBarcodeFilled(ingredient.source) || label == null || label.isEmpty) {
       return const SizedBox.shrink();
     }
     return Padding(
@@ -2478,41 +2503,50 @@ class _StatusStrip extends StatelessWidget {
   }
 }
 
-/// The two doors that fill a stub in from a source, side by side.
+/// The doors that fill a row in from a source, side by side.
 ///
 /// They were fifteen blocks apart — the scanner above the name field, "Look
-/// up in USDA" below the confirm CTA — although they answer the same question
-/// and both stop being offered once the row has a USDA provenance card.
+/// up in USDA" below the confirm CTA — although they answer the same question.
+///
+/// **Each leg is a slot the host fills or leaves empty**, and an empty block
+/// draws nothing at all: the two doors are offered on different rows (a scan
+/// fills what is empty; a lookup re-sources anything), so a label over a row
+/// with one button in it, or over none, is the ordinary case rather than a
+/// shape to avoid.
 class _FillItIn extends StatelessWidget {
-  const _FillItIn({required this.onScan, required this.usda});
+  const _FillItIn({required this.scan, required this.usda});
 
-  final Future<void> Function()? onScan;
+  /// The barcode door, or null on a row with nothing empty to fill.
+  final Widget? scan;
 
-  /// The USDA door, or null on a row USDA has already filled or a person has
-  /// already refused — there the provenance card's own `Choose another ›` is
-  /// the way to change the match (U-D2), and it opens this same search.
+  /// The USDA door, or null where the row's provenance card already carries
+  /// `Choose another ›` for the food that filled it (U-D2) — that door opens
+  /// this same search, and two of them side by side is one door too many. A
+  /// row whose match was REFUSED keeps this one: the card is then a record of
+  /// what was said no to, not an offer.
   final Widget? usda;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 18),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text('FILL IT IN FROM', style: ansiLabel()),
-        const SizedBox(height: 6),
-        Row(
-          spacing: 8,
-          children: [
-            Expanded(
-              child: _GhostButton(label: 'Scan a barcode', onTap: onScan),
-            ),
-            if (usda != null) Expanded(child: usda!),
-          ],
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    if (scan == null && usda == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('FILL IT IN FROM', style: ansiLabel()),
+          const SizedBox(height: 6),
+          Row(
+            spacing: 8,
+            children: [
+              if (scan != null) Expanded(child: scan!),
+              if (usda != null) Expanded(child: usda!),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// The form's two commitments, pinned under the scroll.
