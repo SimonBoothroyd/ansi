@@ -87,7 +87,7 @@ Serving the module directly, as above, is the shorter road and is the same
 supabase start            # local stack
 supabase db reset         # re-run migrations + seed
 supabase db lint
-supabase test db          # pgTAP tests — fourteen suites in tests/ (RLS + the
+supabase test db          # pgTAP tests — fifteen suites in tests/ (RLS + the
                           #   usda server-only boundary, onboarding, the token
                           #   hook, unit admission, nested recipes, measures,
                           #   BOTH operator rollouts, portion factor, template

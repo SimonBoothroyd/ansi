@@ -115,6 +115,28 @@ const schema = Schema([
     Column.integer('sort_order'),
     ..._audit,
   ]),
+  // One delta against a recipe line for ONE planned week (0040). Keyed on
+  // (week_plan, recipe) — every day that plans the recipe that week cooks the
+  // same lines, so the cook plan still batches them into one pot. Amounts are
+  // absolute: the recipe moving later leaves this week where it was put.
+  Table('week_recipe_line_override', [
+    Column.text('household_id'),
+    Column.text('week_plan_id'), // → week_plan.id
+    Column.text('recipe_id'), // → recipe.id
+    // → recipe_line_item.id, null exactly when `action` is 'add'.
+    Column.text('recipe_line_item_id'),
+    // 'include' | 'exclude' | 'replace' | 'add'.
+    Column.text('action'),
+    Column.text('ingredient_id'),
+    // Ships as a column only in v1 — the component graph knows no week.
+    Column.text('sub_recipe_id'),
+    Column.real('quantity'),
+    Column.text('unit'),
+    Column.text('measure_id'),
+    Column.text('note'),
+    Column.integer('sort_order'),
+    ..._audit,
+  ]),
 
   // Shopping list (step 6). Only the parts of the list that can't be re-derived
   // from the cook plan: check-off state + manual/free-text contributions. The
