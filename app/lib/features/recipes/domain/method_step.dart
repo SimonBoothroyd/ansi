@@ -264,10 +264,10 @@ String? _formatLineAmount(LineItem line, double factor) {
     return measure?.label;
   }
   final scaled = scale(line.asQuantity!, factor);
-  if (measure != null) return '${formatNumber(scaled.amount)} ${measure.label}';
+  if (measure != null) return '${formatAmount(scaled.amount)} ${measure.label}';
   switch (line.unit.family) {
     case UnitFamily.count:
-      return formatNumber(scaled.amount);
+      return formatAmount(scaled.amount);
     case UnitFamily.imprecise:
       return line.unit.label;
     case UnitFamily.mass:
@@ -276,7 +276,7 @@ String? _formatLineAmount(LineItem line, double factor) {
     // batch") — the batch↔yield arithmetic belongs to the cook plan, not to
     // a method chip.
     case UnitFamily.batch:
-      return '${formatNumber(scaled.amount)} ${line.unit.label}';
+      return '${formatAmount(scaled.amount)} ${line.unit.label}';
   }
 }
 
@@ -284,11 +284,11 @@ String? _formatPortion(StepPortion portion, double factor) {
   final unit = portion.unit;
   final suffix = unit == null || unit.isEmpty ? '' : ' $unit';
   if (portion.qty != null) {
-    return '${formatNumber(portion.qty! * factor)}$suffix';
+    return '${formatAmount(portion.qty! * factor)}$suffix';
   }
   if (portion.qtyLow != null && portion.qtyHigh != null) {
-    final low = formatNumber(portion.qtyLow! * factor);
-    final high = formatNumber(portion.qtyHigh! * factor);
+    final low = formatAmount(portion.qtyLow! * factor);
+    final high = formatAmount(portion.qtyHigh! * factor);
     return '$low–$high$suffix';
   }
   // A relative word ("half", "for garnish") renders as written — never a made-

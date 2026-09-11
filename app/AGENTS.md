@@ -57,6 +57,13 @@ screen: [`../docs/design-docs/navigation.md`](../docs/design-docs/navigation.md)
   and never a `context.mounted` bail on the write itself (it drops the action
   the user just confirmed). Enforced by
   `test/structure/no_ref_after_await_test.dart`.
+- **An amount prints through `formatAmount` and is read back through
+  `parseAmount`** (`core/units/number_format.dart`) — a cook says `2/3 cup`,
+  not `0.67 cup`, and a field that takes one needs the text keyboard because
+  iOS's numeric pads carry no `/`. No file rounds its own amount; enforced by
+  `test/structure/amounts_print_through_format_test.dart`, whose only other
+  rule-holder is `macros_format.dart` (macros are label readings, not
+  fractions).
 - **Never `.future` an autoDispose provider from a one-shot read** — read the
   repository instead. Nothing is listening, PowerSync's `watch` does not emit
   synchronously, and the element is disposed before its first value, so the

@@ -486,7 +486,7 @@ void main() {
       // base, in the given (sort_order) order.
       expect(choices.map((c) => c.label), [
         'piece',
-        'potato, medium (213.5 g)',
+        'potato, medium (213 1/2 g)',
         'potato, large (299 g)',
         'g',
         'kg',
@@ -588,7 +588,7 @@ void main() {
 
     test('labels measures with their gram weight, trimming whole grams', () {
       expect(const MeasureOption(large).label, 'potato, large (299 g)');
-      expect(const MeasureOption(medium).label, 'potato, medium (213.5 g)');
+      expect(const MeasureOption(medium).label, 'potato, medium (213 1/2 g)');
       expect(const UnitOption(kg).label, 'kg');
     });
 

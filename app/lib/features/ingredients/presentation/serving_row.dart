@@ -21,6 +21,7 @@ import '../../../core/result/result.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
+import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/format.dart';
 import '../../../shared/inline_amount_field.dart';
@@ -64,7 +65,7 @@ class ServingDraft {
 
   /// The serving amount, or null unless it is a positive finite number.
   double? get amount {
-    final v = double.tryParse(amountText.trim());
+    final v = parseAmount(amountText);
     return v != null && v.isFinite && v > 0 ? v : null;
   }
 
@@ -147,6 +148,7 @@ class ServingRow extends StatelessWidget {
       // the three rows read as one form rather than one form and a field.
       InlineAmountField(
         fieldKey: const ValueKey('serving-amount'),
+        fractions: true,
         width: 52,
         initial: draft.amountText,
         onChange: onAmount,

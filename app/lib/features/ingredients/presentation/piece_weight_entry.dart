@@ -107,7 +107,7 @@ class PieceWeightEntry extends HookWidget {
                 child: Text(
                   weight == null
                       ? 'none yet — what one of these weighs'
-                      : '${formatNumber(weight)} $baseLabel'
+                      : '${formatAmount(weight)} $baseLabel'
                             '${pieceWeightSourceSuffix(source)}',
                   style: ansiMono(
                     size: 10,
@@ -142,7 +142,8 @@ class PieceWeightEntry extends HookWidget {
               Text('1 piece weighs', style: ansiMono(size: 12)),
               InlineAmountField(
                 key: const ValueKey('piece-weight-field'),
-                onChange: (t) => input.value = double.tryParse(t.trim()),
+                fractions: true,
+                onChange: (t) => input.value = parseAmount(t),
                 onSubmit: save,
               ),
               Text(baseLabel, style: ansiMono(size: 12)),

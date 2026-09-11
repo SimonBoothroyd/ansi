@@ -30,6 +30,7 @@ import 'package:forui/forui.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/format.dart';
 import '../../../shared/inline_amount_field.dart';
@@ -263,8 +264,9 @@ class DensityEntry extends HookWidget {
                 // never `1000`, and every point here is a point the sentence
                 // needs to stay one run at 402 pt.
                 width: 40,
+                fractions: true,
                 initial: _phrase(amount.value, null),
-                onChange: (t) => amount.value = double.tryParse(t.trim()) ?? 0,
+                onChange: (t) => amount.value = parseAmount(t) ?? 0,
                 onSubmit: save,
               ),
               for (final u in _measures)
@@ -284,7 +286,8 @@ class DensityEntry extends HookWidget {
               Text('weighs', style: ansiMono(size: 12)),
               InlineAmountField(
                 fieldKey: const ValueKey('density-grams'),
-                onChange: (t) => input.value = double.tryParse(t.trim()),
+                fractions: true,
+                onChange: (t) => input.value = parseAmount(t),
                 onSubmit: save,
               ),
               Text('g', style: ansiMono(size: 12)),

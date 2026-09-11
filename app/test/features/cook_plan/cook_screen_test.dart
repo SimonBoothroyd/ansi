@@ -139,11 +139,11 @@ void main() {
     await tester.pump();
 
     expect(find.text('covers Mon dinner · 1¾ portions'), findsOneWidget);
-    expect(find.text('×0.88'), findsOneWidget);
+    expect(find.text('×7/8'), findsOneWidget);
     expect(
       find.text(
         'cook ×1 instead — covers 2 portions · ¼ portion left over · '
-        'shopping still buys ×0.88',
+        'shopping still buys ×7/8',
       ),
       findsOneWidget,
     );
@@ -236,10 +236,10 @@ void main() {
       );
       // Ready BY the parent's cook day, denominated in batches.
       expect(find.text('Cook by Sat'), findsOneWidget);
-      expect(find.text('×0.25 batch'), findsOneWidget);
+      expect(find.text('×1/4 batch'), findsOneWidget);
       expect(
         find.text(
-          'covers Sausage Sliders · cook Sat — makes 1 cup, you need 0.25',
+          'covers Sausage Sliders · cook Sat — makes 1 cup, you need 1/4',
         ),
         findsOneWidget,
       );

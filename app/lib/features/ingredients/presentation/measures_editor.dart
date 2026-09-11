@@ -25,6 +25,7 @@ import 'package:forui/forui.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
+import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/format.dart';
 import '../domain/allowed_units.dart';
@@ -303,12 +304,9 @@ class _AddMeasureForm extends StatelessWidget {
               width: 92,
               child: FTextField(
                 hint: amountHint,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
+                keyboardType: TextInputType.text,
                 control: FTextFieldControl.managed(
-                  onChange: (v) =>
-                      amount.value = double.tryParse(v.text.trim()),
+                  onChange: (v) => amount.value = parseAmount(v.text),
                 ),
               ),
             ),

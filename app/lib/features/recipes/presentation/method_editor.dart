@@ -503,7 +503,7 @@ class MethodStepCard extends HookConsumerWidget {
   String _lineSummary(LineItem line) {
     final amount = line.quantity == null
         ? line.unit.label
-        : '${formatNumber(line.quantity!)} '
+        : '${formatAmount(line.quantity!)} '
               '${line.measure?.label ?? line.unit.label}';
     return '${line.ingredientName} · $amount';
   }

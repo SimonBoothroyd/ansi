@@ -25,10 +25,11 @@ void main() {
   });
 
   group('formatQuantity', () {
-    test('whole numbers drop the point, others cap at two decimals', () {
+    test('a kitchen fraction where there is one, else the capped decimal', () {
       expect(formatQuantity(2), '2');
-      expect(formatQuantity(2.25), '2.25');
-      expect(formatQuantity(2.5), '2.5');
+      expect(formatQuantity(2.25), '2 1/4');
+      expect(formatQuantity(2.5), '2 1/2');
+      expect(formatQuantity(2.2), '2.2');
       expect(formatQuantity(null), '');
     });
   });

@@ -25,7 +25,6 @@ import 'package:uuid/uuid.dart';
 import '../../../core/text/name_clean.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
-import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import '../barcode/barcode_add.dart';
 import '../data/ingredient_providers.dart';
@@ -36,16 +35,13 @@ import '../domain/ingredient_repository.dart';
 import '../domain/serving_measure.dart';
 import '../domain/suggest_name.dart';
 import '../domain/usda_probe.dart';
+import 'macros_format.dart';
 import 'serving_row.dart';
 
 part 'ingredient_view_models.freezed.dart';
 part 'ingredient_view_models.g.dart';
 
 const _uuid = Uuid();
-
-/// A stored double as editable text: `60` not `60.0`, and every other digit
-/// kept exactly as stored.
-String _seed(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : '$v';
 
 /// The macro inputs as typed TEXT, so "half filled in" is a state the form
 /// can name rather than a silent zero.
@@ -66,19 +62,16 @@ abstract class MacroDraft with _$MacroDraft {
 
   /// Seeds the fields from a stored panel.
   ///
-  /// **Lossless, deliberately.** These are not printed numbers — they are the
-  /// editable text a Save reads back, so `60` must not open as `60.0` and a
-  /// USDA-derived `285.7142857` must not open as `285.71`. Rounding here would
-  /// make opening a row and saving it untouched a silent edit of its macros.
-  /// [formatNumber] is the rule for a number the app only *shows*.
+  /// **Lossless, deliberately** — see [macroFieldSeed]. These are not printed
+  /// numbers; they are the editable text a Save reads back.
   factory MacroDraft.from(Macros? m) => m == null
       ? const MacroDraft()
       : MacroDraft(
-          kcal: _seed(m.kcal),
-          protein: _seed(m.protein),
-          carb: _seed(m.carb),
-          fat: _seed(m.fat),
-          fiber: m.fiber == null ? '' : _seed(m.fiber!),
+          kcal: macroFieldSeed(m.kcal),
+          protein: macroFieldSeed(m.protein),
+          carb: macroFieldSeed(m.carb),
+          fat: macroFieldSeed(m.fat),
+          fiber: m.fiber == null ? '' : macroFieldSeed(m.fiber!),
         );
 
   const MacroDraft._();
@@ -753,7 +746,7 @@ class IngredientForm extends _$IngredientForm {
       final serving = printedServing == null
           ? null
           : ServingDraft(
-              amountText: _seed(printedServing.amount),
+              amountText: macroFieldSeed(printedServing.amount),
               unit: printedServing.unit,
               packPrinted: printedServing.printed,
               packPrintedText: printedServing.printedText,
@@ -789,7 +782,7 @@ class IngredientForm extends _$IngredientForm {
       final unit = (panel.servingBasis ?? next.basis).baseUnit;
       final amount = panel.servingAmount;
       final serving = ServingDraft(
-        amountText: amount == null ? '' : _seed(amount),
+        amountText: amount == null ? '' : macroFieldSeed(amount),
         unit: unit,
       );
       next = next.copyWith(

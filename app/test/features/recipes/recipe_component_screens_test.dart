@@ -106,7 +106,7 @@ void main() {
 
     // The amount column is the ordinary one — the identity cell is all that
     // changed (D1).
-    expect(find.text('0.25 cup'), findsOneWidget);
+    expect(find.text('1/4 cup'), findsOneWidget);
     expect(find.byType(RecipeChip), findsOneWidget);
     expect(find.text('Romesco Aioli'), findsOneWidget);
     // The ingredient line beside it is untouched.
@@ -219,13 +219,13 @@ void main() {
     await tester.tap(find.text('Used in · 2'));
     await tester.pumpAndSettle();
 
-    expect(find.text('0.25 cup · 0.25 of a batch'), findsOneWidget);
+    expect(find.text('1/4 cup · 1/4 of a batch'), findsOneWidget);
     expect(find.text('1 batch'), findsOneWidget);
 
     await tester.tap(find.text('Sausage Sliders'));
     await tester.pumpAndSettle();
     // The parent's page: its own component line is there.
-    expect(find.text('0.25 cup'), findsOneWidget);
+    expect(find.text('1/4 cup'), findsOneWidget);
   });
 
   testWidgets('delete is refused with the count while something points '

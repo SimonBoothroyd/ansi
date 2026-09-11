@@ -6,10 +6,10 @@ library;
 
 import '../core/units/number_format.dart';
 
-/// [formatNumber] for a quantity that may not be there: an empty string for a
-/// numberless line ("to taste"), the trimmed number otherwise.
+/// [formatAmount] for a quantity that may not be there: an empty string for a
+/// numberless line ("to taste"), the kitchen fraction otherwise.
 String formatQuantity(double? amount) =>
-    amount == null ? '' : formatNumber(amount);
+    amount == null ? '' : formatAmount(amount);
 
 /// Formats a density (g/ml) for display: at most three significant digits,
 /// trailing zeros trimmed (1.03958 → "1.04", 0.5 → "0.5", 1 → "1") — the

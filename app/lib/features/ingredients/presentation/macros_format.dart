@@ -63,6 +63,15 @@ String macroFieldText(String text, {required bool energy}) {
   return energy ? formatKcal(v) : formatGrams(v);
 }
 
+/// A stored macro figure as EDITABLE text: `60` not `60.0`, and every other
+/// digit kept exactly as stored.
+///
+/// **Lossless, deliberately** — the opposite of [macroFieldText], which is
+/// what the field shows. A USDA-derived `285.7142857` must seed as itself, so
+/// opening a row and saving it untouched is not a silent edit of its macros.
+String macroFieldSeed(double v) =>
+    v == v.roundToDouble() ? v.toStringAsFixed(0) : '$v';
+
 /// ` · 1.5 fibre`, or nothing at all when the source never stated it.
 String _fibre(double? fiber) =>
     fiber == null ? '' : ' · ${formatGrams(fiber)} fibre';

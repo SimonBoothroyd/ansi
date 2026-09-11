@@ -244,7 +244,7 @@ void main() {
       await tester.tap(find.byIcon(FLucideIcons.plus));
       await tester.pumpAndSettle();
 
-      expect(find.text('213.5 g'), findsOneWidget);
+      expect(find.text('213 1/2 g'), findsOneWidget);
       expect(find.text('1 piece weighs'), findsNothing);
     });
 
@@ -334,7 +334,7 @@ void main() {
     // once left, the orphan could never be re-selected). The `piece` chip
     // carries what one weighs (ADR-0015) — never a bare count beside a
     // measure that explains itself.
-    await tester.tap(find.text('piece (213.5 g)'));
+    await tester.tap(find.text('piece (213 1/2 g)'));
     await tester.pumpAndSettle();
     expect(find.text('piece'), findsWidgets); // now the current choice
     final offFilterChip = find.descendant(

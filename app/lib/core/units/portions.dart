@@ -36,7 +36,7 @@ String formatFraction(double value) {
     }
   }
   // Not a quarter: the printed-number rule, with the sign back in front.
-  return '$sign${formatNumber(abs)}';
+  return '$sign${formatAmount(abs)}';
 }
 
 /// `1 portion`, `¾ portion`, `1¾ portions`, `4 portions` — [formatFraction]

@@ -16,7 +16,7 @@ void main() {
   group('the label', () {
     test('is the reserved prefix and the serving as the pack says it', () {
       expect(servingMeasureLabel(2, tbsp), 'serving · 2 tbsp');
-      expect(servingMeasureLabel(0.25, cup), 'serving · 0.25 cup');
+      expect(servingMeasureLabel(0.25, cup), 'serving · 1/4 cup');
       expect(servingMeasureLabel(28, g), 'serving · 28 g');
     });
 

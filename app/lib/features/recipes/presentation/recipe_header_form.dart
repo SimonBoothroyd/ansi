@@ -23,6 +23,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/text/name_clean.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import '../../../core/words.dart';
 import '../../../shared/ansi_micro_label.dart';
@@ -336,13 +337,10 @@ class _YieldRow extends StatelessWidget {
           width: 110,
           child: FTextField(
             hint: 'amount',
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            keyboardType: TextInputType.text,
             control: FTextFieldControl.managed(
               initial: TextEditingValue(text: formatQuantity(quantity)),
-              onChange: (v) => onChanged(
-                v.text.trim().isEmpty ? null : double.tryParse(v.text.trim()),
-                unit,
-              ),
+              onChange: (v) => onChanged(parseAmount(v.text), unit),
             ),
           ),
         ),

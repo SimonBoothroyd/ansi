@@ -68,7 +68,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('0.25 cup = 0.25 of a batch · makes 1 cup'),
+      find.text('1/4 cup = 1/4 of a batch · makes 1 cup'),
       findsOneWidget,
     );
     for (final label in ['batch', 'cup', 'tbsp', 'tsp', 'ml']) {

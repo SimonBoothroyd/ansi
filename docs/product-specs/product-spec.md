@@ -110,6 +110,20 @@ right.
   the line under the chips, and is **refused at Save**. The flag names the
   unit, the basis and both fixes — add a density, or switch to the basis
   family's unit — and the stored row is never rewritten silently.
+- **An amount prints and parses as a kitchen fraction** (`formatAmount` /
+  `parseAmount`, `core/units/number_format.dart`). Halves, thirds, quarters
+  and eighths print as ASCII — `1/2`, `2/3`, `1 1/8`, a space between the
+  whole and the part, never a unicode vulgar glyph (the bundled faces do not
+  carry them all). A stored value within 0.0075 of a fraction IS it, so a
+  figure already rounded on its way in reads back as what it was — `0.67` is
+  `2/3`, `0.13` is `1/8` — while `0.26` stays `0.26`. Anything else falls
+  through to the trimmed two-decimal rule. Reading back takes decimals with a
+  dot or a comma, `2/3`, `1 1/2`, `1½` and the vulgar glyphs, and **stores the
+  exact value** (2/3, not 0.67). A field that takes an amount therefore uses
+  the TEXT keyboard: iOS's numeric pads carry no `/`. The portion count keeps
+  its own rule (`¼ ½ ¾` glyphs, `formatFraction`), and a macro figure keeps
+  its own (energy whole, grams to one decimal) — macros are label readings,
+  not fractions.
 - **Density is the single volume⇄mass fact**, entered as one sentence
   (7.8): "1 `[tbsp]` weighs `[N]` g" (`densityFromVolumeWeight`), with `ml`
   among the spoons so a known g/ml is typeable exactly. A volume-named measure label is therefore

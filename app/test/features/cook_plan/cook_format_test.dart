@@ -29,8 +29,8 @@ void main() {
   group('formatScale', () {
     test('trims trailing zeros', () {
       expect(formatScale(1), '×1');
-      expect(formatScale(1.5), '×1.5');
-      expect(formatScale(0.75), '×0.75');
+      expect(formatScale(1.5), '×1 1/2');
+      expect(formatScale(0.75), '×3/4');
       expect(formatScale(2), '×2');
     });
   });
@@ -167,7 +167,7 @@ void main() {
           leftoverPortions: 1,
         ), rawFactor: 0.75),
         'cook ×1 instead — covers 4 portions · 1 portion left over · '
-        'shopping still buys ×0.75',
+        'shopping still buys ×3/4',
       );
       expect(
         wholeBatchNudgeLine((
@@ -176,7 +176,7 @@ void main() {
           leftoverPortions: 0.5,
         ), rawFactor: 1.25),
         'cook ×2 instead — covers 5 portions · ½ portion left over · '
-        'shopping still buys ×1.25',
+        'shopping still buys ×1 1/4',
       );
     });
 
@@ -236,7 +236,7 @@ void main() {
     });
 
     test('the scale is in batches, never portions', () {
-      expect(componentScaleLabel(session), '×0.25 batch');
+      expect(componentScaleLabel(session), '×1/4 batch');
     });
 
     test('it is cooked BY the demanding day, not on one of its own', () {
@@ -247,7 +247,7 @@ void main() {
     test('the covers line closes with the batch arithmetic', () {
       expect(
         componentCoversLine(session, denomination: (qty: 1, unit: cup)),
-        'covers Sausage Sliders · cook Sat — makes 1 cup, you need 0.25',
+        'covers Sausage Sliders · cook Sat — makes 1 cup, you need 1/4',
       );
     });
 
@@ -259,7 +259,7 @@ void main() {
         'tracked', () {
       expect(
         componentLeftoverNote(session, denomination: (qty: 1, unit: cup)),
-        'A batch makes 1 cup and Saturday needs 0.25 — the rest is yours. '
+        'A batch makes 1 cup and Saturday needs 1/4 — the rest is yours. '
         'Nothing here tracks the leftover.',
       );
     });
@@ -323,7 +323,7 @@ void main() {
       // printed.
       expect(
         gapCoversLine(missing),
-        'covers Sausage Sliders · cook Sat — the line asks for 0.25 cup',
+        'covers Sausage Sliders · cook Sat — the line asks for 1/4 cup',
       );
     });
 
@@ -376,7 +376,7 @@ void main() {
       expect(
         gapCoversLine(shared),
         'covers Sausage Sliders + Romesco Toasts · cook Sat + Sun — '
-        'Sausage Sliders asks for 0.25 cup · Romesco Toasts asks for 1 batch',
+        'Sausage Sliders asks for 1/4 cup · Romesco Toasts asks for 1 batch',
       );
     });
 

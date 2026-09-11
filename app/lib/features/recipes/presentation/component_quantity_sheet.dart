@@ -32,6 +32,7 @@ import 'package:forui/forui.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
@@ -139,16 +140,15 @@ class ComponentQuantityEditor extends HookWidget {
               child: FTextField(
                 autofocus: true,
                 hint: 'qty',
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
+                // A TEXT keyboard, not the decimal pad: iOS's numeric pads
+                // carry no `/`, so `1/2` could not be typed on one — and a
+                // fraction is how a recipe says this number.
+                keyboardType: TextInputType.text,
                 control: FTextFieldControl.managed(
                   initial: TextEditingValue(
                     text: formatQuantity(quantity.value),
                   ),
-                  onChange: (v) => quantity.value = v.text.trim().isEmpty
-                      ? null
-                      : double.tryParse(v.text.trim()),
+                  onChange: (v) => quantity.value = parseAmount(v.text),
                 ),
               ),
             ),

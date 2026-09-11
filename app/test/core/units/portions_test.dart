@@ -24,11 +24,13 @@ void main() {
       expect(formatFraction(4 - 1.75), '2¼');
     });
 
-    test('a value that is not a quarter prints as a trimmed decimal', () {
+    test('a value that is not a quarter falls through to the amount rule', () {
       // Jun's share of an override of 3 between a 1 and a ¾ eater.
       expect(formatFraction(3 * 0.75 / 1.75), '1.29');
-      expect(formatFraction(1 / 3), '0.33');
       expect(formatFraction(1.2), '1.2');
+      // A third is not a quarter, so no glyph — but it is still a fraction a
+      // kitchen says, and the amount rule prints it as one.
+      expect(formatFraction(1 / 3), '1/3');
     });
   });
 

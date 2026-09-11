@@ -24,6 +24,7 @@ class InlineAmountField extends StatelessWidget {
     this.initial,
     this.width = 46,
     this.fieldKey,
+    this.fractions = false,
     super.key,
   });
 
@@ -46,6 +47,12 @@ class InlineAmountField extends StatelessWidget {
   /// sentence that has several.
   final Key? fieldKey;
 
+  /// Whether this slot holds a kitchen AMOUNT, which may be typed as a
+  /// fraction (`1/2`). It brings the text keyboard, because iOS's numeric
+  /// pads carry no `/`. A macro figure is not one of these: it is a number
+  /// off a label, and the decimal pad is the right keyboard for it.
+  final bool fractions;
+
   @override
   Widget build(BuildContext context) => SizedBox(
     width: width,
@@ -63,7 +70,9 @@ class InlineAmountField extends StatelessWidget {
           EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         ),
       ),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      keyboardType: fractions
+          ? TextInputType.text
+          : const TextInputType.numberWithOptions(decimal: true),
       control: FTextFieldControl.managed(
         initial: initial == null ? null : TextEditingValue(text: initial!),
         onChange: (v) => onChange(v.text),
