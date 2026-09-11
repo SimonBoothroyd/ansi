@@ -25,6 +25,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import 'line_display.dart';
 import 'recipe.dart';
 
 part 'line_override.freezed.dart';
@@ -342,3 +343,39 @@ WeekChange weekChangeOf(LineOverride ov, LineItem? base) => switch (ov.action) {
         ? WeekChange.swapped
         : WeekChange.amount,
 };
+
+/// The editor's tag on one changed line — the recipe's own words quoted back,
+/// so the reader can undo the change in their head before undoing it with the
+/// button.
+///
+/// The ingredient is named exactly as the app stores it: a display name is
+/// never rewritten to fit a sentence.
+String weekTagText(WeekChange change, LineItem? base) => switch (change) {
+  WeekChange.swapped when base != null =>
+    'this week · was ${amountOfLine(base)} ${base.ingredientName}',
+  WeekChange.amount when base != null =>
+    'this week · was ${amountOfLine(base)}',
+  WeekChange.swapped || WeekChange.amount => 'this week · changed',
+  WeekChange.added => 'this week · added',
+  WeekChange.leftOut => 'this week · left out',
+  WeekChange.included => 'this week · included',
+};
+
+/// The shopping list's extra provenance segment — "Ragù · cook Tue · this
+/// week, for Pork sausage". The same four changes the editor's tags name, in
+/// the voice a provenance line speaks, so a shopper and an editor cannot
+/// describe one change two ways.
+///
+/// An exclusion is NOT one of these: there is no row left to hang a segment
+/// on, so it takes the echo row the list already prints for a dropped line.
+String? weekProvenanceSegment(WeekChange change, LineItem? base) =>
+    switch (change) {
+      WeekChange.swapped when base != null =>
+        'this week, for ${base.ingredientName}',
+      WeekChange.amount when base != null =>
+        'this week, was ${amountOfLine(base)}',
+      WeekChange.swapped || WeekChange.amount => 'this week, changed',
+      WeekChange.added => 'this week, added',
+      WeekChange.included => 'this week, ticked in',
+      WeekChange.leftOut => null,
+    };

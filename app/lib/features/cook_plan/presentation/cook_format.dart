@@ -8,6 +8,7 @@ import '../../../core/units/number_format.dart';
 import '../../../core/units/portions.dart';
 import '../../../core/words.dart';
 import '../../../shared/format.dart';
+import '../../planning/presentation/week_variant_format.dart';
 import '../../recipes/domain/component_math.dart';
 import '../../recipes/presentation/component_format.dart';
 import '../domain/cook_plan.dart';
@@ -43,13 +44,20 @@ String wholeBatchNudgeLine(
 
 /// The recipe card's summary line: total portions across the week plus its
 /// shelf-life descriptors (e.g. "4 portions across the week · keeps 4 d").
-String recipeSummaryLine(RecipeCookPlan recipe) {
+///
+/// A recipe the week VARIES appends four words and no more. Nothing about the
+/// cook changed — one recipe, one week, one line set, one pot, one scale — and
+/// keeping that true is the whole reason the variant is keyed on
+/// `(week, recipe)` rather than on the meal. So there is no note, no band and
+/// no second session: just the clause.
+String recipeSummaryLine(RecipeCookPlan recipe, {bool editedThisWeek = false}) {
   final parts = <String>[
     '${formatPortions(recipe.totalPortions)} across the week',
   ];
   final keeps = recipe.keepsForDays;
   if (keeps != null) parts.add('keeps $keeps d');
   if (recipe.freezable) parts.add('freezable');
+  if (editedThisWeek) parts.add(kEditedForThisWeek);
   return parts.join(' · ');
 }
 

@@ -2,6 +2,9 @@ import 'dart:io';
 
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/planning/data/planning_repository_impl.dart';
+import 'package:ansi/features/planning/data/week_variant_repository_impl.dart';
+import 'package:ansi/features/recipes/domain/effective_lines.dart';
+import 'package:ansi/features/recipes/domain/line_override.dart';
 import 'package:ansi/features/shopping/data/shopping_repository_impl.dart';
 import 'package:ansi/features/shopping/domain/shopping.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -212,6 +215,167 @@ void main() {
       expect(echo.names, ['Lime']);
     },
   );
+
+  group("this week's variant reaches the aisle", () {
+    /// The week's meal, and a variant repository pointed at the same database.
+    Future<SqliteWeekVariantRepository> planRagu() async {
+      await _insertRecipe(
+        db,
+        'ragu',
+        'Ragù',
+        lines: [('onion', 2, pieces), ('flour', 100, g)],
+      );
+      await planning.addEntry(
+        weekStart: _week,
+        dayOfWeek: 0,
+        mealSlot: 'Dinner',
+        recipeId: 'ragu',
+        eaterIds: ['a', 'b'],
+      );
+      return SqliteWeekVariantRepository(db, householdId: 'h');
+    }
+
+    test('an amount changed for the week is bought, and says why', () async {
+      final variants = await planRagu();
+      await variants.saveOverrides(
+        _week,
+        'ragu',
+        overrides: const [
+          LineOverride(
+            action: LineOverrideAction.replace,
+            recipeLineItemId: 'ragu-li0',
+            ingredientId: 'onion',
+            quantity: 3,
+            unit: pieces,
+          ),
+        ],
+      );
+
+      final list = await repo.watchShoppingList(_week).first;
+      final onion = list.groups
+          .expand((g) => g.items)
+          .firstWhere((i) => i.ingredientId == 'onion');
+      // 3 per the week's line, on a 2-serving recipe cooked for 2 → ×1.
+      expect(onion.totals.single.amount, 3);
+      expect(
+        onion.contributions.single.label,
+        contains('this week, was 2'),
+      );
+    });
+
+    test('a swap buys the new thing, and names the old one', () async {
+      final variants = await planRagu();
+      await variants.saveOverrides(
+        _week,
+        'ragu',
+        overrides: const [
+          LineOverride(
+            action: LineOverrideAction.replace,
+            recipeLineItemId: 'ragu-li1',
+            ingredientId: 'onion',
+            quantity: 100,
+            unit: g,
+          ),
+        ],
+      );
+
+      final list = await repo.watchShoppingList(_week).first;
+      final ids = list.groups
+          .expand((g) => g.items)
+          .map((i) => i.ingredientId);
+      expect(ids, isNot(contains('flour')));
+      final onion = list.groups
+          .expand((g) => g.items)
+          .firstWhere((i) => i.ingredientId == 'onion');
+      expect(
+        onion.contributions.map((c) => c.label).join('|'),
+        contains('this week, for Flour'),
+      );
+    });
+
+    test('an added line is bought and marked as added', () async {
+      final variants = await planRagu();
+      await variants.saveOverrides(
+        _week,
+        'ragu',
+        overrides: const [
+          LineOverride(
+            id: 'ov-flour',
+            action: LineOverrideAction.add,
+            ingredientId: 'flour',
+            quantity: 50,
+            unit: g,
+            sortOrder: 0,
+          ),
+        ],
+      );
+
+      final list = await repo.watchShoppingList(_week).first;
+      final flour = list.groups
+          .expand((g) => g.items)
+          .firstWhere((i) => i.ingredientId == 'flour');
+      expect(flour.totals.single.amount, 150);
+      expect(
+        flour.contributions.map((c) => c.label).join('|'),
+        contains('this week, added'),
+      );
+    });
+
+    test('an excluded line leaves the list, and is named on the echo row',
+        () async {
+      final variants = await planRagu();
+      await variants.saveOverrides(
+        _week,
+        'ragu',
+        overrides: const [
+          LineOverride(
+            action: LineOverrideAction.exclude,
+            recipeLineItemId: 'ragu-li1',
+          ),
+        ],
+      );
+
+      final list = await repo.watchShoppingList(_week).first;
+      expect(
+        list.groups.expand((g) => g.items).map((i) => i.ingredientId),
+        ['onion'],
+      );
+      final echo = list.optionalLines.single;
+      expect(echo.reason, LineDropReason.thisWeek);
+      expect(echo.recipeTitle, 'Ragù');
+      expect(echo.names, ['Flour']);
+    });
+
+    test('another week is untouched by it', () async {
+      final variants = await planRagu();
+      await variants.saveOverrides(
+        _week,
+        'ragu',
+        overrides: const [
+          LineOverride(
+            action: LineOverrideAction.exclude,
+            recipeLineItemId: 'ragu-li1',
+          ),
+        ],
+      );
+      await planning.addEntry(
+        weekStart: _week.add(const Duration(days: 7)),
+        dayOfWeek: 0,
+        mealSlot: 'Dinner',
+        recipeId: 'ragu',
+        eaterIds: ['a', 'b'],
+      );
+
+      final next = await repo
+          .watchShoppingList(_week.add(const Duration(days: 7)))
+          .first;
+      expect(
+        next.groups.expand((g) => g.items).map((i) => i.ingredientId),
+        containsAll(<String>['onion', 'flour']),
+      );
+      expect(next.optionalLines, isEmpty);
+    });
+  });
 
   test('merges a shared ingredient across recipes with provenance', () async {
     await _insertRecipe(db, 'curry', 'Curry', lines: [('onion', 3, pieces)]);

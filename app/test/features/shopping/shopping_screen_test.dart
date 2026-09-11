@@ -4,6 +4,7 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/planning/presentation/week_header.dart';
+import 'package:ansi/features/recipes/domain/effective_lines.dart';
 import 'package:ansi/features/shopping/data/shopping_providers.dart';
 import 'package:ansi/features/shopping/domain/shopping.dart';
 import 'package:ansi/features/shopping/domain/shopping_repository.dart';
@@ -421,6 +422,7 @@ void main() {
           recipeId: 'curry',
           recipeTitle: 'Weeknight Chicken Curry',
           names: ['lime', 'coriander'],
+          reason: LineDropReason.optional,
         ),
       ],
     );

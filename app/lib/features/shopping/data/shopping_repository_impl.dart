@@ -47,6 +47,7 @@ import '../../cook_plan/domain/cook_plan.dart';
 import '../../planning/data/planning_repository_impl.dart' show loadMembers;
 import '../../planning/domain/planning.dart' show eatersDemand, weekKeyOf;
 import '../../recipes/domain/effective_lines.dart';
+import '../../recipes/domain/line_override.dart';
 import '../../recipes/domain/recipe.dart';
 import '../domain/shopping.dart';
 import '../domain/shopping_repository.dart';
@@ -91,10 +92,14 @@ class SqliteShoppingRepository implements ShoppingRepository {
     return _db
         .watch(
           'SELECT wp.id, pe.id, r.keeps_for_days, g.id, li.id, se.id, sc.id, '
-          'i.id, im.id, hm.id '
+          'i.id, im.id, hm.id, wro.id '
           'FROM week_plan wp '
           'LEFT JOIN plan_entry pe '
           'ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
+          // This week's variant changes what the list buys, so a change to it
+          // must re-fire the list exactly as a changed recipe line does.
+          'LEFT JOIN week_recipe_line_override wro '
+          'ON wro.week_plan_id = wp.id AND wro.deleted_at IS NULL '
           'LEFT JOIN recipe r ON r.id = pe.recipe_id '
           'LEFT JOIN ingredient_group g ON g.recipe_id = r.id '
           'LEFT JOIN recipe_line_item li ON li.group_id = g.id '
@@ -287,6 +292,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
         ),
       );
     }
+    final weekOverrides = await _loadWeekOverrides(weekKey);
     final plan = buildCookPlan([
       for (final e in byRecipe.entries)
         e.value.copyWith(meals: meals[e.key] ?? const []),
@@ -307,11 +313,34 @@ class SqliteShoppingRepository implements ShoppingRepository {
       // The seam (D6b): the sessions below expand only the kept lines, and
       // the dropped ones become this recipe's echo row — never a silent
       // hole in a list somebody shops from.
-      final effective = effectiveLines(stored.map((i) => i.line));
-      final keptIds = {for (final l in effective.kept) l.id};
+      // This is where lines meet the week, so this is where the week's
+      // variant joins. The overrides are read once per week and looked up per
+      // recipe — the variant is per (week, recipe) too, so the sessions below
+      // stay correct without a refactor.
+      final overrides =
+          weekOverrides[recipe.recipeId] ?? const <LineOverride>[];
+      final effective = effectiveLines(
+        stored.map((i) => i.line),
+        overrides: overrides,
+      );
+      final byBaseLine = {
+        for (final o in overrides)
+          if (o.recipeLineItemId != null) o.recipeLineItemId!: o,
+      };
+      final addedById = {
+        for (final o in overrides)
+          if (o.action == LineOverrideAction.add) o.id: o,
+      };
+      final storedById = {for (final i in stored) i.line.id: i};
+      // The kept lines ARE the week's lines: a replaced one carries absolute
+      // values and an added one has no stored row at all, so the contribution
+      // is rebuilt from what the seam returned rather than from what was read.
       final items = [
-        for (final i in stored)
-          if (keptIds.contains(i.line.id)) i,
+        for (final line in effective.kept)
+          (
+            item: _weekLine(line, storedById[line.id]),
+            note: _weekNoteFor(line, byBaseLine, addedById, base: storedById),
+          ),
       ];
       final dropped = droppedNames(effective, LineDropReason.optional);
       if (dropped.isNotEmpty) {
@@ -319,10 +348,20 @@ class SqliteShoppingRepository implements ShoppingRepository {
           recipeId: recipe.recipeId,
           recipeTitle: recipe.title,
           names: dropped,
+          reason: LineDropReason.optional,
+        ));
+      }
+      final leftOut = droppedNames(effective, LineDropReason.thisWeek);
+      if (leftOut.isNotEmpty) {
+        optionalNotes.add((
+          recipeId: recipe.recipeId,
+          recipeTitle: recipe.title,
+          names: leftOut,
+          reason: LineDropReason.thisWeek,
         ));
       }
       for (final session in recipe.sessions) {
-        for (final item in items) {
+        for (final (:item, :note) in items) {
           // An unrecognised unit can't be scaled (it might even be imprecise);
           // pass the raw quantity through — the domain surfaces it as an
           // unconverted note and keeps it out of the totals.
@@ -349,6 +388,9 @@ class SqliteShoppingRepository implements ShoppingRepository {
             // line, then the plan(s) it is being cooked for (D4). Empty for a
             // meal session, which reads exactly as it always has.
             forParents: session.demandedBy,
+            // And one more when the WEEK changed this line, so the aisle says
+            // why the amount is not the recipe's.
+            weekNote: note,
           ));
         }
       }
@@ -363,6 +405,103 @@ class SqliteShoppingRepository implements ShoppingRepository {
     ]..sort((a, b) => a.recipeTitle.compareTo(b.recipeTitle));
     optionalNotes.sort((a, b) => a.recipeTitle.compareTo(b.recipeTitle));
     return (contributions, unresolved, optionalNotes);
+  }
+
+  /// This week's variant, by recipe — the deltas the seam applies before any
+  /// session expands a line.
+  Future<Map<String, List<LineOverride>>> _loadWeekOverrides(
+    String weekKey,
+  ) async {
+    final rows = await _db.getAll(
+      'SELECT wp.week_start_date, wro.id, wro.recipe_id, '
+      'wro.recipe_line_item_id, wro.action, wro.ingredient_id, '
+      'wro.sub_recipe_id, wro.quantity, wro.unit, wro.note, wro.sort_order, '
+      'wro.measure_id, ing.canonical_name AS ing_name, ing.macros_basis, '
+      'im.label AS m_label, im.basis_amount AS m_amount, '
+      'im.sort_order AS m_sort, im.source AS m_source '
+      'FROM week_recipe_line_override wro '
+      'JOIN week_plan wp ON wp.id = wro.week_plan_id AND wp.deleted_at IS NULL '
+      'LEFT JOIN ingredient ing '
+      'ON ing.id = wro.ingredient_id AND ing.deleted_at IS NULL '
+      'LEFT JOIN ingredient_measure im '
+      'ON im.id = wro.measure_id AND im.deleted_at IS NULL '
+      'WHERE wp.week_start_date = ? AND wro.deleted_at IS NULL '
+      'ORDER BY wro.sort_order, wro.created_at',
+      [weekKey],
+    );
+    final byRecipe = <String, List<LineOverride>>{};
+    for (final r in rows) {
+      final measureId = r['measure_id'] as String?;
+      final measureLabel = r['m_label'] as String?;
+      final measureAmount = (r['m_amount'] as num?)?.toDouble();
+      (byRecipe[r['recipe_id'] as String] ??= []).add(
+        LineOverride(
+          id: r['id'] as String,
+          action: switch (r['action'] as String) {
+            'exclude' => LineOverrideAction.exclude,
+            'replace' => LineOverrideAction.replace,
+            'add' => LineOverrideAction.add,
+            _ => LineOverrideAction.include,
+          },
+          recipeLineItemId: r['recipe_line_item_id'] as String?,
+          ingredientId: r['ingredient_id'] as String?,
+          ingredientName: r['ing_name'] as String? ?? '',
+          subRecipeId: r['sub_recipe_id'] as String?,
+          quantity: (r['quantity'] as num?)?.toDouble(),
+          unit: unitById(r['unit'] as String? ?? ''),
+          measureId: measureId,
+          measure:
+              measureId == null ||
+                  measureLabel == null ||
+                  measureAmount == null
+              ? null
+              : Measure(
+                  id: measureId,
+                  label: measureLabel,
+                  amount: measureAmount,
+                  basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
+                  sortOrder: (r['m_sort'] as int?) ?? 0,
+                  source: r['m_source'] as String?,
+                ),
+          note: r['note'] as String?,
+          sortOrder: r['sort_order'] as int?,
+        ),
+      );
+    }
+    return byRecipe;
+  }
+
+  /// The seam's answer as this file's row shape. A line the week left alone
+  /// keeps the row that was read (`rawUnit` and all); one the week changed —
+  /// or added — is rebuilt from the domain line, whose unit is a resolved
+  /// [Unit] and therefore never a raw string nobody knows.
+  static _LineItem _weekLine(LineItem line, _LineItem? stored) {
+    if (stored != null && identical(stored.line, line)) return stored;
+    return (
+      line: line,
+      ingredientId: line.ingredientId ?? stored?.ingredientId ?? '',
+      quantity: line.quantity,
+      unit: line.unit,
+      rawUnit: line.unit.id,
+      measure: line.measure,
+    );
+  }
+
+  /// The provenance segment this line carries, or null when the recipe states
+  /// it itself. An exclusion never lands here — the seam dropped it, so there
+  /// is no row for a segment to sit on.
+  static String? _weekNoteFor(
+    LineItem line,
+    Map<String, LineOverride> byBaseLine,
+    Map<String, LineOverride> addedById, {
+    required Map<String, _LineItem> base,
+  }) {
+    final override = addedById[line.id] ?? byBaseLine[line.id];
+    if (override == null) return null;
+    return weekProvenanceSegment(
+      weekChangeOf(override, base[override.recipeLineItemId ?? '']?.line),
+      base[override.recipeLineItemId ?? '']?.line,
+    );
   }
 
   Future<Map<String, List<_LineItem>>> _loadLineItems(

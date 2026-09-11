@@ -120,21 +120,28 @@ class _PlanCaption extends StatelessWidget {
 
 /// One recipe's batch plan: a title, a week-level summary, its cook sessions,
 /// and any split / freezer note. A split card takes the amber accent border.
-class _RecipeCard extends StatelessWidget {
+class _RecipeCard extends ConsumerWidget {
   const _RecipeCard({required this.recipe});
 
   final RecipeCookPlan recipe;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // A recipe that is also somebody's component has its component sessions on
     // their own card, so "split" here counts only the meal ones.
     final meals = recipe.mealSessions;
     final split = meals.length > 1;
+    final edited =
+        (ref
+                .watch(viewedWeekOverridesProvider)
+                .asData
+                ?.value[recipe.recipeId] ??
+            const [])
+            .isNotEmpty;
     return _Card(
       accent: split,
       title: recipe.title,
-      subtitle: recipeSummaryLine(recipe),
+      subtitle: recipeSummaryLine(recipe, editedThisWeek: edited),
       onTitleTap: () => context.pushOnce('/recipes/${recipe.recipeId}'),
       children: [
         for (final (i, session) in meals.indexed) ...[

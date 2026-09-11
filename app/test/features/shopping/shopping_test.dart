@@ -1,5 +1,6 @@
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/recipes/domain/effective_lines.dart';
 import 'package:ansi/features/shopping/domain/shopping.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -19,6 +20,7 @@ CookContributionInput _cook(
   int cookDay = 0,
   bool batched = false,
   List<String> forParents = const [],
+  String? weekNote,
 }) => (
   ingredientId: ingredientId,
   quantity: qty,
@@ -29,6 +31,7 @@ CookContributionInput _cook(
   cookDay: cookDay,
   batched: batched,
   forParents: forParents,
+  weekNote: weekNote,
 );
 
 /// A planned INGREDIENT meal's contribution — the week's own entry, already
@@ -951,6 +954,7 @@ void main() {
             recipeId: 'curry',
             recipeTitle: 'Weeknight Chicken Curry',
             names: ['lime', 'coriander'],
+            reason: LineDropReason.optional,
           ),
         ],
       );

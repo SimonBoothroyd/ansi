@@ -40,6 +40,7 @@ import '../../../core/result/result.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../../recipes/domain/effective_lines.dart';
 
 part 'shopping.freezed.dart';
 
@@ -71,6 +72,12 @@ enum ContributionSource { cookSession, planEntry, manual }
 /// for (step 8.6 / D4) — the one extra provenance segment a nested
 /// contribution gains ("Romesco Aioli · for Sliders · cook Sat"). Empty for an
 /// ordinary meal contribution, which reads exactly as it did before.
+/// `weekNote` is the one extra segment a line the WEEK changed carries —
+/// "this week, for Pork sausage" / "this week, was 2" / "this week, added" /
+/// "this week, ticked in". Null on every line the recipe states itself, which
+/// is nearly all of them, and the words come from the same vocabulary the
+/// editor's tags speak so a shopper and an editor cannot describe one change
+/// two ways.
 typedef CookContributionInput = ({
   String ingredientId,
   double? quantity,
@@ -81,6 +88,7 @@ typedef CookContributionInput = ({
   int cookDay,
   bool batched,
   List<String> forParents,
+  String? weekNote,
 });
 
 /// One planned INGREDIENT meal, already multiplied by its demand (step 8.14 /
@@ -119,19 +127,25 @@ typedef UnresolvedComponentNote = ({
   int count,
 });
 
-/// One planned recipe's "N optional lines not listed" echo.
+/// One planned recipe's "N lines not listed" echo, and WHY they are not.
 ///
-/// An optional line contributes NOTHING to the list — the `effectiveLines`
-/// seam dropped it before the session was expanded — and the recipe it
-/// belongs to says so, by name, in the same group-header voice as
+/// A dropped line contributes NOTHING to the list — the `effectiveLines` seam
+/// dropped it before the session was expanded — and the recipe it belongs to
+/// says so, by name, in the same group-header voice as
 /// [UnresolvedComponentNote]. The difference is the colour: an unresolved
-/// component is a defect somebody can fix, an optional line is a rule
-/// somebody chose, so the row reads muted rather than amber. `names` are the
-/// dropped lines' ingredient names in stored order.
+/// component is a defect somebody can fix, a dropped line is a rule somebody
+/// chose, so the row reads muted rather than amber. `names` are the dropped
+/// lines' ingredient names in stored order.
+///
+/// `reason` decides the words, not the shape: the recipe's own `optional`
+/// rule, or this week's variant leaving the line out. An exclusion cannot be
+/// a provenance segment — there is no row left to hang one on — so it takes
+/// this row, which is the whole reason the seam names what it drops.
 typedef OptionalLinesNote = ({
   String recipeId,
   String recipeTitle,
   List<String> names,
+  LineDropReason reason,
 });
 
 /// A persisted shopping entry row (the check-off + free-text anchor).
@@ -509,12 +523,17 @@ const _nonFoodLabel = 'Non-food';
 /// planned recipe it is cooked for, and always carries its cook day: "Romesco
 /// Aioli · for Sliders · cook Sat". Two levels, deepest first — the recipe
 /// whose line this actually is, then the plan it serves.
+/// A line the WEEK changed gains one more segment at the end, saying why this
+/// amount is not the recipe's: "Ragù · cook Tue · this week, for Pork
+/// sausage". One extra segment on the line that already exists — no new row
+/// type, no badge.
 String cookLabel(CookContributionInput c, List<String> weekdayShort) {
   final forParents = c.forParents;
   return [
     c.recipeTitle,
     if (forParents.isNotEmpty) 'for ${forParents.join(' + ')}',
     if (c.batched || forParents.isNotEmpty) 'cook ${weekdayShort[c.cookDay]}',
+    if (c.weekNote != null) c.weekNote!,
   ].join(' · ');
 }
 

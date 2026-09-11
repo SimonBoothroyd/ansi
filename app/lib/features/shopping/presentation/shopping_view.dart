@@ -25,6 +25,7 @@ import '../../cook_plan/presentation/cook_view_models.dart';
 import '../../planning/presentation/week_format.dart';
 import '../../planning/presentation/week_header.dart';
 import '../../planning/presentation/week_view_models.dart';
+import '../../recipes/domain/effective_lines.dart';
 import '../data/shopping_providers.dart';
 import '../domain/shopping.dart';
 import 'add_shopping_item_sheet.dart';
@@ -216,16 +217,27 @@ class _UnresolvedEcho extends StatelessWidget {
 /// same shape of statement — a heading for the items that are NOT below it —
 /// drawn muted rather than amber. Public so the screen test can find the row by
 /// type.
+///
+/// A line THIS WEEK left out takes the same row in the same grammar — "1 line
+/// left out this week — Red wine". An exclusion cannot be a provenance segment
+/// (there is no row left to hang one on), and a list that is quietly short is
+/// worse than one that says what it dropped.
 class OptionalLinesEcho extends StatelessWidget {
   const OptionalLinesEcho({required this.note, super.key});
 
   final OptionalLinesNote note;
 
-  /// `2 optional lines not listed — lime, coriander`.
+  /// `2 optional lines not listed — lime, coriander`, or
+  /// `1 line left out this week — Red wine`.
   static String text(OptionalLinesNote note) {
     final n = note.names.length;
-    return '$n optional ${plural(n, 'line')} not listed — '
-        '${note.names.join(', ')}';
+    final names = note.names.join(', ');
+    return switch (note.reason) {
+      LineDropReason.optional =>
+        '$n optional ${plural(n, 'line')} not listed — $names',
+      LineDropReason.thisWeek =>
+        '$n ${plural(n, 'line')} left out this week — $names',
+    };
   }
 
   @override

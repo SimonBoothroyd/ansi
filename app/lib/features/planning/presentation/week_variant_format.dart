@@ -1,55 +1,20 @@
-/// The words this week's variant is described in — one vocabulary, five
-/// places.
+/// The sentences the week's variant is described in, on the screens that
+/// compose one.
 ///
-/// The editor's tag, the door row's sub-line, the dish row's mark, the cook
-/// card's clause and the shopping list's provenance segment are all saying the
-/// same thing about the same change, so they are written once and the surfaces
-/// only choose which of them to print.
+/// The per-change words — the editor's tag and the shopping list's provenance
+/// segment — live in the domain beside the classification they read
+/// (`line_override.dart`), because they are facts about a change rather than
+/// about a screen. What is here is everything a surface phrases for itself:
+/// the door row, the editor's band, its footer, and the mark every surface
+/// with a week prints.
 library;
 
 import '../../../core/words.dart';
-import '../../recipes/domain/line_display.dart';
-import '../../recipes/domain/line_override.dart';
 import '../../recipes/domain/recipe.dart';
 import 'week_format.dart';
 
 /// What every surface with a week calls a recipe somebody has varied.
 const kEditedForThisWeek = 'edited for this week';
-
-/// The editor's tag on one changed line — the recipe's own words quoted back,
-/// so the reader can undo the change in their head before undoing it with the
-/// button.
-///
-/// The ingredient is named exactly as the app stores it: a display name is
-/// never rewritten to fit a sentence.
-String weekTagText(WeekChange change, LineItem? base) => switch (change) {
-  WeekChange.swapped when base != null =>
-    'this week · was ${amountOfLine(base)} ${base.ingredientName}',
-  WeekChange.amount when base != null =>
-    'this week · was ${amountOfLine(base)}',
-  WeekChange.swapped || WeekChange.amount => 'this week · changed',
-  WeekChange.added => 'this week · added',
-  WeekChange.leftOut => 'this week · left out',
-  WeekChange.included => 'this week · included',
-};
-
-/// The shopping list's extra provenance segment — "Ragù · cook Tue · this
-/// week, for Pork sausage". Four words, the same four the editor's tags use,
-/// on the line the list already prints.
-///
-/// An exclusion is NOT one of these: there is no row to hang it on, so it
-/// takes the echo row the list already prints for optional lines.
-String? weekProvenanceSegment(WeekChange change, LineItem? base) =>
-    switch (change) {
-      WeekChange.swapped when base != null =>
-        'this week, for ${base.ingredientName}',
-      WeekChange.amount when base != null =>
-        'this week, was ${amountOfLine(base)}',
-      WeekChange.swapped || WeekChange.amount => 'this week, changed',
-      WeekChange.added => 'this week, added',
-      WeekChange.included => 'this week, ticked in',
-      WeekChange.leftOut => null,
-    };
 
 /// The footer that drops the whole variant, with the count it would drop — a
 /// reset that cannot say how much it undoes gets pressed blind.
