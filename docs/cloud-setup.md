@@ -521,6 +521,23 @@ Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
 
+### 2026-09-11 (later) — the units pass on the owner's household, and the vocabulary complete
+
+- **Owner-ruled data pass, run from here on his say-so:** every row's
+  `allowed_units` lost the label units (`fl oz`, `pint`, `quart`, `litre`),
+  the imprecise words on fats, baking staples and counted things, and the
+  spoons on `lb`/`kg` rows — `oz` rows keep their spoons by his ruling. 297
+  rows, 1,235 units, every statement a strict subset of the row's list and
+  none touching its default unit. Checked first against every unit a recipe
+  line, plan entry or shopping row states (90 ingredient-and-unit pairs):
+  no removal collided. Readback: **313** live rows, **0** still admitting
+  `fl oz`.
+- The owner had completed the last 18 stubs in the app the same day; the
+  read-only export after the pass reads **313** rows, all `complete`, 299
+  measures, 149 aliases, 8.3 units per row on average (was 12.3). That export
+  is the seed's snapshot from here; the template is promoted on the next
+  deploy with `reseed_template` ticked.
+
 ### 2026-09-11 — round seven on cloud (v0.13.0): 0040, the streamed function, and the owner's vocabulary as the template
 
 - `deploy-supabase` run `34561587312` from `main@50d9213`, `reseed_template`
