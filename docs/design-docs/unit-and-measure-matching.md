@@ -123,6 +123,7 @@ else. Three row facts, and what each one lets a line say:
 | **density** | `density_g_per_ml` | `tsp · tbsp · cup · ml · …` — the other mass/volume family, whole | USDA, a pack, a spoon weighed |
 | **piece weight** | `piece_basis_amount` (+ `piece_source`) | `piece` — "2 dragon fruit" | the household; or the seed, borrowed from a curated size |
 | **a measure** | an `ingredient_measure` row | that word — "3 clove", "1 onion, small", "2 can" | a USDA portion, borrowed, typical, or yours |
+| **a serving** | an `ingredient_measure` row under the reserved `serving · ` prefix | `serving (237 ml)` — one chip, and the only place it shows | the pack, entered in the nutrition section |
 
 `piece_basis_amount` is what **one** of the ingredient weighs, in the row's
 basis unit — the same denomination `basis_amount` uses, so nothing new has to
@@ -160,6 +161,17 @@ The rules, each of them the density rule read for a count:
 - **A measure is for every other count word** — a size, a fragment, a container.
   Nothing is named after the row, and no measure is created on a household's
   behalf.
+
+**The serving is stored as a measure and is not listed as one.** It is
+arithmetically exactly a measure — a named amount in the row's basis — which
+is what lets the nutrition section print the label's own figures back
+unrounded. But it is not a word the household authored, and it is edited where
+the figures it is printed per are edited. So every list of *measures* leaves it
+out (`isServingMeasure`), and the one place it still appears is the chip row,
+labelled `serving (237 ml)` rather than with the pack's own words
+(`measureChipLabel`) — because "1 serving" is a size a week's ingredient slot
+can genuinely say, and what the person picking that chip needs to know is what
+it comes to.
 
 A row can honestly carry both: onion's piece weight is 110 g *and* its
 `onion, medium` measure is 110 g. Those are two statements — *an unsized onion

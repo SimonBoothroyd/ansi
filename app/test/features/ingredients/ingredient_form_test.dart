@@ -697,6 +697,34 @@ void main() {
       expect(repo.savedForms.single.measuresRemoved, isEmpty);
     });
 
+    testWidgets('the row’s serving is not one of its measures — it is stated '
+        'in Nutrition, and the editor leaves it out', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final measures = FakeMeasureRepo(const [
+        Measure(id: 'm-usda', label: 'mango, medium', amount: 207),
+        Measure(id: 'm-serving', label: 'serving · 1 cup', amount: 236.59),
+      ]);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [mango]),
+          at: editRoute('mango'),
+          measures: measures,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MeasureRow), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(MeasureRow),
+          matching: find.text('mango, medium'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('serving · 1 cup'), findsNothing);
+    });
+
     testWidgets('a volume-named measure label is still refused and redirected '
         'into the density entry (ADR-0008 §2)', (tester) async {
       filterForuiSemanticsAssertions();

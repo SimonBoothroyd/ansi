@@ -15,6 +15,7 @@ import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
+import '../domain/serving_measure.dart';
 import 'measures_editor.dart' show SourceDot;
 
 /// The chip row in ADR-0008 order: the default unit's own set · measure
@@ -109,7 +110,7 @@ class _UnitChipRowState extends State<UnitChipRow> {
           // unit here because the row says what one weighs, and the chip
           // says so rather than leaving "piece" to mean a clove or a bulb.
           label: switch (c) {
-            MeasureOption(:final measure) => measure.label,
+            MeasureOption(:final measure) => measureChipLabel(measure),
             UnitOption(:final unit) when unit == pieces => pieceChipLabel(
               widget.ingredient,
             ),

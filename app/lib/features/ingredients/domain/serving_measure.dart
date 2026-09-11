@@ -36,10 +36,34 @@ String servingMeasureLabel(double amount, Unit unit) =>
 String formatServingPhrase(double amount, Unit unit) =>
     '${formatAmount(amount)} ${unit.label}';
 
+/// Whether [measure] is the row's serving rather than one of its measures.
+///
+/// The serving is stored as an `ingredient_measure` because that is exactly
+/// what it is arithmetically — a named amount in the row's basis — but it is
+/// not a measure the household authored, and it is edited in the nutrition
+/// section beside the figures it is printed per. So every list of *measures*
+/// leaves it out, and the one place it still shows is the chip row, where "1
+/// serving" is a size a week's ingredient slot can genuinely say.
+bool isServingMeasure(Measure measure) =>
+    measure.label.startsWith(kServingMeasurePrefix);
+
+/// What a chip for [measure] says: `serving (237 ml)` for the row's serving —
+/// the amount and the basis unit, the way `piece (110 g)` reads — and its own
+/// label for anything else.
+///
+/// The stored label carries the pack's own words (`serving · 1 cup`), which is
+/// what lets the nutrition section print the label's figures back. On a chip
+/// beside `g` and `clove (3 g)` those words are the wrong half: what a person
+/// picking the chip needs is what one serving comes to.
+String measureChipLabel(Measure measure) => isServingMeasure(measure)
+    ? 'serving (${formatNumber(measure.amount)} '
+          '${measure.basis.baseUnit.label})'
+    : measure.label;
+
 /// The serving [measures] holds, or null when the row states none.
 Measure? servingMeasureOf(Iterable<Measure> measures) {
   for (final m in measures) {
-    if (m.label.startsWith(kServingMeasurePrefix)) return m;
+    if (isServingMeasure(m)) return m;
   }
   return null;
 }

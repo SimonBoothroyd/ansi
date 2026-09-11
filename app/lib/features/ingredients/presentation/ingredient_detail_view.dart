@@ -526,9 +526,11 @@ class _ReadMeasures extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Same two exclusions the editor makes: the serving is stated above, in
+    // Nutrition, and a volume-named label is a density.
     final listed = [
       for (final m in measures)
-        if (!isVolumeUnitLabel(m.label)) m,
+        if (!isVolumeUnitLabel(m.label) && !isServingMeasure(m)) m,
     ];
     if (listed.isEmpty) return const _Fact('No measures yet.', muted: true);
     return Column(

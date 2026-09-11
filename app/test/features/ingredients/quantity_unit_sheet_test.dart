@@ -434,6 +434,32 @@ void main() {
     expect(saved!.unitPicked, isTrue);
   });
 
+  testWidgets('the row’s serving is ONE chip that says what it comes to, and '
+      'is not in the measures list', (tester) async {
+    filterForuiSemanticsAssertions();
+    const serving = Measure(
+      id: 'm-serving',
+      label: 'serving · 1 cup',
+      amount: 236.5882365,
+    );
+    await tester.pumpWidget(
+      _host(
+        repo: _FakeMeasureRepo(const [_large, serving]),
+        initialChoice: const UnitOption(pieces),
+        onDone: (_) {},
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The chip says the size, not the pack's words — "1 serving" is a thing
+    // a week's ingredient slot can genuinely say.
+    expect(find.text('serving (236.59 g)'), findsOneWidget);
+    expect(find.text('serving · 1 cup'), findsNothing);
+
+    // One chip, not two: a row has exactly one serving.
+    expect(find.textContaining('serving'), findsOneWidget);
+  });
+
   testWidgets('a measure a recipe still uses is refused here too, and the '
       'selection is left exactly where it was', (tester) async {
     filterForuiSemanticsAssertions();

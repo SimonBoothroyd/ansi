@@ -72,5 +72,26 @@ void main() {
     expect(servingMeasureOf(measures)!.id, 'b');
     expect(servingMeasureOf(measures.where((m) => m.id != 'b')), isNull);
     expect(servingMeasureOf(const <Measure>[]), isNull);
+    // The same question, asked of one row — what every list of measures uses
+    // to leave the serving out.
+    expect(measures.map(isServingMeasure), [false, true, false]);
   });
+
+  test(
+    'a serving chip says what one serving comes to, not the pack’s words',
+    () {
+      const serving = Measure(
+        id: 'b',
+        label: 'serving · 1 cup',
+        amount: 236.5882365,
+        basis: MacrosBasis.perMl,
+      );
+      expect(measureChipLabel(serving), 'serving (236.59 ml)');
+      // Everything else keeps the word the household gave it.
+      expect(
+        measureChipLabel(const Measure(id: 'a', label: 'clove', amount: 3)),
+        'clove',
+      );
+    },
+  );
 }

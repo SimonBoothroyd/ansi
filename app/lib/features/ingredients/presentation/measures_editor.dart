@@ -38,6 +38,7 @@ import '../../../shared/format.dart';
 import '../../../shared/reorder_grip.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
+import '../domain/serving_measure.dart';
 
 /// What the host did when the editor asked it to add a measure.
 ///
@@ -160,7 +161,13 @@ class MeasuresEditor extends HookWidget {
     final editing = useState<String?>(null);
 
     final baseLabel = ingredient.macrosBasis.baseUnit.label;
-    final listed = measures.where((m) => !isVolumeUnitLabel(m.label)).toList();
+    // The row's SERVING is not one of its measures (it is stated in the
+    // nutrition section, beside the figures it is printed per) and a
+    // volume-named label is a density in disguise. Neither belongs in a list
+    // of this ingredient's own count words.
+    final listed = measures
+        .where((m) => !isVolumeUnitLabel(m.label) && !isServingMeasure(m))
+        .toList();
 
     Future<void> save() async {
       final name = label.value.trim();

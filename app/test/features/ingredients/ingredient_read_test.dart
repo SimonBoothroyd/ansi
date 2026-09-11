@@ -320,8 +320,11 @@ void main() {
       // ratio as the aside rather than as the sentence.
       expect(find.text('2 tbsp weighs 32 g'), findsOneWidget);
       expect(find.text('1.08 g/ml'), findsOneWidget);
-      // And the serving is a measure like any other, listed as one.
-      expect(find.text('serving · 2 tbsp · 29.57 ml'), findsOneWidget);
+      // And the serving is NOT one of this row's measures: it is stated
+      // above, in Nutrition, and listing it here said the same thing a third
+      // time on one screen.
+      expect(find.text('serving · 2 tbsp · 29.57 ml'), findsNothing);
+      expect(find.text('No measures yet.'), findsOneWidget);
     });
 
     testWidgets('with no serving on the row, both lines are the ones they '
