@@ -9,6 +9,14 @@
 // Messages-API mechanism; the deprecated `output_format` is not used). Raw HTTP
 // to POST /v1/messages keeps the three adapters uniform and dependency-free.
 //
+// STREAMING (`stream: true`). Both calls a user waits on stream, and
+// `#assembler` folds the frames back into exactly the response shape the
+// non-streaming call returned — so the decoders, the usage parsing and every
+// saved response in `evals/runs/` are unchanged. It is not about showing text
+// as it arrives (nobody reads a JSON payload being typed): it is that a
+// streaming call can tell a long answer from a hung one, and can say so out
+// loud while it works (`onProgress` ⇒ the function's `heartbeat` frames).
+//
 // Prompt caching (GA, no beta header): the stable sanitize system prompt is sent
 // as a content block with `cache_control: {type:"ephemeral"}` so repeated calls
 // read it from cache instead of re-billing the full prefix each time.
@@ -19,6 +27,7 @@
 import type {
   ExtractAdapter,
   ExtractionResult,
+  ProgressSink,
   ProviderCallSink,
   RawBlob,
   TokenUsage,
@@ -44,9 +53,11 @@ import {
 import {
   extractJson,
   IMAGE_MEDIA_TYPE,
-  postJson,
+  ProviderHttpError,
   requireKey,
   resizeForUpload,
+  type StreamAssembler,
+  streamJson,
   toBase64,
 } from "./http.ts";
 
@@ -77,11 +88,40 @@ const ANTHROPIC_VERSION = "2023-06-01";
 /**
  * `max_tokens` is a CEILING, not a target — an unreached one costs nothing, and
  * a reached one truncates the JSON mid-object. claude-haiku-4-5 tops out at 64K
- * output tokens; we ask for half of that, which no real recipe approaches while
- * keeping a non-streaming request comfortably inside its HTTP timeout. (Was
- * 8192, which a long multi-page recipe could genuinely hit.)
+ * output tokens; we ask for half of that, which no real recipe approaches. (Was
+ * 8192, which a long multi-page recipe could genuinely hit.) A ceiling this far
+ * above the real answers is only safe BECAUSE the call streams: nothing waits
+ * on a whole `max_tokens` worth of generation, it waits on the next delta.
  */
 const DEFAULT_MAX_TOKENS = 32_000;
+
+// --- The model rung of the timeout ladder ------------------------------------
+//
+// Per-OP, because the two calls are not the same size of work and pretending
+// they were is what broke a real import: one 60s budget covered transcribe
+// (12s) and then aborted sanitize mid-generation, retried into the 13s that
+// were left, and aborted again — two paid answers, nothing shown.
+//
+// Both numbers are sized from `evals/runs/` and both are BACKSTOPS. What
+// actually catches a hang is the idle timer in `streamJson`; these bound the
+// pathological case where output dribbles out forever.
+
+/**
+ * TOTAL budget for one sanitize call. The corpus's biggest structured answer is
+ * 4,962 output tokens and its slowest generation ran at 92 tok/s — ~54s for the
+ * worst case on the worst day — so this is a little over two times the longest
+ * answer we have ever measured. The previous 60s was under it.
+ */
+export const SANITIZE_DEADLINE_MS = 120_000;
+/**
+ * TOTAL budget for one transcribe call. No transcribe rows exist in
+ * `evals/runs/` (the corpus was recorded through the page-text door), so this
+ * is sized from what transcribe EMITS: its output is the page text, and the
+ * corpus's source texts run 1.1k–4.7k characters (~280–1,190 tokens) for a one-
+ * to two-page recipe. At `MAX_IMAGES` = 8 pages that is ~5k tokens, ~54s at the
+ * same 92 tok/s floor. A live two-page import measured 12s.
+ */
+export const TRANSCRIBE_DEADLINE_MS = 60_000;
 
 export interface ClaudeAdapterOptions {
   apiKey?: string; // defaults to ANTHROPIC_API_KEY
@@ -103,13 +143,15 @@ export interface ClaudeAdapterOptions {
    */
   twoPhase?: boolean;
   /**
-   * Per-attempt / total HTTP budgets forwarded to `postJson`. The defaults
-   * (45s/60s) are tuned for the edge function's spinner; an adaptive-thinking
-   * model can legitimately reason past 45s on one call, so benchmark lanes for
-   * the Sonnet/Opus tiers MUST raise these or every call aborts (observed:
-   * eleven "signal has been aborted" transcribes in a row).
+   * Budgets forwarded to `streamJson`. `idleTimeoutMs` is the SILENCE an
+   * attempt is allowed (default 20s); `deadlineMs` overrides BOTH per-op totals
+   * ({@link SANITIZE_DEADLINE_MS}, {@link TRANSCRIBE_DEADLINE_MS}) with one
+   * number. An adaptive-thinking model streams a long, empty thinking block
+   * before it says anything, so benchmark lanes for the Sonnet/Opus tiers MUST
+   * raise the idle budget or every call aborts (observed: eleven "signal has
+   * been aborted" transcribes in a row).
    */
-  timeoutMs?: number;
+  idleTimeoutMs?: number;
   deadlineMs?: number;
 }
 
@@ -120,6 +162,89 @@ interface AnthropicContentBlock {
 interface AnthropicResponse {
   content?: AnthropicContentBlock[];
   stop_reason?: string | null;
+}
+
+function obj(v: unknown): Record<string, unknown> | null {
+  return typeof v === "object" && v !== null
+    ? v as Record<string, unknown>
+    : null;
+}
+
+/**
+ * Folds an Anthropic message stream back into the SAME object the
+ * non-streaming endpoint returns: `{id, model, content, stop_reason, usage,
+ * …}`. That equivalence is the whole contract — `decodeClaudeSanitize`,
+ * `assertComplete`, `anthropicUsage` and the run records in `evals/runs/` all
+ * read the assembled value and none of them can tell which way it arrived.
+ *
+ * The frames (Messages API, `stream: true`): `message_start` carries the
+ * message shell and the input half of `usage`; `content_block_start` opens a
+ * block; `content_block_delta` appends to it; `message_delta` carries the final
+ * `stop_reason` and the output half of `usage`; `message_stop` ends it. `ping`
+ * is a keep-alive. An `error` frame is the provider failing mid-answer.
+ */
+export function anthropicAssembler(provider: string): StreamAssembler {
+  const blocks: AnthropicContentBlock[] = [];
+  let shell: Record<string, unknown> = {};
+  let stopped = false;
+  return {
+    push(event: string, data: unknown): boolean {
+      const d = obj(data) ?? {};
+      switch (event) {
+        case "message_start": {
+          shell = { ...(obj(d.message) ?? {}) };
+          return false;
+        }
+        case "content_block_start": {
+          const index = typeof d.index === "number" ? d.index : blocks.length;
+          const start = obj(d.content_block) ?? {};
+          blocks[index] = {
+            ...start,
+            type: typeof start.type === "string" ? start.type : "text",
+            text: typeof start.text === "string" ? start.text : "",
+          } as AnthropicContentBlock;
+          return false;
+        }
+        case "content_block_delta": {
+          const index = typeof d.index === "number" ? d.index : 0;
+          const delta = obj(d.delta) ?? {};
+          const block = blocks[index] ??= { type: "text", text: "" };
+          if (delta.type === "text_delta" && typeof delta.text === "string") {
+            block.text = (block.text ?? "") + delta.text;
+          }
+          // TRUE for every delta, text or not: the provider is generating, and
+          // that is what makes a retry waste and what a heartbeat reports.
+          return true;
+        }
+        case "message_delta": {
+          shell = { ...shell, ...(obj(d.delta) ?? {}) };
+          const usage = obj(d.usage);
+          // Merged, not replaced: `message_start` holds the input and cache
+          // counts, `message_delta` the final output count.
+          if (usage) shell.usage = { ...(obj(shell.usage) ?? {}), ...usage };
+          return false;
+        }
+        case "message_stop":
+          stopped = true;
+          return false;
+        case "error":
+          // The provider gave up mid-answer (`overloaded_error` is the common
+          // one). 503 is OUR transport classification of it, so the retry
+          // policy has one thing to read; the provider's own words ride along
+          // in the body for the log.
+          throw new ProviderHttpError(provider, 503, JSON.stringify(data));
+        default:
+          return false; // `ping`, and anything a later API version adds
+      }
+    },
+    finish(): unknown | null {
+      // No `message_stop` means the connection died mid-answer. The blocks we
+      // have would parse as a truncated recipe — silently losing its tail — so
+      // this is a failure, never a partial success.
+      if (!stopped) return null;
+      return { ...shell, content: blocks.filter((b) => b !== undefined) };
+    },
+  };
 }
 
 function firstText(res: AnthropicResponse): string {
@@ -199,6 +324,8 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
   readonly #maxTokens: number;
   /** Optional benchmark observer; unset in production (see `ExtractAdapter`). */
   onCall?: ProviderCallSink;
+  /** Told on every delta while a call streams (see `ExtractAdapter`). */
+  onProgress?: ProgressSink;
 
   constructor(opts: ClaudeAdapterOptions = {}) {
     this.model = opts.model ?? CLAUDE_HAIKU_MODEL;
@@ -206,15 +333,30 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
     this.#apiKey = opts.apiKey ?? requireKey("ANTHROPIC_API_KEY", "Claude");
     this.#maxTokens = opts.maxTokens ?? DEFAULT_MAX_TOKENS;
     this.#effort = opts.effort;
-    this.#timeoutMs = opts.timeoutMs;
+    this.#idleTimeoutMs = opts.idleTimeoutMs;
     this.#twoPhase = opts.twoPhase ?? false;
     this.#deadlineMs = opts.deadlineMs;
   }
 
   readonly #effort?: "low" | "medium" | "high";
   readonly #twoPhase: boolean;
-  readonly #timeoutMs?: number;
+  readonly #idleTimeoutMs?: number;
   readonly #deadlineMs?: number;
+
+  /**
+   * The budgets and the observer every model call shares. `onDelta` reads
+   * `this.onProgress` at call time, so an observer attached after construction
+   * (which is how the orchestrator wires heartbeats) is still heard.
+   */
+  #streamOpts(deadlineMs: number) {
+    return {
+      provider: "Claude",
+      assembler: () => anthropicAssembler("Claude"),
+      deadlineMs: this.#deadlineMs ?? deadlineMs,
+      idleTimeoutMs: this.#idleTimeoutMs,
+      onDelta: () => this.onProgress?.(),
+    };
+  }
 
   /** `output_config.effort`, when configured — merged into any output_config. */
   #effortConfig(): { effort?: string } {
@@ -267,12 +409,10 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
       { type: "text", text: TRANSCRIBE_PROMPT },
     ];
     const startedAt = performance.now();
-    const res = await postJson({
+    const res = await streamJson({
       url: ANTHROPIC_URL,
       headers: this.#headers(),
-      provider: "Claude",
-      timeoutMs: this.#timeoutMs,
-      deadlineMs: this.#deadlineMs,
+      ...this.#streamOpts(TRANSCRIBE_DEADLINE_MS),
       body: {
         model: this.model,
         max_tokens: this.#maxTokens,
@@ -300,12 +440,10 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
     // deno-lint-ignore no-explicit-any
     schema: any,
   ): Promise<unknown> {
-    return await postJson({
+    return await streamJson({
       url: ANTHROPIC_URL,
       headers: this.#headers(),
-      provider: "Claude",
-      timeoutMs: this.#timeoutMs,
-      deadlineMs: this.#deadlineMs,
+      ...this.#streamOpts(SANITIZE_DEADLINE_MS),
       body: {
         model: this.model,
         max_tokens: this.#maxTokens,

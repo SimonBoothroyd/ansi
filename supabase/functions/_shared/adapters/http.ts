@@ -57,15 +57,18 @@ const TRANSIENT_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
  * that matters is the total, not the per-attempt one: five attempts each
  * allowed 120s could hang for ten minutes.
  *
- * These are the model rung of the import's timeout ladder, and the number that
- * sizes them is the PHOTO path: it makes two of these calls back to back
- * (transcribe, then sanitize), so the pair plus intake and matching has to fit
- * inside the platform's request idle timeout. The whole ladder, with its
- * numbers, is written out where the client timeout lives
- * (`app/lib/features/import/data/remote_import_repository.dart`); change one of
- * these and re-read it.
+ * These two belong to `postJson`, which is the BENCHMARK-only path now (Gemini
+ * and GPT). Production extraction goes through `streamJson` below, whose budgets
+ * are per-op and live on the adapter that owns the ops (`claude.ts`), because a
+ * per-attempt WALL CLOCK is the wrong instrument for a generation: 45s cannot
+ * tell a hung socket from a long answer, and aborting a stream that was
+ * producing throws away output the provider has already generated and billed.
+ *
+ * The whole timeout ladder, with its numbers, is written out where the client
+ * timeout lives (`app/lib/features/import/data/remote_import_repository.dart`);
+ * change a budget anywhere and re-read it.
  */
-const MAX_ATTEMPTS = 3;
+export const MAX_ATTEMPTS = 3;
 /** TOTAL budget for one logical provider call, across every attempt and sleep. */
 export const DEFAULT_DEADLINE_MS = 60_000;
 /** Per-attempt wall clock, so one hung socket cannot eat the whole deadline. */
@@ -172,6 +175,261 @@ export async function postJson(opts: PostJsonOpts): Promise<unknown> {
       continue;
     }
     throw new ProviderHttpError(opts.provider, res.status, text);
+  }
+  if (lastError) throw lastError;
+  throw new ProviderTimeoutError(opts.provider, budget);
+}
+
+// --- Streaming one provider call ---------------------------------------------
+//
+// `postJson` waits for a whole response with `await res.text()`, which makes a
+// slow generation indistinguishable from a hang: the only instrument it has is
+// a wall clock, and a wall clock generous enough for a long answer is useless
+// against a dead socket. `streamJson` replaces it for the calls a user is
+// waiting on. Three things change, and each one fixes a real failure:
+//
+//   * an IDLE timer instead of a per-attempt wall clock. Bytes arriving prove
+//     the provider is working, so what is bounded is SILENCE — the same rule
+//     the app applies to this function's own stream.
+//   * NO RETRY once the answer has started. An aborted attempt was fully
+//     generated and billed upstream; retrying it cannot be cheaper than the
+//     failure, and it spends the rest of the budget on a second copy of work
+//     that just did not fit.
+//   * no RETRY is STARTED into a budget too small to finish in. A doomed
+//     attempt bills a whole response nobody will ever read.
+//
+// The assembled return value has the same shape the non-streaming call
+// returned, so the decoders, the usage parsing and the saved raw responses in
+// `evals/runs/` are all untouched by the switch.
+
+/** No progress on the wire for this long ⇒ this attempt is abandoned. */
+export const DEFAULT_IDLE_TIMEOUT_MS = 20_000;
+/**
+ * Shortest window a RETRY may be started into. Below it the attempt would be
+ * aborted mid-generation, having cost a full response upstream — so the call
+ * fails as the timeout it already is instead of paying for that. It does not
+ * gate the first attempt: the budget a caller passed is the budget they meant.
+ */
+export const DEFAULT_MIN_ATTEMPT_MS = 30_000;
+
+/**
+ * Folds a provider's stream frames into one response object. Provider-specific
+ * (this file stays neutral): `claude.ts` supplies the Anthropic one.
+ */
+export interface StreamAssembler {
+  /**
+   * Folds one frame in. Returns true when the frame carried GENERATED OUTPUT —
+   * which is what makes a retry waste, and what a heartbeat reports. Throws to
+   * fail the attempt (a provider error frame).
+   */
+  push(event: string, data: unknown): boolean;
+  /**
+   * The assembled response, or null when the stream stopped before the message
+   * did — a truncation we must never hand on as if it were an answer.
+   */
+  finish(): unknown | null;
+}
+
+export interface StreamJsonOpts {
+  url: string;
+  headers: Record<string, string>;
+  /** Request body. `stream: true` is added here, so it cannot be forgotten. */
+  body: Record<string, unknown>;
+  provider: string;
+  /** Builds a fresh assembler per attempt. */
+  assembler: () => StreamAssembler;
+  /** TOTAL budget across every attempt and every backoff sleep. */
+  deadlineMs?: number;
+  /** Silence that ends an attempt. See {@link DEFAULT_IDLE_TIMEOUT_MS}. */
+  idleTimeoutMs?: number;
+  /** Smallest budget worth starting a RETRY into. See {@link DEFAULT_MIN_ATTEMPT_MS}. */
+  minAttemptMs?: number;
+  /** Backoff base; a test seam so retry paths don't cost seconds. */
+  baseBackoffMs?: number;
+  /** Fetch seam — the global `fetch` in prod, a stub in tests. */
+  fetchImpl?: typeof fetch;
+  /** Told whenever the provider produced output. Its failures are swallowed. */
+  onDelta?: () => void;
+}
+
+/** One `event:`/`data:` frame off an SSE body. */
+interface SseFrame {
+  event: string;
+  data: string;
+}
+
+/**
+ * Parses one frame's lines. Comment lines (`:`) and fields we do not use are
+ * ignored; `data:` lines are joined with newlines, as the SSE spec says.
+ */
+function parseSseFrame(frame: string): SseFrame | null {
+  let event = "message";
+  const data: string[] = [];
+  for (const raw of frame.split("\n")) {
+    const line = raw.endsWith("\r") ? raw.slice(0, -1) : raw;
+    if (line === "" || line.startsWith(":")) continue;
+    if (line.startsWith("event:")) event = line.slice(6).trim();
+    else if (line.startsWith("data:")) data.push(line.slice(5).trimStart());
+  }
+  return data.length === 0 ? null : { event, data: data.join("\n") };
+}
+
+/** Yields SSE frames off a response body as they arrive. */
+async function* sseFrames(
+  body: ReadableStream<Uint8Array>,
+): AsyncGenerator<SseFrame> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let cut = buffer.indexOf("\n\n");
+      while (cut !== -1) {
+        const frame = parseSseFrame(buffer.slice(0, cut));
+        buffer = buffer.slice(cut + 2);
+        if (frame) yield frame;
+        cut = buffer.indexOf("\n\n");
+      }
+    }
+  } finally {
+    // An abort leaves the body locked otherwise, and the next attempt would
+    // fail on a resource we are done with rather than on the provider.
+    reader.cancel().catch(() => {});
+  }
+}
+
+/** Calls an observer without ever letting its failure reach the caller. */
+function notify(fn: (() => void) | undefined): void {
+  if (!fn) return;
+  try {
+    fn();
+  } catch (e) {
+    console.error(
+      `stream observer threw (ignored): ${
+        e instanceof Error ? e.message : String(e)
+      }`,
+    );
+  }
+}
+
+/**
+ * POST a streaming provider call and return the assembled response. Retries
+ * transient failures the way `postJson` does — but only while nothing has been
+ * generated yet, and only into a budget an attempt could finish in.
+ *
+ * Throws `ProviderHttpError` on a non-transient status, on a provider error
+ * frame, or on a stream that ends mid-message; `ProviderTimeoutError` when the
+ * budget is gone; and the abort itself when an attempt runs silent or overruns
+ * — the last two of which `isTimeoutFailure` reads as "we ran out of time".
+ */
+export async function streamJson(opts: StreamJsonOpts): Promise<unknown> {
+  const fetchImpl = opts.fetchImpl ?? fetch;
+  const budget = opts.deadlineMs ?? DEFAULT_DEADLINE_MS;
+  const idleMs = opts.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS;
+  const minAttempt = opts.minAttemptMs ?? DEFAULT_MIN_ATTEMPT_MS;
+  const base = opts.baseBackoffMs ?? 1000;
+  const deadline = Date.now() + budget;
+  const backoffMs = (attempt: number) =>
+    Math.min(16_000, base * 2 ** (attempt - 1)) + Math.random() * (base / 2);
+  const sleepWithin = async (ms: number): Promise<boolean> => {
+    const left = deadline - Date.now();
+    if (left <= 0 || ms >= left) return false;
+    await sleep(ms);
+    return true;
+  };
+
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const left = deadline - Date.now();
+    // Out of time, or — for a RETRY — too little left to finish an attempt in.
+    // Whatever went wrong earlier, what is true NOW is that we are out of time:
+    // say that, and bill nothing more. The minimum is a bar for RETRIES only.
+    // The first attempt always dials, because a caller who set a budget under
+    // the minimum meant that budget, and a call that never rang at all is a
+    // stranger answer than the timeout it asked for.
+    if (left <= 0 || (attempt > 1 && left < minAttempt)) {
+      throw new ProviderTimeoutError(opts.provider, budget);
+    }
+    const controller = new AbortController();
+    const wall = setTimeout(() => controller.abort(), left);
+    let idle = setTimeout(() => controller.abort(), idleMs);
+    /** A frame arrived: the provider is alive, so restart the silence clock. */
+    const alive = () => {
+      clearTimeout(idle);
+      idle = setTimeout(() => controller.abort(), idleMs);
+    };
+    const assembler = opts.assembler();
+    let produced = false;
+    try {
+      const res = await fetchImpl(opts.url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "accept": "text/event-stream",
+          ...opts.headers,
+        },
+        body: JSON.stringify({ ...opts.body, stream: true }),
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        if (TRANSIENT_STATUSES.has(res.status) && attempt < MAX_ATTEMPTS) {
+          lastError = new ProviderHttpError(opts.provider, res.status, text);
+          const honoured = retryAfterDelayMs(res.headers.get("retry-after")) ??
+            backoffMs(attempt);
+          if (!await sleepWithin(honoured)) break;
+          continue;
+        }
+        throw new ProviderHttpError(opts.provider, res.status, text);
+      }
+      if (!res.body) {
+        throw new ProviderHttpError(
+          opts.provider,
+          res.status,
+          "a 200 with no body to stream",
+        );
+      }
+      for await (const frame of sseFrames(res.body)) {
+        alive();
+        let data: unknown;
+        try {
+          data = JSON.parse(frame.data);
+        } catch {
+          continue; // a frame we cannot read is noise, not an answer
+        }
+        if (assembler.push(frame.event, data)) {
+          produced = true;
+          notify(opts.onDelta);
+        }
+      }
+      const message = assembler.finish();
+      if (message === null) {
+        throw new ProviderHttpError(
+          opts.provider,
+          502,
+          "the stream ended before the message did",
+        );
+      }
+      return message;
+    } catch (e) {
+      lastError = e;
+      // PAST THE FIRST DELTA: the provider generated — and billed — an answer.
+      // A second copy of it is pure waste, and spending the rest of the budget
+      // on one is how a slow-but-working call became a failed one.
+      if (produced) throw e;
+      if (e instanceof ProviderHttpError && !TRANSIENT_STATUSES.has(e.status)) {
+        throw e;
+      }
+      if (attempt >= MAX_ATTEMPTS) throw e;
+      if (!await sleepWithin(backoffMs(attempt))) break;
+      continue;
+    } finally {
+      clearTimeout(wall);
+      clearTimeout(idle);
+    }
   }
   if (lastError) throw lastError;
   throw new ProviderTimeoutError(opts.provider, budget);

@@ -46,9 +46,11 @@ const _uploadJpegQuality = 85;
 
 /// How long the client waits for the whole of `import-recipe`.
 ///
-/// **The timeout ladder, re-derived for the stage stream.** The function now
-/// answers `text/event-stream` and sends an event as each stage lands, which
-/// moves what every rung is measuring:
+/// **The timeout ladder, re-derived for the stage stream and its heartbeats.**
+/// The function answers `text/event-stream`, sends an event as each stage
+/// lands, and — while a model call is streaming — sends a `heartbeat` every ten
+/// seconds saying the model is still producing. That moves what every rung is
+/// measuring:
 ///
 /// ```text
 /// client, silence   90s  edgeSilenceTimeout — the longest GAP this will sit
@@ -58,31 +60,50 @@ const _uploadJpegQuality = 85;
 ///                        the call: the stream keeps the connection warm
 ///                        through the stages either side of it.
 /// function, longest gap:
-///   ≤ 25s intake (jsonld.ts FETCH_TOTAL_TIMEOUT_MS), or
-///   ≤ 60s one model call (adapters/http.ts DEFAULT_DEADLINE_MS)
+///   ≤ 25s intake (jsonld.ts FETCH_TOTAL_TIMEOUT_MS)
+///   ≤ 30s a model call that IS producing: one heartbeat interval
+///         (index.ts HEARTBEAT_INTERVAL_MS), then one idle window before
+///         the attempt is cut (http.ts DEFAULT_IDLE_TIMEOUT_MS)
+///   ≤ 64s a model call that never produced — nothing to heartbeat
+///         about, so three idle windows and the sleeps between them are
+///         ONE gap. The widest, and the honest bound.
 ///
-/// client, total    180s  this constant
+/// client, total    240s  this constant
+/// platform, whole  400s  Supabase's wall-clock limit for one invocation
 /// function, total        the worst case the pipeline can reach:
-///   from a link   ≤ 25s intake + ≤ 60s model + match       ⇒ ~90s
-///   from photos   ≤ 60s transcribe + ≤ 60s extract + match ⇒ ~125s
+///   from a link   ≤ 25s intake + ≤ 120s sanitise + match     ⇒ ~160s
+///   from photos   ≤ 60s transcribe + ≤ 120s sanitise + match ⇒ ~195s
 /// ```
 ///
-/// Two rungs, because there are two ways for this to go wrong and only one of
-/// them is a duration. **Silence** is the honest signal that the connection is
-/// dead: bytes arriving prove the server is alive, so an import must not be
-/// abandoned merely for taking a while — but a gap wider than any stage can
-/// account for is not slowness. It sits above the widest real gap (60s) with
-/// room for a cold start, and below the platform's own 150s so the app is the
-/// one that gives up, with a sentence, rather than a gateway cutting in.
+/// **What sizes the model budgets.** The evals, not the platform. The biggest
+/// structured answer in the extraction corpus is 4,962 output tokens and its
+/// slowest generation ran at 92 tok/s, so a bad day is ~54s for sanitise
+/// alone — hence 120s for it and 60s for transcribe
+/// (`_shared/adapters/claude.ts`), each a little over twice what has ever been
+/// measured. The platform's 150s idle cut-off is a fact about the platform and
+/// not about reading a recipe, and a budget cut to fit it is a budget under
+/// what the model needs. Heartbeats are what let the two be separated: a model
+/// call is not a silence, so the thing that has to fit the platform is the
+/// pipeline's TOTAL, against the 400s wall clock.
+///
+/// Two client rungs, because there are two ways for this to go wrong and only
+/// one of them is a duration. **Silence** is the honest signal that the
+/// connection is dead: bytes arriving prove the server is alive, so an import
+/// must not be abandoned merely for taking a while — and now that the long
+/// stages talk while they work, a gap is an even stronger signal than it was.
+/// It sits above the widest real gap — ~64s, a model call that never said
+/// anything at all, which is the one case heartbeats cannot cover — with room
+/// for a cold start, and below the platform's own 150s so the app is the one
+/// that gives up, with a sentence, rather than a gateway cutting in.
 /// **Total** still exists because a stream that dribbles forever would never
 /// trip the silence rung, and because `functions.invoke` has no deadline of
 /// its own — a hung request would leave the user on the spinner with no way
-/// back but killing the app. It stays above the function's worst case (~125s).
+/// back but killing the app. It stays above the function's worst case (~195s).
 ///
 /// The server half of this arithmetic is a test
 /// (`supabase/functions/_shared/timeouts.test.ts`); this half is
 /// `edge_import_failures_test.dart`.
-const edgeInvokeTimeout = Duration(seconds: 180);
+const edgeInvokeTimeout = Duration(seconds: 240);
 
 /// The longest the stage stream may go quiet before the app gives up. See the
 /// ladder on [edgeInvokeTimeout].
@@ -203,9 +224,18 @@ Future<ReconciliationPayload> readImportStream(
 
   events = decodeSse(bytes).listen(
     (event) {
+      // EVERY event restarts the silence clock, including ones this build has
+      // no case for. That is what makes the server's `heartbeat` work on an
+      // app that predates it, and it is why a new event id can be added
+      // server-side without shipping a client first.
       waitAgain();
       try {
         switch (event.event) {
+          case 'heartbeat':
+            // The model is still producing. Nothing to show — the frame's
+            // whole job was done by `waitAgain()` above, which is what keeps a
+            // long model call from reading as a dead connection.
+            break;
           case 'plan':
             onProgress?.call(ImportPlanned(_planFrom(event.data)));
           case 'stage':

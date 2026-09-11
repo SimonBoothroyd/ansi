@@ -140,23 +140,40 @@ Future<String> _messageFor(EdgeImportRepository repo) async {
 }
 
 /// Supabase's request idle timeout: a function that has sent nothing by then
-/// is cut off with a gateway 504 whatever it is still doing.
+/// is cut off with a gateway 504 whatever it is still doing. It bounds one GAP.
 /// https://supabase.com/docs/guides/functions/limits
 const _platformIdleTimeout = Duration(seconds: 150);
+
+/// Supabase's wall-clock limit for one invocation, from the same page. With
+/// heartbeats this — not the idle timeout — is the ceiling the whole pipeline
+/// has to fit inside.
+const _platformWallClock = Duration(seconds: 400);
 
 void main() {
   // The server budgets, mirrored: there is no way to import a Deno constant,
   // and the server half of this arithmetic is
   // `supabase/functions/_shared/timeouts.test.ts`.
-  const modelDeadline = Duration(seconds: 60); // http.ts DEFAULT_DEADLINE_MS
+  const heartbeat = Duration(seconds: 10); // index.ts HEARTBEAT_INTERVAL_MS
+  const modelIdle = Duration(seconds: 20); // http.ts DEFAULT_IDLE_TIMEOUT_MS
   const intakeDeadline = Duration(seconds: 25); // jsonld.ts FETCH_TOTAL_TIMEOUT
+  const transcribeDeadline = Duration(seconds: 60); // claude.ts TRANSCRIBE_…
+  const sanitiseDeadline = Duration(seconds: 120); // claude.ts SANITIZE_…
 
   test('the SILENCE rung sits above the widest gap the stream can have, so a '
       'slow model call is never mistaken for a dead connection', () {
-    // Every stage boundary sends an event, so the longest the stream can go
-    // quiet is one model call (or intake, which is shorter).
-    expect(edgeSilenceTimeout, greaterThan(modelDeadline));
+    // A model call that is PRODUCING is no longer one of the gaps: it
+    // heartbeats while it runs, so the worst it can be quiet for is one
+    // interval (too soon to beat) plus one idle window.
+    expect(edgeSilenceTimeout, greaterThan(heartbeat + modelIdle));
+    // Intake has nothing to say until the page is in hand.
     expect(edgeSilenceTimeout, greaterThan(intakeDeadline));
+    // And the honest worst case, which heartbeats cannot cover: a model call
+    // that never produces has nothing to beat ABOUT, so three stalled attempts
+    // and the ~4s of backoff between them are one gap. The server half of this
+    // is `timeouts.test.ts`; both have to hold or the app gives up on a server
+    // that is still trying.
+    const stalled = Duration(seconds: 20 * 3 + 4);
+    expect(edgeSilenceTimeout, greaterThan(stalled));
   });
 
   test('the SILENCE rung sits below the platform cut-off, so the app is what '
@@ -166,9 +183,15 @@ void main() {
 
   test('the TOTAL rung sits above the pipeline worst case, so a photo import '
       'is never abandoned while the server is still working', () {
-    // Photos are two model calls back to back, plus matching and cold start.
-    final photoWorstCase = modelDeadline * 2 + const Duration(seconds: 15);
+    // Photos are two model calls back to back, plus matching and cold start —
+    // and the pair now costs MORE than the platform's idle timeout, which is
+    // exactly what the heartbeats bought. The rung that has to hold it is this
+    // one and the platform's wall clock, not the idle cut-off.
+    final photoWorstCase =
+        transcribeDeadline + sanitiseDeadline + const Duration(seconds: 15);
+    expect(photoWorstCase, greaterThan(_platformIdleTimeout));
     expect(edgeInvokeTimeout, greaterThan(photoWorstCase));
+    expect(photoWorstCase, lessThan(_platformWallClock));
     // And above silence, or the total rung could never be the one that fires.
     expect(edgeInvokeTimeout, greaterThan(edgeSilenceTimeout));
   });
@@ -210,6 +233,54 @@ void main() {
       ImportStage.matched,
     ]);
     expect(stages[2].elapsed, const Duration(milliseconds: 21000));
+  });
+
+  test('a HEARTBEAT is read and shown to nobody — and an event id this build '
+      'has never seen is ignored the same way', () async {
+    final progress = <ImportProgress>[];
+    final payload = await readImportStream(
+      _bytes([
+        _frame('plan', {
+          'stages': ['received', 'transcribed', 'sanitised', 'matched'],
+        }),
+        _frame('stage', {'stage': 'received', 'elapsed_ms': 40}),
+        _frame('heartbeat', {'elapsed_ms': 10400}),
+        _frame('stage', {'stage': 'transcribed', 'elapsed_ms': 12000}),
+        _frame('heartbeat', {'elapsed_ms': 22000}),
+        _frame('heartbeat', {'elapsed_ms': 32000}),
+        // An event id from a server newer than this build: same treatment.
+        _frame('weather', {'outlook': 'fine'}),
+        _frame('stage', {'stage': 'sanitised', 'elapsed_ms': 49000}),
+        _frame('stage', {'stage': 'matched', 'elapsed_ms': 49400}),
+        _frame('result', _samplerPayload),
+      ]),
+      onProgress: progress.add,
+    );
+    expect(payload.title, 'Dirty Rice');
+    // Exactly the four stages and the plan — the heartbeats added no rows.
+    expect(progress.whereType<ImportStageDone>(), hasLength(4));
+    expect(progress, hasLength(5));
+  });
+
+  test('HEARTBEATS feed the silence rung, so a model call that outruns it is '
+      'not mistaken for a dead connection', () async {
+    // The rung the heartbeats buy, driven at a short budget: the run lasts far
+    // longer than the silence deadline and never trips it, because the server
+    // keeps saying it is working. The 90s itself is arithmetic, checked above.
+    const gap = Duration(milliseconds: 120);
+    final frames = StreamController<List<int>>();
+    final read = readImportStream(frames.stream, silence: gap);
+
+    frames.add(
+      utf8.encode(_frame('stage', {'stage': 'received', 'elapsed_ms': 1})),
+    );
+    for (var i = 0; i < 6; i++) {
+      await Future<void>.delayed(gap ~/ 2);
+      frames.add(utf8.encode(_frame('heartbeat', {'elapsed_ms': i * 60})));
+    }
+    frames.add(utf8.encode(_frame('result', _samplerPayload)));
+    expect((await read).title, 'Dirty Rice');
+    await frames.close();
   });
 
   test('a failure past the first byte is an ERROR EVENT carrying the same '

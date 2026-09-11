@@ -7,6 +7,7 @@
 
 import { assert, assertEquals } from "@std/assert";
 import { CLAUDE_HAIKU_MODEL, ClaudeHaikuAdapter } from "./claude.ts";
+import { anthropicText } from "./stream_test_helper.ts";
 import type { ProviderCall, RawBlob, UnitHints } from "../types.ts";
 
 const HINTS: UnitHints = {
@@ -23,19 +24,12 @@ const BLOB: RawBlob = {
   text: "dirty rice\n2 cups long-grain white rice",
 };
 
-/** The narrowest response `decodeClaudeSanitize` accepts. */
-const RESPONSE = {
-  content: [{
-    type: "text",
-    text: JSON.stringify({
-      title: "Dirty Rice",
-      groups: [{ name: null, line_items: [] }],
-      steps: [],
-    }),
-  }],
-  stop_reason: "end_turn",
-  usage: { input_tokens: 10, output_tokens: 20 },
-};
+/** The narrowest text `decodeClaudeSanitize` accepts, as the model would say it. */
+const ANSWER = JSON.stringify({
+  title: "Dirty Rice",
+  groups: [{ name: null, line_items: [] }],
+  steps: [],
+});
 
 /** Runs one sanitize against a stubbed provider; returns what was posted. */
 async function capture(
@@ -45,12 +39,7 @@ async function capture(
   let body: Record<string, unknown> = {};
   globalThis.fetch = ((_url: string | URL | Request, init?: RequestInit) => {
     body = JSON.parse(String(init?.body)) as Record<string, unknown>;
-    return Promise.resolve(
-      new Response(JSON.stringify(RESPONSE), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }),
-    );
+    return Promise.resolve(anthropicText(ANSWER));
   }) as typeof fetch;
   const calls: ProviderCall[] = [];
   adapter.onCall = (c) => calls.push(c);
@@ -71,6 +60,16 @@ Deno.test("the id on the wire is the pinned constant, and it carries no date suf
   // and one the provider does not serve for this tier.
   assert(!/-\d{8}$/.test(CLAUDE_HAIKU_MODEL));
   assert(!CLAUDE_HAIKU_MODEL.endsWith("-latest"));
+});
+
+Deno.test("production asks for a STREAM — the budgets assume one", async () => {
+  // Not a preference: the per-op deadlines (120s for sanitize) are only safe
+  // because an idle timer is watching the wire. A request that forgot
+  // `stream: true` would sit silent for the whole of one, and the platform
+  // would cut it off with the answer already generated and billed.
+  const adapter = new ClaudeHaikuAdapter({ apiKey: "test-key" });
+  const { body } = await capture(adapter);
+  assertEquals(body.stream, true);
 });
 
 Deno.test("the run record reports the id that was sent — one source of truth", async () => {

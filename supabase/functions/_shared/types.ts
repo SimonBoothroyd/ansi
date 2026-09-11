@@ -183,9 +183,21 @@ export interface ExtractAdapter {
    * adapters swallow its errors.
    */
   onCall?: ProviderCallSink;
+  /**
+   * OPTIONAL observer, off by default: told whenever the model produced more
+   * output during a call. Payload-free ON PURPOSE — the point is the TICK, not
+   * the text. The orchestrator attaches one so the function can emit a
+   * `heartbeat` frame while a long call runs (import spec §4.7); a model call
+   * that does not stream simply never calls it, and the caller sees a gap, as
+   * it always did. An observer that throws must never fail an import.
+   */
+  onProgress?: ProgressSink;
   transcribe?(images: Uint8Array[]): Promise<RawBlob>; // vision tier (LLM)
   sanitize(blob: RawBlob, hints: UnitHints): Promise<ExtractionResult>; // ①
 }
+
+/** Told that the model produced more output. See `ExtractAdapter.onProgress`. */
+export type ProgressSink = () => void;
 
 // --- The match cascade output (§6) -------------------------------------------
 // No silent auto-stub: band `none` carries empty candidates; the user resolves it

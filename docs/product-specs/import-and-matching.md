@@ -353,6 +353,7 @@ got to rather than guessing from a clock:
 |---|---|---|
 | `plan` | `{stages}` | first, before any work — the ids this import will walk |
 | `stage` | `{stage, elapsed_ms}` | as each one completes; `elapsed_ms` is the server's clock from the moment the request arrived, so `received` covers the upload |
+| `heartbeat` | `{elapsed_ms}` | at most every 10 s *during* a model call, and only because the model produced output since the last frame |
 | `result` | the `ReconciliationPayload` | last, on success |
 | `error` | `{error}` | last, instead, on failure |
 
@@ -360,7 +361,15 @@ The stage ids are the contract — `received`, then `fetched` (link) or
 `transcribed` (photos), then `sanitised`, then `matched`. The **wording is the
 app's** (`app/lib/features/import/domain/import_stage.dart`), because copy
 belongs where the screen is, and a stage id a build does not recognise is
-ignored rather than drawn as a blank row.
+ignored rather than drawn as a blank row. An *event* id a build does not
+recognise is ignored the same way — which is the property that let `heartbeat`
+be added without shipping a client first, and the reason the reader restarts
+its silence clock on **every** frame, known or not.
+
+A heartbeat carries nothing to show, and it is deliberately not a clock tick:
+it is sent because the model emitted text, so it means "still working", not
+"still connected". That keeps silence meaning what it always meant — something
+is wrong — rather than "the model is being slow".
 
 One consequence is load-bearing: **the HTTP status is committed before the work
 runs**. A failure after the first byte therefore arrives as an `error` event
@@ -369,30 +378,68 @@ Everything knowable *before* the pipeline starts — the method, a malformed bod
 an unusable request — is still a plain JSON status, because nothing has been
 promised yet.
 
-**The timeout ladder.** The stream moves what each rung measures. The platform's
-idle timeout now bounds the longest **silence** inside the call rather than the
-call itself, and the client holds two deadlines because there are two different
-ways for this to go wrong and only one of them is a duration. The numbers are
-written out in full where the client's live
-(`app/lib/features/import/data/remote_import_repository.dart`):
+**The model calls stream.** Both of them ask the provider for `stream: true`
+and reassemble the deltas into the same response object a non-streaming call
+returns, so nothing downstream — the decoders, the usage parsing, the saved
+responses in `evals/runs/` — can tell the difference. It is not about showing
+text as it arrives; nobody reads a JSON payload being typed. It buys three
+things a buffered call cannot have: a **silence** timer instead of a wall clock
+(20 s with nothing on the wire ends an attempt; a slow-but-flowing answer is
+left alone), **no retry once generation has started** (the aborted attempt was
+fully generated and billed upstream, so a second copy is pure waste), and **no
+retry started into a budget too small to finish in**. Those three are what a
+real import hit: a 45 s per-attempt cap aborted a sanitise that was working,
+retried into the 13 s left, and aborted again — two paid answers, a 504 on the
+phone, and nothing saved.
+
+**The timeout ladder.** The stream and its heartbeats move what each rung
+measures. The platform's idle timeout bounds the longest **silence** inside the
+call rather than the call itself — and since a model call now heartbeats, a
+model budget is not a silence at all, which is what lets it be sized by what
+the model needs instead of by what the platform tolerates. The client holds two
+deadlines because there are two different ways for this to go wrong and only
+one of them is a duration. The numbers are written out in full where the
+client's live (`app/lib/features/import/data/remote_import_repository.dart`):
 
 | Rung | Budget | Where |
 |---|---|---|
 | client, longest silence | 90 s | `edgeSilenceTimeout` — the gap between events, restarted by every one of them |
 | platform idle timeout | 150 s | Supabase's own cut-off for a response that has sent **nothing** |
-| client, total | 180 s | `edgeInvokeTimeout` |
+| client, total | 240 s | `edgeInvokeTimeout` |
+| platform wall clock | 400 s | Supabase's ceiling on one whole invocation |
+| heartbeat interval | 10 s | `HEARTBEAT_INTERVAL_MS` (`import-recipe/index.ts`) |
 | intake, whole (all redirect hops) | 25 s | `FETCH_TOTAL_TIMEOUT_MS` (`_shared/jsonld.ts`) |
-| one model call, all retries | 60 s | `DEFAULT_DEADLINE_MS` (`_shared/adapters/http.ts`) |
-| one model attempt | 45 s | `DEFAULT_ATTEMPT_TIMEOUT_MS` |
+| one sanitise call, all retries | 120 s | `SANITIZE_DEADLINE_MS` (`_shared/adapters/claude.ts`) |
+| one transcribe call, all retries | 60 s | `TRANSCRIBE_DEADLINE_MS` |
+| silence inside one model attempt | 20 s | `DEFAULT_IDLE_TIMEOUT_MS` (`_shared/adapters/http.ts`) |
+| smallest budget worth a retry | 30 s | `DEFAULT_MIN_ATTEMPT_MS` |
+
+The model budgets come from `evals/runs/`, not from the platform: the corpus's
+biggest structured answer is 4,962 output tokens and its slowest generation ran
+at 92 tok/s, so a bad day is ~54 s for sanitise — 120 s is a little over twice
+the longest answer ever measured, and the old 60 s was *under* it. No
+transcribe run exists in the corpus, so its 60 s is reasoned from what it
+emits: the page text, 280–1,190 tokens for a one- to two-page recipe, ~5k at
+the eight-page cap, ~54 s at the same floor.
 
 Bytes arriving prove the server is alive, so an import must never be abandoned
 merely for taking a while: the silence rung sits above the widest gap the
-pipeline can produce (one model call, 60 s) and below the platform's 150 s, so
-the app is what gives up, with a sentence, rather than a gateway cutting in. The
-total rung still exists because a stream that dribbles forever would never trip
-the silence one, and it stays above the pipeline's worst case (~90 s from a
-link, ~125 s from photos). The arithmetic is a test on both sides
-(`supabase/functions/_shared/timeouts.test.ts` and
+pipeline can now produce and below the platform's 150 s, so the app is what
+gives up, with a sentence, rather than a gateway cutting in. That widest gap is
+*not* the heartbeat interval, and saying so would be the flattering version.
+Three things can be quiet and the worst of them wins: intake (25 s — the one
+stage with nothing to report until it is done); a model call that **is**
+producing (a delta landing just under one interval after the last frame, then
+the idle timer ending the attempt — 10 + 20 s); and a model call that **never**
+produces, which has nothing to heartbeat about and so spends every one of its
+three idle windows, plus the backoff between them, as a single gap — ~64 s.
+That last one is the bound, and it is what would break first if the idle timer
+were raised. The total rung still exists
+because a stream that dribbles forever would never trip the silence one, and it
+stays above the pipeline's worst case (~160 s from a link, ~195 s from photos)
+— which is itself now *larger* than the idle timeout, and fits only because the
+heartbeats keep the connection warm through it. The arithmetic is a test on
+both sides (`supabase/functions/_shared/timeouts.test.ts` and
 `app/test/features/import/edge_import_failures_test.dart`), because the numbers
 live in files nobody edits together and the failure is silent.
 

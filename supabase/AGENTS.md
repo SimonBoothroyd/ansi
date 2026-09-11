@@ -39,6 +39,19 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
 - **The extraction LLM never sees the vocabulary and never matches** — it only
   emits raw structured lines. Matching is deterministic and testable (see
   `evals/`). Design: `docs/product-specs/import-and-matching.md`.
+- **The model calls STREAM, and the function says so out loud.** `streamJson`
+  (`functions/_shared/adapters/http.ts`) is what production extraction goes
+  through: `stream: true`, an idle timer instead of a per-attempt wall clock, no
+  retry once a delta has arrived, and no RETRY started into a budget too small
+  to finish in. While one runs, `import-recipe` emits a `heartbeat` SSE frame,
+  so the longest silence the app can see is the heartbeat interval rather than a
+  whole model deadline. That is the ONLY reason the model budgets
+  (`SANITIZE_DEADLINE_MS`, `TRANSCRIBE_DEADLINE_MS` in `adapters/claude.ts`) may
+  exceed the platform's 150 s idle cut-off — reintroduce a buffered call, or
+  drop the heartbeats, and they have to shrink back with it. Both halves of the
+  ladder are arithmetic tests (`_shared/timeouts.test.ts`,
+  `app/test/features/import/edge_import_failures_test.dart`), and the budgets
+  are sized from `evals/runs/`, never from the platform's number.
 - Migrations are immutable once merged; make a new migration to change schema.
 
 ## Driving import locally without a key

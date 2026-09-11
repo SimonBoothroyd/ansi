@@ -84,12 +84,18 @@ function cannedExtraction(): ExtractionResult {
 // received (to assert vocab-blindness downstream if needed). `transcribe`
 // present only when `withVision`.
 function fakeAdapter(
-  opts: { withVision?: boolean; seen?: { blob?: RawBlob } } = {},
+  opts: {
+    withVision?: boolean;
+    seen?: { blob?: RawBlob };
+    /** Run inside `sanitize`, so a test can model a model that is producing. */
+    whileSanitizing?: (self: ExtractAdapter) => void;
+  } = {},
 ): ExtractAdapter {
   const adapter: ExtractAdapter = {
     name: "fake",
     sanitize(blob: RawBlob): Promise<ExtractionResult> {
       if (opts.seen) opts.seen.blob = blob;
+      opts.whileSanitizing?.(adapter);
       return Promise.resolve(cannedExtraction());
     },
   };
@@ -479,6 +485,84 @@ Deno.test("makeHandler — the photo door names the transcribe stage, and the cl
       `elapsed went backwards: ${elapsed.join(",")}`,
     );
   }
+});
+
+/**
+ * Freezes `Date.now` so a test can spend ten seconds of pipeline time without
+ * spending any. The heartbeat interval is a real number of seconds and the
+ * throttle it drives is the thing under test — a fake clock is the only way to
+ * exercise the shipped interval rather than a test-only one.
+ */
+function fakeClock(start = 1_700_000_000_000) {
+  const real = Date.now;
+  let now = start;
+  Date.now = () => now;
+  return {
+    advance: (ms: number) => {
+      now += ms;
+    },
+    restore: () => {
+      Date.now = real;
+    },
+  };
+}
+
+Deno.test("makeHandler — a long model call HEARTBEATS, so the stream is never silent", async () => {
+  // Without these the gap between `transcribed` and `sanitised` is one whole
+  // model budget of silence, which is what used to force those budgets to fit
+  // inside the platform's idle cut-off. Five deltas six seconds apart ⇒ two
+  // frames: they report the model producing, throttled, not a clock ticking.
+  const clock = fakeClock();
+  try {
+    const adapter = fakeAdapter({
+      withVision: true,
+      whileSanitizing: (self) => {
+        for (let i = 0; i < 5; i++) {
+          clock.advance(6_000);
+          self.onProgress?.();
+        }
+      },
+    });
+    const res = await makeHandler(deps({ adapter }))(
+      new Request("https://fn.test", {
+        method: "POST",
+        body: JSON.stringify({ images: [btoa("x")] }),
+      }),
+    );
+    const events = await collectSse(res);
+    assertEquals(events[0].event, "plan");
+    assertEquals(stageIds(events), PHOTO_STAGES);
+    assertEquals(last(events).event, "result");
+
+    const order = events.map((e) => e.event);
+    const beats = events.filter((e) => e.event === "heartbeat");
+    assertEquals(beats.length, 2, order.join(","));
+    // They land INSIDE the stage they are reporting on — after the stage that
+    // preceded the model call, before the one that ends it.
+    const firstBeat = order.indexOf("heartbeat");
+    assert(firstBeat > order.indexOf("stage"));
+    assert(order.lastIndexOf("heartbeat") < order.lastIndexOf("stage"));
+    // One clock: a heartbeat's elapsed is the same elapsed a stage reports.
+    const elapsed = (e: SseEvent) =>
+      (e.data as { elapsed_ms: number }).elapsed_ms;
+    assert(elapsed(beats[0]) < elapsed(beats[1]));
+    assert(
+      elapsed(beats[1]) <=
+        elapsed(last(events.filter((e) => e.event === "stage"))),
+    );
+  } finally {
+    clock.restore();
+  }
+});
+
+Deno.test("importRecipe — the heartbeat observer is unhooked when the import ends", async () => {
+  // The eval runner hangs its own observers on a shared adapter; an import must
+  // hand it back the one it had.
+  const adapter = fakeAdapter();
+  const mine = () => {};
+  adapter.onProgress = mine;
+  await importRecipe({ url: "https://example.test/x" }, deps({ adapter }));
+  assertEquals(adapter.onProgress, mine);
 });
 
 Deno.test("makeHandler — a failure ends the stream with an error and NO result", async () => {

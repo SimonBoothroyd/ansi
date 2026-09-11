@@ -83,14 +83,16 @@ export const PROVIDER_NAMES: ProviderName[] = [
 ];
 
 /**
- * HTTP budgets for the adaptive-thinking benchmark lanes. `postJson`'s 45s/60s
- * defaults serve the edge function's spinner and abort a Sonnet/Opus call that
- * is legitimately still thinking (observed: every claude-sonnet transcribe in
- * the first ref-recall run died "signal has been aborted"). Benchmarks have no
- * user waiting, so give each attempt four minutes and the whole call ten.
- * Production stays on the defaults — Haiku answers well inside them.
+ * HTTP budgets for the adaptive-thinking benchmark lanes. The production
+ * defaults serve a user on a spinner and abort a Sonnet/Opus call that is
+ * legitimately still thinking (observed: every claude-sonnet transcribe in the
+ * first ref-recall run died "signal has been aborted"). Thinking streams as
+ * empty blocks with `display: "omitted"`, so the SILENCE those lanes can
+ * produce is real and long — hence four minutes of idle, and ten for the whole
+ * call. Benchmarks have no user waiting. Production stays on the defaults —
+ * Haiku answers well inside them.
  */
-const BENCH_BUDGETS = { timeoutMs: 240_000, deadlineMs: 600_000 };
+const BENCH_BUDGETS = { idleTimeoutMs: 240_000, deadlineMs: 600_000 };
 
 /**
  * Builds a live provider adapter by name. Throws `MissingKeyError` when the

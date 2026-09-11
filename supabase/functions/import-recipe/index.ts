@@ -98,6 +98,22 @@ export function stagesFor(req: ImportRequest): ImportStageId[] {
 /** Told each stage's id and the milliseconds since the request reached us. */
 export type StageSink = (stage: ImportStageId, elapsedMs: number) => void;
 
+/** Told, mid-stage, that the model is still producing. Same clock as a stage. */
+export type BeatSink = (elapsedMs: number) => void;
+
+/**
+ * Longest the stream may go quiet WHILE A MODEL CALL IS STREAMING. The model
+ * calls are the long stages, and before this they were also silent ones: the
+ * gap between two stage events was a whole model deadline, which is what forced
+ * those deadlines to fit inside the platform's idle cut-off.
+ *
+ * A heartbeat is not a clock tick — it is only sent because the model produced
+ * output since the last frame we sent, so it means "still working", not "still
+ * connected". That keeps the client's silence rung honest: silence still means
+ * something is wrong, it just no longer means "the model is being slow".
+ */
+export const HEARTBEAT_INTERVAL_MS = 10_000;
+
 /**
  * Runs intake → ① → ⑥ and assembles the {@link ReconciliationPayload}. Pure
  * orchestration over the injected `deps`; deterministic given deterministic
@@ -106,28 +122,53 @@ export type StageSink = (stage: ImportStageId, elapsedMs: number) => void;
  * `onStage` is told as each stage completes, with the elapsed time measured
  * from `startedAt` — the caller's clock, so the numbers on the screen and the
  * numbers in the log are the same numbers. It never changes what is produced.
+ *
+ * `onBeat` is told, at most every {@link HEARTBEAT_INTERVAL_MS}, that the model
+ * has produced output since the last frame went out. The throttle lives here
+ * rather than at the HTTP edge because the thing being throttled is "how long
+ * since we last said anything", and a stage event counts as saying something.
  */
 export async function importRecipe(
   req: ImportRequest,
   deps: ImportDeps,
   onStage: StageSink = () => {},
   startedAt: number = Date.now(),
+  onBeat: BeatSink = () => {},
 ): Promise<ReconciliationPayload> {
-  const done = (stage: ImportStageId) => onStage(stage, Date.now() - startedAt);
-  const blob = await intake(req, deps);
-  done(req.images && req.images.length > 0 ? "transcribed" : "fetched");
-  const hints = deriveUnitHints();
-  const extraction = await deps.adapter.sanitize(blob, hints);
-  done("sanitised");
-  const flat = flattenLines(extraction.groups);
-  const matched = await deps.matchLines(flat);
-  if (matched.length !== flat.length) {
-    throw new ImportError(
-      `matcher returned ${matched.length} lines for ${flat.length} inputs`,
-    );
+  // NOW, not `startedAt`: the caller has just sent `received`, and on the photo
+  // door `startedAt` is however long ago the upload began.
+  let lastFrameAt = Date.now();
+  const done = (stage: ImportStageId) => {
+    lastFrameAt = Date.now();
+    onStage(stage, lastFrameAt - startedAt);
+  };
+  // Saved and restored: the adapter is built per request in production, but the
+  // eval runner hangs its own observers on a shared one.
+  const previousProgress = deps.adapter.onProgress;
+  deps.adapter.onProgress = () => {
+    const now = Date.now();
+    if (now - lastFrameAt < HEARTBEAT_INTERVAL_MS) return;
+    lastFrameAt = now;
+    onBeat(now - startedAt);
+  };
+  try {
+    const blob = await intake(req, deps);
+    done(req.images && req.images.length > 0 ? "transcribed" : "fetched");
+    const hints = deriveUnitHints();
+    const extraction = await deps.adapter.sanitize(blob, hints);
+    done("sanitised");
+    const flat = flattenLines(extraction.groups);
+    const matched = await deps.matchLines(flat);
+    if (matched.length !== flat.length) {
+      throw new ImportError(
+        `matcher returned ${matched.length} lines for ${flat.length} inputs`,
+      );
+    }
+    done("matched");
+    return assemble(extraction, matched);
+  } finally {
+    deps.adapter.onProgress = previousProgress;
   }
-  done("matched");
-  return assemble(extraction, matched);
 }
 
 /** Intake: URL → RawBlob via jsonld.ts, or images → RawBlob via the vision tier. */
@@ -345,8 +386,11 @@ export function failureFor(e: unknown): { status: number; error: string } {
 //     the pipeline starts — the method, a malformed body, an unusable request —
 //     is still a plain JSON status, because nothing has been promised yet.
 //   * the platform's idle timeout bounds only the longest SILENCE inside the
-//     call — one model deadline — rather than the call itself. The client's
-//     ladder rests on that; it is written out in
+//     call, rather than the call itself — and with `heartbeat` frames the
+//     longest silence inside a model call is the heartbeat interval, not the
+//     model's budget. That is what unpins the model budgets from the platform's
+//     cut-off: they are now sized by what the model actually needs. The
+//     client's ladder rests on it; it is written out in
 //     `remote_import_repository.dart`.
 
 const SSE_HEADERS: Record<string, string> = {
@@ -365,10 +409,15 @@ function sseFrame(event: string, data: unknown): string {
 /**
  * Runs the pipeline and narrates it as Server-Sent Events:
  *
- *   `plan`   `{stages}`                  — once, first: what this import will walk
- *   `stage`  `{stage, elapsed_ms}`       — one per stage as it completes
+ *   `plan`      `{stages}`               — once, first: what this import will walk
+ *   `stage`     `{stage, elapsed_ms}`    — one per stage as it completes
+ *   `heartbeat` `{elapsed_ms}`           — mid-stage: the model is producing
  *   `result` the `ReconciliationPayload` — last, on success
- *   `error`  `{error}`                   — last, instead, on failure
+ *   `error`     `{error}`                — last, instead, on failure
+ *
+ * `heartbeat` is ADDITIVE and carries nothing to show. A client that predates
+ * it ignores an event it does not know, which is the property that let it be
+ * added at all — see the reader in `remote_import_repository.dart`.
  */
 function streamImport(
   request: ImportRequest,
@@ -393,6 +442,7 @@ function streamImport(
           deps,
           (stage, elapsed_ms) => send("stage", { stage, elapsed_ms }),
           startedAt,
+          (elapsed_ms) => send("heartbeat", { elapsed_ms }),
         );
         send("result", payload);
       } catch (e) {
