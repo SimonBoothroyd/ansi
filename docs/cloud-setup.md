@@ -521,6 +521,32 @@ Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
 
+### 2026-09-11 (evening) — round eight on cloud (v0.13.1): the streamed function for real, and the 315-row template
+
+- `deploy-supabase` run `34658424680` from `main@7e94d5a`, `reseed_template`
+  **ticked**: link ✓ · `db push` (nothing new — v0.13.1 carries no migration)
+  ✓ · `functions deploy import-recipe` ✓ — the model calls now stream and the
+  function heartbeats every ten seconds, so a slow reading no longer trips
+  the client's silence budget (the round-seven symptom: a 12 s photo then a
+  60 s text timeout) · sync streams ✓ · the seed ✓, generated from the
+  owner's household after the units pass and his last additions.
+- Read-only readback after the reseed: the template holds **315** live rows,
+  **315** `complete`, **302** measures and **152** aliases — `counts.json`
+  to the row; **19** template rows retired over the seed's life. The owner's
+  household reads the same 315 / 302, plus one alias the generator drops on
+  purpose: `red wine` on the row named Red Wine, learned by an import before
+  the namespace rule closed that door (v0.13.1 makes such a learning a
+  no-op). Harmless; it goes when he next tidies the row.
+- `cloud_verify.sh`: **9 ok · 0 warn · 0 fail**, first pass.
+- **No §2b rollout:** still one household, the snapshot's own source.
+- Local-stack note, since it cost an hour: the `ansi-powersync` container
+  bind-mounts `docker/powersync.yaml` from whichever checkout ran `make
+  db-up` last. Ours had followed a dead landing checkout since 2026-09-05, so
+  `week_recipe_line_override` never replicated locally — the app's own copy
+  was fine, a second client's never arrived. `docker compose … up -d
+  --force-recreate powersync` from the main checkout is the fix; the tell is
+  a "Write checkpoint" in the service log with no "Flushed" after it.
+
 ### 2026-09-11 (later) — the units pass on the owner's household, and the vocabulary complete
 
 - **Owner-ruled data pass, run from here on his say-so:** every row's
