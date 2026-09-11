@@ -470,8 +470,8 @@ void main() {
     const large = Measure(id: 'm1', label: 'potato, large', amount: 299);
     const medium = Measure(id: 'm2', label: 'potato, medium', amount: 213.5);
 
-    test('slots measure options after the default set, before imprecise, in '
-        'order', () {
+    test('fronts the measure options, in order, ahead of every catalog '
+        'unit', () {
       final potato = _ing(pieces, piece: 213.5);
       final choices = allowedUnitChoicesFor(potato, const [
         medium,
@@ -482,12 +482,12 @@ void main() {
         choices.whereType<UnitOption>().map((c) => c.unit),
         allowedUnitsFor(potato),
       );
-      // …and the measures sit between the count and the demoted basis
-      // base, in the given (sort_order) order.
+      // …and the row's OWN words lead, in the given (sort_order) order: a
+      // measure names this ingredient, where `g` is offered on every row.
       expect(choices.map((c) => c.label), [
-        'piece',
         'potato, medium (213 1/2 g)',
         'potato, large (299 g)',
+        'piece',
         'g',
         'kg',
         'oz',
@@ -495,9 +495,9 @@ void main() {
       ]);
     });
 
-    test('demoted other-family units trail the measures (ADR-0008)', () {
-      // A density-unlocked family reads "after measures": default set →
-      // measures → demoted units → imprecise.
+    test('demoted other-family units stay last but one (ADR-0008)', () {
+      // The whole order, in one read: measures → the default unit and the
+      // rest of its family → the demoted family → imprecise.
       final choices = allowedUnitChoicesFor(_ing(g, density: 0.6), const [
         large,
       ]).choices;
@@ -509,8 +509,8 @@ void main() {
           },
         ),
         [
-          'g', 'kg', 'oz', 'lb', // the default's own family leads
-          'potato, large', // measures
+          'potato, large', // the row's own word leads
+          'g', 'kg', 'oz', 'lb', // then the default's own family
           // the density-unlocked family, whole and demoted
           'tsp', 'tbsp', 'fl_oz', 'cup', 'ml', 'l', 'pt', 'qt',
         ],

@@ -27,7 +27,10 @@ import 'ingredient.dart';
 
 /// Kitchen display order within each family — the order a cook reaches for
 /// them, not the order the catalog declares them. The default unit is always
-/// fronted; the rest of its family follows in this order.
+/// fronted within the catalog units; the rest of its family follows in this
+/// order. The ingredient's own measures sit in front of all of it
+/// ([allowedUnitChoicesFor]) — they are words for this row alone, where a
+/// catalog unit is offered on every row.
 ///
 /// Volume runs spoons → the sizes a bottle or a recipe prints (`fl oz`, `cup`)
 /// → the metric jug → the US pair, which is last because it is what an
@@ -362,8 +365,10 @@ List<Unit> _orderUnits(Iterable<Unit> unitsIn, Ingredient ingredient) {
 }
 
 /// The units a unit picker should offer for [ingredient], in chip order
-/// (default first → its family in kitchen order → the demoted other family,
-/// which [allowedUnitChoicesFor] places after the measures → imprecise last).
+/// (default first → its family in kitchen order → the demoted other family →
+/// imprecise last). This is the CATALOG half of the order:
+/// [allowedUnitChoicesFor] puts the ingredient's own measures in front of the
+/// whole of it.
 ///
 /// Reads the **explicit per-ingredient list** ([Ingredient.allowedUnits]) when
 /// the row carries one — explicit beats derived, and the flesh-out form owns
@@ -546,11 +551,19 @@ bool isVolumeUnitLabel(String label) => volumeUnitFromLabel(label) != null;
 typedef UnitChoiceOffer = ({List<UnitChoice> choices, UnitChoice? offFilter});
 
 /// [allowedUnitsFor] plus the ingredient's live [measures], as picker choices
-/// in chip order: the default unit's own set leads, then one
-/// [MeasureOption] per measure in the given order (callers pass them
-/// `sort_order`-sorted), then the demoted other-family units ("g of milk" —
+/// in chip order: **the measures lead**, one [MeasureOption] each in the
+/// given order (callers pass them `sort_order`-sorted, so the household's
+/// first measure is the first chip), then the default unit and the rest of
+/// its family, then the demoted other mass/volume family ("g of milk" —
 /// reachable, never fronted), then imprecise last. Measures whose label
 /// merely names a volume unit are excluded — see [isVolumeUnitLabel].
+///
+/// **Measures first, because a measure is what this ingredient is.** `clove`
+/// and `can (400 g)` are words for *this* row and exist nowhere else; `g` and
+/// `cup` are the catalog, offered on everything, and a cook reaching for a
+/// clove of garlic should not read past four units the row shares with every
+/// other row to find it. The default unit is still the chip the sheet opens
+/// on — being first in the row and being selected are different things.
 ///
 /// A measure needs no density gate — its stored weight IS the bridge — and it
 /// applies to any ingredient that has one, count-default included (that's the
@@ -577,10 +590,10 @@ UnitChoiceOffer allowedUnitChoicesFor(
 
   final units = allowedUnitsFor(ingredient);
   final choices = <UnitChoice>[
-    for (final u in units)
-      if (!demoted(u) && u.family != UnitFamily.imprecise) UnitOption(u),
     for (final m in measures)
       if (!isVolumeUnitLabel(m.label)) MeasureOption(m),
+    for (final u in units)
+      if (!demoted(u) && u.family != UnitFamily.imprecise) UnitOption(u),
     for (final u in units)
       if (demoted(u)) UnitOption(u),
     for (final u in units)

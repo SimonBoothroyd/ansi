@@ -547,16 +547,16 @@ void main() {
       expect(rankedUnitChips(chips, parsedUnit: ''), chips);
     });
 
-    test('a measure keeps its offer position — behind the default family, '
-        'ahead of the imprecise tail', () {
-      // Under the old ranking a measure was boosted to rank 2, ahead of the
-      // generic g/ml at 3; deferring drops the boost, and the offer's own
-      // placement (after the default family) is what stands.
+    test('a measure keeps its offer position — in front, ahead of the '
+        'catalog units and the imprecise tail', () {
+      // The ranking used to boost a measure to rank 2 by a rule of its own;
+      // deferring drops the boost, and the offer's own placement — measures
+      // first, because a measure names THIS row — is what stands.
       final chips = acceptableUnitChips(_garlic, const [_clove]);
       final ranked = rankedUnitChips(chips, parsedUnit: null);
       expect(ranked, chips);
       final tokens = ranked.map((c) => c.token).toList();
-      expect(tokens.indexOf('g'), lessThan(tokens.indexOf('clove')));
+      expect(tokens.indexOf('clove'), lessThan(tokens.indexOf('g')));
       expect(tokens.indexOf('clove'), lessThan(tokens.indexOf('to_taste')));
     });
   });

@@ -17,8 +17,8 @@ import 'package:ansi/features/ingredients/presentation/density_entry.dart'
     show AnsiModeChip;
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart';
 import 'package:ansi/features/ingredients/presentation/measures_editor.dart';
-import 'package:ansi/shared/reorder_grip.dart';
 import 'package:ansi/features/ingredients/presentation/piece_weight_entry.dart';
+import 'package:ansi/shared/reorder_grip.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';

@@ -578,7 +578,7 @@ void main() {
       expect(measures.map((m) => m.sortOrder), [0, 1, 2]);
     });
 
-    test('a reorder never reaches another ingredient\'s rows', () async {
+    test("a reorder never reaches another ingredient's rows", () async {
       await _seedMeasure(
         db,
         id: 'm-foreign',

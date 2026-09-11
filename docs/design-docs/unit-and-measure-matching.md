@@ -371,7 +371,8 @@ honest unit to round to).
 
 The picker itself is honest by construction: `allowedUnitChoicesFor` offers
 only the ingredient's admitted units + its live measures, in chip order
-(default fronted → measures → demoted other-family → imprecise last), excluding
+(**measures first**, in their `sort_order` → the default unit and the rest of
+its family → demoted other-family → imprecise last), excluding
 volume-named measures. **The stored selection is always re-offered** even when
 it falls outside the current filter (`offFilter`, "not in filter"), so an
 existing line never renders an orphaned value.
