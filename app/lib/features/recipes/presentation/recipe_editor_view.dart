@@ -26,6 +26,7 @@ import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/format.dart';
 import '../../../shared/guarded_navigation.dart';
+import '../../../shared/reorder_grip.dart';
 import '../../../shared/write.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
@@ -208,7 +209,7 @@ class _EditorForm extends StatelessWidget {
             itemCount: rows.length,
             itemBuilder: (context, index) => rows[index],
             onReorderItem: notifier.moveLine,
-            proxyDecorator: liftedLineRow,
+            proxyDecorator: liftedRow,
           ),
         ),
         SliverPadding(
@@ -642,7 +643,7 @@ class _LineRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          LineDragGrip(index: dragIndex),
+          DragGrip(index: dragIndex),
           // The cell is named, because what it prints is the recipe page's
           // amount and a count line's amount is a bare number: "1" tells a
           // reader nothing about what it opens or what it measures.

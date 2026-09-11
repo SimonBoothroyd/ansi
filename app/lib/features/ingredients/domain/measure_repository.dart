@@ -74,6 +74,20 @@ abstract interface class MeasureRepository {
   /// that already say this measure follow the corrected weight.
   Future<void> setMeasureAmount(String measureId, double amount);
 
+  /// Re-stamps `sort_order` so the measures of one ingredient read in the
+  /// order [ids] gives, first to last.
+  ///
+  /// The order is not decoration. The first measure is the ingredient's
+  /// **typical** one: it fronts the picker's measure chips, and it is what the
+  /// shop's whole-unit hint rounds to for an item whose contributions name no
+  /// measure of their own ("674 g ≈ 3 × potato, large → buy 3"). So a
+  /// household that mostly buys large potatoes says so by dragging that row to
+  /// the top, rather than by a flag that would have to be explained.
+  ///
+  /// Ids not belonging to the ingredient, or naming no live row, are ignored:
+  /// the caller is a list that may have been re-read under it.
+  Future<void> reorderMeasures(String ingredientId, List<String> ids);
+
   /// Soft-deletes one measure (tombstone, spec §3). A line item referencing
   /// it degrades to its honest stored count — never an invented amount.
   Future<void> softDeleteMeasure(String measureId);

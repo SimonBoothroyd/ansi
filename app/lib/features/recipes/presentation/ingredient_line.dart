@@ -55,46 +55,6 @@ import 'recipe_chip.dart';
 /// layout, so they share the measurement rather than each holding an 84.
 const double kLineAmountWidth = 84;
 
-/// The explicit drag handle a reorderable line row wears.
-///
-/// A list of tappable rows that also moved on hold is how a scroll becomes an
-/// accidental move, so the gesture gets a glyph of its own and nothing else
-/// starts it. [index] is the row's position in the flat list it drags within.
-class LineDragGrip extends StatelessWidget {
-  const LineDragGrip({required this.index, super.key});
-
-  final int index;
-
-  @override
-  Widget build(BuildContext context) => ReorderableDragStartListener(
-    index: index,
-    child: Semantics(
-      label: 'Reorder',
-      child: const Padding(
-        padding: EdgeInsets.only(right: 6, top: 2),
-        child: Icon(
-          FLucideIcons.gripVertical,
-          size: 15,
-          color: AnsiColors.line,
-        ),
-      ),
-    ),
-  );
-}
-
-/// The row under the finger while it drags: the same row, lifted onto paper so
-/// it reads over the list it is crossing. Both line lists decorate with it, so
-/// a drag looks the same wherever it happens.
-Widget liftedLineRow(Widget child, int index, Animation<double> animation) =>
-    DecoratedBox(
-      decoration: BoxDecoration(
-        color: AnsiColors.paper,
-        border: Border.all(color: AnsiColors.line),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: child,
-    );
-
 class RecipeIngredientLine extends StatelessWidget {
   const RecipeIngredientLine({
     required this.uses,

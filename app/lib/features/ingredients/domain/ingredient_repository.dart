@@ -119,6 +119,7 @@ class PendingMeasure {
     required this.id,
     required this.label,
     required this.amount,
+    this.sortOrder,
   });
 
   final String id;
@@ -127,6 +128,12 @@ class PendingMeasure {
   /// In the ingredient's basis unit. Refused if not positive, exactly as
   /// `addMeasure` refuses it — the contract does not soften for being batched.
   final double amount;
+
+  /// Where the row lands in the ingredient's list. Null appends it, which is
+  /// what a measure typed into the add form wants; a form whose list has been
+  /// dragged states the position, so the first row stays the one the person
+  /// put first.
+  final int? sortOrder;
 }
 
 /// An alias the form intends to add, already carrying its id.

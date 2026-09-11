@@ -28,6 +28,7 @@ import '../../../core/units/measure.dart';
 import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/format.dart';
+import '../../../shared/reorder_grip.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 
@@ -71,6 +72,7 @@ class MeasuresEditor extends HookWidget {
     required this.onDelete,
     required this.onAdd,
     required this.onEdit,
+    required this.onReorder,
     required this.onAdded,
     required this.onVolumeLabel,
     this.addLabel = 'Save',
@@ -113,6 +115,13 @@ class MeasuresEditor extends HookWidget {
   /// reported by the host.
   final Future<AddMeasureOutcome> Function(Measure, String label, double amount)
   onEdit;
+
+  /// The list, in the order the drag left it. **The first measure is the
+  /// ingredient's typical one** — it fronts the picker's measure chips and it
+  /// is what the shop's whole-unit hint rounds an unattributed total to — so
+  /// the order is the household saying which one that is, rather than a flag
+  /// that would have to be explained.
+  final Future<void> Function(List<String> ids) onReorder;
 
   final ValueChanged<Measure> onAdded;
 
@@ -200,28 +209,52 @@ class MeasuresEditor extends HookWidget {
             ),
           )
         else
-          for (final m in listed)
-            if (editing.value == m.id)
-              _EditMeasureForm(
-                key: ValueKey('edit-measure-${m.id}'),
+          // The list is draggable because **the first row is the typical
+          // measure**: it fronts the chip row, and the shop rounds to it. The
+          // grip is the only thing that starts a move — the rows are tap
+          // targets, and a long-press anywhere would turn a scroll into an
+          // accidental reorder. It shrink-wraps and never scrolls itself: it
+          // is a short list inside a page that already scrolls.
+          ReorderableList(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: listed.length,
+            proxyDecorator: liftedRow,
+            onReorderItem: (oldIndex, newIndex) {
+              final ids = [for (final m in listed) m.id];
+              ids.insert(newIndex, ids.removeAt(oldIndex));
+              onReorder(ids);
+            },
+            itemBuilder: (context, index) {
+              final m = listed[index];
+              if (editing.value == m.id) {
+                return Padding(
+                  key: ValueKey('edit-measure-${m.id}'),
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: _EditMeasureForm(
+                    measure: m,
+                    amountHint: baseLabel,
+                    onEdit: (l, a) => onEdit(m, l, a),
+                    // The keyboard goes with the form: a focused field whose
+                    // row is about to leave the tree keeps a frame callback
+                    // pointed at a render object that no longer exists.
+                    onDone: () {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      editing.value = null;
+                    },
+                    onVolumeLabel: onVolumeLabel,
+                  ),
+                );
+              }
+              return MeasureRow(
+                key: ValueKey('measure-${m.id}'),
                 measure: m,
-                amountHint: baseLabel,
-                onEdit: (l, a) => onEdit(m, l, a),
-                // The keyboard goes with the form: a focused field whose row
-                // is about to leave the tree keeps a frame callback pointed
-                // at a render object that no longer exists.
-                onDone: () {
-                  FocusManager.instance.primaryFocus?.unfocus();
-                  editing.value = null;
-                },
-                onVolumeLabel: onVolumeLabel,
-              )
-            else
-              MeasureRow(
-                measure: m,
+                dragIndex: index,
                 onDelete: onDelete,
                 onTap: () => editing.value = m.id,
-              ),
+              );
+            },
+          ),
         const SizedBox(height: 12),
         _MeasureForm(
           icon: FLucideIcons.plus,
@@ -260,12 +293,17 @@ class MeasureRow extends StatelessWidget {
   const MeasureRow({
     required this.measure,
     required this.onDelete,
+    this.dragIndex,
     this.onTap,
     super.key,
   });
 
   final Measure measure;
   final Future<void> Function(Measure) onDelete;
+
+  /// The row's position in the reorderable list it drags within. Null where
+  /// the list does not reorder.
+  final int? dragIndex;
 
   /// Opens the row for editing. Null where the list is read-only.
   final VoidCallback? onTap;
@@ -282,6 +320,7 @@ class MeasureRow extends StatelessWidget {
         ),
         child: Row(
           children: [
+            if (dragIndex case final index?) DragGrip(index: index),
             SourceDot(kind: measure.sourceKind),
             const SizedBox(width: 8),
             Flexible(
@@ -331,7 +370,6 @@ class _EditMeasureForm extends HookWidget {
     required this.onEdit,
     required this.onDone,
     required this.onVolumeLabel,
-    super.key,
   });
 
   final Measure measure;
@@ -509,16 +547,21 @@ class _MeasureForm extends StatelessWidget {
 
 /// The humanized provenance word (frame-b review: words carry the meaning,
 /// never raw machine strings).
+///
+/// A curated seed number reads **estimate**, not "typical": the stored string
+/// is a provenance, and "typical" beside a list whose order is what says which
+/// measure is the usual one was read as a flag on the row rather than as where
+/// the number came from.
 String measureSourceWord(MeasureSourceKind kind) => switch (kind) {
   MeasureSourceKind.usdaPortion => 'USDA portion',
   MeasureSourceKind.borrowed => 'borrowed',
-  MeasureSourceKind.typical => 'typical',
+  MeasureSourceKind.typical => 'estimate',
   MeasureSourceKind.manual => 'yours',
   MeasureSourceKind.unknown => '—',
 };
 
 /// The subtle four-dot colour vocabulary (solid = USDA, ring = borrowed,
-/// amber = typical, ink = yours). Decorative beside the words — never
+/// amber = estimate, ink = yours). Decorative beside the words — never
 /// load-bearing on its own.
 class SourceDot extends StatelessWidget {
   const SourceDot({required this.kind, super.key});

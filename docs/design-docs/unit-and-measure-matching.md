@@ -60,7 +60,13 @@ Key columns (post-0012):
   fact (`ingredient.macros_basis`), joined in by every reader, so the two can
   never disagree (ADR-0008 §3).
 - `source` (migration 0010) — provenance: `usda_fdc:<id> (<portion>)`,
-  `… borrowed`, `seed:typical`, `manual`, or null.
+  `… borrowed`, `seed:typical`, `manual`, or null. Displayed as words, never
+  as the stored string: *USDA portion* · *borrowed* · **estimate** · *yours*.
+  `seed:typical` reads **estimate** because the word sits beside a list whose
+  *order* is what says which measure is the usual one, and "typical" there was
+  read as a flag on the row rather than as where the number came from.
+- `sort_order` — display order, and the one place "which measure is the
+  typical one" is stated. The household drags it.
 
 ### The basis is the pivot (ADR-0008)
 
@@ -358,6 +364,7 @@ honest unit to round to).
 | **Measure of a line** | same sheet | picks a `MeasureOption`; writes `measure_id`, `unit='piece'` |
 | **Amount / quantity** | same sheet | the quantity field (nullable — "to taste" is allowed) |
 | **Add / rename / re-weigh / delete a measure** | manage state of the sheet (`_MeasureManager`), **and the ingredients manager's flesh-out form**, which embeds that same editor (8.5/F2) | `addMeasure` (saved `manual`), `renameMeasure` / `setMeasureAmount` (a row is the tap target; the id is kept, so every line already pointing at it follows the correction), `softDeleteMeasure` |
+| **Which measure is the typical one** | the same editor — the list drags | `reorderMeasures` stamps `sort_order` by position. **The first row is the typical measure**: it fronts the picker's measure chips (`allowedUnitChoicesFor`, whose callers pass the `sort_order`-sorted list) and it is the measure `wholeUnitHintFor` rounds to for a total whose contributions name none of their own. No flag, no pointer — the order says it. |
 | **Density** | manage state (`DensityEntry`, `density_entry.dart`) — again shared verbatim by the flesh-out form | g/ml or "a spoon weighs N g"; unlocks the other family live |
 | **Piece weight** | the flesh-out form's `PieceWeightEntry`, beside `DensityEntry`, and the same editor in the sheet's manage state | "1 piece weighs N g" in the row's basis unit; unlocks `piece` live, and clearing it locks `piece` again (ADR-0015) |
 | **Which units are _admitted_** (`allowed_units`) | the **ingredients manager**'s flesh-out form, `/ingredients/:id` (step 8.5) — the form ADR-0008 §Consequences promised, deferred to step 8, and finally built one step later | explicit jsonb list on `ingredient`, materialized at creation, now **directly editable as chips** on that form; a density save still extends it on its own (`densityUnlockedUnits`), and deleting the density strips that half back (D4b) |

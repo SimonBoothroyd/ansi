@@ -156,13 +156,14 @@ String? pieceWeightFact(Ingredient ingredient) {
 }
 
 /// ` · borrowed from onion, medium` for a seeded weight; nothing for a typed
-/// one — "yours" is the default reading of a row you own.
+/// one — "yours" is the default reading of a row you own. A curated seed
+/// number reads **estimate**, the same word the measures list gives it.
 ///
 /// Shared with the piece-weight entry's own headline, so the number reads the
 /// same whether the page is being edited or read.
 String pieceWeightSourceSuffix(String? source) {
   if (source == null || source == 'manual') return '';
-  if (source == 'seed:typical') return ' · typical';
+  if (source == 'seed:typical') return ' · estimate';
   return ' · $source';
 }
 

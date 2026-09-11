@@ -17,6 +17,7 @@ import 'package:ansi/features/ingredients/presentation/density_entry.dart'
     show AnsiModeChip;
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart';
 import 'package:ansi/features/ingredients/presentation/measures_editor.dart';
+import 'package:ansi/shared/reorder_grip.dart';
 import 'package:ansi/features/ingredients/presentation/piece_weight_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -471,6 +472,55 @@ void main() {
       expect(asked.measuresAdded.single.label, 'half cheek');
       expect(asked.measuresAdded.single.amount, 90);
       expect(asked.measuresRemoved, {'m-usda'});
+    });
+
+    testWidgets('the list drags: the first measure is the typical one, and a '
+        'seeded number reads "estimate"', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final measures = FakeMeasureRepo(const [
+        Measure(id: 'm-small', label: 'mango, small', amount: 140),
+        Measure(
+          id: 'm-medium',
+          label: 'mango, medium',
+          amount: 207,
+          source: 'seed:typical',
+        ),
+      ]);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [mango]),
+          at: editRoute('mango'),
+          measures: measures,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // "typical" was read as a flag on the row; the word for where a curated
+      // number came from is "estimate".
+      expect(find.text('estimate'), findsOneWidget);
+      expect(find.text('typical'), findsNothing);
+
+      final grips = find.descendant(
+        of: find.byType(MeasuresEditor),
+        matching: find.byType(DragGrip),
+      );
+      expect(grips, findsNWidgets(2));
+
+      final from = tester.getCenter(grips.at(1));
+      final to = tester.getCenter(grips.first);
+      final drag = await tester.startGesture(from);
+      await tester.pump(const Duration(milliseconds: 200));
+      for (var y = from.dy; y > to.dy - 40; y -= 8) {
+        await drag.moveTo(Offset(from.dx, y));
+        await tester.pump();
+      }
+      await drag.up();
+      await tester.pumpAndSettle();
+
+      // The order IS the fact: the first row fronts the chip row and is what
+      // the shop rounds an unattributed total to.
+      expect(measures.rows.map((m) => m.id), ['m-medium', 'm-small']);
     });
 
     testWidgets('a stored measure is renamed and re-weighed in place, keeping '

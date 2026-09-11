@@ -1251,6 +1251,21 @@ class _DetailForm extends ConsumerWidget {
                     );
                     return landed ?? const MeasureNotAdded();
                   },
+                  // Both halves of the list land on the one order: the drafted
+                  // rows carry their new position to Save, and the stored ones
+                  // are re-stamped now — they are live rows, and the chip row
+                  // and the shop's hint read the first of them.
+                  onReorder: (ids) async {
+                    form.reorderDraftMeasures(ids);
+                    if (creating) return;
+                    await ref.write(
+                      context,
+                      'reorder those measures',
+                      () => ref
+                          .read(measureRepositoryProvider)
+                          .reorderMeasures(ing.id, ids),
+                    );
+                  },
                   // Nothing here selects a measure — the form is not a
                   // quantity entry surface; the watched provider re-renders
                   // the list.

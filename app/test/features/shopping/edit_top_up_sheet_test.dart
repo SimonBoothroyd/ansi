@@ -93,6 +93,9 @@ class _EmptyMeasureRepo implements MeasureRepository {
   Future<void> renameMeasure(String measureId, String label) async {}
 
   @override
+  Future<void> reorderMeasures(String ingredientId, List<String> ids) async {}
+
+  @override
   Future<void> setMeasureAmount(String measureId, double amount) async {}
 
   @override

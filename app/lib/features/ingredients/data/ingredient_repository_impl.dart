@@ -822,7 +822,7 @@ class SqliteIngredientRepository implements IngredientRepository {
           'WHERE ingredient_id = ? AND deleted_at IS NULL',
           [id],
         );
-        var sortOrder = (maxRow['m'] as int) + 1;
+        var nextFree = (maxRow['m'] as int) + 1;
         for (final m in adding) {
           // A plain INSERT, never ON CONFLICT (view-backed local tables
           // reject UPSERT), and no label-collision check — a duplicate merges
@@ -838,7 +838,8 @@ class SqliteIngredientRepository implements IngredientRepository {
               id,
               m.label.trim(),
               m.amount,
-              sortOrder++,
+              // A position the dragged list stated, or the next free slot.
+              m.sortOrder ?? nextFree++,
               'manual',
               now,
               now,

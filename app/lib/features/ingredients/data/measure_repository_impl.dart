@@ -293,6 +293,24 @@ class SqliteMeasureRepository implements MeasureRepository {
   }
 
   @override
+  Future<void> reorderMeasures(String ingredientId, List<String> ids) async {
+    if (ids.isEmpty) return;
+    final now = DateTime.now().toUtc().toIso8601String();
+    await _db.writeTransaction((tx) async {
+      // Stamped by position rather than swapped in pairs: two devices that
+      // dragged different rows then converge on one list per row's last
+      // write, instead of on a set of half-applied swaps.
+      for (final (index, id) in ids.indexed) {
+        await tx.execute(
+          'UPDATE ingredient_measure SET sort_order = ?, updated_at = ? '
+          'WHERE id = ? AND ingredient_id = ? AND deleted_at IS NULL',
+          [index, now, id, ingredientId],
+        );
+      }
+    });
+  }
+
+  @override
   Future<void> softDeleteMeasure(String measureId) async {
     final now = DateTime.now().toUtc().toIso8601String();
     await _db.writeTransaction((tx) async {

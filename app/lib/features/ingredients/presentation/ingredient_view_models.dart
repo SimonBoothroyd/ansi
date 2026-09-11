@@ -737,6 +737,29 @@ class IngredientForm extends _$IngredientForm {
     return edited;
   }
 
+  /// Re-stamps the DRAFT's measures to the positions [ids] gives them in the
+  /// list the person just dragged. The stored rows in that same list are
+  /// re-stamped by the repository, so both halves land on the one order.
+  void reorderDraftMeasures(List<String> ids) {
+    final position = {for (final (i, id) in ids.indexed) id: i};
+    state = state.copyWith(
+      measuresAdded: [
+        for (final m in state.measuresAdded)
+          if (position[m.id] case final at?)
+            Measure(
+              id: m.id,
+              label: m.label,
+              amount: m.amount,
+              basis: m.basis,
+              sortOrder: at,
+              source: m.source,
+            )
+          else
+            m,
+      ],
+    );
+  }
+
   /// A pending add is simply dropped; a stored one is named for tombstoning.
   /// Either way nothing is written yet.
   void removeMeasure(String measureId) {
@@ -1061,7 +1084,12 @@ class IngredientForm extends _$IngredientForm {
             ),
       measuresAdded: [
         for (final m in state.measuresAdded)
-          PendingMeasure(id: m.id, label: m.label, amount: m.amount),
+          PendingMeasure(
+            id: m.id,
+            label: m.label,
+            amount: m.amount,
+            sortOrder: m.sortOrder,
+          ),
       ],
       measuresRemoved: state.measuresRemoved,
       aliasesAdded: [

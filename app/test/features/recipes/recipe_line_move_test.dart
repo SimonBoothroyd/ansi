@@ -18,9 +18,9 @@ import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/method_step.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
-import 'package:ansi/features/recipes/presentation/ingredient_line.dart';
 import 'package:ansi/features/recipes/presentation/recipe_editor_view.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view_models.dart';
+import 'package:ansi/shared/reorder_grip.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -198,7 +198,7 @@ void main() {
     await tester.pumpWidget(_host(container));
     await tester.pumpAndSettle();
 
-    final grips = find.byType(LineDragGrip);
+    final grips = find.byType(DragGrip);
     expect(grips, findsNWidgets(3), reason: 'one per line, none on a heading');
 
     // Take hold of the Salt row's grip and carry it to the bottom of the

@@ -66,6 +66,19 @@ class FakeMeasureRepo implements MeasureRepository {
   );
 
   @override
+  Future<void> reorderMeasures(String ingredientId, List<String> ids) async {
+    final byId = {for (final m in rows) m.id: m};
+    final moved = [
+      for (final id in ids)
+        if (byId[id] case final m?) m,
+    ];
+    rows
+      ..clear()
+      ..addAll(moved);
+    _changes.add(null);
+  }
+
+  @override
   Future<void> softDeleteMeasure(String measureId) async {
     rows.removeWhere((m) => m.id == measureId);
     _changes.add(null);

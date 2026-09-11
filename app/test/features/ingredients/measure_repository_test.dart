@@ -465,7 +465,7 @@ void main() {
       expect(m.amount, 380);
     });
 
-    test('it holds the add form\'s lines on the label', () async {
+    test("it holds the add form's lines on the label", () async {
       await expectLater(
         repo.renameMeasure('m-can', '   '),
         throwsArgumentError,
@@ -551,6 +551,46 @@ void main() {
         (m) => m.label,
       );
       expect(labels, ['can (400 g)', '${kServingMeasurePrefix}1 cup']);
+    });
+
+    test('a reorder re-stamps sort_order by position', () async {
+      await _seedMeasure(
+        db,
+        id: 'm-half',
+        ingredientId: 'tomatoes',
+        label: 'half can',
+        amount: 200,
+        sortOrder: 1,
+      );
+      await _seedMeasure(
+        db,
+        id: 'm-crate',
+        ingredientId: 'tomatoes',
+        label: 'crate',
+        amount: 4800,
+        sortOrder: 2,
+      );
+
+      await repo.reorderMeasures('tomatoes', ['m-crate', 'm-can', 'm-half']);
+
+      final measures = await repo.watchMeasures('tomatoes').first;
+      expect(measures.map((m) => m.id), ['m-crate', 'm-can', 'm-half']);
+      expect(measures.map((m) => m.sortOrder), [0, 1, 2]);
+    });
+
+    test('a reorder never reaches another ingredient\'s rows', () async {
+      await _seedMeasure(
+        db,
+        id: 'm-foreign',
+        ingredientId: 'beans',
+        label: 'tin',
+        amount: 400,
+        sortOrder: 7,
+      );
+      await repo.reorderMeasures('tomatoes', ['m-foreign', 'm-can']);
+      expect((await repo.watchMeasures('beans').first).single.sortOrder, 7);
+      // The one row it does own still landed, at its own position.
+      expect((await repo.watchMeasures('tomatoes').first).single.sortOrder, 1);
     });
 
     test(

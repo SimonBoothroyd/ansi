@@ -37,6 +37,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/guarded_navigation.dart';
+import '../../../shared/reorder_grip.dart';
 import '../../ingredients/presentation/ingredient_detail_view.dart'
     show ingredientDetailRoute;
 import '../../recipes/domain/line_display.dart';
@@ -160,7 +161,7 @@ class _WithGrip extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        LineDragGrip(index: index),
+        DragGrip(index: index),
         Expanded(child: child),
       ],
     );

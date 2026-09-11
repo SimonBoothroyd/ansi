@@ -29,10 +29,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/reorder_grip.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/component_quantity_sheet.dart';
-import '../../recipes/presentation/ingredient_line.dart';
 import '../../recipes/presentation/line_target_picker.dart';
 import '../../recipes/presentation/method_editor.dart';
 import '../../recipes/presentation/recipe_header_form.dart';
@@ -209,7 +209,7 @@ class ReconciliationBody extends HookConsumerWidget {
             // An open card closes as soon as a drag begins: what crosses the
             // list is then a row like every other row.
             onReorderStart: (_) => collapseEpoch.value++,
-            proxyDecorator: liftedLineRow,
+            proxyDecorator: liftedRow,
           ),
         ),
         SliverPadding(

@@ -22,7 +22,7 @@ import 'package:ansi/features/import/presentation/recon_line_card.dart';
 import 'package:ansi/features/import/presentation/reconciliation_view.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
-import 'package:ansi/features/recipes/presentation/ingredient_line.dart';
+import 'package:ansi/shared/reorder_grip.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -119,7 +119,7 @@ void main() {
     await tester.pumpWidget(_host(container));
     await tester.pumpAndSettle();
 
-    final grips = find.byType(LineDragGrip);
+    final grips = find.byType(DragGrip);
     expect(grips, findsNWidgets(3), reason: 'one per line, none on a heading');
 
     // Rows: 0 heading · 1 onions · 2 kale · 3 heading · 4 oil. Take the kale
@@ -158,11 +158,11 @@ void main() {
     await tester.tap(find.byType(ReviewLineCard).first);
     await tester.pumpAndSettle();
     expect(find.text('AMOUNT'), findsOneWidget);
-    expect(find.byType(LineDragGrip), findsNWidgets(2));
+    expect(find.byType(DragGrip), findsNWidgets(2));
 
     // A drag starting on another row closes it: what crosses the list is a
     // row like every other row.
-    final grip = tester.getCenter(find.byType(LineDragGrip).last);
+    final grip = tester.getCenter(find.byType(DragGrip).last);
     final drag = await tester.startGesture(grip);
     await tester.pump(const Duration(milliseconds: 200));
     await drag.moveTo(Offset(grip.dx, grip.dy - 60));
@@ -170,7 +170,7 @@ void main() {
     expect(find.text('AMOUNT'), findsNothing);
     await drag.up();
     await tester.pumpAndSettle();
-    expect(find.byType(LineDragGrip), findsNWidgets(3));
+    expect(find.byType(DragGrip), findsNWidgets(3));
   });
 
   testWidgets('a section emptied by a move keeps its heading', (tester) async {

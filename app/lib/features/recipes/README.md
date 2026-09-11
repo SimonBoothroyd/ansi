@@ -40,7 +40,7 @@ arithmetic; the drag itself is `SliverReorderableList` +
 `ReorderableDragStartListener` from `package:flutter/widgets.dart` — the
 *styled* `ReorderableListView` is the Material one and is not what this uses.
 
-- **The grip is the only thing that drags** (`LineDragGrip`). Long-press
+- **The grip is the only thing that drags** (`DragGrip`). Long-press
   anywhere would turn a scroll into an accidental move on a list whose whole
   job is tapping. On the review, where a card expands, the grip is on collapsed
   rows only and an open card closes when a drag starts elsewhere.

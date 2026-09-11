@@ -609,6 +609,18 @@ class _MeasureManager extends HookConsumerWidget {
             );
             return outcome ?? const MeasureNotAdded();
           },
+          // The first measure is the ingredient's typical one — it fronts the
+          // chip row this sheet is about to draw — so the drag writes at once,
+          // like everything else in a host with no Save.
+          onReorder: (ids) async {
+            await ref.write(
+              context,
+              'reorder those measures',
+              () => ref
+                  .read(measureRepositoryProvider)
+                  .reorderMeasures(ingredient.id, ids),
+            );
+          },
           onAdded: onAdded,
           onVolumeLabel: (u) => redirected.value = u,
           autofocus: true,
