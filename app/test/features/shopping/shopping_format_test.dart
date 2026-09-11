@@ -51,7 +51,7 @@ void main() {
         ),
       );
       expect(itemTotal(item), '674 g');
-      expect(itemSecondary(item), '≈ 2.25 potato, large → buy 3');
+      expect(itemSecondary(item), '≈ 2 1/4 potato, large → buy 3');
     });
 
     test('honest subtotals join, and a numberless staple is an em dash', () {
