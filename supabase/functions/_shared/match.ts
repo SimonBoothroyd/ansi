@@ -17,6 +17,12 @@
 // the stub/alias write contracts live in `match_db.ts`; an in-memory matcher for
 // offline tests/calibration lives in `match_trgm.ts`. Keeping the cascade pure is
 // what makes band calibration testable without a live database.
+//
+// The seam is SET-SHAPED: a tier takes every identity still unanswered and
+// returns candidates for all of them, so a whole import costs ONE round trip
+// per tier rather than one per line. The tiers themselves still run in order,
+// and the trigram tier still only sees what the exact tier did not answer — the
+// cascade is unchanged, it is the fan-out underneath it that is gone.
 
 import { normalize, stripParentheticals } from "./normalize.ts";
 import type {
@@ -46,17 +52,25 @@ export const TRIGRAM_FLOOR = 0.3;
 export const TOP_N = 3;
 
 /**
- * The database seam. Both methods compare against the NORMALIZED `match_text`
- * (§7) — the caller passes an already-normalized string. Implementations are
- * household-scoped (they capture the household at construction) and search the
- * household `ingredient` + `ingredient_alias` vocab only — never `usda_food`
- * (ADR-0005). See `sqlVocabMatcher` in `match_db.ts`.
+ * Candidates for a set of identities, keyed by the identity that found them. A
+ * key with nothing to show may be absent rather than mapped to `[]` — callers
+ * read it as "no candidates" either way.
+ */
+export type CandidatesByText = Map<string, MatchCandidate[]>;
+
+/**
+ * The database seam, ONE CALL PER TIER PER IMPORT. Both methods take a set of
+ * identities and compare against the NORMALIZED `match_text` (§7) — the caller
+ * passes already-normalized strings. Implementations are household-scoped (they
+ * capture the household at construction) and search the household `ingredient` +
+ * `ingredient_alias` vocab only — never `usda_food` (ADR-0005). See
+ * `sqlVocabMatcher` in `match_db.ts`.
  */
 export interface VocabMatcher {
-  /** Exact `match_text` equality. Returns one candidate per distinct ingredient. */
-  exact(matchText: string): Promise<MatchCandidate[]>;
-  /** Trigram similarity, best-per-ingredient, score-desc, at most `limit` rows. */
-  trigram(matchText: string, limit: number): Promise<MatchCandidate[]>;
+  /** Exact `match_text` equality. One candidate per distinct ingredient, per text. */
+  exact(matchTexts: string[]): Promise<CandidatesByText>;
+  /** Trigram similarity, best-per-ingredient, score-desc, at most `limit` per text. */
+  trigram(matchTexts: string[], limit: number): Promise<CandidatesByText>;
 }
 
 /** Classifies a similarity score into a band. Exact hits bypass this (always auto). */
@@ -78,18 +92,23 @@ function dedupeById(cands: MatchCandidate[]): MatchCandidate[] {
   return out;
 }
 
-/**
- * Match a single already-normalized identity through the cascade. Exposed for
- * targeted tests; `matchLines` is the batch entry point.
- */
-export async function matchOne(
-  matchText: string,
-  matcher: VocabMatcher,
-): Promise<{ band: MatchBand; candidates: MatchCandidate[] }> {
-  if (!matchText) return { band: "none", candidates: [] };
+/** One identity's outcome: the band, and the candidates that earned it. */
+export interface LineMatch {
+  band: MatchBand;
+  candidates: MatchCandidate[];
+}
 
+/**
+ * The cascade's ruling for one identity, given what each tier returned for it.
+ * PURE — no I/O — so `matchOne` and `matchLines` reach the same verdict from
+ * the same rows, whether those rows came one at a time or in a batch.
+ */
+function classify(
+  exactRows: MatchCandidate[],
+  trigramRows: MatchCandidate[],
+): LineMatch {
   // Tier 1 — exact. Authoritative: an exact hit short-circuits the trigram tier.
-  const exact = dedupeById(await matcher.exact(matchText));
+  const exact = dedupeById(exactRows);
   if (exact.length === 1) {
     return { band: "auto", candidates: exact };
   }
@@ -100,16 +119,32 @@ export async function matchOne(
   }
 
   // Tier 2 — trigram / typo tolerance.
-  const trig = dedupeById(await matcher.trigram(matchText, TOP_N)).slice(
-    0,
-    TOP_N,
-  );
+  const trig = dedupeById(trigramRows).slice(0, TOP_N);
   const best = trig[0]?.score ?? 0;
   const band = bandForScore(best);
   // Tier 3 — no match: empty candidates, the user creates-new (§9 stub). 0014:
   // no silent auto-stub here.
   if (band === "none") return { band: "none", candidates: [] };
   return { band, candidates: trig };
+}
+
+/**
+ * Match a single already-normalized identity through the cascade. Exposed for
+ * targeted tests and the eval scorer; `matchLines` is the batch entry point and
+ * is what production calls.
+ */
+export async function matchOne(
+  matchText: string,
+  matcher: VocabMatcher,
+): Promise<LineMatch> {
+  if (!matchText) return { band: "none", candidates: [] };
+  const exact = (await matcher.exact([matchText])).get(matchText) ?? [];
+  // The exact tier being authoritative is what lets the trigram tier be skipped
+  // entirely here, and what lets the batch below narrow tier 2 to a remainder.
+  if (exact.length > 0) return classify(exact, []);
+  const trigram = (await matcher.trigram([matchText], TOP_N)).get(matchText) ??
+    [];
+  return classify([], trigram);
 }
 
 // --- The sub-recipe tier (step 8.6, exec plan 0021 D6) -----------------------
@@ -184,32 +219,61 @@ export async function matchRecipeTitles(
 }
 
 /**
- * The batch entry point (§6 — "called once per import with all lines batched").
- * Normalizes each line's `ingredient_text` (§7) and runs the cascade. Order is
- * preserved 1:1 with the input; lines are matched concurrently.
+ * The batch entry point (§6 — "called once per import with all lines batched"),
+ * and the shape production runs: **two round trips for the whole recipe**, not
+ * two per line.
+ *
+ * Normalizes each line's `ingredient_text` (§7), asks the exact tier for every
+ * distinct identity at once, then asks the trigram tier for only the identities
+ * exact did not answer. Repeated identities — a long recipe names `tamari`
+ * three times — are asked about once and share the answer, which is sound
+ * precisely because the cascade is a pure function of the identity text.
+ *
+ * Order is preserved 1:1 with the input.
  *
  * `recipeMatcher` is OPTIONAL (8.6): supply it and each line additionally
  * carries `recipe_candidates` when its text names a household recipe; leave it
  * out and the result is byte-identical to what this returned before.
  */
-export function matchLines(
+export async function matchLines(
   lines: RawLineItem[],
   matcher: VocabMatcher,
   recipeMatcher?: RecipeTitleMatcher,
 ): Promise<MatchedLine[]> {
-  return Promise.all(
-    lines.map(async (raw): Promise<MatchedLine> => {
-      const [{ band, candidates }, recipes] = await Promise.all([
-        matchOne(normalize(raw.ingredient_text), matcher),
-        recipeMatcher
-          ? matchRecipeTitles(raw.ingredient_text, recipeMatcher)
-          : Promise.resolve<RecipeCandidate[]>([]),
-      ]);
-      const line: MatchedLine = { raw, band, candidates };
-      // Additive and OMITTED when empty: no matcher, or no hit, ⇒ the exact
-      // shape the pre-8.6 client already decodes.
-      if (recipes.length > 0) line.recipe_candidates = recipes;
-      return line;
-    }),
+  const identities = lines.map((raw) => normalize(raw.ingredient_text));
+  const distinct = [...new Set(identities)].filter((t) => t !== "");
+
+  // The sub-recipe tier reads the household's titles ONCE and scores in memory
+  // (match_db.ts), so it is one query regardless of line count — started here so
+  // it overlaps the vocab tiers instead of following them.
+  const recipesByLine = recipeMatcher
+    ? Promise.all(
+      lines.map((raw) => matchRecipeTitles(raw.ingredient_text, recipeMatcher)),
+    )
+    : Promise.resolve(lines.map((): RecipeCandidate[] => []));
+
+  const empty: CandidatesByText = new Map();
+  const exact = distinct.length > 0 ? await matcher.exact(distinct) : empty;
+  const remainder = distinct.filter((t) => (exact.get(t)?.length ?? 0) === 0);
+  const trigram = remainder.length > 0
+    ? await matcher.trigram(remainder, TOP_N)
+    : empty;
+
+  const verdicts = new Map<string, LineMatch>(
+    distinct.map((t) => [
+      t,
+      classify(exact.get(t) ?? [], trigram.get(t) ?? []),
+    ]),
   );
+  const none: LineMatch = { band: "none", candidates: [] };
+
+  const recipes = await recipesByLine;
+  return lines.map((raw, i): MatchedLine => {
+    const { band, candidates } = verdicts.get(identities[i]) ?? none;
+    const line: MatchedLine = { raw, band, candidates };
+    // Additive and OMITTED when empty: no matcher, or no hit, ⇒ the exact
+    // shape the pre-8.6 client already decodes.
+    if (recipes[i].length > 0) line.recipe_candidates = recipes[i];
+    return line;
+  });
 }

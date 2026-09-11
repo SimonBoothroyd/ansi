@@ -18,7 +18,12 @@
 // postgres.js `unsafe(text, params)` both accept.
 
 import type { MatchCandidate, RecipeCandidate } from "./types.ts";
-import { type RecipeTitleMatcher, TOP_N, type VocabMatcher } from "./match.ts";
+import {
+  type CandidatesByText,
+  type RecipeTitleMatcher,
+  TOP_N,
+  type VocabMatcher,
+} from "./match.ts";
 import {
   inMemoryRecipeTitleMatcher,
   type RecipeTitleEntry,
@@ -31,87 +36,139 @@ export type SqlExecutor = <T = Record<string, unknown>>(
 ) => Promise<T[]>;
 
 // --- Tier 1 + 2: the household-scoped vocab matcher --------------------------
+//
+// Both tiers take the WHOLE set of identities as one `text[]` parameter and
+// answer for all of them at once, keyed by `match_text`. A 35-line recipe used
+// to spend 70 round trips here, fanned out concurrently through a pool of ten
+// against the transaction pooler; it now spends two. `unnest($2::text[])` is
+// what makes that one query instead of a generated `in (…)` list: the driver
+// binds one parameter whatever the line count, so nothing about this SQL grows
+// with the recipe.
 
 // Exact `match_text` equality across ingredient + alias, one row per distinct
-// ingredient. Household-scoped and soft-delete aware (mirrors RLS + spec §5.2).
-// The alias branches scope on BOTH `a.household_id` and `i.household_id`: an
-// alias row is supposed to carry its ingredient's household, but nothing in the
-// schema forces that, and this connection is service-role (RLS does not apply).
-// Two predicates cost nothing and mean a single mis-written alias row can never
-// leak another household's ingredient into a candidate list.
+// (identity, ingredient). Household-scoped and soft-delete aware (mirrors RLS +
+// spec §5.2). The alias branches scope on BOTH `a.household_id` and
+// `i.household_id`: an alias row is supposed to carry its ingredient's
+// household, but nothing in the schema forces that, and this connection is
+// service-role (RLS does not apply). Two predicates cost nothing and mean a
+// single mis-written alias row can never leak another household's ingredient
+// into a candidate list.
+//
+// The sort is total for the same reason the trigram tier's is: when two
+// ingredients share a surface the cascade surfaces BOTH for the human to
+// disambiguate, and which one it lists first must not depend on the plan.
 const EXACT_SQL = `
-  select distinct i.id::text as ingredient_id, i.canonical_name, 1.0::float8 as score
-  from ingredient i
-  where i.household_id = $1 and i.deleted_at is null and i.match_text = $2
+  select q.match_text, i.id::text as ingredient_id, i.canonical_name,
+         1.0::float8 as score
+  from unnest($2::text[]) as q(match_text)
+  join ingredient i
+    on i.household_id = $1 and i.deleted_at is null
+   and i.match_text = q.match_text
   union
-  select distinct i.id::text, i.canonical_name, 1.0::float8
-  from ingredient_alias a
-  join ingredient i on i.id = a.ingredient_id and i.deleted_at is null
-  where a.household_id = $1 and i.household_id = $1
-    and a.deleted_at is null and a.match_text = $2`;
+  select q.match_text, i.id::text, i.canonical_name, 1.0::float8
+  from unnest($2::text[]) as q(match_text)
+  join ingredient_alias a
+    on a.household_id = $1 and a.deleted_at is null
+   and a.match_text = q.match_text
+  join ingredient i
+    on i.id = a.ingredient_id and i.deleted_at is null and i.household_id = $1
+  order by match_text asc, canonical_name asc, ingredient_id asc`;
 
-// Trigram similarity across ingredient + alias, best score per ingredient,
-// score-desc, capped. `% $2` uses the GIN index (0002) and pg_trgm's default
-// threshold (0.3) — safely below BAND_SUGGEST_MIN, so no surfaced candidate is
-// pruned. See match.ts TRIGRAM_FLOOR.
+// Trigram similarity across ingredient + alias, best score per (identity,
+// ingredient), score-desc, capped at `limit` PER IDENTITY. `% q.match_text`
+// uses the GIN index (0002) and pg_trgm's default threshold (0.3) — safely
+// below BAND_SUGGEST_MIN, so no surfaced candidate is pruned. See match.ts
+// TRIGRAM_FLOOR.
+//
+// The cap is a `row_number()` window rather than a `limit`, because one query
+// now carries many identities and each is entitled to its own top-N.
 //
 // The sort is TOTAL (score, then canonical_name, then id): ties are common in
 // trigram space, and `order by score desc` alone lets Postgres return either
 // row first — which would make the candidate list, the band, and every golden
 // fixture built on it non-deterministic across runs and plan changes.
 const TRIGRAM_SQL = `
-  select ingredient_id, canonical_name, max(score) as score
+  select match_text, ingredient_id, canonical_name, score
   from (
-    select i.id::text as ingredient_id, i.canonical_name,
-           similarity(i.match_text, $2) as score
-    from ingredient i
-    where i.household_id = $1 and i.deleted_at is null and i.match_text % $2
-    union all
-    select i.id::text, i.canonical_name, similarity(a.match_text, $2)
-    from ingredient_alias a
-    join ingredient i on i.id = a.ingredient_id and i.deleted_at is null
-    where a.household_id = $1 and i.household_id = $1
-      and a.deleted_at is null and a.match_text % $2
+    select b.match_text, b.ingredient_id, b.canonical_name, b.score,
+           row_number() over (
+             partition by b.match_text
+             order by b.score desc, b.canonical_name asc, b.ingredient_id asc
+           ) as rank
+    from (
+      select s.match_text, s.ingredient_id, s.canonical_name,
+             max(s.score) as score
+      from (
+        select q.match_text, i.id::text as ingredient_id, i.canonical_name,
+               similarity(i.match_text, q.match_text) as score
+        from unnest($2::text[]) as q(match_text)
+        join ingredient i
+          on i.household_id = $1 and i.deleted_at is null
+         and i.match_text % q.match_text
+        union all
+        select q.match_text, i.id::text, i.canonical_name,
+               similarity(a.match_text, q.match_text)
+        from unnest($2::text[]) as q(match_text)
+        join ingredient_alias a
+          on a.household_id = $1 and a.deleted_at is null
+         and a.match_text % q.match_text
+        join ingredient i
+          on i.id = a.ingredient_id and i.deleted_at is null
+         and i.household_id = $1
+      ) s
+      group by s.match_text, s.ingredient_id, s.canonical_name
+    ) b
   ) c
-  group by ingredient_id, canonical_name
-  order by score desc, canonical_name asc, ingredient_id asc
-  limit $3`;
+  where c.rank <= $3
+  order by c.match_text asc, c.rank asc`;
 
 interface CandidateRow {
+  match_text: string;
   ingredient_id: string;
   canonical_name: string;
   score: number;
 }
 
-const toCandidate = (r: CandidateRow): MatchCandidate => ({
-  ingredient_id: r.ingredient_id,
-  canonical_name: r.canonical_name,
-  score: Number(r.score),
-});
+/** Groups the flat result set back onto the identity that asked for it. */
+function byMatchText(rows: CandidateRow[]): CandidatesByText {
+  const out: CandidatesByText = new Map();
+  for (const r of rows) {
+    const candidate: MatchCandidate = {
+      ingredient_id: r.ingredient_id,
+      canonical_name: r.canonical_name,
+      score: Number(r.score),
+    };
+    const bucket = out.get(r.match_text);
+    if (bucket) bucket.push(candidate);
+    else out.set(r.match_text, [candidate]);
+  }
+  return out;
+}
 
 /**
  * A {@link VocabMatcher} backed by Postgres, bound to one household. Pass to
- * `matchLines`. The `matchText` arguments are already normalized by the cascade.
+ * `matchLines`. The `matchTexts` arguments are already normalized by the
+ * cascade, and each tier costs exactly one query however many there are.
  */
 export function sqlVocabMatcher(
   exec: SqlExecutor,
   householdId: string,
 ): VocabMatcher {
   return {
-    async exact(matchText) {
+    async exact(matchTexts) {
       const rows = await exec<CandidateRow>(EXACT_SQL, [
         householdId,
-        matchText,
+        matchTexts,
       ]);
-      return rows.map(toCandidate);
+      return byMatchText(rows);
     },
-    async trigram(matchText, limit = TOP_N) {
+    async trigram(matchTexts, limit = TOP_N) {
       const rows = await exec<CandidateRow>(TRIGRAM_SQL, [
         householdId,
-        matchText,
+        matchTexts,
         limit,
       ]);
-      return rows.map(toCandidate);
+      return byMatchText(rows);
     },
   };
 }

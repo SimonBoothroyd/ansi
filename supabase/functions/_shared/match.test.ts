@@ -132,6 +132,72 @@ Deno.test("matchLines — preserves order and normalizes each line", async () =>
   assertEquals(out[1].band, "none");
 });
 
+Deno.test("matchLines — one call per tier, and tier 2 only sees what tier 1 missed", async () => {
+  // The batch shape, at the cascade level: a recipe costs two calls into the
+  // seam, not two per line. `matchOne` keeps its own short-circuit — an exact
+  // hit never reaches the trigram tier at all.
+  const asked: { exact: string[][]; trigram: string[][] } = {
+    exact: [],
+    trigram: [],
+  };
+  const counted = {
+    exact(texts: string[]) {
+      asked.exact.push(texts);
+      return hand.exact(texts);
+    },
+    trigram(texts: string[], limit: number) {
+      asked.trigram.push(texts);
+      return hand.trigram(texts, limit);
+    },
+  };
+
+  const out = await matchLines(
+    // `onion` twice, an alias hit, a typo, and something the vocab has never
+    // heard of — five lines, four distinct identities.
+    ["2 large Onions, diced", "onion", "coriander", "granulated suger", "ice"]
+      .map(line),
+    counted,
+  );
+
+  assertEquals(asked.exact.length, 1);
+  assertEquals(asked.trigram.length, 1);
+  // Distinct identities only — `onion` is asked about once for both its lines.
+  assertEquals(asked.exact[0], [
+    "onion",
+    "coriander",
+    "granulated suger",
+    "ice",
+  ]);
+  assertEquals(asked.trigram[0], ["granulated suger", "ice"]);
+  assertEquals(out.map((l) => l.band), [
+    "auto",
+    "auto",
+    "auto",
+    "suggest",
+    "none",
+  ]);
+  // The repeated identity gets the same verdict on both of its lines.
+  assertEquals(out[0].candidates, out[1].candidates);
+});
+
+Deno.test("matchLines — an empty identity costs no query and still bands none", async () => {
+  let calls = 0;
+  const counted = {
+    exact(texts: string[]) {
+      calls++;
+      return hand.exact(texts);
+    },
+    trigram(texts: string[], limit: number) {
+      calls++;
+      return hand.trigram(texts, limit);
+    },
+  };
+  const out = await matchLines([line(""), line("   ")], counted);
+  assertEquals(out.map((l) => l.band), ["none", "none"]);
+  assertEquals(out.map((l) => l.candidates), [[], []]);
+  assertEquals(calls, 0, "nothing to ask about ⇒ nothing is asked");
+});
+
 Deno.test("cascade — ambiguous exact (shared surface) → suggest, not auto", async () => {
   // Two ingredients whose match_text collides: don't auto-commit either.
   const ambiguous = inMemoryVocabMatcher([
@@ -337,9 +403,10 @@ Deno.test("calibration — cascade over the real vocab hits a precision floor", 
     const label = c.expect_match;
     // Feed the gold-normalized identity as ingredient_text (already normalized).
     const r = await matchOne(normalize(c.expect_normalized), matcher);
+    const identity = normalize(c.expect_normalized);
     const labelPresent = r.candidates.some((x) => x.canonical_name === label) ||
       // label may be absent from vocab entirely (drift) — detect by exact probe
-      (await matcher.exact(normalize(c.expect_normalized))).length > 0;
+      ((await matcher.exact([identity])).get(identity)?.length ?? 0) > 0;
     if (!labelPresent && r.candidates.length === 0) continue; // pure vocab drift
     gradable++;
     const top = r.candidates[0]?.canonical_name;

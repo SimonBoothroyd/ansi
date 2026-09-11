@@ -31,6 +31,7 @@ import {
   sqlVocabMatcher,
 } from "../_shared/match_db.ts";
 import { readCaller } from "./auth.ts";
+import { replayAdapterFromEnv } from "./replay.ts";
 import { type ImportDeps, makeHandler } from "./index.ts";
 
 // --- CORS --------------------------------------------------------------------
@@ -62,6 +63,16 @@ async function withCors(res: Response): Promise<Response> {
 // compatible with a transaction-mode pooler (Supabase's `SUPABASE_DB_URL` may be
 // pgbouncer, which rejects prepared statements) and is harmless on a direct
 // connection.
+//
+// `max` is small ON PURPOSE, and it is a statement about the cascade rather
+// than a throttle: one import asks for at most two connections at once — a
+// vocab tier and, overlapping it, the household's recipe titles — because each
+// tier is now a single batched query (match_db.ts) instead of one per line. A
+// pool wider than the work is how a long recipe used to put dozens of queries
+// in flight against a transaction pooler at once; naming the real number keeps
+// that from creeping back unnoticed.
+const POOL_MAX = 4;
+
 let pool: ReturnType<typeof postgres> | null = null;
 
 function executor(): SqlExecutor {
@@ -70,7 +81,7 @@ function executor(): SqlExecutor {
     if (!url || url.trim() === "") {
       throw new Error("SUPABASE_DB_URL is not set");
     }
-    pool = postgres(url, { prepare: false });
+    pool = postgres(url, { prepare: false, max: POOL_MAX });
   }
   const sql = pool;
   return <T = Record<string, unknown>>(text: string, params: unknown[]) =>
@@ -80,7 +91,12 @@ function executor(): SqlExecutor {
 // --- Per-request deps --------------------------------------------------------
 
 function buildDeps(householdId: string): ImportDeps {
-  const adapter: ExtractAdapter = new ClaudeHaikuAdapter();
+  // Off in every deployed environment — see `replay.ts` for the three locks
+  // that keep it that way. It exists so the deterministic half of the pipeline
+  // (cascade, assembly, HTTP edges) can be driven against a real Postgres with
+  // no API key and no provider call.
+  const adapter: ExtractAdapter = replayAdapterFromEnv() ??
+    new ClaudeHaikuAdapter();
   const exec = executor();
   const matcher = sqlVocabMatcher(exec, householdId);
   // 8.6 / D6: the same household's live recipe TITLES, so a printed

@@ -10,6 +10,7 @@
 
 import type { MatchCandidate, RecipeCandidate } from "./types.ts";
 import {
+  type CandidatesByText,
   type RecipeTitleMatcher,
   TOP_N,
   TRIGRAM_FLOOR,
@@ -55,38 +56,53 @@ export interface VocabEntry {
  * with the same TRIGRAM_FLOOR prune the SQL `%` operator applies.
  */
 export function inMemoryVocabMatcher(entries: VocabEntry[]): VocabMatcher {
+  const exactFor = (matchText: string): MatchCandidate[] => {
+    const out: MatchCandidate[] = [];
+    for (const e of entries) {
+      if (e.match_texts.includes(matchText)) {
+        out.push({
+          ingredient_id: e.ingredient_id,
+          canonical_name: e.canonical_name,
+          score: 1,
+        });
+      }
+    }
+    return out;
+  };
+
+  const trigramFor = (matchText: string, limit: number): MatchCandidate[] => {
+    const scored: MatchCandidate[] = [];
+    for (const e of entries) {
+      let best = 0;
+      for (const mt of e.match_texts) {
+        const s = trigramSimilarity(mt, matchText);
+        if (s > best) best = s;
+      }
+      if (best >= TRIGRAM_FLOOR) {
+        scored.push({
+          ingredient_id: e.ingredient_id,
+          canonical_name: e.canonical_name,
+          score: best,
+        });
+      }
+    }
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, limit);
+  };
+
+  // Set-shaped like the SQL matcher, so the cascade drives both the same way.
+  // In memory the batch is a loop; what it mirrors is the CONTRACT, not a saved
+  // round trip.
   return {
-    exact(matchText: string): Promise<MatchCandidate[]> {
-      const out: MatchCandidate[] = [];
-      for (const e of entries) {
-        if (e.match_texts.includes(matchText)) {
-          out.push({
-            ingredient_id: e.ingredient_id,
-            canonical_name: e.canonical_name,
-            score: 1,
-          });
-        }
-      }
-      return Promise.resolve(out);
+    exact(matchTexts: string[]): Promise<CandidatesByText> {
+      return Promise.resolve(
+        new Map(matchTexts.map((t) => [t, exactFor(t)])),
+      );
     },
-    trigram(matchText: string, limit = TOP_N): Promise<MatchCandidate[]> {
-      const scored: MatchCandidate[] = [];
-      for (const e of entries) {
-        let best = 0;
-        for (const mt of e.match_texts) {
-          const s = trigramSimilarity(mt, matchText);
-          if (s > best) best = s;
-        }
-        if (best >= TRIGRAM_FLOOR) {
-          scored.push({
-            ingredient_id: e.ingredient_id,
-            canonical_name: e.canonical_name,
-            score: best,
-          });
-        }
-      }
-      scored.sort((a, b) => b.score - a.score);
-      return Promise.resolve(scored.slice(0, limit));
+    trigram(matchTexts: string[], limit = TOP_N): Promise<CandidatesByText> {
+      return Promise.resolve(
+        new Map(matchTexts.map((t) => [t, trigramFor(t, limit)])),
+      );
     },
   };
 }

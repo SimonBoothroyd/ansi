@@ -41,6 +41,46 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
   `evals/`). Design: `docs/product-specs/import-and-matching.md`.
 - Migrations are immutable once merged; make a new migration to change schema.
 
+## Driving import locally without a key
+
+The pipeline's one paid, non-deterministic stage is the LLM. Everything after it
+— normalize, the match cascade, payload assembly, the HTTP edges — is
+deterministic, and that is the half a matching change has to be exercised
+against a real Postgres. `evals/runs/` already holds what the model said,
+verbatim, for every case in the extraction corpus, so `import-recipe` can replay
+one instead of calling out:
+
+```
+supabase start                                   # the local stack
+
+# serve the function against the local database, keyless
+SUPABASE_DB_URL=postgres://postgres:postgres@127.0.0.1:54322/postgres \
+IMPORT_EXTRACT_FIXTURE=$PWD/evals/runs/2026-09-02-var-v5-r3/claude-haiku/dirty-rice.json \
+  deno run --allow-all --config supabase/functions/deno.json \
+  supabase/functions/import-recipe/index.ts
+
+# then POST {"images":["<any base64>"]} with a bearer token carrying a
+# household_id claim for a household the local DB has seeded — the replay
+# adapter never looks at the bytes, so the PHOTO door (two model calls) runs
+# end to end
+```
+
+`IMPORT_EXTRACT_FIXTURE` names an `evals/runs/**` case file; `replay.ts` decodes
+its `raw` with the same Claude decoder the live call uses. It is a LOCAL switch
+and three things keep it that way, none of them a warning: the var appears in no
+deploy script and no `supabase secrets` row (the deployed function's secrets are
+`ANTHROPIC_API_KEY` and `IMPORT_ALLOWED_HOUSEHOLDS`, set by hand —
+[`cloud-setup`](../docs/cloud-setup.md) §3b); the loader **refuses** when
+`ANTHROPIC_API_KEY` is set, so the environment that can really extract never
+serves a canned recipe; and the saved responses live under `evals/`, which is not
+part of the deployed function. `import-recipe/replay.test.ts` holds all three.
+
+`supabase functions serve` works the same way, with one wrinkle: it mounts only
+`supabase/functions` into the runtime container, so the fixture has to be copied
+somewhere under that directory first and the env var point at the container path.
+Serving the module directly, as above, is the shorter road and is the same
+`serveImport()` entry point the deploy runs.
+
 ## Commands
 
 ```

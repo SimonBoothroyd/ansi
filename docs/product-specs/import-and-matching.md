@@ -451,6 +451,16 @@ and stops when confident.
    top-3. High → `auto`; mid → `suggest`.
 3. **No match** → band `none`, **empty candidates**.
 
+**Two queries, not two per line.** "Batched" is literal: each tier takes the
+whole set of distinct identities as one `text[]` and answers for all of them
+(`unnest($2::text[]) … join`), so a 35-line recipe costs one exact query, one
+trigram query over whatever exact did not answer, and one read of the household's
+recipe titles — three round trips, whatever the recipe's length. Nothing about
+the SQL grows with the line count, and a repeated identity (a long recipe naming
+`tamari` three times) is asked about once, which is sound because the cascade is
+a pure function of the identity text. The tiers still run in order and the
+rulings are unchanged; it is only the fan-out underneath them that is gone.
+
 **There is no embedding tier**, and that is a decision, not an omission: with
 well-seeded aliases plus the learning loop (§8), trigram covers the synonym cases
 we actually hit. It stays back-pocket — if the eval ever shows a real synonym gap
