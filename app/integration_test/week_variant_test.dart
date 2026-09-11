@@ -214,6 +214,9 @@ void main() {
           ))['n'] ==
           1,
       'the exclusion to be stored',
+      // A cross-client round trip: the app uploads, the service replicates,
+      // this file's own client downloads — not one write to one database.
+      timeout: const Duration(seconds: 60),
     );
 
     // Save pops the editor back onto the meal sheet it was opened from; the
