@@ -14,6 +14,7 @@ import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
+import '../../ingredients/domain/serving_measure.dart';
 import 'line_resolution.dart';
 
 /// Why a line still wants the user. An empty issue list == done/clean.
@@ -142,7 +143,7 @@ List<UnitSuggestion> acceptableUnitChips(
         ),
         MeasureOption(:final measure) => UnitSuggestion(
           token: measure.label,
-          label: measure.label,
+          label: measureChipLabel(measure),
         ),
       },
   ];

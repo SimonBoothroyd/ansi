@@ -88,6 +88,7 @@ Future<PickedLineTarget?> _open(
   required String editingRecipeId,
   Set<String> cycles = const {},
   List<Ingredient> vocabulary = const [_romaTomato],
+  bool suppressRecipes = false,
 }) async {
   filterForuiSemanticsAssertions();
   PickedLineTarget? picked;
@@ -111,6 +112,7 @@ Future<PickedLineTarget?> _open(
                 onTap: () async => picked = await showLineTargetPicker(
                   context,
                   editingRecipeId: editingRecipeId,
+                  suppressRecipes: suppressRecipes,
                 ),
                 child: const Text('open'),
               ),
@@ -174,6 +176,17 @@ void main() {
     // A yield is the row's hint; a recipe without one still links and says so.
     expect(find.text('makes 1 cup'), findsOneWidget);
     expect(find.text('no yield yet'), findsOneWidget);
+  });
+
+  testWidgets('week mode hides the recipes and the door that writes one', (
+    tester,
+  ) async {
+    await _open(tester, editingRecipeId: 'sliders', suppressRecipes: true);
+    await tester.enterText(find.byType(TextField).first, 'rom');
+    await tester.pumpAndSettle();
+    expect(find.text('YOUR RECIPES'), findsNothing);
+    expect(find.textContaining('as a new recipe'), findsNothing);
+    expect(find.textContaining('as a new ingredient'), findsOneWidget);
   });
 
   testWidgets('the recipe being edited is never offered as its own component', (

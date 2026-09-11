@@ -850,7 +850,7 @@ class _Flags extends StatelessWidget {
       if (crossReference != null) 'cross-reference “$crossReference”',
       if (raw.confidence < kLowConfidenceFloor)
         'low confidence ${(raw.confidence * 100).round()}%',
-      if (unitNeedsALook(raw)) 'unit "${raw.unit}" needs a look',
+      if (unitNeedsALook(raw)) 'unit “${raw.unit}” needs a look',
     ];
     return Padding(
       padding: const EdgeInsets.only(top: 4),

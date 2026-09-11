@@ -270,8 +270,12 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
             onCreated: (ing) =>
                 Navigator.of(context).pop(PickedIngredient(ing)),
           ),
-          const SizedBox(height: 8),
-          _AddNewRecipeRow(query: search.query, onCreated: pick),
+          // Week mode hides the recipe section, and a recipe written here
+          // would be a pick the week cannot store: the door goes with it.
+          if (!suppressRecipes) ...[
+            const SizedBox(height: 8),
+            _AddNewRecipeRow(query: search.query, onCreated: pick),
+          ],
         ],
       ),
     );

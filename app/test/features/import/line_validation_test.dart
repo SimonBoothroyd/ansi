@@ -211,6 +211,20 @@ void main() {
       final acceptable = acceptableUnitTokens(_garlic, const [_clove]);
       expect(tokens.every(acceptable.contains), isTrue);
     });
+
+    test(
+      'a serving measure is offered in the chip voice, stored by its label',
+      () {
+        const serving = Measure(
+          id: 'm-serving',
+          label: 'serving · 3 g',
+          amount: 3,
+        );
+        final chips = acceptableUnitChips(_garlic, const [_clove, serving]);
+        final chip = chips.singleWhere((c) => c.token == 'serving · 3 g');
+        expect(chip.label, 'serving (3 g)');
+      },
+    );
   });
 
   group('lineIssues', () {
