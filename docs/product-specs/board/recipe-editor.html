@@ -31,7 +31,7 @@
             <p class="flabel">Serves</p>
             <div class="qtyrow" style="margin:0 20px 12px"><div class="stepper"><span class="s">–</span><span class="qv">4</span><span class="s">+</span></div></div>
             <p class="flabel">Makes <span style="color:var(--muted);text-transform:none;letter-spacing:0">· optional</span></p>
-            <div class="qtyrow" style="margin:0 20px 6px"><div class="stepper"><span class="s"></span><span class="qv">1.8</span><span class="s"></span></div><div class="unitsel"><span>kg</span><span style="color:var(--muted)">▾</span></div></div>
+            <div class="qtyrow" style="margin:0 20px 6px"><span class="addm-in g">1.8</span><span class="usel">kg <b>▾</b></span></div>
             <div class="frow"><span class="ghostbtn" style="margin-top:0;color:var(--herb);border-style:dashed">＋ Another denomination</span></div>
             <p class="flabel">Times</p>
             <div class="portion" style="margin-bottom:8px"><div class="pl">Cook<small>hands-on and on the heat</small></div><div class="pstepper"><span class="s">–</span><span class="qv">35 min</span><span class="s">+</span></div></div>
@@ -102,7 +102,7 @@
                 <div class="l3 edit"><span class="l3-amt">500 g</span><span class="l3-body"><span class="l3-id">Beef chuck</span><span class="l3-note">diced</span></span><span class="l3-pen">&#10005;</span></div>
                 <div class="l3 edit"><span class="l3-amt">2 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">finely chopped</span></span><span class="l3-pen">&#10005;</span></div>
                 <div class="l3 edit"><span class="l3-amt">250 ml</span><span class="l3-body"><span class="l3-id">Red wine</span></span><span class="l3-pen">&#10005;</span></div>
-                <div class="l3 edit"><span class="l3-amt">30 g</span><span class="l3-body"><span class="l3-id">Parmesan, grated</span><span class="l3-note">to finish</span><span class="wv-tag" style="margin-left:6px">optional</span></span><span class="l3-pen">&#10005;</span></div>
+                <div class="l3 edit"><span class="l3-amt">30 g</span><span class="l3-body"><span class="l3-id">Parmesan, grated</span><span class="l3-note">to finish</span></span><span class="l3-pen">&#10005;</span></div>
             </div>
             <div style="display:flex;gap:8px;margin:12px 20px 0">
                 <span class="ghostbtn" style="margin-top:0;flex:1">&#65291; Add ingredient</span>
@@ -112,6 +112,7 @@
             <p class="conv-note"><b>What is gone, and why it is gone rather than locked.</b> The whole header form &mdash; title, serves, makes, times, shelf life, file under &mdash; and the whole method are <b>not drawn</b>. A control drawn and refused is a control you have to explain on every tap; a control absent is a mode you understand in one look. The method has a second reason: a step chip points at a line id, an added line has not got one, and an excluded line would orphan its chips</p>
             <p class="conv-note"><b>Serves survives as a sentence.</b> Every amount on this list is <i>per serves&nbsp;4</i> &mdash; drop the number and the list stops being readable. So it is stated in the <b>from the recipe</b> strip with the step count and the title, in mono muted, with nothing in it to tap</p>
             <p class="conv-note"><b>No grip.</b> A reorder is not storable this week, and a drag that silently reverts on reopen is worse than no drag. Group headings are inert text: no rename, no bin, no <b>&#65291;&nbsp;Add&nbsp;group</b>. An added line lands at the foot of the list</p>
+            <p class="conv-note"><b>An optional line wears no tag here.</b> The row is name, note and — once it is changed — the week tag; <i>Parmesan</i> is optional in the recipe and says so only inside its amount sheet, whose <b>Optional</b> switch is the one place this screen states or changes it. The moment it is ticked in, the line carries <b>this week &middot; included</b> like any other change</p>
             <p class="conv-note"><b>Save, not write-through.</b> Unlike the meal editor sheet, this screen keeps the editor's own posture &mdash; nothing is stored until <b>Save</b>, and <b>&lsaquo;</b> abandons the draft. Save writes the <i>diff</i>, not the lines</p>
         </div></div>
     </div>
@@ -123,12 +124,13 @@
             <p class="c-h">Change Pork sausage to</p>
             <p class="rc-note" style="margin-top:2px">for this week only</p>
             <div class="field" style="margin-top:10px"><div class="search"><span class="mag">&#8981;</span><span>beef mince</span><span class="care"></span></div></div>
-            <p class="list-h">Your ingredients</p>
-            <div class="res-row"><div style="flex:1;min-width:0"><div class="res-nm">Beef mince, 5%</div><span class="res-cat">Meat &middot; 137 kcal /100 g</span></div><span class="rplus">&#65291;</span></div>
-            <div class="res-row"><div style="flex:1;min-width:0"><div class="res-nm">Beef mince, 20%</div><span class="res-cat">Meat &middot; 254 kcal /100 g</span></div><span class="rplus">&#65291;</span></div>
-            <div class="addnew">&#65291; Add an ingredient</div>
-            <p class="conv-note" style="text-align:center">the only difference from the recipe's own picker is the <b>subtitle</b> &mdash; the picker takes one already, so week mode passes its own words and builds nothing</p>
-            <p class="conv-note" style="text-align:center"><b>Your recipes is suppressed.</b> Swapping in a <i>sub-recipe</i> for one week would make the component graph week-dependent, and that graph is read household-wide with no week. The column ships; the section does not</p>
+            <div class="res-row"><div style="flex:1;min-width:0"><div class="res-nm">Beef mince, 5%</div><span class="res-cat">Meat &middot; has density</span><div class="mline">137 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 21P 5F 0C <span class="per">/100 g</span></div></div><span class="rplus">&#65291;</span></div>
+            <div class="res-row"><div style="flex:1;min-width:0"><div class="res-nm">Beef mince, 20%</div><span class="res-cat">Meat &middot; has density</span><div class="mline">254 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 17P 20F 0C <span class="per">/100 g</span></div></div><span class="rplus">&#65291;</span></div>
+            <div class="addnew">&#65291; can&rsquo;t find it? add "beef mince" as a new ingredient</div>
+            <div class="addnew" style="margin-top:8px">&#65291; &hellip;or write "beef mince" as a new recipe</div>
+            <p class="conv-note" style="text-align:center">the sheet is the shipped line target picker &mdash; same search, same rows, same footer. Week mode builds nothing: it passes its own <b>title</b> and <b>subtitle</b>, which the picker already takes, and asks it to leave the recipes out</p>
+            <p class="conv-note" style="text-align:center"><b>Your recipes is suppressed</b>, and with no second section below them the ingredient rows carry no header either &mdash; they are the whole list. Swapping in a <i>sub-recipe</i> for one week would make the component graph week-dependent, and that graph is read household-wide with no week</p>
+            <p class="conv-note" style="text-align:center">the footer is the picker's own, both doors and all, so <b>&hellip;or write &ldquo;beef mince&rdquo; as a new recipe</b> still stands under the ingredient door. The recipe it writes is saved by its own editor; the week line is not pointed at it, because this screen takes only an <i>ingredient</i> back from the sheet</p>
         </div></div>
     </div>
 
@@ -152,7 +154,7 @@
                     <span class="wv-meta"><span class="wv-tag">this week &middot; was 2</span><span class="wv-reset">&#8634; reset</span></span></span><span class="l3-pen">&#10005;</span></div>
 
                 <div class="l3 edit wv-off"><span class="l3-amt">250 ml</span><span class="l3-body"><span class="l3-id">Red wine</span>
-                    <span class="wv-meta"><span class="wv-tag">this week &middot; left out</span><span class="wv-reset">&#8634; reset</span></span></span><span class="l3-pen">&#10005;</span></div>
+                    <span class="wv-meta"><span class="wv-tag">this week &middot; left out</span><span class="wv-reset">&#8634; reset</span></span></span></div>
 
                 <div class="l3 edit"><span class="l3-amt">30 g</span><span class="l3-body"><span class="l3-id">Parmesan, grated</span><span class="l3-note">to finish</span>
                     <span class="wv-meta"><span class="wv-tag">this week &middot; included</span><span class="wv-reset">&#8634; reset</span></span></span><span class="l3-pen">&#10005;</span></div>
@@ -166,7 +168,7 @@
             <div class="dngr" style="margin-top:14px">Back to the recipe &middot; drops 5 changes</div>
 
             <p class="conv-note" style="margin-top:10px"><b>The tag is one line, and it is the <i>old</i> line.</b> &ldquo;this week &middot; was 400 g Pork sausage&rdquo; &mdash; what the recipe says, in the recipe's own words and the app's own name for the ingredient, so the reader can undo it in their head before they undo it with the button. It uses the <code>optional</code> tag's voice: one badge vocabulary on a recipe line, not two</p>
-            <p class="conv-note"><b>An excluded line stays on the list</b>, struck and muted, with its amount struck too. A removed row would be a hole: next Tuesday's reader could not see what is missing, and could not put it back. The bin <b>excludes</b> in week mode &mdash; the line is the recipe's, and this screen cannot delete the recipe's line. Ticking a counted line <i>optional</i> in the amount sheet is the same exclusion from the other side</p>
+            <p class="conv-note"><b>An excluded line stays on the list</b>, struck and muted, with its amount struck too. A removed row would be a hole: next Tuesday's reader could not see what is missing, and could not put it back. The bin <b>excludes</b> in week mode &mdash; the line is the recipe's, and this screen cannot delete the recipe's line &mdash; and an already-excluded row draws no bin at all: its reset is the only way back. Ticking a counted line <i>optional</i> in the amount sheet is the same exclusion from the other side</p>
             <p class="conv-note"><b>An added line has no recipe line behind it</b>, so its control is <b>&#10005;&nbsp;remove</b> rather than <b>&#8634;&nbsp;reset</b> &mdash; there is nothing to go back to. Same slot, same voice, honest verb</p>
             <p class="conv-note"><b>The reset is per line and takes no confirm</b> &mdash; the dish row's <b>&minus;</b> idiom: muted, not red. It is a draft action; <b>Save</b> is still what stores it, so the undo is <b>&lsaquo;</b></p>
             <p class="conv-note"><b>&ldquo;Back to the recipe&rdquo; states its own count</b> and sits at the foot, after every line, in the destructive voice. It clears the draft's overrides; <b>Save</b> commits the clearing. A reset that cannot say how much it undoes gets pressed blind &mdash; this one can, because the variant is one object</p>
@@ -181,15 +183,15 @@
                 <p class="flabel">Serves</p>
                 <div class="qtyrow" style="margin:6px 20px 4px"><div class="stepper"><span class="s">–</span><span class="qv">8</span><span class="s">+</span></div></div>
                 <p class="flabel">Makes <span style="color:var(--muted);text-transform:none;letter-spacing:0">· optional</span></p>
-                <div class="qtyrow" style="margin:6px 20px 4px"><div class="stepper"><span class="s"></span><span class="qv">250</span><span class="s"></span></div><div class="unitsel"><span>g</span><span style="color:var(--muted)">▾</span></div></div>
-                <div class="qtyrow" style="margin:8px 20px 4px"><div class="stepper"><span class="s"></span><span class="qv">16</span><span class="s"></span></div><div class="unitsel"><span>tbsp</span><span style="color:var(--muted)">▾</span></div><span style="align-self:center;color:var(--muted);font-size:13px">✕</span></div>
+                <div class="qtyrow" style="margin:6px 20px 4px"><span class="addm-in g">250</span><span class="usel">g <b>▾</b></span></div>
+                <div class="qtyrow" style="margin:8px 20px 4px"><span class="addm-in g">16</span><span class="usel">tbsp <b>▾</b></span><span style="align-self:center;color:var(--muted);font-size:13px">✕</span></div>
                 <p class="conv-note" style="margin-top:4px">the second slot only offers the <b>other</b> families — two ways of saying one batch, never two numbers in one family</p>
                 <p class="conv-note" style="margin-top:4px">the amount and its unit are <b>one control</b>, the same one the ingredient form&rsquo;s density, piece weight, measures and serving wear — a number with a unit is stated the same way wherever it is stated</p>
                 <p class="flabel" style="margin-top:16px">The same row on the import Review screen</p>
                 <div class="frow"><div class="srcline" style="margin:0 0 6px">from source:  MAKES: 8 SLIDERS</div>
-                    <div style="display:flex;gap:10px"><div class="fin" style="flex:1;font-family:'IBM Plex Mono',monospace">8</div><div class="fin" style="width:84px;font-family:'IBM Plex Mono',monospace">piece ▾</div></div></div>
+                    <div class="qtyrow" style="margin:0"><span class="addm-in g">8</span><span class="usel">piece <b>▾</b></span></div></div>
                 <div class="frow" style="margin-top:10px"><div class="srcline" style="margin:0 0 6px">from source:  MAKES ENOUGH FOR A CROWD</div>
-                    <div style="display:flex;gap:10px"><div class="fin" style="flex:1;font-family:'IBM Plex Mono',monospace;color:var(--muted)">—</div><div class="fin" style="width:84px;font-family:'IBM Plex Mono',monospace;color:var(--muted)">— ▾</div></div>
+                    <div class="qtyrow" style="margin:0"><span class="addm-in g">&nbsp;</span><span class="usel">g <b>▾</b></span></div>
                     <div class="lockhint">the page didn’t say a number — set one, or leave it unset. Nothing is invented, and a yield-less recipe still saves, links and scales; only the derived numbers wait.</div></div>
             </div></div>
         </div>
@@ -219,26 +221,34 @@
         <p class="frame-name"><b>The line picker, pre-matched</b> · seeded with the selection, searched over this recipe’s own lines — never the whole vocabulary</p>
         <div class="phone"><div class="notch"></div><div class="screen sheet">
             <div class="grab"></div>
-            <p class="c-h">What is “everything spice”?</p>
+            <p class="c-h">Point the chip at</p>
             <p class="rc-note" style="margin-top:2px">A chip can only point at a line this recipe already has.</p>
             <div class="field" style="margin-top:10px"><div class="search"><span class="mag">⌕</span><span>everything spice</span><span class="care"></span></div></div>
-            <p class="list-h">One match in this recipe</p>
+            <div class="savebtn" style="margin:10px 20px 4px">Chip as “Everything Spice”</div>
+            <p class="list-h" style="margin-top:12px">In this recipe</p>
             <div class="res-row">
                 <div style="flex:1;min-width:0"><div class="res-nm">Everything Spice</div>
-                    <span class="res-cat">3 tbsp · not in a group</span></div>
-                <span class="res-pick on">✓</span></div>
-            <p class="list-h">Everything else in this recipe</p>
+                    <span class="res-cat">3 tbsp</span></div>
+                <span class="rplus">＋</span></div>
+            <div class="addnew">＋ Add an ingredient to this recipe</div>
+            <p class="conv-note">the seeded search is the two-tap case: one line matched, so the <b>Chip as</b> button sits straight under the field and the list below it holds that one row. The button is above the list, not under it &mdash; it is the answer, not the last resort</p>
+            <p class="flabel" style="margin-top:16px">the same sheet with the field cleared</p>
+            <div class="field"><div class="search"><span class="mag">⌕</span><span style="color:var(--muted)">Search this recipe’s lines</span><span class="care"></span></div></div>
+            <p class="list-h" style="margin-top:12px">In this recipe</p>
             <div class="res-row">
-                <div class="rthumb" style="width:26px;height:26px;border-radius:8px;font-size:13px">↪</div>
-                <div style="flex:1;min-width:0"><div class="res-nm">Pretzel Buns</div>
-                    <span class="res-cat">8 · <span style="color:var(--herb-deep)">↪ your recipe</span></span></div>
+                <div style="flex:1;min-width:0"><div class="res-nm">Everything Spice</div>
+                    <span class="res-cat">3 tbsp</span></div>
+                <span class="rplus" style="color:var(--muted)">✓</span></div>
+            <div class="res-row">
+                <div style="flex:1;min-width:0"><span class="ichip">↪ Pretzel Buns</span>
+                    <div class="res-cat" style="margin-top:3px">8</div></div>
                 <span class="rplus">＋</span></div>
             <div class="res-row">
                 <div style="flex:1;min-width:0"><div class="res-nm">Kosher salt</div>
-                    <span class="res-cat">0.5 tsp · roasted fennel</span></div>
+                    <span class="res-cat">0.5 tsp</span></div>
                 <span class="rplus">＋</span></div>
             <div class="addnew">＋ Add an ingredient to this recipe</div>
-            <div class="savebtn">Chip as “Everything Spice”</div>
+            <p class="conv-note">an empty field offers every line the recipe has, one section only. A <b>component</b> line wears its chip here exactly as it does on the page, and a line this step already chips shows a muted <b>✓</b> instead of <b>＋</b> — still pickable</p>
             <p class="conv-note" style="text-align:center">two taps when the match is obvious · your words stay exactly as written. With <b>no</b> selection the same picker runs from the caret and writes the line’s own name there instead — cased for where it lands, so it reads <b>kosher salt</b> mid-sentence and <b>Kosher salt</b> opening a step</p>
         </div></div>
     </div>
@@ -248,16 +258,15 @@
         <div class="phone"><div class="notch"></div><div class="screen sheet">
             <div class="grab"></div>
             <p class="c-h">Chip</p>
-            <div class="mstep" style="margin-top:6px"><div class="mstep-in">Toss with the <span class="echip">olive oil</span> and <span class="echip">salt</span>.</div></div>
             <p class="clabel">Points at</p>
-            <div class="crow"><span class="cl">Olive oil<small>1 tbsp · roasted fennel</small></span><span class="ci" style="color:var(--muted);font-size:12px">change ›</span></div>
-            <p class="clabel">Word</p>
-            <div class="crow"><span class="cl" style="font-family:'IBM Plex Mono',monospace;font-size:13px">olive oil</span><span class="l3-pen">✎</span></div>
-            <p class="clabel">Amount</p>
-            <div class="crow"><span class="cl">Show the amount here<small>first time this recipe asks for it</small></span><span class="fsw"></span></div>
-            <div class="mstep-pv" style="margin:10px 20px 0;padding-top:0;border:none"><span class="pvl">Reads as</span>Toss with the <span class="ichip">olive oil <span class="qn">1 tbsp</span></span> and <span class="ichip">salt <span class="qn">0.5 tsp</span></span>.</div>
+            <div class="frow"><div class="fin" style="font-family:'IBM Plex Mono',monospace;font-size:13px">Olive oil · 1 tbsp <span class="l3-pen" style="float:right;font-size:12px">✎</span></div></div>
+            <p class="clabel" style="margin-top:0">Word</p>
+            <div class="frow"><div class="fin" style="font-family:'IBM Plex Mono',monospace;font-size:13px">olive oil</div></div>
+            <div class="crow"><span class="cl">Show the amount here</span><span class="fsw"></span></div>
+            <div class="lockhint" style="margin:4px 20px 0">The first time a step calls for something, its chip shows the amount. After that it’s the same stuff, so the chip just names it.</div>
             <div class="dngr">Remove chip · keeps the word</div>
-            <p class="conv-note" style="text-align:center">“change ›” opens the same line picker — this chip only, not the whole line, and it <b>leaves the word alone</b>: Word is the one field that changes what a chip says</p>
+            <p class="conv-note" style="text-align:center">three controls and a door out. <b>Points at</b> is the box itself — tapping it opens the same line picker for this chip only, not the whole line, and it <b>leaves the word alone</b>: Word is the one field that changes what a chip says</p>
+            <p class="conv-note" style="text-align:center">the sheet carries no copy of the sentence and no <i>Reads as</i> fold: the step card underneath is already showing both, and the sheet edits one chip in it</p>
         </div></div>
     </div>
 
@@ -266,16 +275,23 @@
         <div class="phone"><div class="notch"></div><div class="screen sheet">
             <div class="grab"></div>
             <p class="c-h">Timer</p>
-            <div class="srcline" style="margin:2px 20px 0">from your selection:  “25 to 30 minutes”</div>
             <p class="flabel" style="margin-top:14px">From</p>
-            <div class="qtyrow" style="margin:0 20px 4px"><div class="stepper"><span class="s">–</span><span class="qv">25</span><span class="s">+</span></div><div class="unitsel"><span>min</span><span style="color:var(--muted)">▾</span></div></div>
+            <div class="qtyrow" style="margin:0 20px 4px">
+                <div class="stepper"><span class="s">–</span><span style="display:flex;align-items:center;gap:6px"><span class="qv">25</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">min</span></span><span class="s">+</span></div>
+                <div class="stepper"><span class="s" style="color:var(--line)">–</span><span style="display:flex;align-items:center;gap:6px"><span class="qv">0</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">s</span></span><span class="s">+</span></div>
+            </div>
             <p class="flabel" style="margin-top:14px">To <span style="color:var(--muted);text-transform:none;letter-spacing:0">· optional</span></p>
-            <div class="qtyrow" style="margin:0 20px 4px"><div class="stepper"><span class="s">–</span><span class="qv">30</span><span class="s">+</span></div><div class="unitsel"><span>min</span><span style="color:var(--muted)">▾</span></div><span style="align-self:center;color:var(--muted);font-size:13px">✕</span></div>
-            <p class="clabel" style="margin-top:18px">Reads as</p>
-            <div class="mstep" style="margin-top:0"><div class="mstep-in">Roast the fennel for <span class="echip tmr">25–30 min</span>, turning once.</div></div>
-            <div class="savebtn">Save timer</div>
+            <div class="qtyrow" style="margin:0 20px 4px">
+                <div class="stepper"><span class="s">–</span><span style="display:flex;align-items:center;gap:6px"><span class="qv">30</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">min</span></span><span class="s">+</span></div>
+                <div class="stepper"><span class="s" style="color:var(--line)">–</span><span style="display:flex;align-items:center;gap:6px"><span class="qv">0</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">s</span></span><span class="s">+</span></div>
+                <span style="align-self:center;color:var(--muted);font-size:13px">✕</span>
+            </div>
+            <p class="clabel" style="margin-top:18px">Goes in as</p>
+            <p style="margin:0 20px;font-size:14px;line-height:1.4">Roast the fennel for 25–30 min, turning once.</p>
+            <div class="savebtn">Save</div>
             <div class="dngr" style="margin-top:8px">Remove timer · keeps the words</div>
-            <p class="conv-note" style="text-align:center">nothing was guessed — this came from the run of text you selected</p>
+            <p class="conv-note" style="text-align:center">nothing was guessed — the sheet opens seeded from the run of text you selected, or from the timer you tapped. Minutes and seconds are <b>two notches</b>, seconds in 15 s steps, so a ragged <i>6 min 30 s</i> is reachable and nothing is rounded away</p>
+            <p class="conv-note" style="text-align:center">with no end set, <b>To</b> shows one button — <b>＋ Add an end</b> — and the ✕ puts it back. The primary reads <b>Insert</b> until there is a timer to remove; then it reads <b>Save</b>. <b>Goes in as</b> is the real sentence around the duration, in plain words</p>
         </div></div>
     </div>
 
@@ -287,14 +303,14 @@
             <div class="mstep on">
                 <div class="mstep-h"><span class="n">Step 2</span><span class="ic">▲</span><span class="ic">▼</span><span class="ic">🗑</span></div>
                 <div class="mstep-in">MAKE THE ROASTED FENNEL: Halve the <span class="echip">fennel bulb</span> lengthwise and slice into ½-inch pieces. Toss with the <span class="echip">olive oil</span> and <span class="echip">salt</span>. Roast for <span class="echip tmr">25–30 min</span>, turning once.</div>
-                <div class="mstep-pv"><span class="pvl">Reads as · first time asked for</span>… Halve the <span class="ichip">fennel bulb <span class="qn">1</span></span> lengthwise… Toss with the <span class="ichip">olive oil <span class="qn">1 tbsp</span></span> and <span class="ichip">salt <span class="qn">0.5 tsp</span></span>. Roast for <span class="ichip tmr">⏱ 25–30 min</span>.</div>
+                <div class="mstep-pv"><span class="pvl">Reads as</span>… Halve the <span class="ichip">fennel bulb <span class="qn">1</span></span> lengthwise… Toss with the <span class="ichip">olive oil <span class="qn">1 tbsp</span></span> and <span class="ichip">salt <span class="qn">0.5 tsp</span></span>. Roast for <span class="ichip tmr">⏱ 25–30 min</span>.</div>
             </div>
             <div class="mstep">
                 <div class="mstep-h"><span class="n">Step 5 · check</span><span class="ic">▲</span><span class="ic">▼</span><span class="ic">🗑</span></div>
                 <div class="mstep-in">Divide the <span class="echip">roasted fennel</span> and the <span class="echip">pickled red onions</span> evenly among the <span class="echip">buns</span>.</div>
-                <div class="mstep-pv"><span class="pvl">Reads as · asked for again</span>Divide the <span class="ichip">roasted fennel</span> and the <span class="ichip">pickled red onions <span class="qn">1/4 cup</span></span> evenly among the <span class="ichip">buns</span>.</div>
+                <div class="mstep-pv"><span class="pvl">Reads as</span>Divide the <span class="ichip">roasted fennel</span> and the <span class="ichip">pickled red onions <span class="qn">1/4 cup</span></span> evenly among the <span class="ichip">buns</span>.</div>
             </div>
-            <p class="conv-note"><b>fennel bulb <span class="qn" style="font-family:'IBM Plex Mono',monospace">1</span></b> in step 2 · plain <b>roasted fennel</b> in step 5 — same line, second ask. Tap it and flip “show the amount here” if you disagree</p>
+            <p class="conv-note">both folds are the one <b>Reads as</b> label — the difference is in the chips, not the heading. <b>fennel bulb <span class="qn" style="font-family:'IBM Plex Mono',monospace">1</span></b> in step 2 · plain <b>roasted fennel</b> in step 5 — same line, second ask. Tap it and flip “show the amount here” if you disagree</p>
         </div></div>
     </div>
 
@@ -308,17 +324,17 @@
                 <div class="usedin">used in 2 steps</div>
             </div>
             <div class="state warn">
-                <div class="sh"><span>⚠</span><span>2 steps mentioned the sausage</span></div>
-                <div class="sb">Their chips now read <b>meatballs</b>. The words around them may need a look — we don’t rewrite your sentences.</div>
+                <div class="sh"><span>⚠</span><span>2 steps mentioned Italian Sausage</span></div>
+                <div class="sb">Their chips now read <b>Beef &amp; pork meatballs</b>. The words around them may need a look — we don’t rewrite your sentences.</div>
             </div>
             <div class="mstep attn">
                 <div class="mstep-h"><span class="n">Step 5 · check</span><span class="ic">▲</span><span class="ic">▼</span><span class="ic">🗑</span></div>
-                <div class="mstep-in">Slice the cooked <span class="echip chg">meatballs</span> into rounds and divide among the <span class="echip">buns</span>.</div>
+                <div class="mstep-in">Slice the cooked <span class="echip chg">beef &amp; pork meatballs</span> into rounds and divide among the <span class="echip">buns</span>.</div>
                 <div class="wasw"><span>was “sausage”</span><b>keep the old word</b></div>
             </div>
             <div class="mstep attn">
                 <div class="mstep-h"><span class="n">Step 6 · check</span><span class="ic">▲</span><span class="ic">▼</span><span class="ic">🗑</span></div>
-                <div class="mstep-in">Brown the <span class="echip chg">meatballs</span> over medium heat, casings removed.</div>
+                <div class="mstep-in">Brown the <span class="echip chg">beef &amp; pork meatballs</span> over medium heat, casings removed.</div>
                 <div class="wasw"><span>was “sausage”</span><b>keep the old word</b></div>
             </div>
             <p class="conv-note">“casings removed” is <b>yours</b> — flagged, never rewritten. The line is filed as <b>Beef &amp; pork meatballs</b>; each chip takes that name in <b>the case the word it replaces was written in</b>, so a lower-case word mid-sentence takes the whole name down (<i>Olive Oil</i> &rarr; <i>olive oil</i>) and one opening a step keeps its capital</p>

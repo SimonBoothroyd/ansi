@@ -69,7 +69,7 @@
                     <div style="padding:9px 11px;font-size:12px">Photos received · Photos read · Recipe written out · Ingredients matched</div>
                 </div>
                 <p class="conv-note" style="margin-top:10px">the photo door has <b>two</b> model calls — the pages are transcribed, then the recipe is written out — so it carries a row the link door does not, and it is the door the long waits come from</p>
-                <p class="rc-note">The wait ends one of four ways, and all of them come back to the intake form with the reason under it: the review screen, <b style="color:var(--ink)">“that site blocked the fetch … — try the photo import instead”</b>, <b style="color:var(--ink)">“the model took too long … nothing has been saved, so it is safe to try again”</b>, or — now that bytes arrive all the way through — <b style="color:var(--ink)">“the import service stopped answering part way through”</b>. Nothing is written until <b style="color:var(--ink)">Save</b> at review, so every failure here is safe to repeat.</p>
+                <p class="rc-note">The wait ends one of four ways, and all of them come back to the intake form with the reason under it: the review screen, <b style="color:var(--ink)">“that site blocked the fetch … — try the photo import instead”</b>, <b style="color:var(--ink)">“still reading that page after … minutes — nothing was saved, so it is safe to try again”</b>, or — now that bytes arrive all the way through — <b style="color:var(--ink)">“the import service stopped answering part way through”</b>. Nothing is written until <b style="color:var(--ink)">Save</b> at review, so every failure here is safe to repeat.</p>
             </div></div>
         </div>
 
@@ -88,7 +88,7 @@
             <div class="qtyrow" style="margin:0 20px 12px"><div class="stepper"><span class="s">–</span><span class="qv">4</span><span class="s">+</span></div></div>
             <p class="flabel">Makes <span style="color:var(--muted);text-transform:none;letter-spacing:0">· optional</span></p>
             <div class="frow" style="margin-bottom:6px"><div class="srcline" style="margin:0">from source:  SERVES 4 · MAKES ABOUT 1.8 KG</div></div>
-            <div class="qtyrow" style="margin:0 20px 6px"><div class="stepper"><span class="s"></span><span class="qv">1.8</span><span class="s"></span></div><div class="unitsel"><span>kg</span><span style="color:var(--muted)">▾</span></div></div>
+            <div class="qtyrow" style="margin:0 20px 6px"><span class="addm-in g">1.8</span><span class="usel">kg <b>▾</b></span></div>
             <div class="frow"><span class="ghostbtn" style="margin-top:0;color:var(--herb);border-style:dashed">＋ Another denomination</span></div>
             <p class="flabel">Times</p>
             <div class="portion" style="margin-bottom:8px"><div class="pl">Cook</div><div class="pstepper"><span class="s">–</span><span class="qv">35 min</span><span class="s">+</span></div></div>
@@ -153,7 +153,7 @@
                 </div>
 
                 <div class="lcard attn">
-                    <div class="l3 edit"><span class="l3-amt">2–3 tbsp</span><span class="l3-body"><span class="l3-id">Rose harissa</span></span><span class="l3-pen">✎</span></div>
+                    <div class="l3 edit"><span class="l3-amt">tbsp</span><span class="l3-body"><span class="l3-id">Rose harissa</span></span><span class="l3-pen">✎</span></div>
                     <div class="attn-tag"><span>⚠</span><span>Set the amount</span></div>
                     <div class="lockhint">auto-matched and still flagged — a printed range needs a picked number</div>
                 </div>
@@ -175,7 +175,7 @@
                 <div class="lcard attn">
                     <div class="chead"><span class="cn">butter beans</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
                     <div class="srcline">from source:  2 × 400 g tin butter beans, drained</div>
-                    <div class="lflags"><span class="lflag tog">optional</span><span class="lflag">unit “tin” needs a look</span></div>
+                    <div class="lflags"><span class="lflag tog">optional</span><span class="lflag">unit "tin" needs a look</span></div>
                     <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
                     <div class="chosen"><span class="ck">✓</span><span class="cnm">Butter beans</span><span class="chint">tap to change</span><span class="ci">›</span></div>
                     <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">2 can <span class="pen">✎</span></span></span></div>
@@ -231,12 +231,13 @@
                 <div class="lflags"><span class="lflag tog">optional</span></div>
                 <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
                 <div class="chosen"><span class="ck">✓</span><span class="cnm">Dragon fruit</span><span class="chint">created here · stub</span><span class="ci">›</span></div>
-                <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">2 piece <span class="pen">✎</span></span></span></div>
-                <div class="erow"><span class="elab">Unit</span><span class="ebody"><div class="suggests" style="margin-top:4px"><span class="sug" style="border-style:dotted;color:var(--muted)">piece</span><span class="sug">g</span><span class="sug">kg</span><span class="sug">oz</span><span class="sug">lb</span></div></span></div>
+                <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">2 <span class="pen">✎</span></span></span></div>
+                <div class="lockhint" style="margin:6px 0 0 72px">Dragon fruit has no piece weight yet — set it on the ingredient, or pick a unit below. <span style="color:var(--herb)">open Dragon fruit ›</span></div>
+                <div class="erow"><span class="elab">Unit</span><span class="ebody"><div class="suggests" style="margin-top:4px"><span class="sug pick">piece</span><span class="sug">g</span><span class="sug">kg</span><span class="sug">oz</span><span class="sug">lb</span></div></span></div>
                 <div class="erow"><span class="elab">Notes</span><span class="ebody"><div class="notesin">cubed</div></span></div>
-                <div class="lockhint">a line that printed a number and no unit is a <b>piece</b> line, and it meets the same gate every other unit does: <code>piece</code> is dotted because this row states no <b>piece weight</b>. Two ways out, both on this card — pick <b>g</b> and re-type the amount, or open the row.</div>
+                <div class="lockhint">a line that printed a number and no unit is a <b>piece</b> line, and it meets the same gate every other unit does. The chip row is unremarkable — <code>piece</code> is simply the line's current pick — and what says why the line is held up is the amber tag and the one line under the amount. Two ways out, both on this card: pick <b>g</b> and re-type the amount, or open the row.</div>
             </div>
-            <p class="conv-note" style="margin-top:2px"><b>The weight is not typed here.</b> What one of a thing weighs is the ingredient’s property, so tapping <b>Dragon fruit</b> on the chosen row opens its form on the piece-weight field; coming back, the flag has cleared and every other bare count of it has cleared too.</p>
+            <p class="conv-note" style="margin-top:2px"><b>The weight is not typed here.</b> What one of a thing weighs is the ingredient’s property, so the card names it and hands over a door — <b>open Dragon fruit ›</b>, straight to the row in its editing posture. Coming back, the flag has cleared and every other bare count of it has cleared too.</p>
             <div class="savebtn off">1 line(s) need you</div>
         </div></div>
         <p class="conv-note" style="margin:10px 4px 0">the header count and the Save gate read this flag exactly as they read any other unsupported unit — it <b>is</b> that flag. Nothing new appears on the card, and no line is annotated with what a count “counted as”.</p>
@@ -264,11 +265,10 @@
             <div class="lcard attn">
                 <div class="chead"><span class="cn">bunch of cilantro</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
                 <div class="srcline">from source:  1 bunch cilantro, chopped</div>
-                <div class="lflags"><span class="lflag tog">optional</span><span class="lflag">unit “bunch” needs a look</span></div>
+                <div class="lflags"><span class="lflag tog">optional</span><span class="lflag">unit "bunch" needs a look</span></div>
                 <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
                 <div class="chosen"><span class="ck">✓</span><span class="cnm">Cilantro</span><span class="chint">tap to change</span><span class="ci">›</span></div>
-                <p class="chip-note">the source named a thing we don’t carry — no row fact answers it</p>
-                <div class="suggests" style="margin-top:0"><span class="sug"><span class="srcdot usda"></span>sprig</span><span class="sug">g</span><span class="sug">cup</span><span class="sug">tbsp</span><span class="sug impr">handful</span></div>
+                <div class="erow"><span class="elab">Unit</span><span class="ebody"><div class="suggests" style="margin-top:4px"><span class="sug">sprig</span><span class="sug">g</span><span class="sug">cup</span><span class="sug">tbsp</span><span class="sug">handful</span></div></span></div>
                 <div class="lockhint">a bunch is ~25 of cilantro’s 2.22 g sprigs. <b>A line that NAMES a thing is never overruled</b>; a refused <code>cup</code> is a density gap and a refused count is a piece-weight gap, and each names the number it wants.</div>
             </div>
 
@@ -288,7 +288,7 @@
                     <p class="flabel" style="margin:9px 0 6px">Did you mean</p>
                     <div class="suggests" style="margin-top:0"><span class="sug pick">↪ your recipe · Romesco Aioli</span><span class="sug">Aioli, jarred</span></div>
                     <div class="ghostbtn">⌕ Something else</div>
-                    <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip off">¼ cup</span></span></div>
+                    <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip off">1/4 cup</span></span></div>
                     <div class="lockhint">Nothing links itself — the chip is an offer. Ignore it and this line commits as plain text, exactly as today.</div>
                 </div>
                 <p class="flabel" style="margin:14px 20px 6px">The same card, once you tap the chip</p>
@@ -297,7 +297,7 @@
                     <div class="lockhint">linked — no ingredient match needed, no allowed-units gate. Valid for Save the moment its amount is set.</div>
                 </div>
                 <div class="lcard">
-                    <div class="l3 edit"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id" style="font-weight:400;color:var(--muted)">Italian Sausage (page 45)</span></span><span class="l3-pen">✎</span></div>
+                    <div class="l3 edit"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Italian Sausage (page 45)</span></span><span class="l3-pen">✎</span></div>
                     <div class="lockhint">offered, declined — commits byte-identical to today’s plain line</div>
                 </div>
                 <div class="savebtn">Save recipe</div>
@@ -379,7 +379,7 @@
 
             <p class="conv-note" style="margin-top:14px">and in the method, one step below:</p>
             <div class="stepcard" style="margin:0 20px">
-                <div class="steptext">Wilt the <span class="mchip">Kale</span> in the pan with the <span class="mchip">Garlic</span>, then season.</div>
+                <div class="steptext">Wilt the <span class="mchip">kale</span> in the pan with the <span class="mchip">Garlic</span>, then season.</div>
             </div>
             <div class="relabel" style="margin:8px 20px 0;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--frame)">
                 <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);flex:1">was “wild garlic”</span>
