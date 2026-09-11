@@ -497,7 +497,9 @@ function buildSql(plan: SeedPlan): { sql: string; counts: Counts } {
     "  and m.ingredient_id = i.id and m.deleted_at is null",
     "  and not exists (select 1 from (values",
     measures.length
-      ? measures.map((m) => `    (${q(m.ing_match)}, ${q(m.label)})`).join(",\n")
+      ? measures.map((m) => `    (${q(m.ing_match)}, ${q(m.label)})`).join(
+        ",\n",
+      )
       : "    (null::text, null::text)",
     "  ) as keep(match_text, label)",
     "  where keep.match_text = i.match_text and keep.label = m.label);",
@@ -507,7 +509,9 @@ function buildSql(plan: SeedPlan): { sql: string; counts: Counts } {
     "  and a.ingredient_id = i.id and a.deleted_at is null",
     "  and not exists (select 1 from (values",
     aliases.length
-      ? aliases.map((a) => `    (${q(a.ing_match)}, ${q(a.alias_match)})`).join(",\n")
+      ? aliases.map((a) => `    (${q(a.ing_match)}, ${q(a.alias_match)})`).join(
+        ",\n",
+      )
       : "    (null::text, null::text)",
     "  ) as keep(match_text, alias_match)",
     "  where keep.match_text = i.match_text and keep.alias_match = a.match_text);",
