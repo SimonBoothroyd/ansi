@@ -14,7 +14,7 @@
 -- the USDA reference set is a different thing with a different owner
 -- (ADR-0005, seed/scripts/seed_usda.md).
 --
--- 313 ingredients (313 complete, 0 stub), 148 aliases, 299 measures.
+-- 315 ingredients (315 complete, 0 stub), 152 aliases, 302 measures.
 
 begin;
 
@@ -33,11 +33,15 @@ on conflict (id) do update set is_template = true;
 -- 'seed' before they land here — otherwise the row would seed and then
 -- reach no household at all. Every other stamp is the row's real
 -- provenance and is carried verbatim.
--- Re-stamped this run: 0 ingredient sources, 9 alias sources.
+-- Re-stamped this run: 0 ingredient sources, 13 alias sources.
+--   alias: fresh basil, reserved for garnish → Basil
+--   alias: butter beans → Canned Butter Beans
 --   alias: diced fresh tomatoes → Cherry Tomatoes
 --   alias: chipotle chile flakes → Chipotle Chili Powder
 --   alias: stone-ground mustard or Creole mustard → Dijon Mustard
+--   alias: smoked chilli harissa paste, or ordinary harissa paste → Harissa Paste
 --   alias: olive oil or cooking oil of choice → Olive Oil
+--   alias: Olive oil, for frying → Olive Oil
 --   alias: dried sage → Ground Sage
 --   alias: vegan cheddar or American cheese → Vegan Mozzarella
 --   alias: boiling water → Water
@@ -102,6 +106,7 @@ with v(canonical_name, category, default_unit, macros_basis, density_g_per_ml, m
   ('Buckwheat Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.5072::numeric, '{"carb":70.59,"fat":3.1,"fiber":10,"kcal":335,"protein":12.62}'::jsonb, 'complete'::text, 'usda_fdc:170687'::text, 'Buckwheat flour, whole-groat'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'buckwheat flour'::text),
   ('Bulgur'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.5917::numeric, '{"carb":75.87,"fat":1.33,"fiber":12.5,"kcal":342,"protein":12.29}'::jsonb, 'complete'::text, 'usda_fdc:170688'::text, 'Bulgur, dry'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'bulgur'::text),
   ('Burger Buns'::text, 'grains'::text, 'piece'::text, 'g'::text, 0.18::numeric, '{"carb":50.12,"fat":3.91,"fiber":1.8,"kcal":279,"protein":9.77}'::jsonb, 'complete'::text, 'usda_fdc:172796 + fao_infoods_v2:Bread, roll, soft'::text, 'Rolls, hamburger or hotdog, plain'::text, null::numeric, false, 44::numeric, 'borrowed from bun'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'burger bun'::text),
+  ('Canned Butter Beans'::text, 'pantry'::text, 'cup'::text, 'ml'::text, 1.0989557378099::numeric, '{"carb":14.370959648283275,"fat":0.845350567546075,"fiber":3.3814022701843,"kcal":84.5350567546075,"protein":5.07210340527645}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["g","oz","cup","kg","lb"]'::jsonb, 'butter bean canned'::text),
   ('Butternut Squash'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5917::numeric, '{"carb":11.69,"fat":0.1,"fiber":2,"kcal":45,"protein":1}'::jsonb, 'complete'::text, 'usda_fdc:169295'::text, 'Squash, winter, butternut, raw'::text, null::numeric, false, 1130::numeric, 'borrowed from squash, whole'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'butternut squash'::text),
   ('Cabbage'::text, 'produce'::text, 'lb'::text, 'g'::text, 0.3762::numeric, '{"carb":5.8,"fat":0.1,"fiber":2.5,"kcal":25,"protein":1.28}'::jsonb, 'complete'::text, 'usda_fdc:169975'::text, 'Cabbage, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'cabbage'::text),
   ('Canned Cannellini Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.72::numeric, '{"carb":20.22,"fat":0.9,"fiber":5.5,"kcal":114,"protein":6.99}'::jsonb, 'complete'::text, 'usda_fdc:174286 — borrowed (pinto, drained solids)'::text, 'Beans, pinto, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb, 'cannellini bean canned'::text),
@@ -186,6 +191,7 @@ with v(canonical_name, category, default_unit, macros_basis, density_g_per_ml, m
   ('Green Bell Pepper'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6289::numeric, '{"carb":4.64,"fat":0.17,"fiber":1.7,"kcal":20,"protein":0.86}'::jsonb, 'complete'::text, 'usda_fdc:170427'::text, 'Peppers, sweet, green, raw'::text, null::numeric, false, 119::numeric, 'borrowed from pepper, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'green bell pepper'::text),
   ('Green Grapes'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.6382::numeric, '{"carb":18.1,"fat":0.16,"fiber":0.9,"kcal":69,"protein":0.72}'::jsonb, 'complete'::text, 'usda_fdc:174683'::text, 'Grapes, red or green (European type, such as Thompson seedless), raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'green grape'::text),
   ('Green Olives'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.65::numeric, '{"carb":3.84,"fat":15.32,"fiber":3.3,"kcal":145,"protein":1.03}'::jsonb, 'complete'::text, 'usda_fdc:169096 + fao_infoods_v2:Olives, green, with stone'::text, 'Olives, pickled, canned or bottled, green'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'green olive'::text),
+  ('Harissa Paste'::text, 'pantry'::text, 'tbsp'::text, 'ml'::text, 0.946792635651604::numeric, '{"carb":16.9070113509215,"fat":20.2884136211058,"fiber":3.3814022701843,"kcal":236.698158912901,"protein":3.3814022701843}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["g","oz","tbsp","tsp","ml","kg","lb"]'::jsonb, 'harissa paste'::text),
   ('Hazelnuts'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.4861::numeric, '{"carb":16.7,"fat":60.75,"fiber":9.7,"kcal":628,"protein":14.95}'::jsonb, 'complete'::text, 'usda_fdc:170581'::text, 'Nuts, hazelnuts or filberts'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'hazelnut'::text),
   ('Hemp Seeds'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.6763::numeric, '{"carb":8.67,"fat":48.75,"fiber":4,"kcal":553,"protein":31.56}'::jsonb, 'complete'::text, 'usda_fdc:170148'::text, 'Seeds, hemp seed, hulled'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'hemp seed'::text),
   ('High-Heat Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:172338'::text, 'Oil, sunflower, high oleic (70% and over)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'high heat oil'::text),
@@ -465,6 +471,7 @@ from (values
   ('buckwheat flour', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('bulgur', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('burger bun', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('butter bean canned', '["g","oz","cup","kg","lb"]'::jsonb),
   ('butternut squash', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('cabbage', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
   ('cannellini bean canned', '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb),
@@ -549,6 +556,7 @@ from (values
   ('green bell pepper', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('green grape', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
   ('green olive', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('harissa paste', '["g","oz","tbsp","tsp","ml","kg","lb"]'::jsonb),
   ('hazelnut', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('hemp seed', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('high heat oil', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
@@ -748,7 +756,7 @@ begin
   with gone as (
     update ingredient i set deleted_at = now(), updated_at = now()
     where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at is null
-      and i.match_text not in ('active yeast dry', 'agave', 'all purpose flour', 'allspice ground', 'almond', 'almond butter', 'almond flour', 'almond milk', 'apple', 'apple cider vinegar', 'applesauce', 'apricot', 'arugula', 'asparagus', 'avocado', 'avocado oil', 'baked bean canned', 'baking powder', 'baking soda', 'balsamic vinegar', 'banana', 'basil', 'bay leaf', 'beet', 'beyond hot italian style sausage', 'black bean canned', 'black bean dried', 'black eyed pea canned', 'black eyed pea dried', 'black pepper', 'black rice', 'blueberry', 'bouillon paste', 'brazil nut', 'bread flour', 'breaded vegan chicken nugget', 'broccoli', 'brown rice', 'brown rice cooked', 'brown sugar', 'brussel sprout', 'buckwheat', 'buckwheat flour', 'bulgur', 'burger bun', 'butternut squash', 'cabbage', 'cannellini bean canned', 'cannellini bean dried', 'canola oil', 'cantaloupe', 'caper', 'carrot', 'cashew', 'cauliflower', 'cavatappi', 'cayenne pepper', 'celery', 'cherry', 'cherry tomato', 'chia seed', 'chickpea canned', 'chickpea dried', 'chickpea flour', 'chili powder', 'chipotle chili powder', 'chive', 'cilantro', 'cinnamon ground', 'cinnamon stick', 'clove ground', 'cocoa powder', 'coconut flake dried', 'coconut milk canned', 'coconut oil', 'collard green', 'coriander ground', 'corn', 'corn frozen', 'corn oil', 'corn tortilla', 'cornmeal', 'cornstarch', 'cranberry dried', 'cremini mushroom', 'crispy onion', 'cucumber', 'cumin ground', 'currant dried', 'curry powder', 'dark red kidney bean canned', 'date', 'dijon mustard', 'dill', 'dill pickle', 'ditalini', 'earth balance butter', 'edamame', 'edamame frozen', 'eggplant', 'english muffin', 'enoki mushroom', 'extra firm tofu', 'extra virgin olive oil', 'farro', 'fennel', 'fennel seed', 'fig dried', 'fine sea salt', 'fire tomato canned roasted', 'flaky salt', 'flaxseed meal', 'flour tortilla', 'french green lentil dried', 'gala apple', 'garlic', 'garlic powder', 'ginger', 'gold potato', 'golden raisin', 'granny smith apple', 'granulated sugar', 'grapefruit', 'great northern bean canned', 'green bean', 'green bean canned', 'green bell pepper', 'green grape', 'green olive', 'hazelnut', 'hemp seed', 'high heat oil', 'hot sauce', 'hummus', 'iceberg lettuce', 'instant yeast', 'italian herb', 'jalapeno', 'kala namak', 'kale', 'ketchup', 'kimchi', 'king oyster mushroom', 'kiwi', 'kombu', 'kosher salt', 'leek', 'lemon', 'lemon juice', 'lemon zest', 'lentil canned', 'lentil cooked', 'lentil dried', 'light red kidney bean canned', 'lime', 'lime juice', 'lion mane mushroom', 'liquid amino', 'liquid smoke', 'maitake mushroom', 'mango', 'maple syrup', 'mild garlic chili crisp', 'mini pretzel', 'mint', 'miso', 'mixed peppercorn', 'multigrain bread', 'mung bean dried', 'napa cabbage', 'navy bean canned', 'nectarine', 'nori', 'nutmeg ground', 'nutritional yeast', 'oat milk lite', 'oat whipped cream', 'okra', 'olive oil', 'onion', 'onion powder', 'orange', 'orange bell pepper', 'orange juice', 'orange zest', 'oregano dried', 'oregano fresh', 'oyster mushroom', 'panko', 'paprika', 'paprika smoked', 'parsley', 'parsnip', 'pasta', 'pasta cooked', 'pea', 'pea frozen', 'peach', 'peanut', 'peanut butter', 'peanut oil', 'pecan', 'pine nut', 'pineapple', 'pinto bean canned', 'pistachio', 'plain oat yogurt', 'plantain', 'poblano pepper', 'portobello mushroom', 'pumpkin seed', 'quinoa', 'quinoa cooked', 'radish', 'raisin', 'raspberry', 'red bell pepper', 'red cabbage', 'red chili fresh', 'red delicious apple', 'red grape', 'red leaf lettuce', 'red onion', 'red pepper flake', 'red potato', 'red rice', 'red wine', 'red wine vinegar', 'rhubarb', 'rice vinegar', 'rolled oat', 'romaine lettuce', 'rosemary', 'russet potato', 'safflower oil', 'sage ground', 'sauerkraut', 'scallion', 'sea salt', 'semolina flour', 'serrano pepper', 'sesame oil toasted', 'sesame seed', 'shallot', 'sherry vinegar', 'shiitake mushroom', 'silken tofu', 'soft sandwich bread', 'soy milk', 'soy sauce', 'spaghetti', 'spelt flour', 'spinach', 'sprouted multigrain bread', 'sriracha', 'star anise', 'steel oat', 'strawberry', 'sugar powdered', 'sunflower oil', 'sunflower seed', 'super firm tofu', 'sweet paprika', 'sweet potato', 'sweetcorn canned', 'table salt', 'tahini', 'tamari', 'tempeh', 'thai basil', 'thyme dried', 'thyme fresh', 'tipo flour', 'tomato', 'tomato canned', 'tomato canned diced', 'tomato canned whole', 'tomato paste', 'tomato puree canned', 'tomato sauce canned', 'tortilla chip', 'tostada shell', 'turmeric ground', 'turnip', 'ume plum vinegar', 'vanilla extract', 'vegan cheddar', 'vegan mayonnaise', 'vegan mozzarella', 'vegan parmesan', 'vegan worcestershire sauce', 'vegetable broth', 'vegetable oil', 'walnut', 'water', 'watermelon', 'wheat bread whole', 'wheat chex cereal', 'wheat flour whole', 'white basmati rice', 'white bread', 'white jasmine rice', 'white mushroom', 'white rice', 'white rice cooked', 'white rice flour', 'white sorghum flour', 'white vinegar', 'wild rice', 'yellow bell pepper', 'yellow mustard', 'yellow squash', 'zucchini')
+      and i.match_text not in ('active yeast dry', 'agave', 'all purpose flour', 'allspice ground', 'almond', 'almond butter', 'almond flour', 'almond milk', 'apple', 'apple cider vinegar', 'applesauce', 'apricot', 'arugula', 'asparagus', 'avocado', 'avocado oil', 'baked bean canned', 'baking powder', 'baking soda', 'balsamic vinegar', 'banana', 'basil', 'bay leaf', 'beet', 'beyond hot italian style sausage', 'black bean canned', 'black bean dried', 'black eyed pea canned', 'black eyed pea dried', 'black pepper', 'black rice', 'blueberry', 'bouillon paste', 'brazil nut', 'bread flour', 'breaded vegan chicken nugget', 'broccoli', 'brown rice', 'brown rice cooked', 'brown sugar', 'brussel sprout', 'buckwheat', 'buckwheat flour', 'bulgur', 'burger bun', 'butter bean canned', 'butternut squash', 'cabbage', 'cannellini bean canned', 'cannellini bean dried', 'canola oil', 'cantaloupe', 'caper', 'carrot', 'cashew', 'cauliflower', 'cavatappi', 'cayenne pepper', 'celery', 'cherry', 'cherry tomato', 'chia seed', 'chickpea canned', 'chickpea dried', 'chickpea flour', 'chili powder', 'chipotle chili powder', 'chive', 'cilantro', 'cinnamon ground', 'cinnamon stick', 'clove ground', 'cocoa powder', 'coconut flake dried', 'coconut milk canned', 'coconut oil', 'collard green', 'coriander ground', 'corn', 'corn frozen', 'corn oil', 'corn tortilla', 'cornmeal', 'cornstarch', 'cranberry dried', 'cremini mushroom', 'crispy onion', 'cucumber', 'cumin ground', 'currant dried', 'curry powder', 'dark red kidney bean canned', 'date', 'dijon mustard', 'dill', 'dill pickle', 'ditalini', 'earth balance butter', 'edamame', 'edamame frozen', 'eggplant', 'english muffin', 'enoki mushroom', 'extra firm tofu', 'extra virgin olive oil', 'farro', 'fennel', 'fennel seed', 'fig dried', 'fine sea salt', 'fire tomato canned roasted', 'flaky salt', 'flaxseed meal', 'flour tortilla', 'french green lentil dried', 'gala apple', 'garlic', 'garlic powder', 'ginger', 'gold potato', 'golden raisin', 'granny smith apple', 'granulated sugar', 'grapefruit', 'great northern bean canned', 'green bean', 'green bean canned', 'green bell pepper', 'green grape', 'green olive', 'harissa paste', 'hazelnut', 'hemp seed', 'high heat oil', 'hot sauce', 'hummus', 'iceberg lettuce', 'instant yeast', 'italian herb', 'jalapeno', 'kala namak', 'kale', 'ketchup', 'kimchi', 'king oyster mushroom', 'kiwi', 'kombu', 'kosher salt', 'leek', 'lemon', 'lemon juice', 'lemon zest', 'lentil canned', 'lentil cooked', 'lentil dried', 'light red kidney bean canned', 'lime', 'lime juice', 'lion mane mushroom', 'liquid amino', 'liquid smoke', 'maitake mushroom', 'mango', 'maple syrup', 'mild garlic chili crisp', 'mini pretzel', 'mint', 'miso', 'mixed peppercorn', 'multigrain bread', 'mung bean dried', 'napa cabbage', 'navy bean canned', 'nectarine', 'nori', 'nutmeg ground', 'nutritional yeast', 'oat milk lite', 'oat whipped cream', 'okra', 'olive oil', 'onion', 'onion powder', 'orange', 'orange bell pepper', 'orange juice', 'orange zest', 'oregano dried', 'oregano fresh', 'oyster mushroom', 'panko', 'paprika', 'paprika smoked', 'parsley', 'parsnip', 'pasta', 'pasta cooked', 'pea', 'pea frozen', 'peach', 'peanut', 'peanut butter', 'peanut oil', 'pecan', 'pine nut', 'pineapple', 'pinto bean canned', 'pistachio', 'plain oat yogurt', 'plantain', 'poblano pepper', 'portobello mushroom', 'pumpkin seed', 'quinoa', 'quinoa cooked', 'radish', 'raisin', 'raspberry', 'red bell pepper', 'red cabbage', 'red chili fresh', 'red delicious apple', 'red grape', 'red leaf lettuce', 'red onion', 'red pepper flake', 'red potato', 'red rice', 'red wine', 'red wine vinegar', 'rhubarb', 'rice vinegar', 'rolled oat', 'romaine lettuce', 'rosemary', 'russet potato', 'safflower oil', 'sage ground', 'sauerkraut', 'scallion', 'sea salt', 'semolina flour', 'serrano pepper', 'sesame oil toasted', 'sesame seed', 'shallot', 'sherry vinegar', 'shiitake mushroom', 'silken tofu', 'soft sandwich bread', 'soy milk', 'soy sauce', 'spaghetti', 'spelt flour', 'spinach', 'sprouted multigrain bread', 'sriracha', 'star anise', 'steel oat', 'strawberry', 'sugar powdered', 'sunflower oil', 'sunflower seed', 'super firm tofu', 'sweet paprika', 'sweet potato', 'sweetcorn canned', 'table salt', 'tahini', 'tamari', 'tempeh', 'thai basil', 'thyme dried', 'thyme fresh', 'tipo flour', 'tomato', 'tomato canned', 'tomato canned diced', 'tomato canned whole', 'tomato paste', 'tomato puree canned', 'tomato sauce canned', 'tortilla chip', 'tostada shell', 'turmeric ground', 'turnip', 'ume plum vinegar', 'vanilla extract', 'vegan cheddar', 'vegan mayonnaise', 'vegan mozzarella', 'vegan parmesan', 'vegan worcestershire sauce', 'vegetable broth', 'vegetable oil', 'walnut', 'water', 'watermelon', 'wheat bread whole', 'wheat chex cereal', 'wheat flour whole', 'white basmati rice', 'white bread', 'white jasmine rice', 'white mushroom', 'white rice', 'white rice cooked', 'white rice flour', 'white sorghum flour', 'white vinegar', 'wild rice', 'yellow bell pepper', 'yellow mustard', 'yellow squash', 'zucchini')
     returning i.id
   ), gone_aliases as (
     update ingredient_alias a set deleted_at = now(), updated_at = now()
@@ -806,6 +814,8 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('broccoli', 'crown'),
     ('brussel sprout', 'sprout'),
     ('burger bun', 'bun'),
+    ('butter bean canned', 'can (15 oz)'),
+    ('butter bean canned', 'serving · 1/2 cup'),
     ('butternut squash', 'squash, whole'),
     ('cabbage', 'head, medium'),
     ('cabbage', 'leaf, medium'),
@@ -891,6 +901,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('green bell pepper', 'strip'),
     ('green grape', 'grape'),
     ('green olive', 'olive'),
+    ('harissa paste', 'serving · 2 tbsp'),
     ('hazelnut', 'nut'),
     ('iceberg lettuce', 'head, medium'),
     ('iceberg lettuce', 'leaf, medium'),
@@ -1083,6 +1094,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('baking soda', 'bicarbonate soda'),
     ('baking soda', 'sodium bicarbonate'),
     ('basil', 'basil leaf fresh'),
+    ('basil', 'basil reserved for garnish fresh'),
     ('bay leaf', 'bay leaf dried'),
     ('beet', 'beetroot'),
     ('beyond hot italian style sausage', 'beyond meat sausage'),
@@ -1092,6 +1104,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('blueberry', 'mixed berry'),
     ('breaded vegan chicken nugget', 'breaded vegan chicken strip'),
     ('burger bun', 'hamburger bun'),
+    ('butter bean canned', 'butter bean'),
     ('cannellini bean canned', 'cannellini bean'),
     ('cashew', 'cashew raw'),
     ('cayenne pepper', 'cayenne'),
@@ -1139,6 +1152,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('granulated sugar', 'granulated cane sugar'),
     ('granulated sugar', 'sugar'),
     ('green bean', 'green bean fresh'),
+    ('harissa paste', 'chilli harissa paste ordinary harissa paste smoked'),
     ('instant yeast', 'rapid rise instant yeast'),
     ('kombu', 'strip kombu'),
     ('lemon juice', 'lemon juice fresh'),
@@ -1157,6 +1171,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('oat milk lite', 'minor figure barista oat lite'),
     ('okra', 'okra fresh'),
     ('olive oil', 'olive oil cooking oil choice'),
+    ('olive oil', 'olive oil for frying'),
     ('orange', 'navel orange'),
     ('oregano fresh', 'oregano'),
     ('panko', 'panko bread crumb'),
@@ -1242,6 +1257,7 @@ join (values
   ('baking soda', 'bicarbonate of soda', 'bicarbonate soda', 'seed'),
   ('baking soda', 'sodium bicarbonate', 'sodium bicarbonate', 'seed'),
   ('basil', 'fresh basil leaves', 'basil leaf fresh', 'seed'),
+  ('basil', 'fresh basil, reserved for garnish', 'basil reserved for garnish fresh', 'seed'),
   ('bay leaf', 'dried bay leaves', 'bay leaf dried', 'seed'),
   ('beet', 'beetroot', 'beetroot', 'seed'),
   ('beyond hot italian style sausage', 'Beyond Meat Sausage', 'beyond meat sausage', 'seed'),
@@ -1251,6 +1267,7 @@ join (values
   ('blueberry', 'mixed berries', 'mixed berry', 'seed'),
   ('breaded vegan chicken nugget', 'breaded vegan chicken strips', 'breaded vegan chicken strip', 'seed'),
   ('burger bun', 'hamburger buns', 'hamburger bun', 'seed'),
+  ('butter bean canned', 'butter beans', 'butter bean', 'seed'),
   ('cannellini bean canned', 'cannellini beans', 'cannellini bean', 'seed'),
   ('cashew', 'raw cashews', 'cashew raw', 'seed'),
   ('cayenne pepper', 'cayenne', 'cayenne', 'seed'),
@@ -1298,6 +1315,7 @@ join (values
   ('granulated sugar', 'granulated cane sugar', 'granulated cane sugar', 'seed'),
   ('granulated sugar', 'sugar', 'sugar', 'seed'),
   ('green bean', 'fresh green beans', 'green bean fresh', 'seed'),
+  ('harissa paste', 'smoked chilli harissa paste, or ordinary harissa paste', 'chilli harissa paste ordinary harissa paste smoked', 'seed'),
   ('instant yeast', 'rapid rise instant yeast', 'rapid rise instant yeast', 'seed'),
   ('kombu', 'strip kombu', 'strip kombu', 'seed'),
   ('lemon juice', 'fresh lemon juice', 'lemon juice fresh', 'seed'),
@@ -1316,6 +1334,7 @@ join (values
   ('oat milk lite', 'minor figures barista oat lite', 'minor figure barista oat lite', 'manual'),
   ('okra', 'fresh okra', 'okra fresh', 'seed'),
   ('olive oil', 'olive oil or cooking oil of choice', 'olive oil cooking oil choice', 'seed'),
+  ('olive oil', 'Olive oil, for frying', 'olive oil for frying', 'seed'),
   ('orange', 'navel oranges', 'navel orange', 'seed'),
   ('oregano fresh', 'chopped oregano', 'oregano', 'seed'),
   ('panko', 'panko bread crumbs', 'panko bread crumb', 'seed'),
@@ -1438,6 +1457,8 @@ join (values
   ('broccoli', 'crown', 150::numeric, 2::int, 'seed:typical'::text),
   ('brussel sprout', 'sprout', 19::numeric, 0::int, 'usda_fdc:170383 (1 sprout)'::text),
   ('burger bun', 'bun', 44::numeric, 0::int, 'usda_fdc:172796 (1 roll 1 serving) — relabeled'::text),
+  ('butter bean canned', 'can (15 oz)', 425::numeric, 0::int, 'manual'::text),
+  ('butter bean canned', 'serving · 1/2 cup', 118.29411825::numeric, 0::int, 'manual'::text),
   ('butternut squash', 'squash, whole', 1130::numeric, 0::int, 'seed:typical'::text),
   ('cabbage', 'head, medium', 908::numeric, 0::int, 'usda_fdc:169975 (1 head, medium (about 5-3/4" dia))'::text),
   ('cabbage', 'leaf, medium', 23::numeric, 1::int, 'usda_fdc:169975 (1 leaf, medium)'::text),
@@ -1523,6 +1544,7 @@ join (values
   ('green bell pepper', 'strip', 2.7::numeric, 4::int, 'usda_fdc:170427 (10 strips)'::text),
   ('green grape', 'grape', 4.9::numeric, 0::int, 'usda_fdc:174683 (10 grapes)'::text),
   ('green olive', 'olive', 2.7::numeric, 0::int, 'usda_fdc:169096 (1 olive)'::text),
+  ('harissa paste', 'serving · 2 tbsp', 29.5735295625::numeric, 0::int, 'manual'::text),
   ('hazelnut', 'nut', 1.4::numeric, 0::int, 'usda_fdc:170581 (10 nuts)'::text),
   ('iceberg lettuce', 'head, medium', 539::numeric, 0::int, 'usda_fdc:169248 (1 head, medium (6" dia))'::text),
   ('iceberg lettuce', 'leaf, medium', 8::numeric, 1::int, 'usda_fdc:169248 (1 leaf, medium)'::text),
@@ -1720,7 +1742,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
 -- every such row is listed here with its diff, which is what the old
 -- curation_overrides.jsonl `allowed_units` entries used to be for.
 --
--- 303 of 313 rows differ from the derived rule:
+-- 305 of 315 rows differ from the derived rule:
 --   active yeast dry (Active Dry Yeast, default tsp): -fl_oz -l -pt -qt
 --   agave (Agave, default tbsp): -fl_oz -l -pt -qt
 --   all purpose flour (All-Purpose Flour, default cup): -fl_oz -l -pt -qt
@@ -1764,6 +1786,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
 --   buckwheat flour (Buckwheat Flour, default cup): -fl_oz -l -pt -qt
 --   bulgur (Bulgur, default cup): -fl_oz -l -pt -qt
 --   burger bun (Burger Buns, default piece): -fl_oz -l -pt -qt
+--   butter bean canned (Canned Butter Beans, default cup): -tsp -tbsp -fl_oz -ml -l -pt -qt
 --   butternut squash (Butternut Squash, default piece): -fl_oz -l -pt -qt -handful
 --   cabbage (Cabbage, default lb): -tsp -tbsp -fl_oz -l -pt -qt
 --   cannellini bean canned (Canned Cannellini Beans, default oz): -tsp -fl_oz -l -pt -qt
@@ -1845,6 +1868,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
 --   green bell pepper (Green Bell Pepper, default piece): -fl_oz -l -pt -qt -handful
 --   green grape (Green Grapes, default cup): -fl_oz -l -pt -qt
 --   green olive (Green Olives, default oz): -fl_oz -l -pt -qt
+--   harissa paste (Harissa Paste, default tbsp): -fl_oz -cup -l -pt -qt
 --   hazelnut (Hazelnuts, default cup): -fl_oz -l -pt -qt
 --   hemp seed (Hemp Seeds, default tbsp): -fl_oz -l -pt -qt
 --   high heat oil (High-Heat Oil, default tbsp): -fl_oz -l -pt -qt -pinch -dash -to_taste
@@ -2128,6 +2152,7 @@ begin
     ('broccoli'),
     ('brussel sprout'),
     ('burger bun'),
+    ('butter bean canned'),
     ('butternut squash'),
     ('cabbage'),
     ('cannellini bean canned'),
@@ -2173,6 +2198,7 @@ begin
     ('green bell pepper'),
     ('green grape'),
     ('green olive'),
+    ('harissa paste'),
     ('hazelnut'),
     ('iceberg lettuce'),
     ('instant yeast'),
