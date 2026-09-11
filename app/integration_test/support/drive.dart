@@ -251,4 +251,29 @@ Future<void> completeNewIngredientForm(WidgetTester tester) async {
     await tester.pump();
   }
   await tester.pumpAndSettle();
+  // A new row states its aisle before Save comes alive; nothing is defaulted
+  // into it, so the smoke coins one the way a person would.
+  await coinCategory(tester, 'pantry');
+}
+
+/// Names the new row's category through the picker's "New" door: the dialog
+/// takes the word and "Use it" files the row under it.
+Future<void> coinCategory(WidgetTester tester, String name) async {
+  // The picker sits in the Identity group near the top of a long form; the
+  // macros above scrolled it out of the built viewport.
+  await scrollTo(tester, find.text('CATEGORY'));
+  final newDoor = find.widgetWithText(FButton, 'New');
+  await tester.ensureVisible(newDoor);
+  await tester.tap(newDoor);
+  await pumpUntilFound(tester, find.text('New category'));
+  await tester.enterText(
+    find.descendant(
+      of: find.byType(FDialog),
+      matching: find.byType(EditableText),
+    ),
+    name,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.widgetWithText(FButton, 'Use it'));
+  await tester.pumpAndSettle();
 }

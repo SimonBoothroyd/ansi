@@ -18,9 +18,10 @@ import '../domain/ingredient.dart';
 import '../domain/serving_measure.dart';
 import 'measures_editor.dart' show SourceDot;
 
-/// The chip row in ADR-0008 order: the default unit's own set · measure
-/// chips (source dot + label) · demoted other-family units · imprecise after
-/// a divider · the `+` manage chip. Horizontally scrollable; docked directly
+/// The chip row in the order [allowedUnitChoicesFor] hands it: the row's own
+/// measures (source dot + label) · the default unit and the rest of its
+/// family · demoted other-family units · imprecise after a divider · the `+`
+/// manage chip. Horizontally scrollable; docked directly
 /// above the keyboard by the host sheet. On open it scrolls the selected
 /// chip into view — a stored selection can sit deep in a long row and must
 /// not open off-screen.
@@ -70,7 +71,7 @@ class _UnitChipRowState extends State<UnitChipRow> {
   @override
   Widget build(BuildContext context) {
     // The full offer comes from the domain filter — already in ADR-0008 chip
-    // order (default set → measures → demoted → imprecise), excluding
+    // order (measures → default set → demoted → imprecise), excluding
     // volume-named measures (density owns volume conversion, frame-b review)
     // and ALWAYS admitting the stored selection — a merge-hidden duplicate
     // measure or a no-longer-allowed unit stays reachable, flagged so it can

@@ -31,7 +31,7 @@ import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.da
 import 'package:ansi/features/ingredients/presentation/quantity_unit_sheet.dart'
     show QuantityUnitEditor;
 import 'package:ansi/features/ingredients/presentation/unit_chips.dart'
-    show UnitChipRow;
+    show UnitChip, UnitChipRow;
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/presentation/ingredient_line.dart'
@@ -231,8 +231,13 @@ void main() {
     expect(manualMeasure, isNotNull, reason: 'the manual measure synced row');
     expect(manualMeasure!['source'], 'manual');
     expect(manualMeasure['basis_amount'], 5);
-    // …then pick the seeded "clove" chip for the recipe's own line.
-    await tester.tap(find.text('clove').last);
+    // …then pick the seeded "clove" chip for the recipe's own line. The chip
+    // row scrolls sideways and the measures lead it, so bring the chip into
+    // view rather than tapping wherever it happens to sit.
+    final cloveChip = find.widgetWithText(UnitChip, 'clove');
+    await tester.ensureVisible(cloveChip);
+    await tester.pump();
+    await tester.tap(cloveChip);
     await tester.pump();
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
