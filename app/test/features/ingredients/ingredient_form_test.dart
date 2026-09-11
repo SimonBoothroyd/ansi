@@ -428,12 +428,8 @@ void main() {
       expect(find.text('mango, medium'), findsOneWidget);
 
       // Author one, in the row's basis unit.
-      final add = find.descendant(
-        of: find.byType(MeasuresEditor),
-        matching: find.byType(TextField),
-      );
-      await tester.enterText(add.first, 'half cheek');
-      await tester.enterText(add.last, '90');
+      await tester.enterText(measureLabelField, 'half cheek');
+      await tester.enterText(measureAmountField, '90');
       await tester.pump();
       await tester.tap(
         find.descendant(
@@ -549,15 +545,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // It opens on the add form's own shape, seeded with what is stored.
-      final edit = find.descendant(
-        of: find.byKey(const ValueKey('edit-measure-m-usda')),
-        matching: find.byType(TextField),
-      );
-      expect(edit, findsNWidgets(2));
       expect(find.text('EDIT MEASURE'), findsOneWidget);
-      await tester.enterText(edit.first, 'mango, large');
-      await tester.enterText(edit.last, '240');
-      await tester.pump();
+      await tester.enterText(editMeasureLabelField, 'mango, large');
+      await tester.enterText(editMeasureAmountField, '240');
+      await tester.pumpAndSettle();
       await tester.tap(
         find.descendant(
           of: find.byKey(const ValueKey('edit-measure-m-usda')),
@@ -590,12 +581,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final add = find.descendant(
-        of: find.byType(MeasuresEditor),
-        matching: find.byType(TextField),
-      );
-      await tester.enterText(add.first, 'half cheek');
-      await tester.enterText(add.last, '90');
+      await tester.enterText(measureLabelField, 'half cheek');
+      await tester.enterText(measureAmountField, '90');
       await tester.pump();
       await tester.tap(
         find.descendant(
@@ -612,13 +599,9 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      final edit = find.descendant(
-        of: find.byType(MeasuresEditor),
-        matching: find.byType(TextField),
-      );
-      await tester.enterText(edit.first, 'quarter cheek');
-      await tester.enterText(edit.at(1), '45');
-      await tester.pump();
+      await tester.enterText(editMeasureLabelField, 'quarter cheek');
+      await tester.enterText(editMeasureAmountField, '45');
+      await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FButton, 'Save').first);
       await tester.pumpAndSettle();
 
@@ -629,6 +612,47 @@ void main() {
       expect(asked.measuresAdded.single.label, 'quarter cheek');
       expect(asked.measuresAdded.single.amount, 45);
       expect(asked.measuresRemoved, isEmpty);
+    });
+
+    testWidgets("a measure's amount takes the unit it was weighed in, and is "
+        'stored in the basis', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final measures = FakeMeasureRepo();
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [mango]),
+          at: editRoute('mango'),
+          measures: measures,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // This row states a density, so the volume family is reachable too —
+      // the same gate the chips use, read for an amount the form is about to
+      // store in the basis.
+      await tester.tap(find.byKey(const ValueKey('add-measure-unit')));
+      await tester.pumpAndSettle();
+      expect(find.text('cup'), findsWidgets);
+      await tester.tap(find.text('oz').last);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(measureLabelField, 'half cheek');
+      await tester.enterText(measureAmountField, '4');
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(MeasuresEditor),
+          matching: find.widgetWithText(FButton, 'Add'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final repo = repoOf(tester);
+      await saveForm(tester);
+      final asked = repo.savedForms.single.measuresAdded.single;
+      expect(asked.label, 'half cheek');
+      expect(asked.amount, closeTo(4 * 28.349523125, 1e-9));
     });
 
     testWidgets('a volume-named measure label is still refused and redirected '
@@ -645,12 +669,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final add = find.descendant(
-        of: find.byType(MeasuresEditor),
-        matching: find.byType(TextField),
-      );
-      await tester.enterText(add.first, 'cup');
-      await tester.enterText(add.last, '120');
+      await tester.enterText(measureLabelField, 'cup');
+      await tester.enterText(measureAmountField, '120');
       await tester.pump();
       await tester.tap(
         find.descendant(
@@ -830,12 +850,8 @@ void main() {
       expect(find.text('COUNTS AS'), findsNothing);
       expect(find.text('One mango is'), findsNothing);
 
-      final fields = find.descendant(
-        of: find.byType(MeasuresEditor),
-        matching: find.byType(TextField),
-      );
-      await tester.enterText(fields.first, 'mango, medium');
-      await tester.enterText(fields.last, '207');
+      await tester.enterText(measureLabelField, 'mango, medium');
+      await tester.enterText(measureAmountField, '207');
       await tester.pump();
       await tester.tap(
         find.descendant(

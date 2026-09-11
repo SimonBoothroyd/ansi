@@ -23,7 +23,6 @@ import 'package:ansi/features/ingredients/domain/usda_probe.dart';
 import 'package:ansi/features/ingredients/presentation/density_entry.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_list_view.dart';
-import 'package:ansi/features/ingredients/presentation/measures_editor.dart';
 import 'package:ansi/features/ingredients/presentation/piece_weight_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -219,6 +218,15 @@ final Finder densityAmountField = find.descendant(
   matching: find.byType(TextField),
 );
 
+/// The two unit pickers in the density sentence — its volume side and its
+/// weight side.
+final Finder densityAmountUnit = find.byKey(
+  const ValueKey('density-amount-unit'),
+);
+final Finder densityGramsUnit = find.byKey(
+  const ValueKey('density-grams-unit'),
+);
+
 /// The macro input for [label] — keyed on the form so position changes can't
 /// silently retarget these.
 Finder macroField(String label) => find.descendant(
@@ -323,15 +331,32 @@ Future<void> tapBack(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// The measures editor's label input — a field the form's own save never
-/// touches, so a pending edit in it is the control for "did the re-seed
+/// The measures editor's add-form label input — a field the form's own save
+/// never touches, so a pending edit in it is the control for "did the re-seed
 /// clobber anything else".
-final Finder measureLabelField = find
-    .descendant(
-      of: find.byType(MeasuresEditor),
-      matching: find.byType(TextField),
-    )
-    .first;
+final Finder measureLabelField = find.descendant(
+  of: find.byKey(const ValueKey('add-measure-label')),
+  matching: find.byType(TextField),
+);
+
+/// The add form's amount slot, and the unit it is weighed in. Keyed rather
+/// than found by position: the amount's unit picker is itself a text field, so
+/// "the last TextField in the editor" stopped meaning the amount.
+final Finder measureAmountField = find.descendant(
+  of: find.byKey(const ValueKey('add-measure-amount')),
+  matching: find.byType(TextField),
+);
+final Finder measureUnitPicker = find.byKey(const ValueKey('add-measure-unit'));
+
+/// The same two, in the form a tapped row opens into.
+final Finder editMeasureLabelField = find.descendant(
+  of: find.byKey(const ValueKey('edit-measure-label')),
+  matching: find.byType(TextField),
+);
+final Finder editMeasureAmountField = find.descendant(
+  of: find.byKey(const ValueKey('edit-measure-amount')),
+  matching: find.byType(TextField),
+);
 
 /// A default-unit chip by label, scoped to the D4c selector row — the row
 /// draws only the units the ingredient can be counted in, so this also asks
@@ -469,16 +494,22 @@ final Finder pieceWeightField = find.descendant(
   matching: find.byType(TextField),
 );
 
+/// Picks [label] in one amount-and-unit control's unit select — the control
+/// every amount-with-a-unit in the form now wears.
+Future<void> pickUnit(WidgetTester tester, Finder select, String label) async {
+  await tester.tap(select);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(label).last);
+  await tester.pumpAndSettle();
+}
+
 /// Puts a density in the form's DRAFT (plan 0029 W5). The entry's inline
 /// button reads `Add` on this host, because on this host it writes nothing —
-/// the form's own Save is what lands it. `ml`'s ratio to base is 1, so
-/// picking it makes the typed number a raw g/ml.
+/// the form's own Save is what lands it. `ml` and `g` both have a ratio to
+/// base of 1, so picking `ml` on the left makes the typed number a raw g/ml.
 Future<void> draftDensity(WidgetTester tester, String gPerMl) async {
   await openDensityEntry(tester);
-  await tester.tap(
-    find.descendant(of: find.byType(DensityEntry), matching: find.text('ml')),
-  );
-  await tester.pump();
+  await pickUnit(tester, densityAmountUnit, 'ml');
   await tester.enterText(densityField, gPerMl);
   await tester.pump();
   await tester.tap(find.widgetWithText(FButton, 'Add').first);

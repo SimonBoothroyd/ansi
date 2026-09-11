@@ -26,6 +26,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import '../../../core/words.dart';
+import '../../../shared/amount_and_unit.dart';
 import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
@@ -313,6 +314,10 @@ class _MakesSection extends HookWidget {
 }
 
 /// One "amount + unit" yield row, with the second slot's remove affordance.
+///
+/// The pair is [AmountAndUnitField] — the same control the density, the piece
+/// weight, a measure's amount and the serving use, so a number with a unit is
+/// stated the same way wherever it is stated.
 class _YieldRow extends StatelessWidget {
   const _YieldRow({
     required this.quantity,
@@ -333,33 +338,17 @@ class _YieldRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        SizedBox(
-          width: 110,
-          child: FTextField(
-            hint: 'amount',
-            keyboardType: TextInputType.text,
-            control: FTextFieldControl.managed(
-              initial: TextEditingValue(text: formatQuantity(quantity)),
-              onChange: (v) => onChanged(parseAmount(v.text), unit),
-            ),
+        AmountAndUnitField(
+          amountWidth: 64,
+          unitWidth: 120,
+          amount: formatQuantity(quantity),
+          unit: unit,
+          units: units,
+          onAmount: (t) => onChanged(
+            t.trim().isEmpty ? null : parseAmount(t),
+            unit,
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: FSelect<String>.rich(
-            format: (id) => unitById(id)?.label ?? '—',
-            control: FSelectControl<String>.lifted(
-              value: unit.id,
-              onChange: (id) {
-                final picked = id == null ? null : unitById(id);
-                if (picked != null) onChanged(quantity, picked);
-              },
-            ),
-            children: [
-              for (final u in units)
-                FSelectItem(title: Text(u.label), value: u.id),
-            ],
-          ),
+          onUnit: (u) => onChanged(quantity, u),
         ),
         if (onRemove != null) ...[
           const SizedBox(width: 4),

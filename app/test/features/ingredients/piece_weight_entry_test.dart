@@ -238,6 +238,46 @@ void main() {
     });
   });
 
+  group('the weight takes a unit', () {
+    testWidgets('an ounce reaches onSave as grams — the row still stores its '
+        'basis', (tester) async {
+      filterForuiSemanticsAssertions();
+      phoneWidth(tester);
+      final saves = <double>[];
+      await tester.pumpWidget(_host(_shallot, saves: saves));
+      await tester.pumpAndSettle();
+
+      await pickUnit(
+        tester,
+        find.byKey(const ValueKey('piece-weight-unit')),
+        'oz',
+      );
+      await tester.enterText(pieceWeightField, '4');
+      await tester.pumpAndSettle();
+      await tester.tap(_saveButton);
+      await tester.pumpAndSettle();
+
+      expect(saves.single, closeTo(4 * 28.349523125, 1e-9));
+    });
+
+    testWidgets('the picker offers only what this row can convert — the other '
+        'family waits on a density', (tester) async {
+      filterForuiSemanticsAssertions();
+      phoneWidth(tester);
+      await tester.pumpWidget(_host(_shallot));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('piece-weight-unit')));
+      await tester.pumpAndSettle();
+      expect(find.text('kg'), findsWidgets);
+      expect(
+        find.text('cup'),
+        findsNothing,
+        reason: 'no density on this row — a cup could not become grams',
+      );
+    });
+  });
+
   group('removing it', () {
     testWidgets('asks first, naming what it costs, and only then reports', (
       tester,

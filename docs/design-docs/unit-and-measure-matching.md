@@ -80,12 +80,38 @@ decides:
 
 **Density is the _only_ stored volume⇄mass fact.** A single
 `ingredient.density_g_per_ml` unlocks the whole other family. It is enterable
-as one sentence — "1 [tbsp] weighs [N] g" (`densityFromVolumeWeight`, which
-is `N / tbsp.ratioToBase`), with `ml` among the spoons so a known g/ml is
-typeable exactly as a different pick in the same row. A volume-named
-weight mapping **is** a density, so volume-named measures never exist as
-measures — the add-measure form redirects "cup" into the density field
-(`volumeUnitFromLabel` / `DensityEntry`).
+as one sentence — "[1] [cup] weighs [N] [g]" (`densityForPair`: the weight in
+grams over the volume in millilitres) — where **both sides take an amount and
+a unit**, one a volume and the other a weight, in either order. A pack prints
+*1/4 cup (30 g)* or *30 ml (1 oz)*, never grams per millilitre, and a sentence
+that fixed either half made the reader convert before they could type. `ml` and
+`g` are both on offer, so a known g/ml is still typeable exactly, as one pick in
+the same row. A volume-named weight mapping **is** a density, so volume-named
+measures never exist as measures — the add-measure form redirects "cup" into
+the density field (`volumeUnitFromLabel` / `DensityEntry`).
+
+### One control for a number with a unit
+
+Every amount this app stores alongside a unit is entered through one widget,
+`shared/amount_and_unit.dart` (`AmountAndUnitField`): an inline number slot and
+a unit picker trimmed to the same height, so the sentence around it stays a
+sentence at 402 pt. It is what the serving row, both sides of the density
+sentence, the piece weight, a measure's amount and the recipe's yield draw.
+
+The unit is **picked, not printed**, because a scale or a pack states one and
+it is rarely the row's basis: "1 onion weighs 4 oz", "half can = 7 oz". The
+amount is converted into what is stored — the basis for a measure or a piece
+weight, g/ml for a density — at save, so nothing downstream learns a new fact.
+What a given control offers is the honesty rule and only that:
+`basisConvertibleUnits(ingredient)` for anything stored in the basis (the
+row's own family, plus the other one while a density bridges it), and the
+whole mass+volume roster for the two sides of a density, which is what a
+density is for.
+
+The exception is a **component line's** amount (`component_quantity_sheet.dart`,
+ADR-0014): it restates a sub-recipe's stated yield, there is no density for a
+recipe, and it keeps its own `kComponentKitchenUnits` over a keypad and a chip
+row — a different control for a different question, deliberately not swapped.
 
 ### What a count means (ADR-0015)
 
@@ -365,8 +391,8 @@ honest unit to round to).
 | **Amount / quantity** | same sheet | the quantity field (nullable — "to taste" is allowed) |
 | **Add / rename / re-weigh / delete a measure** | manage state of the sheet (`_MeasureManager`), **and the ingredients manager's flesh-out form**, which embeds that same editor (8.5/F2) | `addMeasure` (saved `manual`), `renameMeasure` / `setMeasureAmount` (a row is the tap target; the id is kept, so every line already pointing at it follows the correction), `softDeleteMeasure` |
 | **Which measure is the typical one** | the same editor — the list drags | `reorderMeasures` stamps `sort_order` by position. **The first row is the typical measure**: it fronts the picker's measure chips (`allowedUnitChoicesFor`, whose callers pass the `sort_order`-sorted list) and it is the measure `wholeUnitHintFor` rounds to for a total whose contributions name none of their own. No flag, no pointer — the order says it. |
-| **Density** | manage state (`DensityEntry`, `density_entry.dart`) — again shared verbatim by the flesh-out form | g/ml or "a spoon weighs N g"; unlocks the other family live |
-| **Piece weight** | the flesh-out form's `PieceWeightEntry`, beside `DensityEntry`, and the same editor in the sheet's manage state | "1 piece weighs N g" in the row's basis unit; unlocks `piece` live, and clearing it locks `piece` again (ADR-0015) |
+| **Density** | manage state (`DensityEntry`, `density_entry.dart`) — again shared verbatim by the flesh-out form | "[1] [cup] weighs [N] [g]" — a volume and a weight, either order; unlocks the other family live |
+| **Piece weight** | the flesh-out form's `PieceWeightEntry`, beside `DensityEntry`, and the same editor in the sheet's manage state | "1 piece weighs [N] [oz]" — any unit the row can convert to its basis, stored in the basis; unlocks `piece` live, and clearing it locks `piece` again (ADR-0015) |
 | **Which units are _admitted_** (`allowed_units`) | the **ingredients manager**'s flesh-out form, `/ingredients/:id` (step 8.5) — the form ADR-0008 §Consequences promised, deferred to step 8, and finally built one step later | explicit jsonb list on `ingredient`, materialized at creation, now **directly editable as chips** on that form; a density save still extends it on its own (`densityUnlockedUnits`), and deleting the density strips that half back (D4b) |
 
 The picker itself is honest by construction: `allowedUnitChoicesFor` offers

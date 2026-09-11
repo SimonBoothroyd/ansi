@@ -18,18 +18,16 @@ import '../../helpers/fonts.dart';
 import '../../helpers/forui_semantics.dart';
 import '_form_harness.dart';
 
-/// The controls and words that make up `[1] [tbsp] weighs [__] g [Add]`. The
-/// sentence takes an amount on its left now — a pack prints "2 tbsp (32 g)"
-/// — so the run it has to fit at 402 pt is one field wider than it was.
+/// The controls and words that make up `[1] [tbsp] weighs [__] [g] [Add]`.
+/// Both sides take an amount and a unit now — a pack prints "1/4 cup (30 g)"
+/// or "30 ml (1 oz)" — so the run it has to fit at 402 pt is two pickers
+/// wide, and the chips it used to spend that width on are gone.
 List<Finder> _sentenceParts() => [
   find.byKey(const ValueKey('density-amount')),
-  find.widgetWithText(AnsiModeChip, 'tsp'),
-  find.widgetWithText(AnsiModeChip, 'tbsp'),
-  find.widgetWithText(AnsiModeChip, 'cup'),
-  find.widgetWithText(AnsiModeChip, 'ml'),
+  find.byKey(const ValueKey('density-amount-unit')),
   find.text('weighs'),
   find.byKey(const ValueKey('density-grams')),
-  find.text('g'),
+  find.byKey(const ValueKey('density-grams-unit')),
   find.descendant(
     of: find.byType(DensityEntry),
     matching: find.byType(FButton),
@@ -90,22 +88,46 @@ void main() {
     });
   });
 
-  group('the sentence takes an amount', () {
-    test('the stored number is the line divided by its own amount', () {
+  group('both sides take an amount and a unit', () {
+    test('the stored number is the weight in grams over the volume in ml', () {
       // A jar prints "2 tbsp (32 g)". That is 1.08 g/ml, and it is typed as
       // it reads rather than halved in somebody's head.
-      expect(densityForAmount(2, tbsp, 32), closeTo(16 / 14.78676478125, 1e-9));
+      expect(
+        densityForPair(2, tbsp, 32, g),
+        closeTo(16 / 14.78676478125, 1e-9),
+      );
       // One of the spoon is the same arithmetic, unchanged.
-      expect(densityForAmount(1, tbsp, 15), densityFromVolumeWeight(tbsp, 15));
-      // `ml`'s ratio to base is 1, so "1 ml weighs 0.66 g" IS 0.66 g/ml.
-      expect(densityForAmount(1, ml, 0.66), 0.66);
+      expect(densityForPair(1, tbsp, 15, g), densityFromVolumeWeight(tbsp, 15));
+      // `ml` and `g` both have a ratio to base of 1, so "1 ml weighs 0.66 g"
+      // IS 0.66 g/ml.
+      expect(densityForPair(1, ml, 0.66, g), 0.66);
+    });
+
+    test('either order, and any pair of families', () {
+      // The label that prints the weight first: "30 ml weighs 1 oz".
+      expect(
+        densityForPair(1, oz, 30, ml),
+        closeTo(densityForPair(30, ml, 1, oz)!, 1e-12),
+      );
+      // And a pack that prints neither side in a base unit: 1/4 cup = 30 g.
+      expect(densityForPair(0.25, cup, 30, g), closeTo(30 / 59.1470591, 1e-9));
     });
 
     test('refuses what would fabricate a number (invariant 3)', () {
-      expect(densityForAmount(0, tbsp, 32), isNull);
-      expect(densityForAmount(2, tbsp, 0), isNull);
-      expect(densityForAmount(double.nan, tbsp, 32), isNull);
-      expect(densityForAmount(2, g, 32), isNull, reason: 'not a volume');
+      expect(densityForPair(0, tbsp, 32, g), isNull);
+      expect(densityForPair(2, tbsp, 0, g), isNull);
+      expect(densityForPair(double.nan, tbsp, 32, g), isNull);
+      expect(
+        densityForPair(2, g, 32, kg),
+        isNull,
+        reason: 'two weights bridge nothing',
+      );
+      expect(
+        densityForPair(2, cup, 32, ml),
+        isNull,
+        reason: 'two volumes bridge nothing',
+      );
+      expect(densityForPair(2, pieces, 32, g), isNull, reason: 'not a volume');
     });
 
     testWidgets('the amount and unit are offered from the form’s serving, and '
@@ -119,10 +141,11 @@ void main() {
 
       expect(fieldText(tester, densityAmountField), '2');
       expect(
-        tester
-            .widget<AnsiModeChip>(find.widgetWithText(AnsiModeChip, 'tbsp'))
-            .selected,
-        isTrue,
+        find.descendant(
+          of: find.byKey(const ValueKey('density-amount-unit')),
+          matching: find.text('tbsp'),
+        ),
+        findsOneWidget,
       );
       expect(
         find.text('the serving you typed above · the pack’s “(32g)” goes here'),

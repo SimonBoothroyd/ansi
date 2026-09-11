@@ -3,16 +3,18 @@
 /// growing a second one.
 ///
 /// ADR-0008: density is the SINGLE stored volume⇄mass fact, and it is entered
-/// as one sentence — "`[2]` `[tbsp]` weighs `[__]` g" (spoon selectable
-/// tsp/tbsp/cup/ml; converts through ml-per-spoon and writes the same
-/// `density_g_per_ml`). Every phrasing resolves to one number, and the write
-/// extends the ingredient's explicit `allowed_units` with what the density
-/// unlocks in the same transaction (`setDensity`).
+/// as one sentence — "`[1]` `[cup]` weighs `[__]` `[g]`". Every phrasing
+/// resolves to one number, and the write extends the ingredient's explicit
+/// `allowed_units` with what the density unlocks in the same transaction
+/// (`setDensity`).
 ///
-/// **The sentence takes an amount**, because a pack states one: "2 tbsp
-/// (32 g)" is typed as it reads rather than halved in the head, and it reads
-/// back the same way. This is also the ONLY place a density is stated — the
-/// macros section's serving row does none, whatever unit it is in.
+/// **Both sides take an amount and a unit**, because a pack states both and
+/// neither of them is grams per millilitre: a label says *1/4 cup = 30 g* or
+/// *30 ml weighs 1 oz*, and a sentence that fixed either half made the person
+/// do the conversion in their head before they could type. One side is a
+/// volume and the other a weight — in either order — and the stored fact is
+/// still the one number. This is also the ONLY place a density is stated —
+/// the macros section's serving row does none, whatever unit it is in.
 ///
 /// The sentence holds **one run at 402 pt**, and the block **folds** to
 /// `0.13 g/ml · change` for a row that already states a number — a density is
@@ -28,12 +30,13 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 
+import '../../../core/result/result.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/amount_and_unit.dart';
 import '../../../shared/format.dart';
-import '../../../shared/inline_amount_field.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 
@@ -93,12 +96,19 @@ class DensityEntry extends HookWidget {
   /// (macros gate completion, density does not).
   final String headline;
 
-  /// What "1 __ weighs" offers. `ml` is in the list on purpose: its
-  /// ratio to base is 1, so "1 ml weighs 0.66 g" IS 0.66 g/ml,
-  /// exactly. That is what let the old direct-g/ml field be deleted rather
-  /// than merely hidden — the two phrasings ADR-0008 promises are now two
-  /// picks in one sentence instead of two controls behind a segment.
-  static const _measures = [tsp, tbsp, cup, ml];
+  /// What either side offers: every mass and volume unit the kitchen has, in
+  /// kitchen order. `ml` and `g` are in the list on purpose — their ratio to
+  /// base is 1, so "1 ml weighs 0.66 g" IS 0.66 g/ml, exactly, which is what
+  /// let the old direct-g/ml field be deleted rather than merely hidden.
+  ///
+  /// The two sides are not typed differently. Which one is the volume and
+  /// which the weight is read off the units the person picked, so "1/4 cup
+  /// weighs 30 g" and "30 ml weighs 1 oz" are the same sentence said in the
+  /// order the pack printed it.
+  static const _units = [
+    tsp, tbsp, flOz, cup, ml, l, pint, quart, //
+    g, kg, oz, lb,
+  ];
 
   /// The leading space above the headline — the same one every micro-label in
   /// the flesh-out form's groups carries, so `DENSITY` reads as a subject of
@@ -115,6 +125,9 @@ class DensityEntry extends HookWidget {
     final amount = useState<double>(1);
     final amountSeed = useState(0);
     final input = useState<double?>(null);
+    // What the weight is stated in. `g` is the common case and stays the
+    // default; an American label prints ounces and now says so.
+    final weightUnit = useState<Unit>(g);
     final error = useState<String?>(null);
     // Deleting a density also strips what it unlocked (D4b), so the affordance
     // asks once rather than acting on a stray tap.
@@ -137,7 +150,7 @@ class DensityEntry extends HookWidget {
       // sentence — so it just pre-picks the unit it resolved. It also unfolds:
       // a redirect is a person mid-entry, and the fold would swallow it.
       if (r != null) open.value = true;
-      if (r != null && _measures.contains(r)) spoon.value = r;
+      if (r != null && _units.contains(r)) spoon.value = r;
       return null;
     }, [redirectedSpoon]);
     // The serving offered as the left-hand side. Both halves or neither: an
@@ -147,7 +160,11 @@ class DensityEntry extends HookWidget {
     // folded, offer or no offer; the offer is waiting behind `change`.
     useEffect(() {
       final offered = servingPrefill;
-      if (offered == null || !_measures.contains(offered.unit)) return null;
+      // Only a VOLUME serving is an offer here: what a mass serving weighs is
+      // itself, and this sentence would then say nothing.
+      if (offered == null || offered.unit.family != UnitFamily.volume) {
+        return null;
+      }
       spoon.value = offered.unit;
       amount.value = offered.amount;
       amountSeed.value++;
@@ -165,11 +182,13 @@ class DensityEntry extends HookWidget {
       final v = input.value;
       final gPerMl = v == null
           ? null
-          : densityForAmount(amount.value, spoon.value, v);
+          : densityForPair(amount.value, spoon.value, v, weightUnit.value);
       if (gPerMl == null || !(gPerMl > 0)) {
-        error.value =
-            'weigh it: grams per '
-            '${_phrase(amount.value, spoon.value)} must be positive';
+        error.value = spoon.value.family == weightUnit.value.family
+            ? 'one side is a volume and the other a weight — '
+                  '“1 cup weighs 240 g”, or “30 ml weighs 1 oz”'
+            : 'weigh it: ${_phrase(amount.value, spoon.value)} and what it '
+                  'weighs must both be positive';
         return;
       }
       error.value = null;
@@ -257,40 +276,42 @@ class DensityEntry extends HookWidget {
             spacing: 5,
             runSpacing: 6,
             children: [
-              InlineAmountField(
-                key: ValueKey('density-amount-${amountSeed.value}'),
-                fieldKey: const ValueKey('density-amount'),
-                // Narrower than the grams slot: a serving is `2` or `0.25`,
-                // never `1000`, and every point here is a point the sentence
-                // needs to stay one run at 402 pt.
-                width: 40,
-                fractions: true,
-                initial: _phrase(amount.value, null),
-                onChange: (t) => amount.value = parseAmount(t) ?? 0,
+              AmountAndUnitField(
+                seed: amountSeed.value,
+                amountKey: const ValueKey('density-amount'),
+                unitKey: const ValueKey('density-amount-unit'),
+                // Narrow slots: a serving is `2` or `0.25`, never `1000`, and
+                // every point here is a point the sentence needs to stay one
+                // run at 402 pt.
+                amountWidth: 34,
+                unitWidth: 68,
+                amount: _phrase(amount.value, null),
+                unit: spoon.value,
+                units: _units,
+                onAmount: (t) => amount.value = parseAmount(t) ?? 0,
+                onUnit: (u) => spoon.value = u,
                 onSubmit: save,
               ),
-              for (final u in _measures)
-                AnsiModeChip(
-                  label: u.label,
-                  selected: spoon.value == u,
-                  dense: true,
-                  onTap: () => spoon.value = u,
-                ),
               // The connector is one word, and it is the one word here that
               // had to be paid for in pixels: "of this weighs" makes the run
-              // 421 pt against 338 available, and nothing short of unreadable
-              // chips and 10 pt prose closes that gap. "1 tbsp weighs 15 g"
+              // far wider than the phone, and nothing short of unreadable
+              // controls and 10 pt prose closes that gap. "1 tbsp weighs 15 g"
               // says the same thing — *this* is the section's own subject,
               // named by the headline above it and by the ingredient the
               // whole screen is about.
               Text('weighs', style: ansiMono(size: 12)),
-              InlineAmountField(
-                fieldKey: const ValueKey('density-grams'),
-                fractions: true,
-                onChange: (t) => input.value = parseAmount(t),
+              AmountAndUnitField(
+                amountKey: const ValueKey('density-grams'),
+                unitKey: const ValueKey('density-grams-unit'),
+                amountWidth: 34,
+                unitWidth: 62,
+                amount: '',
+                unit: weightUnit.value,
+                units: _units,
+                onAmount: (t) => input.value = parseAmount(t),
+                onUnit: (u) => weightUnit.value = u,
                 onSubmit: save,
               ),
-              Text('g', style: ansiMono(size: 12)),
               FButton(
                 size: FButtonSizeVariant.xs,
                 // Its own width, not the line's: a full-width button IS a row,
@@ -308,8 +329,7 @@ class DensityEntry extends HookWidget {
               ),
             ],
           ),
-          if (servingPrefill != null &&
-              _measures.contains(servingPrefill!.unit))
+          if (servingPrefill?.unit.family == UnitFamily.volume)
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
@@ -338,10 +358,11 @@ class DensityEntry extends HookWidget {
                 // The live equivalence: what the sentence above will store.
                 // The g/ml figure is the ASIDE, not the sentence — the
                 // sentence is the one a kitchen says.
-                switch (densityForAmount(
+                switch (densityForPair(
                   amount.value,
                   spoon.value,
                   input.value!,
+                  weightUnit.value,
                 )) {
                   final gPerMl? => '= ${formatDensity(gPerMl)} g/ml',
                   null => '',
@@ -355,18 +376,35 @@ class DensityEntry extends HookWidget {
   }
 }
 
-/// The density implied by "[amount] [volumeUnit] weighs [grams] g" — the
-/// sentence's arithmetic, one step up from [densityFromVolumeWeight].
+/// The density the sentence states: "[a] [ua] weighs [b] [ub]", where one
+/// side is a volume and the other a weight, in either order.
 ///
-/// A pack prints "2 tbsp (32 g)"; the stored fact is still one number, and it
-/// is that line divided by its own amount rather than by a figure a person had
-/// to halve in their head. Null on the same honest terms its one-spoon form
-/// uses: a non-volume unit, or an amount or weight that is not positive
+/// A pack prints "1/4 cup (30 g)" or "30 ml (1 oz)"; the stored fact is still
+/// one number, and it is the weight in grams over the volume in millilitres —
+/// never a figure a person had to convert in their head first. Null on honest
+/// terms: two units of the same family (there is nothing to bridge), a unit
+/// that is neither mass nor volume, or an amount that is not positive
 /// (invariant 3 — never a fabricated number).
-double? densityForAmount(double amount, Unit volumeUnit, double grams) {
+double? densityForPair(double a, Unit ua, double b, Unit ub) {
   // `!(x > 0)` (rather than `x <= 0`) also catches NaN.
-  if (!(amount > 0) || !(grams > 0)) return null;
-  return densityFromVolumeWeight(volumeUnit, grams / amount);
+  if (!(a > 0) || !(b > 0)) return null;
+  final ({double amount, Unit unit}) volume;
+  final ({double amount, Unit unit}) mass;
+  if (ua.family == UnitFamily.volume && ub.family == UnitFamily.mass) {
+    volume = (amount: a, unit: ua);
+    mass = (amount: b, unit: ub);
+  } else if (ua.family == UnitFamily.mass && ub.family == UnitFamily.volume) {
+    volume = (amount: b, unit: ub);
+    mass = (amount: a, unit: ua);
+  } else {
+    return null;
+  }
+  final inMl = convert(Quantity(volume.amount, volume.unit), to: ml);
+  final inGrams = convert(Quantity(mass.amount, mass.unit), to: g);
+  if (inMl case Ok(value: final v) when v.amount > 0) {
+    if (inGrams case Ok(value: final w)) return w.amount / v.amount;
+  }
+  return null;
 }
 
 /// `2 tbsp` / `2` — the sentence's left-hand side, under the app's one number

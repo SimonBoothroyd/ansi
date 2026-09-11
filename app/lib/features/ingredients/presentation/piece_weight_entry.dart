@@ -3,8 +3,16 @@
 /// A density says what a volume of this weighs and unlocks the volume units;
 /// a **piece weight** says what ONE of this weighs and unlocks `piece`. Both
 /// are one number on the row, both are entered as one sentence — "1 piece
-/// weighs `[__]` g" — and both fold to a headline once stated, because each
-/// is entered once and read often.
+/// weighs `[__]` `[g]`" — and both fold to a headline once stated, because
+/// each is entered once and read often.
+///
+/// **The weight takes a unit**, because a scale prints one and it is not
+/// always the row's basis: "1 onion weighs 4 oz" is a thing a person can read
+/// off a packet, and making them divide by 28.35 first is the arithmetic this
+/// app exists to do. It is converted into the basis on save — the stored fact
+/// is unchanged — and the picker offers only what this row can actually
+/// convert: its own basis family, plus the other one while a density bridges
+/// them (ADR-0009).
 ///
 /// It is drawn only where it means something: a row whose default unit is a
 /// count (owner's ruling — `piece` shows only where the default is `piece`).
@@ -21,10 +29,12 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 
+import '../../../core/result/result.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/number_format.dart';
-import '../../../shared/inline_amount_field.dart';
+import '../../../core/units/units.dart';
+import '../../../shared/amount_and_unit.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 import 'ingredient_facts.dart' show pieceWeightSourceSuffix;
@@ -63,6 +73,7 @@ class PieceWeightEntry extends HookWidget {
     final input = useState<double?>(null);
     final error = useState<String?>(null);
     final confirmingRemoval = useState(false);
+    final unit = useState<Unit>(ingredient.macrosBasis.baseUnit);
     // A stated weight folds; a row with none opens on the sentence, because
     // there the entry IS the subject. Seeded once, as the density entry is.
     final open = useState(ingredient.pieceBasisAmount == null);
@@ -75,11 +86,26 @@ class PieceWeightEntry extends HookWidget {
     Future<void> save() async {
       final v = input.value;
       if (v == null || !(v > 0) || !v.isFinite) {
-        error.value = 'weigh one: $baseLabel per piece must be positive';
+        error.value =
+            'weigh one: ${unit.value.label} per piece must be '
+            'positive';
+        return;
+      }
+      // Stored in the basis like every other amount on the row, so nothing
+      // downstream has to know which unit it was typed in.
+      final inBasis = convert(
+        Quantity(v, unit.value),
+        to: ingredient.macrosBasis.baseUnit,
+        densityGPerMl: ingredient.densityGPerMl,
+      );
+      if (inBasis case Err()) {
+        error.value =
+            'this row has no density, so ${unit.value.label} cannot become '
+            '$baseLabel — say it in $baseLabel, or state a density first';
         return;
       }
       error.value = null;
-      final landed = await onSave(v);
+      final landed = await onSave((inBasis as Ok<Quantity>).value.amount);
       if (!context.mounted || !landed) return;
       confirmingRemoval.value = false;
       // The fold is where the section OPENS next time, never something that
@@ -140,13 +166,18 @@ class PieceWeightEntry extends HookWidget {
             runSpacing: 6,
             children: [
               Text('1 piece weighs', style: ansiMono(size: 12)),
-              InlineAmountField(
-                key: const ValueKey('piece-weight-field'),
-                fractions: true,
-                onChange: (t) => input.value = parseAmount(t),
+              AmountAndUnitField(
+                amountKey: const ValueKey('piece-weight-field'),
+                unitKey: const ValueKey('piece-weight-unit'),
+                amountWidth: 40,
+                unitWidth: 66,
+                amount: '',
+                unit: unit.value,
+                units: basisConvertibleUnits(ingredient),
+                onAmount: (t) => input.value = parseAmount(t),
+                onUnit: (u) => unit.value = u,
                 onSubmit: save,
               ),
-              Text(baseLabel, style: ansiMono(size: 12)),
               FButton(
                 key: const ValueKey('piece-weight-save'),
                 size: FButtonSizeVariant.xs,

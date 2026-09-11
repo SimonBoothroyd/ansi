@@ -45,6 +45,26 @@ const _kitchenOrder = {
   UnitFamily.mass: [g, kg, oz, lb],
 };
 
+/// The units an amount **about this row** may be typed in and still be stored
+/// in the row's basis: its own basis family, in kitchen order, plus the other
+/// mass/volume family only while a density bridges the two (ADR-0009).
+///
+/// It is the entry-side twin of [allowedUnitsFor]. That one answers "what may
+/// a recipe LINE say"; this answers "what may a number the form is about to
+/// store in `basis_amount`/`piece_basis_amount` be written in" — a measure's
+/// weight, a piece's weight. The honesty rule is the same one and the only
+/// one: never offer a pair the converter cannot resolve.
+List<Unit> basisConvertibleUnits(Ingredient ingredient) {
+  final basisFamily = ingredient.macrosBasis.baseUnit.family;
+  final other = basisFamily == UnitFamily.mass
+      ? UnitFamily.volume
+      : UnitFamily.mass;
+  return [
+    ..._kitchenOrder[basisFamily]!,
+    if (ingredient.densityGPerMl != null) ..._kitchenOrder[other]!,
+  ];
+}
+
 /// Every catalog unit of [family]. A mass/volume family is admitted whole or
 /// not at all, so this is the rule's unit of admission as well as a roster.
 Iterable<Unit> _familyUnits(UnitFamily family) =>

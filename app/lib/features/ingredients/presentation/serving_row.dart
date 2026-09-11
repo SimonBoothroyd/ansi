@@ -15,7 +15,6 @@
 library;
 
 import 'package:flutter/widgets.dart';
-import 'package:forui/forui.dart';
 
 import '../../../core/result/result.dart';
 import '../../../core/theme/ansi_theme.dart';
@@ -23,8 +22,8 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/amount_and_unit.dart';
 import '../../../shared/format.dart';
-import '../../../shared/inline_amount_field.dart';
 import '../domain/serving_measure.dart';
 import 'macros_format.dart';
 
@@ -144,50 +143,20 @@ class ServingRow extends StatelessWidget {
     children: [
       Text('One serving is', style: ansiMono(size: 11)),
       const SizedBox(width: 8),
-      // The same slot the macro sentence and the density sentence use, so
-      // the three rows read as one form rather than one form and a field.
-      InlineAmountField(
-        fieldKey: const ValueKey('serving-amount'),
-        fractions: true,
-        width: 52,
-        initial: draft.amountText,
-        onChange: onAmount,
-        onSubmit: () => FocusManager.instance.primaryFocus?.unfocus(),
-      ),
-      const SizedBox(width: 8),
-      // Sized to its word, at the small variant, for the same reason: a
-      // full-width, full-height select beside a 32 pt slot is two rows'
-      // worth of chrome for one word.
-      SizedBox(
-        width: 112,
-        child: FSelect<Unit>.rich(
-          key: const ValueKey('serving-unit'),
-          size: FTextFieldSizeVariant.sm,
-          // The small variant still floors at Forui's touch height; trim it
-          // to the inline slot's 32 pt so the sentence sits at one height.
-          style: FSelectStyleDelta.delta(
-            fieldStyles: FVariantsDelta.delta([
-              FVariantOperation.match(
-                {FTextFieldSizeVariant.sm},
-                const FTextFieldStyleDelta.delta(
-                  constraints: BoxConstraints(minHeight: 32),
-                  contentPadding: EdgeInsetsGeometryDelta.value(
-                    EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  ),
-                ),
-              ),
-            ]),
-          ),
-          format: (u) => u.label,
-          control: FSelectControl<Unit>.lifted(
-            value: draft.unit,
-            onChange: (u) => onUnit(u ?? draft.unit),
-          ),
-          children: [
-            for (final u in kServingUnits)
-              FSelectItem(title: Text(u.label), value: u),
-          ],
-        ),
+      // The one amount-and-unit control (`shared/amount_and_unit.dart`) — the
+      // same one the density, the piece weight, the measures form and the
+      // recipe's yield use, so every number with a unit is stated the same
+      // way.
+      AmountAndUnitField(
+        amountKey: const ValueKey('serving-amount'),
+        unitKey: const ValueKey('serving-unit'),
+        amountWidth: 52,
+        unitWidth: 112,
+        amount: draft.amountText,
+        unit: draft.unit,
+        units: kServingUnits,
+        onAmount: onAmount,
+        onUnit: onUnit,
       ),
     ],
   );

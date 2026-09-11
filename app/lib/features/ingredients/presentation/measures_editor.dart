@@ -4,9 +4,14 @@
 /// was extracted before it.
 ///
 /// What it owns: the ingredient's live measure rows with their provenance
-/// read in words, deletion, and the add form (label + an amount in the
-/// ingredient's **basis** unit — g for a per-100 g row, ml for per-100 ml,
-/// ADR-0008). What it deliberately does **not** own is the density: a
+/// read in words, their order, deletion, and the add/edit form — a label and
+/// an amount **with the unit it was weighed in**, converted into the row's
+/// basis on save (g for a per-100 g row, ml for per-100 ml, ADR-0008). The
+/// unit is offered rather than printed for the reason every other sentence
+/// here offers it: a scale prints ounces, and dividing by 28.35 in your head
+/// before you can type is arithmetic the app is for.
+///
+/// What it deliberately does **not** own is the density: a
 /// volume-named label ("cup") is not a measure at all — that mapping *is* a
 /// density (ADR-0008 §2) — so the form refuses it and hands the resolved
 /// spoon back through [MeasuresEditor.onVolumeLabel], leaving the host to
@@ -22,11 +27,13 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 
+import '../../../core/result/result.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/amount_and_unit.dart';
 import '../../../shared/format.dart';
 import '../../../shared/reorder_grip.dart';
 import '../domain/allowed_units.dart';
@@ -145,6 +152,7 @@ class MeasuresEditor extends HookWidget {
   Widget build(BuildContext context) {
     final label = useState('');
     final amount = useState<double?>(null);
+    final amountUnit = useState<Unit>(ingredient.macrosBasis.baseUnit);
     final error = useState<String?>(null);
     // Which row is open for editing, by id — one at a time, because the form
     // it opens into is the add form's own shape and two of them stacked would
@@ -174,11 +182,17 @@ class MeasuresEditor extends HookWidget {
         return;
       }
       if (weight == null || !(weight > 0)) {
-        error.value = 'measure it: $baseLabel must be a positive number';
+        error.value =
+            'measure it: ${amountUnit.value.label} must be a positive number';
+        return;
+      }
+      final inBasis = _inBasis(ingredient, weight, amountUnit.value);
+      if (inBasis == null) {
+        error.value = _noBridge(amountUnit.value, baseLabel);
         return;
       }
       error.value = null;
-      final outcome = await onAdd(name, weight);
+      final outcome = await onAdd(name, inBasis);
       // The host can be dismissed while the write is in flight — touching its
       // state after that throws (every sibling path guards).
       if (!context.mounted) return;
@@ -197,6 +211,32 @@ class MeasuresEditor extends HookWidget {
       }
     }
 
+    Widget editForm(Measure m) => Padding(
+      key: ValueKey('edit-measure-${m.id}'),
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: _EditMeasureForm(
+        ingredient: ingredient,
+        measure: m,
+        onEdit: (l, a) => onEdit(m, l, a),
+        // The keyboard goes with the form: a focused field whose row is about
+        // to leave the tree keeps a frame callback pointed at a render object
+        // that no longer exists.
+        onDone: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          editing.value = null;
+        },
+        onVolumeLabel: onVolumeLabel,
+      ),
+    );
+
+    Widget row(Measure m, int index) => MeasureRow(
+      key: ValueKey('measure-${m.id}'),
+      measure: m,
+      dragIndex: index,
+      onDelete: onDelete,
+      onTap: () => editing.value = m.id,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -207,6 +247,19 @@ class MeasuresEditor extends HookWidget {
               'No measures yet — name one below.',
               style: ansiMono(size: 12, color: AnsiColors.muted),
             ),
+          )
+        else if (editing.value != null)
+          // A row open for editing is not a row you can drag, and the plain
+          // column is also what keeps the form out of a scrollable of its own:
+          // a field inside the list scrolling ITSELF into view, in a subtree
+          // Save is about to remove, is an animation pointed at a render
+          // object that has gone.
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final (i, m) in listed.indexed)
+                if (editing.value == m.id) editForm(m) else row(m, i),
+            ],
           )
         else
           // The list is draggable because **the first row is the typical
@@ -225,46 +278,21 @@ class MeasuresEditor extends HookWidget {
               ids.insert(newIndex, ids.removeAt(oldIndex));
               onReorder(ids);
             },
-            itemBuilder: (context, index) {
-              final m = listed[index];
-              if (editing.value == m.id) {
-                return Padding(
-                  key: ValueKey('edit-measure-${m.id}'),
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: _EditMeasureForm(
-                    measure: m,
-                    amountHint: baseLabel,
-                    onEdit: (l, a) => onEdit(m, l, a),
-                    // The keyboard goes with the form: a focused field whose
-                    // row is about to leave the tree keeps a frame callback
-                    // pointed at a render object that no longer exists.
-                    onDone: () {
-                      FocusManager.instance.primaryFocus?.unfocus();
-                      editing.value = null;
-                    },
-                    onVolumeLabel: onVolumeLabel,
-                  ),
-                );
-              }
-              return MeasureRow(
-                key: ValueKey('measure-${m.id}'),
-                measure: m,
-                dragIndex: index,
-                onDelete: onDelete,
-                onTap: () => editing.value = m.id,
-              );
-            },
+            itemBuilder: (context, index) => row(listed[index], index),
           ),
         const SizedBox(height: 12),
         _MeasureForm(
           icon: FLucideIcons.plus,
           headline: 'ADD MEASURE',
           saveLabel: addLabel,
-          amountHint: baseLabel,
+          slot: 'add',
+          units: basisConvertibleUnits(ingredient),
+          unit: amountUnit.value,
           error: error.value,
           autofocus: autofocus,
           onLabel: (v) => label.value = v,
           onAmount: (v) => amount.value = parseAmount(v),
+          onUnit: (u) => amountUnit.value = u,
           onSave: save,
           footer: Row(
             children: [
@@ -365,15 +393,15 @@ class MeasureRow extends StatelessWidget {
 /// row for editing never eats a half-typed new measure.
 class _EditMeasureForm extends HookWidget {
   const _EditMeasureForm({
+    required this.ingredient,
     required this.measure,
-    required this.amountHint,
     required this.onEdit,
     required this.onDone,
     required this.onVolumeLabel,
   });
 
+  final Ingredient ingredient;
   final Measure measure;
-  final String amountHint;
   final Future<AddMeasureOutcome> Function(String label, double amount) onEdit;
   final VoidCallback onDone;
   final ValueChanged<Unit> onVolumeLabel;
@@ -382,7 +410,11 @@ class _EditMeasureForm extends HookWidget {
   Widget build(BuildContext context) {
     final label = useState(measure.label);
     final amount = useState<double?>(measure.amount);
+    // A stored measure is denominated in the basis, so that is what it opens
+    // in; re-weighing it in ounces is a pick away.
+    final amountUnit = useState<Unit>(ingredient.macrosBasis.baseUnit);
     final error = useState<String?>(null);
+    final baseLabel = ingredient.macrosBasis.baseUnit.label;
 
     Future<void> save() async {
       final name = label.value.trim();
@@ -403,11 +435,17 @@ class _EditMeasureForm extends HookWidget {
         return;
       }
       if (weight == null || !(weight > 0)) {
-        error.value = 'measure it: $amountHint must be a positive number';
+        error.value =
+            'measure it: ${amountUnit.value.label} must be a positive number';
+        return;
+      }
+      final inBasis = _inBasis(ingredient, weight, amountUnit.value);
+      if (inBasis == null) {
+        error.value = _noBridge(amountUnit.value, baseLabel);
         return;
       }
       error.value = null;
-      final outcome = await onEdit(name, weight);
+      final outcome = await onEdit(name, inBasis);
       // The host can be dismissed while the write is in flight.
       if (!context.mounted) return;
       switch (outcome) {
@@ -424,13 +462,16 @@ class _EditMeasureForm extends HookWidget {
       icon: FLucideIcons.pencil,
       headline: 'EDIT MEASURE',
       saveLabel: 'Save',
-      amountHint: amountHint,
+      slot: 'edit',
+      units: basisConvertibleUnits(ingredient),
+      unit: amountUnit.value,
       initialLabel: measure.label,
       initialAmount: formatQuantity(measure.amount),
       error: error.value,
       autofocus: false,
       onLabel: (v) => label.value = v,
       onAmount: (v) => amount.value = parseAmount(v),
+      onUnit: (u) => amountUnit.value = u,
       onSave: save,
       footer: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -451,11 +492,14 @@ class _MeasureForm extends StatelessWidget {
     required this.icon,
     required this.headline,
     required this.saveLabel,
-    required this.amountHint,
+    required this.slot,
+    required this.units,
+    required this.unit,
     required this.error,
     required this.autofocus,
     required this.onLabel,
     required this.onAmount,
+    required this.onUnit,
     required this.onSave,
     required this.footer,
     this.initialLabel,
@@ -466,13 +510,22 @@ class _MeasureForm extends StatelessWidget {
   final String headline;
   final String saveLabel;
 
-  /// The basis unit the amount is entered in ('g' — or 'ml' for a per-ml
-  /// ingredient, ADR-0008 basis-aware measures).
-  final String amountHint;
+  /// Names this form's own fields (`add` / `edit`), because the two are on
+  /// screen together — the row being edited sits in the list, above the add
+  /// form — and a test has to be able to say which one it means.
+  final String slot;
+
+  /// What the amount may be weighed in — the row's basis family, plus the
+  /// other one while a density bridges it ([basisConvertibleUnits]). It is
+  /// converted into the basis on save: the stored `basis_amount` is unchanged
+  /// by any of this.
+  final List<Unit> units;
+  final Unit unit;
   final String? error;
   final bool autofocus;
   final ValueChanged<String> onLabel;
   final ValueChanged<String> onAmount;
+  final ValueChanged<Unit> onUnit;
   final VoidCallback onSave;
 
   /// The line under the fields when nothing is wrong — the add form's
@@ -501,6 +554,7 @@ class _MeasureForm extends StatelessWidget {
           children: [
             Expanded(
               child: FTextField(
+                key: ValueKey('$slot-measure-label'),
                 autofocus: autofocus,
                 hint: 'label — “half can”',
                 control: FTextFieldControl.managed(
@@ -512,18 +566,17 @@ class _MeasureForm extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            SizedBox(
-              width: 92,
-              child: FTextField(
-                hint: amountHint,
-                keyboardType: TextInputType.text,
-                control: FTextFieldControl.managed(
-                  initial: initialAmount == null
-                      ? null
-                      : TextEditingValue(text: initialAmount!),
-                  onChange: (v) => onAmount(v.text),
-                ),
-              ),
+            AmountAndUnitField(
+              amountKey: ValueKey('$slot-measure-amount'),
+              unitKey: ValueKey('$slot-measure-unit'),
+              amountWidth: 40,
+              unitWidth: 64,
+              amount: initialAmount ?? '',
+              unit: unit,
+              units: units,
+              onAmount: onAmount,
+              onUnit: onUnit,
+              onSubmit: onSave,
             ),
             const SizedBox(width: 8),
             FButton(
@@ -542,6 +595,24 @@ class _MeasureForm extends StatelessWidget {
     );
   }
 }
+
+/// [amount] of [unit] as the row's basis amount, or null when this row cannot
+/// bridge the two — a volume weighed on a per-g row with no density.
+double? _inBasis(Ingredient ingredient, double amount, Unit unit) =>
+    switch (convert(
+      Quantity(amount, unit),
+      to: ingredient.macrosBasis.baseUnit,
+      densityGPerMl: ingredient.densityGPerMl,
+    )) {
+      Ok(:final value) => value.amount,
+      Err() => null,
+    };
+
+/// Why a pick could not be stored, in the words the density entry uses: the
+/// missing number is named, and so is the way out.
+String _noBridge(Unit unit, String baseLabel) =>
+    'this row has no density, so ${unit.label} cannot become $baseLabel — '
+    'say it in $baseLabel, or state a density first';
 
 // --- Provenance display ------------------------------------------------------
 

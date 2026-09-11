@@ -517,6 +517,18 @@ void main() {
       );
     });
 
+    test('basisConvertibleUnits is the ENTRY-side gate: the basis family, and '
+        'the other one only with a density', () {
+      // What a number the form is about to store in the basis may be typed
+      // in — a measure's weight, a piece's weight — as against what a recipe
+      // LINE may say. Same honesty rule, and only that one.
+      expect(basisConvertibleUnits(_ing(pieces)), [g, kg, oz, lb]);
+      expect(basisConvertibleUnits(_ing(pieces, density: 0.6)), [
+        g, kg, oz, lb, //
+        tsp, tbsp, flOz, cup, ml, l, pint, quart,
+      ]);
+    });
+
     test('offers a count food its measures despite having no density', () {
       // The whole point of measures: count foods reach mass without one.
       final choices = allowedUnitChoicesFor(_ing(pieces), const [

@@ -236,7 +236,7 @@
             <p class="conv-note" style="margin-top:2px">tsp · tbsp · fl oz · cup · ml · l · pt · qt unlock when this row has a density</p>
 
             <p class="flabel" style="margin-bottom:2px">Piece weight</p>
-            <div class="frow"><div class="weigh"><span class="w-l">1 piece weighs</span><span class="w-in">350</span><span class="w-u">g</span></div></div>
+            <div class="frow"><div class="weigh"><span class="w-l">1 piece weighs</span><span class="w-in">350</span><span class="usel">g <b>&#9662;</b></span></div></div>
 
             <p class="flabel" style="margin-bottom:2px">Allowed units</p>
             <p class="conv-note" style="margin:0 20px 6px">what a line may say</p>
@@ -258,6 +258,7 @@
                 <span class="btn primary" style="margin:0;opacity:.45">Save</span>
             </div>
         </div></div>
+        <p class="conv-note" style="margin:10px 4px 0">the weight takes <b>a unit</b>, like every other amount on this page — a packet says “4 oz” and nobody should have to divide by 28.35 to type it. The picker offers what this row can actually convert to its basis: its own family, plus the other one while a density bridges them. It is stored in the basis either way.</p>
         <p class="conv-note" style="margin:10px 4px 0">no measure is made, nothing is named after the row, and there is no second place the 350 lives. <code>piece</code> is the one unit the default-unit row offers before its number exists — picking it is what makes this sentence appear. What the 350 buys is the <code>piece</code> chip under <i>allowed units</i>, the way a density buys the volume ones.</p>
     </div>
 
@@ -274,7 +275,7 @@
             <p class="conv-note" style="margin:-6px 20px 12px"><span style="color:var(--gone)">piece</span> needs a weight on this row — enter one below, or <b style="color:var(--ink);border-bottom:1px solid var(--line)">switch to g</b></p>
 
             <p class="flabel" style="margin-bottom:2px">Piece weight <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--muted)">none yet — what one of these weighs</span></p>
-            <div class="frow"><div class="weigh" style="border-color:var(--gone)"><span class="w-l">1 piece weighs</span><span class="w-in empty">—</span><span class="w-u">g</span></div></div>
+            <div class="frow"><div class="weigh" style="border-color:var(--gone)"><span class="w-l">1 piece weighs</span><span class="w-in empty">—</span><span class="usel">g <b>&#9662;</b></span></div></div>
 
             <p class="flabel" style="margin-bottom:2px">Allowed units</p>
             <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
@@ -301,7 +302,7 @@
                 <span class="uchip on">piece</span><span class="uchip" style="color:var(--muted)">g</span><span class="uchip" style="color:var(--muted)">kg</span><span class="uchip" style="color:var(--muted)">oz</span><span class="uchip" style="color:var(--muted)">lb</span><span class="uchip" style="color:var(--muted)">cup</span>
             </div></div>
             <p class="flabel" style="margin-bottom:2px">Piece weight</p>
-            <div class="frow"><div class="weigh"><span class="w-l">1 piece weighs</span><span class="w-in">110</span><span class="w-u">g</span></div></div>
+            <div class="frow"><div class="weigh"><span class="w-l">1 piece weighs</span><span class="w-in">110</span><span class="usel">g <b>&#9662;</b></span></div></div>
             <p class="conv-note" style="margin:-4px 20px 0"><span class="srcdot brw" style="vertical-align:middle;margin-right:4px"></span>110 g · borrowed from <b>onion, medium</b> · change</p>
 
             <p class="flabel" style="margin-bottom:2px">Measures</p>
@@ -319,55 +320,59 @@
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>The density entry</b> · one self-describing sentence on ONE row at 402 pt — <i>amount</i>, unit, weight — and it folds once the number is stated; <code>ml</code> is in the unit list on purpose. <b>This is the only place a density is stated</b></p>
+        <p class="frame-name"><b>The density entry</b> · one self-describing sentence on ONE row at 402 pt — <b>an amount and a unit on each side</b>, one a volume and one a weight, in either order — and it folds once the number is stated. <b>This is the only place a density is stated</b></p>
         <div class="phone"><div class="notch"></div><div class="screen">
 
             <p class="lib-mcap" style="margin-top:16px">① none yet · one control, no mode</p>
             <p class="flabel" style="margin-top:8px">Density <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0">none yet — unlocks volume⇄weight</span></p>
             <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible;align-items:center">
-                <span class="fin" style="width:40px;padding:7px 8px;font-family:'IBM Plex Mono',monospace;text-align:center">1</span>
-                <span class="uchip">tsp</span><span class="uchip on">tbsp</span><span class="uchip">cup</span><span class="uchip">ml</span>
+                <span class="fin" style="width:34px;padding:7px 6px;font-family:'IBM Plex Mono',monospace;text-align:center">1</span>
+                <span class="usel">cup <b>&#9662;</b></span>
                 <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">weighs</span>
-                <span class="fin" style="width:46px;padding:7px 10px;font-family:'IBM Plex Mono',monospace;color:var(--muted)">g</span>
+                <span class="fin" style="width:34px;padding:7px 6px;font-family:'IBM Plex Mono',monospace;text-align:center;color:var(--muted);">&mdash;</span>
+                <span class="usel">g <b>&#9662;</b></span>
                 <span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 10px">Save</span>
             </div></div>
 
-            <p class="lib-mcap" style="margin-top:18px">② the amount is the pack’s, not one halved in your head</p>
-            <div class="frow" style="margin-top:8px"><div class="uchips" style="flex-wrap:wrap;overflow:visible;align-items:center">
-                <span class="fin" style="width:40px;padding:7px 8px;font-family:'IBM Plex Mono',monospace;text-align:center">2</span>
-                <span class="uchip">tsp</span><span class="uchip on">tbsp</span><span class="uchip">cup</span><span class="uchip">ml</span>
+            <p class="lib-mcap" style="margin-top:18px">② the pack’s own line, typed as it reads</p>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible;align-items:center">
+                <span class="fin" style="width:34px;padding:7px 6px;font-family:'IBM Plex Mono',monospace;text-align:center">1/4</span>
+                <span class="usel">cup <b>&#9662;</b></span>
                 <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">weighs</span>
-                <span class="fin" style="width:46px;padding:7px 10px;font-family:'IBM Plex Mono',monospace">32</span>
+                <span class="fin" style="width:34px;padding:7px 6px;font-family:'IBM Plex Mono',monospace;text-align:center;">30</span>
+                <span class="usel">g <b>&#9662;</b></span>
                 <span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 10px">Save</span>
             </div></div>
             <p class="conv-note" style="margin:-4px 20px 0">= 1.08 g/ml</p>
-            <p class="conv-note" style="margin:6px 20px 0">A jar prints <b style="color:var(--ink)">“2 tbsp (32 g)”</b>. It is typed as it reads, and the g/ml is the <b style="color:var(--ink)">aside</b> — the sentence is the one a kitchen says. When the macros section above holds a <i>volume</i> serving, this amount and unit are offered from it and the line under them says so: <span style="font-family:'IBM Plex Mono',monospace">the serving you typed above · the pack’s “(32g)” goes here</span>. A mass serving offers nothing new — what a millilitre of it weighs is a separate fact. <b>differs:</b> the mirror (a mass serving with a bracketed volume, “1 oz (30 mL)”) is not offered; nobody has asked for it.</p>
+            <p class="conv-note" style="margin:6px 20px 0">A jar prints <b style="color:var(--ink)">“1/4 cup (30 g)”</b>. It is typed as it reads — <i>density is in science, not on some packages</i> — and the g/ml is the <b style="color:var(--ink)">aside</b>. When the macros section above holds a <i>volume</i> serving, this amount and unit are offered from it and the line under them says so: <span style="font-family:'IBM Plex Mono',monospace">the serving you typed above · the pack’s “(32g)” goes here</span>. A mass serving offers nothing new — what a millilitre of it weighs is a separate fact. <b>differs:</b> the mirror (a mass serving with a bracketed volume, “1 oz (30 mL)”) is not offered; nobody has asked for it.</p>
 
-            <p class="lib-mcap" style="margin-top:18px">③ and a known density is the same sentence</p>
-            <div class="frow" style="margin-top:8px"><div class="uchips" style="flex-wrap:wrap;overflow:visible;align-items:center">
-                <span class="fin" style="width:40px;padding:7px 8px;font-family:'IBM Plex Mono',monospace;text-align:center">1</span>
-                <span class="uchip">tsp</span><span class="uchip">tbsp</span><span class="uchip">cup</span><span class="uchip on">ml</span>
+            <p class="lib-mcap" style="margin-top:18px">③ the same sentence in the other order — and a known g/ml is still one pick</p>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible;align-items:center">
+                <span class="fin" style="width:34px;padding:7px 6px;font-family:'IBM Plex Mono',monospace;text-align:center">30</span>
+                <span class="usel">ml <b>&#9662;</b></span>
                 <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">weighs</span>
-                <span class="fin" style="width:56px;padding:7px 10px;font-family:'IBM Plex Mono',monospace">0.66</span>
+                <span class="fin" style="width:34px;padding:7px 6px;font-family:'IBM Plex Mono',monospace;text-align:center;">1</span>
+                <span class="usel">oz <b>&#9662;</b></span>
                 <span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 10px">Save</span>
             </div></div>
             <p class="conv-note" style="margin:-4px 20px 0">= 0.66 g/ml</p>
-            <p class="conv-note" style="margin:6px 20px 0"><b>ml is in the picker, so the old g/ml field is not removed — it is absorbed.</b> <span style="font-family:'IBM Plex Mono',monospace">densityFromVolumeWeight</span> is <span style="font-family:'IBM Plex Mono',monospace">grams / ratioToBase</span>, and ml’s ratio is 1 — so “1 ml weighs 0.66 g” <i>is</i> 0.66 g/ml, exactly, with no second control and no rounding.</p>
+            <p class="conv-note" style="margin:6px 20px 0">A label that prints the weight second is not a different sentence: <b style="color:var(--ink)">30 ml weighs 1 oz</b> and <b style="color:var(--ink)">1 oz weighs 30 ml</b> both store the same one number. And because <code>ml</code> and <code>g</code> are both on offer, <b>the old g/ml field is absorbed rather than removed</b> — “1 ml weighs 0.66 g” <i>is</i> 0.66 g/ml, exactly, with no second control and no rounding.</p>
 
             <p class="lib-mcap" style="margin-top:18px">④ stated — and folded. This is what the section looks like on nearly every visit.</p>
             <p class="flabel" style="margin-top:8px">Density <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--herb-deep)">0.528 g/ml</span> <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--muted)">· change</span></p>
             <p class="conv-note" style="margin:2px 20px 0">Entered once, read often. The number lives in the <b>headline</b>, in herb; <b style="color:var(--ink)">change</b> opens the sentence again, and the row below it is how you <i>replace</i> the number. Saving a new one overwrites — there is no separate “edit”.</p>
 
             <p class="lib-mcap" style="margin-top:18px">⑤ opened again — the sentence, plus the one affordance the number unlocks</p>
-            <div class="frow" style="margin-top:8px"><div class="uchips" style="flex-wrap:wrap;overflow:visible;align-items:center">
-                <span class="fin" style="width:40px;padding:7px 8px;font-family:'IBM Plex Mono',monospace;text-align:center">1</span>
-                <span class="uchip">tsp</span><span class="uchip on">tbsp</span><span class="uchip">cup</span><span class="uchip">ml</span>
+            <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible;align-items:center">
+                <span class="fin" style="width:34px;padding:7px 6px;font-family:'IBM Plex Mono',monospace;text-align:center">1</span>
+                <span class="usel">tbsp <b>&#9662;</b></span>
                 <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">weighs</span>
-                <span class="fin" style="width:46px;padding:7px 10px;font-family:'IBM Plex Mono',monospace;color:var(--muted)">g</span>
+                <span class="fin" style="width:34px;padding:7px 6px;font-family:'IBM Plex Mono',monospace;text-align:center;color:var(--muted);">&mdash;</span>
+                <span class="usel">g <b>&#9662;</b></span>
                 <span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 10px">Add</span>
             </div></div>
             <div class="frow" style="margin-top:-6px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--gone)">remove the density</span></div>
-            <p class="conv-note" style="margin:2px 20px 0">The whole sentence is <b>one run</b> at 402 pt — dense spoon chips, a compact field with no field chrome, and a button that takes its own width. A full-height field or a full-width button is a row, and three rows is not a sentence.</p>
+            <p class="conv-note" style="margin:2px 20px 0">The whole sentence is <b>one run</b> at 402 pt — two narrow pickers, two compact fields with no field chrome, and a button that takes its own width. A full-height field or a full-width button is a row, and three rows is not a sentence. The four spoon chips paid for that width and are gone: the picker holds every kitchen unit instead of four of them.</p>
 
             <p class="lib-mcap" style="margin-top:18px">⑥ clearing it — the one write that makes the allowed list shrink</p>
             <div class="frow" style="margin-top:8px"><div class="fin" style="border-color:var(--aging);background:#FDF8EC">
