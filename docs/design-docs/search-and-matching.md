@@ -130,6 +130,24 @@ The band's rule is per **corpus**, not per row: the editor's line picker
 searches ingredients and recipe titles side by side, and each section is
 labelled on its own evidence.
 
+### The band's fourth caller: the ingredient form's name field
+
+The same header, over the same tier, asked of a name being **typed** rather
+than searched. When the name field is left, the form asks the household's one
+name namespace two questions in order (`domain/name_namespace.dart`): is this
+name already somebody's — an exact answer over `match_text`, which refuses the
+save — and, only when it is not, was it *nearly* somebody's. The second is
+`searchRank` over every live name and alias, and the band rule decides what is
+shown: a word-prefix hit is a spelling, not a guess, so `Onion` beside the
+household's `Onion Powder` offers nothing. At most three rows, one per row
+however many of its names matched.
+
+It obeys §5 exactly. On `/ingredients/new` a tap **asks** ("Use Sauerkraut
+instead?") and, on a yes, pops the form with the existing row — the person
+resolved it, not the rule. On a row that already exists the near names are
+shown and nothing more: renaming onto one of them would be a merge, and
+nothing here merges rows.
+
 ---
 
 ## 5. Tier 2 is retrieval for a human to pick, never a resolution

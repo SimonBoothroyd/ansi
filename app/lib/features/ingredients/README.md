@@ -89,6 +89,15 @@ So a name or an alias that is already somebody's is **refused**, twice over:
 A row never collides with itself, so re-saving a row under the name it already
 has is always allowed.
 
+And when the name is *nearly* somebody's, the form offers the near names under
+the pickers' own `DID YOU MEAN` header — `searchRank`'s guarded typo tier over
+every live name and alias, at most three rows, and only when nothing was
+spelled right (`docs/design-docs/search-and-matching.md` §4). On
+`/ingredients/new` tapping one asks before it acts and then pops the form with
+the existing row, which is exactly what the door that pushed it was waiting
+for. On a row that already exists the names are shown and nothing more:
+renaming onto one of them would be a merge, and nothing here merges rows.
+
 **There is no unique index, and there should not be one.** Migration
 `0019_shopping_week.sql` states the general reason for its own rows: two
 offline devices must each be able to mint a row and converge later, so Postgres

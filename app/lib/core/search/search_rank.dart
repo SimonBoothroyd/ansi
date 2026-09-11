@@ -3,7 +3,9 @@
 /// One function, [searchRank], answers *how well does this query hit this
 /// name*. Every place on the phone that searches typed text calls it: the
 /// ingredient picker's SQL fallback, the planning recipe picker, the editor's
-/// "Your recipes" section, and (tiers 0/1 only) the import re-match seam. The
+/// "Your recipes" section, the ingredient form's name field (asking whether
+/// the name being typed was nearly one the household already has), and (tiers
+/// 0/1 only) the import re-match seam. The
 /// corpus a caller passes differs; the rule never does — one rule per site is
 /// how they end up failing in opposite directions
 /// (`docs/design-docs/search-and-matching.md`).

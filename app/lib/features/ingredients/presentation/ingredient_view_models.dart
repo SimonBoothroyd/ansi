@@ -203,6 +203,12 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     /// again if the write itself refuses), cleared by the next keystroke.
     NameEntry? nameCollision,
 
+    /// Rows whose name or alias this one was very nearly spelled — at most
+    /// three, offered under the pickers' `DID YOU MEAN` band and never acted
+    /// on unattended. Empty whenever something WAS spelled right, which is the
+    /// same band rule the pickers hold.
+    @Default(<NameEntry>[]) List<NameEntry> nameNearMatches,
+
     /// A typed name the person chose to KEEP. While [name] is exactly this,
     /// the tidy recases and respaces but suggests nothing: a suggestion once
     /// refused must not be offered again on the next leave. Cleared by the
@@ -500,9 +506,10 @@ class IngredientForm extends _$IngredientForm {
       nameEdited: true,
       nameWas: null,
       namePinned: null,
-      // It is an answer about the text that has just changed, so it may not
+      // Both are answers about the text that has just changed, so neither may
       // outlive it — a note naming the wrong name is worse than no note.
       nameCollision: null,
+      nameNearMatches: const <NameEntry>[],
     );
   }
 
@@ -541,8 +548,13 @@ class IngredientForm extends _$IngredientForm {
     await checkName();
   }
 
-  /// Asks the household's one name namespace whether the name as it now
-  /// stands is already somebody's.
+  /// Asks the household's one name namespace about the name as it now stands:
+  /// is it already somebody's, and — only when it is not — whose name was it
+  /// very nearly spelled?
+  ///
+  /// The two never show together. An exact collision is a refusal with one
+  /// answer; a guess is a question with up to three, and offering both would
+  /// be the form asking and telling at once.
   Future<void> checkName() async {
     final name = state.name;
     if (name.trim().isEmpty) return;
@@ -551,8 +563,12 @@ class IngredientForm extends _$IngredientForm {
     final entries = await ref.read(ingredientRepositoryProvider).nameIndex();
     if (!ref.mounted || state.name != name) return;
     final selfId = state.creating ? null : state.row.id;
+    final taken = collisionIn(name, entries, selfId: selfId);
     state = state.copyWith(
-      nameCollision: collisionIn(name, entries, selfId: selfId),
+      nameCollision: taken,
+      nameNearMatches: taken != null
+          ? const <NameEntry>[]
+          : nearMatchesIn(name, entries, selfId: selfId),
     );
   }
 
@@ -567,6 +583,7 @@ class IngredientForm extends _$IngredientForm {
       nameWas: null,
       namePinned: was,
       nameCollision: null,
+      nameNearMatches: const <NameEntry>[],
     );
   }
 

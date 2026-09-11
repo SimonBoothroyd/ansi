@@ -178,8 +178,19 @@
             <div class="frow"><div class="chips"><span class="chip add">&#65291; alias</span></div></div>
             <div class="frow"><div class="fin" style="color:var(--muted);font-size:12.5px">sauerkraut</div></div>
             <p class="conv-note" style="margin:-6px 20px 0"><span style="color:var(--gone)">Already an ingredient:&nbsp;</span><b style="border-bottom:1px solid var(--line)">Sauerkraut</b></p>
+
+            <p class="lib-mcap">and when it was NEARLY somebody&rsquo;s</p>
+            <p class="flabel" style="margin-top:8px">Canonical name</p>
+            <div class="frow"><div class="fin big">Sauerkrout</div></div>
+            <p class="flabel" style="margin:10px 20px 0;color:var(--aging)">Did you mean</p>
+            <div class="frow" style="display:block">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0"><span style="font-size:13px;font-weight:600">Sauerkraut</span><span style="color:var(--herb)">&rsaquo;</span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0"><span style="font-size:13px;font-weight:600">Sauerkraut Juice</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-left:6px;flex:1">alias &middot; kraut juice</span><span style="color:var(--herb)">&rsaquo;</span></div>
+            </div>
         </div></div>
         <p class="conv-note" style="margin:10px 4px 0"><b>Names and aliases are ONE namespace</b>, keyed by the stored <code>match_text</code> &mdash; the rule the seed generator already holds and the import cascade&rsquo;s exact tier already reads. Two live <i>Sauerkraut</i> rows make every exact match after them a coin toss, so a name or an alias that is already somebody&rsquo;s is refused where it is typed, in the field&rsquo;s own note voice. The existing name is a <b>door onto that row</b> &mdash; the same idiom the recipe page keeps for an ingredient&rsquo;s name.</p>
+        <p class="conv-note" style="margin:6px 4px 0"><b>Nearly somebody&rsquo;s is a question, not a refusal.</b> With no exact collision the form runs the phone&rsquo;s own three-tier <code>searchRank</code> over every live name and alias and offers up to three rows under the pickers&rsquo; <span style="font-family:'IBM Plex Mono',monospace;color:var(--aging)">DID YOU MEAN</span> header &mdash; the same band, the same guards, the same promise that a guess is never resolved unattended. A word-prefix hit is a <i>spelling</i>, so <i>Onion</i> beside the household&rsquo;s <i>Onion Powder</i> offers nothing. No new furniture: rows under the field, nothing behind a menu.</p>
+        <p class="conv-note" style="margin:6px 4px 0"><b>Tapping one asks first.</b> On <code>/ingredients/new</code> it asks <i>Use Sauerkraut instead?</i> and, on a yes, pops the form with that existing row &mdash; which is exactly what the door that pushed the form was waiting for. On a row that already <i>exists</i> the near names are shown and nothing more: renaming onto one of them would be a <b>merge</b>, and nothing here merges rows.</p>
         <p class="conv-note" style="margin:6px 4px 0"><b>Save goes quiet while the line is showing</b>, and the write refuses anyway: <code>saveForm</code> asks the same question inside its own transaction, because a sync landing between the tap and the write would slip the second row past the first check. <b>No unique index backs it</b> &mdash; two offline devices must each be able to mint a row and converge later (migration 0019&rsquo;s reason), so the database stays permissive and the refusal lands where somebody is looking at it. A row never collides with itself, so re-saving under the name it already has is always allowed.</p>
     </div>
 

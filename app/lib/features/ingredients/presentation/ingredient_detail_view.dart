@@ -85,10 +85,12 @@ import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_micro_label.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/format.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/inline_amount_field.dart';
+import '../../../shared/picker_shell.dart';
 import '../../../shared/was_word_line.dart';
 import '../../../shared/write.dart';
 import '../../books/presentation/text_prompt.dart';
@@ -688,6 +690,35 @@ class _DetailForm extends ConsumerWidget {
       context.canPop() ? context.pop(result) : context.goOnce('/ingredients');
     }
 
+    // **A near match, taken.** Only the create form offers this: there the
+    // words in the field are a name nobody has committed to, and the picker
+    // that pushed this form is waiting for a row either way — so handing back
+    // the one that already exists is the whole point. It asks first; swapping
+    // what somebody typed for another row unasked is not the form's call.
+    //
+    // On a row that already exists the near names are shown and nothing more.
+    // Renaming this row onto that one would be a merge, and merging two rows
+    // is a different feature with a different question to answer (what happens
+    // to the lines pointing at each).
+    Future<void> useInstead(NameEntry near) async {
+      // Captured before the dialog: the row that opened this form can be gone
+      // by the time the question is answered.
+      final repo = ref.read(ingredientRepositoryProvider);
+      final took = await askAnsi(
+        context,
+        title: 'Use ${near.ingredientName} instead?',
+        body:
+            '${near.ingredientName} is already in your ingredients. '
+            'Nothing you have typed here is saved.',
+        confirm: 'Use ${near.ingredientName}',
+        cancel: 'Keep typing',
+      );
+      if (!took) return;
+      final row = await repo.byId(near.ingredientId);
+      if (row == null || !context.mounted) return;
+      leave(row);
+    }
+
     Future<Ingredient?> save({bool markComplete = false}) =>
         ref.write<Ingredient?>(
           context,
@@ -885,9 +916,20 @@ class _DetailForm extends ConsumerWidget {
               ),
               if (draft.nameWas != null)
                 WasWordLine(oldWord: draft.nameWas!, onKeep: form.keepName),
-              // The namespace's answer, in the field's own note voice.
+              // The namespace's two answers, in the field's own note voice and
+              // never both at once: this name is taken, or it was nearly
+              // somebody else's.
               if (draft.nameCollision case final taken?)
-                _AlreadyAnIngredient(taken),
+                _AlreadyAnIngredient(taken)
+              else if (draft.nameNearMatches.isNotEmpty)
+                _DidYouMean(
+                  matches: draft.nameNearMatches,
+                  // On a row that already exists this is information, not an
+                  // offer: renaming Sauerkroutt to something near Sauerkraut
+                  // is a decision only the person can make, and merging two
+                  // rows is not a thing this form does.
+                  onUse: creating ? useInstead : null,
+                ),
 
               const _Label('ALSO KNOWN AS'),
               _AliasEditor(
@@ -2151,6 +2193,74 @@ class _AlreadyAnIngredient extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// `DID YOU MEAN` under the name field — the pickers' band, over the same
+/// guarded typo tier, asked of the names this household already has.
+///
+/// [onUse] is the create form's offer: tapping a row asks whether to use that
+/// ingredient instead, and the form pops with it. Null on a row that already
+/// exists, where these are names to read and decide about — renaming onto one
+/// of them would be a merge, and this form does not merge rows.
+class _DidYouMean extends StatelessWidget {
+  const _DidYouMean({required this.matches, this.onUse});
+
+  final List<NameEntry> matches;
+  final void Function(NameEntry near)? onUse;
+
+  @override
+  Widget build(BuildContext context) {
+    final take = onUse;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const DidYouMeanHeader(),
+          for (final near in matches)
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: take == null ? null : () => take(near),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        near.ingredientName,
+                        style: ansiSans(size: 13, weight: FontWeight.w600),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    // Which spelling it was found under, when that was not the
+                    // row's own name — otherwise the row looks like it does
+                    // not resemble what was typed.
+                    if (near.isAlias) ...[
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          'alias · ${near.text}',
+                          style: ansiMono(size: 10, color: AnsiColors.muted),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                    if (take != null) ...[
+                      const Spacer(),
+                      const Icon(
+                        FLucideIcons.chevronRight,
+                        size: 14,
+                        color: AnsiColors.herb,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 /// The board's `ghostbtn`: a secondary action that reads as available

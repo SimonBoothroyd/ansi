@@ -9,13 +9,19 @@
 /// **Sauerkraut** beside the first, and from then on every exact match was a
 /// coin toss between two rows.
 ///
-/// [collisionIn] is the question the namespace answers: is this text already a
-/// name here? An exact answer, over normalized match text, and the one a save
-/// is refused on.
+/// Two questions live here, and both are asked of the same list of [NameEntry]
+/// so they cannot disagree about what the namespace holds:
+///
+/// * [collisionIn] — is this text *already* a name here? An exact answer,
+///   over normalized match text, and the one a save is refused on.
+/// * [nearMatchesIn] — is it nearly one? [searchRank]'s guarded typo tier,
+///   offered under the pickers' `DID YOU MEAN` band and never acted on
+///   unattended (ADR-0004).
 library;
 
 import 'package:meta/meta.dart';
 
+import '../../../core/search/search_rank.dart';
 import 'normalize.dart';
 
 /// What the form's note and the write's refusal both open with — one sentence
@@ -99,4 +105,54 @@ NameEntry? collisionIn(
     if (entry.matchText == matchText) return entry;
   }
   return null;
+}
+
+/// Up to [limit] rows whose name or alias [text] was very nearly spelled —
+/// one per row, best first, and **empty unless the typo tier answered**.
+///
+/// The band rule the pickers hold, applied to a name being typed: a guess is
+/// the whole list or it is absent ([bestTier]). A word-prefix hit is a
+/// spelling, not a guess — "Onion" beside the household's "Onion Powder" is
+/// two ingredients, and interrupting it with `DID YOU MEAN` would make the
+/// band mean nothing where it matters.
+///
+/// Rows collapse to one entry each: a row matched through both its name and an
+/// alias is still one row to go and look at.
+List<NameEntry> nearMatchesIn(
+  String text,
+  Iterable<NameEntry> entries, {
+  String? selfId,
+  int limit = 3,
+}) {
+  final scored = <({NameEntry entry, SearchHit hit})>[];
+  for (final entry in entries) {
+    if (entry.ingredientId == selfId) continue;
+    final hit = searchRank(
+      text,
+      {entry.matchText, ...nameSurfaces(entry.text)}.toList(),
+    );
+    if (hit != null) scored.add((entry: entry, hit: hit));
+  }
+  if (bestTier(scored.map((s) => s.hit)) != SearchTier.typo) return const [];
+
+  final guesses =
+      [
+        for (final s in scored)
+          if (s.hit.tier == SearchTier.typo) s,
+      ]..sort((a, b) {
+        final byScore = b.hit.score.compareTo(a.hit.score);
+        if (byScore != 0) return byScore;
+        return a.entry.ingredientName.length.compareTo(
+          b.entry.ingredientName.length,
+        );
+      });
+
+  final seen = <String>{};
+  final best = <NameEntry>[];
+  for (final s in guesses) {
+    if (!seen.add(s.entry.ingredientId)) continue;
+    best.add(s.entry);
+    if (best.length == limit) break;
+  }
+  return best;
 }
