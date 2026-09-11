@@ -35,6 +35,7 @@ import '../domain/ingredient_repository.dart';
 import '../domain/name_namespace.dart';
 import '../domain/normalize.dart';
 import '../domain/serving_measure.dart';
+import 'name_holder.dart';
 
 const _uuid = Uuid();
 
@@ -552,32 +553,21 @@ class SqliteIngredientRepository implements IngredientRepository {
     ];
   }
 
-  /// The name namespace's rule, asked of one match text inside a transaction:
-  /// the canonical name of the live row already carrying it, or null.
+  /// The name namespace's rule as a *save* asks it: the canonical name of
+  /// **another** live row already carrying [matchText], or null.
   ///
-  /// SQL rather than [collisionIn] over [nameIndex] because this half runs
-  /// under the write's own transaction, where reading the whole vocabulary to
-  /// compare one string would be the expensive way to ask. It is the same
-  /// question — exact equality over `match_text`, names and aliases alike —
-  /// and the vectors that pin the normalizer pin both sides of it.
+  /// One question in one place ([nameHolderFor]), because the import's
+  /// learning loop asks the same one at its own write; all this leg adds is
+  /// what self-ownership means here — a row may always be saved under the name
+  /// it already has.
   Future<String?> _nameTakenBy(
     SqliteWriteContext tx,
     String matchText,
     String selfId,
   ) async {
-    if (matchText.isEmpty) return null;
-    final row = await tx.getOptional(
-      'SELECT i.canonical_name FROM ingredient i '
-      'WHERE i.match_text = ? AND i.deleted_at IS NULL AND i.id <> ? '
-      'UNION ALL '
-      'SELECT i.canonical_name FROM ingredient_alias a '
-      'JOIN ingredient i ON i.id = a.ingredient_id '
-      'WHERE a.match_text = ? AND a.deleted_at IS NULL '
-      'AND i.deleted_at IS NULL AND a.ingredient_id <> ? '
-      'LIMIT 1',
-      [matchText, selfId, matchText, selfId],
-    );
-    return row?['canonical_name'] as String?;
+    final holder = await nameHolderFor(tx, matchText);
+    if (holder == null || holder.id == selfId) return null;
+    return holder.name;
   }
 
   @override

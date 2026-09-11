@@ -701,6 +701,22 @@ or accepts a suggestion), the original raw string is written back as a new
 a few weeks the vocabulary absorbs the household's actual phrasing ("coco milk" →
 Coconut milk, canned) and matching improves with zero ML.
 
+**An alias is a name, so it lands in the household's one namespace or not at
+all.** Names and aliases share `match_text` (the app's *One namespace* rule —
+[`app/lib/features/ingredients/README.md`](../../app/lib/features/ingredients/README.md)),
+and the commit asks the same question the flesh-out form's save asks, inside
+the same transaction: does a live row already carry this text as its name or as
+one of its aliases? If one does, **nothing is learned and nothing is said** —
+the line has already resolved to the row the person picked, which is all they
+asked for, so there is no failure to report and no decision left to make.
+Two ways to get there, one answer: another row holds the text (correcting
+"extra-firm tofu" onto *Super Firm Tofu* would learn *Extra Firm Tofu*'s own
+name, making every later exact match between those two rows a coin toss), or
+the picked row holds it already — its own name printed on the page, or an alias
+it has, which is also why the loop is find-or-create rather than a blind
+insert: correcting "yellow onion" onto Onion on every import must not pile up
+an identically matching alias per import.
+
 > Two shipped details beyond the bullets above: the review header's zero-state reads
 > **"looks good"** (not "0 to review"), and the Save button carries a third
 > label — **"Nothing left to save"** — when every line has been dropped; each

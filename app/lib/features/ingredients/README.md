@@ -89,6 +89,24 @@ So a name or an alias that is already somebody's is **refused**, twice over:
 A row never collides with itself, so re-saving a row under the name it already
 has is always allowed.
 
+**Every writer asks, not just the form.** `data/name_holder.dart` is the
+question as SQL — `nameHolderFor(tx, matchText)`, the live row that already
+carries the text as its own name or as one of its aliases — and every write
+seam goes through it, inside its own transaction. A rule held by only some of
+the writers is not held at all: an alias learned by the import's loop lands in
+the same namespace as a name typed on the form, so "extra-firm tofu" corrected
+onto *Super Firm Tofu* is refused there too — it is what *Extra Firm Tofu* is
+already called.
+
+Where the form *refuses*, though, the loop is simply **silent**: nothing is
+learned and nothing is said, because the line has already resolved to the row
+the human picked and that is the whole of what they asked for
+(`docs/product-specs/import-and-matching.md` §8). The picked row owning the
+text — the page printed what the row is already called, or an alias it already
+has — is the same answer for a different reason: there is nothing to learn.
+`test/structure/alias_writes_ask_the_namespace_test.dart` holds the rule
+against the next writer.
+
 And when the name is *nearly* somebody's, the form offers the near names under
 the pickers' own `DID YOU MEAN` header — `searchRank`'s guarded typo tier over
 every live name and alias, at most three rows, and only when nothing was

@@ -26,6 +26,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/search/search_query.dart';
 import '../../../core/search/search_rank.dart';
 import '../../../core/units/units.dart';
+import '../../ingredients/data/name_holder.dart';
 import '../../ingredients/domain/normalize.dart';
 import '../domain/commit_payload.dart';
 import '../domain/import_repository.dart';
@@ -323,24 +324,38 @@ class SqliteImportRepository implements ImportRepository {
       }
 
       // 3. Correction aliases (source='import_correction') — lane B's loop.
-      // Find-or-create, not blind insert: correcting "yellow onion" onto Onion
-      // on every import would otherwise pile up a duplicate alias row per
-      // import, all of them matching identically. Local tables are VIEWS, so
-      // this is an existence check + a plain INSERT: a view rejects
-      // `ON CONFLICT`. The alias is written with the SERVER's phrase
-      // normalizer (`normalizeMatchText`), not the character-level search
-      // normalizer, because the cascade that will one day match on it searches
-      // by those rules — "ripe tomatoes, chopped" is `ripe tomato chopped` to
-      // the server.
+      // The alias is written with the SERVER's phrase normalizer
+      // (`normalizeMatchText`), not the character-level search normalizer,
+      // because the cascade that will one day match on it searches by those
+      // rules — "ripe tomatoes, chopped" is `ripe tomato chopped` to the
+      // server. Local tables are VIEWS, so this is a lookup + a plain INSERT:
+      // a view rejects `ON CONFLICT`.
+      //
+      // **An alias is a name, so it lands in the one namespace or not at all**
+      // (`ingredients/domain/name_namespace.dart`), and the rule is asked
+      // HERE, inside the write, by the same `nameHolderFor` the flesh-out
+      // form's save asks. Learning is the silent half of this loop, so a taken
+      // name is not an error and nothing is said about it: the line has
+      // already resolved to the row the human picked, which is the whole of
+      // what they asked for. Two cases, one answer — write nothing:
+      //
+      // * **another row holds the text.** "extra-firm tofu" corrected onto
+      //   Super Firm Tofu normalizes to `extra firm tofu`, which IS Extra Firm
+      //   Tofu's own name; learning it would make every later exact match
+      //   between those two rows a coin toss.
+      // * **the picked row holds it** — as its own name (the page printed what
+      //   the row is already called) or as an alias it already has, which is
+      //   also this loop's find-or-create rule: correcting "yellow onion" onto
+      //   Onion on every import must not pile up a duplicate alias row per
+      //   import, all of them matching identically.
       for (final c in payload.corrections) {
         final matchText = normalizeMatchText(c.aliasText);
-        final existing = await tx.getOptional(
-          'SELECT id FROM ingredient_alias '
-          'WHERE ingredient_id = ? AND match_text = ? AND deleted_at IS NULL '
-          'LIMIT 1',
-          [c.ingredientId, matchText],
-        );
-        if (existing != null) continue;
+        // A phrase with no identity word ("a good pinch of") is not a name and
+        // could never match anything; the form refuses one outright, and here
+        // — where a refusal would cost the human their whole recipe — it is
+        // simply not learned.
+        if (matchText.isEmpty) continue;
+        if (await nameHolderFor(tx, matchText) != null) continue;
         await tx.execute(
           'INSERT INTO ingredient_alias (id, household_id, ingredient_id, '
           'alias_text, match_text, source, created_at, updated_at) '

@@ -422,6 +422,200 @@ void main() {
     expect(alias['match_text'], isNot(normalizeSearchQuery(aliasText)));
   });
 
+  group('the learning loop lands in the ONE namespace', () {
+    // A one-line import, resolved onto [ingredientId] as a correction — the
+    // shape that learns an alias. Returns the committed recipe's id.
+    Future<String> commitCorrection(
+      String text, {
+      required String ingredientId,
+      required String name,
+      String title = 'Namespace Recipe',
+    }) {
+      final p = ReconciliationPayload(
+        title: title,
+        servingsBase: 2,
+        groups: [
+          ReconGroup(
+            lines: [
+              ReconLine(
+                raw: RawLineItem(ingredientText: text, qty: 1, unit: 'piece'),
+                band: MatchBand.none,
+              ),
+            ],
+          ),
+        ],
+      );
+      return repo.commit(
+        buildCommit(
+          p,
+          [
+            initialResolution(
+              0,
+              p.flatLines[0],
+            ).resolveToIngredient(ingredientId, name, correction: true),
+          ],
+          header: _header(p),
+          issuesByLine: null,
+        ),
+      );
+    }
+
+    /// The ingredient each live alias belongs to, keyed by `match_text`.
+    Future<Map<String, String>> aliasOwners() async => {
+      for (final r in await db.getAll(
+        'SELECT match_text, ingredient_id FROM ingredient_alias '
+        'WHERE deleted_at IS NULL',
+      ))
+        r['match_text'] as String: r['ingredient_id'] as String,
+    };
+
+    Future<String?> lineIngredient(String recipeId) async {
+      final row = await db.get(
+        'SELECT li.ingredient_id FROM recipe_line_item li '
+        'JOIN ingredient_group g ON g.id = li.group_id '
+        'WHERE g.recipe_id = ?',
+        [recipeId],
+      );
+      return row['ingredient_id'] as String?;
+    }
+
+    test("raw text that is ANOTHER row's name is not learned, and the line "
+        'still commits', () async {
+      // The shape the owner's live data shows: "extra-firm tofu" corrected
+      // onto Super Firm Tofu normalizes to the text Extra Firm Tofu is
+      // *called*.
+      await _seedIngredient(db, 'ing-extra', 'Extra Firm Tofu');
+      await _seedIngredient(db, 'ing-super', 'Super Firm Tofu');
+      expect(normalizeMatchText('extra-firm tofu'), 'extra firm tofu');
+
+      final recipeId = await commitCorrection(
+        'extra-firm tofu',
+        ingredientId: 'ing-super',
+        name: 'Super Firm Tofu',
+      );
+
+      expect(
+        await aliasOwners(),
+        isEmpty,
+        reason: 'the name belongs to Extra Firm Tofu; nothing may be learned',
+      );
+      expect(
+        await lineIngredient(recipeId),
+        'ing-super',
+        reason: 'the line resolves to the row the human picked either way',
+      );
+    });
+
+    test("raw text that is ANOTHER row's alias is not learned", () async {
+      await _seedIngredient(db, 'ing-frozen-peas', 'Frozen Peas');
+      // The seed's own alias on a different row — `garden peas` is Onion's
+      // here purely so the collision is unambiguous.
+      await _seedAlias(db, 'ing-onion', 'garden peas');
+
+      final recipeId = await commitCorrection(
+        'garden peas',
+        ingredientId: 'ing-frozen-peas',
+        name: 'Frozen Peas',
+      );
+
+      expect(await aliasOwners(), {'garden pea': 'ing-onion'});
+      expect(await lineIngredient(recipeId), 'ing-frozen-peas');
+    });
+
+    test(
+      'the PICKED row owning the text is a no-op, not a collision',
+      () async {
+        // The page printed what the row is already called. Nothing to learn,
+        // nothing wrong: an alias echoing its own row's name is noise.
+        final recipeId = await commitCorrection(
+          'Onions',
+          ingredientId: 'ing-onion',
+          name: 'Onion',
+        );
+
+        expect(await aliasOwners(), isEmpty);
+        expect(await lineIngredient(recipeId), 'ing-onion');
+      },
+    );
+
+    test('an alias the picked row already has is not duplicated', () async {
+      await _seedAlias(db, 'ing-onion', 'brown onions');
+
+      await commitCorrection(
+        'brown onions',
+        ingredientId: 'ing-onion',
+        name: 'Onion',
+      );
+
+      expect(
+        await db.getAll(
+          'SELECT id FROM ingredient_alias WHERE deleted_at IS NULL',
+        ),
+        hasLength(1),
+        reason: 'find-or-create: one import must not pile up a second row',
+      );
+    });
+
+    test('an honest new alias is still learned', () async {
+      final recipeId = await commitCorrection(
+        'brown onions',
+        ingredientId: 'ing-onion',
+        name: 'Onion',
+      );
+
+      expect(await aliasOwners(), {'brown onion': 'ing-onion'});
+      expect(await lineIngredient(recipeId), 'ing-onion');
+      final alias = await db.get(
+        'SELECT alias_text, source FROM ingredient_alias',
+      );
+      expect(alias['alias_text'], 'brown onions');
+      expect(alias['source'], 'import_correction');
+    });
+
+    test('a taken name does not stop the corrections beside it', () async {
+      await _seedIngredient(db, 'ing-extra', 'Extra Firm Tofu');
+      await _seedIngredient(db, 'ing-super', 'Super Firm Tofu');
+      const p = ReconciliationPayload(
+        title: 'Two Corrections',
+        servingsBase: 2,
+        groups: [
+          ReconGroup(
+            lines: [
+              ReconLine(
+                raw: RawLineItem(ingredientText: 'extra-firm tofu', qty: 200),
+                band: MatchBand.none,
+              ),
+              ReconLine(
+                raw: RawLineItem(ingredientText: 'brown onions', qty: 1),
+                band: MatchBand.none,
+              ),
+            ],
+          ),
+        ],
+      );
+      await repo.commit(
+        buildCommit(
+          p,
+          [
+            initialResolution(0, p.flatLines[0]).resolveToIngredient(
+              'ing-super',
+              'Super Firm Tofu',
+              correction: true,
+            ),
+            initialResolution(
+              1,
+              p.flatLines[1],
+            ).resolveToIngredient('ing-onion', 'Onion', correction: true),
+          ],
+          header: _header(p),
+          issuesByLine: null,
+        ),
+      );
+
+      expect(await aliasOwners(), {'brown onion': 'ing-onion'});
+    });
+  });
+
   test('step line_index refs are remapped to real line_item_ids', () async {
     final c = resolvedCommit();
     final recipeId = await repo.commit(
