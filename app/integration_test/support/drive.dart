@@ -194,24 +194,20 @@ Future<void> scrollTo(
     return tester.state<ScrollableState>(scrollableFinder).position.pixels;
   }
 
-  // Start from the top and walk down once. Two capped passes from wherever
-  // the list happened to be could overshoot a long list on the way down and
-  // come back to the same offset on the way up, never reaching a target
-  // above it — the grouped vocabulary is some 47,000 px on a phone.
-  if (finder.evaluate().isEmpty) {
-    final scrollableFinder = lists.evaluate().isNotEmpty
-        ? find.descendant(of: vertical, matching: find.byType(Scrollable)).first
-        : vertical;
-    tester.state<ScrollableState>(scrollableFinder).position.jumpTo(0);
-    await tester.pumpAndSettle();
-  }
-  var last = double.nan;
-  for (var i = 0; i < 400 && finder.evaluate().isEmpty; i++) {
-    await tester.drag(vertical, Offset(0, -delta));
-    await tester.pumpAndSettle();
-    final now = pixels();
-    if ((now - last).abs() < 1.0) break; // at the end — nothing more to see
-    last = now;
+  // Walk down, then up, each way until the position stops moving or the
+  // budget runs out. The budget covers a long list in one direction — the
+  // grouped vocabulary is some 47,000 px on a phone — so an overshoot on the
+  // way down is walked back on the way up rather than stranded halfway.
+  for (final d in [delta, -delta]) {
+    var last = double.nan;
+    for (var i = 0; i < 400 && finder.evaluate().isEmpty; i++) {
+      await tester.drag(vertical, Offset(0, -d));
+      await tester.pumpAndSettle();
+      final now = pixels();
+      if ((now - last).abs() < 1.0) break; // at this end — stop this way
+      last = now;
+    }
+    if (finder.evaluate().isNotEmpty) break;
   }
   if (finder.evaluate().isEmpty) {
     final seen = find
@@ -221,8 +217,13 @@ Future<void> scrollTo(
         .whereType<String>()
         .take(30)
         .toList();
+    final resolved = vertical.evaluate().isEmpty
+        ? 'nothing'
+        : vertical.evaluate().first.widget.runtimeType.toString();
     fail(
       'scrollTo exhausted both directions without finding the target.\n'
+      'dragged: $resolved · lists: ${lists.evaluate().length} · '
+      'pixels now: ${pixels()}\n'
       'Visible texts at failure: $seen',
     );
   }

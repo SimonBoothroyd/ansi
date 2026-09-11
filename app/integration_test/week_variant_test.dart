@@ -30,7 +30,7 @@ import 'package:ansi/features/planning/presentation/week_variant_editor.dart'
 import 'package:ansi/features/planning/presentation/week_view.dart'
     show WeekView;
 import 'package:ansi/features/planning/presentation/week_widgets.dart'
-    show EditedForThisWeekMark;
+    show EaterAvatarStack, EditedForThisWeekMark;
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/presentation/recipe_header_form.dart'
@@ -61,7 +61,7 @@ Future<String> _seedRagu(
     "AND status = 'complete' AND deleted_at IS NULL",
   );
   final flour = await db.get(
-    "SELECT id FROM ingredient WHERE canonical_name = 'Flour' "
+    "SELECT id FROM ingredient WHERE canonical_name = 'All-Purpose Flour' "
     'AND deleted_at IS NULL',
   );
   final book = await db.get(
@@ -91,7 +91,7 @@ Future<String> _seedRagu(
             LineItem(
               id: _uuid.v4(),
               ingredientId: flour['id'] as String,
-              ingredientName: 'Flour',
+              ingredientName: 'All-Purpose Flour',
               unit: g,
               quantity: 100,
             ),
@@ -136,11 +136,15 @@ void main() {
     // ------------------------------------------------------------------------
     // 2 · The door: the meal editor sheet's last row, stating its own scope.
     // ------------------------------------------------------------------------
+    // The editor opens from the avatars that draw the eaters — the dish
+    // title opens the recipe.
     await scrollTo(tester, find.text('Tuesday'));
     final cluster = find.descendant(
       of: dayCard('Tuesday'),
-      matching: find.text('nobody'),
+      matching: find.byType(EaterAvatarStack),
     );
+    await tester.ensureVisible(cluster.first);
+    await tester.pumpAndSettle();
     await tester.tap(cluster.first);
     await tester.pumpAndSettle();
     await pumpUntilFound(tester, find.text('As the recipe has them'));
@@ -162,13 +166,28 @@ void main() {
     expect(find.textContaining('from the recipe · not edited here'), findsOne);
 
     // The bin on a recipe line EXCLUDES it; the row stays, struck.
-    final flourRow = find.ancestor(
-      of: find.textContaining('Flour'),
-      matching: find.byType(Row),
-    );
-    await tester.tap(
-      find.descendant(of: flourRow.last, matching: find.byIcon(FLucideIcons.x)),
-    );
+    // The line's own row is the nearest Row above the name that holds exactly
+    // one bin — the control nests rows, so neither the innermost nor the
+    // outermost ancestor is the line.
+    Finder? flourBin;
+    for (final row
+        in find
+            .ancestor(
+              of: find.textContaining('All-Purpose Flour').first,
+              matching: find.byType(Row),
+            )
+            .evaluate()) {
+      final bins = find.descendant(
+        of: find.byWidget(row.widget),
+        matching: find.byIcon(FLucideIcons.x),
+      );
+      if (bins.evaluate().length == 1) {
+        flourBin = bins;
+        break;
+      }
+    }
+    expect(flourBin, isNotNull, reason: 'the flour line has one bin');
+    await tester.tap(flourBin!);
     await tester.pumpAndSettle();
     await pumpUntilFound(tester, find.text('this week · left out'));
     expect(find.text('Back to the recipe · drops 1 change'), findsOneWidget);
@@ -197,6 +216,13 @@ void main() {
       'the exclusion to be stored',
     );
 
+    // Save pops the editor back onto the meal sheet it was opened from; the
+    // sheet's barrier would swallow every tap below, the tab bar included.
+    if (find.text('Close').evaluate().isNotEmpty) {
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+    }
+
     // ------------------------------------------------------------------------
     // 4 · The week grid: BOTH planned days read the one variant.
     // ------------------------------------------------------------------------
@@ -223,10 +249,10 @@ void main() {
     await tapTab(tester, FLucideIcons.shoppingBasket);
     await pumpUntilFound(tester, find.byKey(ShoppingView.rootKey));
     await pumpUntilFound(tester, find.text('Almonds'));
-    expect(find.text('Flour'), findsNothing);
+    expect(find.text('All-Purpose Flour'), findsNothing);
     await scrollTo(tester, find.textContaining('left out this week'));
     expect(
-      find.textContaining('1 line left out this week — Flour'),
+      find.textContaining('1 line left out this week — All-Purpose Flour'),
       findsOneWidget,
     );
   });
