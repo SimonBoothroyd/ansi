@@ -110,10 +110,11 @@ each one can fail the build rather than emit a broken seed.
 exported data now — the rows are curated rather than derived, so the only
 thing left to be wrong is that the curation itself is dishonest.
 
-- **R1** — a volume `default_unit` REQUIRES a density. A volume line on a
-  density-less per-g ingredient can never compute macros. Fix it by filling an
-  honest density on the row in the app, or flipping its default to a weight,
-  then re-exporting.
+- **R1** — a volume `default_unit` on a per-gram row REQUIRES a density. A
+  volume line on a density-less per-g ingredient can never compute macros. A
+  row whose macros are stated per 100 ml is exempt: its volume family is
+  native. Fix it by filling an honest density on the row in the app, flipping
+  its default to a weight, or stating the label per 100 ml, then re-exporting.
 - **R2** — every stored density lands in the kitchen band **0.03–2.0 g/ml**.
   This catches the wrong physical quantity (2.165 is crystal salt, not what a
   spoonful weighs) without second-guessing the genuinely light end (dill at

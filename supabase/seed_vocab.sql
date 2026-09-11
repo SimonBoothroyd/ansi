@@ -1268,20 +1268,23 @@ declare violators text;
         missing text;
         n_rows int; n_complete int; n_measures int;
 begin
-  -- R1 (Simon, 2026-08-29): a volume default_unit REQUIRES a density — a
+  -- R1: a volume default_unit on a PER-GRAM row REQUIRES a density — a
   -- volume line on a density-less per-g ingredient can never compute
-  -- macros, so the class must not silently return. Fix it by filling an
-  -- honest density on the row (in the app) or flipping its default to a
-  -- weight, then re-exporting.
+  -- macros, so the class must not silently return. A per-100-ml row is
+  -- exempt: its volume family is native and needs no bridge. Fix it by
+  -- filling an honest density on the row (in the app), flipping its
+  -- default to a weight, or stating the label per 100 ml, then
+  -- re-exporting.
   select string_agg(canonical_name || ' (' || default_unit || ')', ', ')
     into violators
   from ingredient
   where household_id = '00000000-0000-0000-0000-0000000000aa' and deleted_at is null
     and default_unit in ('ml', 'l', 'tsp', 'tbsp', 'fl_oz', 'cup', 'pt', 'qt')
+    and macros_basis = 'g'
     and density_g_per_ml is null;
   if violators is not null then
     raise exception
-      'seed_vocab R1: volume-default rows with no density: %',
+      'seed_vocab R1: volume-default per-g rows with no density: %',
       violators;
   end if;
 
