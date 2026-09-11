@@ -54,6 +54,19 @@ void main() {
       expect(itemSecondary(item), '≈ 2 1/4 potato, large → buy 3');
     });
 
+    test('a fractional gram total is a scale reading, its measure count is '
+        'not', () {
+      const large = Measure(id: 'pl', label: 'potato, large', amount: 299);
+      final item = ShoppingItem(
+        name: 'Potato',
+        ingredientId: 'potato',
+        totals: [Quantity(672.75, g)],
+        measureTotal: (amount: 2.25, measure: large),
+      );
+      expect(itemTotal(item), '2 1/4 potato, large');
+      expect(itemSecondary(item), '672.75 g');
+    });
+
     test('honest subtotals join, and a numberless staple is an em dash', () {
       final split = ShoppingItem(
         name: 'Yoghurt',

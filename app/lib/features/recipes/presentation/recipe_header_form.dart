@@ -341,7 +341,7 @@ class _YieldRow extends StatelessWidget {
         AmountAndUnitField(
           amountWidth: 64,
           unitWidth: 120,
-          amount: formatQuantity(quantity),
+          amount: formatQuantityIn(quantity, unit),
           unit: unit,
           units: units,
           onAmount: (t) => onChanged(

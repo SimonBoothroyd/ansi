@@ -411,7 +411,7 @@ class _LineItemEditor extends ConsumerWidget {
   /// reader waiting on nothing.
   String get _label {
     if (item.measure == null && item.measureId != null) {
-      final qty = formatQuantity(item.quantity);
+      final qty = formatQuantityIn(item.quantity, item.unit);
       final why = item.measureDeleted
           ? 'measure deleted'
           : 'measure pending sync';

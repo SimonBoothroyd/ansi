@@ -93,7 +93,8 @@ class ServingDraft {
   String get conversion {
     final inBasis = amountInBasis;
     if (inBasis == null || unit == basis.baseUnit) return '';
-    return '$phrase = ${formatQuantity(inBasis)} ${basis.baseUnit.label}';
+    return '$phrase = ${formatQuantityIn(inBasis, basis.baseUnit)} '
+        '${basis.baseUnit.label}';
   }
 
   ServingDraft copyWith({String? amountText, Unit? unit}) => ServingDraft(

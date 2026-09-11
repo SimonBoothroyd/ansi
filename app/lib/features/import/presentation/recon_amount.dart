@@ -44,10 +44,13 @@ String amountLabel(LineResolution r, RawLineItem raw) {
   final mapped = r.unit == null ? null : unitById(r.unit!);
   if (r.quantity != null) {
     final unitLabel = mapped?.label ?? r.unit ?? '';
-    if (mapped != null && mapped.family == UnitFamily.count) {
-      return formatQuantity(r.quantity);
-    }
-    return '${formatQuantity(r.quantity)} $unitLabel'.trim();
+    // An unmapped unit is a raw source word, and a word the catalog does not
+    // know cannot say how its number is read: it keeps the kitchen rule.
+    final qty = mapped == null
+        ? formatQuantity(r.quantity)
+        : formatQuantityIn(r.quantity, mapped);
+    if (mapped != null && mapped.family == UnitFamily.count) return qty;
+    return '$qty $unitLabel'.trim();
   }
   // No number. A CLEAN catalog unit names itself — an imprecise amount reads
   // "pinch" / "to taste" / "handful", NEVER the raw phrase "A good pinch"

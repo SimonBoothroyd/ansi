@@ -63,7 +63,12 @@ screen: [`../docs/design-docs/navigation.md`](../docs/design-docs/navigation.md)
   iOS's numeric pads carry no `/`. No file rounds its own amount; enforced by
   `test/structure/amounts_print_through_format_test.dart`, whose only other
   rule-holder is `macros_format.dart` (macros are label readings, not
-  fractions).
+  fractions). **A site with the unit in scope prints through
+  `formatAmountIn(amount, unit)`** (`formatQuantityIn`, `shared/format.dart`,
+  for one that may be absent): `g`, `kg`, `ml` and `l` are scale-and-jug
+  readings and stay decimal — `213.5 g`, never `213 1/2 g` — while every
+  other unit keeps its fractions. The split is `Unit.isMetric`, and it is
+  printing only: a grams field still parses `2/3`.
 - **Never `.future` an autoDispose provider from a one-shot read** — read the
   repository instead. Nothing is listening, PowerSync's `watch` does not emit
   synchronously, and the element is disposed before its first value, so the

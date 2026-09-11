@@ -146,7 +146,8 @@ String? componentLeftoverNote(
   final batches = session.batchesToCook;
   if (batches == null || denomination == null) return null;
   if (batches == batches.roundToDouble()) return null;
-  return 'A batch makes ${formatQuantity(denomination.qty)} '
+  return 'A batch makes '
+      '${formatQuantityIn(denomination.qty, denomination.unit)} '
       '${denomination.unit.label} and ${kWeekdayFull[session.cookDay]} needs '
       '${formatQuantity(batches)} — the rest is yours. Nothing here tracks '
       'the leftover.';

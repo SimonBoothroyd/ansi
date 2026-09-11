@@ -243,8 +243,8 @@ Measure? pieceAsMeasure(Ingredient ingredient) {
 String pieceChipLabel(Ingredient ingredient) {
   final amount = ingredient.pieceBasisAmount;
   if (amount == null) return pieces.label;
-  return '${pieces.label} (${formatAmount(amount)} '
-      '${ingredient.macrosBasis.baseUnit.label})';
+  final basis = ingredient.macrosBasis.baseUnit;
+  return '${pieces.label} (${formatAmountIn(amount, basis)} ${basis.label})';
 }
 
 /// The units an ingredient admits **only because a piece weight is stored** —
@@ -524,8 +524,9 @@ final class MeasureOption extends UnitChoice {
 
   @override
   String get label {
-    final amount = formatAmount(measure.amount);
-    return '${measure.label} ($amount ${measure.basis.baseUnit.label})';
+    final basis = measure.basis.baseUnit;
+    return '${measure.label} (${formatAmountIn(measure.amount, basis)} '
+        '${basis.label})';
   }
 
   @override

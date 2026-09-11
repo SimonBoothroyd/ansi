@@ -276,7 +276,7 @@ String? _formatLineAmount(LineItem line, double factor) {
     // batch") — the batch↔yield arithmetic belongs to the cook plan, not to
     // a method chip.
     case UnitFamily.batch:
-      return '${formatAmount(scaled.amount)} ${line.unit.label}';
+      return '${formatAmountIn(scaled.amount, line.unit)} ${line.unit.label}';
   }
 }
 

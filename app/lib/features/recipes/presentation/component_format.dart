@@ -15,7 +15,7 @@ import '../domain/component_math.dart';
 /// A component line's amount as printed: `"0.25 cup"`, `"1 batch"`, `"8"` for
 /// a bare count. The same voice `amountOfLineItem` speaks on the recipe page.
 String componentAmountText(double? quantity, Unit unit) {
-  final qty = formatQuantity(quantity);
+  final qty = formatQuantityIn(quantity, unit);
   if (unit.family == UnitFamily.count) return qty.isEmpty ? unit.label : qty;
   if (qty.isEmpty) return unit.label;
   return '$qty ${unit.label}';
@@ -34,7 +34,8 @@ String batchShareText(double batches) {
 /// One stated denomination as the hero pill and the picker hint read it:
 /// *"makes 1 cup"*.
 String yieldText(YieldDenomination denomination) =>
-    'makes ${formatQuantity(denomination.qty)} ${denomination.unit.label}';
+    'makes ${formatQuantityIn(denomination.qty, denomination.unit)} '
+    '${denomination.unit.label}';
 
 /// The hero meta row's yield pills (design board frame b): *"makes 250 g"* and
 /// a continuation pill *"· 16 tbsp"* for the optional second denomination, so
@@ -42,7 +43,10 @@ String yieldText(YieldDenomination denomination) =>
 /// recipe that does not say what it makes.
 List<String> yieldPillLabels(List<YieldDenomination> yields) => [
   for (final (i, y) in yields.indexed)
-    if (i == 0) yieldText(y) else '· ${formatQuantity(y.qty)} ${y.unit.label}',
+    if (i == 0)
+      yieldText(y)
+    else
+      '· ${formatQuantityIn(y.qty, y.unit)} ${y.unit.label}',
 ];
 
 /// Why a component amount could not be turned into a share of a batch, in one

@@ -34,7 +34,7 @@ String servingMeasureLabel(double amount, Unit unit) =>
 
 /// `2 tbsp` — the serving as the pack says it, with the app's one number rule.
 String formatServingPhrase(double amount, Unit unit) =>
-    '${formatAmount(amount)} ${unit.label}';
+    '${formatAmountIn(amount, unit)} ${unit.label}';
 
 /// Whether [measure] is the row's serving rather than one of its measures.
 ///

@@ -80,7 +80,8 @@ class PieceWeightEntry extends HookWidget {
 
     final weight = ingredient.pieceBasisAmount;
     final source = ingredient.pieceSource;
-    final baseLabel = ingredient.macrosBasis.baseUnit.label;
+    final base = ingredient.macrosBasis.baseUnit;
+    final baseLabel = base.label;
     final expanded = open.value || weight == null;
 
     Future<void> save() async {
@@ -133,7 +134,7 @@ class PieceWeightEntry extends HookWidget {
                 child: Text(
                   weight == null
                       ? 'none yet — what one of these weighs'
-                      : '${formatAmount(weight)} $baseLabel'
+                      : '${formatAmountIn(weight, base)} $baseLabel'
                             '${pieceWeightSourceSuffix(source)}',
                   style: ansiMono(
                     size: 10,

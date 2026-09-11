@@ -118,7 +118,7 @@ String densityFact(Ingredient ingredient, {Measure? serving}) {
   if (perUnit == null) return stated;
   final grams = perUnit * read.amount;
   final phrase = formatServingPhrase(read.amount, read.unit);
-  final sentence = '$phrase weighs ${formatQuantity(grams)} g';
+  final sentence = '$phrase weighs ${formatQuantityIn(grams, g)} g';
   return read.fromServing ? sentence : '$sentence · $stated';
 }
 
@@ -150,8 +150,8 @@ String? densityAsideFact(Ingredient ingredient, {Measure? serving}) {
 String? pieceWeightFact(Ingredient ingredient) {
   final weight = ingredient.pieceBasisAmount;
   if (weight == null) return null;
-  return '1 piece weighs ${formatQuantity(weight)} '
-      '${ingredient.macrosBasis.baseUnit.label}'
+  final basis = ingredient.macrosBasis.baseUnit;
+  return '1 piece weighs ${formatQuantityIn(weight, basis)} ${basis.label}'
       '${pieceWeightSourceSuffix(ingredient.pieceSource)}';
 }
 
@@ -174,6 +174,8 @@ String aliasesFact(Iterable<IngredientAlias> aliases) =>
 /// One measure, in the measures editor's own words: `onion, medium · 110 g`.
 /// The provenance word rides beside it on the row rather than inside this
 /// string, exactly as the editor draws it.
-String measureFact(Measure measure) =>
-    '${measure.label} · ${formatQuantity(measure.amount)} '
-    '${measure.basis.baseUnit.label}';
+String measureFact(Measure measure) {
+  final basis = measure.basis.baseUnit;
+  return '${measure.label} · ${formatQuantityIn(measure.amount, basis)} '
+      '${basis.label}';
+}

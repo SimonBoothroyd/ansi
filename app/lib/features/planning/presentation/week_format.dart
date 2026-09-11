@@ -217,9 +217,10 @@ String snackAmount(PlanEntry entry) {
   final unit = entry.unit;
   if (quantity == null || unit == null) return 'no amount';
   final measure = entry.measure;
-  if (measure == null) return '${formatQuantity(quantity)} ${unit.label}';
-  final weighs =
-      '${formatQuantity(measure.amount)} '
-      '${measure.basis.baseUnit.label}';
+  if (measure == null) {
+    return '${formatQuantityIn(quantity, unit)} ${unit.label}';
+  }
+  final basis = measure.basis.baseUnit;
+  final weighs = '${formatQuantityIn(measure.amount, basis)} ${basis.label}';
   return '${formatQuantity(quantity)} ${measure.label} · $weighs';
 }

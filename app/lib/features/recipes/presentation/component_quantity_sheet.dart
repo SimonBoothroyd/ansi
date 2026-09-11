@@ -146,7 +146,7 @@ class ComponentQuantityEditor extends HookWidget {
                 keyboardType: TextInputType.text,
                 control: FTextFieldControl.managed(
                   initial: TextEditingValue(
-                    text: formatQuantity(quantity.value),
+                    text: formatQuantityIn(quantity.value, unit.value),
                   ),
                   onChange: (v) => quantity.value = parseAmount(v.text),
                 ),

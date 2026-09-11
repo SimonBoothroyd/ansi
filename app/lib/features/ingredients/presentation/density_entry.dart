@@ -285,7 +285,7 @@ class DensityEntry extends HookWidget {
                 // run at 402 pt.
                 amountWidth: 34,
                 unitWidth: 68,
-                amount: _phrase(amount.value, null),
+                amount: formatQuantityIn(amount.value, spoon.value),
                 unit: spoon.value,
                 units: _units,
                 onAmount: (t) => amount.value = parseAmount(t) ?? 0,
@@ -407,10 +407,12 @@ double? densityForPair(double a, Unit ua, double b, Unit ub) {
   return null;
 }
 
-/// `2 tbsp` / `2` — the sentence's left-hand side, under the app's one number
-/// rule. A null [unit] gives the bare amount, which is what seeds the field.
-String _phrase(double amount, Unit? unit) =>
-    '${formatQuantity(amount)}${unit == null ? '' : ' ${unit.label}'}';
+/// `2 tbsp` / `2` — the sentence's left-hand side, said the way its unit is
+/// said. A null [unit] has no rule of its own and gives the kitchen reading
+/// of the bare amount.
+String _phrase(double amount, Unit? unit) => unit == null
+    ? formatQuantity(amount)
+    : '${formatQuantityIn(amount, unit)} ${unit.label}';
 
 /// Deleting the stored density — the one write in the whole admission model
 /// that makes the allowed list *shrink*.

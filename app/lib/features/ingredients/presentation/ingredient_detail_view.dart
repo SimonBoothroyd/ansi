@@ -1621,6 +1621,14 @@ class _MacroFields extends StatelessWidget {
   }
 }
 
+/// `＋ add “pack” = 400 g as a measure` — the offer's own words. The amount is
+/// in the row's basis, so it reads the way a scale reads.
+String _packOfferLabel(PackMeasureOffer pack) {
+  final basis = pack.basis.baseUnit;
+  return '＋ add “pack” = ${formatQuantityIn(pack.amountInBasis, basis)} '
+      '${basis.label} as a measure';
+}
+
 /// What the form's own scan landed: the shared result card, naming what it left
 /// alone, then what it did NOT do — nothing here saves or confirms — and the
 /// pack-size offer as a one-tap measure.
@@ -1659,9 +1667,7 @@ class _ScanResult extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: _GhostButton(
-                label:
-                    '＋ add “pack” = ${formatQuantity(pack.amountInBasis)} '
-                    '${pack.basis.baseUnit.label} as a measure',
+                label: _packOfferLabel(pack),
                 onTap: onAddPack,
               ),
             )

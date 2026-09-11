@@ -124,6 +124,16 @@ right.
   its own rule (`¼ ½ ¾` glyphs, `formatFraction`), and a macro figure keeps
   its own (energy whole, grams to one decimal) — macros are label readings,
   not fractions.
+- **The fraction is a kitchen unit's rule, not every unit's.** `g`, `kg`, `ml`
+  and `l` are what a scale and a jug read out, and they read decimals:
+  `213.5 g`, never `213 1/2 g`; `1.5 l`, never `1 1/2 l`. Cups, spoons, fl oz,
+  oz, lb, pieces, named measures, servings and batches are said by hand and
+  keep their fractions, as does a figure with no unit at all — a bare count,
+  the cook plan's `×3/4`. Which rule a figure gets is decided by
+  `formatAmountIn(amount, unit)` (and `formatQuantityIn` for one that may be
+  absent), off `Unit.isMetric`; every surface with a unit in scope prints
+  through it, so the same number reads the same way wherever it appears.
+  **Only printing splits** — a grams field still accepts `2/3` typed into it.
 - **Density is the single volume⇄mass fact**, entered as one sentence
   (7.8): "1 `[tbsp]` weighs `[N]` g" (`densityFromVolumeWeight`), with `ml`
   among the spoons so a known g/ml is typeable exactly. A volume-named measure label is therefore

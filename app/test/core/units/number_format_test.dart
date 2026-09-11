@@ -6,6 +6,7 @@
 library;
 
 import 'package:ansi/core/units/number_format.dart';
+import 'package:ansi/core/units/units.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -125,6 +126,41 @@ void main() {
       expect(parseAmount('2/3'), closeTo(2 / 3, 1e-12));
       expect(parseAmount('2/3'), isNot(0.67));
       expect(parseAmount('⅓'), closeTo(1 / 3, 1e-12));
+    });
+  });
+
+  group('formatAmountIn — the unit decides which rule', () {
+    test('a scale and a jug read decimals, never halves', () {
+      expect(formatAmountIn(213.5, g), '213.5');
+      expect(formatAmountIn(1.5, l), '1.5');
+      expect(formatAmountIn(0.25, kg), '0.25');
+      expect(formatAmountIn(672.75, g), '672.75');
+      expect(formatAmountIn(236.59, ml), '236.59');
+    });
+
+    test('a whole metric figure still drops its .0', () {
+      expect(formatAmountIn(400, g), '400');
+      expect(formatAmountIn(2, l), '2');
+    });
+
+    test("a cook's own units keep their fractions", () {
+      expect(formatAmountIn(2 / 3, cup), '2/3');
+      expect(formatAmountIn(0.5, tbsp), '1/2');
+      expect(formatAmountIn(2.25, pieces), '2 1/4');
+      expect(formatAmountIn(1.5, flOz), '1 1/2');
+      expect(formatAmountIn(0.25, lb), '1/4');
+      expect(formatAmountIn(0.5, oz), '1/2');
+      expect(formatAmountIn(0.75, batches), '3/4');
+    });
+
+    test('every catalog unit agrees with one rule or the other', () {
+      for (final unit in kAllUnits) {
+        expect(
+          formatAmountIn(0.5, unit),
+          unit.isMetric ? formatNumber(0.5) : formatAmount(0.5),
+          reason: '${unit.id} printed through the wrong rule',
+        );
+      }
     });
   });
 

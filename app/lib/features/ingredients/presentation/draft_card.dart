@@ -114,7 +114,8 @@ class DraftCard extends StatelessWidget {
     }
     final basis = serving.servingBasis!;
     final says = size == null ? '' : ' (“$size”)';
-    return 'panel read per serving of ${formatQuantity(amount)} '
+    return 'panel read per serving of '
+        '${formatQuantityIn(amount, basis.baseUnit)} '
         '${basis.baseUnit.label}$says — stored per 100 ${basis.dbValue}';
   }
 }

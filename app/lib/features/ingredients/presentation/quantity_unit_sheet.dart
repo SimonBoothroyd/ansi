@@ -371,7 +371,7 @@ class _QuantitySurface extends StatelessWidget {
                 keyboardType: TextInputType.text,
                 control: FTextFieldControl.managed(
                   initial: TextEditingValue(
-                    text: formatQuantity(quantity.value),
+                    text: _amountIn(quantity.value, choice.value),
                   ),
                   onChange: (v) => quantity.value = parseAmount(v.text),
                 ),
@@ -461,6 +461,13 @@ class _QuantitySurface extends StatelessWidget {
   }
 }
 
+/// [quantity] as the picked choice says it: under the unit's own rule where a
+/// unit is picked, and as the kitchen count a measure is counted in otherwise.
+String _amountIn(double? quantity, UnitChoice choice) => switch (choice) {
+  UnitOption(:final unit) => formatQuantityIn(quantity, unit),
+  MeasureOption() => formatQuantity(quantity),
+};
+
 /// The honest conversion line: shown only when the unit system can actually
 /// bridge the current entry to the ingredient's basis unit (g or ml — the
 /// dimension its macros speak, ADR-0008) — a cross-family entry names the
@@ -477,7 +484,8 @@ String? _conversionNote(double? qty, UnitChoice choice, Ingredient ing) {
         densityGPerMl: ing.densityGPerMl,
       );
       return switch (inBase) {
-        Ok(:final value) => '≈ ${formatQuantity(value.amount)} ${base.label}',
+        Ok(:final value) =>
+          '≈ ${formatQuantityIn(value.amount, base)} ${base.label}',
         Err() => null,
       };
     case UnitOption(:final unit):
@@ -494,8 +502,9 @@ String? _conversionNote(double? qty, UnitChoice choice, Ingredient ing) {
         );
         return switch (inBase) {
           Ok(:final value) =>
-            '${formatQuantity(qty)} × ${formatQuantity(piece.amount)} '
-                '${base.label} = ${formatQuantity(value.amount)} ${base.label}',
+            '${formatQuantity(qty)} × '
+                '${formatQuantityIn(piece.amount, base)} ${base.label} = '
+                '${formatQuantityIn(value.amount, base)} ${base.label}',
           Err() => null,
         };
       }
@@ -506,9 +515,10 @@ String? _conversionNote(double? qty, UnitChoice choice, Ingredient ing) {
       );
       return switch (inBase) {
         Ok(:final value) when unit.family != base.family =>
-          '≈ ${formatQuantity(value.amount)} ${base.label} · via density '
-              '${formatDensity(ing.densityGPerMl!)} g/ml',
-        Ok(:final value) => '≈ ${formatQuantity(value.amount)} ${base.label}',
+          '≈ ${formatQuantityIn(value.amount, base)} ${base.label} · via '
+              'density ${formatDensity(ing.densityGPerMl!)} g/ml',
+        Ok(:final value) =>
+          '≈ ${formatQuantityIn(value.amount, base)} ${base.label}',
         Err() => null,
       };
   }

@@ -7,11 +7,17 @@
 /// of a pack is `1/3`, not `0.3333333333333333`; a whole one is `1`, not
 /// `1.00`.
 ///
+/// Which of the two a figure gets depends on its unit, and [formatAmountIn]
+/// is the door that knows: a scale and a jug read decimals, a cook's hand
+/// reads fractions.
+///
 /// It lives here, under the units, because the surfaces that print a number
 /// are spread across every feature — a recipe line, a method chip, a measure
 /// label, a batch multiplier, a portion count — and a rule copied into five
 /// files is a rule that will hold in four of them.
 library;
+
+import 'units.dart';
 
 /// `1`, `0.5`, `0.33`, `12.75` — the trimmed, capped rendering of [amount].
 ///
@@ -60,6 +66,22 @@ String formatAmount(double amount) {
   }
   return formatNumber(amount);
 }
+
+/// [amount] as it is said **in [unit]** — the door every site with a unit in
+/// scope prints through.
+///
+/// A metric mass or volume ([Unit.isMetric] — `g`, `kg`, `ml`, `l`) is a
+/// reading off a scale or a jug, so it prints as a decimal: `213.5 g`, never
+/// `213 1/2 g`; `1.5 l`, never `1 1/2 l`. Every other unit is something a
+/// cook says by hand — cups, spoons, fl oz, oz, lb, pieces, measures,
+/// servings, batches — and keeps its fractions: `2/3 cup`, `2 1/4 potato,
+/// large`.
+///
+/// A figure with no unit in scope (a bare count, a scale factor) calls
+/// [formatAmount] directly; it is the kitchen rule, and a unitless number in
+/// this app is always a kitchen one.
+String formatAmountIn(double amount, Unit unit) =>
+    unit.isMetric ? formatNumber(amount) : formatAmount(amount);
 
 /// The vulgar fractions a page (or a keyboard) can print, as their values —
 /// read, never written.

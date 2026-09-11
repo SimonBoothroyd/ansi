@@ -3,8 +3,9 @@
 ///
 /// A cook says `2/3 cup`, not `0.67 cup`, and the rule that turns one into
 /// the other is `formatAmount` — with `formatNumber` under it for the figures
-/// no kitchen says in halves. Both live in one file, under the units, because
-/// the surfaces that print a number run across every feature: a recipe line,
+/// no kitchen says in halves, and `formatAmountIn` over the pair to pick
+/// between them off the unit. All three live in one file, under the units,
+/// because the surfaces that print a number run across every feature: a line,
 /// a method chip, a measure label, a batch multiplier, a portion count. The
 /// moment a second file rounds its own number, half the app says `0.67` and
 /// half says `2/3`, and the difference reads as two different values.
@@ -98,9 +99,10 @@ const hint = 'toStringAsFixed(2)';
       isEmpty,
       reason:
           'an amount rounded outside `core/units/number_format.dart`. Print '
-          'it with formatAmount (or formatQuantity, for one that may be '
-          'absent) so a third of a cup reads 1/3 here as it does everywhere '
-          'else:\n${violations.join('\n')}',
+          'it with formatAmountIn where the unit is in scope, or formatAmount '
+          '(formatQuantity / formatQuantityIn for one that may be absent) '
+          'where it is not, so a third of a cup reads 1/3 here as it does '
+          'everywhere else:\n${violations.join('\n')}',
     );
   });
 }

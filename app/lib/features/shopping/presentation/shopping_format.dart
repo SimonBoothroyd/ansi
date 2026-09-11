@@ -4,11 +4,12 @@ library;
 
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
-import '../../../shared/format.dart' show formatQuantity;
+import '../../../shared/format.dart' show formatQuantity, formatQuantityIn;
 import '../domain/shopping.dart';
 
 /// Formats one [Quantity] for the list, e.g. "500 g", "1.5 kg", "5 piece".
-String formatTotal(Quantity q) => '${formatQuantity(q.amount)} ${q.unit.label}';
+String formatTotal(Quantity q) =>
+    '${formatQuantityIn(q.amount, q.unit)} ${q.unit.label}';
 
 /// The week menu row's trailing label on the Shop tab — what that week holds in
 /// this tab's own derivation, `6 items` / `1 item` / `nothing to buy`, never
@@ -58,7 +59,7 @@ String contributionQuantity(ShoppingContribution c) {
   if (measure != null) return formatMeasureCount(q, measure);
   final unit = c.unit;
   if (unit == null) return '';
-  return '${formatQuantity(q)} ${unit.label}';
+  return '${formatQuantityIn(q, unit)} ${unit.label}';
 }
 
 /// The whole-unit round-up hint under a count-food's total: "2.25 piece →

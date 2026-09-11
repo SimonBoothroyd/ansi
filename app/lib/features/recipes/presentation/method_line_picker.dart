@@ -191,8 +191,11 @@ class _MethodLinePickerSheet extends HookWidget {
 /// The amount a row states — the same shape the editor's own quantity pill
 /// wears, so the two lists read as one recipe.
 String _amountText(LineItem line) {
-  final qty = formatQuantity(line.quantity);
-  final unit = line.measure?.label ?? line.unit.label;
+  final measure = line.measure;
+  final qty = measure == null
+      ? formatQuantityIn(line.quantity, line.unit)
+      : formatQuantity(line.quantity);
+  final unit = measure?.label ?? line.unit.label;
   return qty.isEmpty ? unit : '$qty $unit';
 }
 

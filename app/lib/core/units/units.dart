@@ -57,6 +57,17 @@ class Unit {
   /// [UnitFamily.count], [UnitFamily.imprecise] and [UnitFamily.batch].
   final double? ratioToBase;
 
+  /// Whether this is a metric mass or volume unit — [g], [kg], [ml], [l].
+  ///
+  /// These are the units a scale or a jug reads out, and a decimal is what
+  /// they read: `213.5 g`, never `213 1/2 g`. Everything else in the catalog
+  /// is something a cook says by hand — a cup, a spoon, a piece, a batch —
+  /// and those keep their fractions. It is what `formatAmountIn` asks.
+  ///
+  /// Deliberately not `family == mass || family == volume`: [oz], [lb] and
+  /// [flOz] are in those families and are said in halves and quarters.
+  bool get isMetric => _metricIds.contains(id);
+
   @override
   String toString() => 'Unit($id)';
 }
@@ -135,6 +146,9 @@ const kIngredientUnits = <Unit>[
 /// Every unit the system knows, in a stable order — [kIngredientUnits] plus
 /// the component-line-only [batches].
 const kAllUnits = <Unit>[...kIngredientUnits, batches];
+
+/// The ids behind [Unit.isMetric] — the decimal-reading units.
+const _metricIds = {'g', 'kg', 'ml', 'l'};
 
 final Map<String, Unit> _byId = {for (final u in kAllUnits) u.id: u};
 

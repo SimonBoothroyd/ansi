@@ -367,7 +367,7 @@ class MeasureRow extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              '${formatQuantity(measure.amount)} '
+              '${formatQuantityIn(measure.amount, measure.basis.baseUnit)} '
               '${measure.basis.baseUnit.label}',
               style: ansiMono(size: 11, color: AnsiColors.muted),
             ),
@@ -473,7 +473,7 @@ class _EditMeasureForm extends HookWidget {
       units: basisConvertibleUnits(ingredient),
       unit: amountUnit.value,
       initialLabel: measure.label,
-      initialAmount: formatQuantity(measure.amount),
+      initialAmount: formatQuantityIn(measure.amount, amountUnit.value),
       error: error.value,
       autofocus: false,
       onLabel: (v) => label.value = v,

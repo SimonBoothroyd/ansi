@@ -161,4 +161,22 @@ void main() {
       expect(volumeWeightFromDensity(cup, double.nan), isNull);
     });
   });
+
+  group('Unit.isMetric — which units read as decimals', () {
+    test('the scale-and-jug four, and nothing else', () {
+      expect(kAllUnits.where((u) => u.isMetric), [g, kg, ml, l]);
+    });
+
+    test('a mass or volume unit a cook says by hand is not metric', () {
+      for (final unit in [oz, lb, tsp, tbsp, flOz, cup, pint, quart]) {
+        expect(unit.isMetric, isFalse, reason: unit.id);
+      }
+    });
+
+    test('nothing outside mass and volume is metric', () {
+      for (final unit in [pieces, pinch, dash, handful, toTaste, batches]) {
+        expect(unit.isMetric, isFalse, reason: unit.id);
+      }
+    });
+  });
 }

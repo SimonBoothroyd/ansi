@@ -395,11 +395,12 @@ class OptionalTag extends StatelessWidget {
 /// voice. A count unit shows only its number ("6"); a measure or a mass/volume
 /// unit shows "2 tin" / "400 g"; an imprecise unit its label ("a pinch").
 String amountOfLineItem(LineItem item) {
-  final qty = formatQuantity(item.quantity);
   final measure = item.measure;
   if (measure != null) {
-    return qty.isEmpty ? measure.label : '$qty ${measure.label}';
+    final counted = formatQuantity(item.quantity);
+    return counted.isEmpty ? measure.label : '$counted ${measure.label}';
   }
+  final qty = formatQuantityIn(item.quantity, item.unit);
   if (item.unit.family == UnitFamily.count) {
     return qty.isEmpty ? item.unit.label : qty;
   }

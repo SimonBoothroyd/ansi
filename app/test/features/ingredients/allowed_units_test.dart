@@ -485,7 +485,7 @@ void main() {
       // …and the row's OWN words lead, in the given (sort_order) order: a
       // measure names this ingredient, where `g` is offered on every row.
       expect(choices.map((c) => c.label), [
-        'potato, medium (213 1/2 g)',
+        'potato, medium (213.5 g)',
         'potato, large (299 g)',
         'piece',
         'g',
@@ -598,9 +598,9 @@ void main() {
       expect(choices, isNotEmpty);
     });
 
-    test('labels measures with their gram weight, trimming whole grams', () {
+    test('labels measures with their gram weight, read as a scale reads', () {
       expect(const MeasureOption(large).label, 'potato, large (299 g)');
-      expect(const MeasureOption(medium).label, 'potato, medium (213 1/2 g)');
+      expect(const MeasureOption(medium).label, 'potato, medium (213.5 g)');
       expect(const UnitOption(kg).label, 'kg');
     });
 
