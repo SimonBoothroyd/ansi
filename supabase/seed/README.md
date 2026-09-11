@@ -36,12 +36,11 @@ a piece weight they borrowed — those decisions already happened, in the app,
 on the row. Re-deriving them from raw sources was the old pipeline's whole
 job, and it is over.
 
-**Current counts** (computed by the generator into `counts.json`, never typed
-by hand — `scripts/cloud_verify.sh` and the deploy job read that file):
-
-- **319** ingredients — **283** `complete`, **36** honest `stub`s
-- **138** aliases · **272** measures
-- **60** rows whose `allowed_units` differs from what the rule derives
+**Current counts** live in `counts.json`, written by the generator on every
+run and never typed by hand: ingredients (complete and stub), aliases,
+measures, and the rows whose `allowed_units` differs from what the rule
+derives. `scripts/cloud_verify.sh` and the deploy job read that file, and so
+should any doc that wants a number.
 
 ## Re-exporting from the cloud (the owner runs this)
 
