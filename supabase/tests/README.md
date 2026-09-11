@@ -35,12 +35,24 @@ assertions in `begin … rollback` so runs leave no residue.
   The **`piece` guard** turned inside out with ADR-0015. It used to pin that
   no seeded ingredient carrying a measure admits `piece` — the outcome of 143
   hand-written removals. It now pins the RULE and the seed's data landing on
-  it: all 76 seeded piece-default rows carry a `piece_basis_amount` and
-  therefore admit `piece`; no row with any other default admits it, weight or
-  no weight; a borrowed weight matches a live measure of its own row; the
-  check constraint refuses zero; and the piece-weight union trigger (0039, the
-  mirror of the density one) adds `piece` when a weight arrives and keeps the
-  household's own words.
+  it: every seeded piece-default row carries a `piece_basis_amount` and
+  therefore admits `piece`; exactly as many rows admit `piece` as say it; no
+  row with any other default admits it, weight or no weight; a borrowed weight
+  matches a live measure of its own row; the check constraint refuses zero;
+  and the piece-weight union trigger (0039, the mirror of the density one)
+  adds `piece` when a weight arrives and keeps the household's own words.
+
+  What the suite does **not** pin is the seeded POPULATION — no headcount, and
+  no "every row says X". The template is a copy of the owner's live household
+  rather than a materialization of the rule, and ADR-0014's ruling is *all to
+  all, and let the user prune*, so a row that no longer says `fl oz` or quarts
+  is a curation rather than a regression. Two invariants a curated list may
+  never break stand in their place: every row admits its own `default_unit`
+  (the client guard — the picker draws this list and the import validates
+  against it), and every unit in a list is either in the rule's derived set
+  for that row or an imprecise word (`pinch` · `dash` · `handful` ·
+  `to_taste`). A curator may withhold a convertible unit and add a word; he
+  may not admit a unit the row cannot convert.
 - `nested_recipes.sql` — a recipe as an ingredient (0017, exec plan 0021
   D1/D2/D5): the line-item identity XOR (`ingredient_id` ⊻ `sub_recipe_id`)
   and the "a component carries no `measure_id`" fence; the yield checks
@@ -104,10 +116,12 @@ assertions in `begin … rollback` so runs leave no residue.
   another household; the backfill (`ingredient_default_measure_backfill()`)
   fills a NULL by (`match_text`, measure `label`) per household, never
   overwrites a household's own choice, and is a no-op on a second run. The
-  suite CALLS that backfill and then reads what it filled: 129 of its 132
-  frozen pairs land, and **the thirteen measured rows it misses are asserted BY
-  NAME** — the nine fragment sets, `lentil canned` (added after the snapshot
-  froze) and the three rows plan 0039 renamed out from under it. A frozen
+  suite CALLS that backfill and then reads what it filled — its SHAPE, never
+  its population: every default points at a live measure of its own row, and
+  `napa cabbage` (one measure) gets one where plain `cabbage` (head vs leaf)
+  does not. No count of the frozen pairs that land or miss is asserted, because
+  the column is retired and the seed no longer curates it; the function itself
+  names the labels it can no longer resolve, in a `raise warning`. A frozen
   pointer going stale against a moving vocabulary is the argument ADR-0015
   makes; `ensure_onboarded()` still carries what is there into a new household
   BY LABEL, re-keyed onto that household's own measure rows.

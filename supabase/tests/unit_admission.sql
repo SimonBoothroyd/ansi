@@ -39,6 +39,16 @@
 -- removals, so what is guarded here is the seed's data landing on it — a
 -- stranded count default, or a `piece` on a row nobody counts.
 --
+-- What this suite does NOT pin is the seeded POPULATION. The template is a
+-- copy of the owner's live household rather than a materialization of the
+-- rule, and ADR-0014's ruling is *all to all, and let the user prune* — so
+-- "every row says X" and "there are N of these" are his to change without
+-- touching a test. The invariants held over the seed instead are the ones a
+-- curated list may never break: it admits the row's own `default_unit`, and
+-- every unit in it is either in the rule's derived set for that row or an
+-- imprecise word. A curator may withhold a convertible unit and add a word;
+-- he may not admit a unit the row cannot convert.
+--
 -- 0027 widened the probe to return `description` / `category` with a limit,
 -- in one total order; 0029 replaced its trigram body with BM25 over a derived
 -- index and dropped the prefill trigger that used to copy a match onto a stub
@@ -693,23 +703,14 @@ select ok(
   'the rule'
 );
 
--- The 0024 backfill's post-state, as an invariant over the whole table: no
--- stored list that names `l` and whose recomputed defaults admit `qt` lacks
--- `qt`; same for `cup` and `pt`.
-select is(
-  (select count(*)::int from ingredient i
-     where i.allowed_units is not null
-       and (   (i.allowed_units ? 'l' and not (i.allowed_units ? 'qt')
-                and default_allowed_units(i.default_unit, i.macros_basis,
-                                          i.density_g_per_ml, i.category,
-                                          i.piece_basis_amount) ? 'qt')
-            or (i.allowed_units ? 'cup' and not (i.allowed_units ? 'pt')
-                and default_allowed_units(i.default_unit, i.macros_basis,
-                                          i.density_g_per_ml, i.category,
-                                          i.piece_basis_amount) ? 'pt'))),
-  0,
-  'every row that says l/cup and whose rule admits qt/pt says qt/pt'
-);
+-- 0024's backfill post-state is no longer a population claim. It used to read
+-- "no stored list that names `l` lacks `qt`", which held while the template's
+-- lists were materialized from the rule; the template is now a copy of the
+-- owner's curated rows, and pruning `qt` off a row he will never buy in quarts
+-- is exactly the move ADR-0014 hands him. What the snapshot still owes is the
+-- pair of invariants asserted at the end of the 0037 block below: a row never
+-- admits a unit the rule withholds, and never withholds its own default.
+--
 -- …reaching the row the pair was added for: "1 quart broth" lands on a chip.
 select ok(
   (select allowed_units ? 'qt' and allowed_units ? 'pt' and allowed_units ? 'cup'
@@ -848,32 +849,57 @@ select is(
   '0037 strips mg from a CURATED list too: a retired unit is not a curation'
 );
 
--- …and the rule reached the real vocabulary. This is a POPULATION assertion,
--- and it can be stated whole because ADR-0014 admits families rather than
--- units: the template's lists are re-materialized by ONE statement in the
--- generated seed curation (`update ingredient set allowed_units =
--- default_allowed_units(...)`), with the per-row overrides applied after it,
--- so staleness is all-or-nothing. Curation removes single units from single
--- rows; it never removes a whole family from every row.
+-- …and the rule reached the real vocabulary — but as a FENCE, not a headcount.
+--
+-- These two assertions used to read "every per-100 g row says the whole mass
+-- family" and "every density-carrying row says fl_oz". Both were true of a
+-- template whose lists were materialized from `default_allowed_units()` and
+-- then narrowed by a handful of overrides; neither is a property of the seed
+-- any more. The template is now a copy of the owner's live household, and
+-- ADR-0014's own ruling is *all to all, and let the user prune* — he has
+-- pruned `fl oz`, pints, quarts, litres and some weights off rows he does not
+-- buy that way, and a test that forbids it forbids the ADR.
+--
+-- What a curated list may never do is the pair below: it is a SUBSET of the
+-- rule's answer plus words, and it always contains the row's own default.
+--
+-- (a) The client guard, as a table invariant. `allowed_units` is what the
+--     picker draws and what the import validates against, so a row whose own
+--     `default_unit` is missing from its list is unsayable in its own unit —
+--     a curation that pruned the one unit nothing else can replace.
 select is(
-  (select count(*)::int from ingredient
+  (select coalesce(string_agg(match_text || ' (' || default_unit || ')',
+                              ', ' order by match_text), '')
+     from ingredient
      where household_id = '00000000-0000-0000-0000-0000000000aa'
        and deleted_at is null
-       and macros_basis = 'g'
-       and not (allowed_units ?& array['g', 'kg', 'oz', 'lb'])),
-  0,
-  'every per-100 g template row says the whole mass family (ADR-0014)'
+       and not (allowed_units ? default_unit)),
+  '',
+  'every template row admits its own default_unit'
 );
+
+-- (b) Curation may only SUBTRACT convertible units or ADD imprecise words. A
+--     unit the rule withholds is one the row cannot convert — no density for
+--     the other family, no piece weight for a count — so admitting it by hand
+--     would put a number in a total that nothing can compute. The imprecise
+--     words are the exception by design: ADR-0014 puts every word on the form
+--     as a chip and lets the category decide only which arrive pre-picked, so
+--     a word outside the row's category gate is a choice, not a lie.
 select is(
-  (select count(*)::int from ingredient
-     where household_id = '00000000-0000-0000-0000-0000000000aa'
-       and deleted_at is null
-       and allowed_units is not null
-       and density_g_per_ml is not null
-       and not (allowed_units ? 'fl_oz')),
-  0,
-  'and every density-carrying row says fl_oz — a unit no earlier rule ever '
-  'offered, so a stale rule or a missed re-materialization fails outright'
+  (select coalesce(string_agg(i.match_text || ': ' || e.u,
+                              ', ' order by i.match_text, e.u), '')
+     from ingredient i
+     cross join lateral jsonb_array_elements_text(i.allowed_units) as e(u)
+     where i.household_id = '00000000-0000-0000-0000-0000000000aa'
+       and i.deleted_at is null
+       and not (default_allowed_units(i.default_unit, i.macros_basis,
+                                      i.density_g_per_ml, i.category,
+                                      i.piece_basis_amount) ? e.u)
+       and e.u not in ('pinch', 'dash', 'handful', 'to_taste')),
+  '',
+  'no template row admits a unit the rule withholds — a curator prunes '
+  'convertible units and adds words, and cannot admit a unit the row cannot '
+  'convert'
 );
 
 -- ---------------------------------------------------------------------------
@@ -940,20 +966,27 @@ select ok(
 -- nothing else can.
 -- ---------------------------------------------------------------------------
 
--- The canary. Both guards below are vacuous if this set is empty, and a row
--- that has FLIPPED to a count default is a row that needs a piece weight —
--- so pin the count rather than only the property.
---
--- The number is 76, not the 77 the vocabulary held before this ruling: `mint`
--- moved off a count default because it has no honest whole (a 2 g sprig and a
--- 25 g bunch, 12× apart, and neither is "one mint"). Bumping this number
--- without reading what the new row actually says is how the guard goes quiet.
+-- The canary: both guards below are vacuous if this set is empty. It used to
+-- pin a headcount, which stopped being a fact about the seed when the snapshot
+-- became a copy of the owner's live vocabulary — he adds and retires rows, and
+-- a row moving off a count default is his call to make, not a regression. What
+-- is not his to change is R3's shape, so the canary states that instead: the
+-- set exists, and the rows that ADMIT `piece` are exactly the rows that say
+-- `piece`, which is (a) and (b) below read as one equality.
+select ok(
+  (select count(*) from ingredient
+     where household_id = '00000000-0000-0000-0000-0000000000aa'
+       and deleted_at is null and default_unit = 'piece') > 0,
+  'the template has piece-default rows at all (the set the rule is about)'
+);
 select is(
   (select count(*)::int from ingredient
-    where household_id = '00000000-0000-0000-0000-0000000000aa'
-      and deleted_at is null and default_unit = 'piece'),
-  76,
-  'the template has 76 piece-default rows (the set the rule is about)'
+     where household_id = '00000000-0000-0000-0000-0000000000aa'
+       and deleted_at is null and allowed_units ? 'piece'),
+  (select count(*)::int from ingredient
+     where household_id = '00000000-0000-0000-0000-0000000000aa'
+       and deleted_at is null and default_unit = 'piece'),
+  'and exactly as many rows admit `piece` as say it (R3, as one equality)'
 );
 
 -- (a) Every one of them says what one weighs. Named row by row so a failure
