@@ -57,6 +57,7 @@ and where to read about it.
 | — | The ingredient page reads before it edits; every default-unit chip is live; typed names are tidied on leaving the field, with an ingredient's word change told and revertible. No migrations | 🟢 `v0.10.0` | — |
 | — | Five owner notes on v0.10.0 — chip case across every word, Title Case for every name kind, the default-unit row back to the sayable set with one note, a new ingredient saves complete or not at all, a beverage label per 100 ml, and the photo import's timeout and stage ladder. No migrations | 🟢 `v0.11.0` | — |
 | — | The serving, redrawn — any kitchen unit on the per-serving row, no free text, density with an amount in its own section, the label's figures printed first on the page, a scan seeding the serving; fibre as the optional fifth macro. No migrations | 🟢 `v0.12.0` | — |
+| — | This week's variant — a recipe cooked differently for one planned week, edited in the recipe editor and stored as deltas. One variant per (week, recipe), so every day that plans it shares one pot. Migration `0040` | 🟡 | [0043](./active/0043-week-variant.md) |
 | 10 | Web UI (near-free with Flutter) | ⚪ stretch | — |
 | 11 | Anti-waste extras — freezer batching, monotony warnings, package-size flags | ⚪ stretch | — |
 

@@ -66,6 +66,14 @@ const _exemptTables = <String, Set<String>>{
     'ingredient_group',
     'recipe',
   },
+  // The planner watches a week's meals. It reads the week's line overrides in
+  // exactly one place — `copyLastWeek`, counting the variants it is about to
+  // leave behind — which is a one-shot Future taken at the moment of the copy.
+  // The Week screen reads the same table through its own watched provider, so
+  // no watched read here can go stale for it.
+  'lib/features/planning/data/planning_repository_impl.dart': {
+    'week_recipe_line_override',
+  },
 };
 
 /// Repositories deliberately outside the rule, each with the reason. A watching

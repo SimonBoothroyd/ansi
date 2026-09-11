@@ -87,7 +87,7 @@ Full rules: [`board/README.md`](./docs/product-specs/board/README.md).
 
 **Run the narrowest thing that could fail, and widen only when it passes.** A
 full sweep after every small edit is not diligence, it is waste: the simulator
-suite alone is ~24 minutes for eight files, and a `make test` for a one-line
+suite alone is ~27 minutes for nine files, and a `make test` for a one-line
 test fix buys nothing a single file did not already prove. The cost is not
 only time — it is the reviewer's attention, spent on runs that were never in
 doubt.

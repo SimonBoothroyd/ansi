@@ -18,34 +18,35 @@ Owner's words: **"one variant of each recipe per week, all days use it."**
 
 ## Acceptance criteria
 
-- [ ] `week_recipe_line_override` exists (migration `0040`), RLS-fenced, in the
+- [x] `week_recipe_line_override` exists (migration `0040`), RLS-fenced, in the
       `powersync` publication, in both sync-rule YAMLs and in
       `app/lib/core/sync/schema.dart`.
-- [ ] The meal editor sheet's last row states the variant's own scope and opens
+- [x] The meal editor sheet's last row states the variant's own scope and opens
       `/recipes/:id/edit?week=YYYY-MM-DD`.
-- [ ] Week mode draws the line list and nothing else: no header form, no
+- [x] Week mode draws the line list and nothing else: no header form, no
       method, no grip, no group controls. One inert strip states the recipe's
       serves / step count / title.
-- [ ] Save recomputes the whole override set for `(week, recipe)` and writes it
+- [x] Save recomputes the whole override set for `(week, recipe)` and writes it
       in one transaction. A line edited back to the recipe's value leaves no
       row.
-- [ ] Every changed line carries one tag in the `optional` badge's voice and
+- [x] Every changed line carries one tag in the `optional` badge's voice and
       its own reset; the footer states the count it would drop.
-- [ ] `effectiveLines` applies the week's overrides — the ONE seam, so the
+- [x] `effectiveLines` applies the week's overrides — the ONE seam, so the
       shopping list and the week's macros cannot disagree about what this week
       cooks.
-- [ ] The week's macro lens sums over the week's effective lines instead of
-      borrowing the Library's per-recipe figure.
-- [ ] The shop's provenance line carries the week's reason; an excluded line
+- [x] The week's macro lens re-sums a VARIED recipe over the week's effective
+      lines, and keeps borrowing the Library's figure for every recipe it
+      leaves alone.
+- [x] The shop's provenance line carries the week's reason; an excluded line
       takes the optional echo row.
-- [ ] Every planned day of the recipe reads "edited for this week"; the cook
+- [x] Every planned day of the recipe reads "edited for this week"; the cook
       card's sub-line says it once.
-- [ ] Copy last week does not carry the variant, and reports what it left.
-- [ ] Tests: the diff per action, the seam per action, an override never leaks
+- [x] Copy last week does not carry the variant, and reports what it left.
+- [x] Tests: the diff per action, the seam per action, an override never leaks
       into another week, the repository on a real PowerSync db, pgTAP for the
       constraints, widget tests for week mode / the tag / the footer / the door
       row / the dish row / the shop segment, and a `week_variant` smoke flow.
-- [ ] Docs: this plan, the board (`recipe-editor` · `week` · `cook-shop`),
+- [x] Docs: this plan, the board (`recipe-editor` · `week` · `cook-shop`),
       `docs/generated/db-schema.md`, the backlog row retired, a roadmap row.
 
 ## Approach
@@ -59,11 +60,11 @@ Owner's words: **"one variant of each recipe per week, all days use it."**
    editor's tag, the shop's segment). `effectiveLines` takes the overrides and
    applies them; `LineDropReason.thisWeek` joins `optional`.
 3. **The repository.** `WeekVariantRepository` — watch a week's overrides by
-   recipe, load one recipe's set, replace a set whole; and the week's own
-   per-recipe macro summaries, summed over the effective lines.
-4. **The editor.** `?week=` on the existing route; `RecipeEditorView` hands
-   straight over to the week-mode view, which owns its own draft, rows, tags,
-   resets and Save.
+   recipe, load one recipe's set, replace a set whole; and re-sum the recipes
+   the week varies over their effective lines.
+4. **The editor.** `?week=` on the existing route, branched in the router so
+   `recipe_editor_view.dart` is untouched; the week-mode view owns its own
+   draft, rows, tags, resets and Save.
 5. **The door.** One row at the foot of the meal editor sheet.
 6. **The week.** The dish row's second mark, the cook card's sub-line, and the
    macro lens reading the week's own summaries.
@@ -122,8 +123,12 @@ recorded here because the board draws pixels and does not hold decisions.
 - 2026-09-10 — **D7 · Two call sites thread the week.** The shopping derivation
   already holds the key where lines meet the week, so the overrides join there
   with no refactor. The week's macro lens can no longer borrow the Library's
-  per-recipe figure — it sums over the week's own effective lines. The recipe
-  page and the Library hold no viewed week and are left alone; the component
+  per-recipe figure for a VARIED recipe — it re-sums that one over the week's
+  own effective lines, and keeps the Library's number for every recipe it
+  leaves alone, because that number is still exactly right for them. A week
+  with no variant therefore costs nothing and reads as it always did. The
+  recipe page and the Library hold no viewed week and are left alone; the
+  component
   graph is read household-wide with no week, so sub-recipe swaps are suppressed
   in the picker for v1 (the column ships, the section does not).
 - 2026-09-10 — **D8 · Copy last week does not carry the variant, and says so.**
@@ -146,11 +151,20 @@ recorded here because the board draws pixels and does not hold decisions.
 
 ## Step-done checklist
 
-- [ ] Roadmap row updated.
-- [ ] `ARCHITECTURE.md`'s standing table matches reality for every area touched.
-- [ ] `app/AGENTS.md` "Current focus" and command list still true.
-- [ ] `make test-sim` run on a booted simulator, result recorded here.
-- [ ] Tech-debt rows added/retired.
-- [ ] Migration reached **cloud**? Not yet — record it in `docs/cloud-setup.md`
-      when it does.
-- [ ] `make ci` green.
+- [x] Roadmap row added (status stays `active` until the simulator gate runs).
+- [x] `ARCHITECTURE.md`'s standing table matches reality for every area
+      touched — planning and shopping both still read as written.
+- [x] `app/AGENTS.md` "Current focus" and command list still true; the smoke
+      file count moved from eight to nine.
+- [ ] `make test-sim` run on a booted simulator, result recorded here — the
+      orchestrator's gate, not this lane's. `week_variant_test.dart` compiles
+      and analyzes clean.
+- [x] Tech-debt rows: none added, none retired. The corners cut are recorded
+      as rulings above (sub-recipe swaps suppressed, reorder not storable),
+      not as debt — neither is a shortcut somebody owes for.
+- [ ] Migration `0040` has **not** reached cloud. Append a
+      `docs/cloud-setup.md` ledger entry when it does, and deploy the sync
+      config with it — a rebuilt database with stale streams starves devices
+      of every table added since.
+- [x] `make ci` green (`analyze` + `test` + `docs-check`; `ci-full` where the
+      local stack was free).
