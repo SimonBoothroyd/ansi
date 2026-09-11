@@ -751,6 +751,48 @@ void main() {
       expect(repo.rows.single.pieceSource, isNull);
     });
 
+    test('clearing the density strips the units it unlocked from what Save '
+        'stores — the one leg where the list shrinks', () async {
+      // A stored row whose explicit list was widened by the density it
+      // carries: the volume units are on it, and they are on it for exactly
+      // one reason.
+      const spread = Ingredient(
+        id: 'spread',
+        canonicalName: 'Hazelnut Spread',
+        defaultUnit: g,
+        status: IngredientStatus.complete,
+        category: 'pantry',
+        allowedUnits: [g, kg, tsp, tbsp, cup, ml],
+        densityGPerMl: 1.2,
+        macros: Macros(kcal: 539, protein: 6, carb: 57, fat: 31),
+        source: 'manual',
+      );
+      final repo = FakeIngredientRepo([spread]);
+      final (:form, :at) = await _open(repo, id: 'spread');
+      expect(at().allowed, containsAll(<Unit>[tsp, tbsp, cup, ml]));
+
+      form.removeDensity();
+
+      // The DRAFT is where the set is owned (ADR-0011), so the strip happens
+      // before Save rather than in the write.
+      expect(at().allowed, {g, kg});
+
+      await form.save();
+
+      final asked = repo.savedForms.single;
+      expect(asked.density, isA<DensityCleared>());
+      // Not one unit the row can no longer convert: a per-100 g row with no
+      // density says nothing in millilitres, and a list that kept them would
+      // offer a line the converter must then refuse.
+      expect(
+        asked.row.allowedUnits.where(
+          (u) => u.family == UnitFamily.volume,
+        ),
+        isEmpty,
+      );
+      expect(asked.row.allowedUnits, {g, kg});
+    });
+
     test('SAVE REFUSES a piece default with nothing weighing one, and names '
         'both ways out', () async {
       final repo = FakeIngredientRepo([_unweighedMango]);
