@@ -157,9 +157,10 @@ recorded here because the board draws pixels and does not hold decisions.
       the line a week's variant changed, recipes states the editor's week mode.
 - [x] `app/AGENTS.md` "Current focus" and command list still true; the smoke
       file count moved from eight to nine.
-- [ ] `make test-sim` run on a booted simulator, result recorded here — the
-      orchestrator's gate, not this lane's. `week_variant_test.dart` compiles
-      and analyzes clean.
+- [x] `make test-sim` run on a booted simulator: all nine files green,
+      `week_variant_test.dart` included, after its first device run taught it
+      the sheet's door (the eater avatars), the seed row's real name and to
+      close the sheet after Save.
 - [x] Tech-debt rows: none added, none retired. The corners cut are recorded
       as rulings above (sub-recipe swaps suppressed, reorder not storable),
       not as debt — neither is a shortcut somebody owes for.
