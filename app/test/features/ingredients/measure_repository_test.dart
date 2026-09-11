@@ -604,4 +604,125 @@ void main() {
       },
     );
   });
+
+  group('a measure a recipe still uses cannot be deleted', () {
+    setUp(
+      () => _seedMeasure(
+        db,
+        id: 'm-clove',
+        ingredientId: 'garlic',
+        label: 'clove',
+        amount: 3,
+      ),
+    );
+
+    Future<void> seedLine({
+      String id = 'li-1',
+      String? deletedAt,
+      String groupId = 'g-1',
+    }) => db.execute(
+      'INSERT INTO recipe_line_item '
+      '(id, household_id, group_id, ingredient_id, quantity, unit, '
+      'measure_id, sort_order, created_at, deleted_at) '
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        id,
+        'h',
+        groupId,
+        'garlic',
+        3,
+        'piece',
+        'm-clove',
+        0,
+        '2026-01-01',
+        deletedAt,
+      ],
+    );
+
+    Future<void> seedRecipe({String? deletedAt}) async {
+      await db.execute(
+        'INSERT INTO recipe (id, household_id, title, created_at, deleted_at) '
+        'VALUES (?, ?, ?, ?, ?)',
+        ['r-1', 'h', 'Aligot', '2026-01-01', deletedAt],
+      );
+      await db.execute(
+        'INSERT INTO ingredient_group '
+        '(id, household_id, recipe_id, name, sort_order, created_at) '
+        'VALUES (?, ?, ?, ?, ?, ?)',
+        ['g-1', 'h', 'r-1', 'Main', 0, '2026-01-01'],
+      );
+    }
+
+    test('an unused measure counts zero', () async {
+      final usage = await repo.countLinesUsing('m-clove');
+      expect(usage.any, isFalse);
+      expect(usage.lines, 0);
+      expect(usage.recipes, isEmpty);
+    });
+
+    test('a recipe line counts, and names its recipe', () async {
+      await seedRecipe();
+      await seedLine();
+      final usage = await repo.countLinesUsing('m-clove');
+      expect(usage.lines, 1);
+      expect(usage.recipes.single.id, 'r-1');
+      expect(usage.recipes.single.title, 'Aligot');
+    });
+
+    test('every table that can say a measure counts', () async {
+      await db.execute(
+        'INSERT INTO shopping_list_contribution '
+        '(id, household_id, entry_id, source_type, quantity, unit, '
+        'measure_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        ['c-1', 'h', 'e-1', 'manual', 2, 'piece', 'm-clove', '2026-01-01'],
+      );
+      await db.execute(
+        'INSERT INTO plan_entry '
+        '(id, household_id, week_plan_id, day_of_week, meal_slot, '
+        'ingredient_id, quantity, unit, measure_id, sort_order, created_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          'p-1',
+          'h',
+          'w-1',
+          0,
+          'dinner',
+          'garlic',
+          1,
+          'piece',
+          'm-clove',
+          0,
+          '2026-01-01',
+        ],
+      );
+      final usage = await repo.countLinesUsing('m-clove');
+      expect(usage.lines, 2);
+      // Neither is a recipe, so neither has a page to send anybody to.
+      expect(usage.recipes, isEmpty);
+    });
+
+    test(
+      'a tombstoned row is not a use, and neither is a deleted recipe',
+      () async {
+        await seedRecipe();
+        await seedLine(deletedAt: '2026-01-02');
+        expect((await repo.countLinesUsing('m-clove')).any, isFalse);
+
+        await seedLine(id: 'li-2');
+        final live = await repo.countLinesUsing('m-clove');
+        expect(live.lines, 1);
+        expect(live.recipes.single.title, 'Aligot');
+
+        // The recipe goes: the line still COUNTS — it is a row that would
+        // degrade — but there is no page left to name.
+        await db.execute('UPDATE recipe SET deleted_at = ? WHERE id = ?', [
+          '2026-01-03',
+          'r-1',
+        ]);
+        final orphaned = await repo.countLinesUsing('m-clove');
+        expect(orphaned.lines, 1);
+        expect(orphaned.recipes, isEmpty);
+      },
+    );
+  });
 }

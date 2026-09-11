@@ -55,6 +55,17 @@ const _exemptTables = <String, Set<String>>{
     'shopping_list_entry',
     'shopping_list_contribution',
   },
+  // The measure repo watches one ingredient's measures. The tables below are
+  // `countLinesUsing`'s alone — the delete guard, a one-shot Future read at
+  // the moment of the tap. Nothing watched reads them, so nothing watched can
+  // go stale when one of them changes.
+  'lib/features/ingredients/data/measure_repository_impl.dart': {
+    'recipe_line_item',
+    'shopping_list_contribution',
+    'plan_entry',
+    'ingredient_group',
+    'recipe',
+  },
 };
 
 /// Repositories deliberately outside the rule, each with the reason. A watching

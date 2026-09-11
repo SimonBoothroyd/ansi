@@ -28,6 +28,7 @@ import '../helpers/source_scan.dart';
 /// Interface methods that *read*. Everything else a repository declares is a
 /// write and must go through the guard.
 const _readVerbs = {
+  'countLinesUsing',
   'countRecipesIn',
   'search',
   'recentlyUsed',

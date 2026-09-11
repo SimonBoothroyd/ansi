@@ -70,6 +70,10 @@ class _FakeMeasureRepo implements MeasureRepository {
   final List<Measure> _measures;
   final _changes = StreamController<void>.broadcast();
 
+  /// What the delete guard is told, by measure id. Empty means nothing says
+  /// any of them.
+  final Map<String, MeasureUsage> usage = {};
+
   @override
   Stream<List<Measure>> watchMeasures(String ingredientId) async* {
     yield [..._measures];
@@ -133,6 +137,10 @@ class _FakeMeasureRepo implements MeasureRepository {
       ..addAll(moved);
     _changes.add(null);
   }
+
+  @override
+  Future<MeasureUsage> countLinesUsing(String measureId) async =>
+      usage[measureId] ?? MeasureUsage.none;
 
   @override
   Future<void> softDeleteMeasure(String measureId) async {
@@ -424,6 +432,42 @@ void main() {
     expect(saved, isNotNull);
     expect(saved!.choice, const UnitOption(pieces));
     expect(saved!.unitPicked, isTrue);
+  });
+
+  testWidgets('a measure a recipe still uses is refused here too, and the '
+      'selection is left exactly where it was', (tester) async {
+    filterForuiSemanticsAssertions();
+    final repo = _FakeMeasureRepo(const [_large])
+      ..usage['m-large'] = const MeasureUsage(
+        lines: 1,
+        recipes: [(id: 'r-1', title: 'Aligot')],
+      );
+    await tester.pumpWidget(
+      _host(
+        repo: repo,
+        initialChoice: const MeasureOption(_large),
+        onDone: (_) {},
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(FLucideIcons.plus));
+    await tester.pumpAndSettle();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(FLucideIcons.trash2));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Can’t delete “potato, large” yet'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FButton, 'Cancel'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(FLucideIcons.chevronLeft));
+    await tester.pumpAndSettle();
+
+    // Nothing was written, and nothing was reconciled away.
+    expect(repo._measures, hasLength(1));
+    expect(find.textContaining('deleted — back to'), findsNothing);
+    expect(find.text('potato, large (299 g)'), findsOneWidget);
   });
 
   testWidgets('deleting an unselected measure leaves the choice alone', (

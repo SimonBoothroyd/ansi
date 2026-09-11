@@ -110,6 +110,7 @@ import 'ingredient_facts.dart';
 import 'ingredient_view_models.dart';
 import 'macro_line_text.dart';
 import 'macros_format.dart';
+import 'measure_delete.dart';
 import 'measures_editor.dart';
 import 'piece_weight_entry.dart';
 import 'serving_row.dart';
@@ -1198,7 +1199,14 @@ class _DetailForm extends ConsumerWidget {
                   measures: measures,
                   // It adds to the draft here; the docked Save lands it.
                   addLabel: 'Add',
-                  onDelete: (m) async => form.removeMeasure(m.id),
+                  // A stored measure a recipe still uses cannot go, and the
+                  // refusal happens HERE rather than at Save: a draft that
+                  // quietly kept a row it said it had removed would be lying
+                  // about what the docked Save is going to do.
+                  onDelete: (m) async {
+                    if (!await mayDeleteMeasure(context, ref, m)) return;
+                    form.removeMeasure(m.id);
+                  },
                   // Nothing is written here: the measure goes in the draft and
                   // the form's Save inserts it. The editor has already refused
                   // a blank label, a volume-named one and a non-positive

@@ -311,6 +311,45 @@ class SqliteMeasureRepository implements MeasureRepository {
   }
 
   @override
+  Future<MeasureUsage> countLinesUsing(String measureId) async {
+    // All three tables that can carry a `measure_id`, live rows only: a
+    // recipe's line, a shopping contribution, and a planned ingredient meal.
+    // A tombstoned row is not a use — it is already gone.
+    final counted = await _db.get(
+      'SELECT '
+      '(SELECT COUNT(*) FROM recipe_line_item '
+      'WHERE measure_id = ? AND deleted_at IS NULL) '
+      '+ (SELECT COUNT(*) FROM shopping_list_contribution '
+      'WHERE measure_id = ? AND deleted_at IS NULL) '
+      '+ (SELECT COUNT(*) FROM plan_entry '
+      'WHERE measure_id = ? AND deleted_at IS NULL) AS n',
+      [measureId, measureId, measureId],
+    );
+    final lines = (counted['n'] as num).toInt();
+    if (lines == 0) return MeasureUsage.none;
+    // Named so the refusal can hand the reader somewhere to go. A line whose
+    // group or recipe is gone still counts above — it is a row that would
+    // degrade — but there is no page to send anybody to, so it is not named.
+    final rows = await _db.getAll(
+      'SELECT DISTINCT r.id AS id, r.title AS title '
+      'FROM recipe_line_item li '
+      'JOIN ingredient_group gr ON gr.id = li.group_id '
+      'JOIN recipe r ON r.id = gr.recipe_id '
+      'WHERE li.measure_id = ? AND li.deleted_at IS NULL '
+      'AND gr.deleted_at IS NULL AND r.deleted_at IS NULL '
+      'ORDER BY r.title',
+      [measureId],
+    );
+    return MeasureUsage(
+      lines: lines,
+      recipes: [
+        for (final r in rows)
+          (id: r['id'] as String, title: (r['title'] as String?) ?? 'Untitled'),
+      ],
+    );
+  }
+
+  @override
   Future<void> softDeleteMeasure(String measureId) async {
     final now = DateTime.now().toUtc().toIso8601String();
     await _db.writeTransaction((tx) async {

@@ -14,6 +14,10 @@ class FakeMeasureRepo implements MeasureRepository {
   final List<Measure> rows;
   final _changes = StreamController<void>.broadcast();
 
+  /// What [countLinesUsing] answers, by measure id — the delete guard's own
+  /// seam. Empty means nothing says any of them, which is the ordinary case.
+  final Map<String, MeasureUsage> usage = {};
+
   @override
   Stream<List<Measure>> watchMeasures(String ingredientId) async* {
     yield [...rows];
@@ -77,6 +81,10 @@ class FakeMeasureRepo implements MeasureRepository {
       ..addAll(moved);
     _changes.add(null);
   }
+
+  @override
+  Future<MeasureUsage> countLinesUsing(String measureId) async =>
+      usage[measureId] ?? MeasureUsage.none;
 
   @override
   Future<void> softDeleteMeasure(String measureId) async {

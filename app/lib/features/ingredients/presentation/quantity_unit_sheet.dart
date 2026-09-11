@@ -47,6 +47,7 @@ import '../domain/ingredient.dart';
 import 'density_entry.dart';
 import 'ingredient_picker.dart' show StubBadge;
 import 'macros_format.dart';
+import 'measure_delete.dart';
 import 'measures_editor.dart';
 import 'piece_weight_entry.dart';
 import 'unit_chips.dart';
@@ -177,6 +178,10 @@ class QuantityUnitEditor extends HookConsumerWidget {
     // merge-on-read is NOT deleted and stays admitted via the chip row's
     // off-filter rule instead.
     Future<void> deleteMeasure(Measure m) async {
+      // A measure a recipe still uses cannot go: the lines that name it would
+      // quietly drop out of every total.
+      if (!await mayDeleteMeasure(context, ref, m)) return;
+      if (!context.mounted) return;
       final deleted = await ref.writeOk(
         context,
         'delete “${m.label}”',

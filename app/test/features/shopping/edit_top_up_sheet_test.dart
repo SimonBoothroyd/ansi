@@ -99,6 +99,10 @@ class _EmptyMeasureRepo implements MeasureRepository {
   Future<void> setMeasureAmount(String measureId, double amount) async {}
 
   @override
+  Future<MeasureUsage> countLinesUsing(String measureId) async =>
+      MeasureUsage.none;
+
+  @override
   Future<void> softDeleteMeasure(String measureId) async {}
 }
 

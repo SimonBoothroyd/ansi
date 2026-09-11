@@ -12,6 +12,7 @@ import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
+import 'package:ansi/features/ingredients/domain/measure_repository.dart';
 import 'package:ansi/features/ingredients/domain/normalize.dart';
 import 'package:ansi/features/ingredients/presentation/density_entry.dart'
     show AnsiModeChip;
@@ -653,6 +654,47 @@ void main() {
       final asked = repo.savedForms.single.measuresAdded.single;
       expect(asked.label, 'half cheek');
       expect(asked.amount, closeTo(4 * 28.349523125, 1e-9));
+    });
+
+    testWidgets('a measure a recipe still uses is NOT deleted — the refusal '
+        'names the count and opens on the recipes', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final measures = FakeMeasureRepo(const [
+        Measure(id: 'm-usda', label: 'mango, medium', amount: 207),
+      ]);
+      measures.usage['m-usda'] = const MeasureUsage(
+        lines: 2,
+        recipes: [(id: 'r-1', title: 'Mango Lassi')],
+      );
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [mango]),
+          at: editRoute('mango'),
+          measures: measures,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(FLucideIcons.trash2).first);
+      await tester.pumpAndSettle();
+
+      // The refusal says what a person can act on, not "failed".
+      expect(find.text('Can’t delete “mango, medium” yet'), findsOneWidget);
+      expect(find.textContaining('2 lines still say it'), findsOneWidget);
+
+      // And the door lists the recipes still saying it.
+      await tester.tap(find.widgetWithText(FButton, 'Show me where'));
+      await tester.pumpAndSettle();
+      expect(find.text('Mango Lassi'), findsOneWidget);
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      // Nothing left the list, and nothing is pending for the form's Save.
+      expect(find.text('mango, medium'), findsWidgets);
+      final repo = repoOf(tester);
+      await saveForm(tester);
+      expect(repo.savedForms.single.measuresRemoved, isEmpty);
     });
 
     testWidgets('a volume-named measure label is still refused and redirected '

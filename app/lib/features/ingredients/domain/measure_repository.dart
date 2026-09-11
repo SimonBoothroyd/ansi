@@ -15,6 +15,8 @@
 /// referencing line item still resolves them by id.
 library;
 
+import 'package:meta/meta.dart';
+
 import '../../../core/units/measure.dart';
 
 abstract interface class MeasureRepository {
@@ -88,7 +90,39 @@ abstract interface class MeasureRepository {
   /// the caller is a list that may have been re-read under it.
   Future<void> reorderMeasures(String ingredientId, List<String> ids);
 
+  /// What still says this measure: how many live rows point at it, and which
+  /// recipes they are in.
+  ///
+  /// The FKs carry no `on delete`, and the delete is a tombstone, so nothing
+  /// stops a measure going out from under the lines that name it. What those
+  /// lines then do is worse than an error: the macro engine drops them from
+  /// the totals and the shop degrades them to a bare count, both silently.
+  /// So a delete asks this first and is refused while the answer is not zero
+  /// — the same shape a book takes when it still holds recipes.
+  Future<MeasureUsage> countLinesUsing(String measureId);
+
   /// Soft-deletes one measure (tombstone, spec §3). A line item referencing
   /// it degrades to its honest stored count — never an invented amount.
   Future<void> softDeleteMeasure(String measureId);
+}
+
+/// What a measure is still used by — the answer [MeasureRepository
+/// .countLinesUsing] gives.
+///
+/// [lines] counts every live row across all three tables that can name a
+/// measure (a recipe's line, a shopping contribution, a planned ingredient
+/// meal), because all three degrade if the row goes. [recipes] names only the
+/// recipes, because those are the ones a person can go and fix.
+@immutable
+class MeasureUsage {
+  const MeasureUsage({required this.lines, required this.recipes});
+
+  static const none = MeasureUsage(lines: 0, recipes: []);
+
+  final int lines;
+
+  /// Every live recipe with a line saying this measure, by title.
+  final List<({String id, String title})> recipes;
+
+  bool get any => lines > 0;
 }
