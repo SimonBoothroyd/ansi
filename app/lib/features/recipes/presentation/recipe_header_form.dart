@@ -344,10 +344,8 @@ class _YieldRow extends StatelessWidget {
           amount: formatQuantityIn(quantity, unit),
           unit: unit,
           units: units,
-          onAmount: (t) => onChanged(
-            t.trim().isEmpty ? null : parseAmount(t),
-            unit,
-          ),
+          onAmount: (t) =>
+              onChanged(t.trim().isEmpty ? null : parseAmount(t), unit),
           onUnit: (u) => onChanged(quantity, u),
         ),
         if (onRemove != null) ...[

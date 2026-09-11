@@ -171,10 +171,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     await pumpUntilFound(tester, find.text('this week · left out'));
-    expect(
-      find.text('Back to the recipe · drops 1 change'),
-      findsOneWidget,
-    );
+    expect(find.text('Back to the recipe · drops 1 change'), findsOneWidget);
 
     // Nothing is stored until Save — the editor's own posture.
     expect(
@@ -191,12 +188,12 @@ void main() {
       tester,
       () async =>
           (await db.get(
-                'SELECT COUNT(*) AS n FROM week_recipe_line_override wro '
-                'JOIN week_plan wp ON wp.id = wro.week_plan_id '
-                'WHERE wp.week_start_date = ? AND wro.deleted_at IS NULL',
-                [weekKey],
-              ))['n'] ==
-              1,
+            'SELECT COUNT(*) AS n FROM week_recipe_line_override wro '
+            'JOIN week_plan wp ON wp.id = wro.week_plan_id '
+            'WHERE wp.week_start_date = ? AND wro.deleted_at IS NULL',
+            [weekKey],
+          ))['n'] ==
+          1,
       'the exclusion to be stored',
     );
 

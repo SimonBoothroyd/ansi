@@ -51,8 +51,7 @@ class WeekVariant {
       diffLineOverrides(base: base, draft: lines);
 
   /// The recipe line [id] came from, or null for an added line.
-  LineItem? baseOf(String id) =>
-      base.where((l) => l.id == id).firstOrNull;
+  LineItem? baseOf(String id) => base.where((l) => l.id == id).firstOrNull;
 
   WeekVariant _withLines(List<WeekDraftLine> lines) =>
       WeekVariant(recipe: recipe, lines: lines);
@@ -201,9 +200,7 @@ class WeekVariantDraft extends _$WeekVariantDraft {
 
   /// The whole variant back to the recipe. Save commits the clearing.
   void resetAll() {
-    state = AsyncData(
-      _current._withLines(draftLines(_current.base, const [])),
-    );
+    state = AsyncData(_current._withLines(draftLines(_current.base, const [])));
   }
 
   /// Writes the recomputed set. Returns true when it landed.

@@ -451,9 +451,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
           unit: unitById(r['unit'] as String? ?? ''),
           measureId: measureId,
           measure:
-              measureId == null ||
-                  measureLabel == null ||
-                  measureAmount == null
+              measureId == null || measureLabel == null || measureAmount == null
               ? null
               : Measure(
                   id: measureId,

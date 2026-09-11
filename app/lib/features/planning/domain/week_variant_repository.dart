@@ -20,10 +20,7 @@ abstract interface class WeekVariantRepository {
   );
 
   /// One recipe's set for that week, as week mode opens on it.
-  Future<List<LineOverride>> loadOverrides(
-    DateTime weekStart,
-    String recipeId,
-  );
+  Future<List<LineOverride>> loadOverrides(DateTime weekStart, String recipeId);
 
   /// Makes the stored set for `(weekStart, recipeId)` equal [overrides], in
   /// one transaction: rows that are still wanted are updated in place (so a

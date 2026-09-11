@@ -1533,10 +1533,7 @@ void main() {
         source: 'manual',
       );
       await tester.pumpWidget(
-        host(
-          FakeIngredientRepo(const [uncategorised]),
-          at: editRoute('bare'),
-        ),
+        host(FakeIngredientRepo(const [uncategorised]), at: editRoute('bare')),
       );
       await tester.pumpAndSettle();
       expect(find.textContaining('Which aisle is it in?'), findsNothing);

@@ -165,46 +165,48 @@ void main() {
       expect(replace.id, isNotEmpty);
     });
 
-    test('re-saving keeps one row per line rather than racing tombstones',
-        () async {
-      await repo.saveOverrides(
-        _thisWeek,
-        'r1',
-        overrides: const [
-          LineOverride(
-            action: LineOverrideAction.replace,
-            recipeLineItemId: 'l1',
-            ingredientId: 'i-mince',
-            quantity: 400,
-            unit: g,
-          ),
-        ],
-      );
-      final first = (await repo.loadOverrides(_thisWeek, 'r1')).single.id;
+    test(
+      're-saving keeps one row per line rather than racing tombstones',
+      () async {
+        await repo.saveOverrides(
+          _thisWeek,
+          'r1',
+          overrides: const [
+            LineOverride(
+              action: LineOverrideAction.replace,
+              recipeLineItemId: 'l1',
+              ingredientId: 'i-mince',
+              quantity: 400,
+              unit: g,
+            ),
+          ],
+        );
+        final first = (await repo.loadOverrides(_thisWeek, 'r1')).single.id;
 
-      await repo.saveOverrides(
-        _thisWeek,
-        'r1',
-        overrides: const [
-          LineOverride(
-            action: LineOverrideAction.replace,
-            recipeLineItemId: 'l1',
-            ingredientId: 'i-mince',
-            quantity: 600,
-            unit: g,
-          ),
-        ],
-      );
-      final second = (await repo.loadOverrides(_thisWeek, 'r1')).single;
-      expect(second.id, first);
-      expect(second.quantity, 600);
+        await repo.saveOverrides(
+          _thisWeek,
+          'r1',
+          overrides: const [
+            LineOverride(
+              action: LineOverrideAction.replace,
+              recipeLineItemId: 'l1',
+              ingredientId: 'i-mince',
+              quantity: 600,
+              unit: g,
+            ),
+          ],
+        );
+        final second = (await repo.loadOverrides(_thisWeek, 'r1')).single;
+        expect(second.id, first);
+        expect(second.quantity, 600);
 
-      final live = await db.get(
-        'SELECT COUNT(*) AS n FROM week_recipe_line_override '
-        "WHERE recipe_id = 'r1' AND deleted_at IS NULL",
-      );
-      expect(live['n'], 1);
-    });
+        final live = await db.get(
+          'SELECT COUNT(*) AS n FROM week_recipe_line_override '
+          "WHERE recipe_id = 'r1' AND deleted_at IS NULL",
+        );
+        expect(live['n'], 1);
+      },
+    );
 
     test('an empty set is back to the recipe — every row tombstoned', () async {
       await repo.saveOverrides(
@@ -343,32 +345,36 @@ void main() {
       return summaries.firstWhere((s) => s.id == 'r1').macros?.perServing;
     }
 
-    test('a recipe with no variant is absent — the Library figure stands',
-        () async {
-      expect(await repo.watchVariantRecipeMacros(_thisWeek).first, isEmpty);
-    });
+    test(
+      'a recipe with no variant is absent — the Library figure stands',
+      () async {
+        expect(await repo.watchVariantRecipeMacros(_thisWeek).first, isEmpty);
+      },
+    );
 
-    test("an exclusion moves this week's figure, and no other week's",
-        () async {
-      final library = await libraryFigure();
-      expect(library, isNotNull);
+    test(
+      "an exclusion moves this week's figure, and no other week's",
+      () async {
+        final library = await libraryFigure();
+        expect(library, isNotNull);
 
-      await repo.saveOverrides(
-        _thisWeek,
-        'r1',
-        overrides: const [
-          LineOverride(
-            action: LineOverrideAction.exclude,
-            recipeLineItemId: 'l2',
-          ),
-        ],
-      );
-      final varied = await repo.watchVariantRecipeMacros(_thisWeek).first;
-      expect(varied.keys, ['r1']);
-      expect(varied['r1']!.perServing, isNot(library));
-      // And the Library's own figure has not moved: the recipe is untouched.
-      expect(await libraryFigure(), library);
-      expect(await repo.watchVariantRecipeMacros(_nextWeek).first, isEmpty);
-    });
+        await repo.saveOverrides(
+          _thisWeek,
+          'r1',
+          overrides: const [
+            LineOverride(
+              action: LineOverrideAction.exclude,
+              recipeLineItemId: 'l2',
+            ),
+          ],
+        );
+        final varied = await repo.watchVariantRecipeMacros(_thisWeek).first;
+        expect(varied.keys, ['r1']);
+        expect(varied['r1']!.perServing, isNot(library));
+        // And the Library's own figure has not moved: the recipe is untouched.
+        expect(await libraryFigure(), library);
+        expect(await repo.watchVariantRecipeMacros(_nextWeek).first, isEmpty);
+      },
+    );
   });
 }

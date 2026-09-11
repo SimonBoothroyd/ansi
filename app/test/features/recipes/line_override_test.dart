@@ -33,10 +33,7 @@ void main() {
   group('diffLineOverrides — recomputed whole, never accumulated', () {
     test('an untouched list produces no rows at all', () {
       final base = [_line('a'), _line('b'), _line('c', optional: true)];
-      expect(
-        diffLineOverrides(base: base, draft: base.map(_kept)),
-        isEmpty,
-      );
+      expect(diffLineOverrides(base: base, draft: base.map(_kept)), isEmpty);
     });
 
     test('a changed amount is one replace carrying every value', () {

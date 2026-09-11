@@ -40,11 +40,8 @@ class FakeWeekVariantRepository implements WeekVariantRepository {
     DateTime weekStart,
     String recipeId, {
     required List<LineOverride> overrides,
-  }) async => saved.add((
-    weekStart: weekStart,
-    recipeId: recipeId,
-    set: overrides,
-  ));
+  }) async =>
+      saved.add((weekStart: weekStart, recipeId: recipeId, set: overrides));
 
   @override
   Stream<Map<String, RecipeMacroSummary>> watchVariantRecipeMacros(

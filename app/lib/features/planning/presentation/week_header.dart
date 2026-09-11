@@ -178,9 +178,7 @@ class _WeekMenu extends ConsumerWidget {
                 title: const Text('Copy last week into this one'),
                 onPress: () {
                   unawaited(controller.hide());
-                  unawaited(
-                    copyLastWeekInto(context, ref, weekStart: viewed),
-                  );
+                  unawaited(copyLastWeekInto(context, ref, weekStart: viewed));
                 },
               ),
             FItem(

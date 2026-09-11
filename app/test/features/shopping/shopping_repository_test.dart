@@ -257,10 +257,7 @@ void main() {
           .firstWhere((i) => i.ingredientId == 'onion');
       // 3 per the week's line, on a 2-serving recipe cooked for 2 → ×1.
       expect(onion.totals.single.amount, 3);
-      expect(
-        onion.contributions.single.label,
-        contains('this week, was 2'),
-      );
+      expect(onion.contributions.single.label, contains('this week, was 2'));
     });
 
     test('a swap buys the new thing, and names the old one', () async {
@@ -280,9 +277,7 @@ void main() {
       );
 
       final list = await repo.watchShoppingList(_week).first;
-      final ids = list.groups
-          .expand((g) => g.items)
-          .map((i) => i.ingredientId);
+      final ids = list.groups.expand((g) => g.items).map((i) => i.ingredientId);
       expect(ids, isNot(contains('flour')));
       final onion = list.groups
           .expand((g) => g.items)
@@ -321,30 +316,31 @@ void main() {
       );
     });
 
-    test('an excluded line leaves the list, and is named on the echo row',
-        () async {
-      final variants = await planRagu();
-      await variants.saveOverrides(
-        _week,
-        'ragu',
-        overrides: const [
-          LineOverride(
-            action: LineOverrideAction.exclude,
-            recipeLineItemId: 'ragu-li1',
-          ),
-        ],
-      );
+    test(
+      'an excluded line leaves the list, and is named on the echo row',
+      () async {
+        final variants = await planRagu();
+        await variants.saveOverrides(
+          _week,
+          'ragu',
+          overrides: const [
+            LineOverride(
+              action: LineOverrideAction.exclude,
+              recipeLineItemId: 'ragu-li1',
+            ),
+          ],
+        );
 
-      final list = await repo.watchShoppingList(_week).first;
-      expect(
-        list.groups.expand((g) => g.items).map((i) => i.ingredientId),
-        ['onion'],
-      );
-      final echo = list.optionalLines.single;
-      expect(echo.reason, LineDropReason.thisWeek);
-      expect(echo.recipeTitle, 'Ragù');
-      expect(echo.names, ['Flour']);
-    });
+        final list = await repo.watchShoppingList(_week).first;
+        expect(list.groups.expand((g) => g.items).map((i) => i.ingredientId), [
+          'onion',
+        ]);
+        final echo = list.optionalLines.single;
+        expect(echo.reason, LineDropReason.thisWeek);
+        expect(echo.recipeTitle, 'Ragù');
+        expect(echo.names, ['Flour']);
+      },
+    );
 
     test('another week is untouched by it', () async {
       final variants = await planRagu();

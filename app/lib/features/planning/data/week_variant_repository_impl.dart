@@ -174,10 +174,10 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
         if (byRecipe.containsKey(entry.key))
           entry.key: summarizeRecipeMacros(
             servingsBase: entry.value.servingsBase,
-          // The seam, with this week's answer: an excluded line is gone, a
-          // replaced one carries its absolute values, an added one is there.
-          // The summation runs the seam again over what comes back and finds
-          // nothing left to drop, which is why the two rules compose.
+            // The seam, with this week's answer: an excluded line is gone, a
+            // replaced one carries its absolute values, an added one is there.
+            // The summation runs the seam again over what comes back and finds
+            // nothing left to drop, which is why the two rules compose.
             lines: effectiveLines(
               entry.value.lines,
               overrides: byRecipe[entry.key] ?? const [],

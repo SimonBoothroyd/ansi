@@ -67,10 +67,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('1/4 cup = 1/4 of a batch · makes 1 cup'),
-      findsOneWidget,
-    );
+    expect(find.text('1/4 cup = 1/4 of a batch · makes 1 cup'), findsOneWidget);
     for (final label in ['batch', 'cup', 'tbsp', 'tsp', 'ml']) {
       expect(find.text(label), findsWidgets, reason: 'chip "$label" missing');
     }
@@ -186,8 +183,10 @@ void main() {
 
     expect(find.text('Optional'), findsOneWidget);
     expect(
-      find.text('left out of macros and the shop list, and named where it '
-          'left'),
+      find.text(
+        'left out of macros and the shop list, and named where it '
+        'left',
+      ),
       findsOneWidget,
     );
 

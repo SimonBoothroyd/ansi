@@ -560,11 +560,8 @@ class _DishRow extends ConsumerWidget {
     // Every planned day of a varied recipe says so, because the variant is
     // per (week, recipe) — two rows describing one pot cannot disagree.
     final edited =
-        (ref
-                .watch(viewedWeekOverridesProvider)
-                .asData
-                ?.value[entry.recipeId] ??
-            const [])
+        (ref.watch(viewedWeekOverridesProvider).asData?.value[entry.recipeId] ??
+                const [])
             .isNotEmpty;
     // The chip is the OVERRIDE, and only when it differs from what the eaters
     // would have demanded on their own (their factors summed).

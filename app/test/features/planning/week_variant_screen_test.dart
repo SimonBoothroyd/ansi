@@ -151,15 +151,17 @@ String _allText(WidgetTester tester) => tester
 
 void main() {
   group('week mode draws the list and nothing else', () {
-    testWidgets('the band says whose lines these are, and which days cook them',
-        (tester) async {
-      await _pumpEditor(tester);
-      final text = _allText(tester);
-      expect(text, contains('THIS WEEK ONLY'));
-      expect(text, contains('Slow-Cooker Beef Ragù'));
-      expect(text, contains('Tue and Sat'));
-      expect(text, contains('The recipe is not changed.'));
-    });
+    testWidgets(
+      'the band says whose lines these are, and which days cook them',
+      (tester) async {
+        await _pumpEditor(tester);
+        final text = _allText(tester);
+        expect(text, contains('THIS WEEK ONLY'));
+        expect(text, contains('Slow-Cooker Beef Ragù'));
+        expect(text, contains('Tue and Sat'));
+        expect(text, contains('The recipe is not changed.'));
+      },
+    );
 
     testWidgets("the recipe's own facts are stated once, and not editable", (
       tester,
@@ -310,37 +312,40 @@ void main() {
           },
         ),
       );
-      expect(
-        find.text('Back to the recipe · drops 2 changes'),
-        findsOneWidget,
-      );
+      expect(find.text('Back to the recipe · drops 2 changes'), findsOneWidget);
     });
 
-    testWidgets('back to the recipe clears the draft; Save stores the clearing',
-        (tester) async {
-      final variants = FakeWeekVariantRepository(
-        overrides: const {
-          'r1': [
-            LineOverride(
-              id: 'ov1',
-              action: LineOverrideAction.exclude,
-              recipeLineItemId: 'l2',
-            ),
-          ],
-        },
-      );
-      await _pumpEditor(tester, variants: variants);
-      await tester.tap(find.text('Back to the recipe · drops 1 change'));
-      await tester.pumpAndSettle();
-      expect(_allText(tester), isNot(contains('this week · left out')));
-      expect(variants.saved, isEmpty, reason: 'nothing is written until Save');
+    testWidgets(
+      'back to the recipe clears the draft; Save stores the clearing',
+      (tester) async {
+        final variants = FakeWeekVariantRepository(
+          overrides: const {
+            'r1': [
+              LineOverride(
+                id: 'ov1',
+                action: LineOverrideAction.exclude,
+                recipeLineItemId: 'l2',
+              ),
+            ],
+          },
+        );
+        await _pumpEditor(tester, variants: variants);
+        await tester.tap(find.text('Back to the recipe · drops 1 change'));
+        await tester.pumpAndSettle();
+        expect(_allText(tester), isNot(contains('this week · left out')));
+        expect(
+          variants.saved,
+          isEmpty,
+          reason: 'nothing is written until Save',
+        );
 
-      await tester.tap(find.text('Save'));
-      await tester.pumpAndSettle();
-      expect(variants.saved.single.set, isEmpty);
-      expect(variants.saved.single.recipeId, 'r1');
-      expect(find.text('the week'), findsOneWidget);
-    });
+        await tester.tap(find.text('Save'));
+        await tester.pumpAndSettle();
+        expect(variants.saved.single.set, isEmpty);
+        expect(variants.saved.single.recipeId, 'r1');
+        expect(find.text('the week'), findsOneWidget);
+      },
+    );
 
     testWidgets('a per-line reset takes no confirm', (tester) async {
       final variants = FakeWeekVariantRepository(

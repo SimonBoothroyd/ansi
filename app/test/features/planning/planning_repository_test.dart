@@ -344,50 +344,52 @@ void main() {
       expect(dinner.eaterIds, ['m1', 'm2']);
     });
 
-    test("copyLastWeek leaves last week's variant behind, and names it",
-        () async {
-      await _insertRecipe(db, 'r1', 'Slow-Cooker Beef Ragù');
-      await repo.addEntry(
-        weekStart: _lastWeek,
-        dayOfWeek: 1,
-        mealSlot: 'Dinner',
-        recipeId: 'r1',
-        eaterIds: ['m1'],
-      );
-      // A line of that recipe, and a change to it on LAST week.
-      final now = DateTime.now().toUtc().toIso8601String();
-      await db.execute(
-        'INSERT INTO ingredient_group (id, household_id, recipe_id, '
-        'sort_order, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)',
-        ['g1', 'h', 'r1', now, now],
-      );
-      await db.execute(
-        'INSERT INTO recipe_line_item (id, household_id, group_id, '
-        'ingredient_id, quantity, unit, sort_order, created_at, updated_at) '
-        "VALUES (?, ?, ?, ?, 400, 'g', 0, ?, ?)",
-        ['l1', 'h', 'g1', 'i1', now, now],
-      );
-      final variants = SqliteWeekVariantRepository(db, householdId: 'h');
-      await variants.saveOverrides(
-        _lastWeek,
-        'r1',
-        overrides: const [
-          LineOverride(
-            action: LineOverrideAction.exclude,
-            recipeLineItemId: 'l1',
-          ),
-        ],
-      );
+    test(
+      "copyLastWeek leaves last week's variant behind, and names it",
+      () async {
+        await _insertRecipe(db, 'r1', 'Slow-Cooker Beef Ragù');
+        await repo.addEntry(
+          weekStart: _lastWeek,
+          dayOfWeek: 1,
+          mealSlot: 'Dinner',
+          recipeId: 'r1',
+          eaterIds: ['m1'],
+        );
+        // A line of that recipe, and a change to it on LAST week.
+        final now = DateTime.now().toUtc().toIso8601String();
+        await db.execute(
+          'INSERT INTO ingredient_group (id, household_id, recipe_id, '
+          'sort_order, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)',
+          ['g1', 'h', 'r1', now, now],
+        );
+        await db.execute(
+          'INSERT INTO recipe_line_item (id, household_id, group_id, '
+          'ingredient_id, quantity, unit, sort_order, created_at, updated_at) '
+          "VALUES (?, ?, ?, ?, 400, 'g', 0, ?, ?)",
+          ['l1', 'h', 'g1', 'i1', now, now],
+        );
+        final variants = SqliteWeekVariantRepository(db, householdId: 'h');
+        await variants.saveOverrides(
+          _lastWeek,
+          'r1',
+          overrides: const [
+            LineOverride(
+              action: LineOverrideAction.exclude,
+              recipeLineItemId: 'l1',
+            ),
+          ],
+        );
 
-      final result = await repo.copyLastWeek(_thisWeek);
-      expect(result.meals, 1);
-      expect(result.variantsLeftBehind, [
-        (recipeTitle: 'Slow-Cooker Beef Ragù', changes: 1),
-      ]);
-      // Not copied is already the behaviour — this pins that it stays so.
-      expect(await variants.loadOverrides(_thisWeek, 'r1'), isEmpty);
-      expect(await variants.loadOverrides(_lastWeek, 'r1'), hasLength(1));
-    });
+        final result = await repo.copyLastWeek(_thisWeek);
+        expect(result.meals, 1);
+        expect(result.variantsLeftBehind, [
+          (recipeTitle: 'Slow-Cooker Beef Ragù', changes: 1),
+        ]);
+        // Not copied is already the behaviour — this pins that it stays so.
+        expect(await variants.loadOverrides(_thisWeek, 'r1'), isEmpty);
+        expect(await variants.loadOverrides(_lastWeek, 'r1'), hasLength(1));
+      },
+    );
 
     test('a copy with no variant behind it reports none', () async {
       await _insertRecipe(db, 'r1', 'Curry');

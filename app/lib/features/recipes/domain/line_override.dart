@@ -295,11 +295,8 @@ List<WeekDraftLine> draftLines(
           excluded: false,
           added: false,
         ),
-        LineOverrideAction.add || null => (
-          line: line,
-          excluded: false,
-          added: false,
-        ),
+        LineOverrideAction.add ||
+        null => (line: line, excluded: false, added: false),
       },
     for (final o in overrides)
       if (o.action == LineOverrideAction.add)

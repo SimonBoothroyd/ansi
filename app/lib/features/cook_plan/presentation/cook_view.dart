@@ -133,10 +133,10 @@ class _RecipeCard extends ConsumerWidget {
     final split = meals.length > 1;
     final edited =
         (ref
-                .watch(viewedWeekOverridesProvider)
-                .asData
-                ?.value[recipe.recipeId] ??
-            const [])
+                    .watch(viewedWeekOverridesProvider)
+                    .asData
+                    ?.value[recipe.recipeId] ??
+                const [])
             .isNotEmpty;
     return _Card(
       accent: split,

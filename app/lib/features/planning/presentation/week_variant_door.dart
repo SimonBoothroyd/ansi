@@ -41,11 +41,10 @@ class WeekVariantDoorRow extends ConsumerWidget {
         ref.watch(viewedWeekOverridesProvider).asData?.value ?? const {};
     final changes = overrides[recipeId]?.length ?? 0;
     final plan = ref.watch(viewedWeekProvider).asData?.value;
-    final days =
-        <int>{
-          for (final e in plan?.entries ?? const <PlanEntry>[])
-            if (e.recipeId == recipeId) e.dayOfWeek,
-        }.toList()..sort();
+    final days = <int>{
+      for (final e in plan?.entries ?? const <PlanEntry>[])
+        if (e.recipeId == recipeId) e.dayOfWeek,
+    }.toList()..sort();
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -60,10 +59,7 @@ class WeekVariantDoorRow extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    weekDoorTitle(changes),
-                    style: ansiSans(size: 15),
-                  ),
+                  Text(weekDoorTitle(changes), style: ansiSans(size: 15)),
                   const SizedBox(height: 2),
                   Text(
                     weekDoorDetail(changes, days, kWeekdayShort),

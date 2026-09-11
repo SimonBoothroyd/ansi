@@ -162,8 +162,10 @@ void main() {
         householdId: stack.householdId,
       );
       const stubName = 'Aleppo chilli flakes';
-      final chilli =
-          (await ingredients.saveForm(null, _bareStub(stubName))).valueOrNull!;
+      final chilli = (await ingredients.saveForm(
+        null,
+        _bareStub(stubName),
+      )).valueOrNull!;
       // A second bare stub whose name the reference set matches (checked
       // against the local stack's `usda_food`: "Radicchio, raw", with a
       // density AND macros, so the fill exercises the unlock too) and the
@@ -173,8 +175,10 @@ void main() {
       const usdaName = 'Radicchio';
       // What the reference set calls it — the row the search offers back.
       const usdaFood = 'Radicchio, raw';
-      final radicchio =
-          (await ingredients.saveForm(null, _bareStub(usdaName))).valueOrNull!;
+      final radicchio = (await ingredients.saveForm(
+        null,
+        _bareStub(usdaName),
+      )).valueOrNull!;
       expect(
         (await db.get(
           "SELECT count(*) AS c FROM sqlite_master WHERE name = 'usda_food'",

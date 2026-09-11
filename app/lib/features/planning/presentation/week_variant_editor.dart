@@ -95,11 +95,8 @@ class WeekVariantEditorView extends ConsumerWidget {
           stackTrace: st,
           onRetry: () => ref.invalidate(draft),
         ),
-        data: (variant) => _WeekList(
-          variant: variant,
-          weekKey: weekKey,
-          notifier: notifier,
-        ),
+        data: (variant) =>
+            _WeekList(variant: variant, weekKey: weekKey, notifier: notifier),
       ),
     );
   }
@@ -192,11 +189,10 @@ class WeekVariantBand extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final plan = ref.watch(viewedWeekProvider).asData?.value;
-    final days =
-        <int>{
-          for (final e in plan?.entries ?? const <PlanEntry>[])
-            if (e.recipeTitle == title) e.dayOfWeek,
-        }.toList()..sort();
+    final days = <int>{
+      for (final e in plan?.entries ?? const <PlanEntry>[])
+        if (e.recipeTitle == title) e.dayOfWeek,
+    }.toList()..sort();
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(20, 8, 20, 0),
@@ -263,10 +259,7 @@ class _GroupHeading extends StatelessWidget {
     if (name.isEmpty) return const SizedBox(height: 10);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 2),
-      child: Text(
-        name,
-        style: ansiSans(size: 13, color: AnsiColors.muted),
-      ),
+      child: Text(name, style: ansiSans(size: 13, color: AnsiColors.muted)),
     );
   }
 }
@@ -377,15 +370,16 @@ class _WeekLineRow extends ConsumerWidget {
                       children: [
                         TextSpan(
                           text: item.ingredientName,
-                          style: ansiSans(
-                            size: 15,
-                            weight: FontWeight.w500,
-                            color: muted,
-                          ).copyWith(
-                            decoration: struck
-                                ? TextDecoration.lineThrough
-                                : null,
-                          ),
+                          style:
+                              ansiSans(
+                                size: 15,
+                                weight: FontWeight.w500,
+                                color: muted,
+                              ).copyWith(
+                                decoration: struck
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                              ),
                         ),
                         ...noteSpans(item.note),
                       ],
