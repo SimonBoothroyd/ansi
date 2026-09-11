@@ -21,5 +21,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # check_docs.sh regenerates docs/generated/* to prove they are fresh, and
+      # the unit-admission half is `dart run` inside app/, whose pub get needs
+      # the Flutter SDK. Without it the generator fails and both files read as
+      # stale whatever their content.
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.1' # exact — local and CI move together
+          cache: true
+      - run: flutter pub get
+        working-directory: app
       - name: Check knowledge base integrity
         run: ./scripts/check_docs.sh
