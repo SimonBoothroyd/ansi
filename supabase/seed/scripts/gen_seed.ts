@@ -453,6 +453,67 @@ function buildSql(plan: SeedPlan): { sql: string; counts: Counts } {
     "",
   );
 
+  // --- rows the snapshot no longer has are retired --------------------------
+  //
+  // The snapshot IS the template. An upsert keyed by match_text can only add
+  // and refresh, so a row the owner deleted, or renamed (a new key beside the
+  // old one), would live on in the template and clone into every new
+  // household. Soft-delete keeps the rule every read already holds
+  // (`deleted_at is null`), and the notice says how many went, because a
+  // reseed that quietly retires rows is the same bug as one that quietly
+  // keeps them.
+  out.push(
+    "-- Rows the snapshot no longer carries are retired: the snapshot is the",
+    "-- template, and an upsert alone would leave a deleted or renamed row in",
+    "-- place for the next household to clone. Soft-deleted, with their live",
+    "-- aliases and measures, and counted.",
+    "do $$",
+    "declare n_retired int;",
+    "begin",
+    "  with gone as (",
+    "    update ingredient i set deleted_at = now(), updated_at = now()",
+    `    where i.household_id = ${q(HOUSEHOLD_ID)} and i.deleted_at is null`,
+    "      and i.match_text not in (" +
+      ingredients.map((i) => q(i.match)).join(", ") + ")",
+    "    returning i.id",
+    "  ), gone_aliases as (",
+    "    update ingredient_alias a set deleted_at = now(), updated_at = now()",
+    "    from gone where a.ingredient_id = gone.id and a.deleted_at is null",
+    "  ), gone_measures as (",
+    "    update ingredient_measure m set deleted_at = now(), updated_at = now()",
+    "    from gone where m.ingredient_id = gone.id and m.deleted_at is null",
+    "  )",
+    "  select count(*) into n_retired from gone;",
+    "  if n_retired > 0 then",
+    "    raise notice 'seed_vocab: retired % template row(s) the snapshot no longer carries', n_retired;",
+    "  end if;",
+    "end $$;",
+    "",
+    "-- The same for a row's own words: a measure or alias the owner removed",
+    "-- must not survive the reseed on a row that stays.",
+    "update ingredient_measure m set deleted_at = now(), updated_at = now()",
+    "from ingredient i",
+    `where i.household_id = ${q(HOUSEHOLD_ID)} and i.deleted_at is null`,
+    "  and m.ingredient_id = i.id and m.deleted_at is null",
+    "  and not exists (select 1 from (values",
+    measures.length
+      ? measures.map((m) => `    (${q(m.ing_match)}, ${q(m.label)})`).join(",\n")
+      : "    (null::text, null::text)",
+    "  ) as keep(match_text, label)",
+    "  where keep.match_text = i.match_text and keep.label = m.label);",
+    "update ingredient_alias a set deleted_at = now(), updated_at = now()",
+    "from ingredient i",
+    `where i.household_id = ${q(HOUSEHOLD_ID)} and i.deleted_at is null`,
+    "  and a.ingredient_id = i.id and a.deleted_at is null",
+    "  and not exists (select 1 from (values",
+    aliases.length
+      ? aliases.map((a) => `    (${q(a.ing_match)}, ${q(a.alias_match)})`).join(",\n")
+      : "    (null::text, null::text)",
+    "  ) as keep(match_text, alias_match)",
+    "  where keep.match_text = i.match_text and keep.alias_match = a.match_text);",
+    "",
+  );
+
   // --- aliases ------------------------------------------------------------
   if (aliases.length) {
     out.push(
