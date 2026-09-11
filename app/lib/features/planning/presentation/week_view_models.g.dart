@@ -475,22 +475,79 @@ final class LastPlannedByRecipeProvider
 String _$lastPlannedByRecipeHash() =>
     r'4e7109b55cb289637548d7dd0a8b5a6682669edc';
 
-/// Per-recipe macro summaries, indexed by recipe id.
+/// Every override on the viewed week, keyed by recipe id — what the dish
+/// row's "edited for this week" mark and the cook card's sub-line read, and
+/// what the editor's own draft starts from.
+
+@ProviderFor(viewedWeekOverrides)
+const viewedWeekOverridesProvider = ViewedWeekOverridesProvider._();
+
+/// Every override on the viewed week, keyed by recipe id — what the dish
+/// row's "edited for this week" mark and the cook card's sub-line read, and
+/// what the editor's own draft starts from.
+
+final class ViewedWeekOverridesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Map<String, List<LineOverride>>>,
+          Map<String, List<LineOverride>>,
+          Stream<Map<String, List<LineOverride>>>
+        >
+    with
+        $FutureModifier<Map<String, List<LineOverride>>>,
+        $StreamProvider<Map<String, List<LineOverride>>> {
+  /// Every override on the viewed week, keyed by recipe id — what the dish
+  /// row's "edited for this week" mark and the cook card's sub-line read, and
+  /// what the editor's own draft starts from.
+  const ViewedWeekOverridesProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'viewedWeekOverridesProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$viewedWeekOverridesHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<Map<String, List<LineOverride>>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<Map<String, List<LineOverride>>> create(Ref ref) {
+    return viewedWeekOverrides(ref);
+  }
+}
+
+String _$viewedWeekOverridesHash() =>
+    r'd3d4d070dc3274e8a5ddc4502f50f6f39e373e7b';
+
+/// Per-recipe macro summaries **for the viewed week**, indexed by recipe id.
 ///
-/// `watchRecipes` already carries `macros` on every [RecipeSummary], so the
-/// week needs NO new repository method and no second summation — it reads the
-/// same figure the picker rows and the recipe panel show.
+/// The Library's figure underneath, the week's own on top. A recipe the week
+/// does not vary is still exactly what `watchRecipes` computed — the same
+/// figure the picker rows and the recipe panel show — and a recipe it does
+/// vary is re-summed over the week's effective lines, because the Library's
+/// number is wrong for this week and right everywhere else.
 
-@ProviderFor(recipeMacrosById)
-const recipeMacrosByIdProvider = RecipeMacrosByIdProvider._();
+@ProviderFor(weekRecipeMacros)
+const weekRecipeMacrosProvider = WeekRecipeMacrosProvider._();
 
-/// Per-recipe macro summaries, indexed by recipe id.
+/// Per-recipe macro summaries **for the viewed week**, indexed by recipe id.
 ///
-/// `watchRecipes` already carries `macros` on every [RecipeSummary], so the
-/// week needs NO new repository method and no second summation — it reads the
-/// same figure the picker rows and the recipe panel show.
+/// The Library's figure underneath, the week's own on top. A recipe the week
+/// does not vary is still exactly what `watchRecipes` computed — the same
+/// figure the picker rows and the recipe panel show — and a recipe it does
+/// vary is re-summed over the week's effective lines, because the Library's
+/// number is wrong for this week and right everywhere else.
 
-final class RecipeMacrosByIdProvider
+final class WeekRecipeMacrosProvider
     extends
         $FunctionalProvider<
           Map<String, RecipeMacroSummary>,
@@ -498,24 +555,26 @@ final class RecipeMacrosByIdProvider
           Map<String, RecipeMacroSummary>
         >
     with $Provider<Map<String, RecipeMacroSummary>> {
-  /// Per-recipe macro summaries, indexed by recipe id.
+  /// Per-recipe macro summaries **for the viewed week**, indexed by recipe id.
   ///
-  /// `watchRecipes` already carries `macros` on every [RecipeSummary], so the
-  /// week needs NO new repository method and no second summation — it reads the
-  /// same figure the picker rows and the recipe panel show.
-  const RecipeMacrosByIdProvider._()
+  /// The Library's figure underneath, the week's own on top. A recipe the week
+  /// does not vary is still exactly what `watchRecipes` computed — the same
+  /// figure the picker rows and the recipe panel show — and a recipe it does
+  /// vary is re-summed over the week's effective lines, because the Library's
+  /// number is wrong for this week and right everywhere else.
+  const WeekRecipeMacrosProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'recipeMacrosByIdProvider',
+        name: r'weekRecipeMacrosProvider',
         isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$recipeMacrosByIdHash();
+  String debugGetCreateSourceHash() => _$weekRecipeMacrosHash();
 
   @$internal
   @override
@@ -525,7 +584,7 @@ final class RecipeMacrosByIdProvider
 
   @override
   Map<String, RecipeMacroSummary> create(Ref ref) {
-    return recipeMacrosById(ref);
+    return weekRecipeMacros(ref);
   }
 
   /// {@macro riverpod.override_with_value}
@@ -539,7 +598,57 @@ final class RecipeMacrosByIdProvider
   }
 }
 
-String _$recipeMacrosByIdHash() => r'bcce65c48ca6eabca10ea29ed99479705f17030d';
+String _$weekRecipeMacrosHash() => r'1dadcaa8c3e79ed4381c5b4fc1e9541f50e84eca';
+
+/// The re-summed figures for the recipes the viewed week varies — usually
+/// none, in which case the map above is the Library's, untouched.
+
+@ProviderFor(variantRecipeMacros)
+const variantRecipeMacrosProvider = VariantRecipeMacrosProvider._();
+
+/// The re-summed figures for the recipes the viewed week varies — usually
+/// none, in which case the map above is the Library's, untouched.
+
+final class VariantRecipeMacrosProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Map<String, RecipeMacroSummary>>,
+          Map<String, RecipeMacroSummary>,
+          Stream<Map<String, RecipeMacroSummary>>
+        >
+    with
+        $FutureModifier<Map<String, RecipeMacroSummary>>,
+        $StreamProvider<Map<String, RecipeMacroSummary>> {
+  /// The re-summed figures for the recipes the viewed week varies — usually
+  /// none, in which case the map above is the Library's, untouched.
+  const VariantRecipeMacrosProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'variantRecipeMacrosProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$variantRecipeMacrosHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<Map<String, RecipeMacroSummary>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<Map<String, RecipeMacroSummary>> create(Ref ref) {
+    return variantRecipeMacros(ref);
+  }
+}
+
+String _$variantRecipeMacrosHash() =>
+    r'e6ddb6b66e2e9c6151a9146f1d16399466c9c103';
 
 /// The roster keyed by id — the portion factors every demand and lens share is
 /// weighted by.
@@ -658,7 +767,7 @@ final class WeekMacrosProvider
   }
 }
 
-String _$weekMacrosHash() => r'18ccac97520f365e7e725a1bd80a2bc7db7a290c';
+String _$weekMacrosHash() => r'5af7d3bbf0074e72f8990e0feaf2710491279159';
 
 /// The viewed week's macros under [lens] (null = Everyone) — D4.
 
@@ -747,7 +856,7 @@ final class DayMacrosProvider
   }
 }
 
-String _$dayMacrosHash() => r'946b030b15db540aad00e8cefa2c90748b90d469';
+String _$dayMacrosHash() => r'96e3a0a1cb4d45a3ac815badb9f5058bdf2b94de';
 
 /// One day's macros under [lens] — the SAME function over a narrower set, so
 /// the week is never a sum of rounded day totals.

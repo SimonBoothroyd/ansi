@@ -31,6 +31,7 @@ import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/fake_planning_repository.dart';
 import '../../helpers/fake_recipe_repository.dart';
+import '../../helpers/fake_week_variant_repository.dart';
 import '../../helpers/forui_semantics.dart';
 import '../../helpers/macro_line.dart';
 import '../../helpers/pump_app.dart';
@@ -149,6 +150,9 @@ List<Override> _withCook(List<Override> extra, CookPlanRepository? cook) => [
   // measure chips off this repository. Every host answers for it, with no
   // measures — the sheet then opens on the row's own default unit.
   measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
+  // No recipe is varied for this week unless a test says so — the week then
+  // reads exactly the Library's per-recipe figures.
+  weekVariantRepositoryProvider.overrideWithValue(FakeWeekVariantRepository()),
   ...extra,
 ];
 

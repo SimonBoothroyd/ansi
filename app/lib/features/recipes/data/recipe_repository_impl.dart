@@ -176,14 +176,6 @@ class SqliteRecipeRepository implements RecipeRepository {
     ];
   }
 
-  /// The recipe row's stated yields, from the four `yield_*` columns.
-  List<YieldDenomination> _yieldsOf(Row r) => yieldDenominations(
-    (r['yield_qty'] as num?)?.toDouble(),
-    unitById(r['yield_unit'] as String? ?? ''),
-    (r['yield_qty_2'] as num?)?.toDouble(),
-    unitById(r['yield_unit_2'] as String? ?? ''),
-  );
-
   /// The component target joined onto a line row as `sub_title` /
   /// `sub_yield_*` (step 8.6), or null when the line is an ingredient line —
   /// or when its target row is missing (a dangling link degrades to plain
@@ -369,10 +361,6 @@ class SqliteRecipeRepository implements RecipeRepository {
     );
   }
 
-  /// A 0/1 flag column as a bool. Null (a row synced from a server that had
-  /// not yet learned the column) reads as false — the column's own default.
-  static bool _flag(Object? v) => v == 1 || v == true;
-
   LineItem _toLineItem(Row r) {
     // The measure resolves only when its row is live locally; the raw
     // measure_id is kept regardless so a save never strips it (see [LineItem]).
@@ -415,90 +403,8 @@ class SqliteRecipeRepository implements RecipeRepository {
     );
   }
 
-  /// Every live recipe as a macro-walk node ([SubRecipeNode]) plus the vocab
-  /// nutrition its lines need (step 8.6 / D8).
-  ///
-  /// Read whole and only when the page actually has a component line: the walk
-  /// can descend through a component of a component, and a household's recipes
-  /// fit comfortably in one pass — one query beats one per edge.
   Future<(Map<String, SubRecipeNode>, Map<String, IngredientNutrition>)>
-  _loadSubRecipeNodes() async {
-    final recipeRows = await _db.getAll(
-      'SELECT id, servings_base, yield_qty, yield_unit, yield_qty_2, '
-      'yield_unit_2 FROM recipe WHERE deleted_at IS NULL',
-    );
-    final lineRows = await _db.getAll(
-      'SELECT g.recipe_id, li.id, li.ingredient_id, li.sub_recipe_id, '
-      'li.quantity, li.unit, li.optional, li.measure_id, '
-      'im.label AS m_label, im.basis_amount AS m_amount, '
-      'im.sort_order AS m_sort, im.source AS m_source, '
-      'ing.macros, ing.macros_basis, ing.density_g_per_ml, '
-      'ing.piece_basis_amount, ing.status '
-      'FROM recipe_line_item li '
-      'JOIN ingredient_group g ON g.id = li.group_id AND g.deleted_at IS NULL '
-      'LEFT JOIN ingredient ing '
-      'ON ing.id = li.ingredient_id AND ing.deleted_at IS NULL '
-      'LEFT JOIN ingredient_measure im '
-      'ON im.id = li.measure_id AND im.deleted_at IS NULL '
-      'WHERE li.deleted_at IS NULL',
-    );
-
-    final linesByRecipe = <String, List<LineItem>>{};
-    final nutrition = <String, IngredientNutrition>{};
-    for (final r in lineRows) {
-      final measureId = r['measure_id'] as String?;
-      final measureLabel = r['m_label'] as String?;
-      final measureAmount = (r['m_amount'] as num?)?.toDouble();
-      (linesByRecipe[r['recipe_id'] as String] ??= []).add(
-        LineItem(
-          id: r['id'] as String,
-          ingredientId: r['ingredient_id'] as String?,
-          subRecipeId: r['sub_recipe_id'] as String?,
-          ingredientName: '',
-          unit: unitById(r['unit'] as String) ?? pieces,
-          quantity: (r['quantity'] as num?)?.toDouble(),
-          // A sub-recipe's own optional lines leave ITS total the same way
-          // (the walk runs the same seam at every level).
-          optional: _flag(r['optional']),
-          measureId: measureId,
-          measure:
-              measureId == null || measureLabel == null || measureAmount == null
-              ? null
-              : Measure(
-                  id: measureId,
-                  label: measureLabel,
-                  amount: measureAmount,
-                  basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
-                  sortOrder: (r['m_sort'] as int?) ?? 0,
-                  source: r['m_source'] as String?,
-                ),
-        ),
-      );
-      final ingredientId = r['ingredient_id'] as String?;
-      if (ingredientId != null && r['status'] != null) {
-        nutrition[ingredientId] = (
-          macros: r['status'] == 'complete'
-              ? Macros.tryParse(r['macros'] as String?)
-              : null,
-          basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
-          densityGPerMl: (r['density_g_per_ml'] as num?)?.toDouble(),
-          pieceBasisAmount: (r['piece_basis_amount'] as num?)?.toDouble(),
-        );
-      }
-    }
-
-    return (
-      {
-        for (final r in recipeRows)
-          r['id'] as String: (
-            servingsBase: (r['servings_base'] as num).toDouble(),
-            lines: linesByRecipe[r['id']] ?? const <LineItem>[],
-            yields: _yieldsOf(r),
-          ),
-      },
-      nutrition,
-    );
-  }
+  _loadSubRecipeNodes() => loadRecipeMacroNodes(_db);
 
   @override
   Future<List<RecipeUse>> usedIn(String recipeId) async {
@@ -811,4 +717,104 @@ class SqliteRecipeRepository implements RecipeRepository {
       [now, now, id],
     );
   }
+}
+
+/// The recipe row's stated yields, from the four `yield_*` columns.
+List<YieldDenomination> _yieldsOf(Row r) => yieldDenominations(
+  (r['yield_qty'] as num?)?.toDouble(),
+  unitById(r['yield_unit'] as String? ?? ''),
+  (r['yield_qty_2'] as num?)?.toDouble(),
+  unitById(r['yield_unit_2'] as String? ?? ''),
+);
+
+/// A 0/1 flag column as a bool. Null (a row synced from a server that had not
+/// yet learned the column) reads as false — the column's own default.
+bool _flag(Object? v) => v == 1 || v == true;
+
+/// Every live recipe as a macro-walk node ([SubRecipeNode]) plus the vocab
+/// nutrition its lines need (step 8.6 / D8).
+///
+/// Read whole: the walk can descend through a component of a component, and a
+/// household's recipes fit comfortably in one pass — one query beats one per
+/// edge. The recipe page reads it only when it actually has a component line;
+/// the WEEK reads it whole, because a week's macro lens must re-sum every
+/// planned recipe over that week's own effective lines rather than borrow the
+/// Library's figure.
+Future<(Map<String, SubRecipeNode>, Map<String, IngredientNutrition>)>
+loadRecipeMacroNodes(SqliteConnection db) async {
+  final recipeRows = await db.getAll(
+    'SELECT id, servings_base, yield_qty, yield_unit, yield_qty_2, '
+    'yield_unit_2 FROM recipe WHERE deleted_at IS NULL',
+  );
+  final lineRows = await db.getAll(
+    'SELECT g.recipe_id, li.id, li.ingredient_id, li.sub_recipe_id, '
+    'li.quantity, li.unit, li.optional, li.measure_id, '
+    'im.label AS m_label, im.basis_amount AS m_amount, '
+    'im.sort_order AS m_sort, im.source AS m_source, '
+    'ing.macros, ing.macros_basis, ing.density_g_per_ml, '
+    'ing.piece_basis_amount, ing.status '
+    'FROM recipe_line_item li '
+    'JOIN ingredient_group g ON g.id = li.group_id AND g.deleted_at IS NULL '
+    'LEFT JOIN ingredient ing '
+    'ON ing.id = li.ingredient_id AND ing.deleted_at IS NULL '
+    'LEFT JOIN ingredient_measure im '
+    'ON im.id = li.measure_id AND im.deleted_at IS NULL '
+    'WHERE li.deleted_at IS NULL',
+  );
+
+  final linesByRecipe = <String, List<LineItem>>{};
+  final nutrition = <String, IngredientNutrition>{};
+  for (final r in lineRows) {
+    final measureId = r['measure_id'] as String?;
+    final measureLabel = r['m_label'] as String?;
+    final measureAmount = (r['m_amount'] as num?)?.toDouble();
+    (linesByRecipe[r['recipe_id'] as String] ??= []).add(
+      LineItem(
+        id: r['id'] as String,
+        ingredientId: r['ingredient_id'] as String?,
+        subRecipeId: r['sub_recipe_id'] as String?,
+        ingredientName: '',
+        unit: unitById(r['unit'] as String) ?? pieces,
+        quantity: (r['quantity'] as num?)?.toDouble(),
+        // A sub-recipe's own optional lines leave ITS total the same way
+        // (the walk runs the same seam at every level).
+        optional: _flag(r['optional']),
+        measureId: measureId,
+        measure:
+            measureId == null || measureLabel == null || measureAmount == null
+            ? null
+            : Measure(
+                id: measureId,
+                label: measureLabel,
+                amount: measureAmount,
+                basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
+                sortOrder: (r['m_sort'] as int?) ?? 0,
+                source: r['m_source'] as String?,
+              ),
+      ),
+    );
+    final ingredientId = r['ingredient_id'] as String?;
+    if (ingredientId != null && r['status'] != null) {
+      nutrition[ingredientId] = (
+        macros: r['status'] == 'complete'
+            ? Macros.tryParse(r['macros'] as String?)
+            : null,
+        basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
+        densityGPerMl: (r['density_g_per_ml'] as num?)?.toDouble(),
+        pieceBasisAmount: (r['piece_basis_amount'] as num?)?.toDouble(),
+      );
+    }
+  }
+
+  return (
+    {
+      for (final r in recipeRows)
+        r['id'] as String: (
+          servingsBase: (r['servings_base'] as num).toDouble(),
+          lines: linesByRecipe[r['id']] ?? const <LineItem>[],
+          yields: _yieldsOf(r),
+        ),
+    },
+    nutrition,
+  );
 }

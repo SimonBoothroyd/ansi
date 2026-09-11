@@ -45,7 +45,7 @@ import '../../cook_plan/data/cook_plan_repository_impl.dart'
     show loadComponentGraph;
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../planning/data/planning_repository_impl.dart' show loadMembers;
-import '../../planning/domain/planning.dart' show eatersDemand, mondayOf;
+import '../../planning/domain/planning.dart' show eatersDemand, weekKeyOf;
 import '../../recipes/domain/effective_lines.dart';
 import '../../recipes/domain/recipe.dart';
 import '../domain/shopping.dart';
@@ -79,12 +79,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
   /// the signed-in household, tests pass their own).
   final String _householdId;
 
-  String _weekKey(DateTime weekStart) {
-    final m = mondayOf(weekStart);
-    final mm = m.month.toString().padLeft(2, '0');
-    final dd = m.day.toString().padLeft(2, '0');
-    return '${m.year}-$mm-$dd';
-  }
+  String _weekKey(DateTime weekStart) => weekKeyOf(weekStart);
 
   @override
   Stream<ShoppingList> watchShoppingList(DateTime weekStart) {

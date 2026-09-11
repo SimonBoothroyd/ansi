@@ -34,12 +34,7 @@ class SqlitePlanningRepository implements PlanningRepository {
   final String _householdId;
 
   /// The ISO date (YYYY-MM-DD) a week is addressed by — its Monday.
-  String _weekKey(DateTime weekStart) {
-    final m = mondayOf(weekStart);
-    final mm = m.month.toString().padLeft(2, '0');
-    final dd = m.day.toString().padLeft(2, '0');
-    return '${m.year}-$mm-$dd';
-  }
+  String _weekKey(DateTime weekStart) => weekKeyOf(weekStart);
 
   @override
   Stream<WeekPlan?> watchWeek(DateTime weekStart) {
@@ -227,22 +222,8 @@ class SqlitePlanningRepository implements PlanningRepository {
       );
 
   /// Returns the id of the week beginning [weekKey], creating it if absent.
-  Future<String> _getOrCreateWeek(SqliteWriteContext tx, String weekKey) async {
-    final existing = await tx.getOptional(
-      'SELECT id FROM week_plan '
-      'WHERE week_start_date = ? AND deleted_at IS NULL',
-      [weekKey],
-    );
-    if (existing != null) return existing['id'] as String;
-    final id = _uuid.v4();
-    final now = _now();
-    await tx.execute(
-      'INSERT INTO week_plan (id, household_id, week_start_date, created_at, '
-      'updated_at) VALUES (?, ?, ?, ?, ?)',
-      [id, _householdId, weekKey, now, now],
-    );
-    return id;
-  }
+  Future<String> _getOrCreateWeek(SqliteWriteContext tx, String weekKey) =>
+      getOrCreateWeekPlan(tx, weekKey: weekKey, householdId: _householdId);
 
   @override
   Future<String> addEntry({
@@ -419,6 +400,31 @@ class SqlitePlanningRepository implements PlanningRepository {
 /// A row without a factor (a local test insert; a device mid-sync before
 /// `0026` reached it) reads `1`, the column's own default — never a zero that
 /// would silently empty a meal.
+/// The id of the `week_plan` row for [weekKey], creating it on first use.
+///
+/// A week costs nothing until something is written against it, so the row is
+/// made lazily — by the first meal, and equally by the first line somebody
+/// changes for that week.
+Future<String> getOrCreateWeekPlan(
+  SqliteWriteContext tx, {
+  required String weekKey,
+  required String householdId,
+}) async {
+  final existing = await tx.getOptional(
+    'SELECT id FROM week_plan WHERE week_start_date = ? AND deleted_at IS NULL',
+    [weekKey],
+  );
+  if (existing != null) return existing['id'] as String;
+  final id = _uuid.v4();
+  final now = DateTime.now().toUtc().toIso8601String();
+  await tx.execute(
+    'INSERT INTO week_plan (id, household_id, week_start_date, created_at, '
+    'updated_at) VALUES (?, ?, ?, ?, ?)',
+    [id, householdId, weekKey, now, now],
+  );
+  return id;
+}
+
 Future<List<Member>> loadMembers(SqliteConnection db) async => _membersFrom(
   await db.getAll(
     'SELECT id, display_name, portion_factor FROM household_member '

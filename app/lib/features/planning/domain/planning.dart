@@ -227,3 +227,14 @@ DateTime mondayOf(DateTime date) {
   final d = DateTime.utc(date.year, date.month, date.day);
   return d.subtract(Duration(days: d.weekday - 1));
 }
+
+/// The key a week is ADDRESSED by — its Monday as a bare ISO date,
+/// `YYYY-MM-DD`. It is the `week_start_date` column, the query param the
+/// recipe editor's week mode is opened with, and the string three repositories
+/// join on, so it is written once.
+String weekKeyOf(DateTime date) {
+  final m = mondayOf(date);
+  final mm = m.month.toString().padLeft(2, '0');
+  final dd = m.day.toString().padLeft(2, '0');
+  return '${m.year}-$mm-$dd';
+}

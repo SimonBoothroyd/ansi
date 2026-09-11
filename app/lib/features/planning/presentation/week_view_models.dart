@@ -22,6 +22,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart' show AppLifecycleListener;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../recipes/domain/line_override.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/domain/recipe_macros.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
@@ -131,22 +132,40 @@ Future<WeekPlan?> lastWeek(Ref ref) => ref
 Stream<Map<String, DateTime>> lastPlannedByRecipe(Ref ref) =>
     ref.watch(planningRepositoryProvider).watchLastPlanned();
 
-/// Per-recipe macro summaries, indexed by recipe id.
-///
-/// `watchRecipes` already carries `macros` on every [RecipeSummary], so the
-/// week needs NO new repository method and no second summation — it reads the
-/// same figure the picker rows and the recipe panel show.
+/// Every override on the viewed week, keyed by recipe id — what the dish
+/// row's "edited for this week" mark and the cook card's sub-line read, and
+/// what the editor's own draft starts from.
 @riverpod
-Map<String, RecipeMacroSummary> recipeMacrosById(Ref ref) {
+Stream<Map<String, List<LineOverride>>> viewedWeekOverrides(Ref ref) => ref
+    .watch(weekVariantRepositoryProvider)
+    .watchWeekOverrides(ref.watch(viewedWeekStartProvider));
+
+/// Per-recipe macro summaries **for the viewed week**, indexed by recipe id.
+///
+/// The Library's figure underneath, the week's own on top. A recipe the week
+/// does not vary is still exactly what `watchRecipes` computed — the same
+/// figure the picker rows and the recipe panel show — and a recipe it does
+/// vary is re-summed over the week's effective lines, because the Library's
+/// number is wrong for this week and right everywhere else.
+@riverpod
+Map<String, RecipeMacroSummary> weekRecipeMacros(Ref ref) {
   final recipes =
-      // Decorative emptiness, weighed (D6): this resolves titles for rows the
-      // week already has; an unresolved one falls back to its stored title.
+      // Decorative emptiness, weighed (D6): this resolves figures for rows the
+      // week already has; an unresolved one simply has none.
       ref.watch(recipeListProvider).asData?.value ?? const <RecipeSummary>[];
   return {
     for (final r in recipes)
       if (r.macros != null) r.id: r.macros!,
+    ...ref.watch(variantRecipeMacrosProvider).asData?.value ?? const {},
   };
 }
+
+/// The re-summed figures for the recipes the viewed week varies — usually
+/// none, in which case the map above is the Library's, untouched.
+@riverpod
+Stream<Map<String, RecipeMacroSummary>> variantRecipeMacros(Ref ref) => ref
+    .watch(weekVariantRepositoryProvider)
+    .watchVariantRecipeMacros(ref.watch(viewedWeekStartProvider));
 
 /// The roster keyed by id — the portion factors every demand and lens share is
 /// weighted by.
@@ -160,7 +179,7 @@ Map<String, Member> membersById(Ref ref) => {
 @riverpod
 MealSetMacros weekMacros(Ref ref, String? lens) {
   final plan = ref.watch(viewedWeekProvider).asData?.value;
-  final macros = ref.watch(recipeMacrosByIdProvider);
+  final macros = ref.watch(weekRecipeMacrosProvider);
   return sumPlannedMacros(
     plan?.entries ?? const [],
     summaryFor: (id) => macros[id],
@@ -174,7 +193,7 @@ MealSetMacros weekMacros(Ref ref, String? lens) {
 @riverpod
 MealSetMacros dayMacros(Ref ref, int dayOfWeek, String? lens) {
   final plan = ref.watch(viewedWeekProvider).asData?.value;
-  final macros = ref.watch(recipeMacrosByIdProvider);
+  final macros = ref.watch(weekRecipeMacrosProvider);
   return sumPlannedMacros(
     plan?.entriesForDay(dayOfWeek) ?? const [],
     summaryFor: (id) => macros[id],
