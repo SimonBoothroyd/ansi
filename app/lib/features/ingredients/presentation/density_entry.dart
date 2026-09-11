@@ -400,12 +400,15 @@ class DensityEntry extends HookWidget {
           if (servingPrefill?.unit.family == UnitFamily.volume)
             Padding(
               padding: const EdgeInsets.only(top: 4),
+              // **It says what to do with what is in the slots**, not where
+              // the slots came from. A line that described the offer left the
+              // person to work out that the empty half was theirs to fill.
               child: Text(
                 servingPrefill!.grams == null
-                    ? 'the serving you typed above · the pack’s “(32g)” goes '
-                          'here'
-                    : 'the pack’s own serving line, both halves — check it '
-                          'and tap $saveLabel',
+                    ? 'your serving, ready to use — type what that much '
+                          'weighs (the pack’s “(32 g)”)'
+                    : 'both halves come from the pack’s serving line — check '
+                          'them, then tap $saveLabel',
                 style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
             ),
