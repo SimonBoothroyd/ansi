@@ -269,12 +269,28 @@ void main() {
       // Produce — and it sits BELOW the whole stub band in a virtualized
       // list, not built until scrolled to (the import review's lesson, one
       // screen later).
-      await scrollTo(tester, find.text('Produce · $produce'));
+      // The header's count is the synced section's, which can still be
+      // landing when the query above ran; the aisle's name is the anchor.
+      await scrollTo(tester, find.textContaining('Produce · '));
 
       // --- open the stub and flesh it out ----------------------------------
       // The row is in the band AND in the all-ingredients list below; scroll
       // back up to it first — the header check left us at the band's end.
-      await scrollTo(tester, find.text(stubName));
+      // Say what the local database holds for it first, so a missing row
+      // reads as a fact rather than as a scroll that never arrived.
+      final chilliRow = await db.getOptional(
+        'SELECT canonical_name, status, category, deleted_at '
+        'FROM ingredient WHERE id = ?',
+        [chilli.id],
+      );
+      expect(chilliRow, isNotNull, reason: 'the seeded stub is gone locally');
+      expect(
+        chilliRow!['status'],
+        'stub',
+        reason: 'the seeded stub changed status: $chilliRow',
+      );
+      expect(chilliRow['deleted_at'], isNull, reason: 'tombstoned: $chilliRow');
+      await scrollTo(tester, find.text(chilliRow['canonical_name'] as String));
       await tester.tap(find.text(stubName).first);
       await enterForm(tester);
 
@@ -421,12 +437,16 @@ void main() {
       await tester.tap(find.text('· change'));
       await tester.pumpAndSettle();
       await scrollTo(tester, find.text('weighs'));
-      final mlChip = find.descendant(
-        of: find.byType(DensityEntry),
-        matching: find.widgetWithText(AnsiModeChip, 'ml'),
-      );
-      await centerOn(tester, mlChip);
-      await tester.tap(mlChip);
+      // The sentence's left side is the one amount-and-unit control: a
+      // select, opened and picked, not a chip.
+      final mlSelect = find.byKey(const ValueKey('density-amount-unit'));
+      await centerOn(tester, mlSelect);
+      await tester.tap(mlSelect);
+      await tester.pumpAndSettle();
+      final ml = find.text('ml').last;
+      await tester.ensureVisible(ml);
+      await tester.pumpAndSettle();
+      await tester.tap(ml);
       await tester.pumpAndSettle();
       await tester.enterText(densityField, '1.2');
       await tester.pumpAndSettle();
@@ -542,10 +562,9 @@ void main() {
         'g',
         reason: 'the refusal wrote nothing',
       );
-      final pieceField = find.descendant(
-        of: find.byType(PieceWeightEntry),
-        matching: find.byType(EditableText),
-      );
+      // The entry is the one amount-and-unit control: its select carries a
+      // text field of its own, so the amount is found by its key.
+      final pieceField = keyedField('piece-weight-field');
       final pieceAdd = find.descendant(
         of: find.byType(PieceWeightEntry),
         matching: find.widgetWithText(FButton, 'Add'),

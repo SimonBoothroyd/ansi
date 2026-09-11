@@ -613,7 +613,7 @@ void main() {
     expect(
       find.text(
         'cook ×1 instead — covers 2 portions · ¼ portion left over · '
-        'shopping still buys ×0.88',
+        'shopping still buys ×7/8',
       ),
       findsWidgets,
     );

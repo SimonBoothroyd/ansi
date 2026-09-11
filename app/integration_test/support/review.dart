@@ -8,6 +8,7 @@
 library;
 
 import 'package:ansi/core/text/name_clean.dart';
+import 'package:ansi/features/ingredients/domain/name_namespace.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart'
     show kFormSaveKey;
 import 'package:ansi/features/ingredients/presentation/ingredient_picker.dart'
@@ -162,9 +163,40 @@ Future<void> createIngredientForLine(
   // person filled in, never onto a bare name.
   await completeNewIngredientForm(tester);
   await tester.tap(find.byKey(kFormSaveKey));
-  await pumpUntilFound(
-    tester,
-    find.descendant(of: reviewCard(i), matching: find.text(stored)),
+  // The vocabulary is one namespace: a name the seed already knows as an
+  // alias ("fresh basil leaves" is Basil) is refused at the write, and the
+  // honest move is the one a person makes — back out and pick the row it
+  // names. Either the line resolves, or the refusal says whose name it is.
+  final resolved = find.descendant(
+    of: reviewCard(i),
+    matching: find.text(stored),
   );
+  final taken = find.textContaining(kNameTakenPrefix);
+  final deadline = DateTime.now().add(const Duration(seconds: 30));
+  while (resolved.evaluate().isEmpty && taken.evaluate().isEmpty) {
+    if (DateTime.now().isAfter(deadline)) {
+      fail('line $i neither resolved to "$stored" nor was refused');
+    }
+    await tester.pump(const Duration(milliseconds: 250));
+  }
+  if (taken.evaluate().isNotEmpty) {
+    // The note is two texts in one Wrap: the prefix, then the row's name as
+    // a door onto it.
+    final wrap = find.ancestor(of: taken.first, matching: find.byType(Wrap));
+    final texts = find.descendant(of: wrap.first, matching: find.byType(Text));
+    final owner = tester.widget<Text>(texts.at(1)).data!.trim();
+    await tapBack(tester);
+    await pumpUntilFound(tester, find.byType(IngredientResultList));
+    final row = find.descendant(
+      of: find.byType(IngredientResultList),
+      matching: find.text(owner),
+    );
+    await pumpUntilFound(tester, row);
+    await tester.tap(row.first);
+    await pumpUntilFound(
+      tester,
+      find.descendant(of: reviewCard(i), matching: find.text(owner)),
+    );
+  }
   await tester.pumpAndSettle();
 }

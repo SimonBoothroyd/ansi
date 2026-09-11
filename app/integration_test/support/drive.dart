@@ -156,7 +156,7 @@ Future<void> tapBack(WidgetTester tester) async {
 Future<void> scrollTo(
   WidgetTester tester,
   Finder finder, {
-  double delta = 150,
+  double delta = 300,
 }) async {
   // The FIRST Scrollable is not always the screen's list: an expanded
   // review card puts horizontal chip rows earlier in the tree, and scrolling
@@ -170,8 +170,12 @@ Future<void> scrollTo(
   // turning every drag into a no-op on a single-line text field. A screen
   // whose list drags to reorder is a CustomScrollView (its slivers include a
   // reorderable one), so both shapes count as the primary list.
+  // Vertical only: a horizontal list earlier in the tree (a chip strip, the
+  // stub band) would take every drag and move nothing.
   final lists = find.byWidgetPredicate(
-    (w) => w is ListView || w is CustomScrollView,
+    (w) =>
+        (w is ListView && w.scrollDirection == Axis.vertical) ||
+        (w is CustomScrollView && w.scrollDirection == Axis.vertical),
   );
   final vertical = lists.evaluate().isNotEmpty
       ? lists.first
@@ -190,16 +194,24 @@ Future<void> scrollTo(
     return tester.state<ScrollableState>(scrollableFinder).position.pixels;
   }
 
-  for (final d in [delta, -delta]) {
-    var last = double.nan;
-    for (var i = 0; i < 200 && finder.evaluate().isEmpty; i++) {
-      await tester.drag(vertical, Offset(0, -d));
-      await tester.pumpAndSettle();
-      final now = pixels();
-      if ((now - last).abs() < 1.0) break; // at this end — stop this way
-      last = now;
-    }
-    if (finder.evaluate().isNotEmpty) break;
+  // Start from the top and walk down once. Two capped passes from wherever
+  // the list happened to be could overshoot a long list on the way down and
+  // come back to the same offset on the way up, never reaching a target
+  // above it — the grouped vocabulary is some 47,000 px on a phone.
+  if (finder.evaluate().isEmpty) {
+    final scrollableFinder = lists.evaluate().isNotEmpty
+        ? find.descendant(of: vertical, matching: find.byType(Scrollable)).first
+        : vertical;
+    tester.state<ScrollableState>(scrollableFinder).position.jumpTo(0);
+    await tester.pumpAndSettle();
+  }
+  var last = double.nan;
+  for (var i = 0; i < 400 && finder.evaluate().isEmpty; i++) {
+    await tester.drag(vertical, Offset(0, -delta));
+    await tester.pumpAndSettle();
+    final now = pixels();
+    if ((now - last).abs() < 1.0) break; // at the end — nothing more to see
+    last = now;
   }
   if (finder.evaluate().isEmpty) {
     final seen = find
