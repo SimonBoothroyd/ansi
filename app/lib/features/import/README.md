@@ -56,10 +56,13 @@ import/
     preview_recipe.dart          payload → the Recipe the method fold renders
     header_draft.dart            payload → the header draft the form edits (0025)
     yield_prefill.dart           yield_raw → the MAKES prefill (8.6)
+    import_stage.dart            the stages the reading screen ticks off,
+                                 named on the wire by the server
     import_repository.dart       ImportRepository + ImportSource
   data/
     import_repository_impl.dart  SqliteImportRepository — the REAL commit
     remote_import_repository.dart EdgeImportRepository — functions.invoke
+    sse.dart                     the text/event-stream reader behind it
     canned_payload.dart          the canned/offline payload (see below)
     photo_intake.dart            pick → crop/rotate, behind injectable seams
     import_providers.dart        importRepositoryProvider (keepAlive)
@@ -75,6 +78,14 @@ import/
 
 ## Model notes
 
+- **The reading screen is a checklist the server fills in, not a guess.** The
+  edge function answers as a `text/event-stream` and names each stage as it
+  completes, so the list of rows comes from the server's first event and every
+  finished row carries the server's own elapsed time. A photo import makes two
+  model calls before matching and a URL import one, which is why the stage list
+  is sent rather than assumed. The ids are the wire contract; the wording lives
+  in `import_stage.dart`, because copy belongs where the screen is. A run that
+  fails says so on the row it reached instead of stalling there.
 - **One screen, not three.** 0014/0017 designed triage → preview → commit. It
   merged during live review into a single always-editable surface: warnings at
   the top, a card per line, the read-only method fold below (rendering the same

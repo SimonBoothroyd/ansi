@@ -61,6 +61,16 @@ mass↔volume **only** when a density is supplied, and never invents a number �
 an ingredient with mixed families and no density yields two honest subtotals,
 not a single guessed total. Count units sum per unit; imprecise units never sum.
 
+**A row asked for in one measure is bought in that measure.** When every
+quantified contribution to a line names the same measure, the item carries a
+`measureTotal` and the row reads its count — "2 cans" — with the canonical mass
+beside it as the secondary. The moment a plain mass line or a second measure
+joins there is no single countable answer, and the family sum prints as it
+otherwise does; each provenance line keeps its own words either way. The
+ingredient's default unit biases only a sum that real mass or volume lines
+stated — a measure-only sum stays in the basis it folded into, so a can of
+lentils never comes back out as ounces.
+
 ## Entry lifecycle (the recipe-deleted-but-checked case)
 
 An item is displayed only while it has a **live** contribution (a derived cook

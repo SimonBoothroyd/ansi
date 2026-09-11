@@ -16,11 +16,12 @@ A planned meal is a **recipe or a bare ingredient** — a protein bar, a yoghurt
 ```
 planning/
   domain/         planning.dart (Member, PlanEntry, WeekPlan, mondayOf,
-                  mealSlotRank), week_macros.dart (sumPlannedMacros +
-                  ingredientPortionMacros) + planning_repository.dart
+                  weekKeyOf, mealSlotRank), week_macros.dart
+                  (sumPlannedMacros + ingredientPortionMacros) +
+                  planning_repository.dart + week_variant_repository.dart
                   — PURE DART
-  data/           SqlitePlanningRepository over the local PowerSync views;
-                  providers
+  data/           SqlitePlanningRepository and SqliteWeekVariantRepository
+                  over the local PowerSync views; providers
   presentation/   WeekView (day-card grid; ONE state since v3 — the mode is
                   gone; an empty week is a STATE of it, not a page),
                   week_header (the week switcher and its returns),
@@ -32,8 +33,38 @@ planning/
                   household_section (the members' usual portions, a section
                   of /account — plan 0027 P-D3, moved there by 0028 E6),
                   week_widgets (Pill, EaterAvatar, EaterAvatarStack,
-                  PortionsChip, CookMarkerLine), week_format
+                  PortionsChip, CookMarkerLine), week_format,
+                  copy_last_week (the copy, and what it could not bring),
+                  week_variant_door + week_variant_editor +
+                  week_variant_format + week_variant_view_models
+                  (this week's variant)
 ```
+
+## This week's variant
+
+A recipe can be cooked differently for one week without being edited. The
+variant is per **(week, recipe)** — every day that plans the recipe shares one
+pot — and is stored as a set of `week_recipe_line_override` rows: a replace, an
+add, an exclude or an include, recomputed whole on save, with a line edited
+back to the recipe's own value leaving no row at all.
+
+- **One door**, a row at the foot of the meal editor sheet, which opens the
+  recipe editor's week mode (`/recipes/:id/edit?week=`). Not a target on the
+  dish row: a control drawn on every row is a cost every row pays for a result
+  almost no row is in. The row states its own scope, because the sheet is
+  per-*meal* and the variant is per-*(week, recipe)*.
+- **`effectiveLines` is the one seam.** The shopping list, the cook plan and
+  the week's macros all read the week's overrides through it, so they cannot
+  disagree about what this week actually cooks. Amounts are absolute: the
+  recipe moving on afterwards leaves this week at the amount that was asked
+  for.
+- **The week's macro lens re-sums a varied recipe** over its effective lines,
+  and keeps borrowing the Library's per-recipe figure for every recipe the
+  week leaves alone — that number is still exactly right for them, so a week
+  with no variant costs nothing.
+- **Copy last week does not carry a variant**, and says which recipes it left
+  behind. "Just this week" is the whole promise; a silent drop would be the
+  same bug as a silent carry.
 
 ## The entry XOR
 

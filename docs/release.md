@@ -50,7 +50,7 @@ mutate live household data stays a human act.
 | `import-recipe` edge function | `deploy-supabase.yml` → `supabase functions deploy` | same run |
 | PowerSync sync streams ([`docker/powersync-cloud.streams.yaml`](../docker/powersync-cloud.streams.yaml)) | `deploy-supabase.yml` → `powersync deploy sync-config` | same run — also re-run after any cloud `db reset` |
 | Function secrets (`ANTHROPIC_API_KEY`, `IMPORT_ALLOWED_HOUSEHOLDS`) | `supabase secrets set` | **human**, [cloud-setup §3b](./cloud-setup.md) |
-| Template vocab reseed | `deploy-supabase.yml` → the five seed files, in order | Actions → Run workflow with **`reseed_template`** ticked (since 2026-09-03 / `0020`) |
+| Template vocab reseed | `deploy-supabase.yml` → `seed_vocab.sql` → `seed_usda.sql` → `seed_usda_index.sql`, in that order | Actions → Run workflow with **`reseed_template`** ticked (re-runnable since migration `0020`) |
 | Rolling a reseed onto existing households | [`supabase/rollout_ingredient_refresh.sql`](../supabase/rollout_ingredient_refresh.sql) (`ingredient` columns) + [`supabase/rollout_measure_refresh.sql`](../supabase/rollout_measure_refresh.sql) (measures), preview then run | **human**, [cloud-setup §2b](./cloud-setup.md) |
 | Dashboard settings (auth hook, JWT audience, public sign-up) | Dashboards | **human**, cloud-setup's checklist |
 
@@ -452,14 +452,14 @@ record the run in cloud-setup's ledger.
    workflow (§4.2).
 3. Seed changed? Tick **`reseed_template`** on that same run (§4.2 step 5),
    then do cloud-setup §2b (§4.4) by hand if existing households need it.
-   **A RENAME must be applied in place BEFORE the reseed, never after.** The
-   template on cloud is long-lived, and the seed inserts by `match_text`: a
-   row whose `match_text` changed between snapshots arrives as a NEW row and
-   the old one stays, so the reseed's own guards fail (R3 counts rows the
-   renamed twin left stranded) and the template is left holding both names.
-   Run the rename statement first — then the reseed matches the rows it means
-   to update. Learned on 2026-09-05, when six renames left five orphans that
-   had to be tombstoned by hand.
+   **The reseed handles renames and deletions itself.** The template on cloud
+   is long-lived and the seed upserts by `match_text`, so a renamed row still
+   arrives under its new key — but the generated file then soft-deletes every
+   template row, measure and alias the snapshot no longer carries, and raises
+   a notice saying how many went. The old name is retired by the same run that
+   adds the new one. Read that notice: a count far off what you changed means
+   the snapshot, not the template, is wrong. (Renames used to need a hand-run
+   statement first; six of them once left five orphans to tombstone by hand.)
 4. `scripts/cloud_verify.sh` clean.
 5. `git tag vX.Y.Z && git push origin vX.Y.Z`. (No pubspec bump needed — the
    tag is the version of record, §3c.)

@@ -153,7 +153,8 @@ recorded here because the board draws pixels and does not hold decisions.
 
 - [x] Roadmap row added (status stays `active` until the simulator gate runs).
 - [x] `ARCHITECTURE.md`'s standing table matches reality for every area
-      touched — planning and shopping both still read as written.
+      touched: planning states the variant and its one door, shopping states
+      the line a week's variant changed, recipes states the editor's week mode.
 - [x] `app/AGENTS.md` "Current focus" and command list still true; the smoke
       file count moved from eight to nine.
 - [ ] `make test-sim` run on a booted simulator, result recorded here — the
