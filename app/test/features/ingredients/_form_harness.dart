@@ -558,7 +558,8 @@ Widget densityHost(
   Ingredient ingredient, {
   String saveLabel = 'Add',
   Ingredient? landsAs,
-  ({double amount, Unit unit})? servingPrefill,
+  ({double amount, Unit unit, double? grams})? servingPrefill,
+  VoidCallback? onSaved,
 }) {
   var shown = ingredient;
   return ProviderScope(
@@ -584,6 +585,7 @@ Widget densityHost(
                 // widget no longer knows a repository, and this stands in for
                 // the host that would land it.
                 onSave: (_) async {
+                  onSaved?.call();
                   if (landsAs != null) setState(() => shown = landsAs);
                   return true;
                 },

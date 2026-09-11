@@ -298,14 +298,47 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     return (inBasis: inBasis, label: servingMeasureLabel(amount, serving.unit));
   }
 
-  /// The serving offered to the density sentence as its left-hand side — only
-  /// a **volume** one, because only a volume serving's weight is a density.
-  /// A mass serving prefills nothing new: the row already knows what it
-  /// weighs, and what a millilitre of it weighs is a separate fact.
-  ({double amount, Unit unit})? get densityPrefill {
-    final amount = serving.amount;
-    if (amount == null || serving.unit.family != UnitFamily.volume) return null;
-    return (amount: amount, unit: serving.unit);
+  /// What the density sentence is offered: its left-hand side always, and the
+  /// weight to type into its right when the pack printed one.
+  ///
+  /// **A US label's serving line is a density statement.** "2 tbsp (7 g)" says
+  /// what one spoonful of this weighs, in one breath — but only one of those
+  /// two readings can be the row's serving, because a serving is denominated
+  /// in the basis. The other half is read back off the pack's line, which the
+  /// draft keeps verbatim, so neither reading is lost to the basis the row
+  /// happens to store in.
+  ///
+  /// Only a **volume** reading can open the sentence: what a gram weighs is
+  /// not a fact. A serving with no volume anywhere — typed or printed —
+  /// therefore offers nothing, and `grams` stays null wherever the pack
+  /// stated no weight beside it.
+  ///
+  /// It is an OFFER and nothing more (ADR-0008 §2, ADR-0011): the sentence is
+  /// still what states a density, and the person is the one who taps it.
+  ({double amount, Unit unit, double? grams})? get densityPrefill {
+    final printed = readPrintedServing(serving.packPrintedText);
+    final said = serving.amount;
+    final typed = said == null ? null : (amount: said, unit: serving.unit);
+    ({double amount, Unit unit})? reading(UnitFamily family) {
+      for (final r in [typed, printed.said, printed.bracketed]) {
+        if (r != null && r.unit.family == family) return r;
+      }
+      return null;
+    }
+
+    final volume = reading(UnitFamily.volume);
+    if (volume == null) return null;
+    final mass = reading(UnitFamily.mass);
+    return (
+      amount: volume.amount,
+      unit: volume.unit,
+      grams: mass == null
+          ? null
+          : switch (convert(Quantity(mass.amount, mass.unit), to: g)) {
+              Ok(:final value) when value.amount > 0 => value.amount,
+              Ok() || Err() => null,
+            },
+    );
   }
 
   /// A scan that landed a **per-100** panel and named no serving — the one
@@ -912,6 +945,10 @@ class IngredientForm extends _$IngredientForm {
       final serving = ServingDraft(
         amountText: amount == null ? '' : macroFieldSeed(amount),
         unit: unit,
+        // The pack's line verbatim. The serving row can only hold the reading
+        // the basis is in, and "2 tbsp (7 g)" states two — keeping the words
+        // is what lets the density sentence be offered the other half.
+        packPrintedText: panel.servingSize,
       );
       next = next.copyWith(
         perServing: true,

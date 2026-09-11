@@ -80,6 +80,34 @@ Measure? servingMeasureOf(Iterable<Measure> measures) {
   return parseServingPhrase(label.substring(kServingMeasurePrefix.length));
 }
 
+/// Both readings a pack's serving line states — the `2 tbsp` it **says** and
+/// the `(7 g)` it converts that to.
+///
+/// A US label prints the serving in the unit a person measures with and its
+/// weight in parentheses beside it, which makes the line a **density
+/// statement** as well as a serving: two readings of one spoonful. Each half
+/// is returned on its own, null where the words are not a measure this app
+/// knows ("1 serving", "2 pieces"), because a caller wants different halves
+/// for different questions — which 100 the panel is per, what the row's
+/// serving measure is, and what the density sentence may be offered.
+///
+/// Nothing here converts or implies: both figures are the pack's, printed on
+/// it side by side.
+({({double amount, Unit unit})? said, ({double amount, Unit unit})? bracketed})
+readPrintedServing(String? servingSize) {
+  if (servingSize == null) return (said: null, bracketed: null);
+  final open = servingSize.indexOf('(');
+  final close = open == -1 ? -1 : servingSize.indexOf(')', open + 1);
+  return (
+    said: parseServingPhrase(
+      open == -1 ? servingSize : servingSize.substring(0, open),
+    ),
+    bracketed: close == -1
+        ? null
+        : parseServingPhrase(servingSize.substring(open + 1, close)),
+  );
+}
+
 /// `2 tbsp`, `0.25 cup`, `1/4 cup`, `1 1/2 fl oz`, `1 Cup` → an amount and a
 /// catalog unit, or null when the words are not a kitchen measure this app
 /// knows. The numeric head is read by [parseAmount], the same reader every

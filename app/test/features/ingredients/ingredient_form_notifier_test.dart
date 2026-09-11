@@ -224,9 +224,10 @@ void main() {
       expect(at().basis, MacrosBasis.perMl);
       expect(at().storedMacros!.kcal, closeTo(110 / 236.5882365 * 100, 1e-9));
       expect(at().densityValue, isNull);
-      // The density section is offered the serving as its left-hand side, and
-      // that is the ONLY thing the serving says about density.
-      expect(at().densityPrefill, (amount: 1.0, unit: cup));
+      // The density section is offered the serving as its left-hand side. A
+      // serving nobody read off a pack states no weight, so the sentence's
+      // other half is still the person's to type.
+      expect(at().densityPrefill, (amount: 1.0, unit: cup, grams: null));
     });
 
     test(
@@ -640,6 +641,96 @@ void main() {
       expect(draft.macros, MacroDraft.from(per100));
       expect(draft.serving.amount, isNull);
       expect(draft.scannedPer100NeedsServingHint, isTrue);
+    });
+  });
+
+  // "2 tbsp (7 g)" is a serving AND a density: one spoonful, weighed. Only
+  // the reading the basis is in can be the row's serving measure, so the
+  // other half survives in the pack's own line and the density sentence is
+  // offered the pair.
+  group('a printed serving line that weighs its own spoon', () {
+    const yeastPer100 = Macros(
+      kcal: 385.7,
+      protein: 50,
+      carb: 35.7,
+      fat: 5,
+      fiber: 20,
+    );
+
+    test('the density sentence is offered both halves — the spoon it says '
+        'and the weight it brackets', () async {
+      final repo = FakeIngredientRepo([_bareStub]);
+      final (:form, :at) = await _open(repo, id: 'bare');
+
+      form.applyScan(
+        const IngredientDraft(
+          suggestedName: 'Nutritional Yeast Seasoning',
+          source: DraftSource.barcode,
+          barcode: '0790011110019',
+          macros: yeastPer100,
+          serving: DraftServing(
+            amount: 7,
+            unit: g,
+            printedText: '2 tbsp (7 g)',
+          ),
+        ),
+      );
+
+      // The row's serving is the gram half — the only one a per-100 g row can
+      // denominate — and the spoon is not lost with it.
+      expect(at().serving.amountText, '7');
+      expect(at().serving.unit, g);
+      final offer = at().densityPrefill!;
+      expect(offer, (amount: 2.0, unit: tbsp, grams: 7.0));
+      // 7 g per 2 tbsp is 0.237 g/ml — what the sentence will read once it is
+      // tapped. NOTHING has written it: the offer is an offer (ADR-0008 §2,
+      // ADR-0011), and the draft still says the row has no density.
+      expect(offer.grams! / (2 * 14.78676478125), closeTo(0.237, 5e-4));
+      expect(at().densityValue, isNull);
+      expect(at().density, isA<DensityUnchanged>());
+    });
+
+    test('a per-SERVING panel keeps the pack’s line too — it is the same '
+        'spoonful, said in the mode the label printed', () async {
+      final repo = FakeIngredientRepo([_bareStub]);
+      final (:form, :at) = await _open(repo, id: 'bare');
+
+      form.applyScan(
+        const IngredientDraft(
+          suggestedName: 'Peanut Butter',
+          source: DraftSource.barcode,
+          barcode: '0851087000250',
+          macrosGap: DraftMacrosGap.perServingPanel,
+          servingPanel: DraftServingPanel(
+            printed: Macros(kcal: 180, protein: 6, carb: 10, fat: 14),
+            servingAmount: 32,
+            servingBasis: MacrosBasis.perG,
+            servingSize: '2 Tbsp (32 g)',
+          ),
+        ),
+      );
+
+      expect(at().serving.packPrintedText, '2 Tbsp (32 g)');
+      expect(at().densityPrefill, (amount: 2.0, unit: tbsp, grams: 32.0));
+    });
+
+    test('a mass serving with no spoon anywhere offers nothing — what a gram '
+        'weighs is not a fact', () async {
+      final repo = FakeIngredientRepo([_bareStub]);
+      final (:form, :at) = await _open(repo, id: 'bare');
+
+      form.applyScan(
+        const IngredientDraft(
+          suggestedName: 'Cheddar shreds',
+          source: DraftSource.barcode,
+          barcode: '0099482514778',
+          macros: Macros(kcal: 285.7, protein: 0, carb: 21.4, fat: 25),
+          serving: DraftServing(amount: 28, unit: g, printedText: '28 g'),
+        ),
+      );
+
+      expect(at().serving.amountText, '28');
+      expect(at().densityPrefill, isNull);
     });
   });
 

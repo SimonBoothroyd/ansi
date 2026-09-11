@@ -16,6 +16,14 @@
 /// scan) and the only one carrying `categories_tags`, which the projection did
 /// not ask for until the basis rule needed it.
 ///
+/// `nutritional_yeast_spoon_and_grams` is the one **constructed** fixture,
+/// written to the captures' own shape: a per-100 g panel whose serving line
+/// prints a spoon and its weight ("2 tbsp (7 g)"). The captures all pair a
+/// spoon with a weight the row cannot use or a weight with no spoon, and the
+/// case that matters — both halves of one spoonful, which is a density
+/// statement — needed a payload of its own. Its figures are internally
+/// consistent (× 100/7), so nothing here rests on a number nobody checked.
+///
 /// The barcodes are named in each case so a future reader can re-fetch them.
 /// Real payloads matter here because the whole risk of this mapper is OFF's
 /// shape, not our arithmetic: the near-miss keys (`energy-kcal` with no
@@ -177,6 +185,29 @@ const _cases = <_Case>[
       unit: g,
       printedText: '0.25 cup (28 g)',
       printed: Macros(kcal: 80, protein: 0, carb: 6, fat: 7, fiber: 0),
+    ),
+  ),
+  (
+    fixture: 'nutritional_yeast_spoon_and_grams',
+    barcode: '0790011110019',
+    why:
+        'BOTH HALVES OF ONE SPOONFUL — a per-100 g panel whose serving line '
+        'reads "2 tbsp (7 g)". Only the gram half can be the row’s serving '
+        'measure, so the spoon survives in `printedText`: the line is a '
+        'density statement as well as a serving, and the density sentence is '
+        'offered it',
+    suggestedName: 'Nutritional Yeast Seasoning',
+    brand: 'Bragg',
+    macros: Macros(kcal: 385.7, protein: 50, carb: 35.7, fat: 5, fiber: 20),
+    basis: MacrosBasis.perG,
+    gap: DraftMacrosGap.none,
+    packSize: DraftPackSize(127, g),
+    servingPanel: null,
+    serving: DraftServing(
+      amount: 7,
+      unit: g,
+      printedText: '2 tbsp (7 g)',
+      printed: Macros(kcal: 27, protein: 3.5, carb: 2.5, fat: 0.35, fiber: 1.4),
     ),
   ),
   (

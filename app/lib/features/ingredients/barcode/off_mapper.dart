@@ -129,7 +129,8 @@ DraftServing? _printedServing(Map<String, Object?> p, MacrosBasis basis) {
   final text = _text(p['serving_size']);
   if (text == null) return null;
   final family = basis.baseUnit.family;
-  final candidates = [_servingLeading(text), _servingParenthetical(text)];
+  final printed = readPrintedServing(text);
+  final candidates = [printed.said, printed.bracketed];
   for (final candidate in candidates) {
     if (candidate == null || candidate.unit.family != family) continue;
     final n = p['nutriments'];
@@ -142,12 +143,6 @@ DraftServing? _printedServing(Map<String, Object?> p, MacrosBasis basis) {
   }
   return null;
 }
-
-/// The amount and unit a serving line **opens** with — the `0.25 cup` of
-/// "0.25 cup (28 g)", the `1 Cup` of "1 Cup (237 mL)" — or null when the line
-/// starts with something this app has no unit for ("1 serving", "2 pieces").
-({double amount, Unit unit})? _servingLeading(String servingSize) =>
-    parseServingPhrase(servingSize.split('(').first);
 
 /// **Which 100 the panel is per** — grams or millilitres.
 ///
@@ -185,7 +180,9 @@ MacrosBasis _basisFor(Map<String, Object?> p) {
   if (_perKey(p)?.endsWith('ml') ?? false) return MacrosBasis.perMl;
 
   final packUnit = parsePackQuantity(_text(p['quantity']))?.unit;
-  final printedUnit = _servingParenthetical(_text(p['serving_size']))?.unit;
+  final printedUnit = readPrintedServing(
+    _text(p['serving_size']),
+  ).bracketed?.unit;
   final servingUnit = unitFromWord(
     _text(p['serving_quantity_unit']) ?? '',
     families: const {UnitFamily.mass, UnitFamily.volume},
@@ -202,28 +199,6 @@ MacrosBasis _basisFor(Map<String, Object?> p) {
     return MacrosBasis.perMl;
   }
   return MacrosBasis.perG;
-}
-
-/// The mass or volume a label prints in parentheses beside its serving — the
-/// `28 g` of `0.25 cup (28 g)`, the `237 mL` of `1 Cup (237 mL)` — or null
-/// when the text carries no such conversion.
-///
-/// It answers two questions off one regex, because they are the same fact: the
-/// unit says which 100 the panel is per ([_basisFor]), and the amount is the
-/// serving that panel is printed for ([_printedServing]).
-({double amount, Unit unit})? _servingParenthetical(String? servingSize) {
-  if (servingSize == null) return null;
-  final m = RegExp(
-    r'\(\s*([0-9]+(?:[.,][0-9]+)?)\s*([a-zA-Z][a-zA-Z ]*?)\s*\)',
-  ).firstMatch(servingSize);
-  if (m == null) return null;
-  final amount = double.tryParse(m.group(1)!.replaceAll(',', '.'));
-  if (amount == null || !(amount > 0)) return null;
-  final unit = unitFromWord(
-    m.group(2)!,
-    families: const {UnitFamily.mass, UnitFamily.volume},
-  );
-  return unit == null ? null : (amount: amount, unit: unit);
 }
 
 /// `nutrition_data_per`, reduced to the letters and digits contributors agree

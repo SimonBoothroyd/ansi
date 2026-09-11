@@ -135,7 +135,10 @@ void main() {
       filterForuiSemanticsAssertions();
       phoneWidth(tester);
       await tester.pumpWidget(
-        densityHost(curryLeaves, servingPrefill: (amount: 2.0, unit: tbsp)),
+        densityHost(
+          curryLeaves,
+          servingPrefill: (amount: 2.0, unit: tbsp, grams: null),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -155,6 +158,37 @@ void main() {
       await tester.enterText(densityField, '32');
       await tester.pumpAndSettle();
       expect(find.text('= 1.08 g/ml'), findsOneWidget);
+    });
+
+    testWidgets('a pack that printed the weight beside the spoon fills the '
+        'whole sentence — and still writes nothing', (tester) async {
+      filterForuiSemanticsAssertions();
+      phoneWidth(tester);
+      var landed = 0;
+      await tester.pumpWidget(
+        densityHost(
+          curryLeaves,
+          servingPrefill: (amount: 2.0, unit: tbsp, grams: 7.0),
+          onSaved: () => landed++,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // "2 tbsp weighs 7 g", as the label reads — both slots, not one.
+      expect(fieldText(tester, densityAmountField), '2');
+      expect(fieldText(tester, densityField), '7');
+      expect(find.text('= 0.237 g/ml'), findsOneWidget);
+      // The note stops pointing at an empty slot and asks for the check the
+      // person is actually being asked to make.
+      expect(
+        find.textContaining('both halves — check it and tap'),
+        findsOneWidget,
+      );
+      // An offer, not a write: the button is still the thing that lands it.
+      expect(landed, 0);
+      await tester.tap(find.widgetWithText(FButton, 'Add'));
+      await tester.pumpAndSettle();
+      expect(landed, 1);
     });
 
     testWidgets('a mass serving offers nothing new — what a millilitre of it '

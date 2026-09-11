@@ -59,14 +59,15 @@ class DensityEntry extends HookWidget {
   final Unit? redirectedSpoon;
 
   /// The form's own serving, when it is a **volume** — "2 tbsp" — offered as
-  /// this sentence's left-hand side so the pack's "(32 g)" is typed where it
-  /// belongs. Only a serving in this sentence's own unit list is offered: an
-  /// amount kept beside a unit the row cannot show would describe a different
-  /// serving from the one on screen.
+  /// this sentence's left-hand side, with the weight the pack printed beside
+  /// it ("(32 g)") in the slot that takes one. Only a serving in this
+  /// sentence's own unit list is offered: an amount kept beside a unit the row
+  /// cannot show would describe a different serving from the one on screen.
   ///
   /// It is an offer and nothing more — the sentence is still what states the
-  /// density, and typing over either half is the ordinary case.
-  final ({double amount, Unit unit})? servingPrefill;
+  /// density, nothing is saved until the button is pressed, and typing over
+  /// either half is the ordinary case.
+  final ({double amount, Unit unit, double? grams})? servingPrefill;
 
   /// **The host decides when a density lands** (ADR-0011). This widget
   /// validates the input and computes the one stored number; it does not know a
@@ -167,6 +168,10 @@ class DensityEntry extends HookWidget {
       }
       spoon.value = offered.unit;
       amount.value = offered.amount;
+      // The pack printed the weight too, so the whole sentence is offered
+      // rather than half of it. Still an offer: it is typed into the field
+      // the person is looking at, and the button is what lands it.
+      if (offered.grams case final grams?) input.value = grams;
       amountSeed.value++;
       if (ingredient.densityGPerMl == null) open.value = true;
       return null;
@@ -301,11 +306,15 @@ class DensityEntry extends HookWidget {
               // whole screen is about.
               Text('weighs', style: ansiMono(size: 12)),
               AmountAndUnitField(
+                // Re-seeded with its left-hand side: a pack states the pair
+                // in one line, so the two slots move together or the
+                // sentence describes a spoonful nobody typed.
+                seed: amountSeed.value,
                 amountKey: const ValueKey('density-grams'),
                 unitKey: const ValueKey('density-grams-unit'),
                 amountWidth: 34,
                 unitWidth: 62,
-                amount: '',
+                amount: input.value == null ? '' : _phrase(input.value!, null),
                 unit: weightUnit.value,
                 units: _units,
                 onAmount: (t) => input.value = parseAmount(t),
@@ -333,7 +342,11 @@ class DensityEntry extends HookWidget {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                'the serving you typed above · the pack’s “(32g)” goes here',
+                servingPrefill!.grams == null
+                    ? 'the serving you typed above · the pack’s “(32g)” goes '
+                          'here'
+                    : 'the pack’s own serving line, both halves — check it '
+                          'and tap $saveLabel',
                 style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
             ),

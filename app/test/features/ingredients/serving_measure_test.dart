@@ -75,6 +75,52 @@ void main() {
     });
   });
 
+  group('both readings of a printed serving line', () {
+    test('a US label states a spoon and its weight — and both come back', () {
+      expect(readPrintedServing('2 tbsp (7 g)'), (
+        said: (amount: 2.0, unit: tbsp),
+        bracketed: (amount: 7.0, unit: g),
+      ));
+      expect(readPrintedServing('0.25 cup (28 g)'), (
+        said: (amount: 0.25, unit: cup),
+        bracketed: (amount: 28.0, unit: g),
+      ));
+      expect(readPrintedServing('1 Cup (237 mL)'), (
+        said: (amount: 1.0, unit: cup),
+        bracketed: (amount: 237.0, unit: ml),
+      ));
+      // A fraction is as ordinary in the bracket as it is outside it.
+      expect(readPrintedServing('1/4 cup (1/2 oz)'), (
+        said: (amount: 0.25, unit: cup),
+        bracketed: (amount: 0.5, unit: oz),
+      ));
+    });
+
+    test('each half stands alone — a line with only one reading this app '
+        'knows returns only that one', () {
+      // "1 serving" is no unit, so the bracket is the whole reading.
+      expect(readPrintedServing('1 serving (16 fl oz)'), (
+        said: null,
+        bracketed: (amount: 16.0, unit: flOz),
+      ));
+      expect(readPrintedServing('32 g'), (
+        said: (amount: 32.0, unit: g),
+        bracketed: null,
+      ));
+      expect(readPrintedServing('2 pieces (30 g)'), (
+        said: null,
+        bracketed: (amount: 30.0, unit: g),
+      ));
+      // Nothing to read, and nothing invented from it.
+      expect(readPrintedServing('1 bar'), (said: null, bracketed: null));
+      expect(readPrintedServing(null), (said: null, bracketed: null));
+      expect(readPrintedServing('2 tbsp (about a spoonful'), (
+        said: (amount: 2.0, unit: tbsp),
+        bracketed: null,
+      ));
+    });
+  });
+
   test('the row’s serving is found among its measures, and only it', () {
     const measures = [
       Measure(id: 'a', label: 'medium', amount: 110),

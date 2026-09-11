@@ -274,8 +274,19 @@ The column list is generated from the migrations —
   sentence takes an amount now — "2 tbsp weighs 32 g", as a pack prints it —
   and reads back the same way, with the stored `g/ml` as the aside. When the
   row's serving is a volume, the sentence is offered that amount and unit as
-  its left-hand side; a mass serving offers nothing, because what a millilitre
-  of it weighs is a separate fact.
+  its left-hand side.
+  - **A US serving line is a density statement, and both halves are kept.**
+    "2 tbsp (7 g)" weighs one spoonful in one breath, but only the reading the
+    row's basis is in can be its `serving` measure — so on a per-100 g row the
+    spoon would be thrown away and on a per-100 ml row the weight would. The
+    pack's line is kept verbatim beside the serving and read back for the
+    density sentence, which is then offered **both** slots filled in. It stays
+    an offer: nothing is written until the button is pressed
+    ([ADR-0008](../decisions/0008-unit-admission-model.md) §2,
+    [ADR-0011](../decisions/0011-one-save-one-write.md)), and typing over
+    either half is the ordinary case. A serving with no volume anywhere —
+    typed or printed — offers nothing, because what a millilitre of a gram
+    weighs is not a fact.
 - Seed from USDA FoodData Central **Foundation Foods + SR Legacy** (CC0).
   Density from FDC volume food portions parsed out of the full portion text
   (7.8 took coverage to 211/291), fallback FAO/INFOODS Density DB v2.0, then
