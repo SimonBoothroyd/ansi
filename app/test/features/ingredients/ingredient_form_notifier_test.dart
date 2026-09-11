@@ -785,9 +785,7 @@ void main() {
       // density says nothing in millilitres, and a list that kept them would
       // offer a line the converter must then refuse.
       expect(
-        asked.row.allowedUnits.where(
-          (u) => u.family == UnitFamily.volume,
-        ),
+        asked.row.allowedUnits.where((u) => u.family == UnitFamily.volume),
         isEmpty,
       );
       expect(asked.row.allowedUnits, {g, kg});

@@ -239,10 +239,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
           onChanged: (v) => portionsOverride.value = v < 1 ? 1 : v,
         ),
         const SizedBox(height: 20),
-        FButton(
-          onPress: add,
-          child: Text('Add to ${kWeekdayFull[dayOfWeek]}'),
-        ),
+        FButton(onPress: add, child: Text('Add to ${kWeekdayFull[dayOfWeek]}')),
       ],
     );
   }

@@ -187,10 +187,7 @@ void main() {
       expect(find.text('= 0.237 g/ml'), findsOneWidget);
       // The note stops pointing at an empty slot and asks for the check the
       // person is actually being asked to make.
-      expect(
-        find.textContaining('check them, then tap'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('check them, then tap'), findsOneWidget);
       // An offer, not a write: the button is still the thing that lands it.
       expect(landed, 0);
       await tester.tap(find.widgetWithText(FButton, 'Add'));
