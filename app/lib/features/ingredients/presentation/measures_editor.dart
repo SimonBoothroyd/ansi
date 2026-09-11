@@ -70,6 +70,7 @@ class MeasuresEditor extends HookWidget {
     required this.measures,
     required this.onDelete,
     required this.onAdd,
+    required this.onEdit,
     required this.onAdded,
     required this.onVolumeLabel,
     this.addLabel = 'Save',
@@ -102,6 +103,17 @@ class MeasuresEditor extends HookWidget {
   /// guard and must not be repeated here.
   final Future<AddMeasureOutcome> Function(String label, double amount) onAdd;
 
+  /// An existing measure was re-stated: a new label, a new amount, or both.
+  /// The row keeps its id, so every line already pointing at it follows the
+  /// correction rather than being orphaned by a delete-and-re-add.
+  ///
+  /// Same outcome vocabulary as [onAdd], and for the same reason: a
+  /// [MeasureRefused] is the repository's validation contract and belongs
+  /// under the field, while a write that did not happen has already been
+  /// reported by the host.
+  final Future<AddMeasureOutcome> Function(Measure, String label, double amount)
+  onEdit;
+
   final ValueChanged<Measure> onAdded;
 
   /// A volume-named label was refused and resolved to that catalog unit —
@@ -125,6 +137,10 @@ class MeasuresEditor extends HookWidget {
     final label = useState('');
     final amount = useState<double?>(null);
     final error = useState<String?>(null);
+    // Which row is open for editing, by id — one at a time, because the form
+    // it opens into is the add form's own shape and two of them stacked would
+    // read as two drafts of the same list.
+    final editing = useState<String?>(null);
 
     final baseLabel = ingredient.macrosBasis.baseUnit.label;
     final listed = measures.where((m) => !isVolumeUnitLabel(m.label)).toList();
@@ -184,94 +200,249 @@ class MeasuresEditor extends HookWidget {
             ),
           )
         else
-          for (final m in listed) MeasureRow(measure: m, onDelete: onDelete),
+          for (final m in listed)
+            if (editing.value == m.id)
+              _EditMeasureForm(
+                key: ValueKey('edit-measure-${m.id}'),
+                measure: m,
+                amountHint: baseLabel,
+                onEdit: (l, a) => onEdit(m, l, a),
+                // The keyboard goes with the form: a focused field whose row
+                // is about to leave the tree keeps a frame callback pointed
+                // at a render object that no longer exists.
+                onDone: () {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  editing.value = null;
+                },
+                onVolumeLabel: onVolumeLabel,
+              )
+            else
+              MeasureRow(
+                measure: m,
+                onDelete: onDelete,
+                onTap: () => editing.value = m.id,
+              ),
         const SizedBox(height: 12),
-        _AddMeasureForm(
-          addLabel: addLabel,
-          label: label,
-          amount: amount,
+        _MeasureForm(
+          icon: FLucideIcons.plus,
+          headline: 'ADD MEASURE',
+          saveLabel: addLabel,
           amountHint: baseLabel,
           error: error.value,
           autofocus: autofocus,
+          onLabel: (v) => label.value = v,
+          onAmount: (v) => amount.value = parseAmount(v),
           onSave: save,
+          footer: Row(
+            children: [
+              const SourceDot(kind: MeasureSourceKind.manual),
+              const SizedBox(width: 5),
+              Text(
+                'saved as yours — synced & editable',
+                style: ansiMono(size: 10, color: AnsiColors.muted),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 }
 
+/// One measure as a line in the editor — and the door to re-stating it.
+///
+/// The row itself is the tap target: a measure is a label and a weight, both
+/// of which a household gets wrong the first time (a `can (400 g)` that turns
+/// out to hold 380, a `clove` somebody meant to call `clove, fat`), and the
+/// only fix before this was delete-and-re-add, which mints a new id and
+/// orphans every line already pointing at the old one.
 class MeasureRow extends StatelessWidget {
-  const MeasureRow({required this.measure, required this.onDelete, super.key});
+  const MeasureRow({
+    required this.measure,
+    required this.onDelete,
+    this.onTap,
+    super.key,
+  });
 
   final Measure measure;
   final Future<void> Function(Measure) onDelete;
 
+  /// Opens the row for editing. Null where the list is read-only.
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 7),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AnsiColors.line)),
-      ),
-      child: Row(
-        children: [
-          SourceDot(kind: measure.sourceKind),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              measure.label,
-              style: ansiSans(size: 14, weight: FontWeight.w500),
-              overflow: TextOverflow.ellipsis,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: AnsiColors.line)),
+        ),
+        child: Row(
+          children: [
+            SourceDot(kind: measure.sourceKind),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                measure.label,
+                style: ansiSans(size: 14, weight: FontWeight.w500),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '${formatQuantity(measure.amount)} '
-            '${measure.basis.baseUnit.label}',
-            style: ansiMono(size: 11, color: AnsiColors.muted),
-          ),
-          const Spacer(),
-          Text(
-            measureSourceWord(measure.sourceKind),
-            style: ansiMono(size: 9, color: AnsiColors.muted),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => onDelete(measure),
-            child: const Icon(
-              FLucideIcons.trash2,
-              size: 15,
-              color: AnsiColors.muted,
+            const SizedBox(width: 8),
+            Text(
+              '${formatQuantity(measure.amount)} '
+              '${measure.basis.baseUnit.label}',
+              style: ansiMono(size: 11, color: AnsiColors.muted),
             ),
-          ),
-        ],
+            const Spacer(),
+            Text(
+              measureSourceWord(measure.sourceKind),
+              style: ansiMono(size: 9, color: AnsiColors.muted),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onDelete(measure),
+              child: const Icon(
+                FLucideIcons.trash2,
+                size: 15,
+                color: AnsiColors.muted,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _AddMeasureForm extends StatelessWidget {
-  const _AddMeasureForm({
-    required this.addLabel,
-    required this.label,
-    required this.amount,
+/// The add form's shape, seeded from an existing row: a label, an amount in
+/// the basis unit, Save — and a way back out that changes nothing.
+///
+/// It holds its own draft rather than borrowing the add form's, so opening a
+/// row for editing never eats a half-typed new measure.
+class _EditMeasureForm extends HookWidget {
+  const _EditMeasureForm({
+    required this.measure,
+    required this.amountHint,
+    required this.onEdit,
+    required this.onDone,
+    required this.onVolumeLabel,
+    super.key,
+  });
+
+  final Measure measure;
+  final String amountHint;
+  final Future<AddMeasureOutcome> Function(String label, double amount) onEdit;
+  final VoidCallback onDone;
+  final ValueChanged<Unit> onVolumeLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = useState(measure.label);
+    final amount = useState<double?>(measure.amount);
+    final error = useState<String?>(null);
+
+    Future<void> save() async {
+      final name = label.value.trim();
+      final weight = amount.value;
+      if (name.isEmpty) {
+        error.value = 'give the measure a name';
+        return;
+      }
+      final volumeUnit = volumeUnitFromLabel(name);
+      if (volumeUnit != null) {
+        // The same door the add form offers (ADR-0008 §2): a volume-named
+        // mapping IS the density, whichever form typed it.
+        onVolumeLabel(volumeUnit);
+        error.value =
+            '“$name” is a unit — that mapping is the density; '
+            'enter it in the density section and the ${volumeUnit.label} '
+            'chip unlocks';
+        return;
+      }
+      if (weight == null || !(weight > 0)) {
+        error.value = 'measure it: $amountHint must be a positive number';
+        return;
+      }
+      error.value = null;
+      final outcome = await onEdit(name, weight);
+      // The host can be dismissed while the write is in flight.
+      if (!context.mounted) return;
+      switch (outcome) {
+        case MeasureRefused(:final reason):
+          error.value = reason;
+        case MeasureNotAdded():
+          return;
+        case MeasureAdded():
+          onDone();
+      }
+    }
+
+    return _MeasureForm(
+      icon: FLucideIcons.pencil,
+      headline: 'EDIT MEASURE',
+      saveLabel: 'Save',
+      amountHint: amountHint,
+      initialLabel: measure.label,
+      initialAmount: formatQuantity(measure.amount),
+      error: error.value,
+      autofocus: false,
+      onLabel: (v) => label.value = v,
+      onAmount: (v) => amount.value = parseAmount(v),
+      onSave: save,
+      footer: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onDone,
+        child: Text(
+          'leave it as it was',
+          style: ansiMono(size: 10, color: AnsiColors.muted),
+        ),
+      ),
+    );
+  }
+}
+
+/// The one label-and-amount form both the add and the edit paths draw, so a
+/// measure is stated in the same shape whether it is new or being corrected.
+class _MeasureForm extends StatelessWidget {
+  const _MeasureForm({
+    required this.icon,
+    required this.headline,
+    required this.saveLabel,
     required this.amountHint,
     required this.error,
     required this.autofocus,
+    required this.onLabel,
+    required this.onAmount,
     required this.onSave,
+    required this.footer,
+    this.initialLabel,
+    this.initialAmount,
   });
 
-  final String addLabel;
-  final ValueNotifier<String> label;
-  final ValueNotifier<double?> amount;
+  final IconData icon;
+  final String headline;
+  final String saveLabel;
 
   /// The basis unit the amount is entered in ('g' — or 'ml' for a per-ml
   /// ingredient, ADR-0008 basis-aware measures).
   final String amountHint;
   final String? error;
   final bool autofocus;
+  final ValueChanged<String> onLabel;
+  final ValueChanged<String> onAmount;
   final VoidCallback onSave;
+
+  /// The line under the fields when nothing is wrong — the add form's
+  /// provenance note, the edit form's way back out.
+  final Widget footer;
+
+  final String? initialLabel;
+  final String? initialAmount;
 
   @override
   Widget build(BuildContext context) {
@@ -282,9 +453,9 @@ class _AddMeasureForm extends StatelessWidget {
         // fonts — renders as tofu).
         Row(
           children: [
-            const Icon(FLucideIcons.plus, size: 12, color: AnsiColors.herb),
+            Icon(icon, size: 12, color: AnsiColors.herb),
             const SizedBox(width: 5),
-            Text('ADD MEASURE', style: ansiLabel(color: AnsiColors.herb)),
+            Text(headline, style: ansiLabel(color: AnsiColors.herb)),
           ],
         ),
         const SizedBox(height: 8),
@@ -295,7 +466,10 @@ class _AddMeasureForm extends StatelessWidget {
                 autofocus: autofocus,
                 hint: 'label — “half can”',
                 control: FTextFieldControl.managed(
-                  onChange: (v) => label.value = v.text,
+                  initial: initialLabel == null
+                      ? null
+                      : TextEditingValue(text: initialLabel!),
+                  onChange: (v) => onLabel(v.text),
                 ),
               ),
             ),
@@ -306,7 +480,10 @@ class _AddMeasureForm extends StatelessWidget {
                 hint: amountHint,
                 keyboardType: TextInputType.text,
                 control: FTextFieldControl.managed(
-                  onChange: (v) => amount.value = parseAmount(v.text),
+                  initial: initialAmount == null
+                      ? null
+                      : TextEditingValue(text: initialAmount!),
+                  onChange: (v) => onAmount(v.text),
                 ),
               ),
             ),
@@ -314,7 +491,7 @@ class _AddMeasureForm extends StatelessWidget {
             FButton(
               size: FButtonSizeVariant.sm,
               onPress: onSave,
-              child: Text(addLabel),
+              child: Text(saveLabel),
             ),
           ],
         ),
@@ -322,16 +499,7 @@ class _AddMeasureForm extends StatelessWidget {
         if (error != null)
           Text(error!, style: ansiMono(size: 10, color: AnsiColors.gone))
         else
-          Row(
-            children: [
-              const SourceDot(kind: MeasureSourceKind.manual),
-              const SizedBox(width: 5),
-              Text(
-                'saved as yours — synced & editable',
-                style: ansiMono(size: 10, color: AnsiColors.muted),
-              ),
-            ],
-          ),
+          footer,
       ],
     );
   }

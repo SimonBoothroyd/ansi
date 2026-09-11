@@ -8,6 +8,7 @@ import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../domain/allowed_units.dart';
 import '../domain/measure_repository.dart';
+import '../domain/serving_measure.dart';
 
 const _uuid = Uuid();
 
@@ -208,6 +209,86 @@ class SqliteMeasureRepository implements MeasureRepository {
       basis: basis,
       sortOrder: sortOrder,
       source: 'manual',
+    );
+  }
+
+  @override
+  Future<void> renameMeasure(String measureId, String label) async {
+    // The add form's lines, held here rather than in the row's editor, for
+    // the reason addMeasure states: every write path must hold the same ones.
+    final trimmed = label.trim();
+    if (trimmed.isEmpty) {
+      throw ArgumentError.value(label, 'label', 'must not be empty');
+    }
+    if (isVolumeUnitLabel(trimmed)) {
+      throw ArgumentError.value(
+        label,
+        'label',
+        'names a volume unit — density owns volume conversion',
+      );
+    }
+    if (trimmed.startsWith(kServingMeasurePrefix)) {
+      throw ArgumentError.value(
+        label,
+        'label',
+        'is the serving’s reserved name — a serving is stated in the '
+            'nutrition section',
+      );
+    }
+    final now = DateTime.now().toUtc().toIso8601String();
+    await _db.writeTransaction((tx) async {
+      final row = await tx.getOptional(
+        'SELECT ingredient_id, label FROM ingredient_measure '
+        'WHERE id = ? AND deleted_at IS NULL',
+        [measureId],
+      );
+      if (row == null) {
+        throw ArgumentError.value(
+          measureId,
+          'measureId',
+          'names no live measure',
+        );
+      }
+      if ((row['label'] as String).startsWith(kServingMeasurePrefix)) {
+        throw ArgumentError.value(
+          label,
+          'label',
+          'renames the serving — it is stated in the nutrition section',
+        );
+      }
+      // Exactly the key the merge deduplicates on, so this refuses the
+      // renames that would otherwise hide a row rather than every rename a
+      // stricter comparison would dislike.
+      final clash = await tx.getOptional(
+        'SELECT id FROM ingredient_measure WHERE ingredient_id = ? '
+        'AND deleted_at IS NULL AND label = ? AND id <> ?',
+        [row['ingredient_id'], trimmed, measureId],
+      );
+      if (clash != null) {
+        throw ArgumentError.value(
+          label,
+          'label',
+          'is already a measure of this ingredient',
+        );
+      }
+      await tx.execute(
+        'UPDATE ingredient_measure SET label = ?, updated_at = ? WHERE id = ?',
+        [trimmed, now, measureId],
+      );
+    });
+  }
+
+  @override
+  Future<void> setMeasureAmount(String measureId, double amount) async {
+    // `!(x > 0)` (rather than `x <= 0`) also catches NaN.
+    if (!(amount > 0)) {
+      throw ArgumentError.value(amount, 'amount', 'must be a positive number');
+    }
+    final now = DateTime.now().toUtc().toIso8601String();
+    await _db.execute(
+      'UPDATE ingredient_measure SET basis_amount = ?, updated_at = ? '
+      'WHERE id = ? AND deleted_at IS NULL',
+      [amount, now, measureId],
     );
   }
 

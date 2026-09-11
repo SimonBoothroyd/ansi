@@ -714,6 +714,29 @@ class IngredientForm extends _$IngredientForm {
     return pending;
   }
 
+  /// Re-states a measure the form has not written yet, keeping the id it was
+  /// minted with. A STORED measure is not editable here — it is a live row and
+  /// its correction is a write of its own — so this answers null for one, and
+  /// the host takes the repository door instead.
+  Measure? editDraftMeasure(String measureId, String label, double amount) {
+    final index = state.measuresAdded.indexWhere((m) => m.id == measureId);
+    if (index < 0) return null;
+    final edited = Measure(
+      id: measureId,
+      label: label.trim(),
+      amount: amount,
+      basis: state.basis,
+      sortOrder: state.measuresAdded[index].sortOrder,
+    );
+    state = state.copyWith(
+      measuresAdded: [
+        for (final (i, m) in state.measuresAdded.indexed)
+          if (i == index) edited else m,
+      ],
+    );
+    return edited;
+  }
+
   /// A pending add is simply dropped; a stored one is named for tombstoning.
   /// Either way nothing is written yet.
   void removeMeasure(String measureId) {

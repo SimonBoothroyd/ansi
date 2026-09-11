@@ -573,6 +573,42 @@ class _MeasureManager extends HookConsumerWidget {
             );
             return outcome ?? const MeasureNotAdded();
           },
+          // A measure here is always a stored row, so the correction is a
+          // write, under the same guard the add takes. It keeps the id: a
+          // line already pointing at this measure follows the fix instead of
+          // being orphaned by a delete-and-re-add.
+          onEdit: (m, label, amount) async {
+            final outcome = await ref.write(
+              context,
+              'save that measure',
+              () async {
+                final repo = ref.read(measureRepositoryProvider);
+                try {
+                  if (label != m.label) await repo.renameMeasure(m.id, label);
+                  if (amount != m.amount) {
+                    await repo.setMeasureAmount(m.id, amount);
+                  }
+                  // The repository's validation contract IS ArgumentError
+                  // (documented on renameMeasure), so catching it is the
+                  // point.
+                  // ignore: avoid_catching_errors
+                } on ArgumentError catch (e) {
+                  return MeasureRefused('${e.message}');
+                }
+                return MeasureAdded(
+                  Measure(
+                    id: m.id,
+                    label: label,
+                    amount: amount,
+                    basis: m.basis,
+                    sortOrder: m.sortOrder,
+                    source: m.source,
+                  ),
+                );
+              },
+            );
+            return outcome ?? const MeasureNotAdded();
+          },
           onAdded: onAdded,
           onVolumeLabel: (u) => redirected.value = u,
           autofocus: true,

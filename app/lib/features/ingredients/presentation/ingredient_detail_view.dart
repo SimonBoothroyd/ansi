@@ -1211,6 +1211,46 @@ class _DetailForm extends ConsumerWidget {
                       sortOrder: measures.length,
                     ),
                   ),
+                  // A measure the draft holds is re-stated in the draft. A
+                  // STORED one is a live row — lines already point at it — so
+                  // its correction is a write of its own, under the guard,
+                  // rather than something the form's Save could still undo.
+                  onEdit: (m, label, amount) async {
+                    final drafted = form.editDraftMeasure(m.id, label, amount);
+                    if (drafted != null) return MeasureAdded(drafted);
+                    final landed = await ref.write(
+                      context,
+                      'save that measure',
+                      () async {
+                        final repo = ref.read(measureRepositoryProvider);
+                        try {
+                          if (label != m.label) {
+                            await repo.renameMeasure(m.id, label);
+                          }
+                          if (amount != m.amount) {
+                            await repo.setMeasureAmount(m.id, amount);
+                          }
+                          // The repository's validation contract IS
+                          // ArgumentError (documented on renameMeasure), so
+                          // catching it is the point.
+                          // ignore: avoid_catching_errors
+                        } on ArgumentError catch (e) {
+                          return MeasureRefused('${e.message}');
+                        }
+                        return MeasureAdded(
+                          Measure(
+                            id: m.id,
+                            label: label,
+                            amount: amount,
+                            basis: m.basis,
+                            sortOrder: m.sortOrder,
+                            source: m.source,
+                          ),
+                        );
+                      },
+                    );
+                    return landed ?? const MeasureNotAdded();
+                  },
                   // Nothing here selects a measure — the form is not a
                   // quantity entry surface; the watched provider re-renders
                   // the list.

@@ -48,6 +48,32 @@ abstract interface class MeasureRepository {
     required double amount,
   });
 
+  /// Renames one live measure in place, keeping its id — so every line
+  /// already pointing at it keeps pointing at the same thing, which is the
+  /// whole reason a rename is not a delete-and-re-add.
+  ///
+  /// Holds [addMeasure]'s lines on the label, plus two of its own:
+  ///
+  /// - **A live label may not collide.** Nothing in the schema stops it (the
+  ///   unique index is gone, deliberately — an offline duplicate must not fail
+  ///   upload), and a collision would simply *hide* the newer row behind the
+  ///   merge-on-read rule. A rename is a deliberate act, so it is refused
+  ///   where an offline duplicate is tolerated.
+  /// - **A rename never crosses the reserved serving prefix**, in either
+  ///   direction: the row's one serving is written and read through that
+  ///   prefix, so renaming into it would mint a second serving and renaming
+  ///   out of it would silently retire the row's stated serving.
+  ///
+  /// Throws [ArgumentError] for each of those, and for an id naming no live
+  /// measure.
+  Future<void> renameMeasure(String measureId, String label);
+
+  /// Re-weighs one live measure: [amount] of the ingredient's basis unit for
+  /// one of it. Same honesty line as [addMeasure] — a non-positive or NaN
+  /// amount could never convert (invariant 3) — and the same id, so the lines
+  /// that already say this measure follow the corrected weight.
+  Future<void> setMeasureAmount(String measureId, double amount);
+
   /// Soft-deletes one measure (tombstone, spec §3). A line item referencing
   /// it degrades to its honest stored count — never an invented amount.
   Future<void> softDeleteMeasure(String measureId);

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/features/ingredients/data/measure_repository_impl.dart';
+import 'package:ansi/features/ingredients/domain/serving_measure.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
 
@@ -435,5 +436,132 @@ void main() {
       final batched = await repo.measuresByIngredients({'not-synced-yet'});
       expect(batched['not-synced-yet']!.single.basis, MacrosBasis.perG);
     });
+  });
+
+  group('renaming and re-weighing in place', () {
+    setUp(
+      () => _seedMeasure(
+        db,
+        id: 'm-can',
+        ingredientId: 'tomatoes',
+        label: 'can (400 g)',
+        amount: 400,
+      ),
+    );
+
+    test('a rename keeps the id, so every line follows it', () async {
+      await repo.renameMeasure('m-can', '  can (380 g)  ');
+      final m = (await repo.watchMeasures('tomatoes').first).single;
+      expect(m.id, 'm-can');
+      expect(m.label, 'can (380 g)');
+      expect(m.amount, 400);
+    });
+
+    test('a re-weigh keeps the id and the label', () async {
+      await repo.setMeasureAmount('m-can', 380);
+      final m = (await repo.watchMeasures('tomatoes').first).single;
+      expect(m.id, 'm-can');
+      expect(m.label, 'can (400 g)');
+      expect(m.amount, 380);
+    });
+
+    test('it holds the add form\'s lines on the label', () async {
+      await expectLater(
+        repo.renameMeasure('m-can', '   '),
+        throwsArgumentError,
+      );
+      await expectLater(
+        repo.renameMeasure('m-can', 'cup'),
+        throwsArgumentError,
+      );
+      await expectLater(repo.setMeasureAmount('m-can', 0), throwsArgumentError);
+      await expectLater(
+        repo.setMeasureAmount('m-can', double.nan),
+        throwsArgumentError,
+      );
+      // Nothing moved.
+      final m = (await repo.watchMeasures('tomatoes').first).single;
+      expect(m.label, 'can (400 g)');
+      expect(m.amount, 400);
+    });
+
+    test('a live label collision is refused rather than merged away', () async {
+      await _seedMeasure(
+        db,
+        id: 'm-half',
+        ingredientId: 'tomatoes',
+        label: 'half can',
+        amount: 200,
+        sortOrder: 1,
+      );
+      await expectLater(
+        repo.renameMeasure('m-half', 'can (400 g)'),
+        throwsArgumentError,
+      );
+      // A tombstoned twin is not a collision: it is not live.
+      await _seedMeasure(
+        db,
+        id: 'm-gone',
+        ingredientId: 'tomatoes',
+        label: 'tin',
+        amount: 400,
+        sortOrder: 2,
+        deletedAt: '2026-01-02',
+      );
+      await repo.renameMeasure('m-half', 'tin');
+      expect((await repo.watchMeasures('tomatoes').first).map((m) => m.label), [
+        'can (400 g)',
+        'tin',
+      ]);
+      // Nor is the same label on ANOTHER ingredient.
+      await _seedMeasure(
+        db,
+        id: 'm-other-can',
+        ingredientId: 'beans',
+        label: 'drum',
+        amount: 400,
+      );
+      await repo.renameMeasure('m-half', 'drum');
+      expect(
+        (await repo.watchMeasures('beans').first).single.id,
+        'm-other-can',
+      );
+    });
+
+    test('a rename never crosses the reserved serving prefix', () async {
+      await _seedMeasure(
+        db,
+        id: 'm-serving',
+        ingredientId: 'tomatoes',
+        label: '${kServingMeasurePrefix}1 cup',
+        amount: 236.59,
+        sortOrder: 1,
+      );
+      // In: a second serving would appear from nowhere.
+      await expectLater(
+        repo.renameMeasure('m-can', '${kServingMeasurePrefix}1 can'),
+        throwsArgumentError,
+      );
+      // Out: the row's stated serving would quietly stop being one.
+      await expectLater(
+        repo.renameMeasure('m-serving', 'a cupful'),
+        throwsArgumentError,
+      );
+      final labels = (await repo.watchMeasures('tomatoes').first).map(
+        (m) => m.label,
+      );
+      expect(labels, ['can (400 g)', '${kServingMeasurePrefix}1 cup']);
+    });
+
+    test(
+      'an id naming no live measure is refused, not silently ignored',
+      () async {
+        await repo.softDeleteMeasure('m-can');
+        await expectLater(
+          repo.renameMeasure('m-can', 'crate'),
+          throwsArgumentError,
+        );
+      },
+    );
   });
 }

@@ -473,6 +473,114 @@ void main() {
       expect(asked.measuresRemoved, {'m-usda'});
     });
 
+    testWidgets('a stored measure is renamed and re-weighed in place, keeping '
+        'its id', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final measures = FakeMeasureRepo(const [
+        Measure(id: 'm-usda', label: 'mango, medium', amount: 207),
+      ]);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [mango]),
+          at: editRoute('mango'),
+          measures: measures,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The row itself is the door.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(MeasureRow),
+          matching: find.text('mango, medium'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // It opens on the add form's own shape, seeded with what is stored.
+      final edit = find.descendant(
+        of: find.byKey(const ValueKey('edit-measure-m-usda')),
+        matching: find.byType(TextField),
+      );
+      expect(edit, findsNWidgets(2));
+      expect(find.text('EDIT MEASURE'), findsOneWidget);
+      await tester.enterText(edit.first, 'mango, large');
+      await tester.enterText(edit.last, '240');
+      await tester.pump();
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('edit-measure-m-usda')),
+          matching: find.widgetWithText(FButton, 'Save'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // A STORED row is a live row: the correction is written now, under the
+      // guard, and it keeps the id every line already points at.
+      final stored = measures.rows.single;
+      expect(stored.id, 'm-usda');
+      expect(stored.label, 'mango, large');
+      expect(stored.amount, 240);
+      // And the form is back to the list.
+      expect(find.text('EDIT MEASURE'), findsNothing);
+    });
+
+    testWidgets('a measure the draft has not written yet is re-stated in the '
+        'draft, not through the repository', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final measures = FakeMeasureRepo();
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [mango]),
+          at: editRoute('mango'),
+          measures: measures,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final add = find.descendant(
+        of: find.byType(MeasuresEditor),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(add.first, 'half cheek');
+      await tester.enterText(add.last, '90');
+      await tester.pump();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(MeasuresEditor),
+          matching: find.widgetWithText(FButton, 'Add'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(MeasureRow),
+          matching: find.text('half cheek'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final edit = find.descendant(
+        of: find.byType(MeasuresEditor),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(edit.first, 'quarter cheek');
+      await tester.enterText(edit.at(1), '45');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FButton, 'Save').first);
+      await tester.pumpAndSettle();
+
+      expect(measures.rows, isEmpty, reason: 'still nothing written');
+      final repo = repoOf(tester);
+      await saveForm(tester);
+      final asked = repo.savedForms.single;
+      expect(asked.measuresAdded.single.label, 'quarter cheek');
+      expect(asked.measuresAdded.single.amount, 45);
+      expect(asked.measuresRemoved, isEmpty);
+    });
+
     testWidgets('a volume-named measure label is still refused and redirected '
         'into the density entry (ADR-0008 §2)', (tester) async {
       filterForuiSemanticsAssertions();

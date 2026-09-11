@@ -90,6 +90,12 @@ class _EmptyMeasureRepo implements MeasureRepository {
   }) async => throw UnimplementedError();
 
   @override
+  Future<void> renameMeasure(String measureId, String label) async {}
+
+  @override
+  Future<void> setMeasureAmount(String measureId, double amount) async {}
+
+  @override
   Future<void> softDeleteMeasure(String measureId) async {}
 }
 
