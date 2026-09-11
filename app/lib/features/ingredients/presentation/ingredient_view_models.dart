@@ -22,6 +22,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/result/result.dart';
 import '../../../core/text/name_clean.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
@@ -32,6 +33,7 @@ import '../domain/allowed_units.dart';
 import '../domain/apply_draft.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
+import '../domain/name_namespace.dart';
 import '../domain/serving_measure.dart';
 import '../domain/suggest_name.dart';
 import '../domain/usda_probe.dart';
@@ -195,6 +197,12 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     /// *keep the old word* puts back. Null when nothing was suggested.
     String? nameWas,
 
+    /// The live row this name would land on top of — the household's names and
+    /// aliases are one namespace, and a second **Sauerkraut** makes every
+    /// exact match after it a coin toss. Set when the name field is left (and
+    /// again if the write itself refuses), cleared by the next keystroke.
+    NameEntry? nameCollision,
+
     /// A typed name the person chose to KEEP. While [name] is exactly this,
     /// the tidy recases and respaces but suggests nothing: a suggestion once
     /// refused must not be offered again on the next leave. Cleared by the
@@ -330,6 +338,12 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
   String? get refusal {
     if (name.trim().isEmpty) {
       return 'A name is the one field an ingredient can’t go without.';
+    }
+    // One namespace: a name already carried by another row, or by another
+    // row's alias, is not this row's to take. The field prints the same
+    // sentence with a door onto that row.
+    if (nameCollision case final taken?) {
+      return nameTakenMessage(taken.ingredientName);
     }
     if (!macros.fourCoherent) {
       return 'Enter all four macros, or leave them all blank — a part of a '
@@ -486,6 +500,9 @@ class IngredientForm extends _$IngredientForm {
       nameEdited: true,
       nameWas: null,
       namePinned: null,
+      // It is an answer about the text that has just changed, so it may not
+      // outlive it — a note naming the wrong name is worse than no note.
+      nameCollision: null,
     );
   }
 
@@ -514,6 +531,31 @@ class IngredientForm extends _$IngredientForm {
     );
   }
 
+  /// The name field was LEFT: the tidy, and then the namespace.
+  ///
+  /// One call because they are one moment — the check has to ask about the
+  /// name as it will be SAVED, and the tidy is what decides that ("sauerkraut
+  /// " and "Sauerkraut" are the same name only after it has run).
+  Future<void> leaveNameField() async {
+    tidyName();
+    await checkName();
+  }
+
+  /// Asks the household's one name namespace whether the name as it now
+  /// stands is already somebody's.
+  Future<void> checkName() async {
+    final name = state.name;
+    if (name.trim().isEmpty) return;
+    // The repository, not a provider: a one-shot `.future` on an autoDispose
+    // provider disposes it mid-load and completes with a StateError.
+    final entries = await ref.read(ingredientRepositoryProvider).nameIndex();
+    if (!ref.mounted || state.name != name) return;
+    final selfId = state.creating ? null : state.row.id;
+    state = state.copyWith(
+      nameCollision: collisionIn(name, entries, selfId: selfId),
+    );
+  }
+
   /// *keep the old word* — the typed name comes back, and the suggestion is
   /// not offered for it again until the field is edited.
   void keepName() {
@@ -524,6 +566,7 @@ class IngredientForm extends _$IngredientForm {
       nameSeed: state.nameSeed + 1,
       nameWas: null,
       namePinned: was,
+      nameCollision: null,
     );
   }
 
@@ -693,16 +736,29 @@ class IngredientForm extends _$IngredientForm {
   }
 
   /// Minted here and kept: the save inserts under this id.
-  void addAlias(String text) => state = state.copyWith(
-    aliasesAdded: [
-      ...state.aliasesAdded,
-      IngredientAlias(
-        id: _uuid.v4(),
-        text: cleanName(text, NameKind.alias),
-        source: 'manual',
-      ),
-    ],
-  );
+  ///
+  /// **An alias is a name**, so it is refused on the same namespace a
+  /// canonical name is — and the refusal is the entry it would have landed on,
+  /// so the editor can name the row and offer a door onto it. Null means the
+  /// alias was taken into the draft; nothing is written either way.
+  Future<NameEntry?> addAlias(String text) async {
+    final cleaned = cleanName(text, NameKind.alias);
+    final entries = await ref.read(ingredientRepositoryProvider).nameIndex();
+    if (!ref.mounted) return null;
+    final taken = collisionIn(
+      cleaned,
+      entries,
+      selfId: state.creating ? null : state.row.id,
+    );
+    if (taken != null) return taken;
+    state = state.copyWith(
+      aliasesAdded: [
+        ...state.aliasesAdded,
+        IngredientAlias(id: _uuid.v4(), text: cleaned, source: 'manual'),
+      ],
+    );
+    return null;
+  }
 
   void removeAlias(String aliasId) {
     if (state.aliasesAdded.any((a) => a.id == aliasId)) {
@@ -892,7 +948,7 @@ class IngredientForm extends _$IngredientForm {
     }
     state = state.copyWith(busy: true);
     try {
-      final saved = await ref
+      final result = await ref
           .read(ingredientRepositoryProvider)
           .saveForm(
             // A null id makes the row, its measures and its aliases in one
@@ -900,7 +956,18 @@ class IngredientForm extends _$IngredientForm {
             state.creating ? null : state.row.id,
             _edit(markComplete: markComplete),
           );
-      if (!ref.mounted) return saved;
+      if (!ref.mounted) return null;
+      if (result case Err(:final failure)) {
+        // The write refused: the name (or an alias) is already somebody's
+        // here. Nothing was written, and the check runs again first so the
+        // field gets its note and its door back — the message alone cannot
+        // name a row, let alone open it.
+        await checkName();
+        if (!ref.mounted) return null;
+        state = state.copyWith(message: failure.message);
+        return null;
+      }
+      final saved = result.valueOrNull;
       if (saved == null) {
         state = state.copyWith(message: 'It is no longer here.');
         return null;

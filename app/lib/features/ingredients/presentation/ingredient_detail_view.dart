@@ -98,6 +98,7 @@ import '../domain/allowed_units.dart';
 import '../domain/apply_draft.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
+import '../domain/name_namespace.dart';
 import '../domain/normalize.dart';
 import '../domain/serving_measure.dart';
 import '../domain/usda_probe.dart';
@@ -815,7 +816,9 @@ class _DetailForm extends ConsumerWidget {
         // On a new row Save IS the completion (C-B): there is no stub to come
         // back to, so it writes `complete` and the dock only offers it once
         // the row would pass that gate.
-        onSave: busy
+        // A taken name is refused by the write, so the button stops offering
+        // it — on every posture, not only the create form's completion gate.
+        onSave: busy || draft.nameCollision != null
             ? null
             : creating
             ? completeRow
@@ -878,10 +881,13 @@ class _DetailForm extends ConsumerWidget {
                 name: draft.name,
                 seed: draft.nameSeed,
                 onChanged: form.setName,
-                onLeave: form.tidyName,
+                onLeave: form.leaveNameField,
               ),
               if (draft.nameWas != null)
                 WasWordLine(oldWord: draft.nameWas!, onKeep: form.keepName),
+              // The namespace's answer, in the field's own note voice.
+              if (draft.nameCollision case final taken?)
+                _AlreadyAnIngredient(taken),
 
               const _Label('ALSO KNOWN AS'),
               _AliasEditor(
@@ -1951,7 +1957,12 @@ class _AliasEditor extends HookWidget {
   });
 
   final List<IngredientAlias> aliases;
-  final ValueChanged<String> onAdd;
+
+  /// Takes the alias into the draft and answers null, or hands back the entry
+  /// it would have landed on top of — an alias is a name, and the namespace
+  /// refuses a second one exactly as it refuses a second canonical name.
+  final Future<NameEntry?> Function(String text) onAdd;
+
   final ValueChanged<String> onRemove;
 
   @override
@@ -1959,23 +1970,31 @@ class _AliasEditor extends HookWidget {
     final adding = useState(false);
     final entry = useTextEditingController();
     final error = useState<String?>(null);
+    final taken = useState<NameEntry?>(null);
 
     // An alias is stored lowercase, so its tidy is whitespace and a trailing
     // stop only — silent by construction, and never a word.
     void tidy() => entry.text = cleanName(entry.text, NameKind.alias);
 
-    void add() {
+    Future<void> add() async {
       tidy();
       // Same normalizer as the repository, so the two verdicts cannot
       // disagree about what carries an identity word.
       if (normalizeMatchText(entry.text).isEmpty) {
+        taken.value = null;
         error.value =
             'That alias carries no identity word — it would match '
             'everything and nothing.';
         return;
       }
-      onAdd(entry.text);
+      final collision = await onAdd(entry.text);
+      if (collision != null) {
+        error.value = null;
+        taken.value = collision;
+        return;
+      }
       error.value = null;
+      taken.value = null;
       // The field is about to leave the tree, so the keyboard goes with it —
       // and the next `＋ alias` opens on an empty one rather than on the text
       // that was just turned into a chip.
@@ -2063,13 +2082,15 @@ class _AliasEditor extends HookWidget {
               FButton(
                 key: const ValueKey('alias-add'),
                 size: FButtonSizeVariant.sm,
-                onPress: add,
+                onPress: () => unawaited(add()),
                 child: const Text('Add'),
               ),
             ],
           ),
         ],
-        if (error.value != null)
+        if (taken.value case final collision?)
+          _AlreadyAnIngredient(collision)
+        else if (error.value != null)
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
@@ -2089,6 +2110,48 @@ class _AliasEditor extends HookWidget {
 // written before you may look something up.
 
 // --- Small shared pieces -----------------------------------------------------
+
+/// `Already an ingredient: Sauerkraut` — the name namespace's refusal, under
+/// the field it is about.
+///
+/// The existing name is a **door onto that row**, which is the idiom the
+/// recipe page already keeps for an ingredient's name: "what is this" is one
+/// tap from the line that raised the question, and here the question is "then
+/// which one is the Sauerkraut I already have?".
+///
+/// The wording is [nameTakenMessage]'s, so the note under the field and the
+/// refusal the write returns are one sentence rather than two that drift.
+class _AlreadyAnIngredient extends StatelessWidget {
+  const _AlreadyAnIngredient(this.taken);
+
+  final NameEntry taken;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 6),
+    child: Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          kNameTakenPrefix,
+          style: ansiMono(size: 10, color: AnsiColors.gone),
+        ),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () =>
+              context.pushOnce(ingredientDetailRoute(taken.ingredientId)),
+          child: Text(
+            taken.ingredientName,
+            style: ansiMono(
+              size: 10,
+              color: AnsiColors.herbDeep,
+            ).copyWith(decoration: TextDecoration.underline),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
 /// The board's `ghostbtn`: a secondary action that reads as available
 /// without competing with the screen's primary CTA.

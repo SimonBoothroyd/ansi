@@ -67,6 +67,35 @@ children together. Two consequences the surfaces depend on:
 The measures and aliases travel as **deltas**, not replacement lists, so a
 stream that failed to load can never become a narrowed set written back.
 
+## One namespace: names and aliases together
+
+A household's ingredient **names and aliases are one namespace**, keyed by
+`match_text` (`domain/name_namespace.dart`). The seed's generator already
+refuses a vocabulary where two rows — or a row and another row's alias —
+normalize to the same text, and the import cascade's exact tier searches names
+and aliases as one surface; the form is the third place that has to mean it,
+because two live *Sauerkraut* rows make every exact match after them a coin
+toss.
+
+So a name or an alias that is already somebody's is **refused**, twice over:
+
+- the form asks when the name field is left (and when an alias is added) and
+  prints `Already an ingredient: Sauerkraut` under the field, with the existing
+  name as a door onto that row; `Save` goes quiet while it stands;
+- `saveForm` asks again **inside the write transaction** and returns
+  `Err(nameTakenFailure(…))`, because a sync landing between the tap and the
+  write would slip the second row past the first check.
+
+A row never collides with itself, so re-saving a row under the name it already
+has is always allowed.
+
+**There is no unique index, and there should not be one.** Migration
+`0019_shopping_week.sql` states the general reason for its own rows: two
+offline devices must each be able to mint a row and converge later, so Postgres
+stays permissive. A constraint would turn a convergence into a sync error
+nobody can act on; the app refuses a duplicate where somebody is looking at it
+instead.
+
 The draft is one `IngredientFormDraft` inside the `IngredientForm` notifier
 (`ingredient_view_models.dart`); the view watches it and dispatches intents.
 The two seams that need a `BuildContext` — the barcode scanner and the USDA

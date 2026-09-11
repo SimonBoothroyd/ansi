@@ -14,9 +14,11 @@
 library;
 
 import 'package:meta/meta.dart';
+import '../../../core/result/result.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
 import 'ingredient.dart';
+import 'name_namespace.dart';
 
 /// What a [IngredientRepository.softDelete] attempt did.
 ///
@@ -236,6 +238,18 @@ class IngredientEdit {
 /// whole list or it is absent.
 typedef IngredientMatches = ({List<Ingredient> rows, bool guessed});
 
+/// The refusal [IngredientRepository.saveForm] returns when the name (or an
+/// alias) being saved is already a live name in this household — its own row's
+/// name excepted.
+///
+/// **No unique index backs this, and none should.** `0019_shopping_week.sql`
+/// says why for its own rows and the reason is general: two devices offline
+/// can mint the same row and converge later, so Postgres stays permissive and
+/// the app is where a duplicate is refused *while a person is looking at it*.
+/// A constraint would turn a convergence into a sync error nobody can act on.
+Failure nameTakenFailure(String existingName) =>
+    Failure('ingredient/name_taken', nameTakenMessage(existingName));
+
 abstract interface class IngredientRepository {
   /// Ingredients whose name/aliases match [query], best first, capped at
   /// [limit]. Empty [query] → the first [limit] ingredients (so the picker has
@@ -390,11 +404,32 @@ abstract interface class IngredientRepository {
   /// and its children — measures, aliases — are inserted in the same
   /// transaction as the row they belong to.
   ///
-  /// Returns the row as the write left it, or null if an existing row is
-  /// gone. Throws [ArgumentError] on the same contracts the individual writes
-  /// throw on: a blank name, a non-positive measure amount, an alias with no
-  /// identity word. Nothing is written when it throws.
-  Future<Ingredient?> saveForm(String? ingredientId, IngredientFormEdit edit);
+  /// Returns [Ok] with the row as the write left it — or `Ok(null)` if an
+  /// existing row is gone — and [Err] when the save was **refused**, which
+  /// today means one thing: the name, or an alias, is already somebody's in
+  /// this household's one name namespace ([nameTakenFailure]).
+  ///
+  /// A refusal, not a throw, because it is a sentence a person can act on
+  /// rather than a programming error: the form prints it under the field it
+  /// belongs to, beside a door onto the row that already has that name. The
+  /// contracts that ARE programming errors still throw [ArgumentError] — a
+  /// blank name, a non-positive measure amount, an alias with no identity
+  /// word. Nothing is written in either case.
+  ///
+  /// The check runs **inside the write transaction**, so the form's own
+  /// pre-check cannot be raced past by a sync landing between the two.
+  Future<Result<Ingredient?>> saveForm(
+    String? ingredientId,
+    IngredientFormEdit edit,
+  );
+
+  /// Every live name in the household — each row's canonical name and each
+  /// live alias — as the one namespace they are.
+  ///
+  /// One read rather than a query per question: the form asks twice on every
+  /// leave of the name field (is this name taken, and is it nearly taken),
+  /// and the vocabulary is a few hundred rows the device already holds.
+  Future<List<NameEntry>> nameIndex();
 
   /// Returns a `complete` row to `stub` — confirm is reversible. The
   /// macros stay stored; the row simply stops counting until re-confirmed.

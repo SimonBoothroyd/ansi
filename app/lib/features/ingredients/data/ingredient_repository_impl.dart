@@ -24,6 +24,7 @@ import 'package:sqlite3/common.dart' show Row;
 import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/result/result.dart';
 import '../../../core/search/search_query.dart';
 import '../../../core/search/search_rank.dart';
 import '../../../core/units/macros.dart';
@@ -31,6 +32,7 @@ import '../../../core/units/units.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
+import '../domain/name_namespace.dart';
 import '../domain/normalize.dart';
 import '../domain/serving_measure.dart';
 
@@ -74,6 +76,10 @@ const _aliasText =
 /// what is written back is exactly what [Macros.tryParse] reads.
 String? _macrosJson(Macros? macros) =>
     macros == null ? null : jsonEncode(macros.toJson());
+
+/// What one [SqliteIngredientRepository.saveForm] transaction decided: whether
+/// it wrote, and the refusal if it did not.
+typedef _SaveOutcome = ({bool wrote, Failure? refusal});
 
 class SqliteIngredientRepository implements IngredientRepository {
   const SqliteIngredientRepository(this._db, {required String householdId})
@@ -521,7 +527,61 @@ class SqliteIngredientRepository implements IngredientRepository {
       .map((rows) => [for (final r in rows) r['c'] as String]);
 
   @override
-  Future<Ingredient?> saveForm(
+  Future<List<NameEntry>> nameIndex() async {
+    // Names and aliases in ONE result set, in one shape, because they are one
+    // namespace — two queries would invite two rules for reading them.
+    final rows = await _db.getAll(
+      'SELECT i.id AS ingredient_id, i.canonical_name, '
+      'i.canonical_name AS text, i.match_text, 0 AS is_alias '
+      'FROM ingredient i WHERE i.deleted_at IS NULL '
+      'UNION ALL '
+      'SELECT a.ingredient_id, i.canonical_name, '
+      'a.alias_text AS text, a.match_text, 1 AS is_alias '
+      'FROM ingredient_alias a JOIN ingredient i ON i.id = a.ingredient_id '
+      'WHERE a.deleted_at IS NULL AND i.deleted_at IS NULL',
+    );
+    return [
+      for (final r in rows)
+        NameEntry(
+          ingredientId: r['ingredient_id'] as String,
+          ingredientName: r['canonical_name'] as String,
+          text: r['text'] as String? ?? r['canonical_name'] as String,
+          matchText: r['match_text'] as String? ?? '',
+          isAlias: (r['is_alias'] as int) == 1,
+        ),
+    ];
+  }
+
+  /// The name namespace's rule, asked of one match text inside a transaction:
+  /// the canonical name of the live row already carrying it, or null.
+  ///
+  /// SQL rather than [collisionIn] over [nameIndex] because this half runs
+  /// under the write's own transaction, where reading the whole vocabulary to
+  /// compare one string would be the expensive way to ask. It is the same
+  /// question — exact equality over `match_text`, names and aliases alike —
+  /// and the vectors that pin the normalizer pin both sides of it.
+  Future<String?> _nameTakenBy(
+    SqliteWriteContext tx,
+    String matchText,
+    String selfId,
+  ) async {
+    if (matchText.isEmpty) return null;
+    final row = await tx.getOptional(
+      'SELECT i.canonical_name FROM ingredient i '
+      'WHERE i.match_text = ? AND i.deleted_at IS NULL AND i.id <> ? '
+      'UNION ALL '
+      'SELECT i.canonical_name FROM ingredient_alias a '
+      'JOIN ingredient i ON i.id = a.ingredient_id '
+      'WHERE a.match_text = ? AND a.deleted_at IS NULL '
+      'AND i.deleted_at IS NULL AND a.ingredient_id <> ? '
+      'LIMIT 1',
+      [matchText, selfId, matchText, selfId],
+    );
+    return row?['canonical_name'] as String?;
+  }
+
+  @override
+  Future<Result<Ingredient?>> saveForm(
     String? ingredientId,
     IngredientFormEdit edit,
   ) async {
@@ -600,7 +660,22 @@ class SqliteIngredientRepository implements IngredientRepository {
     final creating = ingredientId == null;
     final id = ingredientId ?? _uuid.v4();
 
-    final ok = await _db.writeTransaction((tx) async {
+    // Three answers, one transaction: written, refused with the reason, or
+    // the row is no longer there.
+    final outcome = await _db.writeTransaction<_SaveOutcome>((tx) async {
+      // **The name namespace, checked where the write happens.** The form asks
+      // the same question before the tap, but a sync landing between the two
+      // would slip a second Sauerkraut past it.
+      final taken = await _nameTakenBy(tx, normalizeMatchText(name), id);
+      if (taken != null) {
+        return (wrote: false, refusal: nameTakenFailure(taken));
+      }
+      for (final a in aliases) {
+        final aliasTaken = await _nameTakenBy(tx, a.matchText, id);
+        if (aliasTaken != null) {
+          return (wrote: false, refusal: nameTakenFailure(aliasTaken));
+        }
+      }
       if (creating) {
         // Born a stub whatever arrived: filling a form in never promotes a
         // row — only `markComplete` does, which is a human tapping the CTA.
@@ -618,7 +693,7 @@ class SqliteIngredientRepository implements IngredientRepository {
         'FROM ingredient WHERE id = ? AND deleted_at IS NULL',
         [id],
       );
-      if (row == null) return false;
+      if (row == null) return (wrote: false, refusal: null);
       // D5, both directions in one place now. Clearing the macros of a
       // complete row returns it to `stub` rather than leaving it asserting a
       // number it no longer has; filling them in never promotes on its own —
@@ -790,10 +865,11 @@ class SqliteIngredientRepository implements IngredientRepository {
           [a.id, _householdId, id, a.text, a.matchText, 'manual', now, now],
         );
       }
-      return true;
+      return (wrote: true, refusal: null);
     });
-    if (!ok) return null;
-    return byId(id);
+    if (outcome.refusal case final refusal?) return Err(refusal);
+    if (!outcome.wrote) return const Ok(null);
+    return Ok(await byId(id));
   }
 
   /// What this save has to say about `source_edited` — `1`, `0`, or **null for

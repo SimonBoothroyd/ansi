@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ansi/core/result/result.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/data/ingredient_repository_impl.dart';
@@ -11,6 +12,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
 
 import '../../helpers/test_db.dart';
+
+/// The row a save left behind.
+///
+/// `saveForm` answers a [Result] because it can REFUSE — a name already in
+/// this household's one namespace — and the group that covers the refusal
+/// reads that result. Every other test here is about what was written, so it
+/// asks for the row and lets a refusal fail as a null.
+extension on IngredientRepository {
+  Future<Ingredient?> saveRow(String? id, IngredientFormEdit edit) async =>
+      (await saveForm(id, edit)).valueOrNull;
+}
 
 Future<void> _seed(
   PowerSyncDatabase db, {
@@ -705,7 +717,7 @@ void main() {
       Macros? macros,
       Set<Unit> allowed = const {g, kg},
       bool markComplete = false,
-    }) async => (await repo.saveForm(
+    }) async => (await repo.saveRow(
       '3',
       IngredientFormEdit(
         row: IngredientEdit(
@@ -761,7 +773,7 @@ void main() {
         // The Dart half of "a rename does not refill": the rename write itself
         // touches neither the numbers nor the stamp (the server half — the
         // 0015 WHEN clause skipping usda_declined — is pinned in pgTAP).
-        final renamed = (await repo.saveForm(
+        final renamed = (await repo.saveRow(
           '3',
           IngredientFormEdit(
             row: IngredientEdit(
@@ -812,7 +824,7 @@ void main() {
     /// Row '3' as a USDA pick + Save leaves it: the stamp, the label, the
     /// score, the macros and a density, all in one write.
     Future<Ingredient> filled({String source = 'usda_fdc:11216'}) async =>
-        (await repo.saveForm(
+        (await repo.saveRow(
           '3',
           IngredientFormEdit(
             row: IngredientEdit(
@@ -840,7 +852,7 @@ void main() {
       List<PendingMeasure> measures = const [],
       List<PendingAlias> aliases = const [],
       bool markComplete = false,
-    }) async => (await repo.saveForm(
+    }) async => (await repo.saveRow(
       '3',
       IngredientFormEdit(
         row: IngredientEdit(
@@ -1070,7 +1082,7 @@ void main() {
       });
       addTearDown(sub.cancel);
       expect(
-        repo.saveForm(
+        repo.saveRow(
           '1',
           const IngredientFormEdit(
             row: IngredientEdit(
@@ -1127,7 +1139,7 @@ void main() {
   group('saveForm (ADR-0011: the form writes ONCE)', () {
     test('one call lands the row, a density, a piece weight, a measure and an '
         'alias — the writes the form used to make separately', () async {
-      final saved = await repo.saveForm(
+      final saved = await repo.saveRow(
         '1',
         IngredientFormEdit(
           row: _edit(
@@ -1170,7 +1182,7 @@ void main() {
     test('nothing is written when it refuses — the guarantee the sheet had '
         'never had, with four calls under one error guard', () async {
       await expectLater(
-        repo.saveForm(
+        repo.saveRow(
           '1',
           IngredientFormEdit(
             row: _edit(name: 'Onion, renamed'),
@@ -1208,7 +1220,7 @@ void main() {
     test('a volume-named measure label is refused here too — batching does not '
         'soften the ADR-0008 §2 contract', () async {
       await expectLater(
-        repo.saveForm(
+        repo.saveRow(
           '1',
           IngredientFormEdit(
             row: _edit(name: 'Onion'),
@@ -1223,7 +1235,7 @@ void main() {
 
     test('removals are applied before adds, so a label freed in this save can '
         'be re-added in it', () async {
-      await repo.saveForm(
+      await repo.saveRow(
         '1',
         IngredientFormEdit(
           row: _edit(name: 'Onion'),
@@ -1232,7 +1244,7 @@ void main() {
           ],
         ),
       );
-      await repo.saveForm(
+      await repo.saveRow(
         '1',
         IngredientFormEdit(
           row: _edit(name: 'Onion'),
@@ -1252,7 +1264,7 @@ void main() {
 
     test('the serving is ONE measure per row: a second save replaces it rather '
         'than stacking a second beside it', () async {
-      await repo.saveForm(
+      await repo.saveRow(
         '1',
         IngredientFormEdit(
           row: _edit(name: 'Onion'),
@@ -1266,7 +1278,7 @@ void main() {
           ],
         ),
       );
-      await repo.saveForm(
+      await repo.saveRow(
         '1',
         IngredientFormEdit(
           row: _edit(name: 'Onion'),
@@ -1288,7 +1300,7 @@ void main() {
 
     test('a save that says nothing about the serving leaves the stored one '
         'exactly where it is', () async {
-      await repo.saveForm(
+      await repo.saveRow(
         '1',
         IngredientFormEdit(
           row: _edit(name: 'Onion'),
@@ -1299,7 +1311,7 @@ void main() {
           ),
         ),
       );
-      await repo.saveForm('1', IngredientFormEdit(row: _edit(name: 'Onion')));
+      await repo.saveRow('1', IngredientFormEdit(row: _edit(name: 'Onion')));
       final live = await db.getAll(
         'SELECT id FROM ingredient_measure '
         "WHERE ingredient_id = '1' AND deleted_at IS NULL",
@@ -1309,7 +1321,7 @@ void main() {
 
     test('markComplete flips the status IN THE SAME transaction as the save — '
         'no path leaves a row saved-but-not-marked', () async {
-      final saved = await repo.saveForm(
+      final saved = await repo.saveRow(
         '3', // the seeded stub
         IngredientFormEdit(
           row: _edit(
@@ -1326,7 +1338,7 @@ void main() {
 
     test('an alias that already matches is not duplicated — find-or-create, as '
         '`addAlias` has always been', () async {
-      await repo.saveForm(
+      await repo.saveRow(
         '2', // seeded with 'scallion'
         IngredientFormEdit(
           row: _edit(name: 'Spring Onion'),
@@ -1343,14 +1355,14 @@ void main() {
     });
 
     test('DensityCleared strips the density; a blank name refuses', () async {
-      await repo.saveForm(
+      await repo.saveRow(
         '1',
         IngredientFormEdit(
           row: _edit(name: 'Onion'),
           density: const DensitySet(0.6),
         ),
       );
-      final cleared = await repo.saveForm(
+      final cleared = await repo.saveRow(
         '1',
         IngredientFormEdit(
           row: _edit(name: 'Onion'),
@@ -1360,21 +1372,21 @@ void main() {
       expect(cleared!.densityGPerMl, isNull);
 
       await expectLater(
-        repo.saveForm('1', IngredientFormEdit(row: _edit(name: '  '))),
+        repo.saveRow('1', IngredientFormEdit(row: _edit(name: '  '))),
         throwsArgumentError,
       );
     });
 
     test('PieceWeightCleared takes both columns, as the density clear takes '
         'its number', () async {
-      await repo.saveForm(
+      await repo.saveRow(
         '1',
         IngredientFormEdit(
           row: _edit(name: 'Onion', unit: pieces, allowed: const {g, pieces}),
           pieceWeight: const PieceWeightSet(110),
         ),
       );
-      final cleared = await repo.saveForm(
+      final cleared = await repo.saveRow(
         '1',
         IngredientFormEdit(
           // The DRAFT already stripped `piece`; the write lands the list as
@@ -1394,7 +1406,7 @@ void main() {
       'same contract [setPieceWeight] holds, unsoftened by batching',
       () async {
         await expectLater(
-          repo.saveForm(
+          repo.saveRow(
             '1',
             IngredientFormEdit(
               row: _edit(name: 'Onion, renamed'),
@@ -1414,7 +1426,7 @@ void main() {
 
     test('a create with a piece default lands the row and what one weighs in '
         'ONE transaction — a counted row is never born stranded', () async {
-      final created = await repo.saveForm(
+      final created = await repo.saveRow(
         null,
         IngredientFormEdit(
           row: _edit(
@@ -1443,7 +1455,7 @@ void main() {
 
     test('a NULL id creates the row — and its children land in the same '
         'transaction, which is what lets the sheet stop existing', () async {
-      final created = await repo.saveForm(
+      final created = await repo.saveRow(
         null,
         IngredientFormEdit(
           row: _edit(
@@ -1499,7 +1511,7 @@ void main() {
         'ever leave a half-made one', () async {
       final before = await db.get('SELECT COUNT(*) AS n FROM ingredient');
       await expectLater(
-        repo.saveForm(
+        repo.saveRow(
           null,
           IngredientFormEdit(
             row: _edit(name: 'Doomed'),
@@ -1524,7 +1536,7 @@ void main() {
       'markComplete on a create still needs macros — a new row with none stays '
       'a stub',
       () async {
-        final bare = await repo.saveForm(
+        final bare = await repo.saveRow(
           null,
           IngredientFormEdit(row: _edit(name: 'Bare'), markComplete: true),
         );
@@ -1534,7 +1546,7 @@ void main() {
 
     test('a row that is gone answers null rather than throwing', () async {
       expect(
-        await repo.saveForm(
+        await repo.saveRow(
           'nope',
           IngredientFormEdit(row: _edit(name: 'Ghost')),
         ),
@@ -1543,10 +1555,110 @@ void main() {
     });
   });
 
+  // The household's names and its aliases are ONE namespace, keyed by
+  // match_text — the rule the seed generator already holds and the import
+  // cascade's exact tier already reads. Held HERE and not by a unique index:
+  // two offline devices must each be able to mint a row and converge later
+  // (0019's reason, and 0006's before it), so the database stays permissive
+  // and the refusal lands where somebody is looking at it.
+  group('saveForm refuses a name the household already carries', () {
+    Future<Result<Ingredient?>> save(
+      String? id,
+      String name, {
+      List<PendingAlias> aliases = const [],
+    }) => repo.saveForm(
+      id,
+      IngredientFormEdit(
+        row: _edit(name: name),
+        aliasesAdded: aliases,
+      ),
+    );
+
+    test('a second row may not take a live row’s canonical name', () async {
+      final refused = await save(null, 'onion');
+
+      expect(refused, isA<Err<Ingredient?>>());
+      expect(
+        (refused as Err<Ingredient?>).failure,
+        nameTakenFailure('Onion'),
+        reason: 'the refusal names the row already carrying it',
+      );
+      // Nothing was written: the check runs inside the transaction.
+      expect(
+        (await db.get(
+          "SELECT count(*) AS c FROM ingredient WHERE match_text = 'onion'",
+        ))['c'],
+        1,
+      );
+    });
+
+    test('nor a live ALIAS of another row — one namespace, not two', () async {
+      final refused = await save(null, 'Scallion');
+
+      expect(
+        (refused as Err<Ingredient?>).failure,
+        nameTakenFailure('Spring Onion'),
+        reason: 'the alias belongs to a row, and the row is what is named',
+      );
+    });
+
+    test('an ALIAS may not take another row’s name either', () async {
+      final refused = await save(
+        '1',
+        'Onion',
+        aliases: const [PendingAlias(id: 'a-9', text: 'olive oil')],
+      );
+
+      expect(
+        (refused as Err<Ingredient?>).failure,
+        nameTakenFailure('Olive Oil'),
+      );
+      expect(
+        (await db.get(
+          "SELECT count(*) AS c FROM ingredient_alias WHERE id = 'a-9'",
+        ))['c'],
+        0,
+        reason: 'the alias was refused inside the same transaction',
+      );
+    });
+
+    test(
+      'a row keeps its OWN name — and its own alias — across a save',
+      () async {
+        expect((await save('1', 'Onion')).valueOrNull!.canonicalName, 'Onion');
+        // Spring Onion re-saving the alias it already carries is not a
+        // duplicate of anything.
+        expect(
+          (await save(
+            '2',
+            'Spring Onion',
+            aliases: const [PendingAlias(id: 'a-8', text: 'scallion')],
+          )).valueOrNull!.canonicalName,
+          'Spring Onion',
+        );
+      },
+    );
+
+    test(
+      'the namespace is match_text, so a respelling still collides',
+      () async {
+        // `normalizeMatchText` folds case, spacing and hyphens, and the
+        // namespace is keyed by what it writes.
+        expect(await save(null, '  Spring-Onion  '), isA<Err<Ingredient?>>());
+      },
+    );
+
+    test('a TOMBSTONED row does not hold its name', () async {
+      await _seed(db, id: '20', name: 'Sauerkraut', deletedAt: '2026-01-01');
+
+      expect((await save(null, 'Sauerkraut')).valueOrNull, isNotNull);
+    });
+  });
+
   group('the form writes the row half (ADR-0011)', () {
     test('a RENAME rewrites match_text with the server phrase rules — the '
         'hazard the search normalizer cannot see', () async {
-      final saved = await repo.saveForm(
+      final saved = await repo.saveRow(
         '1',
         IngredientFormEdit(row: _edit(name: 'Curry leaves')),
       );
@@ -1570,7 +1682,7 @@ void main() {
         final before = (await db.get(
           "SELECT source FROM ingredient WHERE id = '1'",
         ))['source'];
-        await repo.saveForm('1', IngredientFormEdit(row: _edit(name: 'Onion')));
+        await repo.saveRow('1', IngredientFormEdit(row: _edit(name: 'Onion')));
         expect(
           (await db.get(
             "SELECT source FROM ingredient WHERE id = '1'",
@@ -1580,7 +1692,7 @@ void main() {
         );
 
         const panel = Macros(kcal: 539, protein: 6.3, carb: 57.5, fat: 30.9);
-        final stamped = await repo.saveForm(
+        final stamped = await repo.saveRow(
           '1',
           IngredientFormEdit(
             row: _edit(
@@ -1599,7 +1711,7 @@ void main() {
 
         // …and the next plain save leaves the stamp and the name where they
         // are — both halves are patch-shaped.
-        final again = await repo.saveForm(
+        final again = await repo.saveRow(
           '1',
           IngredientFormEdit(
             row: _edit(name: 'Onion', macros: panel),
@@ -1612,7 +1724,7 @@ void main() {
 
     test('writes the explicit allowed_units list verbatim — an editor that '
         'recomputed it would silently discard a curated set', () async {
-      final saved = await repo.saveForm(
+      final saved = await repo.saveRow(
         '1',
         IngredientFormEdit(
           row: _edit(name: 'Onion', allowed: {pieces, g, toTaste}),
@@ -1634,7 +1746,7 @@ void main() {
     });
 
     test('macros round-trip with their basis, unconverted', () async {
-      final saved = await repo.saveForm(
+      final saved = await repo.saveRow(
         '1',
         IngredientFormEdit(
           row: _edit(
@@ -1658,7 +1770,7 @@ void main() {
         'macros = \'{"kcal":1,"protein":1,"carb":1,"fat":1}\' '
         "WHERE id = '1'",
       );
-      final saved = await repo.saveForm(
+      final saved = await repo.saveRow(
         '1',
         IngredientFormEdit(row: _edit(name: 'Onion')),
       );
@@ -1669,7 +1781,7 @@ void main() {
     test(
       'filling the macros in does NOT promote — confirming is a human act',
       () async {
-        final stub = await repo.saveForm(
+        final stub = await repo.saveRow(
           '3', // Olive Oil, seeded as a stub
           IngredientFormEdit(
             row: _edit(
@@ -1685,7 +1797,7 @@ void main() {
 
   group('mark complete / unconfirm (macros gate, density does not)', () {
     test('a stub with macros but NO density marks complete', () async {
-      final confirmed = await repo.saveForm(
+      final confirmed = await repo.saveRow(
         '3',
         IngredientFormEdit(
           row: _edit(
@@ -1703,7 +1815,7 @@ void main() {
     test(
       'a row with a density but no macros stays a stub — the gate is macros',
       () async {
-        final saved = await repo.saveForm(
+        final saved = await repo.saveRow(
           '3',
           IngredientFormEdit(
             row: _edit(name: 'Olive Oil'),
@@ -1716,7 +1828,7 @@ void main() {
     );
 
     test('marking complete is reversible', () async {
-      await repo.saveForm(
+      await repo.saveRow(
         '3',
         IngredientFormEdit(
           row: _edit(
@@ -1761,7 +1873,7 @@ void main() {
       test(
         'an unreferenced row tombstones, and takes its aliases with it',
         () async {
-          await repo.saveForm(
+          await repo.saveRow(
             '1',
             IngredientFormEdit(
               row: _edit(name: 'Onion'),
@@ -1818,7 +1930,7 @@ void main() {
 
   group('aliases (written by the form, the only door there is)', () {
     Future<void> addAlias(String ingredientId, String id, String text) =>
-        repo.saveForm(
+        repo.saveRow(
           ingredientId,
           IngredientFormEdit(
             row: _edit(name: ingredientId == '1' ? 'Onion' : 'Spring Onion'),
@@ -1856,7 +1968,7 @@ void main() {
 
     test('removing an alias tombstones it and it stops matching', () async {
       await addAlias('1', 'a-y', 'Yellow Onions');
-      await repo.saveForm(
+      await repo.saveRow(
         '1',
         IngredientFormEdit(
           row: _edit(name: 'Onion'),

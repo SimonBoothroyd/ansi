@@ -332,8 +332,8 @@ void main() {
         ..setMacros(
           const MacroDraft(kcal: '60', protein: '1', carb: '15', fat: '0'),
         )
-        ..draftDensity(0.66)
-        ..addAlias('mangoes');
+        ..draftDensity(0.66);
+      await form.addAlias('mangoes');
       final measure = form.draftMeasure('whole', 200, sortOrder: 0);
 
       final saved = await form.save(markComplete: true);
@@ -385,9 +385,8 @@ void main() {
     test('a second Save does not write the draft twice', () async {
       final repo = FakeIngredientRepo([_mango]);
       final (:form, at: _) = await _open(repo, id: 'mango');
-      form
-        ..addAlias('mangoes')
-        ..draftDensity(0.66);
+      await form.addAlias('mangoes');
+      form.draftDensity(0.66);
 
       await form.save();
       await form.save();
@@ -493,7 +492,7 @@ void main() {
         'transaction', () async {
       final repo = FakeIngredientRepo(const []);
       final (:form, at: _) = await _open(repo, initialName: 'Curry leaves');
-      form.addAlias('kadi patta');
+      await form.addAlias('kadi patta');
 
       final saved = await form.save();
 
@@ -589,6 +588,86 @@ void main() {
       expect(draft.macros, MacroDraft.from(per100));
       expect(draft.serving.amount, isNull);
       expect(draft.scannedPer100NeedsServingHint, isTrue);
+    });
+  });
+
+  // The household's names and aliases are ONE namespace: the draft answers
+  // "is this name taken" before the tap, and the same question is asked again
+  // inside the write's transaction.
+  group('the name namespace gates the form', () {
+    const sauerkraut = Ingredient(
+      id: 'kraut',
+      canonicalName: 'Sauerkraut',
+      defaultUnit: g,
+      status: IngredientStatus.complete,
+      macros: Macros(kcal: 19, protein: 1, carb: 4, fat: 0),
+    );
+
+    test('leaving the field on a taken name refuses the form and names the '
+        'row that has it', () async {
+      final repo = FakeIngredientRepo([sauerkraut]);
+      final (:form, :at) = await _open(repo, initialName: 'sauerkraut');
+
+      await form.leaveNameField();
+
+      expect(at().nameCollision!.ingredientId, 'kraut');
+      expect(at().refusal, 'Already an ingredient: Sauerkraut');
+      expect(
+        at().completable,
+        isFalse,
+        reason: 'the gate the dock reads has to hold this too',
+      );
+    });
+
+    test('typing again clears the note — it was an answer about the old '
+        'text', () async {
+      final repo = FakeIngredientRepo([sauerkraut]);
+      final (:form, :at) = await _open(repo, initialName: 'sauerkraut');
+      await form.leaveNameField();
+
+      form.setName('Sauerkraut Juice');
+
+      expect(at().nameCollision, isNull);
+      expect(at().refusal, isNull);
+    });
+
+    test('a row may always be saved under the name it already has', () async {
+      final repo = FakeIngredientRepo([sauerkraut]);
+      final (:form, :at) = await _open(repo, id: 'kraut');
+
+      await form.leaveNameField();
+
+      expect(at().nameCollision, isNull);
+    });
+
+    test('an ALIAS is refused on the same namespace, and is not taken into '
+        'the draft', () async {
+      final repo = FakeIngredientRepo([sauerkraut, _mango]);
+      final (:form, :at) = await _open(repo, id: 'mango');
+
+      final taken = await form.addAlias('sauerkraut');
+
+      expect(taken!.ingredientName, 'Sauerkraut');
+      expect(at().aliasesAdded, isEmpty);
+    });
+
+    test('the WRITE refuses too, and the refusal comes back with the row it '
+        'names', () async {
+      final repo = FakeIngredientRepo([sauerkraut]);
+      final (:form, :at) = await _open(repo, initialName: 'Sauerkraut');
+      // Straight to Save, without leaving the field — the backstop path.
+      form
+        ..setName('Sauerkraut')
+        ..setMacros(
+          const MacroDraft(kcal: '19', protein: '1', carb: '4', fat: '0'),
+        );
+
+      final saved = await form.save(markComplete: true);
+
+      expect(saved, isNull);
+      expect(repo.rows, hasLength(1), reason: 'nothing was written');
+      expect(at().message, 'Already an ingredient: Sauerkraut');
+      expect(at().nameCollision!.ingredientId, 'kraut');
     });
   });
 

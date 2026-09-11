@@ -64,7 +64,7 @@ Widget _host(FakeIngredientRepo repo) {
                   ),
                 ),
               );
-              if (context.mounted) context.pop(saved);
+              if (context.mounted) context.pop(saved.valueOrNull);
             },
             child: const Text('create'),
           ),

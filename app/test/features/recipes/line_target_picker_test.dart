@@ -338,7 +338,7 @@ void main() {
                     markComplete: true,
                   ),
                 );
-                if (context.mounted) context.pop(saved);
+                if (context.mounted) context.pop(saved.valueOrNull);
               },
               child: const Text('create'),
             ),

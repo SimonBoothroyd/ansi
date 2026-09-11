@@ -116,7 +116,7 @@ Widget _chainHost(
                       density: const DensitySet(1),
                     ),
                   );
-                  if (context.mounted) context.pop(saved);
+                  if (context.mounted) context.pop(saved.valueOrNull);
                 },
                 child: const Text('create'),
               ),

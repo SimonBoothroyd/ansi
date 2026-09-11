@@ -13,9 +13,11 @@ library;
 
 import 'dart:async';
 
+import 'package:ansi/core/result/result.dart';
 import 'package:ansi/features/ingredients/domain/allowed_units.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
+import 'package:ansi/features/ingredients/domain/name_namespace.dart';
 import 'package:ansi/features/ingredients/domain/normalize.dart';
 
 /// A vocabulary that answers every read with nothing and refuses every write.
@@ -86,8 +88,13 @@ class ReadOnlyIngredientRepo implements IngredientRepository {
       throw UnimplementedError();
 
   @override
-  Future<Ingredient?> saveForm(String? ingredientId, IngredientFormEdit edit) =>
-      throw UnimplementedError();
+  Future<Result<Ingredient?>> saveForm(
+    String? ingredientId,
+    IngredientFormEdit edit,
+  ) => throw UnimplementedError();
+
+  @override
+  Future<List<NameEntry>> nameIndex() async => const [];
 }
 
 /// A read-only vocabulary that answers every lookup with the same row.
@@ -383,12 +390,44 @@ class FakeIngredientRepo implements IngredientRepository {
   ///
   /// [savedForms] records what it was handed, so a test can pin *what the
   /// form asked for* separately from what the row ended up looking like.
+  /// The household's names and aliases as ONE namespace, exactly as the real
+  /// repository reads them — the property the form's refusal rests on.
   @override
-  Future<Ingredient?> saveForm(
+  Future<List<NameEntry>> nameIndex() async => [
+    for (final r in rows) ...[
+      NameEntry(
+        ingredientId: r.id,
+        ingredientName: r.canonicalName,
+        text: r.canonicalName,
+        matchText: matchTextById[r.id] ?? normalizeMatchText(r.canonicalName),
+      ),
+      for (final a in _aliases[r.id] ?? const <IngredientAlias>[])
+        NameEntry(
+          ingredientId: r.id,
+          ingredientName: r.canonicalName,
+          text: a.text,
+          matchText: normalizeMatchText(a.text),
+          isAlias: true,
+        ),
+    ],
+  ];
+
+  @override
+  Future<Result<Ingredient?>> saveForm(
     String? ingredientId,
     IngredientFormEdit edit,
   ) async {
     savedForms.add(edit);
+    // The namespace refusal, kept here too: a fake that would write a second
+    // Sauerkraut lets a widget test pass over the rule the real write holds.
+    final entries = await nameIndex();
+    for (final text in [
+      edit.row.canonicalName,
+      ...edit.aliasesAdded.map((a) => a.text),
+    ]) {
+      final taken = collisionIn(text, entries, selfId: ingredientId);
+      if (taken != null) return Err(nameTakenFailure(taken.ingredientName));
+    }
     var targetId = ingredientId;
     // C1: a null id creates. The fake mints one and seeds a bare stub, so the
     // rest of this method is the same for a create and an edit — which is the
@@ -408,7 +447,7 @@ class FakeIngredientRepo implements IngredientRepository {
     // because the rebuilds below drop every field they do not name.
     final before = _find(targetId!);
     final row = _writeRow(targetId, edit.row);
-    if (row == null) return null;
+    if (row == null) return const Ok(null);
     var updated = row;
     switch (edit.density) {
       case DensitySet(:final gPerMl):
@@ -476,7 +515,7 @@ class FakeIngredientRepo implements IngredientRepository {
       sourceEdited: _sourceEdited(before: before, edit: edit),
     );
     _replace(updated);
-    return updated;
+    return Ok(updated);
   }
 
   /// `SqliteIngredientRepository._sourceEditedPatch`'s rule, as a value rather

@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Ingredient detail</h1>
-    <p class="view-status">built · matches code 2026-09-09 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
+    <p class="view-status">built · matches code 2026-09-10 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
     <p class="view-blurb"><b>One route, two postures.</b> A row that exists opens as a <b>fact sheet</b> — the same three groups (Identity, Nutrition, Units &amp; measures) with each field’s value stated instead of offered, no dock, and <code>Edit</code> in the header’s <code>⋯</code> exactly where the recipe page keeps it. <code>Edit</code> turns the same page into <b>the form</b>; Save and back turn it back. <code>/ingredients/new</code> opens the form directly — there is nothing yet to read — and so does every door that exists to <i>change</i> a field.</p>
 </header>
 
@@ -168,7 +168,19 @@
             <p class="flabel" style="margin-top:8px">Canonical name</p>
             <div class="frow"><div class="fin big">Cream of Tartar</div></div>
             <p class="conv-note" style="margin:-6px 20px 12px">Typed <span style="font-family:'IBM Plex Mono',monospace">cream&nbsp;&nbsp;of tartar</span>. Capitals and spacing are not words, so the field simply reads right.</p>
+
+            <p class="lib-mcap">and when the name is already somebody&rsquo;s</p>
+            <p class="flabel" style="margin-top:8px">Canonical name</p>
+            <div class="frow"><div class="fin big">Sauerkraut</div></div>
+            <p class="conv-note" style="margin:-6px 20px 0"><span style="color:var(--gone)">Already an ingredient:&nbsp;</span><b style="border-bottom:1px solid var(--line)">Sauerkraut</b></p>
+
+            <p class="flabel" style="margin-top:14px">Also known as</p>
+            <div class="frow"><div class="chips"><span class="chip add">&#65291; alias</span></div></div>
+            <div class="frow"><div class="fin" style="color:var(--muted);font-size:12.5px">sauerkraut</div></div>
+            <p class="conv-note" style="margin:-6px 20px 0"><span style="color:var(--gone)">Already an ingredient:&nbsp;</span><b style="border-bottom:1px solid var(--line)">Sauerkraut</b></p>
         </div></div>
+        <p class="conv-note" style="margin:10px 4px 0"><b>Names and aliases are ONE namespace</b>, keyed by the stored <code>match_text</code> &mdash; the rule the seed generator already holds and the import cascade&rsquo;s exact tier already reads. Two live <i>Sauerkraut</i> rows make every exact match after them a coin toss, so a name or an alias that is already somebody&rsquo;s is refused where it is typed, in the field&rsquo;s own note voice. The existing name is a <b>door onto that row</b> &mdash; the same idiom the recipe page keeps for an ingredient&rsquo;s name.</p>
+        <p class="conv-note" style="margin:6px 4px 0"><b>Save goes quiet while the line is showing</b>, and the write refuses anyway: <code>saveForm</code> asks the same question inside its own transaction, because a sync landing between the tap and the write would slip the second row past the first check. <b>No unique index backs it</b> &mdash; two offline devices must each be able to mint a row and converge later (migration 0019&rsquo;s reason), so the database stays permissive and the refusal lands where somebody is looking at it. A row never collides with itself, so re-saving under the name it already has is always allowed.</p>
     </div>
 
     <div class="frame">
