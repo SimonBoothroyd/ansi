@@ -272,6 +272,55 @@ void main() {
       },
     );
 
+    test('leaving per serving with figures and NO serving amount keeps them, '
+        'and asks for the number it is missing', () async {
+      final repo = FakeIngredientRepo([_bareStub]);
+      final (:form, :at) = await _open(repo, id: 'bare');
+      form
+        ..setPerServing()
+        ..setMacros(
+          const MacroDraft(kcal: '180', protein: '6', carb: '10', fat: '14'),
+        );
+      final typed = at().macros;
+
+      form.setBasis(MacrosBasis.perG);
+
+      // The mode stands and so do the figures. Blanking them is what invited
+      // a label's serving column to be retyped as per 100, and carrying them
+      // across would relabel that column as a fact about 100 g.
+      expect(at().perServing, isTrue);
+      expect(at().macros, typed);
+      expect(at().message, startsWith('One serving is how much?'));
+      // Exactly the sentence Save says about the same missing number.
+      expect(at().message, at().refusal);
+
+      // With the serving in, the switch goes through and the fields hold the
+      // derivation, as they always did.
+      form
+        ..setServingAmount('32')
+        ..setBasis(MacrosBasis.perG);
+      expect(at().perServing, isFalse);
+      expect(double.parse(at().macros.kcal), closeTo(562.5, 1e-9));
+    });
+
+    test('with nothing typed in the mode it still leaves on the first tap — '
+        'a mis-tap costs a person nothing', () async {
+      final repo = FakeIngredientRepo([_mango]);
+      final (:form, :at) = await _open(repo, id: 'mango');
+      form
+        ..setMacros(
+          const MacroDraft(kcal: '60', protein: '1', carb: '15', fat: '0'),
+        )
+        ..setPerServing();
+      expect(at().macros.allBlank, isTrue);
+
+      form.setBasis(MacrosBasis.perG);
+
+      expect(at().perServing, isFalse);
+      expect(at().macros.kcal, '60');
+      expect(at().message, isNull);
+    });
+
     test('the seeded fields are LOSSLESS — opening a row and saving it '
         'untouched writes back exactly what was stored', () async {
       // A USDA-derived panel is unrounded (`Macros.per100From` divides). The

@@ -271,7 +271,13 @@ The column list is generated from the migrations —
   The four fields hold the label's figures as printed and one muted line under
   them says what will be stored. Changing mode **clears** them: they meant per
   100, and reading them as per serving is how a right number becomes a wrong
-  one. A **scan lands in this mode whenever the label printed figures for one
+  one. Nothing typed in the mode yet and what it cleared comes straight back,
+  so a mis-tap costs nothing — but with **figures in and no serving under
+  them the mode does not leave**: there is no derivation to put in their
+  place, blanking them invites the label's serving column to be retyped as
+  per 100, and carrying them across relabels it. The chips say the same
+  sentence Save says about the same missing number, and the figures stand.
+  A **scan lands in this mode whenever the label printed figures for one
   serving** — whether that was the pack's only column or the one it printed
   beside its per-100 one: the label's numbers are the fact and per 100 is the
   derivation. A serving with no figures of its own, or figures with no serving

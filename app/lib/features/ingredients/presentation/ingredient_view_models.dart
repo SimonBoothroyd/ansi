@@ -45,6 +45,16 @@ part 'ingredient_view_models.g.dart';
 
 const _uuid = Uuid();
 
+/// The one sentence the form says about a per-serving panel with no serving
+/// under it — said by the dock before Save, and by the mode chips when
+/// leaving the mode would be what threw the figures away.
+///
+/// One sentence because it is one rule: figures printed per serving have no
+/// per-100 reading until somebody says how much a serving is.
+const kServingAmountFirst =
+    'One serving is how much? The label’s figures become per 100 only once '
+    'the serving amount is typed.';
+
 /// The macro inputs as typed TEXT, so "half filled in" is a state the form
 /// can name rather than a silent zero.
 ///
@@ -402,8 +412,7 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
           'give it a number beside the four, or clear it.';
     }
     if (perServing && printedMacros != null && serving.amountInBasis == null) {
-      return 'One serving is how much? The label’s figures become per 100 '
-          'only once the serving amount is typed.';
+      return kServingAmountFirst;
     }
     // D4c, held on the write side too. The chips refuse to OFFER a default
     // the row cannot say, but a basis flipped (or a USDA pick landed) after
@@ -665,12 +674,28 @@ class IngredientForm extends _$IngredientForm {
   /// because that is what they now mean. Nothing was typed in the mode yet?
   /// Then the per-100 figures it cleared come back, so a mis-tap costs a
   /// person nothing.
+  ///
+  /// **With figures in the fields and no serving under them, the mode does
+  /// not leave.** There is no derivation to put in their place, and the two
+  /// things that could happen instead are both worse than a refusal: blanking
+  /// them loses what somebody typed and invites them to retype a serving
+  /// column into per-100 fields, and carrying them across relabels the
+  /// label's own numbers as a fact about 100 g. So the chips say
+  /// [kServingAmountFirst] — the same sentence Save says about the same
+  /// missing number — and the figures stand. Clearing them is what leaves
+  /// the mode with nothing to lose.
   void setBasis(MacrosBasis basis) {
     if (!state.perServing) {
       state = state.copyWith(basis: basis);
       return;
     }
     final derived = state.storedMacros;
+    if (derived == null &&
+        !state.macros.allBlank &&
+        state.serving.amountInBasis == null) {
+      state = state.copyWith(message: kServingAmountFirst);
+      return;
+    }
     final macros = derived != null
         ? MacroDraft.from(derived)
         : state.per100Macros ?? const MacroDraft();
