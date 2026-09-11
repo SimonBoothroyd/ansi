@@ -712,12 +712,15 @@ select ok(
 -- admits a unit the rule withholds, and never withholds its own default.
 --
 -- …reaching the row the pair was added for: "1 quart broth" lands on a chip.
+-- The RULE offers the pair; the stored row is the household's to prune, and
+-- the seeded vocabulary keeps a cup-bought broth to cup, ml and the spoons.
 select ok(
-  (select allowed_units ? 'qt' and allowed_units ? 'pt' and allowed_units ? 'cup'
+  (select default_allowed_units(default_unit, macros_basis, density_g_per_ml,
+                                category, piece_basis_amount) @> '["qt", "pt", "cup"]'::jsonb
      from ingredient
      where household_id = '00000000-0000-0000-0000-0000000000aa'
        and match_text = 'vegetable broth'),
-  'vegetable broth (cup default) admits qt and pt beside its cup'
+  'the rule offers qt and pt beside a cup default (vegetable broth)'
 );
 
 -- ---------------------------------------------------------------------------

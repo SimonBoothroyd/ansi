@@ -14,7 +14,7 @@
 -- the USDA reference set is a different thing with a different owner
 -- (ADR-0005, seed/scripts/seed_usda.md).
 --
--- 315 ingredients (297 complete, 18 stub), 148 aliases, 296 measures.
+-- 313 ingredients (313 complete, 0 stub), 148 aliases, 299 measures.
 
 begin;
 
@@ -33,11 +33,10 @@ on conflict (id) do update set is_template = true;
 -- 'seed' before they land here — otherwise the row would seed and then
 -- reach no household at all. Every other stamp is the row's real
 -- provenance and is carried verbatim.
--- Re-stamped this run: 0 ingredient sources, 10 alias sources.
+-- Re-stamped this run: 0 ingredient sources, 9 alias sources.
 --   alias: diced fresh tomatoes → Cherry Tomatoes
 --   alias: chipotle chile flakes → Chipotle Chili Powder
 --   alias: stone-ground mustard or Creole mustard → Dijon Mustard
---   alias: full-fat oat milk → Oat Milk
 --   alias: olive oil or cooking oil of choice → Olive Oil
 --   alias: dried sage → Ground Sage
 --   alias: vegan cheddar or American cheese → Vegan Mozzarella
@@ -58,321 +57,319 @@ on conflict (id) do update set is_template = true;
 -- passing the curated list is what keeps a curator's admission (and
 -- their refusals) instead of the derived default.
 with v(canonical_name, category, default_unit, macros_basis, density_g_per_ml, macros, status, source, source_label, source_score, source_edited, piece_basis_amount, piece_source, allowed_units, match_text) as (values
-  ('Active Dry Yeast'::text, 'baking'::text, 'tsp'::text, 'g'::text, 0.63::numeric, '{"carb":41.22,"fat":7.61,"fiber":26.9,"kcal":325,"protein":40.44}'::jsonb, 'complete'::text, 'usda_fdc:175043'::text, 'Leavening agents, yeast, baker''s, active dry'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'active yeast dry'::text),
-  ('Agave'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.39::numeric, '{"carb":76.37,"fat":0.45,"fiber":0.2,"kcal":310,"protein":0.09}'::jsonb, 'complete'::text, 'usda_fdc:170277'::text, 'Sweetener, syrup, agave'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'agave'::text),
-  ('All-Purpose Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.5283::numeric, '{"carb":76.31,"fat":0.98,"fiber":2.7,"kcal":364,"protein":10.33}'::jsonb, 'complete'::text, 'usda_fdc:169761'::text, 'Wheat flour, white, all-purpose, unenriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'all purpose flour'::text),
-  ('Ground Allspice'::text, 'spices & seasoning'::text, 'pinch'::text, 'g'::text, 0.4058::numeric, '{"carb":72.12,"fat":8.69,"fiber":21.6,"kcal":263,"protein":6.09}'::jsonb, 'complete'::text, 'usda_fdc:171315'::text, 'Spices, allspice, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'allspice ground'::text),
-  ('Almonds'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.6044::numeric, '{"carb":21.55,"fat":49.93,"fiber":12.5,"kcal":579,"protein":21.15}'::jsonb, 'complete'::text, 'usda_fdc:170567'::text, 'Nuts, almonds'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'almond'::text),
-  ('Almond Butter'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0567::numeric, '{"carb":18.82,"fat":55.5,"fiber":10.3,"kcal":614,"protein":20.96}'::jsonb, 'complete'::text, 'usda_fdc:168588'::text, 'Nuts, almond butter, plain, without salt added'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'almond butter'::text),
-  ('Almond Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.41::numeric, '{"carb":16.24925,"fat":50.23,"fiber":9.266,"kcal":578,"protein":26.24375}'::jsonb, 'complete'::text, 'usda_fdc:2261420'::text, 'Flour, almond'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'almond flour'::text),
-  ('Almond Milk'::text, 'dairy'::text, 'cup'::text, 'g'::text, 1.01::numeric, '{"carb":1.31,"fat":0.96,"fiber":0.2,"kcal":15,"protein":0.4}'::jsonb, 'complete'::text, 'usda_fdc:174832'::text, 'Beverages, almond milk, unsweetened, shelf stable'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'almond milk'::text),
-  ('Apple'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5283::numeric, '{"carb":13.81,"fat":0.17,"fiber":2.4,"kcal":52,"protein":0.26}'::jsonb, 'complete'::text, 'usda_fdc:171688'::text, 'Apples, raw, with skin (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, 182::numeric, 'borrowed from apple, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'apple'::text),
-  ('Apple Cider Vinegar'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0102::numeric, '{"carb":0.93,"fat":0,"fiber":0,"kcal":21,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:173469'::text, 'Vinegar, cider'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'apple cider vinegar'::text),
-  ('Applesauce'::text, 'pantry'::text, 'cup'::text, 'g'::text, 1.0313::numeric, '{"carb":11.27,"fat":0.1,"fiber":1.1,"kcal":42,"protein":0.17}'::jsonb, 'complete'::text, 'usda_fdc:167772'::text, 'Applesauce, canned, unsweetened, with added ascorbic acid'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'applesauce'::text),
-  ('Apricot'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6551::numeric, '{"carb":11.12,"fat":0.39,"fiber":2,"kcal":48,"protein":1.4}'::jsonb, 'complete'::text, 'usda_fdc:171697'::text, 'Apricots, raw'::text, null::numeric, false, 35::numeric, 'borrowed from apricot'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'apricot'::text),
-  ('Arugula'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.085::numeric, '{"carb":3.65,"fat":0.66,"fiber":1.6,"kcal":25,"protein":2.58}'::jsonb, 'complete'::text, 'usda_fdc:169387'::text, 'Arugula, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'arugula'::text),
-  ('Asparagus'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5664::numeric, '{"carb":3.88,"fat":0.12,"fiber":2.1,"kcal":20,"protein":2.2}'::jsonb, 'complete'::text, 'usda_fdc:168389'::text, 'Asparagus, raw'::text, null::numeric, false, 16::numeric, 'borrowed from spear, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'asparagus'::text),
-  ('Avocado'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.634::numeric, '{"carb":8.53,"fat":14.66,"fiber":6.7,"kcal":160,"protein":2}'::jsonb, 'complete'::text, 'usda_fdc:171705'::text, 'Avocados, raw, all commercial varieties'::text, null::numeric, false, 201::numeric, 'borrowed from avocado'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'avocado'::text),
-  ('Avocado Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:173573'::text, 'Oil, avocado'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'avocado oil'::text),
-  ('Canned Baked Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0736::numeric, '{"carb":21.14,"fat":0.37,"fiber":4.1,"kcal":94,"protein":4.75}'::jsonb, 'complete'::text, 'usda_fdc:175182'::text, 'Beans, baked, canned, plain or vegetarian'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'baked bean canned'::text),
-  ('Baking Powder'::text, 'baking'::text, 'tsp'::text, 'g'::text, 0.9333::numeric, '{"carb":27.7,"fat":0,"fiber":0.2,"kcal":53,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:172803'::text, 'Leavening agents, baking powder, double-acting, sodium aluminum sulfate'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'baking powder'::text),
-  ('Baking Soda'::text, 'baking'::text, 'tsp'::text, 'g'::text, 0.9333::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:175040'::text, 'Leavening agents, baking soda'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'baking soda'::text),
-  ('Balsamic Vinegar'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0778::numeric, '{"carb":17.03,"fat":0,"fiber":0,"kcal":88,"protein":0.49}'::jsonb, 'complete'::text, 'usda_fdc:172241'::text, 'Vinegar, balsamic'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'balsamic vinegar'::text),
-  ('Banana'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.634::numeric, '{"carb":22.84,"fat":0.33,"fiber":2.6,"kcal":89,"protein":1.09}'::jsonb, 'complete'::text, 'usda_fdc:173944'::text, 'Bananas, raw'::text, null::numeric, false, 118::numeric, 'borrowed from banana, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'banana'::text),
-  ('Basil'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.1014::numeric, '{"carb":2.65,"fat":0.64,"fiber":1.6,"kcal":23,"protein":3.15}'::jsonb, 'complete'::text, 'usda_fdc:172232'::text, 'Basil, fresh'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'basil'::text),
-  ('Bay Leaves'::text, 'spices & seasoning'::text, 'piece'::text, 'g'::text, 0.1217::numeric, '{"carb":74.97,"fat":8.36,"fiber":26.3,"kcal":313,"protein":7.61}'::jsonb, 'complete'::text, 'usda_fdc:170917'::text, 'Spices, bay leaf'::text, null::numeric, false, 0.2::numeric, 'borrowed from leaf'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb, 'bay leaf'::text),
-  ('Beets'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5748::numeric, '{"carb":9.56,"fat":0.17,"fiber":2.8,"kcal":43,"protein":1.61}'::jsonb, 'complete'::text, 'usda_fdc:169145'::text, 'Beets, raw'::text, null::numeric, false, 82::numeric, 'borrowed from beet'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'beet'::text),
+  ('Active Dry Yeast'::text, 'baking'::text, 'tsp'::text, 'g'::text, 0.63::numeric, '{"carb":41.22,"fat":7.61,"fiber":26.9,"kcal":325,"protein":40.44}'::jsonb, 'complete'::text, 'usda_fdc:175043'::text, 'Leavening agents, yeast, baker''s, active dry'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'active yeast dry'::text),
+  ('Agave'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.39::numeric, '{"carb":76.37,"fat":0.45,"fiber":0.2,"kcal":310,"protein":0.09}'::jsonb, 'complete'::text, 'usda_fdc:170277'::text, 'Sweetener, syrup, agave'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'agave'::text),
+  ('All-Purpose Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.5283::numeric, '{"carb":76.31,"fat":0.98,"fiber":2.7,"kcal":364,"protein":10.33}'::jsonb, 'complete'::text, 'usda_fdc:169761'::text, 'Wheat flour, white, all-purpose, unenriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'all purpose flour'::text),
+  ('Ground Allspice'::text, 'spices & seasoning'::text, 'pinch'::text, 'g'::text, 0.4058::numeric, '{"carb":72.12,"fat":8.69,"fiber":21.6,"kcal":263,"protein":6.09}'::jsonb, 'complete'::text, 'usda_fdc:171315'::text, 'Spices, allspice, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'allspice ground'::text),
+  ('Almonds'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.6044::numeric, '{"carb":21.55,"fat":49.93,"fiber":12.5,"kcal":579,"protein":21.15}'::jsonb, 'complete'::text, 'usda_fdc:170567'::text, 'Nuts, almonds'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'almond'::text),
+  ('Almond Butter'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0567::numeric, '{"carb":18.82,"fat":55.5,"fiber":10.3,"kcal":614,"protein":20.96}'::jsonb, 'complete'::text, 'usda_fdc:168588'::text, 'Nuts, almond butter, plain, without salt added'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'almond butter'::text),
+  ('Almond Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.41::numeric, '{"carb":16.24925,"fat":50.23,"fiber":9.266,"kcal":578,"protein":26.24375}'::jsonb, 'complete'::text, 'usda_fdc:2261420'::text, 'Flour, almond'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'almond flour'::text),
+  ('Almond Milk'::text, 'dairy'::text, 'cup'::text, 'g'::text, 1.01::numeric, '{"carb":1.31,"fat":0.96,"fiber":0.2,"kcal":15,"protein":0.4}'::jsonb, 'complete'::text, 'usda_fdc:174832'::text, 'Beverages, almond milk, unsweetened, shelf stable'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'almond milk'::text),
+  ('Apple'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5283::numeric, '{"carb":13.81,"fat":0.17,"fiber":2.4,"kcal":52,"protein":0.26}'::jsonb, 'complete'::text, 'usda_fdc:171688'::text, 'Apples, raw, with skin (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, 182::numeric, 'borrowed from apple, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'apple'::text),
+  ('Apple Cider Vinegar'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0102::numeric, '{"carb":0.93,"fat":0,"fiber":0,"kcal":21,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:173469'::text, 'Vinegar, cider'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'apple cider vinegar'::text),
+  ('Applesauce'::text, 'pantry'::text, 'cup'::text, 'g'::text, 1.0313::numeric, '{"carb":11.27,"fat":0.1,"fiber":1.1,"kcal":42,"protein":0.17}'::jsonb, 'complete'::text, 'usda_fdc:167772'::text, 'Applesauce, canned, unsweetened, with added ascorbic acid'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'applesauce'::text),
+  ('Apricot'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6551::numeric, '{"carb":11.12,"fat":0.39,"fiber":2,"kcal":48,"protein":1.4}'::jsonb, 'complete'::text, 'usda_fdc:171697'::text, 'Apricots, raw'::text, null::numeric, false, 35::numeric, 'borrowed from apricot'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'apricot'::text),
+  ('Arugula'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.085::numeric, '{"carb":3.65,"fat":0.66,"fiber":1.6,"kcal":25,"protein":2.58}'::jsonb, 'complete'::text, 'usda_fdc:169387'::text, 'Arugula, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'arugula'::text),
+  ('Asparagus'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5664::numeric, '{"carb":3.88,"fat":0.12,"fiber":2.1,"kcal":20,"protein":2.2}'::jsonb, 'complete'::text, 'usda_fdc:168389'::text, 'Asparagus, raw'::text, null::numeric, false, 16::numeric, 'borrowed from spear, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'asparagus'::text),
+  ('Avocado'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.634::numeric, '{"carb":8.53,"fat":14.66,"fiber":6.7,"kcal":160,"protein":2}'::jsonb, 'complete'::text, 'usda_fdc:171705'::text, 'Avocados, raw, all commercial varieties'::text, null::numeric, false, 201::numeric, 'borrowed from avocado'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'avocado'::text),
+  ('Avocado Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:173573'::text, 'Oil, avocado'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'avocado oil'::text),
+  ('Canned Baked Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0736::numeric, '{"carb":21.14,"fat":0.37,"fiber":4.1,"kcal":94,"protein":4.75}'::jsonb, 'complete'::text, 'usda_fdc:175182'::text, 'Beans, baked, canned, plain or vegetarian'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb, 'baked bean canned'::text),
+  ('Baking Powder'::text, 'baking'::text, 'tsp'::text, 'g'::text, 0.9333::numeric, '{"carb":27.7,"fat":0,"fiber":0.2,"kcal":53,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:172803'::text, 'Leavening agents, baking powder, double-acting, sodium aluminum sulfate'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'baking powder'::text),
+  ('Baking Soda'::text, 'baking'::text, 'tsp'::text, 'g'::text, 0.9333::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:175040'::text, 'Leavening agents, baking soda'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'baking soda'::text),
+  ('Balsamic Vinegar'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0778::numeric, '{"carb":17.03,"fat":0,"fiber":0,"kcal":88,"protein":0.49}'::jsonb, 'complete'::text, 'usda_fdc:172241'::text, 'Vinegar, balsamic'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'balsamic vinegar'::text),
+  ('Banana'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.634::numeric, '{"carb":22.84,"fat":0.33,"fiber":2.6,"kcal":89,"protein":1.09}'::jsonb, 'complete'::text, 'usda_fdc:173944'::text, 'Bananas, raw'::text, null::numeric, false, 118::numeric, 'borrowed from banana, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'banana'::text),
+  ('Basil'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.1014::numeric, '{"carb":2.65,"fat":0.64,"fiber":1.6,"kcal":23,"protein":3.15}'::jsonb, 'complete'::text, 'usda_fdc:172232'::text, 'Basil, fresh'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'basil'::text),
+  ('Bay Leaves'::text, 'spices & seasoning'::text, 'piece'::text, 'g'::text, 0.1217::numeric, '{"carb":74.97,"fat":8.36,"fiber":26.3,"kcal":313,"protein":7.61}'::jsonb, 'complete'::text, 'usda_fdc:170917'::text, 'Spices, bay leaf'::text, null::numeric, false, 0.2::numeric, 'borrowed from leaf'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'bay leaf'::text),
+  ('Beets'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5748::numeric, '{"carb":9.56,"fat":0.17,"fiber":2.8,"kcal":43,"protein":1.61}'::jsonb, 'complete'::text, 'usda_fdc:169145'::text, 'Beets, raw'::text, null::numeric, false, 82::numeric, 'borrowed from beet'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'beet'::text),
   ('Beyond Hot Italian Style Sausage'::text, 'proteins'::text, 'piece'::text, 'g'::text, null::numeric, '{"carb":7,"fat":15,"fiber":2,"kcal":240,"protein":16}'::jsonb, 'complete'::text, 'off:0810057290879'::text, 'Beyond Meat Beyond Sausage Plant-Based Links Hot Italian Style'::text, null::numeric, false, 100::numeric, 'borrowed from link'::text, '["piece","g","kg","oz","lb"]'::jsonb, 'beyond hot italian style sausage'::text),
-  ('Canned Black Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.72::numeric, '{"carb":20.22,"fat":0.9,"fiber":5.5,"kcal":114,"protein":6.99}'::jsonb, 'complete'::text, 'usda_fdc:174286 — borrowed (pinto, drained solids)'::text, 'Beans, pinto, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'black bean canned'::text),
-  ('Dried Black Beans'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.82::numeric, '{"carb":62.36,"fat":1.42,"fiber":15.5,"kcal":341,"protein":21.6}'::jsonb, 'complete'::text, 'usda_fdc:173734'::text, 'Beans, black, mature seeds, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'black bean dried'::text),
-  ('Canned Black-Eyed Peas'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.72::numeric, '{"carb":20.22,"fat":0.9,"fiber":5.5,"kcal":114,"protein":6.99}'::jsonb, 'complete'::text, 'usda_fdc:174286 — borrowed (pinto, drained solids)'::text, 'Beans, pinto, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'black eyed pea canned'::text),
-  ('Dried Black-Eyed Peas'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.7059::numeric, '{"carb":60.03,"fat":1.26,"fiber":10.6,"kcal":336,"protein":23.52}'::jsonb, 'complete'::text, 'usda_fdc:173758'::text, 'Cowpeas, common (blackeyes, crowder, southern), mature seeds, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'black eyed pea dried'::text),
-  ('Black Pepper'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.4666::numeric, '{"carb":63.95,"fat":3.26,"fiber":25.3,"kcal":251,"protein":10.39}'::jsonb, 'complete'::text, 'usda_fdc:170931'::text, 'Spices, pepper, black'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'black pepper'::text),
+  ('Canned Black Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.72::numeric, '{"carb":20.22,"fat":0.9,"fiber":5.5,"kcal":114,"protein":6.99}'::jsonb, 'complete'::text, 'usda_fdc:174286 — borrowed (pinto, drained solids)'::text, 'Beans, pinto, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb, 'black bean canned'::text),
+  ('Dried Black Beans'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.82::numeric, '{"carb":62.36,"fat":1.42,"fiber":15.5,"kcal":341,"protein":21.6}'::jsonb, 'complete'::text, 'usda_fdc:173734'::text, 'Beans, black, mature seeds, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'black bean dried'::text),
+  ('Canned Black-Eyed Peas'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.72::numeric, '{"carb":20.22,"fat":0.9,"fiber":5.5,"kcal":114,"protein":6.99}'::jsonb, 'complete'::text, 'usda_fdc:174286 — borrowed (pinto, drained solids)'::text, 'Beans, pinto, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb, 'black eyed pea canned'::text),
+  ('Dried Black-Eyed Peas'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.7059::numeric, '{"carb":60.03,"fat":1.26,"fiber":10.6,"kcal":336,"protein":23.52}'::jsonb, 'complete'::text, 'usda_fdc:173758'::text, 'Cowpeas, common (blackeyes, crowder, southern), mature seeds, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'black eyed pea dried'::text),
+  ('Black Pepper'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.4666::numeric, '{"carb":63.95,"fat":3.26,"fiber":25.3,"kcal":251,"protein":10.39}'::jsonb, 'complete'::text, 'usda_fdc:170931'::text, 'Spices, pepper, black'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'black pepper'::text),
   ('Black Rice'::text, 'grains'::text, 'cup'::text, 'ml'::text, 0.760815510791467::numeric, '{"carb":55.793137458040945,"fat":1.69070113509215,"fiber":5.07210340527645,"kcal":270.512181614744,"protein":6.7628045403686}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["cup","g","kg","oz","lb"]'::jsonb, 'black rice'::text),
-  ('Blueberries'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.6256::numeric, '{"carb":14.49,"fat":0.33,"fiber":2.4,"kcal":57,"protein":0.74}'::jsonb, 'complete'::text, 'usda_fdc:171711'::text, 'Blueberries, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'blueberry'::text),
-  ('Bouillon Paste'::text, 'pantry'::text, 'tsp'::text, 'g'::text, 1.21730481726635::numeric, '{"carb":33.333333333333336,"fat":0,"fiber":0,"kcal":166.66666666666669,"protein":3.333333333333334}'::jsonb, 'complete'::text, 'off:0098308002826'::text, 'Better Than Bouillon Seasoned Vegetable Base'::text, null::numeric, false, null::numeric, null::text, '["tsp","tbsp","fl_oz","cup","ml","l","pt","qt","g","kg","oz","lb"]'::jsonb, 'bouillon paste'::text),
-  ('Brazil Nuts'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.5622::numeric, '{"carb":11.74,"fat":67.1,"fiber":7.5,"kcal":659,"protein":14.32}'::jsonb, 'complete'::text, 'usda_fdc:170569'::text, 'Nuts, brazilnuts, dried, unblanched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'brazil nut'::text),
-  ('Bread Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.5791::numeric, '{"carb":72.53,"fat":1.66,"fiber":2.4,"kcal":361,"protein":11.98}'::jsonb, 'complete'::text, 'usda_fdc:168913'::text, 'Wheat flours, bread, unenriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'bread flour'::text),
+  ('Blueberries'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.6256::numeric, '{"carb":14.49,"fat":0.33,"fiber":2.4,"kcal":57,"protein":0.74}'::jsonb, 'complete'::text, 'usda_fdc:171711'::text, 'Blueberries, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'blueberry'::text),
+  ('Bouillon Paste'::text, 'pantry'::text, 'tsp'::text, 'g'::text, 1.21730481726635::numeric, '{"carb":33.333333333333336,"fat":0,"fiber":0,"kcal":166.66666666666669,"protein":3.333333333333334}'::jsonb, 'complete'::text, 'off:0098308002826'::text, 'Better Than Bouillon Seasoned Vegetable Base'::text, null::numeric, false, null::numeric, null::text, '["tsp","tbsp","cup","ml","g","kg","oz","lb"]'::jsonb, 'bouillon paste'::text),
+  ('Brazil Nuts'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.5622::numeric, '{"carb":11.74,"fat":67.1,"fiber":7.5,"kcal":659,"protein":14.32}'::jsonb, 'complete'::text, 'usda_fdc:170569'::text, 'Nuts, brazilnuts, dried, unblanched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'brazil nut'::text),
+  ('Bread Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.5791::numeric, '{"carb":72.53,"fat":1.66,"fiber":2.4,"kcal":361,"protein":11.98}'::jsonb, 'complete'::text, 'usda_fdc:168913'::text, 'Wheat flours, bread, unenriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'bread flour'::text),
   ('Breaded Vegan Chicken Nugget'::text, 'proteins'::text, 'oz'::text, 'g'::text, null::numeric, '{"carb":20,"fat":12.631578947368421,"fiber":2.1052631578947367,"kcal":252.6315789473684,"protein":13.68421052631579}'::jsonb, 'complete'::text, 'off:0816697020425'::text, 'IMPOSSIBLE CHICKEN NUGGETS'::text, null::numeric, false, null::numeric, null::text, '["oz","g","kg","lb"]'::jsonb, 'breaded vegan chicken nugget'::text),
-  ('Broccoli'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.3846::numeric, '{"carb":6.64,"fat":0.37,"fiber":2.6,"kcal":34,"protein":2.82}'::jsonb, 'complete'::text, 'usda_fdc:170379'::text, 'Broccoli, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'broccoli'::text),
-  ('Brown Rice'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.782::numeric, '{"carb":76.25,"fat":3.2,"fiber":3.6,"kcal":367,"protein":7.54}'::jsonb, 'complete'::text, 'usda_fdc:169703'::text, 'Rice, brown, long-grain, raw (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'brown rice'::text),
-  ('Cooked Brown Rice'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.8538::numeric, '{"carb":25.58,"fat":0.97,"fiber":1.6,"kcal":123,"protein":2.74}'::jsonb, 'complete'::text, 'usda_fdc:169704'::text, 'Rice, brown, long-grain, cooked (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'brown rice cooked'::text),
-  ('Brown Sugar'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.9299::numeric, '{"carb":98.09,"fat":0,"fiber":0,"kcal":380,"protein":0.12}'::jsonb, 'complete'::text, 'usda_fdc:168833'::text, 'Sugars, brown'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'brown sugar'::text),
-  ('Brussels Sprouts'::text, 'produce'::text, 'lb'::text, 'g'::text, 0.372::numeric, '{"carb":8.95,"fat":0.3,"fiber":3.8,"kcal":43,"protein":3.38}'::jsonb, 'complete'::text, 'usda_fdc:170383'::text, 'Brussels sprouts, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'brussel sprout'::text),
-  ('Buckwheat'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.7185::numeric, '{"carb":71.5,"fat":3.4,"fiber":10,"kcal":343,"protein":13.25}'::jsonb, 'complete'::text, 'usda_fdc:170286'::text, 'Buckwheat'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'buckwheat'::text),
-  ('Buckwheat Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.5072::numeric, '{"carb":70.59,"fat":3.1,"fiber":10,"kcal":335,"protein":12.62}'::jsonb, 'complete'::text, 'usda_fdc:170687'::text, 'Buckwheat flour, whole-groat'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'buckwheat flour'::text),
-  ('Bulgur'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.5917::numeric, '{"carb":75.87,"fat":1.33,"fiber":12.5,"kcal":342,"protein":12.29}'::jsonb, 'complete'::text, 'usda_fdc:170688'::text, 'Bulgur, dry'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'bulgur'::text),
-  ('Burger Buns'::text, 'grains'::text, 'piece'::text, 'g'::text, 0.18::numeric, '{"carb":50.12,"fat":3.91,"fiber":1.8,"kcal":279,"protein":9.77}'::jsonb, 'stub'::text, 'usda_fdc:172796 + fao_infoods_v2:Bread, roll, soft'::text, 'Rolls, hamburger or hotdog, plain'::text, null::numeric, false, 44::numeric, 'borrowed from bun'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb, 'burger bun'::text),
-  ('Butternut Squash'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5917::numeric, '{"carb":11.69,"fat":0.1,"fiber":2,"kcal":45,"protein":1}'::jsonb, 'complete'::text, 'usda_fdc:169295'::text, 'Squash, winter, butternut, raw'::text, null::numeric, false, 1130::numeric, 'borrowed from squash, whole'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'butternut squash'::text),
-  ('Cabbage'::text, 'produce'::text, 'lb'::text, 'g'::text, 0.3762::numeric, '{"carb":5.8,"fat":0.1,"fiber":2.5,"kcal":25,"protein":1.28}'::jsonb, 'complete'::text, 'usda_fdc:169975'::text, 'Cabbage, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'cabbage'::text),
-  ('Canned Cannellini Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.72::numeric, '{"carb":20.22,"fat":0.9,"fiber":5.5,"kcal":114,"protein":6.99}'::jsonb, 'complete'::text, 'usda_fdc:174286 — borrowed (pinto, drained solids)'::text, 'Beans, pinto, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'cannellini bean canned'::text),
-  ('Dried Cannellini Beans'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.8538::numeric, '{"carb":60.27,"fat":0.85,"fiber":15.2,"kcal":333,"protein":23.36}'::jsonb, 'complete'::text, 'usda_fdc:175202'::text, 'Beans, white, mature seeds, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'cannellini bean dried'::text),
-  ('Canola Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:172336'::text, 'Oil, canola'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'canola oil'::text),
-  ('Cantaloupe'::text, 'produce'::text, 'lb'::text, 'g'::text, 0.7481::numeric, '{"carb":8.16,"fat":0.19,"fiber":0.9,"kcal":34,"protein":0.84}'::jsonb, 'complete'::text, 'usda_fdc:169092'::text, 'Melons, cantaloupe, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'cantaloupe'::text),
-  ('Capers'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.5816::numeric, '{"carb":4.89,"fat":0.86,"fiber":3.2,"kcal":23,"protein":2.36}'::jsonb, 'complete'::text, 'usda_fdc:172238'::text, 'Capers, canned'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'caper'::text),
-  ('Carrot'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.541::numeric, '{"carb":9.58,"fat":0.24,"fiber":2.8,"kcal":41,"protein":0.93}'::jsonb, 'complete'::text, 'usda_fdc:170393'::text, 'Carrots, raw'::text, null::numeric, false, 61::numeric, 'borrowed from carrot, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'carrot'::text),
-  ('Cashews'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.58::numeric, '{"carb":30.19,"fat":43.85,"fiber":3.3,"kcal":553,"protein":18.22}'::jsonb, 'complete'::text, 'usda_fdc:170162'::text, 'Nuts, cashew nuts, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'cashew'::text),
-  ('Cauliflower'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.4523::numeric, '{"carb":4.97,"fat":0.28,"fiber":2,"kcal":25,"protein":1.92}'::jsonb, 'complete'::text, 'usda_fdc:169986'::text, 'Cauliflower, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'cauliflower'::text),
-  ('Cavatappi'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.3846::numeric, '{"carb":74.67,"fat":1.51,"fiber":3.2,"kcal":371,"protein":13.04}'::jsonb, 'complete'::text, 'usda_fdc:169736'::text, 'Pasta, dry, enriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'cavatappi'::text),
-  ('Cayenne Pepper'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.3584::numeric, '{"carb":56.63,"fat":17.27,"fiber":27.2,"kcal":318,"protein":12.01}'::jsonb, 'complete'::text, 'usda_fdc:170932'::text, 'Spices, pepper, red or cayenne'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'cayenne pepper'::text),
-  ('Celery'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5072::numeric, '{"carb":2.97,"fat":0.17,"fiber":1.6,"kcal":14,"protein":0.69}'::jsonb, 'complete'::text, 'usda_fdc:169988'::text, 'Celery, raw'::text, null::numeric, false, 40::numeric, 'borrowed from stalk, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'celery'::text),
-  ('Cherries'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.5833::numeric, '{"carb":16.01,"fat":0.2,"fiber":2.1,"kcal":63,"protein":1.06}'::jsonb, 'complete'::text, 'usda_fdc:171719'::text, 'Cherries, sweet, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'cherry'::text),
-  ('Cherry Tomatoes'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.6298::numeric, '{"carb":3.89,"fat":0.2,"fiber":1.2,"kcal":18,"protein":0.88}'::jsonb, 'complete'::text, 'usda_fdc:170457'::text, 'Tomatoes, red, ripe, raw, year round average'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'cherry tomato'::text),
-  ('Chia Seeds'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.81::numeric, '{"carb":42.12,"fat":30.74,"fiber":34.4,"kcal":486,"protein":16.54}'::jsonb, 'complete'::text, 'usda_fdc:170554'::text, 'Seeds, chia seeds, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'chia seed'::text),
-  ('Canned Chickpeas'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.69::numeric, '{"carb":22.53,"fat":2.77,"fiber":6.4,"kcal":139,"protein":7.05}'::jsonb, 'complete'::text, 'usda_fdc:173800'::text, 'Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'chickpea canned'::text),
-  ('Dried Chickpeas'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.8454::numeric, '{"carb":62.95,"fat":6.04,"fiber":12.2,"kcal":378,"protein":20.47}'::jsonb, 'complete'::text, 'usda_fdc:173756'::text, 'Chickpeas (garbanzo beans, bengal gram), mature seeds, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'chickpea dried'::text),
-  ('Chickpea Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.3889::numeric, '{"carb":57.82,"fat":6.69,"fiber":10.8,"kcal":387,"protein":22.39}'::jsonb, 'complete'::text, 'usda_fdc:174288'::text, 'Chickpea flour (besan)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'chickpea flour'::text),
-  ('Chili Powder'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.541::numeric, '{"carb":49.7,"fat":14.28,"fiber":34.8,"kcal":282,"protein":13.46}'::jsonb, 'complete'::text, 'usda_fdc:171319'::text, 'Spices, chili powder'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'chili powder'::text),
-  ('Chipotle Chili Powder'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.541::numeric, '{"carb":49.7,"fat":14.28,"fiber":34.8,"kcal":282,"protein":13.46}'::jsonb, 'stub'::text, 'usda_fdc:171319'::text, 'Spices, chili powder'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'chipotle chili powder'::text),
-  ('Chives'::text, 'produce'::text, 'tbsp'::text, 'g'::text, 0.2029::numeric, '{"carb":4.35,"fat":0.73,"fiber":2.5,"kcal":30,"protein":3.27}'::jsonb, 'complete'::text, 'usda_fdc:169994'::text, 'Chives, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'chive'::text),
-  ('Cilantro'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.068::numeric, '{"carb":3.67,"fat":0.52,"fiber":2.8,"kcal":23,"protein":2.13}'::jsonb, 'complete'::text, 'usda_fdc:169997'::text, 'Coriander (cilantro) leaves, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'cilantro'::text),
-  ('Ground Cinnamon'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.5275::numeric, '{"carb":80.59,"fat":1.24,"fiber":53.1,"kcal":247,"protein":3.99}'::jsonb, 'complete'::text, 'usda_fdc:171320'::text, 'Spices, cinnamon, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'cinnamon ground'::text),
-  ('Cinnamon Stick'::text, 'spices & seasoning'::text, 'piece'::text, 'g'::text, 0.5275::numeric, '{"carb":80.59,"fat":1.24,"fiber":53.1,"kcal":247,"protein":3.99}'::jsonb, 'stub'::text, 'usda_fdc:171320'::text, 'Spices, cinnamon, ground'::text, null::numeric, false, 2.6::numeric, 'borrowed from stick'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb, 'cinnamon stick'::text),
-  ('Ground Cloves'::text, 'spices & seasoning'::text, 'pinch'::text, 'g'::text, 0.4396::numeric, '{"carb":65.53,"fat":13,"fiber":33.9,"kcal":274,"protein":5.97}'::jsonb, 'complete'::text, 'usda_fdc:171321'::text, 'Spices, cloves, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'clove ground'::text),
-  ('Cocoa Powder'::text, 'baking'::text, 'tbsp'::text, 'g'::text, 0.3635::numeric, '{"carb":57.9,"fat":13.7,"fiber":37,"kcal":228,"protein":19.6}'::jsonb, 'complete'::text, 'usda_fdc:169593'::text, 'Cocoa, dry powder, unsweetened'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'cocoa powder'::text),
-  ('Dried Coconut Flakes'::text, 'pantry'::text, 'tbsp'::text, 'ml'::text, 0.33814022701843::numeric, '{"carb":6.7628045403686,"fat":22.542681801228667,"fiber":4.508536360245733,"kcal":247.9694998135153,"protein":2.2542681801228666}'::jsonb, 'complete'::text, 'fdc_density:170577'::text, null::text, null::numeric, false, null::numeric, null::text, '["cup","tsp","tbsp","fl_oz","ml","l","pt","qt","g","kg","oz","lb"]'::jsonb, 'coconut flake dried'::text),
-  ('Canned Coconut Milk'::text, 'pantry'::text, 'piece'::text, 'g'::text, 0.9552::numeric, '{"carb":2.81,"fat":21.33,"kcal":197,"protein":2.02}'::jsonb, 'stub'::text, 'usda_fdc:170173'::text, 'Nuts, coconut milk, canned (liquid expressed from grated meat and water)'::text, null::numeric, false, 400::numeric, 'borrowed from can (400 ml)'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb, 'coconut milk canned'::text),
-  ('Coconut Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":99.06,"fiber":0,"kcal":892,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:171412'::text, 'Oil, coconut'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'coconut oil'::text),
-  ('Collard Greens'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.1522::numeric, '{"carb":5.42,"fat":0.61,"fiber":4,"kcal":32,"protein":3.02}'::jsonb, 'complete'::text, 'usda_fdc:170406'::text, 'Collards, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'collard green'::text),
-  ('Ground Coriander'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.3381::numeric, '{"carb":54.99,"fat":17.77,"fiber":41.9,"kcal":298,"protein":12.37}'::jsonb, 'complete'::text, 'usda_fdc:170922'::text, 'Spices, coriander seed'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'coriander ground'::text),
-  ('Corn'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6129::numeric, '{"carb":18.7,"fat":1.35,"fiber":2,"kcal":86,"protein":3.27}'::jsonb, 'complete'::text, 'usda_fdc:169998'::text, 'Corn, sweet, yellow, raw'::text, null::numeric, false, 102::numeric, 'borrowed from ear, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'corn'::text),
-  ('Frozen Corn'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.5748::numeric, '{"carb":20.71,"fat":0.78,"fiber":2.1,"kcal":88,"protein":3.02}'::jsonb, 'complete'::text, 'usda_fdc:168398'::text, 'Corn, sweet, yellow, frozen, kernels cut off cob, unprepared (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'corn frozen'::text),
-  ('Corn Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":900,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:171029'::text, 'Oil, corn, industrial and retail, all purpose salad or cooking'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'corn oil'::text),
+  ('Broccoli'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.3846::numeric, '{"carb":6.64,"fat":0.37,"fiber":2.6,"kcal":34,"protein":2.82}'::jsonb, 'complete'::text, 'usda_fdc:170379'::text, 'Broccoli, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'broccoli'::text),
+  ('Brown Rice'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.782::numeric, '{"carb":76.25,"fat":3.2,"fiber":3.6,"kcal":367,"protein":7.54}'::jsonb, 'complete'::text, 'usda_fdc:169703'::text, 'Rice, brown, long-grain, raw (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'brown rice'::text),
+  ('Cooked Brown Rice'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.8538::numeric, '{"carb":25.58,"fat":0.97,"fiber":1.6,"kcal":123,"protein":2.74}'::jsonb, 'complete'::text, 'usda_fdc:169704'::text, 'Rice, brown, long-grain, cooked (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb, 'brown rice cooked'::text),
+  ('Brown Sugar'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.9299::numeric, '{"carb":98.09,"fat":0,"fiber":0,"kcal":380,"protein":0.12}'::jsonb, 'complete'::text, 'usda_fdc:168833'::text, 'Sugars, brown'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'brown sugar'::text),
+  ('Brussels Sprouts'::text, 'produce'::text, 'lb'::text, 'g'::text, 0.372::numeric, '{"carb":8.95,"fat":0.3,"fiber":3.8,"kcal":43,"protein":3.38}'::jsonb, 'complete'::text, 'usda_fdc:170383'::text, 'Brussels sprouts, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'brussel sprout'::text),
+  ('Buckwheat'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.7185::numeric, '{"carb":71.5,"fat":3.4,"fiber":10,"kcal":343,"protein":13.25}'::jsonb, 'complete'::text, 'usda_fdc:170286'::text, 'Buckwheat'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'buckwheat'::text),
+  ('Buckwheat Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.5072::numeric, '{"carb":70.59,"fat":3.1,"fiber":10,"kcal":335,"protein":12.62}'::jsonb, 'complete'::text, 'usda_fdc:170687'::text, 'Buckwheat flour, whole-groat'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'buckwheat flour'::text),
+  ('Bulgur'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.5917::numeric, '{"carb":75.87,"fat":1.33,"fiber":12.5,"kcal":342,"protein":12.29}'::jsonb, 'complete'::text, 'usda_fdc:170688'::text, 'Bulgur, dry'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'bulgur'::text),
+  ('Burger Buns'::text, 'grains'::text, 'piece'::text, 'g'::text, 0.18::numeric, '{"carb":50.12,"fat":3.91,"fiber":1.8,"kcal":279,"protein":9.77}'::jsonb, 'complete'::text, 'usda_fdc:172796 + fao_infoods_v2:Bread, roll, soft'::text, 'Rolls, hamburger or hotdog, plain'::text, null::numeric, false, 44::numeric, 'borrowed from bun'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'burger bun'::text),
+  ('Butternut Squash'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5917::numeric, '{"carb":11.69,"fat":0.1,"fiber":2,"kcal":45,"protein":1}'::jsonb, 'complete'::text, 'usda_fdc:169295'::text, 'Squash, winter, butternut, raw'::text, null::numeric, false, 1130::numeric, 'borrowed from squash, whole'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'butternut squash'::text),
+  ('Cabbage'::text, 'produce'::text, 'lb'::text, 'g'::text, 0.3762::numeric, '{"carb":5.8,"fat":0.1,"fiber":2.5,"kcal":25,"protein":1.28}'::jsonb, 'complete'::text, 'usda_fdc:169975'::text, 'Cabbage, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'cabbage'::text),
+  ('Canned Cannellini Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.72::numeric, '{"carb":20.22,"fat":0.9,"fiber":5.5,"kcal":114,"protein":6.99}'::jsonb, 'complete'::text, 'usda_fdc:174286 — borrowed (pinto, drained solids)'::text, 'Beans, pinto, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb, 'cannellini bean canned'::text),
+  ('Dried Cannellini Beans'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.8538::numeric, '{"carb":60.27,"fat":0.85,"fiber":15.2,"kcal":333,"protein":23.36}'::jsonb, 'complete'::text, 'usda_fdc:175202'::text, 'Beans, white, mature seeds, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'cannellini bean dried'::text),
+  ('Canola Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:172336'::text, 'Oil, canola'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'canola oil'::text),
+  ('Cantaloupe'::text, 'produce'::text, 'lb'::text, 'g'::text, 0.7481::numeric, '{"carb":8.16,"fat":0.19,"fiber":0.9,"kcal":34,"protein":0.84}'::jsonb, 'complete'::text, 'usda_fdc:169092'::text, 'Melons, cantaloupe, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'cantaloupe'::text),
+  ('Capers'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.5816::numeric, '{"carb":4.89,"fat":0.86,"fiber":3.2,"kcal":23,"protein":2.36}'::jsonb, 'complete'::text, 'usda_fdc:172238'::text, 'Capers, canned'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'caper'::text),
+  ('Carrot'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.541::numeric, '{"carb":9.58,"fat":0.24,"fiber":2.8,"kcal":41,"protein":0.93}'::jsonb, 'complete'::text, 'usda_fdc:170393'::text, 'Carrots, raw'::text, null::numeric, false, 61::numeric, 'borrowed from carrot, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'carrot'::text),
+  ('Cashews'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.58::numeric, '{"carb":30.19,"fat":43.85,"fiber":3.3,"kcal":553,"protein":18.22}'::jsonb, 'complete'::text, 'usda_fdc:170162'::text, 'Nuts, cashew nuts, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'cashew'::text),
+  ('Cauliflower'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.4523::numeric, '{"carb":4.97,"fat":0.28,"fiber":2,"kcal":25,"protein":1.92}'::jsonb, 'complete'::text, 'usda_fdc:169986'::text, 'Cauliflower, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'cauliflower'::text),
+  ('Cavatappi'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.3846::numeric, '{"carb":74.67,"fat":1.51,"fiber":3.2,"kcal":371,"protein":13.04}'::jsonb, 'complete'::text, 'usda_fdc:169736'::text, 'Pasta, dry, enriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'cavatappi'::text),
+  ('Cayenne Pepper'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.3584::numeric, '{"carb":56.63,"fat":17.27,"fiber":27.2,"kcal":318,"protein":12.01}'::jsonb, 'complete'::text, 'usda_fdc:170932'::text, 'Spices, pepper, red or cayenne'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'cayenne pepper'::text),
+  ('Celery'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5072::numeric, '{"carb":2.97,"fat":0.17,"fiber":1.6,"kcal":14,"protein":0.69}'::jsonb, 'complete'::text, 'usda_fdc:169988'::text, 'Celery, raw'::text, null::numeric, false, 40::numeric, 'borrowed from stalk, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'celery'::text),
+  ('Cherries'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.5833::numeric, '{"carb":16.01,"fat":0.2,"fiber":2.1,"kcal":63,"protein":1.06}'::jsonb, 'complete'::text, 'usda_fdc:171719'::text, 'Cherries, sweet, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'cherry'::text),
+  ('Cherry Tomatoes'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.6298::numeric, '{"carb":3.89,"fat":0.2,"fiber":1.2,"kcal":18,"protein":0.88}'::jsonb, 'complete'::text, 'usda_fdc:170457'::text, 'Tomatoes, red, ripe, raw, year round average'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'cherry tomato'::text),
+  ('Chia Seeds'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.81::numeric, '{"carb":42.12,"fat":30.74,"fiber":34.4,"kcal":486,"protein":16.54}'::jsonb, 'complete'::text, 'usda_fdc:170554'::text, 'Seeds, chia seeds, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'chia seed'::text),
+  ('Canned Chickpeas'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.69::numeric, '{"carb":22.53,"fat":2.77,"fiber":6.4,"kcal":139,"protein":7.05}'::jsonb, 'complete'::text, 'usda_fdc:173800'::text, 'Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'chickpea canned'::text),
+  ('Dried Chickpeas'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.8454::numeric, '{"carb":62.95,"fat":6.04,"fiber":12.2,"kcal":378,"protein":20.47}'::jsonb, 'complete'::text, 'usda_fdc:173756'::text, 'Chickpeas (garbanzo beans, bengal gram), mature seeds, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'chickpea dried'::text),
+  ('Chickpea Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.3889::numeric, '{"carb":57.82,"fat":6.69,"fiber":10.8,"kcal":387,"protein":22.39}'::jsonb, 'complete'::text, 'usda_fdc:174288'::text, 'Chickpea flour (besan)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'chickpea flour'::text),
+  ('Chili Powder'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.541::numeric, '{"carb":49.7,"fat":14.28,"fiber":34.8,"kcal":282,"protein":13.46}'::jsonb, 'complete'::text, 'usda_fdc:171319'::text, 'Spices, chili powder'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'chili powder'::text),
+  ('Chipotle Chili Powder'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.541::numeric, '{"carb":49.7,"fat":14.28,"fiber":34.8,"kcal":282,"protein":13.46}'::jsonb, 'complete'::text, 'usda_fdc:171319'::text, 'Spices, chili powder'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'chipotle chili powder'::text),
+  ('Chives'::text, 'produce'::text, 'tbsp'::text, 'g'::text, 0.2029::numeric, '{"carb":4.35,"fat":0.73,"fiber":2.5,"kcal":30,"protein":3.27}'::jsonb, 'complete'::text, 'usda_fdc:169994'::text, 'Chives, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'chive'::text),
+  ('Cilantro'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.068::numeric, '{"carb":3.67,"fat":0.52,"fiber":2.8,"kcal":23,"protein":2.13}'::jsonb, 'complete'::text, 'usda_fdc:169997'::text, 'Coriander (cilantro) leaves, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'cilantro'::text),
+  ('Ground Cinnamon'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.5275::numeric, '{"carb":80.59,"fat":1.24,"fiber":53.1,"kcal":247,"protein":3.99}'::jsonb, 'complete'::text, 'usda_fdc:171320'::text, 'Spices, cinnamon, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'cinnamon ground'::text),
+  ('Cinnamon Stick'::text, 'spices & seasoning'::text, 'piece'::text, 'g'::text, null::numeric, '{"carb":80.59,"fat":1.24,"fiber":53.1,"kcal":247,"protein":3.99}'::jsonb, 'complete'::text, 'usda_fdc:171320'::text, 'Spices, cinnamon, ground'::text, null::numeric, true, 2.6::numeric, 'borrowed from stick'::text, '["g","kg","oz","lb","piece"]'::jsonb, 'cinnamon stick'::text),
+  ('Ground Cloves'::text, 'spices & seasoning'::text, 'pinch'::text, 'g'::text, 0.4396::numeric, '{"carb":65.53,"fat":13,"fiber":33.9,"kcal":274,"protein":5.97}'::jsonb, 'complete'::text, 'usda_fdc:171321'::text, 'Spices, cloves, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'clove ground'::text),
+  ('Cocoa Powder'::text, 'baking'::text, 'tbsp'::text, 'g'::text, 0.3635::numeric, '{"carb":57.9,"fat":13.7,"fiber":37,"kcal":228,"protein":19.6}'::jsonb, 'complete'::text, 'usda_fdc:169593'::text, 'Cocoa, dry powder, unsweetened'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'cocoa powder'::text),
+  ('Dried Coconut Flakes'::text, 'pantry'::text, 'tbsp'::text, 'ml'::text, 0.33814022701843::numeric, '{"carb":6.7628045403686,"fat":22.542681801228667,"fiber":4.508536360245733,"kcal":247.9694998135153,"protein":2.2542681801228666}'::jsonb, 'complete'::text, 'fdc_density:170577'::text, null::text, null::numeric, false, null::numeric, null::text, '["cup","tsp","tbsp","ml","g","kg","oz","lb"]'::jsonb, 'coconut flake dried'::text),
+  ('Canned Coconut Milk'::text, 'pantry'::text, 'piece'::text, 'g'::text, 0.9552::numeric, '{"carb":2.81,"fat":21.33,"fiber":0,"kcal":197,"protein":2.02}'::jsonb, 'complete'::text, 'usda_fdc:170173'::text, 'Nuts, coconut milk, canned (liquid expressed from grated meat and water)'::text, null::numeric, true, 400::numeric, 'borrowed from can (400 ml)'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'coconut milk canned'::text),
+  ('Coconut Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":99.06,"fiber":0,"kcal":892,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:171412'::text, 'Oil, coconut'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'coconut oil'::text),
+  ('Collard Greens'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.1522::numeric, '{"carb":5.42,"fat":0.61,"fiber":4,"kcal":32,"protein":3.02}'::jsonb, 'complete'::text, 'usda_fdc:170406'::text, 'Collards, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'collard green'::text),
+  ('Ground Coriander'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.3381::numeric, '{"carb":54.99,"fat":17.77,"fiber":41.9,"kcal":298,"protein":12.37}'::jsonb, 'complete'::text, 'usda_fdc:170922'::text, 'Spices, coriander seed'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'coriander ground'::text),
+  ('Corn'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6129::numeric, '{"carb":18.7,"fat":1.35,"fiber":2,"kcal":86,"protein":3.27}'::jsonb, 'complete'::text, 'usda_fdc:169998'::text, 'Corn, sweet, yellow, raw'::text, null::numeric, false, 102::numeric, 'borrowed from ear, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'corn'::text),
+  ('Frozen Corn'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.5748::numeric, '{"carb":20.71,"fat":0.78,"fiber":2.1,"kcal":88,"protein":3.02}'::jsonb, 'complete'::text, 'usda_fdc:168398'::text, 'Corn, sweet, yellow, frozen, kernels cut off cob, unprepared (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'corn frozen'::text),
+  ('Corn Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":900,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:171029'::text, 'Oil, corn, industrial and retail, all purpose salad or cooking'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'corn oil'::text),
   ('Corn Tortilla'::text, 'grains'::text, 'piece'::text, 'g'::text, null::numeric, '{"carb":44.64,"fat":2.85,"fiber":6.3,"kcal":218,"protein":5.7}'::jsonb, 'complete'::text, 'usda_fdc:175036'::text, 'Tortillas, ready-to-bake or -fry, corn'::text, null::numeric, false, 24::numeric, 'borrowed from tortilla'::text, '["g","kg","oz","lb","piece"]'::jsonb, 'corn tortilla'::text),
-  ('Cornmeal'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.5157::numeric, '{"carb":76.89,"fat":3.59,"fiber":7.3,"kcal":362,"protein":8.12}'::jsonb, 'complete'::text, 'usda_fdc:169697'::text, 'Cornmeal, whole-grain, yellow'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'cornmeal'::text),
-  ('Cornstarch'::text, 'baking'::text, 'tbsp'::text, 'g'::text, 0.541::numeric, '{"carb":91.27,"fat":0.05,"fiber":0.9,"kcal":381,"protein":0.26}'::jsonb, 'complete'::text, 'usda_fdc:169698'::text, 'Cornstarch'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'cornstarch'::text),
-  ('Dried Cranberries'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.6763::numeric, '{"carb":82.8,"fat":1.09,"fiber":5.3,"kcal":308,"protein":0.17}'::jsonb, 'complete'::text, 'usda_fdc:171723'::text, 'Cranberries, dried, sweetened (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'cranberry dried'::text),
-  ('Cremini Mushroom'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.3677::numeric, '{"carb":4.3,"fat":0.1,"fiber":0.6,"kcal":22,"protein":2.5}'::jsonb, 'complete'::text, 'usda_fdc:168434'::text, 'Mushrooms, brown, italian, or crimini, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'cremini mushroom'::text),
-  ('Crispy Onion'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.946792635651604::numeric, '{"carb":42.9,"fat":42.9,"fiber":0,"kcal":571.4,"protein":0}'::jsonb, 'complete'::text, 'label:IKEA Rostad Lök fried onions (1 tbsp = 14 g)'::text, 'IKEA Rostad Lök fried onions (1 tbsp = 14 g)'::text, null::numeric, false, null::numeric, null::text, '["tsp","tbsp","handful","g","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'crispy onion'::text),
-  ('Cucumber'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.4396::numeric, '{"carb":3.63,"fat":0.11,"fiber":0.5,"kcal":15,"protein":0.65}'::jsonb, 'complete'::text, 'usda_fdc:168409'::text, 'Cucumber, with peel, raw'::text, null::numeric, false, 301::numeric, 'borrowed from cucumber'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'cucumber'::text),
-  ('Ground Cumin'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.4058::numeric, '{"carb":44.24,"fat":22.27,"fiber":10.5,"kcal":375,"protein":17.81}'::jsonb, 'complete'::text, 'usda_fdc:170923'::text, 'Spices, cumin seed'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'cumin ground'::text),
-  ('Dried Currants'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.6087::numeric, '{"carb":76.98,"fat":0.22,"fiber":4.4,"kcal":290,"protein":3.43}'::jsonb, 'complete'::text, 'usda_fdc:171724'::text, 'Currants, zante, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'currant dried'::text),
-  ('Curry Powder'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.4261::numeric, '{"carb":55.83,"fat":14.01,"fiber":53.2,"kcal":325,"protein":14.29}'::jsonb, 'complete'::text, 'usda_fdc:170924'::text, 'Spices, curry powder'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'curry powder'::text),
-  ('Canned Dark Red Kidney Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.74::numeric, '{"carb":21.49,"fat":1.05,"fiber":5.5,"kcal":124,"protein":7.98}'::jsonb, 'complete'::text, 'usda_fdc:174285'::text, 'Beans, kidney, red, mature seeds, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'dark red kidney bean canned'::text),
-  ('Dates'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6213::numeric, '{"carb":74.97,"fat":0.15,"fiber":6.7,"kcal":277,"protein":1.81}'::jsonb, 'complete'::text, 'usda_fdc:168191 + fdc_density:171726'::text, 'Dates, medjool'::text, null::numeric, false, 24::numeric, 'borrowed from date, pitted'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'date'::text),
-  ('Dijon Mustard'::text, 'pantry'::text, 'tsp'::text, 'g'::text, 1.05::numeric, '{"carb":3.5,"fat":12,"kcal":161,"protein":7.5}'::jsonb, 'stub'::text, 'label:Maille Dijon Originale'::text, null::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'dijon mustard'::text),
-  ('Dill'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.038::numeric, '{"carb":7.02,"fat":1.12,"fiber":2.1,"kcal":43,"protein":3.46}'::jsonb, 'complete'::text, 'usda_fdc:172233'::text, 'Dill weed, fresh'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'dill'::text),
-  ('Dill Pickles'::text, 'pantry'::text, 'piece'::text, 'g'::text, 0.6044::numeric, '{"carb":1.99,"fat":0.43,"fiber":1,"kcal":12,"protein":0.48}'::jsonb, 'complete'::text, 'usda_fdc:324653 + fdc_density:168558'::text, 'Pickles, cucumber, dill or kosher dill'::text, null::numeric, false, 40.4::numeric, 'borrowed from spear'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb, 'dill pickle'::text),
-  ('Ditalini'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.3846::numeric, '{"carb":74.67,"fat":1.51,"fiber":3.2,"kcal":371,"protein":13.04}'::jsonb, 'complete'::text, 'usda_fdc:169736'::text, 'Pasta, dry, enriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'ditalini'::text),
-  ('Earth Balance Butter'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9468::numeric, '{"carb":0,"fat":78.6,"fiber":0,"kcal":714.3,"protein":0}'::jsonb, 'complete'::text, 'off:0033776011727'::text, 'Earth Balance Buttery Spread (1 tbsp = 14 g)'::text, null::numeric, true, null::numeric, null::text, '["g","oz","lb","ml","tsp","tbsp","cup","fl_oz","l","pt","qt"]'::jsonb, 'earth balance butter'::text),
-  ('Edamame'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.6551::numeric, '{"carb":8.91,"fat":5.2,"fiber":5.2,"kcal":121,"protein":11.91}'::jsonb, 'complete'::text, 'usda_fdc:168411'::text, 'Edamame, frozen, prepared'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'edamame'::text),
-  ('Frozen Edamame'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.4988::numeric, '{"carb":7.61,"fat":4.73,"fiber":4.8,"kcal":109,"protein":11.22}'::jsonb, 'complete'::text, 'usda_fdc:168410'::text, 'Edamame, frozen, unprepared'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'edamame frozen'::text),
-  ('Eggplant'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.3466::numeric, '{"carb":5.88,"fat":0.18,"fiber":3,"kcal":25,"protein":0.98}'::jsonb, 'complete'::text, 'usda_fdc:169228'::text, 'Eggplant, raw'::text, null::numeric, false, 548::numeric, 'borrowed from eggplant, unpeeled'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'eggplant'::text),
+  ('Cornmeal'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.5157::numeric, '{"carb":76.89,"fat":3.59,"fiber":7.3,"kcal":362,"protein":8.12}'::jsonb, 'complete'::text, 'usda_fdc:169697'::text, 'Cornmeal, whole-grain, yellow'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'cornmeal'::text),
+  ('Cornstarch'::text, 'baking'::text, 'tbsp'::text, 'g'::text, 0.541::numeric, '{"carb":91.27,"fat":0.05,"fiber":0.9,"kcal":381,"protein":0.26}'::jsonb, 'complete'::text, 'usda_fdc:169698'::text, 'Cornstarch'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'cornstarch'::text),
+  ('Dried Cranberries'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.6763::numeric, '{"carb":82.8,"fat":1.09,"fiber":5.3,"kcal":308,"protein":0.17}'::jsonb, 'complete'::text, 'usda_fdc:171723'::text, 'Cranberries, dried, sweetened (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'cranberry dried'::text),
+  ('Cremini Mushroom'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.3677::numeric, '{"carb":4.3,"fat":0.1,"fiber":0.6,"kcal":22,"protein":2.5}'::jsonb, 'complete'::text, 'usda_fdc:168434'::text, 'Mushrooms, brown, italian, or crimini, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'cremini mushroom'::text),
+  ('Crispy Onion'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.946792635651604::numeric, '{"carb":42.9,"fat":42.9,"fiber":0,"kcal":571.4,"protein":0}'::jsonb, 'complete'::text, 'label:IKEA Rostad Lök fried onions (1 tbsp = 14 g)'::text, 'IKEA Rostad Lök fried onions (1 tbsp = 14 g)'::text, null::numeric, false, null::numeric, null::text, '["tsp","tbsp","handful","g","cup","ml"]'::jsonb, 'crispy onion'::text),
+  ('Cucumber'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.4396::numeric, '{"carb":3.63,"fat":0.11,"fiber":0.5,"kcal":15,"protein":0.65}'::jsonb, 'complete'::text, 'usda_fdc:168409'::text, 'Cucumber, with peel, raw'::text, null::numeric, false, 301::numeric, 'borrowed from cucumber'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'cucumber'::text),
+  ('Ground Cumin'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.4058::numeric, '{"carb":44.24,"fat":22.27,"fiber":10.5,"kcal":375,"protein":17.81}'::jsonb, 'complete'::text, 'usda_fdc:170923'::text, 'Spices, cumin seed'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'cumin ground'::text),
+  ('Dried Currants'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.6087::numeric, '{"carb":76.98,"fat":0.22,"fiber":4.4,"kcal":290,"protein":3.43}'::jsonb, 'complete'::text, 'usda_fdc:171724'::text, 'Currants, zante, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'currant dried'::text),
+  ('Curry Powder'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.4261::numeric, '{"carb":55.83,"fat":14.01,"fiber":53.2,"kcal":325,"protein":14.29}'::jsonb, 'complete'::text, 'usda_fdc:170924'::text, 'Spices, curry powder'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'curry powder'::text),
+  ('Canned Dark Red Kidney Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.74::numeric, '{"carb":21.49,"fat":1.05,"fiber":5.5,"kcal":124,"protein":7.98}'::jsonb, 'complete'::text, 'usda_fdc:174285'::text, 'Beans, kidney, red, mature seeds, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'dark red kidney bean canned'::text),
+  ('Dates'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6213::numeric, '{"carb":74.97,"fat":0.15,"fiber":6.7,"kcal":277,"protein":1.81}'::jsonb, 'complete'::text, 'usda_fdc:168191 + fdc_density:171726'::text, 'Dates, medjool'::text, null::numeric, false, 24::numeric, 'borrowed from date, pitted'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'date'::text),
+  ('Dijon Mustard'::text, 'pantry'::text, 'tsp'::text, 'ml'::text, 1.01442068105529::numeric, '{"carb":0,"fat":10.144206810552898,"fiber":0,"kcal":101.44206810552899,"protein":0}'::jsonb, 'complete'::text, 'label:Maille Dijon Originale'::text, null::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'dijon mustard'::text),
+  ('Dill'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.038::numeric, '{"carb":7.02,"fat":1.12,"fiber":2.1,"kcal":43,"protein":3.46}'::jsonb, 'complete'::text, 'usda_fdc:172233'::text, 'Dill weed, fresh'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'dill'::text),
+  ('Dill Pickles'::text, 'pantry'::text, 'piece'::text, 'g'::text, 0.6044::numeric, '{"carb":1.99,"fat":0.43,"fiber":1,"kcal":12,"protein":0.48}'::jsonb, 'complete'::text, 'usda_fdc:324653 + fdc_density:168558'::text, 'Pickles, cucumber, dill or kosher dill'::text, null::numeric, false, 40.4::numeric, 'borrowed from spear'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'dill pickle'::text),
+  ('Ditalini'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.3846::numeric, '{"carb":74.67,"fat":1.51,"fiber":3.2,"kcal":371,"protein":13.04}'::jsonb, 'complete'::text, 'usda_fdc:169736'::text, 'Pasta, dry, enriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'ditalini'::text),
+  ('Earth Balance Butter'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9468::numeric, '{"carb":0,"fat":78.6,"fiber":0,"kcal":714.3,"protein":0}'::jsonb, 'complete'::text, 'off:0033776011727'::text, 'Earth Balance Buttery Spread (1 tbsp = 14 g)'::text, null::numeric, true, null::numeric, null::text, '["g","oz","lb","ml","tsp","tbsp","cup"]'::jsonb, 'earth balance butter'::text),
+  ('Edamame'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.6551::numeric, '{"carb":8.91,"fat":5.2,"fiber":5.2,"kcal":121,"protein":11.91}'::jsonb, 'complete'::text, 'usda_fdc:168411'::text, 'Edamame, frozen, prepared'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","cup","ml","handful"]'::jsonb, 'edamame'::text),
+  ('Frozen Edamame'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.4988::numeric, '{"carb":7.61,"fat":4.73,"fiber":4.8,"kcal":109,"protein":11.22}'::jsonb, 'complete'::text, 'usda_fdc:168410'::text, 'Edamame, frozen, unprepared'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'edamame frozen'::text),
+  ('Eggplant'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.3466::numeric, '{"carb":5.88,"fat":0.18,"fiber":3,"kcal":25,"protein":0.98}'::jsonb, 'complete'::text, 'usda_fdc:169228'::text, 'Eggplant, raw'::text, null::numeric, false, 548::numeric, 'borrowed from eggplant, unpeeled'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'eggplant'::text),
   ('English Muffin'::text, 'grains'::text, 'piece'::text, 'g'::text, null::numeric, '{"carb":44.8,"fat":2,"fiber":4.6,"kcal":223,"protein":8.7}'::jsonb, 'complete'::text, 'usda_fdc:172761'::text, 'Muffins, English, wheat'::text, null::numeric, false, 57::numeric, 'borrowed from muffin'::text, '["g","kg","oz","lb","piece"]'::jsonb, 'english muffin'::text),
-  ('Enoki Mushroom'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.2705::numeric, '{"carb":7.81,"fat":0.29,"fiber":2.7,"kcal":37,"protein":2.66}'::jsonb, 'complete'::text, 'usda_fdc:169382'::text, 'Mushrooms, enoki, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'enoki mushroom'::text),
-  ('Extra Firm Tofu'::text, 'proteins'::text, 'oz'::text, 'g'::text, 1.0651::numeric, '{"carb":1.18,"fat":5.26,"fiber":1,"kcal":83,"protein":9.98}'::jsonb, 'complete'::text, 'usda_fdc:174290 + fdc_density:172475'::text, 'Tofu, extra firm, prepared with nigari'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'extra firm tofu'::text),
-  ('Extra Virgin Olive Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.907::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:171413 — borrowed (olive oil, salad or cooking) + fdc_density:748608'::text, 'Oil, olive, salad or cooking'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","to_taste"]'::jsonb, 'extra virgin olive oil'::text),
-  ('Farro'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.79::numeric, '{"carb":68.1,"fat":2.1,"fiber":8.5,"kcal":319,"protein":10.6}'::jsonb, 'complete'::text, 'label:Bob''s Red Mill organic farro'::text, null::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'farro'::text),
-  ('Fennel'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.3677::numeric, '{"carb":7.3,"fat":0.2,"fiber":3.1,"kcal":31,"protein":1.24}'::jsonb, 'complete'::text, 'usda_fdc:169385'::text, 'Fennel, bulb, raw'::text, null::numeric, false, 234::numeric, 'borrowed from bulb'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'fennel'::text),
-  ('Fennel Seeds'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.3922::numeric, '{"carb":52.29,"fat":14.87,"fiber":39.8,"kcal":345,"protein":15.8}'::jsonb, 'complete'::text, 'usda_fdc:171323'::text, 'Spices, fennel seed'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'fennel seed'::text),
-  ('Dried Figs'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.6298::numeric, '{"carb":63.9,"fat":0.92,"fiber":9.8,"kcal":249,"protein":3.3}'::jsonb, 'complete'::text, 'usda_fdc:326905'::text, 'Figs, dried, uncooked'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'fig dried'::text),
-  ('Fine Sea Salt'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 1.2342::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:173468'::text, 'Salt, table'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'fine sea salt'::text),
-  ('Canned Fire-Roasted Tomatoes'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0356::numeric, '{"carb":3.32,"fat":0.5,"fiber":1.9,"kcal":18,"protein":0.84}'::jsonb, 'complete'::text, 'usda_fdc:333281'::text, 'Tomatoes, canned, red, ripe, diced'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'fire tomato canned roasted'::text),
-  ('Flaky Salt'::text, 'spices & seasoning'::text, 'pinch'::text, 'g'::text, 0.55::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:173468'::text, 'Salt, table'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'flaky salt'::text),
-  ('Flaxseed Meal'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.47::numeric, '{"carb":28.88,"fat":42.16,"fiber":27.3,"kcal":534,"protein":18.29}'::jsonb, 'complete'::text, 'usda_fdc:169414'::text, 'Seeds, flaxseed'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'flaxseed meal'::text),
+  ('Enoki Mushroom'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.2705::numeric, '{"carb":7.81,"fat":0.29,"fiber":2.7,"kcal":37,"protein":2.66}'::jsonb, 'complete'::text, 'usda_fdc:169382'::text, 'Mushrooms, enoki, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'enoki mushroom'::text),
+  ('Extra Firm Tofu'::text, 'proteins'::text, 'oz'::text, 'g'::text, 1.0651::numeric, '{"carb":1.18,"fat":5.26,"fiber":1,"kcal":83,"protein":9.98}'::jsonb, 'complete'::text, 'usda_fdc:174290 + fdc_density:172475'::text, 'Tofu, extra firm, prepared with nigari'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'extra firm tofu'::text),
+  ('Extra Virgin Olive Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.907::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:171413 — borrowed (olive oil, salad or cooking) + fdc_density:748608'::text, 'Oil, olive, salad or cooking'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'extra virgin olive oil'::text),
+  ('Farro'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.79::numeric, '{"carb":68.1,"fat":2.1,"fiber":8.5,"kcal":319,"protein":10.6}'::jsonb, 'complete'::text, 'label:Bob''s Red Mill organic farro'::text, null::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'farro'::text),
+  ('Fennel'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.3677::numeric, '{"carb":7.3,"fat":0.2,"fiber":3.1,"kcal":31,"protein":1.24}'::jsonb, 'complete'::text, 'usda_fdc:169385'::text, 'Fennel, bulb, raw'::text, null::numeric, false, 234::numeric, 'borrowed from bulb'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'fennel'::text),
+  ('Fennel Seeds'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.3922::numeric, '{"carb":52.29,"fat":14.87,"fiber":39.8,"kcal":345,"protein":15.8}'::jsonb, 'complete'::text, 'usda_fdc:171323'::text, 'Spices, fennel seed'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'fennel seed'::text),
+  ('Dried Figs'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.6298::numeric, '{"carb":63.9,"fat":0.92,"fiber":9.8,"kcal":249,"protein":3.3}'::jsonb, 'complete'::text, 'usda_fdc:326905'::text, 'Figs, dried, uncooked'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'fig dried'::text),
+  ('Fine Sea Salt'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 1.2342::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:173468'::text, 'Salt, table'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'fine sea salt'::text),
+  ('Canned Fire-Roasted Tomatoes'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0356::numeric, '{"carb":3.32,"fat":0.5,"fiber":1.9,"kcal":18,"protein":0.84}'::jsonb, 'complete'::text, 'usda_fdc:333281'::text, 'Tomatoes, canned, red, ripe, diced'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'fire tomato canned roasted'::text),
+  ('Flaky Salt'::text, 'spices & seasoning'::text, 'pinch'::text, 'g'::text, 0.55::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:173468'::text, 'Salt, table'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'flaky salt'::text),
+  ('Flaxseed Meal'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.47::numeric, '{"carb":28.88,"fat":42.16,"fiber":27.3,"kcal":534,"protein":18.29}'::jsonb, 'complete'::text, 'usda_fdc:169414'::text, 'Seeds, flaxseed'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'flaxseed meal'::text),
   ('Flour Tortilla'::text, 'grains'::text, 'piece'::text, 'g'::text, null::numeric, '{"carb":49.27,"fat":7.58,"fiber":2.4,"kcal":297,"protein":8.01}'::jsonb, 'complete'::text, 'usda_fdc:167535'::text, 'Tortillas, ready-to-bake or -fry, flour, shelf stable'::text, null::numeric, false, 49::numeric, 'borrowed from tortilla'::text, '["g","kg","oz","lb","piece"]'::jsonb, 'flour tortilla'::text),
-  ('Dried French Green Lentils'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.8115::numeric, '{"carb":63.35,"fat":1.06,"fiber":10.7,"kcal":352,"protein":24.63}'::jsonb, 'complete'::text, 'usda_fdc:172420'::text, 'Lentils, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'french green lentil dried'::text),
-  ('Gala Apple'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.4607::numeric, '{"carb":14.8,"fat":0.15,"fiber":2.1,"kcal":61,"protein":0.13}'::jsonb, 'complete'::text, 'usda_fdc:1105781 + fdc_density:168204'::text, 'Apples, gala, with skin, raw'::text, null::numeric, false, 172::numeric, 'borrowed from apple, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'gala apple'::text),
-  ('Garlic'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5748::numeric, '{"carb":33.06,"fat":0.5,"fiber":2.1,"kcal":149,"protein":6.36}'::jsonb, 'complete'::text, 'usda_fdc:169230'::text, 'Garlic, raw'::text, null::numeric, false, 3::numeric, 'borrowed from clove'::text, '["piece","g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'garlic'::text),
-  ('Garlic Powder'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.656::numeric, '{"carb":72.73,"fat":0.73,"fiber":9,"kcal":331,"protein":16.55}'::jsonb, 'complete'::text, 'usda_fdc:171325'::text, 'Spices, garlic powder'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'garlic powder'::text),
-  ('Ginger'::text, 'produce'::text, 'tbsp'::text, 'g'::text, 0.4058::numeric, '{"carb":17.77,"fat":0.75,"fiber":2,"kcal":80,"protein":1.82}'::jsonb, 'complete'::text, 'usda_fdc:169231'::text, 'Ginger root, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'ginger'::text),
-  ('Gold Potato'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.59::numeric, '{"carb":15.9624,"fat":0.2638,"kcal":72,"protein":1.8125}'::jsonb, 'stub'::text, 'usda_fdc:2346403 + fao_infoods_v2:Potato, english, raw'::text, 'Potatoes, gold, without skin, raw'::text, null::numeric, false, 213::numeric, 'borrowed from potato, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'gold potato'::text),
-  ('Golden Raisins'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.6974::numeric, '{"carb":80.02,"fat":0.2,"fiber":3.3,"kcal":301,"protein":3.28}'::jsonb, 'complete'::text, 'usda_fdc:168164'::text, 'Raisins, golden, seedless'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'golden raisin'::text),
-  ('Granny Smith Apple'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.4607::numeric, '{"carb":14.2,"fat":0.14,"fiber":2.5,"kcal":59,"protein":0.27}'::jsonb, 'complete'::text, 'usda_fdc:1105664 + fdc_density:168203'::text, 'Apples, granny smith, with skin, raw'::text, null::numeric, false, 167::numeric, 'borrowed from apple, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'granny smith apple'::text),
-  ('Granulated Sugar'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.8454::numeric, '{"carb":99.98,"fat":0,"fiber":0,"kcal":387,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:169655'::text, 'Sugars, granulated'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'granulated sugar'::text),
-  ('Grapefruit'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.9722::numeric, '{"carb":10.66,"fat":0.14,"fiber":1.6,"kcal":42,"protein":0.77}'::jsonb, 'complete'::text, 'usda_fdc:174673'::text, 'Grapefruit, raw, pink and red, all areas'::text, null::numeric, false, 246::numeric, 'borrowed from grapefruit, whole'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'grapefruit'::text),
-  ('Canned Great Northern Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.72::numeric, '{"carb":20.22,"fat":0.9,"fiber":5.5,"kcal":114,"protein":6.99}'::jsonb, 'complete'::text, 'usda_fdc:174286 — borrowed (pinto, drained solids)'::text, 'Beans, pinto, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'great northern bean canned'::text),
-  ('Green Beans'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.4227::numeric, '{"carb":6.97,"fat":0.22,"fiber":2.7,"kcal":31,"protein":1.83}'::jsonb, 'complete'::text, 'usda_fdc:169961'::text, 'Beans, snap, green, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'green bean'::text),
-  ('Canned Green Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.5453::numeric, '{"carb":4.11,"fat":0.39,"fiber":1.9,"kcal":21,"protein":1.04}'::jsonb, 'complete'::text, 'usda_fdc:321611'::text, 'Beans, snap, green, canned, regular pack, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'green bean canned'::text),
-  ('Green Bell Pepper'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6289::numeric, '{"carb":4.64,"fat":0.17,"fiber":1.7,"kcal":20,"protein":0.86}'::jsonb, 'complete'::text, 'usda_fdc:170427'::text, 'Peppers, sweet, green, raw'::text, null::numeric, false, 119::numeric, 'borrowed from pepper, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'green bell pepper'::text),
-  ('Green Grapes'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.6382::numeric, '{"carb":18.1,"fat":0.16,"fiber":0.9,"kcal":69,"protein":0.72}'::jsonb, 'complete'::text, 'usda_fdc:174683'::text, 'Grapes, red or green (European type, such as Thompson seedless), raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'green grape'::text),
-  ('Green Olives'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.65::numeric, '{"carb":3.84,"fat":15.32,"fiber":3.3,"kcal":145,"protein":1.03}'::jsonb, 'complete'::text, 'usda_fdc:169096 + fao_infoods_v2:Olives, green, with stone'::text, 'Olives, pickled, canned or bottled, green'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'green olive'::text),
-  ('Hazelnuts'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.4861::numeric, '{"carb":16.7,"fat":60.75,"fiber":9.7,"kcal":628,"protein":14.95}'::jsonb, 'complete'::text, 'usda_fdc:170581'::text, 'Nuts, hazelnuts or filberts'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'hazelnut'::text),
-  ('Hemp Seeds'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.6763::numeric, '{"carb":8.67,"fat":48.75,"fiber":4,"kcal":553,"protein":31.56}'::jsonb, 'complete'::text, 'usda_fdc:170148'::text, 'Seeds, hemp seed, hulled'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'hemp seed'::text),
-  ('High-Heat Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:172338'::text, 'Oil, sunflower, high oleic (70% and over)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'high heat oil'::text),
-  ('Hot Sauce'::text, 'pantry'::text, 'tsp'::text, 'g'::text, 0.9536::numeric, '{"carb":1.75,"fat":0.37,"fiber":0.3,"kcal":11,"protein":0.51}'::jsonb, 'complete'::text, 'usda_fdc:174527'::text, 'Sauce, ready-to-serve, pepper or hot'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","to_taste"]'::jsonb, 'hot sauce'::text),
-  ('Hummus'::text, 'pantry'::text, 'cup'::text, 'g'::text, 1.04::numeric, '{"carb":14.9,"fat":17.1,"fiber":5.4,"kcal":229,"protein":7.35}'::jsonb, 'complete'::text, 'usda_fdc:321358'::text, 'Hummus, commercial'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'hummus'::text),
-  ('Iceberg Lettuce'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.3043::numeric, '{"carb":2.97,"fat":0.14,"fiber":1.2,"kcal":14,"protein":0.9}'::jsonb, 'stub'::text, 'usda_fdc:169248'::text, 'Lettuce, iceberg (includes crisphead types), raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'iceberg lettuce'::text),
-  ('Instant Yeast'::text, 'baking'::text, 'tsp'::text, 'g'::text, 0.63::numeric, '{"carb":41.22,"fat":7.61,"fiber":26.9,"kcal":325,"protein":40.44}'::jsonb, 'complete'::text, 'usda_fdc:175043'::text, 'Leavening agents, yeast, baker''s, active dry'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'instant yeast'::text),
-  ('Italian Herbs'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.2029::numeric, '{"carb":68.92,"fat":4.28,"fiber":42.5,"kcal":265,"protein":9}'::jsonb, 'complete'::text, 'usda_fdc:171328'::text, 'Spices, oregano, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'italian herb'::text),
-  ('Jalapeño'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.3804::numeric, '{"carb":6.5,"fat":0.37,"fiber":2.8,"kcal":29,"protein":0.91}'::jsonb, 'complete'::text, 'usda_fdc:168576'::text, 'Peppers, jalapeno, raw'::text, null::numeric, false, 14::numeric, 'borrowed from jalapeno'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'jalapeno'::text),
-  ('Kala Namak'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 1.2342::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:173468'::text, 'Salt, table'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'kala namak'::text),
-  ('Kale'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.089::numeric, '{"carb":4.42,"fat":1.49,"fiber":4.1,"kcal":35,"protein":2.92}'::jsonb, 'complete'::text, 'usda_fdc:168421'::text, 'Kale, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'kale'::text),
-  ('Ketchup'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.14::numeric, '{"carb":26.8,"fat":0.55,"fiber":0.3,"kcal":117,"protein":1.11}'::jsonb, 'complete'::text, 'usda_fdc:747693'::text, 'Ketchup, restaurant'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'ketchup'::text),
-  ('Kimchi'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.634::numeric, '{"carb":2.4,"fat":0.5,"fiber":1.6,"kcal":15,"protein":1.1}'::jsonb, 'complete'::text, 'usda_fdc:170392'::text, 'Cabbage, kimchi'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'kimchi'::text),
-  ('King Oyster Mushroom'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.3635::numeric, '{"carb":6.09,"fat":0.41,"fiber":2.3,"kcal":33,"protein":3.31}'::jsonb, 'complete'::text, 'usda_fdc:168580'::text, 'Mushrooms, oyster, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'king oyster mushroom'::text),
-  ('Kiwi'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.7608::numeric, '{"carb":14.66,"fat":0.52,"fiber":3,"kcal":61,"protein":1.14}'::jsonb, 'complete'::text, 'usda_fdc:168153'::text, 'Kiwifruit, green, raw'::text, null::numeric, false, 69::numeric, 'borrowed from kiwi, whole'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'kiwi'::text),
+  ('Dried French Green Lentils'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.8115::numeric, '{"carb":63.35,"fat":1.06,"fiber":10.7,"kcal":352,"protein":24.63}'::jsonb, 'complete'::text, 'usda_fdc:172420'::text, 'Lentils, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'french green lentil dried'::text),
+  ('Gala Apple'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.4607::numeric, '{"carb":14.8,"fat":0.15,"fiber":2.1,"kcal":61,"protein":0.13}'::jsonb, 'complete'::text, 'usda_fdc:1105781 + fdc_density:168204'::text, 'Apples, gala, with skin, raw'::text, null::numeric, false, 172::numeric, 'borrowed from apple, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'gala apple'::text),
+  ('Garlic'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5748::numeric, '{"carb":33.06,"fat":0.5,"fiber":2.1,"kcal":149,"protein":6.36}'::jsonb, 'complete'::text, 'usda_fdc:169230'::text, 'Garlic, raw'::text, null::numeric, false, 3::numeric, 'borrowed from clove'::text, '["piece","g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'garlic'::text),
+  ('Garlic Powder'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.656::numeric, '{"carb":72.73,"fat":0.73,"fiber":9,"kcal":331,"protein":16.55}'::jsonb, 'complete'::text, 'usda_fdc:171325'::text, 'Spices, garlic powder'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'garlic powder'::text),
+  ('Ginger'::text, 'produce'::text, 'tbsp'::text, 'g'::text, 0.4058::numeric, '{"carb":17.77,"fat":0.75,"fiber":2,"kcal":80,"protein":1.82}'::jsonb, 'complete'::text, 'usda_fdc:169231'::text, 'Ginger root, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'ginger'::text),
+  ('Gold Potato'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.59::numeric, '{"carb":15.9624,"fat":0.2638,"fiber":1,"kcal":72,"protein":1.8125}'::jsonb, 'complete'::text, 'usda_fdc:2346403 + fao_infoods_v2:Potato, english, raw'::text, 'Potatoes, gold, without skin, raw'::text, null::numeric, true, 213::numeric, 'borrowed from potato, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'gold potato'::text),
+  ('Golden Raisins'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.6974::numeric, '{"carb":80.02,"fat":0.2,"fiber":3.3,"kcal":301,"protein":3.28}'::jsonb, 'complete'::text, 'usda_fdc:168164'::text, 'Raisins, golden, seedless'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'golden raisin'::text),
+  ('Granny Smith Apple'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.4607::numeric, '{"carb":14.2,"fat":0.14,"fiber":2.5,"kcal":59,"protein":0.27}'::jsonb, 'complete'::text, 'usda_fdc:1105664 + fdc_density:168203'::text, 'Apples, granny smith, with skin, raw'::text, null::numeric, false, 167::numeric, 'borrowed from apple, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'granny smith apple'::text),
+  ('Granulated Sugar'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.8454::numeric, '{"carb":99.98,"fat":0,"fiber":0,"kcal":387,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:169655'::text, 'Sugars, granulated'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'granulated sugar'::text),
+  ('Grapefruit'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.9722::numeric, '{"carb":10.66,"fat":0.14,"fiber":1.6,"kcal":42,"protein":0.77}'::jsonb, 'complete'::text, 'usda_fdc:174673'::text, 'Grapefruit, raw, pink and red, all areas'::text, null::numeric, false, 246::numeric, 'borrowed from grapefruit, whole'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'grapefruit'::text),
+  ('Canned Great Northern Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.72::numeric, '{"carb":20.22,"fat":0.9,"fiber":5.5,"kcal":114,"protein":6.99}'::jsonb, 'complete'::text, 'usda_fdc:174286 — borrowed (pinto, drained solids)'::text, 'Beans, pinto, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb, 'great northern bean canned'::text),
+  ('Green Beans'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.4227::numeric, '{"carb":6.97,"fat":0.22,"fiber":2.7,"kcal":31,"protein":1.83}'::jsonb, 'complete'::text, 'usda_fdc:169961'::text, 'Beans, snap, green, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'green bean'::text),
+  ('Canned Green Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.5453::numeric, '{"carb":4.11,"fat":0.39,"fiber":1.9,"kcal":21,"protein":1.04}'::jsonb, 'complete'::text, 'usda_fdc:321611'::text, 'Beans, snap, green, canned, regular pack, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml"]'::jsonb, 'green bean canned'::text),
+  ('Green Bell Pepper'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6289::numeric, '{"carb":4.64,"fat":0.17,"fiber":1.7,"kcal":20,"protein":0.86}'::jsonb, 'complete'::text, 'usda_fdc:170427'::text, 'Peppers, sweet, green, raw'::text, null::numeric, false, 119::numeric, 'borrowed from pepper, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'green bell pepper'::text),
+  ('Green Grapes'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.6382::numeric, '{"carb":18.1,"fat":0.16,"fiber":0.9,"kcal":69,"protein":0.72}'::jsonb, 'complete'::text, 'usda_fdc:174683'::text, 'Grapes, red or green (European type, such as Thompson seedless), raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'green grape'::text),
+  ('Green Olives'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.65::numeric, '{"carb":3.84,"fat":15.32,"fiber":3.3,"kcal":145,"protein":1.03}'::jsonb, 'complete'::text, 'usda_fdc:169096 + fao_infoods_v2:Olives, green, with stone'::text, 'Olives, pickled, canned or bottled, green'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'green olive'::text),
+  ('Hazelnuts'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.4861::numeric, '{"carb":16.7,"fat":60.75,"fiber":9.7,"kcal":628,"protein":14.95}'::jsonb, 'complete'::text, 'usda_fdc:170581'::text, 'Nuts, hazelnuts or filberts'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'hazelnut'::text),
+  ('Hemp Seeds'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.6763::numeric, '{"carb":8.67,"fat":48.75,"fiber":4,"kcal":553,"protein":31.56}'::jsonb, 'complete'::text, 'usda_fdc:170148'::text, 'Seeds, hemp seed, hulled'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'hemp seed'::text),
+  ('High-Heat Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:172338'::text, 'Oil, sunflower, high oleic (70% and over)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'high heat oil'::text),
+  ('Hot Sauce'::text, 'pantry'::text, 'tsp'::text, 'g'::text, 0.9536::numeric, '{"carb":1.75,"fat":0.37,"fiber":0.3,"kcal":11,"protein":0.51}'::jsonb, 'complete'::text, 'usda_fdc:174527'::text, 'Sauce, ready-to-serve, pepper or hot'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","to_taste"]'::jsonb, 'hot sauce'::text),
+  ('Hummus'::text, 'pantry'::text, 'cup'::text, 'g'::text, 1.04::numeric, '{"carb":14.9,"fat":17.1,"fiber":5.4,"kcal":229,"protein":7.35}'::jsonb, 'complete'::text, 'usda_fdc:321358'::text, 'Hummus, commercial'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'hummus'::text),
+  ('Iceberg Lettuce'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.3043::numeric, '{"carb":2.97,"fat":0.14,"fiber":1.2,"kcal":14,"protein":0.9}'::jsonb, 'complete'::text, 'usda_fdc:169248'::text, 'Lettuce, iceberg (includes crisphead types), raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'iceberg lettuce'::text),
+  ('Instant Yeast'::text, 'baking'::text, 'tsp'::text, 'g'::text, 0.63::numeric, '{"carb":41.22,"fat":7.61,"fiber":26.9,"kcal":325,"protein":40.44}'::jsonb, 'complete'::text, 'usda_fdc:175043'::text, 'Leavening agents, yeast, baker''s, active dry'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'instant yeast'::text),
+  ('Italian Herbs'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.2029::numeric, '{"carb":68.92,"fat":4.28,"fiber":42.5,"kcal":265,"protein":9}'::jsonb, 'complete'::text, 'usda_fdc:171328'::text, 'Spices, oregano, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'italian herb'::text),
+  ('Jalapeño'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.3804::numeric, '{"carb":6.5,"fat":0.37,"fiber":2.8,"kcal":29,"protein":0.91}'::jsonb, 'complete'::text, 'usda_fdc:168576'::text, 'Peppers, jalapeno, raw'::text, null::numeric, false, 14::numeric, 'borrowed from jalapeno'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'jalapeno'::text),
+  ('Kala Namak'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 1.2342::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:173468'::text, 'Salt, table'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'kala namak'::text),
+  ('Kale'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.089::numeric, '{"carb":4.42,"fat":1.49,"fiber":4.1,"kcal":35,"protein":2.92}'::jsonb, 'complete'::text, 'usda_fdc:168421'::text, 'Kale, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'kale'::text),
+  ('Ketchup'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.14::numeric, '{"carb":26.8,"fat":0.55,"fiber":0.3,"kcal":117,"protein":1.11}'::jsonb, 'complete'::text, 'usda_fdc:747693'::text, 'Ketchup, restaurant'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'ketchup'::text),
+  ('Kimchi'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.634::numeric, '{"carb":2.4,"fat":0.5,"fiber":1.6,"kcal":15,"protein":1.1}'::jsonb, 'complete'::text, 'usda_fdc:170392'::text, 'Cabbage, kimchi'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'kimchi'::text),
+  ('King Oyster Mushroom'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.3635::numeric, '{"carb":6.09,"fat":0.41,"fiber":2.3,"kcal":33,"protein":3.31}'::jsonb, 'complete'::text, 'usda_fdc:168580'::text, 'Mushrooms, oyster, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'king oyster mushroom'::text),
+  ('Kiwi'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.7608::numeric, '{"carb":14.66,"fat":0.52,"fiber":3,"kcal":61,"protein":1.14}'::jsonb, 'complete'::text, 'usda_fdc:168153'::text, 'Kiwifruit, green, raw'::text, null::numeric, false, 69::numeric, 'borrowed from kiwi, whole'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'kiwi'::text),
   ('Kombu'::text, 'pantry'::text, 'piece'::text, 'g'::text, null::numeric, '{"carb":50,"fat":0,"fiber":25,"kcal":250,"protein":0}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, 4::numeric, 'manual'::text, '["piece","g","kg","oz","lb"]'::jsonb, 'kombu'::text),
-  ('Kosher Salt'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.7::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:173468'::text, 'Salt, table'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'kosher salt'::text),
-  ('Leek'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.3762::numeric, '{"carb":14.15,"fat":0.3,"fiber":1.8,"kcal":61,"protein":1.5}'::jsonb, 'complete'::text, 'usda_fdc:169246'::text, 'Leeks, (bulb and lower leaf-portion), raw'::text, null::numeric, false, 89::numeric, 'borrowed from leek'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'leek'::text),
-  ('Lemon'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.8961::numeric, '{"carb":9.32,"fat":0.3,"fiber":2.8,"kcal":29,"protein":1.1}'::jsonb, 'complete'::text, 'usda_fdc:167746'::text, 'Lemons, raw, without peel'::text, null::numeric, false, 100::numeric, 'borrowed from lemon, whole'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'lemon'::text),
-  ('Lemon Juice'::text, 'produce'::text, 'tbsp'::text, 'g'::text, 1.0313::numeric, '{"carb":6.9,"fat":0.24,"fiber":0.3,"kcal":22,"protein":0.35}'::jsonb, 'complete'::text, 'usda_fdc:167747'::text, 'Lemon juice, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'lemon juice'::text),
-  ('Lemon Zest'::text, 'produce'::text, 'tsp'::text, 'g'::text, 0.4058::numeric, '{"carb":16,"fat":0.3,"fiber":10.6,"kcal":47,"protein":1.5}'::jsonb, 'complete'::text, 'usda_fdc:167749'::text, 'Lemon peel, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'lemon zest'::text),
-  ('Canned Lentils'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.8369::numeric, '{"carb":20.13,"fat":0.38,"fiber":7.9,"kcal":116,"protein":9.02}'::jsonb, 'complete'::text, 'usda_fdc:172421 — borrowed (lentils, boiled — the drained basis) + fdc_density:172421'::text, 'Lentils, mature seeds, cooked, boiled, without salt'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'lentil canned'::text),
-  ('Cooked Lentils'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.8369::numeric, '{"carb":20.13,"fat":0.38,"fiber":7.9,"kcal":116,"protein":9.02}'::jsonb, 'complete'::text, 'usda_fdc:172421'::text, 'Lentils, mature seeds, cooked, boiled, without salt'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'lentil cooked'::text),
-  ('Dried Lentils'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.8115::numeric, '{"carb":63.35,"fat":1.06,"fiber":10.7,"kcal":352,"protein":24.63}'::jsonb, 'complete'::text, 'usda_fdc:172420'::text, 'Lentils, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'lentil dried'::text),
-  ('Canned Light Red Kidney Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.74::numeric, '{"carb":21.49,"fat":1.05,"fiber":5.5,"kcal":124,"protein":7.98}'::jsonb, 'complete'::text, 'usda_fdc:174285'::text, 'Beans, kidney, red, mature seeds, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'light red kidney bean canned'::text),
-  ('Lime'::text, 'produce'::text, 'piece'::text, 'g'::text, null::numeric, '{"carb":10.54,"fat":0.2,"fiber":2.8,"kcal":30,"protein":0.7}'::jsonb, 'complete'::text, 'usda_fdc:168155'::text, 'Limes, raw'::text, null::numeric, false, 67::numeric, 'borrowed from lime, whole'::text, '["g","kg","oz","lb","handful","piece"]'::jsonb, 'lime'::text),
-  ('Lime Juice'::text, 'produce'::text, 'tbsp'::text, 'g'::text, 1.0229::numeric, '{"carb":8.42,"fat":0.07,"fiber":0.4,"kcal":25,"protein":0.42}'::jsonb, 'complete'::text, 'usda_fdc:168156'::text, 'Lime juice, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'lime juice'::text),
-  ('Lion''s Mane Mushroom'::text, 'produce'::text, 'oz'::text, 'g'::text, null::numeric, '{"carb":7.5897,"fat":0.2563,"kcal":35,"protein":2.5}'::jsonb, 'stub'::text, 'usda_fdc:1750344'::text, 'Mushroom, lion''s mane'::text, 1::numeric, false, null::numeric, null::text, '["oz","g","kg","lb","handful"]'::jsonb, 'lion mane mushroom'::text),
+  ('Kosher Salt'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.7::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:173468'::text, 'Salt, table'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'kosher salt'::text),
+  ('Leek'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.3762::numeric, '{"carb":14.15,"fat":0.3,"fiber":1.8,"kcal":61,"protein":1.5}'::jsonb, 'complete'::text, 'usda_fdc:169246'::text, 'Leeks, (bulb and lower leaf-portion), raw'::text, null::numeric, false, 89::numeric, 'borrowed from leek'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'leek'::text),
+  ('Lemon'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.8961::numeric, '{"carb":9.32,"fat":0.3,"fiber":2.8,"kcal":29,"protein":1.1}'::jsonb, 'complete'::text, 'usda_fdc:167746'::text, 'Lemons, raw, without peel'::text, null::numeric, false, 100::numeric, 'borrowed from lemon, whole'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'lemon'::text),
+  ('Lemon Juice'::text, 'produce'::text, 'tbsp'::text, 'g'::text, 1.0313::numeric, '{"carb":6.9,"fat":0.24,"fiber":0.3,"kcal":22,"protein":0.35}'::jsonb, 'complete'::text, 'usda_fdc:167747'::text, 'Lemon juice, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'lemon juice'::text),
+  ('Lemon Zest'::text, 'produce'::text, 'tsp'::text, 'g'::text, 0.4058::numeric, '{"carb":16,"fat":0.3,"fiber":10.6,"kcal":47,"protein":1.5}'::jsonb, 'complete'::text, 'usda_fdc:167749'::text, 'Lemon peel, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'lemon zest'::text),
+  ('Canned Lentils'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.8369::numeric, '{"carb":20.13,"fat":0.38,"fiber":7.9,"kcal":116,"protein":9.02}'::jsonb, 'complete'::text, 'usda_fdc:172421 — borrowed (lentils, boiled — the drained basis) + fdc_density:172421'::text, 'Lentils, mature seeds, cooked, boiled, without salt'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb, 'lentil canned'::text),
+  ('Cooked Lentils'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.8369::numeric, '{"carb":20.13,"fat":0.38,"fiber":7.9,"kcal":116,"protein":9.02}'::jsonb, 'complete'::text, 'usda_fdc:172421'::text, 'Lentils, mature seeds, cooked, boiled, without salt'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb, 'lentil cooked'::text),
+  ('Dried Lentils'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.8115::numeric, '{"carb":63.35,"fat":1.06,"fiber":10.7,"kcal":352,"protein":24.63}'::jsonb, 'complete'::text, 'usda_fdc:172420'::text, 'Lentils, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'lentil dried'::text),
+  ('Canned Light Red Kidney Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.74::numeric, '{"carb":21.49,"fat":1.05,"fiber":5.5,"kcal":124,"protein":7.98}'::jsonb, 'complete'::text, 'usda_fdc:174285'::text, 'Beans, kidney, red, mature seeds, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'light red kidney bean canned'::text),
+  ('Lime'::text, 'produce'::text, 'piece'::text, 'g'::text, null::numeric, '{"carb":10.54,"fat":0.2,"fiber":2.8,"kcal":30,"protein":0.7}'::jsonb, 'complete'::text, 'usda_fdc:168155'::text, 'Limes, raw'::text, null::numeric, false, 67::numeric, 'borrowed from lime, whole'::text, '["g","kg","oz","lb","piece"]'::jsonb, 'lime'::text),
+  ('Lime Juice'::text, 'produce'::text, 'tbsp'::text, 'g'::text, 1.0229::numeric, '{"carb":8.42,"fat":0.07,"fiber":0.4,"kcal":25,"protein":0.42}'::jsonb, 'complete'::text, 'usda_fdc:168156'::text, 'Lime juice, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'lime juice'::text),
+  ('Lion''s Mane Mushroom'::text, 'produce'::text, 'oz'::text, 'g'::text, null::numeric, '{"carb":7.5897,"fat":0.2563,"fiber":4.4,"kcal":35,"protein":2.5}'::jsonb, 'complete'::text, 'usda_fdc:1750344'::text, 'Mushroom, lion''s mane'::text, 1::numeric, true, null::numeric, null::text, '["oz","g","kg","lb","handful"]'::jsonb, 'lion mane mushroom'::text),
   ('Liquid Aminos'::text, 'pantry'::text, 'tsp'::text, 'ml'::text, null::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":101.44206810552899,"protein":20.288413621105796}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["tbsp","tsp","ml","to_taste"]'::jsonb, 'liquid amino'::text),
   ('Liquid Smoke'::text, 'pantry'::text, 'tsp'::text, 'ml'::text, 0.912978612949761::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["tsp","tbsp","ml","dash","g","oz","kg","lb"]'::jsonb, 'liquid smoke'::text),
-  ('Maitake Mushroom'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.2959::numeric, '{"carb":6.97,"fat":0.19,"fiber":2.7,"kcal":31,"protein":1.94}'::jsonb, 'complete'::text, 'usda_fdc:169403'::text, 'Mushrooms, maitake, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'maitake mushroom'::text),
-  ('Mango'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6974::numeric, '{"carb":14.98,"fat":0.38,"fiber":1.6,"kcal":60,"protein":0.82}'::jsonb, 'complete'::text, 'usda_fdc:169910'::text, 'Mangos, raw'::text, null::numeric, false, 336::numeric, 'borrowed from mango, whole'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'mango'::text),
-  ('Maple Syrup'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.3314::numeric, '{"carb":67.04,"fat":0.06,"fiber":0,"kcal":260,"protein":0.04}'::jsonb, 'complete'::text, 'usda_fdc:169661'::text, 'Syrups, maple'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'maple syrup'::text),
+  ('Maitake Mushroom'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.2959::numeric, '{"carb":6.97,"fat":0.19,"fiber":2.7,"kcal":31,"protein":1.94}'::jsonb, 'complete'::text, 'usda_fdc:169403'::text, 'Mushrooms, maitake, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'maitake mushroom'::text),
+  ('Mango'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6974::numeric, '{"carb":14.98,"fat":0.38,"fiber":1.6,"kcal":60,"protein":0.82}'::jsonb, 'complete'::text, 'usda_fdc:169910'::text, 'Mangos, raw'::text, null::numeric, false, 336::numeric, 'borrowed from mango, whole'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'mango'::text),
+  ('Maple Syrup'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.3314::numeric, '{"carb":67.04,"fat":0.06,"fiber":0,"kcal":260,"protein":0.04}'::jsonb, 'complete'::text, 'usda_fdc:169661'::text, 'Syrups, maple'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'maple syrup'::text),
   ('Mild Garlic Chili Crisp'::text, 'pantry'::text, 'tsp'::text, 'ml'::text, 1.01442068105529::numeric, '{"carb":20.288413621105796,"fat":60.86524086331739,"fiber":0,"kcal":710.0944767387028,"protein":0}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["tbsp","tsp","ml","g","oz","kg","lb"]'::jsonb, 'mild garlic chili crisp'::text),
-  ('Mini Pretzels'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.23::numeric, '{"carb":80.39,"fat":2.93,"fiber":3.4,"kcal":384,"protein":10.04}'::jsonb, 'complete'::text, 'usda_fdc:167555'::text, 'Snacks, pretzels, hard, plain, salted'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'mini pretzel'::text),
-  ('Minor Figures Barista Oat (Organic Lite)'::text, 'dairy'::text, 'cup'::text, 'ml'::text, null::numeric, '{"carb":5.917453972822525,"fat":1.0566882094325938,"fiber":0,"kcal":33.814022701843,"protein":0}'::jsonb, 'stub'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["cup","tsp","tbsp","fl_oz","ml","l","pt","qt"]'::jsonb, 'minor figure barista oat organic lite'::text),
-  ('Mint'::text, 'produce'::text, 'tbsp'::text, 'g'::text, 0.270512181614744::numeric, '{"carb":5,"fat":1,"fiber":6.8,"kcal":43,"protein":4}'::jsonb, 'complete'::text, 'fdc_density:173474'::text, null::text, null::numeric, false, null::numeric, null::text, '["g","oz","handful","ml","tsp","tbsp","cup","to_taste","l","fl_oz","pt","qt"]'::jsonb, 'mint'::text),
-  ('Miso'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.1624::numeric, '{"carb":25.37,"fat":6.01,"fiber":5.4,"kcal":198,"protein":12.79}'::jsonb, 'complete'::text, 'usda_fdc:172442'::text, 'Miso'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'miso'::text),
-  ('Mixed Peppercorns'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.4666::numeric, '{"carb":63.95,"fat":3.26,"fiber":25.3,"kcal":251,"protein":10.39}'::jsonb, 'stub'::text, 'usda_fdc:170931'::text, 'Spices, pepper, black'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'mixed peppercorn'::text),
-  ('Multigrain Bread'::text, 'grains'::text, 'piece'::text, 'g'::text, 0.29::numeric, '{"carb":43.34,"fat":4.23,"fiber":7.4,"kcal":265,"protein":13.36}'::jsonb, 'complete'::text, 'usda_fdc:168013 + fao_infoods_v2:Bread'::text, 'Bread, multi-grain (includes whole-grain)'::text, null::numeric, false, 26::numeric, 'borrowed from slice regular'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb, 'multigrain bread'::text),
-  ('Dried Mung Beans'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.8749::numeric, '{"carb":62.62,"fat":1.15,"fiber":16.3,"kcal":347,"protein":23.86}'::jsonb, 'complete'::text, 'usda_fdc:174256'::text, 'Mung beans, mature seeds, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'mung bean dried'::text),
-  ('Napa Cabbage'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.3212::numeric, '{"carb":3.23,"fat":0.2,"fiber":1.2,"kcal":16,"protein":1.2}'::jsonb, 'complete'::text, 'usda_fdc:169979'::text, 'Cabbage, chinese (pe-tsai), raw'::text, null::numeric, false, 950::numeric, 'borrowed from head'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'napa cabbage'::text),
-  ('Canned Navy Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.72::numeric, '{"carb":20.22,"fat":0.9,"fiber":5.5,"kcal":114,"protein":6.99}'::jsonb, 'complete'::text, 'usda_fdc:174286 — borrowed (pinto, drained solids)'::text, 'Beans, pinto, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'navy bean canned'::text),
-  ('Nectarine'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6044::numeric, '{"carb":9.18,"fat":0.28,"fiber":1.5,"kcal":39,"protein":1.06}'::jsonb, 'complete'::text, 'usda_fdc:327357'::text, 'Nectarines, raw'::text, null::numeric, false, 129::numeric, 'borrowed from nectarine, whole'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'nectarine'::text),
+  ('Mini Pretzels'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.23::numeric, '{"carb":80.39,"fat":2.93,"fiber":3.4,"kcal":384,"protein":10.04}'::jsonb, 'complete'::text, 'usda_fdc:167555'::text, 'Snacks, pretzels, hard, plain, salted'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'mini pretzel'::text),
+  ('Mint'::text, 'produce'::text, 'tbsp'::text, 'g'::text, 0.270512181614744::numeric, '{"carb":5,"fat":1,"fiber":6.8,"kcal":43,"protein":4}'::jsonb, 'complete'::text, 'fdc_density:173474'::text, null::text, null::numeric, false, null::numeric, null::text, '["g","oz","handful","ml","tsp","tbsp","cup","to_taste"]'::jsonb, 'mint'::text),
+  ('Miso'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.1624::numeric, '{"carb":25.37,"fat":6.01,"fiber":5.4,"kcal":198,"protein":12.79}'::jsonb, 'complete'::text, 'usda_fdc:172442'::text, 'Miso'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'miso'::text),
+  ('Mixed Peppercorns'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.4666::numeric, '{"carb":63.95,"fat":3.26,"fiber":25.3,"kcal":251,"protein":10.39}'::jsonb, 'complete'::text, 'usda_fdc:170931'::text, 'Spices, pepper, black'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'mixed peppercorn'::text),
+  ('Multigrain Bread'::text, 'grains'::text, 'piece'::text, 'g'::text, 0.29::numeric, '{"carb":43.34,"fat":4.23,"fiber":7.4,"kcal":265,"protein":13.36}'::jsonb, 'complete'::text, 'usda_fdc:168013 + fao_infoods_v2:Bread'::text, 'Bread, multi-grain (includes whole-grain)'::text, null::numeric, false, 26::numeric, 'borrowed from slice regular'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'multigrain bread'::text),
+  ('Dried Mung Beans'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.8749::numeric, '{"carb":62.62,"fat":1.15,"fiber":16.3,"kcal":347,"protein":23.86}'::jsonb, 'complete'::text, 'usda_fdc:174256'::text, 'Mung beans, mature seeds, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'mung bean dried'::text),
+  ('Napa Cabbage'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.3212::numeric, '{"carb":3.23,"fat":0.2,"fiber":1.2,"kcal":16,"protein":1.2}'::jsonb, 'complete'::text, 'usda_fdc:169979'::text, 'Cabbage, chinese (pe-tsai), raw'::text, null::numeric, false, 950::numeric, 'borrowed from head'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'napa cabbage'::text),
+  ('Canned Navy Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.72::numeric, '{"carb":20.22,"fat":0.9,"fiber":5.5,"kcal":114,"protein":6.99}'::jsonb, 'complete'::text, 'usda_fdc:174286 — borrowed (pinto, drained solids)'::text, 'Beans, pinto, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb, 'navy bean canned'::text),
+  ('Nectarine'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6044::numeric, '{"carb":9.18,"fat":0.28,"fiber":1.5,"kcal":39,"protein":1.06}'::jsonb, 'complete'::text, 'usda_fdc:327357'::text, 'Nectarines, raw'::text, null::numeric, false, 129::numeric, 'borrowed from nectarine, whole'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'nectarine'::text),
   ('Nori'::text, 'pantry'::text, 'piece'::text, 'g'::text, null::numeric, '{"carb":40,"fat":0,"fiber":0,"kcal":400,"protein":40}'::jsonb, 'complete'::text, 'label:gimMe Organic Sushi Nori (1 sheet = 2.5 g)'::text, 'gimMe Organic Sushi Nori (1 sheet = 2.5 g)'::text, null::numeric, false, 2.5::numeric, 'borrowed from sheet'::text, '["piece","g","kg","oz","lb"]'::jsonb, 'nori'::text),
-  ('Ground Nutmeg'::text, 'spices & seasoning'::text, 'pinch'::text, 'g'::text, 0.4734::numeric, '{"carb":49.29,"fat":36.31,"fiber":20.8,"kcal":525,"protein":5.84}'::jsonb, 'complete'::text, 'usda_fdc:171326'::text, 'Spices, nutmeg, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'nutmeg ground'::text),
-  ('Nutritional Yeast'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.4::numeric, '{"carb":31.3,"fat":3.1,"fiber":18.8,"kcal":375,"protein":50}'::jsonb, 'complete'::text, 'label:Bragg nutritional yeast'::text, null::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'nutritional yeast'::text),
-  ('Oat Milk'::text, 'dairy'::text, 'cup'::text, 'g'::text, 1.01::numeric, '{"carb":5.100325,"fat":2.749,"fiber":0,"kcal":48,"protein":0.796875}'::jsonb, 'stub'::text, 'usda_fdc:2257046'::text, 'Oat milk, unsweetened, plain, refrigerated'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'oat milk'::text),
+  ('Ground Nutmeg'::text, 'spices & seasoning'::text, 'pinch'::text, 'g'::text, 0.4734::numeric, '{"carb":49.29,"fat":36.31,"fiber":20.8,"kcal":525,"protein":5.84}'::jsonb, 'complete'::text, 'usda_fdc:171326'::text, 'Spices, nutmeg, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'nutmeg ground'::text),
+  ('Nutritional Yeast'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.4::numeric, '{"carb":31.3,"fat":3.1,"fiber":18.8,"kcal":375,"protein":50}'::jsonb, 'complete'::text, 'label:Bragg nutritional yeast'::text, null::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'nutritional yeast'::text),
+  ('Oat Milk Lite'::text, 'dairy'::text, 'cup'::text, 'ml'::text, null::numeric, '{"carb":5.917453972822525,"fat":1.0566882094325938,"fiber":0,"kcal":33.814022701843,"protein":0}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["cup","tsp","tbsp","ml"]'::jsonb, 'oat milk lite'::text),
   ('Oat Whipped Cream'::text, 'dairy'::text, 'tbsp'::text, 'ml'::text, 0.202884136211058::numeric, '{"carb":6.7628045403686,"fat":0,"fiber":0,"kcal":33.814022701843,"protein":0}'::jsonb, 'complete'::text, 'off:0099482497453'::text, 'Whole Foods Market Oat-Based Whipped Topping'::text, null::numeric, false, null::numeric, null::text, '["tbsp","tsp","ml","g","kg","oz","lb"]'::jsonb, 'oat whipped cream'::text),
-  ('Okra'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.4227::numeric, '{"carb":7.45,"fat":0.19,"fiber":3.2,"kcal":33,"protein":1.93}'::jsonb, 'complete'::text, 'usda_fdc:169260'::text, 'Okra, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'okra'::text),
-  ('Olive Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.913::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:171413'::text, 'Oil, olive, salad or cooking'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","to_taste"]'::jsonb, 'olive oil'::text),
-  ('Onion'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6763::numeric, '{"carb":9.34,"fat":0.1,"fiber":1.7,"kcal":40,"protein":1.1}'::jsonb, 'complete'::text, 'usda_fdc:170000'::text, 'Onions, raw'::text, null::numeric, false, 110::numeric, 'borrowed from onion, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'onion'::text),
-  ('Onion Powder'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.4666::numeric, '{"carb":79.12,"fat":1.04,"fiber":15.2,"kcal":341,"protein":10.41}'::jsonb, 'complete'::text, 'usda_fdc:171327'::text, 'Spices, onion powder'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'onion powder'::text),
-  ('Orange'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6974::numeric, '{"carb":11.8,"fat":0.15,"fiber":2,"kcal":47,"protein":0.91}'::jsonb, 'complete'::text, 'usda_fdc:746771'::text, 'Oranges, raw, navels'::text, null::numeric, false, 140::numeric, 'borrowed from orange, whole'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'orange'::text),
-  ('Orange Bell Pepper'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6289::numeric, '{"carb":6.03,"fat":0.3,"fiber":2.1,"kcal":26,"protein":0.99}'::jsonb, 'complete'::text, 'usda_fdc:170108'::text, 'Peppers, sweet, red, raw'::text, null::numeric, false, 119::numeric, 'borrowed from pepper, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'orange bell pepper'::text),
-  ('Orange Juice'::text, 'produce'::text, 'tbsp'::text, 'g'::text, 1.048::numeric, '{"carb":10.4,"fat":0.2,"fiber":0.2,"kcal":45,"protein":0.7}'::jsonb, 'complete'::text, 'usda_fdc:169098'::text, 'Orange juice, raw (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'orange juice'::text),
-  ('Orange Zest'::text, 'produce'::text, 'tsp'::text, 'g'::text, 0.4058::numeric, '{"carb":25,"fat":0.2,"fiber":10.6,"kcal":97,"protein":1.5}'::jsonb, 'complete'::text, 'usda_fdc:169103'::text, 'Orange peel, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'orange zest'::text),
-  ('Dried Oregano'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.2029::numeric, '{"carb":68.92,"fat":4.28,"fiber":42.5,"kcal":265,"protein":9}'::jsonb, 'complete'::text, 'usda_fdc:171328'::text, 'Spices, oregano, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'oregano dried'::text),
-  ('Fresh Oregano'::text, 'produce'::text, 'tsp'::text, 'g'::text, 0.1::numeric, '{"carb":23,"fat":1.4,"fiber":14,"kcal":88,"protein":3}'::jsonb, 'complete'::text, 'label:derived from USDA dried oregano 171328 at 70 % water'::text, 'derived: dried oregano scaled to fresh (70 % water)'::text, null::numeric, false, null::numeric, null::text, '["tsp","tbsp","cup","ml","handful","g","oz","to_taste","kg","lb","fl_oz","l","pt","qt"]'::jsonb, 'oregano fresh'::text),
-  ('Oyster Mushroom'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.3635::numeric, '{"carb":6.09,"fat":0.41,"fiber":2.3,"kcal":33,"protein":3.31}'::jsonb, 'complete'::text, 'usda_fdc:168580'::text, 'Mushrooms, oyster, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'oyster mushroom'::text),
-  ('Panko'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.25::numeric, '{"carb":71.98,"fat":5.3,"fiber":4.5,"kcal":395,"protein":13.35}'::jsonb, 'complete'::text, 'usda_fdc:174928'::text, 'Bread, crumbs, dry, grated, plain'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'panko'::text),
-  ('Paprika'::text, 'spices & seasoning'::text, 'g'::text, 'g'::text, 0.4599::numeric, '{"carb":53.99,"fat":12.89,"fiber":34.9,"kcal":282,"protein":14.14}'::jsonb, 'complete'::text, 'usda_fdc:171329'::text, 'Spices, paprika'::text, 1::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'paprika'::text),
-  ('Smoked Paprika'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.4599::numeric, '{"carb":53.99,"fat":12.89,"fiber":34.9,"kcal":282,"protein":14.14}'::jsonb, 'complete'::text, 'usda_fdc:171329'::text, 'Spices, paprika'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'paprika smoked'::text),
-  ('Parsley'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.257::numeric, '{"carb":6.33,"fat":0.79,"fiber":3.3,"kcal":36,"protein":2.97}'::jsonb, 'complete'::text, 'usda_fdc:170416'::text, 'Parsley, fresh'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'parsley'::text),
-  ('Parsnip'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5622::numeric, '{"carb":17.99,"fat":0.3,"fiber":4.9,"kcal":75,"protein":1.2}'::jsonb, 'complete'::text, 'usda_fdc:170417'::text, 'Parsnips, raw'::text, null::numeric, false, 120::numeric, 'borrowed from parsnip, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'parsnip'::text),
-  ('Pasta'::text, 'grains'::text, 'lb'::text, 'g'::text, 0.3846::numeric, '{"carb":74.67,"fat":1.51,"fiber":3.2,"kcal":371,"protein":13.04}'::jsonb, 'complete'::text, 'usda_fdc:169736'::text, 'Pasta, dry, enriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'pasta'::text),
-  ('Cooked Pasta'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.5241::numeric, '{"carb":30.86,"fat":0.93,"fiber":1.8,"kcal":158,"protein":5.8}'::jsonb, 'complete'::text, 'usda_fdc:169737'::text, 'Pasta, cooked, enriched, without added salt'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'pasta cooked'::text),
-  ('Peas'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.6129::numeric, '{"carb":14.45,"fat":0.4,"fiber":5.7,"kcal":81,"protein":5.42}'::jsonb, 'complete'::text, 'usda_fdc:170419'::text, 'Peas, green, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'pea'::text),
-  ('Frozen Peas'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.5664::numeric, '{"carb":13.62,"fat":0.4,"fiber":4.5,"kcal":77,"protein":5.22}'::jsonb, 'complete'::text, 'usda_fdc:170016'::text, 'Peas, green, frozen, unprepared (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'pea frozen'::text),
-  ('Peach'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6509::numeric, '{"carb":9.54,"fat":0.25,"fiber":1.5,"kcal":39,"protein":0.91}'::jsonb, 'complete'::text, 'usda_fdc:169928'::text, 'Peaches, yellow, raw'::text, null::numeric, false, 150::numeric, 'borrowed from peach, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'peach'::text),
-  ('Peanuts'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.6171::numeric, '{"carb":16.13,"fat":49.24,"fiber":8.5,"kcal":567,"protein":25.8}'::jsonb, 'complete'::text, 'usda_fdc:172430'::text, 'Peanuts, all types, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'peanut'::text),
-  ('Peanut Butter'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0905::numeric, '{"carb":22.3,"fat":51.1,"fiber":4.8,"kcal":597,"protein":22.5}'::jsonb, 'complete'::text, 'usda_fdc:324860'::text, 'Peanut butter, smooth style, with salt'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'peanut butter'::text),
-  ('Peanut Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.913::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:171410'::text, 'Oil, peanut, salad or cooking'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'peanut oil'::text),
-  ('Pecans'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.4607::numeric, '{"carb":13.86,"fat":71.97,"fiber":9.6,"kcal":691,"protein":9.17}'::jsonb, 'complete'::text, 'usda_fdc:170182'::text, 'Nuts, pecans'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'pecan'::text),
-  ('Pine Nuts'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.5706::numeric, '{"carb":13.08,"fat":68.37,"fiber":3.7,"kcal":673,"protein":13.69}'::jsonb, 'complete'::text, 'usda_fdc:170591'::text, 'Nuts, pine nuts, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'pine nut'::text),
-  ('Pineapple'::text, 'produce'::text, 'lb'::text, 'g'::text, 0.6974::numeric, '{"carb":13.12,"fat":0.12,"fiber":1.4,"kcal":50,"protein":0.54}'::jsonb, 'complete'::text, 'usda_fdc:169124'::text, 'Pineapple, raw, all varieties'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'pineapple'::text),
-  ('Canned Pinto Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.72::numeric, '{"carb":20.22,"fat":0.9,"fiber":5.5,"kcal":114,"protein":6.99}'::jsonb, 'complete'::text, 'usda_fdc:174286'::text, 'Beans, pinto, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'pinto bean canned'::text),
-  ('Pistachios'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.5199::numeric, '{"carb":27.17,"fat":45.32,"fiber":10.6,"kcal":560,"protein":20.16}'::jsonb, 'complete'::text, 'usda_fdc:170184'::text, 'Nuts, pistachio nuts, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'pistachio'::text),
-  ('Plain Oat Yogurt'::text, 'dairy'::text, 'cup'::text, 'ml'::text, 1.07245967524502::numeric, '{"carb":8.242168033574231,"fat":3.8040775539573373,"fiber":1.2680258513191125,"kcal":107.78219736212456,"protein":10.1442068105529}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["cup","tsp","tbsp","ml","l","pt","g","oz","lb","kg"]'::jsonb, 'plain oat yogurt'::text),
-  ('Plantain'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6256::numeric, '{"carb":36.66,"fat":0.07,"fiber":2.2,"kcal":152,"protein":1.25}'::jsonb, 'complete'::text, 'usda_fdc:168215 + fdc_density:169130'::text, 'Plantains, green, raw'::text, null::numeric, false, 267::numeric, 'borrowed from plantain'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'plantain'::text),
-  ('Poblano Pepper'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5::numeric, '{"carb":4.666666666666666,"fat":0,"fiber":1.6666666666666665,"kcal":20,"protein":0.6666666666666666}'::jsonb, 'complete'::text, 'fao_infoods_v2:Chili, green'::text, null::text, null::numeric, false, 115::numeric, 'manual'::text, '["piece","g","kg","oz","lb","tsp","tbsp","cup","ml","l"]'::jsonb, 'poblano pepper'::text),
-  ('Portobello Mushroom'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.3635::numeric, '{"carb":3.87,"fat":0.35,"fiber":1.3,"kcal":22,"protein":2.11}'::jsonb, 'complete'::text, 'usda_fdc:169255'::text, 'Mushrooms, portabella, raw'::text, null::numeric, false, 84::numeric, 'borrowed from mushroom, whole'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'portobello mushroom'::text),
-  ('Pumpkin Seeds'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.5453::numeric, '{"carb":10.71,"fat":49.05,"fiber":6,"kcal":559,"protein":30.23}'::jsonb, 'complete'::text, 'usda_fdc:170556'::text, 'Seeds, pumpkin and squash seed kernels, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'pumpkin seed'::text),
-  ('Quinoa'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.7185::numeric, '{"carb":64.16,"fat":6.07,"fiber":7,"kcal":368,"protein":14.12}'::jsonb, 'complete'::text, 'usda_fdc:168874'::text, 'Quinoa, uncooked'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'quinoa'::text),
-  ('Cooked Quinoa'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.782::numeric, '{"carb":21.3,"fat":1.92,"fiber":2.8,"kcal":120,"protein":4.4}'::jsonb, 'complete'::text, 'usda_fdc:168917'::text, 'Quinoa, cooked'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'quinoa cooked'::text),
-  ('Radish'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.4903::numeric, '{"carb":3.4,"fat":0.1,"fiber":1.6,"kcal":16,"protein":0.68}'::jsonb, 'complete'::text, 'usda_fdc:169276'::text, 'Radishes, raw'::text, null::numeric, false, 4.5::numeric, 'borrowed from radish, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'radish'::text),
-  ('Raisins'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.6974::numeric, '{"carb":78.47,"fat":0.54,"fiber":6.8,"kcal":296,"protein":2.52}'::jsonb, 'complete'::text, 'usda_fdc:168166'::text, 'Raisins, seeded'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'raisin'::text),
-  ('Raspberries'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.5199::numeric, '{"carb":11.94,"fat":0.65,"fiber":6.5,"kcal":52,"protein":1.2}'::jsonb, 'complete'::text, 'usda_fdc:167755'::text, 'Raspberries, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'raspberry'::text),
-  ('Red Bell Pepper'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6289::numeric, '{"carb":6.03,"fat":0.3,"fiber":2.1,"kcal":26,"protein":0.99}'::jsonb, 'complete'::text, 'usda_fdc:170108'::text, 'Peppers, sweet, red, raw'::text, null::numeric, false, 119::numeric, 'borrowed from pepper, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'red bell pepper'::text),
-  ('Red Cabbage'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.3762::numeric, '{"carb":7.37,"fat":0.16,"fiber":2.1,"kcal":31,"protein":1.43}'::jsonb, 'complete'::text, 'usda_fdc:169977'::text, 'Cabbage, red, raw'::text, null::numeric, false, 839::numeric, 'borrowed from head, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'red cabbage'::text),
-  ('Fresh Red Chili'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.634::numeric, '{"carb":8.81,"fat":0.44,"fiber":1.5,"kcal":40,"protein":1.87}'::jsonb, 'complete'::text, 'usda_fdc:170106'::text, 'Peppers, hot chili, red, raw'::text, null::numeric, false, 45::numeric, 'borrowed from chili'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'red chili fresh'::text),
-  ('Red Delicious Apple'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.4607::numeric, '{"carb":14.8,"fat":0.21,"fiber":2,"kcal":62,"protein":0.19}'::jsonb, 'complete'::text, 'usda_fdc:1105430 + fdc_density:168201'::text, 'Apples, red delicious, with skin, raw'::text, null::numeric, false, 212::numeric, 'borrowed from apple, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'red delicious apple'::text),
-  ('Red Grapes'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.6382::numeric, '{"carb":18.1,"fat":0.16,"fiber":0.9,"kcal":69,"protein":0.72}'::jsonb, 'complete'::text, 'usda_fdc:174683'::text, 'Grapes, red or green (European type, such as Thompson seedless), raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'red grape'::text),
-  ('Red Leaf Lettuce'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.1183::numeric, '{"carb":2.26,"fat":0.22,"fiber":0.9,"kcal":13,"protein":1.33}'::jsonb, 'complete'::text, 'usda_fdc:168431'::text, 'Lettuce, red leaf, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'red leaf lettuce'::text),
-  ('Red Onion'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.55::numeric, '{"carb":9.93,"fat":0.1,"fiber":2.2,"kcal":44,"protein":0.94}'::jsonb, 'complete'::text, 'usda_fdc:790577 + fao_infoods_v2:Onions, raw, cubed'::text, 'Onions, red, raw'::text, null::numeric, false, 110::numeric, 'borrowed from onion, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'red onion'::text),
-  ('Red Pepper Flakes'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.3584::numeric, '{"carb":56.63,"fat":17.27,"fiber":27.2,"kcal":318,"protein":12.01}'::jsonb, 'stub'::text, 'usda_fdc:170932'::text, 'Spices, pepper, red or cayenne'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'red pepper flake'::text),
-  ('Red Potato'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.634::numeric, '{"carb":15.9,"fat":0.14,"fiber":1.7,"kcal":70,"protein":1.89}'::jsonb, 'complete'::text, 'usda_fdc:170029'::text, 'Potatoes, red, flesh and skin, raw'::text, null::numeric, false, 213::numeric, 'borrowed from potato, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'red potato'::text),
-  ('Red Rice'::text, 'grains'::text, 'cup'::text, 'ml'::text, 0.760815510791467::numeric, '{"carb":57.4838385931331,"fat":1.69070113509215,"fiber":5.07210340527645,"kcal":270.512181614744,"protein":5.07210340527645}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["cup","tsp","tbsp","fl_oz","ml","l","pt","qt","g","kg","oz","lb"]'::jsonb, 'red rice'::text),
-  ('Red Wine'::text, 'pantry'::text, 'g'::text, 'g'::text, 0.9941::numeric, '{"carb":2.61,"fat":0,"fiber":0,"kcal":85,"protein":0.07}'::jsonb, 'complete'::text, 'usda_fdc:173190'::text, 'Alcoholic beverage, wine, table, red'::text, 1::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","ml","l","tsp","tbsp","fl_oz","cup","pt","qt"]'::jsonb, 'red wine'::text),
-  ('Red Wine Vinegar'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0102::numeric, '{"carb":0.27,"fat":0,"fiber":0,"kcal":19,"protein":0.04}'::jsonb, 'complete'::text, 'usda_fdc:172240'::text, 'Vinegar, red wine'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'red wine vinegar'::text),
-  ('Rhubarb'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5157::numeric, '{"carb":4.54,"fat":0.2,"fiber":1.8,"kcal":21,"protein":0.9}'::jsonb, 'complete'::text, 'usda_fdc:167758'::text, 'Rhubarb, raw'::text, null::numeric, false, 51::numeric, 'borrowed from stalk'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'rhubarb'::text),
-  ('Rice Vinegar'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1::numeric, '{"carb":1.5,"fat":0,"fiber":0,"kcal":18,"protein":0}'::jsonb, 'complete'::text, 'label:typical unseasoned rice vinegar'::text, null::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'rice vinegar'::text),
-  ('Rolled Oats'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.34::numeric, '{"carb":66.27,"fat":6.9,"fiber":10.6,"kcal":389,"protein":16.89}'::jsonb, 'complete'::text, 'usda_fdc:169705'::text, 'Oats (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'rolled oat'::text),
-  ('Romaine Lettuce'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.1987::numeric, '{"carb":3.29,"fat":0.3,"fiber":2.1,"kcal":17,"protein":1.23}'::jsonb, 'complete'::text, 'usda_fdc:169247'::text, 'Lettuce, cos or romaine, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'romaine lettuce'::text),
-  ('Rosemary'::text, 'produce'::text, 'tbsp'::text, 'g'::text, 0.115::numeric, '{"carb":20.7,"fat":5.86,"fiber":14.1,"kcal":131,"protein":3.31}'::jsonb, 'complete'::text, 'usda_fdc:173473'::text, 'Rosemary, fresh'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'rosemary'::text),
-  ('Russet Potato'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.634::numeric, '{"carb":18.07,"fat":0.08,"fiber":1.3,"kcal":79,"protein":2.14}'::jsonb, 'complete'::text, 'usda_fdc:170027'::text, 'Potatoes, russet, flesh and skin, raw (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, 213::numeric, 'borrowed from potato, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'russet potato'::text),
-  ('Safflower Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:171026'::text, 'Oil, safflower, salad or cooking, linoleic, (over 70%)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'safflower oil'::text),
-  ('Ground Sage'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.1353::numeric, '{"carb":60.73,"fat":12.75,"fiber":40.3,"kcal":315,"protein":10.63}'::jsonb, 'complete'::text, 'usda_fdc:170935'::text, 'Spices, sage, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'sage ground'::text),
-  ('Sauerkraut'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.6002::numeric, '{"carb":4.28,"fat":0.14,"fiber":2.9,"kcal":19,"protein":0.91}'::jsonb, 'complete'::text, 'usda_fdc:169279'::text, 'Sauerkraut, canned, solids and liquids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'sauerkraut'::text),
-  ('Scallion'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.4227::numeric, '{"carb":7.34,"fat":0.19,"fiber":2.6,"kcal":32,"protein":1.83}'::jsonb, 'complete'::text, 'usda_fdc:170005'::text, 'Onions, spring or scallions (includes tops and bulb), raw'::text, null::numeric, false, 15::numeric, 'borrowed from scallion, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'scallion'::text),
-  ('Sea Salt'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 1.2342::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'stub'::text, 'usda_fdc:173468'::text, 'Salt, table'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'sea salt'::text),
-  ('Semolina Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.7059::numeric, '{"carb":72.83,"fat":1.05,"fiber":3.9,"kcal":360,"protein":12.68}'::jsonb, 'complete'::text, 'usda_fdc:168933'::text, 'Semolina, unenriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'semolina flour'::text),
-  ('Serrano Pepper'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.4438::numeric, '{"carb":6.7,"fat":0.44,"fiber":3.7,"kcal":32,"protein":1.74}'::jsonb, 'complete'::text, 'usda_fdc:169395'::text, 'Peppers, serrano, raw'::text, null::numeric, false, 6.1::numeric, 'borrowed from pepper'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'serrano pepper'::text),
-  ('Toasted Sesame Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:171016'::text, 'Oil, sesame, salad or cooking'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","to_taste"]'::jsonb, 'sesame oil toasted'::text),
-  ('Sesame Seeds'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.6087::numeric, '{"carb":23.45,"fat":49.67,"fiber":11.8,"kcal":573,"protein":17.73}'::jsonb, 'complete'::text, 'usda_fdc:170150'::text, 'Seeds, sesame seeds, whole, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'sesame seed'::text),
-  ('Shallot'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6763::numeric, '{"carb":16.8,"fat":0.1,"fiber":3.2,"kcal":72,"protein":2.5}'::jsonb, 'complete'::text, 'usda_fdc:170499'::text, 'Shallots, raw'::text, null::numeric, false, 30::numeric, 'borrowed from shallot, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'shallot'::text),
-  ('Sherry Vinegar'::text, 'pantry'::text, 'tbsp'::text, 'ml'::text, null::numeric, '{"carb":6.7628045403686,"fat":0,"fiber":0,"kcal":33.814022701843,"protein":0}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["tbsp","tsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'sherry vinegar'::text),
-  ('Shiitake Mushroom'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.3::numeric, '{"carb":6.79,"fat":0.49,"fiber":2.5,"kcal":34,"protein":2.24}'::jsonb, 'complete'::text, 'usda_fdc:169242'::text, 'Mushrooms, shiitake, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'shiitake mushroom'::text),
-  ('Silken Tofu'::text, 'proteins'::text, 'piece'::text, 'g'::text, 1.0482::numeric, '{"carb":2.9,"fat":2.7,"fiber":0.1,"kcal":55,"protein":4.8}'::jsonb, 'complete'::text, 'usda_fdc:174292 + fdc_density:172449'::text, 'MORI-NU, Tofu, silken, soft'::text, null::numeric, false, 349::numeric, 'borrowed from block (12.3 oz)'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb, 'silken tofu'::text),
-  ('Soft Sandwich Bread'::text, 'grains'::text, 'piece'::text, 'g'::text, 0.29::numeric, '{"carb":49.2,"fat":3.59,"fiber":2.3,"kcal":270,"protein":9.43}'::jsonb, 'complete'::text, 'usda_fdc:325871 + fao_infoods_v2:Bread, white, sliced, prepacked'::text, 'Bread, white, commercially prepared'::text, null::numeric, false, 27.3::numeric, 'borrowed from slice'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb, 'soft sandwich bread'::text),
-  ('Soy Milk'::text, 'dairy'::text, 'cup'::text, 'g'::text, 1.0271::numeric, '{"carb":3.85,"fat":0.85,"fiber":0.6,"kcal":34,"protein":2.62}'::jsonb, 'complete'::text, 'usda_fdc:173768'::text, 'Soymilk, original and vanilla, light, unsweetened, with added calcium, vitamins A and D'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'soy milk'::text),
-  ('Soy Sauce'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0778::numeric, '{"carb":4.93,"fat":0.57,"fiber":0.8,"kcal":53,"protein":8.14}'::jsonb, 'complete'::text, 'usda_fdc:174277'::text, 'Soy sauce made from soy and wheat (shoyu)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","to_taste"]'::jsonb, 'soy sauce'::text),
-  ('Spaghetti'::text, 'grains'::text, 'lb'::text, 'g'::text, 0.3846::numeric, '{"carb":74.67,"fat":1.51,"fiber":3.2,"kcal":371,"protein":13.04}'::jsonb, 'complete'::text, 'usda_fdc:169736'::text, 'Pasta, dry, enriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'spaghetti'::text),
-  ('Spelt Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.51::numeric, '{"carb":70.19,"fat":2.43,"fiber":10.7,"kcal":338,"protein":14.57}'::jsonb, 'complete'::text, 'usda_fdc:169745'::text, 'Spelt, uncooked'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'spelt flour'::text),
-  ('Spinach'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.1268::numeric, '{"carb":3.63,"fat":0.39,"fiber":2.2,"kcal":23,"protein":2.86}'::jsonb, 'complete'::text, 'usda_fdc:168462'::text, 'Spinach, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'spinach'::text),
-  ('Sprouted Multigrain Bread'::text, 'grains'::text, 'piece'::text, 'g'::text, 0.29::numeric, '{"carb":44.1,"fat":1.5,"fiber":8.8,"kcal":235,"protein":11.8}'::jsonb, 'complete'::text, 'label:Food for Life Ezekiel 4:9 + fao_infoods_v2:Bread'::text, null::text, null::numeric, false, 38::numeric, 'borrowed from slice'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb, 'sprouted multigrain bread'::text),
-  ('Sriracha'::text, 'pantry'::text, 'tsp'::text, 'g'::text, 1.05::numeric, '{"carb":19.16,"fat":0.93,"fiber":2.2,"kcal":93,"protein":1.93}'::jsonb, 'complete'::text, 'usda_fdc:171186'::text, 'Sauce, hot chile, sriracha'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","to_taste"]'::jsonb, 'sriracha'::text),
-  ('Star Anise'::text, 'spices & seasoning'::text, 'piece'::text, 'g'::text, 0.4531::numeric, '{"carb":50.02,"fat":15.9,"fiber":14.6,"kcal":337,"protein":17.6}'::jsonb, 'complete'::text, 'usda_fdc:171316'::text, 'Spices, anise seed'::text, 0.5::numeric, false, 2::numeric, 'borrowed from pod'::text, '["piece","g","kg","oz","lb","ml","l","tsp","tbsp","fl_oz","cup","pt","qt"]'::jsonb, 'star anise'::text),
-  ('Steel-Cut Oats'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.6594::numeric, '{"carb":66.27,"fat":6.9,"fiber":10.6,"kcal":389,"protein":16.89}'::jsonb, 'complete'::text, 'usda_fdc:169705'::text, 'Oats (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'steel oat'::text),
-  ('Strawberries'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.6425::numeric, '{"carb":7.68,"fat":0.3,"fiber":2,"kcal":32,"protein":0.67}'::jsonb, 'complete'::text, 'usda_fdc:167762'::text, 'Strawberries, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'strawberry'::text),
-  ('Powdered Sugar'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.5072::numeric, '{"carb":99.77,"fat":0,"fiber":0,"kcal":389,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:169656'::text, 'Sugars, powdered'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'sugar powdered'::text),
-  ('Sunflower Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:172338'::text, 'Oil, sunflower, high oleic (70% and over)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'sunflower oil'::text),
-  ('Sunflower Seeds'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.5917::numeric, '{"carb":20,"fat":51.46,"fiber":8.6,"kcal":584,"protein":20.78}'::jsonb, 'complete'::text, 'usda_fdc:170562'::text, 'Seeds, sunflower seed kernels, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'sunflower seed'::text),
-  ('Super Firm Tofu'::text, 'proteins'::text, 'g'::text, 'g'::text, null::numeric, '{"carb":3.5273961949580412,"fat":8.230591121568763,"fiber":0,"kcal":152.85383511484844,"protein":16.461182243137525}'::jsonb, 'stub'::text, 'off:00830898'::text, 'Trader Joe''s High protein organic tofu'::text, null::numeric, true, null::numeric, null::text, '["g","kg","oz","lb"]'::jsonb, 'super firm tofu'::text),
-  ('Sweet Paprika'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.4599::numeric, '{"carb":53.99,"fat":12.89,"fiber":34.9,"kcal":282,"protein":14.14}'::jsonb, 'complete'::text, 'usda_fdc:171329'::text, 'Spices, paprika'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'sweet paprika'::text),
-  ('Sweet Potato'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5622::numeric, '{"carb":20.12,"fat":0.05,"fiber":3,"kcal":86,"protein":1.57}'::jsonb, 'complete'::text, 'usda_fdc:168482'::text, 'Sweet potato, raw, unprepared (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, 130::numeric, 'borrowed from sweet potato'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'sweet potato'::text),
-  ('Canned Sweetcorn'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.6932::numeric, '{"carb":14.34,"fat":1.22,"fiber":2,"kcal":67,"protein":2.29}'::jsonb, 'complete'::text, 'usda_fdc:169214'::text, 'Corn, sweet, yellow, canned, whole kernel, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'sweetcorn canned'::text),
-  ('Table Salt'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 1.2342::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:173468'::text, 'Salt, table'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'table salt'::text),
-  ('Tahini'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0144::numeric, '{"carb":21.19,"fat":53.76,"fiber":9.3,"kcal":595,"protein":17}'::jsonb, 'complete'::text, 'usda_fdc:170189'::text, 'Seeds, sesame butter, tahini, from roasted and toasted kernels (most common type)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'tahini'::text),
-  ('Tamari'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.2173::numeric, '{"carb":5.57,"fat":0.1,"fiber":0.8,"kcal":60,"protein":10.51}'::jsonb, 'complete'::text, 'usda_fdc:174278'::text, 'Soy sauce made from soy (tamari)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","to_taste"]'::jsonb, 'tamari'::text),
-  ('Tempeh'::text, 'proteins'::text, 'oz'::text, 'g'::text, 0.7016::numeric, '{"carb":7.64,"fat":10.8,"kcal":192,"protein":20.29}'::jsonb, 'stub'::text, 'usda_fdc:174272'::text, 'Tempeh'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'tempeh'::text),
-  ('Thai Basil'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.1014::numeric, '{"carb":2.65,"fat":0.64,"fiber":1.6,"kcal":23,"protein":3.15}'::jsonb, 'complete'::text, 'usda_fdc:172232'::text, 'Basil, fresh'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'thai basil'::text),
-  ('Dried Thyme'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.1826::numeric, '{"carb":63.94,"fat":7.43,"fiber":37,"kcal":276,"protein":9.11}'::jsonb, 'complete'::text, 'usda_fdc:170938'::text, 'Spices, thyme, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'thyme dried'::text),
-  ('Fresh Thyme'::text, 'produce'::text, 'tsp'::text, 'g'::text, 0.1623::numeric, '{"carb":24.45,"fat":1.68,"fiber":14,"kcal":101,"protein":5.56}'::jsonb, 'complete'::text, 'usda_fdc:173470'::text, 'Thyme, fresh'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'thyme fresh'::text),
-  ('Tipo 00 Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.5283::numeric, '{"carb":76.31,"fat":0.98,"fiber":2.7,"kcal":364,"protein":10.33}'::jsonb, 'complete'::text, 'usda_fdc:169761'::text, 'Wheat flour, white, all-purpose, unenriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'tipo flour'::text),
-  ('Tomato'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6298::numeric, '{"carb":3.89,"fat":0.2,"fiber":1.2,"kcal":18,"protein":0.88}'::jsonb, 'complete'::text, 'usda_fdc:170457'::text, 'Tomatoes, red, ripe, raw, year round average'::text, null::numeric, false, 123::numeric, 'borrowed from tomato, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'tomato'::text),
-  ('Canned Crushed Tomatoes'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0229::numeric, '{"carb":7.29,"fat":0.28,"fiber":1.9,"kcal":32,"protein":1.64}'::jsonb, 'complete'::text, 'usda_fdc:170501'::text, 'Tomatoes, crushed, canned'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'tomato canned'::text),
-  ('Canned Diced Tomatoes'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0356::numeric, '{"carb":3.32,"fat":0.5,"fiber":1.9,"kcal":18,"protein":0.84}'::jsonb, 'complete'::text, 'usda_fdc:333281'::text, 'Tomatoes, canned, red, ripe, diced'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'tomato canned diced'::text),
-  ('Canned Whole Tomatoes'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0144::numeric, '{"carb":3.47,"fat":0.25,"fiber":1.9,"kcal":16,"protein":0.79}'::jsonb, 'complete'::text, 'usda_fdc:170051'::text, 'Tomatoes, red, ripe, canned, packed in tomato juice'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'tomato canned whole'::text),
-  ('Tomato Paste'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.1159::numeric, '{"carb":18.91,"fat":0.47,"fiber":4.1,"kcal":82,"protein":4.32}'::jsonb, 'complete'::text, 'usda_fdc:170459'::text, 'Tomato products, canned, paste, without salt added (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'tomato paste'::text),
-  ('Canned Tomato Puree'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0567::numeric, '{"carb":8.98,"fat":0.21,"fiber":1.9,"kcal":38,"protein":1.65}'::jsonb, 'complete'::text, 'usda_fdc:170460'::text, 'Tomato products, canned, puree, without salt added'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'tomato puree canned'::text),
-  ('Canned Tomato Sauce'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0356::numeric, '{"carb":5.31,"fat":0.3,"fiber":1.5,"kcal":24,"protein":1.2}'::jsonb, 'complete'::text, 'usda_fdc:170054'::text, 'Tomato products, canned, sauce'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'tomato sauce canned'::text),
-  ('Tortilla Chips'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.1099::numeric, '{"carb":67.38,"fat":22.33,"fiber":4.7,"kcal":497,"protein":6.62}'::jsonb, 'complete'::text, 'usda_fdc:173143 + fdc_density:168116'::text, 'Tortilla chips, yellow, plain, salted'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'tortilla chip'::text),
+  ('Okra'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.4227::numeric, '{"carb":7.45,"fat":0.19,"fiber":3.2,"kcal":33,"protein":1.93}'::jsonb, 'complete'::text, 'usda_fdc:169260'::text, 'Okra, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'okra'::text),
+  ('Olive Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.913::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:171413'::text, 'Oil, olive, salad or cooking'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'olive oil'::text),
+  ('Onion'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6763::numeric, '{"carb":9.34,"fat":0.1,"fiber":1.7,"kcal":40,"protein":1.1}'::jsonb, 'complete'::text, 'usda_fdc:170000'::text, 'Onions, raw'::text, null::numeric, false, 110::numeric, 'borrowed from onion, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'onion'::text),
+  ('Onion Powder'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.4666::numeric, '{"carb":79.12,"fat":1.04,"fiber":15.2,"kcal":341,"protein":10.41}'::jsonb, 'complete'::text, 'usda_fdc:171327'::text, 'Spices, onion powder'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'onion powder'::text),
+  ('Orange'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6974::numeric, '{"carb":11.8,"fat":0.15,"fiber":2,"kcal":47,"protein":0.91}'::jsonb, 'complete'::text, 'usda_fdc:746771'::text, 'Oranges, raw, navels'::text, null::numeric, false, 140::numeric, 'borrowed from orange, whole'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'orange'::text),
+  ('Orange Bell Pepper'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6289::numeric, '{"carb":6.03,"fat":0.3,"fiber":2.1,"kcal":26,"protein":0.99}'::jsonb, 'complete'::text, 'usda_fdc:170108'::text, 'Peppers, sweet, red, raw'::text, null::numeric, false, 119::numeric, 'borrowed from pepper, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'orange bell pepper'::text),
+  ('Orange Juice'::text, 'produce'::text, 'tbsp'::text, 'g'::text, 1.048::numeric, '{"carb":10.4,"fat":0.2,"fiber":0.2,"kcal":45,"protein":0.7}'::jsonb, 'complete'::text, 'usda_fdc:169098'::text, 'Orange juice, raw (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'orange juice'::text),
+  ('Orange Zest'::text, 'produce'::text, 'tsp'::text, 'g'::text, 0.4058::numeric, '{"carb":25,"fat":0.2,"fiber":10.6,"kcal":97,"protein":1.5}'::jsonb, 'complete'::text, 'usda_fdc:169103'::text, 'Orange peel, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'orange zest'::text),
+  ('Dried Oregano'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.2029::numeric, '{"carb":68.92,"fat":4.28,"fiber":42.5,"kcal":265,"protein":9}'::jsonb, 'complete'::text, 'usda_fdc:171328'::text, 'Spices, oregano, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'oregano dried'::text),
+  ('Fresh Oregano'::text, 'produce'::text, 'tsp'::text, 'g'::text, 0.1::numeric, '{"carb":23,"fat":1.4,"fiber":14,"kcal":88,"protein":3}'::jsonb, 'complete'::text, 'label:derived from USDA dried oregano 171328 at 70 % water'::text, 'derived: dried oregano scaled to fresh (70 % water)'::text, null::numeric, false, null::numeric, null::text, '["tsp","tbsp","cup","ml","handful","g","oz","to_taste","kg","lb"]'::jsonb, 'oregano fresh'::text),
+  ('Oyster Mushroom'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.3635::numeric, '{"carb":6.09,"fat":0.41,"fiber":2.3,"kcal":33,"protein":3.31}'::jsonb, 'complete'::text, 'usda_fdc:168580'::text, 'Mushrooms, oyster, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'oyster mushroom'::text),
+  ('Panko'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.25::numeric, '{"carb":71.98,"fat":5.3,"fiber":4.5,"kcal":395,"protein":13.35}'::jsonb, 'complete'::text, 'usda_fdc:174928'::text, 'Bread, crumbs, dry, grated, plain'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'panko'::text),
+  ('Paprika'::text, 'spices & seasoning'::text, 'g'::text, 'g'::text, 0.4599::numeric, '{"carb":53.99,"fat":12.89,"fiber":34.9,"kcal":282,"protein":14.14}'::jsonb, 'complete'::text, 'usda_fdc:171329'::text, 'Spices, paprika'::text, 1::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'paprika'::text),
+  ('Smoked Paprika'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.4599::numeric, '{"carb":53.99,"fat":12.89,"fiber":34.9,"kcal":282,"protein":14.14}'::jsonb, 'complete'::text, 'usda_fdc:171329'::text, 'Spices, paprika'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'paprika smoked'::text),
+  ('Parsley'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.257::numeric, '{"carb":6.33,"fat":0.79,"fiber":3.3,"kcal":36,"protein":2.97}'::jsonb, 'complete'::text, 'usda_fdc:170416'::text, 'Parsley, fresh'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'parsley'::text),
+  ('Parsnip'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5622::numeric, '{"carb":17.99,"fat":0.3,"fiber":4.9,"kcal":75,"protein":1.2}'::jsonb, 'complete'::text, 'usda_fdc:170417'::text, 'Parsnips, raw'::text, null::numeric, false, 120::numeric, 'borrowed from parsnip, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'parsnip'::text),
+  ('Pasta'::text, 'grains'::text, 'lb'::text, 'g'::text, 0.3846::numeric, '{"carb":74.67,"fat":1.51,"fiber":3.2,"kcal":371,"protein":13.04}'::jsonb, 'complete'::text, 'usda_fdc:169736'::text, 'Pasta, dry, enriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml"]'::jsonb, 'pasta'::text),
+  ('Cooked Pasta'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.5241::numeric, '{"carb":30.86,"fat":0.93,"fiber":1.8,"kcal":158,"protein":5.8}'::jsonb, 'complete'::text, 'usda_fdc:169737'::text, 'Pasta, cooked, enriched, without added salt'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml"]'::jsonb, 'pasta cooked'::text),
+  ('Peas'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.6129::numeric, '{"carb":14.45,"fat":0.4,"fiber":5.7,"kcal":81,"protein":5.42}'::jsonb, 'complete'::text, 'usda_fdc:170419'::text, 'Peas, green, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'pea'::text),
+  ('Frozen Peas'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.5664::numeric, '{"carb":13.62,"fat":0.4,"fiber":4.5,"kcal":77,"protein":5.22}'::jsonb, 'complete'::text, 'usda_fdc:170016'::text, 'Peas, green, frozen, unprepared (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'pea frozen'::text),
+  ('Peach'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6509::numeric, '{"carb":9.54,"fat":0.25,"fiber":1.5,"kcal":39,"protein":0.91}'::jsonb, 'complete'::text, 'usda_fdc:169928'::text, 'Peaches, yellow, raw'::text, null::numeric, false, 150::numeric, 'borrowed from peach, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'peach'::text),
+  ('Peanuts'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.6171::numeric, '{"carb":16.13,"fat":49.24,"fiber":8.5,"kcal":567,"protein":25.8}'::jsonb, 'complete'::text, 'usda_fdc:172430'::text, 'Peanuts, all types, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'peanut'::text),
+  ('Peanut Butter'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0905::numeric, '{"carb":22.3,"fat":51.1,"fiber":4.8,"kcal":597,"protein":22.5}'::jsonb, 'complete'::text, 'usda_fdc:324860'::text, 'Peanut butter, smooth style, with salt'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'peanut butter'::text),
+  ('Peanut Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.913::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:171410'::text, 'Oil, peanut, salad or cooking'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'peanut oil'::text),
+  ('Pecans'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.4607::numeric, '{"carb":13.86,"fat":71.97,"fiber":9.6,"kcal":691,"protein":9.17}'::jsonb, 'complete'::text, 'usda_fdc:170182'::text, 'Nuts, pecans'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'pecan'::text),
+  ('Pine Nuts'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.5706::numeric, '{"carb":13.08,"fat":68.37,"fiber":3.7,"kcal":673,"protein":13.69}'::jsonb, 'complete'::text, 'usda_fdc:170591'::text, 'Nuts, pine nuts, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'pine nut'::text),
+  ('Pineapple'::text, 'produce'::text, 'lb'::text, 'g'::text, 0.6974::numeric, '{"carb":13.12,"fat":0.12,"fiber":1.4,"kcal":50,"protein":0.54}'::jsonb, 'complete'::text, 'usda_fdc:169124'::text, 'Pineapple, raw, all varieties'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'pineapple'::text),
+  ('Canned Pinto Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.72::numeric, '{"carb":20.22,"fat":0.9,"fiber":5.5,"kcal":114,"protein":6.99}'::jsonb, 'complete'::text, 'usda_fdc:174286'::text, 'Beans, pinto, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'pinto bean canned'::text),
+  ('Pistachios'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.5199::numeric, '{"carb":27.17,"fat":45.32,"fiber":10.6,"kcal":560,"protein":20.16}'::jsonb, 'complete'::text, 'usda_fdc:170184'::text, 'Nuts, pistachio nuts, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'pistachio'::text),
+  ('Plain Oat Yogurt'::text, 'dairy'::text, 'cup'::text, 'ml'::text, 1.07245967524502::numeric, '{"carb":8.242168033574231,"fat":3.8040775539573373,"fiber":1.2680258513191125,"kcal":107.78219736212456,"protein":10.1442068105529}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["cup","tsp","tbsp","ml","g","oz","lb","kg"]'::jsonb, 'plain oat yogurt'::text),
+  ('Plantain'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6256::numeric, '{"carb":36.66,"fat":0.07,"fiber":2.2,"kcal":152,"protein":1.25}'::jsonb, 'complete'::text, 'usda_fdc:168215 + fdc_density:169130'::text, 'Plantains, green, raw'::text, null::numeric, false, 267::numeric, 'borrowed from plantain'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'plantain'::text),
+  ('Poblano Pepper'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5::numeric, '{"carb":4.666666666666666,"fat":0,"fiber":1.6666666666666665,"kcal":20,"protein":0.6666666666666666}'::jsonb, 'complete'::text, 'fao_infoods_v2:Chili, green'::text, null::text, null::numeric, false, 115::numeric, 'manual'::text, '["piece","g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'poblano pepper'::text),
+  ('Portobello Mushroom'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.3635::numeric, '{"carb":3.87,"fat":0.35,"fiber":1.3,"kcal":22,"protein":2.11}'::jsonb, 'complete'::text, 'usda_fdc:169255'::text, 'Mushrooms, portabella, raw'::text, null::numeric, false, 84::numeric, 'borrowed from mushroom, whole'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'portobello mushroom'::text),
+  ('Pumpkin Seeds'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.5453::numeric, '{"carb":10.71,"fat":49.05,"fiber":6,"kcal":559,"protein":30.23}'::jsonb, 'complete'::text, 'usda_fdc:170556'::text, 'Seeds, pumpkin and squash seed kernels, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'pumpkin seed'::text),
+  ('Quinoa'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.7185::numeric, '{"carb":64.16,"fat":6.07,"fiber":7,"kcal":368,"protein":14.12}'::jsonb, 'complete'::text, 'usda_fdc:168874'::text, 'Quinoa, uncooked'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'quinoa'::text),
+  ('Cooked Quinoa'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.782::numeric, '{"carb":21.3,"fat":1.92,"fiber":2.8,"kcal":120,"protein":4.4}'::jsonb, 'complete'::text, 'usda_fdc:168917'::text, 'Quinoa, cooked'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb, 'quinoa cooked'::text),
+  ('Radish'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.4903::numeric, '{"carb":3.4,"fat":0.1,"fiber":1.6,"kcal":16,"protein":0.68}'::jsonb, 'complete'::text, 'usda_fdc:169276'::text, 'Radishes, raw'::text, null::numeric, false, 4.5::numeric, 'borrowed from radish, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'radish'::text),
+  ('Raisins'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.6974::numeric, '{"carb":78.47,"fat":0.54,"fiber":6.8,"kcal":296,"protein":2.52}'::jsonb, 'complete'::text, 'usda_fdc:168166'::text, 'Raisins, seeded'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'raisin'::text),
+  ('Raspberries'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.5199::numeric, '{"carb":11.94,"fat":0.65,"fiber":6.5,"kcal":52,"protein":1.2}'::jsonb, 'complete'::text, 'usda_fdc:167755'::text, 'Raspberries, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'raspberry'::text),
+  ('Red Bell Pepper'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6289::numeric, '{"carb":6.03,"fat":0.3,"fiber":2.1,"kcal":26,"protein":0.99}'::jsonb, 'complete'::text, 'usda_fdc:170108'::text, 'Peppers, sweet, red, raw'::text, null::numeric, false, 119::numeric, 'borrowed from pepper, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'red bell pepper'::text),
+  ('Red Cabbage'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.3762::numeric, '{"carb":7.37,"fat":0.16,"fiber":2.1,"kcal":31,"protein":1.43}'::jsonb, 'complete'::text, 'usda_fdc:169977'::text, 'Cabbage, red, raw'::text, null::numeric, false, 839::numeric, 'borrowed from head, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'red cabbage'::text),
+  ('Fresh Red Chili'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.634::numeric, '{"carb":8.81,"fat":0.44,"fiber":1.5,"kcal":40,"protein":1.87}'::jsonb, 'complete'::text, 'usda_fdc:170106'::text, 'Peppers, hot chili, red, raw'::text, null::numeric, false, 45::numeric, 'borrowed from chili'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'red chili fresh'::text),
+  ('Red Delicious Apple'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.4607::numeric, '{"carb":14.8,"fat":0.21,"fiber":2,"kcal":62,"protein":0.19}'::jsonb, 'complete'::text, 'usda_fdc:1105430 + fdc_density:168201'::text, 'Apples, red delicious, with skin, raw'::text, null::numeric, false, 212::numeric, 'borrowed from apple, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'red delicious apple'::text),
+  ('Red Grapes'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.6382::numeric, '{"carb":18.1,"fat":0.16,"fiber":0.9,"kcal":69,"protein":0.72}'::jsonb, 'complete'::text, 'usda_fdc:174683'::text, 'Grapes, red or green (European type, such as Thompson seedless), raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'red grape'::text),
+  ('Red Leaf Lettuce'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.1183::numeric, '{"carb":2.26,"fat":0.22,"fiber":0.9,"kcal":13,"protein":1.33}'::jsonb, 'complete'::text, 'usda_fdc:168431'::text, 'Lettuce, red leaf, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'red leaf lettuce'::text),
+  ('Red Onion'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.55::numeric, '{"carb":9.93,"fat":0.1,"fiber":2.2,"kcal":44,"protein":0.94}'::jsonb, 'complete'::text, 'usda_fdc:790577 + fao_infoods_v2:Onions, raw, cubed'::text, 'Onions, red, raw'::text, null::numeric, false, 110::numeric, 'borrowed from onion, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'red onion'::text),
+  ('Red Pepper Flakes'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.3584::numeric, '{"carb":56.63,"fat":17.27,"fiber":27.2,"kcal":318,"protein":12.01}'::jsonb, 'complete'::text, 'usda_fdc:170932'::text, 'Spices, pepper, red or cayenne'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'red pepper flake'::text),
+  ('Red Potato'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.634::numeric, '{"carb":15.9,"fat":0.14,"fiber":1.7,"kcal":70,"protein":1.89}'::jsonb, 'complete'::text, 'usda_fdc:170029'::text, 'Potatoes, red, flesh and skin, raw'::text, null::numeric, false, 213::numeric, 'borrowed from potato, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'red potato'::text),
+  ('Red Rice'::text, 'grains'::text, 'cup'::text, 'ml'::text, 0.760815510791467::numeric, '{"carb":57.4838385931331,"fat":1.69070113509215,"fiber":5.07210340527645,"kcal":270.512181614744,"protein":5.07210340527645}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["cup","tsp","tbsp","ml","g","kg","oz","lb"]'::jsonb, 'red rice'::text),
+  ('Red Wine'::text, 'pantry'::text, 'g'::text, 'g'::text, 0.9941::numeric, '{"carb":2.61,"fat":0,"fiber":0,"kcal":85,"protein":0.07}'::jsonb, 'complete'::text, 'usda_fdc:173190'::text, 'Alcoholic beverage, wine, table, red'::text, 1::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","ml","tsp","tbsp","cup"]'::jsonb, 'red wine'::text),
+  ('Red Wine Vinegar'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0102::numeric, '{"carb":0.27,"fat":0,"fiber":0,"kcal":19,"protein":0.04}'::jsonb, 'complete'::text, 'usda_fdc:172240'::text, 'Vinegar, red wine'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'red wine vinegar'::text),
+  ('Rhubarb'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5157::numeric, '{"carb":4.54,"fat":0.2,"fiber":1.8,"kcal":21,"protein":0.9}'::jsonb, 'complete'::text, 'usda_fdc:167758'::text, 'Rhubarb, raw'::text, null::numeric, false, 51::numeric, 'borrowed from stalk'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'rhubarb'::text),
+  ('Rice Vinegar'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1::numeric, '{"carb":1.5,"fat":0,"fiber":0,"kcal":18,"protein":0}'::jsonb, 'complete'::text, 'label:typical unseasoned rice vinegar'::text, null::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'rice vinegar'::text),
+  ('Rolled Oats'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.34::numeric, '{"carb":66.27,"fat":6.9,"fiber":10.6,"kcal":389,"protein":16.89}'::jsonb, 'complete'::text, 'usda_fdc:169705'::text, 'Oats (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'rolled oat'::text),
+  ('Romaine Lettuce'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.1987::numeric, '{"carb":3.29,"fat":0.3,"fiber":2.1,"kcal":17,"protein":1.23}'::jsonb, 'complete'::text, 'usda_fdc:169247'::text, 'Lettuce, cos or romaine, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'romaine lettuce'::text),
+  ('Rosemary'::text, 'produce'::text, 'tbsp'::text, 'g'::text, 0.115::numeric, '{"carb":20.7,"fat":5.86,"fiber":14.1,"kcal":131,"protein":3.31}'::jsonb, 'complete'::text, 'usda_fdc:173473'::text, 'Rosemary, fresh'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'rosemary'::text),
+  ('Russet Potato'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.634::numeric, '{"carb":18.07,"fat":0.08,"fiber":1.3,"kcal":79,"protein":2.14}'::jsonb, 'complete'::text, 'usda_fdc:170027'::text, 'Potatoes, russet, flesh and skin, raw (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, 213::numeric, 'borrowed from potato, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'russet potato'::text),
+  ('Safflower Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:171026'::text, 'Oil, safflower, salad or cooking, linoleic, (over 70%)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'safflower oil'::text),
+  ('Ground Sage'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.1353::numeric, '{"carb":60.73,"fat":12.75,"fiber":40.3,"kcal":315,"protein":10.63}'::jsonb, 'complete'::text, 'usda_fdc:170935'::text, 'Spices, sage, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'sage ground'::text),
+  ('Sauerkraut'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.6002::numeric, '{"carb":4.28,"fat":0.14,"fiber":2.9,"kcal":19,"protein":0.91}'::jsonb, 'complete'::text, 'usda_fdc:169279'::text, 'Sauerkraut, canned, solids and liquids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'sauerkraut'::text),
+  ('Scallion'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.4227::numeric, '{"carb":7.34,"fat":0.19,"fiber":2.6,"kcal":32,"protein":1.83}'::jsonb, 'complete'::text, 'usda_fdc:170005'::text, 'Onions, spring or scallions (includes tops and bulb), raw'::text, null::numeric, false, 15::numeric, 'borrowed from scallion, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'scallion'::text),
+  ('Sea Salt'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 1.21730481726635::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_declined'::text, 'Salt, table'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'sea salt'::text),
+  ('Semolina Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.7059::numeric, '{"carb":72.83,"fat":1.05,"fiber":3.9,"kcal":360,"protein":12.68}'::jsonb, 'complete'::text, 'usda_fdc:168933'::text, 'Semolina, unenriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'semolina flour'::text),
+  ('Serrano Pepper'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.4438::numeric, '{"carb":6.7,"fat":0.44,"fiber":3.7,"kcal":32,"protein":1.74}'::jsonb, 'complete'::text, 'usda_fdc:169395'::text, 'Peppers, serrano, raw'::text, null::numeric, false, 6.1::numeric, 'borrowed from pepper'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'serrano pepper'::text),
+  ('Toasted Sesame Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:171016'::text, 'Oil, sesame, salad or cooking'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'sesame oil toasted'::text),
+  ('Sesame Seeds'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.6087::numeric, '{"carb":23.45,"fat":49.67,"fiber":11.8,"kcal":573,"protein":17.73}'::jsonb, 'complete'::text, 'usda_fdc:170150'::text, 'Seeds, sesame seeds, whole, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'sesame seed'::text),
+  ('Shallot'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6763::numeric, '{"carb":16.8,"fat":0.1,"fiber":3.2,"kcal":72,"protein":2.5}'::jsonb, 'complete'::text, 'usda_fdc:170499'::text, 'Shallots, raw'::text, null::numeric, false, 30::numeric, 'borrowed from shallot, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'shallot'::text),
+  ('Sherry Vinegar'::text, 'pantry'::text, 'tbsp'::text, 'ml'::text, null::numeric, '{"carb":6.7628045403686,"fat":0,"fiber":0,"kcal":33.814022701843,"protein":0}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["tbsp","tsp","cup","ml"]'::jsonb, 'sherry vinegar'::text),
+  ('Shiitake Mushroom'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.3::numeric, '{"carb":6.79,"fat":0.49,"fiber":2.5,"kcal":34,"protein":2.24}'::jsonb, 'complete'::text, 'usda_fdc:169242'::text, 'Mushrooms, shiitake, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'shiitake mushroom'::text),
+  ('Silken Tofu'::text, 'proteins'::text, 'piece'::text, 'g'::text, 1.0482::numeric, '{"carb":2.9,"fat":2.7,"fiber":0.1,"kcal":55,"protein":4.8}'::jsonb, 'complete'::text, 'usda_fdc:174292 + fdc_density:172449'::text, 'MORI-NU, Tofu, silken, soft'::text, null::numeric, false, 349::numeric, 'borrowed from block (12.3 oz)'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'silken tofu'::text),
+  ('Soft Sandwich Bread'::text, 'grains'::text, 'piece'::text, 'g'::text, 0.29::numeric, '{"carb":49.2,"fat":3.59,"fiber":2.3,"kcal":270,"protein":9.43}'::jsonb, 'complete'::text, 'usda_fdc:325871 + fao_infoods_v2:Bread, white, sliced, prepacked'::text, 'Bread, white, commercially prepared'::text, null::numeric, false, 27.3::numeric, 'borrowed from slice'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'soft sandwich bread'::text),
+  ('Soy Milk'::text, 'dairy'::text, 'cup'::text, 'g'::text, 1.0271::numeric, '{"carb":3.85,"fat":0.85,"fiber":0.6,"kcal":34,"protein":2.62}'::jsonb, 'complete'::text, 'usda_fdc:173768'::text, 'Soymilk, original and vanilla, light, unsweetened, with added calcium, vitamins A and D'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'soy milk'::text),
+  ('Soy Sauce'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0778::numeric, '{"carb":4.93,"fat":0.57,"fiber":0.8,"kcal":53,"protein":8.14}'::jsonb, 'complete'::text, 'usda_fdc:174277'::text, 'Soy sauce made from soy and wheat (shoyu)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","to_taste"]'::jsonb, 'soy sauce'::text),
+  ('Spaghetti'::text, 'grains'::text, 'lb'::text, 'g'::text, 0.3846::numeric, '{"carb":74.67,"fat":1.51,"fiber":3.2,"kcal":371,"protein":13.04}'::jsonb, 'complete'::text, 'usda_fdc:169736'::text, 'Pasta, dry, enriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml"]'::jsonb, 'spaghetti'::text),
+  ('Spelt Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.51::numeric, '{"carb":70.19,"fat":2.43,"fiber":10.7,"kcal":338,"protein":14.57}'::jsonb, 'complete'::text, 'usda_fdc:169745'::text, 'Spelt, uncooked'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'spelt flour'::text),
+  ('Spinach'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.1268::numeric, '{"carb":3.63,"fat":0.39,"fiber":2.2,"kcal":23,"protein":2.86}'::jsonb, 'complete'::text, 'usda_fdc:168462'::text, 'Spinach, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'spinach'::text),
+  ('Sprouted Multigrain Bread'::text, 'grains'::text, 'piece'::text, 'g'::text, 0.29::numeric, '{"carb":44.1,"fat":1.5,"fiber":8.8,"kcal":235,"protein":11.8}'::jsonb, 'complete'::text, 'label:Food for Life Ezekiel 4:9 + fao_infoods_v2:Bread'::text, null::text, null::numeric, false, 38::numeric, 'borrowed from slice'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'sprouted multigrain bread'::text),
+  ('Sriracha'::text, 'pantry'::text, 'tsp'::text, 'g'::text, 1.05::numeric, '{"carb":19.16,"fat":0.93,"fiber":2.2,"kcal":93,"protein":1.93}'::jsonb, 'complete'::text, 'usda_fdc:171186'::text, 'Sauce, hot chile, sriracha'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","to_taste"]'::jsonb, 'sriracha'::text),
+  ('Star Anise'::text, 'spices & seasoning'::text, 'piece'::text, 'g'::text, 0.4531::numeric, '{"carb":50.02,"fat":15.9,"fiber":14.6,"kcal":337,"protein":17.6}'::jsonb, 'complete'::text, 'usda_fdc:171316'::text, 'Spices, anise seed'::text, 0.5::numeric, false, 2::numeric, 'borrowed from pod'::text, '["piece","g","kg","oz","lb","ml","tsp","tbsp","cup"]'::jsonb, 'star anise'::text),
+  ('Steel-Cut Oats'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.6594::numeric, '{"carb":66.27,"fat":6.9,"fiber":10.6,"kcal":389,"protein":16.89}'::jsonb, 'complete'::text, 'usda_fdc:169705'::text, 'Oats (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'steel oat'::text),
+  ('Strawberries'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.6425::numeric, '{"carb":7.68,"fat":0.3,"fiber":2,"kcal":32,"protein":0.67}'::jsonb, 'complete'::text, 'usda_fdc:167762'::text, 'Strawberries, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'strawberry'::text),
+  ('Powdered Sugar'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.5072::numeric, '{"carb":99.77,"fat":0,"fiber":0,"kcal":389,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:169656'::text, 'Sugars, powdered'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'sugar powdered'::text),
+  ('Sunflower Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:172338'::text, 'Oil, sunflower, high oleic (70% and over)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'sunflower oil'::text),
+  ('Sunflower Seeds'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.5917::numeric, '{"carb":20,"fat":51.46,"fiber":8.6,"kcal":584,"protein":20.78}'::jsonb, 'complete'::text, 'usda_fdc:170562'::text, 'Seeds, sunflower seed kernels, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'sunflower seed'::text),
+  ('Super Firm Tofu'::text, 'proteins'::text, 'g'::text, 'g'::text, null::numeric, '{"carb":3.5273961949580412,"fat":8.230591121568763,"fiber":0,"kcal":152.85383511484844,"protein":16.461182243137525}'::jsonb, 'complete'::text, 'off:00830898'::text, 'Trader Joe''s High protein organic tofu'::text, null::numeric, true, null::numeric, null::text, '["g","kg","oz","lb"]'::jsonb, 'super firm tofu'::text),
+  ('Sweet Paprika'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.4599::numeric, '{"carb":53.99,"fat":12.89,"fiber":34.9,"kcal":282,"protein":14.14}'::jsonb, 'complete'::text, 'usda_fdc:171329'::text, 'Spices, paprika'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'sweet paprika'::text),
+  ('Sweet Potato'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5622::numeric, '{"carb":20.12,"fat":0.05,"fiber":3,"kcal":86,"protein":1.57}'::jsonb, 'complete'::text, 'usda_fdc:168482'::text, 'Sweet potato, raw, unprepared (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, 130::numeric, 'borrowed from sweet potato'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'sweet potato'::text),
+  ('Canned Sweetcorn'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.6932::numeric, '{"carb":14.34,"fat":1.22,"fiber":2,"kcal":67,"protein":2.29}'::jsonb, 'complete'::text, 'usda_fdc:169214'::text, 'Corn, sweet, yellow, canned, whole kernel, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb, 'sweetcorn canned'::text),
+  ('Table Salt'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 1.2342::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:173468'::text, 'Salt, table'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'table salt'::text),
+  ('Tahini'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0144::numeric, '{"carb":21.19,"fat":53.76,"fiber":9.3,"kcal":595,"protein":17}'::jsonb, 'complete'::text, 'usda_fdc:170189'::text, 'Seeds, sesame butter, tahini, from roasted and toasted kernels (most common type)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'tahini'::text),
+  ('Tamari'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.2173::numeric, '{"carb":5.57,"fat":0.1,"fiber":0.8,"kcal":60,"protein":10.51}'::jsonb, 'complete'::text, 'usda_fdc:174278'::text, 'Soy sauce made from soy (tamari)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","to_taste"]'::jsonb, 'tamari'::text),
+  ('Tempeh'::text, 'proteins'::text, 'oz'::text, 'g'::text, 0.7016::numeric, '{"carb":7.64,"fat":10.8,"fiber":3.7,"kcal":192,"protein":20.29}'::jsonb, 'complete'::text, 'usda_fdc:174272'::text, 'Tempeh'::text, null::numeric, true, null::numeric, null::text, '["g","kg","oz","lb","cup","ml"]'::jsonb, 'tempeh'::text),
+  ('Thai Basil'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.1014::numeric, '{"carb":2.65,"fat":0.64,"fiber":1.6,"kcal":23,"protein":3.15}'::jsonb, 'complete'::text, 'usda_fdc:172232'::text, 'Basil, fresh'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'thai basil'::text),
+  ('Dried Thyme'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.1826::numeric, '{"carb":63.94,"fat":7.43,"fiber":37,"kcal":276,"protein":9.11}'::jsonb, 'complete'::text, 'usda_fdc:170938'::text, 'Spices, thyme, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'thyme dried'::text),
+  ('Fresh Thyme'::text, 'produce'::text, 'tsp'::text, 'g'::text, 0.1623::numeric, '{"carb":24.45,"fat":1.68,"fiber":14,"kcal":101,"protein":5.56}'::jsonb, 'complete'::text, 'usda_fdc:173470'::text, 'Thyme, fresh'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'thyme fresh'::text),
+  ('Tipo 00 Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.5283::numeric, '{"carb":76.31,"fat":0.98,"fiber":2.7,"kcal":364,"protein":10.33}'::jsonb, 'complete'::text, 'usda_fdc:169761'::text, 'Wheat flour, white, all-purpose, unenriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'tipo flour'::text),
+  ('Tomato'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6298::numeric, '{"carb":3.89,"fat":0.2,"fiber":1.2,"kcal":18,"protein":0.88}'::jsonb, 'complete'::text, 'usda_fdc:170457'::text, 'Tomatoes, red, ripe, raw, year round average'::text, null::numeric, false, 123::numeric, 'borrowed from tomato, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'tomato'::text),
+  ('Canned Crushed Tomatoes'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0229::numeric, '{"carb":7.29,"fat":0.28,"fiber":1.9,"kcal":32,"protein":1.64}'::jsonb, 'complete'::text, 'usda_fdc:170501'::text, 'Tomatoes, crushed, canned'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'tomato canned'::text),
+  ('Canned Diced Tomatoes'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0356::numeric, '{"carb":3.32,"fat":0.5,"fiber":1.9,"kcal":18,"protein":0.84}'::jsonb, 'complete'::text, 'usda_fdc:333281'::text, 'Tomatoes, canned, red, ripe, diced'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'tomato canned diced'::text),
+  ('Canned Whole Tomatoes'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0144::numeric, '{"carb":3.47,"fat":0.25,"fiber":1.9,"kcal":16,"protein":0.79}'::jsonb, 'complete'::text, 'usda_fdc:170051'::text, 'Tomatoes, red, ripe, canned, packed in tomato juice'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml"]'::jsonb, 'tomato canned whole'::text),
+  ('Tomato Paste'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.1159::numeric, '{"carb":18.91,"fat":0.47,"fiber":4.1,"kcal":82,"protein":4.32}'::jsonb, 'complete'::text, 'usda_fdc:170459'::text, 'Tomato products, canned, paste, without salt added (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'tomato paste'::text),
+  ('Canned Tomato Puree'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0567::numeric, '{"carb":8.98,"fat":0.21,"fiber":1.9,"kcal":38,"protein":1.65}'::jsonb, 'complete'::text, 'usda_fdc:170460'::text, 'Tomato products, canned, puree, without salt added'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'tomato puree canned'::text),
+  ('Canned Tomato Sauce'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0356::numeric, '{"carb":5.31,"fat":0.3,"fiber":1.5,"kcal":24,"protein":1.2}'::jsonb, 'complete'::text, 'usda_fdc:170054'::text, 'Tomato products, canned, sauce'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'tomato sauce canned'::text),
+  ('Tortilla Chips'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.1099::numeric, '{"carb":67.38,"fat":22.33,"fiber":4.7,"kcal":497,"protein":6.62}'::jsonb, 'complete'::text, 'usda_fdc:173143 + fdc_density:168116'::text, 'Tortilla chips, yellow, plain, salted'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'tortilla chip'::text),
   ('Tostada Shell'::text, 'grains'::text, 'piece'::text, 'g'::text, null::numeric, '{"carb":64.43,"fat":23.38,"fiber":5.8,"kcal":474,"protein":6.15}'::jsonb, 'complete'::text, 'usda_fdc:167525'::text, 'Tostada shells, corn'::text, null::numeric, false, 12.3::numeric, 'borrowed from shell'::text, '["g","kg","oz","lb","piece"]'::jsonb, 'tostada shell'::text),
-  ('Ground Turmeric'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.6357::numeric, '{"carb":67.14,"fat":3.25,"fiber":22.7,"kcal":312,"protein":9.68}'::jsonb, 'complete'::text, 'usda_fdc:172231'::text, 'Spices, turmeric, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb, 'turmeric ground'::text),
-  ('Turnip'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5495::numeric, '{"carb":6.43,"fat":0.1,"fiber":1.8,"kcal":28,"protein":0.9}'::jsonb, 'complete'::text, 'usda_fdc:170465'::text, 'Turnips, raw'::text, null::numeric, false, 122::numeric, 'borrowed from turnip, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'turnip'::text),
+  ('Ground Turmeric'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.6357::numeric, '{"carb":67.14,"fat":3.25,"fiber":22.7,"kcal":312,"protein":9.68}'::jsonb, 'complete'::text, 'usda_fdc:172231'::text, 'Spices, turmeric, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'turmeric ground'::text),
+  ('Turnip'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5495::numeric, '{"carb":6.43,"fat":0.1,"fiber":1.8,"kcal":28,"protein":0.9}'::jsonb, 'complete'::text, 'usda_fdc:170465'::text, 'Turnips, raw'::text, null::numeric, false, 122::numeric, 'borrowed from turnip, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'turnip'::text),
   ('Ume Plum Vinegar'::text, 'pantry'::text, 'tsp'::text, 'ml'::text, null::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'off:0024182424195'::text, 'Eden Foods  Inc. Ume Plum Vinegar'::text, null::numeric, false, null::numeric, null::text, '["tsp","tbsp","ml","cup"]'::jsonb, 'ume plum vinegar'::text),
-  ('Vanilla Extract'::text, 'baking'::text, 'tsp'::text, 'g'::text, 0.8792::numeric, '{"carb":12.65,"fat":0.06,"fiber":0,"kcal":288,"protein":0.06}'::jsonb, 'complete'::text, 'usda_fdc:173471'::text, 'Vanilla extract'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'vanilla extract'::text),
-  ('Vanilla Paste'::text, 'baking'::text, 'tsp'::text, 'g'::text, 1.2::numeric, '{"carb":12.65,"fat":0.06,"fiber":0,"kcal":288,"protein":0.06}'::jsonb, 'stub'::text, 'usda_fdc:173471'::text, 'Vanilla extract'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'vanilla paste'::text),
-  ('Vegan Cheddar'::text, 'dairy'::text, 'oz'::text, 'g'::text, 0.473396317825802::numeric, '{"carb":21.42857142857143,"fat":25,"fiber":0,"kcal":285.7142857142857,"protein":0}'::jsonb, 'complete'::text, 'fdc_density:168089'::text, null::text, null::numeric, false, null::numeric, null::text, '["oz","g","kg","lb","ml","l","tsp","tbsp","fl_oz","cup","pt","qt"]'::jsonb, 'vegan cheddar'::text),
-  ('Vegan Mayonnaise'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.96::numeric, '{"carb":7.1,"fat":71.4,"kcal":643,"protein":0}'::jsonb, 'stub'::text, 'label:Hellmann''s vegan mayo'::text, null::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'vegan mayonnaise'::text),
-  ('Vegan Mozzarella'::text, 'dairy'::text, 'oz'::text, 'g'::text, 0.473396317825802::numeric, '{"carb":21.16437716974825,"fat":24.69177336470629,"fiber":0,"kcal":282.1916955966433,"protein":0}'::jsonb, 'complete'::text, 'fdc_density:168089'::text, null::text, null::numeric, false, null::numeric, null::text, '["oz","g","kg","lb","ml","l","tsp","tbsp","fl_oz","cup","pt","qt"]'::jsonb, 'vegan mozzarella'::text),
-  ('Vegan Parmesan'::text, 'dairy'::text, 'cup'::text, 'g'::text, 0.42::numeric, '{"carb":28.5714285714286,"fat":14.2857142857143,"kcal":285.714285714286,"protein":0}'::jsonb, 'stub'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["cup","tsp","tbsp","fl_oz","ml","l","pt","qt","g","kg","oz","lb"]'::jsonb, 'vegan parmesan'::text),
+  ('Vanilla Extract'::text, 'baking'::text, 'tsp'::text, 'g'::text, 0.8792::numeric, '{"carb":12.65,"fat":0.06,"fiber":0,"kcal":288,"protein":0.06}'::jsonb, 'complete'::text, 'usda_fdc:173471'::text, 'Vanilla extract'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'vanilla extract'::text),
+  ('Vegan Cheddar'::text, 'dairy'::text, 'oz'::text, 'g'::text, 0.473396317825802::numeric, '{"carb":21.42857142857143,"fat":25,"fiber":0,"kcal":285.7142857142857,"protein":0}'::jsonb, 'complete'::text, 'fdc_density:168089'::text, null::text, null::numeric, false, null::numeric, null::text, '["oz","g","kg","lb","ml","tsp","tbsp","cup"]'::jsonb, 'vegan cheddar'::text),
+  ('Vegan Mayonnaise'::text, 'pantry'::text, 'tbsp'::text, 'ml'::text, 0.946792635651604::numeric, '{"carb":0,"fat":60.865240863317396,"fiber":0,"kcal":608.652408633174,"protein":0}'::jsonb, 'complete'::text, 'label:Hellmann''s vegan mayo'::text, null::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'vegan mayonnaise'::text),
+  ('Vegan Mozzarella'::text, 'dairy'::text, 'oz'::text, 'g'::text, 0.473396317825802::numeric, '{"carb":21.16437716974825,"fat":24.69177336470629,"fiber":0,"kcal":282.1916955966433,"protein":0}'::jsonb, 'complete'::text, 'fdc_density:168089'::text, null::text, null::numeric, false, null::numeric, null::text, '["oz","g","kg","lb","ml","tsp","tbsp","cup"]'::jsonb, 'vegan mozzarella'::text),
+  ('Vegan Parmesan'::text, 'dairy'::text, 'cup'::text, 'ml'::text, 0.473396317825802::numeric, '{"carb":13.5256090807372,"fat":6.7628045403686,"fiber":0,"kcal":135.256090807372,"protein":0}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["cup","tsp","tbsp","ml","g","kg","oz","lb"]'::jsonb, 'vegan parmesan'::text),
   ('Vegan Worcestershire Sauce'::text, 'pantry'::text, 'tsp'::text, 'ml'::text, null::numeric, '{"carb":20.288413621105796,"fat":0,"fiber":0,"kcal":101.44206810552899,"protein":0}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["tbsp","tsp","cup","dash"]'::jsonb, 'vegan worcestershire sauce'::text),
-  ('Vegetable Broth'::text, 'pantry'::text, 'cup'::text, 'g'::text, 1::numeric, '{"carb":0.93,"fat":0.07,"fiber":0,"kcal":5,"protein":0.24}'::jsonb, 'complete'::text, 'usda_fdc:171583'::text, 'Soup, vegetable broth, ready to serve'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'vegetable broth'::text),
-  ('Vegetable Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:172370'::text, 'Oil, vegetable, soybean, refined'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'vegetable oil'::text),
-  ('Walnuts'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.4945::numeric, '{"carb":13.71,"fat":65.21,"fiber":6.7,"kcal":654,"protein":15.23}'::jsonb, 'complete'::text, 'usda_fdc:170187'::text, 'Nuts, walnuts, english'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'walnut'::text),
-  ('Water'::text, 'pantry'::text, 'cup'::text, 'g'::text, 1.0017::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:174158'::text, 'Water, bottled, generic'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'water'::text),
-  ('Watermelon'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.6509::numeric, '{"carb":7.55,"fat":0.15,"fiber":0.4,"kcal":30,"protein":0.61}'::jsonb, 'complete'::text, 'usda_fdc:167765'::text, 'Watermelon, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'watermelon'::text),
-  ('Whole Wheat Bread'::text, 'grains'::text, 'piece'::text, 'g'::text, 0.29::numeric, '{"carb":43.1,"fat":3.55,"fiber":6,"kcal":254,"protein":12.3}'::jsonb, 'complete'::text, 'usda_fdc:335240 + fao_infoods_v2:Bread'::text, 'Bread, whole-wheat, commercially prepared'::text, null::numeric, false, 32.1::numeric, 'borrowed from slice'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb, 'wheat bread whole'::text),
+  ('Vegetable Broth'::text, 'pantry'::text, 'cup'::text, 'g'::text, 1::numeric, '{"carb":0.93,"fat":0.07,"fiber":0,"kcal":5,"protein":0.24}'::jsonb, 'complete'::text, 'usda_fdc:171583'::text, 'Soup, vegetable broth, ready to serve'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'vegetable broth'::text),
+  ('Vegetable Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:172370'::text, 'Oil, vegetable, soybean, refined'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'vegetable oil'::text),
+  ('Walnuts'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.4945::numeric, '{"carb":13.71,"fat":65.21,"fiber":6.7,"kcal":654,"protein":15.23}'::jsonb, 'complete'::text, 'usda_fdc:170187'::text, 'Nuts, walnuts, english'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'walnut'::text),
+  ('Water'::text, 'pantry'::text, 'cup'::text, 'g'::text, 1.0017::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:174158'::text, 'Water, bottled, generic'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'water'::text),
+  ('Watermelon'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.6509::numeric, '{"carb":7.55,"fat":0.15,"fiber":0.4,"kcal":30,"protein":0.61}'::jsonb, 'complete'::text, 'usda_fdc:167765'::text, 'Watermelon, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'watermelon'::text),
+  ('Whole Wheat Bread'::text, 'grains'::text, 'piece'::text, 'g'::text, 0.29::numeric, '{"carb":43.1,"fat":3.55,"fiber":6,"kcal":254,"protein":12.3}'::jsonb, 'complete'::text, 'usda_fdc:335240 + fao_infoods_v2:Bread'::text, 'Bread, whole-wheat, commercially prepared'::text, null::numeric, false, 32.1::numeric, 'borrowed from slice'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'wheat bread whole'::text),
   ('Wheat Chex Cereal'::text, 'pantry'::text, 'cup'::text, 'ml'::text, 0.249378417426092::numeric, '{"carb":21.556439472424913,"fat":0.4226752837730375,"fiber":3.3814022701843,"kcal":88.76180959233787,"protein":2.536051702638225}'::jsonb, 'complete'::text, 'off:0016000275492'::text, 'General Mills Wheat Chex'::text, null::numeric, false, null::numeric, null::text, '["cup","tsp","tbsp","g","oz","lb","kg"]'::jsonb, 'wheat chex cereal'::text),
-  ('Whole Wheat Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.51::numeric, '{"carb":71.2,"fat":2.73,"fiber":10.6,"kcal":370,"protein":15.1}'::jsonb, 'complete'::text, 'usda_fdc:790085'::text, 'Flour, whole wheat, unenriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'wheat flour whole'::text),
-  ('White Basmati Rice'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.782::numeric, '{"carb":79.95,"fat":0.66,"fiber":1.3,"kcal":365,"protein":7.13}'::jsonb, 'complete'::text, 'usda_fdc:168877'::text, 'Rice, white, long-grain, regular, raw, enriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'white basmati rice'::text),
-  ('White Bread'::text, 'grains'::text, 'piece'::text, 'g'::text, 0.29::numeric, '{"carb":49.2,"fat":3.59,"fiber":2.3,"kcal":270,"protein":9.43}'::jsonb, 'complete'::text, 'usda_fdc:325871 + fao_infoods_v2:Bread, white, sliced, prepacked'::text, 'Bread, white, commercially prepared'::text, null::numeric, false, 27.3::numeric, 'borrowed from slice'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb, 'white bread'::text),
-  ('White Jasmine Rice'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.782::numeric, '{"carb":79.95,"fat":0.66,"fiber":1.3,"kcal":365,"protein":7.13}'::jsonb, 'complete'::text, 'usda_fdc:168877'::text, 'Rice, white, long-grain, regular, raw, enriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'white jasmine rice'::text),
-  ('White Mushroom'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.2959::numeric, '{"carb":3.26,"fat":0.34,"fiber":1,"kcal":22,"protein":3.09}'::jsonb, 'complete'::text, 'usda_fdc:169251'::text, 'Mushrooms, white, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb, 'white mushroom'::text),
-  ('White Rice'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.8242::numeric, '{"carb":79.34,"fat":0.58,"fiber":1.4,"kcal":360,"protein":6.61}'::jsonb, 'complete'::text, 'usda_fdc:168879'::text, 'Rice, white, medium-grain, raw, enriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'white rice'::text),
-  ('Cooked White Rice'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.7862::numeric, '{"carb":28.59,"fat":0.21,"fiber":0.3,"kcal":130,"protein":2.38}'::jsonb, 'complete'::text, 'usda_fdc:168930'::text, 'Rice, white, medium-grain, cooked, unenriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'white rice cooked'::text),
-  ('White Rice Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.67::numeric, '{"carb":79.8,"fat":1.3,"fiber":0.5,"kcal":359,"protein":6.94}'::jsonb, 'complete'::text, 'usda_fdc:790214'::text, 'Flour, rice, white, unenriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'white rice flour'::text),
-  ('White Sorghum Flour'::text, 'baking'::text, 'g'::text, 'g'::text, 0.591745397282253::numeric, '{"carb":73.5065,"fat":3.238,"fiber":3.299,"kcal":350,"protein":10.2125}'::jsonb, 'complete'::text, 'usda_fdc:2710840'::text, 'Sorghum flour, white, pearled, unenriched, dry, raw'::text, 0.772768::numeric, true, null::numeric, null::text, '["g","kg","oz","lb","ml","l","tsp","tbsp","fl_oz","cup","pt","qt"]'::jsonb, 'white sorghum flour'::text),
-  ('White Vinegar'::text, 'pantry'::text, 'cup'::text, 'g'::text, 1.006::numeric, '{"carb":0.04,"fat":0,"fiber":0,"kcal":18,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:172237'::text, 'Vinegar, distilled'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'white vinegar'::text),
-  ('Wild Rice'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.6763::numeric, '{"carb":74.9,"fat":1.08,"fiber":6.2,"kcal":357,"protein":14.73}'::jsonb, 'complete'::text, 'usda_fdc:169726'::text, 'Wild rice, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'wild rice'::text),
-  ('Yellow Bell Pepper'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.51::numeric, '{"carb":6.32,"fat":0.21,"fiber":0.9,"kcal":27,"protein":1}'::jsonb, 'complete'::text, 'usda_fdc:169383 + fao_infoods_v2:Sweet pepper, raw, cubes'::text, 'Peppers, sweet, yellow, raw'::text, null::numeric, false, 119::numeric, 'borrowed from pepper, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'yellow bell pepper'::text),
-  ('Yellow Mustard'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0525::numeric, '{"carb":5.83,"fat":3.34,"fiber":4,"kcal":60,"protein":3.74}'::jsonb, 'complete'::text, 'usda_fdc:172234'::text, 'Mustard, prepared, yellow'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb, 'yellow mustard'::text),
-  ('Yellow Squash'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5368::numeric, '{"carb":3.88,"fat":0.27,"fiber":1,"kcal":19,"protein":1.01}'::jsonb, 'complete'::text, 'usda_fdc:168464'::text, 'Squash, summer, crookneck and straightneck, raw'::text, null::numeric, false, 196::numeric, 'borrowed from squash, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'yellow squash'::text),
-  ('Zucchini'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5241::numeric, '{"carb":3.11,"fat":0.32,"fiber":1,"kcal":17,"protein":1.21}'::jsonb, 'complete'::text, 'usda_fdc:169291'::text, 'Squash, summer, zucchini, includes skin, raw'::text, null::numeric, false, 196::numeric, 'borrowed from zucchini, medium'::text, '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb, 'zucchini'::text))
+  ('Whole Wheat Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.51::numeric, '{"carb":71.2,"fat":2.73,"fiber":10.6,"kcal":370,"protein":15.1}'::jsonb, 'complete'::text, 'usda_fdc:790085'::text, 'Flour, whole wheat, unenriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'wheat flour whole'::text),
+  ('White Basmati Rice'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.782::numeric, '{"carb":79.95,"fat":0.66,"fiber":1.3,"kcal":365,"protein":7.13}'::jsonb, 'complete'::text, 'usda_fdc:168877'::text, 'Rice, white, long-grain, regular, raw, enriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'white basmati rice'::text),
+  ('White Bread'::text, 'grains'::text, 'piece'::text, 'g'::text, 0.29::numeric, '{"carb":49.2,"fat":3.59,"fiber":2.3,"kcal":270,"protein":9.43}'::jsonb, 'complete'::text, 'usda_fdc:325871 + fao_infoods_v2:Bread, white, sliced, prepacked'::text, 'Bread, white, commercially prepared'::text, null::numeric, false, 27.3::numeric, 'borrowed from slice'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'white bread'::text),
+  ('White Jasmine Rice'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.782::numeric, '{"carb":79.95,"fat":0.66,"fiber":1.3,"kcal":365,"protein":7.13}'::jsonb, 'complete'::text, 'usda_fdc:168877'::text, 'Rice, white, long-grain, regular, raw, enriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'white jasmine rice'::text),
+  ('White Mushroom'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.2959::numeric, '{"carb":3.26,"fat":0.34,"fiber":1,"kcal":22,"protein":3.09}'::jsonb, 'complete'::text, 'usda_fdc:169251'::text, 'Mushrooms, white, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'white mushroom'::text),
+  ('White Rice'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.8242::numeric, '{"carb":79.34,"fat":0.58,"fiber":1.4,"kcal":360,"protein":6.61}'::jsonb, 'complete'::text, 'usda_fdc:168879'::text, 'Rice, white, medium-grain, raw, enriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'white rice'::text),
+  ('Cooked White Rice'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.7862::numeric, '{"carb":28.59,"fat":0.21,"fiber":0.3,"kcal":130,"protein":2.38}'::jsonb, 'complete'::text, 'usda_fdc:168930'::text, 'Rice, white, medium-grain, cooked, unenriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb, 'white rice cooked'::text),
+  ('White Rice Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.67::numeric, '{"carb":79.8,"fat":1.3,"fiber":0.5,"kcal":359,"protein":6.94}'::jsonb, 'complete'::text, 'usda_fdc:790214'::text, 'Flour, rice, white, unenriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'white rice flour'::text),
+  ('White Sorghum Flour'::text, 'baking'::text, 'g'::text, 'g'::text, 0.591745397282253::numeric, '{"carb":73.5065,"fat":3.238,"fiber":3.299,"kcal":350,"protein":10.2125}'::jsonb, 'complete'::text, 'usda_fdc:2710840'::text, 'Sorghum flour, white, pearled, unenriched, dry, raw'::text, 0.772768::numeric, true, null::numeric, null::text, '["g","kg","oz","lb","ml","tsp","tbsp","cup"]'::jsonb, 'white sorghum flour'::text),
+  ('White Vinegar'::text, 'pantry'::text, 'cup'::text, 'g'::text, 1.006::numeric, '{"carb":0.04,"fat":0,"fiber":0,"kcal":18,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:172237'::text, 'Vinegar, distilled'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'white vinegar'::text),
+  ('Wild Rice'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.6763::numeric, '{"carb":74.9,"fat":1.08,"fiber":6.2,"kcal":357,"protein":14.73}'::jsonb, 'complete'::text, 'usda_fdc:169726'::text, 'Wild rice, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'wild rice'::text),
+  ('Yellow Bell Pepper'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.51::numeric, '{"carb":6.32,"fat":0.21,"fiber":0.9,"kcal":27,"protein":1}'::jsonb, 'complete'::text, 'usda_fdc:169383 + fao_infoods_v2:Sweet pepper, raw, cubes'::text, 'Peppers, sweet, yellow, raw'::text, null::numeric, false, 119::numeric, 'borrowed from pepper, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'yellow bell pepper'::text),
+  ('Yellow Mustard'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0525::numeric, '{"carb":5.83,"fat":3.34,"fiber":4,"kcal":60,"protein":3.74}'::jsonb, 'complete'::text, 'usda_fdc:172234'::text, 'Mustard, prepared, yellow'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'yellow mustard'::text),
+  ('Yellow Squash'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5368::numeric, '{"carb":3.88,"fat":0.27,"fiber":1,"kcal":19,"protein":1.01}'::jsonb, 'complete'::text, 'usda_fdc:168464'::text, 'Squash, summer, crookneck and straightneck, raw'::text, null::numeric, false, 196::numeric, 'borrowed from squash, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'yellow squash'::text),
+  ('Zucchini'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5241::numeric, '{"carb":3.11,"fat":0.32,"fiber":1,"kcal":17,"protein":1.21}'::jsonb, 'complete'::text, 'usda_fdc:169291'::text, 'Squash, summer, zucchini, includes skin, raw'::text, null::numeric, false, 196::numeric, 'borrowed from zucchini, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'zucchini'::text))
 , refreshed as (
   update ingredient i
      set canonical_name = v.canonical_name,
@@ -423,321 +420,319 @@ select '00000000-0000-0000-0000-0000000000aa', v.canonical_name, v.category, v.d
 -- may have been widened behind its back; this puts it back.
 update ingredient i set allowed_units = v.allowed_units
 from (values
-  ('active yeast dry', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('agave', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('all purpose flour', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('allspice ground', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('almond', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('almond butter', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('almond flour', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('almond milk', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('apple', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('apple cider vinegar', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('applesauce', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('apricot', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('arugula', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('asparagus', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('avocado', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('avocado oil', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('baked bean canned', '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('baking powder', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('baking soda', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('balsamic vinegar', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('banana', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('basil', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('bay leaf', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb),
-  ('beet', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
+  ('active yeast dry', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('agave', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('all purpose flour', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('allspice ground', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('almond', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('almond butter', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('almond flour', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('almond milk', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('apple', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('apple cider vinegar', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('applesauce', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('apricot', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('arugula', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('asparagus', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('avocado', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('avocado oil', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('baked bean canned', '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb),
+  ('baking powder', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('baking soda', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('balsamic vinegar', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('banana', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('basil', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('bay leaf', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('beet', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('beyond hot italian style sausage', '["piece","g","kg","oz","lb"]'::jsonb),
-  ('black bean canned', '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('black bean dried', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('black eyed pea canned', '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('black eyed pea dried', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('black pepper', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
+  ('black bean canned', '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb),
+  ('black bean dried', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('black eyed pea canned', '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb),
+  ('black eyed pea dried', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('black pepper', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
   ('black rice', '["cup","g","kg","oz","lb"]'::jsonb),
-  ('blueberry', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('bouillon paste', '["tsp","tbsp","fl_oz","cup","ml","l","pt","qt","g","kg","oz","lb"]'::jsonb),
-  ('brazil nut', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('bread flour', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
+  ('blueberry', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('bouillon paste', '["tsp","tbsp","cup","ml","g","kg","oz","lb"]'::jsonb),
+  ('brazil nut', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('bread flour', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('breaded vegan chicken nugget', '["oz","g","kg","lb"]'::jsonb),
-  ('broccoli', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('brown rice', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('brown rice cooked', '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('brown sugar', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('brussel sprout', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('buckwheat', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('buckwheat flour', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('bulgur', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('burger bun', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb),
-  ('butternut squash', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('cabbage', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('cannellini bean canned', '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('cannellini bean dried', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('canola oil', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('cantaloupe', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('caper', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('carrot', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('cashew', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('cauliflower', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('cavatappi', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('cayenne pepper', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('celery', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('cherry', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('cherry tomato', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('chia seed', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('chickpea canned', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('chickpea dried', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('chickpea flour', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('chili powder', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('chipotle chili powder', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('chive', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('cilantro', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('cinnamon ground', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('cinnamon stick', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb),
-  ('clove ground', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('cocoa powder', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('coconut flake dried', '["cup","tsp","tbsp","fl_oz","ml","l","pt","qt","g","kg","oz","lb"]'::jsonb),
-  ('coconut milk canned', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb),
-  ('coconut oil', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('collard green', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('coriander ground', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('corn', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('corn frozen', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('corn oil', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
+  ('broccoli', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('brown rice', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('brown rice cooked', '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb),
+  ('brown sugar', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('brussel sprout', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('buckwheat', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('buckwheat flour', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('bulgur', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('burger bun', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('butternut squash', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('cabbage', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('cannellini bean canned', '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb),
+  ('cannellini bean dried', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('canola oil', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('cantaloupe', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('caper', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('carrot', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('cashew', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('cauliflower', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('cavatappi', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('cayenne pepper', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('celery', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('cherry', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('cherry tomato', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('chia seed', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('chickpea canned', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('chickpea dried', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('chickpea flour', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('chili powder', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('chipotle chili powder', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('chive', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('cilantro', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('cinnamon ground', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('cinnamon stick', '["g","kg","oz","lb","piece"]'::jsonb),
+  ('clove ground', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('cocoa powder', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('coconut flake dried', '["cup","tsp","tbsp","ml","g","kg","oz","lb"]'::jsonb),
+  ('coconut milk canned', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('coconut oil', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('collard green', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('coriander ground', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('corn', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('corn frozen', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('corn oil', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('corn tortilla', '["g","kg","oz","lb","piece"]'::jsonb),
-  ('cornmeal', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('cornstarch', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('cranberry dried', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('cremini mushroom', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('crispy onion', '["tsp","tbsp","handful","g","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('cucumber', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('cumin ground', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('currant dried', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('curry powder', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('dark red kidney bean canned', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('date', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('dijon mustard', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('dill', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('dill pickle', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb),
-  ('ditalini', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('earth balance butter', '["g","oz","lb","ml","tsp","tbsp","cup","fl_oz","l","pt","qt"]'::jsonb),
-  ('edamame', '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('edamame frozen', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('eggplant', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
+  ('cornmeal', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('cornstarch', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('cranberry dried', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('cremini mushroom', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('crispy onion', '["tsp","tbsp","handful","g","cup","ml"]'::jsonb),
+  ('cucumber', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('cumin ground', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('currant dried', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('curry powder', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('dark red kidney bean canned', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('date', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('dijon mustard', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('dill', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('dill pickle', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('ditalini', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('earth balance butter', '["g","oz","lb","ml","tsp","tbsp","cup"]'::jsonb),
+  ('edamame', '["g","kg","oz","lb","tbsp","cup","ml","handful"]'::jsonb),
+  ('edamame frozen', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('eggplant', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('english muffin', '["g","kg","oz","lb","piece"]'::jsonb),
-  ('enoki mushroom', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('extra firm tofu', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('extra virgin olive oil', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","to_taste"]'::jsonb),
-  ('farro', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('fennel', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('fennel seed', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('fig dried', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('fine sea salt', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('fire tomato canned roasted', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('flaky salt', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('flaxseed meal', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
+  ('enoki mushroom', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('extra firm tofu', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('extra virgin olive oil', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('farro', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('fennel', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('fennel seed', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('fig dried', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('fine sea salt', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('fire tomato canned roasted', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('flaky salt', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('flaxseed meal', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('flour tortilla', '["g","kg","oz","lb","piece"]'::jsonb),
-  ('french green lentil dried', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('gala apple', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('garlic', '["piece","g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('garlic powder', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('ginger', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('gold potato', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('golden raisin', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('granny smith apple', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('granulated sugar', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('grapefruit', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('great northern bean canned', '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('green bean', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('green bean canned', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('green bell pepper', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('green grape', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('green olive', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('hazelnut', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('hemp seed', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('high heat oil', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('hot sauce', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","to_taste"]'::jsonb),
-  ('hummus', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('iceberg lettuce', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('instant yeast', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('italian herb', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('jalapeno', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('kala namak', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('kale', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('ketchup', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('kimchi', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('king oyster mushroom', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('kiwi', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
+  ('french green lentil dried', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('gala apple', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('garlic', '["piece","g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('garlic powder', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('ginger', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('gold potato', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('golden raisin', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('granny smith apple', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('granulated sugar', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('grapefruit', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('great northern bean canned', '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb),
+  ('green bean', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('green bean canned', '["g","kg","oz","lb","cup","ml"]'::jsonb),
+  ('green bell pepper', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('green grape', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('green olive', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('hazelnut', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('hemp seed', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('high heat oil', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('hot sauce', '["g","kg","oz","lb","tsp","tbsp","cup","ml","to_taste"]'::jsonb),
+  ('hummus', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('iceberg lettuce', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('instant yeast', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('italian herb', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('jalapeno', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('kala namak', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('kale', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('ketchup', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('kimchi', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('king oyster mushroom', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('kiwi', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('kombu', '["piece","g","kg","oz","lb"]'::jsonb),
-  ('kosher salt', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('leek', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('lemon', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('lemon juice', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('lemon zest', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('lentil canned', '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('lentil cooked', '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('lentil dried', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('light red kidney bean canned', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('lime', '["g","kg","oz","lb","handful","piece"]'::jsonb),
-  ('lime juice', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
+  ('kosher salt', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('leek', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('lemon', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('lemon juice', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('lemon zest', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('lentil canned', '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb),
+  ('lentil cooked', '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb),
+  ('lentil dried', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('light red kidney bean canned', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('lime', '["g","kg","oz","lb","piece"]'::jsonb),
+  ('lime juice', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
   ('lion mane mushroom', '["oz","g","kg","lb","handful"]'::jsonb),
   ('liquid amino', '["tbsp","tsp","ml","to_taste"]'::jsonb),
   ('liquid smoke', '["tsp","tbsp","ml","dash","g","oz","kg","lb"]'::jsonb),
-  ('maitake mushroom', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('mango', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('maple syrup', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
+  ('maitake mushroom', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('mango', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('maple syrup', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('mild garlic chili crisp', '["tbsp","tsp","ml","g","oz","kg","lb"]'::jsonb),
-  ('mini pretzel', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('minor figure barista oat organic lite', '["cup","tsp","tbsp","fl_oz","ml","l","pt","qt"]'::jsonb),
-  ('mint', '["g","oz","handful","ml","tsp","tbsp","cup","to_taste","l","fl_oz","pt","qt"]'::jsonb),
-  ('miso', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('mixed peppercorn', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('multigrain bread', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb),
-  ('mung bean dried', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('napa cabbage', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('navy bean canned', '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('nectarine', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
+  ('mini pretzel', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('mint', '["g","oz","handful","ml","tsp","tbsp","cup","to_taste"]'::jsonb),
+  ('miso', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('mixed peppercorn', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('multigrain bread', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('mung bean dried', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('napa cabbage', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('navy bean canned', '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb),
+  ('nectarine', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('nori', '["piece","g","kg","oz","lb"]'::jsonb),
-  ('nutmeg ground', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('nutritional yeast', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('oat milk', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
+  ('nutmeg ground', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('nutritional yeast', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('oat milk lite', '["cup","tsp","tbsp","ml"]'::jsonb),
   ('oat whipped cream', '["tbsp","tsp","ml","g","kg","oz","lb"]'::jsonb),
-  ('okra', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('olive oil', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","to_taste"]'::jsonb),
-  ('onion', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('onion powder', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('orange', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('orange bell pepper', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('orange juice', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('orange zest', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('oregano dried', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('oregano fresh', '["tsp","tbsp","cup","ml","handful","g","oz","to_taste","kg","lb","fl_oz","l","pt","qt"]'::jsonb),
-  ('oyster mushroom', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('panko', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('paprika', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('paprika smoked', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('parsley', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('parsnip', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('pasta', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('pasta cooked', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('pea', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('pea frozen', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('peach', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('peanut', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('peanut butter', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('peanut oil', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('pecan', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('pine nut', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('pineapple', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('pinto bean canned', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('pistachio', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('plain oat yogurt', '["cup","tsp","tbsp","ml","l","pt","g","oz","lb","kg"]'::jsonb),
-  ('plantain', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('poblano pepper', '["piece","g","kg","oz","lb","tsp","tbsp","cup","ml","l"]'::jsonb),
-  ('portobello mushroom', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('pumpkin seed', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('quinoa', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('quinoa cooked', '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('radish', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('raisin', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('raspberry', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('red bell pepper', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('red cabbage', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('red chili fresh', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('red delicious apple', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('red grape', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('red leaf lettuce', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('red onion', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('red pepper flake', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('red potato', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('red rice', '["cup","tsp","tbsp","fl_oz","ml","l","pt","qt","g","kg","oz","lb"]'::jsonb),
-  ('red wine', '["g","kg","oz","lb","ml","l","tsp","tbsp","fl_oz","cup","pt","qt"]'::jsonb),
-  ('red wine vinegar', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('rhubarb', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('rice vinegar', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('rolled oat', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('romaine lettuce', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('rosemary', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('russet potato', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('safflower oil', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('sage ground', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('sauerkraut', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('scallion', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('sea salt', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('semolina flour', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('serrano pepper', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('sesame oil toasted', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","to_taste"]'::jsonb),
-  ('sesame seed', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('shallot', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('sherry vinegar', '["tbsp","tsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('shiitake mushroom', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('silken tofu', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb),
-  ('soft sandwich bread', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb),
-  ('soy milk', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('soy sauce', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","to_taste"]'::jsonb),
-  ('spaghetti', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('spelt flour', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('spinach', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('sprouted multigrain bread', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb),
-  ('sriracha', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","to_taste"]'::jsonb),
-  ('star anise', '["piece","g","kg","oz","lb","ml","l","tsp","tbsp","fl_oz","cup","pt","qt"]'::jsonb),
-  ('steel oat', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('strawberry', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('sugar powdered', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('sunflower oil', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('sunflower seed', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
+  ('okra', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('olive oil', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('onion', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('onion powder', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('orange', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('orange bell pepper', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('orange juice', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('orange zest', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('oregano dried', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('oregano fresh', '["tsp","tbsp","cup","ml","handful","g","oz","to_taste","kg","lb"]'::jsonb),
+  ('oyster mushroom', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('panko', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('paprika', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('paprika smoked', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('parsley', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('parsnip', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('pasta', '["g","kg","oz","lb","cup","ml"]'::jsonb),
+  ('pasta cooked', '["g","kg","oz","lb","cup","ml"]'::jsonb),
+  ('pea', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('pea frozen', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('peach', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('peanut', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('peanut butter', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('peanut oil', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('pecan', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('pine nut', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('pineapple', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('pinto bean canned', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('pistachio', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('plain oat yogurt', '["cup","tsp","tbsp","ml","g","oz","lb","kg"]'::jsonb),
+  ('plantain', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('poblano pepper', '["piece","g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('portobello mushroom', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('pumpkin seed', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('quinoa', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('quinoa cooked', '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb),
+  ('radish', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('raisin', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('raspberry', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('red bell pepper', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('red cabbage', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('red chili fresh', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('red delicious apple', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('red grape', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('red leaf lettuce', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('red onion', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('red pepper flake', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('red potato', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('red rice', '["cup","tsp","tbsp","ml","g","kg","oz","lb"]'::jsonb),
+  ('red wine', '["g","kg","oz","lb","ml","tsp","tbsp","cup"]'::jsonb),
+  ('red wine vinegar', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('rhubarb', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('rice vinegar', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('rolled oat', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('romaine lettuce', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('rosemary', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('russet potato', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('safflower oil', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('sage ground', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('sauerkraut', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('scallion', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('sea salt', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('semolina flour', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('serrano pepper', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('sesame oil toasted', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('sesame seed', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('shallot', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('sherry vinegar', '["tbsp","tsp","cup","ml"]'::jsonb),
+  ('shiitake mushroom', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('silken tofu', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('soft sandwich bread', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('soy milk', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('soy sauce', '["g","kg","oz","lb","tsp","tbsp","cup","ml","to_taste"]'::jsonb),
+  ('spaghetti', '["g","kg","oz","lb","cup","ml"]'::jsonb),
+  ('spelt flour', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('spinach', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('sprouted multigrain bread', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('sriracha', '["g","kg","oz","lb","tsp","tbsp","cup","ml","to_taste"]'::jsonb),
+  ('star anise', '["piece","g","kg","oz","lb","ml","tsp","tbsp","cup"]'::jsonb),
+  ('steel oat', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('strawberry', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('sugar powdered', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('sunflower oil', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('sunflower seed', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('super firm tofu', '["g","kg","oz","lb"]'::jsonb),
-  ('sweet paprika', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('sweet potato', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('sweetcorn canned', '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('table salt', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('tahini', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('tamari', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","to_taste"]'::jsonb),
-  ('tempeh', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('thai basil', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('thyme dried', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('thyme fresh', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('tipo flour', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('tomato', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('tomato canned', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('tomato canned diced', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('tomato canned whole', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('tomato paste', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('tomato puree canned', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('tomato sauce canned', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('tortilla chip', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
+  ('sweet paprika', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('sweet potato', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('sweetcorn canned', '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb),
+  ('table salt', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('tahini', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('tamari', '["g","kg","oz","lb","tsp","tbsp","cup","ml","to_taste"]'::jsonb),
+  ('tempeh', '["g","kg","oz","lb","cup","ml"]'::jsonb),
+  ('thai basil', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('thyme dried', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('thyme fresh', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('tipo flour', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('tomato', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('tomato canned', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('tomato canned diced', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('tomato canned whole', '["g","kg","oz","lb","cup","ml"]'::jsonb),
+  ('tomato paste', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('tomato puree canned', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('tomato sauce canned', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('tortilla chip', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('tostada shell', '["g","kg","oz","lb","piece"]'::jsonb),
-  ('turmeric ground', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","pinch","dash","handful","to_taste"]'::jsonb),
-  ('turnip', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
+  ('turmeric ground', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
+  ('turnip', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('ume plum vinegar', '["tsp","tbsp","ml","cup"]'::jsonb),
-  ('vanilla extract', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('vanilla paste', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('vegan cheddar', '["oz","g","kg","lb","ml","l","tsp","tbsp","fl_oz","cup","pt","qt"]'::jsonb),
-  ('vegan mayonnaise', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('vegan mozzarella', '["oz","g","kg","lb","ml","l","tsp","tbsp","fl_oz","cup","pt","qt"]'::jsonb),
-  ('vegan parmesan', '["cup","tsp","tbsp","fl_oz","ml","l","pt","qt","g","kg","oz","lb"]'::jsonb),
+  ('vanilla extract', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('vegan cheddar', '["oz","g","kg","lb","ml","tsp","tbsp","cup"]'::jsonb),
+  ('vegan mayonnaise', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('vegan mozzarella', '["oz","g","kg","lb","ml","tsp","tbsp","cup"]'::jsonb),
+  ('vegan parmesan', '["cup","tsp","tbsp","ml","g","kg","oz","lb"]'::jsonb),
   ('vegan worcestershire sauce', '["tbsp","tsp","cup","dash"]'::jsonb),
-  ('vegetable broth', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('vegetable oil', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('walnut', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('water', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('watermelon', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('wheat bread whole', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb),
+  ('vegetable broth', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('vegetable oil', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('walnut', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('water', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('watermelon', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('wheat bread whole', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('wheat chex cereal', '["cup","tsp","tbsp","g","oz","lb","kg"]'::jsonb),
-  ('wheat flour whole', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('white basmati rice', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('white bread', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","piece"]'::jsonb),
-  ('white jasmine rice', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('white mushroom', '["g","kg","oz","lb","fl_oz","cup","ml","l","pt","qt","handful"]'::jsonb),
-  ('white rice', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('white rice cooked', '["g","kg","oz","lb","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('white rice flour', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('white sorghum flour', '["g","kg","oz","lb","ml","l","tsp","tbsp","fl_oz","cup","pt","qt"]'::jsonb),
-  ('white vinegar', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('wild rice', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('yellow bell pepper', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('yellow mustard', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt"]'::jsonb),
-  ('yellow squash', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb),
-  ('zucchini', '["g","kg","oz","lb","tsp","tbsp","fl_oz","cup","ml","l","pt","qt","handful","piece"]'::jsonb)
+  ('wheat flour whole', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('white basmati rice', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('white bread', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('white jasmine rice', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('white mushroom', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('white rice', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('white rice cooked', '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb),
+  ('white rice flour', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('white sorghum flour', '["g","kg","oz","lb","ml","tsp","tbsp","cup"]'::jsonb),
+  ('white vinegar', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('wild rice', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('yellow bell pepper', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('yellow mustard', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('yellow squash', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('zucchini', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb)
 ) as v(match_text, allowed_units)
 where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at is null
   and i.match_text = v.match_text
@@ -753,7 +748,7 @@ begin
   with gone as (
     update ingredient i set deleted_at = now(), updated_at = now()
     where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at is null
-      and i.match_text not in ('active yeast dry', 'agave', 'all purpose flour', 'allspice ground', 'almond', 'almond butter', 'almond flour', 'almond milk', 'apple', 'apple cider vinegar', 'applesauce', 'apricot', 'arugula', 'asparagus', 'avocado', 'avocado oil', 'baked bean canned', 'baking powder', 'baking soda', 'balsamic vinegar', 'banana', 'basil', 'bay leaf', 'beet', 'beyond hot italian style sausage', 'black bean canned', 'black bean dried', 'black eyed pea canned', 'black eyed pea dried', 'black pepper', 'black rice', 'blueberry', 'bouillon paste', 'brazil nut', 'bread flour', 'breaded vegan chicken nugget', 'broccoli', 'brown rice', 'brown rice cooked', 'brown sugar', 'brussel sprout', 'buckwheat', 'buckwheat flour', 'bulgur', 'burger bun', 'butternut squash', 'cabbage', 'cannellini bean canned', 'cannellini bean dried', 'canola oil', 'cantaloupe', 'caper', 'carrot', 'cashew', 'cauliflower', 'cavatappi', 'cayenne pepper', 'celery', 'cherry', 'cherry tomato', 'chia seed', 'chickpea canned', 'chickpea dried', 'chickpea flour', 'chili powder', 'chipotle chili powder', 'chive', 'cilantro', 'cinnamon ground', 'cinnamon stick', 'clove ground', 'cocoa powder', 'coconut flake dried', 'coconut milk canned', 'coconut oil', 'collard green', 'coriander ground', 'corn', 'corn frozen', 'corn oil', 'corn tortilla', 'cornmeal', 'cornstarch', 'cranberry dried', 'cremini mushroom', 'crispy onion', 'cucumber', 'cumin ground', 'currant dried', 'curry powder', 'dark red kidney bean canned', 'date', 'dijon mustard', 'dill', 'dill pickle', 'ditalini', 'earth balance butter', 'edamame', 'edamame frozen', 'eggplant', 'english muffin', 'enoki mushroom', 'extra firm tofu', 'extra virgin olive oil', 'farro', 'fennel', 'fennel seed', 'fig dried', 'fine sea salt', 'fire tomato canned roasted', 'flaky salt', 'flaxseed meal', 'flour tortilla', 'french green lentil dried', 'gala apple', 'garlic', 'garlic powder', 'ginger', 'gold potato', 'golden raisin', 'granny smith apple', 'granulated sugar', 'grapefruit', 'great northern bean canned', 'green bean', 'green bean canned', 'green bell pepper', 'green grape', 'green olive', 'hazelnut', 'hemp seed', 'high heat oil', 'hot sauce', 'hummus', 'iceberg lettuce', 'instant yeast', 'italian herb', 'jalapeno', 'kala namak', 'kale', 'ketchup', 'kimchi', 'king oyster mushroom', 'kiwi', 'kombu', 'kosher salt', 'leek', 'lemon', 'lemon juice', 'lemon zest', 'lentil canned', 'lentil cooked', 'lentil dried', 'light red kidney bean canned', 'lime', 'lime juice', 'lion mane mushroom', 'liquid amino', 'liquid smoke', 'maitake mushroom', 'mango', 'maple syrup', 'mild garlic chili crisp', 'mini pretzel', 'minor figure barista oat organic lite', 'mint', 'miso', 'mixed peppercorn', 'multigrain bread', 'mung bean dried', 'napa cabbage', 'navy bean canned', 'nectarine', 'nori', 'nutmeg ground', 'nutritional yeast', 'oat milk', 'oat whipped cream', 'okra', 'olive oil', 'onion', 'onion powder', 'orange', 'orange bell pepper', 'orange juice', 'orange zest', 'oregano dried', 'oregano fresh', 'oyster mushroom', 'panko', 'paprika', 'paprika smoked', 'parsley', 'parsnip', 'pasta', 'pasta cooked', 'pea', 'pea frozen', 'peach', 'peanut', 'peanut butter', 'peanut oil', 'pecan', 'pine nut', 'pineapple', 'pinto bean canned', 'pistachio', 'plain oat yogurt', 'plantain', 'poblano pepper', 'portobello mushroom', 'pumpkin seed', 'quinoa', 'quinoa cooked', 'radish', 'raisin', 'raspberry', 'red bell pepper', 'red cabbage', 'red chili fresh', 'red delicious apple', 'red grape', 'red leaf lettuce', 'red onion', 'red pepper flake', 'red potato', 'red rice', 'red wine', 'red wine vinegar', 'rhubarb', 'rice vinegar', 'rolled oat', 'romaine lettuce', 'rosemary', 'russet potato', 'safflower oil', 'sage ground', 'sauerkraut', 'scallion', 'sea salt', 'semolina flour', 'serrano pepper', 'sesame oil toasted', 'sesame seed', 'shallot', 'sherry vinegar', 'shiitake mushroom', 'silken tofu', 'soft sandwich bread', 'soy milk', 'soy sauce', 'spaghetti', 'spelt flour', 'spinach', 'sprouted multigrain bread', 'sriracha', 'star anise', 'steel oat', 'strawberry', 'sugar powdered', 'sunflower oil', 'sunflower seed', 'super firm tofu', 'sweet paprika', 'sweet potato', 'sweetcorn canned', 'table salt', 'tahini', 'tamari', 'tempeh', 'thai basil', 'thyme dried', 'thyme fresh', 'tipo flour', 'tomato', 'tomato canned', 'tomato canned diced', 'tomato canned whole', 'tomato paste', 'tomato puree canned', 'tomato sauce canned', 'tortilla chip', 'tostada shell', 'turmeric ground', 'turnip', 'ume plum vinegar', 'vanilla extract', 'vanilla paste', 'vegan cheddar', 'vegan mayonnaise', 'vegan mozzarella', 'vegan parmesan', 'vegan worcestershire sauce', 'vegetable broth', 'vegetable oil', 'walnut', 'water', 'watermelon', 'wheat bread whole', 'wheat chex cereal', 'wheat flour whole', 'white basmati rice', 'white bread', 'white jasmine rice', 'white mushroom', 'white rice', 'white rice cooked', 'white rice flour', 'white sorghum flour', 'white vinegar', 'wild rice', 'yellow bell pepper', 'yellow mustard', 'yellow squash', 'zucchini')
+      and i.match_text not in ('active yeast dry', 'agave', 'all purpose flour', 'allspice ground', 'almond', 'almond butter', 'almond flour', 'almond milk', 'apple', 'apple cider vinegar', 'applesauce', 'apricot', 'arugula', 'asparagus', 'avocado', 'avocado oil', 'baked bean canned', 'baking powder', 'baking soda', 'balsamic vinegar', 'banana', 'basil', 'bay leaf', 'beet', 'beyond hot italian style sausage', 'black bean canned', 'black bean dried', 'black eyed pea canned', 'black eyed pea dried', 'black pepper', 'black rice', 'blueberry', 'bouillon paste', 'brazil nut', 'bread flour', 'breaded vegan chicken nugget', 'broccoli', 'brown rice', 'brown rice cooked', 'brown sugar', 'brussel sprout', 'buckwheat', 'buckwheat flour', 'bulgur', 'burger bun', 'butternut squash', 'cabbage', 'cannellini bean canned', 'cannellini bean dried', 'canola oil', 'cantaloupe', 'caper', 'carrot', 'cashew', 'cauliflower', 'cavatappi', 'cayenne pepper', 'celery', 'cherry', 'cherry tomato', 'chia seed', 'chickpea canned', 'chickpea dried', 'chickpea flour', 'chili powder', 'chipotle chili powder', 'chive', 'cilantro', 'cinnamon ground', 'cinnamon stick', 'clove ground', 'cocoa powder', 'coconut flake dried', 'coconut milk canned', 'coconut oil', 'collard green', 'coriander ground', 'corn', 'corn frozen', 'corn oil', 'corn tortilla', 'cornmeal', 'cornstarch', 'cranberry dried', 'cremini mushroom', 'crispy onion', 'cucumber', 'cumin ground', 'currant dried', 'curry powder', 'dark red kidney bean canned', 'date', 'dijon mustard', 'dill', 'dill pickle', 'ditalini', 'earth balance butter', 'edamame', 'edamame frozen', 'eggplant', 'english muffin', 'enoki mushroom', 'extra firm tofu', 'extra virgin olive oil', 'farro', 'fennel', 'fennel seed', 'fig dried', 'fine sea salt', 'fire tomato canned roasted', 'flaky salt', 'flaxseed meal', 'flour tortilla', 'french green lentil dried', 'gala apple', 'garlic', 'garlic powder', 'ginger', 'gold potato', 'golden raisin', 'granny smith apple', 'granulated sugar', 'grapefruit', 'great northern bean canned', 'green bean', 'green bean canned', 'green bell pepper', 'green grape', 'green olive', 'hazelnut', 'hemp seed', 'high heat oil', 'hot sauce', 'hummus', 'iceberg lettuce', 'instant yeast', 'italian herb', 'jalapeno', 'kala namak', 'kale', 'ketchup', 'kimchi', 'king oyster mushroom', 'kiwi', 'kombu', 'kosher salt', 'leek', 'lemon', 'lemon juice', 'lemon zest', 'lentil canned', 'lentil cooked', 'lentil dried', 'light red kidney bean canned', 'lime', 'lime juice', 'lion mane mushroom', 'liquid amino', 'liquid smoke', 'maitake mushroom', 'mango', 'maple syrup', 'mild garlic chili crisp', 'mini pretzel', 'mint', 'miso', 'mixed peppercorn', 'multigrain bread', 'mung bean dried', 'napa cabbage', 'navy bean canned', 'nectarine', 'nori', 'nutmeg ground', 'nutritional yeast', 'oat milk lite', 'oat whipped cream', 'okra', 'olive oil', 'onion', 'onion powder', 'orange', 'orange bell pepper', 'orange juice', 'orange zest', 'oregano dried', 'oregano fresh', 'oyster mushroom', 'panko', 'paprika', 'paprika smoked', 'parsley', 'parsnip', 'pasta', 'pasta cooked', 'pea', 'pea frozen', 'peach', 'peanut', 'peanut butter', 'peanut oil', 'pecan', 'pine nut', 'pineapple', 'pinto bean canned', 'pistachio', 'plain oat yogurt', 'plantain', 'poblano pepper', 'portobello mushroom', 'pumpkin seed', 'quinoa', 'quinoa cooked', 'radish', 'raisin', 'raspberry', 'red bell pepper', 'red cabbage', 'red chili fresh', 'red delicious apple', 'red grape', 'red leaf lettuce', 'red onion', 'red pepper flake', 'red potato', 'red rice', 'red wine', 'red wine vinegar', 'rhubarb', 'rice vinegar', 'rolled oat', 'romaine lettuce', 'rosemary', 'russet potato', 'safflower oil', 'sage ground', 'sauerkraut', 'scallion', 'sea salt', 'semolina flour', 'serrano pepper', 'sesame oil toasted', 'sesame seed', 'shallot', 'sherry vinegar', 'shiitake mushroom', 'silken tofu', 'soft sandwich bread', 'soy milk', 'soy sauce', 'spaghetti', 'spelt flour', 'spinach', 'sprouted multigrain bread', 'sriracha', 'star anise', 'steel oat', 'strawberry', 'sugar powdered', 'sunflower oil', 'sunflower seed', 'super firm tofu', 'sweet paprika', 'sweet potato', 'sweetcorn canned', 'table salt', 'tahini', 'tamari', 'tempeh', 'thai basil', 'thyme dried', 'thyme fresh', 'tipo flour', 'tomato', 'tomato canned', 'tomato canned diced', 'tomato canned whole', 'tomato paste', 'tomato puree canned', 'tomato sauce canned', 'tortilla chip', 'tostada shell', 'turmeric ground', 'turnip', 'ume plum vinegar', 'vanilla extract', 'vegan cheddar', 'vegan mayonnaise', 'vegan mozzarella', 'vegan parmesan', 'vegan worcestershire sauce', 'vegetable broth', 'vegetable oil', 'walnut', 'water', 'watermelon', 'wheat bread whole', 'wheat chex cereal', 'wheat flour whole', 'white basmati rice', 'white bread', 'white jasmine rice', 'white mushroom', 'white rice', 'white rice cooked', 'white rice flour', 'white sorghum flour', 'white vinegar', 'wild rice', 'yellow bell pepper', 'yellow mustard', 'yellow squash', 'zucchini')
     returning i.id
   ), gone_aliases as (
     update ingredient_alias a set deleted_at = now(), updated_at = now()
@@ -855,6 +850,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('cucumber', 'cucumber'),
     ('dark red kidney bean canned', 'can (15 oz), drained'),
     ('date', 'date, pitted'),
+    ('dijon mustard', 'serving · 1 tsp'),
     ('dill', 'sprig'),
     ('dill pickle', 'spear'),
     ('earth balance butter', 'serving · 14 g'),
@@ -919,7 +915,6 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('liquid smoke', 'serving · 1 tsp'),
     ('mango', 'mango, whole'),
     ('mild garlic chili crisp', 'serving · 1 tsp'),
-    ('minor figure barista oat organic lite', 'serving · 1 cup'),
     ('mint', 'sprig'),
     ('mint', 'bunch'),
     ('multigrain bread', 'slice regular'),
@@ -929,6 +924,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('nectarine', 'nectarine, whole'),
     ('nori', 'sheet'),
     ('nori', 'serving · 2.5 g'),
+    ('oat milk lite', 'serving · 1 cup'),
     ('oat whipped cream', 'serving · 2 tbsp'),
     ('okra', 'pod'),
     ('onion', 'onion, medium'),
@@ -1016,8 +1012,8 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('strawberry', 'strawberry, large'),
     ('strawberry', 'strawberry, small'),
     ('strawberry', 'strawberry, extra large'),
-    ('super firm tofu', 'serving · 3 oz'),
     ('super firm tofu', 'block (16 oz)'),
+    ('super firm tofu', 'serving · 3 oz'),
     ('sweet potato', 'sweet potato'),
     ('tempeh', 'package (8 oz)'),
     ('thai basil', 'leaf'),
@@ -1049,7 +1045,9 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('turnip', 'slice'),
     ('ume plum vinegar', 'serving · 5 ml'),
     ('vegan cheddar', 'serving · 28 g'),
+    ('vegan mayonnaise', 'serving · 1 tbsp'),
     ('vegan mozzarella', 'serving · 1 oz'),
+    ('vegan parmesan', 'serving · 1 tbsp'),
     ('vegan worcestershire sauce', 'serving · 1 tsp'),
     ('vegetable broth', 'can (14.5 oz)'),
     ('vegetable broth', 'carton (32 oz)'),
@@ -1156,7 +1154,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('mung bean dried', 'mung bean whole dried'),
     ('nori', 'nori sheet'),
     ('nori', 'sushi nori'),
-    ('oat milk', 'full fat oat milk'),
+    ('oat milk lite', 'minor figure barista oat lite'),
     ('okra', 'okra fresh'),
     ('olive oil', 'olive oil cooking oil choice'),
     ('orange', 'navel orange'),
@@ -1315,7 +1313,7 @@ join (values
   ('mung bean dried', 'whole dried mung beans', 'mung bean whole dried', 'seed'),
   ('nori', 'nori sheets', 'nori sheet', 'seed'),
   ('nori', 'sushi nori', 'sushi nori', 'seed'),
-  ('oat milk', 'full-fat oat milk', 'full fat oat milk', 'seed'),
+  ('oat milk lite', 'minor figures barista oat lite', 'minor figure barista oat lite', 'manual'),
   ('okra', 'fresh okra', 'okra fresh', 'seed'),
   ('olive oil', 'olive oil or cooking oil of choice', 'olive oil cooking oil choice', 'seed'),
   ('orange', 'navel oranges', 'navel orange', 'seed'),
@@ -1484,6 +1482,7 @@ join (values
   ('cucumber', 'cucumber', 301::numeric, 0::int, 'usda_fdc:168409 (1 cucumber (8-1/4"))'::text),
   ('dark red kidney bean canned', 'can (15 oz), drained', 266::numeric, 0::int, 'usda_fdc:174285 (1 can drained solids) — relabeled'::text),
   ('date', 'date, pitted', 24::numeric, 0::int, 'usda_fdc:168191 (1 date, pitted)'::text),
+  ('dijon mustard', 'serving · 1 tsp', 4.92892159375::numeric, 0::int, 'manual'::text),
   ('dill', 'sprig', 0.2::numeric, 0::int, 'usda_fdc:172233 (5 sprigs)'::text),
   ('dill pickle', 'spear', 40.4::numeric, 0::int, 'usda_fdc:324653 (1.0 spear)'::text),
   ('earth balance butter', 'serving · 14 g', 14::numeric, 0::int, 'manual'::text),
@@ -1548,7 +1547,6 @@ join (values
   ('liquid smoke', 'serving · 1 tsp', 4.92892159375::numeric, 0::int, 'manual'::text),
   ('mango', 'mango, whole', 336::numeric, 0::int, 'usda_fdc:169910 (1 fruit without refuse)'::text),
   ('mild garlic chili crisp', 'serving · 1 tsp', 4.92892159375::numeric, 0::int, 'manual'::text),
-  ('minor figure barista oat organic lite', 'serving · 1 cup', 236.5882365::numeric, 0::int, 'manual'::text),
   ('mint', 'sprig', 2::numeric, 0::int, 'seed:typical'::text),
   ('mint', 'bunch', 25::numeric, 1::int, 'seed:typical'::text),
   ('multigrain bread', 'slice regular', 26::numeric, 0::int, 'usda_fdc:168013 (1 slice regular)'::text),
@@ -1558,6 +1556,7 @@ join (values
   ('nectarine', 'nectarine, whole', 129::numeric, 0::int, 'usda_fdc:327357 (1.0 each 2-1/3" dia)'::text),
   ('nori', 'sheet', 2.5::numeric, 0::int, 'seed:typical'::text),
   ('nori', 'serving · 2.5 g', 2.5::numeric, 1::int, 'manual'::text),
+  ('oat milk lite', 'serving · 1 cup', 236.5882365::numeric, 0::int, 'manual'::text),
   ('oat whipped cream', 'serving · 2 tbsp', 29.5735295625::numeric, 0::int, 'manual'::text),
   ('okra', 'pod', 11.88::numeric, 0::int, 'usda_fdc:169260 (8 pods (3" long))'::text),
   ('onion', 'onion, medium', 110::numeric, 0::int, 'usda_fdc:170000 (1 medium (2-1/2" dia))'::text),
@@ -1645,8 +1644,8 @@ join (values
   ('strawberry', 'strawberry, large', 18::numeric, 1::int, 'usda_fdc:167762 (1 large (1-3/8" dia))'::text),
   ('strawberry', 'strawberry, small', 7::numeric, 2::int, 'usda_fdc:167762 (1 small (1" dia))'::text),
   ('strawberry', 'strawberry, extra large', 27::numeric, 3::int, 'usda_fdc:167762 (1 extra large (1-5/8" dia))'::text),
-  ('super firm tofu', 'serving · 3 oz', 85.048569375::numeric, 0::int, 'manual'::text),
   ('super firm tofu', 'block (16 oz)', 454::numeric, 1::int, 'manual'::text),
+  ('super firm tofu', 'serving · 3 oz', 85.048569375::numeric, 2::int, 'manual'::text),
   ('sweet potato', 'sweet potato', 130::numeric, 0::int, 'usda_fdc:168482 (1 sweetpotato, 5" long)'::text),
   ('tempeh', 'package (8 oz)', 227::numeric, 0::int, 'seed:typical'::text),
   ('thai basil', 'leaf', 0.5::numeric, 0::int, 'usda_fdc:172232 (5 leaves) — borrowed'::text),
@@ -1678,7 +1677,9 @@ join (values
   ('turnip', 'slice', 15::numeric, 3::int, 'usda_fdc:170465 (1 slice)'::text),
   ('ume plum vinegar', 'serving · 5 ml', 5::numeric, 0::int, 'manual'::text),
   ('vegan cheddar', 'serving · 28 g', 28::numeric, 0::int, 'manual'::text),
+  ('vegan mayonnaise', 'serving · 1 tbsp', 14.78676478125::numeric, 0::int, 'manual'::text),
   ('vegan mozzarella', 'serving · 1 oz', 28.349523125::numeric, 0::int, 'manual'::text),
+  ('vegan parmesan', 'serving · 1 tbsp', 14.78676478125::numeric, 0::int, 'manual'::text),
   ('vegan worcestershire sauce', 'serving · 1 tsp', 4.92892159375::numeric, 0::int, 'manual'::text),
   ('vegetable broth', 'can (14.5 oz)', 390::numeric, 0::int, 'usda_fdc:171583 (1 can) — relabeled'::text),
   ('vegetable broth', 'carton (32 oz)', 926::numeric, 1::int, 'usda_fdc:171583 (1 carton (32 oz)) — relabeled'::text),
@@ -1719,79 +1720,310 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
 -- every such row is listed here with its diff, which is what the old
 -- curation_overrides.jsonl `allowed_units` entries used to be for.
 --
--- 72 of 315 rows differ from the derived rule:
---   avocado oil (Avocado Oil, default tbsp): -pinch -dash -to_taste
---   baked bean canned (Canned Baked Beans, default oz): -tsp
---   bay leaf (Bay Leaves, default piece): -pinch -dash -handful -to_taste
---   black bean canned (Canned Black Beans, default oz): -tsp
---   black eyed pea canned (Canned Black-Eyed Peas, default oz): -tsp
+-- 303 of 313 rows differ from the derived rule:
+--   active yeast dry (Active Dry Yeast, default tsp): -fl_oz -l -pt -qt
+--   agave (Agave, default tbsp): -fl_oz -l -pt -qt
+--   all purpose flour (All-Purpose Flour, default cup): -fl_oz -l -pt -qt
+--   allspice ground (Ground Allspice, default pinch): -fl_oz -l -pt -qt
+--   almond (Almonds, default cup): -fl_oz -l -pt -qt
+--   almond butter (Almond Butter, default tbsp): -fl_oz -l -pt -qt
+--   almond flour (Almond Flour, default cup): -fl_oz -l -pt -qt
+--   almond milk (Almond Milk, default cup): -fl_oz -l -pt -qt
+--   apple (Apple, default piece): -fl_oz -l -pt -qt -handful
+--   apple cider vinegar (Apple Cider Vinegar, default tbsp): -fl_oz -l -pt -qt
+--   applesauce (Applesauce, default cup): -fl_oz -l -pt -qt
+--   apricot (Apricot, default piece): -fl_oz -l -pt -qt -handful
+--   arugula (Arugula, default cup): -fl_oz -l -pt -qt
+--   asparagus (Asparagus, default piece): -fl_oz -l -pt -qt -handful
+--   avocado (Avocado, default piece): -fl_oz -l -pt -qt -handful
+--   avocado oil (Avocado Oil, default tbsp): -fl_oz -l -pt -qt -pinch -dash -to_taste
+--   baked bean canned (Canned Baked Beans, default oz): -tsp -fl_oz -l -pt -qt
+--   baking powder (Baking Powder, default tsp): -fl_oz -l -pt -qt
+--   baking soda (Baking Soda, default tsp): -fl_oz -l -pt -qt
+--   balsamic vinegar (Balsamic Vinegar, default tbsp): -fl_oz -l -pt -qt
+--   banana (Banana, default piece): -fl_oz -l -pt -qt -handful
+--   basil (Basil, default cup): -fl_oz -l -pt -qt
+--   bay leaf (Bay Leaves, default piece): -fl_oz -l -pt -qt -pinch -dash -handful -to_taste
+--   beet (Beets, default piece): -fl_oz -l -pt -qt -handful
+--   black bean canned (Canned Black Beans, default oz): -tsp -fl_oz -l -pt -qt
+--   black bean dried (Dried Black Beans, default cup): -fl_oz -l -pt -qt
+--   black eyed pea canned (Canned Black-Eyed Peas, default oz): -tsp -fl_oz -l -pt -qt
+--   black eyed pea dried (Dried Black-Eyed Peas, default cup): -fl_oz -l -pt -qt
+--   black pepper (Black Pepper, default tsp): -fl_oz -l -pt -qt
 --   black rice (Black Rice, default cup): -tsp -tbsp -fl_oz -ml -l -pt -qt
---   brown rice cooked (Cooked Brown Rice, default cup): -tsp
---   brussel sprout (Brussels Sprouts, default lb): -tsp -tbsp
---   cabbage (Cabbage, default lb): -tsp -tbsp
---   cannellini bean canned (Canned Cannellini Beans, default oz): -tsp
---   canola oil (Canola Oil, default tbsp): -pinch -dash -to_taste
---   cantaloupe (Cantaloupe, default lb): -tsp -tbsp
+--   blueberry (Blueberries, default cup): -fl_oz -l -pt -qt
+--   bouillon paste (Bouillon Paste, default tsp): -fl_oz -l -pt -qt
+--   brazil nut (Brazil Nuts, default cup): -fl_oz -l -pt -qt
+--   bread flour (Bread Flour, default cup): -fl_oz -l -pt -qt
+--   broccoli (Broccoli, default cup): -fl_oz -l -pt -qt
+--   brown rice (Brown Rice, default cup): -fl_oz -l -pt -qt
+--   brown rice cooked (Cooked Brown Rice, default cup): -tsp -fl_oz -l -pt -qt
+--   brown sugar (Brown Sugar, default cup): -fl_oz -l -pt -qt
+--   brussel sprout (Brussels Sprouts, default lb): -tsp -tbsp -fl_oz -l -pt -qt
+--   buckwheat (Buckwheat, default cup): -fl_oz -l -pt -qt
+--   buckwheat flour (Buckwheat Flour, default cup): -fl_oz -l -pt -qt
+--   bulgur (Bulgur, default cup): -fl_oz -l -pt -qt
+--   burger bun (Burger Buns, default piece): -fl_oz -l -pt -qt
+--   butternut squash (Butternut Squash, default piece): -fl_oz -l -pt -qt -handful
+--   cabbage (Cabbage, default lb): -tsp -tbsp -fl_oz -l -pt -qt
+--   cannellini bean canned (Canned Cannellini Beans, default oz): -tsp -fl_oz -l -pt -qt
+--   cannellini bean dried (Dried Cannellini Beans, default cup): -fl_oz -l -pt -qt
+--   canola oil (Canola Oil, default tbsp): -fl_oz -l -pt -qt -pinch -dash -to_taste
+--   cantaloupe (Cantaloupe, default lb): -tsp -tbsp -fl_oz -l -pt -qt
+--   caper (Capers, default tbsp): -fl_oz -l -pt -qt
+--   carrot (Carrot, default piece): -fl_oz -l -pt -qt -handful
+--   cashew (Cashews, default cup): -fl_oz -l -pt -qt
+--   cauliflower (Cauliflower, default cup): -fl_oz -l -pt -qt
+--   cavatappi (Cavatappi, default cup): -fl_oz -l -pt -qt
+--   cayenne pepper (Cayenne Pepper, default tsp): -fl_oz -l -pt -qt
+--   celery (Celery, default piece): -fl_oz -l -pt -qt -handful
+--   cherry (Cherries, default cup): -fl_oz -l -pt -qt
+--   cherry tomato (Cherry Tomatoes, default cup): -fl_oz -l -pt -qt
+--   chia seed (Chia Seeds, default tbsp): -fl_oz -l -pt -qt
+--   chickpea canned (Canned Chickpeas, default oz): -fl_oz -l -pt -qt
+--   chickpea dried (Dried Chickpeas, default cup): -fl_oz -l -pt -qt
+--   chickpea flour (Chickpea Flour, default cup): -fl_oz -l -pt -qt
+--   chili powder (Chili Powder, default tsp): -fl_oz -l -pt -qt
+--   chipotle chili powder (Chipotle Chili Powder, default tsp): -fl_oz -l -pt -qt
+--   chive (Chives, default tbsp): -fl_oz -l -pt -qt
+--   cilantro (Cilantro, default cup): -fl_oz -l -pt -qt
+--   cinnamon ground (Ground Cinnamon, default tsp): -fl_oz -l -pt -qt
 --   cinnamon stick (Cinnamon Stick, default piece): -pinch -dash -handful -to_taste
---   coconut oil (Coconut Oil, default tbsp): -pinch -dash -to_taste
---   corn frozen (Frozen Corn, default cup): -tsp -tbsp
---   corn oil (Corn Oil, default tbsp): -pinch -dash -to_taste
---   cremini mushroom (Cremini Mushroom, default oz): -tsp -tbsp
---   crispy onion (Crispy Onion, default tbsp): +handful  -kg -oz -lb
---   earth balance butter (Earth Balance Butter, default tbsp): -kg -pinch -dash -to_taste
---   edamame (Edamame, default cup): -tsp
---   edamame frozen (Frozen Edamame, default cup): -tsp -tbsp
---   enoki mushroom (Enoki Mushroom, default oz): -tsp -tbsp
---   extra virgin olive oil (Extra Virgin Olive Oil, default tbsp): -pinch -dash
---   great northern bean canned (Canned Great Northern Beans, default oz): -tsp
---   green bean (Green Beans, default oz): -tsp -tbsp
---   green bean canned (Canned Green Beans, default oz): -tsp -tbsp
---   high heat oil (High-Heat Oil, default tbsp): -pinch -dash -to_taste
---   hot sauce (Hot Sauce, default tsp): +to_taste
---   iceberg lettuce (Iceberg Lettuce, default oz): -tsp -tbsp
---   king oyster mushroom (King Oyster Mushroom, default oz): -tsp -tbsp
---   lentil canned (Canned Lentils, default oz): -tsp
---   lentil cooked (Cooked Lentils, default cup): -tsp
+--   clove ground (Ground Cloves, default pinch): -fl_oz -l -pt -qt
+--   cocoa powder (Cocoa Powder, default tbsp): -fl_oz -l -pt -qt
+--   coconut flake dried (Dried Coconut Flakes, default tbsp): -fl_oz -l -pt -qt
+--   coconut milk canned (Canned Coconut Milk, default piece): -fl_oz -l -pt -qt
+--   coconut oil (Coconut Oil, default tbsp): -fl_oz -l -pt -qt -pinch -dash -to_taste
+--   collard green (Collard Greens, default cup): -fl_oz -l -pt -qt
+--   coriander ground (Ground Coriander, default tsp): -fl_oz -l -pt -qt
+--   corn (Corn, default piece): -fl_oz -l -pt -qt -handful
+--   corn frozen (Frozen Corn, default cup): -tsp -tbsp -fl_oz -l -pt -qt
+--   corn oil (Corn Oil, default tbsp): -fl_oz -l -pt -qt -pinch -dash -to_taste
+--   cornmeal (Cornmeal, default cup): -fl_oz -l -pt -qt
+--   cornstarch (Cornstarch, default tbsp): -fl_oz -l -pt -qt
+--   cranberry dried (Dried Cranberries, default cup): -fl_oz -l -pt -qt
+--   cremini mushroom (Cremini Mushroom, default oz): -tsp -tbsp -fl_oz -l -pt -qt
+--   crispy onion (Crispy Onion, default tbsp): +handful  -kg -oz -lb -fl_oz -l -pt -qt
+--   cucumber (Cucumber, default piece): -fl_oz -l -pt -qt -handful
+--   cumin ground (Ground Cumin, default tsp): -fl_oz -l -pt -qt
+--   currant dried (Dried Currants, default cup): -fl_oz -l -pt -qt
+--   curry powder (Curry Powder, default tsp): -fl_oz -l -pt -qt
+--   dark red kidney bean canned (Canned Dark Red Kidney Beans, default oz): -fl_oz -l -pt -qt
+--   date (Dates, default piece): -fl_oz -l -pt -qt -handful
+--   dijon mustard (Dijon Mustard, default tsp): -fl_oz -l -pt -qt
+--   dill (Dill, default cup): -fl_oz -l -pt -qt
+--   dill pickle (Dill Pickles, default piece): -fl_oz -l -pt -qt
+--   ditalini (Ditalini, default cup): -fl_oz -l -pt -qt
+--   earth balance butter (Earth Balance Butter, default tbsp): -kg -fl_oz -l -pt -qt -pinch -dash -to_taste
+--   edamame (Edamame, default cup): -tsp -fl_oz -l -pt -qt
+--   edamame frozen (Frozen Edamame, default cup): -tsp -tbsp -fl_oz -l -pt -qt
+--   eggplant (Eggplant, default piece): -fl_oz -l -pt -qt -handful
+--   enoki mushroom (Enoki Mushroom, default oz): -tsp -tbsp -fl_oz -l -pt -qt
+--   extra firm tofu (Extra Firm Tofu, default oz): -fl_oz -l -pt -qt
+--   extra virgin olive oil (Extra Virgin Olive Oil, default tbsp): -fl_oz -l -pt -qt -pinch -dash -to_taste
+--   farro (Farro, default cup): -fl_oz -l -pt -qt
+--   fennel (Fennel, default piece): -fl_oz -l -pt -qt -handful
+--   fennel seed (Fennel Seeds, default tsp): -fl_oz -l -pt -qt
+--   fig dried (Dried Figs, default cup): -fl_oz -l -pt -qt
+--   fine sea salt (Fine Sea Salt, default tsp): -fl_oz -l -pt -qt
+--   fire tomato canned roasted (Canned Fire-Roasted Tomatoes, default oz): -fl_oz -l -pt -qt
+--   flaky salt (Flaky Salt, default pinch): -fl_oz -l -pt -qt
+--   flaxseed meal (Flaxseed Meal, default tbsp): -fl_oz -l -pt -qt
+--   french green lentil dried (Dried French Green Lentils, default cup): -fl_oz -l -pt -qt
+--   gala apple (Gala Apple, default piece): -fl_oz -l -pt -qt -handful
+--   garlic (Garlic, default piece): -fl_oz -l -pt -qt -handful
+--   garlic powder (Garlic Powder, default tsp): -fl_oz -l -pt -qt
+--   ginger (Ginger, default tbsp): -fl_oz -l -pt -qt
+--   gold potato (Gold Potato, default piece): -fl_oz -l -pt -qt -handful
+--   golden raisin (Golden Raisins, default cup): -fl_oz -l -pt -qt
+--   granny smith apple (Granny Smith Apple, default piece): -fl_oz -l -pt -qt -handful
+--   granulated sugar (Granulated Sugar, default cup): -fl_oz -l -pt -qt
+--   grapefruit (Grapefruit, default piece): -fl_oz -l -pt -qt -handful
+--   great northern bean canned (Canned Great Northern Beans, default oz): -tsp -fl_oz -l -pt -qt
+--   green bean (Green Beans, default oz): -tsp -tbsp -fl_oz -l -pt -qt
+--   green bean canned (Canned Green Beans, default oz): -tsp -tbsp -fl_oz -l -pt -qt
+--   green bell pepper (Green Bell Pepper, default piece): -fl_oz -l -pt -qt -handful
+--   green grape (Green Grapes, default cup): -fl_oz -l -pt -qt
+--   green olive (Green Olives, default oz): -fl_oz -l -pt -qt
+--   hazelnut (Hazelnuts, default cup): -fl_oz -l -pt -qt
+--   hemp seed (Hemp Seeds, default tbsp): -fl_oz -l -pt -qt
+--   high heat oil (High-Heat Oil, default tbsp): -fl_oz -l -pt -qt -pinch -dash -to_taste
+--   hot sauce (Hot Sauce, default tsp): +to_taste  -fl_oz -l -pt -qt
+--   hummus (Hummus, default cup): -fl_oz -l -pt -qt
+--   iceberg lettuce (Iceberg Lettuce, default oz): -tsp -tbsp -fl_oz -l -pt -qt
+--   instant yeast (Instant Yeast, default tsp): -fl_oz -l -pt -qt
+--   italian herb (Italian Herbs, default tsp): -fl_oz -l -pt -qt
+--   jalapeno (Jalapeño, default piece): -fl_oz -l -pt -qt -handful
+--   kala namak (Kala Namak, default tsp): -fl_oz -l -pt -qt
+--   kale (Kale, default cup): -fl_oz -l -pt -qt
+--   ketchup (Ketchup, default tbsp): -fl_oz -l -pt -qt
+--   kimchi (Kimchi, default cup): -fl_oz -l -pt -qt
+--   king oyster mushroom (King Oyster Mushroom, default oz): -tsp -tbsp -fl_oz -l -pt -qt
+--   kiwi (Kiwi, default piece): -fl_oz -l -pt -qt -handful
+--   kosher salt (Kosher Salt, default tsp): -fl_oz -l -pt -qt
+--   leek (Leek, default piece): -fl_oz -l -pt -qt -handful
+--   lemon (Lemon, default piece): -fl_oz -l -pt -qt -handful
+--   lemon juice (Lemon Juice, default tbsp): -fl_oz -l -pt -qt
+--   lemon zest (Lemon Zest, default tsp): -fl_oz -l -pt -qt
+--   lentil canned (Canned Lentils, default oz): -tsp -fl_oz -l -pt -qt
+--   lentil cooked (Cooked Lentils, default cup): -tsp -fl_oz -l -pt -qt
+--   lentil dried (Dried Lentils, default cup): -fl_oz -l -pt -qt
+--   light red kidney bean canned (Canned Light Red Kidney Beans, default oz): -fl_oz -l -pt -qt
+--   lime (Lime, default piece): -handful
+--   lime juice (Lime Juice, default tbsp): -fl_oz -l -pt -qt
 --   liquid amino (Liquid Aminos, default tsp): +to_taste  -fl_oz -cup -l -pt -qt
 --   liquid smoke (Liquid Smoke, default tsp): +dash  -fl_oz -cup -l -pt -qt
---   maitake mushroom (Maitake Mushroom, default oz): -tsp -tbsp
+--   maitake mushroom (Maitake Mushroom, default oz): -tsp -tbsp -fl_oz -l -pt -qt
+--   mango (Mango, default piece): -fl_oz -l -pt -qt -handful
+--   maple syrup (Maple Syrup, default tbsp): -fl_oz -l -pt -qt
 --   mild garlic chili crisp (Mild Garlic Chili Crisp, default tsp): -fl_oz -cup -l -pt -qt
---   mint (Mint, default tbsp): +to_taste  -kg -lb
---   navy bean canned (Canned Navy Beans, default oz): -tsp
+--   mini pretzel (Mini Pretzels, default cup): -fl_oz -l -pt -qt
+--   mint (Mint, default tbsp): +to_taste  -kg -lb -fl_oz -l -pt -qt
+--   miso (Miso, default tbsp): -fl_oz -l -pt -qt
+--   mixed peppercorn (Mixed Peppercorns, default tsp): -fl_oz -l -pt -qt
+--   multigrain bread (Multigrain Bread, default piece): -fl_oz -l -pt -qt
+--   mung bean dried (Dried Mung Beans, default cup): -fl_oz -l -pt -qt
+--   napa cabbage (Napa Cabbage, default piece): -fl_oz -l -pt -qt -handful
+--   navy bean canned (Canned Navy Beans, default oz): -tsp -fl_oz -l -pt -qt
+--   nectarine (Nectarine, default piece): -fl_oz -l -pt -qt -handful
+--   nutmeg ground (Ground Nutmeg, default pinch): -fl_oz -l -pt -qt
+--   nutritional yeast (Nutritional Yeast, default tbsp): -fl_oz -l -pt -qt
+--   oat milk lite (Oat Milk Lite, default cup): -fl_oz -l -pt -qt
 --   oat whipped cream (Oat Whipped Cream, default tbsp): -fl_oz -cup -l -pt -qt
---   okra (Okra, default oz): -tsp -tbsp
---   olive oil (Olive Oil, default tbsp): -pinch -dash
---   oregano fresh (Fresh Oregano, default tsp): +to_taste
---   oyster mushroom (Oyster Mushroom, default oz): -tsp -tbsp
---   paprika (Paprika, default g): -pinch -dash -handful -to_taste
---   pasta (Pasta, default lb): -tsp -tbsp
---   pasta cooked (Cooked Pasta, default cup): -tsp -tbsp
---   pea (Peas, default cup): -tsp -tbsp
---   pea frozen (Frozen Peas, default cup): -tsp -tbsp
---   peanut oil (Peanut Oil, default tbsp): -pinch -dash -to_taste
---   pineapple (Pineapple, default lb): -tsp -tbsp
---   plain oat yogurt (Plain Oat Yogurt, default cup): -fl_oz -qt
---   poblano pepper (Poblano Pepper, default piece): -fl_oz -pt -qt -handful
---   quinoa cooked (Cooked Quinoa, default cup): -tsp
---   red leaf lettuce (Red Leaf Lettuce, default oz): -tsp -tbsp
---   romaine lettuce (Romaine Lettuce, default oz): -tsp -tbsp
---   safflower oil (Safflower Oil, default tbsp): -pinch -dash -to_taste
---   sesame oil toasted (Toasted Sesame Oil, default tbsp): -pinch -dash
---   soy sauce (Soy Sauce, default tbsp): +to_taste
---   spaghetti (Spaghetti, default lb): -tsp -tbsp
---   sriracha (Sriracha, default tsp): +to_taste
---   star anise (Star Anise, default piece): -pinch -dash -handful -to_taste
---   sunflower oil (Sunflower Oil, default tbsp): -pinch -dash -to_taste
---   sweetcorn canned (Canned Sweetcorn, default oz): -tsp
---   tamari (Tamari, default tbsp): +to_taste
---   tempeh (Tempeh, default oz): -tsp -tbsp
---   tomato canned whole (Canned Whole Tomatoes, default oz): -tsp -tbsp
+--   okra (Okra, default oz): -tsp -tbsp -fl_oz -l -pt -qt
+--   olive oil (Olive Oil, default tbsp): -fl_oz -l -pt -qt -pinch -dash -to_taste
+--   onion (Onion, default piece): -fl_oz -l -pt -qt -handful
+--   onion powder (Onion Powder, default tsp): -fl_oz -l -pt -qt
+--   orange (Orange, default piece): -fl_oz -l -pt -qt -handful
+--   orange bell pepper (Orange Bell Pepper, default piece): -fl_oz -l -pt -qt -handful
+--   orange juice (Orange Juice, default tbsp): -fl_oz -l -pt -qt
+--   orange zest (Orange Zest, default tsp): -fl_oz -l -pt -qt
+--   oregano dried (Dried Oregano, default tsp): -fl_oz -l -pt -qt
+--   oregano fresh (Fresh Oregano, default tsp): +to_taste  -fl_oz -l -pt -qt
+--   oyster mushroom (Oyster Mushroom, default oz): -tsp -tbsp -fl_oz -l -pt -qt
+--   panko (Panko, default cup): -fl_oz -l -pt -qt
+--   paprika (Paprika, default g): -fl_oz -l -pt -qt -pinch -dash -handful -to_taste
+--   paprika smoked (Smoked Paprika, default tsp): -fl_oz -l -pt -qt
+--   parsley (Parsley, default cup): -fl_oz -l -pt -qt
+--   parsnip (Parsnip, default piece): -fl_oz -l -pt -qt -handful
+--   pasta (Pasta, default lb): -tsp -tbsp -fl_oz -l -pt -qt
+--   pasta cooked (Cooked Pasta, default cup): -tsp -tbsp -fl_oz -l -pt -qt
+--   pea (Peas, default cup): -tsp -tbsp -fl_oz -l -pt -qt
+--   pea frozen (Frozen Peas, default cup): -tsp -tbsp -fl_oz -l -pt -qt
+--   peach (Peach, default piece): -fl_oz -l -pt -qt -handful
+--   peanut (Peanuts, default tbsp): -fl_oz -l -pt -qt
+--   peanut butter (Peanut Butter, default tbsp): -fl_oz -l -pt -qt
+--   peanut oil (Peanut Oil, default tbsp): -fl_oz -l -pt -qt -pinch -dash -to_taste
+--   pecan (Pecans, default cup): -fl_oz -l -pt -qt
+--   pine nut (Pine Nuts, default tbsp): -fl_oz -l -pt -qt
+--   pineapple (Pineapple, default lb): -tsp -tbsp -fl_oz -l -pt -qt
+--   pinto bean canned (Canned Pinto Beans, default oz): -fl_oz -l -pt -qt
+--   pistachio (Pistachios, default tbsp): -fl_oz -l -pt -qt
+--   plain oat yogurt (Plain Oat Yogurt, default cup): -fl_oz -l -pt -qt
+--   plantain (Plantain, default piece): -fl_oz -l -pt -qt -handful
+--   poblano pepper (Poblano Pepper, default piece): -fl_oz -l -pt -qt -handful
+--   portobello mushroom (Portobello Mushroom, default piece): -fl_oz -l -pt -qt -handful
+--   pumpkin seed (Pumpkin Seeds, default tbsp): -fl_oz -l -pt -qt
+--   quinoa (Quinoa, default cup): -fl_oz -l -pt -qt
+--   quinoa cooked (Cooked Quinoa, default cup): -tsp -fl_oz -l -pt -qt
+--   radish (Radish, default piece): -fl_oz -l -pt -qt -handful
+--   raisin (Raisins, default cup): -fl_oz -l -pt -qt
+--   raspberry (Raspberries, default cup): -fl_oz -l -pt -qt
+--   red bell pepper (Red Bell Pepper, default piece): -fl_oz -l -pt -qt -handful
+--   red cabbage (Red Cabbage, default piece): -fl_oz -l -pt -qt -handful
+--   red chili fresh (Fresh Red Chili, default piece): -fl_oz -l -pt -qt -handful
+--   red delicious apple (Red Delicious Apple, default piece): -fl_oz -l -pt -qt -handful
+--   red grape (Red Grapes, default cup): -fl_oz -l -pt -qt
+--   red leaf lettuce (Red Leaf Lettuce, default oz): -tsp -tbsp -fl_oz -l -pt -qt
+--   red onion (Red Onion, default piece): -fl_oz -l -pt -qt -handful
+--   red pepper flake (Red Pepper Flakes, default tsp): -fl_oz -l -pt -qt
+--   red potato (Red Potato, default piece): -fl_oz -l -pt -qt -handful
+--   red rice (Red Rice, default cup): -fl_oz -l -pt -qt
+--   red wine (Red Wine, default g): -fl_oz -l -pt -qt
+--   red wine vinegar (Red Wine Vinegar, default tbsp): -fl_oz -l -pt -qt
+--   rhubarb (Rhubarb, default piece): -fl_oz -l -pt -qt -handful
+--   rice vinegar (Rice Vinegar, default tbsp): -fl_oz -l -pt -qt
+--   rolled oat (Rolled Oats, default cup): -fl_oz -l -pt -qt
+--   romaine lettuce (Romaine Lettuce, default oz): -tsp -tbsp -fl_oz -l -pt -qt
+--   rosemary (Rosemary, default tbsp): -fl_oz -l -pt -qt
+--   russet potato (Russet Potato, default piece): -fl_oz -l -pt -qt -handful
+--   safflower oil (Safflower Oil, default tbsp): -fl_oz -l -pt -qt -pinch -dash -to_taste
+--   sage ground (Ground Sage, default tsp): -fl_oz -l -pt -qt
+--   sauerkraut (Sauerkraut, default cup): -fl_oz -l -pt -qt
+--   scallion (Scallion, default piece): -fl_oz -l -pt -qt -handful
+--   sea salt (Sea Salt, default tsp): -fl_oz -l -pt -qt
+--   semolina flour (Semolina Flour, default cup): -fl_oz -l -pt -qt
+--   serrano pepper (Serrano Pepper, default piece): -fl_oz -l -pt -qt -handful
+--   sesame oil toasted (Toasted Sesame Oil, default tbsp): -fl_oz -l -pt -qt -pinch -dash -to_taste
+--   sesame seed (Sesame Seeds, default tbsp): -fl_oz -l -pt -qt
+--   shallot (Shallot, default piece): -fl_oz -l -pt -qt -handful
+--   sherry vinegar (Sherry Vinegar, default tbsp): -fl_oz -l -pt -qt
+--   shiitake mushroom (Shiitake Mushroom, default oz): -fl_oz -l -pt -qt
+--   silken tofu (Silken Tofu, default piece): -fl_oz -l -pt -qt
+--   soft sandwich bread (Soft Sandwich Bread, default piece): -fl_oz -l -pt -qt
+--   soy milk (Soy Milk, default cup): -fl_oz -l -pt -qt
+--   soy sauce (Soy Sauce, default tbsp): +to_taste  -fl_oz -l -pt -qt
+--   spaghetti (Spaghetti, default lb): -tsp -tbsp -fl_oz -l -pt -qt
+--   spelt flour (Spelt Flour, default cup): -fl_oz -l -pt -qt
+--   spinach (Spinach, default cup): -fl_oz -l -pt -qt
+--   sprouted multigrain bread (Sprouted Multigrain Bread, default piece): -fl_oz -l -pt -qt
+--   sriracha (Sriracha, default tsp): +to_taste  -fl_oz -l -pt -qt
+--   star anise (Star Anise, default piece): -fl_oz -l -pt -qt -pinch -dash -handful -to_taste
+--   steel oat (Steel-Cut Oats, default cup): -fl_oz -l -pt -qt
+--   strawberry (Strawberries, default cup): -fl_oz -l -pt -qt
+--   sugar powdered (Powdered Sugar, default cup): -fl_oz -l -pt -qt
+--   sunflower oil (Sunflower Oil, default tbsp): -fl_oz -l -pt -qt -pinch -dash -to_taste
+--   sunflower seed (Sunflower Seeds, default tbsp): -fl_oz -l -pt -qt
+--   sweet paprika (Sweet Paprika, default tsp): -fl_oz -l -pt -qt
+--   sweet potato (Sweet Potato, default piece): -fl_oz -l -pt -qt -handful
+--   sweetcorn canned (Canned Sweetcorn, default oz): -tsp -fl_oz -l -pt -qt
+--   table salt (Table Salt, default tsp): -fl_oz -l -pt -qt
+--   tahini (Tahini, default tbsp): -fl_oz -l -pt -qt
+--   tamari (Tamari, default tbsp): +to_taste  -fl_oz -l -pt -qt
+--   tempeh (Tempeh, default oz): -tsp -tbsp -fl_oz -l -pt -qt
+--   thai basil (Thai Basil, default cup): -fl_oz -l -pt -qt
+--   thyme dried (Dried Thyme, default tsp): -fl_oz -l -pt -qt
+--   thyme fresh (Fresh Thyme, default tsp): -fl_oz -l -pt -qt
+--   tipo flour (Tipo 00 Flour, default cup): -fl_oz -l -pt -qt
+--   tomato (Tomato, default piece): -fl_oz -l -pt -qt -handful
+--   tomato canned (Canned Crushed Tomatoes, default oz): -fl_oz -l -pt -qt
+--   tomato canned diced (Canned Diced Tomatoes, default oz): -fl_oz -l -pt -qt
+--   tomato canned whole (Canned Whole Tomatoes, default oz): -tsp -tbsp -fl_oz -l -pt -qt
+--   tomato paste (Tomato Paste, default tbsp): -fl_oz -l -pt -qt
+--   tomato puree canned (Canned Tomato Puree, default oz): -fl_oz -l -pt -qt
+--   tomato sauce canned (Canned Tomato Sauce, default oz): -fl_oz -l -pt -qt
+--   tortilla chip (Tortilla Chips, default oz): -fl_oz -l -pt -qt
+--   turmeric ground (Ground Turmeric, default tsp): -fl_oz -l -pt -qt
+--   turnip (Turnip, default piece): -fl_oz -l -pt -qt -handful
 --   ume plum vinegar (Ume Plum Vinegar, default tsp): -fl_oz -l -pt -qt
+--   vanilla extract (Vanilla Extract, default tsp): -fl_oz -l -pt -qt
+--   vegan cheddar (Vegan Cheddar, default oz): -fl_oz -l -pt -qt
+--   vegan mayonnaise (Vegan Mayonnaise, default tbsp): -fl_oz -l -pt -qt
+--   vegan mozzarella (Vegan Mozzarella, default oz): -fl_oz -l -pt -qt
+--   vegan parmesan (Vegan Parmesan, default cup): -fl_oz -l -pt -qt
 --   vegan worcestershire sauce (Vegan Worcestershire Sauce, default tsp): +dash  -fl_oz -ml -l -pt -qt
---   vegetable oil (Vegetable Oil, default tbsp): -pinch -dash -to_taste
+--   vegetable broth (Vegetable Broth, default cup): -fl_oz -l -pt -qt
+--   vegetable oil (Vegetable Oil, default tbsp): -fl_oz -l -pt -qt -pinch -dash -to_taste
+--   walnut (Walnuts, default cup): -fl_oz -l -pt -qt
+--   water (Water, default cup): -fl_oz -l -pt -qt
+--   watermelon (Watermelon, default cup): -fl_oz -l -pt -qt
+--   wheat bread whole (Whole Wheat Bread, default piece): -fl_oz -l -pt -qt
 --   wheat chex cereal (Wheat Chex Cereal, default cup): -fl_oz -ml -l -pt -qt
---   white mushroom (White Mushroom, default oz): -tsp -tbsp
---   white rice cooked (Cooked White Rice, default cup): -tsp
+--   wheat flour whole (Whole Wheat Flour, default cup): -fl_oz -l -pt -qt
+--   white basmati rice (White Basmati Rice, default cup): -fl_oz -l -pt -qt
+--   white bread (White Bread, default piece): -fl_oz -l -pt -qt
+--   white jasmine rice (White Jasmine Rice, default cup): -fl_oz -l -pt -qt
+--   white mushroom (White Mushroom, default oz): -tsp -tbsp -fl_oz -l -pt -qt
+--   white rice (White Rice, default cup): -fl_oz -l -pt -qt
+--   white rice cooked (Cooked White Rice, default cup): -tsp -fl_oz -l -pt -qt
+--   white rice flour (White Rice Flour, default cup): -fl_oz -l -pt -qt
+--   white sorghum flour (White Sorghum Flour, default g): -fl_oz -l -pt -qt
+--   white vinegar (White Vinegar, default cup): -fl_oz -l -pt -qt
+--   wild rice (Wild Rice, default cup): -fl_oz -l -pt -qt
+--   yellow bell pepper (Yellow Bell Pepper, default piece): -fl_oz -l -pt -qt -handful
+--   yellow mustard (Yellow Mustard, default tbsp): -fl_oz -l -pt -qt
+--   yellow squash (Yellow Squash, default piece): -fl_oz -l -pt -qt -handful
+--   zucchini (Zucchini, default piece): -fl_oz -l -pt -qt -handful
 
 -- The invariants. `supabase db reset` FAILS loudly on any of them, and
 -- they are checks on the EXPORTED data now: the cloud rows are curated,
@@ -1916,6 +2148,7 @@ begin
     ('cucumber'),
     ('dark red kidney bean canned'),
     ('date'),
+    ('dijon mustard'),
     ('dill'),
     ('dill pickle'),
     ('earth balance butter'),
@@ -1958,13 +2191,13 @@ begin
     ('liquid smoke'),
     ('mango'),
     ('mild garlic chili crisp'),
-    ('minor figure barista oat organic lite'),
     ('mint'),
     ('multigrain bread'),
     ('napa cabbage'),
     ('navy bean canned'),
     ('nectarine'),
     ('nori'),
+    ('oat milk lite'),
     ('oat whipped cream'),
     ('okra'),
     ('onion'),
@@ -2023,7 +2256,9 @@ begin
     ('turnip'),
     ('ume plum vinegar'),
     ('vegan cheddar'),
+    ('vegan mayonnaise'),
     ('vegan mozzarella'),
+    ('vegan parmesan'),
     ('vegan worcestershire sauce'),
     ('vegetable broth'),
     ('watermelon'),

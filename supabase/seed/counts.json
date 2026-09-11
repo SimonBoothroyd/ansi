@@ -1,8 +1,8 @@
 {
-  "ingredients": 315,
-  "complete": 297,
-  "stub": 18,
+  "ingredients": 313,
+  "complete": 313,
+  "stub": 0,
   "aliases": 148,
-  "measures": 296,
-  "curated_unit_lists": 72
+  "measures": 299,
+  "curated_unit_lists": 303
 }
