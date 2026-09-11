@@ -100,6 +100,18 @@ abstract class Recipe with _$Recipe {
   /// component line's unit against.
   List<YieldDenomination> get yields =>
       yieldDenominations(yieldQty, yieldUnit, yieldQty2, yieldUnit2);
+
+  /// This recipe as another recipe's component target — what an editor that
+  /// has just saved a sub-recipe hands back to the line waiting on it, so the
+  /// quantity sheet opens on the yields without a second read.
+  SubRecipeTarget get asSubRecipeTarget => SubRecipeTarget(
+    id: id,
+    title: title,
+    yieldQty: yieldQty,
+    yieldUnit: yieldUnit,
+    yieldQty2: yieldQty2,
+    yieldUnit2: yieldUnit2,
+  );
 }
 
 /// A lightweight row for the recipe list. Since 7.7 it also carries what the

@@ -32,8 +32,8 @@ import 'ansi_toast.dart';
 /// this app already writes.
 ///
 /// ```dart
-/// final id = await ref.write(context, 'save the recipe', notifier.save);
-/// if (id == null || !context.mounted) return;
+/// final saved = await ref.write(context, 'save the recipe', notifier.save);
+/// if (saved == null || !context.mounted) return;
 /// ```
 ///
 /// [what] is a lowercase verb phrase in the user's own noun that completes

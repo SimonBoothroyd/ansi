@@ -40,12 +40,30 @@ import 'recipe_chip.dart';
 import 'recipe_header_form.dart';
 import 'recipe_view_models.dart';
 
+/// The query parameter that asks a NEW recipe's editor to hand the recipe
+/// back instead of landing on its page. One name, one place, so the route the
+/// picker writes and the route the router reads agree.
+const kHandBackQueryParam = 'handback';
+
+/// The pushed route for a sub-recipe that does not exist yet — what a line
+/// target picker opens when the thing the line wants has not been written.
+///
+/// [title] prefills the field with the words already typed into the picker's
+/// search, and the editor pops with the saved recipe as a [SubRecipeTarget]
+/// (or null if the person backed out) so the line waiting on it can be made.
+String newSubRecipeRoute({String title = ''}) {
+  final name = title.trim();
+  final seed = name.isEmpty ? '' : 'title=${Uri.encodeQueryComponent(name)}&';
+  return '/recipes/new?$seed$kHandBackQueryParam=1';
+}
+
 class RecipeEditorView extends ConsumerWidget {
   const RecipeEditorView({
     this.recipeId,
     this.initialTitle,
     this.initialBookId,
     this.initialSectionId,
+    this.handsBackTarget = false,
     super.key,
   });
 
@@ -60,6 +78,11 @@ class RecipeEditorView extends ConsumerWidget {
   /// `＋` carries both; every other door carries neither.
   final String? initialBookId;
   final String? initialSectionId;
+
+  /// Whether Save should POP with the recipe as a [SubRecipeTarget] rather
+  /// than land on its page — true only for the picker door
+  /// ([newSubRecipeRoute]), where a line is being held open for it.
+  final bool handsBackTarget;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -91,12 +114,12 @@ class RecipeEditorView extends ConsumerWidget {
                     // Through the write door: unguarded, a throw inside
                     // `save()` shows only as the editor not navigating, which
                     // reads as a laggy button rather than a lost recipe.
-                    final id = await ref.write(
+                    final saved = await ref.write(
                       context,
                       'save the recipe',
                       notifier.save,
                     );
-                    if (id == null || !context.mounted) return;
+                    if (saved == null || !context.mounted) return;
                     // Editing returns you to where you opened the editor;
                     // creating lands you on the thing you made. An existing
                     // recipe's page is already beneath the editor as a watched
@@ -106,10 +129,15 @@ class RecipeEditorView extends ConsumerWidget {
                     // replaced (not `go`ne to: that would flatten the stack,
                     // back would leave the app and the iOS edge swipe would
                     // vanish on a page that looks exactly like a pushed one).
+                    // …unless a picker pushed this to make a sub-recipe: that
+                    // line is still open under the editor, and landing on the
+                    // new recipe's page would abandon it.
                     if (recipeId != null) {
                       context.pop();
+                    } else if (handsBackTarget) {
+                      context.pop(saved.asSubRecipeTarget);
                     } else {
-                      context.pushReplacement('/recipes/$id');
+                      context.pushReplacement('/recipes/${saved.id}');
                     }
                   },
             child: const Text('Save'),

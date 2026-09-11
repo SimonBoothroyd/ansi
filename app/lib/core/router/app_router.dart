@@ -183,7 +183,8 @@ GoRouter router(Ref ref) {
       // state hands over, so a search for a recipe you were about to write
       // becomes the recipe. `?book=&section=` file it — what a section's `＋`
       // hands over, so the recipe lands on the shelf that was tapped instead of
-      // in the default book.
+      // in the default book. `?handback=1` is the line picker's door: Save
+      // pops the recipe back to the line that is waiting on it.
       GoRoute(
         path: '/recipes/new',
         name: 'recipe-new',
@@ -191,6 +192,8 @@ GoRouter router(Ref ref) {
           initialTitle: state.uri.queryParameters['title'],
           initialBookId: state.uri.queryParameters['book'],
           initialSectionId: state.uri.queryParameters['section'],
+          handsBackTarget:
+              state.uri.queryParameters[kHandBackQueryParam] == '1',
         ),
       ),
       GoRoute(

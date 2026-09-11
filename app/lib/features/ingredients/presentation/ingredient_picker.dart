@@ -467,38 +467,14 @@ class AddNewIngredientRow extends HookConsumerWidget {
       }
     }
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: enabled ? addNew : null,
-      child: DashedBorderBox(
-        color: enabled ? AnsiColors.herb : AnsiColors.line,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              FLucideIcons.plus,
-              size: 12,
-              color: enabled ? AnsiColors.herb : AnsiColors.muted,
-            ),
-            const SizedBox(width: 5),
-            Flexible(
-              child: Text(
-                enabled
-                    ? (label?.call(name) ??
-                          'can’t find it? add "$name" as a new ingredient')
-                    : 'can’t find it? type a name to add it',
-                textAlign: TextAlign.center,
-                overflow: TextOverflow.ellipsis,
-                style: ansiMono(
-                  size: 11,
-                  color: enabled ? AnsiColors.herb : AnsiColors.muted,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return DashedAction(
+      icon: FLucideIcons.plus,
+      enabled: enabled,
+      label: enabled
+          ? (label?.call(name) ??
+                'can’t find it? add "$name" as a new ingredient')
+          : 'can’t find it? type a name to add it',
+      onTap: addNew,
     );
   }
 }

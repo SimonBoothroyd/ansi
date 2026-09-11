@@ -40,10 +40,12 @@ void main() {
     container.read(recipeEditorProvider(null).notifier)
       ..setTitle('Weeknight Chicken Curry')
       ..addGroup();
-    final id = await container.read(recipeEditorProvider(null).notifier).save();
+    final saved = await container
+        .read(recipeEditorProvider(null).notifier)
+        .save();
 
     expect(repo.saved, hasLength(1));
-    expect(id, first.id);
+    expect(saved.id, first.id);
 
     // A fresh open of the same provider must be a blank draft again — new id,
     // empty title, a single empty group.

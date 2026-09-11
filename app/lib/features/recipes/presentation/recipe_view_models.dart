@@ -759,9 +759,13 @@ class RecipeEditor extends _$RecipeEditor
     return id;
   }
 
-  /// Persists the recipe (dropping blank steps) and returns its id. A second
-  /// call while the first is still writing is a no-op that returns the same id
-  /// — a double-tapped Save must not race two child-diff writes.
+  /// Persists the recipe (dropping blank steps) and returns it as written. A
+  /// second call while the first is still writing is a no-op that returns the
+  /// same recipe — a double-tapped Save must not race two child-diff writes.
+  ///
+  /// It hands back the whole [Recipe], not just the id, because a caller that
+  /// pushed this editor to MAKE a sub-recipe needs its title and yields to
+  /// build the line that was waiting on it.
   ///
   /// Also resets the provider: the editor is left after a save, and without an
   /// explicit reset a lingering instance (auto-dispose only fires once the
@@ -769,7 +773,7 @@ class RecipeEditor extends _$RecipeEditor
   /// draft to the next "New recipe" open. Invalidate-on-save guarantees a
   /// fresh open always rebuilds from scratch — but only while this notifier is
   /// still alive: after an auto-dispose mid-write, touching `ref` throws.
-  Future<String> save() async {
+  Future<Recipe> save() async {
     final kept = lineById().keys.toSet();
     final method = [
       for (final step in _current.methodSteps ?? const <MethodStep>[])
@@ -784,7 +788,7 @@ class RecipeEditor extends _$RecipeEditor
       // here — the invariant is enforced on the way out, not trusted.
       methodSteps: pruneDanglingRefs(method, kept),
     );
-    if (_saving) return recipe.id;
+    if (_saving) return recipe;
     _saving = true;
     // The substitution flag lives for one sitting; a save is the end of it.
     _relabels.clear();
@@ -795,7 +799,7 @@ class RecipeEditor extends _$RecipeEditor
       _saving = false;
     }
     if (ref.mounted) ref.invalidateSelf();
-    return recipe.id;
+    return recipe;
   }
 
   void _mapGroup(String groupId, IngredientGroup Function(IngredientGroup) f) =>

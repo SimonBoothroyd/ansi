@@ -12,6 +12,7 @@ import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
+import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/presentation/recipe_editor_view.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view.dart';
 import 'package:flutter/material.dart';
@@ -35,7 +36,11 @@ GoRouter _router() {
       ),
       GoRoute(
         path: '/recipes/new',
-        builder: (_, _) => const RecipeEditorView(),
+        builder: (_, state) => RecipeEditorView(
+          initialTitle: state.uri.queryParameters['title'],
+          handsBackTarget:
+              state.uri.queryParameters[kHandBackQueryParam] == '1',
+        ),
       ),
       GoRoute(
         path: '/recipes/:id',
@@ -165,6 +170,40 @@ void main() {
       router.pop();
       await _pumpUntil(tester, find.text('the library'));
       expect(router.state.uri.toString(), '/');
+      expect(_depth(router), 1);
+    },
+  );
+
+  testWidgets(
+    'a recipe written FOR a line pops back as that line’s target, seeded with '
+    'the words the picker was searched for',
+    (tester) async {
+      final router = _router();
+      final repo = await _pumpApp(tester, router);
+
+      SubRecipeTarget? handed;
+      var popped = false;
+      unawaited(
+        router
+            .push<SubRecipeTarget?>(newSubRecipeRoute(title: 'Romesco Aioli'))
+            .then((t) {
+              handed = t;
+              popped = true;
+            }),
+      );
+      await _pumpUntil(tester, find.text('New recipe'));
+      // The picker's typed words ARE the title — nothing to retype.
+      expect(find.text('Romesco Aioli'), findsWidgets);
+
+      await tester.tap(find.text('Save'));
+      await _pumpUntil(tester, find.text('the library'));
+
+      // Popped, not replaced: the line that is waiting sits under the editor,
+      // and landing on the new recipe's page would abandon it.
+      expect(popped, isTrue);
+      expect(repo.saved, hasLength(1));
+      expect(handed!.id, repo.saved.single.id);
+      expect(handed!.title, 'Romesco Aioli');
       expect(_depth(router), 1);
     },
   );

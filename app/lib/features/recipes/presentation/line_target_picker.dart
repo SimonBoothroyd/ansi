@@ -18,6 +18,14 @@
 /// (a recipe cannot be its own component) and so is any recipe that already
 /// reaches it over live component links; the check runs again at pick time,
 /// because a link the other device wrote can land between the two moments.
+///
+/// The footer carries **two** add-new doors, because the thing a line wants
+/// may be a recipe nobody has written yet: the ingredient form, and the
+/// recipe editor seeded with the typed words. Both push over this sheet,
+/// which stays open underneath, and resolve it with what they popped —
+/// nothing is written by backing out of either. The new editor's own picker
+/// offers the same two doors, so a sauce can be written from inside the
+/// recipe that needs it, as deep as the cook goes.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -29,7 +37,10 @@ import '../../../core/search/search_rank.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/dashed_border_box.dart';
+import '../../../shared/guarded_navigation.dart';
 import '../../../shared/picker_shell.dart';
+import '../../../shared/write.dart';
 import '../../books/domain/book.dart';
 import '../../books/presentation/book_view_models.dart';
 import '../../ingredients/domain/ingredient.dart';
@@ -38,6 +49,7 @@ import '../data/recipe_providers.dart';
 import '../domain/recipe.dart';
 import 'component_format.dart';
 import 'recipe_chip.dart';
+import 'recipe_editor_view.dart' show newSubRecipeRoute;
 
 /// What the picker resolved to — an ingredient line, or a component line.
 sealed class PickedLineTarget {
@@ -157,34 +169,25 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
               if (!answer.blocked.contains(c.recipe.id)) c,
           ];
 
-    Future<void> pick(RecipeSummary recipe) async {
+    Future<void> pick(SubRecipeTarget target) async {
       // Re-asked at the moment of the tap: the other device can have written
-      // the closing link while this sheet was open (D5).
+      // the closing link while this sheet was open (D5). A recipe written
+      // from the footer goes through here too — its editor's own picker could
+      // have linked it back at this one while it was open.
       final cycles = await ref
           .read(recipeRepositoryProvider)
           .componentLinkWouldCycle(
             recipeId: editingRecipeId,
-            subRecipeId: recipe.id,
+            subRecipeId: target.id,
           );
       if (!context.mounted) return;
       if (cycles) {
         refusal.value =
-            '“${recipe.title}” already uses this recipe — linking it '
+            '“${target.title}” already uses this recipe — linking it '
             'would make a loop.';
         return;
       }
-      Navigator.of(context).pop(
-        PickedSubRecipe(
-          SubRecipeTarget(
-            id: recipe.id,
-            title: recipe.title,
-            yieldQty: recipe.yieldQty,
-            yieldUnit: recipe.yieldUnit,
-            yieldQty2: recipe.yieldQty2,
-            yieldUnit2: recipe.yieldUnit2,
-          ),
-        ),
-      );
+      Navigator.of(context).pop(PickedSubRecipe(target));
     }
 
     return PickerShell(
@@ -213,7 +216,19 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
             ),
             for (final (i, c) in offered.indexed) ...[
               if (i > 0) Container(height: 1, color: AnsiColors.line),
-              _RecipeRow(candidate: c, onPick: () => pick(c.recipe)),
+              _RecipeRow(
+                candidate: c,
+                onPick: () => pick(
+                  SubRecipeTarget(
+                    id: c.recipe.id,
+                    title: c.recipe.title,
+                    yieldQty: c.recipe.yieldQty,
+                    yieldUnit: c.recipe.yieldUnit,
+                    yieldQty2: c.recipe.yieldQty2,
+                    yieldUnit2: c.recipe.yieldUnit2,
+                  ),
+                ),
+              ),
             ],
           ],
           if (refusal.value != null)
@@ -226,14 +241,78 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
             ),
         ],
       ),
-      // The add-new chain: the ingredient form, then back, and only then does
-      // this sheet resolve — so the editor's `_addLine` continues into the
-      // quantity sheet AFTER the form, on the units the form set. The row
-      // handed over is the re-read one.
-      footer: AddNewIngredientRow(
-        query: search.query,
-        onCreated: (ing) => Navigator.of(context).pop(PickedIngredient(ing)),
+      // The add-new chain: the form (or the editor), then back, and only then
+      // does this sheet resolve — so the caller continues into the quantity
+      // sheet AFTER it, on the units or yields it just set. What is handed
+      // over is the thing as that write left it.
+      footer: Column(
+        children: [
+          AddNewIngredientRow(
+            query: search.query,
+            onCreated: (ing) =>
+                Navigator.of(context).pop(PickedIngredient(ing)),
+          ),
+          const SizedBox(height: 8),
+          _AddNewRecipeRow(query: search.query, onCreated: pick),
+        ],
       ),
+    );
+  }
+}
+
+/// "＋ …or write "X" as a new recipe" — the footer's second door.
+///
+/// A line can want something nobody has written yet, and making it should not
+/// mean leaving the line half-added: the editor lands ABOVE this sheet,
+/// writes nothing until Save, and pops with the recipe it made (or nothing,
+/// if the person backed out). The sheet is still open underneath to resolve.
+///
+/// There is no placeholder here and no status column. An empty recipe is a
+/// real recipe that simply yields nothing yet: it contributes nothing to
+/// macros or the shop list, and a component whose target states no yield
+/// degrades to batches — all of which the app already says out loud.
+class _AddNewRecipeRow extends HookWidget {
+  const _AddNewRecipeRow({required this.query, required this.onCreated});
+
+  final String query;
+
+  /// Receives the saved recipe as the line's target. Not called when the
+  /// editor was backed out of — nothing was written, so nothing resolves.
+  final ValueChanged<SubRecipeTarget> onCreated;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = query.trim();
+    // Two taps in one frame would push two editors. The row goes inert for
+    // the duration instead.
+    final busy = useState(false);
+    final enabled = name.isNotEmpty && !busy.value;
+
+    Future<void> writeOne() async {
+      busy.value = true;
+      // The chain crosses an await with a keyboard in it; the handle it
+      // continues through outlives this row (`hostContextOf`).
+      final host = hostContextOf(context);
+      try {
+        // The host outlives the row — see [hostContextOf].
+        // ignore: use_build_context_synchronously
+        final created = await host.context.pushOnceFor<SubRecipeTarget?>(
+          newSubRecipeRoute(title: name),
+        );
+        if (created == null) return;
+        onCreated(created);
+      } finally {
+        if (context.mounted) busy.value = false;
+      }
+    }
+
+    return DashedAction(
+      icon: FLucideIcons.plus,
+      enabled: enabled,
+      label: enabled
+          ? '…or write "$name" as a new recipe'
+          : '…or type a name to write a new recipe',
+      onTap: writeOne,
     );
   }
 }

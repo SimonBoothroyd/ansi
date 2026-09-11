@@ -392,4 +392,191 @@ void main() {
     expect(ingredient.id, created.id);
     expect(ingredient.allowedUnits, [g, kg]);
   });
+
+  group('the footer’s second door: a recipe nobody has written yet', () {
+    /// The picker over a router whose `/recipes/new` is a stand-in for the
+    /// editor: it records the location it was opened at and pops the target
+    /// its Save would have made.
+    GoRouter routerWith({
+      required List<PickedLineTarget?> picked,
+      required List<String> opened,
+      SubRecipeTarget? pops,
+    }) {
+      final router = GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (_, _) => FScaffold(
+              child: Builder(
+                builder: (context) => FButton(
+                  onPress: () async => picked.add(
+                    await showLineTargetPicker(
+                      context,
+                      editingRecipeId: 'sliders',
+                    ),
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/recipes/new',
+            builder: (context, state) {
+              opened.add(state.uri.toString());
+              return FScaffold(
+                child: FButton(
+                  onPress: () => context.pop(pops),
+                  child: const Text('save the recipe'),
+                ),
+              );
+            },
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+      return router;
+    }
+
+    Future<void> pumpPicker(
+      WidgetTester tester,
+      GoRouter router, {
+      Set<String> cycles = const {},
+    }) async {
+      filterForuiSemanticsAssertions();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            ingredientRepositoryProvider.overrideWithValue(
+              FakeIngredientRepo(const [_romaTomato]),
+            ),
+            bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
+            recipeRepositoryProvider.overrideWithValue(
+              _FakeRecipeRepo(cycles: cycles),
+            ),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            builder: (context, child) =>
+                FTheme(data: ansiThemeData(), child: child!),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'green sauce');
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the row pushes the editor seeded with the typed words, and '
+        'nothing resolves until it pops', (tester) async {
+      final picked = <PickedLineTarget?>[];
+      final opened = <String>[];
+      final router = routerWith(
+        picked: picked,
+        opened: opened,
+        pops: const SubRecipeTarget(
+          id: 'r-new',
+          title: 'Green Sauce',
+          yieldQty: 200,
+          yieldUnit: ml,
+        ),
+      );
+      await pumpPicker(tester, router);
+
+      await tester.tap(find.textContaining('write "green sauce"'));
+      await tester.pumpAndSettle();
+
+      expect(opened.single, contains('title=green+sauce'));
+      expect(opened.single, contains('handback=1'));
+      expect(
+        picked,
+        isEmpty,
+        reason: 'nothing resolves before the editor pops',
+      );
+
+      await tester.tap(find.text('save the recipe'));
+      await tester.pumpAndSettle();
+
+      expect(picked.single, isA<PickedSubRecipe>());
+      final target = (picked.single! as PickedSubRecipe).target;
+      expect(target.id, 'r-new');
+      // The yields ride back, so the quantity sheet that opens next needs no
+      // second read.
+      expect(target.yields, [(qty: 200.0, unit: ml)]);
+    });
+
+    testWidgets('backing out of the editor resolves nothing — the picker is '
+        'still there', (tester) async {
+      final picked = <PickedLineTarget?>[];
+      final opened = <String>[];
+      final router = routerWith(picked: picked, opened: opened);
+      await pumpPicker(tester, router);
+
+      await tester.tap(find.textContaining('write "green sauce"'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('save the recipe'));
+      await tester.pumpAndSettle();
+
+      expect(picked, isEmpty);
+      expect(find.textContaining('write "green sauce"'), findsOneWidget);
+    });
+
+    testWidgets('a recipe handed back that would close a loop is refused, '
+        'exactly as an existing one is', (tester) async {
+      final picked = <PickedLineTarget?>[];
+      final opened = <String>[];
+      final router = routerWith(
+        picked: picked,
+        opened: opened,
+        pops: const SubRecipeTarget(id: 'r-new', title: 'Green Sauce'),
+      );
+      await pumpPicker(tester, router, cycles: {'r-new'});
+
+      await tester.tap(find.textContaining('write "green sauce"'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('save the recipe'));
+      await tester.pumpAndSettle();
+
+      expect(picked, isEmpty);
+      expect(find.textContaining('already uses this recipe'), findsOneWidget);
+    });
+
+    testWidgets('with nothing typed the row says so and stays inert', (
+      tester,
+    ) async {
+      final picked = <PickedLineTarget?>[];
+      final opened = <String>[];
+      final router = routerWith(picked: picked, opened: opened);
+      filterForuiSemanticsAssertions();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            ingredientRepositoryProvider.overrideWithValue(
+              FakeIngredientRepo(const [_romaTomato]),
+            ),
+            bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
+            recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo()),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            builder: (context, child) =>
+                FTheme(data: ansiThemeData(), child: child!),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.textContaining(
+          'type a name to write a new '
+          'recipe',
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(opened, isEmpty);
+    });
+  });
 }

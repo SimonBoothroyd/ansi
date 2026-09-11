@@ -38,36 +38,48 @@ class DashedBorderBox extends StatelessWidget {
 ///
 /// The icon is a real [IconData], never a "＋" glyph — the bundled fonts lack
 /// U+FF0B and the string form renders as tofu.
+///
+/// [enabled] false greys the whole row and makes the tap inert — an add-new
+/// footer waiting on a typed name, or one already busy opening its form, says
+/// so in place rather than disappearing.
 class DashedAction extends StatelessWidget {
   const DashedAction({
     required this.icon,
     required this.label,
     required this.onTap,
+    this.enabled = true,
     super.key,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: onTap,
+      onTap: enabled ? onTap : null,
       child: DashedBorderBox(
+        color: enabled ? AnsiColors.herb : AnsiColors.line,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 12, color: AnsiColors.herb),
+            Icon(
+              icon,
+              size: 12,
+              color: enabled ? AnsiColors.herb : AnsiColors.muted,
+            ),
             const SizedBox(width: 5),
             Flexible(
               child: Text(
                 label,
+                textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
                 style: ansiMono(
                   size: 11,
-                  color: AnsiColors.herb,
+                  color: enabled ? AnsiColors.herb : AnsiColors.muted,
                   letterSpacing: 0.5,
                 ),
               ),
