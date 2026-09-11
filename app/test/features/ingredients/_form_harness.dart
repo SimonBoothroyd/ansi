@@ -14,6 +14,7 @@ import 'dart:io';
 
 import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/barcode/barcode_add.dart';
 import 'package:ansi/features/ingredients/barcode/barcode_scan_sheet.dart';
@@ -558,6 +559,7 @@ Widget densityHost(
   Ingredient ingredient, {
   String saveLabel = 'Add',
   Ingredient? landsAs,
+  Measure? serving,
   ({double amount, Unit unit, double? grams})? servingPrefill,
   VoidCallback? onSaved,
 }) {
@@ -580,6 +582,7 @@ Widget densityHost(
                 ingredient: shown,
                 saveLabel: saveLabel,
                 redirectedSpoon: null,
+                serving: serving,
                 servingPrefill: servingPrefill,
                 // This host measures LAYOUT, so the write seam is inert: the
                 // widget no longer knows a repository, and this stands in for

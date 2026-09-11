@@ -8,8 +8,12 @@
 /// app.
 library;
 
+import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/presentation/density_entry.dart';
+import 'package:ansi/features/ingredients/presentation/ingredient_facts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -200,6 +204,138 @@ void main() {
 
       expect(fieldText(tester, densityAmountField), '1');
       expect(find.textContaining('the serving you typed above'), findsNothing);
+    });
+  });
+
+  group('the sentence opens in the row’s own words', () {
+    // A per-100 g row whose serving is a spoon: `2 tsp` is the phrase this
+    // density was entered in, and the one it has to be reopened in.
+    const flakes = Ingredient(
+      id: 'flakes',
+      canonicalName: 'Nutritional Yeast',
+      defaultUnit: g,
+      status: IngredientStatus.complete,
+      category: 'pantry',
+      densityGPerMl: 0.66,
+      macros: Macros(kcal: 385, protein: 50, carb: 36, fat: 5),
+      source: 'manual',
+    );
+    const flakesServing = Measure(
+      id: 's1',
+      label: 'serving · 2 tsp',
+      amount: 6.50617650375,
+      source: 'manual',
+    );
+
+    // A row counted in a volume unit and stating no serving — the second leg:
+    // the word a line about this row will say.
+    const oil = Ingredient(
+      id: 'oil',
+      canonicalName: 'Olive Oil',
+      defaultUnit: ml,
+      status: IngredientStatus.complete,
+      category: 'pantry',
+      macrosBasis: MacrosBasis.perMl,
+      densityGPerMl: 0.92,
+      macros: Macros(kcal: 884, protein: 0, carb: 0, fat: 100),
+      source: 'manual',
+    );
+
+    testWidgets('a row whose serving is a spoon reopens on that spoon, with '
+        'what it weighs already in', (tester) async {
+      filterForuiSemanticsAssertions();
+      phoneWidth(tester);
+      await tester.pumpWidget(densityHost(flakes, serving: flakesServing));
+      await tester.pumpAndSettle();
+
+      // Folded, as a stated density always opens — the sentence is behind
+      // `change`, which is where this fix matters.
+      await tester.tap(find.text('· change'));
+      await tester.pumpAndSettle();
+
+      expect(fieldText(tester, densityAmountField), '2');
+      expect(
+        find.descendant(of: densityAmountUnit, matching: find.text('tsp')),
+        findsOneWidget,
+      );
+      // 0.66 g/ml × 4.93 ml × 2, printed as a scale reading rather than as
+      // `6 1/2` — the metric split, in the slot its own picker says `g`.
+      expect(fieldText(tester, densityField), '6.51');
+      // And the fact sheet says the same sentence back.
+      expect(
+        densityFact(flakes, serving: flakesServing),
+        '2 tsp weighs 6.51 g',
+      );
+    });
+
+    testWidgets('a row with no serving reopens in its own default unit where '
+        'that is a volume', (tester) async {
+      filterForuiSemanticsAssertions();
+      phoneWidth(tester);
+      await tester.pumpWidget(densityHost(oil));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('· change'));
+      await tester.pumpAndSettle();
+
+      expect(fieldText(tester, densityAmountField), '1');
+      expect(
+        find.descendant(of: densityAmountUnit, matching: find.text('ml')),
+        findsOneWidget,
+      );
+      expect(fieldText(tester, densityField), '0.92');
+      // `1 ml weighs 0.92 g` IS `0.92 g/ml`, so the fact sheet carries no
+      // aside repeating it.
+      expect(densityFact(oil), '1 ml weighs 0.92 g');
+    });
+
+    testWidgets('a row that names neither reopens on the cup a person can '
+        'picture', (tester) async {
+      filterForuiSemanticsAssertions();
+      phoneWidth(tester);
+      // Mango is counted in pieces and states no serving: nothing on the row
+      // is friendlier than the cup.
+      await tester.pumpWidget(densityHost(mango));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('· change'));
+      await tester.pumpAndSettle();
+
+      expect(fieldText(tester, densityAmountField), '1');
+      expect(
+        find.descendant(of: densityAmountUnit, matching: find.text('cup')),
+        findsOneWidget,
+      );
+      expect(fieldText(tester, densityField), '156.15');
+      expect(densityFact(mango), '1 cup weighs 156.15 g · 0.66 g/ml');
+    });
+
+    testWidgets('a row with no density still opens on an empty weight — there '
+        'is nothing to reopen', (tester) async {
+      filterForuiSemanticsAssertions();
+      phoneWidth(tester);
+      await tester.pumpWidget(densityHost(curryLeaves));
+      await tester.pumpAndSettle();
+
+      expect(fieldText(tester, densityAmountField), '1');
+      expect(fieldText(tester, densityField), isEmpty);
+    });
+
+    testWidgets('what somebody typed is never rewritten by the row arriving '
+        'underneath it', (tester) async {
+      filterForuiSemanticsAssertions();
+      phoneWidth(tester);
+      // The serving is a watched query: it lands after the first build, and
+      // by then the sentence may be somebody's.
+      await tester.pumpWidget(densityHost(flakes));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('· change'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(densityField, '30');
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(densityHost(flakes, serving: flakesServing));
+      await tester.pumpAndSettle();
+
+      expect(fieldText(tester, densityField), '30');
     });
   });
 

@@ -27,8 +27,9 @@ import '../domain/ingredient.dart';
 import '../domain/serving_measure.dart';
 import 'macros_format.dart';
 
-/// The volume unit a stored density is read back in. A ratio is not something
-/// a kitchen holds, and `cup` is the measure a person can picture.
+/// The volume unit a stored density is read back in on a row that names no
+/// friendlier one. A ratio is not something a kitchen holds, and `cup` is the
+/// measure a person can picture.
 const kDensityReadingUnit = cup;
 
 /// `60 kcal · 1P 0F 15C /100 g`, or `needs macros` on a row that has none.
@@ -107,18 +108,21 @@ String allowedUnitsFact(Ingredient ingredient) =>
 /// **A row whose serving is a volume reads the density back in that unit** —
 /// `2 tbsp weighs 32 g` — with the g/ml as the aside ([densityAsideFact]),
 /// because that is the sentence the pack printed and the one that was typed.
-/// The stored fact is unchanged either way: one ratio, said in the unit the
-/// person is holding.
+/// A row with no serving reads it in its own default unit where that is a
+/// volume ([densityReading]). The stored fact is unchanged either way: one
+/// ratio, said in the unit the person is holding.
 String densityFact(Ingredient ingredient, {Measure? serving}) {
   final density = ingredient.densityGPerMl;
   if (density == null) return 'none yet — unlocks volume⇄weight';
-  final read = _densityReading(serving);
-  final perUnit = volumeWeightFromDensity(read.unit, density);
+  final read = densityReading(ingredient, serving: serving);
+  final grams = densityReadingWeight(ingredient, serving: serving);
   final stated = '${formatDensity(density)} g/ml';
-  if (perUnit == null) return stated;
-  final grams = perUnit * read.amount;
+  if (grams == null) return stated;
   final phrase = formatServingPhrase(read.amount, read.unit);
   final sentence = '$phrase weighs ${formatQuantityIn(grams, g)} g';
+  // `1 ml weighs 1.08 g` IS `1.08 g/ml`, so a row read in millilitres has no
+  // aside to carry — it would print the same number twice in one line.
+  if (read.unit == ml && read.amount == 1) return sentence;
   return read.fromServing ? sentence : '$sentence · $stated';
 }
 
@@ -126,22 +130,55 @@ String densityFact(Ingredient ingredient, {Measure? serving}) {
 /// where [densityFact] already carries the number.
 String? densityAsideFact(Ingredient ingredient, {Measure? serving}) {
   final density = ingredient.densityGPerMl;
-  if (density == null || !_densityReading(serving).fromServing) return null;
+  if (density == null ||
+      !densityReading(ingredient, serving: serving).fromServing) {
+    return null;
+  }
   return '${formatDensity(density)} g/ml';
 }
 
-/// Which amount and unit a stored density is said in: the row's own serving
-/// when it is a volume, and otherwise the cup a person can picture.
-({double amount, Unit unit, bool fromServing}) _densityReading(
+/// **Which amount and unit this row's density is SAID in** — the one
+/// derivation the fact sheet reads a stored density back through and the
+/// density entry opens its sentence on, so a number entered as "1 tsp weighs
+/// 5 g" never reads back as a cup and never reopens as one.
+///
+/// In order of how much the row itself has said:
+/// 1. its own **serving**, when that is a volume — the sentence the pack
+///    printed and the one that was typed;
+/// 2. its **default unit**, when that is a volume — the word this row is
+///    counted in, so the reading is in the unit a line will say;
+/// 3. [kDensityReadingUnit] — the cup a person can picture, for a row that
+///    names nothing friendlier.
+///
+/// The `fromServing` field says whether the first leg won: that is the
+/// reading the fact sheet leads with, moving the `g/ml` into an aside beneath
+/// it.
+({double amount, Unit unit, bool fromServing}) densityReading(
+  Ingredient ingredient, {
   Measure? serving,
-) {
+}) {
   final stated = serving == null
       ? null
       : servingFromMeasureLabel(serving.label);
   if (stated != null && stated.unit.family == UnitFamily.volume) {
     return (amount: stated.amount, unit: stated.unit, fromServing: true);
   }
+  final byDefault = ingredient.defaultUnit;
+  if (byDefault.family == UnitFamily.volume) {
+    return (amount: 1, unit: byDefault, fromServing: false);
+  }
   return (amount: 1, unit: kDensityReadingUnit, fromServing: false);
+}
+
+/// What a stored density comes to in the unit this row says it in — the
+/// weight slot of the entry's sentence, and the grams the fact sheet prints.
+/// Null on a row with no density, or one whose reading unit cannot carry it.
+double? densityReadingWeight(Ingredient ingredient, {Measure? serving}) {
+  final density = ingredient.densityGPerMl;
+  if (density == null) return null;
+  final read = densityReading(ingredient, serving: serving);
+  final perUnit = volumeWeightFromDensity(read.unit, density);
+  return perUnit == null ? null : perUnit * read.amount;
 }
 
 /// The stated piece weight as the piece-weight entry's own sentence — `1 piece

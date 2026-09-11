@@ -33,12 +33,14 @@ import 'package:forui/forui.dart';
 import '../../../core/result/result.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/units/measure.dart';
 import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/amount_and_unit.dart';
 import '../../../shared/format.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
+import 'ingredient_facts.dart';
 
 class DensityEntry extends HookWidget {
   const DensityEntry({
@@ -46,6 +48,7 @@ class DensityEntry extends HookWidget {
     required this.redirectedSpoon,
     required this.onSave,
     required this.onRemove,
+    this.serving,
     this.servingPrefill,
     this.saveLabel = 'Save',
     this.headline = 'DENSITY',
@@ -53,6 +56,13 @@ class DensityEntry extends HookWidget {
   });
 
   final Ingredient ingredient;
+
+  /// The row's own `serving` measure, when it states one — the first leg of
+  /// [densityReading], which is what this sentence opens on.
+  ///
+  /// It arrives with a watched query, so it can be null on the first build of
+  /// a row that has one; the seeding effect follows it in.
+  final Measure? serving;
 
   /// Set when the add-measure form redirected a volume-named label here —
   /// pre-picks that spoon and switches to the spoon phrasing.
@@ -120,12 +130,26 @@ class DensityEntry extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final spoon = useState<Unit>(tbsp);
-    // How many of that spoon the sentence is about. One by default, because
-    // one is what a density means; a pack that prints two says so.
-    final amount = useState<double>(1);
+    // **The sentence opens in the row's own words** — the unit the fact sheet
+    // states this density in ([densityReading]), with the weight it comes to
+    // in that unit. A row whose serving is `1 tsp` reopens as `1 tsp weighs
+    // 5 g`; one with a volume default reopens in it; anything else reopens on
+    // the cup a person can picture. One derivation, read by both, so a number
+    // is reopened in the words it was entered in and the fact sheet says the
+    // same sentence back.
+    final read = densityReading(ingredient, serving: serving);
+    final storedWeight = densityReadingWeight(ingredient, serving: serving);
+    final spoon = useState<Unit>(read.unit);
+    // How many of that spoon the sentence is about. One unless the row's own
+    // serving says otherwise, because one is what a density means.
+    final amount = useState<double>(read.amount);
     final amountSeed = useState(0);
-    final input = useState<double?>(null);
+    final input = useState<double?>(storedWeight);
+    // Whether somebody has aimed this sentence at something — typed in it,
+    // picked a unit, or been handed a redirect or a serving offer. Until then
+    // the row's own reading may land in it as the watched queries behind it
+    // arrive; after it, the sentence is theirs and nothing rewrites it.
+    final aimed = useState(false);
     // What the weight is stated in. `g` is the common case and stays the
     // default; an American label prints ounces and now says so.
     final weightUnit = useState<Unit>(g);
@@ -142,6 +166,19 @@ class DensityEntry extends HookWidget {
     // is a starting state, not a live mirror of whether a number exists (see
     // `save`).
     final open = useState(ingredient.densityGPerMl == null);
+    // The row's own reading, following the watched queries in. A serving
+    // arrives after the first build, so the sentence this section opens on is
+    // not knowable when its state is created — and once somebody has aimed it
+    // this stands down, so a density landing in the draft never rewrites the
+    // sentence that was just typed.
+    useEffect(() {
+      if (aimed.value) return null;
+      spoon.value = read.unit;
+      amount.value = read.amount;
+      input.value = storedWeight;
+      amountSeed.value++;
+      return null;
+    }, [read.unit, read.amount, storedWeight]);
     // A redirect ("cup" typed as a measure label) lands in spoon phrasing
     // with that spoon picked — cup is in the selectable set; any other
     // volume unit keeps the current spoon (the phrasing still applies).
@@ -150,7 +187,10 @@ class DensityEntry extends HookWidget {
       // The redirect no longer has a mode to switch — there is only the one
       // sentence — so it just pre-picks the unit it resolved. It also unfolds:
       // a redirect is a person mid-entry, and the fold would swallow it.
-      if (r != null) open.value = true;
+      if (r != null) {
+        open.value = true;
+        aimed.value = true;
+      }
       if (r != null && _units.contains(r)) spoon.value = r;
       return null;
     }, [redirectedSpoon]);
@@ -173,6 +213,8 @@ class DensityEntry extends HookWidget {
       // the person is looking at, and the button is what lands it.
       if (offered.grams case final grams?) input.value = grams;
       amountSeed.value++;
+      // An offer aims the sentence: the row's own reading stops landing in it.
+      aimed.value = true;
       if (ingredient.densityGPerMl == null) open.value = true;
       return null;
     }, [servingPrefill]);
@@ -293,8 +335,14 @@ class DensityEntry extends HookWidget {
                 amount: formatQuantityIn(amount.value, spoon.value),
                 unit: spoon.value,
                 units: _units,
-                onAmount: (t) => amount.value = parseAmount(t) ?? 0,
-                onUnit: (u) => spoon.value = u,
+                onAmount: (t) {
+                  aimed.value = true;
+                  amount.value = parseAmount(t) ?? 0;
+                },
+                onUnit: (u) {
+                  aimed.value = true;
+                  spoon.value = u;
+                },
                 onSubmit: save,
               ),
               // The connector is one word, and it is the one word here that
@@ -314,11 +362,22 @@ class DensityEntry extends HookWidget {
                 unitKey: const ValueKey('density-grams-unit'),
                 amountWidth: 34,
                 unitWidth: 62,
-                amount: input.value == null ? '' : _phrase(input.value!, null),
+                // In the unit the slot beside it names: a weight seeded from
+                // the stored density is a scale reading — `156.15 g`, never
+                // `156 1/8` — and it has to read as the fact sheet says it.
+                amount: input.value == null
+                    ? ''
+                    : formatAmountIn(input.value!, weightUnit.value),
                 unit: weightUnit.value,
                 units: _units,
-                onAmount: (t) => input.value = parseAmount(t),
-                onUnit: (u) => weightUnit.value = u,
+                onAmount: (t) {
+                  aimed.value = true;
+                  input.value = parseAmount(t);
+                },
+                onUnit: (u) {
+                  aimed.value = true;
+                  weightUnit.value = u;
+                },
                 onSubmit: save,
               ),
               FButton(
@@ -420,12 +479,10 @@ double? densityForPair(double a, Unit ua, double b, Unit ub) {
   return null;
 }
 
-/// `2 tbsp` / `2` — the sentence's left-hand side, said the way its unit is
-/// said. A null [unit] has no rule of its own and gives the kitchen reading
-/// of the bare amount.
-String _phrase(double amount, Unit? unit) => unit == null
-    ? formatQuantity(amount)
-    : '${formatQuantityIn(amount, unit)} ${unit.label}';
+/// `2 tbsp` — a side of the sentence as the refusal quotes it back, said the
+/// way its own unit is said.
+String _phrase(double amount, Unit unit) =>
+    '${formatQuantityIn(amount, unit)} ${unit.label}';
 
 /// Deleting the stored density — the one write in the whole admission model
 /// that makes the allowed list *shrink*.

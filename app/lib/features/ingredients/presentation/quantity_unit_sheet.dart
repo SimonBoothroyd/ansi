@@ -44,6 +44,7 @@ import '../../../shared/write.dart';
 import '../data/ingredient_providers.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
+import '../domain/serving_measure.dart';
 import 'density_entry.dart';
 import 'ingredient_picker.dart' show StubBadge;
 import 'macros_format.dart';
@@ -676,6 +677,9 @@ class _MeasureManager extends HookConsumerWidget {
         // one the flesh-out form's micro-labels use.
         DensityEntry(
           ingredient: ingredient,
+          // The row's own serving, so the sentence reopens in the unit the
+          // fact sheet states this density in.
+          serving: servingMeasureOf(measures),
           redirectedSpoon: redirected.value,
           // This host has no Save of its own — you are managing the vocabulary
           // in the middle of picking a unit for a line — so it commits on tap,

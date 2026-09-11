@@ -1173,6 +1173,9 @@ class _DetailForm extends ConsumerWidget {
                 // the row here would show a number the person has already
                 // replaced, or none where they have just typed one.
                 ingredient: draftRow,
+                // The row's own serving, so the sentence reopens in the unit
+                // the fact sheet states this density in.
+                serving: servingMeasureOf(measures),
                 redirectedSpoon: draft.redirectedSpoon,
                 // The one place a density is stated (the serving row does
                 // none), and the serving above is offered as its left-hand

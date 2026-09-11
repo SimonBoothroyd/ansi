@@ -327,8 +327,8 @@ void main() {
       expect(find.text('No measures yet.'), findsOneWidget);
     });
 
-    testWidgets('with no serving on the row, both lines are the ones they '
-        'have always been', (tester) async {
+    testWidgets('with no serving on the row, the macros read per 100 and the '
+        'density in the row’s own default unit', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
@@ -341,7 +341,11 @@ void main() {
 
       expect(macroText('642 kcal · 23.7P 54.1F 23.7C /100 ml'), findsOneWidget);
       expect(find.textContaining('per 100 ml · 642 kcal'), findsNothing);
-      expect(find.text('1 cup weighs 255.99 g · 1.08 g/ml'), findsOneWidget);
+      // This jar is counted in millilitres, so that is the word its density
+      // is said in — and `1 ml weighs 1.08 g` IS `1.08 g/ml`, so there is no
+      // aside repeating it. A row with nothing friendlier than the cup still
+      // reads `1 cup weighs 156.15 g · 0.66 g/ml`.
+      expect(find.text('1 ml weighs 1.08 g'), findsOneWidget);
     });
   });
 
