@@ -28,6 +28,7 @@ import '../../features/cook_plan/presentation/cook_view.dart';
 import '../../features/import/presentation/import_view.dart';
 import '../../features/ingredients/presentation/ingredient_detail_view.dart';
 import '../../features/ingredients/presentation/ingredient_list_view.dart';
+import '../../features/planning/presentation/week_variant_editor.dart';
 import '../../features/planning/presentation/week_view.dart';
 import '../../features/recipes/presentation/recipe_editor_view.dart';
 import '../../features/recipes/presentation/recipe_view.dart';
@@ -202,11 +203,21 @@ GoRouter router(Ref ref) {
         builder: (context, state) =>
             RecipeView(recipeId: state.pathParameters['id']!),
       ),
+      // `?week=YYYY-MM-DD` opens the editor in WEEK MODE — the same list,
+      // saving a diff against the recipe instead of the recipe (exec plan
+      // 0043). It is a query param rather than a route because the mode is a
+      // fact about what Save writes, exactly as `?title=` is a fact about what
+      // the draft starts from.
       GoRoute(
         path: '/recipes/:id/edit',
         name: 'recipe-edit',
-        builder: (context, state) =>
-            RecipeEditorView(recipeId: state.pathParameters['id']),
+        builder: (context, state) {
+          final week = state.uri.queryParameters['week'];
+          final id = state.pathParameters['id'];
+          return week == null || id == null
+              ? RecipeEditorView(recipeId: id)
+              : WeekVariantEditorView(recipeId: id, weekKey: week);
+        },
       ),
     ],
   );

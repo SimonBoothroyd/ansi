@@ -77,6 +77,15 @@ const _allowed = <String, String>{
   'lib/features/ingredients/presentation/ingredient_view_models.dart:'
           'declineUsdaPrefill':
       'same: the provenance card wraps `form.declineUsda` in ref.writeOk.',
+  'lib/features/planning/presentation/week_variant_view_models.dart:'
+          'saveOverrides':
+      'held by the week-mode draft notifier; its only caller — the editor '
+      'Save button — wraps `notifier.save` in ref.write, so the guard is one '
+      'frame out.',
+  'lib/features/planning/presentation/week_variant_view_models.dart:'
+          'loadOverrides':
+      "inside the draft provider's build: a failure is an AsyncError the "
+      'screen already renders with a reason and a retry.',
 };
 
 /// Declarations on a repository interface: two-space indent, a `Future<…>`

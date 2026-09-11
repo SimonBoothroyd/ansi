@@ -77,15 +77,27 @@ typedef RecipeCandidate = ({RecipeSummary recipe, String filing});
 ///
 /// [editingRecipeId] is the recipe the line is being added to — excluded from
 /// the recipes section along with anything that would close a cycle.
+/// [subtitle] is the one line a caller may add under the title to say which
+/// posture the pick is being made in — week mode's "for this week only".
+///
+/// [suppressRecipes] hides the "Your recipes" section entirely. Week mode
+/// passes it: a sub-recipe swapped for one week would make the component graph
+/// week-dependent, and that graph is read household-wide with no week at all.
 Future<PickedLineTarget?> showLineTargetPicker(
   BuildContext context, {
   required String editingRecipeId,
   String title = 'Add an ingredient',
+  String? subtitle,
+  bool suppressRecipes = false,
 }) {
   return showAnsiSheet<PickedLineTarget>(
     context: context,
-    builder: (_) =>
-        _LineTargetPickerSheet(title: title, editingRecipeId: editingRecipeId),
+    builder: (_) => _LineTargetPickerSheet(
+      title: title,
+      subtitle: subtitle,
+      editingRecipeId: editingRecipeId,
+      suppressRecipes: suppressRecipes,
+    ),
   );
 }
 
@@ -104,10 +116,14 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
   const _LineTargetPickerSheet({
     required this.title,
     required this.editingRecipeId,
+    this.subtitle,
+    this.suppressRecipes = false,
   });
 
   final String title;
+  final String? subtitle;
   final String editingRecipeId;
+  final bool suppressRecipes;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -123,8 +139,9 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
     // Only the best tier is offered: if any title was spelled right, no guess
     // is shown beside it.
     final candidates = [
-      for (final c in recipeCandidates(books))
-        if (c.recipe.id != editingRecipeId) c,
+      if (!suppressRecipes)
+        for (final c in recipeCandidates(books))
+          if (c.recipe.id != editingRecipeId) c,
     ];
     final tier = bestTier([
       for (final c in candidates) recipeTitleHit(c.recipe.title, search.query),
@@ -192,6 +209,7 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
 
     return PickerShell(
       title: title,
+      subtitle: subtitle,
       searchHint: 'Search ingredients',
       searchAutofocus: true,
       onQueryChanged: search.run,

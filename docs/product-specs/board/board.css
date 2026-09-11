@@ -785,6 +785,30 @@
     .dm-exc{width:100%;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px;}
     .dm-none{width:100%;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
 
+    /* ---- this week's variant ----------------------------------------
+       A recipe cooked differently for one week. The editor's band, the
+       inert "from the recipe" strip, the per-line tag and its reset, and
+       the struck row an exclusion leaves on the list. The tag borrows the
+       `optional` badge's voice (herb-soft, mono, muted) — one badge
+       vocabulary on a recipe line, not two — and the reset is the dish
+       row's `−` idiom: muted, no confirm, nothing red. */
+    .wv-band{margin:8px 20px 0;background:var(--herb-soft);border-radius:10px;padding:11px 13px;}
+    .wv-band .k{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--herb-deep);}
+    .wv-band .t{font-size:15px;font-weight:600;margin-top:4px;}
+    .wv-band .s{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px;line-height:1.5;}
+    .wv-from{margin:8px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
+    .wv-meta{display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap;}
+    .wv-tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);background:var(--herb-soft);border-radius:6px;padding:1px 6px;white-space:nowrap;}
+    .wv-reset{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 6px;background:var(--frame);white-space:nowrap;}
+    /* an EXCLUDED line stays on the list, struck and muted: the person who
+       opens this next week has to be able to see what is missing and put it
+       back, which a removed row cannot offer. */
+    .l3.wv-off .l3-amt,.l3.wv-off .l3-id,.l3.wv-off .l3-note{text-decoration:line-through;color:var(--muted);font-weight:400;}
+    .l3.wv-off .l3-pen{visibility:hidden;}
+    /* two marks on one dish row (the cook marker and "edited for this week") */
+    .wv-marks{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;}
+    .wv-marks .cookmark{margin-top:0;}
+
     /* the week band */
     .wkfoot{margin:14px 20px 0;border:1px solid var(--line);border-radius:14px;padding:11px 13px;}
     .wkfoot .wf-h{display:flex;align-items:baseline;gap:8px;margin-bottom:9px;}

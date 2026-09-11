@@ -22,7 +22,6 @@
 /// straight to `summarizeRecipeMacros` without the recipe's rule firing twice.
 library;
 
-import '../../../core/units/units.dart';
 import 'line_override.dart';
 import 'recipe.dart';
 
@@ -65,7 +64,7 @@ EffectiveLines effectiveLines(
       case LineOverrideAction.exclude:
         dropped.add((line: line, reason: LineDropReason.thisWeek));
       case LineOverrideAction.replace:
-        kept.add(_applied(line, override!));
+        kept.add(applyOverride(line, override!));
       case LineOverrideAction.include:
         // The week ruled on it, so the recipe's own rule has nothing left to
         // say — clearing the flag is what makes a second pass a no-op.
@@ -82,43 +81,11 @@ EffectiveLines effectiveLines(
   }
   for (final override in overrides) {
     if (override.action == LineOverrideAction.add) {
-      kept.add(_addedLine(override));
+      kept.add(addedLine(override));
     }
   }
   return (kept: kept, dropped: dropped);
 }
-
-/// [line] as this week cooks it — absolute values, all of them, and `optional`
-/// cleared because a line somebody edited this week is a line they want.
-LineItem _applied(LineItem line, LineOverride override) => line.copyWith(
-  ingredientId: override.ingredientId,
-  ingredientName: override.ingredientName.isEmpty
-      ? line.ingredientName
-      : override.ingredientName,
-  subRecipeId: override.subRecipeId,
-  subRecipe: override.subRecipeId == null ? null : line.subRecipe,
-  quantity: override.quantity,
-  unit: override.unit ?? line.unit,
-  measureId: override.measureId,
-  measure: override.measure,
-  note: override.note,
-  optional: false,
-);
-
-/// An added line as a [LineItem], so every derivation downstream reads one
-/// shape. Its id is the override row's, which is what lets the editor reopen
-/// on it and the next save land on the same row.
-LineItem _addedLine(LineOverride override) => LineItem(
-  id: override.id,
-  ingredientName: override.ingredientName,
-  unit: override.unit ?? pieces,
-  ingredientId: override.ingredientId,
-  subRecipeId: override.subRecipeId,
-  quantity: override.quantity,
-  measureId: override.measureId,
-  measure: override.measure,
-  note: override.note,
-);
 
 /// The names of the lines dropped for [reason], in stored order — the list a
 /// surface prints after its count ("Lime, Coriander").

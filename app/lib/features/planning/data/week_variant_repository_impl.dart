@@ -10,9 +10,10 @@
 /// against its own tombstones, and it is why an added line's override id is
 /// minted when the line is DRAFTED rather than when it is stored.
 ///
-/// The watch query names every table the two loads read and selects a column
-/// from each: SQLite drops a LEFT JOIN whose columns go unused, and a dropped
-/// join is a table PowerSync never fires on.
+/// One watch query serves both streams, and it names every table the two
+/// loads read while selecting a column from each: SQLite drops a LEFT JOIN
+/// whose columns go unused, and a dropped join is a table PowerSync never
+/// fires on.
 library;
 
 import 'package:sqlite3/common.dart' show Row;
@@ -33,19 +34,6 @@ import 'planning_repository_impl.dart' show getOrCreateWeekPlan;
 
 const _uuid = Uuid();
 
-/// Every table the loads below read, each contributing a selected column.
-const _watchSql =
-    'SELECT wp.id, wro.id, r.id, g.id, li.id, i.id, im.id '
-    'FROM week_plan wp '
-    'LEFT JOIN week_recipe_line_override wro '
-    'ON wro.week_plan_id = wp.id AND wro.deleted_at IS NULL '
-    'LEFT JOIN recipe r ON 1 = 1 '
-    'LEFT JOIN ingredient_group g ON g.recipe_id = r.id '
-    'LEFT JOIN recipe_line_item li ON li.group_id = g.id '
-    'LEFT JOIN ingredient i ON 1 = 1 '
-    'LEFT JOIN ingredient_measure im ON 1 = 1 '
-    'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL LIMIT 1';
-
 class SqliteWeekVariantRepository implements WeekVariantRepository {
   const SqliteWeekVariantRepository(this._db, {required String householdId})
     : _householdId = householdId;
@@ -61,10 +49,26 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
     DateTime weekStart,
   ) {
     final key = weekKeyOf(weekStart);
-    return _db
-        .watch(_watchSql, parameters: [key])
-        .asyncMap((_) => _loadByRecipe(key));
+    return _weekChanges(key).asyncMap((_) => _loadByRecipe(key));
   }
+
+  /// Every table the two loads read, each contributing a SELECTed column so
+  /// SQLite keeps its join and PowerSync registers it as a trigger. The
+  /// recipe/group/line tables are in here for the macro summation, which
+  /// re-sums a varied recipe off its own lines.
+  Stream<void> _weekChanges(String weekKey) => _db.watch(
+    'SELECT wp.id, wro.id, r.id, g.id, li.id, i.id, im.id '
+    'FROM week_plan wp '
+    'LEFT JOIN week_recipe_line_override wro '
+    'ON wro.week_plan_id = wp.id AND wro.deleted_at IS NULL '
+    'LEFT JOIN recipe r ON 1 = 1 '
+    'LEFT JOIN ingredient_group g ON g.recipe_id = r.id '
+    'LEFT JOIN recipe_line_item li ON li.group_id = g.id '
+    'LEFT JOIN ingredient i ON 1 = 1 '
+    'LEFT JOIN ingredient_measure im ON 1 = 1 '
+    'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL LIMIT 1',
+    parameters: [weekKey],
+  );
 
   @override
   Future<List<LineOverride>> loadOverrides(
@@ -79,16 +83,18 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
     DateTime weekStart,
   ) {
     final key = weekKeyOf(weekStart);
-    return _db
-        .watch(_watchSql, parameters: [key])
-        .asyncMap((_) => _loadVariantRecipeMacros(key));
+    return _weekChanges(key).asyncMap((_) => _loadVariantRecipeMacros(key));
   }
 
   /// The week's whole variant, by recipe. One query: a week holds a handful of
   /// changed lines, so there is nothing to page and nothing to narrow.
   Future<Map<String, List<LineOverride>>> _loadByRecipe(String weekKey) async {
     final rows = await _db.getAll(
-      'SELECT wro.id, wro.recipe_id, wro.recipe_line_item_id, wro.action, '
+      // `wp.week_start_date` is selected as well as filtered on: an
+      // unselected join is one SQLite drops, and a dropped join is a table
+      // the watch never fires for.
+      'SELECT wp.week_start_date, '
+      'wro.id, wro.recipe_id, wro.recipe_line_item_id, wro.action, '
       'wro.ingredient_id, wro.sub_recipe_id, wro.quantity, wro.unit, '
       'wro.note, wro.sort_order, wro.measure_id, '
       'ing.canonical_name AS ing_name, ing.macros_basis, '

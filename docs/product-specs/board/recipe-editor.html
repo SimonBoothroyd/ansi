@@ -15,8 +15,8 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe editor</h1>
-    <p class="view-status">built · matches code 2026-09-10 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a></p>
-    <p class="view-blurb">One header form under two hosts, and a method written as step cards with live ingredient chips — select the words, say what they are.</p>
+    <p class="view-status">built · matches code 2026-09-10 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/active/0043-week-variant.md">plan 0043</a></p>
+    <p class="view-blurb">One header form under two hosts, and a method written as step cards with live ingredient chips — select the words, say what they are. Opened with <code>?week=</code> it edits the same list for one planned week and saves a diff against the recipe instead of the recipe.</p>
 </header>
 
 <div class="board">
@@ -81,6 +81,96 @@
             <p class="conv-note">the grip <b>⋮⋮</b> is the only thing that drags. Long-press-anywhere would turn a scroll into an accidental move on a list whose whole job is tapping</p>
             <p class="conv-note">a line dropped under a heading is <b>filed under that heading</b>. It keeps its id, so every method chip pointing at it still does — which is the whole reason the gesture is worth having, since delete + re-add already reordered a list and cost every reference. Headings do not drag; a group left empty by a move is <b>kept</b></p>
             <p class="conv-note">the doors sit tight under the last line, and a line added lands in the <b>last group</b> — the drag then puts it where it belongs</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Week mode, at rest</b> &middot; the same list and the same doors, opened with <code>?week=</code>; a band that says whose lines these are, and the recipe's own facts stated once and not editable here</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl">Edit for this week</span><span class="dots" style="color:var(--herb);font-size:13px;font-weight:600">Save</span></div>
+
+            <div class="wv-band">
+                <span class="k">This week only</span>
+                <div class="t">Slow-Cooker Beef Rag&ugrave;</div>
+                <div class="s">Week of 14 Sep &middot; Tue and Sat both cook these lines<br>The recipe is not changed.</div>
+            </div>
+            <div class="wv-from">from the recipe &middot; not edited here: <b>serves 4</b> &middot; <b>6 steps</b> &middot; Slow-Cooker Beef Rag&ugrave;</div>
+
+            <div style="margin:10px 20px 0;font-size:13px;color:var(--muted)">for the rag&ugrave;</div>
+            <div style="margin:0 20px">
+                <div class="l3 edit"><span class="l3-amt">400 g</span><span class="l3-body"><span class="l3-id">Pork sausage</span><span class="l3-note">casings removed</span></span><span class="l3-pen">&#10005;</span></div>
+                <div class="l3 edit"><span class="l3-amt">500 g</span><span class="l3-body"><span class="l3-id">Beef chuck</span><span class="l3-note">diced</span></span><span class="l3-pen">&#10005;</span></div>
+                <div class="l3 edit"><span class="l3-amt">2 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">finely chopped</span></span><span class="l3-pen">&#10005;</span></div>
+                <div class="l3 edit"><span class="l3-amt">250 ml</span><span class="l3-body"><span class="l3-id">Red wine</span></span><span class="l3-pen">&#10005;</span></div>
+                <div class="l3 edit"><span class="l3-amt">30 g</span><span class="l3-body"><span class="l3-id">Parmesan, grated</span><span class="l3-note">to finish</span><span class="wv-tag" style="margin-left:6px">optional</span></span><span class="l3-pen">&#10005;</span></div>
+            </div>
+            <div style="display:flex;gap:8px;margin:12px 20px 0">
+                <span class="ghostbtn" style="margin-top:0;flex:1">&#65291; Add ingredient</span>
+            </div>
+
+            <p class="conv-note" style="margin-top:14px"><b>What is the same.</b> The row is the shipped three-part line &mdash; <b>[amount] [identity] [note]</b>; the amount cell opens the quantity sheet with its Optional switch, the identity cell opens the target picker, and <b>&#65291;&nbsp;Add ingredient</b> adds. Nothing new is built</p>
+            <p class="conv-note"><b>What is gone, and why it is gone rather than locked.</b> The whole header form &mdash; title, serves, makes, times, shelf life, file under &mdash; and the whole method are <b>not drawn</b>. A control drawn and refused is a control you have to explain on every tap; a control absent is a mode you understand in one look. The method has a second reason: a step chip points at a line id, an added line has not got one, and an excluded line would orphan its chips</p>
+            <p class="conv-note"><b>Serves survives as a sentence.</b> Every amount on this list is <i>per serves&nbsp;4</i> &mdash; drop the number and the list stops being readable. So it is stated in the <b>from the recipe</b> strip with the step count and the title, in mono muted, with nothing in it to tap</p>
+            <p class="conv-note"><b>No grip.</b> A reorder is not storable this week, and a drag that silently reverts on reopen is worse than no drag. Group headings are inert text: no rename, no bin, no <b>&#65291;&nbsp;Add&nbsp;group</b>. An added line lands at the foot of the list</p>
+            <p class="conv-note"><b>Save, not write-through.</b> Unlike the meal editor sheet, this screen keeps the editor's own posture &mdash; nothing is stored until <b>Save</b>, and <b>&lsaquo;</b> abandons the draft. Save writes the <i>diff</i>, not the lines</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>The swap, in flight</b> &middot; the identity cell opens the shipped line target picker with one line added to its head</p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet">
+            <div class="grab"></div>
+            <p class="c-h">Change Pork sausage to</p>
+            <p class="rc-note" style="margin-top:2px">for this week only</p>
+            <div class="field" style="margin-top:10px"><div class="search"><span class="mag">&#8981;</span><span>beef mince</span><span class="care"></span></div></div>
+            <p class="list-h">Your ingredients</p>
+            <div class="res-row"><div style="flex:1;min-width:0"><div class="res-nm">Beef mince, 5%</div><span class="res-cat">Meat &middot; 137 kcal /100 g</span></div><span class="rplus">&#65291;</span></div>
+            <div class="res-row"><div style="flex:1;min-width:0"><div class="res-nm">Beef mince, 20%</div><span class="res-cat">Meat &middot; 254 kcal /100 g</span></div><span class="rplus">&#65291;</span></div>
+            <div class="addnew">&#65291; Add an ingredient</div>
+            <p class="conv-note" style="text-align:center">the only difference from the recipe's own picker is the <b>subtitle</b> &mdash; the picker takes one already, so week mode passes its own words and builds nothing</p>
+            <p class="conv-note" style="text-align:center"><b>Your recipes is suppressed.</b> Swapping in a <i>sub-recipe</i> for one week would make the component graph week-dependent, and that graph is read household-wide with no week. The column ships; the section does not</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Five changes, one grammar</b> &middot; a swap, an amount, an exclusion, an optional line ticked in, and an addition &mdash; one tag voice, one reset, one footer that states its count</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl">Edit for this week</span><span class="dots" style="color:var(--herb);font-size:13px;font-weight:600">Save</span></div>
+            <div class="wv-band">
+                <span class="k">This week only</span>
+                <div class="t">Slow-Cooker Beef Rag&ugrave;</div>
+                <div class="s">Week of 14 Sep &middot; Tue and Sat both cook these lines<br>The recipe is not changed.</div>
+            </div>
+            <div class="wv-from">from the recipe &middot; not edited here: <b>serves 4</b> &middot; <b>6 steps</b> &middot; Slow-Cooker Beef Rag&ugrave;</div>
+
+            <div style="margin:10px 20px 0;font-size:13px;color:var(--muted)">for the rag&ugrave;</div>
+            <div style="margin:0 20px">
+                <div class="l3 edit"><span class="l3-amt">400 g</span><span class="l3-body"><span class="l3-id">Beef mince, 5%</span>
+                    <span class="wv-meta"><span class="wv-tag">this week &middot; was 400 g Pork sausage</span><span class="wv-reset">&#8634; reset</span></span></span><span class="l3-pen">&#10005;</span></div>
+
+                <div class="l3 edit"><span class="l3-amt">3 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">finely chopped</span>
+                    <span class="wv-meta"><span class="wv-tag">this week &middot; was 2</span><span class="wv-reset">&#8634; reset</span></span></span><span class="l3-pen">&#10005;</span></div>
+
+                <div class="l3 edit wv-off"><span class="l3-amt">250 ml</span><span class="l3-body"><span class="l3-id">Red wine</span>
+                    <span class="wv-meta"><span class="wv-tag">this week &middot; left out</span><span class="wv-reset">&#8634; reset</span></span></span><span class="l3-pen">&#10005;</span></div>
+
+                <div class="l3 edit"><span class="l3-amt">30 g</span><span class="l3-body"><span class="l3-id">Parmesan, grated</span><span class="l3-note">to finish</span>
+                    <span class="wv-meta"><span class="wv-tag">this week &middot; included</span><span class="wv-reset">&#8634; reset</span></span></span><span class="l3-pen">&#10005;</span></div>
+
+                <div class="l3 edit"><span class="l3-amt">1 handful</span><span class="l3-body"><span class="l3-id">Basil</span><span class="l3-note">torn</span>
+                    <span class="wv-meta"><span class="wv-tag">this week &middot; added</span><span class="wv-reset">&#10005; remove</span></span></span><span class="l3-pen">&#10005;</span></div>
+            </div>
+            <div style="display:flex;gap:8px;margin:12px 20px 0">
+                <span class="ghostbtn" style="margin-top:0;flex:1">&#65291; Add ingredient</span>
+            </div>
+            <div class="dngr" style="margin-top:14px">Back to the recipe &middot; drops 5 changes</div>
+
+            <p class="conv-note" style="margin-top:10px"><b>The tag is one line, and it is the <i>old</i> line.</b> &ldquo;this week &middot; was 400 g Pork sausage&rdquo; &mdash; what the recipe says, in the recipe's own words and the app's own name for the ingredient, so the reader can undo it in their head before they undo it with the button. It uses the <code>optional</code> tag's voice: one badge vocabulary on a recipe line, not two</p>
+            <p class="conv-note"><b>An excluded line stays on the list</b>, struck and muted, with its amount struck too. A removed row would be a hole: next Tuesday's reader could not see what is missing, and could not put it back. The bin <b>excludes</b> in week mode &mdash; the line is the recipe's, and this screen cannot delete the recipe's line. Ticking a counted line <i>optional</i> in the amount sheet is the same exclusion from the other side</p>
+            <p class="conv-note"><b>An added line has no recipe line behind it</b>, so its control is <b>&#10005;&nbsp;remove</b> rather than <b>&#8634;&nbsp;reset</b> &mdash; there is nothing to go back to. Same slot, same voice, honest verb</p>
+            <p class="conv-note"><b>The reset is per line and takes no confirm</b> &mdash; the dish row's <b>&minus;</b> idiom: muted, not red. It is a draft action; <b>Save</b> is still what stores it, so the undo is <b>&lsaquo;</b></p>
+            <p class="conv-note"><b>&ldquo;Back to the recipe&rdquo; states its own count</b> and sits at the foot, after every line, in the destructive voice. It clears the draft's overrides; <b>Save</b> commits the clearing. A reset that cannot say how much it undoes gets pressed blind &mdash; this one can, because the variant is one object</p>
+            <p class="conv-note"><b>Nothing is said on the recipe page.</b> The page is reached from the Library as often as from the Week, and the Library holds no viewed week &mdash; a badge there would have to answer <i>which week?</i> with a guess. Every surface that <i>has</i> a week says it: the Week grid, Shop and Cook</p>
         </div></div>
     </div>
 

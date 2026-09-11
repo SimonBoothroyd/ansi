@@ -105,7 +105,7 @@ typedef WeekDraftLine = ({LineItem line, bool excluded, bool added});
 /// all**, so the count the footer states and the tags the list draws can never
 /// describe a change nobody made.
 ///
-/// The rules (exec plan 0043, D3):
+/// The rules:
 ///
 /// * a draft line whose ingredient / quantity / unit / measure / note differs
 ///   from its base → one [LineOverrideAction.replace] carrying all of them,
@@ -226,6 +226,84 @@ bool _differs(LineItem original, LineItem edited) =>
 String? _trimmed(String? note) {
   final text = note?.trim();
   return text == null || text.isEmpty ? null : text;
+}
+
+/// [line] as this week cooks it — absolute values, all of them, and `optional`
+/// cleared because a line somebody edited this week is a line they want. That
+/// clearing is what lets the seam run twice without the recipe's own rule
+/// firing over the week's answer.
+LineItem applyOverride(LineItem line, LineOverride override) => line.copyWith(
+  ingredientId: override.ingredientId,
+  ingredientName: override.ingredientName.isEmpty
+      ? line.ingredientName
+      : override.ingredientName,
+  subRecipeId: override.subRecipeId,
+  subRecipe: override.subRecipeId == null ? null : line.subRecipe,
+  quantity: override.quantity,
+  unit: override.unit ?? line.unit,
+  measureId: override.measureId,
+  measure: override.measure,
+  note: override.note,
+  optional: false,
+);
+
+/// An added line as a [LineItem], so every derivation downstream reads one
+/// shape. Its id is the override row's, which is what lets the editor reopen
+/// on it and the next save land on the same row.
+LineItem addedLine(LineOverride override) => LineItem(
+  id: override.id,
+  ingredientName: override.ingredientName,
+  unit: override.unit ?? pieces,
+  ingredientId: override.ingredientId,
+  subRecipeId: override.subRecipeId,
+  quantity: override.quantity,
+  measureId: override.measureId,
+  measure: override.measure,
+  note: override.note,
+);
+
+/// [base] as week mode draws it: every recipe line still on the list — an
+/// excluded one struck rather than gone, because somebody opening this next
+/// has to see what is missing and be able to put it back — then the additions.
+///
+/// The exact inverse of [diffLineOverrides]: draft these lines, change
+/// nothing, and the diff gives [overrides] back.
+List<WeekDraftLine> draftLines(
+  Iterable<LineItem> base,
+  List<LineOverride> overrides,
+) {
+  final byLine = <String, LineOverride>{
+    for (final o in overrides)
+      if (o.recipeLineItemId != null) o.recipeLineItemId!: o,
+  };
+  return [
+    for (final line in base)
+      switch (byLine[line.id]?.action) {
+        LineOverrideAction.exclude => (
+          line: line,
+          excluded: true,
+          added: false,
+        ),
+        LineOverrideAction.replace => (
+          line: applyOverride(line, byLine[line.id]!),
+          excluded: false,
+          added: false,
+        ),
+        LineOverrideAction.include => (
+          line: line.copyWith(optional: false),
+          excluded: false,
+          added: false,
+        ),
+        LineOverrideAction.add || null => (
+          line: line,
+          excluded: false,
+          added: false,
+        ),
+      },
+    for (final o in overrides)
+      if (o.action == LineOverrideAction.add)
+        (line: addedLine(o), excluded: false, added: true),
+  ];
 }
 
 /// What an override did to its line, as the kind of change it is.

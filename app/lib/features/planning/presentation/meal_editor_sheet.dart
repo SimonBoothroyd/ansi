@@ -33,6 +33,7 @@ import '../../../shared/write.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
 import 'meal_fields.dart';
+import 'week_variant_door.dart';
 import 'week_view_models.dart';
 
 /// Opens the meal editor for [entry].
@@ -119,6 +120,19 @@ class _MealEditorSheet extends ConsumerWidget {
             ),
           ),
         ),
+        // The one thing in here that is not a field (0043 D1). The sheet is a
+        // field editor, so this states one fact and opens the screen that
+        // edits it — and it states its own SCOPE, because the sheet is per
+        // meal and the variant is per week and recipe. Without that sub-line
+        // the row would lie about what a tap changes.
+        if (entry.recipeId != null) ...[
+          const SizedBox(height: 18),
+          const AnsiMicroLabel('Ingredients'),
+          WeekVariantDoorRow(
+            recipeId: entry.recipeId!,
+            recipeTitle: entry.recipeTitle,
+          ),
+        ],
         const SizedBox(height: 8),
       ],
     );

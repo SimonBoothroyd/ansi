@@ -13,6 +13,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/words.dart';
 import '../domain/planning.dart';
 import 'week_format.dart';
+import 'week_variant_format.dart';
 
 /// A rounded, tappable label that fills herb-green when [selected] (design
 /// board `.pchip` / `.wkchip`). An [icon] renders instead of the label (the
@@ -230,6 +231,32 @@ class CookMarkerLine extends StatelessWidget {
       ],
     );
   }
+}
+
+/// "edited for this week", beside the cook marker on the row's second line.
+///
+/// The cook marker's second, quieter voice — the one the board already uses
+/// for *"from Monday's batch"*: derived, not fresh. It is a fact the row
+/// prints and not a target, so it never moves onto the title line.
+///
+/// Every planned day of the recipe wears it, because the variant is per
+/// `(week, recipe)`: one pot, one line set, and two rows that cannot disagree.
+class EditedForThisWeekMark extends StatelessWidget {
+  const EditedForThisWeekMark({super.key});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    decoration: BoxDecoration(
+      color: AnsiColors.paper,
+      border: Border.all(color: AnsiColors.line),
+      borderRadius: BorderRadius.circular(7),
+    ),
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    child: Text(
+      kEditedForThisWeek,
+      style: ansiMono(size: 9, color: AnsiColors.muted),
+    ),
+  );
 }
 
 /// The design board's fresh→gone gradient at 26px, with a notch showing where

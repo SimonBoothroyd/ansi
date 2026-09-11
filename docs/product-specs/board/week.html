@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Week</h1>
-    <p class="view-status">built · matches code 2026-09-09 · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0038-plan-an-ingredient.md">plan 0038</a></p>
+    <p class="view-status">built · matches code 2026-09-10 · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0038-plan-an-ingredient.md">plan 0038</a> · <a href="../../exec-plans/active/0043-week-variant.md">plan 0043</a></p>
     <p class="view-blurb">One screen with one state — no mode, no separate page. The switcher is the only title, and the week on screen is the week Cook and Shop follow.</p>
 </header>
 
@@ -89,8 +89,46 @@
             <div class="eater-row"><span class="lab"><b>Ada</b> only</span><span class="eaters"><span class="ep on a">A</span><span class="ep j">J</span></span></div>
             <p class="clabel">Portions</p>
             <div class="portion"><div class="pl">1 portion<small>Ada 1 — their usual</small></div><div class="pstepper"><span class="s">–</span><span class="qv">—</span><span class="s">+</span></div></div>
+            <p class="clabel">Ingredients</p>
+            <div class="crow"><span class="cl">As the recipe has them<small>a change covers every day this week — Thu</small></span><span class="ci" style="color:var(--herb-deep);font-size:12px">edit for this week ›</span></div>
+
+            <p class="clabel" style="margin-top:20px">the same row, once something has changed</p>
+            <div class="crow"><span class="cl">Edited for this week<small>3 changes · Tue and Sat</small></span><span class="ci" style="color:var(--herb-deep);font-size:12px">edit for this week ›</span></div>
+
             <p class="conv-note">two fields, both written through on tap — nothing to save, though a sheet still needs a visible way out. And <b>no way through to the recipe or the bin</b>: those are the title and the <span style="font-family:'IBM Plex Mono',monospace">−</span>, already on the row you came from</p>
+            <p class="conv-note">the <b>third row is not a field</b>. It states one fact and opens the screen that edits it — week mode in the recipe editor — and nothing here writes; the editor's own <b>Save</b> does. It goes last, under Portions, because the sheet already scrolls and length costs nothing above the fold</p>
+            <p class="conv-note">the sheet is per-<i>meal</i> and the variant is per-<b>week and recipe</b>, so the row must say its own scope in its own words — <b>“every day this week — Tue and Sat”</b>. That sub-line is a condition of the door, not decoration: without it the row lies about what a tap changes. It is <b>not</b> a fourth target on the dish row: the row's rule is <i>a row's controls are the facts the row prints</i>, and a control drawn on every row to reach a state almost no row is in is a target every row pays for</p>
         </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>A recipe edited for this week</b> · the dish planned twice; both rows read the variant, because there is only one</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">14 Sep</span><span class="caret">▾</span></span><span class="chev">›</span></div>
+            <div class="lensrow"><span class="lbl">for</span><span class="pchip on">Everyone</span><span class="pchip"><span class="av a">A</span>Ada</span><span class="pchip"><span class="av j">J</span>Jun</span></div>
+
+            <div class="day2 today"><div class="day2-head"><div class="day2-name">Tuesday</div><span class="day2-date">15 Sep</span><span class="todaytag">TODAY</span></div>
+                <div class="srow"><span class="slab">Dinner</span><div class="dishcell"><span class="sname">Slow-Cooker Beef Ragù</span>
+                    <span class="wv-marks"><span class="cookmark"><span class="mini-fresh"></span>cooks Tue · batch of 2</span><span class="cookmark from">edited for this week</span></span></div><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">−</span></div>
+                <div class="emptyline"><span class="plus">＋</span>add a meal</div>
+            </div>
+
+            <div class="day2"><div class="day2-head"><div class="day2-name">Thursday</div><span class="day2-date">17 Sep</span></div>
+                <div class="srow"><span class="slab">Dinner</span><div class="dishcell"><span class="sname">Weeknight Chicken Curry</span><span class="cookmark"><span class="mini-fresh"></span>cooks Thu · batch of 1¾</span></div><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">−</span></div>
+                <div class="emptyline"><span class="plus">＋</span>add a meal</div>
+            </div>
+
+            <div class="day2"><div class="day2-head"><div class="day2-name">Saturday</div><span class="day2-date">19 Sep</span></div>
+                <div class="srow"><span class="slab">Dinner</span><div class="dishcell"><span class="sname">Slow-Cooker Beef Ragù</span>
+                    <span class="wv-marks"><span class="cookmark frz">❄ from Tuesday's batch</span><span class="cookmark from">edited for this week</span></span></div><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">−</span></div>
+                <div class="emptyline"><span class="plus">＋</span>add a meal</div>
+            </div>
+
+            <div class="nav"><div class="ni"><span class="ic">▢</span>Library</div><div class="ni on"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◯</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+        <p class="conv-note" style="margin:10px 4px 0"><b>Both rows say it, and they cannot disagree.</b> One variant per <i>(week, recipe)</i> is what makes this drawable: a per-meal override would put “edited” on Tuesday and not Saturday, and then the two rows would be describing two different pots</p>
+        <p class="conv-note" style="margin:6px 4px 0">the mark is the <b>cook marker's</b> second, quieter variant — paper ground, hairline, muted (<code>.cookmark.from</code>), the voice the board already uses for <i>“from Monday's batch”</i>: derived, not fresh. It sits beside the cook marker on the row's second line, never on the title line, because it is a fact the row prints and not a target</p>
+        <p class="conv-note" style="margin:6px 4px 0">the week's <b>macro strip reads the variant too</b>: a varied recipe is re-summed over the lines this week actually cooks, while every recipe the week leaves alone keeps the Library's own figure</p>
     </div>
 
     <div class="frame">
