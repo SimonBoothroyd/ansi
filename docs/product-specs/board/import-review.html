@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Import review</h1>
-    <p class="view-status">built · matches code 2026-09-09 · <code>features/import</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/completed/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
+    <p class="view-status">built · matches code 2026-09-10 · <code>features/import</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/completed/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
     <p class="view-blurb">One form with two doors, then the whole import on one editable screen: the editor’s own header, a card per line, the method as step cards, and a Save gate that counts the same number the header does.</p>
 </header>
 
@@ -100,7 +100,7 @@
             <div class="lcard attn">
                 <div class="chead"><span class="cn">coriander</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
                 <div class="srcline">from source:  coriander, to serve (optional)</div>
-                <div class="lflags"><span class="lflag">no amount</span><span class="lflag">optional</span></div>
+                <div class="lflags"><span class="lflag tog on">optional</span></div>
                 <div class="attn-tag"><span>⚠</span><span>Set the amount</span></div>
             </div>
             <p class="conv-note" style="margin-top:2px">the cards, the never-invent flags, the Save gate and the method step cards — exactly as shipped (seam v2 a–c)</p>
@@ -141,7 +141,7 @@
                 <div class="lcard attn">
                     <div class="chead"><span class="cn">Aleppo chilli flakes</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
                     <div class="srcline">from source:  a good pinch Aleppo chilli flakes</div>
-                    <div class="lflags"><span class="lflag">optional</span><span class="lflag">low confidence 41%</span></div>
+                    <div class="lflags"><span class="lflag tog on">optional</span><span class="lflag">low confidence 41%</span></div>
                     <div class="attn-tag"><span>⚠</span><span>Match an ingredient</span></div>
                     <div class="ghostbtn">⌕ Find or create ingredient</div>
                 </div>
@@ -154,6 +154,7 @@
 
                 <div class="savebtn off">3 line(s) need you</div>
                 <p class="conv-note" style="text-align:center;margin-top:8px">header count · card flags · Save all read one map</p>
+                <p class="conv-note" style="text-align:center"><b>optional</b> leads the flag row of every expanded card and is the one flag that is also a <b>control</b>: filled when the line is optional, hollow when it is not, and one tap either way. It rides an <b>unmatched</b> line too — a garnish or a cross-reference is exactly the line that goes unmatched, and the fact is the page’s, not the match’s. It opens on whatever the extractor said and reads the line from then on.</p>
                 <p class="conv-note" style="text-align:center">…and when that map cannot be built at all, both say so: the header reads <b>not checked</b> and the button reads <b>Couldn’t check the lines — try again</b> and re-runs the read. A count of 0 over a Save that will not open is a wall with no door.</p>
             </div></div>
         </div>
@@ -168,7 +169,7 @@
                 <div class="lcard attn">
                     <div class="chead"><span class="cn">butter beans</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
                     <div class="srcline">from source:  2 × 400 g tin butter beans, drained</div>
-                    <div class="lflags"><span class="lflag">unit “tin” needs a look</span></div>
+                    <div class="lflags"><span class="lflag tog">optional</span><span class="lflag">unit “tin” needs a look</span></div>
                     <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
                     <div class="chosen"><span class="ck">✓</span><span class="cnm">Butter beans</span><span class="chint">tap to change</span><span class="ci">›</span></div>
                     <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">2 can <span class="pen">✎</span></span></span></div>
@@ -221,7 +222,7 @@
             <div class="lcard attn">
                 <div class="chead"><span class="cn">dragon fruit</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
                 <div class="srcline">from source:  2 dragon fruit, cubed</div>
-                <div class="lflags"><span class="lflag">new ingredient</span></div>
+                <div class="lflags"><span class="lflag tog">optional</span></div>
                 <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
                 <div class="chosen"><span class="ck">✓</span><span class="cnm">Dragon fruit</span><span class="chint">created here · stub</span><span class="ci">›</span></div>
                 <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">2 piece <span class="pen">✎</span></span></span></div>
@@ -257,7 +258,7 @@
             <div class="lcard attn">
                 <div class="chead"><span class="cn">bunch of cilantro</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
                 <div class="srcline">from source:  1 bunch cilantro, chopped</div>
-                <div class="lflags"><span class="lflag">unit “bunch” needs a look</span></div>
+                <div class="lflags"><span class="lflag tog">optional</span><span class="lflag">unit “bunch” needs a look</span></div>
                 <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
                 <div class="chosen"><span class="ck">✓</span><span class="cnm">Cilantro</span><span class="chint">tap to change</span><span class="ci">›</span></div>
                 <p class="chip-note">the source named a thing we don’t carry — no row fact answers it</p>
@@ -276,7 +277,7 @@
                 <div class="lcard attn">
                     <div class="chead"><span class="cn">Romesco Aioli</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
                     <div class="srcline">from source:  ¼ cup Romesco Aioli (page 38)</div>
-                    <div class="lflags"><span class="lflag">cross-reference “(page 38)”</span></div>
+                    <div class="lflags"><span class="lflag tog">optional</span><span class="lflag">cross-reference “(page 38)”</span></div>
                     <div class="attn-tag"><span>⚠</span><span>Match an ingredient — or link your recipe</span></div>
                     <p class="flabel" style="margin:9px 0 6px">Did you mean</p>
                     <div class="suggests" style="margin-top:0"><span class="sug pick">↪ your recipe · Romesco Aioli</span><span class="sug">Aioli, jarred</span></div>

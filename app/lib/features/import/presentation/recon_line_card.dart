@@ -532,7 +532,11 @@ class _Expanded extends ConsumerWidget {
               style: ansiMono(size: 11, color: AnsiColors.muted),
             ),
           ),
-        _Flags(raw: line.raw),
+        _Flags(
+          raw: line.raw,
+          optional: resolution.optional,
+          onToggleOptional: (on) => update((r) => r.setOptional(optional: on)),
+        ),
         if (label != null) ...[
           const SizedBox(height: 8),
           _AttentionTag(label: label),
@@ -821,29 +825,75 @@ bool unitNeedsALook(RawLineItem raw) {
   return unitById(unit) == null;
 }
 
-/// The honest-import flags for a line — shown, never hidden (0014).
+/// The honest-import flags for a line — shown, never hidden (0014) — led by
+/// the one flag that is also a control.
 class _Flags extends StatelessWidget {
-  const _Flags({required this.raw});
+  const _Flags({
+    required this.raw,
+    required this.optional,
+    required this.onToggleOptional,
+  });
 
   final RawLineItem raw;
+
+  /// The line's flag as it stands, seeded from the extractor's and editable
+  /// from here — never the raw one, which would keep saying what the page
+  /// said after the cook disagreed.
+  final bool optional;
+  final ValueChanged<bool> onToggleOptional;
 
   @override
   Widget build(BuildContext context) {
     final crossReference = crossReferenceFlag(raw.ingredientText);
     final flags = <String>[
       if (crossReference != null) 'cross-reference “$crossReference”',
-      if (raw.optional) 'optional',
       if (raw.confidence < kLowConfidenceFloor)
         'low confidence ${(raw.confidence * 100).round()}%',
       if (unitNeedsALook(raw)) 'unit "${raw.unit}" needs a look',
     ];
-    if (flags.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Wrap(
         spacing: 6,
         runSpacing: 4,
-        children: [for (final f in flags) _MiniFlag(text: f)],
+        children: [
+          _OptionalToggle(
+            value: optional,
+            onTap: () => onToggleOptional(!optional),
+          ),
+          for (final f in flags) _MiniFlag(text: f),
+        ],
+      ),
+    );
+  }
+}
+
+/// The `optional` flag and the switch that sets it, one pill.
+///
+/// It rides the flag row of EVERY expanded card, matched or not: "to serve"
+/// is a fact about the line the cook can read off the page, and waiting for
+/// an ingredient match to record it would lose it on exactly the lines — a
+/// garnish, a cross-reference — that most often go unmatched.
+class _OptionalToggle extends StatelessWidget {
+  const _OptionalToggle({required this.value, required this.onTap});
+
+  final bool value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: FBadge(
+        variant: value ? FBadgeVariant.secondary : FBadgeVariant.outline,
+        child: Text(
+          'optional',
+          style: ansiMono(
+            size: 10,
+            color: value ? AnsiColors.aging : AnsiColors.muted,
+          ),
+        ),
       ),
     );
   }

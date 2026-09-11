@@ -38,6 +38,17 @@ final _none = reconPayload([
   reconLine('mystery spice', band: MatchBand.none, rawAmount: 'a pinch'),
 ]);
 
+/// One unmatched line the page itself flagged optional — the seed the card's
+/// pill opens on.
+final _rawOptional = reconPayload([
+  reconLine(
+    'coriander, to serve',
+    band: MatchBand.none,
+    rawAmount: 'a handful',
+    optional: true,
+  ),
+]);
+
 /// One auto-matched line — resolved on arrival, but (owner refinement) still
 /// fully editable.
 final _auto = reconPayload([
@@ -1178,6 +1189,103 @@ void main() {
       // the `from source:` line under it prints the amount too.
       expect(heading('mystery spice'), findsOneWidget);
       expect(find.text('from source:  a pinch mystery spice'), findsOneWidget);
+    });
+  });
+
+  group('optional is a first-class control on the card', () {
+    Future<ProviderContainer> reviewing(
+      ReconciliationPayload payload,
+      FakeImportRepo repo,
+    ) async {
+      final container = ProviderContainer(
+        overrides: [
+          bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
+          importRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container
+          .read(importControllerProvider.notifier)
+          .startImport(const ImportFromUrl('x'));
+      return container;
+    }
+
+    testWidgets('an UNMATCHED line can be made optional, and it lands on the '
+        'committed line', (tester) async {
+      filterForuiSemanticsAssertions();
+      final repo = FakeImportRepo(_none);
+      final container = await reviewing(_none, repo);
+      await tester.pumpWidget(_host(container));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(FLucideIcons.pencil));
+      await tester.pumpAndSettle();
+
+      // The amount sheet is the one door that never opens here — the line has
+      // no ingredient to admit a unit — so the pill is the whole interaction.
+      expect(find.text('optional'), findsOneWidget);
+      await tester.tap(find.text('optional'));
+      await tester.pumpAndSettle();
+
+      final state =
+          container.read(importControllerProvider) as ImportReconciling;
+      expect(state.resolutions.single.optional, isTrue);
+
+      // Matching it afterwards is what lets it be saved at all, and the flag
+      // the cook set before the match rides through it.
+      container
+          .read(importControllerProvider.notifier)
+          .updateResolution(
+            0,
+            (r) => r.resolveToIngredient('ing-mystery', 'Mystery spice'),
+          );
+      await container
+          .read(importControllerProvider.notifier)
+          .commit(issuesByLine: const {0: []});
+      expect(repo.committed!.groups.single.lines.single.optional, isTrue);
+    });
+
+    testWidgets('the tag reads the LINE, not the page: an extractor flag the '
+        'cook turns off stays off', (tester) async {
+      filterForuiSemanticsAssertions();
+      final repo = FakeImportRepo(_rawOptional);
+      final container = await reviewing(_rawOptional, repo);
+      await tester.pumpWidget(_host(container));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(FLucideIcons.pencil));
+      await tester.pumpAndSettle();
+
+      // Seeded on from the raw flag…
+      expect(
+        (container.read(importControllerProvider) as ImportReconciling)
+            .resolutions
+            .single
+            .optional,
+        isTrue,
+      );
+
+      await tester.tap(find.text('optional'));
+      await tester.pumpAndSettle();
+
+      // …and the tag follows the resolution down, not the raw line up.
+      expect(find.text('optional'), findsOneWidget);
+      expect(
+        (container.read(importControllerProvider) as ImportReconciling)
+            .resolutions
+            .single
+            .optional,
+        isFalse,
+      );
+
+      container
+          .read(importControllerProvider.notifier)
+          .updateResolution(
+            0,
+            (r) => r.resolveToIngredient('ing-coriander', 'Coriander'),
+          );
+      await container
+          .read(importControllerProvider.notifier)
+          .commit(issuesByLine: const {0: []});
+      expect(repo.committed!.groups.single.lines.single.optional, isFalse);
     });
   });
 }

@@ -27,6 +27,7 @@ ReconLine reconLine(
   double? qtyHigh,
   String? unit,
   String rawAmount = '',
+  bool optional = false,
   String? ingredientId,
   String? canonicalName,
   double score = 0.97,
@@ -40,6 +41,7 @@ ReconLine reconLine(
     qtyHigh: qtyHigh,
     unit: unit,
     rawAmount: rawAmount,
+    optional: optional,
   ),
   band: band,
   candidates: [

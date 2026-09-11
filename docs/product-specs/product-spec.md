@@ -327,9 +327,12 @@ its steps.
   a line — "lime, to serve (optional)" — not about its amount: the page
   still prints `1 lime`, with a muted `optional` tag after the note in the
   stub badge's voice. It is seeded from the extractor's flag at import,
-  toggled in the quantity/unit sheet (the editor and the review share it) —
-  on a sub-recipe component line as on an ingredient one, and the seam names
-  the sub-recipe's title where it left — and its only effect is on what a
+  toggled in the quantity/unit sheet (the editor and the review share it) and,
+  at review, from a pill on the card's own flag row — which leads that row on
+  every expanded card, matched or not, and reads the line rather than the raw
+  extraction. It rides a sub-recipe component line as it rides an ingredient
+  one, and the seam names the sub-recipe's title where it left. Its only
+  effect is on what a
   TOTAL covers, through one seam — `effectiveLines(lines, planEntryId)` —
   that every derivation runs over: the macro summary and the shopping list
   leave the line out **and name it where it left** (`not counted · 2
