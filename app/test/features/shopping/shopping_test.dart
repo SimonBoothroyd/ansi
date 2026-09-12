@@ -372,6 +372,48 @@ void main() {
   });
 
   group('buildShoppingList', () {
+  group('ShoppingList sections (the aisles and the basket)', () {
+    ShoppingItem item(String name, {bool checked = false}) =>
+        ShoppingItem(name: name, ingredientId: name, checked: checked);
+
+    final list = ShoppingList(
+      groups: [
+        ShoppingGroup(
+          label: 'Produce',
+          items: [item('Lime', checked: true), item('Onion')],
+        ),
+        ShoppingGroup(label: 'Baking', items: [item('Flour', checked: true)]),
+        ShoppingGroup(label: 'Dairy', items: [item('Milk')]),
+      ],
+    );
+
+    test('the open groups hold only what is still to grab', () {
+      // Produce keeps Onion; Baking, all ticked, is gone from the top.
+      expect(list.openGroups.map((g) => g.label), ['Produce', 'Dairy']);
+      expect(list.openGroups.first.items.map((i) => i.name), ['Onion']);
+      // …while the full list is untouched for whatever counts items.
+      expect(list.groups, hasLength(3));
+    });
+
+    test('the basket is every ticked row, in aisle order', () {
+      expect(list.basket.map((i) => i.name), ['Lime', 'Flour']);
+      expect(list.allTicked, isFalse);
+    });
+
+    test('all ticked is known in one place', () {
+      final done = ShoppingList(
+        groups: [
+          ShoppingGroup(label: 'Produce', items: [item('Lime', checked: true)]),
+        ],
+      );
+      expect(done.allTicked, isTrue);
+      expect(done.openGroups, isEmpty);
+      expect(done.basket, hasLength(1));
+      // An empty list is not a finished trip.
+      expect(const ShoppingList().allTicked, isFalse);
+    });
+  });
+
     ShoppingList build({
       List<CookContributionInput> cook = const [],
       List<PlanIngredientInput> planned = const [],

@@ -9,6 +9,17 @@ ingredient's contributions from the batch cook plan, plus manual top-ups, groups
 them by aisle, and holds check-off state. Read-derived — edit the Week/Cook and
 the list re-sums.
 
+## The aisles and the basket
+
+The aisles hold only what is still to grab. A ticked row leaves its aisle for
+**one section at the bottom** — `IN THE BASKET · 4`, under the aisles and above
+the echo rows — in aisle order then name, so its place is predictable; an aisle
+whose rows are all ticked leaves the top. Tapping a basket row unticks it and
+it returns to its aisle on the next derivation. When every row is ticked the
+aisles give way to one quiet line, `everything’s in the basket`. All of it is
+derived on the domain (`ShoppingList.openGroups` / `basket` / `allTicked`);
+`groups` stays the full list for whatever counts items.
+
 ## Layout
 
 ```

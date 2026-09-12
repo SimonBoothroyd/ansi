@@ -375,6 +375,35 @@ typedef MeasureAmount = ({double amount, Measure measure});
 ///   "pinch + pinch"), but distinct ones are never merged.
 /// - [preferred] biases the display unit when it shares the summed family.
 List<Quantity> aggregateQuantities(
+
+  /// The aisles as the shopper still has to walk them: each group with only
+  /// its UNTICKED items, and a group whose items are all ticked dropped. A
+  /// ticked row leaves its aisle for the [basket] so what is and isn't grabbed
+  /// yet reads at a glance; [groups] stays the full list for everything that
+  /// counts items.
+  List<ShoppingGroup> get openGroups => [
+    for (final g in groups)
+      if (g.items.any((i) => !i.checked))
+        g.copyWith(
+          items: [
+            for (final i in g.items)
+              if (!i.checked) i,
+          ],
+        ),
+  ];
+
+  /// Every ticked item, flattened in aisle order then name — the one section
+  /// at the bottom of the list. The order is the aisles' own, so a row's
+  /// position is predictable: it sits where its aisle would have put it.
+  List<ShoppingItem> get basket => [
+    for (final g in groups)
+      for (final i in g.items)
+        if (i.checked) i,
+  ];
+
+  /// Whether the list has items and every one of them is ticked — the aisles
+  /// are empty but the trip is not. The single place "all ticked" is known.
+  bool get allTicked => groups.isNotEmpty && openGroups.isEmpty;
   List<Quantity> qs, {
   List<MeasureAmount> measured = const [],
   double? densityGPerMl,

@@ -31,6 +31,9 @@ class _FakeShoppingRepo implements ShoppingRepository {
   final bool tickThrows;
   int tickCalls = 0;
 
+  /// The `checked` the last entry tick asked for — false is an untick.
+  bool? lastChecked;
+
   @override
   Stream<ShoppingList> watchShoppingList(DateTime weekStart) =>
       Stream.value(list);
@@ -48,6 +51,7 @@ class _FakeShoppingRepo implements ShoppingRepository {
     required bool checked,
   }) async {
     tickCalls++;
+    lastChecked = checked;
     if (tickThrows) throw StateError('RLS denied');
   }
 
@@ -300,6 +304,114 @@ void main() {
     expect(find.text('240 g'), findsOneWidget);
     expect(find.text('Dal · cook Mon'), findsOneWidget);
     expect(find.textContaining('oz'), findsNothing);
+  });
+
+  group('the basket', () {
+    ShoppingItem item(String name, {bool checked = false}) => ShoppingItem(
+      name: name,
+      ingredientId: name.toLowerCase(),
+      entryId: 'e-${name.toLowerCase()}',
+      checked: checked,
+      totals: [Quantity(100, g)],
+    );
+
+    testWidgets('a ticked row leaves its aisle for the basket at the bottom', (
+      tester,
+    ) async {
+      final repo = _FakeShoppingRepo(
+        ShoppingList(
+          groups: [
+            ShoppingGroup(
+              label: 'Produce',
+              items: [item('Lime', checked: true), item('Onion')],
+            ),
+            ShoppingGroup(label: 'Baking', items: [item('Flour')]),
+          ],
+        ),
+      );
+      await tester.pumpWidget(
+        _host([shoppingRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pump();
+
+      // The aisles still stand, holding only what is left to grab…
+      expect(find.text('PRODUCE'), findsOneWidget);
+      expect(find.text('BAKING'), findsOneWidget);
+      // …and the ticked row sits under the basket header, with the count,
+      // below every aisle.
+      expect(find.text('IN THE BASKET · 1'), findsOneWidget);
+      final basketTop = tester.getTopLeft(find.text('IN THE BASKET · 1')).dy;
+      expect(tester.getTopLeft(find.text('Lime')).dy, greaterThan(basketTop));
+      expect(tester.getTopLeft(find.text('Onion')).dy, lessThan(basketTop));
+      expect(tester.getTopLeft(find.text('Flour')).dy, lessThan(basketTop));
+      // The row keeps its tap: from the basket, a tap unticks it.
+      await tester.tap(find.text('Lime'));
+      await tester.pump();
+      expect(repo.tickCalls, 1);
+      expect(repo.lastChecked, isFalse);
+    });
+
+    testWidgets('an aisle whose rows are all ticked leaves the top', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host([
+          shoppingRepositoryProvider.overrideWithValue(
+            _FakeShoppingRepo(
+              ShoppingList(
+                groups: [
+                  ShoppingGroup(
+                    label: 'Produce',
+                    items: [item('Lime', checked: true)],
+                  ),
+                  ShoppingGroup(label: 'Baking', items: [item('Flour')]),
+                ],
+              ),
+            ),
+          ),
+        ]),
+      );
+      await tester.pump();
+
+      expect(find.text('PRODUCE'), findsNothing);
+      expect(find.text('BAKING'), findsOneWidget);
+      expect(find.text('IN THE BASKET · 1'), findsOneWidget);
+      expect(find.textContaining('in the basket'), findsNothing);
+    });
+
+    testWidgets('every row ticked: a quiet line where the aisles were', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host([
+          shoppingRepositoryProvider.overrideWithValue(
+            _FakeShoppingRepo(
+              ShoppingList(
+                groups: [
+                  ShoppingGroup(
+                    label: 'Produce',
+                    items: [item('Lime', checked: true)],
+                  ),
+                  ShoppingGroup(
+                    label: 'Baking',
+                    items: [item('Flour', checked: true)],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ]),
+      );
+      await tester.pump();
+
+      expect(find.text('everything’s in the basket'), findsOneWidget);
+      expect(find.text('PRODUCE'), findsNothing);
+      expect(find.text('BAKING'), findsNothing);
+      expect(find.text('IN THE BASKET · 2'), findsOneWidget);
+      // Still a list with things in it — not the empty-list line.
+      expect(find.textContaining('nothing to buy'), findsNothing);
+      expect(find.textContaining('add item or top up'), findsOneWidget);
+    });
   });
 
   testWidgets('a nested contribution names both levels', (tester) async {

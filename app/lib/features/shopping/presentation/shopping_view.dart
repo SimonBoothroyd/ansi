@@ -2,7 +2,8 @@
 ///
 /// The list sums each ingredient's contributions from the batch cook plan, plus
 /// any manual top-ups, and groups them by aisle. Check-off is on the rolled-up
-/// item (spec §4). A "+ add item or top up" affordance opens the add sheet for
+/// item (spec §4), and a ticked row leaves its aisle for one basket section at
+/// the bottom. A "+ add item or top up" affordance opens the add sheet for
 /// non-food staples and manual top-ups. Read-derived; edit the Week/Cook and
 /// this re-sums. Only the thin overlay (check-off + manual contributions)
 /// persists — and syncs, since step 7.
@@ -107,7 +108,13 @@ class ShoppingView extends ConsumerWidget {
       children: [
         const _ListCaption(),
         if (data.isEmpty) const _NothingToBuyLine(),
-        for (final group in data.groups) _Group(group: group),
+        // The aisles hold only what is still to grab; a ticked row leaves for
+        // the basket section at the bottom, so what is and isn't in the
+        // trolley reads at a glance. When the aisles are empty but the trip
+        // is not, the line below says so where they were.
+        if (data.allTicked) const _EverythingInBasketLine(),
+        for (final group in data.openGroups) _Group(group: group),
+        if (data.basket.isNotEmpty) _Basket(items: data.basket),
         // What the list is short by, and why it is silent about it
         // (step 8.6 / D4): an unresolved component contributes
         // nothing — never an invented quantity — so the parent it
@@ -175,6 +182,43 @@ class _Group extends StatelessWidget {
         ),
         for (final item in group.items) _ItemRow(item: item),
       ],
+    );
+  }
+}
+
+/// The one section every ticked row moves to — `IN THE BASKET · 4` in the
+/// group-header voice, the rows in the order their aisles would have put
+/// them, so a row's place is predictable. A ticked row keeps its ticked look
+/// and its tap: tapping unticks it and it returns to its aisle on the next
+/// derivation.
+class _Basket extends StatelessWidget {
+  const _Basket({required this.items});
+
+  final List<ShoppingItem> items;
+
+  @override
+  Widget build(BuildContext context) => _Group(
+    group: ShoppingGroup(
+      label: 'In the basket · ${items.length}',
+      items: items,
+    ),
+  );
+}
+
+/// Every item is ticked: the aisles are empty but the trip is not, and the
+/// line says so where the aisles were, in [_NothingToBuyLine]'s voice. The
+/// single place the screen knows the trip is done.
+class _EverythingInBasketLine extends StatelessWidget {
+  const _EverythingInBasketLine();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+      child: Text(
+        'everything’s in the basket',
+        style: ansiMono(size: 11.5, color: AnsiColors.muted),
+      ),
     );
   }
 }
