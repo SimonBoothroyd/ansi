@@ -93,6 +93,14 @@ for path in MIGRATIONS:
                 if c:
                     t["columns"].append(parse_column(c.group(1), path.name))
                     continue
+                # `drop column` removes it: the doc describes the live schema,
+                # and git holds what a dropped column used to be (0042 drops
+                # ingredient.default_measure_id).
+                c = re.match(r"drop column (?:if exists )?(\w+)$", clause, re.I)
+                if c:
+                    t["columns"] = [
+                        col for col in t["columns"] if col["name"] != c.group(1)]
+                    continue
                 # `alter column x drop/set not null` RELAXES or tightens a
                 # column that already exists (0017 relaxes
                 # recipe_line_item.ingredient_id). Without this the table

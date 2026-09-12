@@ -61,7 +61,6 @@ introduced in `0002_ingredients.sql` · RLS enabled · in the `powersync` public
 | `deleted_at` | `timestamptz` | yes |  |
 | `macros_basis` | `text` | no | not null default 'g' check (macros_basis in ('g', 'ml')) *(added in `0011_picker_uplift.sql`)* |
 | `allowed_units` | `jsonb` | yes | *(added in `0012_unit_admission.sql`)* |
-| `default_measure_id` | `uuid` | yes | references ingredient_measure(id) on delete set null *(added in `0023_default_measure.sql`)* |
 | `source_label` | `text` | yes | *(added in `0027_usda_source_label.sql`)* |
 | `source_score` | `real` | yes | *(added in `0027_usda_source_label.sql`)* |
 | `source_edited` | `boolean` | no | not null default false *(added in `0034_source_edited.sql`)* |
@@ -277,7 +276,6 @@ introduced in `0009_ingredient_measures.sql` · RLS enabled · in the `powersync
 | `household_id` | `uuid` | no | not null references household(id) |
 | `ingredient_id` | `uuid` | no | not null references ingredient(id) on delete cascade |
 | `label` | `text` | no | not null |
-| `grams` | `numeric` | no | not null check (grams > 0) |
 | `sort_order` | `int` | no | not null default 0 |
 | `created_at` | `timestamptz` | no | not null default now() |
 | `updated_at` | `timestamptz` | no | not null default now() |
