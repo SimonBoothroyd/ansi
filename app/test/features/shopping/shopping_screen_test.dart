@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
@@ -10,8 +12,10 @@ import 'package:ansi/features/recipes/domain/effective_lines.dart';
 import 'package:ansi/features/shopping/data/shopping_providers.dart';
 import 'package:ansi/features/shopping/domain/shopping.dart';
 import 'package:ansi/features/shopping/domain/shopping_repository.dart';
+import 'package:ansi/features/shopping/presentation/confetti_burst.dart';
 import 'package:ansi/features/shopping/presentation/shopping_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -20,23 +24,38 @@ import 'package:hooks_riverpod/misc.dart' show Override;
 import '../../helpers/fake_cook_plan_repository.dart';
 import '../../helpers/fake_week_variant_repository.dart';
 
-/// A canned shopping list; mutations are no-ops (the screen just renders).
+/// A canned shopping list; mutations are no-ops (the screen just renders)
+/// unless [live], when an entry tick re-derives the list the way the real
+/// repository's stream would, and [emit] plays the other phone.
 class _FakeShoppingRepo implements ShoppingRepository {
-  _FakeShoppingRepo(this.list, {this.tickThrows = false});
+  _FakeShoppingRepo(this.list, {this.tickThrows = false, this.live = false});
 
-  final ShoppingList list;
+  ShoppingList list;
 
   /// Whether a check-off refuses — the aisle case the status line and the
   /// failure toast exist for.
   final bool tickThrows;
+
+  /// Whether a tick shows up on the stream.
+  final bool live;
+  final _changes = StreamController<ShoppingList>.broadcast();
   int tickCalls = 0;
 
   /// The `checked` the last entry tick asked for — false is an untick.
   bool? lastChecked;
 
+  /// A list arriving by sync: nothing on this phone tapped.
+  void emit(ShoppingList next) {
+    list = next;
+    _changes.add(next);
+  }
+
   @override
-  Stream<ShoppingList> watchShoppingList(DateTime weekStart) =>
-      Stream.value(list);
+  Stream<ShoppingList> watchShoppingList(DateTime weekStart) {
+    final out = StreamController<ShoppingList>()..add(list);
+    unawaited(out.addStream(_changes.stream));
+    return out.stream;
+  }
 
   @override
   Future<void> setIngredientChecked({
@@ -53,6 +72,20 @@ class _FakeShoppingRepo implements ShoppingRepository {
     tickCalls++;
     lastChecked = checked;
     if (tickThrows) throw StateError('RLS denied');
+    if (!live) return;
+    emit(
+      list.copyWith(
+        groups: [
+          for (final g in list.groups)
+            g.copyWith(
+              items: [
+                for (final i in g.items)
+                  if (i.entryId == entryId) i.copyWith(checked: checked) else i,
+              ],
+            ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -86,15 +119,44 @@ class _FakeShoppingRepo implements ShoppingRepository {
   Future<void> removeEntry({required String entryId}) async {}
 }
 
-Widget _host(List<Override> overrides) => ProviderScope(
-  overrides: overrides,
-  child: MaterialApp(
-    home: FTheme(
-      data: ansiThemeData(),
-      child: const FToaster(child: ShoppingView()),
+Widget _host(List<Override> overrides, {bool disableAnimations = false}) =>
+    ProviderScope(
+      overrides: overrides,
+      child: MaterialApp(
+        home: Builder(
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(disableAnimations: disableAnimations),
+            child: FTheme(
+              data: ansiThemeData(),
+              child: const FToaster(child: ShoppingView()),
+            ),
+          ),
+        ),
+      ),
+    );
+
+/// Records every haptic the phone is asked for, by type.
+List<String> _recordHaptics(WidgetTester tester) {
+  final haptics = <String>[];
+  tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+    SystemChannels.platform,
+    (call) async {
+      if (call.method == 'HapticFeedback.vibrate') {
+        haptics.add(call.arguments as String);
+      }
+      return null;
+    },
+  );
+  addTearDown(
+    () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      null,
     ),
-  ),
-);
+  );
+  return haptics;
+}
 
 void main() {
   testWidgets('an empty list is a quiet line INSIDE the list '
@@ -470,6 +532,8 @@ void main() {
 
       expect(find.text('everything’s in the basket'), findsOneWidget);
       expect(find.text('IN THE BASKET · 2'), findsOneWidget);
+      // Arriving finished is not finishing: nothing was ticked here.
+      expect(find.byType(ConfettiBurst), findsNothing);
       // Both aisles stand inside the basket, and nowhere above it.
       final basketTop = tester.getTopLeft(find.text('IN THE BASKET · 2')).dy;
       expect(find.text('PRODUCE'), findsOneWidget);
@@ -482,6 +546,174 @@ void main() {
       // Still a list with things in it — not the empty-list line.
       expect(find.textContaining('nothing to buy'), findsNothing);
       expect(find.textContaining('add item or top up'), findsOneWidget);
+    });
+  });
+
+  group('the last tick', () {
+    ShoppingItem item(String name, {bool checked = false}) => ShoppingItem(
+      name: name,
+      ingredientId: name.toLowerCase(),
+      entryId: 'e-${name.toLowerCase()}',
+      checked: checked,
+      totals: [Quantity(100, g)],
+    );
+
+    /// Lime in the basket, Onion still to grab: one tick from done.
+    ShoppingList oneLeft() => ShoppingList(
+      groups: [
+        ShoppingGroup(
+          label: 'Produce',
+          items: [item('Lime', checked: true), item('Onion')],
+        ),
+      ],
+    );
+
+    /// Lets a burst play out and come down.
+    Future<void> settleBurst(WidgetTester tester) async {
+      await tester.pump(kConfettiDuration + const Duration(milliseconds: 80));
+      await tester.pump();
+    }
+
+    testWidgets('this phone’s last tick bursts the confetti, with a haptic, '
+        'and the write goes through as it always did', (tester) async {
+      final haptics = _recordHaptics(tester);
+      final repo = _FakeShoppingRepo(oneLeft(), live: true);
+      await tester.pumpWidget(
+        _host([shoppingRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Onion'));
+      await tester.pump();
+
+      expect(find.byType(ConfettiBurst), findsOneWidget);
+      expect(haptics, ['HapticFeedbackType.lightImpact']);
+      expect(repo.tickCalls, 1);
+      expect(repo.lastChecked, isTrue);
+      // The tail is the shipped state arriving: the row is in the basket and
+      // the quiet line stands where the aisle was, under the confetti.
+      expect(find.text('everything’s in the basket'), findsOneWidget);
+      expect(find.text('IN THE BASKET · 2'), findsOneWidget);
+
+      await settleBurst(tester);
+      expect(find.byType(ConfettiBurst), findsNothing);
+    });
+
+    testWidgets('a list of one item plays nothing', (tester) async {
+      final haptics = _recordHaptics(tester);
+      final repo = _FakeShoppingRepo(
+        ShoppingList(
+          groups: [
+            ShoppingGroup(label: 'Produce', items: [item('Onion')]),
+          ],
+        ),
+        live: true,
+      );
+      await tester.pumpWidget(
+        _host([shoppingRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Onion'));
+      await tester.pump();
+
+      expect(find.byType(ConfettiBurst), findsNothing);
+      expect(haptics, isEmpty);
+      expect(repo.tickCalls, 1);
+    });
+
+    testWidgets('the partner’s last tick, arriving by sync, plays nothing', (
+      tester,
+    ) async {
+      final haptics = _recordHaptics(tester);
+      final repo = _FakeShoppingRepo(oneLeft(), live: true);
+      await tester.pumpWidget(
+        _host([shoppingRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pump();
+
+      repo.emit(
+        ShoppingList(
+          groups: [
+            ShoppingGroup(
+              label: 'Produce',
+              items: [
+                item('Lime', checked: true),
+                item('Onion', checked: true),
+              ],
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('everything’s in the basket'), findsOneWidget);
+      expect(find.byType(ConfettiBurst), findsNothing);
+      expect(haptics, isEmpty);
+    });
+
+    testWidgets('once per list: unticking and re-ticking the last row does '
+        'not replay, and a row added since makes a new list', (tester) async {
+      final haptics = _recordHaptics(tester);
+      final repo = _FakeShoppingRepo(oneLeft(), live: true);
+      await tester.pumpWidget(
+        _host([shoppingRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Onion'));
+      await tester.pump();
+      expect(find.byType(ConfettiBurst), findsOneWidget);
+      await settleBurst(tester);
+
+      // Untick from the basket, then tick again: the same list, done twice.
+      await tester.tap(find.text('Onion'));
+      await tester.pump();
+      expect(find.text('everything’s in the basket'), findsNothing);
+      await tester.tap(find.text('Onion'));
+      await tester.pump();
+      expect(find.text('everything’s in the basket'), findsOneWidget);
+      expect(find.byType(ConfettiBurst), findsNothing);
+      expect(haptics, hasLength(1));
+
+      // Flour joins (a top-up, say) and is ticked: a new list, a new moment.
+      repo.emit(
+        repo.list.copyWith(
+          groups: [
+            ...repo.list.groups,
+            ShoppingGroup(label: 'Baking', items: [item('Flour')]),
+          ],
+        ),
+      );
+      // Two frames: the stream's event lands in one, the rows rebuild in the
+      // next.
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('Flour'));
+      await tester.pump();
+      expect(find.byType(ConfettiBurst), findsOneWidget);
+      expect(haptics, hasLength(2));
+      await settleBurst(tester);
+    });
+
+    testWidgets('with animations off the haptic still fires and nothing is '
+        'drawn', (tester) async {
+      final haptics = _recordHaptics(tester);
+      final repo = _FakeShoppingRepo(oneLeft(), live: true);
+      await tester.pumpWidget(
+        _host([
+          shoppingRepositoryProvider.overrideWithValue(repo),
+        ], disableAnimations: true),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Onion'));
+      await tester.pump();
+
+      expect(find.byType(ConfettiBurst), findsNothing);
+      expect(haptics, ['HapticFeedbackType.lightImpact']);
+      expect(repo.tickCalls, 1);
+      expect(find.text('everything’s in the basket'), findsOneWidget);
     });
   });
 

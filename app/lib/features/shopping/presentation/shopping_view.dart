@@ -9,7 +9,10 @@
 /// persists — and syncs, since step 7.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -33,6 +36,7 @@ import '../../recipes/domain/effective_lines.dart';
 import '../data/shopping_providers.dart';
 import '../domain/shopping.dart';
 import 'add_shopping_item_sheet.dart';
+import 'confetti_burst.dart';
 import 'edit_top_up_sheet.dart';
 import 'shopping_format.dart';
 import 'shopping_view_models.dart';
@@ -496,15 +500,29 @@ class _OptionalLinesEchoState extends ConsumerState<OptionalLinesEcho> {
 /// line (a non-food item, or an ingredient that's only a manual top-up) can be
 /// removed by swiping it away or long-pressing — a cook-derived line can't (its
 /// quantity comes from the week; drop its top-up via the edit sheet instead).
-class _ItemRow extends ConsumerWidget {
+class _ItemRow extends ConsumerStatefulWidget {
   const _ItemRow({required this.item});
 
   final ShoppingItem item;
 
-  Future<void> _toggle(BuildContext context, WidgetRef ref) async {
+  @override
+  ConsumerState<_ItemRow> createState() => _ItemRowState();
+}
+
+class _ItemRowState extends ConsumerState<_ItemRow> {
+  /// The check box's own box, so the burst comes from under the thumb.
+  final _box = GlobalKey();
+
+  ShoppingItem get item => widget.item;
+
+  Future<void> _toggle() async {
     final repo = ref.read(shoppingRepositoryProvider);
     final entryId = item.entryId;
     final what = item.checked ? 'untick ${item.name}' : 'tick ${item.name}';
+    // Decided on the list as it stands, before the write and before any
+    // await: the derivation that follows would call the partner's last tick
+    // a finish too.
+    _celebrateIfLastTick();
     // A touched line (free-text, checked, or topped-up) has an entry; a purely
     // derived ingredient doesn't yet — check-off lazily creates it.
     if (entryId != null) {
@@ -528,9 +546,31 @@ class _ItemRow extends ConsumerWidget {
     }
   }
 
+  /// The last tick's celebration: a light haptic and, unless the phone asks
+  /// for no animation, the confetti from this row's box. Armed once per list
+  /// ([LastTickCelebration]), so the other phone's finish and a re-tick of
+  /// the same row play nothing.
+  void _celebrateIfLastTick() {
+    final list = ref.read(currentShoppingListProvider).asData?.value;
+    if (list == null) return;
+    final armed = ref
+        .read(lastTickCelebrationProvider.notifier)
+        .arm(ref.read(viewedWeekStartProvider), list, item);
+    if (!armed) return;
+    unawaited(HapticFeedback.lightImpact());
+    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) return;
+    final box = _box.currentContext?.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return;
+    playConfettiBurst(
+      context,
+      origin: box.localToGlobal(box.size.center(Offset.zero)),
+      seed: shoppingItemIdentity(item).hashCode,
+    );
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final row = _rowBody(context, ref);
+  Widget build(BuildContext context) {
+    final row = _rowBody();
     if (!item.isUserAdded) return row;
     // Swipe-to-delete for user-added lines; the confirm dialog runs first, and
     // the stream-driven list drops the row once the entry is soft-deleted.
@@ -546,11 +586,11 @@ class _ItemRow extends ConsumerWidget {
     );
   }
 
-  Widget _rowBody(BuildContext context, WidgetRef ref) {
+  Widget _rowBody() {
     final secondary = item.checked ? '' : itemSecondary(item);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => _toggle(context, ref),
+      onTap: _toggle,
       onLongPress: item.isUserAdded
           ? () => _confirmRemove(context, ref, item)
           : null,
@@ -566,7 +606,7 @@ class _ItemRow extends ConsumerWidget {
           children: [
             Row(
               children: [
-                _CheckBox(checked: item.checked),
+                _CheckBox(key: _box, checked: item.checked),
                 const SizedBox(width: 11),
                 Expanded(
                   child: Text(
@@ -741,7 +781,7 @@ class _ProvenanceLine extends StatelessWidget {
 /// The design-board check box: a rounded square, filled herb-green with a white
 /// tick when on.
 class _CheckBox extends StatelessWidget {
-  const _CheckBox({required this.checked});
+  const _CheckBox({required this.checked, super.key});
 
   final bool checked;
 

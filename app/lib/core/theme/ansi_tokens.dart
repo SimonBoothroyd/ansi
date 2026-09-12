@@ -42,6 +42,35 @@ abstract final class AnsiColors {
   static const alarmLine = Color(0xFFE7C3BA);
 }
 
+/// The confetti's eight kitchen colours — the one deliberate break from the
+/// two-ink palette, and used in exactly one place: the burst that plays when
+/// this phone ticks the last row of the shopping list. Nothing else in the app
+/// draws in them, so a fourth ink anywhere else is still a decision, not a
+/// precedent. [herb] and [herbDeep] are the palette's own greens; the other
+/// six are the food's.
+abstract final class AnsiConfetti {
+  static const herb = AnsiColors.herb;
+  static const tomato = Color(0xFFD9482B);
+  static const butter = Color(0xFFE8B531);
+  static const blueberry = Color(0xFF4B6FCB);
+  static const carrot = Color(0xFFE07A2E);
+  static const plum = Color(0xFF8B4B9E);
+  static const herbDeep = AnsiColors.herbDeep;
+  static const beet = Color(0xFFC93A6E);
+
+  /// Every colour a piece may take, in the order the board lists them.
+  static const all = <Color>[
+    herb,
+    tomato,
+    butter,
+    blueberry,
+    carrot,
+    plum,
+    herbDeep,
+    beet,
+  ];
+}
+
 /// Corner radii, by the shape a thing is: a pill, a card, or a box that holds
 /// a note. Three numbers so a fourth is a decision rather than a typo.
 abstract final class AnsiRadii {

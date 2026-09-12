@@ -417,6 +417,40 @@ abstract class ShoppingList with _$ShoppingList {
   bool get allTicked => groups.isNotEmpty && openGroups.isEmpty;
 }
 
+// --- The last tick -----------------------------------------------------------
+
+/// The identity a row keeps across a tick: its ingredient, or for a free-text
+/// item its entry. The entry id alone would not do — a derived row has none
+/// until its first check-off creates one, so keying on it would make the
+/// untick-and-re-tick of the same row look like a new list.
+String shoppingItemIdentity(ShoppingItem item) =>
+    item.ingredientId ?? item.entryId ?? item.name;
+
+/// Whether ticking [item] is the tick that finishes [list]: the list holds
+/// more than one item, [item] is still unticked, and every other item is
+/// ticked. Decided on the list as it stands BEFORE the write, on this phone —
+/// a list that arrives all-ticked by sync was finished by the other phone,
+/// and that is not this phone's moment. A list of one item is a chore, not a
+/// trip, and never qualifies.
+bool completesTheList(ShoppingList list, ShoppingItem item) {
+  final items = [for (final g in list.groups) ...g.items];
+  if (items.length < 2 || item.checked) return false;
+  final id = shoppingItemIdentity(item);
+  return items.every((i) => i.checked || shoppingItemIdentity(i) == id);
+}
+
+/// The list's identity for "once per list": its items' identities, sorted and
+/// joined, so unticking and re-ticking the last row is the same list and a
+/// row added since is a new one. The viewed week is the caller's to prepend —
+/// the same items next week are a new trip.
+String completionKeyOf(ShoppingList list) {
+  final ids = [
+    for (final g in list.groups)
+      for (final i in g.items) shoppingItemIdentity(i),
+  ]..sort();
+  return ids.join('|');
+}
+
 // --- Aggregation (honest summation core) -------------------------------------
 
 /// An amount counted in a [Measure] ("2 × potato, large") — an input awaiting

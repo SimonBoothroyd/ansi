@@ -422,6 +422,79 @@ void main() {
     });
   });
 
+  group('the last tick', () {
+    ShoppingItem item(String name, {bool checked = false}) =>
+        ShoppingItem(name: name, ingredientId: name, checked: checked);
+
+    final almostDone = ShoppingList(
+      groups: [
+        ShoppingGroup(label: 'Produce', items: [item('Lime', checked: true)]),
+        ShoppingGroup(label: 'Baking', items: [item('Flour')]),
+      ],
+    );
+
+    test('the tick that finishes the list is the one unticked row left', () {
+      expect(completesTheList(almostDone, item('Flour')), isTrue);
+      // A row already ticked cannot finish anything; a row with company
+      // still to grab is not the last.
+      expect(
+        completesTheList(almostDone, item('Lime', checked: true)),
+        isFalse,
+      );
+      final twoLeft = almostDone.copyWith(
+        groups: [
+          ...almostDone.groups,
+          ShoppingGroup(label: 'Dairy', items: [item('Milk')]),
+        ],
+      );
+      expect(completesTheList(twoLeft, item('Flour')), isFalse);
+    });
+
+    test('a list of one item never celebrates', () {
+      final one = ShoppingList(
+        groups: [
+          ShoppingGroup(label: 'Baking', items: [item('Flour')]),
+        ],
+      );
+      expect(completesTheList(one, item('Flour')), isFalse);
+      expect(completesTheList(const ShoppingList(), item('Flour')), isFalse);
+    });
+
+    test('the completion key is the sorted item identities', () {
+      expect(completionKeyOf(almostDone), 'Flour|Lime');
+      // Ticking changes nothing about WHICH list this is — a derived row
+      // gaining its entry on first check-off included.
+      final ticked = ShoppingList(
+        groups: [
+          ShoppingGroup(label: 'Produce', items: [item('Lime', checked: true)]),
+          const ShoppingGroup(
+            label: 'Baking',
+            items: [
+              ShoppingItem(
+                name: 'Flour',
+                ingredientId: 'Flour',
+                entryId: 'e-flour',
+                checked: true,
+              ),
+            ],
+          ),
+        ],
+      );
+      expect(completionKeyOf(ticked), completionKeyOf(almostDone));
+      // A row added since is a new list.
+      final grown = almostDone.copyWith(
+        groups: [
+          ...almostDone.groups,
+          ShoppingGroup(label: 'Dairy', items: [item('Milk')]),
+        ],
+      );
+      expect(completionKeyOf(grown), 'Flour|Lime|Milk');
+      // A free-text row is known by its entry.
+      const towels = ShoppingItem(name: 'Paper towels', entryId: 'e1');
+      expect(shoppingItemIdentity(towels), 'e1');
+    });
+  });
+
   group('buildShoppingList', () {
     ShoppingList build({
       List<CookContributionInput> cook = const [],
