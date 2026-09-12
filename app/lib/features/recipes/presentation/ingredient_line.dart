@@ -22,9 +22,11 @@
 /// the same line for rows that name nothing the household owns yet.
 ///
 /// **An optional line carries a tag after the note** (board frame e2) in the
-/// stub badge's voice, because it is the same kind of claim — a fact about the
-/// line that changes what a total covers. It sits in the identity column, never
-/// the amount column: "1 lime" is still what the recipe says.
+/// sub-recipe chip's shape, because it is the same kind of claim — a fact
+/// about the line that changes what a total covers. It sits in the identity
+/// column, never the amount column: "1 lime" is still what the recipe says.
+/// The tag is also the whole statement: a tagged row prints nothing in its
+/// macro slot, because *optional* twice on one line is once too many.
 ///
 /// **[RecipeIngredientLine.macroLine] is opt-in**, because the import preview
 /// shares this widget and has no summation behind it: the recipe page passes
@@ -109,7 +111,7 @@ class RecipeIngredientLine extends StatelessWidget {
   /// it is holding — one style, so the figures and the reason read as the
   /// same aside under the name.
   static final _lineStyle = ansiMono(
-    size: 10.5,
+    size: 10,
     color: AnsiColors.muted,
   ).copyWith(height: 1.3);
 
@@ -348,16 +350,14 @@ class _IdentityState extends State<_Identity> {
                 : ansiSans(size: 16, weight: FontWeight.w500),
             recognizer: nameIsDoor ? _openIngredient : null,
           ),
+          // Two spaces, no middle dot: the note is a modifier of the name
+          // ("Onion  finely chopped"), and a separator between them promised
+          // two facts where there is one.
           for (final part in [
             if (notes.isNotEmpty) notes,
             if (dangling) 'linked recipe missing',
-          ]) ...[
-            TextSpan(
-              text: '  ·  ',
-              style: ansiSans(size: 16, color: AnsiColors.line),
-            ),
-            TextSpan(text: part, style: noteStyle),
-          ],
+          ])
+            TextSpan(text: '  $part', style: noteStyle),
           ...optionalSpans(optional: optional),
         ],
       ),
@@ -381,19 +381,26 @@ List<InlineSpan> optionalSpans({required bool optional}) => optional
       ]
     : const [];
 
-/// The `optional` tag (board frame e2's `.r3-tag`): the stub badge's exact
-/// voice — `FBadge.secondary`, muted mono — so a reader who knows one knows
-/// the other. Public so the page test can find it by type.
+/// The `optional` tag: the sub-recipe chip's shape — a 6 px box in the herb
+/// wash, muted mono — because it is the same kind of mark on the same kind of
+/// line, and a second pill geometry beside [RecipeChip] read as a second
+/// vocabulary. Public so the page test can find it by type.
 class OptionalTag extends StatelessWidget {
   const OptionalTag({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return FBadge(
-      variant: FBadgeVariant.secondary,
-      child: Text(
-        'optional',
-        style: ansiMono(size: 10, color: AnsiColors.muted),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AnsiColors.herbSoft,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        child: Text(
+          'optional',
+          style: ansiMono(size: 10, color: AnsiColors.muted),
+        ),
       ),
     );
   }

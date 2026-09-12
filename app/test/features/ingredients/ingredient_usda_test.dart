@@ -591,7 +591,7 @@ void main() {
     await tester.tap(find.text('Curry leaves, raw').last);
     await tester.pumpAndSettle();
 
-    expect(macroFieldText(tester, 'fibre'), '6.4');
+    expect(macroFieldText(tester, 'fibre'), '6');
     await saveForm(tester, reopen: curryLeaves.canonicalName);
     expect((await repo.byId('curry'))!.macros!.fiber, 6.4);
   });

@@ -27,8 +27,8 @@ void main() {
   group('formatQuantity', () {
     test('a kitchen fraction where there is one, else the capped decimal', () {
       expect(formatQuantity(2), '2');
-      expect(formatQuantity(2.25), '2 1/4');
-      expect(formatQuantity(2.5), '2 1/2');
+      expect(formatQuantity(2.25), '2¼');
+      expect(formatQuantity(2.5), '2½');
       expect(formatQuantity(2.2), '2.2');
       expect(formatQuantity(null), '');
     });

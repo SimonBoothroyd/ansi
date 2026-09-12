@@ -63,6 +63,31 @@ opens the quantity sheet, the name cell opens the identity picker. *used in N
 steps* is a second muted line under the name, and only when N > 0: it is a fact
 about the line, not a control.
 
+Three details of that line are rules rather than styling:
+
+- **A note is a modifier, not a second fact.** It follows the name after two
+  spaces, in muted italic — no middle dot between a thing and its own
+  qualifier.
+- **The `optional` tag wears the sub-recipe chip's shape** (`OptionalTag`): a
+  6 px box in the herb wash, muted mono, hung off the end of the identity. It
+  is also the whole statement — a tagged row prints nothing in its macro slot,
+  because *optional* twice on one line is once too many.
+- **A line's own macros** (the `⋯` toggle) print under the name in the panel's
+  order, `kcal · P C F · fibre`, one size down. They are the line *as shown*,
+  so they move with the scaler; the panel underneath does not.
+
+The **method is prose with live numbers in it** (`shared/method_step_text.dart`).
+An ingredient chip is the word set bold in `herbDeep` with its live amount in a
+small herb-soft mono pill after it — no box around the word, because a boxed
+noun mid-sentence breaks the reading, and nothing pads the chip sideways so the
+comma after it hugs. A timer chip keeps its outlined paper pill: it is not a
+word in the sentence. A chip whose amount is an imprecise unit prints no pill
+when the prose right after it already says the same words — *Season with salt
+to taste*, not *salt `to taste` to taste*. Step numbers are herb mono digits in
+a column, not ink discs, and the Method tab's own bar carries `for 4
+servings · 1×` at its right end, read off the same servings state the
+Ingredients tab's scaler holds.
+
 The editor's **header is one widget with two hosts** (plan 0025 #4):
 `presentation/recipe_header_form.dart` renders TITLE · SERVES · MAKES · TIMES ·
 SHELF LIFE · FILE UNDER from `kRecipeHeaderSections` over a `RecipeHeaderHost`
@@ -79,7 +104,10 @@ tab: four cells (kcal · protein · carb · fat) off `Recipe.macros`, derived fr
 the shared `summarizeRecipeMacros` summation — the same one the pickers use, so
 page and row can never disagree. It renders the `incomplete` badge and its
 reason (`shared/incomplete_macros.dart`) rather than a fabricated number, and it
-is **per serving**, so the servings scaler never moves it.
+is **per serving**, so the servings scaler never moves it. Under the cells, what
+the total left out by rule is two labelled rows — `NOT COUNTED` for the lines
+that carry no weight to count, `OPTIONAL` for the ones the rule drops — with
+one caption under both; the fibre line keeps its own row.
 
 Each named reason under the badge is a **door to the fix it implies**, and one
 of them points off the recipe entirely: **`needs a piece weight`** — a bare

@@ -1012,10 +1012,27 @@
     .mi-line .rd{width:6px;height:6px;border-radius:50%;background:var(--aging);flex:none;}
     .mi-line .why{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-left:auto;}
     .mi-line .go{color:var(--herb);font-size:12px;flex:none;}
-    /* excluded BY RULE, named under a real total (D6) */
+    /* excluded BY RULE, named under a real total (D6): one labelled row per
+       reason, in the ingredient grid's own two columns, then one caption */
     .notcounted{margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);line-height:1.45;}
     .notcounted b{color:var(--ink);font-weight:500;}
     .notcounted .nk{color:var(--herb-deep);}
+    .nc-row{display:flex;gap:10px;margin:0 20px 3px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);line-height:1.45;}
+    .nc-row .nc-lab{flex:none;width:84px;letter-spacing:.08em;}
+    .nc-cap{margin:4px 20px 0;font-size:11.5px;color:var(--muted);line-height:1.4;}
+    /* a METHOD chip: the ingredient's word in the sentence, unboxed, with its
+       live amount in the pill beside it — the pill is the marked thing */
+    .mchip{font-weight:600;color:var(--herb-deep);}
+    .mqn{display:inline-block;margin-left:4px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:var(--herb);background:var(--herb-soft);border-radius:5px;padding:1px 5px;}
+    /* a step: a mono digit in its own column, never an ink disc */
+    .mrow{display:flex;gap:14px;padding:9px 20px;font-size:13px;line-height:1.55;}
+    .mrow + .mrow{border-top:1px solid var(--line);}
+    .mrow .mn{flex:none;width:26px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--herb);padding-top:2px;}
+    /* what the Method tab's numbers are scaled to, at the bar's own end */
+    .tab-scale{margin-left:auto;align-self:flex-end;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);padding-bottom:12px;}
+    /* the planned band: one line, a glyph and no fill */
+    .planned{display:flex;align-items:center;gap:6px;margin:10px 0 0;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--herb-deep);}
+    .planned svg{flex:none;}
     /* a superseded frame's pointer back to the section it replaces */
     
 

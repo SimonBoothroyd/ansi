@@ -28,6 +28,9 @@ final _lines = {
   'yeast': _li('yeast', 'Nutritional Yeast', qty: 1, unit: tbsp),
   'oil': _li('oil', 'Olive Oil', qty: 1, unit: tbsp),
   'salt': _li('salt', 'Salt', qty: 1),
+  // Imprecise lines: the fold gives their chips the unit's word as the amount.
+  'seasoning': _li('seasoning', 'Kosher Salt', unit: toTaste),
+  'parsley': _li('parsley', 'Parsley', unit: handful),
 };
 
 const _blankCollectiveRefs = [
@@ -237,6 +240,136 @@ void main() {
 
       expect(_chipLabels(tester), ['']);
       expect(find.text('ingredient'), findsOneWidget);
+    });
+  });
+
+  group('an ingredient chip is a word in the sentence', () {
+    testWidgets('the word carries no box; the amount gets the only pill', (
+      tester,
+    ) async {
+      const step = MethodStep(
+        tokens: [
+          MethodText(s: 'Melt the '),
+          MethodRef(refs: ['butter'], label: 'butter'),
+          MethodText(s: ', then add the '),
+          MethodRef(
+            refs: ['onion'],
+            label: 'onion',
+            amountRule: ChipAmountRule.hideAmount,
+          ),
+          MethodText(s: '.'),
+        ],
+      );
+
+      await tester.pumpWidget(_host(step));
+
+      final withAmount = find.byWidgetPredicate(
+        (w) => w is MethodChip && w.label == 'butter',
+      );
+      final withoutAmount = find.byWidgetPredicate(
+        (w) => w is MethodChip && w.label == 'onion',
+      );
+      // One pill on the chip that has a number; none at all on the one that
+      // does not — the word itself is never boxed.
+      expect(
+        find.descendant(of: withAmount, matching: find.byType(DecoratedBox)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: withoutAmount, matching: find.byType(DecoratedBox)),
+        findsNothing,
+      );
+    });
+
+    testWidgets('a timer chip keeps its outlined pill', (tester) async {
+      const step = MethodStep(
+        tokens: [
+          MethodText(s: 'Simmer for '),
+          MethodTimer(lowSeconds: 360, highSeconds: 480),
+          MethodText(s: '.'),
+        ],
+      );
+
+      await tester.pumpWidget(_host(step));
+
+      expect(find.text('6–8 min'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(MethodChip),
+          matching: find.byType(DecoratedBox),
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+
+  group('an imprecise amount the prose already says is not printed twice', () {
+    testWidgets('"Season with salt to taste" — the chip drops its pill', (
+      tester,
+    ) async {
+      const step = MethodStep(
+        tokens: [
+          MethodText(s: 'Season with '),
+          MethodRef(refs: ['seasoning'], label: 'salt'),
+          MethodText(s: ' to taste, then serve.'),
+        ],
+      );
+
+      await tester.pumpWidget(_host(step));
+
+      final chip = tester.widget<MethodChip>(find.byType(MethodChip));
+      expect(chip.amount, isNull);
+      // The words survive — in the prose, where the source wrote them.
+      expect(find.textContaining('to taste'), findsOneWidget);
+    });
+
+    testWidgets('punctuation and case do not hide the repeat', (tester) async {
+      const step = MethodStep(
+        tokens: [
+          MethodText(s: 'Scatter the '),
+          MethodRef(refs: ['parsley'], label: 'parsley'),
+          MethodText(s: ' — Handful at a time.'),
+        ],
+      );
+
+      await tester.pumpWidget(_host(step));
+
+      expect(tester.widget<MethodChip>(find.byType(MethodChip)).amount, isNull);
+    });
+
+    testWidgets('a sentence that does not repeat the word keeps the pill', (
+      tester,
+    ) async {
+      const step = MethodStep(
+        tokens: [
+          MethodText(s: 'Season with '),
+          MethodRef(refs: ['seasoning'], label: 'salt'),
+          MethodText(s: ' and serve.'),
+        ],
+      );
+
+      await tester.pumpWidget(_host(step));
+
+      expect(
+        tester.widget<MethodChip>(find.byType(MethodChip)).amount,
+        'to taste',
+      );
+    });
+
+    testWidgets('a precise amount is never dropped, whatever follows it', (
+      tester,
+    ) async {
+      const step = MethodStep(
+        tokens: [
+          MethodText(s: 'Melt '),
+          MethodRef(refs: ['butter'], label: 'butter'),
+          MethodText(s: ' 50 g at a time.'),
+        ],
+      );
+
+      await tester.pumpWidget(_host(step));
+
+      expect(tester.widget<MethodChip>(find.byType(MethodChip)).amount, '50 g');
     });
   });
 

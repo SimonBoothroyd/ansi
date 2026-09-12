@@ -16,15 +16,15 @@ void main() {
   group('the label', () {
     test('is the reserved prefix and the serving as the pack says it', () {
       expect(servingMeasureLabel(2, tbsp), 'serving · 2 tbsp');
-      expect(servingMeasureLabel(0.25, cup), 'serving · 1/4 cup');
+      expect(servingMeasureLabel(0.25, cup), 'serving · ¼ cup');
       expect(servingMeasureLabel(28, g), 'serving · 28 g');
     });
 
     test('a metric serving reads off a scale, a kitchen one off a cook', () {
       expect(servingMeasureLabel(212.5, g), 'serving · 212.5 g');
       expect(servingMeasureLabel(1.5, ml), 'serving · 1.5 ml');
-      expect(servingMeasureLabel(0.5, cup), 'serving · 1/2 cup');
-      expect(servingMeasureLabel(0.25, flOz), 'serving · 1/4 fl oz');
+      expect(servingMeasureLabel(0.5, cup), 'serving · ½ cup');
+      expect(servingMeasureLabel(0.25, flOz), 'serving · ¼ fl oz');
     });
 
     test('round-trips through the parse, whatever the app wrote', () {

@@ -51,7 +51,7 @@ void main() {
         ),
       );
       expect(itemTotal(item), '674 g');
-      expect(itemSecondary(item), '≈ 2 1/4 potato, large → buy 3');
+      expect(itemSecondary(item), '≈ 2¼ potato, large → buy 3');
     });
 
     test('a fractional gram total is a scale reading, its measure count is '
@@ -63,7 +63,7 @@ void main() {
         totals: [Quantity(672.75, g)],
         measureTotal: (amount: 2.25, measure: large),
       );
-      expect(itemTotal(item), '2 1/4 potato, large');
+      expect(itemTotal(item), '2¼ potato, large');
       expect(itemSecondary(item), '672.75 g');
     });
 

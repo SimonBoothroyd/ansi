@@ -1039,7 +1039,7 @@ void main() {
 
       // Lane U's sheet, reading the target's yields off the local repository.
       expect(find.text('makes 1 cup · your recipe'), findsOneWidget);
-      expect(find.textContaining('1/4 of a batch'), findsOneWidget);
+      expect(find.textContaining('¼ of a batch'), findsOneWidget);
       expect(find.text('batch'), findsOneWidget);
 
       await tester.tap(find.text('Done'));

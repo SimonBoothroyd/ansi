@@ -65,8 +65,8 @@ String incompleteNote(RecipeMacroSummary summary) {
 ///
 /// [MacroLineReason.imprecise] has no wording of its own here: an imprecise
 /// line is named by the WORD THE SOURCE PRINTED ("handful", "to taste"), not
-/// by a defect — see [notCountedNote]. [MacroLineReason.optional] is the
-/// recipe page's own tag word, which is the same claim in the same voice.
+/// by a defect — see [impreciseNotCountedNames]. [MacroLineReason.optional] is
+/// the recipe page's own tag word, which is the same claim in the same voice.
 /// `Cucumber · needs a piece weight` names the ingredient's missing fact, so
 /// the marker opens the ingredient (ADR-0015).
 String incompleteLineNote(MacroLineReason reason) => switch (reason) {
@@ -82,7 +82,9 @@ String incompleteLineNote(MacroLineReason reason) => switch (reason) {
 };
 
 /// The two reasons a line leaves a total BY RULE rather than by failure —
-/// named under the total by [notCountedNote], never marked as fixable.
+/// named under the total in a labelled row of its own
+/// ([impreciseNotCountedNames], [optionalNotCountedNames]), never marked as
+/// fixable.
 const Set<MacroLineReason> byRuleReasons = {
   MacroLineReason.imprecise,
   MacroLineReason.optional,
@@ -90,53 +92,57 @@ const Set<MacroLineReason> byRuleReasons = {
 
 /// The lines a summary is WAITING ON — everything a household could fix. The
 /// imprecise and optional ones are excluded by rule, not by failure, so they
-/// are named under the total by [notCountedNote] instead.
+/// are named under the total by [impreciseNotCountedNames] and
+/// [optionalNotCountedNames] instead.
 List<MacroLineNote> fixableNotes(RecipeMacroSummary summary) => [
   for (final note in summary.notes)
     if (!byRuleReasons.contains(note.reason)) note,
 ];
 
-/// `not counted: Parsley · handful, Sesame seeds · to taste` — the exclusion a
-/// real total prints UNDER itself, every time — and, one reason wider, `not
-/// counted · 2 optional lines: Lime, Coriander`. When both kinds coincide it is
-/// ONE line with both reasons: `not counted: Parsley · handful · 2 optional
-/// lines: Lime, Coriander`.
+/// `Cilantro · handful, Kosher Salt · to taste` — the imprecise lines a real
+/// total prints UNDER itself, every time, under the label `NOT COUNTED`.
 ///
-/// This sentence is the whole honesty argument: nothing is invented, because
-/// zero grams were claimed; and nothing is silent, because a reader can see
-/// precisely what the figure does and does not cover. The unit word is the
-/// line's own printed one, never a category name; the optional lines are
-/// counted, then named.
+/// This is half the honesty argument: nothing is invented, because zero grams
+/// were claimed; and nothing is silent, because a reader can see precisely
+/// what the figure does and does not cover. The unit word is the line's own
+/// printed one ("handful", "to taste"), never a category name — the source
+/// said it, so the panel says it.
 ///
-/// Null when nothing was excluded by rule — a caller renders nothing then,
-/// rather than an empty "not counted:".
-String? notCountedNote(List<MacroLineNote> notes) {
-  final imprecise = [
+/// Null when no line was excluded for being imprecise: a caller draws no row
+/// then, rather than a label with nothing after it.
+String? impreciseNotCountedNames(List<MacroLineNote> notes) {
+  final names = [
     for (final n in notes)
       if (n.reason == MacroLineReason.imprecise)
         '${n.name} · ${n.unit ?? 'imprecise'}',
   ];
-  final optional = [
+  return names.isEmpty ? null : names.join(', ');
+}
+
+/// `Lime, Coriander` — the optional lines a real total left out, under the
+/// label `OPTIONAL`.
+///
+/// The other half of [impreciseNotCountedNames]'s argument, and the reason
+/// the two are separate strings rather than one sentence: they are excluded
+/// for two different reasons, and a reader deciding whether to trust the
+/// number is asking which lines are which.
+///
+/// Null when no line was excluded for being optional.
+String? optionalNotCountedNames(List<MacroLineNote> notes) {
+  final names = [
     for (final n in notes)
       if (n.reason == MacroLineReason.optional) n.name,
   ];
-  if (imprecise.isEmpty && optional.isEmpty) return null;
-  final optionalPart = optional.isEmpty
-      ? null
-      : '${optional.length} optional ${plural(optional.length, 'line')}: '
-            '${optional.join(', ')}';
-  if (imprecise.isEmpty) return 'not counted · $optionalPart';
-  final line = 'not counted: ${imprecise.join(', ')}';
-  return optionalPart == null ? line : '$line · $optionalPart';
+  return names.isEmpty ? null : names.join(', ');
 }
 
 /// `fibre not counted · 2 lines without it: Onion, Stock` — why a total that
 /// is whole in every other respect states no fibre.
 ///
 /// Fibre is optional per ingredient ([Macros.fiber]), so this is the same
-/// claim [notCountedNote] makes about a pinch, one figure narrower: the lines
-/// are all IN the total, nothing about them needs fixing, and the one number
-/// they cannot support is named rather than quietly dropped.
+/// claim [impreciseNotCountedNames] makes about a pinch, one figure narrower:
+/// the lines are all IN the total, nothing about them needs fixing, and the
+/// one number they cannot support is named rather than quietly dropped.
 ///
 /// Null when there is no total yet, when the total states fibre, or when
 /// nothing was missing it — a caller renders nothing then.
@@ -149,23 +155,15 @@ String? fiberNotCountedNote(RecipeMacroSummary summary) {
       '${plural(names.length, 'line')} without it: ${names.join(', ')}';
 }
 
-/// The one-line reason under [notCountedNote]: why these lines are out, in
-/// the panel's plain voice. Says what applies — a pinch, an optional line, or
-/// both — and, for an optional line, where the switch is.
-String notCountedCaption(RecipeMacroSummary summary) {
-  final imprecise = summary.impreciseLines > 0;
-  final optional = summary.optionalLines > 0;
-  if (imprecise && optional) {
-    return 'a pinch has no weight to count, and an optional line is left out '
-        'by rule — untick Optional on a line to count it.';
-  }
-  if (optional) {
-    return 'optional lines are left out by rule, not by failure — untick '
-        'Optional on a line to count it.';
-  }
-  return 'a pinch has no weight to count — these are excluded by rule, '
-      'not by failure.';
-}
+/// The one caption under the named rows: why those lines are out, in the
+/// panel's plain voice.
+///
+/// One sentence for both rows rather than one per row. The rows above have
+/// already said which lines are which; what a reader needs after them is the
+/// single claim they share — this is a rule, not a fault, and nothing here is
+/// waiting to be fixed.
+const notCountedCaption =
+    'Imprecise and optional lines are left out by rule, not by failure.';
 
 /// The amber `incomplete` badge (design board `.badge-inc`).
 class IncompleteBadge extends StatelessWidget {

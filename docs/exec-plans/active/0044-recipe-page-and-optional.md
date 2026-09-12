@@ -32,42 +32,42 @@ cook if included."*
 Lane `page` — `features/recipes/presentation`, `shared/method_step_text.dart`,
 `core/units/number_format.dart`, `ingredients/presentation/macros_format.dart`:
 
-- [ ] A method chip is the ingredient's word in bold `herbDeep` with its live
+- [x] A method chip is the ingredient's word in bold `herbDeep` with its live
       amount in a small `herbSoft` mono pill after it (design canvas, *Method
       · B*). No box around the word; the pill is the marked thing because the
       number is what is live. Punctuation after a chip hugs it (no 1 px
       side padding on the span). A chip whose amount is imprecise prints no
       amount when the prose right after it already says the same words
       (`salt` *to taste*, not `salt to taste` *to taste*).
-- [ ] Step numbers are `herb` mono digits, no ink disc.
-- [ ] The Method tab's bar carries `for 4 servings · 1×` at its right end,
+- [x] Step numbers are `herb` mono digits, no ink disc.
+- [x] The Method tab's bar carries `for 4 servings · 1×` at its right end,
       read off the same servings state the scaler holds, so the chips'
       numbers say what they are scaled to.
-- [ ] The planned band is one mono line with a calendar glyph and no fill:
+- [x] The planned band is one mono line with a calendar glyph and no fill:
       `Planned Wed this week`, gaining `· edited for this week` exactly as
       today. The chip row is the only filled shape above the tabs.
-- [ ] `formatAmount` prints vulgar fraction glyphs (`½`, `1½`, `⅔`, `⅛`) —
+- [x] `formatAmount` prints vulgar fraction glyphs (`½`, `1½`, `⅔`, `⅛`) —
       the old comment's reason (fonts without them) is false for every
       bundled face, and a structural test reads each bundled font's `cmap`
       for the nine glyphs so the ruling cannot silently rot. `parseAmount`
       already reads them. Spacing: `1½`, no space before the glyph.
-- [ ] The middle dot between a name and its note is gone; the note is the
+- [x] The middle dot between a name and its note is gone; the note is the
       italic muted run it already is, after two spaces.
-- [ ] The `optional` tag is the sub-recipe chip's shape: 6 px radius,
+- [x] The `optional` tag is the sub-recipe chip's shape: 6 px radius,
       `herbSoft` fill, same height — not an `FBadge` pill.
-- [ ] A line's own macros print in the panel's order — `kcal · P C F ·
+- [x] A line's own macros print in the panel's order — `kcal · P C F ·
       fibre` — one size smaller (10 pt) and lighter, and a row that wears the
       tag prints nothing in the macro slot rather than `optional` a second
       time. `formatMacroLine`, the glyph line and every test that pins the
       old `P F C` order move together.
-- [ ] Gram figures print whole at 1 g and above, one decimal below it
+- [x] Gram figures print whole at 1 g and above, one decimal below it
       (`25 g`, `0.4P`), in the one rule `formatGrams` already is — the
       panel, the line, the picker rows and the week strip all read it, and
       the form's field text with them. Energy is unchanged (whole).
-- [ ] Under the panel, `not counted` is two labelled rows, `NOT COUNTED ·
+- [x] Under the panel, `not counted` is two labelled rows, `NOT COUNTED ·
       names` and `OPTIONAL · names`, with one caption; the fibre line keeps
       its own row.
-- [ ] `docs/product-specs/board/recipe-page.html` redrawn to these frames,
+- [x] `docs/product-specs/board/recipe-page.html` redrawn to these frames,
       status date bumped; `features/recipes/README.md` says the chip and the
       tag shape.
 

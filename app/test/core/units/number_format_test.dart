@@ -30,25 +30,25 @@ void main() {
   group('formatAmount — halves, thirds, quarters, eighths', () {
     final cases = <({double value, String prints})>[
       // The fractions themselves, whole-less and with a whole in front.
-      (value: 0.5, prints: '1/2'),
-      (value: 1.5, prints: '1 1/2'),
-      (value: 0.25, prints: '1/4'),
-      (value: 0.75, prints: '3/4'),
-      (value: 2.75, prints: '2 3/4'),
-      (value: 12.75, prints: '12 3/4'),
-      (value: 0.125, prints: '1/8'),
-      (value: 1.125, prints: '1 1/8'),
-      (value: 0.375, prints: '3/8'),
-      (value: 0.625, prints: '5/8'),
-      (value: 0.875, prints: '7/8'),
-      (value: 1 / 3, prints: '1/3'),
-      (value: 2 / 3, prints: '2/3'),
-      (value: 4 / 3, prints: '1 1/3'),
+      (value: 0.5, prints: '½'),
+      (value: 1.5, prints: '1½'),
+      (value: 0.25, prints: '¼'),
+      (value: 0.75, prints: '¾'),
+      (value: 2.75, prints: '2¾'),
+      (value: 12.75, prints: '12¾'),
+      (value: 0.125, prints: '⅛'),
+      (value: 1.125, prints: '1⅛'),
+      (value: 0.375, prints: '⅜'),
+      (value: 0.625, prints: '⅝'),
+      (value: 0.875, prints: '⅞'),
+      (value: 1 / 3, prints: '⅓'),
+      (value: 2 / 3, prints: '⅔'),
+      (value: 4 / 3, prints: '1⅓'),
       // A value already rounded on its way in still reads as what it was.
-      (value: 0.67, prints: '2/3'),
-      (value: 0.33, prints: '1/3'),
-      (value: 0.13, prints: '1/8'),
-      (value: 0.5075, prints: '1/2'),
+      (value: 0.67, prints: '⅔'),
+      (value: 0.33, prints: '⅓'),
+      (value: 0.13, prints: '⅛'),
+      (value: 0.5075, prints: '½'),
       // …and a number somebody meant survives.
       (value: 0.26, prints: '0.26'),
       (value: 0.1, prints: '0.1'),
@@ -59,10 +59,10 @@ void main() {
       (value: 1, prints: '1'),
       (value: 12, prints: '12'),
       // A fraction is offered in its lowest terms: 2/4 is a half.
-      (value: 2.5, prints: '2 1/2'),
+      (value: 2.5, prints: '2½'),
       // The sign rides in front of the whole thing.
-      (value: -0.5, prints: '-1/2'),
-      (value: -1.25, prints: '-1 1/4'),
+      (value: -0.5, prints: '-½'),
+      (value: -1.25, prints: '-1¼'),
       // Nothing a kitchen says — the fallback answers.
       (value: 12.4, prints: '12.4'),
       (value: 236.59, prints: '236.59'),
@@ -73,10 +73,14 @@ void main() {
       });
     }
 
-    test('never a unicode vulgar glyph — the bundled fonts lack them', () {
+    test('a glyph sits tight against its whole — never a slash, never a '
+        'space', () {
       for (var i = 1; i <= 40; i++) {
-        expect(formatAmount(i / 8), isNot(matches(RegExp('[¼½¾⅓⅔⅛⅜⅝⅞]'))));
+        final printed = formatAmount(i / 8);
+        expect(printed, isNot(contains('/')));
+        expect(printed, isNot(contains(' ')));
       }
+      expect(formatAmount(9 / 8), '1⅛');
     });
   });
 
@@ -144,13 +148,13 @@ void main() {
     });
 
     test("a cook's own units keep their fractions", () {
-      expect(formatAmountIn(2 / 3, cup), '2/3');
-      expect(formatAmountIn(0.5, tbsp), '1/2');
-      expect(formatAmountIn(2.25, pieces), '2 1/4');
-      expect(formatAmountIn(1.5, flOz), '1 1/2');
-      expect(formatAmountIn(0.25, lb), '1/4');
-      expect(formatAmountIn(0.5, oz), '1/2');
-      expect(formatAmountIn(0.75, batches), '3/4');
+      expect(formatAmountIn(2 / 3, cup), '⅔');
+      expect(formatAmountIn(0.5, tbsp), '½');
+      expect(formatAmountIn(2.25, pieces), '2¼');
+      expect(formatAmountIn(1.5, flOz), '1½');
+      expect(formatAmountIn(0.25, lb), '¼');
+      expect(formatAmountIn(0.5, oz), '½');
+      expect(formatAmountIn(0.75, batches), '¾');
     });
 
     test('every catalog unit agrees with one rule or the other', () {
@@ -164,7 +168,10 @@ void main() {
     });
   });
 
-  test('what formatAmount prints, parseAmount reads back', () {
+  test('what formatAmount prints, parseAmount reads back — and so does the '
+      'ASCII a person types', () {
+    expect(parseAmount('1 1/2'), parseAmount(formatAmount(1.5)));
+    expect(parseAmount('2/3'), closeTo(parseAmount('⅔')!, 1e-12));
     for (var eighths = 0; eighths <= 64; eighths++) {
       final value = eighths / 8;
       expect(

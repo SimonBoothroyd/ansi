@@ -61,7 +61,7 @@ void main() {
       );
       // The panel reached the FIELDS (the G1 lesson), the name did not move.
       expect(macroFieldText(tester, 'kcal'), '539');
-      expect(macroFieldText(tester, 'fat'), '30.9');
+      expect(macroFieldText(tester, 'fat'), '31');
       expect(
         tester.widget<TextField>(find.byType(TextField).first).controller!.text,
         'Curry leaves, fresh',

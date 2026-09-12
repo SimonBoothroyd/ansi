@@ -108,13 +108,15 @@ readPrintedServing(String? servingSize) {
   );
 }
 
-/// `2 tbsp`, `0.25 cup`, `1/4 cup`, `1 1/2 fl oz`, `1 Cup` → an amount and a
-/// catalog unit, or null when the words are not a kitchen measure this app
-/// knows. The numeric head is read by [parseAmount], the same reader every
-/// amount field uses, so whatever [formatAmount] wrote reads back.
+/// `2 tbsp`, `0.25 cup`, `¼ cup`, `1/4 cup`, `1 1/2 fl oz`, `1 Cup` → an
+/// amount and a catalog unit, or null when the words are not a kitchen
+/// measure this app knows. The numeric head is read by [parseAmount], the same
+/// reader every amount field uses, so whatever [formatAmount] wrote reads
+/// back — a bare vulgar glyph included, which is what it writes for a quarter.
 ({double amount, Unit unit})? parseServingPhrase(String phrase) {
   final m = RegExp(
-    r'^\s*([0-9][0-9 .,/\u00bc-\u00be\u2150-\u215e]*?)\s*'
+    r'^\s*([0-9\u00bc-\u00be\u2150-\u215e]'
+    r'[0-9 .,/\u00bc-\u00be\u2150-\u215e]*?)\s*'
     r'([a-zA-Z][a-zA-Z ]*?)\s*$',
   ).firstMatch(phrase);
   if (m == null) return null;

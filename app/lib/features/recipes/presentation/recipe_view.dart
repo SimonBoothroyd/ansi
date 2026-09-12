@@ -278,7 +278,24 @@ class _RecipeBody extends HookConsumerWidget {
           const SizedBox(height: 12),
           _Chips(recipe: recipe),
           const SizedBox(height: 20),
-          _TabBar(labels: tabs, index: index, onChanged: (i) => tab.value = i),
+          _TabBar(
+            labels: tabs,
+            index: index,
+            onChanged: (i) => tab.value = i,
+            // The Method tab's chips carry live numbers, and nothing on that
+            // tab says what they are scaled to — the scaler is a tab away.
+            // Same servings state, so the two can never disagree.
+            trailing: index != 1
+                ? null
+                : Text(
+                    'for ${formatQuantity(servings.value)} servings · '
+                    '${formatQuantity(scaleFactorFor(recipe, servings.value))}'
+                    '×',
+                    style: ansiMono(size: 11, color: AnsiColors.muted),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+          ),
           const SizedBox(height: 4),
           if (index == 0)
             _IngredientsTab(
@@ -384,6 +401,7 @@ class _TabBar extends StatelessWidget {
     required this.labels,
     required this.index,
     required this.onChanged,
+    this.trailing,
   });
 
   /// Two tabs, or three while something points at this recipe (D9).
@@ -391,13 +409,20 @@ class _TabBar extends StatelessWidget {
   final int index;
   final ValueChanged<int> onChanged;
 
+  /// A fact about the tab that is open, at the far end of its own bar — what
+  /// the Method's chip numbers are scaled to. Null on a tab that says it
+  /// somewhere better (the Ingredients tab has the scaler itself).
+  final Widget? trailing;
+
   @override
   Widget build(BuildContext context) {
+    final trailing = this.trailing;
     return DecoratedBox(
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: AnsiColors.line)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           for (var i = 0; i < labels.length; i++) ...[
             _TabButton(
@@ -407,6 +432,15 @@ class _TabBar extends StatelessWidget {
             ),
             const SizedBox(width: 28),
           ],
+          if (trailing != null)
+            Expanded(
+              child: Padding(
+                // The tab labels' own bottom padding, so the two sit on one
+                // baseline rather than the bar's edge.
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Align(alignment: Alignment.centerRight, child: trailing),
+              ),
+            ),
         ],
       ),
     );
@@ -639,7 +673,8 @@ class _IngredientsTab extends StatelessWidget {
   /// the panel's words instead: never a zero, and never a partial, which is
   /// why a folded multi-use row prints figures only when EVERY use joined.
   /// [marked] rows already carry that reason under their amount, so they say
-  /// nothing here rather than saying it twice.
+  /// nothing here rather than saying it twice — and an OPTIONAL row says
+  /// nothing here either, because the tag on its name has already said it.
   ({Macros? figures, String? note}) _macroLine(
     LineUses uses,
     RecipeMacroSummary summary,
@@ -659,7 +694,7 @@ class _IngredientsTab extends StatelessWidget {
             .where((n) => n.lineId == use.id)
             .firstOrNull
             ?.reason;
-        return reason == null
+        return reason == null || reason == MacroLineReason.optional
             ? nothing
             : (figures: null, note: incompleteLineNote(reason));
       }
@@ -881,6 +916,12 @@ class _MethodTab extends StatelessWidget {
   }
 }
 
+/// One step: its number, then the step.
+///
+/// The number is a mono digit in a column of its own, not an ink disc. A disc
+/// per step stacked a row of filled circles down the left of a page whose
+/// whole argument is that the words come first — and the digit's job is only
+/// to let a cook find their place again.
 class _StepRow extends StatelessWidget {
   const _StepRow({required this.number, required this.child});
 
@@ -894,30 +935,23 @@ class _StepRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
+          SizedBox(
             width: 26,
-            height: 26,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: AnsiColors.ink,
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              '$number',
-              style: ansiMono(
-                size: 12,
-                color: AnsiColors.paper,
-                weight: FontWeight.w700,
+            child: Padding(
+              // Sits the digit on the first line of the prose beside it.
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                '$number',
+                style: ansiMono(
+                  size: 13,
+                  color: AnsiColors.herb,
+                  weight: FontWeight.w600,
+                ),
               ),
             ),
           ),
           const SizedBox(width: 14),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: child,
-            ),
-          ),
+          Expanded(child: child),
         ],
       ),
     );

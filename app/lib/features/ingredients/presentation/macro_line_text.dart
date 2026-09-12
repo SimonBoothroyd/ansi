@@ -1,4 +1,4 @@
-/// The macro line where it is DENSE — `197 🔥 · 2P 20F 3C · 1.5 🌾`.
+/// The macro line where it is DENSE — `197 🔥 · 2P 3C 20F · 1.5 🌾`.
 ///
 /// A picker row, a recipe line under its name, a day's foot: lines that are
 /// already one number after another, where `kcal` and `fibre` spelled out are
@@ -45,7 +45,7 @@ InlineSpan macroUnitSpan(
   ),
 );
 
-/// The spans of `197 🔥 · 2P 20F 3C · 1.5 🌾`, in [style].
+/// The spans of `197 🔥 · 2P 3C 20F · 1.5 🌾`, in [style].
 ///
 /// The order and the separators are [formatMacroLine]'s exactly — the two
 /// renderings of one line must not drift into two — and so is the rule that
@@ -57,8 +57,8 @@ List<InlineSpan> macroLineSpans(Macros m, {required TextStyle style}) {
     macroUnitSpan(kMacroEnergyIcon, label: 'kcal', style: style),
     TextSpan(
       text:
-          ' · ${formatGrams(m.protein)}P ${formatGrams(m.fat)}F '
-          '${formatGrams(m.carb)}C',
+          ' · ${formatGrams(m.protein)}P ${formatGrams(m.carb)}C '
+          '${formatGrams(m.fat)}F',
       style: style,
     ),
     if (fiber != null) ...[

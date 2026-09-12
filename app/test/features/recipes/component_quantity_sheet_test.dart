@@ -67,7 +67,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('1/4 cup = 1/4 of a batch · makes 1 cup'), findsOneWidget);
+    expect(find.text('¼ cup = ¼ of a batch · makes 1 cup'), findsOneWidget);
     for (final label in ['batch', 'cup', 'tbsp', 'tsp', 'ml']) {
       expect(find.text(label), findsWidgets, reason: 'chip "$label" missing');
     }

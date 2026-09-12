@@ -15,7 +15,7 @@ void main() {
     });
 
     test('a fraction reads as a share of one', () {
-      expect(batchShareText(0.25), '1/4 of a batch');
+      expect(batchShareText(0.25), '¼ of a batch');
     });
   });
 
@@ -44,7 +44,7 @@ void main() {
           unit: cup,
           yields: [(qty: 1, unit: cup)],
         ),
-        '1/4 cup = 1/4 of a batch · makes 1 cup',
+        '¼ cup = ¼ of a batch · makes 1 cup',
       );
     });
 
@@ -88,7 +88,7 @@ void main() {
             against: (qty: 1, unit: cup),
           ),
         ),
-        '1/4 cup · 1/4 of a batch',
+        '¼ cup · ¼ of a batch',
       );
     });
 

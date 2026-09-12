@@ -124,7 +124,7 @@ void main() {
     await _pump(tester);
 
     // 600 g of a 100 kcal/100 g row is the one line that would print.
-    expect(macroText('600 kcal · 60P 30F 120C'), findsNothing);
+    expect(macroText('600 kcal · 60P 120C 30F'), findsNothing);
     expect(find.text('Chicken thigh'), findsOneWidget);
   });
 
@@ -134,7 +134,7 @@ void main() {
     await _pump(tester);
     await _toggle(tester, 'Show line macros');
 
-    expect(macroText('600 kcal · 60P 30F 120C'), findsOneWidget);
+    expect(macroText('600 kcal · 60P 120C 30F'), findsOneWidget);
   });
 
   testWidgets('the figures are the line AS SHOWN — they move with the scaler, '
@@ -147,8 +147,8 @@ void main() {
 
     // 5 servings of a 4-serving recipe: 750 g of chicken, and its macros with
     // it. The strip above is unmoved — a serving is the same serving.
-    expect(macroText('750 kcal · 75P 37.5F 150C'), findsOneWidget);
-    expect(macroText('600 kcal · 60P 30F 120C'), findsNothing);
+    expect(macroText('750 kcal · 75P 150C 38F'), findsOneWidget);
+    expect(macroText('600 kcal · 60P 120C 30F'), findsNothing);
   });
 
   testWidgets('a line excluded BY RULE says why, in the panel’s words — never '
@@ -156,10 +156,11 @@ void main() {
     await _pump(tester);
     await _toggle(tester, 'Show line macros');
 
-    // The handful and the optional lime: reasons, not figures.
+    // The handful says why. The optional lime says nothing here: its tag
+    // already said it, and twice on one line is once too many.
     expect(find.text('not counted'), findsOneWidget);
-    expect(find.text('optional'), findsNWidgets(2)); // the tag, and the reason
-    expect(macroText('0 kcal · 0P 0F 0C'), findsNothing);
+    expect(find.text('optional'), findsOneWidget);
+    expect(macroText('0 kcal · 0P 0C 0F'), findsNothing);
   });
 
   testWidgets('a line the total is WAITING ON is not told twice — its amber '
@@ -179,7 +180,7 @@ void main() {
     // Tofu is a stub, so there is no per-serving total at all…
     expect(find.text('incomplete'), findsOneWidget);
     // …and the chicken line is still honest about itself.
-    expect(macroText('600 kcal · 60P 30F 120C'), findsOneWidget);
+    expect(macroText('600 kcal · 60P 120C 30F'), findsOneWidget);
   });
 
   testWidgets('toggling it back off removes every line figure', (tester) async {
@@ -187,7 +188,7 @@ void main() {
     await _toggle(tester, 'Show line macros');
     await _toggle(tester, 'Hide line macros');
 
-    expect(macroText('600 kcal · 60P 30F 120C'), findsNothing);
+    expect(macroText('600 kcal · 60P 120C 30F'), findsNothing);
     expect(find.text('not counted'), findsNothing);
   });
 
@@ -225,7 +226,7 @@ void main() {
 
     // The 20 g use resolved and the handful did not, so the row says the
     // exclusion rather than printing the half it could add up.
-    expect(macroText('20 kcal · 2P 1F 4C'), findsNothing);
+    expect(macroText('20 kcal · 2P 4C 1F'), findsNothing);
     expect(find.text('not counted'), findsOneWidget);
   });
 

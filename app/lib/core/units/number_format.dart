@@ -4,7 +4,7 @@
 /// Every amount the app prints follows it: a kitchen fraction where the
 /// number is one ([formatAmount]), and otherwise no trailing `.0`, at most
 /// two decimals, no trailing zeros inside those two ([formatNumber]). A third
-/// of a pack is `1/3`, not `0.3333333333333333`; a whole one is `1`, not
+/// of a pack is `⅓`, not `0.3333333333333333`; a whole one is `1`, not
 /// `1.00`.
 ///
 /// Which of the two a figure gets depends on its unit, and [formatAmountIn]
@@ -31,9 +31,21 @@ String formatNumber(double amount) {
       .replaceAll(RegExp(r'\.$'), '');
 }
 
-/// The denominators a kitchen says out loud, smallest first — so a half is
-/// offered as `1/2` before a quarter can claim `2/4`.
-const _denominators = [2, 3, 4, 8];
+/// The fractions a kitchen says out loud, smallest denominator first — so a
+/// half is offered as `½` before a quarter can claim `2/4` — each paired with
+/// the glyph it prints as. Every numerator here is coprime with its
+/// denominator: `2/4` is a half, and the half is already in the list.
+const _fractions = <(int, int, String)>[
+  (1, 2, '½'),
+  (1, 3, '⅓'),
+  (2, 3, '⅔'),
+  (1, 4, '¼'),
+  (3, 4, '¾'),
+  (1, 8, '⅛'),
+  (3, 8, '⅜'),
+  (5, 8, '⅝'),
+  (7, 8, '⅞'),
+];
 
 /// How far a stored value may sit from a fraction and still BE it.
 ///
@@ -43,26 +55,25 @@ const _denominators = [2, 3, 4, 8];
 /// not a quarter.
 const _snap = 0.0075;
 
-/// `1/2`, `2/3`, `1 1/8`, `12.75` — [amount] as a cook says it.
+/// `½`, `⅔`, `1⅛`, `12.75` — [amount] as a cook says it.
 ///
-/// Halves, thirds, quarters and eighths print as ASCII fractions with a space
-/// between the whole and the part. **Never a unicode vulgar glyph** (`½`):
-/// the bundled fonts do not carry every one of them, and a tofu box is worse
-/// than a slash. Anything else falls through to [formatNumber].
+/// Halves, thirds, quarters and eighths print as the **vulgar glyph**, set
+/// tight against its whole: `1½`, never `1 ½` and never `1 1/2`. A slash is
+/// two characters pretending to be one, and it wraps; the glyph is the
+/// typographic form a recipe is printed in. Every bundled face carries all
+/// nine — `test/structure/fonts_carry_vulgar_fractions_test.dart` reads each
+/// font's `cmap` and fails if one stops. Anything else falls through to
+/// [formatNumber].
 String formatAmount(double amount) {
   if (!amount.isFinite) return formatNumber(amount);
   final sign = amount.isNegative ? '-' : '';
   final magnitude = amount.abs();
   final whole = magnitude.floorToDouble();
   final part = magnitude - whole;
-  for (final denominator in _denominators) {
-    for (var numerator = 1; numerator < denominator; numerator++) {
-      // `2/4` is a half, and the half was already offered.
-      if (numerator.gcd(denominator) != 1) continue;
-      if ((part - numerator / denominator).abs() > _snap) continue;
-      final lead = whole == 0 ? '' : '${formatNumber(whole)} ';
-      return '$sign$lead$numerator/$denominator';
-    }
+  for (final (numerator, denominator, glyph) in _fractions) {
+    if ((part - numerator / denominator).abs() > _snap) continue;
+    final lead = whole == 0 ? '' : formatNumber(whole);
+    return '$sign$lead$glyph';
   }
   return formatNumber(amount);
 }
@@ -72,10 +83,9 @@ String formatAmount(double amount) {
 ///
 /// A metric mass or volume ([Unit.isMetric] — `g`, `kg`, `ml`, `l`) is a
 /// reading off a scale or a jug, so it prints as a decimal: `213.5 g`, never
-/// `213 1/2 g`; `1.5 l`, never `1 1/2 l`. Every other unit is something a
-/// cook says by hand — cups, spoons, fl oz, oz, lb, pieces, measures,
-/// servings, batches — and keeps its fractions: `2/3 cup`, `2 1/4 potato,
-/// large`.
+/// `213½ g`; `1.5 l`, never `1½ l`. Every other unit is something a cook says
+/// by hand — cups, spoons, fl oz, oz, lb, pieces, measures, servings, batches
+/// — and keeps its fractions: `⅔ cup`, `2¼ potato, large`.
 ///
 /// A figure with no unit in scope (a bare count, a scale factor) calls
 /// [formatAmount] directly; it is the kitchen rule, and a unitless number in
@@ -83,8 +93,11 @@ String formatAmount(double amount) {
 String formatAmountIn(double amount, Unit unit) =>
     unit.isMetric ? formatNumber(amount) : formatAmount(amount);
 
-/// The vulgar fractions a page (or a keyboard) can print, as their values —
-/// read, never written.
+/// The vulgar fractions a page (or a keyboard) can offer, as their values.
+///
+/// Wider than the nine [formatAmount] prints: fifths and sixths are read back
+/// because a source page or an iOS keyboard can hand one over, even though no
+/// kitchen rule writes them.
 const _vulgar = <String, double>{
   '¼': 0.25,
   '½': 0.5,
@@ -105,9 +118,12 @@ const _vulgar = <String, double>{
 /// [text] as an amount: `1.5`, `1,5`, `2/3`, `1 1/2`, `1½`, `½`. Null when it
 /// is not one — which is the parser's whole refusal path.
 ///
+/// It reads **both** forms on purpose: the app prints glyphs, and a person
+/// types `2/3` on a keyboard that has no `½` key.
+///
 /// A fraction stores its own value, not its printed rounding: `2/3` is
 /// 0.666…, never 0.67, so scaling a recipe by it stays honest and the field
-/// it came from re-prints as `2/3`.
+/// it came from re-prints as `⅔`.
 double? parseAmount(String text) {
   var rest = text.trim().replaceAll(',', '.');
   if (rest.isEmpty) return null;

@@ -143,7 +143,7 @@ void main() {
 
       // The fields read like a label, not like a division.
       expect(macroFieldText(tester, 'kcal'), '286');
-      expect(macroFieldText(tester, 'carb'), '21.4');
+      expect(macroFieldText(tester, 'carb'), '21');
       expect(macroFieldText(tester, 'fat'), '25');
 
       await saveForm(tester);

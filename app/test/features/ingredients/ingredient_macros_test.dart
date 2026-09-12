@@ -79,7 +79,7 @@ void main() {
       await tester.pumpAndSettle();
       // The derivation, before Save, in the person's sight (invariant 3).
       expect(
-        find.textContaining('stored per 100 g · 714 kcal · 0P 78.6F 0C'),
+        find.textContaining('stored per 100 g · 714 kcal · 0P 0C 79F'),
         findsOneWidget,
       );
 
@@ -291,7 +291,7 @@ void main() {
       expect(macroFieldText(tester, 'kcal'), '180');
       expect(macroFieldText(tester, 'fat'), '14');
       expect(
-        find.textContaining('stored per 100 g · 563 kcal · 18.8P 43.8F'),
+        find.textContaining('stored per 100 g · 563 kcal · 19P 31C 44F'),
         findsOneWidget,
       );
       // The card says what it read.
@@ -360,7 +360,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // The pack prints fibre, so the card's line carries the fifth figure.
-      expect(find.text('180 kcal · 6P 14F 10C · 2 fibre'), findsOneWidget);
+      expect(find.text('180 kcal · 6P 10C 14F · 2 fibre'), findsOneWidget);
       expect(
         find.textContaining('panel read per serving of 32 g (“2 Tbsp (32 g)”)'),
         findsOneWidget,
@@ -472,7 +472,7 @@ void main() {
       expect(macroFieldText(tester, 'fibre'), '0');
       // Per 100 is the derivation, and it reads as one.
       expect(
-        find.textContaining('stored per 100 g · 286 kcal · 0P 25F 21.4C'),
+        find.textContaining('stored per 100 g · 286 kcal · 0P 21C 25F'),
         findsOneWidget,
       );
       // Both readings are the pack's, and they agree.

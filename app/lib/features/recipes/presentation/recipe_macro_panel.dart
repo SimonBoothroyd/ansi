@@ -28,10 +28,10 @@
 /// fix its reason implies. Invariant 3 is unchanged: nothing new is included
 /// in any total; the refusal just says what it is waiting on.
 ///
-/// **And a real total says what it left out.** Imprecise lines are excluded by
-/// rule, and `not counted: Parsley · handful` prints beneath the cells, every
-/// time — as do optional lines, one reason wider on the same line: `not
-/// counted · 2 optional lines: Lime, Coriander`.
+/// **And a real total says what it left out**, in two labelled rows beneath
+/// the cells: `NOT COUNTED · Parsley · handful` for the lines that carry no
+/// weight to count, `OPTIONAL · Lime, Coriander` for the ones the rule drops,
+/// and one caption under both.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -42,6 +42,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/incomplete_macros.dart';
 import '../../ingredients/presentation/macros_format.dart';
 import '../domain/recipe_macros.dart';
+import 'ingredient_line.dart';
 
 class RecipeMacroPanel extends StatelessWidget {
   const RecipeMacroPanel({required this.summary, this.onFix, super.key});
@@ -92,8 +93,17 @@ class RecipeMacroPanel extends StatelessWidget {
   }
 }
 
-/// `not counted: Parsley · handful, Sesame seeds · to taste` — and/or
-/// `not counted · 2 optional lines: Lime, Coriander`.
+/// What the total left out, by rule — one labelled row per reason:
+///
+/// ```text
+/// NOT COUNTED   Cilantro · handful, Kosher Salt · to taste
+/// OPTIONAL      Lime, Coriander
+/// ```
+///
+/// Two rows rather than one run-on sentence, because they are two different
+/// claims and a reader weighing the number is asking which lines are which.
+/// One caption under both says the thing they share. The fibre line keeps its
+/// own row: it is a missing FIGURE, not missing lines.
 class _NotCounted extends StatelessWidget {
   const _NotCounted({required this.summary});
 
@@ -101,32 +111,82 @@ class _NotCounted extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final note = notCountedNote(summary.notes);
+    final imprecise = impreciseNotCountedNames(summary.notes);
+    final optional = optionalNotCountedNames(summary.notes);
     // The fifth cell's absence, said in words: the lines are all in the total,
     // and the one figure they cannot support is named.
     final fibre = fiberNotCountedNote(summary);
-    if (note == null && fibre == null) return const SizedBox.shrink();
+    final excluded = imprecise != null || optional != null;
+    if (!excluded && fibre == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (note != null) ...[
-            Text(note, style: ansiMono(size: 11, color: AnsiColors.muted)),
-            const SizedBox(height: 2),
-            Text(
-              notCountedCaption(summary),
-              style: ansiSans(size: 12, color: AnsiColors.muted, height: 1.35),
+          if (imprecise != null)
+            _NotCountedRow(label: 'NOT COUNTED', names: imprecise),
+          if (optional != null)
+            _NotCountedRow(label: 'OPTIONAL', names: optional),
+          if (excluded)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                notCountedCaption,
+                style: ansiSans(
+                  size: 12,
+                  color: AnsiColors.muted,
+                  height: 1.35,
+                ),
+              ),
             ),
-          ],
           if (fibre != null)
             Padding(
-              padding: EdgeInsets.only(top: note == null ? 0 : 4),
+              padding: EdgeInsets.only(top: excluded ? 4 : 0),
               child: Text(
                 fibre,
                 style: ansiMono(size: 11, color: AnsiColors.muted),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One reason's row: the micro-label, then the names it covers.
+class _NotCountedRow extends StatelessWidget {
+  const _NotCountedRow({required this.label, required this.names});
+
+  final String label;
+  final String names;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            // The ingredient rows' own amount column, so the names below the
+            // panel start where the ingredients above it do.
+            width: kLineAmountWidth,
+            child: Text(
+              label,
+              style: ansiMono(
+                size: 10,
+                color: AnsiColors.muted,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              names,
+              style: ansiMono(size: 11, color: AnsiColors.muted),
+            ),
+          ),
         ],
       ),
     );

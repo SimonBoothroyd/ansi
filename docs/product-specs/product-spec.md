@@ -112,24 +112,26 @@ right.
   family's unit — and the stored row is never rewritten silently.
 - **An amount prints and parses as a kitchen fraction** (`formatAmount` /
   `parseAmount`, `core/units/number_format.dart`). Halves, thirds, quarters
-  and eighths print as ASCII — `1/2`, `2/3`, `1 1/8`, a space between the
-  whole and the part, never a unicode vulgar glyph (the bundled faces do not
-  carry them all). A stored value within 0.0075 of a fraction IS it, so a
+  and eighths print as the **vulgar glyph**, tight against the whole — `½`,
+  `⅔`, `1⅛`, never `1 1/8` and never `1 ½`. All nine glyphs are carried by
+  every bundled face, and a structural test reads each font's `cmap` so the
+  ruling cannot rot. A stored value within 0.0075 of a fraction IS it, so a
   figure already rounded on its way in reads back as what it was — `0.67` is
-  `2/3`, `0.13` is `1/8` — while `0.26` stays `0.26`. Anything else falls
+  `⅔`, `0.13` is `⅛` — while `0.26` stays `0.26`. Anything else falls
   through to the trimmed two-decimal rule. Reading back takes decimals with a
   dot or a comma, `2/3`, `1 1/2`, `1½` and the vulgar glyphs, and **stores the
-  exact value** (2/3, not 0.67). A field that takes an amount therefore uses
-  the TEXT keyboard: iOS's numeric pads carry no `/`. The portion count keeps
-  its own rule (`¼ ½ ¾` glyphs, `formatFraction`), and a macro figure keeps
-  its own (energy whole, grams to one decimal) — macros are label readings,
-  not fractions.
+  exact value** (⅔, not 0.67). A field that takes an amount therefore uses
+  the TEXT keyboard: iOS's numeric pads carry no `/`, and a person typing
+  `2/3` into one must be read. The portion count keeps its own rule (`¼ ½ ¾`
+  glyphs, `formatFraction`), and a macro figure keeps its own (energy whole, a
+  gram figure whole from a gram up and one decimal below it) — macros are
+  label readings, not fractions.
 - **The fraction is a kitchen unit's rule, not every unit's.** `g`, `kg`, `ml`
   and `l` are what a scale and a jug read out, and they read decimals:
-  `213.5 g`, never `213 1/2 g`; `1.5 l`, never `1 1/2 l`. Cups, spoons, fl oz,
+  `213.5 g`, never `213½ g`; `1.5 l`, never `1½ l`. Cups, spoons, fl oz,
   oz, lb, pieces, named measures, servings and batches are said by hand and
   keep their fractions, as does a figure with no unit at all — a bare count,
-  the cook plan's `×3/4`. Which rule a figure gets is decided by
+  the cook plan's `×¾`. Which rule a figure gets is decided by
   `formatAmountIn(amount, unit)` (and `formatQuantityIn` for one that may be
   absent), off `Unit.isMetric`; every surface with a unit in scope prints
   through it, so the same number reads the same way wherever it appears.
@@ -257,8 +259,11 @@ The column list is generated from the migrations —
   labels, where a person is typing into the slot the word names.
 - **One rounding rule, and it is display only.** Everywhere a macro figure is
   printed — a form field's seed text, the derivation under it, a picker row,
-  the recipe panel's cells, the week's strip — energy prints whole and a gram
-  figure to one decimal with a trailing `.0` dropped (`286`, `21.4`, `0`).
+  the recipe panel's cells, the week's strip — energy prints whole, and so
+  does a gram figure of a gram or more; below a gram it keeps one decimal
+  (`286`, `21`, `0.4`, `0`). Whole because nobody weighs the tenth of a gram
+  of protein in a portion; the sub-gram decimal stays because an oat milk's
+  0.42 g must not print as `0`.
   What is stored is untouched by it: a field nobody typed in saves the figure
   it was seeded with, so a row derived from a serving reverses to the label's
   own numbers exactly.
@@ -296,7 +301,7 @@ The column list is generated from the migrations —
   to divide by, lands per 100; a per-100 scan that named no serving at all is
   the one state the form says, unprompted, that the mode is there.
 - **The serving is kept as the row's one `serving · 2 tbsp` measure**, so the
-  reading posture prints the label's own line back — `190 kcal · 7P 16F 7C per
+  reading posture prints the label's own line back — `190 kcal · 7P 7C 16F per
   2 tbsp` — by reversing the stored per-100 exactly, with the per-100 figures
   muted under it. A save that states a serving replaces whatever serving the
   row had; one that says nothing about it leaves it alone.
@@ -443,16 +448,15 @@ its steps.
   effect is on what a
   TOTAL covers, through one seam — `effectiveLines(lines, planEntryId)` —
   that every derivation runs over: the macro summary and the shopping list
-  leave the line out **and name it where it left** (`not counted · 2
-  optional lines: Lime, Coriander` under the panel, composed with the
-  imprecise exclusion; `2 optional lines not listed — lime, coriander` as
-  the recipe's muted echo row on Shop, where each name is a **door** — a tap
-  writes this week's include row for that line), never a silent drop. **The
-  cook plan honours the flag through the same seam**: an optional ingredient
-  line changes nothing there — a batch is a batch whether the lime comes —
-  but an optional sub-recipe component is only cooked when the week includes
-  it, because a sauce nobody is making is a pot nobody is washing. A recipe
-  whose
+  leave the line out **and name it where it left** (an `OPTIONAL · Lime,
+  Coriander` row under the panel, beside the imprecise one; `2 optional lines
+  not listed — lime, coriander` as the recipe's muted echo row on Shop, where
+  each name is a **door** — a tap writes this week's include row for that
+  line), never a silent drop. **The cook plan honours the flag through the
+  same seam**: an optional ingredient line changes nothing there — a batch is
+  a batch whether the lime comes — but an optional sub-recipe component is
+  only cooked when the week includes it, because a sauce nobody is making is
+  a pot nobody is washing. A recipe whose
   every line is optional summed nothing and refuses, like an all-imprecise
   one. **A planned week may overrule the recipe** through the same seam:
   `effectiveLines(lines, overrides:)` applies that week's variant *first* — a
@@ -477,7 +481,8 @@ its steps.
     figure per line reads the sum rather than converting anything a second
     time. The recipe page's `⋯` menu toggles that on — **`Show line macros`**,
     off by default, held for the session and never persisted — and prints
-    each line's own `197 kcal · 2P 20F 3C` under its name. These are the line
+    each line's own `197 kcal · 2P 3C 20F` under its name — protein, carb,
+    fat, the panel's own order, one size down. These are the line
     *as displayed*, so unlike the per-serving strip they **do** move with the
     servings scaler. A line the total left out prints its reason instead of
     figures, in `incompleteLineNote`'s exact words — never a zero, and a
@@ -500,7 +505,9 @@ its steps.
     `pinch`, `dash` and `handful` are unweighable BY NATURE — no measure and
     no density turns a handful into grams — so they are excluded **by rule**,
     the total is shown, and the exclusion is printed under it by name, every
-    time: `not counted: Parsley · handful, Sesame seeds · to taste`.
+    time, in a labelled row of its own: `NOT COUNTED · Parsley · handful,
+    Sesame seeds · to taste`, with the optional lines in a second row under
+    it and one caption under both.
     Invariant 3 holds in both halves and is read the *stronger* way: nothing
     is invented (a handful contributes zero because zero grams of it were
     claimed, not because a number was guessed) and nothing is silent (a

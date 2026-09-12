@@ -25,7 +25,7 @@ import '_form_harness.dart';
 /// Mango's facts as the reading posture states them — the strings the shared
 /// sentences produce, spelled out so a change to any of them is a change a
 /// reader has to agree to.
-const mangoMacroLine = '60 kcal · 1P 0F 15C /100 g';
+const mangoMacroLine = '60 kcal · 1P 15C 0F /100 g';
 const mangoDensity = '1 cup weighs 156.15 g · 0.66 g/ml';
 const mangoPieceWeight = '1 piece weighs 200 g';
 
@@ -108,7 +108,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        macroText('60 kcal · 1P 0F 15C · 2.6 fibre /100 g'),
+        macroText('60 kcal · 1P 15C 0F · 3 fibre /100 g'),
         findsOneWidget,
       );
     });
@@ -308,12 +308,12 @@ void main() {
 
       // A wrong number is checkable against the jar without a calculator: the
       // jar says 190 per 2 tbsp, and so does the page.
-      expect(macroText('190 kcal · 7P 16F 7C per 2 tbsp'), findsOneWidget);
+      expect(macroText('190 kcal · 7P 7C 16F per 2 tbsp'), findsOneWidget);
       expect(find.text('as the label reads'), findsOneWidget);
       // The derivation is under it, for the reader who wants what the totals
       // actually use.
       expect(
-        find.text('per 100 ml · 642 kcal · 23.7P 54.1F 23.7C'),
+        find.text('per 100 ml · 642 kcal · 24P 24C 54F'),
         findsOneWidget,
       );
       // The density reads back as the sentence it was entered as, with the
@@ -339,7 +339,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(macroText('642 kcal · 23.7P 54.1F 23.7C /100 ml'), findsOneWidget);
+      expect(macroText('642 kcal · 24P 24C 54F /100 ml'), findsOneWidget);
       expect(find.textContaining('per 100 ml · 642 kcal'), findsNothing);
       // This jar is counted in millilitres, so that is the word its density
       // is said in — and `1 ml weighs 1.08 g` IS `1.08 g/ml`, so there is no

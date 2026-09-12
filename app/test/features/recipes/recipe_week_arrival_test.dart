@@ -165,6 +165,26 @@ void main() {
       expect(find.text('Planned Tue · Sat this week'), findsOneWidget);
     });
 
+    testWidgets('the band is one line with a calendar glyph and no fill — the '
+        'chip row is the only filled shape above the tabs', (tester) async {
+      await _pumpPage(tester, week: _weekKey);
+
+      expect(
+        find.descendant(
+          of: find.byType(PlannedThisWeekBand),
+          matching: find.byIcon(FLucideIcons.calendarDays),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(PlannedThisWeekBand),
+          matching: find.byType(DecoratedBox),
+        ),
+        findsNothing,
+      );
+    });
+
     testWidgets('says so in the band when the week varies the recipe', (
       tester,
     ) async {

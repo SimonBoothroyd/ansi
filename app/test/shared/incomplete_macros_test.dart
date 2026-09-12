@@ -3,7 +3,7 @@
 ///
 /// Every sentence these helpers can print is pinned here: the summary-level
 /// note for each reason a total is incomplete, a per-line word for every
-/// reason there is, "not counted" the way the board drew it, and — the
+/// reason there is, the two by-rule rows under a total, and — the
 /// anti-drift pin — that an imprecise line contributes **nothing** to the
 /// summary-level note, because it is not a reason a summary is incomplete.
 ///
@@ -130,10 +130,10 @@ void main() {
     });
   });
 
-  group('notCountedNote: the exclusion, named', () {
-    test("the board's own sentence", () {
+  group('the exclusion, named in its own row', () {
+    test("the imprecise row's names carry the word the source printed", () {
       expect(
-        notCountedNote([
+        impreciseNotCountedNames([
           _note(MacroLineReason.imprecise, name: 'Parsley', unit: 'handful'),
           _note(
             MacroLineReason.imprecise,
@@ -141,33 +141,37 @@ void main() {
             unit: 'to taste',
           ),
         ]),
-        'not counted: Parsley · handful, Sesame seeds · to taste',
+        'Parsley · handful, Sesame seeds · to taste',
       );
     });
 
-    test('optional lines are counted, then named', () {
+    test('a line with no printed unit still says it is imprecise', () {
       expect(
-        notCountedNote([
-          _note(MacroLineReason.optional, name: 'Lime'),
-          _note(MacroLineReason.optional, name: 'Coriander'),
+        impreciseNotCountedNames([
+          _note(MacroLineReason.imprecise, name: 'Parsley'),
         ]),
-        'not counted · 2 optional lines: Lime, Coriander',
-      );
-      expect(
-        notCountedNote([_note(MacroLineReason.optional, name: 'Lime')]),
-        'not counted · 1 optional line: Lime',
+        'Parsley · imprecise',
       );
     });
 
-    test('imprecise and optional coincide on ONE line with both reasons', () {
+    test('the optional row is names alone — the label does the counting', () {
       expect(
-        notCountedNote([
+        optionalNotCountedNames([
           _note(MacroLineReason.optional, name: 'Lime'),
-          _note(MacroLineReason.imprecise, name: 'Parsley', unit: 'handful'),
           _note(MacroLineReason.optional, name: 'Coriander'),
         ]),
-        'not counted: Parsley · handful · 2 optional lines: Lime, Coriander',
+        'Lime, Coriander',
       );
+    });
+
+    test("the two rows never take each other's lines", () {
+      final notes = [
+        _note(MacroLineReason.optional, name: 'Lime'),
+        _note(MacroLineReason.imprecise, name: 'Parsley', unit: 'handful'),
+        _note(MacroLineReason.optional, name: 'Coriander'),
+      ];
+      expect(impreciseNotCountedNames(notes), 'Parsley · handful');
+      expect(optionalNotCountedNames(notes), 'Lime, Coriander');
     });
 
     test('an optional line is by rule — never fixable, and its word is the '
@@ -183,32 +187,21 @@ void main() {
       expect(incompleteLineNote(MacroLineReason.optional), 'optional');
     });
 
-    test('the caption under the line says what applies, and where the switch '
-        'is', () {
+    test('one caption covers both rows, and says rule rather than fault', () {
       expect(
-        notCountedCaption(const RecipeMacroSummary(impreciseLines: 1)),
-        contains('excluded by rule'),
-      );
-      expect(
-        notCountedCaption(const RecipeMacroSummary(optionalLines: 1)),
-        'optional lines are left out by rule, not by failure — untick '
-        'Optional on a line to count it.',
-      );
-      expect(
-        notCountedCaption(
-          const RecipeMacroSummary(impreciseLines: 1, optionalLines: 1),
-        ),
-        allOf(contains('a pinch'), contains('untick Optional')),
+        notCountedCaption,
+        'Imprecise and optional lines are left out by rule, not by failure.',
       );
     });
 
-    test('it names ONLY the by-rule exclusions — a stub is a defect, not an '
+    test('they name ONLY the by-rule exclusions — a stub is a defect, not an '
         'exclusion, and belongs in the fixable list', () {
       final notes = [
         _note(MacroLineReason.stubIngredient, name: 'Tofu'),
         _note(MacroLineReason.imprecise, name: 'Parsley', unit: 'handful'),
       ];
-      expect(notCountedNote(notes), 'not counted: Parsley · handful');
+      expect(impreciseNotCountedNames(notes), 'Parsley · handful');
+      expect(optionalNotCountedNames(notes), isNull);
       expect(
         fixableNotes(RecipeMacroSummary(notes: notes)).single.name,
         'Tofu',
@@ -216,8 +209,12 @@ void main() {
     });
 
     test('nothing excluded ⇒ null, so no surface prints a dangling label', () {
-      expect(notCountedNote(const []), isNull);
-      expect(notCountedNote([_note(MacroLineReason.needsWeight)]), isNull);
+      expect(impreciseNotCountedNames(const []), isNull);
+      expect(optionalNotCountedNames(const []), isNull);
+      expect(
+        impreciseNotCountedNames([_note(MacroLineReason.needsWeight)]),
+        isNull,
+      );
     });
   });
 }

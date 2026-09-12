@@ -150,7 +150,7 @@ void main() {
       // A stub shows no macro line at all — never a row of zeros. Only the
       // two complete rows carry one.
       expect(macroTextContaining('kcal ·'), findsNWidgets(2));
-      expect(macroTextContaining('60 kcal · 1P 0F 15C'), findsOneWidget);
+      expect(macroTextContaining('60 kcal · 1P 15C 0F'), findsOneWidget);
     });
 
     testWidgets('a prefilled-but-unconfirmed stub hints NEEDS COMPLETING — the '
@@ -192,7 +192,7 @@ void main() {
       await tester.tap(find.text('Mango').last);
       await tester.pumpAndSettle();
       expect(find.text('CANONICAL NAME'), findsNothing);
-      expect(macroText('60 kcal · 1P 0F 15C /100 g'), findsOneWidget);
+      expect(macroText('60 kcal · 1P 15C 0F /100 g'), findsOneWidget);
       await tapBack(tester);
 
       // The stub band is a work queue: its rows land on the fields.

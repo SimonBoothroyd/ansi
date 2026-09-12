@@ -888,7 +888,7 @@ void main() {
       // The title has the whole first line back; the number that used to
       // squeeze it is a muted mono line of its own.
       expect(find.text('Weeknight Chicken Curry'), findsOneWidget);
-      expect(find.text('serves 4 · 520 kcal · 27.6 g protein'), findsOneWidget);
+      expect(find.text('serves 4 · 520 kcal · 28 g protein'), findsOneWidget);
     });
 
     testWidgets('an incomplete summary says serves and nothing else — no '
@@ -938,7 +938,7 @@ void main() {
       // One row shape: the filing says where it lives, the stats line says the
       // same thing it says in the tree.
       expect(find.text('Our Cookbook · Weeknight'), findsOneWidget);
-      expect(find.text('serves 4 · 520 kcal · 27.6 g protein'), findsOneWidget);
+      expect(find.text('serves 4 · 520 kcal · 28 g protein'), findsOneWidget);
       expect(find.byIcon(FLucideIcons.chevronRight), findsNothing);
     });
   });

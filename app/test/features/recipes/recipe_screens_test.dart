@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/theme/ansi_tokens.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
@@ -191,6 +192,89 @@ void main() {
     expect(find.text('optional'), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
     expect(find.text('200 g'), findsOneWidget);
+
+    // The sub-recipe chip's shape, not a badge pill: same wash, same corner.
+    expect(
+      find.descendant(
+        of: find.byType(OptionalTag),
+        matching: find.byType(FBadge),
+      ),
+      findsNothing,
+    );
+    final box = tester.widget<DecoratedBox>(
+      find
+          .descendant(
+            of: find.byType(OptionalTag),
+            matching: find.byType(DecoratedBox),
+          )
+          .first,
+    );
+    final decoration = box.decoration as BoxDecoration;
+    expect(decoration.color, AnsiColors.herbSoft);
+    expect(decoration.borderRadius, BorderRadius.circular(6));
+  });
+
+  group('the method reads as prose, and says what it is scaled to', () {
+    Future<void> openMethod(WidgetTester tester) async {
+      await tester.pumpWidget(
+        _host(const RecipeView(recipeId: '1'), [
+          recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(_recipe)),
+        ]),
+      );
+      await tester.pump();
+      await tester.tap(find.text('Method'));
+      await tester.pump();
+    }
+
+    testWidgets('the bar carries the servings the chips are scaled to', (
+      tester,
+    ) async {
+      await openMethod(tester);
+
+      expect(find.text('for 4 servings · 1×'), findsOneWidget);
+
+      // Not on the Ingredients tab: the scaler itself is there, and saying it
+      // twice on one screen invites the reading that they are two facts.
+      await tester.tap(find.text('Ingredients'));
+      await tester.pump();
+      expect(find.text('for 4 servings · 1×'), findsNothing);
+    });
+
+    testWidgets('the scaler moves it — one servings state, not two', (
+      tester,
+    ) async {
+      await openMethod(tester);
+      await tester.tap(find.text('Ingredients'));
+      await tester.pump();
+      await tester.tap(find.byIcon(FLucideIcons.plus));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Method'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('for 5 servings · 1¼×'), findsOneWidget);
+    });
+
+    testWidgets('a step number is a mono digit, not an ink disc', (
+      tester,
+    ) async {
+      await openMethod(tester);
+
+      expect(find.text('1'), findsOneWidget);
+      expect(find.text('2'), findsOneWidget);
+      expect(
+        tester.widget<Text>(find.text('1')).style?.color,
+        AnsiColors.herb,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Container &&
+              w.decoration is BoxDecoration &&
+              (w.decoration! as BoxDecoration).shape == BoxShape.circle,
+        ),
+        findsNothing,
+      );
+    });
   });
 
   testWidgets('the EDITOR tags an optional line too — an ingredient row and a '

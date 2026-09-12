@@ -75,11 +75,11 @@ void main() {
     expect(find.text('PER SERVING'), findsOneWidget);
     expect(find.text('612'), findsOneWidget); // kcal, rounded
     expect(find.text('KCAL'), findsOneWidget);
-    expect(find.text('41.4 g'), findsOneWidget);
+    expect(find.text('41 g'), findsOneWidget);
     expect(find.text('PROTEIN'), findsOneWidget);
-    expect(find.text('17.7 g'), findsOneWidget);
+    expect(find.text('18 g'), findsOneWidget);
     expect(find.text('CARB'), findsOneWidget);
-    expect(find.text('38.5 g'), findsOneWidget);
+    expect(find.text('39 g'), findsOneWidget);
     expect(find.text('FAT'), findsOneWidget);
     expect(find.byType(IncompleteBadge), findsNothing);
     // Nothing stated fibre, so there is no fifth cell and no empty one.
@@ -99,7 +99,7 @@ void main() {
     await tester.pumpWidget(_host(const RecipeMacroPanel(summary: summary)));
 
     expect(find.text('FIBRE'), findsOneWidget);
-    expect(find.text('6.2 g'), findsOneWidget);
+    expect(find.text('6 g'), findsOneWidget);
     expect(find.textContaining('fibre not counted'), findsNothing);
   });
 
@@ -207,7 +207,7 @@ void main() {
     // The lines scaled (5 servings ⇒ ×1.25) but a serving is still a serving.
     expect(find.text('750 g'), findsOneWidget);
     expect(find.text('612'), findsOneWidget);
-    expect(find.text('41.4 g'), findsOneWidget);
+    expect(find.text('41 g'), findsOneWidget);
   });
 
   testWidgets('the panel is derived from the watched aggregate, not a one-shot '
@@ -317,7 +317,7 @@ void main() {
 
   // --- seam D6: a total, and what it left out -------------------------------
 
-  testWidgets('a real total prints "not counted" beneath the cells', (
+  testWidgets('a real total names the imprecise lines in a row of its own', (
     tester,
   ) async {
     const summary = RecipeMacroSummary(
@@ -343,15 +343,17 @@ void main() {
     // The number is shown — this state was unreachable before D6.
     expect(find.text('418'), findsOneWidget);
     expect(find.byType(IncompleteBadge), findsNothing);
+    expect(find.text('NOT COUNTED'), findsOneWidget);
     expect(
-      find.text('not counted: Parsley · handful, Sesame seeds · to taste'),
+      find.text('Parsley · handful, Sesame seeds · to taste'),
       findsOneWidget,
     );
-    expect(find.textContaining('excluded by rule'), findsOneWidget);
+    // Nothing optional here, so no second row and no empty label.
+    expect(find.text('OPTIONAL'), findsNothing);
+    expect(find.text(notCountedCaption), findsOneWidget);
   });
 
-  testWidgets('a real total names its optional lines too, and says where the '
-      'switch is', (tester) async {
+  testWidgets('the optional lines get their own labelled row', (tester) async {
     const summary = RecipeMacroSummary(
       perServing: Macros(kcal: 418, protein: 16, carb: 54, fat: 13),
       optionalLines: 2,
@@ -374,13 +376,44 @@ void main() {
 
     expect(find.text('418'), findsOneWidget);
     expect(find.byType(IncompleteBadge), findsNothing);
-    expect(
-      find.text('not counted · 2 optional lines: Lime, Coriander'),
-      findsOneWidget,
-    );
-    expect(find.textContaining('untick Optional'), findsOneWidget);
+    expect(find.text('OPTIONAL'), findsOneWidget);
+    expect(find.text('Lime, Coriander'), findsOneWidget);
+    expect(find.text('NOT COUNTED'), findsNothing);
+    expect(find.text(notCountedCaption), findsOneWidget);
     // By rule, so never listed as something to fix.
     expect(find.textContaining('Lime · '), findsNothing);
+  });
+
+  testWidgets('both kinds at once are two rows under one caption', (
+    tester,
+  ) async {
+    const summary = RecipeMacroSummary(
+      perServing: Macros(kcal: 418, protein: 16, carb: 54, fat: 13),
+      impreciseLines: 1,
+      optionalLines: 1,
+      notes: [
+        (
+          lineId: 'i4',
+          name: 'Parsley',
+          reason: MacroLineReason.imprecise,
+          unit: 'handful',
+        ),
+        (
+          lineId: 'i1',
+          name: 'Lime',
+          reason: MacroLineReason.optional,
+          unit: null,
+        ),
+      ],
+    );
+    await tester.pumpWidget(_host(const RecipeMacroPanel(summary: summary)));
+
+    expect(find.text('NOT COUNTED'), findsOneWidget);
+    expect(find.text('Parsley · handful'), findsOneWidget);
+    expect(find.text('OPTIONAL'), findsOneWidget);
+    expect(find.text('Lime'), findsOneWidget);
+    // One caption for both rows — the claim they share, said once.
+    expect(find.text(notCountedCaption), findsOneWidget);
   });
 
   testWidgets('a complete recipe with nothing excluded says nothing extra', (

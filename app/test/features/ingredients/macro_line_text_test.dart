@@ -47,9 +47,9 @@ void main() {
           .getSemantics(find.byType(MacroLineText))
           .label
           .replaceAll('\n', ''),
-      '197 kcal · 2P 20F 3C · 1.5 fibre',
+      '197 kcal · 2P 3C 20F · 2 fibre',
     );
-    expect(macroText('197 kcal · 2P 20F 3C · 1.5 fibre'), findsOneWidget);
+    expect(macroText('197 kcal · 2P 3C 20F · 2 fibre'), findsOneWidget);
 
     semantics.dispose();
   });
@@ -67,7 +67,7 @@ void main() {
 
     expect(find.byIcon(kMacroEnergyIcon), findsOneWidget);
     expect(find.byIcon(kMacroFibreIcon), findsNothing);
-    expect(macroText('60 kcal · 1P 0F 15C'), findsOneWidget);
+    expect(macroText('60 kcal · 1P 15C 0F'), findsOneWidget);
   });
 
   testWidgets('the suffix rides after the line, and says what the figures are '
@@ -79,7 +79,7 @@ void main() {
     );
 
     expect(
-      macroText('197 kcal · 2P 20F 3C · 1.5 fibre /100 g'),
+      macroText('197 kcal · 2P 3C 20F · 2 fibre /100 g'),
       findsOneWidget,
     );
   });

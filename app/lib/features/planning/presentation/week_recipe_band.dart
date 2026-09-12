@@ -11,9 +11,15 @@
 ///
 /// It draws nothing but the fact. The door is the menu item beside it, because
 /// a band that is also a button competes with the page's own title.
+///
+/// **One line, no fill.** It sits between the title and the chip row, and a
+/// filled band there made three stacked shapes before the recipe started. A
+/// calendar glyph and a mono line carry the same fact at a fraction of the
+/// weight, leaving the chips as the only filled thing above the tabs.
 library;
 
 import 'package:flutter/widgets.dart';
+import 'package:forui/forui.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
@@ -38,17 +44,25 @@ class PlannedThisWeekBand extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-      decoration: BoxDecoration(
-        color: AnsiColors.herbSoft,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        plannedThisWeekLine(days, kWeekdayShort, edited: edited),
-        style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
-      ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(top: 1),
+          child: Icon(
+            FLucideIcons.calendarDays,
+            size: 12,
+            color: AnsiColors.herbDeep,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            plannedThisWeekLine(days, kWeekdayShort, edited: edited),
+            style: ansiMono(size: 11, color: AnsiColors.herbDeep),
+          ),
+        ),
+      ],
     );
   }
 }

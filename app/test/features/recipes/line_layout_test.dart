@@ -114,6 +114,23 @@ void main() {
     expect(name.left - amount.left, kLineAmountWidth + 12);
   });
 
+  testWidgets('the note follows the name after two spaces — no separator '
+      'between a thing and its own modifier', (tester) async {
+    filterForuiSemanticsAssertions();
+    await tester.pumpWidget(
+      _host(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: RecipeIngredientLine(uses: LineUses(uses: const [_salt])),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Salt  flaky', findRichText: true), findsOneWidget);
+    expect(find.textContaining('·', findRichText: true), findsNothing);
+  });
+
   testWidgets('the editor prints the same row — amount cell, identity, note — '
       'on one line', (tester) async {
     filterForuiSemanticsAssertions();

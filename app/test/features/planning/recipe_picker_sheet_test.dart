@@ -147,7 +147,7 @@ void main() {
     expect(find.text('Add a meal'), findsOneWidget);
     expect(find.textContaining('Wednesday, Dinner'), findsOneWidget);
     // The complete recipe: per-serving macros + recency; honest rounding.
-    expect(find.textContaining('serves 4 · ~520 kcal · 31.4P'), findsOneWidget);
+    expect(find.textContaining('serves 4 · ~520 kcal · 31P'), findsOneWidget);
     expect(find.text('3d ago'), findsOneWidget);
     // The incomplete one: the badge and the reason — never zeros.
     expect(find.text('incomplete'), findsOneWidget);
