@@ -1063,7 +1063,8 @@ source-tab slot, footer slot):
   there is no such section — nobody opened *add a meal* to browse the
   vocabulary.
 - **Confirm & place:** picked card with the honest macro line, a **slot**
-  picker (the three defaults plus a `+` that names a custom one), and the full
+  picker (the four defaults plus a `+` that names a custom one, opened on the
+  day's next unfilled default — Breakfast on an empty day), and the full
   batch prose ("Chicken Curry already cooks Monday and keeps 4 days — Wednesday
   is inside that window, so this joins Monday's batch instead of a second
   cook"). The **day is not asked**: every add starts from a day card, so the

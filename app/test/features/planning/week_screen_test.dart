@@ -639,14 +639,14 @@ void main() {
   });
 
   group('the confirm sheet asks only the slot', () {
-    /// Drives the add flow from Thursday — the day `_plannedWeek` plans, and
-    /// so the only card whose add line reads `add a meal` — to the confirm
-    /// sheet.
-    Future<void> openConfirm(WidgetTester tester) async {
+    /// Drives the add flow from Thursday — the day [week] plans (by default
+    /// `_plannedWeek`), and so the only card whose add line reads `add a
+    /// meal` — to the confirm sheet.
+    Future<void> openConfirm(WidgetTester tester, {WeekPlan? week}) async {
       filterForuiSemanticsAssertions();
       await _pumpWeek(
         tester,
-        planning: _FakePlanningRepo(week: _plannedWeek()),
+        planning: _FakePlanningRepo(week: week ?? _plannedWeek()),
         recipes: _recipesRepo(null),
       );
       await tester.tap(find.text('add a meal').first);
@@ -670,11 +670,50 @@ void main() {
       expect(find.byType(MealSlotPicker), findsOneWidget);
     });
 
-    testWidgets('the slot is the one question, and it defaults to Dinner', (
-      tester,
-    ) async {
+    testWidgets("the slot is the one question, and it opens on the day's "
+        'next unfilled default', (tester) async {
+      // Thursday holds only a dinner, so the next meal nobody has planned is
+      // its breakfast — not Dinner again.
       await openConfirm(tester);
       expect(find.text('SLOT'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(MealSlotPicker),
+          matching: find.text('Breakfast'),
+        ),
+        findsWidgets,
+      );
+      expect(find.text('to · Thursday'), findsOneWidget);
+    });
+
+    testWidgets('a day with its breakfast and lunch planned opens on Dinner', (
+      tester,
+    ) async {
+      await openConfirm(
+        tester,
+        week: WeekPlan(
+          id: 'w',
+          weekStart: DateTime.utc(2026, 8, 24),
+          entries: const [
+            PlanEntry(
+              id: 'e1',
+              dayOfWeek: 3,
+              mealSlot: 'Breakfast',
+              recipeId: 'r1',
+              recipeTitle: 'Weeknight Chicken Curry',
+              eaterIds: ['m1'],
+            ),
+            PlanEntry(
+              id: 'e2',
+              dayOfWeek: 3,
+              mealSlot: 'lunch',
+              recipeId: 'r1',
+              recipeTitle: 'Weeknight Chicken Curry',
+              eaterIds: ['m1'],
+            ),
+          ],
+        ),
+      );
       expect(
         find.descendant(
           of: find.byType(MealSlotPicker),

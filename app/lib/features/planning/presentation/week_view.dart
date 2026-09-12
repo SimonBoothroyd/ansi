@@ -68,15 +68,15 @@ import 'week_macro_widgets.dart';
 import 'week_view_models.dart';
 import 'week_widgets.dart';
 
-const _kDefaultSlot = 'Dinner';
-
 /// The add flow: pick from the ONE door, then confirm slot/eaters/portions.
 ///
-/// A recipe goes straight to the confirm sheet — its amount is its portions.
-/// A bare ingredient (step 8.14) stops at the shipped quantity sheet first,
-/// opened on the row's default unit — `piece`, weighed by the row's own piece
-/// weight (ADR-0015), so "1 bar" is a bar; then the same confirm sheet asks
-/// the questions both kinds share.
+/// The slot it starts on follows the day: the next default slot the day has
+/// not filled yet ([defaultMealSlot]), read off the viewed week before the
+/// first sheet opens. A recipe goes straight to the confirm sheet — its
+/// amount is its portions. A bare ingredient (step 8.14) stops at the shipped
+/// quantity sheet first, opened on the row's default unit — `piece`, weighed
+/// by the row's own piece weight (ADR-0015), so "1 bar" is a bar; then the
+/// same confirm sheet asks the questions both kinds share.
 Future<void> _addMealFlow(
   BuildContext context,
   WidgetRef ref, {
@@ -86,12 +86,15 @@ Future<void> _addMealFlow(
   // The picker's search brings the keyboard, which shrinks the week's list
   // under it: the day card whose door opened this flow can be unmounted by
   // the time a recipe is tapped. The confirm sheet opens from a context that
-  // outlives the card (`hostContextOf`), so the pick is never dropped.
+  // outlives the card (`hostContextOf`), so the pick is never dropped — and
+  // the slot is settled here, before anything is awaited, for the same reason.
   final host = hostContextOf(context);
+  final week = ref.read(viewedWeekProvider).asData?.value;
+  final slot = defaultMealSlot(week?.entriesForDay(dayOfWeek) ?? const []);
   final picked = await showRecipePickerSheet(
     context,
     dayOfWeek: dayOfWeek,
-    slot: _kDefaultSlot,
+    slot: slot,
   );
   if (picked == null) return;
 
@@ -136,7 +139,7 @@ Future<void> _addMealFlow(
     host.context,
     weekStart: weekStart,
     dayOfWeek: dayOfWeek,
-    slot: _kDefaultSlot,
+    slot: slot,
     target: target,
   );
 }

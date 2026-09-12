@@ -105,9 +105,13 @@ Tapping a day's dashed "+ Add a meal" runs `_addMealFlow` in `week_view.dart`:
    piece-default row opens on `piece`, weighed by its `piece_basis_amount`
    ([ADR-0015](../../../../docs/decisions/0015-piece-weight-is-a-row-fact.md)).
    There is no stated default measure to seed from any more.
-3. **`showConfirmMealSheet`** — slot pills, who's-eating, and a **portions**
+3. **`showConfirmMealSheet`** — the slot, who's-eating, and a **portions**
    stepper (`plan_entry.portions`, null = track |eaters|, spec §8). It takes a
    `MealTarget` (`RecipeMeal` / `SnackMeal`) and writes the matching entry.
+   The slot arrives already answered: the flow opens both sheets on the day's
+   next unfilled default slot (`defaultMealSlot` — Breakfast on an empty day,
+   Lunch once breakfast is planned, Dinner once all four are), so the usual
+   add is a confirm rather than a choice.
 
 The picker/confirm rows show the shelf-life chips ("keeps N d · freezable"),
 and the confirm sheet surfaces a **"same batch" hint** when the new meal would
@@ -135,8 +139,10 @@ are facts about a cooked dish, and `MealSnackCard` prints its amount instead.
   `core/units/portions.dart`, never rounded), unless the whole-number
   `portions` override is set. It's a field (last-write-wins, spec §3), not a
   join table.
-- **Meal slots are free text** (spec §8). `kDefaultMealSlots` are the three the
-  UI offers; `mealSlotRank` orders known slots ahead of custom ones per day.
+- **Meal slots are free text** (spec §8). `kDefaultMealSlots` are the four the
+  UI offers (Breakfast · Lunch · Dinner · Snack); `mealSlotRank` orders known
+  slots ahead of custom ones per day, and `defaultMealSlot` picks the first
+  one a day has not filled for the add flow to start on.
 - **Members** are **synced** from the server (step 7): `ensure_onboarded`
   (migration 0007) creates the `household_member` rows at sign-in and they stream
   down; the app reads them, and the one column it writes is `portion_factor`

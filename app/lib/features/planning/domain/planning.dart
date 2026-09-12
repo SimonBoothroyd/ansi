@@ -10,9 +10,10 @@
 /// entry's whole-number [PlanEntry.portions] override says otherwise.
 ///
 /// Meal slots are free text (spec §8, not an enum); [kDefaultMealSlots] are the
-/// three the UI offers, and [mealSlotRank] orders known slots ahead of custom
-/// ones within a day. Which seven days a week IS — and so which week a date
-/// falls in — belongs to the household's week shape (`core/week_shape.dart`).
+/// four the UI offers, [mealSlotRank] orders known slots ahead of custom ones
+/// within a day, and [defaultMealSlot] is the one an add starts on. Which
+/// seven days a week IS — and so which week a date falls in — belongs to the
+/// household's week shape (`core/week_shape.dart`).
 library;
 
 // Freezed needs each class's private `._` constructor before the factory (for
@@ -211,9 +212,24 @@ abstract class WeekPlan with _$WeekPlan {
   }
 }
 
-/// The meal slots the UI offers by default. Users may type any other label
-/// (spec §8) — these are only the quick picks and the canonical display order.
-const kDefaultMealSlots = ['Breakfast', 'Lunch', 'Dinner'];
+/// The meal slots the UI offers by default, in the order a day eats them.
+/// Users may type any other label (spec §8) — these are only the quick picks
+/// and the canonical display order.
+const kDefaultMealSlots = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+
+/// The slot a meal added to a day starts on: the first of [kDefaultMealSlots],
+/// in day order, that none of [dayEntries] already fills — an empty day starts
+/// at Breakfast, a day with a breakfast on it at Lunch, and a day holding only
+/// a dinner still at Breakfast, because that is the next meal nobody has
+/// planned. Dinner once all four are filled. Case-insensitive, so a typed
+/// `dinner` fills Dinner; a custom slot such as Brunch fills none of them.
+String defaultMealSlot(Iterable<PlanEntry> dayEntries) {
+  final taken = {for (final e in dayEntries) e.mealSlot.trim().toLowerCase()};
+  return kDefaultMealSlots.firstWhere(
+    (s) => !taken.contains(s.toLowerCase()),
+    orElse: () => 'Dinner',
+  );
+}
 
 /// Orders a meal slot within a day: the known slots first, in meal order, then
 /// any custom slot (rank = [kDefaultMealSlots].length) alphabetically-stable by

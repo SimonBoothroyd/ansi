@@ -9,19 +9,19 @@
 /// (spec §8); a null override means "track |eaters|". The sheet does the
 /// write itself and pops.
 ///
-/// Its controls live in `meal_fields.dart` because a second sheet uses two of
-/// them: `meal_editor_sheet.dart` sets who's eating and how many portions on a
-/// meal already on the week. Hoisting them is what stops the add path and the
-/// edit path drifting apart.
+/// Its controls live in `meal_fields.dart` because a second sheet uses them:
+/// `meal_editor_sheet.dart` sets the slot, who's eating and how many portions
+/// on a meal already on the week, in this same order. Hoisting them is what
+/// stops the add path and the edit path drifting apart.
 ///
 /// **The day is not asked here.** Every add starts from a day card, so the day
 /// arrived with the flow: it is the sheet's subtitle and the button repeats it
-/// ("Add to Wednesday"), and the only question left is the slot, defaulted to
-/// Dinner. A wrong day is one back-tap away while the sheet is open, and
-/// remove-and-re-add once it is placed — the same way the editor documents.
-/// The slot picker is this sheet's alone: the editor holds neither field,
-/// because a row does not print a day or a slot as a value, its *position* is
-/// both.
+/// ("Add to Wednesday"). The slot is asked, and it arrives already answered:
+/// the flow opens it on the day's next unfilled default slot
+/// ([defaultMealSlot]) — Breakfast on an empty day, Dinner once breakfast and
+/// lunch are planned — so the usual add is a confirm, not a choice. A wrong
+/// day is one back-tap away while the sheet is open, and remove-and-re-add
+/// once it is placed; a wrong slot is a field of the meal editor afterwards.
 ///
 /// Since step 8.14 it places EITHER kind of meal — a recipe, or a bare
 /// ingredient whose amount the quantity sheet already settled ([MealTarget]).
@@ -47,6 +47,7 @@ import '../../cook_plan/domain/cook_plan.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../recipes/domain/recipe.dart';
 import '../data/planning_providers.dart';
+import '../domain/planning.dart' show defaultMealSlot;
 import 'meal_fields.dart';
 import 'week_view_models.dart';
 

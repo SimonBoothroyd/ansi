@@ -321,7 +321,8 @@ void main() {
     await tester.tap(find.text('Add the first meal'));
     await tester.pumpAndSettle();
     expect(find.text('Add a meal'), findsOneWidget); // picker header
-    expect(find.textContaining('Monday, Dinner'), findsOneWidget); // context
+    // An empty day opens on its next unfilled default slot: Breakfast.
+    expect(find.textContaining('Monday, Breakfast'), findsOneWidget);
     // The Favorites tab (7.7) holds the seeded, favourited recipe.
     await tester.tap(find.text('Favorites'));
     await tester.pumpAndSettle();
@@ -339,7 +340,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('3 portions'), findsOneWidget);
     await tester.tap(find.text('Add to Monday'));
-    await pumpUntilFound(tester, find.text('DINNER'));
+    await pumpUntilFound(tester, find.text('BREAKFAST'));
 
     // Second meal on Wednesday — within the 2-day fridge window, so the
     // confirm sheet cues that it cooks in Monday's batch.
@@ -436,7 +437,10 @@ void main() {
     await pumpUntilFound(tester, find.text('Cook Mon'));
     expect(find.textContaining('Cook '), findsOneWidget);
     // Monday's override (3) + Wednesday's single eater after the edit (1).
-    expect(find.text('covers Mon + Wed dinner · 4 portions'), findsOneWidget);
+    expect(
+      find.text('covers Mon + Wed breakfast · 4 portions'),
+      findsOneWidget,
+    );
     expect(find.text('4 portions across the week · keeps 2 d'), findsOneWidget);
 
     // Plan a third meal on Saturday — beyond the fridge window from Monday.
@@ -608,8 +612,11 @@ void main() {
     // factor, so that session still says 4.
     await tapTab(tester, FLucideIcons.cookingPot);
     await pumpUntilFound(tester, find.byKey(CookView.rootKey));
-    await scrollTo(tester, find.text('covers Mon + Wed dinner · 4 portions'));
-    await scrollTo(tester, find.text('covers Sat dinner · 1¾ portions'));
+    await scrollTo(
+      tester,
+      find.text('covers Mon + Wed breakfast · 4 portions'),
+    );
+    await scrollTo(tester, find.text('covers Sat breakfast · 1¾ portions'));
     expect(
       find.text(
         'cook ×1 instead — covers 2 portions · ¼ portion left over · '
@@ -617,7 +624,7 @@ void main() {
       ),
       findsWidgets,
     );
-    await scrollTo(tester, find.text('covers Sun dinner · 1¾ portions'));
+    await scrollTo(tester, find.text('covers Sun breakfast · 1¾ portions'));
     expect(
       find.text('1¾ portions across the week · keeps 2 d'),
       findsOneWidget,

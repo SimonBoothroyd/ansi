@@ -13,9 +13,51 @@ void main() {
       expect(mealSlotRank('dinner'), mealSlotRank('Dinner'));
     });
 
-    test('ranks a custom slot after every known one', () {
-      expect(mealSlotRank('Midnight snack'), kDefaultMealSlots.length);
-      expect(mealSlotRank('Dinner'), lessThan(mealSlotRank('Brunch')));
+    test(
+      'ranks Snack after Dinner, and a custom slot after every known one',
+      () {
+        expect(mealSlotRank('Dinner'), lessThan(mealSlotRank('Snack')));
+        expect(mealSlotRank('Midnight snack'), kDefaultMealSlots.length);
+        expect(mealSlotRank('Snack'), lessThan(mealSlotRank('Brunch')));
+      },
+    );
+  });
+
+  group('defaultMealSlot', () {
+    PlanEntry entry(String slot) =>
+        PlanEntry(id: slot, dayOfWeek: 0, mealSlot: slot, recipeId: 'r');
+
+    test('an empty day starts at Breakfast', () {
+      expect(defaultMealSlot(const []), 'Breakfast');
+    });
+
+    test('the first default the day has not filled, in day order', () {
+      expect(defaultMealSlot([entry('Breakfast')]), 'Lunch');
+      expect(defaultMealSlot([entry('Breakfast'), entry('Lunch')]), 'Dinner');
+      expect(
+        defaultMealSlot([entry('Breakfast'), entry('Lunch'), entry('Dinner')]),
+        'Snack',
+      );
+    });
+
+    test('a day holding only a dinner still starts at Breakfast', () {
+      expect(defaultMealSlot([entry('Dinner')]), 'Breakfast');
+    });
+
+    test('Dinner once all four are filled', () {
+      expect(
+        defaultMealSlot([for (final s in kDefaultMealSlots) entry(s)]),
+        'Dinner',
+      );
+    });
+
+    test('a typed lower-case slot fills the default it names', () {
+      expect(defaultMealSlot([entry('breakfast')]), 'Lunch');
+      expect(defaultMealSlot([entry(' LUNCH '), entry('breakfast')]), 'Dinner');
+    });
+
+    test('a custom slot fills none of the defaults', () {
+      expect(defaultMealSlot([entry('Brunch')]), 'Breakfast');
     });
   });
 
