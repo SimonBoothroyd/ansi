@@ -89,11 +89,3 @@ rows below, in that order.)
   layout behind one breakpoint file. Unscheduled.
 - **11 — Anti-waste extras.** Freezer batching, monotony warnings,
   package-size flags. Unscheduled.
-
-## Why this order
-
-The unit system underpins recipes, scaling, cook-plan scaling and
-shopping-list aggregation — nothing works until conversions are trustworthy,
-so it was built first and hardened with tests. Import came late deliberately:
-it depends on a stable ingredient vocabulary to match against. The spec's
-open questions are in [spec §8](../product-specs/product-spec.md#8-remaining-open-questions-low-priority).
