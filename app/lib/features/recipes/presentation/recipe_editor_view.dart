@@ -14,6 +14,7 @@ library;
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -35,6 +36,7 @@ import '../domain/recipe.dart';
 import 'component_format.dart';
 import 'component_quantity_sheet.dart';
 import 'ingredient_line.dart';
+import 'line_card.dart';
 import 'line_target_picker.dart';
 import 'method_editor.dart';
 import 'recipe_chip.dart';
@@ -159,7 +161,7 @@ class RecipeEditorView extends ConsumerWidget {
   }
 }
 
-class _EditorForm extends StatelessWidget {
+class _EditorForm extends HookWidget {
   const _EditorForm({required this.recipe, required this.notifier});
 
   final Recipe recipe;
@@ -167,6 +169,10 @@ class _EditorForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Bumped when a drag starts: every open line card closes, so what crosses
+    // the list is a row like every other row rather than forms of wildly
+    // different heights.
+    final collapseEpoch = useState(0);
     // ONE flat list per recipe: a heading row starts each group, and every
     // line row after it belongs to it. A line dropped under another heading is
     // filed under that heading, so reordering a line and moving it to another
@@ -189,12 +195,18 @@ class _EditorForm extends StatelessWidget {
             recipeId: recipe.id,
             notifier: notifier,
             dragIndex: rows.length,
+            collapseEpoch: collapseEpoch.value,
           ),
         );
       }
     }
 
     return CustomScrollView(
+      // Once you start dragging the list you have finished typing, and a field
+      // left focused off the top of the screen asks to be scrolled back to on
+      // every keyboard metrics change — enough to throw the page to the title
+      // while a line further down is being corrected.
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       slivers: [
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
@@ -209,6 +221,8 @@ class _EditorForm extends StatelessWidget {
             itemCount: rows.length,
             itemBuilder: (context, index) => rows[index],
             onReorderItem: notifier.moveLine,
+            // An open card closes as soon as a drag begins.
+            onReorderStart: (_) => collapseEpoch.value++,
             proxyDecorator: liftedRow,
           ),
         ),
@@ -388,6 +402,7 @@ class _LineItemEditor extends ConsumerWidget {
     required this.recipeId,
     required this.notifier,
     required this.dragIndex,
+    required this.collapseEpoch,
     super.key,
   });
 
@@ -400,6 +415,9 @@ class _LineItemEditor extends ConsumerWidget {
 
   /// This row's position in the flat list — what the grip drags by.
   final int dragIndex;
+
+  /// Bumped by the list when a drag starts: this card closes with the rest.
+  final int collapseEpoch;
 
   /// The amount cell's label. Every line prints what the recipe page prints;
   /// only an unresolved measure id adds anything, and what it adds is the
@@ -432,6 +450,7 @@ class _LineItemEditor extends ConsumerWidget {
         recipeId: recipeId,
         notifier: notifier,
         dragIndex: dragIndex,
+        collapseEpoch: collapseEpoch,
       );
     }
 
@@ -467,11 +486,9 @@ class _LineItemEditor extends ConsumerWidget {
             ? MeasureOption(measure)
             : UnitOption(item.unit),
         pendingMeasure: pending,
-        initialOptional: item.optional,
       );
       if (result is! QuantitySaved) return;
       notifier.setLineItemQuantity(item.id, result.quantity);
-      notifier.setLineItemOptional(item.id, optional: result.optional);
       switch (result.choice) {
         case MeasureOption(:final measure):
           notifier.setLineItemMeasure(item.id, measure);
@@ -484,33 +501,34 @@ class _LineItemEditor extends ConsumerWidget {
       }
     }
 
-    return _LineRow(
+    // A retired row's last known name, muted like a dangling component — same
+    // news, same voice. The card's `change ›` is the repair the tag asks for.
+    final nameStyle = item.ingredientDeleted
+        ? ansiSans(size: 15, color: AnsiColors.muted)
+        : ansiSans(size: 15, weight: FontWeight.w500);
+
+    return _EditorLine(
+      item: item,
+      recipeId: recipeId,
+      notifier: notifier,
       amount: _label,
       dragIndex: dragIndex,
-      usedIn: notifier.stepsUsing(item.id),
+      collapseEpoch: collapseEpoch,
       onEditAmount: editQuantity,
-      onEditIdentity: () => changeLineIdentity(
-        context,
-        recipeId: recipeId,
-        item: item,
-        notifier: notifier,
-      ),
-      onRemove: () => removeLineWithChips(context, item, notifier),
-      identity: Text.rich(
+      rowIdentity: Text.rich(
         TextSpan(
           children: [
-            TextSpan(
-              text: item.ingredientName,
-              // A retired row's last known name, muted like the dangling
-              // component one row down — same news, same voice.
-              style: item.ingredientDeleted
-                  ? ansiSans(size: 15, color: AnsiColors.muted)
-                  : ansiSans(size: 15, weight: FontWeight.w500),
-            ),
+            TextSpan(text: item.ingredientName, style: nameStyle),
             ...noteSpans(item.note),
             ...optionalSpans(optional: item.optional),
-            // The identity cell is already the picker's door, so the tag's
-            // "pick again" is a thing the next tap actually does.
+            ...removedIngredientSpans(removed: item.ingredientDeleted),
+          ],
+        ),
+      ),
+      headIdentity: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(text: item.ingredientName, style: nameStyle),
             ...removedIngredientSpans(removed: item.ingredientDeleted),
           ],
         ),
@@ -533,12 +551,14 @@ class _ComponentLineEditor extends StatelessWidget {
     required this.recipeId,
     required this.notifier,
     required this.dragIndex,
+    required this.collapseEpoch,
   });
 
   final LineItem item;
   final String recipeId;
   final RecipeEditor notifier;
   final int dragIndex;
+  final int collapseEpoch;
 
   @override
   Widget build(BuildContext context) {
@@ -570,21 +590,17 @@ class _ComponentLineEditor extends StatelessWidget {
         ..setLineItemOptional(item.id, optional: result.optional);
     }
 
-    return _LineRow(
+    return _EditorLine(
+      item: item,
+      recipeId: recipeId,
+      notifier: notifier,
       amount: componentAmountText(item.quantity, item.unit),
       dragIndex: dragIndex,
-      usedIn: notifier.stepsUsing(item.id),
+      collapseEpoch: collapseEpoch,
       onEditAmount: editQuantity,
-      onEditIdentity: () => changeLineIdentity(
-        context,
-        recipeId: recipeId,
-        item: item,
-        notifier: notifier,
-      ),
-      onRemove: () => removeLineWithChips(context, item, notifier),
       // A dangling link reads as the plain text it stored, muted, and says why
       // there is no chip — the recipe page's own degradation.
-      identity: target != null
+      rowIdentity: target != null
           ? Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
               spacing: 8,
@@ -614,132 +630,226 @@ class _ComponentLineEditor extends StatelessWidget {
                 ],
               ),
             ),
+      headIdentity: target != null
+          ? RecipeChip(title: target.title, size: 14)
+          : Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: item.ingredientName,
+                    style: ansiSans(size: 15, color: AnsiColors.muted),
+                  ),
+                  ...noteSpans('linked recipe missing'),
+                ],
+              ),
+            ),
     );
   }
 }
 
-/// The editor's ingredient line, in the ONE layout the app prints everywhere:
-/// `[amount] [name] [note]` on a single row, the amount in its own fixed
-/// column so every identity left-aligns.
+/// The editor's ingredient line: the review's expanding card, in the editor's
+/// words ([LineCard]).
 ///
-/// The row carries the two doors it has always had — the amount cell opens the
-/// quantity sheet, the identity cell opens the target picker — plus the grip
-/// that drags it and the bin that removes it. *used in N steps* is a second
-/// muted line under the name, and only when there is one: it is a fact about
-/// the line, not a control.
-class _LineRow extends StatelessWidget {
-  const _LineRow({
+/// At rest it is the ONE row layout the app prints everywhere — the amount,
+/// the name, the note on a single line, the amount in its own fixed column so
+/// every identity left-aligns — bare on the recipe page's hairline, with the
+/// grip beside it. Tapping anywhere on it opens the card, which holds every
+/// fact the line can carry: the identity behind `change ›`, whether it may be
+/// left out, the amount, and — for the first time — the note.
+class _EditorLine extends StatelessWidget {
+  const _EditorLine({
+    required this.item,
+    required this.recipeId,
+    required this.notifier,
+    required this.amount,
+    required this.rowIdentity,
+    required this.headIdentity,
+    required this.dragIndex,
+    required this.collapseEpoch,
+    required this.onEditAmount,
+  });
+
+  final LineItem item;
+  final String recipeId;
+  final RecipeEditor notifier;
+  final String amount;
+
+  /// The identity as the row states it: the name with its note, its
+  /// `optional` tag and whatever the line is wearing.
+  final Widget rowIdentity;
+
+  /// The identity as the card's head says it — the name alone, because the
+  /// note and the flag are controls of their own inside the card.
+  final Widget headIdentity;
+
+  final int dragIndex;
+  final int collapseEpoch;
+  final VoidCallback onEditAmount;
+
+  @override
+  Widget build(BuildContext context) => LineCard(
+    dragIndex: dragIndex,
+    collapseEpoch: collapseEpoch,
+    // A saved recipe has no line that needs the user, and it has no wall of
+    // boxes either: the border is what "open" looks like.
+    borderAtRest: false,
+    collapsed: (onExpand) => _CollapsedLine(
+      amount: amount,
+      identity: rowIdentity,
+      onExpand: onExpand,
+    ),
+    expanded: (onCollapse) => _OpenLine(
+      item: item,
+      identity: headIdentity,
+      amount: amount,
+      usedIn: notifier.stepsUsing(item.id),
+      onEditAmount: onEditAmount,
+      onChangeIdentity: () => changeLineIdentity(
+        context,
+        recipeId: recipeId,
+        item: item,
+        notifier: notifier,
+      ),
+      onRemove: () => removeLineWithChips(context, item, notifier),
+      onCollapse: onCollapse,
+      onOptional: (on) => notifier.setLineItemOptional(item.id, optional: on),
+      onNote: (text) => notifier.setLineItemNote(item.id, text),
+    ),
+  );
+}
+
+/// The line at rest. One gesture: anywhere on it opens the card.
+class _CollapsedLine extends StatelessWidget {
+  const _CollapsedLine({
     required this.amount,
     required this.identity,
-    required this.usedIn,
-    required this.dragIndex,
-    required this.onEditAmount,
-    required this.onEditIdentity,
-    required this.onRemove,
+    required this.onExpand,
   });
 
   final String amount;
   final Widget identity;
-  final int usedIn;
-  final int dragIndex;
-  final VoidCallback onEditAmount;
-  final VoidCallback onEditIdentity;
-  final VoidCallback onRemove;
+  final VoidCallback onExpand;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
+  Widget build(BuildContext context) => Semantics(
+    label: 'Edit the line',
+    button: true,
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onExpand,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          DragGrip(index: dragIndex),
-          // The cell is named, because what it prints is the recipe page's
-          // amount and a count line's amount is a bare number: "1" tells a
-          // reader nothing about what it opens or what it measures.
-          Semantics(
-            label: 'Amount',
-            button: true,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onEditAmount,
-              child: SizedBox(
-                width: kLineAmountWidth,
-                child: Text(
-                  amount.isEmpty ? '—' : amount,
-                  style: ansiMono(size: 14, color: AnsiColors.muted),
-                ),
-              ),
+          SizedBox(
+            width: kLineAmountWidth,
+            child: Text(
+              amount.isEmpty ? '—' : amount,
+              style: ansiMono(size: 14, color: AnsiColors.muted),
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _IdentityCell(onTap: onEditIdentity, child: identity),
-                _UsedInSteps(count: usedIn),
-              ],
-            ),
-          ),
-          const SizedBox(width: 4),
-          FButton.icon(
-            variant: FButtonVariant.ghost,
-            onPress: onRemove,
-            child: const Icon(FLucideIcons.x),
-          ),
+          Expanded(child: identity),
+          const SizedBox(width: 8),
+          const Icon(FLucideIcons.pencil, size: 14, color: AnsiColors.herb),
         ],
       ),
-    );
-  }
+    ),
+  );
 }
 
-/// The note, as the modifier every three-part line prints it: a hairline
-/// separator, then muted italic. Empty when the line carries none.
-List<InlineSpan> noteSpans(String? note) {
-  final text = note?.trim();
-  if (text == null || text.isEmpty) return const [];
-  return [
-    TextSpan(
-      text: '  ·  ',
-      style: ansiSans(size: 15, color: AnsiColors.line),
-    ),
-    TextSpan(
-      text: text,
-      style: ansiSans(
-        size: 14,
-        color: AnsiColors.muted,
-      ).copyWith(fontStyle: FontStyle.italic),
-    ),
-  ];
-}
+/// The line, open. Everything the line can say about itself, in the card's
+/// slots — and the two controls that can break a method chip, `change ›` and
+/// the bin, standing under the count of the steps that quote it.
+class _OpenLine extends StatelessWidget {
+  const _OpenLine({
+    required this.item,
+    required this.identity,
+    required this.amount,
+    required this.usedIn,
+    required this.onEditAmount,
+    required this.onChangeIdentity,
+    required this.onRemove,
+    required this.onCollapse,
+    required this.onOptional,
+    required this.onNote,
+  });
 
-/// The identity cell, tappable (0022 D6). The Review screen has had
-/// "tap to change" since step 8; the editor never has — which is why a swap
-/// meant delete + re-add, a fresh `line_item_id`, and every chip pointing at
-/// the old line going silently dangling.
-class _IdentityCell extends StatelessWidget {
-  const _IdentityCell({required this.child, required this.onTap});
-
-  final Widget child;
-  final VoidCallback onTap;
+  final LineItem item;
+  final Widget identity;
+  final String amount;
+  final int usedIn;
+  final VoidCallback onEditAmount;
+  final VoidCallback onChangeIdentity;
+  final VoidCallback onRemove;
+  final VoidCallback onCollapse;
+  final ValueChanged<bool> onOptional;
+  final ValueChanged<String> onNote;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    behavior: HitTestBehavior.opaque,
-    onTap: onTap,
-    child: Row(
-      children: [
-        Flexible(child: child),
-        const SizedBox(width: 6),
-        const Icon(FLucideIcons.pencil, size: 12, color: AnsiColors.muted),
-      ],
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      LineCardHead(
+        identity: _HeadIdentity(onChange: onChangeIdentity, child: identity),
+        onRemove: onRemove,
+        onCollapse: onCollapse,
+      ),
+      _UsedInSteps(count: usedIn),
+      Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: OptionalFlagToggle(value: item.optional, onChanged: onOptional),
+      ),
+      const SizedBox(height: 12),
+      LineCardRow(
+        label: 'AMOUNT',
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: LineCardAmountChip(label: amount, onTap: onEditAmount),
+        ),
+      ),
+      const SizedBox(height: 12),
+      LineCardNotesField(initial: item.note, onChanged: onNote),
+    ],
+  );
+}
+
+/// The card's head is the identity, and the identity is the door: the shipped
+/// line target picker, behind `change ›`.
+///
+/// It keeps the line's id (0022 D6), which is what keeps every method chip
+/// pointing at it — a swap by delete + re-add would mint a fresh
+/// `line_item_id` and leave them all silently dangling.
+class _HeadIdentity extends StatelessWidget {
+  const _HeadIdentity({required this.child, required this.onChange});
+
+  final Widget child;
+  final VoidCallback onChange;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: 'Change what this line is',
+    button: true,
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onChange,
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 8,
+        runSpacing: 4,
+        children: [
+          child,
+          Text('change ›', style: ansiMono(size: 10, color: AnsiColors.herb)),
+        ],
+      ),
     ),
   );
 }
 
 /// What depends on this line — the quiet count that makes the substitution
 /// notice and the removal prompt read as consequences rather than surprises.
+///
+/// It sits on the open card, under the head: nobody needs it while scanning a
+/// list of ingredients, and every collapsed row is the same height without it.
 class _UsedInSteps extends StatelessWidget {
   const _UsedInSteps({required this.count});
 

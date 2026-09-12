@@ -106,6 +106,35 @@ void main() {
     expect(rice.note, 'rinsed');
   });
 
+  test('a note edited on an existing line round-trips, and blank clears it '
+      'rather than leaving the old words', () async {
+    await repo.saveRecipe(_sampleRecipe());
+    final before = await repo.watchRecipe('r1').first;
+
+    // What the editor's card writes: the same line, a different note — and on
+    // a line that had none, so the UPDATE path carries both directions.
+    final noted = before!.copyWith(
+      groups: [
+        before.groups[0].copyWith(
+          items: [
+            before.groups[0].items[0].copyWith(note: 'finely chopped'),
+            before.groups[0].items[1],
+          ],
+        ),
+        before.groups[1].copyWith(
+          items: [before.groups[1].items.single.copyWith(note: null)],
+        ),
+      ],
+    );
+    await repo.saveRecipe(noted);
+
+    final after = await repo.watchRecipe('r1').first;
+    expect(after!.groups[0].items[0].note, 'finely chopped');
+    expect(after.groups[1].items.single.note, isNull);
+    // The line is the same line — the id is what keeps its method chips.
+    expect(after.groups[0].items[0].id, 'i1');
+  });
+
   test('a moved line round-trips: the order is what was left, the ids are the '
       'ones that were there, and the emptied group is still a group', () async {
     await repo.saveRecipe(_sampleRecipe());

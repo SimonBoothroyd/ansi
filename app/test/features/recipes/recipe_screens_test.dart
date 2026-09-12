@@ -585,8 +585,8 @@ void main() {
     expect(find.text('3 piece · measure pending sync'), findsOneWidget);
   });
 
-  testWidgets('the EDITOR names a retired ingredient and its identity cell '
-      'opens the picker, so the line can be re-pointed', (tester) async {
+  testWidgets('the EDITOR names a retired ingredient and its card’s identity '
+      'door opens the picker, so the line can be re-pointed', (tester) async {
     filterForuiSemanticsAssertions();
     tester.view.physicalSize = const Size(1200, 3000);
     tester.view.devicePixelRatio = 1;
@@ -627,11 +627,14 @@ void main() {
     expect(name, findsOneWidget);
     expect(find.byType(RemovedIngredientTag), findsOneWidget);
 
-    // "pick again" is a door, not a diagnosis: the identity cell the tag
-    // hangs off is the shipped target picker, and the line keeps its id
-    // through the swap (which is what stops every method chip going
-    // dangling).
+    // "pick again" is a door, not a diagnosis: the row opens into the card,
+    // whose head wears the same tag and whose `change ›` is the shipped
+    // target picker. The line keeps its id through the swap (which is what
+    // stops every method chip going dangling).
     await tester.tap(name);
+    await tester.pumpAndSettle();
+    expect(find.byType(RemovedIngredientTag), findsOneWidget);
+    await tester.tap(find.text('change ›'));
     await tester.pumpAndSettle();
     expect(find.text('Change Sauerkraut to'), findsOneWidget);
   });

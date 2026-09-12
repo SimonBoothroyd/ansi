@@ -1,6 +1,6 @@
-/// D6 + D3 (design board frame f): the editor's identity cell is tappable, so
-/// a line keeps its id across a swap — and the chips that point at it take the
-/// new name, visibly and revertibly.
+/// D6 + D3 (design board frame f): the open line card's `change ›` re-points
+/// the line, so it keeps its id across a swap — and the chips that point at it
+/// take the new name, visibly and revertibly.
 ///
 /// The invariant, pinned here and in the domain suite: **a chip never names
 /// something the recipe does not contain**, and a saved method never refs a
@@ -14,7 +14,6 @@ import 'package:ansi/features/recipes/domain/method_step.dart';
 import 'package:ansi/shared/picker_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:forui/forui.dart';
 
 import '../../helpers/editor_harness.dart';
 import '../../helpers/forui_semantics.dart';
@@ -36,10 +35,11 @@ Future<FakeRecipeRepo> openEditor(WidgetTester tester) async {
   return repo;
 }
 
-/// Taps the identity cell of the line named [name] and picks the fake vocab's
-/// only search result, "Pork sausage".
+/// Opens the line named [name], taps the card's `change ›` and picks the fake
+/// vocab's only search result, "Pork sausage".
 Future<void> substitute(WidgetTester tester, String name) async {
-  await tester.tap(find.text(name).first);
+  await openLine(tester, name);
+  await tester.tap(changeIdentity());
   await tester.pumpAndSettle();
   await tester.enterText(
     find.descendant(
@@ -59,12 +59,24 @@ Future<void> substitute(WidgetTester tester, String name) async {
 }
 
 void main() {
-  testWidgets('a line row says what depends on it', (tester) async {
+  testWidgets('the open card says what depends on the line, over the two '
+      'controls that can break a chip', (tester) async {
     await openEditor(tester);
-    expect(find.text('used in 1 step'), findsOneWidget);
+    // Not on the row: it is not a fact anybody needs while scanning a list of
+    // ingredients, and every collapsed row is one height without it.
+    expect(find.text('used in 1 step'), findsNothing);
+
+    await openLine(tester, 'Fennel bulb');
+    final used = find.text('used in 1 step');
+    expect(used, findsOneWidget);
+    // Under the head, so it stands over `change ›` and the bin.
+    expect(
+      tester.getRect(used).top,
+      greaterThan(tester.getRect(changeIdentity()).top),
+    );
   });
 
-  testWidgets('the identity cell re-points the line, keeping its id', (
+  testWidgets('the card’s identity door re-points the line, keeping its id', (
     tester,
   ) async {
     final repo = await openEditor(tester);
@@ -130,7 +142,8 @@ void main() {
   ) async {
     final repo = await openEditor(tester);
 
-    await tester.tap(find.byIcon(FLucideIcons.x).first);
+    await openLine(tester, 'Fennel bulb');
+    await tester.tap(removeLine());
     await tester.pumpAndSettle();
     expect(find.text('1 step mentions Fennel bulb.'), findsOneWidget);
     expect(find.textContaining('only the links go'), findsOneWidget);
@@ -180,7 +193,8 @@ void main() {
   ) async {
     final repo = await openEditor(tester);
 
-    await tester.tap(find.byIcon(FLucideIcons.x).first);
+    await openLine(tester, 'Fennel bulb');
+    await tester.tap(removeLine());
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();

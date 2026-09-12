@@ -418,14 +418,8 @@ class _IdentityState extends State<_Identity> {
                     ),
             recognizer: nameIsDoor ? _openIngredient : null,
           ),
-          // Two spaces, no middle dot: the note is a modifier of the name
-          // ("Onion  finely chopped"), and a separator between them promised
-          // two facts where there is one.
-          for (final part in [
-            if (notes.isNotEmpty) notes,
-            if (dangling) 'linked recipe missing',
-          ])
-            TextSpan(text: '  $part', style: noteStyle),
+          ...noteSpans(notes, size: 16),
+          if (dangling) ...noteSpans('linked recipe missing', size: 16),
           ...optionalSpans(
             optional: optional,
             included: widget.included,
@@ -436,6 +430,35 @@ class _IdentityState extends State<_Identity> {
       ),
     );
   }
+}
+
+/// The note as a run of spans after the name — **the** note grammar, for every
+/// surface that prints one: the recipe page, the editor's row, the import
+/// review's row, the week's.
+///
+/// `Garlic · peeled and crushed` — a middle dot in the hairline, then the note
+/// in muted italic at the name's own size, because it is the name's modifier
+/// rather than a second fact about the line. It lives in one function so the
+/// three screens cannot drift into three grammars, which is exactly what they
+/// had done; `test/structure/one_note_grammar_test.dart` holds that.
+///
+/// Empty when the line carries no note.
+List<InlineSpan> noteSpans(String? note, {double size = 15}) {
+  final text = note?.trim();
+  if (text == null || text.isEmpty) return const [];
+  return [
+    TextSpan(
+      text: '  ·  ',
+      style: ansiSans(size: size, color: AnsiColors.line),
+    ),
+    TextSpan(
+      text: text,
+      style: ansiSans(
+        size: size,
+        color: AnsiColors.muted,
+      ).copyWith(fontStyle: FontStyle.italic),
+    ),
+  ];
 }
 
 /// The `optional` tag as a run of spans, so every three-part line — the page's,
@@ -509,7 +532,7 @@ class OptionalTag extends StatelessWidget {
             else if (onToggle != null)
               const Padding(
                 padding: EdgeInsets.only(right: 4),
-                child: _EmptyRing(),
+                child: OptionalRing(),
               ),
             Text(
               included ? 'included' : 'optional',
@@ -542,9 +565,11 @@ class OptionalTag extends StatelessWidget {
 }
 
 /// The unticked box: an empty ring before the word, so the tag reads as a
-/// question rather than a label before anybody has touched it.
-class _EmptyRing extends StatelessWidget {
-  const _EmptyRing();
+/// question rather than a label before anybody has touched it. Shared with the
+/// card's own `optional` toggle, which asks the recipe's version of the same
+/// question.
+class OptionalRing extends StatelessWidget {
+  const OptionalRing({super.key});
 
   @override
   Widget build(BuildContext context) => Container(

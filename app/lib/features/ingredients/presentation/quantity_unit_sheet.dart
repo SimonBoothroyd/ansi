@@ -138,11 +138,13 @@ class QuantityUnitEditor extends HookConsumerWidget {
   /// shown with a pending note until a chip is explicitly picked.
   final bool pendingMeasure;
 
-  /// The line's stored `optional` flag, when the host is a RECIPE line (the
-  /// editor and the import review): the sheet then shows the Optional switch
-  /// between the chips and Done. Null hides the row — a shopping top-up has no
-  /// such fact, and the component sheet is its own surface (an optional
-  /// sub-recipe is a week-level question, not a line's).
+  /// The line's stored `optional` flag, when the host has nowhere else to set
+  /// it — the import review's amount door, and the week's, where the sheet
+  /// shows the Optional switch between the chips and Done.
+  ///
+  /// Null hides the row: a shopping top-up has no such fact, the component
+  /// sheet is its own surface, and the recipe editor's line owns the flag on
+  /// its own card, where one fact has one door.
   final bool? initialOptional;
 
   final String confirmLabel;

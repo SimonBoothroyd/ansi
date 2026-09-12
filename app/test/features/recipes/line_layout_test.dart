@@ -114,8 +114,8 @@ void main() {
     expect(name.left - amount.left, kLineAmountWidth + 12);
   });
 
-  testWidgets('the note follows the name after two spaces — no separator '
-      'between a thing and its own modifier', (tester) async {
+  testWidgets('the note follows the name after the middle dot, in the one '
+      'grammar every surface prints', (tester) async {
     filterForuiSemanticsAssertions();
     await tester.pumpWidget(
       _host(
@@ -127,8 +127,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Salt  flaky', findRichText: true), findsOneWidget);
-    expect(find.textContaining('·', findRichText: true), findsNothing);
+    expect(find.text('Salt  ·  flaky', findRichText: true), findsOneWidget);
   });
 
   testWidgets('the editor prints the same row — amount cell, identity, note — '
@@ -164,8 +163,8 @@ void main() {
     expect(find.textContaining('flaky'), findsOneWidget);
   });
 
-  testWidgets('“used in N steps” is a second muted line under the name, and '
-      'only when there is one', (tester) async {
+  testWidgets('“used in N steps” is on the open card, under the head — never '
+      'on the row a cook scans', (tester) async {
     filterForuiSemanticsAssertions();
     tester.view.physicalSize = const Size(1200, 3000);
     tester.view.devicePixelRatio = 1;
@@ -187,8 +186,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // One chip, on Salt — so exactly one line says so, and it says it under
-    // the name rather than beside the amount.
+    // The list a cook scans says nothing about the method: every collapsed
+    // row is the same height, which is what makes the drag surface honest.
+    expect(find.textContaining('used in'), findsNothing);
+
+    // One chip, on Salt — so exactly one card says so, once it is open, and
+    // it says it under the head rather than beside the amount.
+    await tester.tap(find.textContaining('Salt').first);
+    await tester.pumpAndSettle();
     final used = find.text('used in 1 step');
     expect(used, findsOneWidget);
     final name = tester.getRect(find.textContaining('Salt').first);

@@ -331,7 +331,18 @@ class RecipeEditor extends _$RecipeEditor
     (i) => i.copyWith(unit: pieces, measureId: measure.id, measure: measure),
   );
 
-  /// Marks the line optional, or not (the quantity sheet's switch). A fact
+  /// Sets the line's note — the modifier the recipe page prints after the name
+  /// ("Garlic · peeled and crushed"). Blank clears it, so the field and the
+  /// absence of a note are the same gesture.
+  ///
+  /// It goes through [_mapItem], never [_setIdentity]: a note says nothing
+  /// about what the line IS, so it must not relabel a single method chip.
+  void setLineItemNote(String itemId, String? note) {
+    final text = note?.trim() ?? '';
+    _mapItem(itemId, (i) => i.copyWith(note: text.isEmpty ? null : text));
+  }
+
+  /// Marks the line optional, or not (the card's flag row). A fact
   /// about the line, never about its amount: the quantity and unit are
   /// untouched, and what changes is what a total covers.
   void setLineItemOptional(String itemId, {required bool optional}) =>

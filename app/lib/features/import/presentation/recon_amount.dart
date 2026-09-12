@@ -8,11 +8,8 @@
 library;
 
 import 'package:flutter/widgets.dart';
-import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/theme/ansi_theme.dart';
-import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/format.dart';
@@ -23,6 +20,7 @@ import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../../recipes/data/recipe_providers.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/component_quantity_sheet.dart';
+import '../../recipes/presentation/line_card.dart';
 import '../domain/amount_text.dart';
 import '../domain/line_resolution.dart';
 import '../domain/line_validation.dart';
@@ -312,38 +310,9 @@ class AmountEditor extends ConsumerWidget {
       (r) => r.lineIndex == lineIndex,
     );
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return LineCardAmountChip(
+      label: amountSlotLabel(resolution, raw, issues),
       onTap: () => editLineAmount(context, ref, lineIndex),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: AnsiColors.paper,
-          border: Border.all(color: AnsiColors.line),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(
-                child: Builder(
-                  builder: (_) {
-                    final label = amountSlotLabel(resolution, raw, issues);
-                    return Text(
-                      label.isEmpty ? 'set amount' : label,
-                      style: ansiMono(size: 12, color: AnsiColors.muted),
-                      overflow: TextOverflow.ellipsis,
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 5),
-              const Icon(FLucideIcons.pencil, size: 11, color: AnsiColors.herb),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

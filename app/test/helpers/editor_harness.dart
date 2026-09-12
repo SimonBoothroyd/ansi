@@ -235,6 +235,23 @@ Future<void> saveEditor(WidgetTester tester) async {
   await tapSave(tester);
 }
 
+/// Opens the line whose identity contains [name] into its card — the editor's
+/// one gesture: anywhere on the collapsed row.
+Future<void> openLine(WidgetTester tester, String name) async {
+  await tester.tap(find.textContaining(name).first);
+  await tester.pumpAndSettle();
+}
+
+/// The open card's identity door — `change ›`, which opens the line target
+/// picker on the line, keeping its id.
+Finder changeIdentity() => find.text('change ›');
+
+/// The open card's bin.
+Finder removeLine() => find.bySemanticsLabel('Remove the line');
+
+/// The open card's chevron, which puts the line back to a row.
+Finder closeLine() => find.bySemanticsLabel('Close the line');
+
 /// Taps Save on a surface where it is already visible.
 Future<void> tapSave(WidgetTester tester) async {
   await tester.tap(find.text('Save'));

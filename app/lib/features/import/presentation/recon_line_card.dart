@@ -29,7 +29,6 @@
 library;
 
 import 'package:flutter/widgets.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -37,11 +36,11 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/guarded_navigation.dart';
-import '../../../shared/reorder_grip.dart';
 import '../../ingredients/presentation/ingredient_detail_view.dart'
     show ingredientDetailRoute;
 import '../../recipes/domain/line_display.dart';
 import '../../recipes/presentation/ingredient_line.dart';
+import '../../recipes/presentation/line_card.dart';
 import '../../recipes/presentation/recipe_chip.dart';
 import '../domain/line_resolution.dart';
 import '../domain/line_validation.dart';
@@ -50,12 +49,11 @@ import 'import_view_models.dart';
 import 'recon_amount.dart';
 import 'recon_resolver.dart';
 
-/// One expandable review row. Collapsed, it reads as the recipe page will:
-/// `amount · ingredient · notes` with a pencil. Expanded, it becomes the full
-/// editable card (re-match, amount+unit, notes). The expand state is local so
-/// several rows can be open at once and it survives the parent's rebuilds on
-/// every edit.
-class ReviewLineCard extends HookConsumerWidget {
+/// One expandable review row — [LineCard] with the review's contents in its
+/// slots. Collapsed, it reads as the recipe page will: `amount · ingredient ·
+/// notes` with a pencil. Expanded, it becomes the full editable card (re-match,
+/// amount+unit, notes) that the recipe editor's line is also built from.
+class ReviewLineCard extends ConsumerWidget {
   const ReviewLineCard({
     required this.line,
     required this.resolution,
@@ -86,11 +84,6 @@ class ReviewLineCard extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final expanded = useState(false);
-    useEffect(() {
-      expanded.value = false;
-      return null;
-    }, [collapseEpoch]);
     final dropped = resolution.isDropped;
     // A dropped line has no issues by construction; the map handed in can still
     // be one recompute behind, so don't let a stale flag survive the drop.
@@ -120,8 +113,7 @@ class ReviewLineCard extends HookConsumerWidget {
         );
 
     if (dropped) {
-      return _Card(
-        attention: false,
+      return LineCardSurface(
         dropped: true,
         child: _DroppedLine(
           line: line,
@@ -130,49 +122,24 @@ class ReviewLineCard extends HookConsumerWidget {
         ),
       );
     }
-    return _Card(
+    return LineCard(
       attention: attention,
-      child: expanded.value
-          ? _Expanded(
-              line: line,
-              resolution: resolution,
-              validation: effective,
-              matched: matched,
-              onCollapse: () => expanded.value = false,
-              onDrop: () => setDropped(value: true),
-            )
-          : _WithGrip(
-              dragIndex: dragIndex,
-              child: _Collapsed(
-                line: line,
-                resolution: resolution,
-                issues: effective.issues,
-                onExpand: () => expanded.value = true,
-              ),
-            ),
-    );
-  }
-}
-
-/// The grip beside a collapsed row, when the card is hosted in a list that
-/// drags. It sits OUTSIDE the row's own tap target, so taking hold of the
-/// handle never counts as opening the card.
-class _WithGrip extends StatelessWidget {
-  const _WithGrip({required this.child, this.dragIndex});
-
-  final Widget child;
-  final int? dragIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    final index = dragIndex;
-    if (index == null) return child;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        DragGrip(index: index),
-        Expanded(child: child),
-      ],
+      dragIndex: dragIndex,
+      collapseEpoch: collapseEpoch,
+      collapsed: (onExpand) => _Collapsed(
+        line: line,
+        resolution: resolution,
+        issues: effective.issues,
+        onExpand: onExpand,
+      ),
+      expanded: (onCollapse) => _Expanded(
+        line: line,
+        resolution: resolution,
+        validation: effective,
+        matched: matched,
+        onCollapse: onCollapse,
+        onDrop: () => setDropped(value: true),
+      ),
     );
   }
 }
@@ -395,19 +362,7 @@ class _Collapsed extends StatelessWidget {
                           text: name,
                           style: ansiSans(size: 15, weight: FontWeight.w600),
                         ),
-                        if (notes != null && notes.isNotEmpty) ...[
-                          TextSpan(
-                            text: '  ·  ',
-                            style: ansiSans(size: 15, color: AnsiColors.line),
-                          ),
-                          TextSpan(
-                            text: notes,
-                            style: ansiSans(
-                              size: 14,
-                              color: AnsiColors.muted,
-                            ).copyWith(fontStyle: FontStyle.italic),
-                          ),
-                        ],
+                        ...noteSpans(notes),
                       ],
                     ),
                   ),
@@ -500,44 +455,18 @@ class _Expanded extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // The line's CURRENT identity, the same rule the collapsed row
-            // reads (C-D1) — not the source text, which sits on the
-            // `from source:` line directly underneath.
-            Expanded(
-              child: Text(
-                resolution.displayName,
-                style: ansiSans(size: 15, weight: FontWeight.w600),
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Drop the line: the recipe prints it, this cook doesn't want it.
-            // It greys out in place and only Save makes the removal real.
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onDrop,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4),
-                child: Icon(
-                  FLucideIcons.trash2,
-                  size: 16,
-                  color: AnsiColors.muted,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onCollapse,
-              child: const Icon(
-                FLucideIcons.chevronUp,
-                size: 18,
-                color: AnsiColors.muted,
-              ),
-            ),
-          ],
+        // The head is the line's CURRENT identity, the same rule the collapsed
+        // row reads (C-D1) — not the source text, which sits on the
+        // `from source:` line directly underneath. The bin drops the line: the
+        // recipe prints it, this cook doesn't want it, and it greys out in
+        // place until Save makes the removal real.
+        LineCardHead(
+          identity: Text(
+            resolution.displayName,
+            style: ansiSans(size: 15, weight: FontWeight.w600),
+          ),
+          onRemove: onDrop,
+          onCollapse: onCollapse,
         ),
         // Always show the source line as written — the reference the owner
         // wants while fixing a photo import (round-2 #3). A line the REVIEW
@@ -593,17 +522,16 @@ class _Expanded extends ConsumerWidget {
           onUnlink: () => update((r) => r.unlink()),
         ),
         const SizedBox(height: 14),
-        Row(
-          children: [
-            SizedBox(width: 64, child: Text('AMOUNT', style: ansiLabel())),
-            const SizedBox(width: 8),
-            if (matched)
-              AmountEditor(lineIndex: _index, issues: issues)
-            else
-              _DisabledChip(
-                label: amountSlotLabel(resolution, line.raw, issues),
-              ),
-          ],
+        LineCardRow(
+          label: 'AMOUNT',
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: matched
+                ? AmountEditor(lineIndex: _index, issues: issues)
+                : _DisabledChip(
+                    label: amountSlotLabel(resolution, line.raw, issues),
+                  ),
+          ),
         ),
         // A count on a row with no piece weight (ADR-0015): the fix is the
         // INGREDIENT's, not this line's, so the card names it and opens the
@@ -718,32 +646,26 @@ class _UnitSuggestionsState extends State<_UnitSuggestions> {
         ? ranked.take(kVisibleUnitChips).toList()
         : ranked;
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(width: 64, child: Text('UNIT', style: ansiLabel())),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final c in visible)
-                ReconPill(
-                  label: c.label,
-                  selected: c.token == widget.selected,
-                  onTap: () => widget.onPick(c.token),
-                ),
-              if (hiddenCount > 0 && !selectedIsFolded)
-                ReconPill(
-                  label: _expanded ? 'fewer' : '+$hiddenCount more',
-                  quiet: true,
-                  onTap: () => setState(() => _expanded = !_expanded),
-                ),
-            ],
-          ),
-        ),
-      ],
+    return LineCardRow(
+      label: 'UNIT',
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          for (final c in visible)
+            ReconPill(
+              label: c.label,
+              selected: c.token == widget.selected,
+              onTap: () => widget.onPick(c.token),
+            ),
+          if (hiddenCount > 0 && !selectedIsFolded)
+            ReconPill(
+              label: _expanded ? 'fewer' : '+$hiddenCount more',
+              quiet: true,
+              onTap: () => setState(() => _expanded = !_expanded),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -787,59 +709,12 @@ class _NotesEditor extends ConsumerWidget {
     final resolution = state.resolutions.firstWhere(
       (r) => r.lineIndex == lineIndex,
     );
-    return Row(
-      children: [
-        SizedBox(width: 64, child: Text('NOTES', style: ansiLabel())),
-        const SizedBox(width: 8),
-        Expanded(
-          child: FTextField(
-            enabled: enabled,
-            hint: 'e.g. finely chopped, to serve',
-            control: FTextFieldControl.managed(
-              initial: TextEditingValue(text: resolution.notes ?? ''),
-              onChange: (v) => ref
-                  .read(importControllerProvider.notifier)
-                  .updateResolution(lineIndex, (r) => r.setNotes(v.text)),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// The card chrome — an aging border while the line needs the user, a quiet
-/// line once it is done (the amber clears on resolution, round-2 #4), and the
-/// flat paper fill of a [dropped] line, which is on its way out and should read
-/// that way.
-class _Card extends StatelessWidget {
-  const _Card({
-    required this.attention,
-    required this.child,
-    this.dropped = false,
-  });
-
-  final bool attention;
-  final bool dropped;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: dropped ? AnsiColors.paper : AnsiColors.surface,
-          border: Border.all(
-            color: attention ? AnsiColors.aging : AnsiColors.line,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-          child: child,
-        ),
-      ),
+    return LineCardNotesField(
+      initial: resolution.notes,
+      enabled: enabled,
+      onChanged: (text) => ref
+          .read(importControllerProvider.notifier)
+          .updateResolution(lineIndex, (r) => r.setNotes(text)),
     );
   }
 }
@@ -862,6 +737,11 @@ bool unitNeedsALook(RawLineItem raw) {
 
 /// The honest-import flags for a line — shown, never hidden (0014) — led by
 /// the one flag that is also a control.
+///
+/// That control rides the row of EVERY expanded card, matched or not: "to
+/// serve" is a fact about the line the cook can read off the page, and waiting
+/// for an ingredient match to record it would lose it on exactly the lines — a
+/// garnish, a cross-reference — that most often go unmatched.
 class _Flags extends StatelessWidget {
   const _Flags({
     required this.raw,
@@ -892,43 +772,9 @@ class _Flags extends StatelessWidget {
         spacing: 6,
         runSpacing: 4,
         children: [
-          _OptionalToggle(
-            value: optional,
-            onTap: () => onToggleOptional(!optional),
-          ),
+          OptionalFlagToggle(value: optional, onChanged: onToggleOptional),
           for (final f in flags) _MiniFlag(text: f),
         ],
-      ),
-    );
-  }
-}
-
-/// The `optional` flag and the switch that sets it, one pill.
-///
-/// It rides the flag row of EVERY expanded card, matched or not: "to serve"
-/// is a fact about the line the cook can read off the page, and waiting for
-/// an ingredient match to record it would lose it on exactly the lines — a
-/// garnish, a cross-reference — that most often go unmatched.
-class _OptionalToggle extends StatelessWidget {
-  const _OptionalToggle({required this.value, required this.onTap});
-
-  final bool value;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: FBadge(
-        variant: value ? FBadgeVariant.secondary : FBadgeVariant.outline,
-        child: Text(
-          'optional',
-          style: ansiMono(
-            size: 10,
-            color: value ? AnsiColors.aging : AnsiColors.muted,
-          ),
-        ),
       ),
     );
   }

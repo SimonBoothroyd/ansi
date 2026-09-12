@@ -40,7 +40,6 @@ import '../../recipes/domain/line_override.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/ingredient_line.dart';
 import '../../recipes/presentation/line_target_picker.dart';
-import '../../recipes/presentation/recipe_editor_view.dart' show noteSpans;
 import '../domain/planning.dart' show PlanEntry;
 import 'week_variant_format.dart';
 import 'week_variant_view_models.dart';

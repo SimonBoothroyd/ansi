@@ -283,6 +283,15 @@ void main() {
     final state = container.read(importControllerProvider) as ImportReconciling;
     final line0 = state.resolutions.firstWhere((r) => r.lineIndex == 0);
     expect(line0.notes, 'finely chopped');
+
+    // And the collapsed row prints it in the ONE note grammar — the same
+    // `name · note` the recipe page and the editor's row print.
+    await tester.tap(find.byIcon(FLucideIcons.chevronUp));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Spaghetti  ·  finely chopped', findRichText: true),
+      findsOneWidget,
+    );
   });
 
   testWidgets('an unmatched line disables amount + notes and shows a clear '
