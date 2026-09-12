@@ -277,6 +277,58 @@ void main() {
     });
   });
 
+  testWidgets('RecipeView shows a line whose ingredient was retired — last '
+      'known name, and the tag that says what to do', (tester) async {
+    const recipe = Recipe(
+      id: '4',
+      title: 'Smashed Edamame Toast',
+      servingsBase: 2,
+      groups: [
+        IngredientGroup(
+          id: 'g1',
+          items: [
+            // The incident's shape: a live line, `to taste`, no quantity,
+            // pointing at a vocab row an import duplicated and a hand pass
+            // retired.
+            LineItem(
+              id: 'i1',
+              ingredientId: 'sauerkraut',
+              ingredientName: 'Sauerkraut',
+              unit: toTaste,
+              ingredientDeleted: true,
+            ),
+            LineItem(
+              id: 'i2',
+              ingredientId: 'bread',
+              ingredientName: 'Bread',
+              unit: g,
+              quantity: 200,
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _host(const RecipeView(recipeId: '4'), [
+        recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(recipe)),
+      ]),
+    );
+    await tester.pump();
+
+    // Named, not blanked, and not dropped: the reader can see which line
+    // broke and what the recipe last called it.
+    expect(
+      find.textContaining('Sauerkraut', findRichText: true),
+      findsOneWidget,
+    );
+    expect(find.byType(RemovedIngredientTag), findsOneWidget);
+    expect(find.text('ingredient removed · pick again'), findsOneWidget);
+    // The live neighbour is untouched — one broken link is not a broken page.
+    expect(find.textContaining('Bread', findRichText: true), findsOneWidget);
+    expect(find.text('200 g'), findsOneWidget);
+  });
+
   testWidgets('the EDITOR tags an optional line too — an ingredient row and a '
       'component row alike', (tester) async {
     filterForuiSemanticsAssertions();
@@ -534,6 +586,57 @@ void main() {
     // on anything, and the other must not promise a sync that never comes.
     expect(find.text('2 piece · measure deleted'), findsOneWidget);
     expect(find.text('3 piece · measure pending sync'), findsOneWidget);
+  });
+
+  testWidgets('the EDITOR names a retired ingredient and its identity cell '
+      'opens the picker, so the line can be re-pointed', (tester) async {
+    filterForuiSemanticsAssertions();
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    const broken = Recipe(
+      id: '1',
+      title: 'Smashed Edamame Toast',
+      servingsBase: 2,
+      groups: [
+        IngredientGroup(
+          id: 'g1',
+          items: [
+            LineItem(
+              id: 'i1',
+              ingredientId: 'sauerkraut',
+              ingredientName: 'Sauerkraut',
+              unit: toTaste,
+              ingredientDeleted: true,
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _host(const RecipeEditorView(recipeId: '1'), [
+        recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(broken)),
+        ingredientRepositoryProvider.overrideWithValue(
+          const ReadOnlyIngredientRepo(),
+        ),
+        bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
+      ]),
+    );
+    await tester.pumpAndSettle();
+
+    final name = find.textContaining('Sauerkraut', findRichText: true);
+    expect(name, findsOneWidget);
+    expect(find.byType(RemovedIngredientTag), findsOneWidget);
+
+    // "pick again" is a door, not a diagnosis: the identity cell the tag
+    // hangs off is the shipped target picker, and the line keeps its id
+    // through the swap (which is what stops every method chip going
+    // dangling).
+    await tester.tap(name);
+    await tester.pumpAndSettle();
+    expect(find.text('Change Sauerkraut to'), findsOneWidget);
   });
 
   testWidgets('the editor draws the second MAKES denomination, with the ✕ that '

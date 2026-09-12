@@ -386,6 +386,10 @@ class SqliteRecipeRepository implements RecipeRepository {
       // Null on every query that does not ask (the flag is a display fact,
       // and the surfaces that print it all read this one).
       measureDeleted: r['measure_deleted_at'] != null,
+      // The vocab row is joined WITHOUT the liveness guard precisely so a
+      // retired ingredient still hands over its last known name; this is the
+      // flag that stops that name reading as if the row were fine.
+      ingredientDeleted: r['ingredient_deleted_at'] != null,
       measure:
           measureId == null || measureLabel == null || measureAmount == null
           ? null

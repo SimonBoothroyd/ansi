@@ -106,6 +106,43 @@ void main() {
       expect(line.note, 'browned');
     });
 
+    test('a swap off a RETIRED ingredient clears the broken-link flag — the '
+        'week re-pointed the line, which is the repair', () {
+      final broken = _line('kraut').copyWith(ingredientDeleted: true);
+      final result = effectiveLines(
+        [broken],
+        overrides: const [
+          LineOverride(
+            action: LineOverrideAction.replace,
+            recipeLineItemId: 'kraut',
+            ingredientId: 'ing-cabbage',
+            ingredientName: 'Red cabbage',
+            quantity: 200,
+            unit: g,
+          ),
+        ],
+      );
+      expect(result.kept.single.ingredientDeleted, isFalse);
+    });
+
+    test('an amount changed for the week does not un-break the line — the row '
+        'it names is still gone', () {
+      final broken = _line('kraut').copyWith(ingredientDeleted: true);
+      final result = effectiveLines(
+        [broken],
+        overrides: const [
+          LineOverride(
+            action: LineOverrideAction.replace,
+            recipeLineItemId: 'kraut',
+            ingredientId: 'ing-kraut',
+            quantity: 300,
+            unit: g,
+          ),
+        ],
+      );
+      expect(result.kept.single.ingredientDeleted, isTrue);
+    });
+
     test('include keeps an optional line, and clears the flag so a second '
         'pass is a no-op', () {
       final result = effectiveLines(

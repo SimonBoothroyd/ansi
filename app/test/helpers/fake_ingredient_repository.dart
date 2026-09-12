@@ -136,8 +136,12 @@ class FakeIngredientRepo implements IngredientRepository {
   final List<Ingredient> rows;
   final Map<String, List<IngredientAlias>> _aliases;
 
-  /// Live recipe references per ingredient id — what the delete guard reads.
-  final Map<String, ({int recipeCount, int lineCount})> references;
+  /// Live references per ingredient id — what the delete guard reads. The
+  /// planned count is the week's own lines (a bare-ingredient meal, a
+  /// this-week swap), which the guard counts beside the recipe ones so it
+  /// refuses exactly what migration 0041 refuses.
+  final Map<String, ({int recipeCount, int lineCount, int plannedCount})>
+  references;
 
   /// The match_text each write left behind, by id — the rename hazard is
   /// invisible in the entity, so the fake records it for assertions.
@@ -555,11 +559,14 @@ class FakeIngredientRepo implements IngredientRepository {
   Future<DeleteOutcome> softDelete(String ingredientId) async {
     final current = _find(ingredientId);
     if (current == null) return const DeleteMissing();
-    final refs = references[ingredientId] ?? (recipeCount: 0, lineCount: 0);
-    if (refs.lineCount > 0) {
+    final refs =
+        references[ingredientId] ??
+        (recipeCount: 0, lineCount: 0, plannedCount: 0);
+    if (refs.lineCount > 0 || refs.plannedCount > 0) {
       return DeleteRefused(
         recipeCount: refs.recipeCount,
         lineCount: refs.lineCount,
+        plannedCount: refs.plannedCount,
       );
     }
     rows.remove(current);

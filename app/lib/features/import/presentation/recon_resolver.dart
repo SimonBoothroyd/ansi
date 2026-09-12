@@ -34,6 +34,7 @@ class Resolver extends StatelessWidget {
     this.onLinkRecipe,
     this.onUnlink,
     this.sourceLine,
+    this.matchMissing = false,
     super.key,
   });
 
@@ -63,6 +64,16 @@ class Resolver extends StatelessWidget {
   /// is unmatched, where there is no row to name. A LINKED line is a recipe,
   /// not a vocabulary row, so it never carries one.
   final String? sourceLine;
+
+  /// Whether the row this line names is not in the vocabulary this device can
+  /// read — retired since the server matched, or never synced. The identity
+  /// cell is then the PICK cell: there is no row to draw a ✓ over, and the
+  /// line needs the same answer an unmatched one needs.
+  ///
+  /// The verdict comes from `importValidation`, the one place that resolves a
+  /// match against the live vocabulary; this widget never decides it from the
+  /// id the resolution still carries.
+  final bool matchMissing;
 
   Future<void> _openSearch(BuildContext context) async {
     final pick = await showReconcileIngredientSheet(
@@ -101,7 +112,7 @@ class Resolver extends StatelessWidget {
         onUnlink: onUnlink,
       );
     }
-    if (resolution.chosenIngredientId != null) {
+    if (resolution.chosenIngredientId != null && !matchMissing) {
       return _Chosen(
         label: resolution.chosenName ?? 'Matched',
         sourceLine: sourceLine,

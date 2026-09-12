@@ -1908,6 +1908,63 @@ void main() {
         },
       );
 
+      /// A bare-ingredient meal — "a protein bar on Wednesday" (0033).
+      Future<void> plannedMeal(String week, String entry, String ingredient) =>
+          db
+              .execute(
+                'INSERT INTO week_plan (id, household_id, week_start_date) '
+                'VALUES (?, ?, ?)',
+                [week, 'h', '2026-09-14'],
+              )
+              .then(
+                (_) => db.execute(
+                  'INSERT INTO plan_entry (id, household_id, week_plan_id, '
+                  'day_of_week, meal_slot, ingredient_id, quantity, unit) '
+                  "VALUES (?, ?, ?, 2, 'Snack', ?, 1, 'piece')",
+                  [entry, 'h', week, ingredient],
+                ),
+              );
+
+      test('the WEEK holds it too — a bare-ingredient meal is a line, and the '
+          'server counts it (0041)', () async {
+        await plannedMeal('w1', 'pe1', '1');
+        final outcome = await repo.softDelete('1');
+        expect(outcome, isA<DeleteRefused>());
+        expect((outcome as DeleteRefused).plannedCount, 1);
+        expect(outcome.lineCount, 0, reason: 'no recipe names it');
+        // Deleting it anyway made the meal vanish from the week and the
+        // shop with nothing said — the week's own query inner-joins the
+        // live vocab.
+        expect(await repo.byId('1'), isNotNull);
+      });
+
+      test("and so does this week's swap (0040)", () async {
+        await line('r1', 'g1', '2');
+        await db.execute(
+          'INSERT INTO week_plan (id, household_id, week_start_date) '
+          "VALUES ('w1', 'h', '2026-09-14')",
+        );
+        await db.execute(
+          'INSERT INTO week_recipe_line_override (id, household_id, '
+          'week_plan_id, recipe_id, recipe_line_item_id, action, '
+          "ingredient_id, quantity, unit) VALUES ('wro1', 'h', 'w1', 'r1', "
+          "'line-g1', 'replace', ?, 1, 'g')",
+          ['1'],
+        );
+        final outcome = await repo.softDelete('1');
+        expect(outcome, isA<DeleteRefused>());
+        expect((outcome as DeleteRefused).plannedCount, 1);
+      });
+
+      test('a meal in a tombstoned week is not a hold either — the app and the '
+          'server agree on what counts', () async {
+        await plannedMeal('w1', 'pe1', '1');
+        await db.execute(
+          "UPDATE week_plan SET deleted_at = '2026-01-01' WHERE id = 'w1'",
+        );
+        expect(await repo.softDelete('1'), isA<Deleted>());
+      });
+
       test(
         'a line in a tombstoned recipe does not hold the ingredient hostage',
         () async {

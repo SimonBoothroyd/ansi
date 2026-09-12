@@ -661,6 +661,74 @@ void main() {
     expect(macros.stubLines, 1);
   });
 
+  test('a line whose ingredient was RETIRED is still returned, named, and '
+      'flagged — never dropped and never blank', () async {
+    await repo.saveRecipe(_sampleRecipe());
+    await db.execute('UPDATE ingredient SET deleted_at = ? WHERE id = ?', [
+      DateTime.now().toUtc().toIso8601String(),
+      'ing-onion',
+    ]);
+
+    final loaded = await repo.watchRecipe('r1').first;
+    final items = loaded!.groups.first.items;
+    // The line is where it was. A reader who cannot see it cannot fix it,
+    // and a recipe silently one line short is the incident this guards.
+    expect(items.map((i) => i.id), ['i1', 'i2']);
+    final onion = items.first;
+    expect(onion.ingredientId, 'ing-onion', reason: 'the id is kept verbatim');
+    expect(onion.ingredientName, 'Onion', reason: 'the last known name');
+    expect(onion.ingredientDeleted, isTrue);
+    expect(
+      items.last.ingredientDeleted,
+      isFalse,
+      reason: 'a live row is not tarred by its neighbour',
+    );
+
+    // Nothing is derived from the retired row, and the total says which line
+    // it is waiting on — in the words that name the fix.
+    final notes = loaded.macros!.notes;
+    expect(
+      notes
+          .where((n) => n.reason == MacroLineReason.removedIngredient)
+          .map((n) => n.name),
+      ['Onion'],
+    );
+  });
+
+  test('re-pointing the line at a live row clears the flag', () async {
+    await repo.saveRecipe(_sampleRecipe());
+    await db.execute('UPDATE ingredient SET deleted_at = ? WHERE id = ?', [
+      DateTime.now().toUtc().toIso8601String(),
+      'ing-onion',
+    ]);
+    final broken = await repo.watchRecipe('r1').first;
+    final line = broken!.groups.first.items.first;
+
+    // What the editor's picker does: same line id, a live ingredient.
+    await repo.saveRecipe(
+      broken.copyWith(
+        groups: [
+          broken.groups.first.copyWith(
+            items: [
+              line.copyWith(
+                ingredientId: 'ing-rice',
+                ingredientName: 'Rice',
+                ingredientDeleted: false,
+              ),
+              ...broken.groups.first.items.skip(1),
+            ],
+          ),
+          ...broken.groups.skip(1),
+        ],
+      ),
+    );
+
+    final repaired = (await repo.watchRecipe('r1').first)!.groups.first.items;
+    expect(repaired.first.id, 'i1', reason: 'a re-point keeps the line id');
+    expect(repaired.first.ingredientDeleted, isFalse);
+    expect(repaired.first.ingredientName, 'Rice');
+  });
+
   test('setFavorite round-trips through the summary row', () async {
     await repo.saveRecipe(_sampleRecipe());
     expect((await repo.watchRecipes().first).single.favorite, isFalse);

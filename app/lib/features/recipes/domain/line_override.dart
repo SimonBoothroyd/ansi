@@ -247,6 +247,14 @@ LineItem applyOverride(LineItem line, LineOverride override) => line.copyWith(
   measure: override.measure,
   note: override.note,
   optional: false,
+  // A swap onto a DIFFERENT row is a repair, so the base line's broken-link
+  // flag does not ride along: the override's ingredient is read with the
+  // liveness guard, so the row this now names is a live one. An amount-only
+  // replace re-points nothing and keeps whatever the line already said.
+  ingredientDeleted:
+      line.ingredientDeleted &&
+      (override.ingredientId == null ||
+          override.ingredientId == line.ingredientId),
 );
 
 /// An added line as a [LineItem], so every derivation downstream reads one

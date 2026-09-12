@@ -100,8 +100,17 @@ class ReviewLineCard extends HookConsumerWidget {
     final attention = effective.issues.isNotEmpty;
     // A LINKED line counts as resolved for the card's purposes: it has an
     // identity, so the amount and notes unlock exactly as a matched line's do.
+    //
+    // "Matched" is the VALIDATION's verdict, not a re-derivation from the id
+    // the resolution still holds: `importValidation` is where a match meets
+    // this device's live vocabulary, and a line matched to a retired row comes
+    // back `unmatched` there. So the card asks for a pick and locks the amount
+    // exactly as it does for a line the cascade could not match — a green ✓
+    // over a row that is gone is the lie this prevents.
+    final unmatched = effective.issues.contains(LineIssue.unmatched);
     final matched =
-        resolution.chosenIngredientId != null || resolution.isComponent;
+        !unmatched &&
+        (resolution.chosenIngredientId != null || resolution.isComponent);
     // Read the notifier at CALL time, never captured (the file's rule).
     void setDropped({required bool value}) => ref
         .read(importControllerProvider.notifier)
@@ -550,6 +559,12 @@ class _Expanded extends ConsumerWidget {
           candidates: line.candidates,
           recipeCandidates: line.recipeCandidates,
           resolution: resolution,
+          // The line still remembers an id, but the vocabulary cannot hand
+          // that row back (it was retired since the server matched), and the
+          // validation said so. The identity cell is then the PICK cell, not
+          // a ✓ over a row that is gone — the whole point of reading the one
+          // verdict instead of the stale id.
+          matchMissing: !matched && resolution.chosenIngredientId != null,
           // Which food the matched row's numbers came from,
           // already on the validation the card is holding.
           sourceLine: validation.sourceLine,

@@ -21,6 +21,13 @@
 /// a callback rather than a baked-in push because the import preview draws
 /// the same line for rows that name nothing the household owns yet.
 ///
+/// **A line whose ingredient has been RETIRED keeps its last known name** and
+/// carries the `ingredient removed · pick again` tag, muted like a dangling
+/// component: the one thing a reader must not have to guess is which line
+/// broke. The name stops being a door there — a retired row has no page left
+/// — and the fix lives one posture over, in the editor, where the identity
+/// cell is a picker.
+///
 /// **An optional line carries a tag after the note** (board frame e2) in the
 /// sub-recipe chip's shape, because it is the same kind of claim — a fact
 /// about the line that changes what a total covers. It sits in the identity
@@ -350,6 +357,9 @@ class _IdentityState extends State<_Identity> {
     // ticked in wears the same tag, lit — the week cleared the flag, and the
     // answer it gave is what the tag is now saying.
     final optional = uses.uses.any((u) => u.optional) || widget.included;
+    // Every use of a folded row shares one identity, so they agree about
+    // this — `any` only saves the reader wondering which.
+    final removed = uses.uses.any((u) => u.ingredientDeleted);
 
     // A component whose target resolved: the chip IS the identity, with the
     // note beside it exactly as an ingredient's would be.
@@ -379,7 +389,11 @@ class _IdentityState extends State<_Identity> {
     final dangling = uses.isComponent;
     final ingredientId = uses.ingredientId;
     final openIngredient = widget.onOpenIngredient;
-    final nameIsDoor = ingredientId != null && openIngredient != null;
+    // A retired row has no page left to open — its own screens read the live
+    // vocab — so the name stops being a door and the tag says what to do
+    // instead. A door onto "not found" is worse than no door.
+    final nameIsDoor =
+        ingredientId != null && openIngredient != null && !removed;
     _openIngredient.onTap = nameIsDoor
         ? () => openIngredient(ingredientId)
         : null;
@@ -389,8 +403,12 @@ class _IdentityState extends State<_Identity> {
         children: [
           TextSpan(
             text: uses.ingredientName,
+            // Muted for every broken or absent link — a missing component
+            // target, a retired ingredient and a line this week leaves out
+            // are the same news about the same cell — and struck only for
+            // the last, which is the one a week can put back.
             style:
-                (dangling || widget.struck
+                (dangling || removed || widget.struck
                         ? ansiSans(size: 16, color: AnsiColors.muted)
                         : ansiSans(size: 16, weight: FontWeight.w500))
                     .copyWith(
@@ -413,6 +431,7 @@ class _IdentityState extends State<_Identity> {
             included: widget.included,
             onToggle: widget.onToggleOptional,
           ),
+          ...removedIngredientSpans(removed: removed),
         ],
       ),
     );
@@ -536,6 +555,52 @@ class _EmptyRing extends StatelessWidget {
       border: Border.all(color: AnsiColors.muted, width: 1.5),
     ),
   );
+}
+
+/// The retired-ingredient tag, as a run of spans — the same placement
+/// [optionalSpans] uses, so the page's line, the editor's and the week's hang
+/// it off the end of the identity in one voice. Empty when the line's
+/// ingredient is still live.
+List<InlineSpan> removedIngredientSpans({required bool removed}) => removed
+    ? const [
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(
+            padding: EdgeInsets.only(left: 8),
+            child: RemovedIngredientTag(),
+          ),
+        ),
+      ]
+    : const [];
+
+/// `ingredient removed · pick again` — what a line wears when the vocab row it
+/// names has been retired ([LineItem.ingredientDeleted]).
+///
+/// [OptionalTag]'s exact look, because it is the same kind of claim: a fact
+/// about the line that changes what a total covers. The words carry the fix
+/// with them — the editor's identity cell is a picker, so "pick again" is a
+/// thing the reader can go and do rather than a diagnosis. The name beside it
+/// is the row's LAST KNOWN one: a blank cell would hide which line broke, and
+/// dropping the line would hide that anything did.
+class RemovedIngredientTag extends StatelessWidget {
+  const RemovedIngredientTag({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AnsiColors.herbSoft,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        child: Text(
+          'ingredient removed · pick again',
+          style: ansiMono(size: 10, color: AnsiColors.muted),
+        ),
+      ),
+    );
+  }
 }
 
 /// One use's amount string — [amountOfLine], which is where the words live so

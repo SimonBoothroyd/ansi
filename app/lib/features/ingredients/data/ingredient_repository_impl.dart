@@ -925,9 +925,15 @@ class SqliteIngredientRepository implements IngredientRepository {
     return byId(ingredientId);
   }
 
-  /// Live recipe lines naming [ingredientId], as (recipes, lines) — the
+  /// Every live line naming [ingredientId], as (recipes, lines, planned) — the
   /// delete guard's evidence, and the numbers a refusal names.
-  Future<({int recipeCount, int lineCount})> _recipeReferences(
+  ///
+  /// The three tables are the three a line's `ingredient_id` can live in, and
+  /// they are the same three migration 0041's trigger counts. The week's two
+  /// were missing here until then, which is how a bare-ingredient meal could
+  /// be deleted out from under itself: the week's own query inner-joins the
+  /// live vocab, so the meal simply vanished from the week and the shop.
+  Future<({int recipeCount, int lineCount, int plannedCount})> _liveReferences(
     String ingredientId,
   ) async {
     // A line's recipe is reached through its group, and both must be live —
@@ -941,9 +947,23 @@ class SqliteIngredientRepository implements IngredientRepository {
       'AND gr.deleted_at IS NULL AND r.deleted_at IS NULL',
       [ingredientId],
     );
+    // A bare-ingredient meal (0033) and a this-week swap (0040), each only in
+    // a live week.
+    final planned = await _db.get(
+      'SELECT (SELECT COUNT(*) FROM plan_entry pe '
+      'JOIN week_plan wp ON wp.id = pe.week_plan_id '
+      'WHERE pe.ingredient_id = ? AND pe.deleted_at IS NULL '
+      'AND wp.deleted_at IS NULL) '
+      '+ (SELECT COUNT(*) FROM week_recipe_line_override wro '
+      'JOIN week_plan wp ON wp.id = wro.week_plan_id '
+      'WHERE wro.ingredient_id = ? AND wro.deleted_at IS NULL '
+      'AND wp.deleted_at IS NULL) AS planned',
+      [ingredientId, ingredientId],
+    );
     return (
       recipeCount: (row['recipes'] as int?) ?? 0,
       lineCount: (row['lines'] as int?) ?? 0,
+      plannedCount: (planned['planned'] as int?) ?? 0,
     );
   }
 
@@ -951,11 +971,12 @@ class SqliteIngredientRepository implements IngredientRepository {
   Future<DeleteOutcome> softDelete(String ingredientId) async {
     final current = await byId(ingredientId);
     if (current == null) return const DeleteMissing();
-    final refs = await _recipeReferences(ingredientId);
-    if (refs.lineCount > 0) {
+    final refs = await _liveReferences(ingredientId);
+    if (refs.lineCount > 0 || refs.plannedCount > 0) {
       return DeleteRefused(
         recipeCount: refs.recipeCount,
         lineCount: refs.lineCount,
+        plannedCount: refs.plannedCount,
       );
     }
     final now = DateTime.now().toUtc().toIso8601String();

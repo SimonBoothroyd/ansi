@@ -703,6 +703,9 @@ class _IngredientsTab extends ConsumerWidget {
         final id = line?.subRecipeId;
         if (id != null) context.pushOnce('/recipes/$id');
       case MacroLineReason.noAmount:
+      // A retired row's fix is not on the row — the row is gone. It is the
+      // LINE, so the door is the editor, where the identity cell picks again.
+      case MacroLineReason.removedIngredient:
         context.pushOnce('/recipes/${recipe.id}/edit');
       case MacroLineReason.imprecise:
       case MacroLineReason.optional:
@@ -868,6 +871,11 @@ class _IngredientsTab extends ConsumerWidget {
     final macros = row.excluded
         ? const (figures: null, note: null)
         : _macroLine(uses, summary, factor, marked: note != null);
+    // The identity cell already wears `ingredient removed · pick again`,
+    // inches from the name it is about; the amount column does not say the
+    // same thing a second time. The panel below still names the line, and
+    // its note is the door.
+    final saidInPlace = note?.reason == MacroLineReason.removedIngredient;
     // One tap is one intent: a folded row's every optional use is ticked in
     // together, because the row is what the person answered about.
     final optionalIds = [
@@ -913,10 +921,14 @@ class _IngredientsTab extends ConsumerWidget {
       onOpenIngredient: row.excluded
           ? null
           : (id) => context.pushOnce(ingredientDetailRoute(id)),
-      macroMarker: note == null ? null : incompleteLineNote(note.reason),
+      macroMarker: note == null || saidInPlace
+          ? null
+          : incompleteLineNote(note.reason),
       macroLine: macros.figures,
       macroLineNote: macros.note,
-      onFixMacro: note == null ? null : () => _fix(context, note),
+      onFixMacro: note == null || saidInPlace
+          ? null
+          : () => _fix(context, note),
     );
   }
 }

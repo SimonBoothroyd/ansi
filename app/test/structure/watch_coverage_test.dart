@@ -47,6 +47,10 @@ const _exemptTables = <String, Set<String>>{
   // `setDefaultMeasure`'s own-measure check. None of them can make a watched
   // read stale — and the measure count the list and the row BOTH draw rides
   // the `ingredient` watch as a correlated subquery.
+  // The week's three (0041) are the delete guard's too: it counts every live
+  // line naming the row — a recipe line, a bare-ingredient meal, a this-week
+  // swap — so it refuses exactly what the database refuses. One-shot Future,
+  // read at the moment of the tap, like the rest of this list.
   'lib/features/ingredients/data/ingredient_repository_impl.dart': {
     'ingredient_measure',
     'recipe_line_item',
@@ -54,6 +58,9 @@ const _exemptTables = <String, Set<String>>{
     'recipe',
     'shopping_list_entry',
     'shopping_list_contribution',
+    'plan_entry',
+    'week_plan',
+    'week_recipe_line_override',
   },
   // The measure repo watches one ingredient's measures. The tables below are
   // `countLinesUsing`'s alone — the delete guard, a one-shot Future read at

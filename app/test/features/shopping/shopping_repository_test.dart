@@ -218,6 +218,93 @@ void main() {
     },
   );
 
+  // --- A line at a RETIRED ingredient (0041's incident, from the aisle) -----
+
+  group('an ingredient the household retired', () {
+    Future<void> retire(String id) => db.execute(
+      'UPDATE ingredient SET deleted_at = ? WHERE id = ?',
+      [DateTime.now().toUtc().toIso8601String(), id],
+    );
+
+    Future<void> planCurry() async {
+      await _insertRecipe(
+        db,
+        'curry',
+        'Curry',
+        lines: [('onion', 3, pieces), ('flour', 100, g)],
+      );
+      await planning.addEntry(
+        weekStart: _week,
+        dayOfWeek: 0,
+        mealSlot: 'Dinner',
+        recipeId: 'curry',
+        eaterIds: const ['a', 'b'],
+      );
+    }
+
+    test('buys nothing for the line that names it — and the list says which '
+        'line, and where the pick is', () async {
+      await planCurry();
+      await retire('flour');
+
+      final list = await repo.watchShoppingList(_week).first;
+      // Nothing is shopped from the dead row: not its name, not its aisle,
+      // not the amount the line still states.
+      expect(list.groups.expand((g) => g.items).map((i) => i.ingredientId), [
+        'onion',
+      ]);
+      expect(list.retiredIngredients, [
+        (
+          heading: 'Curry',
+          ingredientName: 'Flour',
+          site: RetiredIngredientSite.recipeLine,
+        ),
+      ]);
+      // The echo is not the optional one: a defect is not a rule somebody
+      // chose, and the two channels do not borrow each other's words.
+      expect(list.optionalLines, isEmpty);
+    });
+
+    test('a week that is whole carries no echo', () async {
+      await planCurry();
+      expect(
+        (await repo.watchShoppingList(_week).first).retiredIngredients,
+        isEmpty,
+      );
+    });
+
+    test('the week re-pointing the line repairs it — the new thing is bought '
+        'and nothing is left to say', () async {
+      await planCurry();
+      await retire('flour');
+      final variants = SqliteWeekVariantRepository(db, householdId: 'h');
+      await variants.saveOverrides(
+        _week,
+        'curry',
+        overrides: const [
+          LineOverride(
+            action: LineOverrideAction.replace,
+            recipeLineItemId: 'curry-li1',
+            ingredientId: 'onion',
+            quantity: 2,
+            unit: pieces,
+          ),
+        ],
+      );
+
+      final list = await repo.watchShoppingList(_week).first;
+      expect(list.retiredIngredients, isEmpty);
+      final onion = list.groups
+          .expand((g) => g.items)
+          .firstWhere((i) => i.ingredientId == 'onion');
+      expect(onion.totals.single.amount, 5); // 3 + the week's 2
+      expect(
+        onion.contributions.map((c) => c.label).join('|'),
+        contains('this week, for Flour'),
+      );
+    });
+  });
+
   group("this week's variant reaches the aisle", () {
     /// The week's meal, and a variant repository pointed at the same database.
     Future<SqliteWeekVariantRepository> planRagu() async {
@@ -1331,25 +1418,51 @@ void main() {
       expect(item.contributions.single.quantity, isNull);
     });
 
-    test(
-      'a deleted vocab row drops out — nothing to buy, nothing to say',
-      () async {
-        await planning.addIngredientEntry(
-          weekStart: _week,
-          dayOfWeek: 1,
-          mealSlot: 'Snack',
-          ingredientId: 'bar',
-          eaterIds: const ['a'],
-          quantity: 60,
-          unit: g,
-        );
-        await db.execute(
-          "UPDATE ingredient SET deleted_at = '2026-01-01T00:00:00Z' "
-          "WHERE id = 'bar'",
-        );
-        expect((await repo.watchShoppingList(_week).first).isEmpty, isTrue);
-      },
-    );
+    test('at a RETIRED vocab row buys nothing — and does not vanish, which is '
+        'what took its check-off row with it', () async {
+      await planning.addIngredientEntry(
+        weekStart: _week,
+        dayOfWeek: 1,
+        mealSlot: 'Snack',
+        ingredientId: 'bar',
+        eaterIds: const ['a'],
+        quantity: 60,
+        unit: g,
+      );
+      await db.execute(
+        "UPDATE ingredient SET deleted_at = '2026-01-01T00:00:00Z' "
+        "WHERE id = 'bar'",
+      );
+
+      final list = await repo.watchShoppingList(_week).first;
+      // Nothing to buy — a retired row has no honest name, aisle or weight.
+      expect(list.isEmpty, isTrue);
+      // …but the planned meal still has a row somebody can read, and its
+      // pick is in the plan, not in a recipe there isn't one of.
+      expect(list.retiredIngredients, [
+        (
+          heading: 'Snack · Tue',
+          ingredientName: 'Protein bar',
+          site: RetiredIngredientSite.planEntry,
+        ),
+      ]);
+    });
+
+    test('at a row this device has never synced still drops out silently — '
+        'there is nothing to name', () async {
+      await planning.addIngredientEntry(
+        weekStart: _week,
+        dayOfWeek: 1,
+        mealSlot: 'Snack',
+        ingredientId: 'never-synced',
+        eaterIds: const ['a'],
+        quantity: 60,
+        unit: g,
+      );
+      final list = await repo.watchShoppingList(_week).first;
+      expect(list.isEmpty, isTrue);
+      expect(list.retiredIngredients, isEmpty);
+    });
 
     test(
       'it sums into the SAME line as a recipe that uses it — bought once',

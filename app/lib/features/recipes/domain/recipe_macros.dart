@@ -116,6 +116,13 @@ enum MacroLineReason {
   /// The line names an ingredient this device has never synced.
   unknownIngredient,
 
+  /// The line names an ingredient the household has RETIRED — a row that was
+  /// here and was removed, which is a different thing to say than "not in
+  /// your ingredients yet" and a different fix: re-point the line, in the
+  /// editor. Nothing about a retired row is summed, so the total honestly
+  /// refuses the same way a stub makes it refuse.
+  removedIngredient,
+
   /// A bare count on a row with no piece weight ("2 pieces", nothing
   /// weighing one) — the row's fact is missing, so the row's form is the fix
   /// (ADR-0015).
@@ -496,9 +503,15 @@ RecipeMacroSummary _summarize({
     final macros = nutrition?.macros;
     if (nutrition == null || macros == null) {
       stubs++;
+      // Three ways to have no nutrition, and the line says which — a retired
+      // row is not "not synced yet" (nothing is coming) and not a stub (the
+      // row is gone, not thin). Same counter, because the consequence for the
+      // total is the same; different words, because the fix is not.
       note(
         line,
-        nutrition == null
+        line.ingredientDeleted
+            ? MacroLineReason.removedIngredient
+            : nutrition == null
             ? MacroLineReason.unknownIngredient
             : MacroLineReason.stubIngredient,
       );

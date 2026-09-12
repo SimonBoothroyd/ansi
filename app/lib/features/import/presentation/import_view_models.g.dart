@@ -158,6 +158,12 @@ String _$importValidationKeyHash() =>
 /// per-line needs-attention flag, the unit chips, AND the Save gate. Empty
 /// until reconciling.
 ///
+/// It is also the one place a match meets THIS DEVICE's vocabulary, so it is
+/// where [againstLiveVocabulary] rules: a line matched to a row that has been
+/// retired since the server answered reads as UNMATCHED — needs a pick, and
+/// holds Save exactly as an unmatched line does. Before that it read as done
+/// (no ingredient, so no unit to fault) and committed the dead id.
+///
 /// It is deliberately NOT recomputed on every controller change: it depends on
 /// [importValidationKey], so editing a note or the servings leaves the cached
 /// map alone. Views must read it with `AsyncValue.value` (which keeps the last
@@ -183,6 +189,12 @@ const importValidationProvider = ImportValidationProvider._();
 /// valid units as inline suggestion chips. The review screen reads it for the
 /// per-line needs-attention flag, the unit chips, AND the Save gate. Empty
 /// until reconciling.
+///
+/// It is also the one place a match meets THIS DEVICE's vocabulary, so it is
+/// where [againstLiveVocabulary] rules: a line matched to a row that has been
+/// retired since the server answered reads as UNMATCHED — needs a pick, and
+/// holds Save exactly as an unmatched line does. Before that it read as done
+/// (no ingredient, so no unit to fault) and committed the dead id.
 ///
 /// It is deliberately NOT recomputed on every controller change: it depends on
 /// [importValidationKey], so editing a note or the servings leaves the cached
@@ -216,6 +228,12 @@ final class ImportValidationProvider
   /// valid units as inline suggestion chips. The review screen reads it for the
   /// per-line needs-attention flag, the unit chips, AND the Save gate. Empty
   /// until reconciling.
+  ///
+  /// It is also the one place a match meets THIS DEVICE's vocabulary, so it is
+  /// where [againstLiveVocabulary] rules: a line matched to a row that has been
+  /// retired since the server answered reads as UNMATCHED — needs a pick, and
+  /// holds Save exactly as an unmatched line does. Before that it read as done
+  /// (no ingredient, so no unit to fault) and committed the dead id.
   ///
   /// It is deliberately NOT recomputed on every controller change: it depends on
   /// [importValidationKey], so editing a note or the servings leaves the cached
@@ -258,7 +276,7 @@ final class ImportValidationProvider
   }
 }
 
-String _$importValidationHash() => r'ca1dcb1acc6368aa1d39bb9a64e4fc529dad5b93';
+String _$importValidationHash() => r'cf0498400eb52c723f3cbe24df079b622aa2f473';
 
 /// The ONE "how many lines still want you" count — the header's "N to review"
 /// and the Save button's "N line(s) need you" are the same number, read from

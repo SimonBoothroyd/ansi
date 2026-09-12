@@ -115,6 +115,12 @@ class ShoppingView extends ConsumerWidget {
         // says what it left out.
         for (final note in data.unresolvedComponents)
           _UnresolvedEcho(note: note),
+        // …and what it cannot buy because the thing itself is gone: a line, or
+        // a planned meal, whose vocab row was retired. Amber like the
+        // unresolved echo, because it is the same kind of news — a defect
+        // somebody can fix — and the words name where the pick is.
+        for (final note in data.retiredIngredients)
+          RetiredIngredientEcho(note: note),
         // …and what it left out BY RULE: an optional line contributes nothing,
         // and the recipe it belongs to says which lines, in the same voice —
         // muted, not amber, because a rule somebody chose is not a defect
@@ -204,6 +210,70 @@ class _UnresolvedEcho extends StatelessWidget {
           Flexible(
             child: Text(
               '$count ${plural(count, 'component')} unresolved — see Cook',
+              overflow: TextOverflow.ellipsis,
+              style: ansiMono(size: 10.5, color: AnsiColors.cautionInk),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A line at a RETIRED ingredient: "SAUERKRAUT · ingredient removed · pick
+/// again in the recipe" — the same group-header row the unresolved echo uses,
+/// amber, because it is the same kind of statement: a heading for something
+/// that is NOT below it, and a defect somebody can fix.
+///
+/// The list buys nothing from a retired row (there is no honest name, aisle or
+/// density left on it) and drops nothing either — a planned snack that
+/// vanished with its check-off row is how this went unnoticed. So the row
+/// leaves the aisles and says, here, which thing is missing and where the pick
+/// is: the recipe for a recipe line, the plan for a bare-ingredient meal.
+/// Public so the screen test can find the row by type.
+class RetiredIngredientEcho extends StatelessWidget {
+  const RetiredIngredientEcho({required this.note, super.key});
+
+  final RetiredIngredientNote note;
+
+  /// `Sauerkraut · ingredient removed · pick again in the recipe`.
+  ///
+  /// `ingredient removed · pick again` is the recipe page's and the editor's
+  /// exact words (`RemovedIngredientTag`) — one vocabulary for one kind of
+  /// broken line — with the surface that holds the pick named at the end,
+  /// because from an aisle it is a different tap.
+  static String text(RetiredIngredientNote note) {
+    final where = switch (note.site) {
+      RetiredIngredientSite.recipeLine => 'recipe',
+      RetiredIngredientSite.planEntry => 'plan',
+    };
+    return '${note.ingredientName} · ingredient removed · '
+        'pick again in the $where';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+      child: Row(
+        children: [
+          Flexible(
+            child: Text(
+              note.heading.toUpperCase(),
+              overflow: TextOverflow.ellipsis,
+              style: ansiMono(
+                size: 10,
+                color: AnsiColors.muted,
+                letterSpacing: 1.4,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Icon(FLucideIcons.flag, size: 11, color: AnsiColors.cautionInk),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              text(note),
               overflow: TextOverflow.ellipsis,
               style: ansiMono(size: 10.5, color: AnsiColors.cautionInk),
             ),

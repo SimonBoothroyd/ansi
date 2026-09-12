@@ -20,8 +20,8 @@ import '../features/recipes/domain/recipe_macros.dart';
 /// Why a summary is incomplete, for the row note: `no ingredients yet`,
 /// `1 stub line`, `2 stub lines · 1 line needs a piece weight · 1
 /// unconvertible`,
-/// `1 sub-recipe unresolved` — never an empty string (a reasonless badge
-/// would leave a dangling separator).
+/// `1 sub-recipe unresolved`, `1 ingredient removed` — never an empty string
+/// (a reasonless badge would leave a dangling separator).
 ///
 /// **"needs a piece weight" is its own reason**, not part of "unconvertible".
 /// A bare count — "2 pieces" on a row with no piece weight — is the one
@@ -35,11 +35,20 @@ String incompleteNote(RecipeMacroSummary summary) {
   // at all, and it gets its own words rather than being folded into a bucket
   // that names a defect.
   if (summary.nothingWeighable) return 'nothing weighable yet';
-  final stubs = summary.stubLines;
+  // A retired row costs the total exactly what a stub costs it, so the walk
+  // counts both in `stubLines` — but they are not the same sentence, and the
+  // reason list is where the two are told apart. A broken link is named FIRST:
+  // it is the one cause here that says the recipe points at nothing.
+  final removed = [
+    for (final n in summary.notes)
+      if (n.reason == MacroLineReason.removedIngredient) n,
+  ].length;
+  final stubs = summary.stubLines > removed ? summary.stubLines - removed : 0;
   final counts = summary.countLinesWithoutMeasure;
   final unresolved = summary.subRecipesUnresolved;
   final subIncomplete = summary.subRecipesIncomplete;
   final parts = [
+    if (removed > 0) '$removed ${plural(removed, 'ingredient')} removed',
     if (stubs == 1) '1 stub line',
     if (stubs > 1) '$stubs stub lines',
     if (counts == 1) '1 line needs a piece weight',
@@ -72,6 +81,8 @@ String incompleteNote(RecipeMacroSummary summary) {
 String incompleteLineNote(MacroLineReason reason) => switch (reason) {
   MacroLineReason.stubIngredient => 'stub ingredient',
   MacroLineReason.unknownIngredient => 'not in your ingredients yet',
+  // A row that WAS here — so not "yet", and the fix is the line, not the row.
+  MacroLineReason.removedIngredient => 'ingredient removed · pick again',
   MacroLineReason.needsWeight => 'needs a piece weight',
   MacroLineReason.needsDensity => 'needs a density',
   MacroLineReason.noAmount => 'no amount',
