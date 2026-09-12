@@ -162,6 +162,16 @@ stream change).
 statements (`truncate`, `delete`) against cloud are intentionally blocked by the
 harness — a human runs those, or use soft-delete (`update … set deleted_at`).
 
+**A hand statement that retires an `ingredient` must re-point its lines
+first** — every live `recipe_line_item`, `plan_entry` and
+`week_recipe_line_override` naming the row — and since migration `0041` the
+database refuses the retire otherwise, naming the count
+(*retire refused: 2 live lines still use this ingredient; re-point them
+first*). `select ingredient_live_line_uses('<id>')` is the read-only way to
+ask first, and `select * from repair_lines_at_retired_ingredients()` re-points
+whatever an earlier pass already broke onto the single live row of the same
+`match_text`, reporting what it could not resolve.
+
 ### 2b. Rolling reseeded `ingredient` columns onto existing households
 
 > **Not needed for migration-borne changes.** Migration `0014` (ADR-0009's

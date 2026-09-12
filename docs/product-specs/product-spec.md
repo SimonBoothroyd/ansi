@@ -196,6 +196,24 @@ The column list is generated from the migrations —
   person resolved it, not the rule. Nothing renames onto an occupied name and
   nothing merges two rows. Detail:
   [`search-and-matching.md`](../design-docs/search-and-matching.md) §4.
+- **An ingredient is retired only when nothing live names it**, and **a line
+  whose ingredient is gone is shown and repairable.** The two halves are one
+  rule. `ingredient_id` carries no `on delete` and a delete is a tombstone, so
+  a retired row a line still names leaves the line pointing at nothing — and
+  the readers that filter on liveness then drop it, which is a recipe silently
+  one line short. So the retire is refused while a live line names the row, in
+  the app's ⋯ menu (*Still used by 3 recipes (4 lines)*) **and in the database**
+  (migration `0041`, so a hand statement at a SQL prompt meets the same rule
+  with the same count). A line counts wherever a line lives: a recipe line, a
+  bare-ingredient meal, a this-week swap. And where a line was already left
+  broken, it reads with the row's **last known name** plus
+  `ingredient removed · pick again` — muted, on the recipe page and in the
+  editor, where tapping the name opens the picker and the line keeps its id.
+  Nothing derives from a retired row: the macro total leaves the line out and
+  names it, in the same voice a stub line is named. The same migration
+  re-points what was already broken onto the single live row of the same
+  `match_text` where there is exactly one, and leaves a line with no single
+  twin for a person to pick — guessing between two live rows is not a repair.
 - **`source_label` says which food the numbers came from, by name.**
   `source` holds a key — an FDC id, a barcode — and no screen ever prints one;
   `source_label` is what a person reads. A USDA pick stores that food's

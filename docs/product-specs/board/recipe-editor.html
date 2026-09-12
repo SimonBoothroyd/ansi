@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe editor</h1>
-    <p class="view-status">built · matches code 2026-09-11 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a></p>
+    <p class="view-status">built · matches code 2026-09-12 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a></p>
     <p class="view-blurb">One header form under two hosts, and a method written as step cards with live ingredient chips — select the words, say what they are. Opened with <code>?week=</code> it edits the same list for one planned week and saves a diff against the recipe instead of the recipe.</p>
 </header>
 
@@ -69,6 +69,7 @@
             </div>
             <div style="margin:0 20px">
                 <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">1 handful</span><span class="l3-body"><span class="l3-id">Cilantro</span><span class="wv-tag" style="margin-left:6px">optional</span></span><span class="l3-pen">✎</span></div>
+                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">to taste</span><span class="l3-body"><span class="l3-id" style="color:var(--muted);font-weight:400">Sauerkraut</span><span class="wv-tag" style="margin-left:6px">ingredient removed · pick again</span></span><span class="l3-pen">✎</span></div>
             </div>
 
             <div style="display:flex;gap:8px;margin:10px 20px 0">
@@ -79,6 +80,7 @@
             <p class="conv-note" style="margin-top:14px">one row layout everywhere: <b>[amount] [name] [note]</b> on a single line, the amount in its own 84&nbsp;px column so every identity left-aligns. It is what the recipe page — the screen a cook reads — already prints. The <b>amount cell</b> opens the quantity sheet and the <b>name cell</b> opens the identity picker: the same two doors, side by side instead of stacked</p>
             <p class="conv-note"><i>used in N steps</i> is a second muted line under the name, and only when N&nbsp;&gt;&nbsp;0 — it is a fact about the line, not a control</p>
             <p class="conv-note">an <b>optional</b> line wears the page's own tag, hung off the end of the identity in the same voice the recipe page prints it in. It is <b>stated, not tapped</b>: the amount sheet's <b>Optional</b> switch is still the one door that changes it, and the editor that owns the line must not be the one screen that hides the flag</p>
+            <p class="conv-note">a line whose <b>ingredient has been retired</b> keeps the row's <b>last known name</b>, muted like a component whose target is missing, and wears <b>ingredient removed · pick again</b> in that same tag voice. Blanking the cell would hide which line broke and dropping the line would hide that anything did — so it is shown, named, and repaired <i>here</i>: the name cell is already the identity picker, the pick keeps the line's id, and every method chip pointing at it survives. The recipe page prints the same tag and stops treating the name as a door, because a retired row has no page left to open. The three line states a reader can meet are therefore one vocabulary: <b>optional</b>, <b>linked recipe missing</b>, <b>ingredient removed · pick again</b></p>
             <p class="conv-note">the grip <b>⋮⋮</b> is the only thing that drags. Long-press-anywhere would turn a scroll into an accidental move on a list whose whole job is tapping</p>
             <p class="conv-note">a line dropped under a heading is <b>filed under that heading</b>. It keeps its id, so every method chip pointing at it still does — which is the whole reason the gesture is worth having, since delete + re-add already reordered a list and cost every reference. Headings do not drag; a group left empty by a move is <b>kept</b></p>
             <p class="conv-note">the doors sit tight under the last line, and a line added lands in the <b>last group</b> — the drag then puts it where it belongs</p>
