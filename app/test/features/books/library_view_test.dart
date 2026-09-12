@@ -1115,6 +1115,32 @@ void main() {
       expect(uri.queryParameters['section'], 's1');
     });
 
+    testWidgets("an empty shelf's doors carry the book and no section", (
+      tester,
+    ) async {
+      late GoRouter router;
+      await tester.pumpWidget(
+        _routedHost(
+          _repo(const [Book(id: 'b1', name: 'Our Cookbook')]),
+          (r) => router = r,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('new recipe'));
+      await tester.pumpAndSettle();
+      expect(router.state.uri.path, '/recipes/new');
+      expect(router.state.uri.queryParameters['book'], 'b1');
+      expect(router.state.uri.queryParameters.containsKey('section'), isFalse);
+
+      router.pop();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('import one'));
+      await tester.pumpAndSettle();
+      expect(router.state.uri.path, '/import');
+      expect(router.state.uri.queryParameters['book'], 'b1');
+    });
+
     testWidgets('the Unsectioned door carries the book and no section', (
       tester,
     ) async {

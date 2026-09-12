@@ -522,12 +522,17 @@ Future<void> confirmDeleteBook(
   );
 }
 
-/// The first-run shelf (D7·2): the app opens on this, so it offers the two
-/// doors in place rather than sending you to find a menu.
+/// The first-run shelf: the app opens on this, so it offers the two doors in
+/// place rather than sending you to find a menu. Both doors carry the book,
+/// exactly as the section `＋` does — a recipe started from an empty shelf
+/// files onto that shelf, not onto whichever book sorts first.
 class _EmptyShelf extends StatelessWidget {
   const _EmptyShelf({required this.book});
 
   final Book book;
+
+  String _route(String path) =>
+      Uri(path: path, queryParameters: {'book': book.id}).toString();
 
   @override
   Widget build(BuildContext context) {
@@ -550,7 +555,7 @@ class _EmptyShelf extends StatelessWidget {
                 child: DashedAction(
                   icon: FLucideIcons.plus,
                   label: 'new recipe',
-                  onTap: () => context.pushOnce('/recipes/new'),
+                  onTap: () => context.pushOnce(_route('/recipes/new')),
                 ),
               ),
               const SizedBox(width: 8),
@@ -558,7 +563,7 @@ class _EmptyShelf extends StatelessWidget {
                 child: DashedAction(
                   icon: FLucideIcons.download,
                   label: 'import one',
-                  onTap: () => context.pushOnce('/import'),
+                  onTap: () => context.pushOnce(_route('/import')),
                 ),
               ),
             ],
