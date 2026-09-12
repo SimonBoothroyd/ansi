@@ -1149,7 +1149,7 @@ void main() {
   test('a delete refused by a live line is a message, not a failure', () async {
     final repo = FakeIngredientRepo(
       [_mango],
-      references: {'mango': (recipeCount: 3, lineCount: 4)},
+      references: {'mango': (recipeCount: 3, lineCount: 4, plannedCount: 0)},
     );
     final (:form, :at) = await _open(repo, id: 'mango');
 
@@ -1161,5 +1161,40 @@ void main() {
       'Still used by 3 recipes (4 lines). Change those lines first.',
     );
     expect(repo.rows, hasLength(1));
+  });
+
+  test('a delete held only by the WEEK says so — the recipes clause has '
+      'nothing to say and is not printed', () async {
+    final repo = FakeIngredientRepo(
+      [_mango],
+      references: {'mango': (recipeCount: 0, lineCount: 0, plannedCount: 2)},
+    );
+    final (:form, :at) = await _open(repo, id: 'mango');
+
+    final outcome = await form.delete();
+
+    expect(outcome, isA<DeleteRefused>());
+    expect(
+      at().message,
+      'Still used by 2 lines in your plan. Change those lines first.',
+    );
+    expect(repo.rows, hasLength(1));
+  });
+
+  test('both clauses join one sentence, because a household reads what still '
+      'uses the row, not which table', () async {
+    final repo = FakeIngredientRepo(
+      [_mango],
+      references: {'mango': (recipeCount: 1, lineCount: 1, plannedCount: 1)},
+    );
+    final (:form, :at) = await _open(repo, id: 'mango');
+
+    await form.delete();
+
+    expect(
+      at().message,
+      'Still used by 1 recipe (1 line) and 1 line in your plan. '
+      'Change those lines first.',
+    );
   });
 }

@@ -27,6 +27,7 @@ import '../../../core/text/name_clean.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../../../core/words.dart';
 import '../barcode/barcode_add.dart';
 import '../data/ingredient_providers.dart';
 import '../domain/allowed_units.dart';
@@ -1353,14 +1354,32 @@ class IngredientForm extends _$IngredientForm {
     state = state.copyWith(
       message: switch (outcome) {
         Deleted() => null,
-        DeleteRefused(:final recipeCount, :final lineCount) =>
-          'Still used by $recipeCount '
-              '${recipeCount == 1 ? 'recipe' : 'recipes'} '
-              '($lineCount ${lineCount == 1 ? 'line' : 'lines'}). '
-              'Change those lines first.',
+        final DeleteRefused refused => _refusalSentence(refused),
         DeleteMissing() => 'It is already gone.',
       },
     );
     return outcome;
   }
+}
+
+/// The delete refusal, in the form's one message line (board
+/// `ingredient-detail.html`): *"Still used by 3 recipes (4 lines). Change those
+/// lines first."*
+///
+/// The week's lines join the same sentence rather than getting a second one:
+/// a household reads "what still uses this", not "which table". Each clause
+/// only appears when it has something to say, so the recipes-only case prints
+/// exactly the sentence it always has.
+String _refusalSentence(DeleteRefused refused) {
+  final recipes =
+      '${refused.recipeCount} ${plural(refused.recipeCount, 'recipe')} '
+      '(${refused.lineCount} ${plural(refused.lineCount, 'line')})';
+  final planned =
+      '${refused.plannedCount} ${plural(refused.plannedCount, 'line')} '
+      'in your plan';
+  final parts = [
+    if (refused.lineCount > 0) recipes,
+    if (refused.plannedCount > 0) planned,
+  ];
+  return 'Still used by ${parts.join(' and ')}. Change those lines first.';
 }

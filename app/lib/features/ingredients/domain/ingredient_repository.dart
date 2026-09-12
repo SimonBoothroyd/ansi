@@ -27,6 +27,11 @@ import 'name_namespace.dart';
 /// live line points at can never go. The refusal carries the counts the
 /// screen shows ("used by 3 recipes") — a refusal a user can act on beats an
 /// error they can't.
+///
+/// The set counted here is exactly the set migration 0041's trigger counts:
+/// live recipe lines in live groups of live recipes, plus the week's own
+/// lines. Two guards over one rule, and they must not disagree — the door
+/// exists so a person gets a sentence instead of a failed upload.
 sealed class DeleteOutcome {
   const DeleteOutcome();
 }
@@ -36,13 +41,24 @@ final class Deleted extends DeleteOutcome {
   const Deleted();
 }
 
-/// Refused: [lineCount] live recipe lines across [recipeCount] recipes still
-/// name this ingredient.
+/// Refused: [lineCount] live recipe lines across [recipeCount] recipes, and/or
+/// [plannedCount] lines in the plan, still name this ingredient.
 final class DeleteRefused extends DeleteOutcome {
-  const DeleteRefused({required this.recipeCount, required this.lineCount});
+  const DeleteRefused({
+    required this.recipeCount,
+    required this.lineCount,
+    this.plannedCount = 0,
+  });
 
   final int recipeCount;
   final int lineCount;
+
+  /// Live lines in the WEEK that name the row — a bare-ingredient meal
+  /// (`plan_entry`) or a this-week swap (`week_recipe_line_override`). They
+  /// count because the database counts them (migration 0041): a delete this
+  /// door allowed and the server refused would be an upload the sync queue
+  /// can never drain, which is worse than the refusal.
+  final int plannedCount;
 }
 
 /// Refused: the id resolves to nothing live (already deleted, never synced).

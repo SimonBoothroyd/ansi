@@ -356,7 +356,9 @@ void main() {
       tallScreen(tester);
       final repo = FakeIngredientRepo(
         const [mango],
-        references: const {'mango': (recipeCount: 3, lineCount: 4)},
+        references: const {
+          'mango': (recipeCount: 3, lineCount: 4, plannedCount: 0),
+        },
       );
       await tester.pumpWidget(host(repo, at: editRoute('mango')));
       await tester.pumpAndSettle();
