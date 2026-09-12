@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/import/data/import_providers.dart';
@@ -9,11 +10,16 @@ import 'package:ansi/features/import/domain/import_repository.dart';
 import 'package:ansi/features/import/domain/line_validation.dart';
 import 'package:ansi/features/import/domain/reconciliation_payload.dart';
 import 'package:ansi/features/import/presentation/import_view_models.dart';
+import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
+import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_book_repository.dart';
 import '../../helpers/fake_import_repository.dart';
+import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/fake_measure_repository.dart';
+import '_fixtures.dart';
 
 /// The canned edge function, plus a [gate] that can hold `startImport` open
 /// so a second call races the first.
@@ -39,6 +45,64 @@ class _GatedImportRepo extends FakeImportRepo {
   }
 }
 
+// --- The whole measure at the controller's two doors (ADR-0016) -------------
+
+const _lime = Ingredient(
+  id: 'i-lime',
+  canonicalName: 'Lime',
+  defaultUnit: pieces,
+  status: IngredientStatus.complete,
+  pieceBasisAmount: 67,
+  pieceSource: 'manual',
+);
+const _limeWhole = Measure(id: 'm-lime', label: 'lime, whole', amount: 67);
+const _avocado = Ingredient(
+  id: 'i-avocado',
+  canonicalName: 'Avocado',
+  defaultUnit: pieces,
+  status: IngredientStatus.complete,
+  pieceBasisAmount: 201,
+  pieceSource: 'manual',
+);
+const _dragonFruit = Ingredient(
+  id: 'i-dragon',
+  canonicalName: 'Dragon fruit',
+  defaultUnit: pieces,
+  status: IngredientStatus.complete,
+);
+
+/// Measures per row, as the real repository answers — the shared fake hands
+/// every id the same list, which would give Avocado a lime's measure.
+class _MeasuresByRow extends FakeMeasureRepo {
+  _MeasuresByRow(this.byRow);
+
+  final Map<String, List<Measure>> byRow;
+
+  @override
+  Future<Map<String, List<Measure>>> measuresByIngredients(
+    Set<String> ids,
+  ) async => {for (final id in ids) id: byRow[id] ?? const []};
+}
+
+ProviderContainer _vocabContainer(ReconciliationPayload payload) {
+  final container = ProviderContainer(
+    overrides: [
+      importRepositoryProvider.overrideWithValue(FakeImportRepo(payload)),
+      bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
+      ingredientRepositoryProvider.overrideWithValue(
+        FakeIngredientRepo([_lime, _avocado, _dragonFruit]),
+      ),
+      measureRepositoryProvider.overrideWithValue(
+        _MeasuresByRow({
+          _lime.id: const [_limeWhole],
+        }),
+      ),
+    ],
+  );
+  addTearDown(container.dispose);
+  return container;
+}
+
 void main() {
   late _GatedImportRepo fake;
   late ProviderContainer container;
@@ -49,6 +113,10 @@ void main() {
       overrides: [
         importRepositoryProvider.overrideWithValue(fake),
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
+        ingredientRepositoryProvider.overrideWithValue(
+          const ReadOnlyIngredientRepo(),
+        ),
+        measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
       ],
     );
   });
@@ -113,6 +181,101 @@ void main() {
       );
     },
   );
+
+  group('a counted line lands on the row’s whole measure (ADR-0016)', () {
+    ReconciliationPayload counted() => reconPayload([
+      reconLine(
+        'lime',
+        qty: 1,
+        unit: 'piece',
+        rawAmount: '1',
+        ingredientId: _lime.id,
+        canonicalName: _lime.canonicalName,
+      ),
+      reconLine(
+        'avocado',
+        qty: 2,
+        rawAmount: '2',
+        ingredientId: _avocado.id,
+        canonicalName: _avocado.canonicalName,
+      ),
+      reconLine(
+        'dragon fruit',
+        qty: 2,
+        unit: 'piece',
+        rawAmount: '2',
+        ingredientId: _dragonFruit.id,
+        canonicalName: _dragonFruit.canonicalName,
+      ),
+      reconLine('lime zest', qty: 1, unit: 'tsp', rawAmount: '1 tsp'),
+    ]);
+
+    test('on arrival: the lime lands on lime, whole; the avocado stays a '
+        'count; the dragon fruit stays for the gate; a printed unit is '
+        'untouched', () async {
+      final container = _vocabContainer(counted());
+      await container
+          .read(importControllerProvider.notifier)
+          .startImport(const ImportFromUrl('x'));
+      final state =
+          container.read(importControllerProvider) as ImportReconciling;
+      expect(state.resolutions.map((r) => r.unit), [
+        'lime, whole',
+        null,
+        'piece',
+        'tsp',
+      ]);
+      // The number rides along untouched.
+      expect(state.resolutions.first.quantity, 1);
+    });
+
+    test('a re-match from a row without a whole measure to one with it moves '
+        'the word, and back again takes it away', () async {
+      final container = _vocabContainer(counted());
+      final controller = container.read(importControllerProvider.notifier);
+      await controller.startImport(const ImportFromUrl('x'));
+
+      await controller.resolveLine(
+        1,
+        _lime.id,
+        _lime.canonicalName,
+        correction: true,
+      );
+      var state = container.read(importControllerProvider) as ImportReconciling;
+      expect(state.resolutions[1].unit, 'lime, whole');
+      expect(state.resolutions[1].chosenIngredientId, _lime.id);
+      expect(state.resolutions[1].isCorrection, isTrue);
+
+      await controller.resolveLine(
+        1,
+        _avocado.id,
+        _avocado.canonicalName,
+        correction: true,
+      );
+      state = container.read(importControllerProvider) as ImportReconciling;
+      expect(state.resolutions[1].unit, 'piece');
+    });
+
+    test(
+      'a unit the person set by hand is never overruled by a re-match',
+      () async {
+        final container = _vocabContainer(counted());
+        final controller = container.read(importControllerProvider.notifier);
+        await controller.startImport(const ImportFromUrl('x'));
+
+        controller.updateResolution(1, (r) => r.pickUnit('g'));
+        await controller.resolveLine(
+          1,
+          _lime.id,
+          _lime.canonicalName,
+          correction: true,
+        );
+        final state =
+            container.read(importControllerProvider) as ImportReconciling;
+        expect(state.resolutions[1].unit, 'g');
+      },
+    );
+  });
 
   test('a second startImport while one is in flight is a no-op', () async {
     // Extraction is a billed LLM call; a double-tapped Import must fire one.

@@ -27,6 +27,7 @@ import '../../../core/text/name_clean.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../ingredients/domain/allowed_units.dart';
+import '../../ingredients/domain/ingredient.dart';
 import '../../recipes/domain/recipe.dart';
 import 'amount_text.dart';
 import 'commit_payload.dart';
@@ -332,6 +333,59 @@ Measure? measureNamed(String? unit, List<Measure> measures) {
   }
   return null;
 }
+
+/// Lands a plain-count [resolution] on [ingredient]'s **whole measure** — the
+/// live measure that weighs what the row says a piece weighs
+/// ([wholeMeasureOf]) — exactly as if the person had tapped that chip: the
+/// unit becomes the measure's label, unflagged, and the commit resolves it to
+/// a `measure_id` as it does for any picked measure.
+///
+/// The rule fires **at the moment a match resolves** — the payload's own
+/// matches on arrival and a re-match on the card — and nowhere else. A line is
+/// a plain count when it printed `piece` or a number with no unit word
+/// ([resolutionIsCount]), or when it still says the word this same rule gave
+/// it on the row it is [leaving] (a re-match takes the machine's word back
+/// before it hands out the next one). Everything else is a unit somebody
+/// chose or a word the page printed, and is never overruled: a `g` a person
+/// set by hand, a `clove` the page said, a numberless "to taste".
+///
+/// A weighed row with no whole measure keeps `piece` as it was (a line taken
+/// off a whole measure reads `piece` there, which is the count it printed);
+/// an unweighed row is left for the ordinary admission gate to flag. The
+/// server's extraction still prints `piece`; the review decides.
+LineResolution landOnWholeMeasure(
+  LineResolution resolution, {
+  required Ingredient? ingredient,
+  required List<Measure> measures,
+  Measure? leaving,
+}) {
+  if (ingredient == null ||
+      resolution.isComponent ||
+      resolution.chosenIngredientId != ingredient.id) {
+    return resolution;
+  }
+  final onLeaving = leaving != null && resolution.unit == leaving.label;
+  if (!onLeaving && !resolutionIsCount(resolution)) return resolution;
+  final whole = wholeMeasureOf(ingredient, measures);
+  if (whole != null) return resolution.pickUnit(whole.label);
+  return onLeaving ? resolution.pickUnit(pieces.id) : resolution;
+}
+
+/// [landOnWholeMeasure] over a whole payload's [resolutions] on arrival, with
+/// the matched rows in [vocab] and their live measures in [measuresById] —
+/// both fetched once for the import, never per line.
+List<LineResolution> landedOnWholeMeasures(
+  List<LineResolution> resolutions, {
+  required Map<String, Ingredient> vocab,
+  required Map<String, List<Measure>> measuresById,
+}) => [
+  for (final r in resolutions)
+    landOnWholeMeasure(
+      r,
+      ingredient: vocab[r.chosenIngredientId],
+      measures: measuresById[r.chosenIngredientId] ?? const [],
+    ),
+];
 
 /// The starting resolution for a line: only a confident `auto` match adopts its
 /// top candidate (clean on arrival). `suggest` starts UNRESOLVED so its

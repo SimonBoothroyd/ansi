@@ -231,6 +231,10 @@ void main() {
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(FakeImportRepo(_auto)),
+        ingredientRepositoryProvider.overrideWithValue(
+          const ReadOnlyIngredientRepo(),
+        ),
+        measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
       ],
     );
     addTearDown(container.dispose);
@@ -265,6 +269,10 @@ void main() {
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(FakeImportRepo(_auto)),
+        ingredientRepositoryProvider.overrideWithValue(
+          const ReadOnlyIngredientRepo(),
+        ),
+        measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
       ],
     );
     addTearDown(container.dispose);
@@ -301,6 +309,10 @@ void main() {
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(FakeImportRepo(_none)),
+        ingredientRepositoryProvider.overrideWithValue(
+          const ReadOnlyIngredientRepo(),
+        ),
+        measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
       ],
     );
     addTearDown(container.dispose);
@@ -342,6 +354,10 @@ void main() {
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(FakeImportRepo(_autoRange)),
+        ingredientRepositoryProvider.overrideWithValue(
+          const ReadOnlyIngredientRepo(),
+        ),
+        measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
       ],
     );
     addTearDown(container.dispose);
@@ -371,6 +387,10 @@ void main() {
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(FakeImportRepo(_auto)),
+        ingredientRepositoryProvider.overrideWithValue(
+          const ReadOnlyIngredientRepo(),
+        ),
+        measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
       ],
     );
     addTearDown(container.dispose);
@@ -415,6 +435,10 @@ void main() {
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(FakeImportRepo(_auto)),
+        ingredientRepositoryProvider.overrideWithValue(
+          const ReadOnlyIngredientRepo(),
+        ),
+        measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
       ],
     );
     addTearDown(container.dispose);
@@ -979,6 +1003,10 @@ void main() {
       overrides: [
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(FakeImportRepo(_auto)),
+        ingredientRepositoryProvider.overrideWithValue(
+          const ReadOnlyIngredientRepo(),
+        ),
+        measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
       ],
     );
     addTearDown(container.dispose);
@@ -1021,6 +1049,10 @@ void main() {
             FakeImportRepo(_recipeOffer),
           ),
           recipeRepositoryProvider.overrideWithValue(_recipeRepo()),
+          ingredientRepositoryProvider.overrideWithValue(
+            const ReadOnlyIngredientRepo(),
+          ),
+          measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
         ],
       );
       addTearDown(container.dispose);
@@ -1268,6 +1300,10 @@ void main() {
         overrides: [
           bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
           importRepositoryProvider.overrideWithValue(FakeImportRepo(payload)),
+          ingredientRepositoryProvider.overrideWithValue(
+            const ReadOnlyIngredientRepo(),
+          ),
+          measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
         ],
       );
       addTearDown(container.dispose);
@@ -1328,6 +1364,10 @@ void main() {
         overrides: [
           bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
           importRepositoryProvider.overrideWithValue(repo),
+          ingredientRepositoryProvider.overrideWithValue(
+            const ReadOnlyIngredientRepo(),
+          ),
+          measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
         ],
       );
       addTearDown(container.dispose);

@@ -43,6 +43,22 @@ void main() {
       );
     });
 
+    test('a counted line landed on the whole measure prints the measure’s own '
+        'words — "1 lime, whole", never a renamed piece', () {
+      const r = LineResolution(
+        lineIndex: 0,
+        band: MatchBand.auto,
+        ingredientText: 'lime',
+        isRange: false,
+        unit: 'lime, whole',
+        quantity: 1,
+        chosenIngredientId: 'i-lime',
+      );
+      const raw = RawLineItem(ingredientText: 'lime', rawAmount: '1');
+      expect(amountLabel(r, raw), '1 lime, whole');
+      expect(amountSlotLabel(r, raw, const []), '1 lime, whole');
+    });
+
     test('a picked quantity + unit reads plainly', () {
       const r = LineResolution(
         lineIndex: 0,

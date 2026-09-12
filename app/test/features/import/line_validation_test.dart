@@ -645,6 +645,34 @@ void main() {
       );
     });
 
+    test('a counted line the review landed on the whole measure is an '
+        'ordinary measure-label line: clean, and not the piece-weight door '
+        '(ADR-0016)', () {
+      const whole = Measure(id: 'm-tin', label: 'tin', amount: 400);
+      final landed = landOnWholeMeasure(
+        _res(chosenIngredientId: 'i-tin', quantity: 2, unit: 'piece'),
+        ingredient: weighed,
+        measures: const [whole],
+      );
+      expect(landed.unit, 'tin');
+      expect(
+        lineIssues(landed, ingredient: weighed, measures: const [whole]),
+        isEmpty,
+      );
+      expect(countNeedsPieceWeight(landed, weighed), isFalse);
+      // The unweighed row is exactly as gated as before.
+      final gated = landOnWholeMeasure(
+        _res(chosenIngredientId: 'i-tin', quantity: 2, unit: 'piece'),
+        ingredient: unweighed,
+        measures: const [whole],
+      );
+      expect(
+        lineIssues(gated, ingredient: unweighed, measures: const [whole]),
+        [LineIssue.unitNotAllowed],
+      );
+      expect(countNeedsPieceWeight(gated, unweighed), isTrue);
+    });
+
     test('a bare number on a MASS-default row is unitNotAllowed too — `piece` '
         'is never admitted there, and no weight would admit it', () {
       final line = _res(chosenIngredientId: _garlic.id, quantity: 2);

@@ -9,6 +9,7 @@ import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '_fixtures.dart';
 import 'gold_fixture.dart';
 
 /// The header draft as the review hands it to `buildCommit` (plan 0025 #4):
@@ -1187,6 +1188,205 @@ void main() {
         [for (final g in commit.groups) ...g.lines.map((l) => l.lineIndex)],
         [0, 1],
       );
+    });
+  });
+
+  group('landOnWholeMeasure — a counted line lands on the row’s word for one '
+      '(ADR-0016)', () {
+    LineResolution counted({String? unit, double? quantity = 2}) =>
+        LineResolution(
+          lineIndex: 0,
+          band: MatchBand.auto,
+          ingredientText: 'red peppers',
+          isRange: false,
+          unit: unit,
+          quantity: quantity,
+          chosenIngredientId: pepperWeighed.id,
+          chosenName: pepperWeighed.canonicalName,
+        );
+    const lime = Ingredient(
+      id: 'ing-lime',
+      canonicalName: 'Lime',
+      defaultUnit: pieces,
+      status: IngredientStatus.complete,
+      pieceBasisAmount: 67,
+      pieceSource: 'manual',
+    );
+    const limeWhole = Measure(id: 'm-lime', label: 'lime, whole', amount: 67);
+
+    test('a printed `piece` on a row whose measure weighs a piece becomes '
+        'that measure’s label — clean, exactly as a tapped chip', () {
+      final landed = landOnWholeMeasure(
+        counted(unit: 'piece'),
+        ingredient: pepperWeighed,
+        measures: pepperSizes,
+      );
+      expect(landed.unit, 'pepper, medium');
+      expect(landed.quantity, 2);
+      expect(
+        lineIssues(landed, ingredient: pepperWeighed, measures: pepperSizes),
+        isEmpty,
+      );
+      expect(countNeedsPieceWeight(landed, pepperWeighed), isFalse);
+      // …and the commit resolves that label to the measure, as for any chip.
+      expect(measureNamed(landed.unit, pepperSizes), pepperSizes.first);
+    });
+
+    test('a number with no unit word is the same count', () {
+      expect(
+        landOnWholeMeasure(
+          counted(),
+          ingredient: pepperWeighed,
+          measures: pepperSizes,
+        ).unit,
+        'pepper, medium',
+      );
+    });
+
+    test('a weighed row with no whole measure keeps `piece` as it was', () {
+      final onion = counted(unit: 'piece');
+      expect(
+        landOnWholeMeasure(
+          onion,
+          ingredient: onionByPiece.copyWith(id: pepperWeighed.id),
+          measures: const [],
+        ).unit,
+        'piece',
+      );
+      // A sized row whose sizes are not a piece is the same case.
+      const large = Measure(id: 'm-l', label: 'pepper, large', amount: 164);
+      expect(
+        landOnWholeMeasure(
+          counted(),
+          ingredient: pepperWeighed,
+          measures: const [large],
+        ).unit,
+        isNull,
+      );
+    });
+
+    test('an unweighed row is left for the ordinary gate — still flagged, '
+        'still the piece-weight door', () {
+      final line = landOnWholeMeasure(
+        counted(unit: 'piece'),
+        ingredient: pepper,
+        measures: pepperSizes,
+      );
+      expect(line.unit, 'piece');
+      expect(lineIssues(line, ingredient: pepper, measures: pepperSizes), [
+        LineIssue.unitNotAllowed,
+      ]);
+      expect(countNeedsPieceWeight(line, pepper), isTrue);
+    });
+
+    test('a unit somebody chose, a word the page printed, a numberless line '
+        'and a component line are never overruled', () {
+      for (final unit in ['g', 'pepper, large', 'handful']) {
+        expect(
+          landOnWholeMeasure(
+            counted(unit: unit),
+            ingredient: pepperWeighed,
+            measures: pepperSizes,
+          ).unit,
+          unit,
+        );
+      }
+      expect(
+        landOnWholeMeasure(
+          counted(quantity: null),
+          ingredient: pepperWeighed,
+          measures: pepperSizes,
+        ).unit,
+        isNull,
+      );
+      final component = counted(unit: 'piece').linkToRecipe('r-1', 'Aioli');
+      expect(
+        landOnWholeMeasure(
+          component,
+          ingredient: pepperWeighed,
+          measures: pepperSizes,
+        ),
+        component,
+      );
+      // Nothing happens to a line that is not on this row.
+      expect(
+        landOnWholeMeasure(
+          counted(unit: 'piece'),
+          ingredient: lime,
+          measures: const [limeWhole],
+        ).unit,
+        'piece',
+      );
+    });
+
+    test('a re-match takes the machine’s word back before handing out the '
+        'next one', () {
+      final onPepper = counted(unit: 'pepper, medium');
+      // …to a row with a whole measure: the new row's word.
+      final toLime = landOnWholeMeasure(
+        onPepper.resolveToIngredient(lime.id, lime.canonicalName),
+        ingredient: lime,
+        measures: const [limeWhole],
+        leaving: pepperSizes.first,
+      );
+      expect(toLime.unit, 'lime, whole');
+      // …to a weighed row without one: the count it printed.
+      final toOnion = landOnWholeMeasure(
+        onPepper.resolveToIngredient(
+          onionByPiece.id,
+          onionByPiece.canonicalName,
+        ),
+        ingredient: onionByPiece,
+        measures: const [],
+        leaving: pepperSizes.first,
+      );
+      expect(toOnion.unit, 'piece');
+      // A size the person chose is not the machine's word, and stays.
+      final chosen = landOnWholeMeasure(
+        counted(
+          unit: 'pepper, large',
+        ).resolveToIngredient(lime.id, lime.canonicalName),
+        ingredient: lime,
+        measures: const [limeWhole],
+        leaving: pepperSizes.first,
+      );
+      expect(chosen.unit, 'pepper, large');
+    });
+
+    test('landedOnWholeMeasures lands a whole payload’s matches at once', () {
+      final lines = [
+        counted(unit: 'piece'),
+        LineResolution(
+          lineIndex: 1,
+          band: MatchBand.auto,
+          ingredientText: 'lime',
+          isRange: false,
+          unit: null,
+          quantity: 1,
+          chosenIngredientId: lime.id,
+          chosenName: lime.canonicalName,
+        ),
+        const LineResolution(
+          lineIndex: 2,
+          band: MatchBand.none,
+          ingredientText: 'chilli',
+          isRange: false,
+          unit: null,
+        ),
+      ];
+      final landed = landedOnWholeMeasures(
+        lines,
+        vocab: {pepperWeighed.id: pepperWeighed, lime.id: lime},
+        measuresById: {
+          pepperWeighed.id: pepperSizes,
+          lime.id: [limeWhole],
+        },
+      );
+      expect(landed.map((r) => r.unit), [
+        'pepper, medium',
+        'lime, whole',
+        null,
+      ]);
     });
   });
 }

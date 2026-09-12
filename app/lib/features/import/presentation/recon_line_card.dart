@@ -514,9 +514,12 @@ class _Expanded extends ConsumerWidget {
           // Which food the matched row's numbers came from,
           // already on the validation the card is holding.
           sourceLine: validation.sourceLine,
-          onResolveExisting: (id, name, {required correction}) => update(
-            (r) => r.resolveToIngredient(id, name, correction: correction),
-          ),
+          // The match goes through the controller's own door, which also
+          // lands a counted line on the row's whole measure once the row's
+          // measures are read.
+          onResolveExisting: (id, name, {required correction}) => container
+              .read(importControllerProvider.notifier)
+              .resolveLine(_index, id, name, correction: correction),
           onLinkRecipe: (c) =>
               update((r) => r.linkToRecipe(c.recipeId, c.title)),
           onUnlink: () => update((r) => r.unlink()),

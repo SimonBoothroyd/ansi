@@ -11,7 +11,10 @@ import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../books/data/book_providers.dart';
 import '../../ingredients/data/ingredient_providers.dart';
+import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
+import '../../ingredients/domain/ingredient_repository.dart';
+import '../../ingredients/domain/measure_repository.dart';
 import '../../recipes/domain/method_draft.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/domain/recipe_header_edits.dart';
@@ -314,6 +317,8 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
       // notifier can be disposed across the gap, and `ref` goes with it.
       final importRepo = ref.read(importRepositoryProvider);
       final bookRepo = ref.read(bookRepositoryProvider);
+      final vocabRepo = ref.read(ingredientRepositoryProvider);
+      final measureRepo = ref.read(measureRepositoryProvider);
       final payload = await importRepo.startImport(
         source,
         onProgress: (p) => _onProgress(p, fromPhotos: fromPhotos),
@@ -323,13 +328,21 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
       // anything is honest. The shelf the door knew about when there was one
       // (0028 E3), else the same default book commit has always used.
       final filedBookId = bookId ?? (await bookRepo.ensureDefaultBook()).id;
+      // A counted line lands on its row's whole measure as it arrives
+      // (`landOnWholeMeasure`): the review never shows a word the row would
+      // not choose. The whole import's rows and measures are one read each.
+      final resolutions = await _landedOnWholeMeasures(
+        initialResolutions(payload),
+        vocabRepo: vocabRepo,
+        measureRepo: measureRepo,
+      );
       if (!ref.mounted) return;
       // The header opens on whatever the page PLAINLY said — servings, a
       // yield in a plain amount + unit, the printed times — and unset
       // otherwise: 0014's attempt-then-flag, over the whole header now.
       state = ImportReconciling(
         payload: payload,
-        resolutions: initialResolutions(payload),
+        resolutions: resolutions,
         header: headerDraft(payload, bookId: filedBookId, sectionId: sectionId),
       );
     } on Object catch (e) {
@@ -339,6 +352,51 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
       _stopStageLadder();
       _starting = false;
     }
+  }
+
+  /// Resolves the line at [lineIndex] to an existing ingredient — the card's
+  /// re-match, and the create-new chain's return — then lands a counted line
+  /// on that row's whole measure ([landOnWholeMeasure]), reading the row it
+  /// is leaving as well so the word this rule gave it there is taken back
+  /// first. The match itself is applied before the reads and never waits on
+  /// them: it is the person's act, and a lookup must not be able to lose it.
+  Future<void> resolveLine(
+    int lineIndex,
+    String ingredientId,
+    String name, {
+    required bool correction,
+  }) async {
+    final s = state;
+    if (s is! ImportReconciling) return;
+    final before = s.resolutions.firstWhere((r) => r.lineIndex == lineIndex);
+    updateResolution(
+      lineIndex,
+      (r) => r.resolveToIngredient(ingredientId, name, correction: correction),
+    );
+    // Both keepAlive repositories are read before the first await (the
+    // file's rule: `ref` does not survive this notifier's disposal).
+    final vocabRepo = ref.read(ingredientRepositoryProvider);
+    final measureRepo = ref.read(measureRepositoryProvider);
+    final leavingId = before.chosenIngredientId;
+    final read = await _rowsAndMeasures(
+      {ingredientId, if (leavingId != null) leavingId},
+      vocabRepo: vocabRepo,
+      measureRepo: measureRepo,
+    );
+    if (read == null || !ref.mounted) return;
+    final leavingRow = leavingId == null ? null : read.vocab[leavingId];
+    final leaving = leavingRow == null
+        ? null
+        : wholeMeasureOf(leavingRow, read.measuresById[leavingId] ?? const []);
+    updateResolution(
+      lineIndex,
+      (r) => landOnWholeMeasure(
+        r,
+        ingredient: read.vocab[ingredientId],
+        measures: read.measuresById[ingredientId] ?? const [],
+        leaving: leaving,
+      ),
+    );
   }
 
   /// Applies [update] to the resolution at [lineIndex]. A no-op unless the flow
@@ -621,6 +679,59 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
     clearRelabels();
     state = const ImportIdle();
   }
+}
+
+/// The rows [ids] name and their live measures, one query each, for
+/// [landOnWholeMeasure] — or null when the vocabulary could not be read.
+///
+/// A failed local read must not throw away a billed extraction or a person's
+/// match, so the landing is best-effort: a line it could not land arrives as
+/// it was — a `piece` on a weighed row is valid and one chip from the word.
+/// The failure is not silent either: the same read failing is what the
+/// review's *Couldn't check the lines* says, with its retry
+/// (`importValidation`).
+Future<
+  ({Map<String, Ingredient> vocab, Map<String, List<Measure>> measuresById})?
+>
+_rowsAndMeasures(
+  Set<String> ids, {
+  required IngredientRepository vocabRepo,
+  required MeasureRepository measureRepo,
+}) async {
+  try {
+    return (
+      vocab: await vocabRepo.byIds(ids),
+      measuresById: await measureRepo.measuresByIngredients(ids),
+    );
+  } on Object {
+    return null;
+  }
+}
+
+/// [landedOnWholeMeasures] over a payload's arriving [resolutions], with the
+/// matched rows and their measures fetched once each for the whole import —
+/// never a read per line. A payload with no match reads nothing.
+Future<List<LineResolution>> _landedOnWholeMeasures(
+  List<LineResolution> resolutions, {
+  required IngredientRepository vocabRepo,
+  required MeasureRepository measureRepo,
+}) async {
+  final ids = {
+    for (final r in resolutions)
+      if (r.chosenIngredientId != null) r.chosenIngredientId!,
+  };
+  if (ids.isEmpty) return resolutions;
+  final read = await _rowsAndMeasures(
+    ids,
+    vocabRepo: vocabRepo,
+    measureRepo: measureRepo,
+  );
+  if (read == null) return resolutions;
+  return landedOnWholeMeasures(
+    resolutions,
+    vocab: read.vocab,
+    measuresById: read.measuresById,
+  );
 }
 
 /// The narrow slice of the controller [importValidation] actually depends on

@@ -22,12 +22,15 @@ import 'package:ansi/features/import/domain/import_stage.dart';
 import 'package:ansi/features/import/domain/reconciliation_payload.dart';
 import 'package:ansi/features/import/presentation/import_view.dart';
 import 'package:ansi/features/import/presentation/import_view_models.dart';
+import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_book_repository.dart';
+import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/forui_semantics.dart';
 
 /// An edge function that never finishes — the state under test is the wait —
@@ -87,6 +90,10 @@ Future<(_Running, Future<void> Function())> _importing(
     overrides: [
       importRepositoryProvider.overrideWithValue(repo),
       bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
+      ingredientRepositoryProvider.overrideWithValue(
+        const ReadOnlyIngredientRepo(),
+      ),
+      measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
     ],
   );
   await tester.pumpWidget(_host(container));

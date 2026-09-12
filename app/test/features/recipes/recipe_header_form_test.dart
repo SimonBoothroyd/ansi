@@ -17,6 +17,7 @@ import 'package:ansi/features/import/data/import_providers.dart';
 import 'package:ansi/features/import/domain/import_repository.dart';
 import 'package:ansi/features/import/domain/reconciliation_payload.dart';
 import 'package:ansi/features/import/presentation/import_view_models.dart';
+import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/presentation/recipe_header_form.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view_models.dart';
@@ -30,6 +31,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../helpers/editor_harness.dart';
 import '../../helpers/fake_book_repository.dart';
 import '../../helpers/fake_import_repository.dart';
+import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/forui_semantics.dart';
 
 const _books = [
@@ -43,6 +46,10 @@ ProviderContainer _container() {
   final container = ProviderContainer(
     overrides: [
       recipeRepositoryProvider.overrideWithValue(FakeRecipeRepo(null)),
+      ingredientRepositoryProvider.overrideWithValue(
+        const ReadOnlyIngredientRepo(),
+      ),
+      measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
       bookRepositoryProvider.overrideWithValue(
         const FakeBookRepository(_books),
       ),
