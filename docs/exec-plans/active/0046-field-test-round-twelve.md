@@ -226,13 +226,40 @@ and the round-up under it; the provenance line likewise (`1½`). The word
 that only duplicates the piece weight is retired and its lines re-pointed at
 `piece` — the tidy-up runs the other way.
 
-**Recommendation: B**, then A only if the printed measure words are wanted
-on the recipe page. B is a formatting rule and a test; A is a data write on
-the cloud, a review rule that brings back a measure arrival, a chip rule and
-a shop rule, to say `lime, whole` where the row already said `Lime`. Both
-leave ADR-0015 standing. The owner picks from the frames.
+**Ruling: A.** The owner, on the first draft's recommendation of B: *"we're
+currently by default picking the 'worse quantity' on import that a human
+likely wouldn't pick if they had the choice between piece and lime. You're
+phrasing this as a presentation issue on just the shopping list, rather
+than a consistency and clarity issue."* So the defect is at the doors, not
+the print: two doors hand out two words for one thing, and the import's
+word is the one nobody would choose. The lane that fixes it:
 
-### Model A's data fix (only if A is chosen — the owner runs it)
+1. **The review lands a counted line on the row's whole measure** when the
+   row has one — found by weight (a live measure whose amount is the piece
+   weight, within 1 %), never stored as a pointer, so ADR-0015's objection
+   to `default_measure_id` (a pointer re-aimed later changes what a saved
+   line means) does not return. A weighed row without one still lands on
+   `piece`; an unweighed row still stops at the gate. The extraction is
+   untouched.
+2. **The chip row opens on the whole measure** where the row has one, and
+   leads with it; `piece (67 g)` stays offered after it. The quantity sheet
+   is the one entry surface app-wide, so this covers the editor, the
+   review's amount sheet, the snack sheet and the top-up sheet at once.
+3. **The shop's named-measure count gains the round-up** (`2½ lime, whole ·
+   167.5 g → buy 3`), which the piece count already has.
+4. **Existing lines are re-pointed once** by the SQL below, run by the
+   owner after the app change ships, so no phone sees a measure word it
+   cannot yet print in the sheet.
+5. A domain function `wholeMeasureOf(ingredient)` in
+   `ingredients/domain/allowed_units.dart` is the single reading of "the
+   measure that is a piece", with a test, and the seed doc says a size
+   measure that weighs a piece is the row's word for one.
+
+B is recorded as the alternative that lost: a print rule at the shop would
+have left the recipe page, the editor and the review saying `piece` where
+the household's own word existed.
+
+### Model A's data fix (the owner runs it, after the app change ships)
 
 Read-only preview first; the write is one transaction. `distinct on` takes
 the lowest-sorted whole measure where a row has two within tolerance.

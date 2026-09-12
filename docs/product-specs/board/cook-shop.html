@@ -17,6 +17,7 @@
     <h1 class="view-title">Cook &amp; Shop</h1>
     <p class="view-status">built · matches code 2026-09-12 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a></p>
     <p class="view-status"><span class="prop">proposed</span> the lime, two ways — a bare count’s word on the shop · <code>features/shopping</code> · <a href="../../exec-plans/active/0046-field-test-round-twelve.md">plan 0046</a> · not built</p>
+    <p class="view-status"><span class="prop">proposed</span> the last tick — three shapes for the moment the list is done, each one playable · <code>features/shopping</code> · <a href="../../exec-plans/active/0046-field-test-round-twelve.md">plan 0046</a> · not built</p>
     <p class="view-blurb">Two tabs derived from the week on screen — sessions grouped by recipe and split by shelf life, then one list summed from them, saying where every line came from.</p>
 </header>
 
@@ -196,6 +197,80 @@
             <p class="conv-note" style="margin:6px 4px 0"><b>Under B</b> nothing is stored differently and the import is unchanged: a <code>piece</code> line is what it is today, and the shop prints a bare count the way the recipe page does — <b>2½</b>, with the grams and the round-up under it. The provenance line keeps the same rule, so <i>1 lime, whole</i> and <i>1½</i> sit side by side and sum. The two options are weighed in <a href="../../exec-plans/active/0046-field-test-round-twelve.md">plan 0046</a>.</p>
         </div>
 
+
+        <div class="frame">
+            <p class="frame-name"><span class="proposed-tag">proposed</span><b>The last tick · 1 · the basket fills</b> · the count rolls up, the rows settle, and one line writes itself in herb ink where the aisles were. About 600 ms, no third-party package</p>
+            <div class="phone"><div class="notch"></div><div class="screen cel fills">
+                <span class="cel-play">▶ replay</span>
+                <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">14 Sep</span><span class="caret">▾</span></span><span class="chev">›</span></div>
+                <p class="conv-note" style="margin:6px 20px 0;letter-spacing:.04em">summed from the cook plan · with provenance</p>
+                <div class="aisle">
+                    <div class="sl-group">Dairy</div>
+                    <div class="item last"><div class="item-top"><span class="box"></span><span class="item-name">Greek yoghurt</span><span class="item-total">500 g</span></div>
+                        <div class="prov"><div class="prov-line"><span class="src">Snack · Tue</span><span>250 g</span></div><div class="prov-line"><span class="src">Snack · Thu</span><span>250 g</span></div></div>
+                    </div>
+                </div>
+                <p class="done-line"><span class="w">everything’s in the basket — 4 of 4</span></p>
+                <div class="sl-group">In the basket · <span class="roll"><span class="n3">3</span><span class="n4">4</span></span></div>
+                <div class="item done b1"><div class="item-top"><span class="box on">✓</span><span class="item-name">Lime</span><span class="item-total">2½ piece</span></div></div>
+                <div class="item done b2"><div class="item-top"><span class="box on">✓</span><span class="item-name">Flour</span><span class="item-total">500 g</span></div></div>
+                <div class="item done b3"><div class="item-top"><span class="box on">✓</span><span class="item-name">Paper towels</span><span class="item-total">—</span></div></div>
+                <div class="item done moved"><div class="item-top"><span class="box on">✓</span><span class="item-name">Greek yoghurt</span><span class="item-total">500 g</span></div></div>
+                <div class="topup">＋ add item or top up an ingredient</div>
+                <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni on"><span class="ic">⬓</span>Shop</div></div>
+            </div></div>
+            <p class="conv-note" style="margin:10px 4px 0">The quietest of the three: nothing is drawn that the screen does not already have. The tail — the aisle giving way, the row settling into the basket, the line — is the shipped state arriving, and the celebration is only that it arrives with a rhythm rather than in one frame, and that the line is herb rather than muted for its first showing.</p>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><span class="proposed-tag">proposed</span><b>The last tick · 2 · confetti of the food itself</b> · a handful of small glyphs — a leaf, a grain, a berry — burst from the box you just ticked and fall away. About 900 ms, drawn with one painter</p>
+            <div class="phone"><div class="notch"></div><div class="screen cel confetti">
+                <span class="cel-play">▶ replay</span>
+                <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">14 Sep</span><span class="caret">▾</span></span><span class="chev">›</span></div>
+                <p class="conv-note" style="margin:6px 20px 0;letter-spacing:.04em">summed from the cook plan · with provenance</p>
+                <div class="aisle">
+                    <div class="sl-group">Dairy</div>
+                    <div class="item last"><div class="item-top"><span class="box"><span class="burst"><span class="pc" style="--dx:-44px;--dy:-34px;--r:120deg;--d:.02s;color:var(--herb)"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10Z"/><path d="M2 21c0-3 1.9-5.5 5-6"/></svg></span><span class="pc" style="--dx:-26px;--dy:-52px;--r:-90deg;--d:.05s;color:var(--ink)"><svg viewBox="0 0 24 24" width="9" height="9" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg></span><span class="pc" style="--dx:-8px;--dy:-60px;--r:200deg;--d:.03s;color:var(--herb-deep)"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M2 22 16 8"/><path d="M8 14l3-3"/><path d="M12 10l3-3"/><path d="M16 6l3-3"/></svg></span><span class="pc" style="--dx:14px;--dy:-56px;--r:-140deg;--d:.06s;color:var(--herb)"><svg viewBox="0 0 24 24" width="9" height="9" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg></span><span class="pc" style="--dx:34px;--dy:-46px;--r:160deg;--d:.04s;color:var(--ink)"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10Z"/><path d="M2 21c0-3 1.9-5.5 5-6"/></svg></span><span class="pc" style="--dx:50px;--dy:-30px;--r:-60deg;--d:.07s;color:var(--herb-deep)"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M2 22 16 8"/><path d="M8 14l3-3"/><path d="M12 10l3-3"/><path d="M16 6l3-3"/></svg></span><span class="pc" style="--dx:-52px;--dy:-12px;--r:80deg;--d:.08s;color:var(--herb)"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M2 22 16 8"/><path d="M8 14l3-3"/><path d="M12 10l3-3"/><path d="M16 6l3-3"/></svg></span><span class="pc" style="--dx:58px;--dy:-10px;--r:-200deg;--d:.09s;color:var(--herb)"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10Z"/><path d="M2 21c0-3 1.9-5.5 5-6"/></svg></span><span class="pc" style="--dx:-30px;--dy:-24px;--r:40deg;--d:.1s;color:var(--ink)"><svg viewBox="0 0 24 24" width="9" height="9" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg></span><span class="pc" style="--dx:26px;--dy:-20px;--r:-30deg;--d:.11s;color:var(--herb-deep)"><svg viewBox="0 0 24 24" width="9" height="9" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg></span></span></span><span class="item-name">Greek yoghurt</span><span class="item-total">500 g</span></div>
+                        <div class="prov"><div class="prov-line"><span class="src">Snack · Tue</span><span>250 g</span></div><div class="prov-line"><span class="src">Snack · Thu</span><span>250 g</span></div></div>
+                    </div>
+                </div>
+                <p class="done-line">everything’s in the basket</p>
+                <div class="sl-group">In the basket · <span class="roll"><span class="n3">3</span><span class="n4">4</span></span></div>
+                <div class="item done b1"><div class="item-top"><span class="box on">✓</span><span class="item-name">Lime</span><span class="item-total">2½ piece</span></div></div>
+                <div class="item done b2"><div class="item-top"><span class="box on">✓</span><span class="item-name">Flour</span><span class="item-total">500 g</span></div></div>
+                <div class="item done b3"><div class="item-top"><span class="box on">✓</span><span class="item-name">Paper towels</span><span class="item-total">—</span></div></div>
+                <div class="item done moved"><div class="item-top"><span class="box on">✓</span><span class="item-name">Greek yoghurt</span><span class="item-total">500 g</span></div></div>
+                <div class="topup">＋ add item or top up an ingredient</div>
+                <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni on"><span class="ic">⬓</span>Shop</div></div>
+            </div></div>
+            <p class="conv-note" style="margin:10px 4px 0">The loudest, still in the app’s two inks: the glyphs are the Lucide set the app already ships, never colour confetti. They come from the box under your thumb, arc up and fall behind the list, and the same quiet tail follows once they are gone.</p>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><span class="proposed-tag">proposed</span><b>The last tick · 3 · the tick that ripples</b> · the box over-scales with a bounce, one ring expands from it and fades, and a light haptic fires. About 500 ms, under the thumb</p>
+            <div class="phone"><div class="notch"></div><div class="screen cel ripple">
+                <span class="cel-play">▶ replay</span>
+                <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">14 Sep</span><span class="caret">▾</span></span><span class="chev">›</span></div>
+                <p class="conv-note" style="margin:6px 20px 0;letter-spacing:.04em">summed from the cook plan · with provenance</p>
+                <div class="aisle">
+                    <div class="sl-group">Dairy</div>
+                    <div class="item last"><div class="item-top"><span class="box"><span class="ring"></span><span class="hap">haptic · light</span></span><span class="item-name">Greek yoghurt</span><span class="item-total">500 g</span></div>
+                        <div class="prov"><div class="prov-line"><span class="src">Snack · Tue</span><span>250 g</span></div><div class="prov-line"><span class="src">Snack · Thu</span><span>250 g</span></div></div>
+                    </div>
+                </div>
+                <p class="done-line">everything’s in the basket</p>
+                <div class="sl-group">In the basket · <span class="roll"><span class="n3">3</span><span class="n4">4</span></span></div>
+                <div class="item done b1"><div class="item-top"><span class="box on">✓</span><span class="item-name">Lime</span><span class="item-total">2½ piece</span></div></div>
+                <div class="item done b2"><div class="item-top"><span class="box on">✓</span><span class="item-name">Flour</span><span class="item-total">500 g</span></div></div>
+                <div class="item done b3"><div class="item-top"><span class="box on">✓</span><span class="item-name">Paper towels</span><span class="item-total">—</span></div></div>
+                <div class="item done moved"><div class="item-top"><span class="box on">✓</span><span class="item-name">Greek yoghurt</span><span class="item-total">500 g</span></div></div>
+                <div class="topup">＋ add item or top up an ingredient</div>
+                <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni on"><span class="ic">⬓</span>Shop</div></div>
+            </div></div>
+            <p class="conv-note" style="margin:10px 4px 0">The smallest: it happens exactly where the eye already is, and the phone says it in the hand as well as on the glass (<i>haptic · light</i> is a label for this board, not a word on the phone). The tail is the shipped state, unchanged.</p>
+            <p class="conv-note" style="margin:6px 4px 0">All three play <b>once per list</b>, only when the count crosses from n−1 to n <b>on this phone</b> — never on the partner’s tick arriving by sync — and never on a list of one item. Unticking and re-ticking the last row does not replay it. The shapes are weighed in <a href="../../exec-plans/active/0046-field-test-round-twelve.md">plan 0046</a>; they can also be layered — 3 under the thumb, then 1 as the tail.</p>
+        </div>
+
         <div class="frame">
             <p class="frame-name"><b>Provenance through two levels</b> · a component’s demand names the recipe that asked for it <i>and</i> the one that used it</p>
             <div class="phone"><div class="notch"></div><div class="screen">
@@ -347,5 +422,12 @@
 <p class="view-foot"><a href="./index.html">← every view</a> · <a href="./README.md">how this board is kept</a></p>
 
 </div>
+<script>
+document.querySelectorAll('.cel').forEach(function(c){
+  var go=function(){c.classList.remove('play');void c.offsetWidth;c.classList.add('play');};
+  c.querySelector('.cel-play').addEventListener('click',go);
+  setTimeout(go,700);
+});
+</script>
 </body>
 </html>
