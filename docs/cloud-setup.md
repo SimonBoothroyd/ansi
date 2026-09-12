@@ -521,6 +521,28 @@ Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
 
+### 2026-09-11 (night) — round nine on cloud (v0.13.2): the learned lines leave the vocabulary
+
+- **Owner-ruled data pass, run from here on his say-so (I-D2 A):** eight
+  import-learned aliases retired on his household — the seven that were
+  whole printed lines or a state ("fresh basil, reserved for garnish",
+  "stone-ground mustard or Creole mustard", "smoked chilli harissa paste, or
+  ordinary harissa paste", "olive oil or cooking oil of choice", "Olive oil,
+  for frying", "vegan cheddar or American cheese", "boiling water") and the
+  one that repeated its row's own name ("red wine"). The six learned names
+  stay (butter beans, diced fresh tomatoes, chipotle chile flakes, dried
+  sage, fresh mushrooms, sweet white sorghum flour). Rows untouched.
+- `deploy-supabase` run `34667684551` from `main@e1de1d3`, `reseed_template`
+  **ticked**: link ✓ · `db push` (nothing new) ✓ · `functions deploy
+  import-recipe` ✓ (the learning loop now refuses a candidate with a comma,
+  an "or", a slash or a bracket, so this class does not come back) · sync
+  streams ✓ · the seed ✓, regenerated from the household after the pass.
+- Read-only readback: template and household both **315** live rows, all
+  `complete`, **302** measures, **145** aliases — identical for the first
+  time, no generator-dropped leftovers.
+- `cloud_verify.sh`: **9 ok · 0 warn · 0 fail**, first pass.
+- **No §2b rollout:** one household, the snapshot's own source.
+
 ### 2026-09-11 (evening) — round eight on cloud (v0.13.1): the streamed function for real, and the 315-row template
 
 - `deploy-supabase` run `34658424680` from `main@7e94d5a`, `reseed_template`
