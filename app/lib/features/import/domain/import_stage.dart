@@ -16,34 +16,79 @@ library;
 import 'package:meta/meta.dart';
 
 /// One stage of the server pipeline, as named on the wire.
+///
+/// Each stage carries its wording in **both tenses**: what is happening while
+/// it runs, and what happened once it is done. A row that says "Photos read"
+/// while the pages are still being read is claiming something that has not
+/// occurred yet — the same lie, in miniature, as a progress bar that guesses.
 enum ImportStage {
   /// The request — for photos, however many megabytes of it — is in hand.
-  received('received', 'Photos received', 'Request received'),
+  received(
+    'received',
+    running: 'Receiving the photos…',
+    done: 'Photos received',
+    urlRunning: 'Receiving the request…',
+    urlDone: 'Request received',
+  ),
 
   /// The page was fetched and its recipe markup or text pulled out.
-  fetched('fetched', 'Page fetched', 'Page fetched'),
+  fetched('fetched', running: 'Fetching the page…', done: 'Page fetched'),
 
   /// The vision tier read the pages into text (photos only).
-  transcribed('transcribed', 'Photos read', 'Photos read'),
+  transcribed(
+    'transcribed',
+    running: 'Reading the photos…',
+    done: 'Photos read',
+  ),
 
   /// The model turned that into a structured recipe.
-  sanitised('sanitised', 'Recipe written out', 'Recipe written out'),
+  sanitised(
+    'sanitised',
+    running: 'Writing the recipe out…',
+    done: 'Recipe written out',
+  ),
 
   /// Every line was matched against the household's ingredients.
-  matched('matched', 'Ingredients matched', 'Ingredients matched');
+  matched(
+    'matched',
+    running: 'Matching ingredients…',
+    done: 'Ingredients matched',
+  );
 
-  const ImportStage(this.id, this._photoLabel, this._urlLabel);
+  /// Only `received` states the two door wordings apart — from a link there is
+  /// nothing to upload, so naming photos there would be a lie. Every other
+  /// stage reads the same through either door, and says so by leaving the
+  /// `url…` pair off rather than by repeating itself.
+  const ImportStage(
+    this.id, {
+    required String running,
+    required String done,
+    String? urlRunning,
+    String? urlDone,
+  }) : _running = running,
+       _done = done,
+       _urlRunning = urlRunning ?? running,
+       _urlDone = urlDone ?? done;
 
   /// The id the server sends. Never shown.
   final String id;
 
-  final String _photoLabel;
-  final String _urlLabel;
+  final String _running;
+  final String _done;
+  final String _urlRunning;
+  final String _urlDone;
 
-  /// What the checklist row reads. Only `received` differs by door — from a
-  /// link there is nothing to upload, so naming photos there would be a lie.
-  String label({required bool fromPhotos}) =>
-      fromPhotos ? _photoLabel : _urlLabel;
+  /// What the checklist row reads, **in the tense the row is actually in**: a
+  /// running stage says what is happening (and ends in an ellipsis), a
+  /// finished one what happened. A pending row borrows the finished wording —
+  /// it is the plan, read muted, and there is no third tense worth a word.
+  String label({required bool fromPhotos, required StageStatus status}) =>
+      switch ((status, fromPhotos)) {
+        (StageStatus.active, true) => _running,
+        (StageStatus.active, false) => _urlRunning,
+        (_, true) => _done,
+        (_, false) => _urlDone,
+      };
 
   /// The stage with this wire [id], or null for one this build does not know.
   static ImportStage? byId(String id) {

@@ -51,8 +51,8 @@
                         <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">0:22</span>
                     </div>
                     <div style="display:flex;align-items:center;gap:10px;padding:7px 0">
-                        <span style="width:22px;text-align:center"><span style="display:inline-block;width:13px;height:13px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--herb);vertical-align:middle"></span></span>
-                        <span style="flex:1;font-size:13px;font-weight:600">Recipe written out</span>
+                        <span style="width:22px;text-align:center"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--herb);vertical-align:middle"></span></span>
+                        <span style="flex:1;font-size:13px;font-weight:600">Writing the recipe out…</span>
                         <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--herb)">0:14</span>
                     </div>
                     <div style="display:flex;align-items:center;gap:10px;padding:7px 0">
@@ -60,15 +60,17 @@
                         <span style="flex:1;font-size:13px;color:var(--muted)">Ingredients matched</span>
                     </div>
                 </div>
-                <p class="conv-note">a <b>check</b> for done, an <b>FCircularProgress</b> for the one running, a dot for one that has not started — and a pending row shows <b>no clock at all</b>, because it has no honest duration yet</p>
+                <p class="conv-note">a <b>check</b> for done, an <b>FCircularProgress</b> for the one running, a dot for one that has not started — and a pending row shows <b>no clock at all</b>, because it has no honest duration yet. The marker is sized by its own variant and centred in a 22&nbsp;px gutter, never squeezed into a box smaller than its glyph: the spinner rotates about its centre, so a tight box would leave the ink off the pivot and the marker would orbit rather than spin</p>
+                <p class="conv-note"><b>The row is written in the tense it is in.</b> Running, it says what is <i>happening</i> and the sentence stays open — <b>Writing the recipe out…</b>; the moment the server's event lands it becomes <b>Recipe written out</b>. A row that read “Photos read” while the pages were still being read would be the same small lie as a guessed progress bar. A pending row borrows the finished wording and is drawn muted — it is the plan, not a claim</p>
                 <p class="rc-note">The stages are real, they run in this order, and <b style="color:var(--ink)">so are the times</b>: <code>import-recipe</code> answers <code>text/event-stream</code> and emits an event as each stage completes, carrying its own elapsed. A finished row freezes at the server's number; the running row ticks. Nothing here is estimated — before the server's first event the screen claims no stages at all and shows only <b style="color:var(--ink)">Sending…</b>.</p>
                 <div style="margin:12px 20px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden">
                     <div style="display:flex;gap:8px;align-items:center;padding:8px 11px;background:var(--frame);font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--herb-deep)">From a link</div>
-                    <div style="padding:9px 11px;font-size:12px">Request received · Page fetched · Recipe written out · Ingredients matched</div>
+                    <div style="padding:9px 11px;font-size:12px;line-height:1.6">Receiving the request… → Request received<br>Fetching the page… → Page fetched<br>Writing the recipe out… → Recipe written out<br>Matching ingredients… → Ingredients matched</div>
                     <div style="display:flex;gap:8px;align-items:center;padding:8px 11px;background:var(--frame);border-top:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--herb-deep)">From photos</div>
-                    <div style="padding:9px 11px;font-size:12px">Photos received · Photos read · Recipe written out · Ingredients matched</div>
+                    <div style="padding:9px 11px;font-size:12px;line-height:1.6">Receiving the photos… → Photos received<br>Reading the photos… → Photos read<br>Writing the recipe out… → Recipe written out<br>Matching ingredients… → Ingredients matched</div>
                 </div>
-                <p class="conv-note" style="margin-top:10px">the photo door has <b>two</b> model calls — the pages are transcribed, then the recipe is written out — so it carries a row the link door does not, and it is the door the long waits come from</p>
+                <p class="conv-note" style="margin-top:10px">every stage but the first reads the same through either door; only <b>received</b> is stated twice, because from a link there is nothing to upload and naming photos there would be a lie</p>
+                <p class="conv-note">the photo door has <b>two</b> model calls — the pages are transcribed, then the recipe is written out — so it carries a row the link door does not, and it is the door the long waits come from</p>
                 <p class="rc-note">The wait ends one of four ways, and all of them come back to the intake form with the reason under it: the review screen, <b style="color:var(--ink)">“that site blocked the fetch … — try the photo import instead”</b>, <b style="color:var(--ink)">“still reading that page after … minutes — nothing was saved, so it is safe to try again”</b>, or — now that bytes arrive all the way through — <b style="color:var(--ink)">“the import service stopped answering part way through”</b>. Nothing is written until <b style="color:var(--ink)">Save</b> at review, so every failure here is safe to repeat.</p>
             </div></div>
         </div>

@@ -134,11 +134,13 @@ void main() {
     await run.say(_photoPlan);
 
     // All four rows are there from the moment the plan lands, so the wait has
-    // a visible shape rather than one sentence at a time.
-    expect(find.text('Photos received'), findsOneWidget);
+    // a visible shape rather than one sentence at a time. The running row is
+    // the only one in the present tense; the rest are the plan, still to come.
+    expect(find.text('Receiving the photos…'), findsOneWidget);
     expect(find.text('Photos read'), findsOneWidget);
     expect(find.text('Recipe written out'), findsOneWidget);
     expect(find.text('Ingredients matched'), findsOneWidget);
+    expect(find.text('Photos received'), findsNothing);
     // Nothing finished yet: only the running row shows a clock.
     expect(find.text('0:00'), findsOneWidget);
 
@@ -192,10 +194,10 @@ void main() {
       ]),
     );
 
-    expect(find.text('Request received'), findsOneWidget);
+    expect(find.text('Receiving the request…'), findsOneWidget);
     expect(find.text('Page fetched'), findsOneWidget);
     expect(find.text('Photos read'), findsNothing);
-    expect(find.text('Photos received'), findsNothing);
+    expect(find.text('Receiving the photos…'), findsNothing);
 
     await done();
   });
@@ -210,8 +212,35 @@ void main() {
     // The plan itself is filtered in the repository; what the screen must
     // survive is a plan shorter than the pipeline it is narrating.
     await run.say(const ImportPlanned([ImportStage.received]));
-    expect(find.text('Photos received'), findsOneWidget);
+    expect(find.text('Receiving the photos…'), findsOneWidget);
     expect(find.text('Ingredients matched'), findsNothing);
+
+    await done();
+  });
+
+  testWidgets('the running row says what is happening, and flips to the past '
+      'tense the moment the server says it finished', (tester) async {
+    filterForuiSemanticsAssertions();
+    final (run, done) = await _importing(
+      tester,
+      const ImportFromPhotos(['/a']),
+    );
+    await run.say(_photoPlan);
+
+    // Two rows, two tenses: the upload is under way and the transcription has
+    // not started, so only one of them may speak in the present.
+    expect(find.text('Receiving the photos…'), findsOneWidget);
+    expect(find.text('Reading the photos…'), findsNothing);
+
+    await run.say(
+      const ImportStageDone(ImportStage.received, Duration(seconds: 3)),
+    );
+
+    // The claim arrives with the event that earns it, never before.
+    expect(find.text('Photos received'), findsOneWidget);
+    expect(find.text('Receiving the photos…'), findsNothing);
+    expect(find.text('Reading the photos…'), findsOneWidget);
+    expect(find.text('Photos read'), findsNothing);
 
     await done();
   });

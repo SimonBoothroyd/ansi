@@ -222,7 +222,7 @@ class _StageRow extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              row.stage.label(fromPhotos: fromPhotos),
+              row.stage.label(fromPhotos: fromPhotos, status: row.status),
               style: ansiSans(
                 size: 13,
                 color: ink,

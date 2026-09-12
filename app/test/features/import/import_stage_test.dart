@@ -28,16 +28,53 @@ void main() {
 
   test('only the first row differs by door — from a link there are no photos '
       'to name', () {
-    expect(
-      ImportStage.received.label(fromPhotos: true),
-      isNot(ImportStage.received.label(fromPhotos: false)),
-    );
-    for (final stage in ImportStage.values.skip(1)) {
+    for (final status in StageStatus.values) {
       expect(
-        stage.label(fromPhotos: true),
-        stage.label(fromPhotos: false),
-        reason: '${stage.id} should read the same through either door',
+        ImportStage.received.label(fromPhotos: true, status: status),
+        isNot(ImportStage.received.label(fromPhotos: false, status: status)),
       );
+      for (final stage in ImportStage.values.skip(1)) {
+        expect(
+          stage.label(fromPhotos: true, status: status),
+          stage.label(fromPhotos: false, status: status),
+          reason: '${stage.id} should read the same through either door',
+        );
+      }
+    }
+  });
+
+  test('a running row says what is HAPPENING, a finished one what happened — '
+      'and a pending row reads as the plan', () {
+    for (final fromPhotos in [true, false]) {
+      for (final stage in ImportStage.values) {
+        final running = stage.label(
+          fromPhotos: fromPhotos,
+          status: StageStatus.active,
+        );
+        final finished = stage.label(
+          fromPhotos: fromPhotos,
+          status: StageStatus.done,
+        );
+        expect(
+          running,
+          isNot(finished),
+          reason: '${stage.id} must not claim it is done while it runs',
+        );
+        // The ellipsis is the tense made visible: the sentence has not ended
+        // because the stage has not either.
+        expect(
+          running,
+          endsWith('…'),
+          reason: '${stage.id} running should read as unfinished',
+        );
+        expect(finished, isNot(endsWith('…')));
+        // Nothing has started, so there is nothing to narrate: a pending row
+        // borrows the plan's wording and is drawn muted instead.
+        expect(
+          stage.label(fromPhotos: fromPhotos, status: StageStatus.pending),
+          finished,
+        );
+      }
     }
   });
 
