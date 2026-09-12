@@ -189,6 +189,20 @@ const cilantro = Ingredient(
 );
 const cilantroSprig = Measure(id: 'm-cil-sprig', label: 'sprig', amount: 2.22);
 
+/// The owner's field-test line, "1 whole lime": `whole` is no catalog unit and
+/// nothing this row measures, so the line arrives flagged with a word the
+/// picker could never hand back.
+const lime = Ingredient(
+  id: 'ing-lime',
+  canonicalName: 'Lime',
+  defaultUnit: pieces,
+  category: 'produce',
+  status: IngredientStatus.complete,
+  allowedUnits: [g, ml],
+  pieceBasisAmount: 67,
+  pieceSource: 'manual',
+);
+
 /// Three sizes, so nothing is pre-selected and the user picks.
 const potato = Ingredient(
   id: 'ing-potato',

@@ -661,9 +661,21 @@ a save would write, and Save at the bottom.
   the three-part `amount · ingredient · notes` it will be stored as, plus a plain
   "why this needs you" label — "Match an ingredient", "Pick a supported unit", "Set
   the amount" — rather than a bare dot. Tapping anywhere opens the full edit card.
+- **The amount slot prints what the source printed, while that still reads as an
+  amount** — an unpicked range reads `2–3 cloves`, an imprecise amount reads
+  `pinch` — **except on a line whose unit the matched row cannot carry, where it
+  prints nothing at all.** "1 whole lime", "1 can chopped tomatoes": the word is
+  the page's and not the kitchen's — `whole` is no unit, and a `can` on a row
+  measured in `400 g can` is a word the picker would never hand back — so a slot
+  reading "1 whole" looks *filled* while the line is still held up. It shows its
+  unset state instead, "Pick a supported unit" says what is owed, and the source
+  line keeps the page's words on that row. **The parsed number is kept on the
+  line**, not discarded: the amount sheet opens on it, so one chip tap resolves
+  the line.
 - **The source line is always visible** — `raw_amount` + `ingredient_text` as
-  written, beneath the resolved values. From a photo you would otherwise have no
-  way to check what the page actually said.
+  written, beneath the resolved values on the expanded card and on a compact row
+  whose amount slot the unsupported-unit flag left blank. From a photo you would
+  otherwise have no way to check what the page actually said.
 - **Amount editing reuses the 7.7 quantity + unit-chip sheet**, seeded from the
   raw line — so imported lines and hand-authored lines are edited by the same
   component, with the same guardrails.

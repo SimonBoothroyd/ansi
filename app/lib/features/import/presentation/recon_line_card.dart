@@ -328,11 +328,20 @@ class _Collapsed extends StatelessWidget {
     final imprecise = isImpreciseAmount(resolution);
     final name = resolution.displayName;
     final notes = resolution.notes?.trim();
-    final amount = amountLabel(resolution, raw);
+    final amount = amountSlotLabel(resolution, raw, issues);
     final label = attentionLabel(
       issues,
       hasRecipeOffer: line.recipeCandidates.isNotEmpty,
     );
+    // The amount slot is blank on a line whose unit the row refuses, so the
+    // compact row prints what the page said. The whole reason for blanking it
+    // is that "1 whole" read as filled — the reader still has to see those
+    // words to know which supported unit they meant.
+    final reference = rawLineText(raw);
+    final showSource =
+        issues.contains(LineIssue.unitNotAllowed) &&
+        !resolution.addedAtReview &&
+        reference.isNotEmpty;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -414,6 +423,14 @@ class _Collapsed extends StatelessWidget {
               padding: const EdgeInsets.only(top: 2, left: 96),
               child: Text(
                 kAddedHereNote,
+                style: ansiMono(size: 10, color: AnsiColors.muted),
+              ),
+            ),
+          if (showSource)
+            Padding(
+              padding: const EdgeInsets.only(top: 2, left: 96),
+              child: Text(
+                'from source:  $reference',
                 style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
             ),
@@ -581,9 +598,11 @@ class _Expanded extends ConsumerWidget {
             SizedBox(width: 64, child: Text('AMOUNT', style: ansiLabel())),
             const SizedBox(width: 8),
             if (matched)
-              AmountEditor(lineIndex: _index)
+              AmountEditor(lineIndex: _index, issues: issues)
             else
-              _DisabledChip(label: amountLabel(resolution, line.raw)),
+              _DisabledChip(
+                label: amountSlotLabel(resolution, line.raw, issues),
+              ),
           ],
         ),
         // A count on a row with no piece weight (ADR-0015): the fix is the

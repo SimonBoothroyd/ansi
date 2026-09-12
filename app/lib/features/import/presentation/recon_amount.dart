@@ -64,6 +64,26 @@ String amountLabel(LineResolution r, RawLineItem raw) {
       (r.unit?.isNotEmpty ?? false ? r.unit! : '');
 }
 
+/// What the card actually prints in its AMOUNT slot: [amountLabel], except on
+/// a line whose unit the matched ingredient cannot carry
+/// ([LineIssue.unitNotAllowed]), where the slot prints NOTHING and the caller
+/// renders its empty state (`—` / "set amount").
+///
+/// A slot reading "1 whole" or "1 can" looks *filled* — so the flag under it
+/// ("Pick a supported unit") reads as pedantry rather than as the one thing
+/// left to do. The word is the source's, not the kitchen's: "whole" is no unit
+/// at all, and a "can" that the row measures as a `400 g can` is a word the
+/// picker would never hand back. Blanking the slot says the amount is still
+/// owed, which is the truth. The page's own words are not lost — a flagged
+/// line keeps its `from source:` line in both states — and neither is the
+/// parsed number: it stays on the resolution, so the amount sheet opens on
+/// "1" and one chip tap resolves the line.
+String amountSlotLabel(
+  LineResolution r,
+  RawLineItem raw,
+  List<LineIssue> issues,
+) => issues.contains(LineIssue.unitNotAllowed) ? '' : amountLabel(r, raw);
+
 /// Whether the line's unit is one of the imprecise words — the card italicises
 /// what [amountLabel] prints for one, so the reader can see it is a hand
 /// gesture rather than a measurement.
@@ -271,9 +291,17 @@ Future<void> editComponentAmount(
 /// The tap-to-edit amount chip (decision 6). Shows the resolved amount, else
 /// the printed raw amount, else a prompt; tapping opens the amount sheet.
 class AmountEditor extends ConsumerWidget {
-  const AmountEditor({required this.lineIndex, super.key});
+  const AmountEditor({
+    required this.lineIndex,
+    this.issues = const [],
+    super.key,
+  });
 
   final int lineIndex;
+
+  /// The line's outstanding issues, so the chip prints what
+  /// [amountSlotLabel] says and not a unit the ingredient refuses.
+  final List<LineIssue> issues;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -301,7 +329,7 @@ class AmountEditor extends ConsumerWidget {
               Flexible(
                 child: Builder(
                   builder: (_) {
-                    final label = amountLabel(resolution, raw);
+                    final label = amountSlotLabel(resolution, raw, issues);
                     return Text(
                       label.isEmpty ? 'set amount' : label,
                       style: ansiMono(size: 12, color: AnsiColors.muted),

@@ -1,4 +1,5 @@
 import 'package:ansi/features/import/domain/line_resolution.dart';
+import 'package:ansi/features/import/domain/line_validation.dart';
 import 'package:ansi/features/import/domain/reconciliation_payload.dart';
 import 'package:ansi/features/import/presentation/recon_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -102,6 +103,98 @@ void main() {
           const RawLineItem(ingredientText: 'thyme', rawAmount: '2 sprigs'),
         ),
         '2 sprigs',
+      );
+    });
+  });
+
+  group('amountSlotLabel', () {
+    // "1 whole lime": `whole` is not a unit at all, and no measure of a lime
+    // is called one, so the row refuses it.
+    const whole = LineResolution(
+      lineIndex: 0,
+      band: MatchBand.auto,
+      ingredientText: 'lime',
+      isRange: false,
+      unit: 'whole',
+      quantity: 1,
+      chosenIngredientId: 'ing-lime',
+    );
+    const wholeRaw = RawLineItem(ingredientText: 'lime', rawAmount: '1 whole');
+
+    test('a unit the matched row cannot carry prints NOTHING', () {
+      expect(
+        amountSlotLabel(whole, wholeRaw, const [LineIssue.unitNotAllowed]),
+        '',
+      );
+    });
+
+    test('a count-measure noun the row does not measure prints NOTHING', () {
+      const r = LineResolution(
+        lineIndex: 0,
+        band: MatchBand.auto,
+        ingredientText: 'chopped tomatoes',
+        isRange: false,
+        unit: 'can',
+        quantity: 1,
+        chosenIngredientId: 'ing-tom',
+      );
+      expect(
+        amountSlotLabel(
+          r,
+          const RawLineItem(
+            ingredientText: 'chopped tomatoes',
+            rawAmount: '1 can',
+          ),
+          const [LineIssue.unitNotAllowed],
+        ),
+        '',
+      );
+    });
+
+    test('blanking the SLOT never takes the number off the LINE', () {
+      // The sheet still opens on "1" and one chip tap resolves the line.
+      expect(whole.quantity, 1);
+      expect(amountLabel(whole, wholeRaw), '1 whole');
+    });
+
+    test('an unpicked range keeps the printed original', () {
+      const r = LineResolution(
+        lineIndex: 0,
+        band: MatchBand.auto,
+        ingredientText: 'garlic',
+        isRange: true,
+        unit: 'clove',
+        chosenIngredientId: 'ing-garlic',
+      );
+      expect(
+        amountSlotLabel(
+          r,
+          const RawLineItem(ingredientText: 'garlic', rawAmount: '2–3 cloves'),
+          const [LineIssue.rangeUnpicked],
+        ),
+        '2–3 cloves',
+      );
+    });
+
+    test('an admitted imprecise unit still names itself', () {
+      const r = LineResolution(
+        lineIndex: 0,
+        band: MatchBand.auto,
+        ingredientText: 'chilli',
+        isRange: false,
+        unit: 'pinch',
+        chosenIngredientId: 'ing-chilli',
+      );
+      expect(
+        amountSlotLabel(
+          r,
+          const RawLineItem(
+            ingredientText: 'chilli',
+            rawAmount: 'A good pinch',
+          ),
+          const [],
+        ),
+        'pinch',
       );
     });
   });

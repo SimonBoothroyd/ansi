@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Import review</h1>
-    <p class="view-status">built · matches code 2026-09-11 · <code>features/import</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/completed/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
+    <p class="view-status">built · matches code 2026-09-12 · <code>features/import</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/completed/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
     <p class="view-blurb">One form with two doors, then the whole import on one editable screen: the editor’s own header, a card per line, the method as step cards, and a Save gate that counts the same number the header does.</p>
 </header>
 
@@ -180,12 +180,12 @@
                     <div class="lflags"><span class="lflag tog">optional</span><span class="lflag">unit "tin" needs a look</span></div>
                     <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
                     <div class="chosen"><span class="ck">✓</span><span class="cnm">Butter beans</span><span class="chint">tap to change</span><span class="ci">›</span></div>
-                    <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">2 can <span class="pen">✎</span></span></span></div>
-                    <div class="erow"><span class="elab">Unit</span><span class="ebody"><div class="suggests" style="margin-top:4px"><span class="sug pick">can</span><span class="sug">g</span><span class="sug">ml</span><span class="sug">tsp</span><span class="sug">tbsp</span><span class="sug quiet">+7 more</span></div></span></div>
+                    <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">set amount <span class="pen">✎</span></span></span></div>
+                    <div class="erow"><span class="elab">Unit</span><span class="ebody"><div class="suggests" style="margin-top:4px"><span class="sug">400 g can</span><span class="sug">g</span><span class="sug">ml</span><span class="sug">tsp</span><span class="sug">tbsp</span><span class="sug quiet">+7 more</span></div></span></div>
                     <div class="erow"><span class="elab">Notes</span><span class="ebody"><div class="notesin">drained</div></span></div>
                 </div>
                 <p class="conv-note">five chips, then a fold — the admission set runs past a dozen and reads as a wall. The fold <b>never hides the current pick</b>: it opens on one.</p>
-                <p class="rc-note">Tapping the amount opens the <b style="color:var(--ink)">7.7 quantity + unit sheet</b>, seeded from the raw line — a range opens on its printed low endpoint, and an inadmissible unit on an ingredient with measures opens <b style="color:var(--ink)">pre-selected on that measure</b> (“can”), so resolving is one confirm tap. The flag stands until that tap.</p>
+                <p class="rc-note">The amount slot is <b style="color:var(--ink)">empty</b> while the unit is one the row cannot carry. “2 can” there would read as <i>filled</i>, and the line is exactly not that — the page’s own words stay on the <b style="color:var(--ink)">from source</b> line, and the parsed number stays on the line, so the sheet still opens on it. Tapping the amount opens the <b style="color:var(--ink)">7.7 quantity + unit sheet</b>, seeded from the raw line — a range opens on its printed low endpoint, and an inadmissible unit on an ingredient with measures opens <b style="color:var(--ink)">pre-selected on that measure</b> (“400 g can”), so resolving is one confirm tap. The flag stands until that tap.</p>
                 <div class="lcard" style="background:var(--paper)">
                     <div class="erow" style="margin-top:0"><span class="elab">Notes</span><span class="ebody"><div class="notesin hint">e.g. finely chopped, to serve</div></span></div>
                     <div class="lockhint">unmatched line: amount + notes stay greyed — a unit is meaningless with no ingredient to admit it</div>
@@ -233,7 +233,7 @@
                 <div class="lflags"><span class="lflag tog">optional</span></div>
                 <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
                 <div class="chosen"><span class="ck">✓</span><span class="cnm">Dragon fruit</span><span class="chint">created here · stub</span><span class="ci">›</span></div>
-                <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">2 <span class="pen">✎</span></span></span></div>
+                <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">set amount <span class="pen">✎</span></span></span></div>
                 <div class="lockhint" style="margin:6px 0 0 72px">Dragon fruit has no piece weight yet — set it on the ingredient, or pick a unit below. <span style="color:var(--herb)">open Dragon fruit ›</span></div>
                 <div class="erow"><span class="elab">Unit</span><span class="ebody"><div class="suggests" style="margin-top:4px"><span class="sug pick">piece</span><span class="sug">g</span><span class="sug">kg</span><span class="sug">oz</span><span class="sug">lb</span></div></span></div>
                 <div class="erow"><span class="elab">Notes</span><span class="ebody"><div class="notesin">cubed</div></span></div>

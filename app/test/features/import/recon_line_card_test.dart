@@ -138,6 +138,20 @@ final _bunch = reconPayload([
   ),
 ]);
 
+/// The owner's field-test line: "1 whole lime". The source's word is no unit
+/// the row can carry, so the amount slot must stay EMPTY rather than print a
+/// "1 whole" that reads as already filled.
+final _wholeLime = reconPayload([
+  reconLine(
+    'lime',
+    qty: 1,
+    unit: 'whole',
+    rawAmount: '1 whole',
+    ingredientId: lime.id,
+    canonicalName: 'Lime',
+  ),
+]);
+
 /// The household's recipes, as the component sheet reads them: one aioli that
 /// says what a batch makes.
 /// The one recipe a line may resolve to as a component, with the yield the
@@ -495,6 +509,58 @@ void main() {
     expect(updated.resolutions.single.quantity, 2);
     // And the flag clears now that the unit is one the ingredient carries.
     expect(find.text('Pick a supported unit'), findsNothing);
+  });
+
+  testWidgets('a unit the matched row cannot carry leaves the AMOUNT SLOT '
+      'empty and keeps the source line in both states', (tester) async {
+    final container = ProviderContainer(
+      overrides: [
+        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
+        importRepositoryProvider.overrideWithValue(FakeImportRepo(_wholeLime)),
+        ingredientRepositoryProvider.overrideWithValue(
+          const OneRowIngredientRepo(lime),
+        ),
+        measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container
+        .read(importControllerProvider.notifier)
+        .startImport(const ImportFromUrl('x'));
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          home: FTheme(
+            data: ansiThemeData(),
+            child: const FScaffold(child: _LiveBody()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Compact: the slot reads as unset, the flag says what is owed, and the
+    // page's own words are still on the row.
+    expect(find.text('1 whole'), findsNothing);
+    expect(find.text('\u2014'), findsOneWidget);
+    expect(find.text('Pick a supported unit'), findsOneWidget);
+    expect(find.text('from source:  1 whole lime'), findsOneWidget);
+
+    await tester.tap(find.byIcon(FLucideIcons.pencil).first);
+    await tester.pumpAndSettle();
+
+    // Expanded: the same three facts, in the card's own vocabulary.
+    expect(find.text('1 whole'), findsNothing);
+    expect(find.text('set amount'), findsOneWidget);
+    expect(find.text('Pick a supported unit'), findsOneWidget);
+    expect(find.text('from source:  1 whole lime'), findsOneWidget);
+
+    // The number the source printed is not discarded - the sheet opens on it.
+    final state = container.read(importControllerProvider) as ImportReconciling;
+    expect(state.resolutions.single.quantity, 1);
+    expect(state.resolutions.single.unit, 'whole');
   });
 
   testWidgets('the '

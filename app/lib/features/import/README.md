@@ -108,10 +108,19 @@ import/
   on the card, or another unit or measure chip.
 - **Never-invent is a UI obligation too.** Parse warnings, a degraded image, a
   truncated source, a printed range, and `raw_amount` are all *shown*. The source
-  line sits under every card ("from source: …") — from a photo you would
+  line sits under every open card ("from source: …") — from a photo you would
   otherwise have no way to check what the page said. It cuts both ways: a line
   the review MINTED has no source, and says so in that same slot — *added here
   — not on the page*.
+- **A unit the matched row cannot carry empties the AMOUNT SLOT**
+  (`amountSlotLabel`). "1 whole" or "1 can" in the slot reads as *filled*, which
+  is the one thing the line is not: `whole` is no unit and a `can` on a row
+  measured in `400 g can` is a word the picker could never hand back. The slot
+  shows its unset state, the flag says "Pick a supported unit", and the source
+  line rides the compact row too so the page's own words stay on screen either
+  way. The parsed quantity stays on the resolution — the sheet opens on it and
+  the inline unit chips write onto a line that keeps its number, so one tap
+  still resolves it.
 - **The STRUCTURE is the human's, the payload is the server's.** The review
   renames, deletes and adds sections, and can add a line the page never
   printed. None of it touches `ReconciliationPayload`, which stays the server's
