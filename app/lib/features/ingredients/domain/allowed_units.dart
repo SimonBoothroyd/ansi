@@ -236,6 +236,49 @@ Measure? pieceAsMeasure(Ingredient ingredient) {
   );
 }
 
+/// How far a measure's amount may sit from the row's piece weight and still
+/// be read as the same fact: one part in a hundred, either side.
+const kWholeMeasureTolerance = 0.01;
+
+/// The row's **whole measure**: the live measure among [measures] whose amount
+/// is what the row says one piece weighs ([Ingredient.pieceBasisAmount], within
+/// [kWholeMeasureTolerance]), or null.
+///
+/// A measure that weighs what a piece weighs is the row's word for one — Lime's
+/// `lime, whole` = 67 g on a 67 g piece, Onion's `onion, medium` = 110 g on a
+/// 110 g piece — and every door says it (ADR-0016): the chip row leads with
+/// it and the sheet opens on it, the import review lands a counted line on it,
+/// the recipe page prints its words. `piece` stays sayable after it; a row
+/// that weighs a piece but names no size (Avocado, Chicken thigh) has no
+/// whole measure and still says `piece`.
+///
+/// It is **derived by weight, never stored as a pointer.** A stored
+/// `default_measure_id` could be re-aimed later and silently change what a
+/// saved line meant — ADR-0015's objection, which retired that column — while
+/// two numbers agreeing is a fact that reads the same on every device and in
+/// the server's SQL. Null when the row states no weight (nothing to match
+/// against), when no measure weighs a piece, or when the only candidate merely
+/// names a volume unit (density owns volume, and the chip row never offers
+/// such a measure — see [isVolumeUnitLabel]). Two measures within tolerance
+/// resolve to the lowest [Measure.sortOrder], then label, so every reader
+/// picks the same one.
+Measure? wholeMeasureOf(Ingredient ingredient, List<Measure> measures) {
+  final weight = ingredient.pieceBasisAmount;
+  if (weight == null || !(weight > 0)) return null;
+  Measure? whole;
+  for (final m in measures) {
+    if (isVolumeUnitLabel(m.label)) continue;
+    if ((m.amount - weight).abs() > kWholeMeasureTolerance * weight) continue;
+    if (whole == null ||
+        m.sortOrder < whole.sortOrder ||
+        (m.sortOrder == whole.sortOrder &&
+            m.label.compareTo(whole.label) < 0)) {
+      whole = m;
+    }
+  }
+  return whole;
+}
+
 /// What a `piece` chip SAYS wherever it is offered: `piece (350 g)` on a row
 /// that states what one weighs, so the word is never a bare count beside a
 /// `clove (3 g)` that explains itself. A row with no weight — where `piece` is
@@ -572,10 +615,11 @@ bool isVolumeUnitLabel(String label) => volumeUnitFromLabel(label) != null;
 typedef UnitChoiceOffer = ({List<UnitChoice> choices, UnitChoice? offFilter});
 
 /// [allowedUnitsFor] plus the ingredient's live [measures], as picker choices
-/// in chip order: **the measures lead**, one [MeasureOption] each in the
-/// given order (callers pass them `sort_order`-sorted, so the household's
-/// first measure is the first chip), then the default unit and the rest of
-/// its family, then the demoted other mass/volume family ("g of milk" —
+/// in chip order: **the measures lead**, the row's whole measure
+/// ([wholeMeasureOf]) first of all, then the rest one [MeasureOption] each in
+/// the given order (callers pass them `sort_order`-sorted, so the household's
+/// first measure is the next chip), then the default unit and the rest of its
+/// family, then the demoted other mass/volume family ("g of milk" —
 /// reachable, never fronted), then imprecise last. Measures whose label
 /// merely names a volume unit are excluded — see [isVolumeUnitLabel].
 ///
@@ -583,8 +627,10 @@ typedef UnitChoiceOffer = ({List<UnitChoice> choices, UnitChoice? offFilter});
 /// and `can (400 g)` are words for *this* row and exist nowhere else; `g` and
 /// `cup` are the catalog, offered on everything, and a cook reaching for a
 /// clove of garlic should not read past four units the row shares with every
-/// other row to find it. The default unit is still the chip the sheet opens
-/// on — being first in the row and being selected are different things.
+/// other row to find it. The chip the sheet opens on is the whole measure
+/// where the row has one and the default unit otherwise — being first in the
+/// row and being selected are different things, and `piece (67 g)` stays
+/// offered after `lime, whole` for the cook who means a bare count.
 ///
 /// A measure needs no density gate — its stored weight IS the bridge — and it
 /// applies to any ingredient that has one, count-default included (that's the
@@ -610,9 +656,11 @@ UnitChoiceOffer allowedUnitChoicesFor(
       u.family != defaultFamily;
 
   final units = allowedUnitsFor(ingredient);
+  final whole = wholeMeasureOf(ingredient, measures);
   final choices = <UnitChoice>[
+    if (whole != null) MeasureOption(whole),
     for (final m in measures)
-      if (!isVolumeUnitLabel(m.label)) MeasureOption(m),
+      if (!isVolumeUnitLabel(m.label) && m.id != whole?.id) MeasureOption(m),
     for (final u in units)
       if (!demoted(u) && u.family != UnitFamily.imprecise) UnitOption(u),
     for (final u in units)

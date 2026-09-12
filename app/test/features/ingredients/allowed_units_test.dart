@@ -993,4 +993,86 @@ void main() {
       expect(pieceAsMeasure(_ing(pieces)), isNull);
     });
   });
+
+  group('wholeMeasureOf — a measure that weighs a piece is the row’s word for '
+      'one (ADR-0016)', () {
+    const whole = Measure(id: 'm-whole', label: 'lime, whole', amount: 67);
+    const half = Measure(
+      id: 'm-half',
+      label: 'lime, half',
+      amount: 33.5,
+      sortOrder: 1,
+    );
+    final lime = _ing(pieces, piece: 67);
+
+    test('the measure whose amount IS the piece weight', () {
+      expect(wholeMeasureOf(lime, const [half, whole]), whole);
+    });
+
+    test('within one part in a hundred still reads as the same fact', () {
+      const near = Measure(id: 'm-near', label: 'lime, whole', amount: 67.6);
+      expect(wholeMeasureOf(lime, const [near]), near);
+      const nearBelow = Measure(id: 'm-nb', label: 'lime, whole', amount: 66.4);
+      expect(wholeMeasureOf(lime, const [nearBelow]), nearBelow);
+    });
+
+    test('just outside the tolerance is a size, not the whole', () {
+      const far = Measure(id: 'm-far', label: 'lime, large', amount: 67.7);
+      expect(wholeMeasureOf(lime, const [far]), isNull);
+      const farBelow = Measure(id: 'm-fb', label: 'lime, small', amount: 66.3);
+      expect(wholeMeasureOf(lime, const [farBelow]), isNull);
+    });
+
+    test('two within tolerance: the lowest sort order wins, then the label — '
+        'so every reader picks the same one', () {
+      const second = Measure(
+        id: 'm-second',
+        label: 'lime, medium',
+        amount: 67.2,
+        sortOrder: 2,
+      );
+      const first = Measure(
+        id: 'm-first',
+        label: 'lime, whole',
+        amount: 67.4,
+        sortOrder: 1,
+      );
+      expect(wholeMeasureOf(lime, const [second, first]), first);
+      // The same sort order: alphabetical, and the given order is irrelevant.
+      const b = Measure(id: 'm-b', label: 'lime, whole', amount: 67);
+      const a = Measure(id: 'm-a', label: 'lime, entire', amount: 67);
+      expect(wholeMeasureOf(lime, const [b, a]), a);
+    });
+
+    test('no piece weight → null: there is nothing to match against', () {
+      expect(wholeMeasureOf(_ing(pieces), const [whole]), isNull);
+    });
+
+    test('no measures → null (Avocado: weighed, never sized)', () {
+      expect(wholeMeasureOf(_ing(pieces, piece: 201), const []), isNull);
+      expect(wholeMeasureOf(lime, const [half]), isNull);
+    });
+
+    test('a volume-named measure is never the whole — density owns volume, '
+        'and the chip row could not offer it', () {
+      const cup = Measure(id: 'm-cup', label: 'cup', amount: 67);
+      expect(wholeMeasureOf(lime, const [cup]), isNull);
+    });
+
+    test('the chip row leads with the whole measure, and piece (67 g) stays '
+        'offered after the measures', () {
+      final choices = allowedUnitChoicesFor(lime, const [half, whole]).choices;
+      expect(choices.map((c) => c.label).take(3), [
+        'lime, whole (67 g)',
+        'lime, half (33.5 g)',
+        'piece',
+      ]);
+      // A row with no whole measure keeps the given order.
+      final avocado = _ing(pieces, piece: 201);
+      expect(
+        allowedUnitChoicesFor(avocado, const [half]).choices.first,
+        const MeasureOption(half),
+      );
+    });
+  });
 }
