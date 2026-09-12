@@ -26,9 +26,9 @@ import 'package:ansi/core/config/env.dart';
 import 'package:ansi/core/sync/database.dart';
 import 'package:ansi/core/sync/schema.dart';
 import 'package:ansi/core/sync/session.dart' show currentHouseholdIdProvider;
-import 'package:ansi/features/import/data/canned_payload.dart';
 import 'package:ansi/features/import/data/import_providers.dart';
 import 'package:ansi/features/import/data/import_repository_impl.dart';
+import 'package:ansi/features/import/data/sample_payloads.dart';
 import 'package:ansi/features/ingredients/barcode/barcode_add.dart'
     show OffLookup, offLookupProvider;
 import 'package:flutter_test/flutter_test.dart';

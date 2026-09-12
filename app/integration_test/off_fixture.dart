@@ -5,7 +5,7 @@
 /// (a real OFF answer for barcode 3017620422003, captured 2026-08-31), carried
 /// here as a Dart const because the integration test runs ON the device: a
 /// host path is not readable there, and bundling a test fixture as a Flutter
-/// asset would ship it inside the app. The same reason `canned_payload.dart`
+/// asset would ship it inside the app. The same reason `sample_payloads.dart`
 /// is Dart source rather than a JSON asset.
 ///
 /// `test/features/ingredients/barcode/off_fixture_pin_test.dart` parses both

@@ -15,7 +15,7 @@
 /// local backend running (`make db-up`) and the usual `--dart-define`s.
 library;
 
-import 'package:ansi/features/import/data/canned_payload.dart'
+import 'package:ansi/features/import/data/sample_payloads.dart'
     show peanutStirFryPayloadJson;
 import 'package:ansi/features/import/presentation/import_view.dart'
     show ImportView;

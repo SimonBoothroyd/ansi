@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:ansi/features/import/data/canned_payload.dart';
+import 'package:ansi/features/import/data/sample_payloads.dart';
 import 'package:ansi/features/import/domain/reconciliation_payload.dart';
 import 'package:flutter_test/flutter_test.dart';
 

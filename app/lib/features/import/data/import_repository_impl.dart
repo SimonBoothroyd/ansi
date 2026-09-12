@@ -32,7 +32,7 @@ import '../domain/commit_payload.dart';
 import '../domain/import_repository.dart';
 import '../domain/learnable_alias.dart';
 import '../domain/reconciliation_payload.dart';
-import 'canned_payload.dart';
+import 'sample_payloads.dart';
 
 const _uuid = Uuid();
 

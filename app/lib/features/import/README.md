@@ -63,7 +63,7 @@ import/
     import_repository_impl.dart  SqliteImportRepository — the REAL commit
     remote_import_repository.dart EdgeImportRepository — functions.invoke
     sse.dart                     the text/event-stream reader behind it
-    canned_payload.dart          the canned/offline payload (see below)
+    sample_payloads.dart          the canned/offline payload (see below)
     photo_intake.dart            pick → crop/rotate, behind injectable seams
     import_providers.dart        importRepositoryProvider (keepAlive)
   presentation/
@@ -210,7 +210,7 @@ the extract→match step varies:
 | Supabase configured (`Env.isConfigured`) | `startImport` runs |
 |---|---|
 | yes | `EdgeImportRepository` — the real `import-recipe` edge function, auth-scoped (the signed-in user's token carries the `household_id` claim that scopes matching) |
-| no — dev, offline, and **all tests** | `SqliteImportRepository.startImport` — the canned payload from `canned_payload.dart` |
+| no — dev, offline, and **all tests** | `SqliteImportRepository.startImport` — the canned payload from `sample_payloads.dart` |
 
 The canned path is not a stub that returns a fixture verbatim: it re-points the
 fixture's placeholder candidate ids at whatever the **local vocab** actually
