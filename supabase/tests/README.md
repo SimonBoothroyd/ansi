@@ -76,6 +76,31 @@ assertions in `begin … rollback` so runs leave no residue.
   ingredient can sit on two weeks AND still twice on one week — the offline
   duplicate 0006 deliberately allows; and that the identity XOR, the
   contribution cascade and household RLS are all unchanged by it.
+- `household_week_start.sql` — the household's first day of the week and the
+  re-home that follows it (0043): the column's shape, default and ISO range,
+  and the two questions the re-home asks — `week_key_for()` of a DATE, and
+  `week_rekey()` of a seven-day WINDOW, asserted in both directions because a
+  rule that only ever slid a key backwards would take Sun 6 Sep out to Mon 31
+  Aug on the way home and do it again on every flip. Then a Monday→Sunday flip
+  asserted meal by meal — every week back a day, every meal on the calendar day
+  it was already on, the Sunday meal OPENING the next week instead of closing
+  this one, the tick following its week while a week-less one stays week-less,
+  the variant of a recipe that left the week carried and the variant of a
+  recipe that stayed left alone, and the row count of all four tables
+  unchanged. Then the three properties the setting rests on: a second call
+  changes nothing at all (`household.updated_at` included); a flip back
+  restores the WHOLE address book — every week row, meal, tick and variant at
+  the address it started at, with nothing created, emptied or tombstoned, which
+  is what makes this a setting rather than a one-way door; and a week uploaded
+  under the old key by a device that was offline across the flip is re-homed by
+  the next run — run for real in BOTH shapes, the free window and the one the
+  real week already occupies, because the second is the only way two rows can
+  claim one window and the only thing that could break `unique (household_id,
+  week_start_date)` mid-update. Finally the fence, as plain `authenticated`:
+  one household cannot flip another's, can flip its own through the ordinary
+  grants (the function is security INVOKER, so 0043's column-narrow `update (…,
+  week_starts_on)` grant is load-bearing and `is_template` still is not on that
+  list), and a day outside 1..7 is refused by name before anything moves.
 - `measure_rollout.sql` — the monotone `ingredient_measure` rollout
   ([`../rollout_measure_refresh.sql`](../rollout_measure_refresh.sql), plan
   0023): a template measure the household's matching ingredient lacks

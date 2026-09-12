@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (43 migrations, 20 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (44 migrations, 20 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -21,6 +21,7 @@ introduced in `0001_household.sql` · RLS enabled · in the `powersync` publicat
 | `deleted_at` | `timestamptz` | yes |  |
 | `is_template` | `boolean` | no | not null default false *(added in `0008_onboarding_hardening.sql`)* |
 | `backfilled_at` | `timestamptz` | yes | *(added in `0011_picker_uplift.sql`)* |
+| `week_starts_on` | `smallint` | no | not null default 1 check (week_starts_on between 1 and 7) *(added in `0043_household_week_start.sql`)* |
 
 ## `household_member`
 
