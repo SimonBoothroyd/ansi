@@ -531,6 +531,27 @@ Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
 
+### 2026-09-12 — two hand statements on the owner's household: a repair, and a measure
+
+- **The Sauerkraut line, repaired.** The round-seven data pass (2026-09-11
+  02:04Z) retired the duplicate Sauerkraut row — an import's row carrying
+  the placeholder alias — and did not re-point the one live recipe line that
+  named it: Sauerkraut, to taste, in *Smashed Edamame Toast*. Every reader
+  drops a line at a retired row, so the recipe read as one line short until
+  the owner noticed the next day. Run on his say-so: the line moved to the
+  seeded Sauerkraut row, and that row admits `to_taste` again — the units
+  pass could not see the line's unit as in use because the line pointed at
+  the retired row. Readback: the line's ingredient live, `to_taste`
+  admitted. No plan entry or week override named the retired row; it was the
+  only broken line on cloud. The rule this taught is in §2a above; migration
+  `0041` (pending the next deploy) refuses the retire outright and repairs
+  any line already left this way.
+- **Persian cucumbers, measured.** On the Cucumber row, on his ask: a
+  `Persian cucumber` measure at 85 g (Trader Joe's 1 lb bag, five to six per
+  bag), first on the row so it is the typical one; the seeded `cucumber` at
+  301 g second; a `bag (1 lb)` at 454 g third. Macros stay USDA 168409 per
+  100 g. Both reach the seed on the next pull.
+
 ### 2026-09-11 (night) — round nine on cloud (v0.13.2): the learned lines leave the vocabulary
 
 - **Owner-ruled data pass, run from here on his say-so (I-D2 A):** eight
