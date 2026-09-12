@@ -14,7 +14,7 @@
 -- the USDA reference set is a different thing with a different owner
 -- (ADR-0005, seed/scripts/seed_usda.md).
 --
--- 315 ingredients (315 complete, 0 stub), 152 aliases, 302 measures.
+-- 315 ingredients (315 complete, 0 stub), 145 aliases, 302 measures.
 
 begin;
 
@@ -33,18 +33,11 @@ on conflict (id) do update set is_template = true;
 -- 'seed' before they land here — otherwise the row would seed and then
 -- reach no household at all. Every other stamp is the row's real
 -- provenance and is carried verbatim.
--- Re-stamped this run: 0 ingredient sources, 13 alias sources.
---   alias: fresh basil, reserved for garnish → Basil
+-- Re-stamped this run: 0 ingredient sources, 6 alias sources.
 --   alias: butter beans → Canned Butter Beans
 --   alias: diced fresh tomatoes → Cherry Tomatoes
 --   alias: chipotle chile flakes → Chipotle Chili Powder
---   alias: stone-ground mustard or Creole mustard → Dijon Mustard
---   alias: smoked chilli harissa paste, or ordinary harissa paste → Harissa Paste
---   alias: olive oil or cooking oil of choice → Olive Oil
---   alias: Olive oil, for frying → Olive Oil
 --   alias: dried sage → Ground Sage
---   alias: vegan cheddar or American cheese → Vegan Mozzarella
---   alias: boiling water → Water
 --   alias: fresh mushrooms → White Mushroom
 --   alias: sweet white sorghum flour → White Sorghum Flour
 
@@ -1094,7 +1087,6 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('baking soda', 'bicarbonate soda'),
     ('baking soda', 'sodium bicarbonate'),
     ('basil', 'basil leaf fresh'),
-    ('basil', 'basil reserved for garnish fresh'),
     ('bay leaf', 'bay leaf dried'),
     ('beet', 'beetroot'),
     ('beyond hot italian style sausage', 'beyond meat sausage'),
@@ -1128,7 +1120,6 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('cucumber', 'mini cucumber'),
     ('cucumber', 'persian cucumber'),
     ('dark red kidney bean canned', 'kidney bean'),
-    ('dijon mustard', 'stone mustard creole mustard ground'),
     ('dill', 'dill fresh'),
     ('ditalini', 'ditalini pasta'),
     ('earth balance butter', 'cultured plant butter salted'),
@@ -1152,7 +1143,6 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('granulated sugar', 'granulated cane sugar'),
     ('granulated sugar', 'sugar'),
     ('green bean', 'green bean fresh'),
-    ('harissa paste', 'chilli harissa paste ordinary harissa paste smoked'),
     ('instant yeast', 'rapid rise instant yeast'),
     ('kombu', 'strip kombu'),
     ('lemon juice', 'lemon juice fresh'),
@@ -1170,8 +1160,6 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('nori', 'sushi nori'),
     ('oat milk lite', 'minor figure barista oat lite'),
     ('okra', 'okra fresh'),
-    ('olive oil', 'olive oil cooking oil choice'),
-    ('olive oil', 'olive oil for frying'),
     ('orange', 'navel orange'),
     ('oregano fresh', 'oregano'),
     ('panko', 'panko bread crumb'),
@@ -1226,11 +1214,9 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('vanilla extract', 'extract'),
     ('vegan mayonnaise', 'plant mayo'),
     ('vegan mayonnaise', 'vegan mayo'),
-    ('vegan mozzarella', 'vegan cheddar american cheese'),
     ('vegan parmesan', 'vegan parmesan cheese'),
     ('vegetable broth', 'vegetable stock'),
     ('vegetable broth', 'veggie broth'),
-    ('water', 'boiling water'),
     ('water', 'filtered water'),
     ('water', 'warm water'),
     ('wheat chex cereal', 'chex style cereal'),
@@ -1257,7 +1243,6 @@ join (values
   ('baking soda', 'bicarbonate of soda', 'bicarbonate soda', 'seed'),
   ('baking soda', 'sodium bicarbonate', 'sodium bicarbonate', 'seed'),
   ('basil', 'fresh basil leaves', 'basil leaf fresh', 'seed'),
-  ('basil', 'fresh basil, reserved for garnish', 'basil reserved for garnish fresh', 'seed'),
   ('bay leaf', 'dried bay leaves', 'bay leaf dried', 'seed'),
   ('beet', 'beetroot', 'beetroot', 'seed'),
   ('beyond hot italian style sausage', 'Beyond Meat Sausage', 'beyond meat sausage', 'seed'),
@@ -1291,7 +1276,6 @@ join (values
   ('cucumber', 'mini cucumbers', 'mini cucumber', 'seed'),
   ('cucumber', 'Persian cucumbers', 'persian cucumber', 'seed'),
   ('dark red kidney bean canned', 'kidney beans', 'kidney bean', 'seed'),
-  ('dijon mustard', 'stone-ground mustard or Creole mustard', 'stone mustard creole mustard ground', 'seed'),
   ('dill', 'fresh dill', 'dill fresh', 'seed'),
   ('ditalini', 'ditalini pasta', 'ditalini pasta', 'seed'),
   ('earth balance butter', 'salted cultured plant butter', 'cultured plant butter salted', 'seed'),
@@ -1315,7 +1299,6 @@ join (values
   ('granulated sugar', 'granulated cane sugar', 'granulated cane sugar', 'seed'),
   ('granulated sugar', 'sugar', 'sugar', 'seed'),
   ('green bean', 'fresh green beans', 'green bean fresh', 'seed'),
-  ('harissa paste', 'smoked chilli harissa paste, or ordinary harissa paste', 'chilli harissa paste ordinary harissa paste smoked', 'seed'),
   ('instant yeast', 'rapid rise instant yeast', 'rapid rise instant yeast', 'seed'),
   ('kombu', 'strip kombu', 'strip kombu', 'seed'),
   ('lemon juice', 'fresh lemon juice', 'lemon juice fresh', 'seed'),
@@ -1333,8 +1316,6 @@ join (values
   ('nori', 'sushi nori', 'sushi nori', 'seed'),
   ('oat milk lite', 'minor figures barista oat lite', 'minor figure barista oat lite', 'manual'),
   ('okra', 'fresh okra', 'okra fresh', 'seed'),
-  ('olive oil', 'olive oil or cooking oil of choice', 'olive oil cooking oil choice', 'seed'),
-  ('olive oil', 'Olive oil, for frying', 'olive oil for frying', 'seed'),
   ('orange', 'navel oranges', 'navel orange', 'seed'),
   ('oregano fresh', 'chopped oregano', 'oregano', 'seed'),
   ('panko', 'panko bread crumbs', 'panko bread crumb', 'seed'),
@@ -1389,11 +1370,9 @@ join (values
   ('vanilla extract', 'extract', 'extract', 'seed'),
   ('vegan mayonnaise', 'plant mayo', 'plant mayo', 'seed'),
   ('vegan mayonnaise', 'vegan mayo', 'vegan mayo', 'seed'),
-  ('vegan mozzarella', 'vegan cheddar or American cheese', 'vegan cheddar american cheese', 'seed'),
   ('vegan parmesan', 'shredded vegan parmesan cheese', 'vegan parmesan cheese', 'seed'),
   ('vegetable broth', 'vegetable stock', 'vegetable stock', 'seed'),
   ('vegetable broth', 'veggie broth', 'veggie broth', 'seed'),
-  ('water', 'boiling water', 'boiling water', 'seed'),
   ('water', 'filtered water', 'filtered water', 'seed'),
   ('water', 'warm water', 'warm water', 'seed'),
   ('wheat chex cereal', 'chex style cereal', 'chex style cereal', 'seed'),
