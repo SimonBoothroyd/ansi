@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Cook &amp; Shop</h1>
-    <p class="view-status">built · matches code 2026-09-12 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a></p>
+    <p class="view-status">built · matches code 2026-09-12 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a></p>
     <p class="view-blurb">Two tabs derived from the week on screen — sessions grouped by recipe and split by shelf life, then one list summed from them, saying where every line came from.</p>
 </header>
 
@@ -131,24 +131,30 @@
     </div>
 
         <div class="frame">
-            <p class="frame-name"><b>The list</b> · summed and grouped, every total opening into where it came from — a single source included, and a manual top-up</p>
+            <p class="frame-name"><b>The list</b> · summed and grouped, every total opening into where it came from — a single source included, and a manual top-up. The aisles hold what is still to grab; every ticked row is in <i>one</i> section at the bottom</p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span></div>
                 <p class="conv-note" style="margin:6px 20px 0;letter-spacing:.04em">summed from the cook plan · with provenance</p>
                 <div class="sl-group">Produce</div>
-                <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Ginger, fresh</span><span class="item-total">30 g</span></div></div>
-                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Yellow onion</span><span class="item-total">5 med</span></div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Lime</span><span class="item-total">2½ piece</span></div>
+                    <div class="item-sub">167.5 g → buy 3</div>
+                    <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>1 lime, whole</span></div><div class="prov-line"><span class="src">Charred Broccoli &amp; Halloumi Salad · cook Wed</span><span>1½ piece</span></div></div>
+                </div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Yellow onion</span><span class="item-total">5 onion, medium</span></div>
                     <div class="item-sub">550 g</div>
-                    <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>3 med</span></div><div class="prov-line"><span class="src">Slow-Cooker Beef Ragù · cook Tue</span><span>2 med</span></div></div>
+                    <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>3 onion, medium</span></div><div class="prov-line"><span class="src">Slow-Cooker Beef Ragù · cook Tue</span><span>2 onion, medium</span></div></div>
                 </div>
                 <div class="sl-group">Baking</div>
                 <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Flour</span><span class="item-total">500 g</span></div>
                     <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>300 g</span></div><div class="prov-line"><span class="src">Oat Cookies</span><span>150 g</span></div><div class="prov-line manual"><span class="src">＋ manual top-up</span><span>50 g</span></div></div>
                 </div>
-                <div class="sl-group">Non-food</div>
-                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Paper towels</span><span class="item-total">—</span></div></div>
+                <div class="sl-group">In the basket · 2</div>
+                <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Ginger, fresh</span><span class="item-total">30 g</span></div></div>
+                <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Paper towels</span><span class="item-total">—</span></div></div>
                 <div class="topup">＋ add item or top up an ingredient</div>
             </div></div>
+            <p class="conv-note" style="margin:10px 4px 0"><b>A piece-weighted row is bought in pieces.</b> Lime's row says a piece weighs 67 g, so <i>1 lime, whole</i> and <i>1½ piece</i> fold into one mass and read as <b>2½ piece</b> — never <i>67 g + 1½ piece</i>. The grams sit under the count, with the round-up after them when the count is fractional; a count read back from a plain weight is marked <b>≈</b>. A row asked for in one named measure keeps that count (<i>5 onion, medium</i>)</p>
+            <p class="conv-note" style="margin:6px 4px 0"><b>The basket is one section, always at the bottom</b> — under the aisles, above the echo rows — in aisle order then name, so a ticked row's place is predictable. An aisle whose rows are all ticked leaves the top. A tap unticks, and the row returns to its aisle on the next derivation. Every row ticked: the aisles give way to one line, <i>everything’s in the basket</i></p>
         </div>
 
         <div class="frame">
@@ -190,9 +196,10 @@
             <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Canned Lentils</span><span class="item-total">1 can (400 g), drained</span></div>
                 <div class="item-sub">240 g</div>
                 <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>1 can (400 g), drained</span></div></div></div>
-            <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Coconut milk, canned</span><span class="item-total">400 ml</span></div></div>
             <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Vegetable Broth</span><span class="item-total">250 ml</span></div>
                 <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>250 ml</span></div></div></div>
+            <div class="sl-group">In the basket · 1</div>
+            <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Coconut milk, canned</span><span class="item-total">400 ml</span></div></div>
             <div class="sl-group" style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">Weeknight Chicken Curry<span style="text-transform:none;letter-spacing:0;font-size:10.5px">2 optional lines not listed — <span style="color:var(--herb-deep);font-weight:500">lime</span>, <span style="color:var(--herb-deep);font-weight:500">coriander</span></span></div>
             <p class="conv-note" style="margin:6px 20px 0"><b>The names are the door.</b> A tap writes this week&rsquo;s <code>include</code> row for that line &mdash; no sheet, no draft, no diff &mdash; and the ingredient arrives in its aisle on the next derivation, carrying <i>&middot; this week, ticked in</i>. The sentence around them stays muted: a rule somebody chose is not a defect somebody can fix. A line the <i>week</i> left out is not a door &mdash; that change is undone where it was made</p>
             <div class="sl-group" style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">Weeknight Chicken Curry<span style="color:#7A5A16;letter-spacing:0;text-transform:none">⚑ Sauerkraut · ingredient removed · pick again in the recipe</span></div>
