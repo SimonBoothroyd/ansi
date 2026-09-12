@@ -222,10 +222,12 @@ jobs:
             "--dart-define=POWERSYNC_URL=$POWERSYNC_URL"
           )
           # The APK is what the phones install, and the phones are Pixels:
-          # arm64 only, so it carries one copy of the engine, the Dart and the
-          # barcode model instead of three (a fat APK was 94 MB; this is ~28).
-          # The AAB keeps every ABI — that is what a bundle is for.
-          flutter build apk "${args[@]}" --target-platform android-arm64
+          # arm64 only. --target-platform alone trims Flutter's own libraries
+          # but the plugins' native code (barcode, SQLite, PowerSync) still
+          # ships for every ABI; --split-per-abi filters those too, and with
+          # one target platform it yields exactly one APK. A fat APK was
+          # 94 MB. The AAB keeps every ABI — that is what a bundle is for.
+          flutter build apk "${args[@]}" --target-platform android-arm64 --split-per-abi
           flutter build appbundle "${args[@]}"
 
       - name: Name the artifacts for the tag
@@ -235,7 +237,7 @@ jobs:
           # feat/step-8 would otherwise put a "/" in the filename.
           slug="${GITHUB_REF_NAME//\//-}"
           mkdir -p "$RUNNER_TEMP/dist"
-          cp build/app/outputs/flutter-apk/app-release.apk \
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk \
              "$RUNNER_TEMP/dist/ansi-$slug.apk"
           cp build/app/outputs/bundle/release/app-release.aab \
              "$RUNNER_TEMP/dist/ansi-$slug.aab"
