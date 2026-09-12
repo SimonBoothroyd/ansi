@@ -359,6 +359,10 @@ class RecipeEditor extends _$RecipeEditor
           ingredientName: ingredient.canonicalName,
           measureId: null,
           measure: null,
+          // The picker only offers live rows, so a re-point is exactly the
+          // repair the tag asked for: it stops reading as removed the moment
+          // the pick lands, not on the next reload.
+          ingredientDeleted: false,
           unit: i.unit.family == ingredient.defaultUnit.family
               ? i.unit
               : ingredient.defaultUnit,
@@ -378,6 +382,7 @@ class RecipeEditor extends _$RecipeEditor
           ingredientName: target.title,
           measureId: null,
           measure: null,
+          ingredientDeleted: false,
           unit: i.unit.family == UnitFamily.batch ? i.unit : batches,
         ),
       );

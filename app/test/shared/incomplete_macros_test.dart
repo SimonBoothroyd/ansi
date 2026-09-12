@@ -55,6 +55,38 @@ void main() {
             countLinesWithoutMeasure: 1,
             unconvertibleLines: 1,
           ),
+      // A retired row costs the total what a stub costs it, so the walk
+      // counts it in `stubLines` — but the SENTENCE tells them apart, and
+      // names the broken link first. Otherwise "2 stub lines" would send the
+      // household to flesh out a row that is not there any more.
+      '1 ingredient removed · 1 stub line': RecipeMacroSummary(
+        stubLines: 2,
+        notes: [
+          (
+            lineId: 'li',
+            name: 'Sauerkraut',
+            reason: MacroLineReason.removedIngredient,
+            unit: null,
+          ),
+        ],
+      ),
+      '2 ingredients removed': RecipeMacroSummary(
+        stubLines: 2,
+        notes: [
+          (
+            lineId: 'a',
+            name: 'Sauerkraut',
+            reason: MacroLineReason.removedIngredient,
+            unit: null,
+          ),
+          (
+            lineId: 'b',
+            name: 'Red Wine',
+            reason: MacroLineReason.removedIngredient,
+            unit: null,
+          ),
+        ],
+      ),
     };
 
     for (final MapEntry(key: sentence, value: summary) in vectors.entries) {
@@ -113,6 +145,7 @@ void main() {
       const drawn = {
         MacroLineReason.stubIngredient: 'stub ingredient',
         MacroLineReason.unknownIngredient: 'not in your ingredients yet',
+        MacroLineReason.removedIngredient: 'ingredient removed · pick again',
         MacroLineReason.needsWeight: 'needs a piece weight',
         MacroLineReason.needsDensity: 'needs a density',
         MacroLineReason.noAmount: 'no amount',

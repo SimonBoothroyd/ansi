@@ -501,10 +501,17 @@ class _LineItemEditor extends ConsumerWidget {
           children: [
             TextSpan(
               text: item.ingredientName,
-              style: ansiSans(size: 15, weight: FontWeight.w500),
+              // A retired row's last known name, muted like the dangling
+              // component one row down — same news, same voice.
+              style: item.ingredientDeleted
+                  ? ansiSans(size: 15, color: AnsiColors.muted)
+                  : ansiSans(size: 15, weight: FontWeight.w500),
             ),
             ...noteSpans(item.note),
             ...optionalSpans(optional: item.optional),
+            // The identity cell is already the picker's door, so the tag's
+            // "pick again" is a thing the next tap actually does.
+            ...removedIngredientSpans(removed: item.ingredientDeleted),
           ],
         ),
       ),

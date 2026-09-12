@@ -182,6 +182,13 @@ abstract class IngredientGroup with _$IngredientGroup {
 /// the measure is missing it degrades to an honest count, never invented
 /// grams (invariant 3).
 ///
+/// A line whose INGREDIENT has been retired follows the same rule one referent
+/// up: [ingredientId] is the stored id verbatim, [ingredientName] the row's
+/// last known name, and [ingredientDeleted] says so — the line is shown and
+/// re-pointable, never silently blank and never dropped. Nothing derives from
+/// the retired row (no macros, no density, no measures), because a retired row
+/// is not a fact about food any more.
+///
 /// A component line follows the same degrade-don't-destroy rule: [subRecipeId]
 /// is the stored id verbatim and [subRecipe] the resolved target, null while
 /// the row hasn't synced (or was deleted). Nothing derives from a component
@@ -217,6 +224,14 @@ abstract class LineItem with _$LineItem {
     /// two apart — so a line can say which it is instead of promising a sync
     /// that is never coming.
     @Default(false) bool measureDeleted,
+
+    /// Whether [ingredientId] points at a vocab row the household has
+    /// RETIRED (`deleted_at` set). The name still reads — it is the row's
+    /// last known one, joined without the liveness guard — and nothing is
+    /// derived from the row: the line is shown, named, and repairable rather
+    /// than blanked. Same degrade-don't-destroy shape as [measureDeleted],
+    /// one referent up.
+    @Default(false) bool ingredientDeleted,
   }) = _LineItem;
 
   /// Whether this line is a sub-recipe component rather than an ingredient.
