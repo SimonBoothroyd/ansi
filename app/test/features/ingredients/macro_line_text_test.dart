@@ -78,10 +78,7 @@ void main() {
       ),
     );
 
-    expect(
-      macroText('197 kcal · 2P 3C 20F · 2 fibre /100 g'),
-      findsOneWidget,
-    );
+    expect(macroText('197 kcal · 2P 3C 20F · 2 fibre /100 g'), findsOneWidget);
   });
 
   testWidgets('the recipe panel’s cells keep their words — there is room for '

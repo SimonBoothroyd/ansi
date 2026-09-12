@@ -107,10 +107,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(
-        macroText('60 kcal · 1P 15C 0F · 3 fibre /100 g'),
-        findsOneWidget,
-      );
+      expect(macroText('60 kcal · 1P 15C 0F · 3 fibre /100 g'), findsOneWidget);
     });
 
     testWidgets('a row with no measures says so rather than saying nothing', (
@@ -312,10 +309,7 @@ void main() {
       expect(find.text('as the label reads'), findsOneWidget);
       // The derivation is under it, for the reader who wants what the totals
       // actually use.
-      expect(
-        find.text('per 100 ml · 642 kcal · 24P 24C 54F'),
-        findsOneWidget,
-      );
+      expect(find.text('per 100 ml · 642 kcal · 24P 24C 54F'), findsOneWidget);
       // The density reads back as the sentence it was entered as, with the
       // ratio as the aside rather than as the sentence.
       expect(find.text('2 tbsp weighs 32 g'), findsOneWidget);

@@ -261,10 +261,7 @@ void main() {
 
       expect(find.text('1'), findsOneWidget);
       expect(find.text('2'), findsOneWidget);
-      expect(
-        tester.widget<Text>(find.text('1')).style?.color,
-        AnsiColors.herb,
-      );
+      expect(tester.widget<Text>(find.text('1')).style?.color, AnsiColors.herb);
       expect(
         find.byWidgetPredicate(
           (w) =>

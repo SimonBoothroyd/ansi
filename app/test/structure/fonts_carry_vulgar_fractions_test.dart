@@ -21,12 +21,13 @@ import 'package:flutter_test/flutter_test.dart';
 const _glyphs = ['½', '⅓', '⅔', '¼', '¾', '⅛', '⅜', '⅝', '⅞'];
 
 void main() {
-  final fonts = Directory('assets/fonts')
-      .listSync()
-      .whereType<File>()
-      .where((f) => f.path.toLowerCase().endsWith('.ttf'))
-      .toList()
-    ..sort((a, b) => a.path.compareTo(b.path));
+  final fonts =
+      Directory('assets/fonts')
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.toLowerCase().endsWith('.ttf'))
+          .toList()
+        ..sort((a, b) => a.path.compareTo(b.path));
 
   test('the app bundles fonts to read', () {
     expect(fonts, isNotEmpty);
@@ -102,9 +103,7 @@ Set<int> _format4(ByteData data, int subtable, Set<int> wanted) {
         final at = idRangeOffsets + s * 2 + rangeOffset + (code - start) * 2;
         if (at + 1 >= data.lengthInBytes) break;
         final raw = data.getUint16(at);
-        glyph = raw == 0
-            ? 0
-            : (raw + data.getInt16(idDeltas + s * 2)) & 0xFFFF;
+        glyph = raw == 0 ? 0 : (raw + data.getInt16(idDeltas + s * 2)) & 0xFFFF;
       }
       if (glyph != 0) found.add(code);
       break;
