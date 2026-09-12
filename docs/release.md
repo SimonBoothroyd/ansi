@@ -178,7 +178,7 @@ That runs four jobs:
 | Job | Runner | Does | Output |
 |-----|--------|------|--------|
 | `guard` | ubuntu | §2.4 checks only | pass/fail, plus the Play notice |
-| `android` | ubuntu | decode keystore → write `android/key.properties` → `flutter build apk --release` + `appbundle --release` with the three dart-defines | `ansi-v0.1.0.apk` + `ansi-v0.1.0.aab` on the **GitHub Release** for the tag, and an `android-release` artifact |
+| `android` | ubuntu | decode keystore → write `android/key.properties` → `flutter build apk --release --target-platform android-arm64` (the phones are Pixels; one ABI, ~28 MB instead of a 94 MB fat APK) + `appbundle --release` (every ABI) with the three dart-defines | `ansi-v0.1.0.apk` + `ansi-v0.1.0.aab` on the **GitHub Release** for the tag, and an `android-release` artifact |
 | `play-internal` | ubuntu | uploads that same AAB to the Play **internal** track (§3a) — **skipped by design** on every tag, since `PLAY_SERVICE_ACCOUNT_JSON` is deliberately unset | nothing, today |
 | `ios` | macOS | `flutter build ios --release --no-codesign` | unsigned `Runner.app` **artifact** |
 
@@ -354,8 +354,9 @@ builds, but nothing enforces it.
 ### 3d. Tags shipped
 
 Append-only: one row per tag, newest last. Every tag since `v0.4.0` has put a
-signed APK (88–94 MB) and AAB (76–81 MB) on its GitHub Release, with
-`play-internal` skipped by design. "Deploy" is the deploy-supabase run that
+signed APK and AAB on its GitHub Release, with `play-internal` skipped by
+design; through `v0.14.0` the APK was a fat build (88–94 MB) and from the next
+tag it is arm64-only (about 28 MB). The AAB (76–81 MB) keeps every ABI. "Deploy" is the deploy-supabase run that
 went first when the tag needed one.
 
 | Tag | Date | What | Runs |

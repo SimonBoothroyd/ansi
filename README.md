@@ -13,6 +13,23 @@ still lists until a Google sign-in has been walked on an `io.ansi.app` build
 
 Flutter · Forui · Supabase (Postgres + Auth + Storage) · PowerSync (offline sync)
 
+## How this is built — read this first
+
+**This project is entirely vibe-coded.** Every line of application code, every
+test, migration, edge function and generated seed, and most of the prose under
+`docs/`, was written by AI coding agents (Claude Code). The humans — a
+two-person household, one of them a developer — have never hand-written the
+code. What they do is steer: they write and review the product spec, the
+decision records, the execution plans and the design board, look at the app on
+a phone, and send the agents back with notes. The repo's conventions
+(`AGENTS.md`, the structural tests, `make docs-check`) exist to keep agents
+honest across sessions, not as a record of human craft.
+
+Read the code with that in mind. It is tested, it runs a real household's
+kitchen every week, and it has been reviewed by a person at the level of
+behaviour and design rather than line by line. If you contribute, the same
+mode works: change the docs and the plan, and let an agent do the typing.
+
 ## Repository
 
 ```

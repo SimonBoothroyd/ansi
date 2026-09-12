@@ -219,7 +219,11 @@ jobs:
             "--dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
             "--dart-define=POWERSYNC_URL=$POWERSYNC_URL"
           )
-          flutter build apk "${args[@]}"
+          # The APK is what the phones install, and the phones are Pixels:
+          # arm64 only, so it carries one copy of the engine, the Dart and the
+          # barcode model instead of three (a fat APK was 94 MB; this is ~28).
+          # The AAB keeps every ABI — that is what a bundle is for.
+          flutter build apk "${args[@]}" --target-platform android-arm64
           flutter build appbundle "${args[@]}"
 
       - name: Name the artifacts for the tag
