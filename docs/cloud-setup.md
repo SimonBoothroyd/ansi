@@ -530,23 +530,19 @@ or any dashboard-config walk. An entry headed **pending** is the exception: it
 names a migration that is merged but **not yet on cloud**, and it is replaced by
 the ordinary entry for the run that pushes it.
 
-### Pending the next cloud push — `0043_household_week_start`
+### 2026-09-12 (night) — v0.15.0 on cloud: 0043, the household's first day of the week
 
-- **Not on cloud yet.** `0043_household_week_start.sql` adds
-  `household.week_starts_on` (ISO weekday, default 1 = Monday) and the
-  `set_household_week_start(household_id, starts_on)` RPC that flips it and
-  re-homes every week of that household in the same transaction. Green locally:
-  `supabase db reset` + the full pgTAP suite, including the new
-  `tests/household_week_start.sql`.
-- **Nothing to do by hand on the dashboard, and no sync-rule change.** Both
-  configs already ship `select * from household`, so the column reaches devices
-  on the next streams deploy with no edit. The table is already in the
-  `powersync` publication.
-- **Row-preserving** (§2c): one additive column with a default, one function,
-  and a widened column-narrow UPDATE grant. No existing household changes shape
-  until somebody calls the RPC — a default of 1 is exactly what every household
-  has meant since 0005, so a push on its own moves no row.
-- After `db push`, replace this entry with the ordinary one for that run.
+- **deploy-supabase 34711560878** (owner-triggered, after the round-eleven
+  landing `e5a936b`): `db push` applied `0043_household_week_start`; function
+  deployed; sync streams deployed; no reseed. Readback: `schema_migrations`
+  tops at `0043`, `household.week_starts_on` present with default `1`,
+  `set_household_week_start`, `week_key_for` and `week_rekey` present. No
+  row moved — the default is what every household already meant, and only
+  the RPC re-homes weeks.
+- `cloud_verify.sh`: 9 ok · 0 warn · 0 fail.
+- Nothing to do by hand on the dashboard, and no sync-rule change: both
+  configs ship `select * from household`, so the column reaches devices on
+  this streams deploy.
 
 ### 2026-09-12 (evening) — v0.14.0 on cloud: 0041, 0042, and the owner's rows as the template
 

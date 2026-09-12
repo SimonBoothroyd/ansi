@@ -18,9 +18,14 @@ import 'package:ansi/features/import/domain/reconciliation_payload.dart';
 /// and is gitignored, so a fresh checkout (CI included) has none of it. A test
 /// that reads it passes `skip: skipWithoutGold` and says so, instead of failing
 /// on a file the repo deliberately does not carry.
-final bool goldCorpusMissing = !Directory(
-  '../evals/datasets/extraction/gold',
-).existsSync();
+///
+/// The DIRECTORY is not the test — its `_SCHEMA.md` is tracked, so it exists
+/// on every checkout; the gold files themselves are the `.json` beside it.
+final bool goldCorpusMissing = () {
+  final dir = Directory('../evals/datasets/extraction/gold');
+  if (!dir.existsSync()) return true;
+  return !dir.listSync().any((e) => e.path.endsWith('.json'));
+}();
 
 /// The `skip:` value for a gold-reading test — a reason on a checkout without
 /// the corpus, null (run) where it is present.
