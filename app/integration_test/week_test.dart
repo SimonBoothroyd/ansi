@@ -32,9 +32,9 @@ library;
 import 'dart:convert';
 
 import 'package:ansi/core/units/units.dart' show g, pieces;
+import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_view.dart'
     show CookView;
-import 'package:ansi/features/planning/domain/planning.dart' show mondayOf;
 import 'package:ansi/features/planning/presentation/week_view.dart'
     show WeekView;
 import 'package:ansi/features/planning/presentation/week_widgets.dart'
@@ -213,7 +213,7 @@ void main() {
     );
     final adaId = members.first['id'] as String;
     final junId = members.last['id'] as String;
-    final currentKey = isoDate(mondayOf(DateTime.now()));
+    final currentKey = isoDate(WeekShape.monday.weekStartOf(DateTime.now()));
 
     Future<List<Map<String, Object?>>> currentEntries() => db.getAll(
       'SELECT pe.id, pe.day_of_week, pe.eaters, pe.portions, pe.deleted_at '
@@ -227,9 +227,9 @@ void main() {
     // planned earlier, e.g. from the partner's device). The Week screen pins to
     // the week containing today, so the "blank following week" the copy flow
     // wants IS the current week once an earlier week exists.
-    final lastMonday = mondayOf(
-      DateTime.now(),
-    ).subtract(const Duration(days: 7));
+    final lastMonday = WeekShape.monday
+        .weekStartOf(DateTime.now())
+        .subtract(const Duration(days: 7));
     final now = DateTime.now().toUtc().toIso8601String();
     final lastWeekId = _uuid.v4();
     await db.execute(
@@ -455,7 +455,7 @@ void main() {
       'SELECT COUNT(*) AS c FROM plan_entry pe '
       'JOIN week_plan wp ON wp.id = pe.week_plan_id '
       'WHERE wp.week_start_date = ? AND pe.deleted_at IS NULL',
-      [isoDate(mondayOf(DateTime.now()))],
+      [isoDate(WeekShape.monday.weekStartOf(DateTime.now()))],
     );
     expect(count['c'], 3);
 

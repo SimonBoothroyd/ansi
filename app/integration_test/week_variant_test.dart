@@ -22,9 +22,9 @@
 library;
 
 import 'package:ansi/core/units/units.dart' show g;
+import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_view.dart'
     show CookView;
-import 'package:ansi/features/planning/domain/planning.dart' show mondayOf;
 import 'package:ansi/features/planning/presentation/week_variant_editor.dart'
     show WeekVariantEditorView;
 import 'package:ansi/features/planning/presentation/week_view.dart'
@@ -123,7 +123,7 @@ void main() {
     // plans a recipe the server has, exactly as it would one authored on the
     // partner's device.
     await stack.waitForSyncRoundTrip(tester);
-    final weekKey = isoDate(mondayOf(DateTime.now()));
+    final weekKey = isoDate(WeekShape.monday.weekStartOf(DateTime.now()));
 
     // ------------------------------------------------------------------------
     // 1 · The same dish on two days of one week.

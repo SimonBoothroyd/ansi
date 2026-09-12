@@ -55,4 +55,4 @@ final class ShoppingRepositoryProvider
 }
 
 String _$shoppingRepositoryHash() =>
-    r'a7e3934a44bafd6ff949cdcd53ca5ac81832a5b0';
+    r'38a7912ed6c280a7417b87cc42d643040ee05708';

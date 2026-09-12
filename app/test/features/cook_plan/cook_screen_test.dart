@@ -1,10 +1,9 @@
 import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_view.dart';
-import 'package:ansi/features/planning/domain/planning.dart'
-    show mondayOf, weekKeyOf;
 import 'package:ansi/features/planning/presentation/week_format.dart';
 import 'package:ansi/features/planning/presentation/week_header.dart';
 import 'package:ansi/features/planning/presentation/week_view_models.dart';
@@ -90,11 +89,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final monday = mondayOf(DateTime.now());
+    final monday = WeekShape.monday.weekStartOf(DateTime.now());
     String titleFor(int weeksAhead) {
       final t = formatWeekTitle(
         monday.add(Duration(days: 7 * weeksAhead)),
         monday,
+        WeekShape.monday,
       );
       return '${t.label} · ${t.date}';
     }
@@ -305,7 +305,7 @@ void main() {
     // write it.
     expect(
       router.state.uri.toString(),
-      '/recipes/r1?week=${weekKeyOf(DateTime.now())}',
+      '/recipes/r1?week=${WeekShape.monday.keyOf(DateTime.now())}',
     );
     expect(find.text('recipe r1'), findsOneWidget);
   });

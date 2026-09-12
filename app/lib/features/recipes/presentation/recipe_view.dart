@@ -39,7 +39,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
-import '../../../core/words.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_stepper_row.dart';
@@ -49,6 +48,7 @@ import '../../../shared/guarded_navigation.dart';
 import '../../../shared/incomplete_macros.dart';
 import '../../../shared/method_step_text.dart';
 import '../../../shared/write.dart';
+import '../../account/data/household_providers.dart';
 import '../../ingredients/presentation/ingredient_detail_view.dart'
     show ingredientDetailRoute;
 import '../../planning/data/planning_providers.dart';
@@ -261,7 +261,7 @@ class _RecipeBody extends HookConsumerWidget {
                       title: Text(
                         editForThisWeekItem(
                           placement.days,
-                          kWeekdayShort,
+                          ref.watch(weekShapeProvider).shortLabels,
                           weekKey: plannedWeek,
                         ),
                       ),
@@ -331,7 +331,9 @@ class _RecipeBody extends HookConsumerWidget {
               servings: servings.value,
               onServings: (v) => servings.value = v,
               showLineMacros: lineMacros,
-              weekStart: plannedWeek == null ? null : mondayOfKey(plannedWeek),
+              weekStart: plannedWeek == null
+                  ? null
+                  : weekStartOfKey(plannedWeek, ref.watch(weekShapeProvider)),
               overrides: overrides,
               weekSummary: weekSummary,
             )

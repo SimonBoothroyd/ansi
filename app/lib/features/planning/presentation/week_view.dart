@@ -45,12 +45,13 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/portions.dart';
 import '../../../core/units/units.dart';
-import '../../../core/words.dart';
+import '../../../core/week_shape.dart';
 import '../../../shared/ansi_chip.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_toast.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/write.dart';
+import '../../account/data/household_providers.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
 import '../../ingredients/domain/allowed_units.dart';
@@ -160,8 +161,9 @@ class WeekView extends HookConsumerWidget {
     // Read off [Today], not `DateTime.now()`: the Monday is the same all week,
     // so only the day provider re-fires this at a Tuesday midnight.
     final isThisWeek = weekStart == ref.watch(currentWeekStartProvider);
+    final shape = ref.watch(weekShapeProvider);
     final todayDayOfWeek = isThisWeek
-        ? ref.watch(todayProvider).weekday - 1
+        ? shape.offsetOf(ref.watch(todayProvider))
         : null;
 
     final lastWeek = ref.watch(lastWeekProvider).asData?.value;
@@ -377,7 +379,10 @@ class _DayCard extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
           child: Row(
             children: [
-              Text(kWeekdayFull[dayOfWeek], style: ansiSerif(size: 17)),
+              Text(
+                ref.watch(weekShapeProvider).labelFull(dayOfWeek),
+                style: ansiSerif(size: 17),
+              ),
               const SizedBox(width: 8),
               // The date is load-bearing once weeks vary (D6).
               Text(
@@ -560,7 +565,7 @@ class _DishRow extends ConsumerWidget {
     // The week this row belongs to, carried into the dish's page: the recipe
     // page's week door is only offered to an arrival that names a week which
     // actually plans the recipe.
-    final weekKey = weekKeyOf(ref.watch(viewedWeekStartProvider));
+    final weekKey = isoDateOf(ref.watch(viewedWeekStartProvider));
     // Every planned day of a varied recipe says so, because the variant is
     // per (week, recipe) — two rows describing one pot cannot disagree.
     final edited =
@@ -752,6 +757,7 @@ class _RemoveTarget extends ConsumerWidget {
     // container and the root overlay are not (`shared/write.dart`).
     final container = ProviderScope.containerOf(context, listen: false);
     final host = hostContextOf(context);
+    final day = ref.read(weekShapeProvider).labelFull(entry.dayOfWeek);
     final removed = await ref.writeOk(
       context,
       'remove that meal',
@@ -762,9 +768,7 @@ class _RemoveTarget extends ConsumerWidget {
       // The host outlives the row — and the row is the one just removed.
       // ignore: use_build_context_synchronously
       host.context,
-      what:
-          'Removed ${entry.title ?? 'that meal'} from '
-          '${kWeekdayFull[entry.dayOfWeek]}.',
+      what: 'Removed ${entry.title ?? 'that meal'} from $day.',
       // What would come back, in the words the row used: an undo you cannot
       // audit is a promise, not a control.
       detail: _undoDetail(),

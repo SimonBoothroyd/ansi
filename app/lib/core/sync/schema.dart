@@ -90,14 +90,16 @@ const schema = Schema([
   // Week planning (step 4). The active week and its planned meals.
   Table('week_plan', [
     Column.text('household_id'),
-    Column.text('week_start_date'), // ISO date of the Monday this week begins
+    // ISO date of the day this week begins on — the household's own first
+    // day (`household.week_starts_on`), not always a Monday.
+    Column.text('week_start_date'),
     Column.text('label'),
     ..._audit,
   ]),
   Table('plan_entry', [
     Column.text('household_id'),
     Column.text('week_plan_id'),
-    Column.integer('day_of_week'), // 0=Monday .. 6=Sunday
+    Column.integer('day_of_week'), // offset from week_start_date, 0..6
     Column.text('meal_slot'), // free text, not a preset enum
     // A meal is a recipe OR a bare ingredient, never both and never neither
     // (the server's XOR check, step 8.14 / 0033). Both columns are nullable
@@ -148,9 +150,10 @@ const schema = Schema([
     Column.text('category'), // aisle group for a free-text item
     Column.integer('checked'), // 0/1 — check-off is on the entry
     Column.text('unit'), // preferred display unit (nullable)
-    // The Monday this entry belongs to — every entry carries one, a free-text
-    // non-food item included. Null is only a legacy row an older client wrote;
-    // the server stamps those onto the week they were created in.
+    // The first day of the week this entry belongs to — every entry carries
+    // one, a free-text non-food item included. Null is only a legacy row an
+    // older client wrote; the server stamps those onto the week they were
+    // created in.
     Column.text('week_start_date'),
     ..._audit,
   ]),
@@ -242,5 +245,15 @@ const schema = Schema([
   // server-only columns its `select *` sync rule ships (`is_template`,
   // `backfilled_at`) are simply not declared here: the client view exposes
   // exactly the declared columns and ignores the rest of the row JSON.
-  Table('household', [Column.text('name'), ..._audit]),
+  //
+  // `week_starts_on` is the ISO weekday the household's week begins on
+  // (1=Mon..7=Sun). The phone only ever READS it: flipping it re-homes every
+  // week the household has planned, which is one server transaction
+  // (`set_household_week_start`), so a local write would put this device's
+  // keys out of step with its own rows.
+  Table('household', [
+    Column.text('name'),
+    Column.integer('week_starts_on'),
+    ..._audit,
+  ]),
 ]);

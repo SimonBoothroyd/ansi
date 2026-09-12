@@ -6,7 +6,7 @@ import 'dart:math' as math;
 
 import '../../../core/units/number_format.dart';
 import '../../../core/units/portions.dart';
-import '../../../core/words.dart';
+import '../../../core/week_shape.dart';
 import '../../../shared/format.dart';
 import '../../planning/presentation/week_variant_format.dart';
 import '../../recipes/domain/component_math.dart';
@@ -64,7 +64,7 @@ String recipeSummaryLine(RecipeCookPlan recipe, {bool editedThisWeek = false}) {
 /// A session's "covers …" line. Collapses the slot when every covered meal
 /// shares one ("Tue + Sat dinner"); otherwise spells each out ("Mon dinner +
 /// Thu lunch"). Ends with the portion count.
-String coversLine(CookSession session) {
+String coversLine(CookSession session, WeekShape shape) {
   // A component session covers no meals — it answers other recipes' component
   // lines, in batches (step 8.6 / D3). Portions are the wrong denomination for
   // it, so the line names the plans it serves instead. The full card face
@@ -79,11 +79,13 @@ String coversLine(CookSession session) {
     // Distinct days, one shared slot.
     final days = (<int>{
       for (final m in covers) m.dayOfWeek,
-    }.toList()..sort()).map((d) => kWeekdayShort[d]).join(' + ');
+    }.toList()..sort()).map(shape.labelShort).join(' + ');
     return 'covers $days ${slots.first} · $portions';
   }
   final meals = covers
-      .map((m) => '${kWeekdayShort[m.dayOfWeek]} ${m.mealSlot.toLowerCase()}')
+      .map(
+        (m) => '${shape.labelShort(m.dayOfWeek)} ${m.mealSlot.toLowerCase()}',
+      )
       .join(' + ');
   return 'covers $meals · $portions';
 }
@@ -112,10 +114,10 @@ String componentScaleLabel(CookSession session) =>
 
 /// The day a component batch has to be ready BY — its demanding parents' cook
 /// days, which is why the tile reads "Cook by Sat" and not "Cook Sat".
-String componentWhenLabel(Iterable<int> days) {
+String componentWhenLabel(Iterable<int> days, WeekShape shape) {
   final sorted = days.toSet().toList()..sort();
   if (sorted.isEmpty) return 'Cook by';
-  return 'Cook by ${sorted.map((d) => kWeekdayShort[d]).join(' + ')}';
+  return 'Cook by ${sorted.map(shape.labelShort).join(' + ')}';
 }
 
 /// A component session's "covers …" line: who needs it and when, closing with
@@ -126,11 +128,12 @@ String componentWhenLabel(Iterable<int> days) {
 /// that says nothing about what it makes; the clause is simply dropped then,
 /// never filled with a guess.
 String componentCoversLine(
-  CookSession session, {
+  CookSession session,
+  WeekShape shape, {
   YieldDenomination? denomination,
 }) {
   final days = (session.demands.map((d) => d.cookDay).toSet().toList()..sort())
-      .map((d) => kWeekdayShort[d])
+      .map(shape.labelShort)
       .join(' + ');
   final head = 'covers ${session.demandedBy.join(' + ')} · cook $days';
   if (denomination == null) return head;
@@ -148,7 +151,8 @@ String componentCoversLine(
 /// Null when the demand is a whole number of batches (nothing is left over) or
 /// when the target states no yield (there is no honest sentence to write).
 String? componentLeftoverNote(
-  CookSession session, {
+  CookSession session,
+  WeekShape shape, {
   YieldDenomination? denomination,
 }) {
   final batches = session.batchesToCook;
@@ -156,7 +160,8 @@ String? componentLeftoverNote(
   if (batches == batches.roundToDouble()) return null;
   return 'A batch makes '
       '${formatQuantityIn(denomination.qty, denomination.unit)} '
-      '${denomination.unit.label} and ${kWeekdayFull[session.cookDay]} needs '
+      '${denomination.unit.label} and '
+      '${shape.labelFull(session.cookDay)} needs '
       '${formatQuantity(batches)} — the rest is yours. Nothing here tracks '
       'the leftover.';
 }
@@ -186,9 +191,9 @@ String gapReasonShort(UnresolvedComponentAmount reason) => switch (reason) {
 /// A numberless line ([ComponentAmountMissing]) has no amount to quote, so the
 /// clause is dropped rather than filled. With more than one demanding parent
 /// each clause names its own, since "the line" would then be ambiguous.
-String gapCoversLine(ComponentGap gap) {
+String gapCoversLine(ComponentGap gap, WeekShape shape) {
   final days = (gap.demandedBy.map((d) => d.cookDay).toSet().toList()..sort())
-      .map((d) => kWeekdayShort[d])
+      .map(shape.labelShort)
       .join(' + ');
   final parents = gap.demandedBy.map((d) => d.title).toSet().join(' + ');
   final head = 'covers $parents · cook $days';
@@ -260,28 +265,34 @@ String splitNoteFor(RecipeCookPlan recipe) {
 
 /// The blue "freezer" note for a session that reaches a far meal from the
 /// freezer: cook once on the cook day, freeze the distant share.
-String freezerNoteFor(String recipeTitle, CookSession session) {
-  final cook = kWeekdayFull[session.cookDay];
+String freezerNoteFor(
+  String recipeTitle,
+  CookSession session,
+  WeekShape shape,
+) {
+  final cook = shape.labelFull(session.cookDay);
   final frozen = session.frozenDays;
   if (frozen.isEmpty) return '';
   if (frozen.length == 1) {
-    final day = kWeekdayFull[frozen.first];
+    final day = shape.labelFull(frozen.first);
     return '$day is far off, but $recipeTitle freezes — cook once $cook, '
         "freeze $day's share.";
   }
-  final days = frozen.map((d) => kWeekdayFull[d]).join(' & ');
+  final days = frozen.map(shape.labelFull).join(' & ');
   return '$days are far off, but $recipeTitle freezes — cook once $cook, '
       'freeze those shares.';
 }
 
-/// The geometry of a session's freshness timeline on a fixed **Mon→Sun** axis
-/// (day coordinates 0..6). Painting it against the whole week keeps every
-/// session comparable at a glance and shows where in the week it sits.
+/// The geometry of a session's freshness timeline on the week's own axis (day
+/// coordinates 0..6, first day to last). Painting it against the whole week
+/// keeps every session comparable at a glance and shows where in the week it
+/// sits.
 ///
 /// From the cook day, a green fresh window runs for the fridge shelf life; a
 /// freezable session extends into a blue "frozen" tail to reach a later meal;
-/// otherwise a hatched "gone" tail runs from the window's end to Sunday. Each
-/// eaten day ([coveredDays]) is a marker; the [cookDay] is the solid one.
+/// otherwise a hatched "gone" tail runs from the window's end to the week's
+/// last day. Each eaten day ([coveredDays]) is a marker; the [cookDay] is the
+/// solid one.
 class CookTimelineSpec {
   const CookTimelineSpec({
     required this.cookDay,
@@ -309,7 +320,7 @@ class CookTimelineSpec {
       );
     }
 
-    // The fridge window end, clamped to Sunday.
+    // The fridge window end, clamped to the week's last day.
     final windowEnd = math.min(cookDay + keeps, 6).toDouble();
     if (session.hasFreezerRescue) {
       // Amber from the fridge edge out to the last frozen meal.
@@ -327,12 +338,13 @@ class CookTimelineSpec {
       coveredDays: covered,
       freshTo: windowEnd,
       frozenTo: windowEnd,
-      // A hatched tail runs to Sunday when the window closes before then.
+      // A hatched tail runs to the week's end when the window closes first.
       hasGone: windowEnd < 6,
     );
   }
 
-  /// The day the batch is cooked (0=Mon..6=Sun) — the solid marker.
+  /// The day the batch is cooked (0..6 from the week's first day) — the solid
+  /// marker.
   final int cookDay;
 
   /// The days a meal is eaten from this batch — the markers.
@@ -345,6 +357,6 @@ class CookTimelineSpec {
   /// session doesn't lean on the freezer).
   final double frozenTo;
 
-  /// Whether a hatched "gone" tail runs from [frozenTo] to Sunday.
+  /// Whether a hatched "gone" tail runs from [frozenTo] to the week's end.
   final bool hasGone;
 }

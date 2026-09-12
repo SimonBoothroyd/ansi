@@ -666,7 +666,8 @@ MeasureAmount? _measureTotal(
 /// [entries] the persisted check-off/free-text rows; [manual] the persisted
 /// manual contributions keyed by their entry; [meta] the ingredient vocab
 /// (name, aisle, density). [weekdayShort] labels days without pulling a
-/// formatter into the domain.
+/// formatter into the domain — seven short names in the household's OWN week
+/// order, indexed by a meal's offset, never by a calendar weekday.
 ///
 /// An entry is only surfaced while it has at least one live contribution (a
 /// cook one, a planned snack, or a manual one) or is a free-text item — so an

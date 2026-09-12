@@ -25,11 +25,11 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/words.dart';
 import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/write.dart';
+import '../../account/data/household_providers.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
 import 'meal_fields.dart';
@@ -77,7 +77,7 @@ class _MealEditorSheet extends ConsumerWidget {
       // Which meal this is, since the sheet no longer carries the picked-recipe
       // card: the row you tapped, named back to you.
       subtitle:
-          '${kWeekdayFull[entry.dayOfWeek]} · '
+          '${ref.watch(weekShapeProvider).labelFull(entry.dayOfWeek)} · '
           '${entry.mealSlot.toLowerCase()}',
       titleSize: 22,
       centerTitle: false,

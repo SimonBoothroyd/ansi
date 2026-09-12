@@ -143,6 +143,33 @@ Stream<SyncHealth> syncHealth(Ref ref) {
   return watchSyncHealth(db, drops: drops, onDispose: ref.onDispose);
 }
 
+/// Whether the sync connection is live right now.
+///
+/// **Not a fifth health state**, and never rendered as one — "offline" stays a
+/// thing this app does not say about itself. It exists for the one control
+/// that cannot act without the server: flipping the household's first day of
+/// the week runs a transaction over every week the household has planned, so
+/// the chips go inert with a reason rather than tappable and failing.
+///
+/// PowerSync publishes `connected` on its status, and the status is readable
+/// synchronously, so the stream leads with where the device stands and then
+/// follows every change.
+@Riverpod(keepAlive: true)
+Stream<bool> serverReachable(Ref ref) =>
+    watchServerReachable(ref.watch(powerSyncDatabaseProvider));
+
+/// [serverReachableProvider]'s body, with the database passed in so a test can
+/// drive it without a provider container.
+Stream<bool> watchServerReachable(PowerSyncDatabase db) async* {
+  var last = db.currentStatus.connected;
+  yield last;
+  await for (final status in db.statusStream) {
+    if (status.connected == last) continue;
+    last = status.connected;
+    yield last;
+  }
+}
+
 /// [syncHealthProvider]'s body, with the database passed in so a test can drive
 /// it against a real PowerSync queue without a provider container.
 Stream<SyncHealth> watchSyncHealth(

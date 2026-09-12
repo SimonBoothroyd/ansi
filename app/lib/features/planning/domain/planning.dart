@@ -1,16 +1,18 @@
 /// Planning domain entities — the read aggregate the Week screen renders.
 ///
 /// PURE DART (invariant 2): no `package:flutter`. A [WeekPlan] is one week
-/// (addressed by its Monday `weekStart`) holding the [PlanEntry] meals planned
-/// across its seven days. A meal names a recipe **or** a bare ingredient — see
-/// [PlanEntry]. A [Member] is a person in the household; an entry's
+/// (addressed by `weekStart`, the date of its own first day) holding the
+/// [PlanEntry] meals planned across its seven days. A meal names a recipe
+/// **or** a bare ingredient — see [PlanEntry]. A [Member] is a person in the
+/// household; an entry's
 /// [PlanEntry.eaterIds] point at them and the sum of their
 /// [Member.portionFactor]s is the entry's demand ([demandPortions]) unless the
 /// entry's whole-number [PlanEntry.portions] override says otherwise.
 ///
 /// Meal slots are free text (spec §8, not an enum); [kDefaultMealSlots] are the
 /// three the UI offers, and [mealSlotRank] orders known slots ahead of custom
-/// ones within a day. [mondayOf] resolves the active week from a date.
+/// ones within a day. Which seven days a week IS — and so which week a date
+/// falls in — belongs to the household's week shape (`core/week_shape.dart`).
 library;
 
 // Freezed needs each class's private `._` constructor before the factory (for
@@ -84,8 +86,8 @@ double eatersDemand(
 double demandPortions(PlanEntry entry, Map<String, Member> membersById) =>
     entry.portions?.toDouble() ?? eatersDemand(entry.eaterIds, membersById);
 
-/// One planned meal on [dayOfWeek] (0=Monday..6=Sunday) under a free-text
-/// [mealSlot], eaten by [eaterIds].
+/// One planned meal on [dayOfWeek] (an offset from the week's first day, 0..6)
+/// under a free-text [mealSlot], eaten by [eaterIds].
 ///
 /// **A meal is a recipe OR a bare ingredient** — never both and never neither
 /// (step 8.14 / B-D1; the server's `plan_entry_target_xor` makes it total, the
@@ -177,8 +179,9 @@ abstract class PlanEntry with _$PlanEntry {
   int get portionsOrDefault => portions ?? eaterIds.length;
 }
 
-/// One active week, addressed by [weekStart] (a Monday, date-only). [entries]
-/// are every meal planned across the week; the view groups them by day.
+/// One active week, addressed by [weekStart] — the date of its own first day,
+/// date-only. [entries] are every meal planned across the week; the view
+/// groups them by day.
 @freezed
 abstract class WeekPlan with _$WeekPlan {
   const WeekPlan._();
@@ -190,9 +193,10 @@ abstract class WeekPlan with _$WeekPlan {
     @Default(<PlanEntry>[]) List<PlanEntry> entries,
   }) = _WeekPlan;
 
-  /// The entries on [dayOfWeek] (0=Monday..6=Sunday), ordered by meal slot then
-  /// their stored order — one day column of the grid. [entries] is assumed to
-  /// already carry the repository's within-slot order (sort_order, created_at);
+  /// The entries on [dayOfWeek] (0..6 from the week's first day), ordered by
+  /// meal slot then their stored order — one day column of the grid.
+  /// [entries] is assumed to already carry the repository's within-slot order
+  /// (sort_order, created_at);
   /// this decorates with the source index for a stable sort, since Dart's
   /// [List.sort] is not guaranteed stable.
   List<PlanEntry> entriesForDay(int dayOfWeek) {
@@ -233,21 +237,3 @@ typedef CopyLastWeekResult = ({
   int meals,
   List<VariantLeftBehind> variantsLeftBehind,
 });
-
-/// The Monday (date-only, UTC) of the week containing [date] — the app's active
-/// week. Dart weekdays are 1=Mon..7=Sun, so Monday is `date - (weekday - 1)`.
-DateTime mondayOf(DateTime date) {
-  final d = DateTime.utc(date.year, date.month, date.day);
-  return d.subtract(Duration(days: d.weekday - 1));
-}
-
-/// The key a week is ADDRESSED by — its Monday as a bare ISO date,
-/// `YYYY-MM-DD`. It is the `week_start_date` column, the query param the
-/// recipe editor's week mode is opened with, and the string three repositories
-/// join on, so it is written once.
-String weekKeyOf(DateTime date) {
-  final m = mondayOf(date);
-  final mm = m.month.toString().padLeft(2, '0');
-  final dd = m.day.toString().padLeft(2, '0');
-  return '${m.year}-$mm-$dd';
-}

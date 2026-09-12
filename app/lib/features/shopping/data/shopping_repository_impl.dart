@@ -49,14 +49,14 @@ import 'package:uuid/uuid.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
-import '../../../core/words.dart';
+import '../../../core/week_shape.dart';
 import '../../cook_plan/data/cook_plan_repository_impl.dart'
     show loadComponentGraph;
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../planning/data/planning_repository_impl.dart' show loadMembers;
 import '../../planning/data/week_variant_repository_impl.dart'
     show loadWeekOverrides;
-import '../../planning/domain/planning.dart' show eatersDemand, weekKeyOf;
+import '../../planning/domain/planning.dart' show eatersDemand;
 import '../../recipes/domain/effective_lines.dart';
 import '../../recipes/domain/line_override.dart';
 import '../../recipes/domain/recipe.dart';
@@ -82,8 +82,12 @@ typedef _LineItem = ({
 });
 
 class SqliteShoppingRepository implements ShoppingRepository {
-  const SqliteShoppingRepository(this._db, {required String householdId})
-    : _householdId = householdId;
+  const SqliteShoppingRepository(
+    this._db, {
+    required String householdId,
+    WeekShape weekShape = WeekShape.monday,
+  }) : _householdId = householdId,
+       _weekShape = weekShape;
 
   final SqliteConnection _db;
 
@@ -91,7 +95,12 @@ class SqliteShoppingRepository implements ShoppingRepository {
   /// the signed-in household, tests pass their own).
   final String _householdId;
 
-  String _weekKey(DateTime weekStart) => weekKeyOf(weekStart);
+  /// The household's week, for the one thing this layer says in words: a
+  /// breakdown line's day. The data layer cannot reach up into presentation
+  /// for a word, and an offset only names a weekday once the shape is known.
+  final WeekShape _weekShape;
+
+  String _weekKey(DateTime weekStart) => isoDateOf(weekStart);
 
   @override
   Stream<ShoppingList> watchShoppingList(DateTime weekStart) {
@@ -142,7 +151,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
       entries: entries,
       manual: manual,
       meta: meta,
-      weekdayShort: kWeekdayShort,
+      weekdayShort: _weekShape.shortLabels,
       unresolvedComponents: unresolved,
       optionalLines: optional,
       // Both walks can meet a retired row, and a shopper reads one list of
@@ -241,7 +250,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
         retired.add((
           // The words the breakdown would have carried — the same rule, so a
           // shopper meets one vocabulary whether the snack was buyable or not.
-          heading: planIngredientLabel(input, kWeekdayShort),
+          heading: planIngredientLabel(input, _weekShape.shortLabels),
           ingredientName: row['ingredient_name'] as String? ?? '',
           site: RetiredIngredientSite.planEntry,
         ));

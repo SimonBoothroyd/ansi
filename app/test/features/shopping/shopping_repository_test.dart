@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/planning/data/planning_repository_impl.dart';
 import 'package:ansi/features/planning/data/week_variant_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/effective_lines.dart';
@@ -13,6 +14,10 @@ import 'package:powersync/powersync.dart';
 import '../../helpers/test_db.dart';
 
 final _week = DateTime.utc(2026, 8, 24); // a Monday
+
+/// The week a Sunday-start household is standing in on the same Saturday:
+/// Sun 23 Aug – Sat 29 Aug.
+final _weekSunday = DateTime.utc(2026, 8, 23);
 
 Future<void> _insertIngredient(
   PowerSyncDatabase db,
@@ -1359,6 +1364,83 @@ void main() {
         expect(c.label, 'Snack · Tue');
       },
     );
+
+    test('a Monday household reads exactly what it always did', () async {
+      // The default shape is Monday, and the repository is constructed here
+      // exactly as the app constructs it for such a household — so the day a
+      // breakdown line names must be byte-identical to the Monday-only code's.
+      await planning.addIngredientEntry(
+        weekStart: _week,
+        dayOfWeek: 1,
+        mealSlot: 'Snack',
+        ingredientId: 'bar',
+        eaterIds: const ['a'],
+        quantity: 60,
+        unit: g,
+      );
+      final explicit = SqliteShoppingRepository(
+        db,
+        householdId: 'h',
+        // Stated on purpose: the assertion is that the default and an
+        // explicit Monday shape are the same repository.
+        // ignore: avoid_redundant_argument_values
+        weekShape: WeekShape.monday,
+      );
+      final byDefault = (await repo.watchShoppingList(_week).first)
+          .groups
+          .single
+          .items
+          .single;
+      final byShape = (await explicit.watchShoppingList(_week).first)
+          .groups
+          .single
+          .items
+          .single;
+      expect(byDefault.contributions.single.label, 'Snack · Tue');
+      expect(byShape.contributions.single.label, 'Snack · Tue');
+      expect(byShape.totals.single.amount, byDefault.totals.single.amount);
+    });
+
+    test('a Sunday household names the same offset a day earlier', () async {
+      final sunday = SqliteShoppingRepository(
+        db,
+        householdId: 'h',
+        weekShape: WeekShape.sunday,
+      );
+      // Offset 0 of a Sunday-start week IS a Sunday — the meal the owner
+      // shops for on shopping day, inside the week being shopped for.
+      await planning.addIngredientEntry(
+        weekStart: _weekSunday,
+        dayOfWeek: 0,
+        mealSlot: 'Snack',
+        ingredientId: 'bar',
+        eaterIds: const ['a'],
+        quantity: 60,
+        unit: g,
+      );
+      final list = await sunday.watchShoppingList(_weekSunday).first;
+      final item = list.groups.single.items.single;
+      expect(item.contributions.single.label, 'Snack · Sun');
+      // Offset 1 is the Monday after it, not the Tuesday a Monday week reads.
+      await planning.addIngredientEntry(
+        weekStart: _weekSunday,
+        dayOfWeek: 1,
+        mealSlot: 'Snack',
+        ingredientId: 'bar',
+        eaterIds: const ['a'],
+        quantity: 60,
+        unit: g,
+      );
+      final second = await sunday.watchShoppingList(_weekSunday).first;
+      expect(
+        second.groups.single.items.single.contributions
+            .map((c) => c.label)
+            .toSet(),
+        {'Snack · Sun', 'Snack · Mon'},
+      );
+      // And the Monday week is untouched: a different key, a different list.
+      expect((await repo.watchShoppingList(_week).first).isEmpty, isTrue);
+    });
 
     test('two eaters buy two — the demand multiplies it (A-D3)', () async {
       await planning.addIngredientEntry(

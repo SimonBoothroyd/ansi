@@ -31,7 +31,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/search/search_rank.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
-import '../../../core/words.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/format.dart';
@@ -39,6 +38,7 @@ import '../../../shared/freshness_bar.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/incomplete_macros.dart';
 import '../../../shared/picker_shell.dart';
+import '../../account/data/household_providers.dart';
 import '../../books/domain/book.dart';
 import '../../books/domain/library_search.dart';
 import '../../books/presentation/book_view_models.dart';
@@ -215,7 +215,8 @@ class _RecipePickerSheet extends HookConsumerWidget {
 
     return PickerShell(
       title: 'Add a meal',
-      subtitle: 'to · ${kWeekdayFull[dayOfWeek]}, $slot',
+      subtitle:
+          'to · ${ref.watch(weekShapeProvider).labelFull(dayOfWeek)}, $slot',
       // One field searches both corpora — that is what makes it one door.
       searchHint: 'Search recipes and ingredients',
       onQueryChanged: (q) {
@@ -340,14 +341,14 @@ class _EatingFooter extends StatelessWidget {
   }
 }
 
-class _AlreadyThisWeek extends StatelessWidget {
+class _AlreadyThisWeek extends ConsumerWidget {
   const _AlreadyThisWeek({required this.items, required this.onPick});
 
   final Map<String, ({String title, int day})> items;
   final void Function(String id, String title) onPick;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
@@ -397,7 +398,7 @@ class _AlreadyThisWeek extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          kWeekdayShort[e.value.day],
+                          ref.watch(weekShapeProvider).labelShort(e.value.day),
                           style: ansiMono(size: 9, color: AnsiColors.muted),
                         ),
                       ],

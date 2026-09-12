@@ -7,10 +7,12 @@ library;
 
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/words.dart';
+import '../../account/data/household_providers.dart';
 import '../domain/planning.dart';
 import 'week_format.dart';
 import 'week_variant_format.dart';
@@ -190,16 +192,17 @@ class PortionsChip extends StatelessWidget {
 /// The dish row's SECOND line (D6, owner-ruled): the cook marker sits under
 /// the title, not in a column beside it — so it reads as a sentence about the
 /// dish, and can carry a full clause without squeezing the title.
-class CookMarkerLine extends StatelessWidget {
+class CookMarkerLine extends ConsumerWidget {
   const CookMarkerLine({required this.marker, this.todayDayOfWeek, super.key});
 
   final CookMarker marker;
 
-  /// Today's index when the current week is on screen — see [cookMarkerLabel].
+  /// Today's offset within the week when the current week is on screen — see
+  /// [cookMarkerLabel].
   final int? todayDayOfWeek;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final frozen = marker.kind == CookMarkerKind.freezerShare;
     return Row(
       children: [
@@ -209,7 +212,11 @@ class CookMarkerLine extends StatelessWidget {
         ],
         Flexible(
           child: Text(
-            cookMarkerLabel(marker, todayDayOfWeek: todayDayOfWeek),
+            cookMarkerLabel(
+              marker,
+              ref.watch(weekShapeProvider),
+              todayDayOfWeek: todayDayOfWeek,
+            ),
             overflow: TextOverflow.ellipsis,
             style: ansiMono(
               size: 10.5,

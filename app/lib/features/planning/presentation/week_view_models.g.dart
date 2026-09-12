@@ -175,21 +175,21 @@ abstract class _$Today extends $Notifier<DateTime> {
   }
 }
 
-/// The Monday of the week containing [Today]. Moves with it, so it is right
+/// The first day of the week containing [Today]. Moves with it, so it is right
 /// across midnight and after a resume; the week on screen does not — that is
 /// [ViewedWeekStart]'s job, and it is deliberately left alone.
 
 @ProviderFor(currentWeekStart)
 const currentWeekStartProvider = CurrentWeekStartProvider._();
 
-/// The Monday of the week containing [Today]. Moves with it, so it is right
+/// The first day of the week containing [Today]. Moves with it, so it is right
 /// across midnight and after a resume; the week on screen does not — that is
 /// [ViewedWeekStart]'s job, and it is deliberately left alone.
 
 final class CurrentWeekStartProvider
     extends $FunctionalProvider<DateTime, DateTime, DateTime>
     with $Provider<DateTime> {
-  /// The Monday of the week containing [Today]. Moves with it, so it is right
+  /// The first day of the week containing [Today]. Moves with it, so it is right
   /// across midnight and after a resume; the week on screen does not — that is
   /// [ViewedWeekStart]'s job, and it is deliberately left alone.
   const CurrentWeekStartProvider._()
@@ -225,20 +225,32 @@ final class CurrentWeekStartProvider
   }
 }
 
-String _$currentWeekStartHash() => r'3d665c5bcd9d6937af169aec303fa09fb8e0bedd';
+String _$currentWeekStartHash() => r'f90ef269509924d46414be561d6be2ab81e255c3';
 
-/// The Monday of the week on screen. Defaults to the week containing today;
+/// The first day of the week on screen. Defaults to the week containing today;
 /// the header switcher moves it and Cook/Shop derive from it (D3).
+///
+/// It watches the household's [WeekShape], so flipping the first day re-seats
+/// the screen on the window containing today under the new shape — which is
+/// what "this week" means the moment the weeks move.
 
 @ProviderFor(ViewedWeekStart)
 const viewedWeekStartProvider = ViewedWeekStartProvider._();
 
-/// The Monday of the week on screen. Defaults to the week containing today;
+/// The first day of the week on screen. Defaults to the week containing today;
 /// the header switcher moves it and Cook/Shop derive from it (D3).
+///
+/// It watches the household's [WeekShape], so flipping the first day re-seats
+/// the screen on the window containing today under the new shape — which is
+/// what "this week" means the moment the weeks move.
 final class ViewedWeekStartProvider
     extends $NotifierProvider<ViewedWeekStart, DateTime> {
-  /// The Monday of the week on screen. Defaults to the week containing today;
+  /// The first day of the week on screen. Defaults to the week containing today;
   /// the header switcher moves it and Cook/Shop derive from it (D3).
+  ///
+  /// It watches the household's [WeekShape], so flipping the first day re-seats
+  /// the screen on the window containing today under the new shape — which is
+  /// what "this week" means the moment the weeks move.
   const ViewedWeekStartProvider._()
     : super(
         from: null,
@@ -266,10 +278,14 @@ final class ViewedWeekStartProvider
   }
 }
 
-String _$viewedWeekStartHash() => r'027189b49e1eaf402dce1c0eb5d5aaacd6cbe125';
+String _$viewedWeekStartHash() => r'6033277c1b4b16b4747df0761ee78702dae19961';
 
-/// The Monday of the week on screen. Defaults to the week containing today;
+/// The first day of the week on screen. Defaults to the week containing today;
 /// the header switcher moves it and Cook/Shop derive from it (D3).
+///
+/// It watches the household's [WeekShape], so flipping the first day re-seats
+/// the screen on the window containing today under the new shape — which is
+/// what "this week" means the moment the weeks move.
 
 abstract class _$ViewedWeekStart extends $Notifier<DateTime> {
   DateTime build();
@@ -592,7 +608,7 @@ final class WeekRecipePlacementProvider
 }
 
 String _$weekRecipePlacementHash() =>
-    r'59f2525a9cf8129e44dd6a43efcff55d873c79ce';
+    r'7c7b56e13dd1ee1e4eb8ff1483d5f0d1b3a1c0fa';
 
 final class WeekRecipePlacementFamily extends $Family
     with $FunctionalFamilyOverride<WeekRecipePlacement, (String, String)> {
@@ -670,7 +686,7 @@ final class WeekPlanForProvider
   }
 }
 
-String _$weekPlanForHash() => r'f47025e4ea7022c50416f643ba3731bed97246d7';
+String _$weekPlanForHash() => r'feff1a1d7e4bb252111f99ece37797fde6945a9b';
 
 /// The week [weekKey] names, with its meals — a sibling of [viewedWeek] keyed
 /// by the link rather than by what is on screen.
@@ -758,7 +774,7 @@ final class WeekOverridesForProvider
   }
 }
 
-String _$weekOverridesForHash() => r'4adc11a8c655c9f068ef2616864485034100c617';
+String _$weekOverridesForHash() => r'4bd5cee3bba0bcd05efaf56f9c4aab1ea6bd5e95';
 
 /// That same week's overrides, keyed by recipe id.
 
@@ -864,7 +880,7 @@ final class WeekVariantMacrosForProvider
 }
 
 String _$weekVariantMacrosForHash() =>
-    r'35262d63e726d3d93ce0d281b468973c87fdb4a4';
+    r'f13c84664dd41e7bbf0f07ac82f3c6e53cc6f43d';
 
 /// The re-summed figures for the recipes the week [weekKey] names varies — the
 /// sibling of [variantRecipeMacros] keyed by the link rather than by the week

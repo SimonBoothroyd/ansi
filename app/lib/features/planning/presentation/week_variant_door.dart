@@ -18,9 +18,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
-import '../../../core/words.dart';
+import '../../../core/week_shape.dart';
 import '../../../shared/guarded_navigation.dart';
-import '../domain/planning.dart' show PlanEntry, weekKeyOf;
+import '../../account/data/household_providers.dart';
+import '../domain/planning.dart' show PlanEntry;
 import 'week_variant_format.dart';
 import 'week_view_models.dart';
 
@@ -49,7 +50,7 @@ class WeekVariantDoorRow extends ConsumerWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => context.pushOnce(
-        '/recipes/$recipeId/edit?week=${weekKeyOf(weekStart)}',
+        '/recipes/$recipeId/edit?week=${isoDateOf(weekStart)}',
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10),
@@ -62,7 +63,11 @@ class WeekVariantDoorRow extends ConsumerWidget {
                   Text(weekDoorTitle(changes), style: ansiSans(size: 15)),
                   const SizedBox(height: 2),
                   Text(
-                    weekDoorDetail(changes, days, kWeekdayShort),
+                    weekDoorDetail(
+                      changes,
+                      days,
+                      ref.watch(weekShapeProvider).shortLabels,
+                    ),
                     style: ansiMono(size: 10.5, color: AnsiColors.muted),
                   ),
                 ],

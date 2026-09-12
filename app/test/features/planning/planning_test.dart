@@ -3,25 +3,6 @@ import 'package:ansi/features/planning/presentation/week_format.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('mondayOf', () {
-    test("a mid-week date resolves to that week's Monday", () {
-      // 2026-08-27 is a Thursday → Monday of that week is 2026-08-24.
-      expect(mondayOf(DateTime(2026, 8, 27)), DateTime.utc(2026, 8, 24));
-    });
-
-    test('a Monday resolves to itself (date-only)', () {
-      expect(
-        mondayOf(DateTime(2026, 8, 24, 13, 30)),
-        DateTime.utc(2026, 8, 24),
-      );
-    });
-
-    test("a Sunday resolves back to the week's Monday", () {
-      // 2026-08-30 is a Sunday → still the Aug 24 week.
-      expect(mondayOf(DateTime(2026, 8, 30)), DateTime.utc(2026, 8, 24));
-    });
-  });
-
   group('mealSlotRank', () {
     test('orders the known slots in meal order', () {
       expect(mealSlotRank('Breakfast'), lessThan(mealSlotRank('Lunch')));

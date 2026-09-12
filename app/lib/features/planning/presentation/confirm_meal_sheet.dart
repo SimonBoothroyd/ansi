@@ -38,11 +38,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
-import '../../../core/words.dart';
 import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/write.dart';
+import '../../account/data/household_providers.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../recipes/domain/recipe.dart';
@@ -120,6 +120,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
     final portionsOverride = useState<int?>(null);
 
     final members = ref.watch(membersProvider);
+    final shape = ref.watch(weekShapeProvider);
 
     // The batch cue is a RECIPE fact — how long a cooked dish keeps, and
     // whether this day could share a batch with another. A snack is not
@@ -162,7 +163,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
       final repo = ref.read(planningRepositoryProvider);
       final added = await ref.write(
         context,
-        "add ${kWeekdayFull[dayOfWeek]}'s meal",
+        "add ${shape.labelFull(dayOfWeek)}'s meal",
         () => switch (target) {
           RecipeMeal(:final recipe) => repo.addEntry(
             weekStart: weekStart,
@@ -194,7 +195,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
       // The day, stated rather than asked — the flow started on this card, so
       // the sheet names it back the way the meal editor names the row it was
       // opened from.
-      subtitle: 'to · ${kWeekdayFull[dayOfWeek]}',
+      subtitle: 'to · ${shape.labelFull(dayOfWeek)}',
       titleSize: 22,
       centerTitle: false,
       dismiss: AnsiSheetDismiss.none,
@@ -239,7 +240,10 @@ class _ConfirmMealSheet extends HookConsumerWidget {
           onChanged: (v) => portionsOverride.value = v < 1 ? 1 : v,
         ),
         const SizedBox(height: 20),
-        FButton(onPress: add, child: Text('Add to ${kWeekdayFull[dayOfWeek]}')),
+        FButton(
+          onPress: add,
+          child: Text('Add to ${shape.labelFull(dayOfWeek)}'),
+        ),
       ],
     );
   }

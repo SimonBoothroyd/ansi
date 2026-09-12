@@ -22,6 +22,7 @@ import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/sync_status_line.dart';
 import '../../../shared/write.dart';
+import '../../account/data/household_providers.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
 import '../../planning/data/planning_providers.dart';
 import '../../planning/presentation/week_format.dart';
@@ -743,6 +744,7 @@ class _NothingToBuyLine extends ConsumerWidget {
     final suffix = formatDerivedWeekSuffix(
       ref.watch(viewedWeekStartProvider),
       ref.watch(currentWeekStartProvider),
+      ref.watch(weekShapeProvider),
     );
     final week = suffix ?? 'this week';
 

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/planning/data/planning_repository_impl.dart';
 import 'package:ansi/features/planning/data/week_variant_repository_impl.dart';
 import 'package:ansi/features/planning/domain/week_macros.dart';
@@ -87,9 +88,14 @@ Future<void> _insertMember(
   );
 }
 
-/// The Monday of the active test week and the one before it.
+/// The first day of the active test week and the one before it — Mondays,
+/// because a Monday-start household is what the app defaults to, and the whole
+/// point of the assertions below is that its output has not moved.
 final _thisWeek = DateTime.utc(2026, 8, 24);
 final _lastWeek = DateTime.utc(2026, 8, 17);
+
+/// The same week under a Sunday-start household: Sun 23 Aug – Sat 29 Aug.
+final _thisWeekSunday = DateTime.utc(2026, 8, 23);
 
 void main() {
   late PowerSyncDatabase db;
@@ -206,22 +212,50 @@ void main() {
       expect(entry.portionsOrDefault, 5);
     });
 
-    test(
-      'any day in the week resolves to the same Monday-keyed week',
-      () async {
-        await _insertRecipe(db, 'r1', 'Curry');
-        // Add addressing the week by a Saturday; read it back by its Monday.
-        await repo.addEntry(
-          weekStart: DateTime.utc(2026, 8, 29),
-          dayOfWeek: 5,
-          mealSlot: 'Lunch',
-          recipeId: 'r1',
-          eaterIds: const [],
-        );
-        final week = await repo.watchWeek(_thisWeek).first;
-        expect(week?.entries, hasLength(1));
-      },
-    );
+    test('the week is addressed by the key it is handed', () async {
+      await _insertRecipe(db, 'r1', 'Curry');
+      // Resolving a date into a week belongs to the household's WeekShape, so
+      // the repository binds exactly the key it is given — a Monday household
+      // and a Sunday one write into different weeks from the same Saturday.
+      final saturday = DateTime.utc(2026, 8, 29);
+      expect(WeekShape.monday.weekStartOf(saturday), _thisWeek);
+      expect(WeekShape.sunday.weekStartOf(saturday), _thisWeekSunday);
+
+      await repo.addEntry(
+        weekStart: WeekShape.monday.weekStartOf(saturday),
+        dayOfWeek: WeekShape.monday.offsetOf(saturday),
+        mealSlot: 'Lunch',
+        recipeId: 'r1',
+        eaterIds: const [],
+      );
+      final week = await repo.watchWeek(_thisWeek).first;
+      expect(week?.entries, hasLength(1));
+      // Saturday is offset 5 of a Monday week — the byte-identical value the
+      // Monday-only code stored.
+      expect(week!.entries.single.dayOfWeek, 5);
+      expect(await repo.watchWeek(_thisWeekSunday).first, isNull);
+    });
+
+    test('a Sunday household puts its Sunday meal at offset 0', () async {
+      await _insertRecipe(db, 'r1', 'Curry');
+      final sunday = DateTime.utc(2026, 8, 23);
+      await repo.addEntry(
+        weekStart: WeekShape.sunday.weekStartOf(sunday),
+        dayOfWeek: WeekShape.sunday.offsetOf(sunday),
+        mealSlot: 'Dinner',
+        recipeId: 'r1',
+        eaterIds: const [],
+      );
+      // The meal the owner shops for on Sunday morning heads its own week,
+      // instead of trailing the week that is ending.
+      final week = await repo.watchWeek(_thisWeekSunday).first;
+      expect(week?.weekStart, _thisWeekSunday);
+      expect(week!.entries.single.dayOfWeek, 0);
+      expect(WeekShape.sunday.keyOf(sunday), '2026-08-23');
+      // And it is a different week from the Monday one that contains the same
+      // date — nothing about the old week was touched.
+      expect(await repo.watchWeek(_lastWeek).first, isNull);
+    });
 
     test('a deleted recipe reads back with a null title', () async {
       await _insertRecipe(db, 'r1', 'Curry');

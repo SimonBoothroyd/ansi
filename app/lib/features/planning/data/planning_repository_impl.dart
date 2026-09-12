@@ -18,6 +18,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../../../core/week_shape.dart';
 import '../domain/planning.dart';
 import '../domain/planning_repository.dart';
 
@@ -33,8 +34,10 @@ class SqlitePlanningRepository implements PlanningRepository {
   /// the signed-in household, tests pass their own).
   final String _householdId;
 
-  /// The ISO date (YYYY-MM-DD) a week is addressed by — its Monday.
-  String _weekKey(DateTime weekStart) => weekKeyOf(weekStart);
+  /// The ISO date (YYYY-MM-DD) a week is addressed by — the date of its own
+  /// first day. The caller holds a week start already (the shape resolved it),
+  /// so this only spells it.
+  String _weekKey(DateTime weekStart) => isoDateOf(weekStart);
 
   @override
   Stream<WeekPlan?> watchWeek(DateTime weekStart) {
@@ -100,7 +103,7 @@ class SqlitePlanningRepository implements PlanningRepository {
     return WeekPlan(
       id: id,
       // The key is a bare 'YYYY-MM-DD'; parse it as a UTC date-only value so it
-      // round-trips equal to mondayOf's output (which is UTC).
+      // round-trips equal to the shape's week start (which is UTC).
       weekStart: DateTime.parse('${wp['week_start_date']}T00:00:00Z'),
       label: wp['label'] as String?,
       entries: [for (final e in entryRows) _entryFrom(e)],

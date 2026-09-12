@@ -1,10 +1,10 @@
 import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
-import 'package:ansi/features/planning/domain/planning.dart' show mondayOf;
 import 'package:ansi/features/planning/presentation/week_header.dart';
 import 'package:ansi/features/recipes/domain/effective_lines.dart';
 import 'package:ansi/features/shopping/data/shopping_providers.dart';
@@ -564,7 +564,7 @@ void main() {
       expect(write.recipeId, 'curry');
       expect(write.lineId, 'li-lime');
       expect(write.included, isTrue);
-      expect(write.weekStart, mondayOf(DateTime.now()));
+      expect(write.weekStart, WeekShape.monday.weekStartOf(DateTime.now()));
     });
 
     testWidgets('a line the WEEK left out is not a door — that change is '

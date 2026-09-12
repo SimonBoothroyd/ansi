@@ -4,6 +4,8 @@ import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/core/week_shape.dart';
+import 'package:ansi/features/account/data/household_providers.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan_repository.dart';
@@ -190,6 +192,7 @@ Future<void> _pumpWeek(
   PlanningRepository? planning,
   RecipeRepository? recipes,
   CookPlanRepository? cook,
+  WeekShape shape = WeekShape.monday,
   void Function(GoRouter)? expose,
 }) async {
   final overrides = [
@@ -199,6 +202,7 @@ Future<void> _pumpWeek(
     recipeRepositoryProvider.overrideWithValue(
       recipes ?? FakeRecipeRepository(),
     ),
+    weekShapeProvider.overrideWithValue(shape),
   ];
   await tester.pumpWidget(
     expose == null
@@ -291,11 +295,12 @@ WeekPlan _batchedWeek() => WeekPlan(
 
 void main() {
   group('the week switcher', () {
-    final monday = mondayOf(DateTime.now());
+    final monday = WeekShape.monday.weekStartOf(DateTime.now());
     String titleFor(int weeksAhead) {
       final t = formatWeekTitle(
         monday.add(Duration(days: 7 * weeksAhead)),
         monday,
+        WeekShape.monday,
       );
       return t.date == null ? t.label : '${t.label} · ${t.date}';
     }
@@ -788,7 +793,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       router.state.uri.toString(),
-      '/recipes/r1?week=${weekKeyOf(DateTime.now())}',
+      '/recipes/r1?week=${WeekShape.monday.keyOf(DateTime.now())}',
     );
     expect(find.text('recipe r1'), findsOneWidget);
 
@@ -979,6 +984,84 @@ void main() {
       );
       expect(find.text('no amount'), findsOneWidget);
       expect(find.textContaining('no amount'), findsWidgets);
+    });
+  });
+
+  group('the household first day of the week', () {
+    /// One meal at [offset] of the viewed week — the same fixture under both
+    /// shapes, so what moves is the shape and nothing else.
+    WeekPlan weekWithMealAt(int offset) => WeekPlan(
+      id: 'w',
+      weekStart: DateTime.utc(2026, 8, 23),
+      entries: [
+        PlanEntry(
+          id: 'e1',
+          dayOfWeek: offset,
+          mealSlot: 'Dinner',
+          recipeId: 'r1',
+          recipeTitle: 'Weeknight Chicken Curry',
+          eaterIds: const ['m1'],
+        ),
+      ],
+    );
+
+    /// The day card for a full weekday name — its nearest enclosing Column,
+    /// the same handle the smoke driver uses.
+    Finder dayCardOf(String day) =>
+        find.ancestor(of: find.text(day), matching: find.byType(Column)).first;
+
+    testWidgets('a Sunday-start household heads the week with Sunday, and '
+        "puts that Sunday's dinner in it", (tester) async {
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: weekWithMealAt(0)),
+        shape: WeekShape.sunday,
+      );
+
+      // Offset 0 is the top card, and under this shape offset 0 is a Sunday —
+      // so the meal the shop was done for that morning heads its own week
+      // instead of trailing the one that is ending.
+      expect(find.text('Sunday'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: dayCardOf('Sunday'),
+          matching: find.text('Weeknight Chicken Curry'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        tester.getTopLeft(find.text('Sunday')).dy,
+        lessThan(tester.getTopLeft(find.text('Monday')).dy),
+      );
+    });
+
+    testWidgets('a Monday-start household reads exactly as it did', (
+      tester,
+    ) async {
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: weekWithMealAt(3)),
+      );
+
+      // The top card is Monday, and offset 3 is still Thursday.
+      expect(find.text('Monday'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('Monday')).dy,
+        lessThan(tester.getTopLeft(find.text('Tuesday')).dy),
+      );
+      await tester.dragUntilVisible(
+        find.text('Thursday'),
+        find.byType(Scrollable).first,
+        const Offset(0, -300),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: dayCardOf('Thursday'),
+          matching: find.text('Weeknight Chicken Curry'),
+        ),
+        findsOneWidget,
+      );
     });
   });
 }

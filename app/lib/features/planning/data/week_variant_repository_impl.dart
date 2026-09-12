@@ -23,12 +23,12 @@ import 'package:uuid/uuid.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../../../core/week_shape.dart';
 import '../../recipes/data/recipe_repository_impl.dart'
     show loadRecipeMacroNodes;
 import '../../recipes/domain/effective_lines.dart';
 import '../../recipes/domain/line_override.dart';
 import '../../recipes/domain/recipe_macros.dart';
-import '../domain/planning.dart' show weekKeyOf;
 import '../domain/week_variant_repository.dart';
 import 'planning_repository_impl.dart' show getOrCreateWeekPlan;
 
@@ -48,7 +48,7 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
   Stream<Map<String, List<LineOverride>>> watchWeekOverrides(
     DateTime weekStart,
   ) {
-    final key = weekKeyOf(weekStart);
+    final key = isoDateOf(weekStart);
     return _weekChanges(key).asyncMap((_) => _loadByRecipe(key));
   }
 
@@ -75,14 +75,14 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
     DateTime weekStart,
     String recipeId,
   ) async =>
-      (await _loadByRecipe(weekKeyOf(weekStart)))[recipeId] ??
+      (await _loadByRecipe(isoDateOf(weekStart)))[recipeId] ??
       const <LineOverride>[];
 
   @override
   Stream<Map<String, RecipeMacroSummary>> watchVariantRecipeMacros(
     DateTime weekStart,
   ) {
-    final key = weekKeyOf(weekStart);
+    final key = isoDateOf(weekStart);
     return _weekChanges(key).asyncMap((_) => _loadVariantRecipeMacros(key));
   }
 
@@ -126,7 +126,7 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
     String recipeId, {
     required List<LineOverride> overrides,
   }) async {
-    final key = weekKeyOf(weekStart);
+    final key = isoDateOf(weekStart);
     final now = DateTime.now().toUtc().toIso8601String();
     await _db.writeTransaction((tx) async {
       final weekId = await getOrCreateWeekPlan(

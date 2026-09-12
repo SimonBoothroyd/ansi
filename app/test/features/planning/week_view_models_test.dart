@@ -6,7 +6,7 @@
 /// (including one whose DST shifts on the test dates).
 library;
 
-import 'package:ansi/features/planning/domain/planning.dart';
+import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/planning/presentation/week_view_models.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/services.dart';
@@ -137,8 +137,11 @@ void main() {
           (_, next) => fired.add(next),
         );
 
-        expect(container.read(currentWeekStartProvider), mondayOf(start));
-        expect(mondayOf(start), DateTime.utc(2026, 8, 31));
+        expect(
+          container.read(currentWeekStartProvider),
+          WeekShape.monday.weekStartOf(start),
+        );
+        expect(WeekShape.monday.weekStartOf(start), DateTime.utc(2026, 8, 31));
 
         async.elapse(midnightAfter(start).difference(start));
         expect(fired, [DateTime.utc(2026, 9, 7)]);

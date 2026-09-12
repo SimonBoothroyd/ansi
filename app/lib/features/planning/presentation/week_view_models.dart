@@ -1,7 +1,7 @@
 /// Riverpod ViewModels for the Week screen.
 ///
 /// The week is a **position, not a singleton** (D2/D3). [currentWeekStart] is
-/// still the Monday of the week containing today, but its only jobs now are
+/// still the first day of the week containing today, but its only jobs now are
 /// (a) seeding [ViewedWeekStart], (b) the "is this week?" emphasis, and (c) the
 /// switcher menu's "This week" return. It derives from [Today], the one place
 /// the app asks what day it is, which re-fires at local midnight and on resume
@@ -22,6 +22,8 @@ import 'dart:async';
 import 'package:flutter/widgets.dart' show AppLifecycleListener;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/week_shape.dart';
+import '../../account/data/household_providers.dart';
 import '../../recipes/domain/line_override.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/domain/recipe_macros.dart';
@@ -81,21 +83,30 @@ class Today extends _$Today {
   static DateTime _dateOf(DateTime at) => DateTime(at.year, at.month, at.day);
 }
 
-/// The Monday of the week containing [Today]. Moves with it, so it is right
+/// The first day of the week containing [Today]. Moves with it, so it is right
 /// across midnight and after a resume; the week on screen does not — that is
 /// [ViewedWeekStart]'s job, and it is deliberately left alone.
 @riverpod
-DateTime currentWeekStart(Ref ref) => mondayOf(ref.watch(todayProvider));
+DateTime currentWeekStart(Ref ref) =>
+    ref.watch(weekShapeProvider).weekStartOf(ref.watch(todayProvider));
 
-/// The Monday of the week on screen. Defaults to the week containing today;
+/// The first day of the week on screen. Defaults to the week containing today;
 /// the header switcher moves it and Cook/Shop derive from it (D3).
+///
+/// It watches the household's [WeekShape], so flipping the first day re-seats
+/// the screen on the window containing today under the new shape — which is
+/// what "this week" means the moment the weeks move.
 @Riverpod(keepAlive: true)
 class ViewedWeekStart extends _$ViewedWeekStart {
   @override
-  DateTime build() => mondayOf(DateTime.now());
+  DateTime build() => ref.watch(weekShapeProvider).weekStartOf(DateTime.now());
+
+  /// The shape as it stands. [build] is what WATCHES it — these movers only
+  /// need the current value to resolve a date into a week.
+  WeekShape get _shape => ref.read(weekShapeProvider);
 
   /// Jumps to the week containing [date].
-  void set(DateTime date) => state = mondayOf(date);
+  void set(DateTime date) => state = _shape.weekStartOf(date);
 
   /// Steps [weeks] forward (negative steps back). Unbounded in both
   /// directions: a week with no row costs nothing, because the row is only
@@ -103,7 +114,7 @@ class ViewedWeekStart extends _$ViewedWeekStart {
   void step(int weeks) => state = state.add(Duration(days: 7 * weeks));
 
   /// Returns to the week containing today.
-  void today() => state = mondayOf(DateTime.now());
+  void today() => state = _shape.weekStartOf(DateTime.now());
 }
 
 /// The viewed week with its meals, or null while it has no row yet — which
@@ -156,8 +167,8 @@ WeekRecipePlacement weekRecipePlacement(
   String recipeId,
   String weekKey,
 ) {
-  final monday = mondayOfKey(weekKey);
-  if (monday == null) return const (days: <int>[], edited: false);
+  final weekStart = weekStartOfKey(weekKey, ref.watch(weekShapeProvider));
+  if (weekStart == null) return const (days: <int>[], edited: false);
   final plan = ref.watch(weekPlanForProvider(weekKey)).asData?.value;
   final days = <int>{
     for (final e in plan?.entries ?? const <PlanEntry>[])
@@ -172,10 +183,10 @@ WeekRecipePlacement weekRecipePlacement(
 /// by the link rather than by what is on screen.
 @riverpod
 Stream<WeekPlan?> weekPlanFor(Ref ref, String weekKey) {
-  final monday = mondayOfKey(weekKey);
-  return monday == null
+  final weekStart = weekStartOfKey(weekKey, ref.watch(weekShapeProvider));
+  return weekStart == null
       ? Stream.value(null)
-      : ref.watch(planningRepositoryProvider).watchWeek(monday);
+      : ref.watch(planningRepositoryProvider).watchWeek(weekStart);
 }
 
 /// That same week's overrides, keyed by recipe id.
@@ -184,10 +195,10 @@ Stream<Map<String, List<LineOverride>>> weekOverridesFor(
   Ref ref,
   String weekKey,
 ) {
-  final monday = mondayOfKey(weekKey);
-  return monday == null
+  final weekStart = weekStartOfKey(weekKey, ref.watch(weekShapeProvider));
+  return weekStart == null
       ? Stream.value(const {})
-      : ref.watch(weekVariantRepositoryProvider).watchWeekOverrides(monday);
+      : ref.watch(weekVariantRepositoryProvider).watchWeekOverrides(weekStart);
 }
 
 /// The re-summed figures for the recipes the week [weekKey] names varies — the
@@ -201,18 +212,24 @@ Stream<Map<String, RecipeMacroSummary>> weekVariantMacrosFor(
   Ref ref,
   String weekKey,
 ) {
-  final monday = mondayOfKey(weekKey);
-  return monday == null
+  final weekStart = weekStartOfKey(weekKey, ref.watch(weekShapeProvider));
+  return weekStart == null
       ? Stream.value(const {})
       : ref
             .watch(weekVariantRepositoryProvider)
-            .watchVariantRecipeMacros(monday);
+            .watchVariantRecipeMacros(weekStart);
 }
 
-/// An ISO `YYYY-MM-DD` week key as its Monday, or null when it is not a date.
-DateTime? mondayOfKey(String weekKey) {
+/// An ISO `YYYY-MM-DD` week key as the first day of the week it names, or null
+/// when it is not a date.
+///
+/// The key already IS a week start, so [shape] normally changes nothing. It is
+/// applied anyway because a `?week=` param can outlive the shape that minted it
+/// — a link in a back stack, a household that flipped — and the week a date
+/// belongs to is the honest answer to a stale one.
+DateTime? weekStartOfKey(String weekKey, WeekShape shape) {
   final date = DateTime.tryParse(weekKey);
-  return date == null ? null : mondayOf(date);
+  return date == null ? null : shape.weekStartOf(date);
 }
 
 /// Per-recipe macro summaries **for the viewed week**, indexed by recipe id.

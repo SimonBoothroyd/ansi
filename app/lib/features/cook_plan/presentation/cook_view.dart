@@ -17,11 +17,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
-import '../../../core/words.dart';
+import '../../../core/week_shape.dart';
 import '../../../shared/ansi_callout.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/guarded_navigation.dart';
-import '../../planning/domain/planning.dart' show weekKeyOf;
+import '../../account/data/household_providers.dart';
 import '../../planning/presentation/week_format.dart';
 import '../../planning/presentation/week_header.dart';
 import '../../planning/presentation/week_view_models.dart';
@@ -142,7 +142,8 @@ class _RecipeCard extends ConsumerWidget {
     // The title carries the week it is cooking for (`?week=`), so the recipe
     // page can offer "Edit for this week" beside its own Edit. Cook itself
     // stays read-only — the week rides along, nothing here writes it.
-    final weekKey = weekKeyOf(ref.watch(viewedWeekStartProvider));
+    final weekKey = isoDateOf(ref.watch(viewedWeekStartProvider));
+    final shape = ref.watch(weekShapeProvider);
     return _Card(
       accent: split,
       title: recipe.title,
@@ -154,7 +155,7 @@ class _RecipeCard extends ConsumerWidget {
           if (i > 0) const SizedBox(height: 8),
           _SessionTile(session: session),
           if (session.hasFreezerRescue)
-            _Note.freezer(freezerNoteFor(recipe.title, session)),
+            _Note.freezer(freezerNoteFor(recipe.title, session, shape)),
         ],
         if (split) _Note.split(splitNoteFor(recipe)),
       ],
@@ -184,6 +185,7 @@ class _ComponentCard extends ConsumerWidget {
         .firstOrNull
         ?.yields
         .firstOrNull;
+    final shape = ref.watch(weekShapeProvider);
     final sessions = recipe.componentSessions;
     final parents = {for (final s in sessions) ...s.demandedBy}.toList();
 
@@ -196,8 +198,8 @@ class _ComponentCard extends ConsumerWidget {
           if (i > 0) const SizedBox(height: 8),
           _SessionTile(session: session, denomination: denomination),
           if (session.hasFreezerRescue)
-            _Note.freezer(freezerNoteFor(recipe.title, session)),
-          if (componentLeftoverNote(session, denomination: denomination)
+            _Note.freezer(freezerNoteFor(recipe.title, session, shape)),
+          if (componentLeftoverNote(session, shape, denomination: denomination)
               case final note?)
             _Note.split(note),
         ],
@@ -210,13 +212,14 @@ class _ComponentCard extends ConsumerWidget {
 /// card's shape so it reads as the session it would have been. It never shows
 /// a scale — assuming one batch is exactly the invented number this app
 /// refuses — and it carries the one-tap fix where there is one.
-class _GapCard extends StatelessWidget {
+class _GapCard extends ConsumerWidget {
   const _GapCard({required this.gap});
 
   final ComponentGap gap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final shape = ref.watch(weekShapeProvider);
     final parents = gap.demandedBy.map((d) => d.title).toSet().toList();
     return _Card(
       accent: true,
@@ -236,7 +239,10 @@ class _GapCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      componentWhenLabel(gap.demandedBy.map((d) => d.cookDay)),
+                      componentWhenLabel(
+                        gap.demandedBy.map((d) => d.cookDay),
+                        shape,
+                      ),
                       style: ansiSans(size: 13, weight: FontWeight.w600),
                     ),
                   ),
@@ -248,7 +254,7 @@ class _GapCard extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                gapCoversLine(gap),
+                gapCoversLine(gap, shape),
                 style: ansiSans(size: 11, color: AnsiColors.muted),
               ),
               const SizedBox(height: 10),
@@ -355,6 +361,7 @@ class _SessionTile extends ConsumerWidget {
     final showWhole =
         nudge != null && ref.watch(wholeBatchDisplayProvider(key));
     final component = session.isComponent;
+    final shape = ref.watch(weekShapeProvider);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(11, 10, 11, 11),
@@ -376,8 +383,9 @@ class _SessionTile extends ConsumerWidget {
                       // day, not on one of its own (D3).
                       ? componentWhenLabel(
                           session.demands.map((d) => d.cookDay),
+                          shape,
                         )
-                      : 'Cook ${kWeekdayShort[session.cookDay]}',
+                      : 'Cook ${shape.labelShort(session.cookDay)}',
                   style: ansiSans(size: 13, weight: FontWeight.w600),
                 ),
               ),
@@ -394,8 +402,12 @@ class _SessionTile extends ConsumerWidget {
           const SizedBox(height: 6),
           Text(
             component
-                ? componentCoversLine(session, denomination: denomination)
-                : coversLine(session),
+                ? componentCoversLine(
+                    session,
+                    shape,
+                    denomination: denomination,
+                  )
+                : coversLine(session, shape),
             style: ansiSans(size: 11, color: AnsiColors.muted),
           ),
           if (nudge != null) ...[
@@ -601,6 +613,7 @@ class _NothingToCookLine extends ConsumerWidget {
     final suffix = formatDerivedWeekSuffix(
       ref.watch(viewedWeekStartProvider),
       ref.watch(currentWeekStartProvider),
+      ref.watch(weekShapeProvider),
     );
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),

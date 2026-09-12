@@ -23,13 +23,14 @@ library;
 
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/portions.dart';
-import '../../../core/words.dart';
 import '../../../shared/format.dart';
 import '../../../shared/incomplete_macros.dart';
+import '../../account/data/household_providers.dart';
 import '../../books/presentation/text_prompt.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../recipes/domain/recipe.dart';
@@ -467,7 +468,7 @@ class _StepButton extends StatelessWidget {
 /// The batch-awareness cue, in full prose rather than a one-liner: it names the
 /// dish, the day it already cooks, the shelf-life window that makes it one
 /// batch, and the freezer hop when that's how the meal is reached.
-class MealBatchBanner extends StatelessWidget {
+class MealBatchBanner extends ConsumerWidget {
   const MealBatchBanner({
     required this.hint,
     required this.recipe,
@@ -480,10 +481,11 @@ class MealBatchBanner extends StatelessWidget {
   final int newDay;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final title = recipe.title.isEmpty ? 'This dish' : recipe.title;
-    final day = kWeekdayFull[hint.withDay];
-    final target = kWeekdayFull[newDay];
+    final shape = ref.watch(weekShapeProvider);
+    final day = shape.labelFull(hint.withDay);
+    final target = shape.labelFull(newDay);
     final keeps = recipe.keepsForDays;
     final text = hint.frozen
         ? '$title already cooks $day; $target is past the fridge window'

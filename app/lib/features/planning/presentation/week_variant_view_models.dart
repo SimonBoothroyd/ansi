@@ -16,12 +16,12 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../../../core/week_shape.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../recipes/data/recipe_providers.dart';
 import '../../recipes/domain/line_override.dart';
 import '../../recipes/domain/recipe.dart';
 import '../data/planning_providers.dart';
-import '../domain/planning.dart' show weekKeyOf;
 
 part 'week_variant_view_models.g.dart';
 
@@ -218,4 +218,4 @@ class WeekVariantDraft extends _$WeekVariantDraft {
 }
 
 /// The week key a date belongs to, for the door that opens week mode.
-String weekQueryParam(DateTime weekStart) => weekKeyOf(weekStart);
+String weekQueryParam(DateTime weekStart) => isoDateOf(weekStart);

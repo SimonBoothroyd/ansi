@@ -13,10 +13,11 @@ import 'dart:convert';
 import 'package:sqlite_async/sqlite_async.dart';
 
 import '../../../core/units/units.dart';
+import '../../../core/week_shape.dart';
 import '../../planning/data/planning_repository_impl.dart' show loadMembers;
 import '../../planning/data/week_variant_repository_impl.dart'
     show loadWeekOverrides;
-import '../../planning/domain/planning.dart' show eatersDemand, mondayOf;
+import '../../planning/domain/planning.dart' show eatersDemand;
 import '../../recipes/domain/component_math.dart';
 import '../domain/cook_plan.dart';
 import '../domain/cook_plan_repository.dart';
@@ -26,16 +27,9 @@ class SqliteCookPlanRepository implements CookPlanRepository {
 
   final SqliteConnection _db;
 
-  String _weekKey(DateTime weekStart) {
-    final m = mondayOf(weekStart);
-    final mm = m.month.toString().padLeft(2, '0');
-    final dd = m.day.toString().padLeft(2, '0');
-    return '${m.year}-$mm-$dd';
-  }
-
   @override
   Stream<CookPlan> watchCookPlan(DateTime weekStart) {
-    final key = _weekKey(weekStart);
+    final key = isoDateOf(weekStart);
     // Reference week_plan + plan_entry + recipe and select a column from each,
     // so a change to any (including a recipe's shelf life) re-derives the plan.
     // The groups and line items join too: a component line — or the yield it

@@ -20,13 +20,14 @@ library;
 
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
-import '../../../core/words.dart';
+import '../../account/data/household_providers.dart';
 import 'week_variant_format.dart';
 
-class PlannedThisWeekBand extends StatelessWidget {
+class PlannedThisWeekBand extends ConsumerWidget {
   const PlannedThisWeekBand({
     required this.days,
     required this.edited,
@@ -43,7 +44,7 @@ class PlannedThisWeekBand extends StatelessWidget {
   final bool edited;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -58,7 +59,11 @@ class PlannedThisWeekBand extends StatelessWidget {
         const SizedBox(width: 6),
         Expanded(
           child: Text(
-            plannedThisWeekLine(days, kWeekdayShort, edited: edited),
+            plannedThisWeekLine(
+              days,
+              ref.watch(weekShapeProvider).shortLabels,
+              edited: edited,
+            ),
             style: ansiMono(size: 11, color: AnsiColors.herbDeep),
           ),
         ),

@@ -1,4 +1,5 @@
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_format.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
@@ -38,7 +39,7 @@ void main() {
   group('coversLine', () {
     test('a single portion reads singular', () {
       final s = _session(cookDay: 0, keeps: 3, covers: [_meal(0, 'Dinner', 1)]);
-      expect(coversLine(s), 'covers Mon dinner · 1 portion');
+      expect(coversLine(s, WeekShape.monday), 'covers Mon dinner · 1 portion');
     });
 
     test('collapses a shared slot to one label', () {
@@ -47,7 +48,10 @@ void main() {
         keeps: 6,
         covers: [_meal(1, 'Dinner', 2), _meal(5, 'Dinner', 2)],
       );
-      expect(coversLine(s), 'covers Tue + Sat dinner · 4 portions');
+      expect(
+        coversLine(s, WeekShape.monday),
+        'covers Tue + Sat dinner · 4 portions',
+      );
     });
 
     test('spells out mixed slots', () {
@@ -56,7 +60,10 @@ void main() {
         keeps: 6,
         covers: [_meal(0, 'Dinner', 2), _meal(3, 'Lunch', 1)],
       );
-      expect(coversLine(s), 'covers Mon dinner + Thu lunch · 3 portions');
+      expect(
+        coversLine(s, WeekShape.monday),
+        'covers Mon dinner + Thu lunch · 3 portions',
+      );
     });
   });
 
@@ -98,7 +105,7 @@ void main() {
         covers: [_meal(1, 'Dinner', 2), _meal(5, 'Dinner', 2)],
       );
       expect(
-        freezerNoteFor('Ragù', s),
+        freezerNoteFor('Ragù', s, WeekShape.monday),
         'Saturday is far off, but Ragù freezes — cook once Tuesday, freeze '
         "Saturday's share.",
       );
@@ -208,7 +215,7 @@ void main() {
         ),
       ],
     );
-    expect(coversLine(session), 'covers Sausage Sliders');
+    expect(coversLine(session, WeekShape.monday), 'covers Sausage Sliders');
   });
 
   group('the component card', () {
@@ -240,25 +247,39 @@ void main() {
     });
 
     test('it is cooked BY the demanding day, not on one of its own', () {
-      expect(componentWhenLabel(const [5]), 'Cook by Sat');
-      expect(componentWhenLabel(const [5, 2, 5]), 'Cook by Wed + Sat');
+      expect(componentWhenLabel(const [5], WeekShape.monday), 'Cook by Sat');
+      expect(
+        componentWhenLabel(const [5, 2, 5], WeekShape.monday),
+        'Cook by Wed + Sat',
+      );
     });
 
     test('the covers line closes with the batch arithmetic', () {
       expect(
-        componentCoversLine(session, denomination: (qty: 1, unit: cup)),
+        componentCoversLine(
+          session,
+          WeekShape.monday,
+          denomination: (qty: 1, unit: cup),
+        ),
         'covers Sausage Sliders · cook Sat — makes 1 cup, you need ¼',
       );
     });
 
     test('with no yield to quote, the clause is dropped, not guessed', () {
-      expect(componentCoversLine(session), 'covers Sausage Sliders · cook Sat');
+      expect(
+        componentCoversLine(session, WeekShape.monday),
+        'covers Sausage Sliders · cook Sat',
+      );
     });
 
     test('a part-batch demand says what is left over, and what is not '
         'tracked', () {
       expect(
-        componentLeftoverNote(session, denomination: (qty: 1, unit: cup)),
+        componentLeftoverNote(
+          session,
+          WeekShape.monday,
+          denomination: (qty: 1, unit: cup),
+        ),
         'A batch makes 1 cup and Saturday needs ¼ — the rest is yours. '
         'Nothing here tracks the leftover.',
       );
@@ -280,10 +301,14 @@ void main() {
         ],
       );
       expect(
-        componentLeftoverNote(whole, denomination: (qty: 1, unit: cup)),
+        componentLeftoverNote(
+          whole,
+          WeekShape.monday,
+          denomination: (qty: 1, unit: cup),
+        ),
         isNull,
       );
-      expect(componentLeftoverNote(session), isNull);
+      expect(componentLeftoverNote(session, WeekShape.monday), isNull);
     });
   });
 
@@ -322,7 +347,7 @@ void main() {
       // Frame (f) verbatim: the one number a gap CAN state is what the line
       // printed.
       expect(
-        gapCoversLine(missing),
+        gapCoversLine(missing, WeekShape.monday),
         'covers Sausage Sliders · cook Sat — the line asks for ¼ cup',
       );
     });
@@ -331,6 +356,7 @@ void main() {
       expect(
         gapCoversLine(
           gap(const ComponentYieldMissing(), quantity: 8, unit: pieces),
+          WeekShape.monday,
         ),
         // A count prints bare, the way the recipe page says it.
         'covers Sausage Sliders · cook Sat — the line asks for 8',
@@ -338,6 +364,7 @@ void main() {
       expect(
         gapCoversLine(
           gap(const ComponentYieldMissing(), quantity: 2, unit: tbsp),
+          WeekShape.monday,
         ),
         'covers Sausage Sliders · cook Sat — the line asks for 2 tbsp',
       );
@@ -345,7 +372,10 @@ void main() {
 
     test('a numberless line drops the clause rather than filling it', () {
       expect(
-        gapCoversLine(gap(const ComponentAmountMissing(), quantity: null)),
+        gapCoversLine(
+          gap(const ComponentAmountMissing(), quantity: null),
+          WeekShape.monday,
+        ),
         'covers Sausage Sliders · cook Sat',
       );
     });
@@ -374,7 +404,7 @@ void main() {
         ],
       );
       expect(
-        gapCoversLine(shared),
+        gapCoversLine(shared, WeekShape.monday),
         'covers Sausage Sliders + Romesco Toasts · cook Sat + Sun — '
         'Sausage Sliders asks for ¼ cup · Romesco Toasts asks for 1 batch',
       );

@@ -1,6 +1,7 @@
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/presentation/week_format.dart';
@@ -45,14 +46,17 @@ void main() {
       expect(marker.batchPortions, 4); // 2 + 2 across the session
       expect(marker.position, 0);
       expect(
-        cookMarkerLabel(marker, todayDayOfWeek: 0),
+        cookMarkerLabel(marker, WeekShape.monday, todayDayOfWeek: 0),
         'cooks today · batch of 4',
       );
       // Another week is on screen, so "today" is not available.
-      expect(cookMarkerLabel(marker), 'cooks Mon · batch of 4');
+      expect(
+        cookMarkerLabel(marker, WeekShape.monday),
+        'cooks Mon · batch of 4',
+      );
       // The current week, but a different day.
       expect(
-        cookMarkerLabel(marker, todayDayOfWeek: 4),
+        cookMarkerLabel(marker, WeekShape.monday, todayDayOfWeek: 4),
         'cooks Mon · batch of 4',
       );
     });
@@ -62,7 +66,10 @@ void main() {
       expect(marker.kind, CookMarkerKind.fromBatch);
       expect(marker.cookDay, 0);
       expect(marker.position, 0.5); // day 2 of a 4-day window
-      expect(cookMarkerLabel(marker), 'from Monday\u2019s batch');
+      expect(
+        cookMarkerLabel(marker, WeekShape.monday),
+        'from Monday\u2019s batch',
+      );
     });
 
     test('a day past the fridge window is a freezer share', () {
@@ -73,7 +80,10 @@ void main() {
         3,
       )!;
       expect(marker.kind, CookMarkerKind.freezerShare);
-      expect(cookMarkerLabel(marker), 'Monday\u2019s freezer share');
+      expect(
+        cookMarkerLabel(marker, WeekShape.monday),
+        'Monday\u2019s freezer share',
+      );
     });
 
     test('a recipe with no shelf life has no window, so no position', () {
@@ -125,40 +135,39 @@ void main() {
   group('formatWeekTitle (the week is a position)', () {
     // today is Thursday 27 Aug 2026; this week's Monday is 24 Aug.
     test('names the three weeks around today, with the date', () {
-      expect(formatWeekTitle(DateTime.utc(2026, 8, 24), today), (
-        label: 'This week',
-        date: '24 Aug',
-        isThisWeek: true,
-      ));
-      expect(formatWeekTitle(DateTime.utc(2026, 8, 31), today), (
-        label: 'Next week',
-        date: '31 Aug',
-        isThisWeek: false,
-      ));
-      expect(formatWeekTitle(DateTime.utc(2026, 8, 17), today), (
-        label: 'Last week',
-        date: '17 Aug',
-        isThisWeek: false,
-      ));
+      expect(
+        formatWeekTitle(DateTime.utc(2026, 8, 24), today, WeekShape.monday),
+        (label: 'This week', date: '24 Aug', isThisWeek: true),
+      );
+      expect(
+        formatWeekTitle(DateTime.utc(2026, 8, 31), today, WeekShape.monday),
+        (label: 'Next week', date: '31 Aug', isThisWeek: false),
+      );
+      expect(
+        formatWeekTitle(DateTime.utc(2026, 8, 17), today, WeekShape.monday),
+        (label: 'Last week', date: '17 Aug', isThisWeek: false),
+      );
     });
 
     test('falls back to "Week of <date>" beyond the named three', () {
-      expect(formatWeekTitle(DateTime.utc(2026, 9, 14), today), (
-        label: 'Week of 14 Sep',
-        date: null,
-        isThisWeek: false,
-      ));
-      expect(formatWeekTitle(DateTime.utc(2026, 8, 10), today), (
-        label: 'Week of 10 Aug',
-        date: null,
-        isThisWeek: false,
-      ));
+      expect(
+        formatWeekTitle(DateTime.utc(2026, 9, 14), today, WeekShape.monday),
+        (label: 'Week of 14 Sep', date: null, isThisWeek: false),
+      );
+      expect(
+        formatWeekTitle(DateTime.utc(2026, 8, 10), today, WeekShape.monday),
+        (label: 'Week of 10 Aug', date: null, isThisWeek: false),
+      );
     });
 
     test('any day of a week names that week — only the Monday matters', () {
       for (final d in [24, 25, 26, 27, 28, 29, 30]) {
         expect(
-          formatWeekTitle(DateTime.utc(2026, 8, d), today).label,
+          formatWeekTitle(
+            DateTime.utc(2026, 8, d),
+            today,
+            WeekShape.monday,
+          ).label,
           'This week',
         );
       }
@@ -166,11 +175,19 @@ void main() {
 
     test('only this week carries the herb dot', () {
       expect(
-        formatWeekTitle(DateTime.utc(2026, 8, 24), today).isThisWeek,
+        formatWeekTitle(
+          DateTime.utc(2026, 8, 24),
+          today,
+          WeekShape.monday,
+        ).isThisWeek,
         isTrue,
       );
       expect(
-        formatWeekTitle(DateTime.utc(2026, 8, 31), today).isThisWeek,
+        formatWeekTitle(
+          DateTime.utc(2026, 8, 31),
+          today,
+          WeekShape.monday,
+        ).isThisWeek,
         isFalse,
       );
     });
@@ -178,20 +195,39 @@ void main() {
 
   group('formatDerivedWeekSuffix (Cook and Shop say which week)', () {
     test('is null on the current week — the header stays the screen name', () {
-      expect(formatDerivedWeekSuffix(DateTime.utc(2026, 8, 24), today), isNull);
+      expect(
+        formatDerivedWeekSuffix(
+          DateTime.utc(2026, 8, 24),
+          today,
+          WeekShape.monday,
+        ),
+        isNull,
+      );
     });
 
     test('lowers only the leading word', () {
       expect(
-        formatDerivedWeekSuffix(DateTime.utc(2026, 8, 31), today),
+        formatDerivedWeekSuffix(
+          DateTime.utc(2026, 8, 31),
+          today,
+          WeekShape.monday,
+        ),
         'next week',
       );
       expect(
-        formatDerivedWeekSuffix(DateTime.utc(2026, 8, 17), today),
+        formatDerivedWeekSuffix(
+          DateTime.utc(2026, 8, 17),
+          today,
+          WeekShape.monday,
+        ),
         'last week',
       );
       expect(
-        formatDerivedWeekSuffix(DateTime.utc(2026, 9, 14), today),
+        formatDerivedWeekSuffix(
+          DateTime.utc(2026, 9, 14),
+          today,
+          WeekShape.monday,
+        ),
         'week of 14 Sep',
       );
     });

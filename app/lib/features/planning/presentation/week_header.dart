@@ -25,6 +25,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../account/data/household_providers.dart';
 import 'copy_last_week.dart';
 import 'week_format.dart';
 import 'week_view_models.dart';
@@ -50,7 +51,7 @@ class WeekSwitcher extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final viewed = ref.watch(viewedWeekStartProvider);
     final today = ref.watch(currentWeekStartProvider);
-    final title = formatWeekTitle(viewed, today);
+    final title = formatWeekTitle(viewed, today, ref.watch(weekShapeProvider));
 
     return Row(
       mainAxisSize: MainAxisSize.min,

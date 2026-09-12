@@ -7,7 +7,7 @@ library;
 import 'dart:math' as math;
 
 import '../../../core/units/portions.dart';
-import '../../../core/words.dart';
+import '../../../core/week_shape.dart';
 import '../../../shared/format.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../domain/planning.dart';
@@ -27,20 +27,21 @@ const _months = [
   'Dec',
 ];
 
-/// The week header, e.g. "Week of Aug 24" for the Monday the week begins on.
+/// The week header, e.g. "Week of Aug 24" for the day the week begins on.
 ///
 /// Superseded on the Week screen itself by [formatWeekTitle] (which names the
 /// week rather than dating it); kept for surfaces that only ever want the date.
-String formatWeekOf(DateTime monday) =>
-    'Week of ${_months[monday.month - 1]} ${monday.day}';
+String formatWeekOf(DateTime weekStart) =>
+    'Week of ${_months[weekStart.month - 1]} ${weekStart.day}';
 
 /// A bare day-and-month, e.g. `31 Aug` — the switcher's and day cards' date.
 String formatDayMonth(DateTime date) =>
     '${date.day} ${_months[date.month - 1]}';
 
-/// The date of [dayOfWeek] (0=Mon..6=Sun) within the week beginning [monday].
-String formatDayDate(DateTime monday, int dayOfWeek) =>
-    formatDayMonth(monday.add(Duration(days: dayOfWeek)));
+/// The date of [dayOfWeek] (0..6 from the first day) within the week beginning
+/// [weekStart].
+String formatDayDate(DateTime weekStart, int dayOfWeek) =>
+    formatDayMonth(weekStart.add(Duration(days: dayOfWeek)));
 
 /// How the Week screen NAMES the week it is showing (D2).
 ///
@@ -50,13 +51,15 @@ String formatDayDate(DateTime monday, int dayOfWeek) =>
 /// that. The `isThisWeek` flag drives the herb dot, so the emphasis survives
 /// a glance.
 ///
-/// [today] is any date in the current week; only its Monday matters.
+/// [today] is any date in the current week; only the week it falls in matters,
+/// which is what [shape] resolves.
 ({String label, String? date, bool isThisWeek}) formatWeekTitle(
-  DateTime monday,
+  DateTime weekStart,
   DateTime today,
+  WeekShape shape,
 ) {
-  final here = mondayOf(today);
-  final there = mondayOf(monday);
+  final here = shape.weekStartOf(today);
+  final there = shape.weekStartOf(weekStart);
   final weeks = there.difference(here).inDays ~/ 7;
   final date = formatDayMonth(there);
   return switch (weeks) {
@@ -71,8 +74,12 @@ String formatDayDate(DateTime monday, int dayOfWeek) =>
 /// the VIEWED week, so "nothing planned for *next week* yet" has to say which
 /// one when it isn't the current one. Null on the current week. (The headers no
 /// longer need it: the switcher is their title.)
-String? formatDerivedWeekSuffix(DateTime monday, DateTime today) {
-  final title = formatWeekTitle(monday, today);
+String? formatDerivedWeekSuffix(
+  DateTime weekStart,
+  DateTime today,
+  WeekShape shape,
+) {
+  final title = formatWeekTitle(weekStart, today, shape);
   if (title.isThisWeek) return null;
   // "Next week" → "next week"; "Week of 14 Sep" → "week of 14 Sep" (only the
   // leading word is lowered — the month keeps its casing).
@@ -183,23 +190,26 @@ CookMarker? cookMarkerFor(
   return null;
 }
 
-/// The marker's words. [todayDayOfWeek] is today's index (0=Mon..6=Sun) when
+/// The marker's words. [todayDayOfWeek] is today's offset within the week when
 /// the CURRENT week is on screen, and null otherwise — "cooks today" is only
 /// true of the week that contains today.
-String cookMarkerLabel(CookMarker marker, {int? todayDayOfWeek}) =>
-    switch (marker.kind) {
-      CookMarkerKind.cooks =>
-        todayDayOfWeek == marker.cookDay
-            ? 'cooks today · batch of ${formatFraction(marker.batchPortions)}'
-            : 'cooks ${kWeekdayShort[marker.cookDay]} · '
-                  'batch of ${formatFraction(marker.batchPortions)}',
-      CookMarkerKind.fromBatch =>
-        'from ${kWeekdayFull[marker.cookDay]}\u2019s batch',
-      // The snowflake is drawn as an icon beside this, never as a glyph: no
-      // bundled face carries \u2744.
-      CookMarkerKind.freezerShare =>
-        '${kWeekdayFull[marker.cookDay]}\u2019s freezer share',
-    };
+String cookMarkerLabel(
+  CookMarker marker,
+  WeekShape shape, {
+  int? todayDayOfWeek,
+}) => switch (marker.kind) {
+  CookMarkerKind.cooks =>
+    todayDayOfWeek == marker.cookDay
+        ? 'cooks today · batch of ${formatFraction(marker.batchPortions)}'
+        : 'cooks ${shape.labelShort(marker.cookDay)} · '
+              'batch of ${formatFraction(marker.batchPortions)}',
+  CookMarkerKind.fromBatch =>
+    'from ${shape.labelFull(marker.cookDay)}\u2019s batch',
+  // The snowflake is drawn as an icon beside this, never as a glyph: no
+  // bundled face carries \u2744.
+  CookMarkerKind.freezerShare =>
+    '${shape.labelFull(marker.cookDay)}\u2019s freezer share',
+};
 
 /// A snack row's amount, in the place a dish's cook marker would sit (step
 /// 8.14 / A-D5): `1 bar · 60 g`, `170 g`, or `no amount`.

@@ -29,9 +29,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
-import '../../../core/words.dart' show kWeekdayShort;
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/write.dart';
+import '../../account/data/household_providers.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
@@ -215,7 +215,11 @@ class WeekVariantBand extends ConsumerWidget {
           Text(title, style: ansiSans(size: 16, weight: FontWeight.w600)),
           const SizedBox(height: 3),
           Text(
-            weekScopeLine(weekKey, days, kWeekdayShort),
+            weekScopeLine(
+              weekKey,
+              days,
+              ref.watch(weekShapeProvider).shortLabels,
+            ),
             style: ansiMono(size: 10.5, color: AnsiColors.muted),
           ),
           Text(

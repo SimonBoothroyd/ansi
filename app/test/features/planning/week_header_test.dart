@@ -1,6 +1,7 @@
 // The week switcher as a shared title (plan 0025 D7a/D7b): what changes per
 // host tab, and what a derived tab must never touch.
 import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/presentation/week_format.dart';
 import 'package:ansi/features/planning/presentation/week_header.dart';
@@ -26,8 +27,8 @@ Widget _host(WeekSwitcher switcher, {List<Override> overrides = const []}) =>
     );
 
 void main() {
-  final monday = mondayOf(DateTime.now());
-  final title = formatWeekTitle(monday, monday);
+  final monday = WeekShape.monday.weekStartOf(DateTime.now());
+  final title = formatWeekTitle(monday, monday, WeekShape.monday);
   final titleText = '${title.label} · ${title.date}';
 
   testWidgets('showCopyLastWeek: false hides the Week write — and the derived '
