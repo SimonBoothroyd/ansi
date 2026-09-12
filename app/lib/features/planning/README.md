@@ -15,8 +15,8 @@ A planned meal is a **recipe or a bare ingredient** — a protein bar, a yoghurt
 
 ```
 planning/
-  domain/         planning.dart (Member, PlanEntry, WeekPlan, mondayOf,
-                  weekKeyOf, mealSlotRank), week_macros.dart
+  domain/         planning.dart (Member, PlanEntry, WeekPlan,
+                  mealSlotRank), week_macros.dart
                   (sumPlannedMacros + ingredientPortionMacros) +
                   planning_repository.dart + week_variant_repository.dart
                   — PURE DART
@@ -117,9 +117,18 @@ are facts about a cooked dish, and `MealSnackCard` prints its amount instead.
 
 ## Model notes
 
-- **Active week = the Monday-first week containing today** (`mondayOf(now)`);
-  older `week_plan` rows are the past, reached only via "copy last week". No
-  calendar (spec §4).
+- **Active week = the window containing today** under the household's first day
+  (`weekShapeProvider`, `core/week_shape.dart`); older `week_plan` rows are the
+  past, reached only via "copy last week". No calendar (spec §4).
+- **A week is addressed by the date of its own first day**, and
+  `plan_entry.day_of_week` is the **offset from that key**, 0..6 — so
+  `week_start_date + n days` is the meal's real date whatever day the week
+  starts on. The household picks that day (`household.week_starts_on`, set in
+  the Household section of `/account`); the phone only reads it, because moving
+  it re-homes every week the household has planned and that is one server
+  transaction. `WeekShape` is the only place an offset becomes a weekday name —
+  indexing the tables in `core/words.dart` directly is a Monday-first
+  assumption, and a structural test refuses it.
 - **`plan_entry.eaters`** is a JSON array of `household_member` ids; demand for
   an entry = Σ of the eaters' `portion_factor` (`demandPortions`, plan 0027
   P-D1 — `1¾` for a 1 and a ¾ eater, printed as a fraction through

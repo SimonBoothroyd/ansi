@@ -158,7 +158,8 @@ class WeekView extends HookConsumerWidget {
     final cookPlan = ref.watch(currentCookPlanProvider).asData?.value;
 
     // "cooks today" is only true of the week containing today.
-    // Read off [Today], not `DateTime.now()`: the Monday is the same all week,
+    // Read off [Today], not `DateTime.now()`: the week start is the same all
+    // week,
     // so only the day provider re-fires this at a Tuesday midnight.
     final isThisWeek = weekStart == ref.watch(currentWeekStartProvider);
     final shape = ref.watch(weekShapeProvider);
@@ -886,7 +887,7 @@ class AddMealLine extends StatelessWidget {
 /// Seven identical quiet lines have no focal point, so the primary lives here;
 /// each day's own `nothing planned` line is still its add door, which is what
 /// makes the first meal land on the day you MEANT (the old CTA always added to
-/// Monday, `dayOfWeek: 0`).
+/// the week's first day, `dayOfWeek: 0`).
 ///
 /// `copy last week` sits beside it only while the week has zero entries. Its
 /// permanent home is the switcher menu (D2).

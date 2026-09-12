@@ -57,7 +57,8 @@ class WeekVariant {
       WeekVariant(recipe: recipe, lines: lines);
 }
 
-/// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's Monday
+/// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's first
+/// day
 /// as `YYYY-MM-DD` — the query param the door opens the editor with.
 @riverpod
 class WeekVariantDraft extends _$WeekVariantDraft {

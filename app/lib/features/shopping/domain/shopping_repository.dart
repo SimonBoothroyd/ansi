@@ -18,7 +18,8 @@ import '../../../core/units/units.dart';
 import 'shopping.dart';
 
 abstract interface class ShoppingRepository {
-  /// The derived shopping list for the week beginning [weekStart] (a Monday),
+  /// The derived shopping list for the week beginning [weekStart] (the week's
+  /// own first day),
   /// reacting to plan/recipe/overlay changes. Emits an empty [ShoppingList]
   /// when nothing is planned and nothing has been added.
   Stream<ShoppingList> watchShoppingList(DateTime weekStart);

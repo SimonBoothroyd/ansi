@@ -55,7 +55,13 @@ which facts are load-bearing; where the two disagree, the generated file is
 right.
 
 ### Household & members
-- `household: id · name`
+- `household: id · name · week_starts_on`
+  - `week_starts_on` is the ISO weekday the household's week begins on
+    (1 = Monday … 7 = Sunday, Monday by default). It decides which seven days a
+    week **is**, so it is a household fact rather than a device one: two phones
+    disagreeing about it would not disagree about a view, they would file meals
+    into two different weeks. Set from the Household section of `/account`,
+    and the phone only ever reads it — see *Meal plan* below.
 - `household_member: id · household_id · display_name · auth_user_id ·
   portion_factor` — the two named people. `eaters[]` on a meal references
   these. `portion_factor` is that person's usual portion (¼–3, ×1 by
@@ -640,7 +646,9 @@ go. There is no re-chip — tokenization happens only inside the import call.
 
 ### Meal plan (week-based) — the INPUT
 - `week_plan: id · household_id · week_start_date · label`
-  - `unique (household_id, week_start_date)` — **many weeks per household are legal**, one row per Monday, created lazily on a week's first meal. Nothing is written by *looking* at a week.
+  - `unique (household_id, week_start_date)` — **many weeks per household are legal**, one row per week, created lazily on a week's first meal. Nothing is written by *looking* at a week.
+  - **A week is addressed by the date of its own first day**, and `day_of_week` is the **offset from that key**, 0..6 — never a calendar weekday. Which day that is belongs to the household (`household.week_starts_on`), so `week_start_date + day_of_week days` is a meal's real date under any start day, and one pure value (`core/week_shape.dart`) resolves a date into a week, a week into seven labelled days, and an offset into the day it names.
+  - **Changing the first day moves every week the household has planned.** The owner shops and plans on Sunday, so the week shopped for on a Sunday has to contain that Sunday's dinner; under a Monday key it belonged to the week that was ending. The flip is one server transaction (`set_household_week_start`) that re-keys `week_plan`, re-points every `plan_entry` by its own calendar date, carries the shopping ticks with their week and moves a variant only where its recipe left. Nothing is deleted and no meal changes date — only its address. It is **online-only** for exactly that reason (the same shape as the online-only match engine, ADR-0004), and residue-driven per week, so running it again is a no-op and running it after a meal queued offline repairs that week.
   - **A week is a position, not a singleton** (week redesign, D2). The app holds a *viewed week*, defaulting to the one containing today; the header names it (`This week · 31 Aug` / `Next week · 7 Sep` / `Last week · 24 Aug` / `Week of 14 Sep`) and steps through it. Unbounded in both directions; a past week is **editable, not locked** — nothing downstream corrupts, and every rule about *when* a week would lock is wrong for someone catching up on a Tuesday. There is no calendar and no month view, and "archived" is prose, not a column.
   - **Cook and Shop derive from the VIEWED week** (D3), not from the week containing today: you plan next week on a Sunday, so you must be able to cook and shop for it on a Sunday. There is **one** viewed week (plan 0025 D7a): changing it on any tab changes it on all three, and the week switcher is the **only title** of all three tabs (D7c — no "Batch cook plan" / "Shopping list"; the lit tab in the bar says where you are, which is why its selected state steps to herb-deep, D7d). The switcher's herb dot and its "This week" item are how a derived tab says which week it shows and offers the tap home; "Copy last week into this one" is a Week write and appears only on the Week screen's menu (D7b). Each tab's menu speaks in its own derivation — meals · cooks · items — for the week it has on screen.
 - `plan_entry: id · week_plan_id · day_of_week · meal_slot (user-definable) · recipe_id · ingredient_id · quantity · unit · measure_id · eaters[] (→ household_member ids) · portions (nullable override)`
@@ -783,7 +791,7 @@ stored ([ADR-0007](../decisions/0007-shopping-list-thin-overlay.md)):
   *Ingredient*: a retire is refused while a live line names the row).
 - **Top up** = persist a `manual` contribution against the entry (find-or-create).
 - **Check-off** = on the entry (rolled-up ingredient), not per contribution.
-- **Scoped to a week** (migrations 0019 and 0036): every entry carries the Monday it was made against, so a tick made while looking at next week belongs to next week's list. That includes a *free-text non-food item* — you wrote "paper towels" while shopping for one week, and it is bought on that trip, so it does not follow you onto every future list. A contribution rides its entry and stores no week of its own. `week_start_date` stays nullable for the rows older clients wrote; a week-less free-text row is backfilled onto the Monday of its `created_at`. There is still **no unique index** on an entry (0006's reasoning is unchanged: two offline devices must each be able to create one and converge later); convergence simply happens within a week.
+- **Scoped to a week** (migrations 0019 and 0036): every entry carries the first day of the week it was made against, so a tick made while looking at next week belongs to next week's list. That includes a *free-text non-food item* — you wrote "paper towels" while shopping for one week, and it is bought on that trip, so it does not follow you onto every future list. A contribution rides its entry and stores no week of its own. `week_start_date` stays nullable for the rows older clients wrote; a week-less free-text row is backfilled onto the start of the week its `created_at` falls in. There is still **no unique index** on an entry (0006's reasoning is unchanged: two offline devices must each be able to create one and converge later); convergence simply happens within a week.
 - **Storage rule:** only what cannot be re-derived is stored (check-off, manual top-ups, free-text items) → nothing to reconcile between devices when the week or a recipe changes. An ingredient entry is displayed only while it has at least one live contribution (derived or manual); when its last one vanishes it drops off the list, its checked row staying inert. (`supabase/migrations/0006_shopping.sql`.)
 - Batching is resolved in the cook plan, so each dish is bought once at its batch size (no double-buying, no manual leftover bookkeeping).
 

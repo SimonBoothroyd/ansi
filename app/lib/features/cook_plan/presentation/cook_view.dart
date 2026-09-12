@@ -454,35 +454,46 @@ class _SessionTile extends ConsumerWidget {
   }
 }
 
-/// The freshness timeline on a fixed Mon→Sun axis: a green fresh window from
-/// the cook day, a blue tail when a share is frozen to reach a later meal, or
-/// a hatched "gone" tail to Sunday; every eaten day is a marker (the cook day
-/// solid), with a weekday ruler beneath.
-class CookTimeline extends StatelessWidget {
+/// The freshness timeline on the week's own seven-day axis: a green fresh
+/// window from the cook day, a blue tail when a share is frozen to reach a
+/// later meal, or a hatched "gone" tail to the week's end; every eaten day is
+/// a marker (the cook day solid), with a weekday ruler beneath.
+class CookTimeline extends ConsumerWidget {
   const CookTimeline({required this.session, super.key});
 
   final CookSession session;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SizedBox(
       height: 30,
       width: double.infinity,
-      child: CustomPaint(painter: _TrackPainter(CookTimelineSpec.of(session))),
+      child: CustomPaint(
+        painter: _TrackPainter(
+          CookTimelineSpec.of(session),
+          // The ruler counts the week's own days, so its initials start where
+          // the week does.
+          initials: [
+            for (final label in ref.watch(weekShapeProvider).shortLabels)
+              label[0],
+          ],
+        ),
+      ),
     );
   }
 }
 
-/// Paints the Mon→Sun freshness track: a neutral week bar overlaid with the
-/// green fresh window, a blue frozen tail or hatched gone tail, day markers
-/// (the cook day solid, other eaten days ringed), and a weekday-initial ruler.
+/// Paints the freshness track: a neutral week bar overlaid with the green
+/// fresh window, a blue frozen tail or hatched gone tail, day markers (the
+/// cook day solid, other eaten days ringed), and a weekday-initial ruler.
 class _TrackPainter extends CustomPainter {
-  _TrackPainter(this.spec);
+  _TrackPainter(this.spec, {required this.initials});
 
   final CookTimelineSpec spec;
 
-  // Mon..Sun initials for the ruler (Tue/Thu and Sat/Sun repeat, as usual).
-  static const _initials = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  /// One initial per day of the week, in the week's own order (Tue/Thu and
+  /// Sat/Sun repeat, as usual).
+  final List<String> initials;
   static const _padX = 8.0;
   static const _barH = 8.0;
   static const _barCy = 8.0;
@@ -554,7 +565,7 @@ class _TrackPainter extends CustomPainter {
       final on = eaten.contains(day);
       final tp = TextPainter(
         text: TextSpan(
-          text: _initials[day],
+          text: initials[day],
           style: TextStyle(
             fontFamily: 'IBM Plex Mono',
             fontSize: 9,
@@ -574,7 +585,8 @@ class _TrackPainter extends CustomPainter {
       old.spec.freshTo != spec.freshTo ||
       old.spec.frozenTo != spec.frozenTo ||
       old.spec.hasGone != spec.hasGone ||
-      !listEquals(old.spec.coveredDays, spec.coveredDays);
+      !listEquals(old.spec.coveredDays, spec.coveredDays) ||
+      !listEquals(old.initials, initials);
 }
 
 /// An inline note — split (amber) or freezer (blue) — under the sessions.

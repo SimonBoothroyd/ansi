@@ -68,6 +68,40 @@ void main() {
     );
   });
 
+  test('nobody spells a second week of weekday names', () {
+    // The other half of the same bug class, and the one the scan above cannot
+    // see: a fresh seven-long list of day names or initials written out at a
+    // call site is a Monday-first assumption in literal form — the cook
+    // timeline's ruler was exactly that. String literals stay INTACT here,
+    // because the literals are what this reads.
+    const spellings = [
+      "'M', 'T', 'W', 'T', 'F', 'S', 'S'",
+      "'Mon', 'Tue'",
+      "'Monday', 'Tuesday'",
+      "'Sun', 'Mon'",
+      "'Sunday', 'Monday'",
+    ];
+    final hits = <String>[];
+    for (final file in dartFiles(Directory('lib'))) {
+      if (file.path == 'lib/core/words.dart') continue;
+      final source = blankComments(file.readAsStringSync());
+      for (final spelling in spellings) {
+        final at = source.indexOf(spelling);
+        if (at >= 0) {
+          hits.add('${file.path}:${lineOf(source, at)}: $spelling');
+        }
+      }
+    }
+    expect(
+      hits,
+      isEmpty,
+      reason:
+          'The weekday names live once, in lib/core/words.dart, and are read '
+          "in the household's own order through WeekShape.shortLabels / "
+          'labelShort / labelFull:\n${hits.join('\n')}',
+    );
+  });
+
   test('the weekday tables are still ISO-ordered, seven long', () {
     // The shape maps an offset onto these by rotating the index, so the
     // ordering is load-bearing: a reordered table would move every label by

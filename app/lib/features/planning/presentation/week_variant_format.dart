@@ -121,7 +121,7 @@ String? _daysSentence(List<int> days, List<String> weekdayShort) {
   return '${names.sublist(0, names.length - 1).join(', ')} and ${names.last}';
 }
 
-/// An ISO week key as the header prints its Monday — `14 Sep`.
+/// An ISO week key as the header prints the week's first day — `14 Sep`.
 String _shortDate(String weekKey) {
   final date = DateTime.tryParse(weekKey);
   return date == null ? weekKey : formatDayMonth(date);

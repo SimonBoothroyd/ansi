@@ -666,7 +666,7 @@ class _IngredientsTab extends ConsumerWidget {
   /// Whether each line prints its own macros under its name (the `⋯` toggle).
   final bool showLineMacros;
 
-  /// The Monday of the week this page was opened from, once that week was
+  /// The first day of the week this page was opened from, once that week was
   /// found to actually plan the recipe. Null from the Library — and then every
   /// week-shaped thing below is inert, so the tab is exactly what it was.
   final DateTime? weekStart;

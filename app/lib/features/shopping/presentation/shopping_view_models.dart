@@ -1,7 +1,7 @@
 /// Riverpod ViewModels for the Shop screen.
 ///
 /// [currentShoppingList] streams the derived shopping list for the **viewed**
-/// week — the same Monday the Week and Cook screens show (D3). Mutations
+/// week — the same week start the Week and Cook screens show (D3). Mutations
 /// (check-off,
 /// top-up, add item) are fire-and-forget calls the view makes on the keep-alive
 /// [shoppingRepositoryProvider] directly — never a throwaway notifier held

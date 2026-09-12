@@ -11,7 +11,8 @@ import 'cook_plan.dart';
 
 // ignore: one_member_abstracts — an interface for DI/testing, not a callback.
 abstract interface class CookPlanRepository {
-  /// The derived cook plan for the week beginning [weekStart] (a Monday),
+  /// The derived cook plan for the week beginning [weekStart] (the week's own
+  /// first day),
   /// reacting to local writes. Emits an empty [CookPlan] when the week has no
   /// meals (the empty state).
   Stream<CookPlan> watchCookPlan(DateTime weekStart);

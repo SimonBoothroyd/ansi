@@ -41,7 +41,8 @@ class WeekSwitcher extends ConsumerWidget {
   /// repository at all.
   final bool showCopyLastWeek;
 
-  /// The trailing label for the menu row of a given week (its Monday), in the
+  /// The trailing label for the menu row of a given week (its first day), in
+  /// the
   /// host tab's own words — `2 cooks`, `6 items`, `9 meals` — or null for a
   /// bare row. A tab only knows the week it has derived, so the rows it can
   /// label are the ones it already has data for.

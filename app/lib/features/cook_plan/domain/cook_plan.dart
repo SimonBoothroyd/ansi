@@ -9,9 +9,13 @@
 /// instance folds into one session — cook once, freeze the far share — instead
 /// of opening a second session.
 ///
-/// Days are 0=Monday..6=Sunday (matching `plan_entry.day_of_week`). The cook
-/// day is the earliest covered day. Scale factor is the raw `total_portions /
-/// servings_base` — honest, not nudged to a whole batch.
+/// Days are offsets from the week's own first day, 0..6 (matching
+/// `plan_entry.day_of_week`) — the derivation never asks which weekday that
+/// is, so it is correct under any household's week and improves under a
+/// Sunday-first one: a batch cooked on shopping day heads the week instead of
+/// trailing the next day's. The cook day is the earliest covered day. Scale
+/// factor is the raw `total_portions / servings_base` — honest, not nudged to
+/// a whole batch.
 ///
 /// **Nested recipes (step 8.6 / D3).** A planned recipe's *component* lines
 /// derive sessions of their own: each parent session demands `parent scale ×
@@ -47,7 +51,8 @@ import '../../recipes/domain/recipe.dart';
 part 'cook_plan.freezed.dart';
 
 /// One planned appearance of a recipe in the week — a `plan_entry` reduced to
-/// what batching needs: its [dayOfWeek] (0=Mon..6=Sun), [mealSlot], and the
+/// what batching needs: its [dayOfWeek] (0..6 from the week's first day),
+/// [mealSlot], and the
 /// [portions] it demands (the entry's override, or the sum of its eaters'
 /// portion factors — `demandPortions`). Fractional by design: a 1 and a ¾ eater
 /// are `1.75`, and nothing here rounds it.
@@ -95,7 +100,8 @@ abstract class ComponentDemand with _$ComponentDemand {
     required String parentRecipeId,
     required String parentTitle,
 
-    /// The demanding parent session's cook day (0=Mon..6=Sun) — the day this
+    /// The demanding parent session's cook day (0..6 from the week's first
+    /// day) — the day this
     /// batch has to be ready *by*.
     required int cookDay,
 

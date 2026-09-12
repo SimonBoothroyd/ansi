@@ -1,7 +1,8 @@
 /// The planning persistence contract — PURE DART (invariant 2). The data layer
 /// implements it over PowerSync's local SQLite; ViewModels depend only on this.
 ///
-/// A week is addressed by its Monday (`weekStart`); the repository lazily
+/// A week is addressed by the date of its own first day (`weekStart`); the
+/// repository lazily
 /// creates the `week_plan` row on the first write. Mutations are small and
 /// targeted (add / remove a meal, retarget its eaters) — no whole-week replace.
 library;
@@ -10,7 +11,7 @@ import '../../../core/units/units.dart';
 import 'planning.dart';
 
 abstract interface class PlanningRepository {
-  /// The week beginning [weekStart] (a Monday) with its meals, reacting to
+  /// The week beginning [weekStart] with its meals, reacting to
   /// local writes. Emits `null` until the week has its first entry (the empty
   /// state), then a [WeekPlan] whose entries are newest-first within a slot.
   Stream<WeekPlan?> watchWeek(DateTime weekStart);
@@ -35,7 +36,7 @@ abstract interface class PlanningRepository {
   /// household-scoped, not self-scoped.
   Future<void> setPortionFactor(String memberId, double factor);
 
-  /// The most recent planned date (week Monday + day offset) per recipe,
+  /// The most recent planned date (week start + day offset) per recipe,
   /// across every week — the recipe picker rows' "last planned" recency
   /// (step 7.7). Recipes never planned are absent from the map.
   Stream<Map<String, DateTime>> watchLastPlanned();

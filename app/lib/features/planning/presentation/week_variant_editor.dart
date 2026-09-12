@@ -54,7 +54,8 @@ class WeekVariantEditorView extends ConsumerWidget {
 
   final String recipeId;
 
-  /// The week's Monday as `YYYY-MM-DD` — the `?week=` param the door carries.
+  /// The week's first day as `YYYY-MM-DD` — the `?week=` param the door
+  /// carries.
   final String weekKey;
 
   @override

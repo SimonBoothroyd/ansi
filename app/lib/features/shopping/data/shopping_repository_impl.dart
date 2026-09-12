@@ -33,7 +33,8 @@
 /// `ON CONFLICT`): entry creation is a find-or-create with a plain INSERT.
 ///
 /// **The overlay is week-scoped.** Every entry — an ingredient someone ticked
-/// or topped up, a free-text non-food item — carries the Monday it was made
+/// or topped up, a free-text non-food item — carries the first day of the
+/// week it was made
 /// against, and the read only takes that week's. So
 /// `_findOrCreateIngredientEntry` converges per WEEK, not per household — two
 /// devices ticking Flour on next week still meet on one row, and neither of
