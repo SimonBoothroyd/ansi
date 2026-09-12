@@ -53,6 +53,14 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
   `app/test/features/import/edge_import_failures_test.dart`), and the budgets
   are sized from `evals/runs/`, never from the platform's number.
 - Migrations are immutable once merged; make a new migration to change schema.
+- **Never `npx supabase`, and never take the local stack down mid-run.** The
+  CLI is the brew-pinned 2.115.0 and the Makefile shells it by path
+  (`$(SUPABASE)`); `npx` resolves a newer CLI that starts pulling a postgres
+  image this project does not use. The local stack is **shared by every
+  worktree on the machine**: one lane's `db reset` re-applies *its* migration
+  set under every other lane, and one lane's `supabase stop` ends every other
+  lane's pgTAP run. Reset only from a checkout whose migrations are a superset
+  of main's, and say so in the sitrep.
 
 ## Driving import locally without a key
 

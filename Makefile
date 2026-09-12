@@ -2,6 +2,11 @@
 # Env for the app comes from .env.local (see .env.local.template).
 SHELL := /bin/bash
 APP := app
+# The Supabase CLI by path, never from PATH: `npx supabase` resolves a newer
+# CLI that pulls a different postgres image, and the local stack is shared by
+# every worktree, so one stray resolution takes the database out from under
+# every other lane. Pinned to the brew install (README: 2.115.0).
+SUPABASE := $(shell brew --prefix 2>/dev/null || echo /opt/homebrew)/bin/supabase
 FNS := supabase/functions
 
 # Load .env.local if present, so `make run`/`test` can pass --dart-define.
@@ -90,23 +95,23 @@ coverage: ## Flutter tests with coverage
 # --- backend ---
 .PHONY: db-up db-down db-lint db-reset
 db-up: ## Start Supabase + local PowerSync (functions need: make functions-up)
-	supabase start
+	$(SUPABASE) start
 	docker compose --file ./docker/compose.yaml --env-file .env.local up -d
 	@echo "NOTE: edge functions are NOT served by db-up — run 'make functions-up' for import"
 
 .PHONY: functions-up
 functions-up: ## Serve edge functions locally (import-recipe needs this + .env.local keys)
-	supabase functions serve --env-file .env.local
+	$(SUPABASE) functions serve --env-file .env.local
 
 db-down: ## Stop local backend
 	docker compose --file ./docker/compose.yaml down
-	supabase stop
+	$(SUPABASE) stop
 
 db-reset: ## Reset local DB, re-run migrations + seed
-	supabase db reset
+	$(SUPABASE) db reset
 
 db-lint: ## Sanity-check migrations (+ the rollout script ↔ pgTAP mirror)
-	supabase db lint || true
+	$(SUPABASE) db lint || true
 	@diff <(sed -n '/^-- >>> rollout_measure_refresh/,/^-- <<< rollout_measure_refresh/p' supabase/rollout_measure_refresh.sql) \
 	      <(sed -n '/^-- >>> rollout_measure_refresh/,/^-- <<< rollout_measure_refresh/p' supabase/tests/measure_rollout.sql) \
 	  && echo "rollout mirror: supabase/rollout_measure_refresh.sql == tests/measure_rollout.sql" \
@@ -157,4 +162,4 @@ seed-test: ## Seed-generator tests (collision detection, the miner)
 
 ci: format analyze fns-lint test seed-test docs-check ## The fast local subset of CI
 ci-full: ci db-reset ## Everything CI runs, needs Docker (adds migrations + pgTAP)
-	supabase test db
+	$(SUPABASE) test db
