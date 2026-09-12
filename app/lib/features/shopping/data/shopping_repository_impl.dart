@@ -679,7 +679,8 @@ class SqliteShoppingRepository implements ShoppingRepository {
     if (ids.isEmpty) return const {};
     final placeholders = List.filled(ids.length, '?').join(', ');
     final rows = await _db.getAll(
-      'SELECT id, canonical_name, category, density_g_per_ml, default_unit '
+      'SELECT id, canonical_name, category, density_g_per_ml, default_unit, '
+      'piece_basis_amount, macros_basis '
       'FROM ingredient WHERE id IN ($placeholders)',
       ids.toList(),
     );
@@ -712,6 +713,8 @@ class SqliteShoppingRepository implements ShoppingRepository {
           densityGPerMl: (r['density_g_per_ml'] as num?)?.toDouble(),
           defaultUnit: unitById(r['default_unit'] as String? ?? '') ?? pieces,
           measures: measuresByIngredient[r['id']] ?? const <Measure>[],
+          pieceBasisAmount: (r['piece_basis_amount'] as num?)?.toDouble(),
+          basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
         ),
     };
   }

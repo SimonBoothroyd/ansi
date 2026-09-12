@@ -216,12 +216,21 @@ typedef ManualContributionInput = ({
 /// Ingredient vocab metadata needed to group + sum (name, aisle, density),
 /// plus the ingredient's live measures (sorted by their `sort_order`) — they
 /// gate and price the whole-unit hint on count foods.
+///
+/// `pieceBasisAmount` is what ONE of the ingredient weighs, in `basis`
+/// (`piece_basis_amount` / `macros_basis` — ADR-0015: a piece weight is a row
+/// fact, exactly as a density is). It is the number a bare `piece` line folds
+/// into the basis subtotal through, the way a measure folds through its own
+/// amount; null on a row that states none, whose `piece` lines then stay an
+/// honest bare count.
 typedef IngredientMetaInput = ({
   String name,
   String? category,
   double? densityGPerMl,
   Unit defaultUnit,
   List<Measure> measures,
+  double? pieceBasisAmount,
+  MacrosBasis basis,
 });
 
 // --- Display entities --------------------------------------------------------
@@ -297,12 +306,28 @@ abstract class ShoppingItem with _$ShoppingItem {
     /// the only honest total.
     MeasureAmount? measureTotal,
 
+    /// The item's total as a count of PIECES — "2½ piece" — on a row whose
+    /// default unit is `piece` and that states what one weighs (ADR-0015),
+    /// once everything asked for has folded into ONE basis-family total: the
+    /// `piece` lines through the piece weight, the measures through theirs,
+    /// the plain mass/volume lines as they are. A lime asked for as `1 lime,
+    /// whole` here and `1½ piece` there is 2½ limes, not `67 g + 1½ piece`.
+    /// `approx` is false when every contribution was a `piece` line or a
+    /// measure that is a whole number of pieces (`lime, whole` = 67 g on a 67
+    /// g piece), true when a plain mass/volume line joined or a measure did
+    /// not divide evenly (`onion, small` = 70 g on a 110 g piece). [totals]
+    /// still carries the mass the count weighs. Null on every other row, and
+    /// null when [measureTotal] is set — a row asked for in one named measure
+    /// is counted in that measure, which is the more specific thing to buy.
+    PieceTotal? pieceTotal,
+
     /// An honest round-up hint ("2.25 → buy 3") for a measure-bearing count
     /// ingredient — a HINT beside the total, never a replaced total
     /// (invariant 3). Null when the item doesn't qualify (see
-    /// [wholeUnitHintFor]), and null whenever [measureTotal] is set: a row
-    /// already counted in its measure needs no second way to say the same
-    /// thing.
+    /// [wholeUnitHintFor]), and null whenever [measureTotal] or [pieceTotal]
+    /// is set: a row already counted in its measure or its pieces needs no
+    /// second way to say the same thing (the piece total carries its own
+    /// round-up).
     WholeUnitHint? wholeUnitHint,
   }) = _ShoppingItem;
 
@@ -350,31 +375,6 @@ abstract class ShoppingList with _$ShoppingList {
   }) = _ShoppingList;
 
   bool get isEmpty => groups.isEmpty;
-}
-
-// --- Aggregation (honest summation core) -------------------------------------
-
-/// An amount counted in a [Measure] ("2 × potato, large") — an input awaiting
-/// honest summation via the measure's gram weight, and, once summed, the shape
-/// of a [ShoppingItem.measureTotal].
-typedef MeasureAmount = ({double amount, Measure measure});
-
-/// Sums [qs] into as few totals as it can *honestly* (invariant 3).
-///
-/// - Sums within a unit family by the ratio table (g·kg → one mass total).
-/// - Bridges mass↔volume only when a *positive* [densityGPerMl] is supplied
-///   (a zero/negative density is bad data, treated like none); without one a
-///   mixed set yields two subtotals rather than an invented single number.
-/// - [measured] amounts fold into the **mass** subtotal via each measure's
-///   gram weight (a measure is a stored, sourced mass — spec §4, step 7.6).
-///   One with a non-positive gram weight (bad data) is skipped, never summed
-///   under a guessed weight.
-/// - [UnitFamily.count] totals sum per count unit; [UnitFamily.imprecise] never
-///   sums (a "pinch" doubled is still a pinch) — identical imprecise units
-///   collapse into ONE entry (two recipes each wanting a pinch → "pinch", not
-///   "pinch + pinch"), but distinct ones are never merged.
-/// - [preferred] biases the display unit when it shares the summed family.
-List<Quantity> aggregateQuantities(
 
   /// The aisles as the shopper still has to walk them: each group with only
   /// its UNTICKED items, and a group whose items are all ticked dropped. A
@@ -404,6 +404,37 @@ List<Quantity> aggregateQuantities(
   /// Whether the list has items and every one of them is ticked — the aisles
   /// are empty but the trip is not. The single place "all ticked" is known.
   bool get allTicked => groups.isNotEmpty && openGroups.isEmpty;
+}
+
+// --- Aggregation (honest summation core) -------------------------------------
+
+/// An amount counted in a [Measure] ("2 × potato, large") — an input awaiting
+/// honest summation via the measure's gram weight, and, once summed, the shape
+/// of a [ShoppingItem.measureTotal].
+typedef MeasureAmount = ({double amount, Measure measure});
+
+/// A [ShoppingItem.pieceTotal]: the honest, possibly fractional `count` of
+/// pieces the row's total comes to, and whether that count is `approx` — read
+/// back from a mass or volume somebody stated rather than from pieces and
+/// whole-piece measures alone.
+typedef PieceTotal = ({double count, bool approx});
+
+/// Sums [qs] into as few totals as it can *honestly* (invariant 3).
+///
+/// - Sums within a unit family by the ratio table (g·kg → one mass total).
+/// - Bridges mass↔volume only when a *positive* [densityGPerMl] is supplied
+///   (a zero/negative density is bad data, treated like none); without one a
+///   mixed set yields two subtotals rather than an invented single number.
+/// - [measured] amounts fold into the **mass** subtotal via each measure's
+///   gram weight (a measure is a stored, sourced mass — spec §4, step 7.6).
+///   One with a non-positive gram weight (bad data) is skipped, never summed
+///   under a guessed weight.
+/// - [UnitFamily.count] totals sum per count unit; [UnitFamily.imprecise] never
+///   sums (a "pinch" doubled is still a pinch) — identical imprecise units
+///   collapse into ONE entry (two recipes each wanting a pinch → "pinch", not
+///   "pinch + pinch"), but distinct ones are never merged.
+/// - [preferred] biases the display unit when it shares the summed family.
+List<Quantity> aggregateQuantities(
   List<Quantity> qs, {
   List<MeasureAmount> measured = const [],
   double? densityGPerMl,
@@ -688,6 +719,68 @@ MeasureAmount? _measureTotal(
   );
 }
 
+/// The row's piece weight as the [Measure] the fold already understands: `n
+/// piece` is `n × amount` of the basis unit, exactly like a named measure
+/// (ADR-0015 — the shop converts a `piece` line through the piece weight the
+/// way the macro engine does). Null when the row states no weight, or a
+/// non-positive one: nothing is invented for it, and its `piece` lines stay
+/// an honest bare count.
+Measure? _pieceMeasureOf(IngredientMetaInput? meta) {
+  final amount = meta?.pieceBasisAmount;
+  if (amount == null || !(amount > 0)) return null;
+  return Measure(
+    id: pieces.id,
+    label: pieces.label,
+    amount: amount,
+    basis: meta!.basis,
+  );
+}
+
+/// The item's total as a count of pieces, or null ([ShoppingItem.pieceTotal]).
+///
+/// Offered only on a row whose default unit is `piece` and that states a
+/// piece weight, once the sum collapsed to exactly ONE basis-family total —
+/// a second subtotal means something could not be folded, and a count that
+/// covered only half the row would be a guess. The count is that total
+/// divided by the piece weight (through [amountInMeasure], so a total the
+/// density bridged into the other family still reads honestly, and one it
+/// could not bridge refuses). A row already counted in one named measure
+/// keeps that count: `2 potato, large` is more specific than `≈ 2¾ piece`.
+///
+/// `approx` is the honesty flag: a plain mass or volume line, or a measure
+/// that is not a whole number of pieces, means the count was read back from
+/// a weight rather than tallied.
+PieceTotal? _pieceTotal({
+  required IngredientMetaInput? meta,
+  required Measure? pieceMeasure,
+  required List<Quantity> totals,
+  required List<Quantity> quantities,
+  required List<MeasureAmount> measured,
+  required MeasureAmount? measureTotal,
+}) {
+  if (meta == null || pieceMeasure == null) return null;
+  if (meta.defaultUnit != pieces || measureTotal != null) return null;
+  if (totals.length != 1) return null;
+  final inPieces = amountInMeasure(
+    totals.single,
+    pieceMeasure,
+    densityGPerMl: meta.densityGPerMl,
+  );
+  if (inPieces case Ok(:final value)) {
+    bool wholePieces(Measure m) {
+      final ratio = m.amount / pieceMeasure.amount;
+      return (ratio - ratio.round()).abs() < 1e-6;
+    }
+
+    return (
+      count: value,
+      approx:
+          quantities.isNotEmpty || measured.any((e) => !wholePieces(e.measure)),
+    );
+  }
+  return null;
+}
+
 /// Assembles the derived shopping list from its parts (spec §4).
 ///
 /// [cook] are the derived cook contributions; [planned] the week's bare
@@ -702,6 +795,14 @@ MeasureAmount? _measureTotal(
 /// cook one, a planned snack, or a manual one) or is a free-text item — so an
 /// ingredient whose recipe was deleted (leaving only a stale checked row)
 /// drops off the list.
+///
+/// A `piece` line on a row that states a piece weight folds into the basis
+/// subtotal through that weight, exactly as a measure folds through its own
+/// ([IngredientMetaInput], ADR-0015), and a `piece`-default row so weighed
+/// reads a count of pieces as its total once everything folded into one
+/// ([ShoppingItem.pieceTotal]). A row with no piece weight is untouched: its
+/// `piece` lines stay an honest bare count beside whatever else was asked
+/// for, which is the row's own legacy state to fix.
 ///
 /// Two live entries for the same ingredient can exist (two offline devices each
 /// touching Flour, merged later — no unique index guards this, by design: one
@@ -864,15 +965,30 @@ ShoppingList buildShoppingList({
           ),
     ];
 
+    // A `piece` line on a row that states a piece weight is priced through
+    // that weight exactly as a measure is through its own (ADR-0015) — it
+    // joins the basis subtotal rather than sitting beside it as a bare count.
+    // The provenance line above keeps its own words either way.
+    final pieceMeasure = _pieceMeasureOf(m);
+    bool isWeighedPiece(ShoppingContribution c) =>
+        pieceMeasure != null && c.measure == null && c.unit == pieces;
     final quantities = <Quantity>[
       for (final c in contributions)
-        if (c.measure == null && c.quantity != null && c.unit != null)
+        if (c.measure == null &&
+            c.quantity != null &&
+            c.unit != null &&
+            !isWeighedPiece(c))
           Quantity(c.quantity!, c.unit!),
     ];
     final measured = <MeasureAmount>[
       for (final c in contributions)
         if (c.measure != null && c.quantity != null)
           (amount: c.quantity!, measure: c.measure!),
+    ];
+    final weighedPieces = <MeasureAmount>[
+      for (final c in contributions)
+        if (isWeighedPiece(c) && c.quantity != null)
+          (amount: c.quantity!, measure: pieceMeasure!),
     ];
 
     // The ingredient's default unit is a *display* preference for amounts the
@@ -887,11 +1003,23 @@ ShoppingList buildShoppingList({
     );
     final totals = aggregateQuantities(
       quantities,
-      measured: measured,
+      measured: [...measured, ...weighedPieces],
       densityGPerMl: m?.densityGPerMl,
       preferred: statesMassOrVolume ? m?.defaultUnit : null,
     );
-    final measureTotal = _measureTotal(quantities, measured);
+    // A weighed `piece` line is not the named measure, so a row it joined
+    // has no single named count.
+    final measureTotal = weighedPieces.isEmpty
+        ? _measureTotal(quantities, measured)
+        : null;
+    final pieceTotal = _pieceTotal(
+      meta: m,
+      pieceMeasure: pieceMeasure,
+      totals: totals,
+      quantities: quantities,
+      measured: measured,
+      measureTotal: measureTotal,
+    );
     items.add(
       ShoppingItem(
         entryId: entry?.id,
@@ -900,8 +1028,9 @@ ShoppingList buildShoppingList({
         checked: checked,
         totals: totals,
         measureTotal: measureTotal,
+        pieceTotal: pieceTotal,
         contributions: contributions,
-        wholeUnitHint: m == null || measureTotal != null
+        wholeUnitHint: m == null || measureTotal != null || pieceTotal != null
             ? null
             : wholeUnitHintFor(totals: totals, measures: m.measures),
       ),

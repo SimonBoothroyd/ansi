@@ -1,3 +1,4 @@
+import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/domain/effective_lines.dart';
@@ -371,7 +372,6 @@ void main() {
     });
   });
 
-  group('buildShoppingList', () {
   group('ShoppingList sections (the aisles and the basket)', () {
     ShoppingItem item(String name, {bool checked = false}) =>
         ShoppingItem(name: name, ingredientId: name, checked: checked);
@@ -414,6 +414,7 @@ void main() {
     });
   });
 
+  group('buildShoppingList', () {
     ShoppingList build({
       List<CookContributionInput> cook = const [],
       List<PlanIngredientInput> planned = const [],
@@ -441,12 +442,16 @@ void main() {
       Unit unit = g,
       double? density,
       List<Measure> measures = const [],
+      double? pieceWeight,
+      MacrosBasis basis = MacrosBasis.perG,
     }) => (
       name: name,
       category: category,
       densityGPerMl: density,
       defaultUnit: unit,
       measures: measures,
+      pieceBasisAmount: pieceWeight,
+      basis: basis,
     );
 
     test('rolls two cook contributions of an ingredient into one item', () {
@@ -1039,6 +1044,179 @@ void main() {
       );
       expect(list.unresolvedComponents, isEmpty);
       expect(list.retiredIngredients, isEmpty);
+    });
+
+    // --- A piece-weighted row is bought in pieces (ADR-0015) ----------------
+
+    group('a piece-weighted row is bought in pieces', () {
+      // The live repro: a lime asked for as "1 lime, whole" in one recipe and
+      // "1½ piece" in another. Lime's row says a piece weighs 67 g (borrowed
+      // from the measure), so the shop reads 2½ limes — never "67 g + 1½
+      // piece", a count sitting beside the grams it should have joined.
+      const whole = Measure(id: 'm-lime', label: 'lime, whole', amount: 67);
+      IngredientMetaInput lime({
+        double? pieceWeight = 67,
+        Unit unit = pieces,
+      }) => metaFor(
+        'Lime',
+        'produce',
+        unit: unit,
+        measures: const [whole],
+        pieceWeight: pieceWeight,
+      );
+
+      test('a measure and a piece line fold into one count of pieces', () {
+        final item = build(
+          cook: [
+            _cook('lime', 1, pieces, measure: whole, recipe: 'Curry'),
+            _cook('lime', 1.5, pieces, recipe: 'Salad', cookDay: 2),
+          ],
+          meta: {'lime': lime()},
+        ).groups.single.items.single;
+        // One honest mass total — the piece line went through the weight.
+        expect(item.totals.single.unit, g);
+        expect(item.totals.single.amount, closeTo(167.5, 1e-9));
+        // …read as a count of limes, exact: a whole lime IS one piece.
+        expect(item.pieceTotal, isNotNull);
+        expect(item.pieceTotal!.count, closeTo(2.5, 1e-9));
+        expect(item.pieceTotal!.approx, isFalse);
+        // Not a named-measure count, and no second round-up beside it.
+        expect(item.measureTotal, isNull);
+        expect(item.wholeUnitHint, isNull);
+        // Each provenance line keeps its own words.
+        expect(item.contributions.first.measure, whole);
+        expect(item.contributions.last.unit, pieces);
+        expect(item.contributions.last.quantity, 1.5);
+      });
+
+      test('piece lines alone tally exactly, and still weigh something', () {
+        final item = build(
+          cook: [
+            _cook('lime', 2, pieces, recipe: 'Curry'),
+            _cook('lime', 1.5, pieces, recipe: 'Salad', cookDay: 2),
+          ],
+          meta: {'lime': lime()},
+        ).groups.single.items.single;
+        expect(item.pieceTotal!.count, closeTo(3.5, 1e-9));
+        expect(item.pieceTotal!.approx, isFalse);
+        expect(item.totals.single.amount, closeTo(3.5 * 67, 1e-9));
+        expect(item.totals.single.unit, g);
+      });
+
+      test('a plain mass line makes the count approximate', () {
+        final item = build(
+          cook: [
+            _cook('lime', 1, pieces, recipe: 'Curry'),
+            _cook('lime', 100, g, recipe: 'Salad', cookDay: 2),
+          ],
+          meta: {'lime': lime()},
+        ).groups.single.items.single;
+        expect(item.pieceTotal!.count, closeTo(167 / 67, 1e-9));
+        expect(item.pieceTotal!.approx, isTrue);
+      });
+
+      test('a measure that is not a whole number of pieces is approximate', () {
+        // An onion, small (70 g) on a 110 g piece: ⁷⁄₁₁ of a piece each.
+        const small = Measure(id: 'm-small', label: 'onion, small', amount: 70);
+        final item = build(
+          cook: [
+            _cook('onion', 2, pieces, recipe: 'Curry'),
+            _cook(
+              'onion',
+              1,
+              pieces,
+              measure: small,
+              recipe: 'Soup',
+              cookDay: 2,
+            ),
+          ],
+          meta: {
+            'onion': metaFor(
+              'Onion',
+              'produce',
+              unit: pieces,
+              measures: const [small],
+              pieceWeight: 110,
+            ),
+          },
+        ).groups.single.items.single;
+        expect(item.pieceTotal!.count, closeTo(290 / 110, 1e-9));
+        expect(item.pieceTotal!.approx, isTrue);
+      });
+
+      test(
+        'a row with no piece weight is unchanged — an honest bare count',
+        () {
+          // The legacy state the owner fixes on the row: nothing is invented.
+          final item = build(
+            cook: [
+              _cook('lime', 1, pieces, measure: whole, recipe: 'Curry'),
+              _cook('lime', 1.5, pieces, recipe: 'Salad', cookDay: 2),
+            ],
+            meta: {'lime': lime(pieceWeight: null)},
+          ).groups.single.items.single;
+          expect(item.pieceTotal, isNull);
+          expect(item.totals, hasLength(2));
+          expect(item.totals.first.unit, g);
+          expect(item.totals.first.amount, closeTo(67, 1e-9));
+          expect(item.totals.last.unit, pieces);
+          expect(item.totals.last.amount, 1.5);
+        },
+      );
+
+      test('one named measure everywhere keeps its own count', () {
+        // "2 lime, whole" is what was asked for; the piece count adds nothing.
+        final item = build(
+          cook: [_cook('lime', 2, pieces, measure: whole, recipe: 'Curry')],
+          meta: {'lime': lime()},
+        ).groups.single.items.single;
+        expect(item.measureTotal!.measure, whole);
+        expect(item.measureTotal!.amount, 2);
+        expect(item.pieceTotal, isNull);
+      });
+
+      test('a mass-default row folds its pieces but is bought by weight', () {
+        final item = build(
+          cook: [
+            _cook('lime', 1, pieces, recipe: 'Curry'),
+            _cook('lime', 100, g, recipe: 'Salad', cookDay: 2),
+          ],
+          meta: {'lime': lime(unit: g)},
+        ).groups.single.items.single;
+        expect(item.totals.single.unit, g);
+        expect(item.totals.single.amount, closeTo(167, 1e-9));
+        expect(item.pieceTotal, isNull);
+      });
+
+      test('a volume no density can bridge leaves two honest subtotals', () {
+        final item = build(
+          cook: [
+            _cook('lime', 1, pieces, recipe: 'Curry'),
+            _cook('lime', 30, ml, recipe: 'Drink', cookDay: 2),
+          ],
+          meta: {'lime': lime()},
+        ).groups.single.items.single;
+        expect(item.totals, hasLength(2));
+        expect(item.pieceTotal, isNull);
+      });
+
+      test('a per-ml row prices its pieces in millilitres', () {
+        final item = build(
+          cook: [_cook('egg', 3, pieces, recipe: 'Custard')],
+          meta: {
+            'egg': metaFor(
+              'Egg',
+              'dairy',
+              unit: pieces,
+              pieceWeight: 50,
+              basis: MacrosBasis.perMl,
+            ),
+          },
+        ).groups.single.items.single;
+        expect(item.totals.single.unit, ml);
+        expect(item.totals.single.amount, closeTo(150, 1e-9));
+        expect(item.pieceTotal!.count, closeTo(3, 1e-9));
+      });
     });
 
     // --- A planned ingredient is bought, though nothing cooks it (8.14) -----

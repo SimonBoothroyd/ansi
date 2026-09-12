@@ -98,6 +98,21 @@ ingredient's default unit biases only a sum that real mass or volume lines
 stated — a measure-only sum stays in the basis it folded into, so a can of
 lentils never comes back out as ounces.
 
+**A piece-weighted row is bought in pieces.** A row that states what one of it
+weighs (`piece_basis_amount`, ADR-0015) prices a bare `piece` line through that
+weight, exactly as a measure is priced through its own — so `1 lime, whole`
+here and `1½ piece` there are one mass subtotal, never `67 g + 1½ piece`. When
+that row's default unit is `piece` and everything asked for folded into one
+basis-family total, the item carries a `pieceTotal` and the row reads the count
+— "2½ piece" — with the mass beside it and, when the count is fractional, the
+round-up after that ("167.5 g → buy 3"). The count is exact when every
+contribution was a `piece` line or a measure that is a whole number of pieces,
+and marked `≈` when a plain mass or volume line joined or a measure did not
+divide evenly. A row asked for in one named measure keeps that count instead —
+`2 potato, large` is the more specific thing to buy — and a row with no piece
+weight is untouched: its `piece` lines stay an honest bare count, which is the
+row's own legacy state to fix.
+
 ## Entry lifecycle (the recipe-deleted-but-checked case)
 
 An item is displayed only while it has a **live** contribution (a derived cook

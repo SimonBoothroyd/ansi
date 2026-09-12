@@ -67,6 +67,40 @@ void main() {
       expect(itemSecondary(item), '672.75 g');
     });
 
+    test('a piece-weighted row reads its count, with the grams under it', () {
+      // 1 lime, whole (67 g) + 1½ piece on a 67 g piece: 2½ limes, exactly.
+      final lime = ShoppingItem(
+        name: 'Lime',
+        ingredientId: 'lime',
+        totals: [Quantity(167.5, g)],
+        pieceTotal: (count: 2.5, approx: false),
+      );
+      expect(itemTotal(lime), '2½ piece');
+      // The weight beside it, and the round-up after — the count is fractional.
+      expect(itemSecondary(lime), '167.5 g → buy 3');
+    });
+
+    test('a count read back from a weight says so, and a whole one needs no '
+        'round-up', () {
+      final approx = ShoppingItem(
+        name: 'Lime',
+        ingredientId: 'lime',
+        totals: [Quantity(160.8, g)],
+        pieceTotal: (count: 2.4, approx: true),
+      );
+      expect(itemTotal(approx), '≈ 2.4 piece');
+      expect(itemSecondary(approx), '160.8 g → buy 3');
+
+      final whole = ShoppingItem(
+        name: 'Lime',
+        ingredientId: 'lime',
+        totals: [Quantity(201, g)],
+        pieceTotal: (count: 3, approx: false),
+      );
+      expect(itemTotal(whole), '3 piece');
+      expect(itemSecondary(whole), '201 g');
+    });
+
     test('honest subtotals join, and a numberless staple is an em dash', () {
       final split = ShoppingItem(
         name: 'Yoghurt',

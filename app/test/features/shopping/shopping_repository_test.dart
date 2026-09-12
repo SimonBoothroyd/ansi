@@ -26,12 +26,24 @@ Future<void> _insertIngredient(
   String category,
   String defaultUnit, {
   double? density,
+  double? pieceWeight,
 }) async {
   await db.execute(
     'INSERT INTO ingredient (id, household_id, canonical_name, category, '
-    'default_unit, density_g_per_ml, status, source, match_text) '
-    'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [id, 'h', name, category, defaultUnit, density, 'complete', 'seed', name],
+    'default_unit, density_g_per_ml, piece_basis_amount, status, source, '
+    'match_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [
+      id,
+      'h',
+      name,
+      category,
+      defaultUnit,
+      density,
+      pieceWeight,
+      'complete',
+      'seed',
+      name,
+    ],
   );
 }
 
@@ -814,6 +826,56 @@ void main() {
     expect(onion.measureTotal!.measure.label, 'onion, medium');
     expect(onion.measureTotal!.amount, closeTo(2.25, 1e-9));
     expect(onion.wholeUnitHint, isNull);
+  });
+
+  test('a piece line on a piece-weighted row folds through the weight, and '
+      'the row is bought in pieces', () async {
+    // The live repro: "1 lime, whole" in the curry, "1½ piece" in the salad.
+    // Lime's row says a piece is 67 g (the weight the measure lent it), so
+    // the two are 2½ limes — never "67 g + 1½ piece".
+    await _insertIngredient(
+      db,
+      'lime',
+      'Lime',
+      'produce',
+      'piece',
+      pieceWeight: 67,
+    );
+    await db.execute(
+      'INSERT INTO ingredient_measure '
+      '(id, household_id, ingredient_id, label, basis_amount, sort_order) '
+      'VALUES (?, ?, ?, ?, ?, 0)',
+      ['m-lime', 'h', 'lime', 'lime, whole', 67],
+    );
+    await _insertRecipe(db, 'curry', 'Curry', lines: [('lime', 1, pieces)]);
+    await db.execute(
+      "UPDATE recipe_line_item SET measure_id = 'm-lime' "
+      "WHERE id = 'curry-li0'",
+    );
+    await _insertRecipe(db, 'salad', 'Salad', lines: [('lime', 1.5, pieces)]);
+    for (final (day, recipe) in [(0, 'curry'), (2, 'salad')]) {
+      await planning.addEntry(
+        weekStart: _week,
+        dayOfWeek: day,
+        mealSlot: 'Dinner',
+        recipeId: recipe,
+        eaterIds: ['a', 'b'],
+      );
+    }
+
+    final list = await repo.watchShoppingList(_week).first;
+    final lime = list.groups.single.items.single;
+    expect(lime.totals.single.unit, g);
+    expect(lime.totals.single.amount, closeTo(167.5, 1e-9));
+    expect(lime.pieceTotal, isNotNull);
+    expect(lime.pieceTotal!.count, closeTo(2.5, 1e-9));
+    expect(lime.pieceTotal!.approx, isFalse);
+    expect(lime.measureTotal, isNull);
+    expect(lime.wholeUnitHint, isNull);
+    // The lines keep their own words.
+    expect(lime.contributions.first.measure?.label, 'lime, whole');
+    expect(lime.contributions.last.unit, pieces);
+    expect(lime.contributions.last.quantity, closeTo(1.5, 1e-9));
   });
 
   test('a measure top-up persists measure_id and resolves in the '

@@ -24,12 +24,20 @@ String formatItemCount(int items) => switch (items) {
 String formatMeasureCount(double amount, Measure measure) =>
     '${formatQuantity(amount)} ${measure.label}';
 
-/// An item's rolled-up total for the right-hand column. An item every
-/// contribution asked for in one measure reads in that measure ("1 can
-/// (400 g), drained") — it is what goes in the basket. Otherwise the honest
-/// subtotals join with " + " (a mass and a volume that couldn't be merged),
-/// and a numberless non-food staple renders as an em dash.
+/// A count of pieces, e.g. "2½ piece", or "≈ 2½ piece" when the count was
+/// read back from a weight rather than tallied.
+String formatPieceCount(PieceTotal p) =>
+    '${p.approx ? '≈ ' : ''}${formatQuantity(p.count)} ${pieces.label}';
+
+/// An item's rolled-up total for the right-hand column. A piece-weighted row
+/// reads its count of pieces ("2½ piece"); an item every contribution asked
+/// for in one measure reads in that measure ("1 can (400 g), drained") — each
+/// is what goes in the basket. Otherwise the honest subtotals join with " + "
+/// (a mass and a volume that couldn't be merged), and a numberless non-food
+/// staple renders as an em dash.
 String itemTotal(ShoppingItem item) {
+  final inPieces = item.pieceTotal;
+  if (inPieces != null) return formatPieceCount(inPieces);
   final measured = item.measureTotal;
   if (measured != null) {
     return formatMeasureCount(measured.amount, measured.measure);
@@ -38,10 +46,18 @@ String itemTotal(ShoppingItem item) {
   return item.totals.map(formatTotal).join(' + ');
 }
 
-/// The small line under an item's total: what a measure-counted row weighs
-/// ("400 g"), or the whole-unit round-up hint. Empty when the row has neither.
-/// Never a replacement for [itemTotal] — always beside it (invariant 3).
+/// The small line under an item's total: what a piece- or measure-counted row
+/// weighs ("400 g") — with the round-up after it when the piece count is
+/// fractional ("168 g → buy 3") — or the whole-unit round-up hint. Empty when
+/// the row has none of these. Never a replacement for [itemTotal] — always
+/// beside it (invariant 3).
 String itemSecondary(ShoppingItem item) {
+  final inPieces = item.pieceTotal;
+  if (inPieces != null) {
+    final weighs = item.totals.map(formatTotal).join(' + ');
+    final buy = inPieces.count.ceil();
+    return buy > inPieces.count ? '$weighs → buy $buy' : weighs;
+  }
   if (item.measureTotal != null) {
     return item.totals.map(formatTotal).join(' + ');
   }
