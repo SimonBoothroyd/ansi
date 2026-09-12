@@ -180,7 +180,7 @@ models; runs after the other two land:
 
 ## Step-done checklist
 
-- [ ] Roadmap row added.
+- [x] Roadmap row added (in progress until the release).
 - [x] `ARCHITECTURE.md` standing table: recipes (the page holds the week),
       cook plan (week-aware component graph), shopping (the echo row is a
       door).

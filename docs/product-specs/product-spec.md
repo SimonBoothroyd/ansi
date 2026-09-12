@@ -446,7 +446,7 @@ its steps.
   extraction. It rides a sub-recipe component line as it rides an ingredient
   one, and the seam names the sub-recipe's title where it left. Its only
   effect is on what a
-  TOTAL covers, through one seam — `effectiveLines(lines, planEntryId)` —
+  TOTAL covers, through one seam — `effectiveLines(lines, overrides:)` —
   that every derivation runs over: the macro summary and the shopping list
   leave the line out **and name it where it left** (an `OPTIONAL · Lime,
   Coriander` row under the panel, beside the imprecise one; `2 optional lines
@@ -464,6 +464,18 @@ its steps.
   back what is left with `optional` cleared on anything the week already ruled
   on, so a second pass changes nothing. A caller holding no week passes no
   overrides and reads the recipe as it stands.
+  - **Optional has two owners, and each decides where the question comes
+    up.** The recipe says *may be skipped* — the author's claim, from import
+    or the editor, and the only place the flag itself changes. The week says
+    *this time, yes* — the cook's claim, the `include` row. On the recipe
+    page **opened from a week that plans it**, the tag is that switch: an
+    empty ring before `optional`, one tap → a filled `included` chip, the
+    week's row written, the panel recounted over the week's lines with an
+    `INCLUDED · names · for this week` row. The shop's echo names are the
+    same door. From the Library the tag is a tag: with no week there is no
+    decision, and nothing is written. A household that always wants the lime
+    unticks optional in the editor — for them it is not optional; there is no
+    third "usually yes" state.
 - `favorite` is the household-shared curated shortlist behind the recipe
   picker's Favorites tab; marked from the recipe page's header menu.
 - **Per-serving macro summation (step 7.7, pulled from step 9):** pure-Dart
@@ -690,9 +702,15 @@ go. There is no re-chip — tokenization happens only inside the import call.
     beside its own, renamed, "Edit recipe": **"Edit for this week · Tue & Sat
     only"**. The band is the condition of that item, not decoration: it says
     which days a tap would change. The week is re-checked against the plan
-    rather than trusted, so a stale link offers neither. From the Library the
-    page is untouched (Favorite · Show line macros · Edit · Delete), and Cook
-    stays read-only — its title carries the week, it does not write it.
+    rather than trusted, so a stale link offers neither. That page also
+    **holds the week**: its Ingredients tab draws the week's effective lines
+    read-only, in week mode's own grammar — a replaced amount as the week
+    states it, an excluded line struck, an added line after the last group,
+    an included optional line with its tag lit — and the `optional` tag is
+    the one control on it, ticking a line in or out for that week without
+    opening the editor. From the Library the page is untouched (Favorite ·
+    Show line macros · Edit · Delete), and Cook stays read-only — its title
+    carries the week, it does not write it.
     Still not a fourth target on the dish row: a control drawn on every row is
     a target every row pays for.
 
