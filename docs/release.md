@@ -479,7 +479,7 @@ record the run in cloud-setup's ledger.
    workflow (§4.2).
 3. Seed changed? Tick **`reseed_template`** on that same run (§4.2 step 5),
    then do cloud-setup §2b (§4.4) by hand if existing households need it.
-   **The reseed handles renames and deletions itself.** The template on cloud
+   **The reseed handles renames, re-weighs and deletions itself.** The template on cloud
    is long-lived and the seed upserts by `match_text`, so a renamed row still
    arrives under its new key — but the generated file then soft-deletes every
    template row, measure and alias the snapshot no longer carries, and raises

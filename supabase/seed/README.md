@@ -140,8 +140,9 @@ it — `usda_probe` raises without it). `supabase db reset` applies all three.
 
 The file is **re-runnable** (migration 0020): the template holds one live row
 per `match_text`, so an existing row is refreshed in place, a new one is
-inserted, and a template row, measure or alias the snapshot no longer carries
-is soft-deleted and counted in a notice — the snapshot **is** the template,
+inserted, a measure that kept its label but changed its amount, order or
+source is updated in place, and a template row, measure or alias the snapshot
+no longer carries is soft-deleted and counted in a notice — the snapshot **is** the template,
 so a row the owner deleted or renamed does not live on for the next household
 to clone. A reseed of an unchanged snapshot is a complete no-op. On cloud
 that is the deploy workflow's **`reseed_template`** button — the

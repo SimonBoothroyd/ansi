@@ -573,6 +573,27 @@ function buildSql(plan: SeedPlan): { sql: string; counts: Counts } {
       "     where x.ingredient_id = i.id and x.label = m.label",
       "       and x.deleted_at is null);",
       "",
+      "-- A measure the owner re-weighed, reordered or re-sourced keeps its",
+      "-- label, so the guard above skips it: carry the snapshot's figures",
+      "-- onto the live row, and only where they differ.",
+      "update ingredient_measure x",
+      "   set basis_amount = m.basis_amount, sort_order = m.sort_order,",
+      "       source = m.source, updated_at = now()",
+      "from ingredient i",
+      "join (values",
+      measures.map((m) =>
+        `  (${q(m.ing_match)}, ${q(m.label)}, ${num(m.basis_amount)}, ${
+          m.sort_order ?? 0
+        }::int, ${txt(m.source)})`
+      ).join(",\n"),
+      ") as m(ing_match, label, basis_amount, sort_order, source)",
+      "  on i.match_text = m.ing_match",
+      `where i.household_id = ${q(HOUSEHOLD_ID)} and i.deleted_at is null`,
+      "  and x.ingredient_id = i.id and x.label = m.label",
+      "  and x.deleted_at is null",
+      "  and (x.basis_amount, x.sort_order, x.source)",
+      "      is distinct from (m.basis_amount, m.sort_order, m.source);",
+      "",
     );
   }
 
