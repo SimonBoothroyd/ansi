@@ -178,7 +178,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(
-      find.text('1/4 cup = 1/4 of a batch · makes 1 cup'),
+      find.text('¼ cup = ¼ of a batch · makes 1 cup'),
       findsOneWidget,
       reason: 'the conversion line must read the batch math, live',
     );
@@ -214,7 +214,7 @@ void main() {
     //      the delete refusal that speaks the same count (D5 · D7 · D9).
     // ------------------------------------------------------------------------
     // The v3 grammar is untouched; only the identity cell changed.
-    expect(find.text('1/4 cup'), findsOneWidget);
+    expect(find.text('¼ cup'), findsOneWidget);
     expect(find.byType(RecipeChip), findsOneWidget);
     await tester.tap(find.byType(RecipeChip));
     await pumpUntilFound(tester, find.text('makes 1 cup'));
@@ -224,7 +224,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Sausage Sliders'), findsOneWidget);
     expect(
-      find.text('1/4 cup · 1/4 of a batch'),
+      find.text('¼ cup · ¼ of a batch'),
       findsOneWidget,
       reason: 'a "used in" row states the printed amount AND its share',
     );
@@ -278,11 +278,11 @@ void main() {
     expect(find.text('derived from a component line'), findsOneWidget);
     // Ready BY the demanding parent's cook day, denominated in batches.
     expect(find.text('Cook by Fri'), findsOneWidget);
-    expect(find.text('×1/4 batch'), findsOneWidget);
+    expect(find.text('×¼ batch'), findsOneWidget);
     expect(
       find.text(
         'covers Sausage Sliders · cook Fri — makes 1 cup, you need '
-        '1/4',
+        '¼',
       ),
       findsOneWidget,
     );
@@ -377,11 +377,11 @@ void main() {
     expect(
       find.text(
         'covers Sausage Sliders · cook Fri — the line asks for '
-        '1/4 cup',
+        '¼ cup',
       ),
       findsOneWidget,
     );
-    expect(find.text('×1/4 batch'), findsNothing);
+    expect(find.text('×¼ batch'), findsNothing);
     expect(find.text('×1 batch'), findsNothing);
 
     // The Shop tab: the unresolved component contributes NOTHING, and the
