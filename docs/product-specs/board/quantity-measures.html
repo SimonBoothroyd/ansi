@@ -16,6 +16,7 @@
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Quantity &amp; measures</h1>
     <p class="view-status">built · matches code 2026-09-11 · <code>features/ingredients</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a></p>
+    <p class="view-status"><span class="prop">proposed</span> the dock under the whole-measure model · <code>features/ingredients</code> · <a href="../../exec-plans/active/0046-field-test-round-twelve.md">plan 0046</a> · not built</p>
     <p class="view-blurb">One dock everywhere an amount is set: this ingredient’s admitted units as chips over a keypad, and the conversion said out loud above them.</p>
 </header>
 
@@ -67,6 +68,29 @@
                 <p class="chip-note">no piece weight on this row — piece is not offered at all</p>
                 <div class="uchips"><span class="uchip on"><span class="srcdot usda"></span>clove</span><span class="uchip struck">piece</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip addm">＋</span></div>
                 <p class="conv-note" style="margin:0">(struck chip drawn for the board only — on the phone it is simply absent). Nothing was curated off this row: the number that would admit <code>piece</code> is not there.</p>
+            </div>
+        </div></div>
+    </div>
+
+
+    <div class="frame">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>The dock under the whole-measure model</b> · one chip moves: the measure that weighs a piece opens the row and is the chip the sheet opens on; <i>piece</i> stays, after it. Under the other model the dock is the frame above, unchanged</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">✕</span><span class="ttl"></span><span class="dots"></span></div>
+            <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle">Lime</div>
+                <div class="mline">30 kcal · 1P 0F 11C <span class="per">/100 g</span></div></div></div>
+            <p class="flabel" style="margin-top:14px">Quantity</p>
+            <div class="field"><div class="qty-big"><span class="qn">1</span><span class="care"></span><span class="qu">lime, whole</span></div></div>
+            <div class="dock">
+                <p class="conv-note" style="margin:0 0 9px">1 × 67 g = <b>67 g</b></p>
+                <p class="chip-note">a whole measure on the row — it leads, and it is what the sheet opens on; piece follows with the same figure</p>
+                <div class="uchips"><span class="uchip on"><span class="srcdot usda"></span>lime, whole</span><span class="uchip">piece (67 g)</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip-sep"></span><span class="uchip impr">handful</span><span class="uchip addm">＋</span></div>
+                <p class="conv-note" style="margin:0 0 10px">the two chips say the same 67 g. The sheet opening on the <i>measure</i> rather than the unit is the whole change on this screen: a hand-typed lime and an imported lime then carry one word.</p>
+            </div>
+            <div class="abar" style="border-top:1px solid var(--line);padding-top:12px"><span class="back">✕</span><span class="ttl"></span><span class="dots"></span></div>
+            <div class="dock" style="margin-top:0">
+                <p class="chip-note">Avocado — weighed, no measure weighs a piece: the dock is exactly today’s</p>
+                <div class="uchips"><span class="uchip on">piece (201 g)</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip addm">＋</span></div>
             </div>
         </div></div>
     </div>

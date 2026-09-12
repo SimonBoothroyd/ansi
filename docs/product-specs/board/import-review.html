@@ -16,6 +16,7 @@
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Import review</h1>
     <p class="view-status">built · matches code 2026-09-12 · <code>features/import</code> · <code>recipes/presentation/line_card.dart</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/completed/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
+    <p class="view-status"><span class="prop">proposed</span> a counted line arrives on the whole measure · <code>features/import</code> · <a href="../../exec-plans/active/0046-field-test-round-twelve.md">plan 0046</a> · not built</p>
     <p class="view-blurb">One form with two doors, then the whole import on one editable screen: the editor’s own header, a card per line, the method as step cards, and a Save gate that counts the same number the header does.</p>
 </header>
 
@@ -276,6 +277,35 @@
 
             <div class="savebtn off">1 line(s) need you</div>
         </div></div>
+    </div>
+
+
+    <div class="frame">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>A counted line arrives on the whole measure</b> · the whole-measure model at the review: the page said <i>1 lime</i>, the row has a measure that weighs a piece, so the line lands on it — unflagged, with the fruit’s own word. Under the other model the two frames above stand as drawn</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount ok">looks good</span></div>
+            <div class="lcard" style="margin-top:12px">
+                <div class="l3 edit"><span class="l3-amt">1 lime, whole</span><span class="l3-body"><span class="l3-id">Lime</span><span class="l3-note">juiced, zested</span></span><span class="l3-pen">✎</span></div>
+                <div class="srcline">from source:  juice and zest of 1 lime</div>
+                <div class="lockhint">collapsed, clean — the extraction printed <code>piece</code>, and the review handed the line the row’s whole measure instead, because <i>lime, whole</i> weighs exactly what Lime says a piece weighs. No amber, and the row is the same 67 g either way.</div>
+            </div>
+            <div class="lcard">
+                <div class="chead"><span class="cn">red peppers</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="srcline">from source:  2 red peppers, deseeded</div>
+                <div class="chosen"><span class="ck">✓</span><span class="cnm">Red bell pepper</span><span class="chint">tap to change</span><span class="ci">›</span></div>
+                <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">2 pepper, medium <span class="pen">✎</span></span></span></div>
+                <div class="erow"><span class="elab">Unit</span><span class="ebody"><div class="suggests" style="margin-top:4px"><span class="sug pick">pepper, medium</span><span class="sug">pepper, large</span><span class="sug">piece (119 g)</span><span class="sug">g</span><span class="sug">kg</span></div></span></div>
+                <div class="erow"><span class="elab">Notes</span><span class="ebody"><div class="notesin">deseeded</div></span></div>
+                <div class="lockhint">opened: the whole measure is the picked chip and <code>piece (119 g)</code> is still offered after the sizes — a tap moves the line back to a bare count. <b>pepper, large</b> is a size, not the whole, and is never picked for the line on its own.</div>
+            </div>
+            <div class="lcard">
+                <div class="l3 edit"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Avocado</span><span class="l3-note">smashed</span></span><span class="l3-pen">✎</span></div>
+                <div class="srcline">from source:  1 ripe avocado, smashed</div>
+                <div class="lockhint">a weighed row with no whole measure commits as it does today — a bare <code>piece</code>, and nothing to say about it.</div>
+            </div>
+            <div class="savebtn">Save recipe</div>
+        </div></div>
+        <p class="conv-note" style="margin:10px 4px 0">What the review would decide, in order: a counted line on a row with a <b>whole measure</b> arrives on that measure; on a weighed row without one, on <code>piece</code>; on an unweighed row, the unsupported-unit gate above. The server’s extraction is untouched — it still prints <code>piece</code> for counted produce — and so is the rule that nothing here enters a weight.</p>
     </div>
 
         <div class="frame">

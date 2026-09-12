@@ -189,6 +189,120 @@ Queries 1 and 2 are the actionable ones; a hit is fixed in the app, never
 by SQL (a piece weight typed on the row unions `piece` into
 `allowed_units` in the same write, which a hand `UPDATE` would skip).
 
+## The lime — two models, drawn on the board
+
+The owner, after reading the audit: *"change anything using piece in our
+recipes to the proper measure where applicable"*, and *"figure out what
+import should do"*. Two models answer that, and both are drawn as
+`proposed` frames — the Shop's *The lime, two ways*, the recipe page's
+*Saved, under the whole-measure model*, the import review's *A counted line
+arrives on the whole measure*, and the quantity sheet's *The dock under the
+whole-measure model*.
+
+**A — the whole measure is the word.** A *whole measure* is a live measure
+whose amount is the row's piece weight (Lime's `lime, whole` = 67 g; Onion's
+`onion, medium` = 110 g) — a derived fact, no new column, no pointer to
+re-aim. Under A:
+
+- every `piece` line on a row with a whole measure is re-pointed at it, once,
+  by the SQL below; a planned snack in `piece` likewise;
+- the import review lands a counted line on the whole measure when the row
+  has one, on `piece` on a weighed row without one, and at the
+  unsupported-unit gate on an unweighed row. The server's extraction still
+  prints `piece`; the review decides. `arrivalMeasure` returns in this one
+  narrow form: the measure is not stated by the row, it is found by weight;
+- the chip row leads with the whole measure and the sheet opens on it;
+  `piece (67 g)` stays offered after it;
+- the shop's named-measure count (`2½ lime, whole`) gains the `→ buy 3`
+  round-up the piece count already has;
+- a row that weighs a piece but names no size (Avocado, Chicken thigh) still
+  says `piece`, so the word does not leave the app.
+
+**B — a bare count is the number alone.** Nothing is stored differently
+and the import is untouched. The shop prints a `piece` total the way the
+recipe page already prints a `piece` line: the number (`2½`), with the grams
+and the round-up under it; the provenance line likewise (`1½`). The word
+`piece` is never printed beside a name. Optionally, later, a whole measure
+that only duplicates the piece weight is retired and its lines re-pointed at
+`piece` — the tidy-up runs the other way.
+
+**Recommendation: B**, then A only if the printed measure words are wanted
+on the recipe page. B is a formatting rule and a test; A is a data write on
+the cloud, a review rule that brings back a measure arrival, a chip rule and
+a shop rule, to say `lime, whole` where the row already said `Lime`. Both
+leave ADR-0015 standing. The owner picks from the frames.
+
+### Model A's data fix (only if A is chosen — the owner runs it)
+
+Read-only preview first; the write is one transaction. `distinct on` takes
+the lowest-sorted whole measure where a row has two within tolerance.
+
+```sql
+-- Preview: every `piece` line the write would re-point, and to what.
+with whole as (
+  select distinct on (m.ingredient_id)
+         m.ingredient_id, m.id as measure_id, m.label
+    from ingredient_measure m
+    join ingredient i on i.id = m.ingredient_id
+   where m.deleted_at is null and i.deleted_at is null
+     and i.piece_basis_amount is not null
+     and abs(m.basis_amount - i.piece_basis_amount) <= 0.01 * i.piece_basis_amount
+   order by m.ingredient_id, m.sort_order, m.label
+)
+select r.title as recipe, i.canonical_name as ingredient, li.quantity,
+       w.label as becomes
+  from recipe_line_item li
+  join ingredient_group g on g.id = li.group_id
+  join recipe r          on r.id = g.recipe_id
+  join ingredient i      on i.id = li.ingredient_id
+  join whole w           on w.ingredient_id = i.id
+ where li.deleted_at is null and r.deleted_at is null
+   and li.unit = 'piece' and li.measure_id is null
+ order by i.canonical_name, r.title;
+
+-- The write. `unit` stays `piece` beside the measure id — that is the pair
+-- every measure-quantified row in the app stores.
+begin;
+with whole as (
+  select distinct on (m.ingredient_id)
+         m.ingredient_id, m.id as measure_id
+    from ingredient_measure m
+    join ingredient i on i.id = m.ingredient_id
+   where m.deleted_at is null and i.deleted_at is null
+     and i.piece_basis_amount is not null
+     and abs(m.basis_amount - i.piece_basis_amount) <= 0.01 * i.piece_basis_amount
+   order by m.ingredient_id, m.sort_order, m.label
+)
+update recipe_line_item li
+   set measure_id = w.measure_id, updated_at = now()
+  from whole w
+ where w.ingredient_id = li.ingredient_id
+   and li.deleted_at is null
+   and li.unit = 'piece' and li.measure_id is null;
+
+with whole as (
+  select distinct on (m.ingredient_id)
+         m.ingredient_id, m.id as measure_id
+    from ingredient_measure m
+    join ingredient i on i.id = m.ingredient_id
+   where m.deleted_at is null and i.deleted_at is null
+     and i.piece_basis_amount is not null
+     and abs(m.basis_amount - i.piece_basis_amount) <= 0.01 * i.piece_basis_amount
+   order by m.ingredient_id, m.sort_order, m.label
+)
+update plan_entry pe
+   set measure_id = w.measure_id, updated_at = now()
+  from whole w
+ where w.ingredient_id = pe.ingredient_id
+   and pe.deleted_at is null
+   and pe.unit = 'piece' and pe.measure_id is null;
+commit;
+```
+
+Lines on retired recipes are left alone (the `deleted_at` guards); the
+template household is included on purpose, so the seed's next export
+carries the same words.
+
 ## Decision log
 
 - 2026-09-12 — **The slot is a field of the meal editor.** Owner-ruled,
@@ -242,7 +356,9 @@ Whichever is chosen, it plays once per list, only when the count crosses
 from n−1 to n on this phone (never on the partner's tick arriving by sync),
 and never on a list of one item.
 
-**Meals eaten out (the office lunch) — the brainstorm, no build.** A
+**Meals eaten out (the office lunch) — the brainstorm, no build.** Drawn as
+three frames on the board's *Designed, not built* page — the picker's third
+answer, the confirm sheet with its macros fold, and the row on the week. A
 third kind of planned meal beside a recipe and a bare ingredient:
 
 - *Model.* `plan_entry` gains a `label` (the words) and an optional
