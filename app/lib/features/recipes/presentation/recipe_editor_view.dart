@@ -504,6 +504,7 @@ class _LineItemEditor extends ConsumerWidget {
               style: ansiSans(size: 15, weight: FontWeight.w500),
             ),
             ...noteSpans(item.note),
+            ...optionalSpans(optional: item.optional),
           ],
         ),
       ),
@@ -591,6 +592,7 @@ class _ComponentLineEditor extends StatelessWidget {
                       color: AnsiColors.muted,
                     ).copyWith(fontStyle: FontStyle.italic),
                   ),
+                if (item.optional) const OptionalTag(),
               ],
             )
           : Text.rich(
@@ -601,6 +603,7 @@ class _ComponentLineEditor extends StatelessWidget {
                     style: ansiSans(size: 15, color: AnsiColors.muted),
                   ),
                   ...noteSpans('linked recipe missing'),
+                  ...optionalSpans(optional: item.optional),
                 ],
               ),
             ),

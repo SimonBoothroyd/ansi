@@ -382,6 +382,11 @@ class _WeekLineRow extends ConsumerWidget {
                               ),
                         ),
                         ...noteSpans(item.note),
+                        // Stated, not tapped: the amount sheet's Optional
+                        // switch is still the one place this screen changes
+                        // it, and a tag that looked like a control here would
+                        // promise a second door onto the same fact.
+                        ...optionalSpans(optional: item.optional),
                       ],
                     ),
                   ),

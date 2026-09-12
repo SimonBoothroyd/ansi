@@ -68,7 +68,7 @@
                 <span style="color:var(--muted);font-size:12px">🗑</span>
             </div>
             <div style="margin:0 20px">
-                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">1 handful</span><span class="l3-body"><span class="l3-id">Cilantro</span></span><span class="l3-pen">✎</span></div>
+                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">1 handful</span><span class="l3-body"><span class="l3-id">Cilantro</span><span class="wv-tag" style="margin-left:6px">optional</span></span><span class="l3-pen">✎</span></div>
             </div>
 
             <div style="display:flex;gap:8px;margin:10px 20px 0">
@@ -78,6 +78,7 @@
 
             <p class="conv-note" style="margin-top:14px">one row layout everywhere: <b>[amount] [name] [note]</b> on a single line, the amount in its own 84&nbsp;px column so every identity left-aligns. It is what the recipe page — the screen a cook reads — already prints. The <b>amount cell</b> opens the quantity sheet and the <b>name cell</b> opens the identity picker: the same two doors, side by side instead of stacked</p>
             <p class="conv-note"><i>used in N steps</i> is a second muted line under the name, and only when N&nbsp;&gt;&nbsp;0 — it is a fact about the line, not a control</p>
+            <p class="conv-note">an <b>optional</b> line wears the page's own tag, hung off the end of the identity in the same voice the recipe page prints it in. It is <b>stated, not tapped</b>: the amount sheet's <b>Optional</b> switch is still the one door that changes it, and the editor that owns the line must not be the one screen that hides the flag</p>
             <p class="conv-note">the grip <b>⋮⋮</b> is the only thing that drags. Long-press-anywhere would turn a scroll into an accidental move on a list whose whole job is tapping</p>
             <p class="conv-note">a line dropped under a heading is <b>filed under that heading</b>. It keeps its id, so every method chip pointing at it still does — which is the whole reason the gesture is worth having, since delete + re-add already reordered a list and cost every reference. Headings do not drag; a group left empty by a move is <b>kept</b></p>
             <p class="conv-note">the doors sit tight under the last line, and a line added lands in the <b>last group</b> — the drag then puts it where it belongs</p>
@@ -102,7 +103,7 @@
                 <div class="l3 edit"><span class="l3-amt">500 g</span><span class="l3-body"><span class="l3-id">Beef chuck</span><span class="l3-note">diced</span></span><span class="l3-pen">&#10005;</span></div>
                 <div class="l3 edit"><span class="l3-amt">2 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">finely chopped</span></span><span class="l3-pen">&#10005;</span></div>
                 <div class="l3 edit"><span class="l3-amt">250 ml</span><span class="l3-body"><span class="l3-id">Red wine</span></span><span class="l3-pen">&#10005;</span></div>
-                <div class="l3 edit"><span class="l3-amt">30 g</span><span class="l3-body"><span class="l3-id">Parmesan, grated</span><span class="l3-note">to finish</span></span><span class="l3-pen">&#10005;</span></div>
+                <div class="l3 edit"><span class="l3-amt">30 g</span><span class="l3-body"><span class="l3-id">Parmesan, grated</span><span class="l3-note">to finish</span><span class="wv-tag" style="margin-left:6px">optional</span></span><span class="l3-pen">&#10005;</span></div>
             </div>
             <div style="display:flex;gap:8px;margin:12px 20px 0">
                 <span class="ghostbtn" style="margin-top:0;flex:1">&#65291; Add ingredient</span>
@@ -112,7 +113,7 @@
             <p class="conv-note"><b>What is gone, and why it is gone rather than locked.</b> The whole header form &mdash; title, serves, makes, times, shelf life, file under &mdash; and the whole method are <b>not drawn</b>. A control drawn and refused is a control you have to explain on every tap; a control absent is a mode you understand in one look. The method has a second reason: a step chip points at a line id, an added line has not got one, and an excluded line would orphan its chips</p>
             <p class="conv-note"><b>Serves survives as a sentence.</b> Every amount on this list is <i>per serves&nbsp;4</i> &mdash; drop the number and the list stops being readable. So it is stated in the <b>from the recipe</b> strip with the step count and the title, in mono muted, with nothing in it to tap</p>
             <p class="conv-note"><b>No grip.</b> A reorder is not storable this week, and a drag that silently reverts on reopen is worse than no drag. Group headings are inert text: no rename, no bin, no <b>&#65291;&nbsp;Add&nbsp;group</b>. An added line lands at the foot of the list</p>
-            <p class="conv-note"><b>An optional line wears no tag here.</b> The row is name, note and — once it is changed — the week tag; <i>Parmesan</i> is optional in the recipe and says so only inside its amount sheet, whose <b>Optional</b> switch is the one place this screen states or changes it. The moment it is ticked in, the line carries <b>this week &middot; included</b> like any other change</p>
+            <p class="conv-note"><b>An optional line wears the tag here too.</b> <i>Parmesan</i> is optional in the recipe, and the row says so in the page's own voice rather than burying the fact in a sheet nobody has opened. The tag is <b>stated, not tapped</b> &mdash; the amount sheet's <b>Optional</b> switch remains the one door that changes it. Tick it in and the line drops the tag and carries <b>this week &middot; included</b> like any other change, so a row never wears both at once</p>
             <p class="conv-note"><b>Save, not write-through.</b> Unlike the meal editor sheet, this screen keeps the editor's own posture &mdash; nothing is stored until <b>Save</b>, and <b>&lsaquo;</b> abandons the draft. Save writes the <i>diff</i>, not the lines</p>
         </div></div>
     </div>

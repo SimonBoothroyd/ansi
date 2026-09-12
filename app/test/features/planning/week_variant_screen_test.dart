@@ -17,6 +17,7 @@ import 'package:ansi/features/planning/presentation/week_widgets.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/line_override.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/features/recipes/presentation/ingredient_line.dart';
 import 'package:ansi/features/recipes/presentation/recipe_header_form.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -190,6 +191,21 @@ void main() {
       expect(text, contains('casings removed'));
       expect(text, contains('Red wine'));
       expect(text, contains('Parmesan, grated'));
+    });
+
+    testWidgets('the optional line says so on the row, in the same voice the '
+        'recipe page uses', (tester) async {
+      await _pumpEditor(tester);
+      // Parmesan is the recipe's one optional line, and this screen edits that
+      // list — so it states the flag rather than hiding it inside the amount
+      // sheet. Stated, not tapped: the sheet's Optional switch is still the
+      // only place it changes.
+      expect(find.byType(OptionalTag), findsOneWidget);
+      final tag = tester.getRect(find.byType(OptionalTag));
+      final parmesan = tester.getRect(find.textContaining('Parmesan').first);
+      final wine = tester.getRect(find.textContaining('Red wine').first);
+      expect(tag.top < parmesan.bottom && parmesan.top < tag.bottom, isTrue);
+      expect(tag.top < wine.bottom && wine.top < tag.bottom, isFalse);
     });
 
     testWidgets('an untouched list offers no way back — there is nothing to '

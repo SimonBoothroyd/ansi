@@ -193,6 +193,96 @@ void main() {
     expect(find.text('200 g'), findsOneWidget);
   });
 
+  testWidgets('the EDITOR tags an optional line too — an ingredient row and a '
+      'component row alike', (tester) async {
+    filterForuiSemanticsAssertions();
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    const recipe = Recipe(
+      id: '1',
+      title: 'Sliders',
+      servingsBase: 2,
+      groups: [
+        IngredientGroup(
+          id: 'g1',
+          items: [
+            LineItem(
+              id: 'i1',
+              ingredientId: 'lime',
+              ingredientName: 'Lime',
+              unit: pieces,
+              quantity: 1,
+              note: 'to serve',
+              optional: true,
+            ),
+            LineItem(
+              id: 'i2',
+              ingredientId: 'rice',
+              ingredientName: 'Rice',
+              unit: g,
+              quantity: 200,
+            ),
+            LineItem(
+              id: 'i3',
+              subRecipeId: 'aioli',
+              subRecipe: SubRecipeTarget(
+                id: 'aioli',
+                title: 'Romesco Aioli',
+                yieldQty: 1,
+                yieldUnit: cup,
+              ),
+              ingredientName: 'Romesco Aioli',
+              unit: cup,
+              quantity: 0.25,
+              optional: true,
+            ),
+            LineItem(
+              id: 'i4',
+              subRecipeId: 'salsa',
+              subRecipe: SubRecipeTarget(id: 'salsa', title: 'Green Salsa'),
+              ingredientName: 'Green Salsa',
+              unit: cup,
+              quantity: 0.5,
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _host(const RecipeEditorView(recipeId: '1'), [
+        recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(recipe)),
+        ingredientRepositoryProvider.overrideWithValue(
+          const ReadOnlyIngredientRepo(),
+        ),
+        bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
+      ]),
+    );
+    await tester.pumpAndSettle();
+
+    // Two optional lines, two tags — the flag is a fact about the line, so the
+    // screen that EDITS the line has to show it as plainly as the page does.
+    // Four lines, two tags: the other two say nothing.
+    expect(find.byType(OptionalTag), findsNWidgets(2));
+
+    // …and each tag is on its own line, not floating over the list. In tree
+    // order the first belongs to the ingredient row and the second to the
+    // component row.
+    final rice = tester.getRect(find.textContaining('Rice').first);
+    final salsa = tester.getRect(find.text('Green Salsa'));
+    for (final (index, row) in [
+      tester.getRect(find.textContaining('Lime').first),
+      tester.getRect(find.text('Romesco Aioli')),
+    ].indexed) {
+      final tag = tester.getRect(find.byType(OptionalTag).at(index));
+      expect(tag.top < row.bottom && row.top < tag.bottom, isTrue);
+      expect(tag.top < rice.bottom && rice.top < tag.bottom, isFalse);
+      expect(tag.top < salsa.bottom && salsa.top < tag.bottom, isFalse);
+    }
+  });
+
   group("an ingredient's name is a door onto its own page", () {
     /// The page under a real router, so the tap has an observable
     /// destination — a stand-in stands at `/ingredients/:id`.

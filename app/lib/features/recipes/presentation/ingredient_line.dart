@@ -358,19 +358,28 @@ class _IdentityState extends State<_Identity> {
             ),
             TextSpan(text: part, style: noteStyle),
           ],
-          if (optional)
-            const WidgetSpan(
-              alignment: PlaceholderAlignment.middle,
-              child: Padding(
-                padding: EdgeInsets.only(left: 8),
-                child: OptionalTag(),
-              ),
-            ),
+          ...optionalSpans(optional: optional),
         ],
       ),
     );
   }
 }
+
+/// The `optional` tag as a run of spans, so every three-part line — the page's,
+/// the editor's, the week's — hangs it off the end of the identity in one
+/// voice rather than each surface inventing its own placement. Empty when the
+/// line is not optional.
+List<InlineSpan> optionalSpans({required bool optional}) => optional
+    ? const [
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(
+            padding: EdgeInsets.only(left: 8),
+            child: OptionalTag(),
+          ),
+        ),
+      ]
+    : const [];
 
 /// The `optional` tag (board frame e2's `.r3-tag`): the stub badge's exact
 /// voice — `FBadge.secondary`, muted mono — so a reader who knows one knows
