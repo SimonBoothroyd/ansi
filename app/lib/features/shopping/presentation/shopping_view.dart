@@ -8,6 +8,7 @@
 /// persists — and syncs, since step 7.
 library;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -22,6 +23,7 @@ import '../../../shared/guarded_navigation.dart';
 import '../../../shared/sync_status_line.dart';
 import '../../../shared/write.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
+import '../../planning/data/planning_providers.dart';
 import '../../planning/presentation/week_format.dart';
 import '../../planning/presentation/week_header.dart';
 import '../../planning/presentation/week_view_models.dart';
@@ -222,26 +224,81 @@ class _UnresolvedEcho extends StatelessWidget {
 /// left out this week — Red wine". An exclusion cannot be a provenance segment
 /// (there is no row left to hang one on), and a list that is quietly short is
 /// worse than one that says what it dropped.
-class OptionalLinesEcho extends StatelessWidget {
+///
+/// **On an optional row the names are doors.** Each one is a tap that writes
+/// this week's include row for that line, so the question the row raises can be
+/// answered where it is asked rather than three screens away in the editor. A
+/// line the WEEK left out keeps its plain words: that is a change somebody
+/// made, and it is undone where it was made.
+///
+/// Stateful only to own the names' tap recognizers.
+class OptionalLinesEcho extends ConsumerStatefulWidget {
   const OptionalLinesEcho({required this.note, super.key});
 
   final OptionalLinesNote note;
 
   /// `2 optional lines not listed — lime, coriander`, or
   /// `1 line left out this week — Red wine`.
-  static String text(OptionalLinesNote note) {
+  static String text(OptionalLinesNote note) =>
+      lead(note) + note.names.join(', ');
+
+  /// The sentence up to the names — `2 optional lines not listed — `, the run
+  /// that stays plain when the names become doors.
+  static String lead(OptionalLinesNote note) {
     final n = note.names.length;
-    final names = note.names.join(', ');
     return switch (note.reason) {
       LineDropReason.optional =>
-        '$n optional ${plural(n, 'line')} not listed — $names',
+        '$n optional ${plural(n, 'line')} not listed — ',
       LineDropReason.thisWeek =>
-        '$n ${plural(n, 'line')} left out this week — $names',
+        '$n ${plural(n, 'line')} left out this week — ',
     };
   }
 
   @override
+  ConsumerState<OptionalLinesEcho> createState() => _OptionalLinesEchoState();
+}
+
+class _OptionalLinesEchoState extends ConsumerState<OptionalLinesEcho> {
+  final _taps = <TapGestureRecognizer>[];
+
+  @override
+  void dispose() {
+    for (final tap in _taps) {
+      tap.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final note = widget.note;
+    final muted = ansiMono(size: 10.5, color: AnsiColors.muted);
+    // A door only where there is a decision to make. The ids ride beside the
+    // names, and a row that somehow carries fewer of one than the other says
+    // its sentence plainly rather than pointing a tap at the wrong line.
+    final isDoor =
+        note.reason == LineDropReason.optional &&
+        note.lineIds.length == note.names.length;
+    final week = ref.watch(viewedWeekStartProvider);
+
+    final wanted = isDoor ? note.names.length : 0;
+    while (_taps.length < wanted) {
+      _taps.add(TapGestureRecognizer());
+    }
+    while (_taps.length > wanted) {
+      _taps.removeLast().dispose();
+    }
+    for (var i = 0; i < wanted; i++) {
+      final lineId = note.lineIds[i];
+      _taps[i].onTap = () => ref.write(
+        context,
+        'include it this week',
+        () => ref
+            .read(weekVariantRepositoryProvider)
+            .setLineIncluded(week, note.recipeId, lineId, included: true),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
       child: Row(
@@ -261,10 +318,27 @@ class OptionalLinesEcho extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Flexible(
-            child: Text(
-              text(note),
+            child: Text.rich(
+              TextSpan(
+                text: OptionalLinesEcho.lead(note),
+                children: [
+                  for (var i = 0; i < note.names.length; i++) ...[
+                    if (i > 0) const TextSpan(text: ', '),
+                    TextSpan(
+                      text: note.names[i],
+                      style: isDoor
+                          ? ansiMono(
+                              size: 10.5,
+                              color: AnsiColors.herbDeep,
+                            ).copyWith(fontWeight: FontWeight.w500)
+                          : null,
+                      recognizer: isDoor ? _taps[i] : null,
+                    ),
+                  ],
+                ],
+              ),
               overflow: TextOverflow.ellipsis,
-              style: ansiMono(size: 10.5, color: AnsiColors.muted),
+              style: muted,
             ),
           ),
         ],

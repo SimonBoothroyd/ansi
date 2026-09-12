@@ -33,6 +33,21 @@ abstract interface class WeekVariantRepository {
     required List<LineOverride> overrides,
   });
 
+  /// Ticks one optional line IN for this week, or takes it back out — the
+  /// one-tap door, which has no draft and no diff behind it.
+  ///
+  /// Adds (or removes) a single [LineOverrideAction.include] row inside the
+  /// stored set for `(weekStart, recipeId)` and saves that set whole, so the
+  /// tap composes with everything else the week already says about the recipe.
+  /// Idempotent: asking for the answer the week already gives writes nothing,
+  /// and a line the week states its own amount for keeps that amount.
+  Future<void> setLineIncluded(
+    DateTime weekStart,
+    String recipeId,
+    String lineId, {
+    required bool included,
+  });
+
   /// Macro summaries for the recipes this week actually VARIES: the same
   /// summation the Library runs, over each one's lines after its overrides.
   ///

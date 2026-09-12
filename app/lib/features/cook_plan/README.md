@@ -42,6 +42,21 @@ share when the recipe is `freezable` and the meal is within `freezer_days`
 `batchHintFor` reuses `clusterSessions` so the planner's "same batch" hint on the
 add-a-meal flow can never disagree with the cook plan.
 
+## Nested recipes, for one week
+
+A planned recipe's **component** lines derive sessions of their own, scaled in
+batches (`expandComponentDemands`; the math lives in
+`recipes/domain/component_math.dart`). The household's graph is read whole
+(`loadComponentGraph`) and then filtered for the week on screen
+(`componentGraphForWeek`): every recipe's component lines go through the
+`effectiveLines` seam with that week's overrides before a single demand is
+derived, so an **optional sub-recipe is cooked only when the week ticks it in**,
+one the week excluded is not cooked at all, and a replaced line is cooked at the
+week's amount. The shop runs the same filter over the same graph, and the watch
+query joins `week_recipe_line_override` so ticking a line in re-derives the
+plan. A component the batch math cannot resolve stays a named `ComponentGap` —
+never a `1×` assumption.
+
 ## Deferred
 
 - **Whole-ingredient scaling** (spec §4) — shown as the raw factor for now.

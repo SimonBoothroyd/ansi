@@ -124,6 +124,103 @@ void main() {
 
   tearDown(() => closeTestDb(db, dir));
 
+  group('one tap ticks a line in for the week', () {
+    Future<List<LineOverride>> set() => repo.loadOverrides(_thisWeek, 'r1');
+
+    test('an include row appears for the line, and nothing else', () async {
+      await repo.setLineIncluded(_thisWeek, 'r1', 'l2', included: true);
+      final stored = set();
+      expect((await stored).single.action, LineOverrideAction.include);
+      expect((await stored).single.recipeLineItemId, 'l2');
+      expect(await repo.loadOverrides(_nextWeek, 'r1'), isEmpty);
+    });
+
+    test('asking twice is one row, and the same row', () async {
+      await repo.setLineIncluded(_thisWeek, 'r1', 'l2', included: true);
+      final first = (await set()).single.id;
+      await repo.setLineIncluded(_thisWeek, 'r1', 'l2', included: true);
+      expect((await set()).single.id, first);
+      final live = await db.get(
+        'SELECT COUNT(*) AS n FROM week_recipe_line_override '
+        "WHERE recipe_id = 'r1' AND deleted_at IS NULL",
+      );
+      expect(live['n'], 1);
+    });
+
+    test(
+      'taking it back out drops the row — and asking twice is quiet',
+      () async {
+        await repo.setLineIncluded(_thisWeek, 'r1', 'l2', included: true);
+        await repo.setLineIncluded(_thisWeek, 'r1', 'l2', included: false);
+        expect(await set(), isEmpty);
+        await repo.setLineIncluded(_thisWeek, 'r1', 'l2', included: false);
+        expect(await set(), isEmpty);
+      },
+    );
+
+    test('it composes with what the week already says', () async {
+      await repo.saveOverrides(
+        _thisWeek,
+        'r1',
+        overrides: const [
+          LineOverride(
+            action: LineOverrideAction.exclude,
+            recipeLineItemId: 'l1',
+          ),
+        ],
+      );
+      await repo.setLineIncluded(_thisWeek, 'r1', 'l2', included: true);
+      final stored = await set();
+      expect(stored, hasLength(2));
+      expect(
+        stored.firstWhere((o) => o.recipeLineItemId == 'l1').action,
+        LineOverrideAction.exclude,
+      );
+      expect(
+        stored.firstWhere((o) => o.recipeLineItemId == 'l2').action,
+        LineOverrideAction.include,
+      );
+    });
+
+    test('the same tap on a line the week left out puts it back', () async {
+      await repo.saveOverrides(
+        _thisWeek,
+        'r1',
+        overrides: const [
+          LineOverride(
+            action: LineOverrideAction.exclude,
+            recipeLineItemId: 'l2',
+          ),
+        ],
+      );
+      await repo.setLineIncluded(_thisWeek, 'r1', 'l2', included: true);
+      expect((await set()).single.action, LineOverrideAction.include);
+    });
+
+    test(
+      'a line the week states its own amount for keeps that amount',
+      () async {
+        await repo.saveOverrides(
+          _thisWeek,
+          'r1',
+          overrides: const [
+            LineOverride(
+              action: LineOverrideAction.replace,
+              recipeLineItemId: 'l1',
+              ingredientId: 'i-mince',
+              quantity: 400,
+              unit: g,
+            ),
+          ],
+        );
+        await repo.setLineIncluded(_thisWeek, 'r1', 'l1', included: true);
+        final stored = (await set()).single;
+        expect(stored.action, LineOverrideAction.replace);
+        expect(stored.quantity, 400);
+      },
+    );
+  });
+
   group('the set is written whole', () {
     test('nothing stored means no variant at all', () async {
       expect(await repo.loadOverrides(_thisWeek, 'r1'), isEmpty);

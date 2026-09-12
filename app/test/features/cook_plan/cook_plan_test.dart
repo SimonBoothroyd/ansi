@@ -1,6 +1,7 @@
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
+import 'package:ansi/features/recipes/domain/line_override.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// A recipe with [days] as (dayOfWeek → portions) meals, all on Dinner.
@@ -401,7 +402,13 @@ void main() {
       components: components,
     );
 
-    const quarterCup = (subRecipeId: 'aioli', quantity: 0.25, unit: cup);
+    const quarterCup = (
+      id: 'li-aioli',
+      subRecipeId: 'aioli',
+      quantity: 0.25,
+      unit: cup,
+      optional: false,
+    );
 
     test('a planned parent derives a batch-denominated component session', () {
       final plan = buildCookPlan(
@@ -479,7 +486,13 @@ void main() {
               freezerDays: null,
               yields: const <YieldDenomination>[],
               components: const [
-                (subRecipeId: 'aioli', quantity: 1.0, unit: batches),
+                (
+                  id: 'li-aioli',
+                  subRecipeId: 'aioli',
+                  quantity: 1.0,
+                  unit: batches,
+                  optional: false,
+                ),
               ],
             ),
             'aioli': aioli(),
@@ -513,7 +526,13 @@ void main() {
             freezerDays: null,
             yields: const <YieldDenomination>[],
             components: const [
-              (subRecipeId: 'aioli', quantity: 1.0, unit: batches),
+              (
+                id: 'li-aioli',
+                subRecipeId: 'aioli',
+                quantity: 1.0,
+                unit: batches,
+                optional: false,
+              ),
             ],
           ),
           'aioli': aioli(),
@@ -541,7 +560,13 @@ void main() {
             freezerDays: null,
             yields: const <YieldDenomination>[],
             components: const [
-              (subRecipeId: 'aioli', quantity: 1.0, unit: batches),
+              (
+                id: 'li-aioli',
+                subRecipeId: 'aioli',
+                quantity: 1.0,
+                unit: batches,
+                optional: false,
+              ),
             ],
           ),
           'aioli': aioli(freezable: true, freezerDays: 30),
@@ -570,7 +595,13 @@ void main() {
             freezerDays: null,
             yields: const <YieldDenomination>[],
             components: const [
-              (subRecipeId: 'mid', quantity: 2.0, unit: batches),
+              (
+                id: 'li-mid',
+                subRecipeId: 'mid',
+                quantity: 2.0,
+                unit: batches,
+                optional: false,
+              ),
             ],
           ),
           'mid': (
@@ -581,7 +612,13 @@ void main() {
             freezerDays: null,
             yields: const [(qty: 1.0, unit: cup)],
             components: const [
-              (subRecipeId: 'aioli', quantity: 0.5, unit: cup),
+              (
+                id: 'li-aioli',
+                subRecipeId: 'aioli',
+                quantity: 0.5,
+                unit: cup,
+                optional: false,
+              ),
             ],
           ),
           'aioli': aioli(),
@@ -604,30 +641,43 @@ void main() {
         [
           _recipe({0: 4}, id: 'a', title: 'A', servings: 4),
         ],
-        components: {
-          'a': (
-            title: 'A',
-            servingsBase: 4,
-            keepsForDays: null,
-            freezable: false,
-            freezerDays: null,
-            yields: const [(qty: 1.0, unit: cup)],
-            components: const [
-              (subRecipeId: 'b', quantity: 1.0, unit: batches),
-            ],
-          ),
-          'b': (
-            title: 'B',
-            servingsBase: 4,
-            keepsForDays: null,
-            freezable: false,
-            freezerDays: null,
-            yields: const [(qty: 1.0, unit: cup)],
-            components: const [
-              (subRecipeId: 'a', quantity: 1.0, unit: batches),
-            ],
-          ),
-        },
+        components:
+            {
+              'a': (
+                title: 'A',
+                servingsBase: 4,
+                keepsForDays: null,
+                freezable: false,
+                freezerDays: null,
+                yields: const [(qty: 1.0, unit: cup)],
+                components: const [
+                  (
+                    id: 'li-b',
+                    subRecipeId: 'b',
+                    quantity: 1.0,
+                    unit: batches,
+                    optional: false,
+                  ),
+                ],
+              ),
+              'b': (
+                title: 'B',
+                servingsBase: 4,
+                keepsForDays: null,
+                freezable: false,
+                freezerDays: null,
+                yields: const [(qty: 1.0, unit: cup)],
+                components: const [
+                  (
+                    id: 'li-a',
+                    subRecipeId: 'a',
+                    quantity: 1.0,
+                    unit: batches,
+                    optional: false,
+                  ),
+                ],
+              ),
+            },
       );
       final gap = plan.gaps.single;
       expect(gap.recipeId, 'a');
@@ -697,7 +747,13 @@ void main() {
         components: {
           'sliders': sliders(
             components: const [
-              (subRecipeId: 'aioli', quantity: null, unit: cup),
+              (
+                id: 'li-aioli',
+                subRecipeId: 'aioli',
+                quantity: null,
+                unit: cup,
+                optional: false,
+              ),
             ],
           ),
           'aioli': aioli(),
@@ -717,7 +773,13 @@ void main() {
         components: {
           'sliders': sliders(
             components: const [
-              (subRecipeId: 'aioli', quantity: 2.0, unit: tbsp),
+              (
+                id: 'li-aioli',
+                subRecipeId: 'aioli',
+                quantity: 2.0,
+                unit: tbsp,
+                optional: false,
+              ),
             ],
           ),
           'aioli': aioli(yields: const [(qty: 250.0, unit: g)]),
@@ -823,6 +885,152 @@ void main() {
           .sessions
           .single;
       expect(wholeBatchNudgeFor(session), isNull);
+    });
+
+    group('the week filters the graph before a demand is derived', () {
+      const optionalCup = (
+        id: 'li-aioli',
+        subRecipeId: 'aioli',
+        quantity: 0.25,
+        unit: cup,
+        optional: true,
+      );
+
+      CookPlan planWith(
+        List<ComponentLine> components, [
+        Map<String, List<LineOverride>> overrides = const {},
+      ]) => buildCookPlan(
+        [
+          _recipe({5: 8}, id: 'sliders', title: 'Sausage Sliders', servings: 8),
+        ],
+        components: componentGraphForWeek({
+          'sliders': sliders(components: components),
+          'aioli': aioli(),
+        }, overrides),
+      );
+
+      List<CookSession> aioliSessions(CookPlan plan) => [
+        for (final r in plan.recipes)
+          if (r.recipeId == 'aioli') ...r.sessions,
+      ];
+
+      test('an optional component with no include row is not cooked', () {
+        final plan = planWith(const [optionalCup]);
+        expect(aioliSessions(plan), isEmpty);
+        expect(plan.gaps, isEmpty);
+      });
+
+      test("the week's include row is what opens the session", () {
+        final plan = planWith(
+          const [optionalCup],
+          const {
+            'sliders': [
+              LineOverride(
+                action: LineOverrideAction.include,
+                recipeLineItemId: 'li-aioli',
+              ),
+            ],
+          },
+        );
+        expect(aioliSessions(plan).single.batchesToCook, closeTo(0.25, 1e-12));
+      });
+
+      test('a component line the week EXCLUDES is not cooked either', () {
+        final plan = planWith(
+          const [quarterCup],
+          const {
+            'sliders': [
+              LineOverride(
+                action: LineOverrideAction.exclude,
+                recipeLineItemId: 'li-aioli',
+              ),
+            ],
+          },
+        );
+        expect(aioliSessions(plan), isEmpty);
+      });
+
+      test("a replace cooks the week's amount, not the recipe's", () {
+        final plan = planWith(
+          const [quarterCup],
+          const {
+            'sliders': [
+              LineOverride(
+                action: LineOverrideAction.replace,
+                recipeLineItemId: 'li-aioli',
+                subRecipeId: 'aioli',
+                quantity: 0.5,
+                unit: cup,
+              ),
+            ],
+          },
+        );
+        expect(aioliSessions(plan).single.batchesToCook, closeTo(0.5, 1e-12));
+      });
+
+      test('a DERIVED sub-recipe is filtered too — its own optional component '
+          'waits for an include', () {
+        ComponentRecipe mid({required List<ComponentLine> components}) => (
+          title: 'Romesco Base',
+          servingsBase: 4,
+          keepsForDays: 5,
+          freezable: false,
+          freezerDays: null,
+          yields: const [(qty: 1.0, unit: cup)],
+          components: components,
+        );
+        CookPlan planFor(Map<String, List<LineOverride>> overrides) =>
+            buildCookPlan(
+              [
+                _recipe(
+                  {5: 8},
+                  id: 'sliders',
+                  title: 'Sausage Sliders',
+                  servings: 8,
+                ),
+              ],
+              components: componentGraphForWeek({
+                'sliders': sliders(
+                  components: const [
+                    (
+                      id: 'li-mid',
+                      subRecipeId: 'mid',
+                      quantity: 1.0,
+                      unit: batches,
+                      optional: false,
+                    ),
+                  ],
+                ),
+                'mid': mid(components: const [optionalCup]),
+                'aioli': aioli(),
+              }, overrides),
+            );
+
+        expect(aioliSessions(planFor(const {})), isEmpty);
+        expect(
+          aioliSessions(
+            planFor(const {
+              'mid': [
+                LineOverride(
+                  action: LineOverrideAction.include,
+                  recipeLineItemId: 'li-aioli',
+                ),
+              ],
+            }),
+          ),
+          hasLength(1),
+        );
+      });
+
+      test('a week with no variant at all leaves every line where it was', () {
+        final graph = {
+          'sliders': sliders(components: const [quarterCup]),
+          'aioli': aioli(),
+        };
+        expect(componentGraphForWeek(graph, const {})['sliders']!.components, [
+          quarterCup,
+        ]);
+      });
     });
   });
 }

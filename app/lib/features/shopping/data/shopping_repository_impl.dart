@@ -45,6 +45,8 @@ import '../../cook_plan/data/cook_plan_repository_impl.dart'
     show loadComponentGraph;
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../planning/data/planning_repository_impl.dart' show loadMembers;
+import '../../planning/data/week_variant_repository_impl.dart'
+    show loadWeekOverrides;
 import '../../planning/domain/planning.dart' show eatersDemand, weekKeyOf;
 import '../../recipes/domain/effective_lines.dart';
 import '../../recipes/domain/line_override.dart';
@@ -227,10 +229,9 @@ class SqliteShoppingRepository implements ShoppingRepository {
   /// "N components unresolved" echo built from the plan's gaps.
   ///
   /// Each recipe's lines pass through the [effectiveLines] seam before any
-  /// session expands them — this is where lines meet the week, so it is where
-  /// the per-week override will join later — and the third return value is the
-  /// per-recipe "N optional lines not listed" echo built from what the seam
-  /// dropped.
+  /// session expands them — this is where lines meet the week — and the third
+  /// return value is the per-recipe "N optional lines not listed" echo built
+  /// from what the seam dropped, ingredient lines and component lines alike.
   Future<
     (
       List<CookContributionInput>,
@@ -292,11 +293,17 @@ class SqliteShoppingRepository implements ShoppingRepository {
         ),
       );
     }
-    final weekOverrides = await _loadWeekOverrides(weekKey);
-    final plan = buildCookPlan([
-      for (final e in byRecipe.entries)
-        e.value.copyWith(meals: meals[e.key] ?? const []),
-    ], components: await loadComponentGraph(_db));
+    final weekOverrides = await loadWeekOverrides(_db, weekKey);
+    final graph = await loadComponentGraph(_db);
+    final plan = buildCookPlan(
+      [
+        for (final e in byRecipe.entries)
+          e.value.copyWith(meals: meals[e.key] ?? const []),
+      ],
+      // The same week-filtered graph the Cook tab derives from, so a sub-recipe
+      // this week does not cook buys nothing either.
+      components: componentGraphForWeek(graph, weekOverrides),
+    );
 
     // Line items per recipe, read once — for every recipe the plan cooks,
     // which since 8.6 includes the sub-recipes it derived component sessions
@@ -342,22 +349,30 @@ class SqliteShoppingRepository implements ShoppingRepository {
             note: _weekNoteFor(line, byBaseLine, addedById, base: storedById),
           ),
       ];
-      final dropped = droppedNames(effective, LineDropReason.optional);
-      if (dropped.isNotEmpty) {
+      // The recipe's COMPONENT lines meet the same week through the same seam
+      // (it is the graph the plan above was derived from). A sub-recipe this
+      // week does not cook buys nothing, and is named here by its title —
+      // otherwise the list would be short of a whole sauce in silence.
+      final components = componentLinesForWeek(
+        graph,
+        recipe.recipeId,
+        overrides: overrides,
+      );
+      for (final reason in LineDropReason.values) {
+        final names = [
+          ...droppedNames(effective, reason),
+          ...droppedNames(components, reason),
+        ];
+        if (names.isEmpty) continue;
         optionalNotes.add((
           recipeId: recipe.recipeId,
           recipeTitle: recipe.title,
-          names: dropped,
-          reason: LineDropReason.optional,
-        ));
-      }
-      final leftOut = droppedNames(effective, LineDropReason.thisWeek);
-      if (leftOut.isNotEmpty) {
-        optionalNotes.add((
-          recipeId: recipe.recipeId,
-          recipeTitle: recipe.title,
-          names: leftOut,
-          reason: LineDropReason.thisWeek,
+          names: names,
+          lineIds: [
+            ...droppedLineIds(effective, reason),
+            ...droppedLineIds(components, reason),
+          ],
+          reason: reason,
         ));
       }
       for (final session in recipe.sessions) {
@@ -405,68 +420,6 @@ class SqliteShoppingRepository implements ShoppingRepository {
     ]..sort((a, b) => a.recipeTitle.compareTo(b.recipeTitle));
     optionalNotes.sort((a, b) => a.recipeTitle.compareTo(b.recipeTitle));
     return (contributions, unresolved, optionalNotes);
-  }
-
-  /// This week's variant, by recipe — the deltas the seam applies before any
-  /// session expands a line.
-  Future<Map<String, List<LineOverride>>> _loadWeekOverrides(
-    String weekKey,
-  ) async {
-    final rows = await _db.getAll(
-      'SELECT wp.week_start_date, wro.id, wro.recipe_id, '
-      'wro.recipe_line_item_id, wro.action, wro.ingredient_id, '
-      'wro.sub_recipe_id, wro.quantity, wro.unit, wro.note, wro.sort_order, '
-      'wro.measure_id, ing.canonical_name AS ing_name, ing.macros_basis, '
-      'im.label AS m_label, im.basis_amount AS m_amount, '
-      'im.sort_order AS m_sort, im.source AS m_source '
-      'FROM week_recipe_line_override wro '
-      'JOIN week_plan wp ON wp.id = wro.week_plan_id AND wp.deleted_at IS NULL '
-      'LEFT JOIN ingredient ing '
-      'ON ing.id = wro.ingredient_id AND ing.deleted_at IS NULL '
-      'LEFT JOIN ingredient_measure im '
-      'ON im.id = wro.measure_id AND im.deleted_at IS NULL '
-      'WHERE wp.week_start_date = ? AND wro.deleted_at IS NULL '
-      'ORDER BY wro.sort_order, wro.created_at',
-      [weekKey],
-    );
-    final byRecipe = <String, List<LineOverride>>{};
-    for (final r in rows) {
-      final measureId = r['measure_id'] as String?;
-      final measureLabel = r['m_label'] as String?;
-      final measureAmount = (r['m_amount'] as num?)?.toDouble();
-      (byRecipe[r['recipe_id'] as String] ??= []).add(
-        LineOverride(
-          id: r['id'] as String,
-          action: switch (r['action'] as String) {
-            'exclude' => LineOverrideAction.exclude,
-            'replace' => LineOverrideAction.replace,
-            'add' => LineOverrideAction.add,
-            _ => LineOverrideAction.include,
-          },
-          recipeLineItemId: r['recipe_line_item_id'] as String?,
-          ingredientId: r['ingredient_id'] as String?,
-          ingredientName: r['ing_name'] as String? ?? '',
-          subRecipeId: r['sub_recipe_id'] as String?,
-          quantity: (r['quantity'] as num?)?.toDouble(),
-          unit: unitById(r['unit'] as String? ?? ''),
-          measureId: measureId,
-          measure:
-              measureId == null || measureLabel == null || measureAmount == null
-              ? null
-              : Measure(
-                  id: measureId,
-                  label: measureLabel,
-                  amount: measureAmount,
-                  basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
-                  sortOrder: (r['m_sort'] as int?) ?? 0,
-                  source: r['m_source'] as String?,
-                ),
-          note: r['note'] as String?,
-          sortOrder: r['sort_order'] as int?,
-        ),
-      );
-    }
-    return byRecipe;
   }
 
   /// The seam's answer as this file's row shape. A line the week left alone

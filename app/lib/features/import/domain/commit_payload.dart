@@ -44,8 +44,9 @@ abstract class CommitLine with _$CommitLine {
 
     /// The recipe says this line may be left out — seeded from the extractor's
     /// raw flag, toggled at review, written to `recipe_line_item.optional`.
-    /// Always false on a component line: an optional sub-recipe is a week-level
-    /// question, not a line fact.
+    /// It rides a COMPONENT line exactly as it rides an ingredient one: "aioli
+    /// (optional)" is a thing a recipe says, and the seam that drops the line
+    /// names the sub-recipe's title where it left.
     @Default(false) bool optional,
   }) = _CommitLine;
 }

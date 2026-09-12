@@ -1001,6 +1001,27 @@ void main() {
       );
       expect(commit.groups.single.lines.map((l) => l.optional), [false, true]);
     });
+
+    test('a LINKED line carries it too — a sub-recipe may be left out', () {
+      final payload = _payload([
+        _line('aioli', optional: true, qty: 1, unit: 'cup'),
+      ]);
+      final commit = buildCommit(
+        payload,
+        [
+          initialResolution(
+            0,
+            payload.flatLines[0],
+          ).linkToRecipe('r-aioli', 'Romesco Aioli'),
+        ],
+        header: _header(payload),
+        issuesByLine: null,
+      );
+      final line = commit.groups.single.lines.single;
+      expect(line.subRecipeId, 'r-aioli');
+      expect(line.ingredientId, isNull);
+      expect(line.optional, isTrue);
+    });
   });
 
   group('the review’s SECTIONS ride the commit, not the payload', () {

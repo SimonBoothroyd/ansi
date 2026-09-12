@@ -54,6 +54,22 @@ provenance breakdown. `SqliteShoppingRepository` runs the same `buildCookPlan`
 the Cook screen uses, expands each session's recipe lines by its scale factor,
 and hands everything to the builder.
 
+## What the list left out, and the door on it
+
+A line the `effectiveLines` seam drops contributes nothing, so the recipe it
+belongs to says which lines — `2 optional lines not listed — lime, coriander`,
+in the group-header voice, muted rather than amber (a rule somebody chose is not
+a defect somebody can fix). Both kinds of drop take that row: the recipe's own
+`optional` flag, and a line this week leaves out. Component lines are ruled on
+by the same seam, so an optional **sub-recipe** the week does not cook is named
+there by its title.
+
+On an optional row **each name is a door**: a tap writes this week's `include`
+override for that line (`WeekVariantRepository.setLineIncluded`, through
+`ref.write`), and the ingredient arrives in its aisle on the next derivation
+carrying `· this week, ticked in`. A line the *week* left out is not a door —
+that change is undone where it was made.
+
 ## Honest aggregation (invariant 3)
 
 `aggregateQuantities` sums within a unit family by the ratio table, bridges

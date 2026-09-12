@@ -954,6 +954,7 @@ void main() {
             recipeId: 'curry',
             recipeTitle: 'Weeknight Chicken Curry',
             names: ['lime', 'coriander'],
+            lineIds: ['li-lime', 'li-coriander'],
             reason: LineDropReason.optional,
           ),
         ],

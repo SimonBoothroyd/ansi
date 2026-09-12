@@ -446,8 +446,13 @@ its steps.
   leave the line out **and name it where it left** (`not counted · 2
   optional lines: Lime, Coriander` under the panel, composed with the
   imprecise exclusion; `2 optional lines not listed — lime, coriander` as
-  the recipe's muted echo row on Shop), never a silent drop; the cook plan
-  is unaffected — a batch is a batch whether the lime comes. A recipe whose
+  the recipe's muted echo row on Shop, where each name is a **door** — a tap
+  writes this week's include row for that line), never a silent drop. **The
+  cook plan honours the flag through the same seam**: an optional ingredient
+  line changes nothing there — a batch is a batch whether the lime comes —
+  but an optional sub-recipe component is only cooked when the week includes
+  it, because a sauce nobody is making is a pot nobody is washing. A recipe
+  whose
   every line is optional summed nothing and refuses, like an all-imprecise
   one. **A planned week may overrule the recipe** through the same seam:
   `effectiveLines(lines, overrides:)` applies that week's variant *first* — a
@@ -655,11 +660,18 @@ go. There is no re-chip — tokenization happens only inside the import call.
   - The **shopping list is where lines meet the week**, so it is where the
     variant joins: the derivation runs the week's overrides through
     `effectiveLines` before it expands a session, and names what the week left
-    out the same way it names an optional line.
-  - `sub_recipe_id` is a column and not yet a door — the component graph is
-    read household-wide with no week, so swapping a sub-recipe in for one week
-    would make that graph week-dependent. The line picker suppresses its "Your
-    recipes" section in week mode.
+    out the same way it names an optional line. That echo row is also a door:
+    tapping an optional name writes the week's include row
+    (`setLineIncluded`), and the item arrives with its `· this week, ticked
+    in` provenance.
+  - The **cook plan reads the week too**: the component graph is filtered
+    through `effectiveLines` per (week, recipe) before any demand is derived,
+    so an optional sub-recipe cooks only where the week ticked it in and one
+    the week left out cooks not at all.
+  - `sub_recipe_id` is a column and not yet a door — a **swap** of one
+    sub-recipe for another stays suppressed (the filter rules on which lines
+    the week cooks; it does not re-target them). The line picker suppresses
+    its "Your recipes" section in week mode.
   - **Three doors, one screen.** The first is a row at the foot of the meal
     editor sheet — *edit for this week* — which states its own scope ("a change
     covers every day this week — Tue and Sat") because the sheet is per meal and

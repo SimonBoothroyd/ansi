@@ -23,6 +23,12 @@
 /// so a cycle raced in by two devices stops and flags ([ComponentCycle])
 /// instead of looping. A component whose batch math does not resolve becomes a
 /// first-class [ComponentGap] on the plan — never a `1×` assumption.
+///
+/// **The graph is read for ONE week.** A recipe's component lines go through
+/// the `effectiveLines` seam before any demand is derived
+/// ([componentGraphForWeek]), so an optional sub-recipe is cooked only when the
+/// week ticks it in, and the cook plan, the shop and the week's macros all read
+/// one rule about which lines count.
 library;
 
 // Freezed needs each class's private `._` constructor before the factory (for
@@ -34,6 +40,9 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../../core/units/units.dart';
 import '../../recipes/domain/component_math.dart';
+import '../../recipes/domain/effective_lines.dart';
+import '../../recipes/domain/line_override.dart';
+import '../../recipes/domain/recipe.dart';
 
 part 'cook_plan.freezed.dart';
 
@@ -529,7 +538,17 @@ BatchHint? batchHintFor({
 /// One component line of a recipe, as the expansion needs it (step 8.6).
 /// `quantity` is null on a line that carries no number, which is legal to
 /// store and derives nothing.
-typedef ComponentLine = ({String subRecipeId, double? quantity, Unit unit});
+///
+/// `id` is the `recipe_line_item` row's id, because a week's override names
+/// the line it is about, and `optional` is the recipe's own flag: both are
+/// what [componentGraphForWeek] needs to run the seam over the graph.
+typedef ComponentLine = ({
+  String id,
+  String subRecipeId,
+  double? quantity,
+  Unit unit,
+  bool optional,
+});
 
 /// A recipe as the component walk sees it: the shelf-life facts a derived
 /// session inherits, the yields its own component references are resolved
@@ -548,6 +567,84 @@ typedef ComponentRecipe = ({
   List<YieldDenomination> yields,
   List<ComponentLine> components,
 });
+
+/// One recipe's component lines as ONE week cooks them: the [effectiveLines]
+/// seam's answer — the lines a demand is derived from, and the ones a surface
+/// must NAME instead of quietly dropping.
+///
+/// The seam rules on [LineItem]s, so each component line is read as one: it
+/// carries the sub-recipe's title as its name (from [graph]), which is what
+/// makes a dropped component say "Romesco Aioli" rather than nothing at all. A
+/// recipe [graph] does not hold has no component lines to rule on.
+EffectiveLines componentLinesForWeek(
+  Map<String, ComponentRecipe> graph,
+  String recipeId, {
+  List<LineOverride> overrides = const [],
+}) => effectiveLines([
+  for (final line in graph[recipeId]?.components ?? const <ComponentLine>[])
+    LineItem(
+      id: line.id,
+      ingredientName: graph[line.subRecipeId]?.title ?? '',
+      unit: line.unit,
+      subRecipeId: line.subRecipeId,
+      subRecipe: switch (graph[line.subRecipeId]) {
+        final target? => SubRecipeTarget(
+          id: line.subRecipeId,
+          title: target.title,
+        ),
+        _ => null,
+      },
+      quantity: line.quantity,
+      optional: line.optional,
+    ),
+], overrides: overrides);
+
+/// The household's component [graph] as ONE week cooks it: every recipe's
+/// lines through [componentLinesForWeek] with that week's [overridesByRecipe],
+/// so a demand is derived from exactly the lines the week actually cooks.
+///
+/// This is what makes "optional" mean the same thing in Cook as it does in the
+/// shop and in a week's macros: a component line the recipe marks optional
+/// spawns no session until the week ticks it in, a line the week leaves out
+/// spawns none, and a replaced one is cooked at the week's amount. A line the
+/// week ruled on comes back with `optional` cleared, which is the seam's own
+/// composition rule.
+///
+/// Runs over the WHOLE graph rather than only the planned recipes: a sub-recipe
+/// reached through a component line can itself carry an optional component, and
+/// the walk that reaches it reads this same map.
+///
+/// Only lines that still name a sub-recipe survive — an added or replaced line
+/// that names an ingredient is the shop's business, not the cook plan's.
+Map<String, ComponentRecipe> componentGraphForWeek(
+  Map<String, ComponentRecipe> graph,
+  Map<String, List<LineOverride>> overridesByRecipe,
+) => {
+  for (final entry in graph.entries)
+    entry.key: (
+      title: entry.value.title,
+      servingsBase: entry.value.servingsBase,
+      keepsForDays: entry.value.keepsForDays,
+      freezable: entry.value.freezable,
+      freezerDays: entry.value.freezerDays,
+      yields: entry.value.yields,
+      components: [
+        for (final line in componentLinesForWeek(
+          graph,
+          entry.key,
+          overrides: overridesByRecipe[entry.key] ?? const [],
+        ).kept)
+          if (line.subRecipeId case final subRecipeId?)
+            (
+              id: line.id,
+              subRecipeId: subRecipeId,
+              quantity: line.quantity,
+              unit: line.unit,
+              optional: false,
+            ),
+      ],
+    ),
+};
 
 /// Builds the whole derived cook plan from the week's [recipes], ordering the
 /// cards by earliest cook day then title.

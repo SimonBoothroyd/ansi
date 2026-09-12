@@ -312,8 +312,8 @@ class SqliteImportRepository implements ImportRepository {
               if (measureId != null) pieces.id else _unitId(line),
               measureId,
               line.note,
-              // 0/1 like the schema's other flags; a component line arrives
-              // false from `buildCommit`.
+              // 0/1 like the schema's other flags, on a component line as on
+              // an ingredient one.
               if (line.optional) 1 else 0,
               sortInGroup,
               now,

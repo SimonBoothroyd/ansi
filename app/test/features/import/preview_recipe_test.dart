@@ -330,4 +330,35 @@ void main() {
     final recipe = buildPreviewRecipe(payload, resolutions, servingsBase: 2);
     expect(recipe.groups.single.items.map((i) => i.optional), [false, true]);
   });
+
+  test('a linked line previews as optional too — the recipe may say a whole '
+      'sub-recipe is', () {
+    const payload = ReconciliationPayload(
+      title: 'T',
+      groups: [
+        ReconGroup(
+          lines: [
+            ReconLine(
+              raw: RawLineItem(
+                ingredientText: 'aioli',
+                qty: 1,
+                unit: 'cup',
+                optional: true,
+              ),
+              band: MatchBand.none,
+            ),
+          ],
+        ),
+      ],
+    );
+    final item = buildPreviewRecipe(payload, [
+      initialResolution(
+        0,
+        payload.flatLines[0],
+      ).linkToRecipe('r-aioli', 'Romesco Aioli'),
+    ], servingsBase: 2).groups.single.items.single;
+
+    expect(item.isComponent, isTrue);
+    expect(item.optional, isTrue);
+  });
 }

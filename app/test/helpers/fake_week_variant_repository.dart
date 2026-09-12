@@ -43,6 +43,24 @@ class FakeWeekVariantRepository implements WeekVariantRepository {
   }) async =>
       saved.add((weekStart: weekStart, recipeId: recipeId, set: overrides));
 
+  /// Every `(weekStart, recipeId, lineId, included)` a test drove the one-tap
+  /// door with.
+  final ticked =
+      <({DateTime weekStart, String recipeId, String lineId, bool included})>[];
+
+  @override
+  Future<void> setLineIncluded(
+    DateTime weekStart,
+    String recipeId,
+    String lineId, {
+    required bool included,
+  }) async => ticked.add((
+    weekStart: weekStart,
+    recipeId: recipeId,
+    lineId: lineId,
+    included: included,
+  ));
+
   @override
   Stream<Map<String, RecipeMacroSummary>> watchVariantRecipeMacros(
     DateTime weekStart,

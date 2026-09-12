@@ -3,6 +3,8 @@ import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
+import 'package:ansi/features/planning/data/planning_providers.dart';
+import 'package:ansi/features/planning/domain/planning.dart' show mondayOf;
 import 'package:ansi/features/planning/presentation/week_header.dart';
 import 'package:ansi/features/recipes/domain/effective_lines.dart';
 import 'package:ansi/features/shopping/data/shopping_providers.dart';
@@ -16,6 +18,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
 import '../../helpers/fake_cook_plan_repository.dart';
+import '../../helpers/fake_week_variant_repository.dart';
 
 /// A canned shopping list; mutations are no-ops (the screen just renders).
 class _FakeShoppingRepo implements ShoppingRepository {
@@ -422,6 +425,7 @@ void main() {
           recipeId: 'curry',
           recipeTitle: 'Weeknight Chicken Curry',
           names: ['lime', 'coriander'],
+          lineIds: ['li-lime', 'li-coriander'],
           reason: LineDropReason.optional,
         ),
       ],
@@ -436,7 +440,7 @@ void main() {
 
     expect(find.text('WEEKNIGHT CHICKEN CURRY'), findsOneWidget);
     expect(
-      find.text('2 optional lines not listed — lime, coriander'),
+      find.textContaining('2 optional lines not listed — lime, coriander'),
       findsOneWidget,
     );
     // Muted, not amber: the unresolved echo's flag icon is not on this row.
@@ -447,5 +451,86 @@ void main() {
       ),
       findsNothing,
     );
+  });
+
+  group('the echo row is a door', () {
+    /// The names are kept short on purpose: the test font is fixed-width, and
+    /// a longer sentence ellipsizes before the name a tap is aimed at.
+    ShoppingList listWith(
+      LineDropReason reason, {
+      List<String> names = const ['lime'],
+      List<String> lineIds = const ['li-lime'],
+    }) => ShoppingList(
+      groups: [
+        ShoppingGroup(
+          label: 'Pantry',
+          items: [
+            ShoppingItem(
+              name: 'Olive oil',
+              ingredientId: 'oil',
+              totals: [Quantity(30, ml)],
+            ),
+          ],
+        ),
+      ],
+      optionalLines: [
+        (
+          recipeId: 'curry',
+          recipeTitle: 'Weeknight Chicken Curry',
+          names: names,
+          lineIds: lineIds,
+          reason: reason,
+        ),
+      ],
+    );
+
+    testWidgets('tapping an optional name ticks that line in for the '
+        "shop's week", (tester) async {
+      final variants = FakeWeekVariantRepository();
+      await tester.pumpWidget(
+        _host([
+          shoppingRepositoryProvider.overrideWithValue(
+            _FakeShoppingRepo(listWith(LineDropReason.optional)),
+          ),
+          weekVariantRepositoryProvider.overrideWithValue(variants),
+        ]),
+      );
+      await tester.pump();
+
+      await tester.tapOnText(find.textRange.ofSubstring('lime'));
+      await tester.pump();
+
+      expect(variants.ticked, hasLength(1));
+      final write = variants.ticked.single;
+      expect(write.recipeId, 'curry');
+      expect(write.lineId, 'li-lime');
+      expect(write.included, isTrue);
+      expect(write.weekStart, mondayOf(DateTime.now()));
+    });
+
+    testWidgets('a line the WEEK left out is not a door — that change is '
+        'undone where it was made', (tester) async {
+      final variants = FakeWeekVariantRepository();
+      await tester.pumpWidget(
+        _host([
+          shoppingRepositoryProvider.overrideWithValue(
+            _FakeShoppingRepo(
+              listWith(
+                LineDropReason.thisWeek,
+                names: const ['wine'],
+                lineIds: const ['li-wine'],
+              ),
+            ),
+          ),
+          weekVariantRepositoryProvider.overrideWithValue(variants),
+        ]),
+      );
+      await tester.pump();
+
+      await tester.tapOnText(find.textRange.ofSubstring('wine'));
+      await tester.pump();
+
+      expect(variants.ticked, isEmpty);
+    });
   });
 }

@@ -22,8 +22,9 @@ mixin _$CommitLine {
 /// ingredient concept, and migration 0017 pins both rules).
  String? get subRecipeId; double? get quantity; String? get unit; String? get note;/// The recipe says this line may be left out — seeded from the extractor's
 /// raw flag, toggled at review, written to `recipe_line_item.optional`.
-/// Always false on a component line: an optional sub-recipe is a week-level
-/// question, not a line fact.
+/// It rides a COMPONENT line exactly as it rides an ingredient one: "aioli
+/// (optional)" is a thing a recipe says, and the seam that drops the line
+/// names the sub-recipe's title where it left.
  bool get optional;
 /// Create a copy of CommitLine
 /// with the given fields replaced by the non-null parameter values.
@@ -239,8 +240,9 @@ class _CommitLine implements CommitLine {
 @override final  String? note;
 /// The recipe says this line may be left out — seeded from the extractor's
 /// raw flag, toggled at review, written to `recipe_line_item.optional`.
-/// Always false on a component line: an optional sub-recipe is a week-level
-/// question, not a line fact.
+/// It rides a COMPONENT line exactly as it rides an ingredient one: "aioli
+/// (optional)" is a thing a recipe says, and the seam that drops the line
+/// names the sub-recipe's title where it left.
 @override@JsonKey() final  bool optional;
 
 /// Create a copy of CommitLine

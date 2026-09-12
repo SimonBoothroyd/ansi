@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_repository_impl.dart';
 import 'package:ansi/features/planning/data/planning_repository_impl.dart';
+import 'package:ansi/features/planning/data/week_variant_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
@@ -62,6 +63,7 @@ Future<void> _addComponentLine(
   double? quantity = 0.25,
   Unit unit = cup,
   String suffix = '',
+  bool optional = false,
 }) async {
   final now = DateTime.now().toUtc().toIso8601String();
   final groupId = 'g-$recipeId$suffix';
@@ -72,8 +74,8 @@ Future<void> _addComponentLine(
   );
   await db.execute(
     'INSERT INTO recipe_line_item (id, household_id, group_id, sub_recipe_id, '
-    'quantity, unit, sort_order, created_at, updated_at) '
-    'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'quantity, unit, optional, sort_order, created_at, updated_at) '
+    'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       'li-$recipeId-$subRecipeId$suffix',
       'h',
@@ -81,6 +83,7 @@ Future<void> _addComponentLine(
       subRecipeId,
       quantity,
       unit.id,
+      if (optional) 1 else 0,
       0,
       now,
       now,
@@ -482,5 +485,66 @@ void main() {
       plain.sessions.map((s) => s.scaleFactor),
     );
     expect(curry.totalPortions, plain.totalPortions);
+  });
+
+  group("an optional COMPONENT line is the week's decision", () {
+    Future<void> seed() async {
+      await _insertRecipe(db, 'sliders', 'Sausage Sliders', servings: 1);
+      await _insertRecipe(
+        db,
+        'aioli',
+        'Romesco Aioli',
+        servings: 4,
+        keepsForDays: 5,
+      );
+      await _setYield(db, 'aioli', 1, cup);
+      await _addComponentLine(db, 'sliders', 'aioli', optional: true);
+      await planning.addEntry(
+        weekStart: _week,
+        dayOfWeek: 5,
+        mealSlot: 'Dinner',
+        recipeId: 'sliders',
+        eaterIds: ['a'],
+      );
+    }
+
+    test('with no include row the sub-recipe is not cooked at all', () async {
+      await seed();
+      final plan = await repo.watchCookPlan(_week).first;
+      expect(plan.recipes.map((r) => r.recipeId), ['sliders']);
+      expect(plan.gaps, isEmpty);
+    });
+
+    test('ticking it in re-fires the watch and opens the session', () async {
+      await seed();
+      final stream = StreamIterator(repo.watchCookPlan(_week));
+      addTearDown(stream.cancel);
+      expect(await stream.moveNext(), isTrue);
+      expect(stream.current.recipes, hasLength(1));
+
+      final variants = SqliteWeekVariantRepository(db, householdId: 'h');
+      await variants.setLineIncluded(
+        _week,
+        'sliders',
+        'li-sliders-aioli',
+        included: true,
+      );
+
+      expect(await stream.moveNext(), isTrue);
+      final derived = stream.current.recipes.firstWhere(
+        (r) => r.recipeId == 'aioli',
+      );
+      expect(derived.sessions.single.batchesToCook, closeTo(0.25, 1e-12));
+
+      // …and taking it back out closes it again.
+      await variants.setLineIncluded(
+        _week,
+        'sliders',
+        'li-sliders-aioli',
+        included: false,
+      );
+      expect(await stream.moveNext(), isTrue);
+      expect(stream.current.recipes.map((r) => r.recipeId), ['sliders']);
+    });
   });
 }

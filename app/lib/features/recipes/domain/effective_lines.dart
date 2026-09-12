@@ -4,7 +4,7 @@
 /// Three derivations read a recipe's lines: the macro summation
 /// (`recipe_macros.dart`), the shopping list (`shopping_repository_impl.dart`
 /// expanding sessions into contributions) and the cook plan (which reads only
-/// the component lines, through `loadComponentGraph`). Each of them calls
+/// the component lines, through `componentGraphForWeek`). Each of them calls
 /// [effectiveLines] rather than filtering for itself, so a rule about *which*
 /// lines count lives in exactly one place — and so does every line it drops,
 /// with a reason, because a dropped line is NAMED by whichever surface dropped
@@ -92,4 +92,12 @@ EffectiveLines effectiveLines(
 List<String> droppedNames(EffectiveLines lines, LineDropReason reason) => [
   for (final d in lines.dropped)
     if (d.reason == reason) d.line.subRecipe?.title ?? d.line.ingredientName,
+];
+
+/// The ids of the lines dropped for [reason], in stored order and PARALLEL to
+/// [droppedNames] — what a surface that turns those names into doors writes
+/// its override about.
+List<String> droppedLineIds(EffectiveLines lines, LineDropReason reason) => [
+  for (final d in lines.dropped)
+    if (d.reason == reason) d.line.id,
 ];

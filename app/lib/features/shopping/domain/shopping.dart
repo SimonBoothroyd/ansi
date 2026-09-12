@@ -141,10 +141,15 @@ typedef UnresolvedComponentNote = ({
 /// rule, or this week's variant leaving the line out. An exclusion cannot be
 /// a provenance segment — there is no row left to hang one on — so it takes
 /// this row, which is the whole reason the seam names what it drops.
+///
+/// `lineIds` runs PARALLEL to `names` — the recipe line behind each name, so
+/// the row can be a door: tapping an optional name writes this week's include
+/// row for that line, and the item arrives with its "ticked in" provenance.
 typedef OptionalLinesNote = ({
   String recipeId,
   String recipeTitle,
   List<String> names,
+  List<String> lineIds,
   LineDropReason reason,
 });
 

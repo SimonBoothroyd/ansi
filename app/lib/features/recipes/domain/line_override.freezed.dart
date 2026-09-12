@@ -23,9 +23,10 @@ mixin _$LineOverride {
 /// (the server's `week_recipe_line_override_action_shape`).
  String? get recipeLineItemId; String? get ingredientId;/// Denormalised for display, exactly as `plan_entry.recipe_title` is: the
 /// week's lines are read without a join back to the vocabulary.
- String get ingredientName;/// Ships as a column only in v1 — the component graph is read
-/// household-wide with no week, so a sub-recipe swap for one week would
-/// make it week-dependent.
+ String get ingredientName;/// Ships as a column only in v1: the week rules on WHICH lines it cooks,
+/// not on what they point at, so a sub-recipe swap for one week has no
+/// door. A replace on a component line carries the line's own target back
+/// unchanged.
  String? get subRecipeId; double? get quantity; Unit? get unit; String? get measureId; Measure? get measure; String? get note; int? get sortOrder;
 /// Create a copy of LineOverride
 /// with the given fields replaced by the non-null parameter values.
@@ -246,9 +247,10 @@ class _LineOverride extends LineOverride {
 /// Denormalised for display, exactly as `plan_entry.recipe_title` is: the
 /// week's lines are read without a join back to the vocabulary.
 @override@JsonKey() final  String ingredientName;
-/// Ships as a column only in v1 — the component graph is read
-/// household-wide with no week, so a sub-recipe swap for one week would
-/// make it week-dependent.
+/// Ships as a column only in v1: the week rules on WHICH lines it cooks,
+/// not on what they point at, so a sub-recipe swap for one week has no
+/// door. A replace on a component line carries the line's own target back
+/// unchanged.
 @override final  String? subRecipeId;
 @override final  double? quantity;
 @override final  Unit? unit;

@@ -71,6 +71,7 @@ Future<void> _insertComponentLine(
   String subRecipeId, {
   double? quantity = 0.25,
   Unit unit = cup,
+  bool optional = false,
 }) async {
   final now = DateTime.now().toUtc().toIso8601String();
   final groupId = '$recipeId-cg-$subRecipeId';
@@ -81,8 +82,8 @@ Future<void> _insertComponentLine(
   );
   await db.execute(
     'INSERT INTO recipe_line_item (id, household_id, group_id, sub_recipe_id, '
-    'quantity, unit, sort_order, created_at, updated_at) '
-    'VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)',
+    'quantity, unit, optional, sort_order, created_at, updated_at) '
+    'VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)',
     [
       '$recipeId-cli-$subRecipeId',
       'h',
@@ -90,6 +91,7 @@ Future<void> _insertComponentLine(
       subRecipeId,
       quantity,
       unit.id,
+      if (optional) 1 else 0,
       now,
       now,
     ],
@@ -904,7 +906,7 @@ void main() {
   group('nested recipes', () {
     /// Sliders (serves 1) with 500 g flour and ¼ cup of the aioli; the aioli
     /// (makes 1 cup) is 240 g of almonds.
-    Future<void> seed({bool withYield = true}) async {
+    Future<void> seed({bool withYield = true, bool optional = false}) async {
       await _insertIngredient(db, 'almonds', 'Almonds', 'pantry', 'g');
       await _insertRecipe(
         db,
@@ -922,7 +924,7 @@ void main() {
         lines: [('almonds', 240, g)],
       );
       if (withYield) await _setYield(db, 'aioli', 1, cup);
-      await _insertComponentLine(db, 'sliders', 'aioli');
+      await _insertComponentLine(db, 'sliders', 'aioli', optional: optional);
       await planning.addEntry(
         weekStart: _week,
         dayOfWeek: 5,
@@ -1026,6 +1028,41 @@ void main() {
           .firstWhere((i) => i.ingredientId == 'almonds');
       // Two portions of a serves-1 recipe → ×2 → ½ batch of the aioli.
       expect(almonds.totals.single.amount, closeTo(120, 1e-9));
+    });
+
+    group("an OPTIONAL sub-recipe is the week's decision", () {
+      test('with no include row it buys nothing, and the echo names it by '
+          'title', () async {
+        await seed(optional: true);
+        final list = await repo.watchShoppingList(_week).first;
+        expect(list.groups.expand((g) => g.items).map((i) => i.ingredientId), [
+          'flour',
+        ]);
+        final echo = list.optionalLines.single;
+        expect(echo.recipeId, 'sliders');
+        expect(echo.recipeTitle, 'Sausage Sliders');
+        expect(echo.names, ['Romesco Aioli']);
+        expect(echo.lineIds, ['sliders-cli-aioli']);
+        expect(echo.reason, LineDropReason.optional);
+      });
+
+      test("ticking it in buys the sub-recipe's ingredients, and the echo "
+          'goes', () async {
+        await seed(optional: true);
+        await SqliteWeekVariantRepository(db, householdId: 'h').setLineIncluded(
+          _week,
+          'sliders',
+          'sliders-cli-aioli',
+          included: true,
+        );
+
+        final list = await repo.watchShoppingList(_week).first;
+        final almonds = list.groups
+            .expand((g) => g.items)
+            .firstWhere((i) => i.ingredientId == 'almonds');
+        expect(almonds.totals.single.amount, closeTo(60, 1e-9));
+        expect(list.optionalLines, isEmpty);
+      });
     });
   });
 

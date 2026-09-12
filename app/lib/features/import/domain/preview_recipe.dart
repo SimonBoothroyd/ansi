@@ -86,9 +86,9 @@ Recipe buildPreviewRecipe(
           measure: measure,
           quantity: r.quantity,
           note: (r.notes?.trim().isEmpty ?? true) ? null : r.notes!.trim(),
-          // The preview tags the line as the page will; the commit guard's rule
-          // for a component, mirrored.
-          optional: !r.isComponent && r.optional,
+          // The preview tags the line as the page will — a linked line
+          // included: the recipe may say a whole sub-recipe is optional.
+          optional: r.optional,
         ),
       );
     }

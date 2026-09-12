@@ -14,6 +14,8 @@ import 'package:sqlite_async/sqlite_async.dart';
 
 import '../../../core/units/units.dart';
 import '../../planning/data/planning_repository_impl.dart' show loadMembers;
+import '../../planning/data/week_variant_repository_impl.dart'
+    show loadWeekOverrides;
 import '../../planning/domain/planning.dart' show eatersDemand, mondayOf;
 import '../../recipes/domain/component_math.dart';
 import '../domain/cook_plan.dart';
@@ -40,13 +42,17 @@ class SqliteCookPlanRepository implements CookPlanRepository {
     // resolves against — moves the derived component sessions, so a change to
     // either must re-fire. A member's portion factor is part of every meal's
     // demand, so `household_member` joins as well (cross-joined — it is not
-    // tied to the week — purely to be seen).
+    // tied to the week — purely to be seen). And the week's line overrides:
+    // ticking an optional component in opens a session, so that row must
+    // re-fire the plan exactly as a changed recipe line does.
     return _db
         .watch(
-          'SELECT wp.id, pe.id, r.keeps_for_days, g.id, li.id, hm.id '
+          'SELECT wp.id, pe.id, r.keeps_for_days, g.id, li.id, hm.id, wro.id '
           'FROM week_plan wp '
           'LEFT JOIN plan_entry pe '
           'ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
+          'LEFT JOIN week_recipe_line_override wro '
+          'ON wro.week_plan_id = wp.id AND wro.deleted_at IS NULL '
           'LEFT JOIN recipe r ON r.id = pe.recipe_id '
           'LEFT JOIN ingredient_group g ON g.recipe_id = r.id '
           'LEFT JOIN recipe_line_item li ON li.group_id = g.id '
@@ -118,7 +124,15 @@ class SqliteCookPlanRepository implements CookPlanRepository {
       for (final entry in byRecipe.entries)
         entry.value.copyWith(meals: meals[entry.key] ?? const []),
     ];
-    return buildCookPlan(planned, components: await loadComponentGraph(_db));
+    // The graph as THIS week cooks it: an optional sub-recipe opens a session
+    // only where the week ticked it in, and one the week left out opens none.
+    return buildCookPlan(
+      planned,
+      components: componentGraphForWeek(
+        await loadComponentGraph(_db),
+        await loadWeekOverrides(_db, weekKey),
+      ),
+    );
   }
 }
 
@@ -132,11 +146,16 @@ class SqliteCookPlanRepository implements CookPlanRepository {
 ///
 /// A recipe with no component lines still appears — it is a possible *target*,
 /// and its yields are what a referencing line resolves against.
+///
+/// The graph is the household's STORED facts, week-blind on purpose: each line
+/// carries its id and its `optional` flag, and every caller hands the graph to
+/// [componentGraphForWeek] to learn which of those lines one week cooks.
 Future<Map<String, ComponentRecipe>> loadComponentGraph(
   SqliteConnection db,
 ) async {
   final componentRows = await db.getAll(
-    'SELECT g.recipe_id, li.sub_recipe_id, li.quantity, li.unit '
+    'SELECT g.recipe_id, li.id, li.sub_recipe_id, li.quantity, li.unit, '
+    'li.optional '
     'FROM recipe_line_item li '
     'JOIN ingredient_group g ON g.id = li.group_id AND g.deleted_at IS NULL '
     'WHERE li.deleted_at IS NULL AND li.sub_recipe_id IS NOT NULL '
@@ -150,9 +169,11 @@ Future<Map<String, ComponentRecipe>> loadComponentGraph(
     final unit = unitById(row['unit'] as String? ?? '');
     if (unit == null) continue;
     (componentsByRecipe[row['recipe_id'] as String] ??= []).add((
+      id: row['id'] as String,
       subRecipeId: row['sub_recipe_id'] as String,
       quantity: (row['quantity'] as num?)?.toDouble(),
       unit: unit,
+      optional: (row['optional'] as int? ?? 0) == 1,
     ));
   }
 

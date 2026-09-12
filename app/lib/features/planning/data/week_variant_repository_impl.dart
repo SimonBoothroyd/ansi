@@ -86,80 +86,8 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
     return _weekChanges(key).asyncMap((_) => _loadVariantRecipeMacros(key));
   }
 
-  /// The week's whole variant, by recipe. One query: a week holds a handful of
-  /// changed lines, so there is nothing to page and nothing to narrow.
-  Future<Map<String, List<LineOverride>>> _loadByRecipe(String weekKey) async {
-    final rows = await _db.getAll(
-      // `wp.week_start_date` is selected as well as filtered on: an
-      // unselected join is one SQLite drops, and a dropped join is a table
-      // the watch never fires for.
-      'SELECT wp.week_start_date, '
-      'wro.id, wro.recipe_id, wro.recipe_line_item_id, wro.action, '
-      'wro.ingredient_id, wro.sub_recipe_id, wro.quantity, wro.unit, '
-      'wro.note, wro.sort_order, wro.measure_id, '
-      'ing.canonical_name AS ing_name, ing.macros_basis, '
-      'im.label AS m_label, im.basis_amount AS m_amount, '
-      'im.sort_order AS m_sort, im.source AS m_source '
-      'FROM week_recipe_line_override wro '
-      'JOIN week_plan wp ON wp.id = wro.week_plan_id AND wp.deleted_at IS NULL '
-      'LEFT JOIN ingredient ing '
-      'ON ing.id = wro.ingredient_id AND ing.deleted_at IS NULL '
-      'LEFT JOIN ingredient_measure im '
-      'ON im.id = wro.measure_id AND im.deleted_at IS NULL '
-      'WHERE wp.week_start_date = ? AND wro.deleted_at IS NULL '
-      'ORDER BY wro.sort_order, wro.created_at',
-      [weekKey],
-    );
-    final byRecipe = <String, List<LineOverride>>{};
-    for (final r in rows) {
-      (byRecipe[r['recipe_id'] as String] ??= []).add(_overrideFrom(r));
-    }
-    return byRecipe;
-  }
-
-  LineOverride _overrideFrom(Row r) {
-    final measureId = r['measure_id'] as String?;
-    final measureLabel = r['m_label'] as String?;
-    final measureAmount = (r['m_amount'] as num?)?.toDouble();
-    return LineOverride(
-      id: r['id'] as String,
-      action: _actionOf(r['action'] as String),
-      recipeLineItemId: r['recipe_line_item_id'] as String?,
-      ingredientId: r['ingredient_id'] as String?,
-      // The vocab row's name, or nothing: a row that has not synced leaves the
-      // line reading as the recipe's own name rather than as an empty cell.
-      ingredientName: r['ing_name'] as String? ?? '',
-      subRecipeId: r['sub_recipe_id'] as String?,
-      quantity: (r['quantity'] as num?)?.toDouble(),
-      // An unknown persisted unit id stays null — never a `pieces` fallback,
-      // which would let a total sum an invented unit (invariant 3).
-      unit: unitById(r['unit'] as String? ?? ''),
-      measureId: measureId,
-      measure:
-          measureId == null || measureLabel == null || measureAmount == null
-          ? null
-          : Measure(
-              id: measureId,
-              label: measureLabel,
-              amount: measureAmount,
-              basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
-              sortOrder: (r['m_sort'] as int?) ?? 0,
-              source: r['m_source'] as String?,
-            ),
-      note: r['note'] as String?,
-      sortOrder: r['sort_order'] as int?,
-    );
-  }
-
-  /// An action this client does not know is not a delta it can apply, so the
-  /// row is read as an exclusion of nothing: `include` on a line it is about
-  /// changes no total. Never a guess at what a newer client meant.
-  static LineOverrideAction _actionOf(String stored) => switch (stored) {
-    'exclude' => LineOverrideAction.exclude,
-    'replace' => LineOverrideAction.replace,
-    'add' => LineOverrideAction.add,
-    _ => LineOverrideAction.include,
-  };
+  Future<Map<String, List<LineOverride>>> _loadByRecipe(String weekKey) =>
+      loadWeekOverrides(_db, weekKey);
 
   Future<Map<String, RecipeMacroSummary>> _loadVariantRecipeMacros(
     String weekKey,
@@ -183,9 +111,10 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
               overrides: byRecipe[entry.key] ?? const [],
             ).kept,
             nutritionOf: (id) => nutrition[id],
-            // A component is summed as the recipe stands: the component graph
-            // is read household-wide with no week, so a week's variant of a
-            // sub-recipe would make it week-dependent (0043 D7).
+            // A component is summed as the recipe stands. A variant is one set
+            // per (week, recipe), so a sub-recipe's own set belongs to the
+            // sub-recipe's figure, not to this one; re-targeting the link here
+            // would make a week's total disagree with the page it came from.
             subRecipeOf: (id) => nodes[id],
           ),
     };
@@ -290,4 +219,141 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
       }
     });
   }
+
+  @override
+  Future<void> setLineIncluded(
+    DateTime weekStart,
+    String recipeId,
+    String lineId, {
+    required bool included,
+  }) async {
+    final stored = await loadOverrides(weekStart, recipeId);
+    final next = _lineIncluded(stored, lineId, included: included);
+    // Nothing to say: the week already reads the way the tap asked for, and a
+    // save would tombstone and re-insert rows for no change at all.
+    if (next == null) return;
+    await saveOverrides(weekStart, recipeId, overrides: next);
+  }
 }
+
+/// [stored] with one line's `include` row added or removed — or null when the
+/// set already says what the tap asked for.
+///
+/// A one-tap door hands the repository a decision, not a diff, so this is the
+/// whole edit: an optional line the recipe would drop gains an
+/// [LineOverrideAction.include]; the same tap on a line the week EXCLUDES
+/// replaces that exclusion, which is the other side of the same question.
+///
+/// A row that carries values of its own is left alone: a `replace` already
+/// keeps the line this week, and overwriting it with a bare include would
+/// throw away the amount somebody stated.
+List<LineOverride>? _lineIncluded(
+  List<LineOverride> stored,
+  String lineId, {
+  required bool included,
+}) {
+  final standing = stored
+      .where((o) => o.recipeLineItemId == lineId)
+      .firstOrNull;
+  if (included) {
+    if (standing != null &&
+        (standing.action == LineOverrideAction.include ||
+            standing.carriesValues)) {
+      return null;
+    }
+    return [
+      for (final o in stored)
+        if (o.recipeLineItemId != lineId) o,
+      LineOverride(
+        action: LineOverrideAction.include,
+        recipeLineItemId: lineId,
+      ),
+    ];
+  }
+  if (standing?.action != LineOverrideAction.include) return null;
+  return [
+    for (final o in stored)
+      if (o.recipeLineItemId != lineId) o,
+  ];
+}
+
+/// One week's whole variant, by recipe id — the loader the shop, the cook plan
+/// and this repository share, so the three derivations cannot read the week's
+/// deltas three slightly different ways.
+///
+/// One query: a week holds a handful of changed lines, so there is nothing to
+/// page and nothing to narrow.
+Future<Map<String, List<LineOverride>>> loadWeekOverrides(
+  SqliteConnection db,
+  String weekKey,
+) async {
+  final rows = await db.getAll(
+    // `wp.week_start_date` is selected as well as filtered on: an unselected
+    // join is one SQLite drops, and a dropped join is a table the watch never
+    // fires for.
+    'SELECT wp.week_start_date, '
+    'wro.id, wro.recipe_id, wro.recipe_line_item_id, wro.action, '
+    'wro.ingredient_id, wro.sub_recipe_id, wro.quantity, wro.unit, '
+    'wro.note, wro.sort_order, wro.measure_id, '
+    'ing.canonical_name AS ing_name, ing.macros_basis, '
+    'im.label AS m_label, im.basis_amount AS m_amount, '
+    'im.sort_order AS m_sort, im.source AS m_source '
+    'FROM week_recipe_line_override wro '
+    'JOIN week_plan wp ON wp.id = wro.week_plan_id AND wp.deleted_at IS NULL '
+    'LEFT JOIN ingredient ing '
+    'ON ing.id = wro.ingredient_id AND ing.deleted_at IS NULL '
+    'LEFT JOIN ingredient_measure im '
+    'ON im.id = wro.measure_id AND im.deleted_at IS NULL '
+    'WHERE wp.week_start_date = ? AND wro.deleted_at IS NULL '
+    'ORDER BY wro.sort_order, wro.created_at',
+    [weekKey],
+  );
+  final byRecipe = <String, List<LineOverride>>{};
+  for (final r in rows) {
+    (byRecipe[r['recipe_id'] as String] ??= []).add(_overrideFrom(r));
+  }
+  return byRecipe;
+}
+
+LineOverride _overrideFrom(Row r) {
+  final measureId = r['measure_id'] as String?;
+  final measureLabel = r['m_label'] as String?;
+  final measureAmount = (r['m_amount'] as num?)?.toDouble();
+  return LineOverride(
+    id: r['id'] as String,
+    action: _actionOf(r['action'] as String),
+    recipeLineItemId: r['recipe_line_item_id'] as String?,
+    ingredientId: r['ingredient_id'] as String?,
+    // The vocab row's name, or nothing: a row that has not synced leaves the
+    // line reading as the recipe's own name rather than as an empty cell.
+    ingredientName: r['ing_name'] as String? ?? '',
+    subRecipeId: r['sub_recipe_id'] as String?,
+    quantity: (r['quantity'] as num?)?.toDouble(),
+    // An unknown persisted unit id stays null — never a `pieces` fallback,
+    // which would let a total sum an invented unit (invariant 3).
+    unit: unitById(r['unit'] as String? ?? ''),
+    measureId: measureId,
+    measure: measureId == null || measureLabel == null || measureAmount == null
+        ? null
+        : Measure(
+            id: measureId,
+            label: measureLabel,
+            amount: measureAmount,
+            basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
+            sortOrder: (r['m_sort'] as int?) ?? 0,
+            source: r['m_source'] as String?,
+          ),
+    note: r['note'] as String?,
+    sortOrder: r['sort_order'] as int?,
+  );
+}
+
+/// An action this client does not know is not a delta it can apply, so the row
+/// is read as an exclusion of nothing: `include` on a line it is about changes
+/// no total. Never a guess at what a newer client meant.
+LineOverrideAction _actionOf(String stored) => switch (stored) {
+  'exclude' => LineOverrideAction.exclude,
+  'replace' => LineOverrideAction.replace,
+  'add' => LineOverrideAction.add,
+  _ => LineOverrideAction.include,
+};

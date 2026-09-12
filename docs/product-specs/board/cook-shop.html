@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Cook &amp; Shop</h1>
-    <p class="view-status">built · matches code 2026-09-11 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a></p>
+    <p class="view-status">built · matches code 2026-09-12 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/active/0044-recipe-page-and-optional.md">plan 0044</a></p>
     <p class="view-blurb">Two tabs derived from the week on screen — sessions grouped by recipe and split by shelf life, then one list summed from them, saying where every line came from.</p>
 </header>
 
@@ -175,7 +175,7 @@
         </div>
 
     <div class="frame">
-        <p class="frame-name"><b>What the list left out</b> · the recipe’s own echo row names its optional lines — never a silent omission. A row asked for in one measure is <i>counted</i> in it, with what it weighs underneath</p>
+        <p class="frame-name"><b>What the list left out</b> · the recipe’s own echo row names its optional lines — never a silent omission, and each name is a <i>door</i>. A row asked for in one measure is <i>counted</i> in it, with what it weighs underneath</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span></div>
             <div class="er-shopsync"><span class="sy"></span><span class="st">Synced · 14:02</span></div>
@@ -193,7 +193,8 @@
             <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Coconut milk, canned</span><span class="item-total">400 ml</span></div></div>
             <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Vegetable Broth</span><span class="item-total">250 ml</span></div>
                 <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>250 ml</span></div></div></div>
-            <div class="sl-group" style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">Weeknight Chicken Curry<span style="text-transform:none;letter-spacing:0;font-size:10.5px">2 optional lines not listed — lime, coriander</span></div>
+            <div class="sl-group" style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">Weeknight Chicken Curry<span style="text-transform:none;letter-spacing:0;font-size:10.5px">2 optional lines not listed — <span style="color:var(--herb-deep);font-weight:500">lime</span>, <span style="color:var(--herb-deep);font-weight:500">coriander</span></span></div>
+            <p class="conv-note" style="margin:6px 20px 0"><b>The names are the door.</b> A tap writes this week&rsquo;s <code>include</code> row for that line &mdash; no sheet, no draft, no diff &mdash; and the ingredient arrives in its aisle on the next derivation, carrying <i>&middot; this week, ticked in</i>. The sentence around them stays muted: a rule somebody chose is not a defect somebody can fix. A line the <i>week</i> left out is not a door &mdash; that change is undone where it was made</p>
             <div class="topup">＋ add item or top up an ingredient</div>
             <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni on"><span class="ic">▤</span>Shop</div></div>
         </div></div>
