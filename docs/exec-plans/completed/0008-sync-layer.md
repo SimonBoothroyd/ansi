@@ -168,7 +168,7 @@ Being explicit (the code is real; the coverage is uneven):
 
 ## Cloud / Google cutover
 
-Done for one project (`REDACTED-PROJECT-REF`) and written up as a runbook:
+Done for one project and written up as a runbook:
 [`docs/cloud-setup.md`](../../cloud-setup.md) — Supabase project + migrations +
 Data-API toggles + WAL config + auth hook + Google provider + URL config, the
 cloud vocab seed, the PowerSync Cloud instance (streams + JWKS +

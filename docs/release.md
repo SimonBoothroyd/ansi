@@ -453,7 +453,11 @@ The trade being made knowingly: a Supabase PAT in CI is a credential that can
 do anything to the project. It is accepted here because the repo is private,
 the workflow cannot be triggered by a PR, and the alternative — running
 `db push` from a laptop with the same token in a shell — is not safer, just
-less repeatable. If the repo ever goes public, revoke the token first.
+less repeatable. The repo being public does not change this: a workflow that
+only runs on `workflow_dispatch` can be started only by a collaborator, and
+GitHub never hands repository secrets to a workflow triggered from a fork.
+What would change it is adding a push- or pull-request-triggered job that
+reads the token — do not.
 
 ### 4.4 What this workflow will never do
 

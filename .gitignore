@@ -1,6 +1,9 @@
 # --- Secrets / env ---
 .env
 .env.local
+# The household's own cloud endpoints: public-by-design values, but they
+# identify one family's project, so they stay out of the repo (template beside).
+cloud.env
 supabase/signing_keys.json
 app/lib/app_config.dart
 

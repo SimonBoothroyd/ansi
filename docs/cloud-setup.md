@@ -18,7 +18,7 @@ the memory note referenced from the step-7 exec plan; this doc is cloud-only.
 
 ## 1. Supabase Cloud project
 
-1. **Create the project.** Note the project ref (e.g. `REDACTED-PROJECT-REF`).
+1. **Create the project.** Note the project ref (the twenty-letter id in the project URL).
    Data-API security toggles at creation: **Enable Data API = ON** (the app
    writes through PostgREST and calls `ensure_onboarded` via RPC), **Automatically
    expose new tables = OFF** (our migrations grant explicitly — keeps `usda_food`
@@ -466,7 +466,9 @@ These settings live in the two dashboards (or, for row 9, in function secrets).
 Most have no readable endpoint, so `scripts/cloud_verify.sh` can't check them —
 the exceptions are noted per row. Walk this table whenever cloud misbehaves or
 after touching either dashboard, and record the walk in the ledger below.
-Endpoints come from `cloud.env` at the repo root.
+Endpoints come from `cloud.env` at the repo root — copy `cloud.env.template`
+and fill it in; the file is gitignored because it names one household's own
+project, not because anything in it is secret.
 
 | # | Setting (where) | Expected value |
 |---|-----------------|----------------|
