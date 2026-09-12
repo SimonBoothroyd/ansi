@@ -100,11 +100,12 @@ Serving the module directly, as above, is the shorter road and is the same
 supabase start            # local stack
 supabase db reset         # re-run migrations + seed
 supabase db lint
-supabase test db          # pgTAP tests — fifteen suites in tests/ (RLS + the
+supabase test db          # pgTAP tests — sixteen suites in tests/ (RLS + the
                           #   usda server-only boundary, onboarding, the token
                           #   hook, unit admission, nested recipes, measures,
                           #   BOTH operator rollouts, portion factor, template
-                          #   seed, shopping/week, USDA search, and more)
+                          #   seed, shopping/week, USDA search, the retire
+                          #   guard, and more)
 cd functions && deno task test  # edge-function tests (the task carries the
                           #   --allow-read the shared-vector and real-vocab
                           #   suites need; bare `deno test` fails on them)

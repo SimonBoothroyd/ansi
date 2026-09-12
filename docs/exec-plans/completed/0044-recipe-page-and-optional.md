@@ -1,6 +1,6 @@
 # Exec plan: the recipe page, up-levelled — and optional as a switch that tracks through
 
-- **Status:** active
+- **Status:** done — landed on main, gate green; ships on the next tag
 - **Owner:** agent (three lanes: `page`, `optional`, `page-week`)
 - **Roadmap step:** — (owner's design pass on `v0.13.2`)
 - **Created:** 2026-09-12

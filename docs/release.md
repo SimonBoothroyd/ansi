@@ -30,7 +30,7 @@ Two workflows do the mechanical parts:
 >   permanent package `io.ansi.app`, the internal track and its tester list are
 >   configured, and §3a's one-time walk is complete. **Do not walk §3a again** —
 >   a second app under a different package can never update the installed one.
-> - Tags shipped: `v0.1.0` (2026-09-01), `v0.2.0` (2026-09-03, the polish
+> - Tags shipped: one row per tag in [§3d](#3d-tags-shipped), append-only.
 >   pass — guard · android · ios green, signed APK + AAB on the Release,
 >   Play upload skipped by design — see above), `v0.3.0` (2026-09-03, field
 >   test round two) and `v0.4.0` (2026-09-03, field test round three — run
@@ -44,7 +44,7 @@ mutate live household data stays a human act.
 | What | How it ships | Trigger |
 |------|--------------|---------|
 | Android APK + AAB | `release.yml` → GitHub Release assets | `git push origin v0.1.0` |
-| **The Pixel, via Play** | `release.yml` → AAB on the **internal testing track**; the phone updates itself (see §3a–§3c) | same tag push |
+| The phones | the signed APK from that GitHub Release, sideloaded (Play is deliberately unused — see the note above; §3a records what it would take) | same tag push |
 | iOS build | `release.yml` → unsigned `.app` **artifact** (compile proof only, see §3) | same tag push |
 | Migrations (`supabase/migrations/`) | `deploy-supabase.yml` → `supabase db push` | Actions → Run workflow |
 | `import-recipe` edge function | `deploy-supabase.yml` → `supabase functions deploy` | same run |
@@ -183,7 +183,7 @@ That runs four jobs:
 |-----|--------|------|--------|
 | `guard` | ubuntu | §2.4 checks only | pass/fail, plus the Play notice |
 | `android` | ubuntu | decode keystore → write `android/key.properties` → `flutter build apk --release` + `appbundle --release` with the three dart-defines | `ansi-v0.1.0.apk` + `ansi-v0.1.0.aab` on the **GitHub Release** for the tag, and an `android-release` artifact |
-| `play-internal` | ubuntu | uploads that same AAB to the Play **internal** track (§3a) | the Pixel updates from Play |
+| `play-internal` | ubuntu | uploads that same AAB to the Play **internal** track (§3a) — **skipped by design** on every tag, since `PLAY_SERVICE_ACCOUNT_JSON` is deliberately unset | nothing, today |
 | `ios` | macOS | `flutter build ios --release --no-codesign` | unsigned `Runner.app` **artifact** |
 
 `android` needs `guard`. `play-internal` needs both, and is **skipped** (not
@@ -355,6 +355,37 @@ You do not need to bump `pubspec.yaml` for a release any more; the tag is the
 version of record. Keeping pubspec roughly in step is still tidy for local
 builds, but nothing enforces it.
 
+### 3d. Tags shipped
+
+Append-only: one row per tag, newest last. Every tag since `v0.4.0` has put a
+signed APK (88–94 MB) and AAB (76–81 MB) on its GitHub Release, with
+`play-internal` skipped by design. "Deploy" is the deploy-supabase run that
+went first when the tag needed one.
+
+| Tag | Date | What | Runs |
+|-----|------|------|------|
+| `v0.1.0` | 2026-09-01 | The first tagged build | — |
+| `v0.2.0` | 2026-09-03 | The polish pass (plan 0022) — guard · android · ios green, the first signed APK + AAB on a Release | — |
+| `v0.3.0` | 2026-09-03 | Field test round two (plan 0024) | — |
+| `v0.4.0` | 2026-09-03 | Field test round three (plan 0025) | release 33758932599 |
+| `v0.5.0` | 2026-09-04 | The state-of-the-world sweep (plan 0030), after the 0026–0031 cloud push | release 33903706382 |
+| `v0.5.1` | 2026-09-04 | The import review fixes from the wild-garlic hunt; no migrations | release 33912875394 |
+| `v0.6.0` | 2026-09-05 | Field test round five — seven plans built in parallel lanes; after the 0032–0034 cloud push | release 33961427290 · deploy 33961320740 |
+| `v0.7.0` | 2026-09-08 | Field test round six — the four owner notes, the all-to-all unit rule and the vocabulary unit audit; shipped onto a cloud database **rebuilt from scratch** (owner call, cloud-setup §2c) | release 34237807444 · deploy 34237512787 |
+| `v0.8.0` | 2026-09-08 | The piece weight — ADR-0015, plan 0042; after the 0039 cloud push with the template reseed ticked | release 34275484036 · deploy 34274932829 |
+| `v0.9.0` | 2026-09-08 | Four owner notes built in parallel lanes — a camera door on the import form, an ingredient's name on a recipe line opens its page, a chip's new word keeps the sentence's case, a ⋯ toggle prints each line's macros; no migrations | release 34284901170 |
+| `v0.10.0` | 2026-09-08 | The ingredient page reads before it edits — a fact sheet with Edit behind ⋯ — every default-unit chip live with the stranded refusal as the one gate, one density note instead of two, and typed names tidied when a field is left (Title Case for ingredients, a told suggestion with keep-the-old-word); no migrations | release 34300128198 |
+| `v0.11.0` | 2026-09-09 | Five owner notes on v0.10.0 — chips take the sentence's case across every word and every name kind is Title Case, the default-unit row shows only what the row can say with one note for the rest, a new ingredient saves complete or not at all, a beverage's barcode label lands per 100 ml, and a photo import waits as long as the function can run behind a stage ladder; the two smoke files red on main green again; edge function redeployed first, no migrations | release 34411719268 · deploy 34409373514 |
+| `v0.11.1` | 2026-09-09 | A UPC-A typed as the pack prints it — ten middle digits — is completed with its number-system and check digits instead of refused; no cloud step | release 34413971735 |
+| `v0.11.2` | 2026-09-09 | A pack quantity with a stray comma and a label served by the cup no longer read as per 100 ml; no cloud step | release 34414628238 |
+| `v0.12.0` | 2026-09-09 | The serving redrawn — the per-serving row loses its free-text field and takes any kitchen unit, the density sentence takes an amount and is the one place a density is stated, the serving is kept as a measure so the page prints the label's figures first, a scan seeds that serving from the pack's bracket, and fibre is the optional fifth macro — a total states it only when every line did; no cloud step (the seed's fibre reaches households on the next template reseed + rollout) | release 34423455276 |
+| `v0.12.1` | 2026-09-09 | The macro fields as one sentence of inline slots, a scan with a printed serving landing in per-serving mode with the pack's figures, a nudge on a scanned per-100 row that names no serving, kcal whole and grams to one decimal wherever printed, and flame and wheat glyphs in the dense macro lines; no cloud step | release 34431917413 |
+| `v0.12.2` | 2026-09-09 | The serving row at the same inline height as the figures, its unit picker sized to its word, and a gap between the two; no cloud step | release 34433442728 |
+| `v0.12.3` | 2026-09-10 | The unit picker at the inline height, a stated density staying folded, and a scan naming a row whose only stamp was a borrowed density; no cloud step | release 34470260590 |
+| `v0.13.0` | 2026-09-11 | Field test round seven — eight parallel lanes: kitchen fractions, one amount-and-unit control, measures renamed and reordered in place, one name namespace with a did-you-mean, the import cascade batched and its reading screen streamed from the server, the shop counting a row in the measure it was asked for, the seed as the owner's own snapshot, and a recipe varied for one week; after the 0040 cloud push with the template reseed ticked — the function and the app share one wire shape, so they shipped together | release 34561874981 · deploy 34561587312 |
+| `v0.13.1` | 2026-09-11 | Field test round eight on v0.13.0 — the unit half of every sentence is the quantity sheet's own chip at one inline height, the ingredient form reopens in the mode the numbers were entered in with hints that say what to do, the USDA door drawn where it is needed, adding from a day asks only the slot, "Edit for this week" on Cook and Plan only, the import function streaming its model calls behind heartbeats, import's learned aliases held to the one namespace, and the allowed-units ladder applied once to the owner's vocabulary as a reviewed data pass; edge function and the 315-row template reseed first, no migrations | release 34658602960 · deploy 34658424680 |
+| `v0.13.2` | 2026-09-11 | Field test round nine on v0.13.1 — the import reading marker spinning in place and its checklist in the tense it is in, an optional line wearing its tag on the editor row and that tag being the switch in week mode, and import's learning loop refusing a whole printed line as a name; edge function and the template reseed first, after eight learned aliases were retired on the owner's household, no migrations | release 34667784744 · deploy 34667684551 |
+
 ## 4. Deploy Supabase
 
 ### 4.1 Configure it (once)
@@ -463,7 +494,9 @@ record the run in cloud-setup's ledger.
 4. `scripts/cloud_verify.sh` clean.
 5. `git tag vX.Y.Z && git push origin vX.Y.Z`. (No pubspec bump needed — the
    tag is the version of record, §3c.)
-6. Watch the run: `android` green, `play-internal` green or deliberately
-   skipped.
-7. The Pixel updates itself from Play within minutes (§3b). Sign in; confirm
-   sync. If Play isn't set up yet, download the APK from the Release instead.
+6. Watch the run: `guard` · `android` · `ios` green, `play-internal` skipped
+   by design.
+7. Install the APK from the GitHub Release on each phone. Sign in; confirm
+   sync.
+8. Add the tag's row to §3d, append the deploy to cloud-setup's ledger if
+   there was one, and move the roadmap's untagged rows into Shipped.

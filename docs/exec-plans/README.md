@@ -13,7 +13,8 @@ task — pick up exactly where things stood, with the reasoning intact.
   `make test-sim` for feature
   steps, tech-debt rows added *and* retired. The satellite docs drift precisely
   because "done" gets declared on the code alone.
-- [`roadmap.md`](./roadmap.md) is the standing, ordered build sequence with live
-  status — the first thing to read before starting work.
+- [`roadmap.md`](./roadmap.md) says what is next, what is on main untagged,
+  and what shipped under which tag — the first thing to read before starting
+  work.
 - [`tech-debt-tracker.md`](./tech-debt-tracker.md) lists known debt to pay down
   continuously.

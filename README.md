@@ -7,9 +7,9 @@ each dish's shelf life) and builds a shopping list that buys each thing once.
 Ansi (né Mise; *mise-en-place* is still the soul). The rename shipped on
 2026-09-01 and reached everything that runs — package, identifiers, bundle ids,
 OAuth scheme. "Mise" survives only in finished records (completed plans, ADRs,
-captured eval runs) and in a couple of names outside version control; the
-inventory is in
-[`docs/exec-plans/tech-debt-tracker.md`](./docs/exec-plans/tech-debt-tracker.md).
+captured eval runs) and in the pre-rename OAuth redirect entry the cloud
+still lists until a Google sign-in has been walked on an `io.ansi.app` build
+([`docs/cloud-setup.md`](./docs/cloud-setup.md), the dashboard checklist).
 
 Flutter · Forui · Supabase (Postgres + Auth + Storage) · PowerSync (offline sync)
 
