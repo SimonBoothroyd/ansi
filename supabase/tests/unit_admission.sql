@@ -59,7 +59,7 @@
 -- Run by `supabase test db`.
 
 begin;
-select plan(121);
+select plan(120);
 
 -- ---------------------------------------------------------------------------
 -- default_allowed_units() vectors. The named shapes come from the shared
@@ -1100,46 +1100,6 @@ select is(
      where id = 'cccccccc-0000-0000-0000-000000000021'),
   '["g", "kg", "oz", "lb", "handful", "to_taste", "piece"]'::jsonb,
   'and a second weight changes nothing — the union is idempotent'
-);
-
--- 0039's BACKFILL, re-run over a fixture that could not exist after it: a
--- piece-default row carrying the retired `default_measure_id` and no weight
--- yet. The number is COPIED off that measure — a stated fact, never a guess —
--- and the row records where it came from. (In the migration this ran before
--- the trigger above existed and §4 did the union; here the trigger is already
--- in place and does it, which is the same end state by the other door.)
-insert into ingredient (id, household_id, canonical_name, default_unit,
-  category, source, match_text)
-values ('cccccccc-0000-0000-0000-000000000023',
-  'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Backfill Onion', 'piece',
-  'produce', 'seed', 'backfill onion');
-insert into ingredient_measure (id, household_id, ingredient_id, label,
-  basis_amount, sort_order, source)
-values ('cccccccc-0000-0000-0000-0000000000b1',
-  'cccccccc-cccc-cccc-cccc-cccccccccccc',
-  'cccccccc-0000-0000-0000-000000000023', 'onion, medium', 110, 0,
-  'seed:typical');
-update ingredient set default_measure_id = 'cccccccc-0000-0000-0000-0000000000b1'
-where id = 'cccccccc-0000-0000-0000-000000000023';
-
-update ingredient i
-   set piece_basis_amount = m.basis_amount,
-       piece_source       = 'borrowed from ' || m.label
-  from ingredient_measure m
- where m.id = i.default_measure_id
-   and m.deleted_at is null
-   and i.default_unit = 'piece'
-   and i.piece_basis_amount is null
-   and i.id = 'cccccccc-0000-0000-0000-000000000023';
-
-select results_eq(
-  $$select piece_basis_amount::numeric, piece_source, allowed_units
-      from ingredient
-     where id = 'cccccccc-0000-0000-0000-000000000023'$$,
-  $$values (110::numeric, 'borrowed from onion, medium',
-            '["g", "kg", "oz", "lb", "handful", "piece"]'::jsonb)$$,
-  '0039 copies the curated measure''s amount onto the row, says so, and the '
-  'row then admits `piece`'
 );
 
 -- The trigger is gated on the DEFAULT UNIT too: a weight on a row nobody

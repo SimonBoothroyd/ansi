@@ -298,11 +298,6 @@ follow-up statement to remember. (What needed no script was that column's own
 still lacks travels the ordinary way — leg (c) of the ingredient rollout
 above.)
 
-`ingredient.default_measure_id` and `ingredient_default_measure_backfill()`
-stay in the database for one release, **unread by every client** from the
-piece-weight migration onward. Do not run the old backfill against a
-piece-weight stack: it writes a column nothing looks at.
-
 **The template's changed default units do not reach existing households.**
 A reseed re-materializes the template's `default_unit` (and with it which rows
 are `piece`-default at all), and neither the ingredient rollout nor the

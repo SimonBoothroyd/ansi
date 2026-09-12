@@ -106,25 +106,10 @@ assertions in `begin … rollback` so runs leave no residue.
   or no macros at all is left exactly as it is. Plus: a soft-deleted
   household gains nothing, the template itself is never written, and a second
   run touches 0 rows.
-- `default_measure.sql` — the default count measure (0023, plan 0024 seam D1),
-  **retired by ADR-0015** and kept for one release because the data is durable.
-  Nothing reads `ingredient.default_measure_id` any more and the generated seed
-  no longer writes it, so this suite is what keeps the machinery honest while
-  it is still there: the column is a nullable FK with `on delete set null` (a
-  hard-deleted measure clears the default rather than dangling it); the
-  own-measure trigger refuses a measure belonging to another ingredient or
-  another household; the backfill (`ingredient_default_measure_backfill()`)
-  fills a NULL by (`match_text`, measure `label`) per household, never
-  overwrites a household's own choice, and is a no-op on a second run. The
-  suite CALLS that backfill and then reads what it filled — its SHAPE, never
-  its population: every default points at a live measure of its own row, and
-  `napa cabbage` (one measure) gets one where plain `cabbage` (head vs leaf)
-  does not. No count of the frozen pairs that land or miss is asserted, because
-  the column is retired and the seed no longer curates it; the function itself
-  names the labels it can no longer resolve, in a `raise warning`. A frozen
-  pointer going stale against a moving vocabulary is the argument ADR-0015
-  makes; `ensure_onboarded()` still carries what is there into a new household
-  BY LABEL, re-keyed onto that household's own measure rows.
+- `default_measure_dropped.sql` — the retired default-measure machinery is
+  gone (0042): no `ingredient.default_measure_id`, no own-measure trigger, no
+  index, no backfill function, and `ensure_onboarded()` still clones the
+  template's measures into a fresh household without it.
 - `portion_factor.sql` — `household_member.portion_factor` (0026, exec plan
   0027 front P): defaults to 1 so every pre-existing member is the one-portion
   eater the head-count always meant (P-D6); the range check refuses below ¼

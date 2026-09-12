@@ -183,10 +183,7 @@ const schema = Schema([
     // What ONE of this row weighs, in the basis unit (0039 / ADR-0015) — the
     // count fact the way `density_g_per_ml` is the volume fact; `piece` is
     // sayable only while it is set. `piece_source` says where it came from
-    // ('manual' / 'borrowed from <label>' / 'seed:typical'). The retired
-    // `default_measure_id` (0023) is deliberately NOT declared here: the
-    // column stays in Postgres for one release, and PowerSync drops what the
-    // client schema does not name.
+    // ('manual' / 'borrowed from <label>' / 'seed:typical').
     Column.real('piece_basis_amount'),
     Column.text('piece_source'),
     Column.text('status'),
