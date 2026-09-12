@@ -1178,8 +1178,8 @@ select results_eq(
        and i.match_text = 'ginger' and m.deleted_at is null
      order by m.sort_order$$,
   $$values ('slice', 2.2::numeric, 'usda_fdc:169231 (5 slices (1" dia))'),
-           ('piece, 1 inch', 12::numeric, 'seed:typical')$$,
-  'ginger keeps `slice` and gains the owner-asked `piece, 1 inch` (12 g)'
+           ('piece, 1 inch', 7::numeric, 'seed:typical')$$,
+  'ginger keeps `slice` and gains the owner-asked `piece, 1 inch` (7 g)'
 );
 
 -- The density note attached to the same ruling: basil, thai basil and cherry

@@ -14,7 +14,7 @@
 -- the USDA reference set is a different thing with a different owner
 -- (ADR-0005, seed/scripts/seed_usda.md).
 --
--- 315 ingredients (315 complete, 0 stub), 145 aliases, 302 measures.
+-- 315 ingredients (315 complete, 0 stub), 145 aliases, 306 measures.
 
 begin;
 
@@ -172,7 +172,7 @@ with v(canonical_name, category, default_unit, macros_basis, density_g_per_ml, m
   ('Gala Apple'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.4607::numeric, '{"carb":14.8,"fat":0.15,"fiber":2.1,"kcal":61,"protein":0.13}'::jsonb, 'complete'::text, 'usda_fdc:1105781 + fdc_density:168204'::text, 'Apples, gala, with skin, raw'::text, null::numeric, false, 172::numeric, 'borrowed from apple, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'gala apple'::text),
   ('Garlic'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5748::numeric, '{"carb":33.06,"fat":0.5,"fiber":2.1,"kcal":149,"protein":6.36}'::jsonb, 'complete'::text, 'usda_fdc:169230'::text, 'Garlic, raw'::text, null::numeric, false, 3::numeric, 'borrowed from clove'::text, '["piece","g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'garlic'::text),
   ('Garlic Powder'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.656::numeric, '{"carb":72.73,"fat":0.73,"fiber":9,"kcal":331,"protein":16.55}'::jsonb, 'complete'::text, 'usda_fdc:171325'::text, 'Spices, garlic powder'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'garlic powder'::text),
-  ('Ginger'::text, 'produce'::text, 'tbsp'::text, 'g'::text, 0.4058::numeric, '{"carb":17.77,"fat":0.75,"fiber":2,"kcal":80,"protein":1.82}'::jsonb, 'complete'::text, 'usda_fdc:169231'::text, 'Ginger root, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'ginger'::text),
+  ('Ginger'::text, 'produce'::text, 'tbsp'::text, 'g'::text, 0.4058::numeric, '{"carb":17.77,"fat":0.75,"fiber":2,"kcal":80,"protein":1.82}'::jsonb, 'complete'::text, 'usda_fdc:169231'::text, 'Ginger root, raw'::text, null::numeric, false, null::numeric, null::text, '["tbsp","tsp","cup","ml","g","kg","oz","lb","handful","l","fl_oz","pt","qt"]'::jsonb, 'ginger'::text),
   ('Gold Potato'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.59::numeric, '{"carb":15.9624,"fat":0.2638,"fiber":1,"kcal":72,"protein":1.8125}'::jsonb, 'complete'::text, 'usda_fdc:2346403 + fao_infoods_v2:Potato, english, raw'::text, 'Potatoes, gold, without skin, raw'::text, null::numeric, true, 213::numeric, 'borrowed from potato, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'gold potato'::text),
   ('Golden Raisins'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.6974::numeric, '{"carb":80.02,"fat":0.2,"fiber":3.3,"kcal":301,"protein":3.28}'::jsonb, 'complete'::text, 'usda_fdc:168164'::text, 'Raisins, golden, seedless'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'golden raisin'::text),
   ('Granny Smith Apple'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.4607::numeric, '{"carb":14.2,"fat":0.14,"fiber":2.5,"kcal":59,"protein":0.27}'::jsonb, 'complete'::text, 'usda_fdc:1105664 + fdc_density:168203'::text, 'Apples, granny smith, with skin, raw'::text, null::numeric, false, 167::numeric, 'borrowed from apple, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'granny smith apple'::text),
@@ -292,7 +292,7 @@ with v(canonical_name, category, default_unit, macros_basis, density_g_per_ml, m
   ('Russet Potato'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.634::numeric, '{"carb":18.07,"fat":0.08,"fiber":1.3,"kcal":79,"protein":2.14}'::jsonb, 'complete'::text, 'usda_fdc:170027'::text, 'Potatoes, russet, flesh and skin, raw (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, 213::numeric, 'borrowed from potato, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'russet potato'::text),
   ('Safflower Oil'::text, 'fats & oils'::text, 'tbsp'::text, 'g'::text, 0.9214::numeric, '{"carb":0,"fat":100,"fiber":0,"kcal":884,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:171026'::text, 'Oil, safflower, salad or cooking, linoleic, (over 70%)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'safflower oil'::text),
   ('Ground Sage'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.1353::numeric, '{"carb":60.73,"fat":12.75,"fiber":40.3,"kcal":315,"protein":10.63}'::jsonb, 'complete'::text, 'usda_fdc:170935'::text, 'Spices, sage, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'sage ground'::text),
-  ('Sauerkraut'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.6002::numeric, '{"carb":4.28,"fat":0.14,"fiber":2.9,"kcal":19,"protein":0.91}'::jsonb, 'complete'::text, 'usda_fdc:169279'::text, 'Sauerkraut, canned, solids and liquids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'sauerkraut'::text),
+  ('Sauerkraut'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.6002::numeric, '{"carb":4.28,"fat":0.14,"fiber":2.9,"kcal":19,"protein":0.91}'::jsonb, 'complete'::text, 'usda_fdc:169279'::text, 'Sauerkraut, canned, solids and liquids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","to_taste"]'::jsonb, 'sauerkraut'::text),
   ('Scallion'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.4227::numeric, '{"carb":7.34,"fat":0.19,"fiber":2.6,"kcal":32,"protein":1.83}'::jsonb, 'complete'::text, 'usda_fdc:170005'::text, 'Onions, spring or scallions (includes tops and bulb), raw'::text, null::numeric, false, 15::numeric, 'borrowed from scallion, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'scallion'::text),
   ('Sea Salt'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 1.21730481726635::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_declined'::text, 'Salt, table'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'sea salt'::text),
   ('Semolina Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.7059::numeric, '{"carb":72.83,"fat":1.05,"fiber":3.9,"kcal":360,"protein":12.68}'::jsonb, 'complete'::text, 'usda_fdc:168933'::text, 'Semolina, unenriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'semolina flour'::text),
@@ -331,7 +331,7 @@ with v(canonical_name, category, default_unit, macros_basis, density_g_per_ml, m
   ('Tipo 00 Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.5283::numeric, '{"carb":76.31,"fat":0.98,"fiber":2.7,"kcal":364,"protein":10.33}'::jsonb, 'complete'::text, 'usda_fdc:169761'::text, 'Wheat flour, white, all-purpose, unenriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'tipo flour'::text),
   ('Tomato'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6298::numeric, '{"carb":3.89,"fat":0.2,"fiber":1.2,"kcal":18,"protein":0.88}'::jsonb, 'complete'::text, 'usda_fdc:170457'::text, 'Tomatoes, red, ripe, raw, year round average'::text, null::numeric, false, 123::numeric, 'borrowed from tomato, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'tomato'::text),
   ('Canned Crushed Tomatoes'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0229::numeric, '{"carb":7.29,"fat":0.28,"fiber":1.9,"kcal":32,"protein":1.64}'::jsonb, 'complete'::text, 'usda_fdc:170501'::text, 'Tomatoes, crushed, canned'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'tomato canned'::text),
-  ('Canned Diced Tomatoes'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0356::numeric, '{"carb":3.32,"fat":0.5,"fiber":1.9,"kcal":18,"protein":0.84}'::jsonb, 'complete'::text, 'usda_fdc:333281'::text, 'Tomatoes, canned, red, ripe, diced'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'tomato canned diced'::text),
+  ('Canned Diced Tomatoes'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0356::numeric, '{"carb":3.32,"fat":0.5,"fiber":1.9,"kcal":18,"protein":0.84}'::jsonb, 'complete'::text, 'usda_fdc:333281'::text, 'Tomatoes, canned, red, ripe, diced'::text, null::numeric, false, null::numeric, null::text, '["oz","g","kg","lb","tsp","tbsp","cup","ml","l","fl_oz","pt","qt"]'::jsonb, 'tomato canned diced'::text),
   ('Canned Whole Tomatoes'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0144::numeric, '{"carb":3.47,"fat":0.25,"fiber":1.9,"kcal":16,"protein":0.79}'::jsonb, 'complete'::text, 'usda_fdc:170051'::text, 'Tomatoes, red, ripe, canned, packed in tomato juice'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml"]'::jsonb, 'tomato canned whole'::text),
   ('Tomato Paste'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.1159::numeric, '{"carb":18.91,"fat":0.47,"fiber":4.1,"kcal":82,"protein":4.32}'::jsonb, 'complete'::text, 'usda_fdc:170459'::text, 'Tomato products, canned, paste, without salt added (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'tomato paste'::text),
   ('Canned Tomato Puree'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0567::numeric, '{"carb":8.98,"fat":0.21,"fiber":1.9,"kcal":38,"protein":1.65}'::jsonb, 'complete'::text, 'usda_fdc:170460'::text, 'Tomato products, canned, puree, without salt added'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'tomato puree canned'::text),
@@ -537,7 +537,7 @@ from (values
   ('gala apple', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('garlic', '["piece","g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('garlic powder', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
-  ('ginger', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('ginger', '["tbsp","tsp","cup","ml","g","kg","oz","lb","handful","l","fl_oz","pt","qt"]'::jsonb),
   ('gold potato', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('golden raisin', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('granny smith apple', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
@@ -657,7 +657,7 @@ from (values
   ('russet potato', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('safflower oil', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('sage ground', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
-  ('sauerkraut', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('sauerkraut', '["g","kg","oz","lb","tsp","tbsp","cup","ml","to_taste"]'::jsonb),
   ('scallion', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('sea salt', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
   ('semolina flour', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
@@ -696,7 +696,7 @@ from (values
   ('tipo flour', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('tomato', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('tomato canned', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
-  ('tomato canned diced', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
+  ('tomato canned diced', '["oz","g","kg","lb","tsp","tbsp","cup","ml","l","fl_oz","pt","qt"]'::jsonb),
   ('tomato canned whole', '["g","kg","oz","lb","cup","ml"]'::jsonb),
   ('tomato paste', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('tomato puree canned', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
@@ -850,7 +850,9 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('corn tortilla', 'tortilla'),
     ('cremini mushroom', 'mushroom, whole'),
     ('crispy onion', 'serving · 14 g'),
+    ('cucumber', 'Persian cucumber'),
     ('cucumber', 'cucumber'),
+    ('cucumber', 'bag (1 lb)'),
     ('dark red kidney bean canned', 'can (15 oz), drained'),
     ('date', 'date, pitted'),
     ('dijon mustard', 'serving · 1 tsp'),
@@ -1032,6 +1034,8 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('tomato', 'slice, thin, small'),
     ('tomato canned', 'can (14.5 oz)'),
     ('tomato canned', 'can (28 oz)'),
+    ('tomato canned diced', 'can (14.5 oz)'),
+    ('tomato canned diced', 'can (28 oz)'),
     ('tomato canned whole', 'can (14.5 oz)'),
     ('tomato canned whole', 'can (28 oz)'),
     ('tomato canned whole', 'tomato, medium'),
@@ -1479,7 +1483,9 @@ join (values
   ('corn tortilla', 'tortilla', 24::numeric, 1::int, 'usda_fdc:175036 (1 tortilla)'::text),
   ('cremini mushroom', 'mushroom, whole', 20::numeric, 0::int, 'usda_fdc:168434 (1 piece whole)'::text),
   ('crispy onion', 'serving · 14 g', 14::numeric, 0::int, 'manual'::text),
-  ('cucumber', 'cucumber', 301::numeric, 0::int, 'usda_fdc:168409 (1 cucumber (8-1/4"))'::text),
+  ('cucumber', 'Persian cucumber', 85::numeric, 0::int, 'owner: TJ''s 1 lb bag, 5–6 per bag, 4–6" long'::text),
+  ('cucumber', 'cucumber', 301::numeric, 1::int, 'usda_fdc:168409 (1 cucumber (8-1/4"))'::text),
+  ('cucumber', 'bag (1 lb)', 454::numeric, 2::int, 'owner: Trader Joe''s pack'::text),
   ('dark red kidney bean canned', 'can (15 oz), drained', 266::numeric, 0::int, 'usda_fdc:174285 (1 can drained solids) — relabeled'::text),
   ('date', 'date, pitted', 24::numeric, 0::int, 'usda_fdc:168191 (1 date, pitted)'::text),
   ('dijon mustard', 'serving · 1 tsp', 4.92892159375::numeric, 0::int, 'manual'::text),
@@ -1505,7 +1511,7 @@ join (values
   ('garlic', 'clove', 3::numeric, 0::int, 'usda_fdc:169230 (1 clove)'::text),
   ('garlic', 'head', 46::numeric, 1::int, 'manual'::text),
   ('ginger', 'slice', 2.2::numeric, 0::int, 'usda_fdc:169231 (5 slices (1" dia))'::text),
-  ('ginger', 'piece, 1 inch', 12::numeric, 1::int, 'seed:typical'::text),
+  ('ginger', 'piece, 1 inch', 7::numeric, 1::int, 'seed:typical'::text),
   ('gold potato', 'potato, medium', 213::numeric, 0::int, 'usda_fdc:170027 (1 Potato medium (2-1/4" to 3-1/4" dia)) — borrowed'::text),
   ('gold potato', 'potato, large', 369::numeric, 1::int, 'usda_fdc:170027 (1 potato large (3" to 4-1/4" dia)) — borrowed'::text),
   ('gold potato', 'potato, small', 170::numeric, 2::int, 'usda_fdc:170027 (1 Potato small (1-3/4" to 2-1/4" dia)) — borrowed'::text),
@@ -1661,6 +1667,8 @@ join (values
   ('tomato', 'slice, thin, small', 15::numeric, 9::int, 'usda_fdc:170457 (1 slice, thin/small)'::text),
   ('tomato canned', 'can (14.5 oz)', 411::numeric, 0::int, 'seed:typical'::text),
   ('tomato canned', 'can (28 oz)', 794::numeric, 1::int, 'seed:typical'::text),
+  ('tomato canned diced', 'can (14.5 oz)', 411::numeric, 0::int, 'manual'::text),
+  ('tomato canned diced', 'can (28 oz)', 794::numeric, 1::int, 'manual'::text),
   ('tomato canned whole', 'can (14.5 oz)', 411::numeric, 0::int, 'seed:typical'::text),
   ('tomato canned whole', 'can (28 oz)', 794::numeric, 1::int, 'seed:typical'::text),
   ('tomato canned whole', 'tomato, medium', 111::numeric, 1::int, 'usda_fdc:170051 (1 medium)'::text),
@@ -1721,7 +1729,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
 -- every such row is listed here with its diff, which is what the old
 -- curation_overrides.jsonl `allowed_units` entries used to be for.
 --
--- 305 of 315 rows differ from the derived rule:
+-- 303 of 315 rows differ from the derived rule:
 --   active yeast dry (Active Dry Yeast, default tsp): -fl_oz -l -pt -qt
 --   agave (Agave, default tbsp): -fl_oz -l -pt -qt
 --   all purpose flour (All-Purpose Flour, default cup): -fl_oz -l -pt -qt
@@ -1835,7 +1843,6 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
 --   gala apple (Gala Apple, default piece): -fl_oz -l -pt -qt -handful
 --   garlic (Garlic, default piece): -fl_oz -l -pt -qt -handful
 --   garlic powder (Garlic Powder, default tsp): -fl_oz -l -pt -qt
---   ginger (Ginger, default tbsp): -fl_oz -l -pt -qt
 --   gold potato (Gold Potato, default piece): -fl_oz -l -pt -qt -handful
 --   golden raisin (Golden Raisins, default cup): -fl_oz -l -pt -qt
 --   granny smith apple (Granny Smith Apple, default piece): -fl_oz -l -pt -qt -handful
@@ -1952,7 +1959,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
 --   russet potato (Russet Potato, default piece): -fl_oz -l -pt -qt -handful
 --   safflower oil (Safflower Oil, default tbsp): -fl_oz -l -pt -qt -pinch -dash -to_taste
 --   sage ground (Ground Sage, default tsp): -fl_oz -l -pt -qt
---   sauerkraut (Sauerkraut, default cup): -fl_oz -l -pt -qt
+--   sauerkraut (Sauerkraut, default cup): +to_taste  -fl_oz -l -pt -qt
 --   scallion (Scallion, default piece): -fl_oz -l -pt -qt -handful
 --   sea salt (Sea Salt, default tsp): -fl_oz -l -pt -qt
 --   semolina flour (Semolina Flour, default cup): -fl_oz -l -pt -qt
@@ -1990,7 +1997,6 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
 --   tipo flour (Tipo 00 Flour, default cup): -fl_oz -l -pt -qt
 --   tomato (Tomato, default piece): -fl_oz -l -pt -qt -handful
 --   tomato canned (Canned Crushed Tomatoes, default oz): -fl_oz -l -pt -qt
---   tomato canned diced (Canned Diced Tomatoes, default oz): -fl_oz -l -pt -qt
 --   tomato canned whole (Canned Whole Tomatoes, default oz): -tsp -tbsp -fl_oz -l -pt -qt
 --   tomato paste (Tomato Paste, default tbsp): -fl_oz -l -pt -qt
 --   tomato puree canned (Canned Tomato Puree, default oz): -fl_oz -l -pt -qt
@@ -2253,6 +2259,7 @@ begin
     ('thai basil'),
     ('tomato'),
     ('tomato canned'),
+    ('tomato canned diced'),
     ('tomato canned whole'),
     ('tomato paste'),
     ('tomato puree canned'),

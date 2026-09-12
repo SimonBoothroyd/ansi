@@ -30,6 +30,7 @@ operator statement is owed.
 | The retire guard — an ingredient is retired only when nothing live names it, refused in the app and in the database; a line already left at a retired row is shown by its last name and repairable wherever it appears. Migration `0041` | — |
 | The retired default-measure column, trigger, index and backfill are dropped; `ensure_onboarded` stops carrying a value nothing reads. Migration `0042` | — |
 | An empty shelf's two doors carry their book, so a recipe started there files onto that shelf; the Makefile shells the pinned Supabase CLI by path | — |
+| The seed follows the owner's rows again — Ginger's inch piece at 7 g, both can measures on Canned Diced Tomatoes, the Persian cucumber measures, Sauerkraut admitting to-taste. Reseed on deploy | — |
 
 ## Shipped
 
