@@ -95,7 +95,7 @@ void main() {
           reason: '$name must not grow offers from a field it never carried',
         );
       }
-    });
+    }, skip: skipWithoutGold);
 
     test('a PRESENT field decodes id, title and score — no defaults', () {
       final line = ReconLine.fromJson(const {
@@ -172,5 +172,5 @@ void main() {
       expect(collective.refs, [3, 4, 5, 6, 7, 8, 9, 10]);
       expect(collective.label, 'all the remaining ingredients');
     });
-  });
+  }, skip: skipWithoutGold);
 }

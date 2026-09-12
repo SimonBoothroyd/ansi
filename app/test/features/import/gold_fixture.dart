@@ -14,6 +14,20 @@ import 'dart:io';
 
 import 'package:ansi/features/import/domain/reconciliation_payload.dart';
 
+/// The gold corpus is LOCAL-ONLY: it transcribes copyrighted cookbook pages
+/// and is gitignored, so a fresh checkout (CI included) has none of it. A test
+/// that reads it passes `skip: skipWithoutGold` and says so, instead of failing
+/// on a file the repo deliberately does not carry.
+final bool goldCorpusMissing = !Directory(
+  '../evals/datasets/extraction/gold',
+).existsSync();
+
+/// The `skip:` value for a gold-reading test — a reason on a checkout without
+/// the corpus, null (run) where it is present.
+String? get skipWithoutGold => goldCorpusMissing
+    ? 'the eval gold corpus is local-only (not in the repo)'
+    : null;
+
 /// Reads and decodes a gold file (host filesystem; tests run from `app/`).
 Map<String, Object?> loadGoldJson(String name) {
   final file = File('../evals/datasets/extraction/gold/$name.json');

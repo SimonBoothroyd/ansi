@@ -121,5 +121,6 @@ void main() {
       expect(goldPayload('mint-pea-soup').yieldRaw, isNull);
       expect(parseYieldRaw(goldPayload('mint-pea-soup').yieldRaw), isNull);
     },
+    skip: skipWithoutGold,
   );
 }

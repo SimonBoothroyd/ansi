@@ -944,7 +944,7 @@ void main() {
           hasLength(lines.length - 1),
         );
       });
-    });
+    }, skip: skipWithoutGold);
   });
 
   group('optional: a line fact that survives the review', () {

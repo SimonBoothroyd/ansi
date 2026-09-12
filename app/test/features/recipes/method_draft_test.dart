@@ -14,6 +14,7 @@ import 'package:ansi/features/recipes/domain/method_draft.dart';
 import 'package:ansi/features/recipes/domain/method_step.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../import/gold_fixture.dart';
 
 const _goldPath = '../evals/datasets/extraction/gold/sausage-sliders.json';
 
@@ -106,7 +107,7 @@ void main() {
           reason: 'step $i did not survive tokens → (text, spans) → tokens',
         );
       }
-    });
+    }, skip: skipWithoutGold);
 
     test('the flattened text is the sentence, chips included', () {
       final gold = _gold();
@@ -121,7 +122,7 @@ void main() {
             .having((s) => s.lowSeconds, 'low', 1500)
             .having((s) => s.highSeconds, 'high', 1800),
       );
-    });
+    }, skip: skipWithoutGold);
 
     test('every span lands exactly over its own word', () {
       final gold = _gold();
@@ -133,7 +134,7 @@ void main() {
         words,
         containsAll(<String>['buns', 'garlic butter', 'everything spice']),
       );
-    });
+    }, skip: skipWithoutGold);
 
     test('a leading chip, a trailing chip and two adjacent ones', () {
       const step = MethodStep(
@@ -449,7 +450,7 @@ void main() {
         final draft = toDraft(step, id: 's$i', lineById: gold.lineById);
         expect(toTokens(draft), step);
       }
-    });
+    }, skip: skipWithoutGold);
   });
 
   group('relabelRefs', () {
@@ -665,7 +666,7 @@ void main() {
           }
         }
       }
-    });
+    }, skip: skipWithoutGold);
   });
 
   group('flattenMethod', () {
@@ -676,7 +677,7 @@ void main() {
         expect(flat[i], toDraft(step, id: 's$i', lineById: gold.lineById).text);
       }
       expect(flat[0], 'Preheat the oven to 375°F.');
-    });
+    }, skip: skipWithoutGold);
 
     test('a plain method enters the tokenized world as one text token', () {
       final steps = methodFromPlainSteps(['Dice the onion.', 'Simmer.']);
@@ -742,8 +743,8 @@ void main() {
   });
 
   group('prematchLines — this recipe only, no fuzz', () {
-    final gold = _gold();
-    final lines = gold.lineById.values.toList();
+    late final gold = _gold();
+    late final lines = gold.lineById.values.toList();
 
     test('one clear match is one row', () {
       final hits = prematchLines(lines, 'fennel');
@@ -780,7 +781,7 @@ void main() {
       // …and a plural reaches the singular line, the tier-1 rule everywhere.
       expect(prematchLines(spiced, 'tomatoes').map((l) => l.id), ['l2']);
     });
-  });
+  }, skip: skipWithoutGold);
 
   group('stableStepKey', () {
     test('is derived from the prose, so it survives a reorder', () {
@@ -788,7 +789,7 @@ void main() {
       final keys = gold.steps.map(stableStepKey).toList();
       expect(keys.toSet(), hasLength(gold.steps.length));
       expect(gold.steps.reversed.map(stableStepKey), keys.reversed);
-    });
+    }, skip: skipWithoutGold);
 
     test('the wire format carries no id — the key is not stored', () {
       const step = MethodStep(tokens: [MethodText(s: 'Preheat.')]);
