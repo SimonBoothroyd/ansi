@@ -15,13 +15,10 @@ import '_fixtures.dart';
 final _twoGroups =
     reconPayload([reconLine('a'), reconLine('b'), reconLine('c')]).copyWith(
       groups: [
-        reconPayload([
-          reconLine('a'),
-          reconLine('b'),
-        ]).groups.single.copyWith(name: 'For the pasta'),
-        reconPayload([
-          reconLine('c'),
-        ]).groups.single.copyWith(name: 'For the dressing'),
+        reconPayload([reconLine('a'), reconLine('b')]).groups.single
+            .copyWith(name: 'For the pasta'),
+        reconPayload([reconLine('c')]).groups.single
+            .copyWith(name: 'For the dressing'),
       ],
     );
 

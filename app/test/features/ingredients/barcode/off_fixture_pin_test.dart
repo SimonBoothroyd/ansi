@@ -16,14 +16,12 @@ import '../../../../integration_test/off_fixture.dart';
 
 void main() {
   test('scenario 5 serves exactly the committed Nutella fixture', () {
-    final committed =
-        jsonDecode(
-              File(
-                'test/features/ingredients/barcode/fixtures/'
-                'nutella_per_100g.json',
-              ).readAsStringSync(),
-            )
-            as Map<String, Object?>;
+    final committed = jsonDecode(
+      File(
+        'test/features/ingredients/barcode/fixtures/'
+        'nutella_per_100g.json',
+      ).readAsStringSync(),
+    ) as Map<String, Object?>;
     final inlined = jsonDecode(offNutellaFixtureJson) as Map<String, Object?>;
 
     expect(

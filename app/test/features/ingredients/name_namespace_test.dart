@@ -241,9 +241,8 @@ void main() {
     }
     final pushers = [
       for (final file in dartFiles(Directory('lib')))
-        if (blankNonCode(
-          file.readAsStringSync(),
-        ).contains('newIngredientRoute('))
+        if (blankNonCode(file.readAsStringSync())
+            .contains('newIngredientRoute('))
           file.path,
     ]..sort();
     expect(pushers, [

@@ -175,9 +175,8 @@ class MethodDraftStep {
       other.id == id &&
       other.text == text &&
       other.spans.length == spans.length &&
-      Iterable<int>.generate(
-        spans.length,
-      ).every((i) => other.spans[i] == spans[i]);
+      Iterable<int>.generate(spans.length)
+          .every((i) => other.spans[i] == spans[i]);
 
   @override
   int get hashCode => Object.hash(id, text, spans.length);
@@ -790,9 +789,9 @@ List<LineItem> prematchLines(List<LineItem> lines, String query) {
 /// fold here exactly as they do in every other search box. Only the
 /// *tokenizing* is shared: the ranking above is still this file's own.
 bool _matchesAll(List<String> words, List<String> tokens) => tokens.every(
-  (token) => matchTextForms(
-    token,
-  ).any((form) => words.any((word) => word.startsWith(form))),
+  (token) =>
+      matchTextForms(token)
+          .any((form) => words.any((word) => word.startsWith(form))),
 );
 
 /// A key for a step that survives a rebuild, a sync or a resume — what cook

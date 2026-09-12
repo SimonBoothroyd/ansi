@@ -26,9 +26,8 @@ Widget _host() => MaterialApp(
 void main() {
   testWidgets('an unhandled exception gets one quiet toast', (tester) async {
     await tester.pumpWidget(_host());
-    ToastCrashSink(
-      () => ansiToastAnchor.currentContext,
-    ).report(StateError('boom'), StackTrace.empty);
+    ToastCrashSink(() => ansiToastAnchor.currentContext)
+        .report(StateError('boom'), StackTrace.empty);
     await tester.pumpAndSettle();
 
     expect(find.text('Something went wrong.'), findsOneWidget);

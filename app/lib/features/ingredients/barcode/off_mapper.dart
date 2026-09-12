@@ -180,9 +180,9 @@ MacrosBasis _basisFor(Map<String, Object?> p) {
   if (_perKey(p)?.endsWith('ml') ?? false) return MacrosBasis.perMl;
 
   final packUnit = parsePackQuantity(_text(p['quantity']))?.unit;
-  final printedUnit = readPrintedServing(
-    _text(p['serving_size']),
-  ).bracketed?.unit;
+  final printedUnit = readPrintedServing(_text(p['serving_size']))
+      .bracketed
+      ?.unit;
   final servingUnit = unitFromWord(
     _text(p['serving_quantity_unit']) ?? '',
     families: const {UnitFamily.mass, UnitFamily.volume},
@@ -204,9 +204,10 @@ MacrosBasis _basisFor(Map<String, Object?> p) {
 /// `nutrition_data_per`, reduced to the letters and digits contributors agree
 /// on: `100 ml`, `100_ml` and `100ML` are all `100ml`, and `serving` stays
 /// itself. Null when OFF holds nothing there.
-String? _perKey(Map<String, Object?> p) => _text(
-  p['nutrition_data_per'],
-)?.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '');
+String? _perKey(Map<String, Object?> p) =>
+    _text(p['nutrition_data_per'])
+        ?.toLowerCase()
+        .replaceAll(RegExp('[^a-z0-9]'), '');
 
 /// The macro panel under one OFF key [suffix] (`_100g`, `_serving`), or null
 /// unless all four required macros are there.

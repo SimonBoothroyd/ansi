@@ -309,14 +309,12 @@ void main() {
     // still a real JSON array (not a double-encoded string).
     await stack.waitForSyncRoundTrip(tester);
     expect(find.text('Chicken Curry'), findsOneWidget);
-    final steps =
-        jsonDecode(
-              (await db.get('SELECT steps FROM recipe WHERE id = ?', [
-                    recipe['id'],
-                  ]))['steps']!
-                  as String,
-            )
-            as List<dynamic>;
+    final steps = jsonDecode(
+      (await db.get('SELECT steps FROM recipe WHERE id = ?', [
+            recipe['id'],
+          ]))['steps']!
+          as String,
+    ) as List<dynamic>;
     // The v2 editor writes the tokenized shape for every recipe — a chip-less
     // step is one text token — so assert the prose survived inside it rather
     // than pinning the token keys here (the domain tests own the shape).
@@ -478,14 +476,12 @@ void main() {
       await scrollTo(tester, find.text('Save'), delta: -150);
       await saveRecipe(tester);
       await stack.waitForSyncRoundTrip(tester);
-      final steps =
-          jsonDecode(
-                (await db.get('SELECT steps FROM recipe WHERE id = ?', [
-                      seeded.recipeId,
-                    ]))['steps']!
-                    as String,
-              )
-              as List<dynamic>;
+      final steps = jsonDecode(
+        (await db.get('SELECT steps FROM recipe WHERE id = ?', [
+              seeded.recipeId,
+            ]))['steps']!
+            as String,
+      ) as List<dynamic>;
       expect(steps, hasLength(1));
       final tokens = (steps.single as Map)['tokens'] as List<dynamic>;
       final byType = {

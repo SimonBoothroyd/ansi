@@ -2045,13 +2045,9 @@ void main() {
     late PowerSyncDatabase vdb;
     late Directory vdir;
     late SqliteIngredientRepository vrepo;
-    final vectors =
-        jsonDecode(
-              File(
-                'test/features/ingredients/search_vectors.json',
-              ).readAsStringSync(),
-            )
-            as Map<String, dynamic>;
+    final vectors = jsonDecode(
+      File('test/features/ingredients/search_vectors.json').readAsStringSync(),
+    ) as Map<String, dynamic>;
 
     setUp(() async {
       (vdb, vdir) = await openTestDb();

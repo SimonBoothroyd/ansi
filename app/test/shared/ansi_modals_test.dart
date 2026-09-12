@@ -154,9 +154,9 @@ void main() {
     );
 
     test('modals go through showAnsiSheet/showAnsiDialog', () {
-      final files = dartFiles(
-        Directory('lib'),
-      ).where((f) => f.path != wrapper).toList();
+      final files = dartFiles(Directory('lib'))
+          .where((f) => f.path != wrapper)
+          .toList();
       expect(files, isNotEmpty, reason: 'no lib sources found — broken glob?');
 
       final violations = <String>[];
@@ -164,9 +164,9 @@ void main() {
 
       for (final file in files) {
         final source = blankNonCode(file.readAsStringSync());
-        wrapped += RegExp(
-          r'\bshowAnsi(Sheet|Dialog)\s*(<[^(]*>)?\s*\(',
-        ).allMatches(source).length;
+        wrapped += RegExp(r'\bshowAnsi(Sheet|Dialog)\s*(<[^(]*>)?\s*\(')
+            .allMatches(source)
+            .length;
         for (final m in bare.allMatches(source)) {
           final line = lineOf(source, m.start);
           violations.add('${file.path}:$line — ${m.group(0)}');

@@ -333,12 +333,10 @@ Future<FakeImportRepo> _pumpReview(
   return importRepo;
 }
 
-ImportReconciling _state(WidgetTester tester) =>
-    ProviderScope.containerOf(
-          tester.element(find.byType(MaterialApp)),
-          listen: false,
-        ).read(importControllerProvider)
-        as ImportReconciling;
+ImportReconciling _state(WidgetTester tester) => ProviderScope.containerOf(
+  tester.element(find.byType(MaterialApp)),
+  listen: false,
+).read(importControllerProvider) as ImportReconciling;
 
 Finder _card(int i) => find.byKey(ValueKey('review-line-$i'));
 
@@ -520,9 +518,9 @@ void main() {
           correction: true,
         ),
       );
-      final line =
-          (container.read(importControllerProvider) as ImportReconciling)
-              .resolutions[6];
+      final line = (container.read(
+        importControllerProvider,
+      ) as ImportReconciling).resolutions[6];
       expect(line.chosenIngredientId, _frozenPeas.id);
       expect(line.unit, 'g');
       expect(lineIssues(line, ingredient: _frozenPeas), isEmpty);
@@ -630,9 +628,9 @@ void main() {
               correction: true,
             ),
           );
-          final r =
-              (container.read(importControllerProvider) as ImportReconciling)
-                  .resolutions[i];
+          final r = (container.read(
+            importControllerProvider,
+          ) as ImportReconciling).resolutions[i];
           expect(
             r.chosenIngredientId,
             _spinach.id,

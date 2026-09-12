@@ -147,9 +147,8 @@ double? _unsigned(String text) {
     return leading == null ? null : leading + glyph;
   }
 
-  final typed = RegExp(
-    r'^(?:([0-9]+)\s+)?([0-9]+)\s*/\s*([0-9]+)$',
-  ).firstMatch(text);
+  final typed = RegExp(r'^(?:([0-9]+)\s+)?([0-9]+)\s*/\s*([0-9]+)$')
+      .firstMatch(text);
   if (typed == null) return null;
   final denominator = double.parse(typed.group(3)!);
   if (denominator == 0) return null;

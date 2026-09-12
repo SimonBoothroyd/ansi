@@ -538,12 +538,10 @@ Future<void> draftDensity(WidgetTester tester, String gPerMl) async {
 /// The `FakeIngredientRepo` the pumped host is using — so a test can read
 /// [FakeIngredientRepo.savedForms], which is what the form ASKED for, as
 /// distinct from what the row ended up being.
-FakeIngredientRepo repoOf(WidgetTester tester) =>
-    ProviderScope.containerOf(
-          tester.element(find.byType(IngredientDetailView)),
-          listen: false,
-        ).read(ingredientRepositoryProvider)
-        as FakeIngredientRepo;
+FakeIngredientRepo repoOf(WidgetTester tester) => ProviderScope.containerOf(
+  tester.element(find.byType(IngredientDetailView)),
+  listen: false,
+).read(ingredientRepositoryProvider) as FakeIngredientRepo;
 
 Future<void> openMoreMenu(WidgetTester tester) async {
   await tester.tap(find.byIcon(FLucideIcons.ellipsis));
@@ -608,9 +606,9 @@ Widget densityHost(
 
 /// A committed Open Food Facts payload, verbatim — the same fixtures the
 /// mapper's table-driven test reads.
-String offFixture(String name) => File(
-  'test/features/ingredients/barcode/fixtures/$name.json',
-).readAsStringSync();
+String offFixture(String name) =>
+    File('test/features/ingredients/barcode/fixtures/$name.json')
+        .readAsStringSync();
 
 /// The scan surface's typed-number field. Both sheets are in the tree at once
 /// while the scanner is open, so this is scoped rather than positional.

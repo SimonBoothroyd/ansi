@@ -182,15 +182,15 @@ void main() {
 
     test('a 200 of nonsense → malformed, never "no such product"', () async {
       expect(
-        ((await answer(() => http.Response('<html>oops</html>', 200)))
-                as BarcodeLookupFailed)
-            .reason,
+        ((await answer(
+          () => http.Response('<html>oops</html>', 200),
+        )) as BarcodeLookupFailed).reason,
         BarcodeLookupFailure.malformed,
       );
       expect(
-        ((await answer(() => http.Response('{"status":1}', 200)))
-                as BarcodeLookupFailed)
-            .reason,
+        ((await answer(
+          () => http.Response('{"status":1}', 200),
+        )) as BarcodeLookupFailed).reason,
         BarcodeLookupFailure.malformed,
       );
     });

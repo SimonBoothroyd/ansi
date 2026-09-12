@@ -288,9 +288,8 @@ void main() {
         final file = File(path);
         expect(file.existsSync(), isTrue, reason: '$path is gone — drop it');
         expect(
-          RegExp(
-            r'\bcontext\.(push|go|replace)(Replacement)?(Named)?\s*\(',
-          ).hasMatch(blankNonCode(file.readAsStringSync())),
+          RegExp(r'\bcontext\.(push|go|replace)(Replacement)?(Named)?\s*\(')
+              .hasMatch(blankNonCode(file.readAsStringSync())),
           isTrue,
           reason: '$path no longer navigates bare ($why) — drop the exception',
         );

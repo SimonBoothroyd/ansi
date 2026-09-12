@@ -641,43 +641,42 @@ void main() {
         [
           _recipe({0: 4}, id: 'a', title: 'A', servings: 4),
         ],
-        components:
-            {
-              'a': (
-                title: 'A',
-                servingsBase: 4,
-                keepsForDays: null,
-                freezable: false,
-                freezerDays: null,
-                yields: const [(qty: 1.0, unit: cup)],
-                components: const [
-                  (
-                    id: 'li-b',
-                    subRecipeId: 'b',
-                    quantity: 1.0,
-                    unit: batches,
-                    optional: false,
-                  ),
-                ],
+        components: {
+          'a': (
+            title: 'A',
+            servingsBase: 4,
+            keepsForDays: null,
+            freezable: false,
+            freezerDays: null,
+            yields: const [(qty: 1.0, unit: cup)],
+            components: const [
+              (
+                id: 'li-b',
+                subRecipeId: 'b',
+                quantity: 1.0,
+                unit: batches,
+                optional: false,
               ),
-              'b': (
-                title: 'B',
-                servingsBase: 4,
-                keepsForDays: null,
-                freezable: false,
-                freezerDays: null,
-                yields: const [(qty: 1.0, unit: cup)],
-                components: const [
-                  (
-                    id: 'li-a',
-                    subRecipeId: 'a',
-                    quantity: 1.0,
-                    unit: batches,
-                    optional: false,
-                  ),
-                ],
+            ],
+          ),
+          'b': (
+            title: 'B',
+            servingsBase: 4,
+            keepsForDays: null,
+            freezable: false,
+            freezerDays: null,
+            yields: const [(qty: 1.0, unit: cup)],
+            components: const [
+              (
+                id: 'li-a',
+                subRecipeId: 'a',
+                quantity: 1.0,
+                unit: batches,
+                optional: false,
               ),
-            },
+            ],
+          ),
+        },
       );
       final gap = plan.gaps.single;
       expect(gap.recipeId, 'a');
