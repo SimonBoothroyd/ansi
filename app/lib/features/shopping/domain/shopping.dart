@@ -396,9 +396,7 @@ abstract class ShoppingList with _$ShoppingList {
   /// section at the bottom of the list holds, for whatever counts it. The
   /// order is the aisles' own, so a row's position is predictable: it sits
   /// where its aisle would have put it.
-  List<ShoppingItem> get basket => [
-    for (final g in basketGroups) ...g.items,
-  ];
+  List<ShoppingItem> get basket => [for (final g in basketGroups) ...g.items];
 
   /// The basket keeps its aisles: each group with only its TICKED items, and
   /// a group with none dropped — the mirror of [openGroups]. A ticked row is
