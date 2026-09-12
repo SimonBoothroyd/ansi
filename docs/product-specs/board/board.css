@@ -313,6 +313,7 @@
 
         /* shopping */
         .sl-group{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:14px 20px 6px;}
+        .sl-group.sub{font-size:9px;letter-spacing:.12em;margin:8px 20px 4px 51px;}
         .item{margin:0 20px;border-bottom:1px solid var(--line);padding:11px 0;}
         .item-top{display:flex;align-items:center;gap:11px;}
         .box{width:20px;height:20px;border-radius:6px;border:1.6px solid var(--line);flex:none;display:grid;place-items:center;}

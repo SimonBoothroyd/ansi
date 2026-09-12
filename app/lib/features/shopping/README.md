@@ -13,11 +13,13 @@ the list re-sums.
 
 The aisles hold only what is still to grab. A ticked row leaves its aisle for
 **one section at the bottom** — `IN THE BASKET · 4`, under the aisles and above
-the echo rows — in aisle order then name, so its place is predictable; an aisle
-whose rows are all ticked leaves the top. Tapping a basket row unticks it and
+the echo rows — which keeps its aisles inside it (`PRODUCE`, then `PANTRY`, a
+size down), so a row is re-found the way it was found; an aisle whose rows are
+all ticked leaves the top. Tapping a basket row unticks it and
 it returns to its aisle on the next derivation. When every row is ticked the
 aisles give way to one quiet line, `everything’s in the basket`. All of it is
-derived on the domain (`ShoppingList.openGroups` / `basket` / `allTicked`);
+derived on the domain (`ShoppingList.openGroups` / `basketGroups` / `basket` /
+`allTicked`);
 `groups` stays the full list for whatever counts items.
 
 ## Layout

@@ -400,6 +400,14 @@ void main() {
       expect(list.allTicked, isFalse);
     });
 
+    test('the basket keeps its aisles, each holding only its ticked rows', () {
+      // Produce keeps Lime; Baking is all ticked and comes over whole; Dairy
+      // has nothing ticked and is not in the basket at all.
+      expect(list.basketGroups.map((g) => g.label), ['Produce', 'Baking']);
+      expect(list.basketGroups.first.items.map((i) => i.name), ['Lime']);
+      expect(list.basketGroups.last.items.map((i) => i.name), ['Flour']);
+    });
+
     test('all ticked is known in one place', () {
       final done = ShoppingList(
         groups: [

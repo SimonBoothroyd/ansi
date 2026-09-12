@@ -114,7 +114,7 @@ class ShoppingView extends ConsumerWidget {
         // is not, the line below says so where they were.
         if (data.allTicked) const _EverythingInBasketLine(),
         for (final group in data.openGroups) _Group(group: group),
-        if (data.basket.isNotEmpty) _Basket(items: data.basket),
+        if (data.basket.isNotEmpty) _Basket(groups: data.basketGroups),
         // What the list is short by, and why it is silent about it
         // (step 8.6 / D4): an unresolved component contributes
         // nothing — never an invented quantity — so the parent it
@@ -187,22 +187,51 @@ class _Group extends StatelessWidget {
 }
 
 /// The one section every ticked row moves to — `IN THE BASKET · 4` in the
-/// group-header voice, the rows in the order their aisles would have put
-/// them, so a row's place is predictable. A ticked row keeps its ticked look
-/// and its tap: tapping unticks it and it returns to its aisle on the next
-/// derivation.
+/// group-header voice — keeping its aisles inside it, so a row is re-found
+/// the way it was found: under `PRODUCE`, then `PANTRY`, in the order the
+/// aisles would have put them. A ticked row keeps its ticked look and its
+/// tap: tapping unticks it and it returns to its aisle on the next derivation.
 class _Basket extends StatelessWidget {
-  const _Basket({required this.items});
+  const _Basket({required this.groups});
 
-  final List<ShoppingItem> items;
+  final List<ShoppingGroup> groups;
 
   @override
-  Widget build(BuildContext context) => _Group(
-    group: ShoppingGroup(
-      label: 'In the basket · ${items.length}',
-      items: items,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final count = groups.fold(0, (n, g) => n + g.items.length);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 2),
+          child: Text(
+            'In the basket · $count'.toUpperCase(),
+            style: ansiMono(
+              size: 10,
+              color: AnsiColors.muted,
+              letterSpacing: 1.4,
+            ),
+          ),
+        ),
+        for (final group in groups) ...[
+          // The aisle's own label, a size down and set in from the box so it
+          // reads as a section OF the basket rather than a second aisle.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(51, 8, 20, 4),
+            child: Text(
+              group.label.toUpperCase(),
+              style: ansiMono(
+                size: 9,
+                color: AnsiColors.muted,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          for (final item in group.items) _ItemRow(item: item),
+        ],
+      ],
+    );
+  }
 }
 
 /// Every item is ticked: the aisles are empty but the trip is not, and the

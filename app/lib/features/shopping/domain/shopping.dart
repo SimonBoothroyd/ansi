@@ -392,13 +392,26 @@ abstract class ShoppingList with _$ShoppingList {
         ),
   ];
 
-  /// Every ticked item, flattened in aisle order then name — the one section
-  /// at the bottom of the list. The order is the aisles' own, so a row's
-  /// position is predictable: it sits where its aisle would have put it.
+  /// Every ticked item, flattened in aisle order then name — what the one
+  /// section at the bottom of the list holds, for whatever counts it. The
+  /// order is the aisles' own, so a row's position is predictable: it sits
+  /// where its aisle would have put it.
   List<ShoppingItem> get basket => [
+    for (final g in basketGroups) ...g.items,
+  ];
+
+  /// The basket keeps its aisles: each group with only its TICKED items, and
+  /// a group with none dropped — the mirror of [openGroups]. A ticked row is
+  /// re-found the way it was found, under the aisle it was walked to.
+  List<ShoppingGroup> get basketGroups => [
     for (final g in groups)
-      for (final i in g.items)
-        if (i.checked) i,
+      if (g.items.any((i) => i.checked))
+        g.copyWith(
+          items: [
+            for (final i in g.items)
+              if (i.checked) i,
+          ],
+        ),
   ];
 
   /// Whether the list has items and every one of them is ticked — the aisles

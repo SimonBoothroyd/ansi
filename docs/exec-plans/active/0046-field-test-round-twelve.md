@@ -35,10 +35,11 @@ Lane `shop` — `features/shopping`:
 - [ ] The aisles hold only unticked items; an aisle whose items are all
       ticked leaves the top of the list. Every ticked item sits in one
       section at the bottom, `IN THE BASKET · n`, in aisle order then name,
-      looking exactly as a ticked row looks today. A tap unticks it and it
-      returns to its aisle. Held in the domain (`ShoppingList.openGroups`,
-      `basket`, `allTicked`), unit-tested, with screen tests for the move
-      both ways.
+      looking exactly as a ticked row looks today, and keeping its aisles
+      inside it a size down so a row is re-found where it was found. A tap
+      unticks it and it returns to its aisle. Held in the domain
+      (`ShoppingList.openGroups`, `basketGroups`, `basket`, `allTicked`),
+      unit-tested, with screen tests for the move both ways.
 - [ ] When every item is ticked the aisles' place says `everything's in the
       basket`, in the empty-list voice. That state is the one hook the
       celebration (below, co-design pending) will hang on.

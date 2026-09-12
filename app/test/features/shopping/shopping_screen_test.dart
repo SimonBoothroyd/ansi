@@ -386,12 +386,19 @@ void main() {
       await tester.pump();
 
       // The aisles still stand, holding only what is left to grab…
-      expect(find.text('PRODUCE'), findsOneWidget);
       expect(find.text('BAKING'), findsOneWidget);
       // …and the ticked row sits under the basket header, with the count,
-      // below every aisle.
+      // below every aisle — under its own aisle's label, kept inside the
+      // basket so the row is re-found where it was found.
       expect(find.text('IN THE BASKET · 1'), findsOneWidget);
       final basketTop = tester.getTopLeft(find.text('IN THE BASKET · 1')).dy;
+      expect(find.text('PRODUCE'), findsNWidgets(2));
+      final produceInBasket = find
+          .text('PRODUCE')
+          .evaluate()
+          .map((e) => tester.getTopLeft(find.byWidget(e.widget)).dy)
+          .where((dy) => dy > basketTop);
+      expect(produceInBasket, hasLength(1));
       expect(tester.getTopLeft(find.text('Lime')).dy, greaterThan(basketTop));
       expect(tester.getTopLeft(find.text('Onion')).dy, lessThan(basketTop));
       expect(tester.getTopLeft(find.text('Flour')).dy, lessThan(basketTop));
@@ -424,9 +431,15 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('PRODUCE'), findsNothing);
+      // Produce is gone from the top and stands only inside the basket.
       expect(find.text('BAKING'), findsOneWidget);
       expect(find.text('IN THE BASKET · 1'), findsOneWidget);
+      final basketTop = tester.getTopLeft(find.text('IN THE BASKET · 1')).dy;
+      expect(find.text('PRODUCE'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('PRODUCE')).dy,
+        greaterThan(basketTop),
+      );
       expect(find.textContaining('in the basket'), findsNothing);
     });
 
@@ -456,9 +469,16 @@ void main() {
       await tester.pump();
 
       expect(find.text('everything’s in the basket'), findsOneWidget);
-      expect(find.text('PRODUCE'), findsNothing);
-      expect(find.text('BAKING'), findsNothing);
       expect(find.text('IN THE BASKET · 2'), findsOneWidget);
+      // Both aisles stand inside the basket, and nowhere above it.
+      final basketTop = tester.getTopLeft(find.text('IN THE BASKET · 2')).dy;
+      expect(find.text('PRODUCE'), findsOneWidget);
+      expect(find.text('BAKING'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('PRODUCE')).dy,
+        greaterThan(basketTop),
+      );
+      expect(tester.getTopLeft(find.text('BAKING')).dy, greaterThan(basketTop));
       // Still a list with things in it — not the empty-list line.
       expect(find.textContaining('nothing to buy'), findsNothing);
       expect(find.textContaining('add item or top up'), findsOneWidget);
