@@ -143,7 +143,7 @@ import/
   editor's own `relabelRefs` over the method draft for `previewLineId(index)`.
   The controller keeps the returned `ChipRelabel`s and `Substitution` for the
   sitting, and `ImportMethodEditing` hands them to the shipped step cards, so
-  *2 steps mentioned wild garlic* and *was "wild garlic" · keep the old word*
+  *2 steps mentioned coriander* and *was "coriander" · keep the old word*
   appear here with no new UI. **A chip never names something the recipe does
   not contain** — that is the invariant, and the ref is untouched throughout.
 - **Amount editing reuses the 7.7 sheet.** `showQuantityUnitSheet` is the single

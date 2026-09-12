@@ -168,8 +168,8 @@ The column list is generated from the migrations —
   trimmed, has its runs of whitespace collapsed and loses a lone trailing `.`
   or `,` the moment the field loses focus, with Save as the backstop for a
   field that was typed in and never left. It is then Title Cased, small words
-  excepted (`cream of tartar` → `Cream of Tartar`, `wild garlic pesto` →
-  `Wild Garlic Pesto`, `desserts` → `Desserts`) — **one rule for every kind of
+  excepted (`cream of tartar` → `Cream of Tartar`, `smoky bean stew` →
+  `Smoky Bean Stew`, `desserts` → `Desserts`) — **one rule for every kind of
   name**, because a recipe title and a book name sit on the same shelves as an
   ingredient and reading as a label is what a shelf wants. What follows a
   comma is a qualifier and is left exactly as typed (`Chicken Thigh,

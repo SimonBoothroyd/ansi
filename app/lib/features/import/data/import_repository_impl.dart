@@ -63,7 +63,7 @@ class SqliteImportRepository implements ImportRepository {
 
   /// Which canned payload `startImport` serves. Defaults to
   /// [cannedReconciliationPayloadJson]; a smoke scenario driving a different
-  /// recipe (see [wildGarlicPastaPayloadJson]) passes its own. Only the
+  /// recipe (see [peanutStirFryPayloadJson]) passes its own. Only the
   /// extract+match hop is fixed — the candidates are still re-resolved against
   /// the real local vocab below.
   final String _payloadJson;

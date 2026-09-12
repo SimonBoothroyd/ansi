@@ -238,17 +238,17 @@ void main() {
           of: find.byKey(const ValueKey('recipe-title')),
           matching: find.byType(TextField),
         );
-        await tester.enterText(title, '  wild   garlic pesto ');
+        await tester.enterText(title, '  smoky   bean stew ');
         await tester.pump();
         FocusManager.instance.primaryFocus?.unfocus();
         await tester.pumpAndSettle();
 
         // A title is a label on a shelf like any other name: it is Title
         // Cased, and no word ever changes, so there is nothing to tell.
-        expect(host.header.title, 'Wild Garlic Pesto');
+        expect(host.header.title, 'Smoky Bean Stew');
         expect(
           tester.widget<TextField>(title).controller!.text,
-          'Wild Garlic Pesto',
+          'Smoky Bean Stew',
         );
         expect(find.text('keep the old word'), findsNothing);
       });

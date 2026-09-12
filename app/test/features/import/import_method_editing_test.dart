@@ -3,8 +3,8 @@
 /// The review used to answer `relabels()` with `const []` and `substitution()`
 /// with null, on the argument that a re-match here re-points by line INDEX so
 /// no chip can be *orphaned*. That is true about the ref and silent about the
-/// word: swap *wild garlic* for Kale and the method went on saying "wild
-/// garlic", naming a food the recipe no longer contained.
+/// word: swap *coriander* for Cilantro and the method went on saying
+/// "coriander", naming a food the recipe no longer contained.
 ///
 /// What is asserted here is the invariant `relabelRefs` exists to hold —
 /// **a chip never names something the recipe does not contain** — on the
@@ -44,9 +44,9 @@ import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/forui_semantics.dart';
 import '_fixtures.dart';
 
-const _kale = Ingredient(
-  id: 'ing-kale',
-  canonicalName: 'Kale',
+const _cilantro = Ingredient(
+  id: 'ing-cilantro',
+  canonicalName: 'Cilantro',
   defaultUnit: g,
   status: IngredientStatus.complete,
 );
@@ -54,15 +54,15 @@ const _kale = Ingredient(
 /// The owner's page, in miniature: line 0 is the one the method chips (twice —
 /// once alone, once inside a collective), line 1 is a line nothing mentions.
 ReconciliationPayload _payload() => reconPayload(
-  title: 'Wild Garlic Pasta',
+  title: 'Peanut Tofu Stir-Fry',
   [
     reconLine(
-      'wild garlic',
-      qty: 200,
+      'coriander',
+      qty: 20,
       unit: 'g',
-      rawAmount: '200 g',
-      ingredientId: 'ing-wild-garlic',
-      canonicalName: 'Wild Garlic',
+      rawAmount: '20 g',
+      ingredientId: 'ing-coriander',
+      canonicalName: 'Coriander',
     ),
     reconLine(
       'onions, thinly sliced',
@@ -76,16 +76,16 @@ ReconciliationPayload _payload() => reconPayload(
   steps: const [
     payload.Step(
       tokens: [
-        TextToken(s: 'Blanch the '),
-        RefToken(refs: [0], label: 'wild garlic'),
-        TextToken(s: ', then blend.'),
+        TextToken(s: 'Chop the '),
+        RefToken(refs: [0], label: 'coriander'),
+        TextToken(s: ', then set aside.'),
       ],
     ),
     payload.Step(
       tokens: [
-        TextToken(s: 'Fold the '),
-        RefToken(refs: [0, 1], label: 'wild garlic sauce'),
-        TextToken(s: ' through the pasta.'),
+        TextToken(s: 'Scatter the '),
+        RefToken(refs: [0, 1], label: 'coriander and onion'),
+        TextToken(s: ' over the noodles.'),
       ],
     ),
   ],
@@ -97,7 +97,7 @@ Future<ProviderContainer> _reviewing() async {
       bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
       importRepositoryProvider.overrideWithValue(FakeImportRepo(_payload())),
       ingredientRepositoryProvider.overrideWithValue(
-        FakeIngredientRepo(const [onionByWeight, _kale]),
+        FakeIngredientRepo(const [onionByWeight, _cilantro]),
       ),
       measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
     ],
@@ -179,43 +179,50 @@ void main() {
   test('a re-match relabels every chip pointing at the line — the word moves, '
       'the refs do not', () async {
     final container = await _reviewing();
-    expect(_word(_host(container), 0), 'wild garlic');
+    expect(_word(_host(container), 0), 'coriander');
 
     container
         .read(importControllerProvider.notifier)
         .updateResolution(
           0,
-          (r) => r.resolveToIngredient(_kale.id, 'Kale', correction: true),
+          (r) =>
+              r.resolveToIngredient(_cilantro.id, 'Cilantro', correction: true),
         );
 
     final host = _host(container);
-    // The ingredient is stored "Kale"; the words it replaces sat mid-sentence
-    // in lower case, so that is the case they take.
-    expect(_word(host, 0), 'kale');
-    expect(host.methodDraft()[0].text, 'Blanch the kale, then blend.');
+    // The ingredient is stored "Cilantro"; the words it replaces sat
+    // mid-sentence in lower case, so that is the case they take.
+    expect(_word(host, 0), 'cilantro');
+    expect(host.methodDraft()[0].text, 'Chop the cilantro, then set aside.');
     // The ref is untouched — a relabel rewrites the WORD, never the pointer.
     expect(_chip(host, 0).refs, [previewLineId(0)]);
     // The collective moves too, and keeps both of its refs.
-    expect(_word(host, 1), 'kale');
+    expect(_word(host, 1), 'cilantro');
     expect(_chip(host, 1).refs, [previewLineId(0), previewLineId(1)]);
     // The prose either side is byte-identical: we don't rewrite sentences.
-    expect(host.methodDraft()[1].text, 'Fold the kale through the pasta.');
+    expect(
+      host.methodDraft()[1].text,
+      'Scatter the cilantro over the noodles.',
+    );
   });
 
   test('the shipped notice and its per-chip revert are populated', () async {
     final container = await _reviewing();
     container
         .read(importControllerProvider.notifier)
-        .updateResolution(0, (r) => r.resolveToIngredient(_kale.id, 'Kale'));
+        .updateResolution(
+          0,
+          (r) => r.resolveToIngredient(_cilantro.id, 'Cilantro'),
+        );
 
     final host = _host(container);
     final substitution = host.substitution()!;
-    expect(substitution.oldName, 'Wild Garlic');
-    expect(substitution.newName, 'Kale');
+    expect(substitution.oldName, 'Coriander');
+    expect(substitution.newName, 'Cilantro');
     expect(substitution.stepIds, {'step-0', 'step-1'});
     expect(host.relabels().map((r) => r.oldWord), [
-      'wild garlic',
-      'wild garlic sauce',
+      'coriander',
+      'coriander and onion',
     ]);
   });
 
@@ -223,24 +230,27 @@ void main() {
     final container = await _reviewing();
     container
         .read(importControllerProvider.notifier)
-        .updateResolution(0, (r) => r.resolveToIngredient(_kale.id, 'Kale'));
+        .updateResolution(
+          0,
+          (r) => r.resolveToIngredient(_cilantro.id, 'Cilantro'),
+        );
 
     final before = _host(container);
     final relabel = before.relabels().first;
     before.keepOldWord(relabel);
 
     final after = _host(container);
-    expect(_word(after, 0), 'wild garlic');
+    expect(_word(after, 0), 'coriander');
     expect(_chip(after, 0).refs, [previewLineId(0)]);
     // Only that chip is reverted; the collective keeps the new word, and the
     // notice stands while it does.
-    expect(_word(after, 1), 'kale');
+    expect(_word(after, 1), 'cilantro');
     expect(after.relabels(), hasLength(1));
     expect(after.substitution(), isNotNull);
 
     after.keepOldWord(after.relabels().single);
     final done = _host(container);
-    expect(_word(done, 1), 'wild garlic sauce');
+    expect(_word(done, 1), 'coriander and onion');
     expect(done.relabels(), isEmpty);
     expect(done.substitution(), isNull);
   });
@@ -249,14 +259,14 @@ void main() {
       'and the method is still the payload’s own', () async {
     final container = await _reviewing();
     container.read(importControllerProvider.notifier)
-      ..updateResolution(0, (r) => r.pickQuantity(300))
+      ..updateResolution(0, (r) => r.pickQuantity(30))
       ..updateResolution(0, (r) => r.setNotes('finely chopped'))
       ..updateResolution(0, (r) => r.pickUnit('g'));
 
     final state = container.read(importControllerProvider) as ImportReconciling;
     expect(state.editedSteps, isNull, reason: 'nobody edited the method');
     expect(_host(container).relabels(), isEmpty);
-    expect(_word(_host(container), 0), 'wild garlic');
+    expect(_word(_host(container), 0), 'coriander');
   });
 
   test('only the chips that POINT at the line move', () async {
@@ -264,12 +274,15 @@ void main() {
     // Line 1 is named by the collective and by nothing else.
     container
         .read(importControllerProvider.notifier)
-        .updateResolution(1, (r) => r.resolveToIngredient(_kale.id, 'Kale'));
+        .updateResolution(
+          1,
+          (r) => r.resolveToIngredient(_cilantro.id, 'Cilantro'),
+        );
     final host = _host(container);
     // The collective names line 1, so it moved…
-    expect(_word(host, 1), 'kale');
+    expect(_word(host, 1), 'cilantro');
     // …and the solo chip, which names only line 0, did not.
-    expect(_word(host, 0), 'wild garlic');
+    expect(_word(host, 0), 'coriander');
   });
 
   testWidgets('renaming a chip in the chip sheet KEEPS the chip (D-D3d)', (
@@ -284,23 +297,23 @@ void main() {
     await tester.pumpWidget(_reviewHost(container));
     await tester.pumpAndSettle();
 
-    // A tap inside "wild garlic" — [11, 22) of step 1's sentence.
-    await _tapStepAt(tester, step: 0, offset: 15);
+    // A tap inside "coriander" — [9, 18) of step 1's sentence.
+    await _tapStepAt(tester, step: 0, offset: 13);
     expect(find.text('WORD'), findsOneWidget);
 
-    await tester.enterText(find.byType(EditableText).last, 'garlic leaves');
+    await tester.enterText(find.byType(EditableText).last, 'fresh herbs');
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(FLucideIcons.x).first);
     await tester.pumpAndSettle();
 
     final host = _host(container);
     // The sentence reads with the new word…
-    expect(host.methodDraft()[0].text, 'Blanch the garlic leaves, then blend.');
+    expect(host.methodDraft()[0].text, 'Chop the fresh herbs, then set aside.');
     // …and the chip is still there, pointing where it always did. Before the
     // echo loop was closed, the rename deleted the chip it renamed and left
     // the typed text as prose.
     expect(_chip(host, 0).refs, [previewLineId(0)]);
-    expect(_word(host, 0), 'garlic leaves');
+    expect(_word(host, 0), 'fresh herbs');
   });
 
   testWidgets('the notice and "keep the old word" render on the review, with '
@@ -313,24 +326,24 @@ void main() {
     final container = await _reviewing();
     await tester.pumpWidget(_reviewHost(container));
     await tester.pumpAndSettle();
-    expect(find.textContaining('was “wild garlic”'), findsNothing);
+    expect(find.textContaining('was “coriander”'), findsNothing);
 
     container
         .read(importControllerProvider.notifier)
-        .updateResolution(0, (r) => r.resolveToIngredient(_kale.id, 'Kale'));
+        .updateResolution(
+          0,
+          (r) => r.resolveToIngredient(_cilantro.id, 'Cilantro'),
+        );
     await tester.pumpAndSettle();
 
-    expect(
-      find.textContaining('2 steps mentioned Wild Garlic'),
-      findsOneWidget,
-    );
-    expect(find.text('was “wild garlic”'), findsOneWidget);
+    expect(find.textContaining('2 steps mentioned Coriander'), findsOneWidget);
+    expect(find.text('was “coriander”'), findsOneWidget);
     expect(find.text('keep the old word'), findsNWidgets(2));
 
     await tester.tap(find.text('keep the old word').first);
     await tester.pumpAndSettle();
-    expect(find.text('was “wild garlic”'), findsNothing);
-    expect(find.text('Blanch the wild garlic, then blend.'), findsWidgets);
+    expect(find.text('was “coriander”'), findsNothing);
+    expect(find.text('Chop the coriander, then set aside.'), findsWidgets);
   });
 
   testWidgets('the relabelled method is what commits', (tester) async {
@@ -345,7 +358,7 @@ void main() {
         bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
         importRepositoryProvider.overrideWithValue(repo),
         ingredientRepositoryProvider.overrideWithValue(
-          FakeIngredientRepo(const [onionByWeight, _kale]),
+          FakeIngredientRepo(const [onionByWeight, _cilantro]),
         ),
         measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
       ],
@@ -356,7 +369,10 @@ void main() {
         .startImport(const ImportFromUrl('x'));
     container
         .read(importControllerProvider.notifier)
-        .updateResolution(0, (r) => r.resolveToIngredient(_kale.id, 'Kale'));
+        .updateResolution(
+          0,
+          (r) => r.resolveToIngredient(_cilantro.id, 'Cilantro'),
+        );
 
     await tester.pumpWidget(_reviewHost(container));
     await tester.pumpAndSettle();
@@ -366,10 +382,13 @@ void main() {
     final steps = repo.committed!.steps;
     // The label rode through to the commit, and the ref is back to a LINE
     // INDEX — the chip still points at the same line it always did.
-    expect(steps[0].tokens[1], const StepToken.ref(refs: [0], label: 'kale'));
+    expect(
+      steps[0].tokens[1],
+      const StepToken.ref(refs: [0], label: 'cilantro'),
+    );
     expect(
       steps[1].tokens[1],
-      const StepToken.ref(refs: [0, 1], label: 'kale'),
+      const StepToken.ref(refs: [0, 1], label: 'cilantro'),
     );
   });
 }

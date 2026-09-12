@@ -108,13 +108,10 @@ void main() {
 
   group('a title, a book and a section get the same rule', () {
     test('a recipe title is Title Cased like any other name', () {
+      expect(cleanName('smoky bean stew', NameKind.title), 'Smoky Bean Stew');
       expect(
-        cleanName('wild garlic pesto', NameKind.title),
-        'Wild Garlic Pesto',
-      );
-      expect(
-        cleanName('  wild   garlic pesto ', NameKind.title),
-        'Wild Garlic Pesto',
+        cleanName('  smoky   bean stew ', NameKind.title),
+        'Smoky Bean Stew',
       );
     });
 

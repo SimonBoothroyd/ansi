@@ -628,11 +628,11 @@ Deno.test("decodeClaudeSanitize — a two-phase wrapper merges lines and steps",
 // punctuation and any case it actually carries are all the page's.
 
 Deno.test("a SHOUTED title is title-cased", () => {
-  assertEquals(titleCaseIfUncased("WILD GARLIC PASTA"), "Wild Garlic Pasta");
+  assertEquals(titleCaseIfUncased("PEANUT TOFU NOODLES"), "Peanut Tofu Noodles");
 });
 
 Deno.test("a whispered title is too", () => {
-  assertEquals(titleCaseIfUncased("wild garlic pasta"), "Wild Garlic Pasta");
+  assertEquals(titleCaseIfUncased("peanut tofu noodles"), "Peanut Tofu Noodles");
 });
 
 Deno.test("small words stay small, except at either end", () => {
@@ -672,8 +672,8 @@ Deno.test("the page's own spacing survives", () => {
 });
 
 Deno.test("the sanitizer applies it at the one choke point", () => {
-  const r = coerceExtractionResult({ ...MINIMAL, title: "WILD GARLIC PASTA" });
-  assertEquals(r.title, "Wild Garlic Pasta");
+  const r = coerceExtractionResult({ ...MINIMAL, title: "PEANUT TOFU NOODLES" });
+  assertEquals(r.title, "Peanut Tofu Noodles");
 });
 
 Deno.test("and leaves a title that carries its own case", () => {

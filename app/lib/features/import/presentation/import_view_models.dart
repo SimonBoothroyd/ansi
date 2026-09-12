@@ -392,7 +392,7 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
   }
 
   /// The substitution being read through this sitting, or null — what the
-  /// method's *"2 steps mentioned wild garlic"* notice speaks.
+  /// method's *"2 steps mentioned coriander"* notice speaks.
   ///
   /// **Session state, not a column**, exactly as on the editor: the swap and
   /// the read-through happen in one sitting, and the commit ends it.

@@ -24,7 +24,7 @@ library;
 /// There are **two**, because only two behaviours are honest. Everything a
 /// household names — an ingredient, a recipe, a book, a section — is a label
 /// on a shelf and reads as one, so they all get the same Title Case:
-/// `Wild Garlic Pesto` sits beside `Cream of Tartar` and `Desserts` without
+/// `Smoky Bean Stew` sits beside `Cream of Tartar` and `Desserts` without
 /// one of them looking like a sentence somebody forgot to finish. An alias is
 /// stored lowercase by the vocabulary (`supabase/seed/snapshot.jsonl`), so
 /// recasing it would only be undone.

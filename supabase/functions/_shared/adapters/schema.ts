@@ -250,7 +250,7 @@ const isLetter = (c: string) => c.toLowerCase() !== c.toUpperCase();
 /**
  * Title-cases a title that carries **no case information of its own**.
  *
- * A photographed page shouts: WILD GARLIC PASTA, and a scraped one sometimes
+ * A photographed page shouts: PEANUT TOFU NOODLES, and a scraped one sometimes
  * whispers. Neither is a decision the page made about capitalisation — it is
  * the absence of one — so we supply the ordinary one. A title that already
  * carries MIXED case is left exactly alone: the page that prints *PIZZA alla

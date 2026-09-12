@@ -1111,9 +1111,9 @@ void main() {
       // The review is a viewport. On a phone the search sheet's keyboard
       // shrinks it, and the card that opened the sheet can scroll out and
       // UNMOUNT while the sheet is still open. Riverpod 3 throws on a
-      // `WidgetRef` used after unmount, so the pick was lost (owner field
-      // report, 2026-09-03: "swapped wild garlic for kale, it didn't set") —
-      // and the amount sheets share the shape. The pick must land regardless
+      // `WidgetRef` used after unmount, so the pick was lost (the owner's
+      // field report: a swap made in the sheet never set) — and the amount
+      // sheets share the shape. The pick must land regardless
       // of what happened to the card underneath.
       testWidgets('the search sheet resolves the line through the controller, '
           'not the unmounted card', (tester) async {
