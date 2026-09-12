@@ -81,8 +81,9 @@ typedef RecipeCandidate = ({RecipeSummary recipe, String filing});
 /// posture the pick is being made in — week mode's "for this week only".
 ///
 /// [suppressRecipes] hides the "Your recipes" section entirely. Week mode
-/// passes it: a sub-recipe swapped for one week would make the component graph
-/// week-dependent, and that graph is read household-wide with no week at all.
+/// passes it: the week's seam filters a recipe's component LINES (an optional
+/// sub-recipe cooked only when ticked in) but does not re-target them, so a
+/// sub-recipe swapped for one week has nowhere to be stored yet.
 Future<PickedLineTarget?> showLineTargetPicker(
   BuildContext context, {
   required String editingRecipeId,
