@@ -10,7 +10,7 @@
 /// The second drives the editor legs that are otherwise host-tested over fakes
 /// only, on a recipe SEEDED through the repository: the method step card's
 /// select → **To ingredient** / **To timer** toolbar and tap-a-chip → the chip
-/// sheet's rename; the quantity sheet's **Optional** switch; and create-new
+/// sheet's rename; the line card's **optional** toggle; and create-new
 /// from inside the editor — the picker footer pushes the ingredient form over
 /// the picker, and back on it the quantity sheet opens on the units that form
 /// set. Each leg is asserted in the local db after the sync round trip.
@@ -36,6 +36,8 @@ import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/presentation/ingredient_line.dart'
     show OptionalTag;
+import 'package:ansi/features/recipes/presentation/line_card.dart'
+    show LineCardAmountChip;
 import 'package:ansi/features/recipes/presentation/recipe_editor_view.dart'
     show RecipeEditorView;
 import 'package:ansi/shared/method_step_text.dart' show MethodChip;
@@ -359,15 +361,21 @@ void main() {
     // tombstoned the children server-side on any edit.
     await editRecipeFromPage(tester);
     await scrollTo(tester, find.text('Garlic'));
-    // The line's quantity control ("3 clove") re-opens the quantity sheet —
-    // but only once the MEASURE row has synced back. Until it lands, the cell
-    // honestly reads "3 piece · measure pending sync" (the editor's own
-    // `_label` branch), so tapping the first frame after re-opening raced the
-    // sync and found nothing. This is the flake the tracker recorded at this
-    // exact finder; the cause is a race in the harness, not in the watch.
+    // The line's amount ("3 clove") is what the row prints — but only once the
+    // MEASURE row has synced back. Until it lands, the cell honestly reads
+    // "3 piece · measure pending sync" (the editor's own `_label` branch), so
+    // tapping the first frame after re-opening raced the sync and found
+    // nothing. This is the flake the tracker recorded at this exact finder;
+    // the cause is a race in the harness, not in the watch.
     await pumpUntilFound(tester, find.text('3 clove'));
+    // One gesture opens the line's card; the AMOUNT chip inside it opens the
+    // quantity sheet. The chip prints the same words as the row it replaced,
+    // so it is found by TYPE — a text finder would answer for either, and
+    // which one it meant would depend on the order they were built in.
     await tester.tap(find.text('3 clove'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byType(LineCardAmountChip));
+    await pumpUntilFound(tester, find.byType(QuantityUnitEditor));
     await tester.enterText(find.byType(EditableText).last, '4');
     await tester.pump();
     await tester.tap(find.text('Done'));
@@ -497,33 +505,23 @@ void main() {
       expect(find.widgetWithText(MethodChip, '10 min'), findsOneWidget);
 
       // ----------------------------------------------------------------------
-      // The Optional switch — in the line's quantity sheet;
-      // the flag lands on the row and the page tags the line.
+      // Optional — the flag row of the line's own card, which is the one door
+      // that sets it on a recipe line; the flag lands on the row and the page
+      // tags the line.
       // ----------------------------------------------------------------------
       await editRecipeFromPage(tester);
-      // The editor's amount cell prints what the recipe page prints — one
-      // layout on every surface — so a COUNT line reads as its bare number
-      // ("1"), never "1 piece". A bare number is not a name, which is why the
-      // cell carries one: find the door, not the digit.
-      final onionAmount = find.descendant(
-        of: find.byWidgetPredicate(
-          (w) => w is Semantics && w.properties.label == 'Amount',
-        ),
-        matching: find.text('1'),
-      );
-      await scrollTo(tester, onionAmount);
-      expect(onionAmount, findsOneWidget, reason: "the Onion line's amount");
-      await tester.tap(onionAmount);
-      await pumpUntilFound(tester, find.byType(QuantityUnitEditor));
-      expect(find.text('Optional'), findsOneWidget);
-      await tester.tap(
-        find.descendant(
-          of: find.byType(QuantityUnitEditor),
-          matching: find.byType(FSwitch),
-        ),
-      );
-      await tester.pump();
-      await tester.tap(find.text('Done'));
+      // The row is the door, anywhere on it — and its identity is rich text
+      // (name, note, tags in one run), so it is found by what it contains
+      // rather than by an exact string.
+      final onionRow = find.textContaining('Onion');
+      await scrollTo(tester, onionRow);
+      expect(onionRow, findsOneWidget, reason: 'the Onion line');
+      await tester.tap(onionRow);
+      await tester.pumpAndSettle();
+      // The card's toggle, not the amount sheet's switch: the editor stopped
+      // passing `initialOptional`, so that switch is gone from this screen.
+      expect(find.text('optional'), findsOneWidget);
+      await tester.tap(find.text('optional'));
       await tester.pumpAndSettle();
       await scrollTo(tester, find.text('Save'), delta: -150);
       await saveRecipe(tester);
