@@ -22,6 +22,31 @@ derived on the domain (`ShoppingList.openGroups` / `basketGroups` / `basket` /
 `allTicked`);
 `groups` stays the full list for whatever counts items.
 
+## The last tick
+
+When the tick that finishes the list is made **on this phone**, the phone
+celebrates: a light haptic, and confetti of the food itself — about thirty
+pieces, Lucide glyphs the app already ships (leaf, wheat, carrot), a berry
+and plain strips, in the eight `AnsiConfetti` colours, the one deliberate
+break from the two-ink palette — burst from the box just ticked, arc across
+the whole width of the screen and fall past the bottom, over the list. One
+`CustomPainter` driven by one `AnimationController`, in an overlay entry on
+the root overlay that ignores pointers and removes itself when the last piece
+has fallen (`confetti_burst.dart`), so the list re-flowing underneath never
+moves it. The tail is the shipped state arriving: the tick writes exactly as
+before, the stream re-derives, the row moves to the basket and the quiet line
+appears.
+
+The rules are held in code and tested. `completesTheList` (domain) says
+whether this tick takes the list from exactly one unticked row to none — never
+on a list of one item — decided on the list as it stands before the write, so
+a completion arriving by sync plays nothing. `LastTickCelebration` (view
+model) plays once per list: its key is the viewed week plus
+`completionKeyOf`, the sorted item identities (ingredient id, or the entry id
+of a free-text row), so unticking and re-ticking the last row does not replay
+and a row added since can. `MediaQuery.disableAnimations` skips the burst and
+keeps the haptic.
+
 ## Layout
 
 ```
@@ -37,6 +62,7 @@ shopping/
   presentation/   ShoppingView; add_shopping_item_sheet.dart (item / top-up);
                   edit_top_up_sheet.dart (edit / remove one manual top-up);
                   shopping_format.dart (totals copy, pure Dart);
+                  confetti_burst.dart (the last tick's burst + overlay door);
                   shopping_view_models.dart
 ```
 

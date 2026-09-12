@@ -41,8 +41,19 @@ Lane `shop` — `features/shopping`:
       (`ShoppingList.openGroups`, `basketGroups`, `basket`, `allTicked`),
       unit-tested, with screen tests for the move both ways.
 - [ ] When every item is ticked the aisles' place says `everything's in the
-      basket`, in the empty-list voice. That state is the one hook the
-      celebration (below, co-design pending) will hang on.
+      basket`, in the empty-list voice. That state is the hook the
+      celebration hangs on.
+- [x] The last tick's celebration: when this phone's tick takes the list
+      from one unticked row to none, a light haptic and confetti of the food
+      itself — thirty pieces in eight kitchen colours (`AnsiConfetti`) from
+      the box just ticked, over the list, one painter and one controller in
+      a root-overlay entry that removes itself. Once per list (keyed on the
+      viewed week plus the sorted item identities), never on a list of one,
+      never on a completion arriving by sync, and the burst yields to
+      `disableAnimations`. Held in the domain (`completesTheList`,
+      `completionKeyOf`) and the view model (`LastTickCelebration`), with
+      unit and screen tests for each rule; the board's frame is the built
+      one.
 - [ ] A `piece` line on a row that states a piece weight folds into the
       row's basis subtotal through that weight, exactly as a measure does
       (ADR-0015 rule 5, applied to the shop). A row with no piece weight is
@@ -78,7 +89,7 @@ Lane `docs` (this file):
 - [ ] The audit below is ready for the owner to run read-only; its result
       decides whether any row needs a piece weight.
 - [ ] The tracker's sync row is narrowed to what the field week did not
-      verify; the backlog carries the celebration and the office-lunch idea.
+      verify; the backlog carries the office-lunch idea.
 - [ ] Tests cover the new logic; docs updated (feature READMEs, board, this
       plan, roadmap row).
 
@@ -358,6 +369,14 @@ carries the same words.
 - 2026-09-12 — **The celebration waits for the owner.** The all-ticked
   state and its quiet line ship now, as the hook; the animation is drawn
   with him first (options under Notes).
+- 2026-09-12 — **The celebration is the confetti, colourful and
+  screen-filling.** The owner chose the second of the three shapes drawn
+  on the board, and chose it loud: about thirty pieces across the whole
+  width of the screen, in eight kitchen colours added as tokens for this
+  one moment — the app's one deliberate break from its two inks. The
+  basket-fills and ripple frames are deleted; the haptic from the third
+  shape rides along at the tick. The tail stays the shipped derivation, not
+  a staged sequence.
 - 2026-09-12 — **The sync tracker row narrows rather than retires.** A
   family week over a patchy connection is field evidence for the offline
   drain, not a test of it; the two-client session and the banner
@@ -365,7 +384,8 @@ carries the same words.
 
 ## Notes / open questions
 
-**The celebration — three shapes to pick from, or mix:**
+**The celebration — the three shapes weighed (the second was chosen; see
+the decision log):**
 
 1. *The basket fills.* The `IN THE BASKET` header's count rolls up to the
    total, the section's rows settle with a short stagger, and one line of

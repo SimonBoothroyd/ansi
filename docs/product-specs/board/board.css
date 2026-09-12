@@ -1135,11 +1135,10 @@
           .st td.s{padding-bottom:14px;border-bottom:1px solid var(--line);}
         }
 
-        /* the last tick — three celebration proposals on the Shop (cook-shop.html).
-           Each .cel screen plays once on load and again on its replay pill; the
-           shared tail (aisle collapses, the row settles into the basket, the
-           all-ticked line appears) is the shipped state, and only the moment of
-           the tick differs between the three. */
+        /* the last tick — the Shop's confetti (cook-shop.html). The .cel screen
+           plays once on load and again on its replay pill; the tail (aisle
+           collapses, the row settles into the basket, the all-ticked line
+           appears) is the shipped state, staged here for the eye. */
         .cel{position:relative;}
         .cel-play{position:absolute;right:14px;top:12px;z-index:6;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--herb);border:1px solid var(--line);border-radius:999px;padding:4px 9px;background:var(--frame);cursor:pointer;user-select:none;}
         .cel .last{position:relative;}
@@ -1166,24 +1165,10 @@
         .cel .roll .n4{transform:translateY(110%);opacity:0;}
         .cel.play .roll .n3{transform:translateY(-110%);opacity:0;}
         .cel.play .roll .n4{transform:none;opacity:1;}
-        /* 1 · the basket fills: the line writes itself in herb ink */
-        .cel.fills .done-line{color:var(--herb-deep);font-weight:500;white-space:nowrap;}
-        .cel.fills .done-line .w{display:inline-block;overflow:hidden;vertical-align:bottom;max-width:0;}
-        .cel.fills.play .done-line .w{animation:cel-write .6s steps(30,end) 1.2s forwards;}
-        @keyframes cel-write{to{max-width:100%;}}
-        /* 2 · confetti of the food itself: glyphs burst from the last box */
+        /* the confetti: glyphs and strips burst from the last box, over the list */
         .cel .burst{position:absolute;left:10px;top:10px;width:0;height:0;pointer-events:none;z-index:4;}
         .cel .pc.strip{width:6px;height:13px;border-radius:2px;background:currentColor;}
         .cel .pc{position:absolute;left:0;top:0;width:16px;height:16px;opacity:0;}
         .cel.play .pc{animation:cel-pop 1.5s cubic-bezier(.2,.7,.35,1) var(--d) forwards;}
         @keyframes cel-pop{0%{transform:translate(0,0) rotate(0) scale(.5);opacity:0;}8%{opacity:1;transform:translate(calc(var(--dx)*.3),calc(var(--dy)*.45)) rotate(calc(var(--r)*.25)) scale(1.05);}45%{transform:translate(var(--dx),var(--dy)) rotate(var(--r)) scale(1);opacity:1;}85%{opacity:1;}100%{transform:translate(calc(var(--dx)*1.15),calc(var(--dy) + 420px)) rotate(calc(var(--r)*2.2)) scale(.9);opacity:0;}}
-        /* 3 · the tick that ripples: an over-scaled bounce and one ring */
-        .cel.ripple.play .last .box{animation:cel-bounce .55s cubic-bezier(.34,1.56,.64,1) .05s;}
-        @keyframes cel-bounce{0%{transform:scale(1);}45%{transform:scale(1.38);}100%{transform:scale(1);}}
-        .cel .ring{position:absolute;left:0;top:0;width:20px;height:20px;border-radius:7px;border:1.6px solid var(--herb);opacity:0;pointer-events:none;}
-        .cel.ripple.play .ring{animation:cel-ring .65s ease-out .1s forwards;}
-        @keyframes cel-ring{0%{transform:scale(1);opacity:.9;}100%{transform:scale(3.4);opacity:0;}}
-        .cel .hap{position:absolute;right:0;top:-16px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);opacity:0;}
-        .cel.ripple.play .hap{animation:cel-hap .9s ease .1s;}
-        @keyframes cel-hap{20%{opacity:1;}80%{opacity:1;}100%{opacity:0;}}
         @media (prefers-reduced-motion:reduce){.cel *,.cel *::after{animation-duration:.01s!important;transition-duration:.01s!important;}}
