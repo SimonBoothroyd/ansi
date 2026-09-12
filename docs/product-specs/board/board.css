@@ -61,6 +61,13 @@
         .frame{width:340px;}
         .frame-name{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin:0 0 10px 4px;}
         .frame-name b{color:var(--ink);font-weight:500;}
+        /* a frame that is DRAWN but not built — the board's proposal idiom, in
+           the same caution colour the search band uses (README rule 2) */
+        .proposed-tag{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.14em;
+          text-transform:uppercase;color:#7A5A16;background:#F6EAD0;border-radius:5px;
+          padding:2px 6px;margin-right:7px;}
+        .frame.prop .phone{border-color:#E4CE99;box-shadow:0 0 0 3px #FDF8EC,var(--shadow);}
+        .view-status .prop{color:#7A5A16;background:#F6EAD0;border-radius:5px;padding:1px 6px;}
         .phone{background:var(--frame);border:1px solid var(--line);border-radius:30px;box-shadow:var(--shadow);overflow:hidden;}
         .notch{height:26px;display:flex;align-items:center;justify-content:center;}
         .notch::after{content:"";width:64px;height:5px;border-radius:3px;background:var(--line);}

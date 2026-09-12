@@ -15,7 +15,8 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Week</h1>
-    <p class="view-status">built · matches code 2026-09-11 · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0038-plan-an-ingredient.md">plan 0038</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a></p>
+    <p class="view-status">built · matches code 2026-09-12 · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0038-plan-an-ingredient.md">plan 0038</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a></p>
+    <p class="view-status"><span class="prop">proposed</span> the week starts on Sunday · <code>household.week_starts_on</code> · <code>features/planning</code> · not built</p>
     <p class="view-blurb">One screen with one state — no mode, no separate page. The switcher is the only title, and the week on screen is the week Cook and Shop follow.</p>
 </header>
 
@@ -54,6 +55,38 @@
             <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni on"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
         </div></div>
         <p class="conv-note" style="margin:10px 4px 0"><b>The fifth cell is fibre, and it comes and goes.</b> Fibre is optional per ingredient, so a set of meals states it only when <b>every meal it counted</b> did &mdash; Monday&rsquo;s two both do; Tuesday and Thursday each carry a dish whose rows do not, so their strips stop at four. The meal is <b>still counted</b> either way: an unstated fibre is not an exclusion, the denominator does not move, and nothing is named as needing fixing. Its cell is a <b>sheaf</b> rather than a word &mdash; this strip is the densest macro line the app draws, and energy is a <b>flame</b> here for the same reason; both carry the word they replaced to a screen reader. The whole strip scales down together rather than dropping a digit (a truncated <b>1&nbsp;234</b> is a wrong number, not a short one).</p>
+    </div>
+
+    <div class="frame prop">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>The week starts on Sunday</b> · the same screen, one day earlier — the Sunday you shop on is <i>inside</i> the week you are shopping for</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">13 Sep</span><span class="caret">▾</span></span><span class="chev">›</span></div>
+            <div class="lensrow"><span class="lbl">for</span><span class="pchip on">Everyone</span><span class="pchip"><span class="av a">A</span>Ada</span><span class="pchip"><span class="av j">J</span>Jun</span></div>
+
+            <div class="day2 today"><div class="day2-head"><div class="day2-name">Sunday</div><span class="day2-date">13 Sep</span><span class="todaytag">TODAY</span></div>
+                <div class="srow"><span class="slab">Dinner</span><div class="dishcell"><span class="sname">Weeknight Chicken Curry</span><span class="cookmark"><span class="mini-fresh"></span>cooks today · batch of 3½</span></div><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">−</span></div>
+                <div class="emptyline"><span class="plus">＋</span>add a meal</div>
+                <div class="daymac"><span class="dm">1&nbsp;120<span class="u"><svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></span></span><span class="dm">96<span class="u">g p</span></span><span class="dm">88<span class="u">g c</span></span><span class="dm">44<span class="u">g f</span></span><div class="scope" style="display:block;text-align:right;margin-top:3px">1 meal</div></div>
+            </div>
+
+            <div class="day2"><div class="day2-head"><div class="day2-name">Monday</div><span class="day2-date">14 Sep</span></div>
+                <div class="srow"><span class="slab">Dinner</span><div class="dishcell"><span class="sname">Weeknight Chicken Curry</span><span class="cookmark from">from Sunday’s batch</span></div><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">−</span></div>
+                <div class="emptyline"><span class="plus">＋</span>add a meal</div>
+                <div class="daymac"><span class="dm">1&nbsp;120<span class="u"><svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></span></span><span class="dm">96<span class="u">g p</span></span><span class="dm">88<span class="u">g c</span></span><span class="dm">44<span class="u">g f</span></span><div class="scope" style="display:block;text-align:right;margin-top:3px">1 meal</div></div>
+            </div>
+
+            <div class="day2 empty-day"><div class="day2-head"><div class="day2-name">Tuesday</div><span class="day2-date">15 Sep</span></div>
+                <div class="emptyline"><span class="plus">＋</span>nothing planned</div>
+            </div>
+
+            <div class="day2 empty-day"><div class="day2-head"><div class="day2-name">Saturday</div><span class="day2-date">19 Sep</span></div>
+                <div class="emptyline"><span class="plus">＋</span>nothing planned</div>
+            </div>
+
+            <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni on"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+        <p class="conv-note" style="margin:10px 4px 0"><b>Nothing on this screen is new.</b> The switcher, the lens, the day card, the cook marker and the add line are the ones above &mdash; the week simply <b>begins on Sunday and ends on Saturday</b>, and its title dates it from the Sunday. What that buys is the whole point: the shop you do on Sunday morning is the shop for the week whose <b>first dinner is that night</b>, so a Sunday meal is no longer stranded at the tail of the week that is ending. The cook marker follows it without being taught anything &mdash; the cook day is the earliest day the batch covers, so a batch cooked on shopping day now <b>heads</b> the week instead of trailing Monday’s.</p>
+        <p class="conv-note" style="margin:8px 4px 0">The order is a <b>household</b> fact, set once in Account (D5), not a per-phone view: it decides which week a meal is <i>stored</i> in, so both phones must agree or they would write into two different weeks. <b>Monday-start is unchanged</b> and stays the default &mdash; this frame is the same screen under the other setting.</p>
     </div>
 
     <div class="frame">
