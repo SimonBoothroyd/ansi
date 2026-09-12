@@ -471,7 +471,7 @@ Endpoints come from `cloud.env` at the repo root.
 | # | Setting (where) | Expected value |
 |---|-----------------|----------------|
 | 1 | Auth hook (Supabase → Authentication → Auth Hooks → Custom Access Token) | **Enabled**, function `public.add_household_claim`. Load-bearing: no hook ⇒ no `household_id` claim ⇒ nothing syncs. |
-| 2 | Redirect URLs (Supabase → Authentication → URL Configuration) | **Cutover open (§1.6).** Both `io.ansi.app://login-callback` (the current scheme) and `io.mise.app://login-callback` (the pre-rename one) are listed — confirmed on the dashboard 2026-09-01. **Not verified:** no Google sign-in has been walked on an `io.ansi.app` build, so the new entry is listed but untested. Do that sign-in, then remove the `io.mise.app` entry and mark this row verified — not before. |
+| 2 | Redirect URLs (Supabase → Authentication → URL Configuration) | **Cutover open (§1.6).** Both `io.ansi.app://login-callback` (the current scheme) and `io.mise.app://login-callback` (the pre-rename one) are listed — confirmed on the dashboard 2026-09-01. **Verified in use:** Google is the only enabled sign-in and the owner signs in with it on `io.ansi.app` builds daily, so the new entry works; the `io.mise.app` entry can be removed at any time. |
 | 3 | Email confirmations (Supabase → Authentication → Sign In / Providers → Email) | OFF while testing email/password (free-tier rate limits); **turn back ON before anything real**. `cloud_verify.sh` warns while it's off. |
 | 4 | Google provider (same screen → Google) | Enabled, with the Web OAuth client id/secret (§1.5). `cloud_verify.sh` checks this one via `/auth/v1/settings`. |
 | 5 | PowerSync JWKS URI (PowerSync dashboard → instance → Client Auth) | "Use Supabase Auth" checked; JWKS URI = `<CLOUD_SUPABASE_URL>/auth/v1/.well-known/jwks.json` |
@@ -525,6 +525,38 @@ A ✓ means the dashboard hook is correctly wired (the JWT carries `household_id
 Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk.
+
+### 2026-09-12 (evening) — v0.14.0 on cloud: 0041, 0042, and the owner's rows as the template
+
+- **deploy-supabase 34697520449** (after CI green on `5148b86`): `db push`
+  applied `0041_ingredient_retire_guard` and `0042_drop_default_measure`;
+  function deployed; sync streams deployed; `reseed_template` ticked.
+  Readback: migrations `0040`–`0042` recorded, `ingredient.default_measure_id`
+  gone with both of its functions, `ingredient_live_line_uses()` and
+  `repair_lines_at_retired_ingredients()` present, the template at 315
+  ingredients / 306 measures / 145 aliases with both `can` measures on Canned
+  Diced Tomatoes — but Ginger's `piece, 1 inch` still 12 g: the generated
+  seed inserted a missing label and retired a gone one, and skipped a measure
+  that kept its label and changed its amount.
+- **deploy-supabase 34697917768** after the generator fix (`de63523`, a
+  differing measure is updated in place; proven locally 12 g → 7 g then a
+  no-op re-run): template Ginger reads 7 g, matching the owner's household.
+  No rollout needed — the owner's household is the snapshot's source.
+- `cloud_verify.sh`: 9 ok · 0 warn · 0 fail (JWKS ES256, GoTrue, Google
+  only, sign-up off, PostgREST, streams 15 tables equal).
+- Read-only recipe audit on the owner's household before the release: 10
+  recipes, 138 lines, 169 method references, all resolving; no line at a
+  retired row, no unadmitted unit, no bare count without a weight, no
+  cross-basis line without a density, no stub. Three recipes carry no shelf
+  life (Gumbo Z'Fungi, Seriously The Best Tofu Scramble, Sesame-roasted
+  Brussels) and one method chip carries its amount in its word ("2 cups of
+  water", One-Pot Vegan Hamburger Helper) — both the owner's to change in
+  the app.
+- Households on cloud: the template and the owner's, one seat free.
+  Sign-up is off and Google is the only provider, so a second member is
+  seated by pre-creating the user in the dashboard (or opening sign-up
+  briefly) and signing in with Google; `ensure_onboarded()` joins the oldest
+  household with room.
 
 ### 2026-09-12 — two hand statements on the owner's household: a repair, and a measure
 

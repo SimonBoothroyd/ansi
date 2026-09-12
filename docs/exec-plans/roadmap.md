@@ -11,12 +11,7 @@ The detail is in the plan; the landing dates are in the
 
 ## Next
 
-1. **Ship what is on main.** Round ten and the retire guard are landed and
-   untagged (the table below). Migration `0041` has not reached cloud, so the
-   order is [release.md §5](../release.md#5-full-ship-checklist): the
-   deploy-supabase button first, then the tag, then move both rows into
-   Shipped and add the tag's row to the tag table.
-2. Then step 10 (web) or step 11 (anti-waste), both stretch, or the first
+1. Step 10 (web) or step 11 (anti-waste), both stretch, or the first
    idea worth building off the [backlog](./backlog.md).
 
 The seed is the owner's own vocabulary and a reseed follows his rows, so no
@@ -26,11 +21,6 @@ operator statement is owed.
 
 | What | Plan |
 |------|------|
-| Round ten — the recipe page up-levelled (method chips as word + amount, digit step numbers, fraction glyphs, a line's macros in the panel's order) and optional as the cook's decision: opened from a week, the page's `optional` tag is the switch, the shop's echo names are doors, and an optional sub-recipe is cooked only when the week includes it. No migrations | [0044](./completed/0044-recipe-page-and-optional.md) |
-| The retire guard — an ingredient is retired only when nothing live names it, refused in the app and in the database; a line already left at a retired row is shown by its last name and repairable wherever it appears. Migration `0041` | — |
-| The retired default-measure column, trigger, index and backfill are dropped; `ensure_onboarded` stops carrying a value nothing reads. Migration `0042` | — |
-| An empty shelf's two doors carry their book, so a recipe started there files onto that shelf; the Makefile shells the pinned Supabase CLI by path | — |
-| The seed follows the owner's rows again — Ginger's inch piece at 7 g, both can measures on Canned Diced Tomatoes, the Persian cucumber measures, Sauerkraut admitting to-taste. Reseed on deploy | — |
 
 ## Shipped
 
@@ -81,6 +71,11 @@ rows below, in that order.)
 | — | Field test, round seven — kitchen fractions, one amount-and-unit control, measures edited in place, one name namespace, the import cascade batched and its reading streamed, the shop buying in the measure asked for, the seed as the owner's own snapshot, a recipe varied for one week. Migration `0040` | `v0.13.0` | [0043](./completed/0043-week-variant.md) |
 | — | Field test, round eight — one unit chip at one height everywhere, forms reopen as entered, the USDA door where it is needed, "Edit for this week" beside a planned recipe, the import function streaming behind heartbeats, the units ladder applied once to the owner's vocabulary | `v0.13.1` | — |
 | — | Field test, round nine — the import reading marker and checklist tidied, an optional line's tag is the week-mode switch, the learning loop refuses a whole printed line as a name | `v0.13.2` | — |
+| — | Round ten — the recipe page up-levelled (method chips as word + amount, digit step numbers, fraction glyphs, a line's macros in the panel's order) and optional as the cook's decision: opened from a week, the page's `optional` tag is the switch, the shop's echo names are doors, and an optional sub-recipe is cooked only when the week includes it. No migrations | `v0.14.0` | [0044](./completed/0044-recipe-page-and-optional.md) |
+| — | The retire guard — an ingredient is retired only when nothing live names it, refused in the app and in the database; a line already left at a retired row is shown by its last name and repairable wherever it appears. Migration `0041` | `v0.14.0` | — |
+| — | The retired default-measure column, trigger, index and backfill are dropped; `ensure_onboarded` stops carrying a value nothing reads. Migration `0042` | `v0.14.0` | — |
+| — | An empty shelf's two doors carry their book, so a recipe started there files onto that shelf; the Makefile shells the pinned Supabase CLI by path | `v0.14.0` | — |
+| — | The seed follows the owner's rows again — Ginger's inch piece at 7 g, both can measures on Canned Diced Tomatoes, the Persian cucumber measures, Sauerkraut admitting to-taste. Reseed on deploy | `v0.14.0` | — |
 
 ## Stretch
 
