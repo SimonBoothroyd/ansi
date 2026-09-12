@@ -326,8 +326,8 @@ abstract class ShoppingItem with _$ShoppingItem {
     /// (invariant 3). Null when the item doesn't qualify (see
     /// [wholeUnitHintFor]), and null whenever [measureTotal] or [pieceTotal]
     /// is set: a row already counted in its measure or its pieces needs no
-    /// second way to say the same thing (the piece total carries its own
-    /// round-up).
+    /// second way to say the same thing (each count carries its own
+    /// round-up under it).
     WholeUnitHint? wholeUnitHint,
   }) = _ShoppingItem;
 

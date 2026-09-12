@@ -64,7 +64,30 @@ void main() {
         measureTotal: (amount: 2.25, measure: large),
       );
       expect(itemTotal(item), '2¼ potato, large');
-      expect(itemSecondary(item), '672.75 g');
+      // A fractional measure count gets the same round-up a piece count
+      // does — you buy whole potatoes.
+      expect(itemSecondary(item), '672.75 g → buy 3');
+    });
+
+    test('a measure-counted lime rounds up like a piece-counted one, and a '
+        'whole count needs no round-up', () {
+      const whole = Measure(id: 'm-lime', label: 'lime, whole', amount: 67);
+      final lime = ShoppingItem(
+        name: 'Lime',
+        ingredientId: 'lime',
+        totals: [Quantity(167.5, g)],
+        measureTotal: (amount: 2.5, measure: whole),
+      );
+      expect(itemTotal(lime), '2½ lime, whole');
+      expect(itemSecondary(lime), '167.5 g → buy 3');
+
+      final three = ShoppingItem(
+        name: 'Lime',
+        ingredientId: 'lime',
+        totals: [Quantity(201, g)],
+        measureTotal: (amount: 3, measure: whole),
+      );
+      expect(itemSecondary(three), '201 g');
     });
 
     test('a piece-weighted row reads its count, with the grams under it', () {

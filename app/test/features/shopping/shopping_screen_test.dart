@@ -368,6 +368,54 @@ void main() {
     expect(find.textContaining('oz'), findsNothing);
   });
 
+  testWidgets('a row counted in its whole measure rounds up under the count, '
+      'as a piece row does', (tester) async {
+    const whole = Measure(id: 'm-lime', label: 'lime, whole', amount: 67);
+    final list = ShoppingList(
+      groups: [
+        ShoppingGroup(
+          label: 'Produce',
+          items: [
+            ShoppingItem(
+              name: 'Lime',
+              ingredientId: 'lime',
+              totals: [Quantity(167.5, g)],
+              measureTotal: const (amount: 2.5, measure: whole),
+              contributions: const [
+                ShoppingContribution(
+                  source: ContributionSource.cookSession,
+                  label: 'Curry · cook Mon',
+                  quantity: 1,
+                  measure: whole,
+                  cookDay: 0,
+                ),
+                ShoppingContribution(
+                  source: ContributionSource.cookSession,
+                  label: 'Salad · cook Wed',
+                  quantity: 1.5,
+                  measure: whole,
+                  cookDay: 2,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _host([
+        shoppingRepositoryProvider.overrideWithValue(_FakeShoppingRepo(list)),
+      ]),
+    );
+    await tester.pump();
+
+    expect(find.text('2½ lime, whole'), findsOneWidget);
+    expect(find.text('167.5 g → buy 3'), findsOneWidget);
+    expect(find.text('1 lime, whole'), findsOneWidget);
+    expect(find.text('1½ lime, whole'), findsOneWidget);
+  });
+
   testWidgets('a piece-weighted row reads its count of pieces, with the '
       'grams underneath', (tester) async {
     const whole = Measure(id: 'm-lime', label: 'lime, whole', amount: 67);

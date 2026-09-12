@@ -47,19 +47,19 @@ String itemTotal(ShoppingItem item) {
 }
 
 /// The small line under an item's total: what a piece- or measure-counted row
-/// weighs ("400 g") — with the round-up after it when the piece count is
-/// fractional ("168 g → buy 3") — or the whole-unit round-up hint. Empty when
-/// the row has none of these. Never a replacement for [itemTotal] — always
-/// beside it (invariant 3).
+/// weighs ("400 g") — with the round-up after it when that count is
+/// fractional ("167.5 g → buy 3"), because you buy whole limes and whole cans
+/// alike — or the whole-unit round-up hint. Empty when the row has none of
+/// these. Never a replacement for [itemTotal] — always beside it (invariant
+/// 3).
 String itemSecondary(ShoppingItem item) {
   final inPieces = item.pieceTotal;
-  if (inPieces != null) {
+  final measured = item.measureTotal;
+  final count = inPieces?.count ?? measured?.amount;
+  if (count != null) {
     final weighs = item.totals.map(formatTotal).join(' + ');
-    final buy = inPieces.count.ceil();
-    return buy > inPieces.count ? '$weighs → buy $buy' : weighs;
-  }
-  if (item.measureTotal != null) {
-    return item.totals.map(formatTotal).join(' + ');
+    final buy = count.ceil();
+    return buy > count ? '$weighs → buy $buy' : weighs;
   }
   final hint = item.wholeUnitHint;
   return hint == null ? '' : wholeUnitHintText(hint);
