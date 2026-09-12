@@ -190,6 +190,25 @@ Stream<Map<String, List<LineOverride>>> weekOverridesFor(
       : ref.watch(weekVariantRepositoryProvider).watchWeekOverrides(monday);
 }
 
+/// The re-summed figures for the recipes the week [weekKey] names varies — the
+/// sibling of [variantRecipeMacros] keyed by the link rather than by the week
+/// on screen, for the recipe page opened from a week that plans it.
+///
+/// A recipe the week does not vary is absent, and its reader falls back to the
+/// Library's figure, which is exactly right for it.
+@riverpod
+Stream<Map<String, RecipeMacroSummary>> weekVariantMacrosFor(
+  Ref ref,
+  String weekKey,
+) {
+  final monday = mondayOfKey(weekKey);
+  return monday == null
+      ? Stream.value(const {})
+      : ref
+            .watch(weekVariantRepositoryProvider)
+            .watchVariantRecipeMacros(monday);
+}
+
 /// An ISO `YYYY-MM-DD` week key as its Monday, or null when it is not a date.
 DateTime? mondayOfKey(String weekKey) {
   final date = DateTime.tryParse(weekKey);

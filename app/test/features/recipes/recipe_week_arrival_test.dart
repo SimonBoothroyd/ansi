@@ -1,14 +1,20 @@
 /// The recipe page reached FROM a week that plans it: the band under its
-/// title, and the second door in its ⋯ menu.
+/// title, the second door in its ⋯ menu, and the week's own lines.
 ///
 /// The variant shipped with one door, at the foot of the meal editor sheet.
 /// These are the other two arrivals — the Week's dish row and the Cook card —
 /// and the guard that keeps a stale `?week=` from offering a week the person
 /// has left.
+///
+/// The page then draws what that week cooks, read-only, in week mode's own
+/// grammar — and its `optional` tag becomes the switch that answers *this
+/// time, yes*. From the Library every one of those facts is absent: the page
+/// is byte-for-byte the one it has always been.
 library;
 
 import 'dart:io';
 
+import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
@@ -16,6 +22,8 @@ import 'package:ansi/features/planning/presentation/week_recipe_band.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/line_override.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/features/recipes/domain/recipe_macros.dart';
+import 'package:ansi/features/recipes/presentation/ingredient_line.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -37,6 +45,9 @@ const _recipe = Recipe(
   title: 'Slow-Cooker Beef Ragù',
   servingsBase: 4,
   steps: ['Brown the meat.'],
+  macros: RecipeMacroSummary(
+    perServing: Macros(kcal: 520, protein: 34, carb: 48, fat: 19),
+  ),
   groups: [
     IngredientGroup(
       id: 'g1',
@@ -49,9 +60,43 @@ const _recipe = Recipe(
           unit: g,
           quantity: 400,
         ),
+        LineItem(
+          id: 'l2',
+          ingredientId: 'i-onions',
+          ingredientName: 'Pickled Red Onions',
+          unit: pieces,
+          quantity: 1,
+          optional: true,
+        ),
+        LineItem(
+          id: 'l3',
+          ingredientId: 'i-parmesan',
+          ingredientName: 'Parmesan',
+          unit: g,
+          quantity: 30,
+        ),
       ],
     ),
   ],
+);
+
+/// The week's answer on one line, in the shape the repository stores.
+LineOverride _override(
+  LineOverrideAction action, {
+  String? lineId,
+  String id = 'ov1',
+  String? ingredientId,
+  String ingredientName = '',
+  double? quantity,
+  Unit? unit,
+}) => LineOverride(
+  id: id,
+  action: action,
+  recipeLineItemId: lineId,
+  ingredientId: ingredientId,
+  ingredientName: ingredientName,
+  quantity: quantity,
+  unit: unit,
 );
 
 /// The week that plans the recipe on Tuesday and Saturday — or, [plansIt]
@@ -93,16 +138,14 @@ class _Planner extends FakePlanningRepository {
 }
 
 List<Override> _overrides({
+  required FakeWeekVariantRepository variants,
   bool plansIt = true,
-  Map<String, List<LineOverride>> variant = const {},
 }) => [
   recipeRepositoryProvider.overrideWithValue(
     FakeRecipeRepository(recipe: _recipe),
   ),
   planningRepositoryProvider.overrideWithValue(_Planner(plansIt: plansIt)),
-  weekVariantRepositoryProvider.overrideWithValue(
-    FakeWeekVariantRepository(overrides: variant),
-  ),
+  weekVariantRepositoryProvider.overrideWithValue(variants),
 ];
 
 /// The page under a real router, landed on the way the app lands on it: the
@@ -111,14 +154,17 @@ Future<GoRouter> _pumpPage(
   WidgetTester tester, {
   String? week,
   bool plansIt = true,
-  Map<String, List<LineOverride>> variant = const {},
+  FakeWeekVariantRepository? variants,
 }) async {
   filterForuiSemanticsAssertions();
   late GoRouter router;
   await tester.pumpWidget(
     routedHost(
       initial: week == null ? '/recipes/r1' : '/recipes/r1?week=$week',
-      overrides: _overrides(plansIt: plansIt, variant: variant),
+      overrides: _overrides(
+        plansIt: plansIt,
+        variants: variants ?? FakeWeekVariantRepository(),
+      ),
       expose: (r) => router = r,
       routes: {
         '/recipes/:id': (_, state) => RecipeView(
@@ -132,6 +178,15 @@ Future<GoRouter> _pumpPage(
   await tester.pumpAndSettle();
   return router;
 }
+
+/// The rendered row that names [ingredient] — what the week's answer on that
+/// line landed on.
+RecipeIngredientLine _lineFor(WidgetTester tester, String ingredient) =>
+    tester.widget<RecipeIngredientLine>(
+      find.byWidgetPredicate(
+        (w) => w is RecipeIngredientLine && w.uses.ingredientName == ingredient,
+      ),
+    );
 
 Future<void> _openMenu(WidgetTester tester) async {
   await tester.tap(find.byIcon(FLucideIcons.ellipsis));
@@ -191,15 +246,11 @@ void main() {
       await _pumpPage(
         tester,
         week: _weekKey,
-        variant: const {
-          'r1': [
-            LineOverride(
-              id: 'ov1',
-              action: LineOverrideAction.exclude,
-              recipeLineItemId: 'l1',
-            ),
-          ],
-        },
+        variants: FakeWeekVariantRepository(
+          overrides: {
+            'r1': [_override(LineOverrideAction.exclude, lineId: 'l1')],
+          },
+        ),
       );
       expect(
         find.text('Planned Tue · Sat this week · edited for this week'),
@@ -232,6 +283,190 @@ void main() {
     });
   });
 
+  group('the page holds the week', () {
+    testWidgets('an optional line the week ticked in wears the tag lit', (
+      tester,
+    ) async {
+      await _pumpPage(
+        tester,
+        week: _weekKey,
+        variants: FakeWeekVariantRepository(
+          overrides: {
+            'r1': [_override(LineOverrideAction.include, lineId: 'l2')],
+          },
+        ),
+      );
+
+      expect(find.text('included'), findsOneWidget);
+      expect(find.text('optional'), findsNothing);
+      expect(_lineFor(tester, 'Pickled Red Onions').included, isTrue);
+    });
+
+    testWidgets('tapping the tag ticks that line in for that week', (
+      tester,
+    ) async {
+      final variants = FakeWeekVariantRepository();
+      await _pumpPage(tester, week: _weekKey, variants: variants);
+
+      expect(find.text('optional'), findsOneWidget);
+      await tester.tap(find.byType(OptionalTag));
+      await tester.pumpAndSettle();
+
+      expect(variants.ticked, [
+        (weekStart: _monday, recipeId: 'r1', lineId: 'l2', included: true),
+      ]);
+    });
+
+    testWidgets('and tapping an included one takes it back out', (
+      tester,
+    ) async {
+      final variants = FakeWeekVariantRepository(
+        overrides: {
+          'r1': [_override(LineOverrideAction.include, lineId: 'l2')],
+        },
+      );
+      await _pumpPage(tester, week: _weekKey, variants: variants);
+
+      await tester.tap(find.byType(OptionalTag));
+      await tester.pumpAndSettle();
+
+      expect(variants.ticked, [
+        (weekStart: _monday, recipeId: 'r1', lineId: 'l2', included: false),
+      ]);
+    });
+
+    testWidgets('a line the week leaves out is struck, and is no door', (
+      tester,
+    ) async {
+      await _pumpPage(
+        tester,
+        week: _weekKey,
+        variants: FakeWeekVariantRepository(
+          overrides: {
+            'r1': [_override(LineOverrideAction.exclude, lineId: 'l3')],
+          },
+        ),
+      );
+
+      final row = _lineFor(tester, 'Parmesan');
+      expect(row.struck, isTrue);
+      expect(row.onOpenIngredient, isNull);
+      expect(
+        tester.widget<Text>(find.text('30 g')).style?.decoration,
+        TextDecoration.lineThrough,
+      );
+      // The line it still cooks is untouched by its neighbour's exclusion.
+      expect(_lineFor(tester, 'Pork sausage').struck, isFalse);
+    });
+
+    testWidgets("a replaced line prints the week's amount, and it still "
+        'scales', (tester) async {
+      await _pumpPage(
+        tester,
+        week: _weekKey,
+        variants: FakeWeekVariantRepository(
+          overrides: {
+            'r1': [
+              _override(
+                LineOverrideAction.replace,
+                lineId: 'l1',
+                ingredientId: 'i-sausage',
+                ingredientName: 'Pork sausage',
+                quantity: 500,
+                unit: g,
+              ),
+            ],
+          },
+        ),
+      );
+
+      expect(find.text('500 g'), findsOneWidget);
+      expect(find.text('400 g'), findsNothing);
+
+      await tester.tap(find.byIcon(FLucideIcons.plus));
+      await tester.pumpAndSettle();
+      expect(find.text('625 g'), findsOneWidget);
+    });
+
+    testWidgets('an added line lands after the last group', (tester) async {
+      await _pumpPage(
+        tester,
+        week: _weekKey,
+        variants: FakeWeekVariantRepository(
+          overrides: {
+            'r1': [
+              _override(
+                LineOverrideAction.add,
+                id: 'ov-add',
+                ingredientId: 'i-chilli',
+                ingredientName: 'Chilli Oil',
+                quantity: 2,
+                unit: tbsp,
+              ),
+            ],
+          },
+        ),
+      );
+
+      expect(find.text('Chilli Oil'), findsOneWidget);
+      expect(find.text('2 tbsp'), findsOneWidget);
+      expect(
+        tester.getRect(find.text('Chilli Oil')).top,
+        greaterThan(tester.getRect(find.text('Parmesan')).top),
+      );
+    });
+
+    testWidgets("the panel reads the week's summary, and names what came in", (
+      tester,
+    ) async {
+      await _pumpPage(
+        tester,
+        week: _weekKey,
+        variants: FakeWeekVariantRepository(
+          overrides: {
+            'r1': [_override(LineOverrideAction.include, lineId: 'l2')],
+          },
+          variantMacros: const {
+            'r1': RecipeMacroSummary(
+              perServing: Macros(kcal: 566, protein: 35, carb: 52, fat: 20),
+            ),
+          },
+        ),
+      );
+
+      // The week's figure, not the recipe's 520.
+      expect(find.text('566'), findsOneWidget);
+      expect(find.text('520'), findsNothing);
+      expect(find.text('INCLUDED'), findsOneWidget);
+      expect(find.text('Pickled Red Onions · for this week'), findsOneWidget);
+      // Nothing optional is left out, so no row says there is.
+      expect(find.text('OPTIONAL'), findsNothing);
+    });
+
+    testWidgets('and names what is still out, which its own notes cannot', (
+      tester,
+    ) async {
+      await _pumpPage(
+        tester,
+        week: _weekKey,
+        variants: FakeWeekVariantRepository(
+          overrides: {
+            'r1': [_override(LineOverrideAction.exclude, lineId: 'l3')],
+          },
+          variantMacros: const {
+            'r1': RecipeMacroSummary(
+              perServing: Macros(kcal: 480, protein: 30, carb: 46, fat: 16),
+            ),
+          },
+        ),
+      );
+
+      expect(find.text('OPTIONAL'), findsOneWidget);
+      expect(find.text('Pickled Red Onions'), findsWidgets);
+      expect(find.text('INCLUDED'), findsNothing);
+    });
+  });
+
   group('every other arrival is the page it has always been', () {
     testWidgets('from the Library: no band, and one Edit', (tester) async {
       await _pumpPage(tester);
@@ -240,6 +475,26 @@ void main() {
       expect(find.text('Edit'), findsOneWidget);
       expect(find.text('Edit recipe'), findsNothing);
       expect(find.textContaining('Edit for this week'), findsNothing);
+    });
+
+    testWidgets('from the Library the tag stays a tag: nothing to tap, and '
+        'nothing it could write', (tester) async {
+      await _pumpPage(tester);
+
+      expect(find.text('optional'), findsOneWidget);
+      expect(_lineFor(tester, 'Pickled Red Onions').onToggleOptional, isNull);
+      expect(
+        tester.widget<OptionalTag>(find.byType(OptionalTag)).onToggle,
+        isNull,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(OptionalTag),
+          matching: find.byType(GestureDetector),
+        ),
+        findsNothing,
+      );
+      expect(find.text('INCLUDED'), findsNothing);
     });
 
     testWidgets('a week that no longer plans it offers neither — a stale link '

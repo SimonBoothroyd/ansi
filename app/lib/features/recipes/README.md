@@ -71,7 +71,9 @@ Three details of that line are rules rather than styling:
 - **The `optional` tag wears the sub-recipe chip's shape** (`OptionalTag`): a
   6 px box in the herb wash, muted mono, hung off the end of the identity. It
   is also the whole statement — a tagged row prints nothing in its macro slot,
-  because *optional* twice on one line is once too many.
+  because *optional* twice on one line is once too many. Handed an
+  `onToggle` it becomes a switch: an empty ring before the word, and ticked, a
+  filled herb box with a check reading `included`.
 - **A line's own macros** (the `⋯` toggle) print under the name in the panel's
   order, `kcal · P C F · fibre`, one size down. They are the line *as shown*,
   so they move with the scaler; the panel underneath does not.
@@ -108,6 +110,22 @@ is **per serving**, so the servings scaler never moves it. Under the cells, what
 the total left out by rule is two labelled rows — `NOT COUNTED` for the lines
 that carry no weight to count, `OPTIONAL` for the ones the rule drops — with
 one caption under both; the fibre line keeps its own row.
+
+**The page holds the week it was opened from.** A `?week=` link that the week
+still plans (`weekRecipePlacement` is the guard) turns the Ingredients tab into
+that week's effective lines, in week mode's own grammar and read-only: a
+replaced line at the week's absolute amount, a line it leaves out struck and
+muted with neither door, an added line after the last group — all of it still
+scaling with the servings control. On that page the `optional` tag is **the
+switch**: one tap writes the week's `include` row through
+`WeekVariantRepository.setLineIncluded` (a folded multi-use row ticks in every
+optional use, one tap being one intent), the band gains `· edited for this
+week`, and the panel recounts, because it reads the week's own re-summation
+(`watchVariantRecipeMacros`) rather than the Library's figure. A third row
+under it, `INCLUDED · names · for this week`, names what came in. From the
+Library none of this exists — optional has two owners, the recipe saying *may
+be skipped* and the week saying *this time, yes*, and only a surface holding a
+week can answer the second.
 
 Each named reason under the badge is a **door to the fix it implies**, and one
 of them points off the recipe entirely: **`needs a piece weight`** — a bare

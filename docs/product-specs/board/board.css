@@ -1019,7 +1019,14 @@
     .notcounted .nk{color:var(--herb-deep);}
     .nc-row{display:flex;gap:10px;margin:0 20px 3px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);line-height:1.45;}
     .nc-row .nc-lab{flex:none;width:84px;letter-spacing:.08em;}
+    /* the one row that names lines the total DOES cover — the week's own */
+    .nc-row .nc-lab.in{color:var(--herb);}
     .nc-cap{margin:4px 20px 0;font-size:11.5px;color:var(--muted);line-height:1.4;}
+    /* the `optional` tag where it is also the SWITCH (the recipe page opened
+       from a week): an empty ring before the word, and ticked, the same box
+       filled with a check, reading `included` */
+    .wv-tag .ring{display:inline-block;width:7px;height:7px;border-radius:50%;border:1.5px solid var(--muted);margin-right:4px;vertical-align:middle;}
+    .wv-tag.in{background:var(--herb);color:var(--paper);}
     /* a METHOD chip: the ingredient's word in the sentence, unboxed, with its
        live amount in the pill beside it — the pill is the marked thing */
     .mchip{font-weight:600;color:var(--herb-deep);}

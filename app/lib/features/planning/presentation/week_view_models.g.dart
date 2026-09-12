@@ -786,6 +786,122 @@ final class WeekOverridesForFamily extends $Family
   String toString() => r'weekOverridesForProvider';
 }
 
+/// The re-summed figures for the recipes the week [weekKey] names varies — the
+/// sibling of [variantRecipeMacros] keyed by the link rather than by the week
+/// on screen, for the recipe page opened from a week that plans it.
+///
+/// A recipe the week does not vary is absent, and its reader falls back to the
+/// Library's figure, which is exactly right for it.
+
+@ProviderFor(weekVariantMacrosFor)
+const weekVariantMacrosForProvider = WeekVariantMacrosForFamily._();
+
+/// The re-summed figures for the recipes the week [weekKey] names varies — the
+/// sibling of [variantRecipeMacros] keyed by the link rather than by the week
+/// on screen, for the recipe page opened from a week that plans it.
+///
+/// A recipe the week does not vary is absent, and its reader falls back to the
+/// Library's figure, which is exactly right for it.
+
+final class WeekVariantMacrosForProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Map<String, RecipeMacroSummary>>,
+          Map<String, RecipeMacroSummary>,
+          Stream<Map<String, RecipeMacroSummary>>
+        >
+    with
+        $FutureModifier<Map<String, RecipeMacroSummary>>,
+        $StreamProvider<Map<String, RecipeMacroSummary>> {
+  /// The re-summed figures for the recipes the week [weekKey] names varies — the
+  /// sibling of [variantRecipeMacros] keyed by the link rather than by the week
+  /// on screen, for the recipe page opened from a week that plans it.
+  ///
+  /// A recipe the week does not vary is absent, and its reader falls back to the
+  /// Library's figure, which is exactly right for it.
+  const WeekVariantMacrosForProvider._({
+    required WeekVariantMacrosForFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'weekVariantMacrosForProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$weekVariantMacrosForHash();
+
+  @override
+  String toString() {
+    return r'weekVariantMacrosForProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<Map<String, RecipeMacroSummary>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<Map<String, RecipeMacroSummary>> create(Ref ref) {
+    final argument = this.argument as String;
+    return weekVariantMacrosFor(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is WeekVariantMacrosForProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$weekVariantMacrosForHash() =>
+    r'35262d63e726d3d93ce0d281b468973c87fdb4a4';
+
+/// The re-summed figures for the recipes the week [weekKey] names varies — the
+/// sibling of [variantRecipeMacros] keyed by the link rather than by the week
+/// on screen, for the recipe page opened from a week that plans it.
+///
+/// A recipe the week does not vary is absent, and its reader falls back to the
+/// Library's figure, which is exactly right for it.
+
+final class WeekVariantMacrosForFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          Stream<Map<String, RecipeMacroSummary>>,
+          String
+        > {
+  const WeekVariantMacrosForFamily._()
+    : super(
+        retry: null,
+        name: r'weekVariantMacrosForProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// The re-summed figures for the recipes the week [weekKey] names varies — the
+  /// sibling of [variantRecipeMacros] keyed by the link rather than by the week
+  /// on screen, for the recipe page opened from a week that plans it.
+  ///
+  /// A recipe the week does not vary is absent, and its reader falls back to the
+  /// Library's figure, which is exactly right for it.
+
+  WeekVariantMacrosForProvider call(String weekKey) =>
+      WeekVariantMacrosForProvider._(argument: weekKey, from: this);
+
+  @override
+  String toString() => r'weekVariantMacrosForProvider';
+}
+
 /// Per-recipe macro summaries **for the viewed week**, indexed by recipe id.
 ///
 /// The Library's figure underneath, the week's own on top. A recipe the week

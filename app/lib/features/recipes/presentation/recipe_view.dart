@@ -18,6 +18,14 @@
 /// renders only while the count is non-zero, so a recipe used in nothing keeps
 /// the two-tab page it has always had. That same count is what D5's delete
 /// refusal speaks — one query, two uses.
+///
+/// **Opened from a week that plans it, the page holds that week.** The
+/// Ingredients tab draws the week's effective lines — a replaced amount as the
+/// week states it, a line it leaves out struck, an added line after the last
+/// group — and the `optional` tag becomes the switch that answers *this time,
+/// yes*, writing the week's include row. The panel reads the week's own
+/// re-summation, so ticking a line in recounts it. From the Library none of
+/// that exists: where there is no week there is no decision to make.
 library;
 
 import 'dart:async';
@@ -43,11 +51,14 @@ import '../../../shared/method_step_text.dart';
 import '../../../shared/write.dart';
 import '../../ingredients/presentation/ingredient_detail_view.dart'
     show ingredientDetailRoute;
+import '../../planning/data/planning_providers.dart';
 import '../../planning/presentation/week_recipe_band.dart';
 import '../../planning/presentation/week_variant_format.dart';
 import '../../planning/presentation/week_view_models.dart';
 import '../data/recipe_providers.dart';
+import '../domain/effective_lines.dart';
 import '../domain/line_display.dart';
+import '../domain/line_override.dart';
 import '../domain/method_step.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_macros.dart';
@@ -154,6 +165,23 @@ class _RecipeBody extends HookConsumerWidget {
         ? const (days: <int>[], edited: false)
         : ref.watch(weekRecipePlacementProvider(recipe.id, key));
     final plannedWeek = placement.days.isEmpty ? null : key;
+    // What that week says about THIS recipe: its overrides — the same stream
+    // the placement above already reads, asked a second question rather than
+    // opened a second time — and its own re-summation, absent while the week
+    // varies nothing, in which case the Library's figure is exactly right.
+    final overrides = plannedWeek == null
+        ? const <LineOverride>[]
+        : ref
+                  .watch(weekOverridesForProvider(plannedWeek))
+                  .asData
+                  ?.value[recipe.id] ??
+              const <LineOverride>[];
+    final weekSummary = plannedWeek == null
+        ? null
+        : ref
+              .watch(weekVariantMacrosForProvider(plannedWeek))
+              .asData
+              ?.value[recipe.id];
 
     return FScaffold(
       childPad: false,
@@ -303,6 +331,9 @@ class _RecipeBody extends HookConsumerWidget {
               servings: servings.value,
               onServings: (v) => servings.value = v,
               showLineMacros: lineMacros,
+              weekStart: plannedWeek == null ? null : mondayOfKey(plannedWeek),
+              overrides: overrides,
+              weekSummary: weekSummary,
             )
           else if (index == 1)
             _MethodTab(recipe: recipe, servings: servings.value)
@@ -615,12 +646,15 @@ class _UsedInTab extends StatelessWidget {
   }
 }
 
-class _IngredientsTab extends StatelessWidget {
+class _IngredientsTab extends ConsumerWidget {
   const _IngredientsTab({
     required this.recipe,
     required this.servings,
     required this.onServings,
     required this.showLineMacros,
+    required this.weekStart,
+    required this.overrides,
+    required this.weekSummary,
   });
 
   final Recipe recipe;
@@ -629,6 +663,19 @@ class _IngredientsTab extends StatelessWidget {
 
   /// Whether each line prints its own macros under its name (the `⋯` toggle).
   final bool showLineMacros;
+
+  /// The Monday of the week this page was opened from, once that week was
+  /// found to actually plan the recipe. Null from the Library — and then every
+  /// week-shaped thing below is inert, so the tab is exactly what it was.
+  final DateTime? weekStart;
+
+  /// That week's deltas for this recipe, in stored order. Empty from the
+  /// Library.
+  final List<LineOverride> overrides;
+
+  /// The week's own re-summation of the recipe, or null when the week varies
+  /// nothing about it — the Library's figure is then exactly right.
+  final RecipeMacroSummary? weekSummary;
 
   /// Opens the fix a named line's reason implies (seam **D5**) — the marker
   /// is a door, and this is the one place that decides which door.
@@ -704,16 +751,43 @@ class _IngredientsTab extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final groups = scaleGroups(recipe, servings);
+  Widget build(BuildContext context, WidgetRef ref) {
     final factor = scaleFactorFor(recipe, servings);
-    final summary = recipe.macros ?? const RecipeMacroSummary();
+    final summary = weekSummary ?? recipe.macros ?? const RecipeMacroSummary();
     // The panel's names and the rows' markers come from ONE list, keyed by
     // line id — one lookup, never a second computation that could disagree.
     final markers = {
       for (final note in fixableNotes(summary))
         if (note.lineId != null) note.lineId!: note,
     };
+    final lines = [for (final group in recipe.groups) ...group.items];
+    // The week's answer per line, in the grammar week mode itself draws:
+    // struck where it leaves one out, the week's absolute values where it
+    // states them, its additions at the end. An include keeps the line's own
+    // `optional` flag here, unlike the seam's — the tag has to go on saying
+    // what kind of line this is, lit rather than gone.
+    final entries = {
+      for (final entry in draftLines(lines, overrides)) entry.line.id: entry,
+    };
+    final included = {
+      for (final o in overrides)
+        if (o.action == LineOverrideAction.include)
+          if (o.recipeLineItemId != null) o.recipeLineItemId!,
+    };
+    final added = [
+      for (final entry in entries.values)
+        if (entry.added) scaleLineItem(entry.line, factor),
+    ];
+
+    Widget line(({LineUses uses, bool excluded}) row) => _line(
+      context,
+      ref,
+      row: row,
+      summary: summary,
+      markers: markers,
+      included: included,
+      factor: factor,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -725,7 +799,7 @@ class _IngredientsTab extends StatelessWidget {
           onChanged: onServings,
         ),
         const SizedBox(height: 20),
-        for (final group in groups) ...[
+        for (final group in recipe.groups) ...[
           if (group.name != null) ...[
             Padding(
               padding: const EdgeInsets.only(top: 18, bottom: 8),
@@ -742,45 +816,161 @@ class _IngredientsTab extends StatelessWidget {
             ),
             const _Hairline(),
           ],
-          for (final uses in groupLineUses(group.items))
-            () {
-              final note = _firstNote(uses, markers);
-              final macros = _macroLine(
-                uses,
-                summary,
-                factor,
-                marked: note != null,
-              );
-              return RecipeIngredientLine(
-                uses: uses,
-                // A component's chip pushes its target's page (D7); an
-                // ingredient's name is the same door onto its own page, so
-                // "what is this, and what does it weigh" is one tap from the
-                // line that raised the question.
-                onOpenSubRecipe: (id) => context.pushOnce('/recipes/$id'),
-                onOpenIngredient: (id) =>
-                    context.pushOnce(ingredientDetailRoute(id)),
-                macroMarker: note == null
-                    ? null
-                    : incompleteLineNote(note.reason),
-                macroLine: macros.figures,
-                macroLineNote: macros.note,
-                onFixMacro: note == null ? null : () => _fix(context, note),
-              );
-            }(),
+          for (final row in _weekRows(group.items, entries, factor)) line(row),
         ],
+        // An override carries no group, so an added line has none to land in:
+        // it sits after the last one, exactly where week mode puts it.
+        for (final uses in groupLineUses(added))
+          line((uses: uses, excluded: false)),
         // Below the list, as the design board's Recipe frame drew it: the
         // strip reads as the sum of the lines above it, and it stays clear of
         // the scaler — a static per-serving figure sitting under a stepper
         // would invite the reading that the stepper drives it (it does not).
         const SizedBox(height: 22),
         RecipeMacroPanel(
-          summary: recipe.macros,
+          summary: weekSummary ?? recipe.macros,
           onFix: (note) => _fix(context, note),
+          includedNames: [
+            for (final item in lines)
+              if (included.contains(item.id))
+                item.subRecipe?.title ?? item.ingredientName,
+          ],
+          // The week's summation drops an optional line through the seam
+          // before it runs, so its notes cannot name one; the Library's
+          // summary names them itself and is left to.
+          optionalNames: weekSummary == null
+              ? const []
+              : droppedNames(
+                  effectiveLines(lines, overrides: overrides),
+                  LineDropReason.optional,
+                ),
         ),
       ],
     );
   }
+
+  /// One display row, with the week's answer on it: the doors a line still
+  /// has, the macros it contributes, and — where a week owns the page — the
+  /// tag as the switch that ticks it in.
+  Widget _line(
+    BuildContext context,
+    WidgetRef ref, {
+    required ({LineUses uses, bool excluded}) row,
+    required RecipeMacroSummary summary,
+    required Map<String, MacroLineNote> markers,
+    required Set<String> included,
+    required double factor,
+  }) {
+    final uses = row.uses;
+    // A line this week does not cook is in no total, so it is waiting on
+    // nothing and contributes nothing: it says one thing, that it is out.
+    final note = row.excluded ? null : _firstNote(uses, markers);
+    final macros = row.excluded
+        ? const (figures: null, note: null)
+        : _macroLine(uses, summary, factor, marked: note != null);
+    // One tap is one intent: a folded row's every optional use is ticked in
+    // together, because the row is what the person answered about.
+    final optionalIds = [
+      for (final use in uses.uses)
+        if (use.optional || included.contains(use.id)) use.id,
+    ];
+    final week = weekStart;
+    return RecipeIngredientLine(
+      uses: uses,
+      struck: row.excluded,
+      included: uses.uses.any((u) => included.contains(u.id)),
+      onToggleOptional: week == null || row.excluded || optionalIds.isEmpty
+          ? null
+          : (include) {
+              final repository = ref.read(weekVariantRepositoryProvider);
+              unawaited(
+                ref.write(
+                  context,
+                  include ? 'include it this week' : 'leave it out this week',
+                  // Sequential: each call is a read-modify-write of the
+                  // recipe's whole set for that week, so two in flight would
+                  // race over one another's answer.
+                  () async {
+                    for (final id in optionalIds) {
+                      await repository.setLineIncluded(
+                        week,
+                        recipe.id,
+                        id,
+                        included: include,
+                      );
+                    }
+                  },
+                ),
+              );
+            },
+      // A component's chip pushes its target's page (D7); an ingredient's
+      // name is the same door onto its own page, so "what is this, and what
+      // does it weigh" is one tap from the line that raised the question. A
+      // struck line has neither: this week it is not part of the recipe.
+      onOpenSubRecipe: row.excluded
+          ? null
+          : (id) => context.pushOnce('/recipes/$id'),
+      onOpenIngredient: row.excluded
+          ? null
+          : (id) => context.pushOnce(ingredientDetailRoute(id)),
+      macroMarker: note == null ? null : incompleteLineNote(note.reason),
+      macroLine: macros.figures,
+      macroLineNote: macros.note,
+      onFixMacro: note == null ? null : () => _fix(context, note),
+    );
+  }
+}
+
+/// One group's rows, in stored order, as this week cooks them: each line at
+/// the week's values and scaled to the servings on screen, folded by identity
+/// as everywhere else.
+///
+/// The week forces one refinement on the fold: a line it leaves out never
+/// joins a row that is still cooked, because the row would then print a struck
+/// amount beside a live one under a single name.
+List<({LineUses uses, bool excluded})> _weekRows(
+  List<LineItem> items,
+  Map<String, WeekDraftLine> entries,
+  double factor,
+) {
+  final drawn = <String, ({LineItem line, bool excluded})>{};
+  for (final item in items) {
+    final entry = entries[item.id];
+    // A line the recipe lost while the page was open (the other phone's edit,
+    // arriving mid-read) is simply not drawn.
+    if (entry == null) continue;
+    drawn[item.id] = (
+      line: scaleLineItem(entry.line, factor),
+      excluded: entry.excluded,
+    );
+  }
+  final folded = {
+    for (final uses in groupLineUses([
+      for (final item in items)
+        if (drawn[item.id] case (line: final line, excluded: false)) line,
+    ]))
+      uses.uses.first.id: uses,
+  };
+  final rows = <({LineUses uses, bool excluded})>[];
+  for (final item in items) {
+    final row = drawn[item.id];
+    if (row == null) continue;
+    if (row.excluded) {
+      rows.add((
+        uses: LineUses(
+          ingredientId: row.line.ingredientId,
+          subRecipeId: row.line.subRecipeId,
+          uses: [row.line],
+        ),
+        excluded: true,
+      ));
+    } else {
+      // Every folded row is emitted once, at its first use.
+      final uses = folded[item.id];
+      if (uses != null) rows.add((uses: uses, excluded: false));
+    }
+  }
+  return rows;
 }
 
 /// The recipe's line items by id — what a macro note's `lineId` resolves to

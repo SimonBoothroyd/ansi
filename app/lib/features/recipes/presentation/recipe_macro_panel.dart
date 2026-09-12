@@ -31,7 +31,9 @@
 /// **And a real total says what it left out**, in two labelled rows beneath
 /// the cells: `NOT COUNTED · Parsley · handful` for the lines that carry no
 /// weight to count, `OPTIONAL · Lime, Coriander` for the ones the rule drops,
-/// and one caption under both.
+/// and one caption under both. Opened from a week that plans the recipe, a
+/// third row names what came IN — `INCLUDED · Pickled Red Onions · for this
+/// week` — and the figures above it are that week's own re-summation.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -45,7 +47,25 @@ import '../domain/recipe_macros.dart';
 import 'ingredient_line.dart';
 
 class RecipeMacroPanel extends StatelessWidget {
-  const RecipeMacroPanel({required this.summary, this.onFix, super.key});
+  const RecipeMacroPanel({
+    required this.summary,
+    this.onFix,
+    this.includedNames = const [],
+    this.optionalNames = const [],
+    super.key,
+  });
+
+  /// The optional lines THIS WEEK ticked in, in stored order — named in a row
+  /// of their own, because they are the one thing under this panel that came
+  /// IN rather than staying out, and the figures above have counted them.
+  /// Empty everywhere but a page opened from a week that plans the recipe.
+  final List<String> includedNames;
+
+  /// The optional lines that week is still leaving out. The week's own
+  /// re-summation drops them through the seam BEFORE it runs, so its notes
+  /// cannot name them and the caller names them instead; from the Library
+  /// this is empty and the summary names them itself.
+  final List<String> optionalNames;
 
   /// The recipe's honest per-serving summary. Null when the aggregate was
   /// built without line nutrition (the panel then draws nothing rather than
@@ -82,12 +102,22 @@ class RecipeMacroPanel extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           child: summary.perServing == null
-              ? _Incomplete(summary: summary, onFix: onFix)
+              ? _Incomplete(
+                  summary: summary,
+                  onFix: onFix,
+                  includedNames: includedNames,
+                  optionalNames: optionalNames,
+                )
               : _Cells(summary: summary),
         ),
         // D6: a real total says what it left out, by name, every time. It
         // rides OUTSIDE the cell strip so the four cells keep their shape.
-        if (summary.perServing != null) _NotCounted(summary: summary),
+        if (summary.perServing != null)
+          _NotCounted(
+            summary: summary,
+            includedNames: includedNames,
+            optionalNames: optionalNames,
+          ),
       ],
     );
   }
@@ -98,26 +128,44 @@ class RecipeMacroPanel extends StatelessWidget {
 /// ```text
 /// NOT COUNTED   Cilantro · handful, Kosher Salt · to taste
 /// OPTIONAL      Lime, Coriander
+/// INCLUDED      Pickled Red Onions · for this week
 /// ```
 ///
 /// Two rows rather than one run-on sentence, because they are two different
 /// claims and a reader weighing the number is asking which lines are which.
 /// One caption under both says the thing they share. The fibre line keeps its
 /// own row: it is a missing FIGURE, not missing lines.
+///
+/// The third row is the week's, and it is the only one that names lines the
+/// total DOES cover — so it wears the herb label rather than the muted one,
+/// and it stands outside the caption, which is about what was left out.
 class _NotCounted extends StatelessWidget {
-  const _NotCounted({required this.summary});
+  const _NotCounted({
+    required this.summary,
+    this.includedNames = const [],
+    this.optionalNames = const [],
+  });
 
   final RecipeMacroSummary summary;
+  final List<String> includedNames;
+  final List<String> optionalNames;
 
   @override
   Widget build(BuildContext context) {
     final imprecise = impreciseNotCountedNames(summary.notes);
-    final optional = optionalNotCountedNames(summary.notes);
+    final optional = optionalNames.isNotEmpty
+        ? optionalNames.join(', ')
+        : optionalNotCountedNames(summary.notes);
+    final included = includedNames.isEmpty
+        ? null
+        : '${includedNames.join(', ')} · for this week';
     // The fifth cell's absence, said in words: the lines are all in the total,
     // and the one figure they cannot support is named.
     final fibre = fiberNotCountedNote(summary);
     final excluded = imprecise != null || optional != null;
-    if (!excluded && fibre == null) return const SizedBox.shrink();
+    if (!excluded && included == null && fibre == null) {
+      return const SizedBox.shrink();
+    }
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Column(
@@ -127,6 +175,12 @@ class _NotCounted extends StatelessWidget {
             _NotCountedRow(label: 'NOT COUNTED', names: imprecise),
           if (optional != null)
             _NotCountedRow(label: 'OPTIONAL', names: optional),
+          if (included != null)
+            _NotCountedRow(
+              label: 'INCLUDED',
+              names: included,
+              labelColor: AnsiColors.herb,
+            ),
           if (excluded)
             Padding(
               padding: const EdgeInsets.only(top: 2),
@@ -155,10 +209,17 @@ class _NotCounted extends StatelessWidget {
 
 /// One reason's row: the micro-label, then the names it covers.
 class _NotCountedRow extends StatelessWidget {
-  const _NotCountedRow({required this.label, required this.names});
+  const _NotCountedRow({
+    required this.label,
+    required this.names,
+    this.labelColor = AnsiColors.muted,
+  });
 
   final String label;
   final String names;
+
+  /// Herb on the week's own row, muted on the two that name exclusions.
+  final Color labelColor;
 
   @override
   Widget build(BuildContext context) {
@@ -173,11 +234,7 @@ class _NotCountedRow extends StatelessWidget {
             width: kLineAmountWidth,
             child: Text(
               label,
-              style: ansiMono(
-                size: 10,
-                color: AnsiColors.muted,
-                letterSpacing: 0.8,
-              ),
+              style: ansiMono(size: 10, color: labelColor, letterSpacing: 0.8),
             ),
           ),
           const SizedBox(width: 12),
@@ -316,10 +373,17 @@ class _Cells extends StatelessWidget {
 
 /// The refusal, in the picker rows' exact words — badge plus the reason.
 class _Incomplete extends StatelessWidget {
-  const _Incomplete({required this.summary, this.onFix});
+  const _Incomplete({
+    required this.summary,
+    this.onFix,
+    this.includedNames = const [],
+    this.optionalNames = const [],
+  });
 
   final RecipeMacroSummary summary;
   final ValueChanged<MacroLineNote>? onFix;
+  final List<String> includedNames;
+  final List<String> optionalNames;
 
   @override
   Widget build(BuildContext context) {
@@ -373,7 +437,11 @@ class _Incomplete extends StatelessWidget {
           // An incomplete recipe can still be excluding imprecise lines by
           // rule, and they are named here too — the exclusion is the honesty,
           // whether or not there is a number above it.
-          _NotCounted(summary: summary),
+          _NotCounted(
+            summary: summary,
+            includedNames: includedNames,
+            optionalNames: optionalNames,
+          ),
         ],
       ),
     );

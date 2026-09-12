@@ -101,23 +101,23 @@ Lane `optional` — `features/cook_plan`, `features/shopping`,
 Lane `page-week` — `recipe_view.dart`, `ingredient_line.dart`, the view
 models; runs after the other two land:
 
-- [ ] Opened **from a week that plans it**, the page shows the week's
+- [x] Opened **from a week that plans it**, the page shows the week's
       effective lines: an included optional line unstruck with its tag lit,
       an excluded line struck and muted, a replaced amount as the week
       states it, an added line at the end of its group — the same grammar
       week mode draws, read-only. From the Library the page is untouched.
-- [ ] On that page **the tag is the switch**: `optional` with a ring, one
+- [x] On that page **the tag is the switch**: `optional` with a ring, one
       tap → `included` (filled `herb`, check glyph) and back, writing
       `setLineIncluded` through `ref.write`. The band gains `· edited for
       this week` on the first include, through the existing placement watch.
-- [ ] The panel on that page reads the **week's** summary (the same
+- [x] The panel on that page reads the **week's** summary (the same
       re-summation `watchVariantRecipeMacros` runs), so ticking a line in
       recounts it; `not counted` names what is still out and an `INCLUDED ·
       names · for this week` row names what came in.
-- [ ] From the Library the tag stays a tag and writes nothing. No reading
+- [x] From the Library the tag stays a tag and writes nothing. No reading
       posture, no session state: where there is no week there is no
       decision.
-- [ ] Widget tests on the arrival test's fixtures; `recipe-page.html` frame
+- [x] Widget tests on the arrival test's fixtures; `recipe-page.html` frame
       *Optional is a switch*; `docs/design-docs/navigation.md` unchanged
       (no new route).
 

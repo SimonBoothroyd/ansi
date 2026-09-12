@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/theme/ansi_tokens.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
@@ -416,11 +417,55 @@ void main() {
     expect(find.text(notCountedCaption), findsOneWidget);
   });
 
+  testWidgets("the week's row names what came IN, beside what stayed out", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        const RecipeMacroPanel(
+          summary: _complete,
+          includedNames: ['Pickled Red Onions'],
+          optionalNames: ['Lime', 'Coriander'],
+        ),
+      ),
+    );
+
+    // The week's summation drops an optional line through the seam before it
+    // runs, so its notes carry neither list and the caller supplies both.
+    expect(find.text('OPTIONAL'), findsOneWidget);
+    expect(find.text('Lime, Coriander'), findsOneWidget);
+    expect(find.text('INCLUDED'), findsOneWidget);
+    expect(find.text('Pickled Red Onions · for this week'), findsOneWidget);
+    expect(find.text(notCountedCaption), findsOneWidget);
+  });
+
+  testWidgets('the INCLUDED label is herb — it is the one row naming lines '
+      'the total DOES cover', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        const RecipeMacroPanel(
+          summary: _complete,
+          includedNames: ['Pickled Red Onions'],
+        ),
+      ),
+    );
+
+    expect(
+      tester.widget<Text>(find.text('INCLUDED')).style?.color,
+      AnsiColors.herb,
+    );
+    // Nothing stayed out, so nothing says it did — and the caption is about
+    // what was left out, which is now nothing.
+    expect(find.text('OPTIONAL'), findsNothing);
+    expect(find.text(notCountedCaption), findsNothing);
+  });
+
   testWidgets('a complete recipe with nothing excluded says nothing extra', (
     tester,
   ) async {
     await tester.pumpWidget(_host(const RecipeMacroPanel(summary: _complete)));
     expect(find.textContaining('not counted'), findsNothing);
+    expect(find.text('INCLUDED'), findsNothing);
   });
 
   testWidgets(
