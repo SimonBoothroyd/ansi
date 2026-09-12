@@ -1,6 +1,6 @@
 # Exec plan: field test, round twelve — the basket, the slot as a field, a piece-weighted row bought in pieces
 
-- **Status:** active — three lanes (`shop`, `week`, `docs`)
+- **Status:** active — landed on main, host gate green, the simulator leg still owed
 - **Owner:** agent
 - **Roadmap step:** — (the first family week on `v0.15.0`)
 - **Created:** 2026-09-12
@@ -272,12 +272,16 @@ third kind of planned meal beside a recipe and a bare ingredient:
 
 ## Step-done checklist
 
-- [ ] Roadmap row added under "On main, not yet tagged".
-- [ ] `ARCHITECTURE.md`'s standing table still true for the shop and the
+- [x] Roadmap row added under "On main, not yet tagged".
+- [x] `ARCHITECTURE.md`'s standing table still true for the shop and the
       week.
-- [ ] `app/AGENTS.md` "Current focus" and command list still true.
-- [ ] `make test-sim FILE=week` and the shop leg run on a booted simulator,
-      the result recorded here — or the reason it was not.
-- [ ] Tech-debt rows added for corners cut, retired for debt paid.
-- [ ] No migrations, no seed change.
-- [ ] `make ci` green.
+- [x] `app/AGENTS.md` "Current focus" and command list still true.
+- [ ] `make test-sim FILE=week` on a booted simulator. **Not run:** the
+      week lane rewrote `week_test.dart`'s slot assertions (an empty day now
+      opens on Breakfast) by reading the rule, and the landing session's
+      permission classifier refused the simulator run. Run it before the
+      next tag.
+- [x] Tech-debt rows: the sync row narrowed; no corner cut.
+- [x] No migrations, no seed change.
+- [x] Host gate green on the stacked tree: `make analyze`, `make test`
+      (app + edge functions), `make docs-check`.
