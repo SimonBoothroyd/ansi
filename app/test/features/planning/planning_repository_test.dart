@@ -349,6 +349,23 @@ void main() {
       expect(entry.portionsOrDefault, 2);
     });
 
+    test('setMealSlot moves the meal to another slot on its day', () async {
+      await _insertRecipe(db, 'r1', 'Curry');
+      final id = await repo.addEntry(
+        weekStart: _thisWeek,
+        dayOfWeek: 0,
+        mealSlot: 'Dinner',
+        recipeId: 'r1',
+        eaterIds: ['m1'],
+      );
+
+      await repo.setMealSlot(id, 'Lunch');
+      final entry = (await repo.watchWeek(_thisWeek).first)!.entries.single;
+      expect(entry.mealSlot, 'Lunch');
+      // The day is not a field: the move is within the same day.
+      expect(entry.dayOfWeek, 0);
+    });
+
     test('copyLastWeek clones every meal into the current week', () async {
       await _insertRecipe(db, 'r1', 'Curry');
       await _insertRecipe(db, 'r2', 'Ragu');

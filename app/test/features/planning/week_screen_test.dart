@@ -93,6 +93,18 @@ class _LivePlanningRepo extends _FakePlanningRepo {
   }
 
   @override
+  Future<void> setMealSlot(String entryId, String mealSlot) async {
+    await super.setMealSlot(entryId, mealSlot);
+    _week = _week.copyWith(
+      entries: [
+        for (final e in _week.entries)
+          if (e.id == entryId) e.copyWith(mealSlot: mealSlot) else e,
+      ],
+    );
+    _ctrl.add(_week);
+  }
+
+  @override
   Future<String> addEntry({
     required DateTime weekStart,
     required int dayOfWeek,
@@ -840,16 +852,49 @@ void main() {
     await tester.pumpAndSettle();
 
     // E7 — the avatar/portions cluster opens the editor, and the editor holds
-    // exactly two fields: no day \u00b7 slot, no route to the recipe, no
-    // remove. Those are the row's other two targets, not this sheet's job.
+    // the facts the row prints and nothing else: its slot (the gutter label),
+    // who's eating and the portions. No day — a row's position is its day —
+    // no route to the recipe and no remove: those are the row's other two
+    // targets, not this sheet's job.
     await tester.tap(find.byType(EaterAvatarStack).first);
     await tester.pumpAndSettle();
     expect(router.state.uri.toString(), '/week');
+    expect(find.text('SLOT'), findsOneWidget);
     expect(find.text("WHO'S EATING"), findsOneWidget);
     expect(find.text('PORTIONS'), findsOneWidget);
+    expect(find.text('DAY'), findsNothing);
     expect(find.text('DAY \u00b7 SLOT'), findsNothing);
     expect(find.text('Remove from the week'), findsNothing);
     expect(find.textContaining('Open '), findsNothing);
+  });
+
+  testWidgets("the editor's Slot field moves the meal in place: Lunch writes "
+      'through, and the row re-sorts under LUNCH', (tester) async {
+    filterForuiSemanticsAssertions();
+    final repo = _LivePlanningRepo(_plannedWeek());
+    await _pumpWeek(tester, planning: repo, expose: (_) {});
+    expect(find.text('DINNER'), findsOneWidget);
+    expect(find.text('LUNCH'), findsNothing);
+
+    await tester.tap(find.byType(EaterAvatarStack).first);
+    await tester.pumpAndSettle();
+    expect(find.text('Thursday · dinner'), findsOneWidget);
+    expect(find.text('SLOT'), findsOneWidget);
+
+    // `FSelect.rich` builds a private subclass, so the select is found by
+    // predicate rather than by type — as the ingredient form's tests do.
+    await tester.tap(find.byWidgetPredicate((w) => w is FSelect<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Lunch').last);
+    await tester.pumpAndSettle();
+
+    // Written through on the pick, like the other two fields — no Save.
+    expect(repo.slotWrites, [('e1', 'Lunch')]);
+    // The sheet re-reads the live row, so it names the new slot itself…
+    expect(find.text('Thursday · lunch'), findsOneWidget);
+    // …and the row underneath has moved to the LUNCH gutter.
+    expect(find.text('LUNCH'), findsOneWidget);
+    expect(find.text('DINNER'), findsNothing);
   });
 
   testWidgets('the \u2212 removes the meal and the toast puts it '

@@ -7,13 +7,14 @@
 ///
 /// **A row's controls are the facts the row prints.** The title opens the
 /// recipe it names. The portions chip and eater avatars are ONE target — they
-/// open `meal_editor_sheet.dart`, holding exactly those two fields. The `−`
-/// removes the meal, with an undo toast rather than a confirm: a destructive
-/// control on every row of a resting screen is defensible only because the act
-/// is trivially reversible, so the screen makes it so. Day · slot is
-/// deliberately absent — a row does not print a day as a value, its *position*
-/// is its day — so a meal is moved by removing it and adding it again through
-/// the picker's "already this week" quick picks.
+/// open `meal_editor_sheet.dart`, which holds the row's other printed facts:
+/// its slot (the gutter label it sits under), who is eating and the portions.
+/// The `−` removes the meal, with an undo toast rather than a confirm: a
+/// destructive control on every row of a resting screen is defensible only
+/// because the act is trivially reversible, so the screen makes it so. The
+/// day is deliberately not a field — a row does not print a day as a value,
+/// its *position* is its day — so a meal changes day by removing it and
+/// adding it again through the picker's "already this week" quick picks.
 ///
 /// **One add door, in every state.** `＋ add a meal` is the last row of every
 /// day card, sitting with the meals and above the day's total, because it adds
@@ -522,9 +523,9 @@ class _SlotGroup extends StatelessWidget {
 ///
 /// * the **title** opens the recipe it names;
 /// * the **portions chip + avatars** are ONE target — they open the meal
-///   editor holding exactly those two fields. One target, not two, because
-///   the chip is conditional: a chip-only tap would be missing from most rows
-///   and could never *set* a first override;
+///   editor, whose fields are the slot, the eaters and the portions. One
+///   target, not two, because the chip is conditional: a chip-only tap would
+///   be missing from most rows and could never *set* a first override;
 /// * the **`−`** removes the meal, with an undo toast (E3).
 ///
 /// This is not the old `›`, which was drawn but announced "the row navigates"

@@ -2,17 +2,17 @@
 /// picker, the eater row and the portions stepper.
 ///
 /// They live here because **two** sheets use them: `confirm_meal_sheet.dart`
-/// places a NEW meal on the week, and `meal_editor_sheet.dart` changes who's
-/// eating and how many portions on one already on it. Hoisting them is the only
-/// way the two stay the same controls in the same order: two copies would drift
-/// the first time one of them was touched (the same argument that hoisted
-/// `MethodStepText` and [incompleteNote]).
+/// places a NEW meal on the week, and `meal_editor_sheet.dart` changes the
+/// slot, who's eating and how many portions on one already on it. Hoisting
+/// them is the only way the two stay the same controls in the same order: two
+/// copies would drift the first time one of them was touched (the same
+/// argument that hoisted `MethodStepText` and [incompleteNote]).
 ///
-/// Not every control is shared. [MealSlotPicker] is the confirm sheet's alone:
-/// a row does not print a day OR a slot as a value (its *position* is both), so
-/// a meal's slot is chosen on the way in and changed by remove-and-re-add.
-/// There is no day control here at all — the add flow starts from a day, so the
-/// day is a fact the sheet is opened with rather than a question it asks.
+/// There is no day control here at all — the add flow starts from a day, so
+/// the day is a fact the sheet is opened with rather than a question it asks,
+/// and a meal changes day by remove-and-re-add. The slot is different: a row
+/// prints it, as the gutter label it sits under, so it is a field both sheets
+/// hold.
 ///
 /// [MealBatchBanner] rides along for the same reason: both sheets say the same
 /// sentence about a meal joining an existing batch.
@@ -247,15 +247,15 @@ class MealSnackCard extends StatelessWidget {
   }
 }
 
-/// The slot picker: the three default slots plus whatever custom slot the meal
+/// The slot picker: the default slots plus whatever custom slot the meal
 /// already carries, with a trailing `+` that prompts a new one — `meal_slot` is
 /// free text, so a household names its own.
 ///
 /// **The day is not here, and that is the ruling.** Every add starts from a day
 /// card, so the day is a fact the sheet was *opened with*: it is printed as the
-/// sheet's subtitle and the button repeats it. The combined "Day · Slot" menu
-/// this replaced asked it again as one of 49 pairs, which made the one question
-/// actually open — the slot — the harder half of a pair nobody had asked for. A
+/// sheet's subtitle and the button repeats it. A combined "Day · Slot" menu
+/// would ask it again as one of many pairs, which makes the one question
+/// actually open — the slot — the harder half of a pair nobody asked for. A
 /// wrong day is one back-tap away, or remove-and-re-add once it is placed.
 class MealSlotPicker extends StatelessWidget {
   const MealSlotPicker({

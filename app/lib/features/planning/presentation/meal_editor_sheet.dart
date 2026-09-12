@@ -1,20 +1,21 @@
-/// What the dish row's **portions chip + eater avatars** open: who is eating
-/// this meal, and how many portions to cook.
+/// What the dish row's **portions chip + eater avatars** open: which slot this
+/// meal is in, who is eating it, and how many portions to cook.
 ///
 /// **A field editor, not a hub.** It is reached by tapping *the values it
 /// edits* and holds nothing else: there is no route to the recipe in here (that
 /// is the row's title) and no remove (that is the row's `−`).
 ///
 /// The rule it comes from: **a row's controls are the facts the row prints.**
-/// Day · slot is not one of them — a row does not print a day as a value, its
-/// *position* is its day — so moving a meal is remove-and-re-add through the
-/// picker's "already this week" quick picks, and no repository method exists
-/// for it.
+/// The slot is one of them — it is the gutter label the row sits under — so
+/// it is a field here, and a meal moves from lunch to dinner in place. The
+/// day is not: a row does not print a day as a value, its *position* is its
+/// day, so a meal changes day by remove-and-re-add through the picker's
+/// "already this week" quick picks, and no repository method exists for it.
 ///
-/// Both controls come from `meal_fields.dart`, which is the whole reason that
-/// file exists: the confirm sheet sets these two fields when a meal is made,
-/// this sets them afterwards, and hoisting them is what stops the two paths
-/// drifting.
+/// The controls come from `meal_fields.dart`, which is the whole reason that
+/// file exists: the confirm sheet sets these fields when a meal is made, this
+/// sets them afterwards in the same order, and hoisting them is what stops
+/// the two paths drifting.
 ///
 /// Every control writes through on change; there is no Save. `Close` is a
 /// dismissal, not a commit.
@@ -85,6 +86,18 @@ class _MealEditorSheet extends ConsumerWidget {
       topPadding: 16,
       scrollable: true,
       children: [
+        const SizedBox(height: 18),
+        const AnsiMicroLabel('Slot'),
+        MealSlotPicker(
+          slot: entry.mealSlot,
+          onChanged: (s) => unawaited(
+            ref.write(
+              context,
+              'move it to ${s.toLowerCase()}',
+              () => repo.setMealSlot(entry.id, s),
+            ),
+          ),
+        ),
         const SizedBox(height: 18),
         const AnsiMicroLabel("Who's eating"),
         members.when(

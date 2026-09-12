@@ -26,9 +26,9 @@ planning/
                   gone; an empty week is a STATE of it, not a page),
                   week_header (the week switcher and its returns),
                   recipe_picker_sheet + confirm_meal_sheet (the add flow's ONE
-                  door and its confirm), meal_editor_sheet (who's eating + portions,
-                  opened by a row's avatar/portions cluster — v3 E7; it
-                  replaced entry_sheet, which was a hub behind a mode),
+                  door and its confirm), meal_editor_sheet (slot + who's eating
+                  + portions, opened by a row's avatar/portions cluster — v3 E7;
+                  it replaced entry_sheet, which was a hub behind a mode),
                   meal_fields (the controls both sheets share),
                   household_section (the members' usual portions, a section
                   of /account — plan 0027 P-D3, moved there by 0028 E6),
@@ -142,7 +142,10 @@ are facts about a cooked dish, and `MealSnackCard` prints its amount instead.
 - **Meal slots are free text** (spec §8). `kDefaultMealSlots` are the four the
   UI offers (Breakfast · Lunch · Dinner · Snack); `mealSlotRank` orders known
   slots ahead of custom ones per day, and `defaultMealSlot` picks the first
-  one a day has not filled for the add flow to start on.
+  one a day has not filled for the add flow to start on. **The slot is a
+  field of the meal editor** (`setMealSlot`): a row prints it, as the gutter
+  label it sits under, so it is changed in place. **The day is not** — a row's
+  position is its day — so a meal changes day by remove-and-re-add.
 - **Members** are **synced** from the server (step 7): `ensure_onboarded`
   (migration 0007) creates the `household_member` rows at sign-in and they stream
   down; the app reads them, and the one column it writes is `portion_factor`

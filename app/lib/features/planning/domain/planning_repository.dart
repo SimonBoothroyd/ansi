@@ -4,7 +4,8 @@
 /// A week is addressed by the date of its own first day (`weekStart`); the
 /// repository lazily
 /// creates the `week_plan` row on the first write. Mutations are small and
-/// targeted (add / remove a meal, retarget its eaters) — no whole-week replace.
+/// targeted (add / remove a meal, retarget its eaters, move it to another
+/// slot) — no whole-week replace.
 library;
 
 import '../../../core/units/units.dart';
@@ -81,6 +82,11 @@ abstract interface class PlanningRepository {
   /// Sets the portions override on an entry. Null tracks |eaters| again
   /// (spec §8) — it is a real value, not "unset", so it is passed explicitly.
   Future<void> setPortions(String entryId, int? portions);
+
+  /// Moves an entry to another slot on the same day. The slot is free text
+  /// (spec §8); the caller passes a trimmed, non-empty label. The day is not
+  /// a field — a meal changes day by remove-and-re-add.
+  Future<void> setMealSlot(String entryId, String mealSlot);
 
   /// Soft-deletes a planned meal.
   Future<void> removeEntry(String entryId);
