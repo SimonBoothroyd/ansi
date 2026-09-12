@@ -180,13 +180,21 @@ Future<void> editLineAmount(
   final preselect = loaded == null
       ? null
       : preselectedMeasure(loaded, measures, unit: resolution.unit);
+  // A line already on one of the row's measures — the review landed a counted
+  // lime on `lime, whole`, or a chip put it on `clove` — is a line being
+  // edited, and opens on that measure rather than on the row's own seed.
+  final named = measureNamed(resolution.unit, measures);
   final result = await showQuantityUnitSheet(
     context,
     ingredient: amountSheetIngredient(base, parsedUnit: resolution.unit),
     initialQuantity: initialQuantity,
     initialChoice: preselect != null
         ? MeasureOption(preselect)
-        : (unit != null ? UnitOption(unit) : null),
+        : unit != null
+        ? UnitOption(unit)
+        : named != null
+        ? MeasureOption(named)
+        : null,
     initialOptional: resolution.optional,
   );
   if (result is! QuantitySaved) return;

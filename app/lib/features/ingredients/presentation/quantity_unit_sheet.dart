@@ -13,10 +13,12 @@
 /// iOS keyboard-accessory view, which fights Flutter's insets model. The stack
 /// above the keyboard therefore reads chips → Done → keyboard.
 ///
-/// **A caller that names no choice gets the row's default unit.** On a
-/// count-default row that is `piece`, weighed by the row's own piece weight
-/// (ADR-0015); a row whose default is a size or a fragment says so through its
-/// measures, which the chip row offers beside the units.
+/// **A caller that names no choice gets the row's whole measure, else its
+/// default unit.** A measure that weighs what the row says a piece weighs is
+/// the row's word for one (ADR-0016, `wholeMeasureOf`), so a lime opens on
+/// `lime, whole` with `piece (67 g)` offered after it; a count-default row with
+/// no such measure opens on `piece`, weighed by the row's own piece weight
+/// (ADR-0015). A line being edited opens on its own stored choice.
 ///
 /// **Deleting the selected measure** (manage state) reconciles the choice to
 /// the ingredient's default unit with a visible note: Done must never write a
@@ -172,6 +174,24 @@ class QuantityUnitEditor extends HookConsumerWidget {
 
     final measuresAsync = ref.watch(ingredientMeasuresProvider(ingredient.id));
     final measures = measuresAsync.asData?.value ?? const <Measure>[];
+
+    // A caller that names no choice opens on the row's WHOLE MEASURE where it
+    // has one (ADR-0016: the measure that weighs a piece is the row's word
+    // for one), and the measures arrive a frame after the sheet does — so the
+    // seed moves once, when they land, and only while nothing has been
+    // picked and the choice is still the default-unit seed. An explicit
+    // [initialChoice] is a line being edited and is never moved.
+    useEffect(() {
+      if (initialChoice != null ||
+          unitPicked.value ||
+          !measuresAsync.hasValue ||
+          choice.value != UnitOption(live.value.defaultUnit)) {
+        return null;
+      }
+      final whole = wholeMeasureOf(live.value, measures);
+      if (whole != null) choice.value = MeasureOption(whole);
+      return null;
+    }, [measuresAsync.hasValue]);
 
     // Deleting the SELECTED measure reconciles the choice (deliberate call,
     // post-7.7 review): keeping it would let Done write a tombstoned

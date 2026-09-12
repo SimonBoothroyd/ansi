@@ -24,6 +24,7 @@
 library;
 
 import '../../../core/text/name_clean.dart';
+import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../recipes/domain/recipe.dart';
@@ -318,6 +319,18 @@ String? sheetChoiceUnit({
     UnitOption(:final unit) => unit.id,
     MeasureOption(:final measure) => measure.label,
   };
+}
+
+/// The measure [unit] names among [measures], or null when it names a catalog
+/// unit (or nothing). A measure rides its LABEL on a resolution
+/// ([sheetChoiceUnit]), so this is the whole of the lookup — the card's amount
+/// door, the method's step chips and the commit all read it the same way.
+Measure? measureNamed(String? unit, List<Measure> measures) {
+  if (unit == null || unit.isEmpty) return null;
+  for (final m in measures) {
+    if (m.label == unit) return m;
+  }
+  return null;
 }
 
 /// The starting resolution for a line: only a confident `auto` match adopts its

@@ -182,55 +182,163 @@ Widget _host({
 );
 
 void main() {
-  group('the sheet opens on the ROW’S DEFAULT UNIT (ADR-0015: there is no '
-      'default measure to seed from any more)', () {
-    testWidgets('a caller with no choice opens on the default unit, and that '
-        'seed is not a pick', (tester) async {
-      filterForuiSemanticsAssertions();
-      QuantitySaved? saved;
-      await tester.pumpWidget(
-        _host(repo: _FakeMeasureRepo(const [_large]), onDone: (s) => saved = s),
-      );
-      await tester.pumpAndSettle();
+  group(
+    'the sheet opens on the ROW’S DEFAULT UNIT where no measure weighs a '
+    'piece (ADR-0015: a size is not a statement about what a count means)',
+    () {
+      testWidgets('a caller with no choice opens on the default unit, and that '
+          'seed is not a pick', (tester) async {
+        filterForuiSemanticsAssertions();
+        QuantitySaved? saved;
+        await tester.pumpWidget(
+          _host(
+            repo: _FakeMeasureRepo(const [_large]),
+            onDone: (s) => saved = s,
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      // The measure is offered beside the units, never instead of them: what
-      // a bare count means is the row's piece weight now.
-      expect(
-        find.descendant(
-          of: find.byType(UnitChipRow),
-          matching: find.text('potato, large'),
-        ),
-        findsOneWidget,
-      );
-      expect(find.text('potato, large (299 g)'), findsNothing);
+        // The measure is offered beside the units, never instead of them: what
+        // a bare count means is the row's piece weight now.
+        expect(
+          find.descendant(
+            of: find.byType(UnitChipRow),
+            matching: find.text('potato, large'),
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('potato, large (299 g)'), findsNothing);
 
-      await tester.tap(find.text('Done'));
-      await tester.pumpAndSettle();
-      expect(saved!.choice, const UnitOption(pieces));
-      expect(saved!.unitPicked, isFalse);
-    });
+        await tester.tap(find.text('Done'));
+        await tester.pumpAndSettle();
+        expect(saved!.choice, const UnitOption(pieces));
+        expect(saved!.unitPicked, isFalse);
+      });
 
-    testWidgets('a sole measure is never taken as the opening choice — one '
-        'measure is not a statement about what a count means', (tester) async {
-      filterForuiSemanticsAssertions();
-      QuantitySaved? saved;
-      await tester.pumpWidget(
-        _host(repo: _FakeMeasureRepo(const [_large]), onDone: (s) => saved = s),
-      );
-      await tester.pumpAndSettle();
+      testWidgets('a sole measure is never taken as the opening choice — one '
+          'measure is not a statement about what a count means', (
+        tester,
+      ) async {
+        filterForuiSemanticsAssertions();
+        QuantitySaved? saved;
+        await tester.pumpWidget(
+          _host(
+            repo: _FakeMeasureRepo(const [_large]),
+            onDone: (s) => saved = s,
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Done'));
-      await tester.pumpAndSettle();
-      expect(saved!.choice, isNot(const MeasureOption(_large)));
-    });
+        await tester.tap(find.text('Done'));
+        await tester.pumpAndSettle();
+        expect(saved!.choice, isNot(const MeasureOption(_large)));
+      });
 
-    testWidgets('a caller’s own choice still wins', (tester) async {
+      testWidgets('a caller’s own choice still wins', (tester) async {
+        filterForuiSemanticsAssertions();
+        QuantitySaved? saved;
+        await tester.pumpWidget(
+          _host(
+            repo: _FakeMeasureRepo(const [_large]),
+            initialChoice: const MeasureOption(_large),
+            onDone: (s) => saved = s,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Done'));
+        await tester.pumpAndSettle();
+        expect(saved!.choice, const MeasureOption(_large));
+        expect(saved!.unitPicked, isFalse);
+      });
+    },
+  );
+
+  group('the sheet opens on the row’s WHOLE MEASURE where it has one — the '
+      'measure that weighs a piece is the row’s word for one (ADR-0016)', () {
+    const lime = Ingredient(
+      id: 'i-lime',
+      canonicalName: 'Lime',
+      defaultUnit: pieces,
+      status: IngredientStatus.complete,
+      pieceBasisAmount: 67,
+      pieceSource: 'manual',
+    );
+    const limeWhole = Measure(
+      id: 'm-lime-whole',
+      label: 'lime, whole',
+      amount: 67,
+      source: 'manual',
+    );
+    const avocado = Ingredient(
+      id: 'i-avocado',
+      canonicalName: 'Avocado',
+      defaultUnit: pieces,
+      status: IngredientStatus.complete,
+      pieceBasisAmount: 201,
+      pieceSource: 'manual',
+    );
+
+    testWidgets('a Lime-shaped row opens on lime, whole, with piece (67 g) '
+        'still offered after it', (tester) async {
       filterForuiSemanticsAssertions();
       QuantitySaved? saved;
       await tester.pumpWidget(
         _host(
-          repo: _FakeMeasureRepo(const [_large]),
-          initialChoice: const MeasureOption(_large),
+          repo: _FakeMeasureRepo(const [limeWhole]),
+          ingredient: lime,
+          onDone: (s) => saved = s,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The selected-choice line says the measure's words and weight…
+      expect(find.text('lime, whole (67 g)'), findsOneWidget);
+      // …and the bare count is one tap away, after it.
+      expect(
+        find.descendant(
+          of: find.byType(UnitChipRow),
+          matching: find.text('piece (67 g)'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(saved!.choice, const MeasureOption(limeWhole));
+      // The seed is the row's word, not a pick.
+      expect(saved!.unitPicked, isFalse);
+    });
+
+    testWidgets('Avocado — weighed, never sized — still opens on piece', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      QuantitySaved? saved;
+      await tester.pumpWidget(
+        _host(
+          repo: _FakeMeasureRepo(const []),
+          ingredient: avocado,
+          onDone: (s) => saved = s,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('piece (201 g)'), findsWidgets);
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(saved!.choice, const UnitOption(pieces));
+    });
+
+    testWidgets('a line being edited keeps its stored choice — the whole '
+        'measure never overrules a caller', (tester) async {
+      filterForuiSemanticsAssertions();
+      QuantitySaved? saved;
+      await tester.pumpWidget(
+        _host(
+          repo: _FakeMeasureRepo(const [limeWhole]),
+          ingredient: lime,
+          initialChoice: const UnitOption(pieces),
           onDone: (s) => saved = s,
         ),
       );
@@ -238,7 +346,7 @@ void main() {
 
       await tester.tap(find.text('Done'));
       await tester.pumpAndSettle();
-      expect(saved!.choice, const MeasureOption(_large));
+      expect(saved!.choice, const UnitOption(pieces));
       expect(saved!.unitPicked, isFalse);
     });
   });

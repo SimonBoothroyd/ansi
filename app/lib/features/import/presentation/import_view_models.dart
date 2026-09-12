@@ -707,7 +707,7 @@ Future<Map<int, LineValidation>> importValidation(Ref ref) async {
           // The line's own printed unit rides along: a source-printed
           // imprecise word is admissible whatever the category (J3b).
           : acceptableUnitChips(ingredient, measures, parsedUnit: r.unit),
-      unitMeasure: _measureNamed(r.unit, measures),
+      unitMeasure: measureNamed(r.unit, measures),
       pieceWeightMissing: countNeedsPieceWeight(r, ingredient),
       // No extra read: the row is already in hand from the one vocab query
       // above.
@@ -715,17 +715,6 @@ Future<Map<int, LineValidation>> importValidation(Ref ref) async {
     );
   }
   return result;
-}
-
-/// The measure [unit] names among [measures], or null when it names a catalog
-/// unit (or nothing). A measure rides its LABEL on a resolution, so this is
-/// the whole of the lookup.
-Measure? _measureNamed(String? unit, List<Measure> measures) {
-  if (unit == null || unit.isEmpty) return null;
-  for (final m in measures) {
-    if (m.label == unit) return m;
-  }
-  return null;
 }
 
 /// The ONE "how many lines still want you" count — the header's "N to review"
