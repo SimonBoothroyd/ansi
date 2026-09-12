@@ -550,6 +550,58 @@ void main() {
     expect(updated.resolutions.single.optional, isTrue);
   });
 
+  testWidgets('a match at a row this device cannot find reads as UNMATCHED — '
+      'the pick cell, not a check over a row that is gone', (tester) async {
+    final container = ProviderContainer(
+      overrides: [
+        bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
+        importRepositoryProvider.overrideWithValue(FakeImportRepo(_auto)),
+        // The row was retired between the server's match and this review, so
+        // the vocabulary hands nothing back for the id the line still carries
+        // — `byIds` skips the dead.
+        ingredientRepositoryProvider.overrideWithValue(
+          FakeIngredientRepo(const []),
+        ),
+        measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container
+        .read(importControllerProvider.notifier)
+        .startImport(const ImportFromUrl('x'));
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          home: FTheme(
+            data: ansiThemeData(),
+            child: const FScaffold(child: _LiveBody()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The same words a line the cascade could not match wears.
+    expect(find.text('Match an ingredient'), findsWidgets);
+
+    await tester.tap(find.byIcon(FLucideIcons.pencil));
+    await tester.pumpAndSettle();
+
+    // The identity cell asks for a pick…
+    expect(find.text('Did you mean'), findsOneWidget);
+    // …and the amount and notes stay locked behind it, as they do on any
+    // unmatched line: a unit means nothing with no allowed set to read.
+    expect(find.byType(AmountEditor), findsNothing);
+    expect(
+      find.text(
+        'Match an ingredient first — then the amount and notes unlock.',
+      ),
+      findsOneWidget,
+    );
+  });
+
   // --- plan 0022 / ADR-0010 · the board's frame (a) -------------------------
   //
   // "1 large ripe avocado" extracts as unit="piece" and used to commit as a

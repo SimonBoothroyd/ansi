@@ -373,6 +373,33 @@ List<LineResolution> initialResolutions(ReconciliationPayload payload) {
   ];
 }
 
+/// [resolutions] as **this device's live vocabulary** sees them: a line
+/// matched to an id [liveIngredientIds] does not hold is not matched at all.
+///
+/// The server matched against the household's vocabulary as it stood. A row
+/// can be RETIRED between that answer and this review — a hand pass on cloud,
+/// another device's delete syncing in — and a retired row is a tombstone: it
+/// hands back no name to print, no `allowed_units` to validate against, and
+/// nothing that could honestly be committed onto a line. That is the SAME
+/// state as a line the cascade could not match, so it is made that state here,
+/// once, where the ids meet the vocabulary (`importValidation`) — rather than
+/// each surface re-deriving the news from an id the resolution still
+/// remembers. The fix is the pick, exactly as on any unmatched line.
+///
+/// An id the device has simply never synced reads the same way, and rightly:
+/// from here the two are one fact — nothing this device can name.
+List<LineResolution> againstLiveVocabulary(
+  List<LineResolution> resolutions, {
+  required Set<String> liveIngredientIds,
+}) => [
+  for (final r in resolutions)
+    if (r.chosenIngredientId == null ||
+        liveIngredientIds.contains(r.chosenIngredientId))
+      r
+    else
+      r.copyWith(clearIngredient: true),
+];
+
 /// Whether every line in [resolutions] is resolved — the structural half of
 /// the commit gate ([buildCommit] also demands unit validity). A DROPPED line
 /// is excluded rather than required: the user already said what happens to it.

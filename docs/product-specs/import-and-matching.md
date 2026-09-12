@@ -683,6 +683,12 @@ a save would write, and Save at the bottom.
   range has a picked number, and its unit is admitted. Until every line clears,
   Save is disabled and says how many still need you. `buildCommit` re-asserts this
   at the seam and throws rather than let a partial import reach PowerSync.
+  **"Matched" means matched to a row this device can still find**: the
+  per-line validation is where the server's ids meet the local vocabulary, and
+  a match at a row retired since the server answered reads as *unmatched*
+  there — needs a pick, holds Save, refused by `buildCommit` — because a
+  tombstone has no name to print, no allowed set to validate against, and
+  nothing honest to commit onto a line.
 - **Never-invent flags are shown, not hidden**: parse warnings, a degraded image, a
   truncated source, and each line's own flags.
 

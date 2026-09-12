@@ -640,6 +640,12 @@ String importValidationKey(Ref ref) {
 /// per-line needs-attention flag, the unit chips, AND the Save gate. Empty
 /// until reconciling.
 ///
+/// It is also the one place a match meets THIS DEVICE's vocabulary, so it is
+/// where [againstLiveVocabulary] rules: a line matched to a row that has been
+/// retired since the server answered reads as UNMATCHED — needs a pick, and
+/// holds Save exactly as an unmatched line does. Before that it read as done
+/// (no ingredient, so no unit to fault) and committed the dead id.
+///
 /// It is deliberately NOT recomputed on every controller change: it depends on
 /// [importValidationKey], so editing a note or the servings leaves the cached
 /// map alone. Views must read it with `AsyncValue.value` (which keeps the last
@@ -675,7 +681,17 @@ Future<Map<int, LineValidation>> importValidation(Ref ref) async {
   final measuresById = await measureRepo.measuresByIngredients(matchedIds);
 
   final result = <int, LineValidation>{};
-  for (final r in state.resolutions) {
+  // THE seam: this is where the server's match meets this device's vocabulary,
+  // so this is where a match at a row that is no longer live becomes what it
+  // is — unmatched. `byIds` hands back live rows only, so its keys ARE the
+  // liveness answer, at no extra read. Downstream nothing has to know: the
+  // card's flag, the "N need you" count, the Save gate and `buildCommit`'s
+  // re-check all read the issues this loop writes.
+  final resolutions = againstLiveVocabulary(
+    state.resolutions,
+    liveIngredientIds: vocab.keys.toSet(),
+  );
+  for (final r in resolutions) {
     Ingredient? ingredient;
     var measures = const <Measure>[];
     if (r.chosenIngredientId != null) {
