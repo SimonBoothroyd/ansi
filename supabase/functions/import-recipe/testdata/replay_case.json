@@ -1,0 +1,43 @@
+{
+  "schema": "ansi.eval.extraction-response/1",
+  "case_id": "lemon-herb-chickpea-bowl",
+  "provider": "claude-haiku",
+  "model": "claude-haiku-4-5",
+  "stage": "D2",
+  "path": "page_text",
+  "op": "sanitize",
+  "captured_at": "2026-09-12T00:00:00.000Z",
+  "latency_ms": 0,
+  "usage": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_write_tokens": 0,
+    "reasoning_tokens": null,
+    "total_tokens": 0
+  },
+  "input": {
+    "text": "Lemon and Herb Chickpea Bowl\n\nSERVES 2\n\nINGREDIENTS\n\nfor the chickpeas\n1 can chickpeas, drained\n1 tablespoon olive oil\n1 teaspoon smoked paprika\n\nfor the dressing\n2 tablespoons tahini\n1 lemon, juiced\n1 small garlic clove, grated\na pinch of salt\n\nto serve\n2 cups cooked rice\na handful of parsley leaves\n\nMETHOD\n\n1. Warm the olive oil in a pan and fry the chickpeas with the smoked paprika for 5 minutes, until they start to crisp.\n2. Whisk the tahini with the lemon juice, garlic and salt, loosening with a splash of water.\n3. Pile the rice into bowls, spoon over the chickpeas, drizzle with the dressing and scatter the parsley on top.\n",
+    "sha256": "9584329c3690240969831c88be1a1cf1ecdf765e688b603b407e553561f030a0"
+  },
+  "error": null,
+  "raw": {
+    "id": "msg_fixture",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-haiku-4-5",
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"title\": \"Lemon and Herb Chickpea Bowl\", \"servings_base\": 2, \"servings_raw\": \"SERVES 2\", \"yield_raw\": null, \"total_time_seconds\": null, \"cook_time_seconds\": null, \"truncated\": false, \"image_quality\": \"ok\", \"parse_warnings\": [], \"groups\": [{\"name\": \"for the chickpeas\", \"line_items\": [{\"qty\": 1, \"qty_low\": null, \"qty_high\": null, \"unit\": \"can\", \"unit_mappable\": true, \"ingredient_text\": \"chickpeas\", \"notes\": \"drained\", \"raw_amount\": \"1 can chickpeas, drained\", \"optional\": false, \"confidence\": 1.0}, {\"qty\": 1, \"qty_low\": null, \"qty_high\": null, \"unit\": \"tbsp\", \"unit_mappable\": true, \"ingredient_text\": \"olive oil\", \"notes\": null, \"raw_amount\": \"1 tablespoon olive oil\", \"optional\": false, \"confidence\": 1.0}, {\"qty\": 1, \"qty_low\": null, \"qty_high\": null, \"unit\": \"tsp\", \"unit_mappable\": true, \"ingredient_text\": \"smoked paprika\", \"notes\": null, \"raw_amount\": \"1 teaspoon smoked paprika\", \"optional\": false, \"confidence\": 1.0}]}, {\"name\": \"for the dressing\", \"line_items\": [{\"qty\": 2, \"qty_low\": null, \"qty_high\": null, \"unit\": \"tbsp\", \"unit_mappable\": true, \"ingredient_text\": \"tahini\", \"notes\": null, \"raw_amount\": \"2 tablespoons tahini\", \"optional\": false, \"confidence\": 1.0}, {\"qty\": 1, \"qty_low\": null, \"qty_high\": null, \"unit\": \"piece\", \"unit_mappable\": true, \"ingredient_text\": \"lemon\", \"notes\": \"juiced\", \"raw_amount\": \"1 lemon, juiced\", \"optional\": false, \"confidence\": 1.0}, {\"qty\": 1, \"qty_low\": null, \"qty_high\": null, \"unit\": \"piece\", \"unit_mappable\": true, \"ingredient_text\": \"garlic clove\", \"notes\": \"small, grated\", \"raw_amount\": \"1 small garlic clove, grated\", \"optional\": false, \"confidence\": 1.0}, {\"qty\": null, \"qty_low\": null, \"qty_high\": null, \"unit\": \"pinch\", \"unit_mappable\": true, \"ingredient_text\": \"salt\", \"notes\": null, \"raw_amount\": \"a pinch of salt\", \"optional\": false, \"confidence\": 1.0}]}, {\"name\": \"to serve\", \"line_items\": [{\"qty\": 2, \"qty_low\": null, \"qty_high\": null, \"unit\": \"cup\", \"unit_mappable\": true, \"ingredient_text\": \"cooked rice\", \"notes\": null, \"raw_amount\": \"2 cups cooked rice\", \"optional\": false, \"confidence\": 1.0}, {\"qty\": null, \"qty_low\": null, \"qty_high\": null, \"unit\": \"handful\", \"unit_mappable\": true, \"ingredient_text\": \"parsley leaves\", \"notes\": null, \"raw_amount\": \"a handful of parsley leaves\", \"optional\": false, \"confidence\": 1.0}]}], \"steps\": [{\"tokens\": [{\"t\": \"text\", \"s\": \"Warm the \"}, {\"t\": \"ref\", \"refs\": [1], \"label\": \"olive oil\", \"mention\": \"new\", \"portion\": null}, {\"t\": \"text\", \"s\": \" in a pan and fry the \"}, {\"t\": \"ref\", \"refs\": [0], \"label\": \"chickpeas\", \"mention\": \"new\", \"portion\": null}, {\"t\": \"text\", \"s\": \" with the \"}, {\"t\": \"ref\", \"refs\": [2], \"label\": \"smoked paprika\", \"mention\": \"new\", \"portion\": null}, {\"t\": \"text\", \"s\": \" for \"}, {\"t\": \"timer\", \"low_seconds\": 300, \"high_seconds\": 300}, {\"t\": \"text\", \"s\": \", until they start to crisp.\"}]}, {\"tokens\": [{\"t\": \"text\", \"s\": \"Whisk the \"}, {\"t\": \"ref\", \"refs\": [3], \"label\": \"tahini\", \"mention\": \"new\", \"portion\": null}, {\"t\": \"text\", \"s\": \" with the \"}, {\"t\": \"ref\", \"refs\": [4], \"label\": \"lemon juice\", \"mention\": \"new\", \"portion\": null}, {\"t\": \"text\", \"s\": \", \"}, {\"t\": \"ref\", \"refs\": [5], \"label\": \"garlic\", \"mention\": \"new\", \"portion\": null}, {\"t\": \"text\", \"s\": \" and \"}, {\"t\": \"ref\", \"refs\": [6], \"label\": \"salt\", \"mention\": \"new\", \"portion\": null}, {\"t\": \"text\", \"s\": \", loosening with a splash of water.\"}]}, {\"tokens\": [{\"t\": \"text\", \"s\": \"Pile the \"}, {\"t\": \"ref\", \"refs\": [7], \"label\": \"rice\", \"mention\": \"new\", \"portion\": null}, {\"t\": \"text\", \"s\": \" into bowls, spoon over the \"}, {\"t\": \"ref\", \"refs\": [0], \"label\": \"chickpeas\", \"mention\": \"rementioned\", \"portion\": null}, {\"t\": \"text\", \"s\": \", drizzle with the dressing and scatter the \"}, {\"t\": \"ref\", \"refs\": [8], \"label\": \"parsley\", \"mention\": \"new\", \"portion\": null}, {\"t\": \"text\", \"s\": \" on top.\"}]}]}"
+      }
+    ],
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+      "input_tokens": 0,
+      "output_tokens": 0
+    }
+  }
+}

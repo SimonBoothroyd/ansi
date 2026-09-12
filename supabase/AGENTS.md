@@ -67,16 +67,17 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
 The pipeline's one paid, non-deterministic stage is the LLM. Everything after it
 — normalize, the match cascade, payload assembly, the HTTP edges — is
 deterministic, and that is the half a matching change has to be exercised
-against a real Postgres. `evals/runs/` already holds what the model said,
-verbatim, for every case in the extraction corpus, so `import-recipe` can replay
-one instead of calling out:
+against a real Postgres. A saved eval run holds what the model said, verbatim,
+for a case in the extraction corpus (`evals/runs/`, local-only), so
+`import-recipe` can replay one instead of calling out — the test suite carries
+its own small one, `import-recipe/testdata/replay_case.json`:
 
 ```
 supabase start                                   # the local stack
 
 # serve the function against the local database, keyless
 SUPABASE_DB_URL=postgres://postgres:postgres@127.0.0.1:54322/postgres \
-IMPORT_EXTRACT_FIXTURE=$PWD/evals/runs/2026-09-02-var-v5-r3/claude-haiku/dirty-rice.json \
+IMPORT_EXTRACT_FIXTURE=$PWD/supabase/functions/import-recipe/testdata/replay_case.json \
   deno run --allow-all --config supabase/functions/deno.json \
   supabase/functions/import-recipe/index.ts
 
@@ -86,7 +87,8 @@ IMPORT_EXTRACT_FIXTURE=$PWD/evals/runs/2026-09-02-var-v5-r3/claude-haiku/dirty-r
 # end to end
 ```
 
-`IMPORT_EXTRACT_FIXTURE` names an `evals/runs/**` case file; `replay.ts` decodes
+`IMPORT_EXTRACT_FIXTURE` names a run-case file (an `evals/runs/**` one, or the
+test fixture); `replay.ts` decodes
 its `raw` with the same Claude decoder the live call uses. It is a LOCAL switch
 and three things keep it that way, none of them a warning: the var appears in no
 deploy script and no `supabase secrets` row (the deployed function's secrets are

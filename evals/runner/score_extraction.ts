@@ -1349,6 +1349,13 @@ export async function main(): Promise<void> {
   }
 
   const cases = await loadGold();
+  if (cases.length === 0) {
+    console.log(
+      "  extraction: no gold on this machine (datasets/extraction/gold/*.json" +
+        " is local-only) — dimension skipped, not scored",
+    );
+    return;
+  }
   console.log(
     `extraction eval — D2 (sanitize on reconstructed gold text), path=page_text`,
   );

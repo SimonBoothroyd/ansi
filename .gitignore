@@ -62,7 +62,12 @@ scratch/
 # the moment a prompt or scorer changes.
 evals/reports/
 
-# Benchmark raw recipe photos — kept LOCAL ONLY. They carry GPS EXIF and are
-# copyrighted cookbook pages, so the raw images must never be committed. Only the
-# derived, human-verified gold labels (evals/datasets/extraction/gold/) are tracked.
+# The extraction corpus is LOCAL ONLY. The photos carry GPS EXIF and are
+# copyrighted cookbook pages; the gold labels transcribe those pages, and a
+# saved run holds the model's verbatim reading of them. None of it may be
+# committed. Only the contract (gold/_SCHEMA.md), the runner and runs/README.md
+# are tracked; evals/README.md says how to build your own corpus.
 evals/datasets/extraction/images/
+evals/datasets/extraction/gold/*.json
+evals/datasets/extraction/gold/_INDEX.md
+evals/runs/*/

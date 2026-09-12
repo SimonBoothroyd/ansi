@@ -213,8 +213,10 @@ evals/runs/<yyyy-mm-dd>-<label>/manifest.json          label, time, git rev, mod
 evals/runs/<yyyy-mm-dd>-<label>/<provider>/<case>.json raw response + usage + latency + exact input
 ```
 
-Those files are **committed** — `evals/reports/` is gitignored because it is
-derived, and a run directory is the opposite: it is what the run *bought*.
+Those files are **kept, locally** — gitignored like the photos and the gold,
+because a raw response is the model's verbatim reading of a copyrighted page.
+`evals/reports/` is ignored because it is derived; a run directory is the
+opposite: it is what the run *bought*, so back it up with the corpus.
 Failed cases are saved too (a run keeping only its successes cannot be re-scored
 honestly — the failures are the json-valid rate). Then:
 

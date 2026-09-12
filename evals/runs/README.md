@@ -1,4 +1,4 @@
-# evals/runs — persisted provider runs (COMMITTED)
+# evals/runs — persisted provider runs (LOCAL ONLY)
 
 Each subdirectory is one paid benchmark run:
 
@@ -11,10 +11,12 @@ Each subdirectory is one paid benchmark run:
                           (text + sha256)
 ```
 
-**These are tracked on purpose.** `evals/reports/` is gitignored because it is
+**These are gitignored, and kept.** `evals/reports/` is ignored because it is
 derived — regenerable from the datasets for free. A run directory is the
-opposite: it is the thing the run *bought*. Re-creating one means paying the
-providers again.
+opposite: it is the thing the run *bought*, and re-creating one means paying the
+providers again — but it is also a model's verbatim reading of copyrighted
+pages, so it lives on the machine that made it, never in the repo. Back the
+directory up with the photos and the gold.
 
 Because the raw response is kept verbatim, a scorer fix, a gold correction or a
 brand-new metric costs nothing:

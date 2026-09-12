@@ -22,9 +22,9 @@ evaluation harnesses as first-class repo content.
 - `reports/` — regenerable HTML/JSON output from `runner/capture_d2_report.ts`.
   **Gitignored**: it is a rendering of a paid run, not a source artifact.
 - `runs/` — the paid runs themselves: each provider's verbatim response per
-  case, plus usage, latency and the exact input. **Committed**, because this is
-  what the money bought; `--rescore` re-scores it for free. See
-  `runs/README.md`.
+  case, plus usage, latency and the exact input. **Local-only** (gitignored):
+  it is a verbatim reading of copyrighted pages, and it is what the money
+  bought, so keep it and `--rescore` it for free. See `runs/README.md`.
 - `runner/pricing.ts` — the dated $/Mtok table the cost columns are computed
   from, one row per pinned model with its source URL and retrieval date.
 - `runner/run.sh` — scores normalization, the scorers' own self-tests, the
@@ -32,6 +32,23 @@ evaluation harnesses as first-class repo content.
   cascade. Wired into `make evals` and the nightly workflow. No paid calls.
 - `deno.json` — mirrors `supabase/functions/deno.json`'s import map so the
   runners work from `evals/` without an explicit `--config`.
+
+## Bring your own corpus
+
+The extraction gold is not in the repo: it is a transcription of cookbook pages
+the owner photographed, so it stays on his machine. A fresh clone still scores
+normalization and matching (both are keyless and tracked) and reports the
+extraction dimension as skipped. To score extraction yourself:
+
+1. Photograph a few recipe pages you own, or print public-domain recipes, into
+   `datasets/extraction/images/` (gitignored).
+2. Label each one by hand as `datasets/extraction/gold/<slug>.json`, to the
+   contract in `datasets/extraction/gold/_SCHEMA.md` — every line, its amount,
+   its unit and its notes, and the method as tokens. A dozen pages is plenty;
+   the value is in the labels being independent of any model's reading.
+3. Run the live comparison once with your provider keys
+   (`runner/run_extraction_live.ts`, see `runner/EXTRACTION.md`); it writes
+   `runs/<date>-<label>/` (gitignored) and everything after that is free.
 
 ## Run
 

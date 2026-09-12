@@ -44,6 +44,12 @@ import {
 } from "./run_store.ts";
 import { emptyUsage } from "../../supabase/functions/_shared/adapters/usage.ts";
 
+// The gold corpus is local-only (cookbook pages the owner photographed), so a
+// fresh clone has none. These tests are IGNORED there — reported, not passed.
+const noGold = (await loadGold()).length === 0;
+const goldTest = (name: string, fn: () => Promise<void>) =>
+  Deno.test({ name, ignore: noGold, fn });
+
 // --- pricing -----------------------------------------------------------------
 
 Deno.test("pricing — every row is dated and carries its source", () => {
@@ -166,53 +172,59 @@ Deno.test("usd — sub-cent amounts keep enough digits to be readable", () => {
 
 // --- usage flows through runBenchmark into a cost summary --------------------
 
-Deno.test("runBenchmark — captures one call per case and costs the run", async () => {
-  const cases = await loadGold();
-  const adapter = new MockAdapter({
-    name: "mock-oracle",
-    sanitizeWith: (blob) => {
-      const c = cases.find((x) => goldToBlob(x.gold).text === blob.text);
-      return c!.gold;
-    },
-  });
-  const report = await runBenchmark({
-    provider: "mock-oracle",
-    adapter,
-    cases,
-    stage: "D2",
-    path: "page_text",
-  });
-  assertEquals(report.calls.length, cases.length);
-  assert(report.calls.every((c) => c.call !== null));
-  assertEquals(report.cost?.model, MOCK_MODEL);
-  assertEquals(report.cost?.calls, cases.length);
-  assertEquals(report.cost?.imports, cases.length);
-  // The mock is priced at $0, so the assertion that matters is that tokens were
-  // actually aggregated — a silent zero here would hide a broken observer.
-  assert((report.cost?.usage.input_tokens ?? 0) > 0);
-  assert((report.cost?.usage.output_tokens ?? 0) > 0);
-});
+goldTest(
+  "runBenchmark — captures one call per case and costs the run",
+  async () => {
+    const cases = await loadGold();
+    const adapter = new MockAdapter({
+      name: "mock-oracle",
+      sanitizeWith: (blob) => {
+        const c = cases.find((x) => goldToBlob(x.gold).text === blob.text);
+        return c!.gold;
+      },
+    });
+    const report = await runBenchmark({
+      provider: "mock-oracle",
+      adapter,
+      cases,
+      stage: "D2",
+      path: "page_text",
+    });
+    assertEquals(report.calls.length, cases.length);
+    assert(report.calls.every((c) => c.call !== null));
+    assertEquals(report.cost?.model, MOCK_MODEL);
+    assertEquals(report.cost?.calls, cases.length);
+    assertEquals(report.cost?.imports, cases.length);
+    // The mock is priced at $0, so the assertion that matters is that tokens were
+    // actually aggregated — a silent zero here would hide a broken observer.
+    assert((report.cost?.usage.input_tokens ?? 0) > 0);
+    assert((report.cost?.usage.output_tokens ?? 0) > 0);
+  },
+);
 
-Deno.test("runBenchmark — restores whatever observer the adapter already had", async () => {
-  const cases = (await loadGold()).slice(0, 1);
-  const outer: string[] = [];
-  const adapter = new MockAdapter({
-    name: "mock",
-    sanitizeWith: () => cases[0].gold,
-  });
-  const sink = (c: { model: string }) => outer.push(c.model);
-  adapter.onCall = sink;
-  await runBenchmark({
-    provider: "mock",
-    adapter,
-    cases,
-    stage: "D2",
-    path: "page_text",
-  });
-  // The pre-existing observer still saw the call, AND is still attached.
-  assertEquals(outer, [MOCK_MODEL]);
-  assertEquals(adapter.onCall, sink);
-});
+goldTest(
+  "runBenchmark — restores whatever observer the adapter already had",
+  async () => {
+    const cases = (await loadGold()).slice(0, 1);
+    const outer: string[] = [];
+    const adapter = new MockAdapter({
+      name: "mock",
+      sanitizeWith: () => cases[0].gold,
+    });
+    const sink = (c: { model: string }) => outer.push(c.model);
+    adapter.onCall = sink;
+    await runBenchmark({
+      provider: "mock",
+      adapter,
+      cases,
+      stage: "D2",
+      path: "page_text",
+    });
+    // The pre-existing observer still saw the call, AND is still attached.
+    assertEquals(outer, [MOCK_MODEL]);
+    assertEquals(adapter.onCall, sink);
+  },
+);
 
 Deno.test("summarizeCost — $/100 imports is $/import × 100", () => {
   const usage = mockUsage("x".repeat(4000), {
@@ -249,126 +261,132 @@ Deno.test("run_store — slug and runDir build a dated, safe directory name", ()
   );
 });
 
-Deno.test("run_store — a mock run round-trips: persist, reload, rescore identically", async () => {
-  const cases = await loadGold();
-  const byText = new Map(cases.map((c) => [goldToBlob(c.gold).text, c.gold]));
-  // A DEGRADED mock, not the oracle: a round-trip that only ever carries
-  // perfect scores would not notice a decoder that drops half the payload.
-  const adapter = new MockAdapter({
-    name: "mock-degraded",
-    sanitizeWith: (blob) => degrade(byText.get(blob.text)!),
-  });
-  const live = await runBenchmark({
-    provider: "mock-degraded",
-    adapter,
-    cases,
-    stage: "D2",
-    path: "page_text",
-  });
-
-  const base = new URL(`file://${await Deno.makeTempDir()}/`);
-  const dir = runDir("roundtrip", base);
-  for (const c of live.calls) {
-    await writeCase(
-      dir,
-      await toSavedCase({
-        caseId: c.id,
-        stage: "D2",
-        path: "page_text",
-        inputText: c.input_text,
-        call: c.call,
-        provider: "mock-degraded",
-        model: MOCK_MODEL,
-        error: c.error,
-      }),
-    );
-  }
-  await writeManifest(
-    dir,
-    buildManifest({
-      label: "roundtrip",
-      gitRev: "deadbeef",
+goldTest(
+  "run_store — a mock run round-trips: persist, reload, rescore identically",
+  async () => {
+    const cases = await loadGold();
+    const byText = new Map(cases.map((c) => [goldToBlob(c.gold).text, c.gold]));
+    // A DEGRADED mock, not the oracle: a round-trip that only ever carries
+    // perfect scores would not notice a decoder that drops half the payload.
+    const adapter = new MockAdapter({
+      name: "mock-degraded",
+      sanitizeWith: (blob) => degrade(byText.get(blob.text)!),
+    });
+    const live = await runBenchmark({
+      provider: "mock-degraded",
+      adapter,
+      cases,
       stage: "D2",
       path: "page_text",
-      providers: [{ provider: "mock-degraded", model: MOCK_MODEL }],
-      caseIds: cases.map((c) => c.id),
-    }),
-  );
+    });
 
-  const loaded = await loadRun(dir);
-  assertEquals(loaded.manifest?.git_rev, "deadbeef");
-  assertEquals(loaded.manifest?.providers[0].model, MOCK_MODEL);
-  const saved = loaded.byProvider.get("mock-degraded");
-  assertEquals(saved?.length, cases.length);
+    const base = new URL(`file://${await Deno.makeTempDir()}/`);
+    const dir = runDir("roundtrip", base);
+    for (const c of live.calls) {
+      await writeCase(
+        dir,
+        await toSavedCase({
+          caseId: c.id,
+          stage: "D2",
+          path: "page_text",
+          inputText: c.input_text,
+          call: c.call,
+          provider: "mock-degraded",
+          model: MOCK_MODEL,
+          error: c.error,
+        }),
+      );
+    }
+    await writeManifest(
+      dir,
+      buildManifest({
+        label: "roundtrip",
+        gitRev: "deadbeef",
+        stage: "D2",
+        path: "page_text",
+        providers: [{ provider: "mock-degraded", model: MOCK_MODEL }],
+        caseIds: cases.map((c) => c.id),
+      }),
+    );
 
-  const goldById = new Map(cases.map((c) => [c.id, c.gold as GoldRecipe]));
-  const re = await rescoreProvider(
-    "mock-degraded",
-    saved!,
-    goldById,
-    goldToBlob,
-  );
+    const loaded = await loadRun(dir);
+    assertEquals(loaded.manifest?.git_rev, "deadbeef");
+    assertEquals(loaded.manifest?.providers[0].model, MOCK_MODEL);
+    const saved = loaded.byProvider.get("mock-degraded");
+    assertEquals(saved?.length, cases.length);
 
-  // THE assertion: every headline number reproduced from disk, no API call.
-  assertEquals(re.summary.n, live.summary.n);
-  assertAlmostEquals(re.summary.line_f1, live.summary.line_f1, 1e-12);
-  assertAlmostEquals(re.summary.qty_acc, live.summary.qty_acc, 1e-12);
-  assertAlmostEquals(re.summary.unit_acc, live.summary.unit_acc, 1e-12);
-  assertAlmostEquals(
-    re.summary.normalize_agree,
-    live.summary.normalize_agree,
-    1e-12,
-  );
-  assertEquals(re.summary.ledger, live.summary.ledger);
-  assertAlmostEquals(
-    re.summary.calibration.ece,
-    live.summary.calibration.ece,
-    1e-12,
-  );
-  assertEquals(re.cost.usage, live.cost?.usage);
-  assertEquals(re.input_drift, []); // same gold ⇒ same rendered input
-  assertEquals(re.orphans, []);
+    const goldById = new Map(cases.map((c) => [c.id, c.gold as GoldRecipe]));
+    const re = await rescoreProvider(
+      "mock-degraded",
+      saved!,
+      goldById,
+      goldToBlob,
+    );
 
-  // And the whole-directory driver finds the same thing.
-  const viaRun = await rescoreRun(dir);
-  assertEquals(viaRun.length, 1);
-  assertAlmostEquals(viaRun[0].summary.line_f1, live.summary.line_f1, 1e-12);
+    // THE assertion: every headline number reproduced from disk, no API call.
+    assertEquals(re.summary.n, live.summary.n);
+    assertAlmostEquals(re.summary.line_f1, live.summary.line_f1, 1e-12);
+    assertAlmostEquals(re.summary.qty_acc, live.summary.qty_acc, 1e-12);
+    assertAlmostEquals(re.summary.unit_acc, live.summary.unit_acc, 1e-12);
+    assertAlmostEquals(
+      re.summary.normalize_agree,
+      live.summary.normalize_agree,
+      1e-12,
+    );
+    assertEquals(re.summary.ledger, live.summary.ledger);
+    assertAlmostEquals(
+      re.summary.calibration.ece,
+      live.summary.calibration.ece,
+      1e-12,
+    );
+    assertEquals(re.cost.usage, live.cost?.usage);
+    assertEquals(re.input_drift, []); // same gold ⇒ same rendered input
+    assertEquals(re.orphans, []);
 
-  await Deno.remove(new URL(".", base), { recursive: true });
-});
+    // And the whole-directory driver finds the same thing.
+    const viaRun = await rescoreRun(dir);
+    assertEquals(viaRun.length, 1);
+    assertAlmostEquals(viaRun[0].summary.line_f1, live.summary.line_f1, 1e-12);
 
-Deno.test("run_store — a saved case carries the input hash, and drift is reported", async () => {
-  const cases = (await loadGold()).slice(0, 1);
-  const gold = cases[0].gold as GoldRecipe;
-  const rec = await toSavedCase({
-    caseId: cases[0].id,
-    stage: "D2",
-    path: "page_text",
-    inputText: "TEXT THE MODEL NEVER ACTUALLY SAW",
-    call: {
+    await Deno.remove(new URL(".", base), { recursive: true });
+  },
+);
+
+goldTest(
+  "run_store — a saved case carries the input hash, and drift is reported",
+  async () => {
+    const cases = (await loadGold()).slice(0, 1);
+    const gold = cases[0].gold as GoldRecipe;
+    const rec = await toSavedCase({
+      caseId: cases[0].id,
+      stage: "D2",
+      path: "page_text",
+      inputText: "TEXT THE MODEL NEVER ACTUALLY SAW",
+      call: {
+        provider: "mock-degraded",
+        model: MOCK_MODEL,
+        op: "sanitize",
+        usage: emptyUsage(),
+        latency_ms: 0,
+        raw: gold,
+      },
       provider: "mock-degraded",
       model: MOCK_MODEL,
-      op: "sanitize",
-      usage: emptyUsage(),
-      latency_ms: 0,
-      raw: gold,
-    },
-    provider: "mock-degraded",
-    model: MOCK_MODEL,
-    error: null,
-  });
-  assertEquals(rec.input.sha256, await sha256Hex(rec.input.text));
+      error: null,
+    });
+    assertEquals(rec.input.sha256, await sha256Hex(rec.input.text));
 
-  const re = await rescoreProvider(
-    "mock-degraded",
-    [rec],
-    new Map([[cases[0].id, gold]]),
-    goldToBlob,
-  );
-  // The gold renders differently now than the saved input, so the rescore says
-  // so rather than grading the model on text it was never shown.
-  assertEquals(re.input_drift, [cases[0].id]);
-});
+    const re = await rescoreProvider(
+      "mock-degraded",
+      [rec],
+      new Map([[cases[0].id, gold]]),
+      goldToBlob,
+    );
+    // The gold renders differently now than the saved input, so the rescore says
+    // so rather than grading the model on text it was never shown.
+    assertEquals(re.input_drift, [cases[0].id]);
+  },
+);
 
 Deno.test("run_store — a case with no gold today is an orphan, not a zero", async () => {
   const rec = await toSavedCase({

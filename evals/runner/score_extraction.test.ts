@@ -29,6 +29,12 @@ import type {
   RawLineItem,
 } from "../../supabase/functions/_shared/types.ts";
 
+// The gold corpus is local-only (cookbook pages the owner photographed), so a
+// fresh clone has none. These tests are IGNORED there — reported, not passed.
+const noGold = (await loadGold()).length === 0;
+const goldTest = (name: string, fn: () => Promise<void>) =>
+  Deno.test({ name, ignore: noGold, fn });
+
 /** A line item with every field defaulted — tests override only what they mean. */
 function line(over: Partial<RawLineItem> = {}): RawLineItem {
   return {
@@ -63,7 +69,7 @@ function recipe(lines: RawLineItem[]): ExtractionResult {
   };
 }
 
-Deno.test("oracle mock scores the gold perfectly, empty ledger", async () => {
+goldTest("oracle mock scores the gold perfectly, empty ledger", async () => {
   const cases = await loadGold();
   assert(
     cases.length >= 11,
@@ -98,7 +104,7 @@ Deno.test("oracle mock scores the gold perfectly, empty ledger", async () => {
   assertEquals(s.ledger.omitted_lines, 0);
 });
 
-Deno.test("degraded mock loses points and lights the ledger", async () => {
+goldTest("degraded mock loses points and lights the ledger", async () => {
   const cases = await loadGold();
   const scores = [];
   for (const c of cases) {
@@ -156,7 +162,7 @@ Deno.test("calibration ECE is 0 for a perfectly-calibrated set", () => {
   assertAlmostEquals(cal.ece, 0, 1e-9);
 });
 
-Deno.test("a single gold case round-trips flatten + score", async () => {
+goldTest("a single gold case round-trips flatten + score", async () => {
   const cases = await loadGold();
   const c = cases[0];
   const score = scoreExtraction(c.id, c.gold, c.gold, true);
@@ -291,19 +297,24 @@ Deno.test("empty-vs-empty timers/step-refs are n/a, not a free 100%", () => {
   assertEquals(summary.timer_f1, 0, "no free 1.0 from an empty-vs-empty case");
 });
 
-Deno.test("summarize reports a line-weighted aggregate beside the macro", async () => {
-  const cases = await loadGold();
-  const scores = cases.map((c) => scoreExtraction(c.id, c.gold, c.gold, true));
-  const s = summarize("oracle", scores);
-  assertEquals(s.weighted.qty, 1);
-  assertEquals(s.weighted.notes, 1);
-  assertEquals(s.aligned_only.qty, 1);
-  assertEquals(
-    s.gold_lines,
-    scores.reduce((a, x) => a + x.counts.gold_lines, 0),
-  );
-  assert(s.gold_lines > 100, "the gold set should be ~200 lines");
-});
+goldTest(
+  "summarize reports a line-weighted aggregate beside the macro",
+  async () => {
+    const cases = await loadGold();
+    const scores = cases.map((c) =>
+      scoreExtraction(c.id, c.gold, c.gold, true)
+    );
+    const s = summarize("oracle", scores);
+    assertEquals(s.weighted.qty, 1);
+    assertEquals(s.weighted.notes, 1);
+    assertEquals(s.aligned_only.qty, 1);
+    assertEquals(
+      s.gold_lines,
+      scores.reduce((a, x) => a + x.counts.gold_lines, 0),
+    );
+    assert(s.gold_lines > 100, "the gold set should be ~200 lines");
+  },
+);
 
 // --- the D2 input renderer ---------------------------------------------------
 
@@ -366,17 +377,20 @@ Deno.test("goldLineToText emits notes, never double-prints, never leaks tokens",
   assertEquals(printedAmount(line({ ingredient_text: "Sea salt" })), "");
 });
 
-Deno.test("the rendered D2 input never contains a normalized unit id", async () => {
-  const cases = await loadGold();
-  for (const c of cases) {
-    for (const g of c.gold.groups) {
-      for (const li of g.line_items) {
-        const text = goldLineToText(li);
-        assert(
-          !/\b\d+\s+piece\b/u.test(text),
-          `${c.id}: leaked a normalized "N piece" token → ${text}`,
-        );
+goldTest(
+  "the rendered D2 input never contains a normalized unit id",
+  async () => {
+    const cases = await loadGold();
+    for (const c of cases) {
+      for (const g of c.gold.groups) {
+        for (const li of g.line_items) {
+          const text = goldLineToText(li);
+          assert(
+            !/\b\d+\s+piece\b/u.test(text),
+            `${c.id}: leaked a normalized "N piece" token → ${text}`,
+          );
+        }
       }
     }
-  }
-});
+  },
+);

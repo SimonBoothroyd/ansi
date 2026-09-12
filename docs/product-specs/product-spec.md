@@ -149,9 +149,9 @@ The column list is generated from the migrations —
 `make docs-check`. What the columns *mean*:
 
 - **Aliases are rows, not a column.** `ingredient_alias` holds the other
-  names a household calls a row (`ingredient_alias.alias`, per household,
-  soft-deleted like everything else); the matcher searches them beside the
-  canonical name.
+  names a household calls a row (`ingredient_alias`: `alias_text` as it was
+  seen, `match_text` normalized, `source`; per household, soft-deleted like
+  everything else). The matcher searches them beside the canonical name.
 - **A row coined here states its category.** `/ingredients/new` keeps Save
   down until one is picked, in the form's own refusal voice, because a
   category decides two things a guess gets wrong: where the row sits in the
@@ -1130,7 +1130,7 @@ it has zero entries), to Cook and to Shop.
 | Need | Source | License |
 |---|---|---|
 | Macros / canonical ingredients | USDA FoodData Central (Foundation Foods + SR Legacy) | CC0 |
-| Volume↔weight density | FDC food portions (primary) + FAO/INFOODS Density DB v2.0 (fallback) | CC0 / open |
+| Volume↔weight density | FDC food portions, and the household's own curated values (the seed is an export of a live household, and derives nothing) | CC0 / the household's |
 | Barcode → product (shipped, step 8.5 — on-device lookup, prefills a draft and never completes a row) | Open Food Facts | ODbL (credit shown in the app) |
 
 ---

@@ -8,7 +8,8 @@
 // where band behaviour actually lives — the ≥0.85 / 0.55–0.85 / <0.55 split
 // (§6) is a property of real ingredient surfaces, not of a 5-row fixture.
 //
-// So this file runs a blessed gold recipe (`evals/datasets/extraction/gold/`)
+// So this file runs an original recipe in the gold shape (the replay fixture
+// under `testdata/`; the real gold corpus is local-only, it is cookbook pages)
 // through MockAdapter → real `matchLines` → `inMemoryVocabMatcher` over
 // `supabase/seed/snapshot.jsonl`, and asserts the PROPERTIES that must hold for
 // any vocab: a sane band mix, the `none`-carries-no-candidates invariant, and
@@ -72,10 +73,13 @@ function realVocabMatcher(): ReturnType<typeof inMemoryVocabMatcher> {
 }
 
 /** A blessed gold recipe as the adapter's ① output. */
+/** The extraction result inside a saved-run-shaped case file. */
 function loadGold(id: string): ExtractionResult {
-  const path =
-    new URL(`evals/datasets/extraction/gold/${id}.json`, REPO).pathname;
-  return JSON.parse(Deno.readTextFileSync(path)) as ExtractionResult;
+  const path = new URL(`./testdata/${id}.json`, import.meta.url).pathname;
+  const saved = JSON.parse(Deno.readTextFileSync(path)) as {
+    raw: { content: { text: string }[] };
+  };
+  return JSON.parse(saved.raw.content[0].text) as ExtractionResult;
 }
 
 async function importGold(id: string): Promise<{
@@ -110,24 +114,23 @@ async function importGold(id: string): Promise<{
   return { gold, payload: result.data as ReconciliationPayload };
 }
 
-// `gumbo` is the richest gold case: 32 lines in one group, printed ranges,
-// unmappable amounts, collective chips and step portions — the densest real
-// exercise of the spine available offline.
+// Three groups, nine lines, a pinch and a handful, a re-mention and a timer —
+// a small recipe, but every shape the spine has to carry.
 Deno.test("URL import over the REAL vocab — band mix is sane", async () => {
-  const { payload } = await importGold("gumbo");
+  const { payload } = await importGold("replay_case");
   const flat = payload.groups.flatMap((g) => g.lines);
-  assertEquals(flat.length, 32);
+  assertEquals(flat.length, 9);
 
   const count = (b: string) => flat.filter((l) => l.band === b).length;
   const auto = count("auto"), suggest = count("suggest"), none = count("none");
   assertEquals(auto + suggest + none, flat.length, "every line got a band");
 
   console.log(
-    `  gumbo over snapshot.jsonl: auto=${auto} suggest=${suggest} none=${none}`,
+    `  replay_case over snapshot.jsonl: auto=${auto} suggest=${suggest} none=${none}`,
   );
 
   // A household stocked with a 300-row vocab should recognise a good share of a
-  // mainstream recipe (currently 21/32). A FLOOR, not equality — the vocab is
+  // mainstream recipe. A FLOOR, not equality — the vocab is
   // edited over time and this must not become a chore, so it sits well below
   // today's number with room for ordinary drift. What it catches is a COLLAPSE:
   // if the cascade or §7 normalize regresses, `auto` goes to near zero.
@@ -145,7 +148,7 @@ Deno.test("URL import over the REAL vocab — band mix is sane", async () => {
 });
 
 Deno.test("URL import over the REAL vocab — band/candidate invariants hold", async () => {
-  const { payload } = await importGold("gumbo");
+  const { payload } = await importGold("replay_case");
   const flat = payload.groups.flatMap((g) => g.lines);
 
   for (const [i, l] of flat.entries()) {
@@ -181,7 +184,7 @@ Deno.test("URL import over the REAL vocab — band/candidate invariants hold", a
 });
 
 Deno.test("URL import over the REAL vocab — line order and step refs survive", async () => {
-  const { gold, payload } = await importGold("gumbo");
+  const { gold, payload } = await importGold("replay_case");
 
   // The flattened order IS the `line_index` space step refs point into (§4.6),
   // so the payload must reproduce the gold's group shape and line order exactly.
@@ -219,14 +222,13 @@ Deno.test("URL import over the REAL vocab — line order and step refs survive",
 });
 
 Deno.test("URL import over the REAL vocab — recipe-level fields pass through", async () => {
-  const { gold, payload } = await importGold("gumbo");
+  const { gold, payload } = await importGold("replay_case");
   // Never-invent: the orchestrator moves data, it never fills a value in.
   //
   // The title is the ONE field the sanitizer may recase, and only when the
-  // page carried no case of its own: this gold's `gumbo z'fungi` is all
-  // lower, so it arrives title-cased. The words, their order and their
-  // punctuation are still the page's, which is what the comparison below
-  // checks.
+  // page carried no case of its own; this one is already cased, so it passes
+  // through untouched. The words, their order and their punctuation are still
+  // the page's, which is what the comparison below checks.
   assertEquals(payload.title, titleCaseIfUncased(gold.title));
   assertEquals(payload.title.toLowerCase(), gold.title.toLowerCase());
   assertEquals(payload.servings_base, gold.servings_base);

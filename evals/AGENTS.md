@@ -29,7 +29,7 @@ datasets/extraction/gold/_SCHEMA.md the gold contract + every owner ruling
 datasets/extraction/gold/_INDEX.md  per-file confidence, rulings, what is open
 datasets/extraction/images/         the 12 source photos (GITIGNORED)
 reports/                            capture_d2_report.ts output (GITIGNORED — derived)
-runs/                               persisted PAID runs (COMMITTED — see runs/README.md)
+runs/                               persisted PAID runs (LOCAL ONLY — see runs/README.md)
 runner/run.sh                       runs every keyless scorer (make evals)
 runner/score_normalization.ts       scores the normalization dimension
 runner/gen_matching_cases.ts        (re)builds the matching set from the vocab
@@ -45,12 +45,15 @@ runner/capture_d2_report.ts         per-line Claude-vs-GPT HTML report (needs ke
 runner/EXTRACTION.md                the extraction rubric, stages, paths, ledger, cost
 ```
 
-**`reports/` is gitignored; `runs/` is not.** A report is derived — regenerable
-from the tracked datasets for free, and a committed one rots the moment a prompt
-or scorer changes. A run directory is the opposite: it holds the providers'
-verbatim responses, which is the thing the run *paid for*. It is committed so a
-scorer or gold fix can be re-scored (`score_extraction.ts --rescore`) instead of
-re-bought. Do not add a broad `evals/*` ignore rule that would swallow it.
+**The extraction corpus is local-only.** The photos are cookbook pages, the
+gold labels transcribe them and a saved run holds a model's verbatim reading of
+them, so `images/`, `gold/*.json`, `gold/_INDEX.md` and `runs/*/` are all
+gitignored. Keep them on the machine that made them: a run directory holds the
+providers' verbatim responses, which is what the run *paid for*, and a scorer or
+gold fix is re-scored from it (`score_extraction.ts --rescore`) instead of
+re-bought. What is tracked is the contract (`gold/_SCHEMA.md`), the runner and
+the READMEs; a fresh clone scores normalization and matching and reports the
+extraction dimension as skipped. To build your own corpus: `../README.md`.
 
 **Score honestly.** The scorers grade every number this harness reports, so they
 are themselves tested in `run.sh`. Two standing rules, both learned the hard way

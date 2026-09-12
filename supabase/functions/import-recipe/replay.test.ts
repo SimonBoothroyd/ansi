@@ -9,9 +9,10 @@ import {
 } from "./replay.ts";
 import { deriveUnitHints } from "../_shared/unit_hints.ts";
 
-// The corpus's largest case, from a saved Haiku run that read every line of it.
-const RUN_CASE =
-  "../../../evals/runs/2026-09-02-var-v5-r3/claude-haiku/dirty-rice.json";
+// A run case in the saved-run shape, written by hand around an original
+// recipe: the real corpus is local-only (cookbook pages), so the test carries
+// its own fixture.
+const RUN_CASE = "./testdata/replay_case.json";
 
 const savedCase = (): unknown =>
   JSON.parse(
@@ -45,12 +46,11 @@ Deno.test("replay — a saved run case extracts the recipe it recorded, with no 
   assert((blob.text ?? "").length > 0, "the recorded source text is replayed");
 
   const result = await adapter.sanitize(blob, deriveUnitHints());
-  // The largest case in the corpus: three groups, thirty-five lines. It is the
-  // size that matters here — it is what makes the cascade's fan-out visible.
+  // Three groups, nine lines: enough shape for the cascade's fan-out to show.
   assertEquals(result.groups.length, 3);
   assertEquals(
     result.groups.reduce((n, g) => n + g.line_items.length, 0),
-    35,
+    9,
   );
 });
 
