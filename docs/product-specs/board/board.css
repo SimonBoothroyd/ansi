@@ -477,8 +477,12 @@
         .srcline{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px;}
         .lflags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
         .lflag{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--aging);background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:2px 6px;}
+        /* the `optional` toggle: the line tag's geometry, off = outline + an
+           empty ring, on = the herb wash the row's own tag wears */
         .lflag.tog{color:var(--muted);background:transparent;}
-        .lflag.tog.on{color:var(--aging);background:var(--paper);}
+        .lflag.tog::before{content:"○";margin-right:4px;}
+        .lflag.tog.on{color:var(--muted);background:var(--herb-soft);border-color:transparent;}
+        .lflag.tog.on::before{content:none;}
         .chead{display:flex;align-items:flex-start;gap:9px;}
         .chead .cn{flex:1;font-size:13.5px;font-weight:600;}
         .chead .ci{color:var(--muted);font-size:12px;flex:none;}

@@ -210,7 +210,8 @@ The column list is generated from the migrations —
   bare-ingredient meal, a this-week swap. And where a line was already left
   broken, it reads with the row's **last known name** plus
   `ingredient removed · pick again` — muted, on the recipe page and in the
-  editor, where tapping the name opens the picker and the line keeps its id.
+  editor, where the row opens into its card and `change ›` is the picker, so
+  the line keeps its id.
   Nothing derives from a retired row: the macro total leaves the line out and
   names it, in the same voice a stub line is named. The same migration
   re-points what was already broken onto the single live row of the same
@@ -457,11 +458,12 @@ its steps.
 - **Optional lines (plan 0025, D6a/D6b).** `optional` is a stored fact about
   a line — "lime, to serve (optional)" — not about its amount: the page
   still prints `1 lime`, with a muted `optional` tag after the note in the
-  stub badge's voice. It is seeded from the extractor's flag at import,
-  toggled in the quantity/unit sheet (the editor and the review share it) and,
-  at review, from a pill on the card's own flag row — which leads that row on
-  every expanded card, matched or not, and reads the line rather than the raw
-  extraction. It rides a sub-recipe component line as it rides an ingredient
+  stub badge's voice. It is seeded from the extractor's flag at import and
+  set from **the line card's flag row** — which leads that row on every
+  expanded card, in the editor and at review alike, matched or not, and reads
+  the line rather than the raw extraction. The quantity/unit sheet keeps its
+  Optional switch only where the host has no card to carry it (the week's
+  variant editor); on a recipe line the toggle is the one door. It rides a sub-recipe component line as it rides an ingredient
   one, and the seam names the sub-recipe's title where it left. Its only
   effect is on what a
   TOTAL covers, through one seam — `effectiveLines(lines, overrides:)` —
@@ -858,6 +860,20 @@ a line starts, never whether it can be changed:
   and convert back to line indexes at commit; a chip whose lines were all
   dropped demotes to plain prose. The one thing the review cannot do is mint
   a brand-new line, and the picker's add-a-line door says so.
+
+**The recipe editor's ingredient line is that same card.** At rest it is the
+row the recipe page prints — `[amount] [name] [note]`, bare on its hairline,
+with the grip beside it — and **anywhere on it opens the card in place**: the
+identity behind `change ›` in the head, the `optional` toggle on the flag row,
+the amount as a chip that opens the quantity sheet, and the **notes field**,
+which is the door a note never had (the column has always been there; only the
+import review could write it). The bin moves into the head beside the chevron
+that closes the card, *used in N steps* moves onto the card under the head —
+where it stands over the two controls that can break a method chip — and
+starting a drag closes every open card. Several lines can stand open at once,
+each surviving a keystroke in another. What the editor pays for it: changing an
+amount is two taps, row then chip. What it buys: one gesture instead of two
+invisible doors on one row, and a note a cook can set where the line lives.
 
 **The vocabulary is grouped by section (shipped):** `/ingredients` lists the
 whole vocabulary under **aisle headers**, in the same shop-walk order the Shop

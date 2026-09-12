@@ -57,23 +57,57 @@ arithmetic; the drag itself is `SliverReorderableList` +
 The **ingredient line is one layout on every surface** — `[amount] [name]
 [note]` on a single row, the amount in its own `kLineAmountWidth` column so
 every identity left-aligns. The recipe page is the reference (it is the screen
-a cook reads); the editor and the review's collapsed row print the same shape,
-with the editor's two doors side by side instead of stacked — the amount cell
-opens the quantity sheet, the name cell opens the identity picker. *used in N
-steps* is a second muted line under the name, and only when N > 0: it is a fact
-about the line, not a control.
+a cook reads); the editor and the review's collapsed row print the same shape.
+
+The **editor's line is the review's card** (`presentation/line_card.dart`),
+which is the chrome and the slots both screens fill: the surface, the head
+(identity + bin + the chevron that closes it), the labelled `AMOUNT`, `UNIT`
+and `NOTES` rows, the `optional` toggle, and the collapsed ⇄ open machinery —
+local expansion state, the `collapseEpoch` that closes every open card when a
+drag starts, and the grip rule. What each screen brings is its own: the review
+keeps the match cascade, `from source:`, the never-invent flags, the Save gate
+and the dropped state; the editor brings *used in N steps*, the component
+variant and remove-with-chips.
+
+One row, one gesture, and the doors are inside:
+
+- **Anywhere on the collapsed row opens the card.** A row that meant the
+  quantity sheet on its left 84 px and the identity picker on the rest was a
+  row a cook had to aim at — and the fact that sent them looking, the note, was
+  behind neither. Changing an amount is two taps now, and that is the price.
+- **The head is the identity door** — the name with `change ›`, opening the
+  line target picker on the line, which keeps its id and so keeps every method
+  chip pointing at it.
+- **The bin is in the head, the grip on the row.** A delete beside a whole-row
+  tap target is a misfire waiting to happen, and removing a referenced line
+  stops to ask anyway.
+- ***used in N steps* is on the card**, under the head: nobody needs it while
+  scanning a list, it is exactly what a reader wants standing over the two
+  controls that can break a chip, and without it every collapsed row is one
+  height — which is what makes the drag surface honest.
+- **Rows are bare at rest.** The review borders every line because every line
+  there is a claim waiting to be checked; here the border is what *open* looks
+  like (`LineCard.borderAtRest`).
 
 Three details of that line are rules rather than styling:
 
-- **A note is a modifier, not a second fact.** It follows the name after two
-  spaces, in muted italic — no middle dot between a thing and its own
-  qualifier.
+- **A note is a modifier, not a second fact**, and it is printed by one
+  function (`noteSpans`): the name, a middle dot in the hairline, then the note
+  in muted italic at the name's own size. Every surface that prints a note goes
+  through it — the page, the editor's row, the review's row — and
+  `test/structure/one_note_grammar_test.dart` is why a fourth cannot invent its
+  own grammar.
 - **The `optional` tag wears the sub-recipe chip's shape** (`OptionalTag`): a
   6 px box in the herb wash, muted mono, hung off the end of the identity. It
   is also the whole statement — a tagged row prints nothing in its macro slot,
   because *optional* twice on one line is once too many. Handed an
   `onToggle` it becomes a switch: an empty ring before the word, and ticked, a
-  filled herb box with a check reading `included`.
+  filled herb box with a check reading `included` — week mode's answer to *this
+  time, yes*. The card's own control (`OptionalFlagToggle`) is the same
+  geometry with the recipe's question in it: outline and an empty ring for
+  *not optional*, the herb wash for *optional*. On a recipe line that toggle is
+  the one door — the editor's amount sheet stopped carrying the switch, so a
+  fact the row states has exactly one place that sets it.
 - **A line's own macros** (the `⋯` toggle) print under the name in the panel's
   order, `kcal · P C F · fibre`, one size down. They are the line *as shown*,
   so they move with the scaler; the panel underneath does not.

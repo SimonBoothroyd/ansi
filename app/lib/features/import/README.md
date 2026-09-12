@@ -69,7 +69,8 @@ import/
   presentation/
     import_view.dart             intake screen
     reconciliation_view.dart     the merged Review recipe screen
-    recon_line_card.dart         one line: collapsed row ⇄ full edit card
+    recon_line_card.dart         the review's contents in the shared LineCard
+                                 (recipes/presentation/line_card.dart)
     recon_amount.dart            the amount label + the two amount sheets
     recon_resolver.dart          the identity cell + the seeded search sheet
     import_view_models.dart      ImportController + the ImportState machine

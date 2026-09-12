@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Import review</h1>
-    <p class="view-status">built · matches code 2026-09-12 · <code>features/import</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/completed/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
+    <p class="view-status">built · matches code 2026-09-12 · <code>features/import</code> · <code>recipes/presentation/line_card.dart</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/completed/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a></p>
     <p class="view-blurb">One form with two doors, then the whole import on one editable screen: the editor’s own header, a card per line, the method as step cards, and a Save gate that counts the same number the header does.</p>
 </header>
 
@@ -162,7 +162,7 @@
 
                 <div class="savebtn off">3 line(s) need you</div>
                 <p class="conv-note" style="text-align:center;margin-top:8px">header count · card flags · Save all read one map</p>
-                <p class="conv-note" style="text-align:center"><b>optional</b> leads the flag row of every expanded card and is the one flag that is also a <b>control</b>: filled when the line is optional, hollow when it is not, and one tap either way. It rides an <b>unmatched</b> line too — a garnish or a cross-reference is exactly the line that goes unmatched, and the fact is the page’s, not the match’s. It opens on whatever the extractor said and reads the line from then on.</p>
+                <p class="conv-note" style="text-align:center"><b>optional</b> leads the flag row of every expanded card and is the one flag that is also a <b>control</b>: the line tag's own geometry — the herb wash when the line is optional, an outline with an empty ring when it is not — and one tap either way. It rides an <b>unmatched</b> line too — a garnish or a cross-reference is exactly the line that goes unmatched, and the fact is the page’s, not the match’s. It opens on whatever the extractor said and reads the line from then on.</p>
                 <p class="conv-note" style="text-align:center">…and when that map cannot be built at all, both say so: the header reads <b>not checked</b> and the button reads <b>Couldn’t check the lines — try again</b> and re-runs the read. A count of 0 over a Save that will not open is a wall with no door.</p>
             </div></div>
         </div>
