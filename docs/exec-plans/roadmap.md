@@ -30,18 +30,21 @@ operator statement is owed.
 
 | What | Plan |
 |------|------|
-| Round ten — the recipe page up-levelled (a method chip is the word with its live amount in a pill, digit step numbers, the Method tab says what it is scaled to, a one-line planned band, kitchen-fraction glyphs, line macros in the panel's order, the panel names what it left out) and optional as a decision the cook can reach: the page opened from a week draws the week's lines and its `optional` tag is the switch, the shop's echo names are doors, and an optional sub-recipe is cooked only when the week includes it. No migrations | [0044](./completed/0044-recipe-page-and-optional.md) |
-| The retire guard — an ingredient is retired only when nothing live names it: the database refuses the retire while a recipe line, planned meal or this-week swap names the row, and repairs lines an earlier pass left broken; a line at a retired row is shown by its last name and repairable on the page, in the editor, in the shop's echo and on the import review. Migration `0041` | — |
+| Round ten — the recipe page up-levelled (method chips as word + amount, digit step numbers, fraction glyphs, a line's macros in the panel's order) and optional as the cook's decision: opened from a week, the page's `optional` tag is the switch, the shop's echo names are doors, and an optional sub-recipe is cooked only when the week includes it. No migrations | [0044](./completed/0044-recipe-page-and-optional.md) |
+| The retire guard — an ingredient is retired only when nothing live names it, refused in the app and in the database; a line already left at a retired row is shown by its last name and repairable wherever it appears. Migration `0041` | — |
 
 ## Shipped
 
-The `#` is the spec §7 step where a row is one; a field-test round or a
-sweep has none. The tag is the first release that carried the row.
+Rows in the order they shipped. `#` is the spec §7 step where a row is one;
+a field-test round or a sweep has none. The tag is the first release that
+carried the row. (Plans written before this index call rounds two to four,
+Library v3 and Week v3 "steps 8.9–8.13"; they are the `v0.3.0`–`v0.5.0`
+rows below, in that order.)
 
 | # | What | Tag | Plan |
 |---|------|-----|------|
 | 1 | Unit system + ingredient data model — families, conversions, density | `v0.1.0` | — |
-| 2 | Single-user recipes — create, group, scale, recipe page | `v0.1.0` | [0002](./completed/0002-single-user-recipes.md) |
+| 2 | Single-user recipes — create, group, scale, the recipe page | `v0.1.0` | [0002](./completed/0002-single-user-recipes.md) |
 | 3 | Recipe books + user-defined sections | `v0.1.0` | [0003](./completed/0003-books.md) |
 | 3.5 | Test harness + doc hygiene — repo tests on a real `PowerSyncDatabase` | `v0.1.0` | [0004](./completed/0004-test-harness-and-doc-hygiene.md) |
 | 4 | Week planning — the grid, eaters, the two-step add flow | `v0.1.0` | [0005](./completed/0005-week-planning.md) |
@@ -52,32 +55,33 @@ sweep has none. The tag is the first release that carried the row.
 | 7.5 | Cloud verification & seeding — read-only health checks, versioned streams | `v0.1.0` | [0009](./completed/0009-cloud-verification.md) |
 | 7.6 | Ingredient measures & portions — the honest count↔mass bridge | `v0.1.0` | [0010](./completed/0010-ingredient-measures.md) |
 | 7.7 | Picker uplift — both pickers redesigned, unit chips over the keypad | `v0.1.0` | [0011](./completed/0011-picker-uplift.md) |
-| 7.8 | Unit admission & entry polish — per-ingredient `allowed_units`, density both ways | `v0.1.0` | [0013](./completed/0013-unit-admission.md) · [ADR-0008](../decisions/0008-unit-admission-model.md) |
-| 8 | Import — intake → extraction → deterministic match → review → commit, built as four lanes and an integration | `v0.1.0` | [0014](./completed/0014-import-foundation.md) · [0015](./completed/0015-import-extraction.md) · [0016](./completed/0016-import-matching.md) · [0017](./completed/0017-import-client.md) · [0018](./completed/0018-import-benchmark.md) · [0019](./completed/0019-import-integration.md) |
-| 8.5 | Ingredients manager + the flesh-out form + barcode add; the detail page's second pass | `v0.1.0` | [0020](./completed/0020-ingredients-manager.md) · [0032](./completed/0032-ingredient-detail-v2.md) |
+| 7.8 | Unit admission — per-ingredient `allowed_units`, density unlocking both families | `v0.1.0` | [0013](./completed/0013-unit-admission.md) · [ADR-0008](../decisions/0008-unit-admission-model.md) |
+| 8 | Import — intake → extraction → deterministic match → review → commit; four lanes and an integration | `v0.1.0` | [0014](./completed/0014-import-foundation.md) · [0015](./completed/0015-import-extraction.md) · [0016](./completed/0016-import-matching.md) · [0017](./completed/0017-import-client.md) · [0018](./completed/0018-import-benchmark.md) · [0019](./completed/0019-import-integration.md) |
+| 8.5 | Ingredients manager — the vocabulary's own screen, the flesh-out form, barcode add | `v0.1.0` | [0020](./completed/0020-ingredients-manager.md) |
+| 9 | Computed macros in the UI — the recipe page's per-serving panel, `incomplete` when a stub is in | `v0.1.0` | — |
 | 8.6 | Nested recipes — a recipe as an ingredient, with yield and batch math | `v0.2.0` | [0021](./completed/0021-nested-recipes.md) |
-| 8.7 | `piece` versus a real measure — admission, not a runtime guess; the seeded curation pass | `v0.2.0` | [0022](./completed/0022-piece-curation.md) · [ADR-0010](../decisions/0010-piece-is-an-admission-fact.md) |
-| 8.8 | Polish pass — navigation v2, search v1, Library v2, Week v2, editor v2, errors & sync health | `v0.2.0` | [0022](./completed/0022-polish-pass.md) · [0033](./completed/0033-library-v2-decisions.md) |
-| 8.9 | Field test, round two — the import→macros seam, curated default measures | `v0.3.0` | [0024](./completed/0024-field-test-round-two.md) · [seam decisions](./completed/0024-seam-decisions.md) |
-| 8.10 | Field test, round three — eight fronts | `v0.4.0` | [0025](./completed/0025-field-test-round-three.md) |
-| 8.11 | Field test, round four — per-serving macros, the USDA match shown, a usual portion per person | `v0.5.0` | [0027](./completed/0027-field-test-round-four.md) |
-| 8.12 | Library v3 — the menus dissolve; `/account` exists | `v0.5.0` | [0028](./completed/0028-library-v3.md) |
-| 8.13 | Week v3 — the mode goes; each tap gets its own drawn target | `v0.5.0` | [0031](./completed/0031-week-v3.md) |
-| 9 | Computed macros in the UI — the recipe page's per-serving panel | `v0.1.0` | — |
-| — | Smoke split — one integration file per flow, each self-provisioning | `v0.5.0` | [0026](./completed/0026-smoke-split.md) |
+| 8.7 | `piece` is an admission fact, not a runtime guess; the seeded curation pass | `v0.2.0` | [0022](./completed/0022-piece-curation.md) · [ADR-0010](../decisions/0010-piece-is-an-admission-fact.md) |
+| — | Polish pass — navigation v2, search v1, Library v2, Week v2, editor v2, errors & sync health | `v0.2.0` | [0022](./completed/0022-polish-pass.md) · [0033](./completed/0033-library-v2-decisions.md) |
+| — | Field test, round two — the import→macros seam, curated default measures | `v0.3.0` | [0024](./completed/0024-field-test-round-two.md) · [seam decisions](./completed/0024-seam-decisions.md) |
+| — | Field test, round three — eight fixes from a week on `v0.3.0` | `v0.4.0` | [0025](./completed/0025-field-test-round-three.md) |
+| — | Field test, round four — per-serving macros, the USDA match shown, a usual portion per person | `v0.5.0` | [0027](./completed/0027-field-test-round-four.md) |
+| — | Library v3 — the Library's menus become rows and doors; the account page exists | `v0.5.0` | [0028](./completed/0028-library-v3.md) |
+| — | Week v3 — no edit mode; every tap on the week grid has its own drawn target | `v0.5.0` | [0031](./completed/0031-week-v3.md) |
+| — | Ingredient detail v2 — the flesh-out form ranks its fields instead of listing equals | `v0.5.0` | [0032](./completed/0032-ingredient-detail-v2.md) |
+| — | Smoke split — one simulator file per flow, each provisioning its own household | `v0.5.0` | [0026](./completed/0026-smoke-split.md) |
 | — | Debt pass — the server-side rule divergences, the measures rollout | `v0.5.0` | [0023](./completed/0023-debt-pass.md) |
 | — | One save, one write — the New-ingredient sheet dissolves, and nothing matches to USDA on its own | `v0.5.0` | [0029](./completed/0029-one-save-one-write.md) · [ADR-0011](../decisions/0011-one-save-one-write.md) |
 | — | State-of-the-world sweep — comments, docs, board, tests, UI anatomy | `v0.5.0` | [0030](./completed/0030-state-of-the-world-sweep.md) · [findings](./completed/0030-review-findings.md) |
-| — | Field test, round five — fifteen owner notes off a photo import and a week of use, seven plans in parallel lanes | `v0.6.0` | [0034](./completed/0034-import-review-editable.md) · [0035](./completed/0035-line-ergonomics.md) · [0036](./completed/0036-ingredient-entry-and-units.md) · [0037](./completed/0037-library-rows.md) · [0038](./completed/0038-plan-an-ingredient.md) · [0039](./completed/0039-vocabulary-round-five.md) · [0040](./completed/0040-usda-provenance-and-edits.md) · [ADR-0012](../decisions/0012-tsp-mates-cup.md) |
+| — | Field test, round five — fifteen owner notes off a photo import and a week of use; seven plans in parallel lanes | `v0.6.0` | [0034](./completed/0034-import-review-editable.md) · [0035](./completed/0035-line-ergonomics.md) · [0036](./completed/0036-ingredient-entry-and-units.md) · [0037](./completed/0037-library-rows.md) · [0038](./completed/0038-plan-an-ingredient.md) · [0039](./completed/0039-vocabulary-round-five.md) · [0040](./completed/0040-usda-provenance-and-edits.md) · [ADR-0012](../decisions/0012-tsp-mates-cup.md) |
 | — | Field test, round six — four owner notes, the all-to-all unit rule, the vocabulary unit audit; the cloud database rebuilt from scratch | `v0.7.0` | [0041](./completed/0041-vocabulary-unit-audit.md) · [ADR-0013](../decisions/0013-mass-ladder-symmetric.md) · [ADR-0014](../decisions/0014-all-to-all-admission.md) |
-| — | A piece weight is a row fact — `piece` is unlocked by a number, and "Counts as" retires | `v0.8.0` | [0042](./completed/0042-piece-weight.md) · [ADR-0015](../decisions/0015-piece-weight-is-a-row-fact.md) |
-| — | Four owner notes in parallel lanes — a camera door on import, a name as a door onto its page, a chip keeps the sentence's case, a per-line macros toggle | `v0.9.0` | — |
-| — | The ingredient page reads before it edits; every default-unit chip is live; typed names are tidied and the change is told | `v0.10.0` | — |
-| — | Five owner notes — chip case and Title Case everywhere, the sayable default-unit row, a new ingredient saves complete or not at all, a beverage label per 100 ml, the photo import's stage ladder | `v0.11.0` – `v0.11.2` | — |
-| — | The serving, redrawn — any kitchen unit per serving, density with an amount, the label's figures first, a scan seeding the serving, fibre as the fifth macro | `v0.12.0` – `v0.12.3` | — |
-| — | Field test, round seven — eight parallel lanes: kitchen fractions, one amount-and-unit control, measures edited in place, one name namespace, the import cascade batched and streamed, the shop counting in the measure asked for, the seed as the owner's snapshot, and this week's variant. Migration `0040` | `v0.13.0` | [0043](./completed/0043-week-variant.md) |
-| — | Field test, round eight — the unit chip at one inline height everywhere, forms reopen as entered, the USDA door where it is needed, "Edit for this week" where a planned recipe is looked at, the import function streaming behind heartbeats, the units ladder applied once to the owner's vocabulary | `v0.13.1` | — |
-| — | Field test, round nine — the import marker spins in place and its checklist speaks in tense, an optional line wears its tag and in week mode the tag is the switch, the learning loop refuses a whole printed line | `v0.13.2` | — |
+| — | A piece weight is a row fact — a number on the row unlocks `piece`, and "Counts as" retires | `v0.8.0` | [0042](./completed/0042-piece-weight.md) · [ADR-0015](../decisions/0015-piece-weight-is-a-row-fact.md) |
+| — | Four owner notes — a camera door on the import form, an ingredient's name on a line opens its page, a chip's new word keeps the sentence's case, a per-line macros toggle on the recipe page | `v0.9.0` | — |
+| — | The ingredient page reads before it edits — a fact sheet with Edit behind the menu, every default-unit chip live, a typed name tidied on leaving the field with the change told | `v0.10.0` | — |
+| — | Five owner notes — Title Case for every name kind, the default-unit row shows only what the row can say, a new ingredient saves complete or not at all, a beverage label lands per 100 ml, a photo import waits behind a stage ladder; then two barcode fixes | `v0.11.0` – `v0.11.2` | — |
+| — | The serving, redrawn — any kitchen unit per serving, a density stated with an amount, the label's figures printed first, a scan seeding the serving, fibre as the optional fifth macro; then three inline-height fixes | `v0.12.0` – `v0.12.3` | — |
+| — | Field test, round seven — kitchen fractions, one amount-and-unit control, measures edited in place, one name namespace, the import cascade batched and its reading streamed, the shop buying in the measure asked for, the seed as the owner's own snapshot, a recipe varied for one week. Migration `0040` | `v0.13.0` | [0043](./completed/0043-week-variant.md) |
+| — | Field test, round eight — one unit chip at one height everywhere, forms reopen as entered, the USDA door where it is needed, "Edit for this week" beside a planned recipe, the import function streaming behind heartbeats, the units ladder applied once to the owner's vocabulary | `v0.13.1` | — |
+| — | Field test, round nine — the import reading marker and checklist tidied, an optional line's tag is the week-mode switch, the learning loop refuses a whole printed line as a name | `v0.13.2` | — |
 
 ## Stretch
 
