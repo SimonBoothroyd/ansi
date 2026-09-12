@@ -112,11 +112,13 @@
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>Who’s eating</b> · what the avatar and portions cluster opens: two fields, both written through on tap</p>
+        <p class="frame-name"><b>The meal editor</b> · what the avatar and portions cluster opens: three fields — slot, who’s eating, portions — each written through on tap</p>
         <div class="phone"><div class="notch"></div><div class="screen sheet">
             <div class="grab"></div>
             <div style="display:flex;align-items:baseline;gap:10px;margin:0 20px 4px"><div class="c-h" style="margin:0;flex:1">Weeknight Chicken Curry</div><span style="color:var(--herb-deep);font-size:13px">Close</span></div>
             <p class="conv-note" style="margin-top:2px">Thursday · dinner</p>
+            <p class="clabel">Slot</p>
+            <div style="display:flex;align-items:center;gap:8px;margin:0 20px"><div class="slotchip" style="margin:0;flex:1">Dinner<span class="caret" style="margin-left:auto">▾</span></div><span class="rplus" style="width:36px;height:36px;border-radius:10px;display:grid;place-items:center;border:1px solid var(--line);color:var(--herb)">＋</span></div>
             <p class="clabel">Who’s eating</p>
             <div class="eater-row"><span class="eaters"><span class="ep on a">A</span></span><span class="lab" style="flex:none;margin-left:2px"><b>Ada</b></span><span class="eaters" style="margin-left:14px"><span class="ep j">J</span></span><span class="lab" style="flex:none;margin-left:2px">Jun</span></div>
             <p class="clabel">Portions</p>
@@ -127,8 +129,9 @@
             <p class="clabel" style="margin-top:20px">the same row, once something has changed</p>
             <div class="crow"><span class="cl">Edited for this week<small>3 changes · Tue and Sat</small></span><span class="ci" style="color:var(--herb-deep);font-size:12px">edit for this week ›</span></div>
 
-            <p class="conv-note">two fields, both written through on tap — nothing to save, though a sheet still needs a visible way out. And <b>no way through to the recipe or the bin</b>: those are the title and the <span style="font-family:'IBM Plex Mono',monospace">−</span>, already on the row you came from</p>
-            <p class="conv-note">the <b>third row is not a field</b>. It states one fact and opens the screen that edits it — week mode in the recipe editor — and nothing here writes; the editor's own <b>Save</b> does. It goes last, under Portions, because the sheet already scrolls and length costs nothing above the fold</p>
+            <p class="conv-note">three fields in the confirm sheet’s order, each written through on tap — nothing to save, though a sheet still needs a visible way out. And <b>no way through to the recipe or the bin</b>: those are the title and the <span style="font-family:'IBM Plex Mono',monospace">−</span>, already on the row you came from</p>
+            <p class="conv-note">the <b>slot is a field</b> because the row prints it — it is the gutter label the row sits under. Pick <b>Lunch</b> and the subtitle reads <i>Thursday · lunch</i> and the row re-sorts under LUNCH; the trailing <b>+</b> names a custom one. The <b>day is not a field</b>: a row’s position is its day, so a meal changes day by remove-and-re-add through the picker’s “already this week” quick picks</p>
+            <p class="conv-note">the <b>fourth row is not a field</b>. It states one fact and opens the screen that edits it — week mode in the recipe editor — and nothing here writes; the editor's own <b>Save</b> does. It goes last, under Portions, because the sheet already scrolls and length costs nothing above the fold</p>
             <p class="conv-note">the sheet is per-<i>meal</i> and the variant is per-<b>week and recipe</b>, so the row must say its own scope in its own words — <b>“every day this week — Mon and Thu”</b>, naming every day the week plans it. That sub-line is a condition of the door, not decoration: without it the row lies about what a tap changes. It is <b>not</b> a fourth target on the dish row: the row's rule is <i>a row's controls are the facts the row prints</i>, and a control drawn on every row to reach a state almost no row is in is a target every row pays for</p>
         </div></div>
     </div>
