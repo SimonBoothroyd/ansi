@@ -27,8 +27,10 @@ jobs:
   #   1. Missing signing secrets → Gradle's `key.properties` fallback silently
   #      debug-signs the release (app/android/app/build.gradle.kts). Installable,
   #      but a different signature, so it can never update a real install.
-  #   2. Missing app config vars → Env.isConfigured is false and the app builds
-  #      in local/dev mode (app/lib/core/config/env.dart), pointing at nothing.
+  #   2. Missing app config secrets → Env.isConfigured is false and the app
+  #      builds in local/dev mode (app/lib/core/config/env.dart), pointing at
+  #      nothing. (They are secrets, not variables, so the masked log never
+  #      prints the household's own endpoints — the repo is public.)
   # ---------------------------------------------------------------------------
   guard:
     name: guard (secrets + signing block)
@@ -58,9 +60,9 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
-          POWERSYNC_URL: ${{ vars.POWERSYNC_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          POWERSYNC_URL: ${{ secrets.POWERSYNC_URL }}
         run: |
           missing=()
           for s in ANDROID_KEYSTORE_B64 ANDROID_KEYSTORE_PASSWORD \
@@ -68,7 +70,7 @@ jobs:
             [ -n "${!s}" ] || missing+=("  gh secret set $s")
           done
           for v in SUPABASE_URL SUPABASE_ANON_KEY POWERSYNC_URL; do
-            [ -n "${!v}" ] || missing+=("  gh variable set $v")
+            [ -n "${!v}" ] || missing+=("  gh secret set $v")
           done
           if [ ${#missing[@]} -gt 0 ]; then
             echo "::error::release is not configured — ${#missing[@]} item(s) missing."
@@ -76,7 +78,7 @@ jobs:
             printf '%s\n' "${missing[@]}"
             exit 1
           fi
-          echo "✓ 4 signing secrets + 3 config variables present"
+          echo "✓ 4 signing secrets + 3 config secrets present"
 
       # Play distribution is ADDITIVE: it is a second delivery channel layered
       # on top of the GitHub Release, not a replacement for it. So an absent
@@ -205,9 +207,9 @@ jobs:
 
       - name: Build APK + AAB (release, signed)
         env:
-          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
-          POWERSYNC_URL: ${{ vars.POWERSYNC_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          POWERSYNC_URL: ${{ secrets.POWERSYNC_URL }}
           BUILD_NAME: ${{ steps.version.outputs.name }}
           BUILD_NUMBER: ${{ steps.version.outputs.code }}
         run: |
@@ -374,9 +376,9 @@ jobs:
       # as legitimate local/dev mode — the compile proof still holds.
       - name: Build iOS (release, no codesign)
         env:
-          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
-          POWERSYNC_URL: ${{ vars.POWERSYNC_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          POWERSYNC_URL: ${{ secrets.POWERSYNC_URL }}
         run: |
           flutter build ios --release --no-codesign \
             --dart-define=SUPABASE_URL="$SUPABASE_URL" \

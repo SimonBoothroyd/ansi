@@ -55,12 +55,12 @@ jobs:
       # target so nothing depends on a linked state carried between steps.
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-      PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       # PowerSync CLI auth + target (docs/release.md §4.1). The token is a
       # PowerSync personal access token (dashboard → account → tokens); the
       # instance id is the leading segment of CLOUD_POWERSYNC_URL in cloud.env.
       PS_ADMIN_TOKEN: ${{ secrets.POWERSYNC_ADMIN_TOKEN }}
-      POWERSYNC_INSTANCE_ID: ${{ vars.POWERSYNC_INSTANCE_ID }}
+      POWERSYNC_INSTANCE_ID: ${{ secrets.POWERSYNC_INSTANCE_ID }}
     steps:
       - uses: actions/checkout@v4
 

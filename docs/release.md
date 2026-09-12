@@ -16,9 +16,9 @@ Two workflows do the mechanical parts:
 > this file is a runbook, not a status page — read the setup sections to
 > understand a mechanism or to rebuild it, not as a to-do list.
 >
-> - Repo: `github.com/SimonBoothroyd/ansi`. All four signing secrets, both
->   Supabase deploy secrets, the PowerSync deploy token, and the three build
->   variables (§2.3, §4.1) are set.
+> - Repo: `github.com/SimonBoothroyd/ansi`, public. All four signing secrets,
+>   both Supabase deploy secrets, the PowerSync deploy token, and the five
+>   endpoint secrets (§2.3, §4.1) are set.
 > - **Play is deliberately not used** (owner decision, 2026-09-03: the console
 >   walk in §3a became a form-filling nightmare and was abandoned).
 >   `PLAY_SERVICE_ACCOUNT_JSON` is intentionally unset, so `play-internal`
@@ -109,10 +109,10 @@ base64 -i ~/upload-keystore.jks | tr -d '\n' > /tmp/keystore.b64
 base64 -w0 ~/upload-keystore.jks > /tmp/keystore.b64
 ```
 
-### 2.3 Set the secrets and variables
+### 2.3 Set the secrets
 
-Four **secrets** (encrypted, never printed) and three **variables** (plain,
-readable in logs). Placeholders below — substitute your real values.
+Seven **secrets** — four for signing, three for the app's endpoints.
+Placeholders below — substitute your real values.
 
 ```bash
 # --- secrets: the signing material ---
@@ -121,10 +121,10 @@ gh secret set ANDROID_KEYSTORE_PASSWORD   # prompts; the -storepass you chose
 gh secret set ANDROID_KEY_ALIAS           # prompts; "upload" above
 gh secret set ANDROID_KEY_PASSWORD        # prompts; the -keypass you chose
 
-# --- variables: the app's compile-time config ---
-gh variable set SUPABASE_URL      --body 'https://<ref>.supabase.co'
-gh variable set SUPABASE_ANON_KEY --body 'sb_publishable_…'
-gh variable set POWERSYNC_URL     --body 'https://<id>.powersync.journeyapps.com'
+# --- secrets: the app's compile-time config ---
+gh secret set SUPABASE_URL      --body 'https://<ref>.supabase.co'
+gh secret set SUPABASE_ANON_KEY --body 'sb_publishable_…'
+gh secret set POWERSYNC_URL     --body 'https://<id>.powersync.journeyapps.com'
 
 rm /tmp/keystore.b64
 ```
@@ -134,13 +134,14 @@ upload. It is set at the end of the one-time console walk in §3a, because it
 does not exist until you have created the service account there. Everything in
 this section works without it.
 
-**Why variables and not secrets for those three.** They are the same
-`--dart-define`s `make run` passes, and none of them is a secret: the Supabase
-publishable key *is* the anon key and is public by design — it ships inside
-every APK, and RLS is the actual protection (`app/lib/core/config/env.dart`,
-[`SECURITY.md`](./SECURITY.md)). Making them repo variables buys something
-real: they stay readable in the build log, so "which project did this build
-point at?" is answerable from the run page instead of from a rebuild.
+**Why secrets for those three, when none of them is secret.** They are the
+same `--dart-define`s `make run` passes, and the Supabase publishable key *is*
+the anon key, public by design — it ships inside every APK, and RLS is the
+actual protection (`app/lib/core/config/env.dart`,
+[`SECURITY.md`](./SECURITY.md)). But the repo is public and the values name one
+household's own project, so they are secrets for the masking: a secret never
+prints in a log, a variable does. The cost is that "which project did this
+build point at?" is answered from the secrets page, not the run page.
 
 **Why four individual signing secrets rather than one `key.properties` blob.**
 A blob would have to carry `storeFile`, and that path is a *runner* detail, not
@@ -154,8 +155,8 @@ found".) Splitting them also lets the guard step name the one you forgot.
 `release.yml`'s first job fails in ~15 seconds, before any SDK is fetched, if:
 
 1. `app/android/app/build.gradle.kts` has no `key.properties` block (§1), or
-2. any of the four secrets or three variables above is empty — it prints the
-   exact `gh secret set` / `gh variable set` lines for the missing ones.
+2. any of the seven secrets above is empty — it prints the exact
+   `gh secret set` lines for the missing ones.
 
 Both failures otherwise produce a build that *succeeds* and ships the wrong
 thing: a debug-signed APK, or an app compiled in local/dev mode pointing at
@@ -395,15 +396,16 @@ gh secret set SUPABASE_ACCESS_TOKEN
 # The project's database password (Supabase → Project Settings → Database)
 gh secret set SUPABASE_DB_PASSWORD
 
-# Project ref — the <ref> in https://<ref>.supabase.co
-gh variable set SUPABASE_PROJECT_REF --body '<ref>'
+# Project ref — the <ref> in https://<ref>.supabase.co (a secret for the
+# masking: it names the household's project and the repo is public)
+gh secret set SUPABASE_PROJECT_REF --body '<ref>'
 
 # PowerSync personal access token — powersync.com dashboard → account → tokens
 gh secret set POWERSYNC_ADMIN_TOKEN
 
 # PowerSync instance id — the <id> in https://<id>.powersync.journeyapps.com
 # (the CLOUD_POWERSYNC_URL in cloud.env)
-gh variable set POWERSYNC_INSTANCE_ID --body '<id>'
+gh secret set POWERSYNC_INSTANCE_ID --body '<id>'
 ```
 
 ### 4.2 Run it
