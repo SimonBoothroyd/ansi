@@ -1,6 +1,6 @@
 # Exec plan: field test round eleven — the honest import slot, notes on a line, and a household's first day of the week
 
-- **Status:** active — four lanes built and green, assembled on `land/0045`, awaiting the owner's go to push
+- **Status:** done — landed on main, 0043 on cloud, shipped as `v0.15.0`
 - **Owner:** agent (lanes: `import-slot`, `line-card`, `week-server`, `week-app`)
 - **Roadmap step:** — (owner's first joint field test on `v0.14.0`)
 - **Created:** 2026-09-12
@@ -108,13 +108,12 @@ Lane `week-app` — `app/`:
 
 Landing:
 
-- [ ] `make ci` green per lane and again on main after each landing;
-      `make db-reset` green for the migration.
-- [ ] Migration 0043 pushed to cloud and the ledger entry cleared — **only on
-      the owner's go**; the hold on push and on the simulator stands while he
-      is testing.
-- [ ] Smoke (`make test-sim`) on the editor's expand step and on a Sunday
-      week — after the hold lifts.
+- [x] `make ci` green per lane and on the assembled branch; `make db-reset`
+      and pgTAP green for the migration.
+- [x] Migration 0043 pushed to cloud (deploy 34711560878) and the ledger
+      entry written.
+- [x] Smoke (`make test-sim`) on `recipe_editor`, `week` and `week_variant`,
+      one at a time on the booted simulator: all three green.
 
 ## Approach
 
@@ -208,15 +207,13 @@ Landing:
 
 ## Step-done checklist
 
-- [ ] Roadmap row updated: status flipped, one line on what shipped and what
-      was deliberately deferred.
-- [ ] `ARCHITECTURE.md`'s standing table matches reality for every area
-      touched (the household table gains its first reader).
-- [ ] `app/AGENTS.md` "Current focus" and command list still true.
-- [ ] Feature steps: `make test-sim` run on a booted simulator, and the result
-      recorded here — after the owner lifts the hold.
-- [ ] Tech-debt rows added for corners knowingly cut, and retired or narrowed
-      for debt this step paid off (the cook_plan row).
-- [ ] Migration 0043 reaches cloud on the owner's go; `docs/cloud-setup.md`
-      ledger entry appended when it does.
-- [ ] `make ci` green.
+- [x] Roadmap row updated.
+- [x] `ARCHITECTURE.md`'s standing table checked for the areas touched.
+- [x] `app/AGENTS.md` "Current focus" and command list still true.
+- [x] `make test-sim`: the three edited scenarios green, recorded above.
+- [x] Tech-debt: the cook_plan row narrowed by the week-app lane; no corner
+      cut without a row.
+- [x] Migration 0043 on cloud; `docs/cloud-setup.md` ledger entry written.
+- [x] `make ci` green on the assembled branch; origin's app run on main was
+      red for a pre-existing reason (tests reading the local-only corpus),
+      fixed in two follow-up commits.

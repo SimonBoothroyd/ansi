@@ -11,10 +11,7 @@ The detail is in the plan; the landing dates are in the
 
 ## Next
 
-1. [Field test round eleven](./active/0045-field-test-round-eleven.md) —
-   the honest import slot, notes on a recipe line, a household's first day
-   of the week. In flight.
-2. Step 10 (web) or step 11 (anti-waste), both stretch, or the first
+1. Step 10 (web) or step 11 (anti-waste), both stretch, or the first
    idea worth building off the [backlog](./backlog.md).
 
 The seed is the owner's own vocabulary and a reseed follows his rows, so no
@@ -24,7 +21,6 @@ operator statement is owed.
 
 | What | Plan |
 |------|------|
-| A flagged import amount prints empty; the editor's line opens into the review's card (notes, optional, amount in one place); a household's first day of the week, with migration `0043` **pending cloud push**. | [0045](./active/0045-field-test-round-eleven.md) |
 
 ## Shipped
 
@@ -78,6 +74,7 @@ rows below, in that order.)
 | — | Round ten — the recipe page up-levelled (method chips as word + amount, digit step numbers, fraction glyphs, a line's macros in the panel's order) and optional as the cook's decision: opened from a week, the page's `optional` tag is the switch, the shop's echo names are doors, and an optional sub-recipe is cooked only when the week includes it. No migrations | `v0.14.0` | [0044](./completed/0044-recipe-page-and-optional.md) |
 | — | The retire guard — an ingredient is retired only when nothing live names it, refused in the app and in the database; a line already left at a retired row is shown by its last name and repairable wherever it appears. Migration `0041` | `v0.14.0` | — |
 | — | The retired default-measure column, trigger, index and backfill are dropped; `ensure_onboarded` stops carrying a value nothing reads. Migration `0042` | `v0.14.0` | — |
+| — | Round eleven — a flagged import amount prints empty with the source line beside it; the editor's line opens into the review's card so a note, the optional flag and the amount are set in one place; a household picks the day its week starts, a flip re-homing every planned week on the server. Migration `0043`, on cloud | `v0.15.0` | [0045](./completed/0045-field-test-round-eleven.md) |
 | — | An empty shelf's two doors carry their book, so a recipe started there files onto that shelf; the Makefile shells the pinned Supabase CLI by path | `v0.14.0` | — |
 | — | The seed follows the owner's rows again — Ginger's inch piece at 7 g, both can measures on Canned Diced Tomatoes, the Persian cucumber measures, Sauerkraut admitting to-taste. Reseed on deploy | `v0.14.0` | — |
 
