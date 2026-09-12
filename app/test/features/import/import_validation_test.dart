@@ -284,9 +284,8 @@ void main() {
       // the refusal has to come from the issues map — which is the whole
       // reason `buildCommit` is handed the same map the button reads.
       expect(
-        (container.read(
-          importControllerProvider,
-        ) as ImportReconciling).canCommit,
+        (container.read(importControllerProvider) as ImportReconciling)
+            .canCommit,
         isTrue,
       );
       expect(

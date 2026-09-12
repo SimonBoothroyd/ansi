@@ -58,8 +58,9 @@ class ReviewGroup {
       other.id == id &&
       other.name == name &&
       other.lines.length == lines.length &&
-      Iterable<int>.generate(lines.length)
-          .every((i) => other.lines[i] == lines[i]);
+      Iterable<int>.generate(
+        lines.length,
+      ).every((i) => other.lines[i] == lines[i]);
 
   @override
   int get hashCode => Object.hash(id, name, lines.length);

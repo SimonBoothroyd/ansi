@@ -616,8 +616,9 @@ void main() {
       };
 
       expect(
-        draftFromOffBody(body({'product_name': '', 'brands': 'Ferrero'}))!
-            .suggestedName,
+        draftFromOffBody(
+          body({'product_name': '', 'brands': 'Ferrero'}),
+        )!.suggestedName,
         'Ferrero',
       );
       expect(draftFromOffBody(body(const {}))!.suggestedName, '');

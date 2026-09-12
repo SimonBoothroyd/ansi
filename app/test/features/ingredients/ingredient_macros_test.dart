@@ -251,9 +251,9 @@ void main() {
     /// The peanut-butter fixture with OFF's numeric serving removed — the
     /// pack whose serving is prose only.
     String withoutServingQuantity() {
-      final body = jsonDecode(
-        offFixture('peanut_butter_per_serving'),
-      ) as Map<String, Object?>;
+      final body =
+          jsonDecode(offFixture('peanut_butter_per_serving'))
+              as Map<String, Object?>;
       (body['product']! as Map<String, Object?>)
         ..remove('serving_quantity')
         ..remove('serving_quantity_unit');

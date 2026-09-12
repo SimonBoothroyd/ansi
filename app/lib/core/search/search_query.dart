@@ -94,13 +94,12 @@ String foldDiacritics(String raw) {
 }
 
 /// Normalizes a raw picker query to the `match_text` character rules above.
-String normalizeSearchQuery(String raw) =>
-    foldDiacritics(raw.toLowerCase())
-        .replaceAll(_dashes, ' ')
-        .split(_whitespace)
-        .map((w) => w.replaceAll(_nonWord, ''))
-        .where((w) => w.isNotEmpty)
-        .join(' ');
+String normalizeSearchQuery(String raw) => foldDiacritics(raw.toLowerCase())
+    .replaceAll(_dashes, ' ')
+    .split(_whitespace)
+    .map((w) => w.replaceAll(_nonWord, ''))
+    .where((w) => w.isNotEmpty)
+    .join(' ');
 
 /// The normalized, order-independent tokens of a query — the unit every tier
 /// of `searchRank` reasons in. Empty for a blank query.

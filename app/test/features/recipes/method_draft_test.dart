@@ -14,7 +14,6 @@ import 'package:ansi/features/recipes/domain/method_draft.dart';
 import 'package:ansi/features/recipes/domain/method_step.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import '../import/gold_fixture.dart';
 
 const _goldPath = '../evals/datasets/extraction/gold/sausage-sliders.json';

@@ -107,9 +107,9 @@ class _MethodLinePickerSheet extends HookWidget {
           ? Padding(
               padding: const EdgeInsets.only(top: 10),
               child: FButton(
-                onPress: () =>
-                    Navigator.of(context)
-                        .pop(PickedRecipeLine(matched.single.id)),
+                onPress: () => Navigator.of(
+                  context,
+                ).pop(PickedRecipeLine(matched.single.id)),
                 child: Text('Chip as “${matched.single.ingredientName}”'),
               ),
             )

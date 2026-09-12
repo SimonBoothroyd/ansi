@@ -36,10 +36,8 @@ import 'off_lookup.dart';
 /// Defaults to the plugin's preview. Injectable because the plugin
 /// needs a real camera: the widget tests hand in a pane that reports codes on
 /// command, which is how the sheet's logic is exercised headless.
-typedef BarcodeCameraPane = Widget Function(
-  BuildContext context,
-  ValueChanged<String> onCode,
-);
+typedef BarcodeCameraPane =
+    Widget Function(BuildContext context, ValueChanged<String> onCode);
 
 /// The scan surface. Call `scanBarcodeForDraft` (barcode_add.dart) rather
 /// than building this directly — it owns the presentation and the pop value.

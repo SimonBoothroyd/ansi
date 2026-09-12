@@ -1057,9 +1057,10 @@ void main() {
       expect(find.byIcon(kSubRecipeIcon), findsOneWidget);
       // Still nothing linked by rendering it.
       expect(
-        (container.read(
-          importControllerProvider,
-        ) as ImportReconciling).resolutions.single.isComponent,
+        (container.read(importControllerProvider) as ImportReconciling)
+            .resolutions
+            .single
+            .isComponent,
         isFalse,
       );
     });
@@ -1075,9 +1076,10 @@ void main() {
       await tester.tap(find.text('your recipe · Romesco Aioli'));
       await tester.pumpAndSettle();
 
-      final linked = (container.read(
-        importControllerProvider,
-      ) as ImportReconciling).resolutions.single;
+      final linked =
+          (container.read(importControllerProvider) as ImportReconciling)
+              .resolutions
+              .single;
       expect(linked.linkedRecipeId, 'r-aioli');
       expect(linked.chosenIngredientId, isNull);
       // Its amount was already printed, so it is valid the moment it links.
@@ -1111,9 +1113,10 @@ void main() {
       await tester.tap(find.text('unlink'));
       await tester.pumpAndSettle();
 
-      final back = (container.read(
-        importControllerProvider,
-      ) as ImportReconciling).resolutions.single;
+      final back =
+          (container.read(importControllerProvider) as ImportReconciling)
+              .resolutions
+              .single;
       expect(back.isComponent, isFalse);
       expect(back.quantity, 0.25); // the printed amount is not disturbed
       // The offer is on the card again, unanswered.
@@ -1139,9 +1142,8 @@ void main() {
 
       expect(find.text('Set the amount'), findsWidgets);
       expect(
-        (container.read(
-          importControllerProvider,
-        ) as ImportReconciling).canCommit,
+        (container.read(importControllerProvider) as ImportReconciling)
+            .canCommit,
         isFalse,
       );
     });
@@ -1169,9 +1171,10 @@ void main() {
 
       await tester.tap(find.text('Done'));
       await tester.pumpAndSettle();
-      final saved = (container.read(
-        importControllerProvider,
-      ) as ImportReconciling).resolutions.single;
+      final saved =
+          (container.read(importControllerProvider) as ImportReconciling)
+              .resolutions
+              .single;
       expect(saved.quantity, 0.25);
       expect(saved.unit, 'cup');
     });
@@ -1380,9 +1383,10 @@ void main() {
 
       // Seeded on from the raw flag…
       expect(
-        (container.read(
-          importControllerProvider,
-        ) as ImportReconciling).resolutions.single.optional,
+        (container.read(importControllerProvider) as ImportReconciling)
+            .resolutions
+            .single
+            .optional,
         isTrue,
       );
 
@@ -1392,9 +1396,10 @@ void main() {
       // …and the tag follows the resolution down, not the raw line up.
       expect(find.text('optional'), findsOneWidget);
       expect(
-        (container.read(
-          importControllerProvider,
-        ) as ImportReconciling).resolutions.single.optional,
+        (container.read(importControllerProvider) as ImportReconciling)
+            .resolutions
+            .single
+            .optional,
         isFalse,
       );
 

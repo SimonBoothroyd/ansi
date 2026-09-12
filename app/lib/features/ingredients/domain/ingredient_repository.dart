@@ -14,7 +14,6 @@
 library;
 
 import 'package:meta/meta.dart';
-
 import '../../../core/result/result.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';

@@ -61,9 +61,13 @@ List<({String name, SearchHit hit})> _ranked(List<_Row> corpus, String query) {
 }
 
 void main() {
-  final decoded = jsonDecode(
-    File('test/features/ingredients/search_vectors.json').readAsStringSync(),
-  ) as Map<String, dynamic>;
+  final decoded =
+      jsonDecode(
+            File(
+              'test/features/ingredients/search_vectors.json',
+            ).readAsStringSync(),
+          )
+          as Map<String, dynamic>;
   final vocab = _corpus(decoded['vocab'] as List<dynamic>);
   final titles = (decoded['titles'] as List<dynamic>).cast<String>();
 

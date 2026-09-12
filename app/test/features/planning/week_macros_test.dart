@@ -362,31 +362,31 @@ void main() {
     });
 
     test('a row this device has never synced is named apart from a stub', () {
-      final left = _sum([_snack(id: 'a', name: null, knownRow: false)])
-          .excluded
-          .single;
+      final left = _sum([
+        _snack(id: 'a', name: null, knownRow: false),
+      ]).excluded.single;
       expect(left.label, '(deleted ingredient)');
       expect(left.lineReason, MacroLineReason.unknownIngredient);
     });
 
     test('no amount is a refusal with its own reason, never a zero', () {
-      final left = _sum([_snack(id: 'a', quantity: null, unit: null)])
-          .excluded
-          .single;
+      final left = _sum([
+        _snack(id: 'a', quantity: null, unit: null),
+      ]).excluded.single;
       expect(left.lineReason, MacroLineReason.noAmount);
     });
 
     test('a bare count with nothing weighing it asks for a weight', () {
-      final left = _sum([_snack(id: 'a', quantity: 1, unit: pieces)])
-          .excluded
-          .single;
+      final left = _sum([
+        _snack(id: 'a', quantity: 1, unit: pieces),
+      ]).excluded.single;
       expect(left.lineReason, MacroLineReason.needsWeight);
     });
 
     test('a cross-basis amount without a density asks for one', () {
-      final left = _sum([_snack(id: 'a', quantity: 200, unit: ml)])
-          .excluded
-          .single;
+      final left = _sum([
+        _snack(id: 'a', quantity: 200, unit: ml),
+      ]).excluded.single;
       expect(left.lineReason, MacroLineReason.needsDensity);
     });
 
@@ -453,9 +453,9 @@ void main() {
 
     test('with no weight the same snack is still needsWeight — the fix is one '
         'number on the ingredient, not a different amount', () {
-      final left = _sum([_snack(id: 'a', quantity: 2, unit: pieces)])
-          .excluded
-          .single;
+      final left = _sum([
+        _snack(id: 'a', quantity: 2, unit: pieces),
+      ]).excluded.single;
       expect(left.reason, MealExclusion.ingredientNotCounted);
       expect(left.lineReason, MacroLineReason.needsWeight);
     });

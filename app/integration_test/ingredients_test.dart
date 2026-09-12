@@ -425,9 +425,9 @@ void main() {
             '(the 0028 repair’s cause) and every server-side `? unit` check '
             'answers false',
       );
-      final unlockedUnits = (jsonDecode(
-        unlocked['allowed_units'] as String,
-      ) as List).cast<String>();
+      final unlockedUnits =
+          (jsonDecode(unlocked['allowed_units'] as String) as List)
+              .cast<String>();
       expect(
         unlockedUnits,
         containsAll(['g', 'tsp', 'tbsp', 'cup', 'ml']),
@@ -700,8 +700,9 @@ void main() {
       // and how much of the name it answers — read off the row, printable
       // offline, and never the FDC id the stamp files it under.
       await scrollTo(tester, find.text('Filled from USDA · not confirmed'));
-      final fit = UsdaMatchFit.of((filled['source_score'] as num).toDouble())
-          .phraseFor(usdaName);
+      final fit = UsdaMatchFit.of(
+        (filled['source_score'] as num).toDouble(),
+      ).phraseFor(usdaName);
       expect(find.text('$filledLabel · $fit'), findsOneWidget);
       expect(find.widgetWithText(FButton, 'Not this food'), findsOneWidget);
       expect(find.widgetWithText(FButton, 'Choose another ›'), findsOneWidget);

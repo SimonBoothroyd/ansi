@@ -985,8 +985,9 @@ void main() {
       expect(piece.amount, 110);
       expect(piece.basis, MacrosBasis.perG);
       expect(
-        pieceAsMeasure(_ing(pieces, piece: 30, basis: MacrosBasis.perMl))!
-            .basis,
+        pieceAsMeasure(
+          _ing(pieces, piece: 30, basis: MacrosBasis.perMl),
+        )!.basis,
         MacrosBasis.perMl,
       );
       expect(pieceAsMeasure(_ing(pieces)), isNull);

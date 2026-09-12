@@ -468,28 +468,29 @@ void main() {
     expect(find.text('INCLUDED'), findsNothing);
   });
 
-  testWidgets('an all-imprecise recipe still refuses, in its own words', (
-    tester,
-  ) async {
-    const summary = RecipeMacroSummary(
-      impreciseLines: 2,
-      nothingWeighable: true,
-      notes: [
-        (
-          lineId: 'i1',
-          name: 'Salt',
-          reason: MacroLineReason.imprecise,
-          unit: 'to taste',
-        ),
-      ],
-    );
-    await tester.pumpWidget(_host(const RecipeMacroPanel(summary: summary)));
+  testWidgets(
+    'an all-imprecise recipe still refuses, in its own words',
+    (tester) async {
+      const summary = RecipeMacroSummary(
+        impreciseLines: 2,
+        nothingWeighable: true,
+        notes: [
+          (
+            lineId: 'i1',
+            name: 'Salt',
+            reason: MacroLineReason.imprecise,
+            unit: 'to taste',
+          ),
+        ],
+      );
+      await tester.pumpWidget(_host(const RecipeMacroPanel(summary: summary)));
 
-    expect(find.byType(IncompleteBadge), findsOneWidget);
-    expect(find.text('nothing weighable yet'), findsOneWidget);
-    expect(find.text('KCAL'), findsNothing);
-    expect(find.text('0'), findsNothing);
-  });
+      expect(find.byType(IncompleteBadge), findsOneWidget);
+      expect(find.text('nothing weighable yet'), findsOneWidget);
+      expect(find.text('KCAL'), findsNothing);
+      expect(find.text('0'), findsNothing);
+    },
+  );
 
   testWidgets('the ingredient rows carry the marker, keyed by line id', (
     tester,
