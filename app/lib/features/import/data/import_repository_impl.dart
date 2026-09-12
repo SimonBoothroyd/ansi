@@ -30,6 +30,7 @@ import '../../ingredients/data/name_holder.dart';
 import '../../ingredients/domain/normalize.dart';
 import '../domain/commit_payload.dart';
 import '../domain/import_repository.dart';
+import '../domain/learnable_alias.dart';
 import '../domain/reconciliation_payload.dart';
 import 'canned_payload.dart';
 
@@ -349,6 +350,12 @@ class SqliteImportRepository implements ImportRepository {
       //   Onion on every import must not pile up a duplicate alias row per
       //   import, all of them matching identically.
       for (final c in payload.corrections) {
+        // A whole printed LINE is not a name either — "olive oil or cooking
+        // oil of choice" names two things and an aside, and normalizing it
+        // would bury that in a bag of words nothing will ever ask for. Asked
+        // of the raw text, because normalization erases the very marks that
+        // give it away (`domain/learnable_alias.dart`).
+        if (!looksLikeAName(c.aliasText)) continue;
         final matchText = normalizeMatchText(c.aliasText);
         // A phrase with no identity word ("a good pinch of") is not a name and
         // could never match anything; the form refuses one outright, and here

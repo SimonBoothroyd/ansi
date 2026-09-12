@@ -387,7 +387,7 @@ void main() {
               band: MatchBand.none,
             ),
             ReconLine(
-              raw: RawLineItem(ingredientText: 'ripe tomatoes, chopped'),
+              raw: RawLineItem(ingredientText: 'ripe tomatoes'),
               band: MatchBand.none,
             ),
           ],
@@ -412,7 +412,7 @@ void main() {
     // The server singularizes; the search normalizer only folds characters.
     // Both halves matter: the value is what the server would have written,
     // and it is NOT what the old call site wrote.
-    const aliasText = 'ripe tomatoes, chopped';
+    const aliasText = 'ripe tomatoes';
     final alias = await db.get(
       'SELECT alias_text, match_text FROM ingredient_alias '
       "WHERE source = 'import_correction'",
@@ -570,6 +570,69 @@ void main() {
       );
       expect(alias['alias_text'], 'brown onions');
       expect(alias['source'], 'import_correction');
+    });
+
+    test('a whole printed LINE is not learned, and an honest name beside it '
+        'still is', () async {
+      // The owner's cloud shows rows like "Olive oil, for frying" — a line,
+      // not a name, that no future line will ever print again. It is skipped
+      // the way a collision is: silently, with the line still committed
+      // against the row the human picked.
+      const p = ReconciliationPayload(
+        title: 'A Line And A Name',
+        servingsBase: 2,
+        groups: [
+          ReconGroup(
+            lines: [
+              ReconLine(
+                raw: RawLineItem(
+                  ingredientText: 'olive oil, for frying',
+                  qty: 2,
+                ),
+                band: MatchBand.none,
+              ),
+              ReconLine(
+                raw: RawLineItem(ingredientText: 'brown onions', qty: 1),
+                band: MatchBand.none,
+              ),
+            ],
+          ),
+        ],
+      );
+      final recipeId = await repo.commit(
+        buildCommit(
+          p,
+          [
+            initialResolution(0, p.flatLines[0]).resolveToIngredient(
+              'ing-spaghetti',
+              'Spaghetti',
+              correction: true,
+            ),
+            initialResolution(
+              1,
+              p.flatLines[1],
+            ).resolveToIngredient('ing-onion', 'Onion', correction: true),
+          ],
+          header: _header(p),
+          issuesByLine: null,
+        ),
+      );
+
+      expect(await aliasOwners(), {
+        'brown onion': 'ing-onion',
+      }, reason: 'the name is kept; the line is not');
+      // Both lines committed against the rows the human picked — refusing to
+      // LEARN is not refusing to save.
+      final lines = await db.getAll(
+        'SELECT li.ingredient_id FROM recipe_line_item li '
+        'JOIN ingredient_group g ON g.id = li.group_id '
+        'WHERE g.recipe_id = ? ORDER BY li.sort_order',
+        [recipeId],
+      );
+      expect(lines.map((r) => r['ingredient_id']), [
+        'ing-spaghetti',
+        'ing-onion',
+      ]);
     });
 
     test('a taken name does not stop the corrections beside it', () async {

@@ -107,6 +107,12 @@ has — is the same answer for a different reason: there is nothing to learn.
 `test/structure/alias_writes_ask_the_namespace_test.dart` holds the rule
 against the next writer.
 
+The loop asks one thing the form does not have to: **is this a name at all?**
+The form's writer typed one; the loop's arrives as whatever the recipe printed,
+and a candidate carrying a comma, the word *or*, a slash or a bracket names more
+than one thing ("olive oil or cooking oil of choice"). That one is skipped as
+silently as a taken name — see `features/import/domain/learnable_alias.dart`.
+
 And when the name is *nearly* somebody's, the form offers the near names under
 the pickers' own `DID YOU MEAN` header — `searchRank`'s guarded typo tier over
 every live name and alias, at most three rows, and only when nothing was

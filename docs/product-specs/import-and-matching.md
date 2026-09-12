@@ -701,6 +701,17 @@ or accepts a suggestion), the original raw string is written back as a new
 a few weeks the vocabulary absorbs the household's actual phrasing ("coco milk" →
 Coconut milk, canned) and matching improves with zero ML.
 
+**Only a NAME is learned, never the whole printed line.** A candidate carrying a
+comma, the word *or*, a slash or a bracket is doing more than naming one thing —
+"Olive oil, for frying", "stone-ground mustard or Creole mustard" — and no
+future line will print that sentence again, so the row is dead weight a person
+has to prune by hand. The loop skips those silently, exactly as it skips a taken
+name; the line still commits against the row that was picked. The rule is
+structural, not semantic (`app/lib/features/import/domain/learnable_alias.dart`),
+and it is asked of the *raw* text, because normalization strips the very marks
+that give a line away — "sweet white sorghum flour" is still learned, long or
+not.
+
 **An alias is a name, so it lands in the household's one namespace or not at
 all.** Names and aliases share `match_text` (the app's *One namespace* rule —
 [`app/lib/features/ingredients/README.md`](../../app/lib/features/ingredients/README.md)),
