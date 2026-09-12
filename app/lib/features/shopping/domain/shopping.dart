@@ -148,6 +148,37 @@ typedef OptionalLinesNote = ({
   LineDropReason reason,
 });
 
+/// Where a line at a RETIRED ingredient sits — which is the whole difference
+/// between the two echo rows, because it names the next tap.
+enum RetiredIngredientSite {
+  /// A recipe line: the pick is in that recipe, whose editor re-points it.
+  recipeLine,
+
+  /// A bare-INGREDIENT meal on the week (migration 0033): there is no recipe
+  /// to edit, so the pick is in the plan, on the entry itself.
+  planEntry,
+}
+
+/// One line — a recipe's, or a planned meal of its own — whose ingredient the
+/// household has RETIRED.
+///
+/// Nothing about a retired row is a fact about food any more, so nothing is
+/// derived from it: not a name to shop by, not an aisle to file it under, not
+/// a density to sum it with. The line therefore buys NOTHING. But it is not
+/// dropped either — a list quietly short of a thing somebody planned to eat is
+/// worse than one that says what is missing — so it leaves the aisles and
+/// takes an echo row at the bottom, in [UnresolvedComponentNote]'s voice,
+/// carrying the row's LAST KNOWN name and where to pick again.
+///
+/// `heading` is the echo's group-header word: the recipe's title, or the
+/// planned meal's own provenance label ("Snack · Tue"), which is exactly what
+/// the breakdown would have said had there been anything to buy.
+typedef RetiredIngredientNote = ({
+  String heading,
+  String ingredientName,
+  RetiredIngredientSite site,
+});
+
 /// A persisted shopping entry row (the check-off + free-text anchor).
 /// `createdAt` (ISO-8601) makes duplicate-entry merging deterministic: the
 /// oldest live row per ingredient is the canonical one on every device.
@@ -296,10 +327,10 @@ abstract class ShoppingGroup with _$ShoppingGroup {
   }) = _ShoppingGroup;
 }
 
-/// The whole shopping list, grouped by aisle, plus the per-parent
-/// [unresolvedComponents] echo (step 8.6 / D4) and the per-recipe
-/// [optionalLines] echo — what the list is short by, and why it is silent about
-/// it.
+/// The whole shopping list, grouped by aisle, plus its three echo channels —
+/// the per-parent [unresolvedComponents] (step 8.6 / D4), the per-recipe
+/// [optionalLines], and the [retiredIngredients] whose vocab row is gone. What
+/// the list is short by, and why it is silent about it.
 @freezed
 abstract class ShoppingList with _$ShoppingList {
   const ShoppingList._();
@@ -309,6 +340,8 @@ abstract class ShoppingList with _$ShoppingList {
     @Default(<UnresolvedComponentNote>[])
     List<UnresolvedComponentNote> unresolvedComponents,
     @Default(<OptionalLinesNote>[]) List<OptionalLinesNote> optionalLines,
+    @Default(<RetiredIngredientNote>[])
+    List<RetiredIngredientNote> retiredIngredients,
   }) = _ShoppingList;
 
   bool get isEmpty => groups.isEmpty;
@@ -647,7 +680,10 @@ MeasureAmount? _measureTotal(
 /// was derived, named per recipe. The builder never sees an optional line as a
 /// contribution — the drop happens at the seam, once, where the per-week
 /// override will later join — it only carries the echo so the list can say what
-/// it left out.
+/// it left out. And so is [retiredIngredients]: the lines, and the planned
+/// meals, whose ingredient the household has retired — dropped from the
+/// derivation upstream (nothing about a retired row can be shopped) and named
+/// here for the same reason the other two are.
 ShoppingList buildShoppingList({
   required List<CookContributionInput> cook,
   required List<ShoppingEntryInput> entries,
@@ -657,6 +693,7 @@ ShoppingList buildShoppingList({
   List<PlanIngredientInput> planned = const [],
   List<UnresolvedComponentNote> unresolvedComponents = const [],
   List<OptionalLinesNote> optionalLines = const [],
+  List<RetiredIngredientNote> retiredIngredients = const [],
 }) {
   // Index persisted entries by their ingredient (free-text ones stay by id),
   // keeping every duplicate so it can be merged rather than dropped.
@@ -901,5 +938,6 @@ ShoppingList buildShoppingList({
     groups: groups,
     unresolvedComponents: unresolvedComponents,
     optionalLines: optionalLines,
+    retiredIngredients: retiredIngredients,
   );
 }

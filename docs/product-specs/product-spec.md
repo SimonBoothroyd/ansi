@@ -730,6 +730,18 @@ stored ([ADR-0007](../decisions/0007-shopping-list-thin-overlay.md)):
 - Display groups by ingredient, sums derived + manual contributions in canonical base (density-converted; measure-quantified lines fold into the mass subtotal via their gram weights), shows breakdown: *"Flour — 500g · Curry batch (cook Mon) 300g · Cookies 150g · +50g manual."* **Every unchecked row shows its breakdown**, a single-source one included — a shopper reading a line should never have to remember which recipe asked for it; ticking a row collapses it.
 - **Shopped in the measure it was asked for:** when *every* contribution to a line was quantified in the same measure, the line's total is a count of that measure — "1 can (400 g), drained" — with the mass it weighs beside it as the secondary. You buy cans, not 8.47 oz. The moment a plain mass/volume line or a second measure joins the sum there is no single countable answer, so the canonical family sum prints as it always did; each provenance line keeps its own words either way. The ingredient's default unit biases only a sum that real mass/volume lines stated — never a measure-only one, which stays in the basis the measure folded into.
 - **Whole-unit hint (step 7.6):** a fractional single total that is *not* already counted in a measure gets an honest round-up hint beside it ("2.25 → buy 3" for a plain count, or "≈ 2.25 potato, large → buy 3" derived from a mass total via the ingredient's primary measure) — a hint, never a replaced total.
+- **A line at a retired ingredient buys nothing, and is named rather than
+  dropped.** A row the household retired is not a fact about food any more —
+  its name, aisle and density are all stale — so neither derivation shops from
+  it: the recipe line and the bare-ingredient meal both leave the aisles. They
+  are not silent about it either. The list's **third echo channel** names each
+  one under the row's last known name, in the unresolved echo's amber voice:
+  *"Sauerkraut · ingredient removed · pick again in the recipe"*, or *"… in the
+  plan"* for a planned meal, because that is where its pick is. The planned
+  meal's row is kept deliberately — it used to vanish with its check-off,
+  which is how a missing snack went unnoticed. The words are the recipe page's
+  and the editor's, one vocabulary for one kind of broken line (see
+  *Ingredient*: a retire is refused while a live line names the row).
 - **Top up** = persist a `manual` contribution against the entry (find-or-create).
 - **Check-off** = on the entry (rolled-up ingredient), not per contribution.
 - **Scoped to a week** (migrations 0019 and 0036): every entry carries the Monday it was made against, so a tick made while looking at next week belongs to next week's list. That includes a *free-text non-food item* — you wrote "paper towels" while shopping for one week, and it is bought on that trip, so it does not follow you onto every future list. A contribution rides its entry and stores no week of its own. `week_start_date` stays nullable for the rows older clients wrote; a week-less free-text row is backfilled onto the Monday of its `created_at`. There is still **no unique index** on an entry (0006's reasoning is unchanged: two offline devices must each be able to create one and converge later); convergence simply happens within a week.

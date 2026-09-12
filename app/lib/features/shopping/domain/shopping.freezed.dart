@@ -914,7 +914,7 @@ as List<ShoppingItem>,
 /// @nodoc
 mixin _$ShoppingList {
 
- List<ShoppingGroup> get groups; List<UnresolvedComponentNote> get unresolvedComponents; List<OptionalLinesNote> get optionalLines;
+ List<ShoppingGroup> get groups; List<UnresolvedComponentNote> get unresolvedComponents; List<OptionalLinesNote> get optionalLines; List<RetiredIngredientNote> get retiredIngredients;
 /// Create a copy of ShoppingList
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -925,16 +925,16 @@ $ShoppingListCopyWith<ShoppingList> get copyWith => _$ShoppingListCopyWithImpl<S
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ShoppingList&&const DeepCollectionEquality().equals(other.groups, groups)&&const DeepCollectionEquality().equals(other.unresolvedComponents, unresolvedComponents)&&const DeepCollectionEquality().equals(other.optionalLines, optionalLines));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ShoppingList&&const DeepCollectionEquality().equals(other.groups, groups)&&const DeepCollectionEquality().equals(other.unresolvedComponents, unresolvedComponents)&&const DeepCollectionEquality().equals(other.optionalLines, optionalLines)&&const DeepCollectionEquality().equals(other.retiredIngredients, retiredIngredients));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(groups),const DeepCollectionEquality().hash(unresolvedComponents),const DeepCollectionEquality().hash(optionalLines));
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(groups),const DeepCollectionEquality().hash(unresolvedComponents),const DeepCollectionEquality().hash(optionalLines),const DeepCollectionEquality().hash(retiredIngredients));
 
 @override
 String toString() {
-  return 'ShoppingList(groups: $groups, unresolvedComponents: $unresolvedComponents, optionalLines: $optionalLines)';
+  return 'ShoppingList(groups: $groups, unresolvedComponents: $unresolvedComponents, optionalLines: $optionalLines, retiredIngredients: $retiredIngredients)';
 }
 
 
@@ -945,7 +945,7 @@ abstract mixin class $ShoppingListCopyWith<$Res>  {
   factory $ShoppingListCopyWith(ShoppingList value, $Res Function(ShoppingList) _then) = _$ShoppingListCopyWithImpl;
 @useResult
 $Res call({
- List<ShoppingGroup> groups, List<UnresolvedComponentNote> unresolvedComponents, List<OptionalLinesNote> optionalLines
+ List<ShoppingGroup> groups, List<UnresolvedComponentNote> unresolvedComponents, List<OptionalLinesNote> optionalLines, List<RetiredIngredientNote> retiredIngredients
 });
 
 
@@ -962,12 +962,13 @@ class _$ShoppingListCopyWithImpl<$Res>
 
 /// Create a copy of ShoppingList
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? groups = null,Object? unresolvedComponents = null,Object? optionalLines = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? groups = null,Object? unresolvedComponents = null,Object? optionalLines = null,Object? retiredIngredients = null,}) {
   return _then(_self.copyWith(
 groups: null == groups ? _self.groups : groups // ignore: cast_nullable_to_non_nullable
 as List<ShoppingGroup>,unresolvedComponents: null == unresolvedComponents ? _self.unresolvedComponents : unresolvedComponents // ignore: cast_nullable_to_non_nullable
 as List<UnresolvedComponentNote>,optionalLines: null == optionalLines ? _self.optionalLines : optionalLines // ignore: cast_nullable_to_non_nullable
-as List<OptionalLinesNote>,
+as List<OptionalLinesNote>,retiredIngredients: null == retiredIngredients ? _self.retiredIngredients : retiredIngredients // ignore: cast_nullable_to_non_nullable
+as List<RetiredIngredientNote>,
   ));
 }
 
@@ -1052,10 +1053,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<ShoppingGroup> groups,  List<UnresolvedComponentNote> unresolvedComponents,  List<OptionalLinesNote> optionalLines)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<ShoppingGroup> groups,  List<UnresolvedComponentNote> unresolvedComponents,  List<OptionalLinesNote> optionalLines,  List<RetiredIngredientNote> retiredIngredients)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ShoppingList() when $default != null:
-return $default(_that.groups,_that.unresolvedComponents,_that.optionalLines);case _:
+return $default(_that.groups,_that.unresolvedComponents,_that.optionalLines,_that.retiredIngredients);case _:
   return orElse();
 
 }
@@ -1073,10 +1074,10 @@ return $default(_that.groups,_that.unresolvedComponents,_that.optionalLines);cas
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<ShoppingGroup> groups,  List<UnresolvedComponentNote> unresolvedComponents,  List<OptionalLinesNote> optionalLines)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<ShoppingGroup> groups,  List<UnresolvedComponentNote> unresolvedComponents,  List<OptionalLinesNote> optionalLines,  List<RetiredIngredientNote> retiredIngredients)  $default,) {final _that = this;
 switch (_that) {
 case _ShoppingList():
-return $default(_that.groups,_that.unresolvedComponents,_that.optionalLines);case _:
+return $default(_that.groups,_that.unresolvedComponents,_that.optionalLines,_that.retiredIngredients);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1093,10 +1094,10 @@ return $default(_that.groups,_that.unresolvedComponents,_that.optionalLines);cas
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<ShoppingGroup> groups,  List<UnresolvedComponentNote> unresolvedComponents,  List<OptionalLinesNote> optionalLines)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<ShoppingGroup> groups,  List<UnresolvedComponentNote> unresolvedComponents,  List<OptionalLinesNote> optionalLines,  List<RetiredIngredientNote> retiredIngredients)?  $default,) {final _that = this;
 switch (_that) {
 case _ShoppingList() when $default != null:
-return $default(_that.groups,_that.unresolvedComponents,_that.optionalLines);case _:
+return $default(_that.groups,_that.unresolvedComponents,_that.optionalLines,_that.retiredIngredients);case _:
   return null;
 
 }
@@ -1108,7 +1109,7 @@ return $default(_that.groups,_that.unresolvedComponents,_that.optionalLines);cas
 
 
 class _ShoppingList extends ShoppingList {
-  const _ShoppingList({final  List<ShoppingGroup> groups = const <ShoppingGroup>[], final  List<UnresolvedComponentNote> unresolvedComponents = const <UnresolvedComponentNote>[], final  List<OptionalLinesNote> optionalLines = const <OptionalLinesNote>[]}): _groups = groups,_unresolvedComponents = unresolvedComponents,_optionalLines = optionalLines,super._();
+  const _ShoppingList({final  List<ShoppingGroup> groups = const <ShoppingGroup>[], final  List<UnresolvedComponentNote> unresolvedComponents = const <UnresolvedComponentNote>[], final  List<OptionalLinesNote> optionalLines = const <OptionalLinesNote>[], final  List<RetiredIngredientNote> retiredIngredients = const <RetiredIngredientNote>[]}): _groups = groups,_unresolvedComponents = unresolvedComponents,_optionalLines = optionalLines,_retiredIngredients = retiredIngredients,super._();
   
 
  final  List<ShoppingGroup> _groups;
@@ -1132,6 +1133,13 @@ class _ShoppingList extends ShoppingList {
   return EqualUnmodifiableListView(_optionalLines);
 }
 
+ final  List<RetiredIngredientNote> _retiredIngredients;
+@override@JsonKey() List<RetiredIngredientNote> get retiredIngredients {
+  if (_retiredIngredients is EqualUnmodifiableListView) return _retiredIngredients;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_retiredIngredients);
+}
+
 
 /// Create a copy of ShoppingList
 /// with the given fields replaced by the non-null parameter values.
@@ -1143,16 +1151,16 @@ _$ShoppingListCopyWith<_ShoppingList> get copyWith => __$ShoppingListCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ShoppingList&&const DeepCollectionEquality().equals(other._groups, _groups)&&const DeepCollectionEquality().equals(other._unresolvedComponents, _unresolvedComponents)&&const DeepCollectionEquality().equals(other._optionalLines, _optionalLines));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ShoppingList&&const DeepCollectionEquality().equals(other._groups, _groups)&&const DeepCollectionEquality().equals(other._unresolvedComponents, _unresolvedComponents)&&const DeepCollectionEquality().equals(other._optionalLines, _optionalLines)&&const DeepCollectionEquality().equals(other._retiredIngredients, _retiredIngredients));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_groups),const DeepCollectionEquality().hash(_unresolvedComponents),const DeepCollectionEquality().hash(_optionalLines));
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_groups),const DeepCollectionEquality().hash(_unresolvedComponents),const DeepCollectionEquality().hash(_optionalLines),const DeepCollectionEquality().hash(_retiredIngredients));
 
 @override
 String toString() {
-  return 'ShoppingList(groups: $groups, unresolvedComponents: $unresolvedComponents, optionalLines: $optionalLines)';
+  return 'ShoppingList(groups: $groups, unresolvedComponents: $unresolvedComponents, optionalLines: $optionalLines, retiredIngredients: $retiredIngredients)';
 }
 
 
@@ -1163,7 +1171,7 @@ abstract mixin class _$ShoppingListCopyWith<$Res> implements $ShoppingListCopyWi
   factory _$ShoppingListCopyWith(_ShoppingList value, $Res Function(_ShoppingList) _then) = __$ShoppingListCopyWithImpl;
 @override @useResult
 $Res call({
- List<ShoppingGroup> groups, List<UnresolvedComponentNote> unresolvedComponents, List<OptionalLinesNote> optionalLines
+ List<ShoppingGroup> groups, List<UnresolvedComponentNote> unresolvedComponents, List<OptionalLinesNote> optionalLines, List<RetiredIngredientNote> retiredIngredients
 });
 
 
@@ -1180,12 +1188,13 @@ class __$ShoppingListCopyWithImpl<$Res>
 
 /// Create a copy of ShoppingList
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? groups = null,Object? unresolvedComponents = null,Object? optionalLines = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? groups = null,Object? unresolvedComponents = null,Object? optionalLines = null,Object? retiredIngredients = null,}) {
   return _then(_ShoppingList(
 groups: null == groups ? _self._groups : groups // ignore: cast_nullable_to_non_nullable
 as List<ShoppingGroup>,unresolvedComponents: null == unresolvedComponents ? _self._unresolvedComponents : unresolvedComponents // ignore: cast_nullable_to_non_nullable
 as List<UnresolvedComponentNote>,optionalLines: null == optionalLines ? _self._optionalLines : optionalLines // ignore: cast_nullable_to_non_nullable
-as List<OptionalLinesNote>,
+as List<OptionalLinesNote>,retiredIngredients: null == retiredIngredients ? _self._retiredIngredients : retiredIngredients // ignore: cast_nullable_to_non_nullable
+as List<RetiredIngredientNote>,
   ));
 }
 

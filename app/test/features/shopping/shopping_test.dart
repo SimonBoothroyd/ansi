@@ -380,6 +380,7 @@ void main() {
       Map<String, IngredientMetaInput> meta = const {},
       List<UnresolvedComponentNote> unresolvedComponents = const [],
       List<OptionalLinesNote> optionalLines = const [],
+      List<RetiredIngredientNote> retiredIngredients = const [],
     }) => buildShoppingList(
       cook: cook,
       planned: planned,
@@ -389,6 +390,7 @@ void main() {
       weekdayShort: _weekdays,
       unresolvedComponents: unresolvedComponents,
       optionalLines: optionalLines,
+      retiredIngredients: retiredIngredients,
     );
 
     IngredientMetaInput metaFor(
@@ -965,12 +967,35 @@ void main() {
       expect(list.optionalLines.single.names, ['lime', 'coriander']);
     });
 
+    test('a line at a RETIRED ingredient rides through as its own echo — the '
+        'builder never sees it as a contribution', () {
+      final list = build(
+        cook: [_cook('flour', 100, g)],
+        meta: {'flour': metaFor('Flour', 'baking')},
+        retiredIngredients: const [
+          (
+            heading: 'Curry',
+            ingredientName: 'Sauerkraut',
+            site: RetiredIngredientSite.recipeLine,
+          ),
+        ],
+      );
+      // Nothing named Sauerkraut is buyable: the drop happened upstream, where
+      // the row's liveness is known, and this channel only carries the words.
+      expect(list.groups.expand((g) => g.items).map((i) => i.ingredientId), [
+        'flour',
+      ]);
+      expect(list.retiredIngredients.single.ingredientName, 'Sauerkraut');
+      expect(list.retiredIngredients.single.heading, 'Curry');
+    });
+
     test('no unresolved components means no echo at all', () {
       final list = build(
         cook: [_cook('flour', 100, g)],
         meta: {'flour': metaFor('Flour', 'baking')},
       );
       expect(list.unresolvedComponents, isEmpty);
+      expect(list.retiredIngredients, isEmpty);
     });
 
     // --- A planned ingredient is bought, though nothing cooks it (8.14) -----

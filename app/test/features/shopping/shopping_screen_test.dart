@@ -402,6 +402,65 @@ void main() {
     expect(find.text('1 component unresolved — see Cook'), findsOneWidget);
   });
 
+  testWidgets('a line at a RETIRED ingredient is named at the bottom, with '
+      'the pick it needs — never bought from the dead row', (tester) async {
+    final list = ShoppingList(
+      groups: [
+        ShoppingGroup(
+          label: 'Pantry',
+          items: [
+            ShoppingItem(
+              name: 'Olive oil',
+              ingredientId: 'oil',
+              totals: [Quantity(30, ml)],
+            ),
+          ],
+        ),
+      ],
+      retiredIngredients: const [
+        (
+          heading: 'Curry',
+          ingredientName: 'Sauerkraut',
+          site: RetiredIngredientSite.recipeLine,
+        ),
+        (
+          heading: 'Snack · Tue',
+          ingredientName: 'Protein bar',
+          site: RetiredIngredientSite.planEntry,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _host([
+        shoppingRepositoryProvider.overrideWithValue(_FakeShoppingRepo(list)),
+      ]),
+    );
+    await tester.pump();
+
+    // Neither is an aisle row; both are named, and each says where the pick
+    // is — the recipe for a recipe line, the plan for a bare-ingredient meal.
+    expect(find.text('CURRY'), findsOneWidget);
+    expect(
+      find.text('Sauerkraut · ingredient removed · pick again in the recipe'),
+      findsOneWidget,
+    );
+    expect(find.text('SNACK · TUE'), findsOneWidget);
+    expect(
+      find.text('Protein bar · ingredient removed · pick again in the plan'),
+      findsOneWidget,
+    );
+    // Amber, like the unresolved echo: a broken line is a defect somebody can
+    // fix, not a rule somebody chose.
+    expect(
+      find.descendant(
+        of: find.byType(RetiredIngredientEcho),
+        matching: find.byIcon(FLucideIcons.flag),
+      ),
+      findsNWidgets(2),
+    );
+  });
+
   testWidgets('an optional line that left the list is named by its recipe, '
       'muted — a rule, not a defect', (tester) async {
     final list = ShoppingList(
