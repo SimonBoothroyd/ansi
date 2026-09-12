@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe editor</h1>
-    <p class="view-status">built · matches code 2026-09-12 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a></p>
+    <p class="view-status">built · matches code 2026-09-12 · <span class="differs">proposed: the line as an expanding card (four frames below, not built)</span> · <code>features/recipes</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a></p>
     <p class="view-blurb">One header form under two hosts, and a method written as step cards with live ingredient chips — select the words, say what they are. Opened with <code>?week=</code> it edits the same list for one planned week and saves a diff against the recipe instead of the recipe.</p>
 </header>
 
@@ -59,8 +59,8 @@
                 <span style="color:var(--muted);font-size:12px">🗑</span>
             </div>
             <div style="margin:0 20px">
-                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">600 g</span><span class="l3-body"><span class="l3-id">Chicken thigh</span><span class="l3-note">diced</span><span class="l3-used">used in 2 steps</span></span><span class="l3-pen">✎</span></div>
-                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">2 clove</span><span class="l3-body"><span class="l3-id">Garlic</span></span><span class="l3-pen">✎</span></div>
+                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">600 g</span><span class="l3-body"><span class="l3-id">Chicken thigh</span><span class="l3-note">diced</span> <span class="l3-pen" style="font-size:11px;color:var(--muted)">✎</span><span class="l3-used">used in 2 steps</span></span><span class="l3-pen" style="color:var(--muted)">✕</span></div>
+                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">2 clove</span><span class="l3-body"><span class="l3-id">Garlic</span> <span class="l3-pen" style="font-size:11px;color:var(--muted)">✎</span></span><span class="l3-pen" style="color:var(--muted)">✕</span></div>
             </div>
 
             <div style="display:flex;align-items:center;gap:8px;margin:14px 20px 2px">
@@ -68,8 +68,8 @@
                 <span style="color:var(--muted);font-size:12px">🗑</span>
             </div>
             <div style="margin:0 20px">
-                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">1 handful</span><span class="l3-body"><span class="l3-id">Cilantro</span><span class="wv-tag" style="margin-left:6px">optional</span></span><span class="l3-pen">✎</span></div>
-                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">to taste</span><span class="l3-body"><span class="l3-id" style="color:var(--muted);font-weight:400">Sauerkraut</span><span class="wv-tag" style="margin-left:6px">ingredient removed · pick again</span></span><span class="l3-pen">✎</span></div>
+                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">1 handful</span><span class="l3-body"><span class="l3-id">Cilantro</span><span class="wv-tag" style="margin-left:6px">optional</span> <span class="l3-pen" style="font-size:11px;color:var(--muted)">✎</span></span><span class="l3-pen" style="color:var(--muted)">✕</span></div>
+                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">to taste</span><span class="l3-body"><span class="l3-id" style="color:var(--muted);font-weight:400">Sauerkraut</span><span class="wv-tag" style="margin-left:6px">ingredient removed · pick again</span> <span class="l3-pen" style="font-size:11px;color:var(--muted)">✎</span></span><span class="l3-pen" style="color:var(--muted)">✕</span></div>
             </div>
 
             <div style="display:flex;gap:8px;margin:10px 20px 0">
@@ -77,7 +77,8 @@
                 <span class="ghostbtn" style="margin-top:0;flex:1">＋ Add group</span>
             </div>
 
-            <p class="conv-note" style="margin-top:14px">one row layout everywhere: <b>[amount] [name] [note]</b> on a single line, the amount in its own 84&nbsp;px column so every identity left-aligns. It is what the recipe page — the screen a cook reads — already prints. The <b>amount cell</b> opens the quantity sheet and the <b>name cell</b> opens the identity picker: the same two doors, side by side instead of stacked</p>
+            <p class="conv-note" style="margin-top:14px">one row layout everywhere: <b>[amount] [name] [note]</b> on a single line, the amount in its own 84&nbsp;px column so every identity left-aligns. It is what the recipe page — the screen a cook reads — already prints. The <b>amount cell</b> opens the quantity sheet and the <b>name cell</b> opens the identity picker — two doors on one row, the pencil sitting <i>inside</i> the identity cell to mark the second; the row's trailing <b>✕</b> removes the line</p>
+            <p class="conv-note"><b>The note has no door.</b> It prints here — after the name, muted italic — and the only screen that can write it is the import review. That is the gap the four <span style="color:#7A5A16">proposed</span> frames below close</p>
             <p class="conv-note"><i>used in N steps</i> is a second muted line under the name, and only when N&nbsp;&gt;&nbsp;0 — it is a fact about the line, not a control</p>
             <p class="conv-note">an <b>optional</b> line wears the page's own tag, hung off the end of the identity in the same voice the recipe page prints it in. It is <b>stated, not tapped</b>: the amount sheet's <b>Optional</b> switch is still the one door that changes it, and the editor that owns the line must not be the one screen that hides the flag</p>
             <p class="conv-note">a line whose <b>ingredient has been retired</b> keeps the row's <b>last known name</b>, muted like a component whose target is missing, and wears <b>ingredient removed · pick again</b> in that same tag voice. Blanking the cell would hide which line broke and dropping the line would hide that anything did — so it is shown, named, and repaired <i>here</i>: the name cell is already the identity picker, the pick keeps the line's id, and every method chip pointing at it survives. The recipe page prints the same tag and stops treating the name as a door, because a retired row has no page left to open. The three line states a reader can meet are therefore one vocabulary: <b>optional</b>, <b>linked recipe missing</b>, <b>ingredient removed · pick again</b></p>
@@ -85,6 +86,133 @@
             <p class="conv-note">a line dropped under a heading is <b>filed under that heading</b>. It keeps its id, so every method chip pointing at it still does — which is the whole reason the gesture is worth having, since delete + re-add already reordered a list and cost every reference. Headings do not drag; a group left empty by a move is <b>kept</b></p>
             <p class="conv-note">the doors sit tight under the last line, and a line added lands in the <b>last group</b> — the drag then puts it where it belongs</p>
         </div></div>
+    </div>
+
+    <div style="width:100%;margin:10px 0 -4px">
+        <p style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#7A5A16;margin:0 0 6px;display:flex;align-items:center;gap:9px">
+            <span style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;background:#FDF8EC;border:1px solid #F0DCB0;border-radius:6px;padding:3px 8px">proposed · not built</span>
+            <span style="flex:1;height:1px;background:#F0DCB0"></span>
+        </p>
+        <p class="conv-note" style="margin:0 0 4px;max-width:720px">The four frames that follow replace the list frame above when they ship. <b>The line becomes the review's card.</b> One row, one gesture: the row opens in place into the card that holds every fact about the line — identity, amount, notes, optional — instead of two blind doors on one row and a note with no door at all. The card is the import review's, so the two screens are one component and a cook who has corrected an import already knows this row.</p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>The line at rest</b> · the shipped three-part row, unchanged to the eye — and now <b>one</b> door: the row opens itself</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Edit recipe</span><span class="dots" style="color:var(--herb);font-size:13px;font-weight:600">Save</span></div>
+
+            <div style="display:flex;align-items:center;gap:8px;margin:12px 20px 2px">
+                <span style="flex:1;font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--surface)">for the curry</span>
+                <span style="color:var(--muted);font-size:12px">🗑</span>
+            </div>
+            <div style="margin:0 20px">
+                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">600 g</span><span class="l3-body"><span class="l3-id">Chicken thigh</span>&nbsp;&nbsp;<i style="color:var(--muted)">diced</i></span><span class="l3-pen">✎</span></div>
+                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">2 clove</span><span class="l3-body"><span class="l3-id">Garlic</span></span><span class="l3-pen">✎</span></div>
+                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">1 handful</span><span class="l3-body"><span class="l3-id">Cilantro</span><span class="wv-tag" style="margin-left:8px">optional</span></span><span class="l3-pen">✎</span></div>
+                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">to taste</span><span class="l3-body"><span class="l3-id" style="color:var(--muted);font-weight:400">Sauerkraut</span><span class="wv-tag" style="margin-left:8px">ingredient removed · pick again</span></span><span class="l3-pen">✎</span></div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin:10px 20px 0">
+                <span class="ghostbtn" style="margin-top:0;flex:1">＋ Add ingredient</span>
+                <span class="ghostbtn" style="margin-top:0;flex:1">＋ Add group</span>
+            </div>
+
+            <p class="conv-note" style="margin-top:14px"><b>The row is the row it has always been</b> — <b>[amount] [name] [note]</b>, the amount in its 84&nbsp;px column, the pencil pinned right. What changes is what it means: <b>anywhere on it opens the card</b>. A row that meant the quantity sheet on its left 84&nbsp;px and the identity picker on the rest was a row you had to aim at, and the fact the owner went looking for — the note — was behind neither</p>
+            <p class="conv-note"><b>Bare rows, not a wall of boxes.</b> The review borders every line because every line there is a claim waiting to be checked; here most lines are settled, and twelve bordered cards would make a finished list look unfinished. <b>The border is the open state</b> — next frame</p>
+            <p class="conv-note">the note prints as <b>the recipe page prints it</b>: two spaces, muted italic, no separator between a name and its modifier. Today the editor and the review still print a middle dot the page dropped — one grammar, not two</p>
+            <p class="conv-note">the <b>optional</b> tag and <b>ingredient removed · pick again</b> stay exactly what they are on this row: <b>statements</b>. Both are set inside the card, and a tag that writes on one screen and only reads on another is the confusion week mode already rules out</p>
+            <p class="conv-note">the grip <b>⋮⋮</b> still drags, and it sits <i>outside</i> the row's tap target, so taking hold of the handle never opens the card. <b>Starting a drag closes every open card</b> — what crosses the list is a row like every other row</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>One line, open</b> · the review's card in the editor's words — identity, optional, amount, notes, and the two controls the row gave up</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Edit recipe</span><span class="dots" style="color:var(--herb);font-size:13px;font-weight:600">Save</span></div>
+            <div style="margin:12px 20px 0">
+                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">600 g</span><span class="l3-body"><span class="l3-id">Chicken thigh</span>&nbsp;&nbsp;<i style="color:var(--muted)">diced</i></span><span class="l3-pen">✎</span></div>
+            </div>
+            <div class="lcard" style="margin:6px 20px">
+                <div class="chead"><span class="cn">Garlic&nbsp;&nbsp;<span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--herb);font-weight:400">change ›</span></span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="usedin">used in 2 steps</div>
+                <div class="lflags"><span class="lflag tog">optional</span></div>
+                <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">2 clove <span class="pen">✎</span></span></span></div>
+                <div class="erow"><span class="elab">Notes</span><span class="ebody"><div class="notesin">peeled and crushed</div></span></div>
+            </div>
+            <div style="margin:6px 20px 0">
+                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">1 tsp</span><span class="l3-body"><span class="l3-id">Ground cumin</span></span><span class="l3-pen">✎</span></div>
+            </div>
+
+            <p class="conv-note" style="margin-top:14px"><b>The head is the identity, and the identity is the door.</b> The name in the card's own weight with <b>change ›</b> beside it opens the shipped line target picker — the same picker the name cell opened, keeping the line's id so every method chip survives. The review draws a separate <i>match</i> row under its head because it has the page's words in between; here there is nothing in between, and the same name printed twice would be the accretion</p>
+            <p class="conv-note"><b>Notes are a field on the card</b> — the review's inline field, the same label column, the same hint (<i>e.g. finely chopped, to serve</i>). Blank clears the note. That is the whole reason this frame exists</p>
+            <p class="conv-note"><b>Amount stays a sheet.</b> The chip <b>2 clove ✎</b> opens the 7.7 quantity + unit sheet exactly as the row's amount cell did — a keypad, the chip row of units and the measures are not a thing a card can hold, and the sheet is our one place where an amount is said. One extra tap than today, on the screen where the tap used to land on the wrong door half the time</p>
+            <p class="conv-note"><b>Optional is a control here and only here.</b> It leads the flag row, as it does on every expanded review card — hollow for <i>not optional</i>, filled for <i>optional</i>, one tap either way — and the quantity sheet's own <b>Optional</b> switch goes from the editor's sheet with it. One fact, one door. (Week mode keeps its switch: there the question is <i>this week</i>, and it is the tag that answers it)</p>
+            <p class="conv-note"><b>used in 2 steps</b> moves onto the card, under the head. It is a fact nobody needs while scanning a list, and it is exactly what a reader wants standing over the two controls that can break a chip — <b>change ›</b> and the <b>🗑</b></p>
+            <p class="conv-note"><b>The bin lives in the head</b>, beside the <b>⌃</b> that closes the card — the review's placement. Off the row, a delete cannot be mis-hit while reaching for a line, and removing a referenced line already asks first: <i>“2 steps mention Garlic — remove those chips too?”</i></p>
+            <p class="conv-note">a <b>retired</b> line opens the same way, its head wearing <b>ingredient removed · pick again</b> and its <b>change ›</b> being the repair. The card never greys its amount or notes the way the review does: there is no unmatched line in a saved recipe, only a line whose vocabulary row went away</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>A component line, open</b> · the same card, three differences — the chip is the identity, the amount is a batch, and there are no unit chips</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Edit recipe</span><span class="dots" style="color:var(--herb);font-size:13px;font-weight:600">Save</span></div>
+            <div class="lcard" style="margin:12px 20px 6px">
+                <div class="chead"><span class="cn" style="font-weight:400"><span class="ichip">↪ Pretzel Buns</span>&nbsp;&nbsp;<span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--herb);font-weight:400">change ›</span></span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="usedin">used in 3 steps</div>
+                <div class="lflags"><span class="lflag tog on">optional</span></div>
+                <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">8 <span class="pen">✎</span></span></span></div>
+                <div class="lockhint" style="margin-top:6px">8 of the 8 this recipe makes · <b>1 batch</b></div>
+                <div class="erow"><span class="elab">Notes</span><span class="ebody"><div class="notesin">split and toasted</div></span></div>
+            </div>
+            <div class="lcard" style="margin:10px 20px 6px">
+                <div class="chead"><span class="cn" style="color:var(--muted);font-weight:400">Romesco Aioli&nbsp;&nbsp;<i style="color:var(--muted);font-size:12px">linked recipe missing</i>&nbsp;&nbsp;<span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--herb);font-weight:400">change ›</span></span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">0.25 batch <span class="pen">✎</span></span></span></div>
+                <div class="erow"><span class="elab">Notes</span><span class="ebody"><div class="notesin hint">e.g. finely chopped, to serve</div></span></div>
+            </div>
+
+            <p class="conv-note" style="margin-top:14px"><b>The identity cell is the only thing that changes</b> — the rule the collapsed row has always lived by, now one level up. The recipe chip heads the card where the name would, and <b>change ›</b> opens the same picker with <i>Your recipes</i> in it</p>
+            <p class="conv-note"><b>The amount opens the batch sheet</b>, not the ingredient one: a component is measured in what the target <i>makes</i>, and the card keeps the sheet's own sentence under the chip. <b>No unit chips row</b> — admission is an ingredient concept, and a batch is admitted by nothing</p>
+            <p class="conv-note"><b>Notes ride a component line too.</b> The field is the same field; the collapsed row already prints a component's note beside its chip</p>
+            <p class="conv-note">a <b>dangling</b> link keeps its stored text, muted, and says <b>linked recipe missing</b> — the page's own degradation, in the card's head. Its amount stays editable in batches, which needs no target at all</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Typing a note</b> · the keyboard up, the card held in view, and the one scroll rule the review already paid for</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Edit recipe</span><span class="dots" style="color:var(--herb);font-size:13px;font-weight:600">Save</span></div>
+            <div style="margin:10px 20px 0">
+                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">600 g</span><span class="l3-body"><span class="l3-id">Chicken thigh</span>&nbsp;&nbsp;<i style="color:var(--muted)">diced</i></span><span class="l3-pen">✎</span></div>
+            </div>
+            <div class="lcard" style="margin:6px 20px">
+                <div class="chead"><span class="cn">Garlic&nbsp;&nbsp;<span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--herb);font-weight:400">change ›</span></span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="usedin">used in 2 steps</div>
+                <div class="lflags"><span class="lflag tog">optional</span></div>
+                <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">2 clove <span class="pen">✎</span></span></span></div>
+                <div class="erow"><span class="elab">Notes</span><span class="ebody"><div class="notesin" style="border-color:var(--herb)">peeled and crushed<span class="care" style="display:inline-block;width:1px;height:13px;background:var(--herb);vertical-align:-2px;margin-left:1px"></span></div></span></div>
+            </div>
+            <div class="dock" style="margin-top:6px">
+                <div class="kbd">
+                    <div class="kbd-row"><span class="key">q</span><span class="key">w</span><span class="key">e</span><span class="key">r</span><span class="key">t</span><span class="key">y</span><span class="key">u</span><span class="key">i</span><span class="key">o</span><span class="key">p</span></div>
+                    <div class="kbd-row"><span class="key">a</span><span class="key">s</span><span class="key">d</span><span class="key">f</span><span class="key">g</span><span class="key">h</span><span class="key">j</span><span class="key">k</span><span class="key">l</span></div>
+                    <div class="kbd-row"><span class="key">⇧</span><span class="key">z</span><span class="key">x</span><span class="key">c</span><span class="key">v</span><span class="key">b</span><span class="key">n</span><span class="key">m</span><span class="key">⌫</span></div>
+                    <div class="kbd-row"><span class="key wide">space</span><span class="key done">Done</span></div>
+                </div>
+            </div>
+
+            <p class="conv-note" style="margin-top:14px"><b>Nothing is saved by the keyboard.</b> The field writes the note into the draft on every keystroke, as the title field does; <b>Save</b> is still what stores the recipe and <b>‹</b> still abandons it. There is no per-card Done and no commit gate — the review's Save gate is the review's, and a recipe being edited has no lines that <i>need you</i></p>
+            <p class="conv-note"><b>Dragging the list dismisses the keyboard.</b> A focused field left off the top of the screen asks to be scrolled back to on every keyboard metrics change — which is exactly how the review used to throw the page to the title while a line eight cards down was being corrected. The editor's list has the same field at its head and the same fix: dismiss on drag</p>
+            <p class="conv-note">opening the <b>amount</b> sheet or the <b>identity</b> picker drops focus, so the keyboard leaves before the sheet arrives — and each of those sheets can unmount this card while it is open, which is why the pick is written through the editor's own notifier rather than the card's</p>
+            <p class="conv-note"><b>Several cards can be open at once</b>, and each stays open across every keystroke elsewhere — the open state belongs to the row, not to the screen</p>
+        </div></div>
+    </div>
+
+    <div style="width:100%;margin:2px 0 -6px">
+        <p style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin:0;display:flex;align-items:center;gap:9px">
+            <span style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;background:var(--herb-soft);color:var(--herb-deep);border-radius:6px;padding:3px 8px">built, from here down</span>
+            <span style="flex:1;height:1px;background:var(--line)"></span>
+        </p>
     </div>
 
     <div class="frame">
@@ -319,14 +447,13 @@
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>The substitution</b> · the line keeps its id, so the chips keep pointing at it — only the amount follows</p>
+        <p class="frame-name"><b>The substitution</b> · the line keeps its id, so the chips keep pointing at it — and the notice sits at the head of the <b>Method</b>, where the words it changed are</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl">Edit recipe</span><span class="dots">Save</span></div>
-            <div class="lcard" style="margin-top:10px">
-                <div class="l3 edit"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Beef &amp; pork meatballs</span></span><span class="l3-pen">✎</span></div>
-                <div class="srcline">was:  <span class="ichip">↪ Italian Sausage</span> · re-pointed, same line</div>
-                <div class="usedin">used in 2 steps</div>
+            <div style="margin:10px 20px 0">
+                <div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Beef &amp; pork meatballs</span><span class="l3-used">used in 2 steps</span></span><span class="l3-pen">✎</span></div>
             </div>
+            <div class="tsec" style="margin-top:12px"><span class="tl">Method</span><span class="tc">6</span><span class="rule"></span><span class="ci" style="color:var(--muted);font-size:12px">⋯</span></div>
             <div class="state warn">
                 <div class="sh"><span>⚠</span><span>2 steps mentioned Italian Sausage</span></div>
                 <div class="sb">Their chips now read <b>Beef &amp; pork meatballs</b>. The words around them may need a look — we don’t rewrite your sentences.</div>
@@ -341,6 +468,7 @@
                 <div class="mstep-in">Brown the <span class="echip chg">beef &amp; pork meatballs</span> over medium heat, casings removed.</div>
                 <div class="wasw"><span>was “sausage”</span><b>keep the old word</b></div>
             </div>
+            <p class="conv-note"><b>The notice stays here, not on the line.</b> What a re-point changed is the <i>sentences</i>, and the revert — <b>keep the old word</b> — is on each step that changed. A copy of it on the card would report the consequence next to the cause and leave the fix two screens away. The card's own warning is the one it shows <i>before</i> the tap: <b>used in 2 steps</b>, printed over <b>change ›</b> and the bin</p>
             <p class="conv-note">“casings removed” is <b>yours</b> — flagged, never rewritten. The line is filed as <b>Beef &amp; pork meatballs</b>; each chip takes that name in <b>the case the word it replaces was written in</b>, so a lower-case word mid-sentence takes the whole name down (<i>Olive Oil</i> &rarr; <i>olive oil</i>) and one opening a step keeps its capital</p>
         </div></div>
     </div>
