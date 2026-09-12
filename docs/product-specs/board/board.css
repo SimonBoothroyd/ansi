@@ -1172,9 +1172,10 @@
         @keyframes cel-write{to{max-width:100%;}}
         /* 2 · confetti of the food itself: glyphs burst from the last box */
         .cel .burst{position:absolute;left:10px;top:10px;width:0;height:0;pointer-events:none;z-index:4;}
-        .cel .pc{position:absolute;left:0;top:0;width:11px;height:11px;opacity:0;}
-        .cel.play .pc{animation:cel-pop .95s cubic-bezier(.2,.7,.35,1) var(--d) forwards;}
-        @keyframes cel-pop{0%{transform:translate(0,0) rotate(0) scale(.6);opacity:0;}12%{opacity:1;transform:translate(calc(var(--dx)*.35),calc(var(--dy)*.5)) rotate(calc(var(--r)*.3)) scale(1);}55%{transform:translate(var(--dx),var(--dy)) rotate(var(--r));opacity:1;}100%{transform:translate(calc(var(--dx)*1.25),calc(var(--dy) + 58px)) rotate(calc(var(--r)*1.7));opacity:0;}}
+        .cel .pc.strip{width:6px;height:13px;border-radius:2px;background:currentColor;}
+        .cel .pc{position:absolute;left:0;top:0;width:16px;height:16px;opacity:0;}
+        .cel.play .pc{animation:cel-pop 1.5s cubic-bezier(.2,.7,.35,1) var(--d) forwards;}
+        @keyframes cel-pop{0%{transform:translate(0,0) rotate(0) scale(.5);opacity:0;}8%{opacity:1;transform:translate(calc(var(--dx)*.3),calc(var(--dy)*.45)) rotate(calc(var(--r)*.25)) scale(1.05);}45%{transform:translate(var(--dx),var(--dy)) rotate(var(--r)) scale(1);opacity:1;}85%{opacity:1;}100%{transform:translate(calc(var(--dx)*1.15),calc(var(--dy) + 420px)) rotate(calc(var(--r)*2.2)) scale(.9);opacity:0;}}
         /* 3 · the tick that ripples: an over-scaled bounce and one ring */
         .cel.ripple.play .last .box{animation:cel-bounce .55s cubic-bezier(.34,1.56,.64,1) .05s;}
         @keyframes cel-bounce{0%{transform:scale(1);}45%{transform:scale(1.38);}100%{transform:scale(1);}}
