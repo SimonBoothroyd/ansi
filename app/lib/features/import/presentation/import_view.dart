@@ -201,10 +201,13 @@ class _StageRow extends StatelessWidget {
                       color: AnsiColors.herb,
                     )
                   : active
-                  ? const SizedBox(
-                      width: 13,
-                      height: 13,
-                      child: FCircularProgress(),
+                  // Sized by its own variant, never by a box around it: the
+                  // spinner is `Transform.rotate(alignment: center, …)` over a
+                  // glyph, so a box smaller than the glyph clips the box and
+                  // leaves the ink off the pivot — the marker then turns like a
+                  // cam rather than spinning in place.
+                  ? const FCircularProgress(
+                      size: FCircularProgressSizeVariant.xs,
                     )
                   : Container(
                       width: 7,

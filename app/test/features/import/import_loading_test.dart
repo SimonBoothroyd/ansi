@@ -215,4 +215,32 @@ void main() {
 
     await done();
   });
+
+  testWidgets('the running marker spins in place — the spinner is as big as '
+      'its own glyph, never squeezed into a smaller box', (tester) async {
+    filterForuiSemanticsAssertions();
+    final (run, done) = await _importing(
+      tester,
+      const ImportFromPhotos(['/a']),
+    );
+    await run.say(_photoPlan);
+
+    // The spinner is a `Transform.rotate` about its centre over an icon glyph.
+    // A box tighter than the glyph shrinks the BOX, not the ink: the pivot
+    // then sits off the glyph's own centre and the marker turns like a cam.
+    // So the marker's box has to be the size the glyph is actually drawn at —
+    // which is the icon theme the spinner's own variant resolved.
+    final spinner = find.byType(FCircularProgress);
+    expect(spinner, findsOneWidget);
+    final glyph = tester.widget<IconTheme>(
+      find.descendant(of: spinner, matching: find.byType(IconTheme)).first,
+    );
+    final box = tester.getRect(spinner);
+    expect(box.width, glyph.data.size);
+    expect(box.height, glyph.data.size);
+    // …and the gutter it sits in is still wide enough to hold it.
+    expect(box.width, lessThanOrEqualTo(22));
+
+    await done();
+  });
 }
