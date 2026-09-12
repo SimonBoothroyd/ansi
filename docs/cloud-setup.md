@@ -526,7 +526,27 @@ A ✓ means the dashboard hook is correctly wired (the JWT carries `household_id
 
 Newest first. One entry per verification pass: what was checked, what passed,
 what was left. Append an entry after every `cloud_verify.sh` run against cloud
-or any dashboard-config walk.
+or any dashboard-config walk. An entry headed **pending** is the exception: it
+names a migration that is merged but **not yet on cloud**, and it is replaced by
+the ordinary entry for the run that pushes it.
+
+### Pending the next cloud push — `0043_household_week_start`
+
+- **Not on cloud yet.** `0043_household_week_start.sql` adds
+  `household.week_starts_on` (ISO weekday, default 1 = Monday) and the
+  `set_household_week_start(household_id, starts_on)` RPC that flips it and
+  re-homes every week of that household in the same transaction. Green locally:
+  `supabase db reset` + the full pgTAP suite, including the new
+  `tests/household_week_start.sql`.
+- **Nothing to do by hand on the dashboard, and no sync-rule change.** Both
+  configs already ship `select * from household`, so the column reaches devices
+  on the next streams deploy with no edit. The table is already in the
+  `powersync` publication.
+- **Row-preserving** (§2c): one additive column with a default, one function,
+  and a widened column-narrow UPDATE grant. No existing household changes shape
+  until somebody calls the RPC — a default of 1 is exactly what every household
+  has meant since 0005, so a push on its own moves no row.
+- After `db push`, replace this entry with the ordinary one for that run.
 
 ### 2026-09-12 (evening) — v0.14.0 on cloud: 0041, 0042, and the owner's rows as the template
 
