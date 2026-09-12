@@ -58,7 +58,10 @@ analyze: ## Static analysis (fails on any issue)
 	cd $(APP) && dart run custom_lint
 
 .PHONY: format
-format: ## Format Dart + check
+# `deps` first: without a package config the formatter cannot read the
+# package's language version and quietly falls back to the old short style,
+# so a fresh worktree "fixes" files that were already right.
+format: deps ## Format Dart + check
 	cd $(APP) && dart format --set-exit-if-changed .
 
 .PHONY: test test-app test-fns test-sim powersync-core
