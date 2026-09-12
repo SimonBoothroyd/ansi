@@ -102,11 +102,24 @@ import/
   ([ADR-0015](../../../../docs/decisions/0015-piece-weight-is-a-row-fact.md)):
   "2 dragon fruit" meets the same admission gate as every other unit, clean on a
   row that admits `piece` (a `piece` default carrying a piece weight) and
-  `unitNotAllowed` on one that does not. **Nothing arrives on a measure and
-  nothing enters a weight here** — `arrivalMeasure` and the sole-measure
-  pre-select are gone, because what one of a thing weighs is the ingredient's
-  property. The fix is the row's own form, opened from the chosen-ingredient row
-  on the card, or another unit or measure chip.
+  `unitNotAllowed` on one that does not. **Nothing enters a weight here** —
+  what one of a thing weighs is the ingredient's property, and the fix for an
+  unweighed row is its own form, opened from the chosen-ingredient row on the
+  card, or another unit or measure chip.
+- **A counted line lands on the row's whole measure**
+  ([ADR-0016](../../../../docs/decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md)):
+  a printed `piece`, or a number with no unit word, on a row that carries a
+  measure weighing what a piece weighs (`wholeMeasureOf`, within 1 %) becomes
+  that measure's label at the moment the match resolves — `landOnWholeMeasure`,
+  run over the payload as it arrives and again by the controller's
+  `resolveLine` on a re-match, which takes the machine's earlier word back
+  first. It is exactly a tapped chip: unflagged, printed as `1 lime, whole` in
+  the amount slot, committed to the measure's id. A weighed row with no whole
+  measure keeps `piece`; an unweighed row keeps the gate above; a unit somebody
+  chose or a word the page printed is never overruled. The extraction still
+  prints `piece` — the review decides — and the landing's reads are
+  best-effort, so a local failure leaves the lines as they arrived and is
+  named by the review's own check rather than by a lost import.
 - **Never-invent is a UI obligation too.** Parse warnings, a degraded image, a
   truncated source, a printed range, and `raw_amount` are all *shown*. The source
   line sits under every open card ("from source: …") — from a photo you would

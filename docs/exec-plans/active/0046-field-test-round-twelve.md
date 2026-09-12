@@ -84,6 +84,31 @@ Lane `week` — `features/planning`:
       the week view's library comments, the planning README — say the new
       rule; the board's meal-editor frame draws three fields.
 
+Lane `lime` — `features/ingredients` · `features/import` · `features/shopping`
+(the owner's ruling under *The lime — two models*, ADR-0016):
+
+- [x] `wholeMeasureOf(ingredient, measures)` is the one reading of "the
+      measure that is a piece": within 1 % of the piece weight, lowest
+      `sort_order` then label, null without a weight or a match; derived by
+      weight, never stored. Unit-tested on every edge.
+- [x] The chip row leads with the whole measure and the quantity sheet opens
+      on it when a caller names no choice; `piece (67 g)` stays after it; an
+      edited line keeps its stored choice; Avocado still opens on `piece`.
+      Widget tests.
+- [x] The review lands a counted line on the whole measure at the moment the
+      match resolves — arrival and re-match, which takes the machine's earlier
+      word back first — unflagged, printed `1 lime, whole`, committed to the
+      `measure_id`. A weighed row without one keeps `piece`, an unweighed row
+      keeps its gate, a hand-set unit is never overruled, the extraction is
+      untouched. Domain, controller and slot tests; the gold specimens are
+      unchanged (they never meet a vocabulary).
+- [x] The shop's named-measure count prints `→ buy 3` under a fractional
+      count, as the piece count does. Format and screen tests.
+- [x] ADR-0016 written and linked; the import, ingredients and shopping
+      READMEs say the rule; the four model-A frames are built on the board
+      and model B is gone from it.
+- [ ] The owner runs the re-point below after this ships.
+
 Lane `docs` (this file):
 
 - [ ] The audit below is ready for the owner to run read-only; its result
@@ -366,6 +391,14 @@ carries the same words.
   not a whole number of pieces per thing asked for. No line is rewritten.
   Nothing changes in the import: the extraction's `piece` for count produce
   and the review's refusal to arrive on a measure are both still right.
+- 2026-09-12 — **The lime is a consistency defect at the doors, and model A
+  is built.** The owner confirmed A with three details: the whole measure is
+  found by weight within 1 %; when two measures qualify the lowest
+  `sort_order` wins, then the label; the recipe page prints the measure's own
+  words (`1 lime, whole`) and no measure is renamed. Recorded as ADR-0016,
+  which amends ADR-0015's "nothing arrives on a measure". B stays on record
+  above as the alternative that lost. The re-point SQL is still the owner's
+  to run, after the app change ships.
 - 2026-09-12 — **The celebration waits for the owner.** The all-ticked
   state and its quiet line ship now, as the hook; the animation is drawn
   with him first (options under Notes).

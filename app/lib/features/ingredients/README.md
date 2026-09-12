@@ -334,6 +334,13 @@ ingredients/
   exactly as `setDensity` / `clearDensity` do for the other family. Nothing is
   curated off a row and no measure is pointed at: measures stay the words for
   sizes, fragments and containers.
+  - **A measure that weighs what the piece weighs is the row's word for one**
+    ([ADR-0016](../../../../docs/decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md)).
+    `wholeMeasureOf` is the one reading — the live measure within 1 % of the
+    piece weight, lowest `sort_order` then label — found by weight, never
+    stored. The chip row leads with it, the sheet opens on it when a caller
+    names no choice, and `piece (67 g)` stays offered after it; a row that
+    weighs a piece but names no size still opens on `piece`.
   - **On the form**, `PieceWeightEntry` sits beside `DensityEntry` and is drawn
     only while the default unit is `piece`. It reports intent like every other
     shared editor (ADR-0011); the form's Save lands it with the rest.

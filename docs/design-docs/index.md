@@ -26,7 +26,8 @@ Immutable records of significant choices and their rationale.
 - [ADR-0012](../decisions/0012-tsp-mates-cup.md) — The volume ladder is symmetric: `tsp` mates `cup` (superseded by ADR-0014)
 - [ADR-0013](../decisions/0013-mass-ladder-symmetric.md) — The mass ladder is symmetric: the four kitchen mass units mate each other (superseded by ADR-0014)
 - [ADR-0014](../decisions/0014-all-to-all-admission.md) — All to all: a mass/volume family is admitted whole and the household prunes per row (supersedes ADR-0008's kitchen trim, and ADR-0012/0013 entirely; leg 3 amended by ADR-0015)
-- [ADR-0015](../decisions/0015-piece-weight-is-a-row-fact.md) — A piece weight is a row fact, exactly as a density is: it unlocks `piece` and retires "Counts as" (supersedes ADR-0010)
+- [ADR-0015](../decisions/0015-piece-weight-is-a-row-fact.md) — A piece weight is a row fact, exactly as a density is: it unlocks `piece` and retires "Counts as" (supersedes ADR-0010; rules 2 and 4 amended by ADR-0016)
+- [ADR-0016](../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md) — A measure that weighs a piece is the row's word for one: the sheet opens on it, the review lands a count on it, found by weight and never stored (amends ADR-0015 rules 2 and 4)
 
 ## Deep design
 

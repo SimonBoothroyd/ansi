@@ -689,8 +689,16 @@ a save would write, and Save at the bottom.
   "Pick a supported unit" where it does not. **The review never enters a piece
   weight**: what one of a thing weighs is the ingredient's property, so the fix
   is the row's own form, opened from the chosen-ingredient row on the card, or
-  another unit or measure chip. Nothing is resolved on the line's behalf and no
-  card annotates what a count "counted as".
+  another unit or measure chip. No card annotates what a count "counted as".
+- **A counted line lands on the row's whole measure**
+  ([ADR-0016](../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md)):
+  where the matched row carries a measure that weighs what a piece weighs
+  (within 1 %), a printed `piece` or a bare number becomes that measure's
+  label at the moment the match resolves — arrival and re-match alike —
+  exactly as a tapped chip would, and commits to the measure's id. A weighed
+  row without one keeps `piece`, an unweighed row keeps the gate above, and a
+  unit somebody chose is never overruled. The extraction still prints
+  `piece`; the review decides.
 - **Save is gated on all-valid.** A line is done when it is matched, any printed
   range has a picked number, and its unit is admitted. Until every line clears,
   Save is disabled and says how many still need you. `buildCommit` re-asserts this

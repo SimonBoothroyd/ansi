@@ -158,6 +158,13 @@ The rules, each of them the density rule read for a count:
   (3 g)` that explains itself. The sheet's conversion line shows the
   multiplication: *2 × 110 g = 220 g*. The token a tap writes is still the
   catalog unit.
+- **A measure that weighs what the piece weighs is the row's word for one**
+  ([ADR-0016](../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md)).
+  `wholeMeasureOf` finds it by weight — within 1 % of `piece_basis_amount`,
+  lowest `sort_order` then label — and nothing stores it. The chip row leads
+  with it, the quantity sheet opens on it when a caller names no choice, and
+  the import review lands a counted line on it; `piece` stays offered after
+  it, and a row that weighs a piece but names no size still says `piece`.
 - **A `piece` default with no weight is a stranded default**, in the same class
   as a `cup` default with no density (D4c). The form flags it with its one-tap
   fix — *piece needs a weight on this row — enter one below, or switch to g* —

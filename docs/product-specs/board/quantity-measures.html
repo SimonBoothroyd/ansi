@@ -15,8 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Quantity &amp; measures</h1>
-    <p class="view-status">built · matches code 2026-09-11 · <code>features/ingredients</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a></p>
-    <p class="view-status"><span class="prop">proposed</span> the dock under the whole-measure model · <code>features/ingredients</code> · <a href="../../exec-plans/active/0046-field-test-round-twelve.md">plan 0046</a> · not built</p>
+    <p class="view-status">built · matches code 2026-09-12 · <code>features/ingredients</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a></p>
     <p class="view-blurb">One dock everywhere an amount is set: this ingredient’s admitted units as chips over a keypad, and the conversion said out loud above them.</p>
 </header>
 
@@ -48,7 +47,7 @@
     <div class="frame">
         <p class="conv-note" style="margin:10px 4px 0">The row&rsquo;s <b>serving</b> rides here as one chip and nowhere else: it is stored as a measure (that is what makes the nutrition line reverse) but it is stated in the ingredient&rsquo;s <i>Nutrition</i> section, so no list of measures shows it. The chip says <b>the size</b>, <span style="font-family:'IBM Plex Mono',monospace">serving (237 ml)</span>, not the pack&rsquo;s own words &mdash; &ldquo;1 serving&rdquo; is a thing a week&rsquo;s ingredient slot can say, and what the tapper needs is what it comes to.</p>
 
-        <p class="conv-note" style="margin:10px 4px 18px"><b>Chip order:</b> the row&rsquo;s own measures, in the order the household dragged them &rarr; the default unit and the rest of its family &rarr; the other family, once a density unlocks it &rarr; the imprecise words, behind the divider. Measures lead because <code>clove</code> and <code>can</code> are words for <i>this</i> row and exist nowhere else, where <code>g</code> is offered on everything. The default unit is still the chip the sheet <i>opens on</i> &mdash; being first and being selected are different things. A measure chip carries the <b>bare word</b> the household gave it; what one comes to is said once, on the line beside the amount (<span style="font-family:'IBM Plex Mono',monospace">clove (3 g)</span>). The two chips that carry a figure carry it because the word alone says nothing: <code>piece</code> would mean a clove or a bulb, and <code>serving</code> is the pack&rsquo;s word, not this row&rsquo;s.</p>
+        <p class="conv-note" style="margin:10px 4px 18px"><b>Chip order:</b> the row&rsquo;s own measures &mdash; the one that weighs a piece first, then in the order the household dragged them &rarr; the default unit and the rest of its family &rarr; the other family, once a density unlocks it &rarr; the imprecise words, behind the divider. Measures lead because <code>clove</code> and <code>can</code> are words for <i>this</i> row and exist nowhere else, where <code>g</code> is offered on everything. The chip the sheet <i>opens on</i> is the row&rsquo;s whole measure where one weighs a piece (<a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a>), else the default unit &mdash; being first and being selected are different things. A measure chip carries the <b>bare word</b> the household gave it; what one comes to is said once, on the line beside the amount (<span style="font-family:'IBM Plex Mono',monospace">clove (3 g)</span>). The two chips that carry a figure carry it because the word alone says nothing: <code>piece</code> would mean a clove or a bulb, and <code>serving</code> is the pack&rsquo;s word, not this row&rsquo;s.</p>
 
         <p class="frame-name"><b>Two rows, two answers</b> · the dock is identical — the difference is one number on the row. <i>piece</i> is offered where a piece weight says what one is, and nowhere else; the measures sit beside it either way</p>
         <div class="phone"><div class="notch"></div><div class="screen">
@@ -74,7 +73,7 @@
 
 
     <div class="frame">
-        <p class="frame-name"><span class="proposed-tag">proposed</span><b>The dock under the whole-measure model</b> · one chip moves: the measure that weighs a piece opens the row and is the chip the sheet opens on; <i>piece</i> stays, after it. Under the other model the dock is the frame above, unchanged</p>
+        <p class="frame-name"><b>The whole measure</b> · a measure that weighs what a piece weighs leads the row and is the chip the sheet opens on; <i>piece</i> stays, after it</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">✕</span><span class="ttl"></span><span class="dots"></span></div>
             <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle">Lime</div>
@@ -85,11 +84,11 @@
                 <p class="conv-note" style="margin:0 0 9px">1 × 67 g = <b>67 g</b></p>
                 <p class="chip-note">a whole measure on the row — it leads, and it is what the sheet opens on; piece follows with the same figure</p>
                 <div class="uchips"><span class="uchip on"><span class="srcdot usda"></span>lime, whole</span><span class="uchip">piece (67 g)</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip-sep"></span><span class="uchip impr">handful</span><span class="uchip addm">＋</span></div>
-                <p class="conv-note" style="margin:0 0 10px">the two chips say the same 67 g. The sheet opening on the <i>measure</i> rather than the unit is the whole change on this screen: a hand-typed lime and an imported lime then carry one word.</p>
+                <p class="conv-note" style="margin:0 0 10px">the two chips say the same 67 g. The sheet opening on the <i>measure</i> rather than the unit is what makes a hand-typed lime and an imported lime carry one word (<a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a>); a line being edited opens on its own stored choice.</p>
             </div>
             <div class="abar" style="border-top:1px solid var(--line);padding-top:12px"><span class="back">✕</span><span class="ttl"></span><span class="dots"></span></div>
             <div class="dock" style="margin-top:0">
-                <p class="chip-note">Avocado — weighed, no measure weighs a piece: the dock is exactly today’s</p>
+                <p class="chip-note">Avocado — weighed, no measure weighs a piece: the dock opens on piece</p>
                 <div class="uchips"><span class="uchip on">piece (201 g)</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip addm">＋</span></div>
             </div>
         </div></div>
