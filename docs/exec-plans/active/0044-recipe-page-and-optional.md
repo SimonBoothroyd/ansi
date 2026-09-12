@@ -74,7 +74,7 @@ Lane `page` — `features/recipes/presentation`, `shared/method_step_text.dart`,
 Lane `optional` — `features/cook_plan`, `features/shopping`,
 `features/planning/domain|data`, `features/import/domain`:
 
-- [ ] The cook plan honours the seam: a **component line the recipe marks
+- [x] The cook plan honours the seam: a **component line the recipe marks
       optional spawns a component session only when the week includes it**;
       a component line the week excludes spawns none. `buildCookPlan` takes a
       per-week component graph — the graph is filtered per recipe through
@@ -82,20 +82,20 @@ Lane `optional` — `features/cook_plan`, `features/shopping`,
       cook plan, the shop and the week's macros keep reading one rule.
       Regression test: an optional sub-recipe with no include row → no
       session; with one → the session; an excluded one → none.
-- [ ] `WeekVariantRepository.setLineIncluded(weekStart, recipeId, lineId,
+- [x] `WeekVariantRepository.setLineIncluded(weekStart, recipeId, lineId,
       included:)` — adds or removes one `include` row inside the stored set
       (load, edit, `saveOverrides`), so a one-tap door needs no diff and no
       draft. Tested on the real database.
-- [ ] The shop's echo row is a door: each name in `2 optional lines not
+- [x] The shop's echo row is a door: each name in `2 optional lines not
       listed — lime, coriander` is tappable and writes the include row for
       that week and recipe through `ref.write`. `OptionalLinesNote` carries
       the line ids beside the names. The item then appears with the
       `· this week, ticked in` provenance segment that already exists.
-- [ ] An optional **component** line is a legitimate stored fact:
+- [x] An optional **component** line is a legitimate stored fact:
       `buildCommit` stops forcing `optional: false` on a linked line and the
       comment that called it a week-level question goes. (The editor and the
       review already allow it; the owner's live data has one.)
-- [ ] `docs/product-specs/board/cook-shop.html` gains the echo-row-as-door
+- [x] `docs/product-specs/board/cook-shop.html` gains the echo-row-as-door
       frame; `product-spec.md` §recipes and §cook plan say the rule.
 
 Lane `page-week` — `recipe_view.dart`, `ingredient_line.dart`, the view
@@ -181,10 +181,10 @@ models; runs after the other two land:
 ## Step-done checklist
 
 - [ ] Roadmap row added.
-- [ ] `ARCHITECTURE.md` standing table: recipes (the page holds the week),
+- [x] `ARCHITECTURE.md` standing table: recipes (the page holds the week),
       cook plan (week-aware component graph), shopping (the echo row is a
       door).
-- [ ] `app/AGENTS.md` still true (the fraction rule's wording).
+- [x] `app/AGENTS.md` still true (the fraction rule's wording).
 - [ ] `make test-sim`: the recipe editor, week variant and nested files at
       least, once, before landing `page-week`.
 - [ ] Tech-debt rows: none added unless a corner is actually cut.
