@@ -11,7 +11,10 @@ The detail is in the plan; the landing dates are in the
 
 ## Next
 
-1. Step 10 (web) or step 11 (anti-waste), both stretch, or the first
+1. [Field test round eleven](./active/0045-field-test-round-eleven.md) —
+   the honest import slot, notes on a recipe line, a household's first day
+   of the week. In flight.
+2. Step 10 (web) or step 11 (anti-waste), both stretch, or the first
    idea worth building off the [backlog](./backlog.md).
 
 The seed is the owner's own vocabulary and a reseed follows his rows, so no
@@ -21,6 +24,7 @@ operator statement is owed.
 
 | What | Plan |
 |------|------|
+| A flagged import amount prints empty; the editor's line opens into the review's card (notes, optional, amount in one place); a household's first day of the week, with migration `0043` **pending cloud push**. | [0045](./active/0045-field-test-round-eleven.md) |
 
 ## Shipped
 
