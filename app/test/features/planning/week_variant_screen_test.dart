@@ -143,6 +143,15 @@ Future<void> _pumpEditor(
   await tester.pumpAndSettle();
 }
 
+/// Whether the line named [name] is drawn struck through — the treatment every
+/// line this week is not cooking wears, whichever way it got there.
+bool _struck(WidgetTester tester, String name) {
+  final text = tester.widget<Text>(find.textContaining(name).first);
+  final span = text.textSpan! as TextSpan;
+  final identity = span.children!.first as TextSpan;
+  return identity.style?.decoration == TextDecoration.lineThrough;
+}
+
 /// Every `Text` on screen, joined — the cheapest way to assert about copy that
 /// is split across spans.
 String _allText(WidgetTester tester) => tester
@@ -193,19 +202,20 @@ void main() {
       expect(text, contains('Parmesan, grated'));
     });
 
-    testWidgets('the optional line says so on the row, in the same voice the '
-        'recipe page uses', (tester) async {
+    testWidgets('an optional line the week has not asked for draws struck, '
+        'and offers the way in', (tester) async {
       await _pumpEditor(tester);
-      // Parmesan is the recipe's one optional line, and this screen edits that
-      // list — so it states the flag rather than hiding it inside the amount
-      // sheet. Stated, not tapped: the sheet's Optional switch is still the
-      // only place it changes.
+      // Parmesan is the recipe's one optional line: not asked for, which is
+      // what an exclusion is too — so it reads the same, and says how it comes
+      // back in its own slot.
       expect(find.byType(OptionalTag), findsOneWidget);
-      final tag = tester.getRect(find.byType(OptionalTag));
-      final parmesan = tester.getRect(find.textContaining('Parmesan').first);
-      final wine = tester.getRect(find.textContaining('Red wine').first);
-      expect(tag.top < parmesan.bottom && parmesan.top < tag.bottom, isTrue);
-      expect(tag.top < wine.bottom && wine.top < tag.bottom, isFalse);
+      expect(find.textContaining('include this week'), findsOneWidget);
+      expect(_struck(tester, 'Parmesan, grated'), isTrue);
+      expect(
+        _struck(tester, 'Red wine'),
+        isFalse,
+        reason: 'a counted line is not struck',
+      );
     });
 
     testWidgets('an untouched list offers no way back — there is nothing to '
@@ -329,6 +339,48 @@ void main() {
         ),
       );
       expect(find.text('Back to the recipe · drops 2 changes'), findsOneWidget);
+    });
+
+    testWidgets('tapping the optional tag includes the line, and Save writes '
+        'the include row', (tester) async {
+      final variants = FakeWeekVariantRepository();
+      await _pumpEditor(tester, variants: variants);
+
+      await tester.tap(find.textContaining('include this week'));
+      await tester.pumpAndSettle();
+
+      // The row is in: it unstrikes, drops the switch, and wears the week's
+      // own tag with the reset that takes it back out.
+      expect(_struck(tester, 'Parmesan, grated'), isFalse);
+      expect(find.byType(OptionalTag), findsNothing);
+      expect(_allText(tester), contains('this week · included'));
+      expect(_allText(tester), contains('↺ reset'));
+      expect(variants.saved, isEmpty, reason: 'nothing is written until Save');
+
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      final set = variants.saved.single.set;
+      expect(set, hasLength(1));
+      expect(set.single.action, LineOverrideAction.include);
+      expect(set.single.recipeLineItemId, 'l3');
+    });
+
+    testWidgets('the reset takes it back out, and leaves nothing behind — an '
+        'optional line left optional is not a change', (tester) async {
+      final variants = FakeWeekVariantRepository();
+      await _pumpEditor(tester, variants: variants);
+
+      await tester.tap(find.textContaining('include this week'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('↺ reset'));
+      await tester.pumpAndSettle();
+
+      expect(_struck(tester, 'Parmesan, grated'), isTrue);
+      expect(find.byType(OptionalTag), findsOneWidget);
+
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect(variants.saved.single.set, isEmpty);
     });
 
     testWidgets(

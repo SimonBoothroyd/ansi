@@ -111,7 +111,11 @@ recorded here because the board draws pixels and does not hold decisions.
   *on* over a line the recipe counts has exactly the effect the bin has (the
   seam drops it), so it stores `exclude` rather than a second column that would
   have to mean the same thing. Switching it *off* over an optional line is the
-  `include` the seam was written for.
+  `include` the seam was written for. On this screen the line's `optional` tag
+  is that switch: an optional line draws struck like an excluded one and its
+  tag reads "＋ include this week", writing the same `include` row in one tap —
+  the amount sheet stays the other door onto it, and the tag on the recipe
+  editor proper stays display-only.
 - 2026-09-10 — **D4 · Both resets.** Per line (the dish row's `−` idiom, muted,
   no confirm) and a footer that states its count — "Back to the recipe · drops
   5 changes". Both are draft actions; Save commits them, so the undo is back.

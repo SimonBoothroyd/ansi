@@ -287,7 +287,11 @@ class _WeekLineRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final item = entry.line;
-    final struck = entry.excluded;
+    // An optional line is a line this week has not asked for, which is what an
+    // excluded line is too — so it reads the same: struck and muted. The
+    // difference is only how it comes back, and each says so in its own slot
+    // below the name.
+    final struck = entry.excluded || item.optional;
     final muted = struck ? AnsiColors.muted : AnsiColors.ink;
 
     Future<void> editAmount() async {
@@ -382,15 +386,15 @@ class _WeekLineRow extends ConsumerWidget {
                               ),
                         ),
                         ...noteSpans(item.note),
-                        // Stated, not tapped: the amount sheet's Optional
-                        // switch is still the one place this screen changes
-                        // it, and a tag that looked like a control here would
-                        // promise a second door onto the same fact.
-                        ...optionalSpans(optional: item.optional),
                       ],
                     ),
                   ),
                 ),
+                // One slot under the name, never two badges at once: a line
+                // this week has changed says what it did and offers the undo;
+                // an untouched optional line says it is optional and offers
+                // the way in. Ticking it in IS a change, so the first takes
+                // over from the second.
                 if (change != null)
                   _WeekTag(
                     change: change!,
@@ -398,6 +402,11 @@ class _WeekLineRow extends ConsumerWidget {
                     onReset: () => change == WeekChange.added
                         ? notifier.removeOrExclude(item.id)
                         : notifier.reset(item.id),
+                  )
+                else if (item.optional)
+                  _OptionalSwitch(
+                    onTap: () =>
+                        notifier.setOptional(item.id, optional: !item.optional),
                   ),
               ],
             ),
@@ -454,6 +463,53 @@ class _WeekTag extends StatelessWidget {
           ),
         ),
       ],
+    ),
+  );
+}
+
+/// The `optional` tag, on the one screen where it is also the switch.
+///
+/// Week mode is where a household says what it is actually eating, and an
+/// optional line is the question that asks most often: *are we doing the
+/// parmesan this week?* Everywhere else the tag states a fact and the amount
+/// sheet's **Optional** switch changes it; here the fact and the question are
+/// the same thing, so the tag answers it in one tap — no second screen, no new
+/// state, and Save still stores it. Ticking it in writes the `include` row the
+/// diff already had words for, and the row swaps this slot for the week tag.
+///
+/// It wears `_WeekTag`'s own shape — a badge and the muted action beside it —
+/// because that is the one badge vocabulary a recipe line has.
+class _OptionalSwitch extends StatelessWidget {
+  const _OptionalSwitch({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: 'optional · tap to include this week',
+    button: true,
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      // A badge is a small thing to hit; the row it sits under is not, so the
+      // target is padded out to a comfortable one rather than drawn bigger.
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 32),
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(top: 4),
+        child: Wrap(
+          spacing: 6,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            const OptionalTag(),
+            Text(
+              '＋ include this week',
+              style: ansiMono(size: 10, color: AnsiColors.muted),
+            ),
+          ],
+        ),
+      ),
     ),
   );
 }
