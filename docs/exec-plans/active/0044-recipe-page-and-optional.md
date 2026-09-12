@@ -185,7 +185,8 @@ models; runs after the other two land:
       cook plan (week-aware component graph), shopping (the echo row is a
       door).
 - [x] `app/AGENTS.md` still true (the fraction rule's wording).
-- [ ] `make test-sim`: the recipe editor, week variant and nested files at
-      least, once, before landing `page-week`.
-- [ ] Tech-debt rows: none added unless a corner is actually cut.
-- [ ] `make ci` green.
+- [x] `make test-sim`: recipe editor, week variant, nested and week files
+      green on the sim (2026-09-12); the two smoke files that pinned ASCII
+      fractions were updated to the glyphs.
+- [x] Tech-debt rows: none added unless a corner is actually cut.
+- [x] `make ci` green.
