@@ -1476,6 +1476,9 @@
     .wflat .field,.wflat .fq,.wflat .stub-foot,.wflat .addnew,
     .wflat .rc-note{margin-left:0;margin-right:0;}
     .wflat .res-row,.wflat .er-shopsync,.wflat .wkhdr{padding-left:0;padding-right:0;}
+    /* the basket's own aisles keep their indent: set in from the box, so they
+       read as sections OF the basket rather than a second run of aisles */
+    .wflat .sl-group.sub{margin-left:31px;}
 
     /* 1 · the walk — one column, capped, centred in the width */
     .wmeasure{max-width:720px;width:100%;margin:0 auto;}
@@ -1498,7 +1501,8 @@
     .wtop .ttl{margin:0;}
 
     /* a long list gets a scroll model: the search field and the stub band are
-       pinned, and only the section below them travels */
+       pinned, the aisle sections travel under them, and each section header
+       sticks to the top of the scroller while its own rows pass */
     .wpin{flex:none;}
     .wscroll{flex:1;min-height:0;overflow:hidden;position:relative;}
     .wscroll::after{content:"";position:absolute;left:0;right:0;bottom:0;height:44px;background:linear-gradient(rgba(255,255,255,0),var(--frame));pointer-events:none;}
