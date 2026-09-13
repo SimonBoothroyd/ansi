@@ -261,6 +261,33 @@ void main() {
       );
     });
 
+    testWidgets('the index lights whichever section the list is scrolled to, '
+        'with no tap of its own', (tester) async {
+      _wide(tester, height: 500);
+      await tester.pumpWidget(_host(_tall()));
+      await tester.pump();
+
+      Color? inkFor(String section) => tester
+          .widget<Text>(
+            find.descendant(of: _index(), matching: find.text(section)),
+          )
+          .style
+          ?.color;
+
+      expect(inkFor('Pasta'), AnsiColors.herbDeep);
+      expect(inkFor('Traybakes'), isNot(AnsiColors.herbDeep));
+
+      // A plain drag, the way a reader scrolls: the index follows the list.
+      await tester.drag(
+        find.byType(LibraryRecipeRow).first,
+        const Offset(0, -600),
+      );
+      await tester.pumpAndSettle();
+
+      expect(inkFor('Pasta'), isNot(AnsiColors.herbDeep));
+      expect(inkFor('Traybakes'), AnsiColors.herbDeep);
+    });
+
     testWidgets('tapping a name in the index scrolls the one list to it, and '
         'lights it', (tester) async {
       _wide(tester, height: 500);

@@ -17,6 +17,7 @@ library;
 
 import 'dart:async';
 
+import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
@@ -210,10 +211,6 @@ class _Panes extends StatefulWidget {
 class _PanesState extends State<_Panes> {
   final _scroll = ScrollController();
 
-  /// The list itself — what a section's offset is measured against, so "has
-  /// this label passed the top?" is asked in the list's own coordinates.
-  final _listKey = GlobalKey();
-
   /// One key per section block, so the index can scroll to it. Keyed by section
   /// id (null for Unsectioned) and kept across rebuilds — a fresh key would
   /// rebuild the block and lose the row states inside it.
@@ -240,20 +237,29 @@ class _PanesState extends State<_Panes> {
 
   GlobalKey _keyFor(String? id) => _keys.putIfAbsent(id, GlobalKey.new);
 
-  /// Lights the last section whose label has passed the top of the list.
+  /// Lights the last section that has reached the top of the list.
+  ///
+  /// Each section is asked what offset would put *it* at the top
+  /// ([RenderAbstractViewport.getOffsetToReveal] — the number
+  /// [Scrollable.ensureVisible] scrolls to), and the last one already at or
+  /// above the current offset is the one on screen. Asked that way rather than
+  /// by measuring where a block is painted, because a scrolled sliver child's
+  /// paint transform answers in the list's own layout space and never moves.
   ///
   /// A section scrolled far above the viewport can be unbuilt, and then it has
-  /// no context to measure — which is harmless here: the one at the top is by
-  /// definition built, so it is still the last match.
+  /// nothing to ask — harmless: the one at the top is by definition built, so
+  /// it is still the last match.
   void _readScroll() {
-    final list = _listKey.currentContext?.findRenderObject();
-    if (list is! RenderBox) return;
+    if (!_scroll.hasClients) return;
+    final offset = _scroll.offset;
     String? lit;
     var found = false;
     for (final entry in bookIndexEntries(widget.book)) {
       final block = _keys[entry.id]?.currentContext?.findRenderObject();
-      if (block is! RenderBox) continue;
-      if (block.localToGlobal(Offset.zero, ancestor: list).dy <= 8) {
+      if (block == null) continue;
+      final viewport = RenderAbstractViewport.maybeOf(block);
+      if (viewport == null) continue;
+      if (viewport.getOffsetToReveal(block, 0).offset <= offset + 8) {
         lit = entry.id;
         found = true;
       }
@@ -329,7 +335,6 @@ class _PanesState extends State<_Panes> {
                       maxWidth: ansiMeasureWidth(context),
                     ),
                     child: ListView(
-                      key: _listKey,
                       controller: _scroll,
                       padding: const EdgeInsets.only(bottom: 32),
                       children: _sections(
