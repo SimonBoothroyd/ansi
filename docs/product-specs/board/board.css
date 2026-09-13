@@ -1350,6 +1350,10 @@
     .wx-meal .rmv{padding-left:0;font-size:14px;}
     /* the cook marker keeps its words in a narrow column by wrapping */
     .wx-meal .cookmark{display:flex;flex-wrap:wrap;white-space:normal;line-height:1.4;align-self:flex-start;}
+    /* a recipe the week has edited carries the phone's second, quieter mark on
+       every card it appears on; in a column this narrow it STACKS under the
+       cook marker rather than sitting beside it */
+    .wx-meal .wv-marks{margin-top:0;flex-direction:column;align-items:flex-start;gap:4px;}
     .wx-meal .portchip,.wx-meal .badge-inc{align-self:flex-start;}
 
     /* the column foot: the day's ONE ＋ add a meal, in every state, pinned */
@@ -1371,14 +1375,21 @@
     .wx-bd .dm-exc,.wx-bd .dm-none{margin-top:6px;line-height:1.45;}
 
     /* treatment (b)'s table: the same seven columns, read down instead of
-       across — numbers right-aligned so a row can be compared */
+       across — numbers right-aligned so a row can be compared. The gutter
+       takes over the line's own naming (the phone's `90P` is a `90` on the
+       protein row), so a cell carries a bare figure and no unit at all */
     .wx-tl{border-top:1px solid var(--line);padding:5px 8px 5px 0;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+    .wx-tl .gly{margin-right:2px;}
     .wx-tc{border-top:1px solid var(--line);border-left:1px solid var(--line);padding:5px 6px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:var(--ink);}
-    .wx-tc .u{font-size:9px;font-weight:400;color:var(--muted);margin-left:2px;}
     .wx-tc.den{font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;}
     .wx-tc.den.part{color:var(--aging);}
     .wx-tc.exc{font-size:9px;font-weight:400;color:var(--muted);line-height:1.45;text-align:right;}
     .wx-tc.exc b{color:var(--ink);font-weight:500;}
+
+    /* what the last copy left behind: the phone's own state box, running the
+       whole matrix under the pinned head. A week that dropped nothing has none */
+    .wx-state{margin:0 0 14px;}
+    .wx-short .dscreen{min-height:430px;}
 
     /* iPad landscape at 1180, drawn at the same scale as the 1440 frames —
        so the desk is the narrower window's share of the frame, the rail keeps
