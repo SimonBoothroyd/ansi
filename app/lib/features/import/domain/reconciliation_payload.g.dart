@@ -44,6 +44,14 @@ Map<String, dynamic> _$RawLineItemToJson(_RawLineItem instance) =>
       'confidence': instance.confidence,
     };
 
+_SourceSpan _$SourceSpanFromJson(Map<String, dynamic> json) => _SourceSpan(
+  start: (json['start'] as num).toInt(),
+  end: (json['end'] as num).toInt(),
+);
+
+Map<String, dynamic> _$SourceSpanToJson(_SourceSpan instance) =>
+    <String, dynamic>{'start': instance.start, 'end': instance.end};
+
 _MatchCandidate _$MatchCandidateFromJson(Map<String, dynamic> json) =>
     _MatchCandidate(
       ingredientId: json['ingredient_id'] as String,
@@ -161,6 +169,9 @@ _ReconLine _$ReconLineFromJson(Map<String, dynamic> json) => _ReconLine(
           ?.map((e) => RecipeCandidate.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const <RecipeCandidate>[],
+  sourceSpan: json['source_span'] == null
+      ? null
+      : SourceSpan.fromJson(json['source_span'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$ReconLineToJson(_ReconLine instance) =>
@@ -169,6 +180,7 @@ Map<String, dynamic> _$ReconLineToJson(_ReconLine instance) =>
       'band': _$MatchBandEnumMap[instance.band]!,
       'candidates': instance.candidates,
       'recipe_candidates': instance.recipeCandidates,
+      'source_span': instance.sourceSpan,
     };
 
 const _$MatchBandEnumMap = {
@@ -221,6 +233,7 @@ _ReconciliationPayload _$ReconciliationPayloadFromJson(
           ?.map((e) => Step.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const <Step>[],
+  sourceText: json['source_text'] as String?,
 );
 
 Map<String, dynamic> _$ReconciliationPayloadToJson(
@@ -241,6 +254,7 @@ Map<String, dynamic> _$ReconciliationPayloadToJson(
   'parse_warnings': instance.parseWarnings,
   'groups': instance.groups,
   'steps': instance.steps,
+  'source_text': instance.sourceText,
 };
 
 const _$ImportImageQualityEnumMap = {

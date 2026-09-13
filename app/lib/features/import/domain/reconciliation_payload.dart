@@ -123,6 +123,26 @@ abstract class RawLineItem with _$RawLineItem {
       _$RawLineItemFromJson(json);
 }
 
+/// Where a line was read from inside [ReconciliationPayload.sourceText] —
+/// a half-open character range, `[start, end)`, into that exact string.
+///
+/// Additive (plan 0047): the server emits it only when the extractor can say
+/// where the line came from, and omits the field entirely otherwise. The wide
+/// review lights the range in its source column; nothing else reads it, and a
+/// payload without one still renders the plain page text.
+///
+/// It indexes the text the server sent, not the page: [ReconciliationPayload
+/// .sourceText] is bounded, so a span is only ever emitted for a line that
+/// falls inside what was sent.
+@freezed
+abstract class SourceSpan with _$SourceSpan {
+  const factory SourceSpan({required int start, required int end}) =
+      _SourceSpan;
+
+  factory SourceSpan.fromJson(Map<String, Object?> json) =>
+      _$SourceSpanFromJson(json);
+}
+
 /// A server-scored candidate ingredient for a line (top-N; empty for `none`).
 @freezed
 abstract class MatchCandidate with _$MatchCandidate {
@@ -228,6 +248,12 @@ abstract class ReconLine with _$ReconLine {
     /// absent field must decode to exactly what it decoded before this
     /// existed: the empty list, no chip, and a byte-identical commit.
     @Default(<RecipeCandidate>[]) List<RecipeCandidate> recipeCandidates,
+
+    /// Where this line sits in [ReconciliationPayload.sourceText] (plan 0047),
+    /// when the extractor knows. Omitted by the server otherwise, exactly as
+    /// [recipeCandidates] is, so a payload without it decodes to the same
+    /// bytes it always did.
+    SourceSpan? sourceSpan,
   }) = _ReconLine;
 
   factory ReconLine.fromJson(Map<String, Object?> json) =>
@@ -260,6 +286,16 @@ abstract class ReconciliationPayload with _$ReconciliationPayload {
     @Default(<String>[]) List<String> parseWarnings,
     @Default(<ReconGroup>[]) List<ReconGroup> groups,
     @Default(<Step>[]) List<Step> steps,
+
+    /// The text the server actually read this recipe out of — a **link**
+    /// import's fetched page, bounded server-side (plan 0047). Null for a
+    /// photo import, where the pages are images the phone already holds, and
+    /// null from any server that does not send it.
+    ///
+    /// It is the source column's copy on a desk. Bounded because a page's
+    /// text is unbounded and this rides the same response as the recipe: the
+    /// cap is the server's, stated in `import-recipe/index.ts`.
+    String? sourceText,
   }) = _ReconciliationPayload;
 
   factory ReconciliationPayload.fromJson(Map<String, Object?> json) =>

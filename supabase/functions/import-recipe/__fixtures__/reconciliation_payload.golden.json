@@ -37,7 +37,11 @@
               "canonical_name": "Onion",
               "score": 1
             }
-          ]
+          ],
+          "source_span": {
+            "start": 46,
+            "end": 60
+          }
         },
         {
           "raw": {
@@ -59,7 +63,11 @@
               "canonical_name": "Garlic",
               "score": 1
             }
-          ]
+          ],
+          "source_span": {
+            "start": 78,
+            "end": 95
+          }
         },
         {
           "raw": {
@@ -81,7 +89,11 @@
               "canonical_name": "Coconut Milk",
               "score": 1
             }
-          ]
+          ],
+          "source_span": {
+            "start": 97,
+            "end": 123
+          }
         },
         {
           "raw": {
@@ -103,7 +115,11 @@
               "canonical_name": "Flat-Leaf Parsley",
               "score": 1
             }
-          ]
+          ],
+          "source_span": {
+            "start": 125,
+            "end": 142
+          }
         }
       ]
     },
@@ -130,7 +146,11 @@
               "canonical_name": "Parmesan Cheese",
               "score": 0.6842105263157895
             }
-          ]
+          ],
+          "source_span": {
+            "start": 154,
+            "end": 174
+          }
         },
         {
           "raw": {
@@ -272,5 +292,6 @@
         }
       ]
     }
-  ]
+  ],
+  "source_text": "Contract Sampler Stew. Serves 4. Ingredients: 2 medium onion, finely chopped; 2–3 cloves garlic; One 400 g tin coconut milk; flat-leaf parsley, to serve; 30 g parmasan cheese, grated."
 }
