@@ -40,6 +40,7 @@ dependencies:
   # Photo intake (import, step 8): pick/capture → crop+rotate → downscale.
   image_picker: ^1.2.3    # capture/pick recipe photos
   image_cropper: ^12.2.1  # per-page crop + rotate before upload
+  cross_file: ^0.3.5      # read a picked page back by path OR blob URL (web)
 
   # Barcode → ingredient draft (step 8.5, plan 0020 D2/D3).
   mobile_scanner: ^7.4.0  # camera preview + detector (iOS: AVFoundation+Vision)
