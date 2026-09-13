@@ -1245,13 +1245,17 @@
     .wnv-dhead{display:flex;align-items:center;justify-content:space-between;gap:12px;}
     .wnv-dhead .t{font-family:'Spectral',serif;font-size:19px;font-weight:500;letter-spacing:-.01em;}
     .wnv-dhead .x{color:var(--muted);font-size:18px;line-height:1;}
+    /* the line under a dialog's title: what the flow already answered */
+    .wnv-dsub{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:-7px 0 0;}
     .wnv-field{border:1px solid var(--line);border-radius:10px;background:var(--paper);padding:9px 12px;font-size:12.5px;color:var(--muted);}
     .wnv-dim{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);align-self:flex-end;}
 
     /* the wide route tree: the outer shell, and the pushed rows' neutral rail */
-    .frame.wide.wnv-treef{width:660px;}
+    .frame.wide.wnv-treef{width:900px;}
     .nv-tree .out{background:#EEF3EC;border:1px solid var(--herb-soft);border-radius:5px;padding:1px 5px;color:var(--herb-deep);}
     .nv-tree .neut{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:1px 5px;}
+    /* a query a route's builder reads, beside the route it belongs to */
+    .nv-tree .qp{color:var(--herb-deep);}
 
     /* ---- Wide · library and the book page ----------------------------- */
   /* Lane-local additions only. The shelf and the book page reuse the
