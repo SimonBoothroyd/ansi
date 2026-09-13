@@ -501,9 +501,96 @@ record the run in cloud-setup's ledger.
 4. `scripts/cloud_verify.sh` clean.
 5. `git tag vX.Y.Z && git push origin vX.Y.Z`. (No pubspec bump needed — the
    tag is the version of record, §3c.)
-6. Watch the run: `guard` · `android` · `ios` green, `play-internal` skipped
-   by design.
+6. Watch the run: `guard` · `android` · `web` · `ios` green, `play-internal`
+   skipped by design, and `pages` deployed or skipped depending on whether
+   Pages is configured (§6).
 7. Install the APK from the GitHub Release on each phone. Sign in; confirm
    sync.
 8. Add the tag's row to §3d, append the deploy to cloud-setup's ledger if
    there was one, and move the roadmap's untagged rows into Shipped.
+
+## 6. Web — the browser build and its host
+
+The same tag that builds the phones builds the browser. `release.yml`'s **web**
+job runs `flutter build web --release` with the same three defines as `android`
+and attaches the output as the `web-release` artifact; the **pages** job
+publishes that artifact to GitHub Pages, and runs only on a tag, and only when
+Pages is actually configured.
+
+### 6.1 What the owner still owes (Pages is NOT set up)
+
+Nothing hosts the web build today. The build job is green and the deploy job
+skips itself with a notice. Two acts turn it on, in this order — and read §6.2
+first, because hosting publishes something:
+
+1. **Supabase → Authentication → URL Configuration**: add the browser origins
+   (`https://<owner>.github.io/<repo>/` and its `/**`, plus the `localhost`
+   port you develop on). Without them "Continue with Google" in a browser is
+   refused at the redirect. The table is in
+   [`cloud-setup.md` §1.6](./cloud-setup.md#1-supabase-cloud-project).
+2. **Settings → Pages → Source: GitHub Actions** (once). Not "Deploy from a
+   branch" — the workflow uploads an artifact and deploys it; a branch source
+   ignores the workflow and serves the repo. Then re-run the release workflow,
+   or push the next tag, and the site appears at
+   `https://<owner>.github.io/<repo>/`.
+
+### 6.2 The trade: hosting publishes the endpoints
+
+`--dart-define` values are compiled into `main.dart.js`. Hosting that file
+means the Supabase URL, the Supabase anon key and the PowerSync URL are
+readable by anyone who opens the page. The anon key is public by design — RLS
+is the protection, see [`SECURITY.md`](./SECURITY.md) — but the two endpoints
+are kept as repo *secrets* rather than variables precisely so a public repo
+never prints them (§2.3), and this hands them out. What keeps that safe is the
+ledger row nobody may relax: **public sign-up stays OFF**
+([cloud-setup.md](./cloud-setup.md) checklist row 8). With sign-up closed, a
+stranger holding the endpoints and the anon key can create no account, so
+reaches no household's rows. Turning Pages on is the owner's call to accept
+that; nothing in the repo makes it for them.
+
+### 6.3 Two facts about the build
+
+- **Cross-origin isolation is not required.** PowerSync's web build opens,
+  writes and persists in Chrome with *and* without the COOP/COEP headers, which
+  is what makes a static host viable at all — Pages cannot set headers. What is
+  lost without them is `SharedArrayBuffer`: the database falls back to the
+  worker's asynchronous access path instead of shared-memory synchronous
+  access. It is slower under a heavy write burst and identical in behaviour;
+  nothing in the app depends on it. **ADR-0002's "web support in PowerSync is in
+  beta" line no longer holds** — an ADR is immutable, so it is corrected here:
+  the web path is shipped, and this repo's own runs are the evidence.
+- **The router stays on hash URLs** (`…/#/week`). Pages serves static files and
+  cannot rewrite an unknown path back to `index.html`, so `usePathUrlStrategy()`
+  would give clean URLs that 404 on every refresh and every shared link. It
+  becomes a one-line change the day the app is hosted somewhere with an SPA
+  rewrite.
+
+### 6.4 What a browser does not get
+
+Three doors are gated, not broken — each says what it is rather than throwing:
+
+| Door | On the web | Why |
+|---|---|---|
+| Take a photo (import) | one "Choose image files" door, and a line saying so | a tab has no camera door worth the name; `image_picker`'s web path is a file input |
+| Crop / rotate a page | skipped; pages go up as chosen | `image_cropper` needs `WebUiSettings`, which means cropperjs in `index.html` and a `BuildContext` the provider has not got — disproportionate for a door reached from a phone |
+| Scan a barcode | not offered; the typed barcode field is on the ingredient form as always | `mobile_scanner`'s web build fetches its detector from a CDN and then asks for a camera |
+
+Each row is a `kIsWeb` branch with a test behind it, not a `try`/`catch` around
+a plugin: the point is that the screen never offers what the platform cannot do.
+When the wide-screen design doc lands (plan 0047), the layout half of the web
+story belongs there and this table stays here with the hosting.
+
+### 6.5 Serving the build locally
+
+```bash
+cd app
+flutter build web --release --base-href / \
+  --dart-define=SUPABASE_URL=… --dart-define=SUPABASE_ANON_KEY=… \
+  --dart-define=POWERSYNC_URL=…
+python3 -m http.server 8080 --directory build/web
+```
+
+`--base-href /` matters: the CI build uses `/<repo>/` for the project site, and
+a bundle built for that path 404s every asset when served from the root.
+Whatever port you use has to be a listed Supabase redirect origin before Google
+sign-in works there (§6.1).
