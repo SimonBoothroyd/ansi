@@ -260,9 +260,9 @@ The column list is generated from the migrations —
     is never an exclusion — the line is in the total, the denominator does not
     move, and nothing is flagged as needing a fix.
   - Where it shows: the macro line appends ` · 3 fibre` (spelled out — `F` is
-    fat), the recipe panel gains a fifth cell, and the week's strip gains a
-    `fib` cell. Each appears only where the figure does; a blank cell would
-    read as a zero.
+    fat, and a sheaf where the line is dense), the recipe panel gains a fifth
+    cell, and the day's and the week's own lines gain the same tail. Each
+    appears only where the figure does; a blank one would read as a zero.
 - **A panel that argues with itself says so, and blocks nothing.** One muted
   line under the macro fields, in the derivation's own slot, about what Save
   would *store*: protein, fat and carb all zero on a food that states calories

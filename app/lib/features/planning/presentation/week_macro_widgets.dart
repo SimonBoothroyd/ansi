@@ -2,7 +2,9 @@
 ///
 /// [DayMacroLine] sits at the foot of a day card, [WeekMacroBand] at the foot
 /// of the list, and both draw the SAME [MealSetMacros] shape at two sizes, so
-/// there is one honesty story rather than two.
+/// there is one honesty story rather than two. The numbers themselves are the
+/// recipe line's dense grammar ([MacroStrip]) — a week reads in the same
+/// words an ingredient does.
 ///
 /// The rule, in the order it is applied:
 ///
@@ -11,10 +13,10 @@
 /// 2. **refused** (nothing resolved) — the shared `incomplete` badge and the
 ///    reasons, and **no number at all**, exactly as `RecipeMacroPanel`
 ///    refuses.
-/// 3. **partial** — the four cells, the denominator (`1 of 2 meals`), and a
+/// 3. **partial** — the macro line, the denominator (`1 of 2 meals`), and a
 ///    `left out:` line NAMING each excluded meal in [incompleteNote]'s exact
 ///    words.
-/// 4. **whole** — the four cells and the plain denominator (`2 meals`).
+/// 4. **whole** — the macro line and the plain denominator (`2 meals`).
 ///
 /// The reason wording for an incomplete meal comes from
 /// `shared/incomplete_macros.dart` and is never re-invented here — that shared
@@ -35,7 +37,7 @@ import '../domain/week_macros.dart';
 
 /// An energy figure with a thin thousands separator: `1 900`, `90`.
 /// Whole, like every printed kcal ([formatKcal]) — a week's total runs to
-/// four digits, and the separator is what keeps them readable.
+/// five digits, and the separator is what keeps them readable.
 String formatMacroNumber(double value) => _separated(formatKcal(value));
 
 /// The same separator over a gram figure's one decimal ([formatGrams]):
@@ -99,76 +101,46 @@ String exclusionNote(ExcludedMeal meal) => switch (meal.reason) {
 String excludedLine(MealSetMacros macros) =>
     macros.excluded.map((e) => '${e.label} · ${exclusionNote(e)}').join(', ');
 
-/// The cell strip, at [size] — the recipe panel's grammar, smaller. Four
-/// cells, and a fifth for fibre when every meal in the total stated it
-/// ([Macros.fiber]).
-class MacroCells extends StatelessWidget {
-  const MacroCells({required this.macros, this.size = 12, super.key});
+/// The week's total in the dense macro line's own grammar
+/// ([macroLineSpans]), at [size]: `1 900 🔥 · 90P 212C 70F · 24 🌾`.
+///
+/// The same line a recipe's ingredient draws, with the week's thousands
+/// separator ([formatMacroNumber], [formatMacroGrams]) in place of the plain
+/// figures — one span builder, so a day's foot, the band and a recipe line
+/// cannot drift into three dialects. Fibre rides along only where every meal
+/// in the total stated it ([Macros.fiber]); an absent one prints nothing at
+/// all, never a zero (invariant 3).
+class MacroStrip extends StatelessWidget {
+  const MacroStrip({required this.macros, this.size = 11, super.key});
 
   final Macros macros;
   final double size;
 
   @override
   Widget build(BuildContext context) {
-    final style = ansiMono(size: size, weight: FontWeight.w500);
-    final fiber = macros.fiber;
-    // The unit of each cell: a word for the three grams, and a GLYPH for the
-    // two that never change and are longest — energy and fibre. This is the
-    // densest macro line the app draws (five cells inside a day card), and it
-    // is the one that pays most for a spelled-out unit.
-    final cells = <(String, Object)>[
-      (formatMacroNumber(macros.kcal), kMacroEnergyIcon),
-      ('${formatMacroGrams(macros.protein)} g', 'p'),
-      ('${formatMacroGrams(macros.carb)} g', 'c'),
-      ('${formatMacroGrams(macros.fat)} g', 'f'),
-      // Fibre is optional, so the cell appears only where the figure does — an
-      // empty fifth cell would read as a zero (invariant 3).
-      if (fiber != null) ('${formatMacroGrams(fiber)} g', kMacroFibreIcon),
-    ];
     // A macro number is never clipped or ellipsised — a truncated `1 234` is
     // a wrong number, not a shortened one (invariant 3). So when the widest
-    // honest total outgrows its band the whole strip scales down together,
-    // keeping every digit and the divider rhythm.
+    // honest total outgrows its band the whole line scales down together,
+    // keeping every digit.
     return FittedBox(
       fit: BoxFit.scaleDown,
       alignment: AlignmentDirectional.centerStart,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = 0; i < cells.length; i++) ...[
-            if (i > 0)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 7),
-                child: Container(
-                  width: 1,
-                  height: size,
-                  color: AnsiColors.line,
-                ),
-              ),
-            Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(text: '${cells[i].$1} ', style: style),
-                  if (cells[i].$2 case final IconData icon)
-                    macroUnitSpan(
-                      icon,
-                      label: icon == kMacroEnergyIcon ? 'kcal' : 'fibre',
-                      style: style,
-                    )
-                  else
-                    TextSpan(text: cells[i].$2 as String, style: style),
-                ],
-              ),
-            ),
-          ],
-        ],
+      child: Text.rich(
+        TextSpan(
+          children: macroLineSpans(
+            macros,
+            style: ansiMono(size: size, weight: FontWeight.w500),
+            kcal: formatMacroNumber,
+            grams: formatMacroGrams,
+          ),
+        ),
       ),
     );
   }
 }
 
-/// The day card's foot: the four cells and their denominator, or one of the
-/// two refusals.
+/// The day card's foot: the macro line and its denominator, or one of the two
+/// refusals.
 class DayMacroLine extends StatelessWidget {
   const DayMacroLine({required this.macros, required this.scope, super.key});
 
@@ -214,14 +186,14 @@ class DayMacroLine extends StatelessWidget {
       );
     }
     // 3/4 · the total, its denominator, and anything it left out. The
-    // denominator sits UNDER the cells rather than beside them: five cells
-    // fill a day card's width on their own, and the strip can only scale
-    // itself down inside a bounded width — a row sharing it with a second
-    // text has none to give.
+    // denominator sits UNDER the line rather than beside it: the figures fill
+    // a day card's width on their own, and the strip can only scale itself
+    // down inside a bounded width — a row sharing it with a second text has
+    // none to give.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        MacroCells(macros: macros.total!),
+        MacroStrip(macros: macros.total!),
         Padding(
           padding: const EdgeInsets.only(top: 3),
           child: Text(
@@ -315,7 +287,7 @@ class WeekMacroBand extends StatelessWidget {
               ],
             )
           else ...[
-            MacroCells(macros: macros.total!, size: 14),
+            MacroStrip(macros: macros.total!, size: 13),
             const SizedBox(height: 6),
             Text(
               [

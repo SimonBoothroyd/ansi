@@ -1,10 +1,10 @@
 /// The macro line where it is DENSE — `197 🔥 · 2P 3C 20F · 1.5 🌾`.
 ///
-/// A picker row, a recipe line under its name, a day's foot: lines that are
-/// already one number after another, where `kcal` and `fibre` spelled out are
-/// the two longest things on them and the only two that never change. Drawn
-/// as a flame and a sheaf of wheat after their figures, they cost a glyph
-/// each and the numbers get the width.
+/// A picker row, a recipe line under its name, a day's foot, the week's band:
+/// lines that are already one number after another, where `kcal` and `fibre`
+/// spelled out are the two longest things on them and the only two that never
+/// change. Drawn as a flame and a sheaf of wheat after their figures, they
+/// cost a glyph each and the numbers get the width.
 ///
 /// **The words stay where there is room**: [formatMacroLine] itself, which is
 /// what a test, a log and a scan card read; the recipe panel's cells; and the
@@ -68,19 +68,29 @@ InlineSpan macroUnitSpan(
 /// The order and the separators are [formatMacroLine]'s exactly — the two
 /// renderings of one line must not drift into two — and so is the rule that
 /// an unstated fibre prints nothing at all rather than a zero (invariant 3).
-List<InlineSpan> macroLineSpans(Macros m, {required TextStyle style}) {
+///
+/// [kcal] and [grams] are the two number formatters, so a surface that adds
+/// up whole days can pass figures with a thousands separator
+/// (`week_macro_widgets.dart`) and still be THIS line rather than a second
+/// one. They print the figure; they never decide which figures appear.
+List<InlineSpan> macroLineSpans(
+  Macros m, {
+  required TextStyle style,
+  String Function(double) kcal = formatKcal,
+  String Function(double) grams = formatGrams,
+}) {
   final fiber = m.fiber;
   return [
-    TextSpan(text: '${formatKcal(m.kcal)} ', style: style),
+    TextSpan(text: '${kcal(m.kcal)} ', style: style),
     macroUnitSpan(kMacroEnergyIcon, label: 'kcal', style: style),
     TextSpan(
       text:
-          ' · ${formatGrams(m.protein)}P ${formatGrams(m.carb)}C '
-          '${formatGrams(m.fat)}F',
+          ' · ${grams(m.protein)}P ${grams(m.carb)}C '
+          '${grams(m.fat)}F',
       style: style,
     ),
     if (fiber != null) ...[
-      TextSpan(text: ' · ${formatGrams(fiber)} ', style: style),
+      TextSpan(text: ' · ${grams(fiber)} ', style: style),
       macroUnitSpan(kMacroFibreIcon, label: 'fibre', style: style),
     ],
   ];

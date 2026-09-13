@@ -788,10 +788,9 @@
     .srow.dim .sname{color:var(--muted);font-weight:400;}
     .srow.dim .avs,.srow.dim .cookmark{opacity:.4;}
 
-    /* the day's macros — the four-cell strip's grammar, one line high */
+    /* the day's macros — the dense macro line's grammar, one line high */
     .daymac{display:flex;align-items:baseline;gap:9px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);flex-wrap:wrap;}
-    .daymac .dm{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink);font-weight:500;}
-    .daymac .dm .u{font-weight:400;color:var(--muted);font-size:9px;letter-spacing:.06em;text-transform:uppercase;margin-left:2px;}
+    .daymac .dm{flex-basis:100%;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink);font-weight:500;}
     .daymac .scope{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}
     .daymac .scope.part{color:var(--aging);}
     .dm-exc{width:100%;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px;}

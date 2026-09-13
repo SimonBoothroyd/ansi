@@ -1,7 +1,7 @@
 // The macro strip must survive the widest honest figures. A week that plans
 // three meals a day reaches five kcal digits and three-digit grams, and the
-// band it sits in is only ~316 logical px wide — with a fifth cell when every
-// meal stated fibre.
+// band it sits in is only ~316 logical px wide — with fibre on the end when
+// every meal stated it.
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/features/planning/presentation/week_macro_widgets.dart';
 import 'package:flutter/material.dart';
@@ -25,18 +25,22 @@ void main() {
       'grams', (tester) async {
     await tester.pumpWidget(
       _host(
-        const MacroCells(
+        const MacroStrip(
           macros: Macros(kcal: 1234, protein: 456, carb: 789, fat: 321),
-          size: 14,
+          size: 13,
         ),
       ),
     );
 
     expect(tester.takeException(), isNull);
-    expect(macroText('${formatMacroNumber(1234)} kcal'), findsOneWidget);
-    expect(macroText('${formatMacroGrams(321)} g f'), findsOneWidget);
+    // The recipe line's grammar, with the week's thousands separator: no `g`,
+    // no dividers, the initials against their figures.
     expect(
-      tester.getSize(find.byType(MacroCells)).width,
+      macroText('${formatMacroNumber(1234)} kcal · 456P 789C 321F'),
+      findsOneWidget,
+    );
+    expect(
+      tester.getSize(find.byType(MacroStrip)).width,
       lessThanOrEqualTo(_bandWidth),
     );
   });
@@ -46,27 +50,30 @@ void main() {
   ) async {
     await tester.pumpWidget(
       _host(
-        const MacroCells(
+        const MacroStrip(
           macros: Macros(kcal: 24500, protein: 1234, carb: 1680, fat: 890),
-          size: 14,
+          size: 13,
         ),
       ),
     );
 
     expect(tester.takeException(), isNull);
-    expect(macroText('${formatMacroNumber(24500)} kcal'), findsOneWidget);
     expect(
-      tester.getSize(find.byType(MacroCells)).width,
+      macroTextContaining('${formatMacroNumber(24500)} kcal'),
+      findsOneWidget,
+    );
+    expect(
+      tester.getSize(find.byType(MacroStrip)).width,
       lessThanOrEqualTo(_bandWidth),
     );
   });
 
-  testWidgets('five cells still fit the band at a five-digit week total', (
+  testWidgets('fibre still fits the band at a five-digit week total', (
     tester,
   ) async {
     await tester.pumpWidget(
       _host(
-        const MacroCells(
+        const MacroStrip(
           macros: Macros(
             kcal: 24500,
             protein: 1234,
@@ -74,30 +81,34 @@ void main() {
             fat: 890,
             fiber: 245,
           ),
-          size: 14,
+          size: 13,
         ),
       ),
     );
 
     expect(tester.takeException(), isNull);
-    // `fib`, not `f` — this strip already spends `f` on fat.
-    expect(macroText('${formatMacroGrams(245)} g fibre'), findsOneWidget);
+    // `fibre`, spoken — the sheaf glyph carries the word `F` already spends
+    // on fat.
     expect(
-      tester.getSize(find.byType(MacroCells)).width,
+      macroTextContaining('· ${formatMacroGrams(245)} fibre'),
+      findsOneWidget,
+    );
+    expect(
+      tester.getSize(find.byType(MacroStrip)).width,
       lessThanOrEqualTo(_bandWidth),
     );
   });
 
-  testWidgets('an unstated fibre draws no fifth cell', (tester) async {
+  testWidgets('an unstated fibre prints nothing at all', (tester) async {
     await tester.pumpWidget(
       _host(
-        const MacroCells(
+        const MacroStrip(
           macros: Macros(kcal: 1234, protein: 456, carb: 789, fat: 321),
-          size: 14,
+          size: 13,
         ),
       ),
     );
 
-    expect(find.textContaining('fib'), findsNothing);
+    expect(macroTextContaining('fibre'), findsNothing);
   });
 }

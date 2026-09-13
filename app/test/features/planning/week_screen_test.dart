@@ -509,14 +509,14 @@ void main() {
         recipes: _recipesRepo(complete),
       );
 
-      // One eater × 500 kcal/serving.
-      expect(macroText('500 kcal'), findsWidgets);
+      // One eater × 500 kcal/serving, in the dense line's grammar.
+      expect(macroText('500 kcal · 30P 40C 20F'), findsWidgets);
       // The denominator is mandatory — a bare number is never drawn.
       expect(find.text('1 meal'), findsWidgets);
       // A day with nothing on it shows its quiet add door instead of a macro
       // line — and NEVER a zero.
       expect(find.text('nothing planned'), findsWidgets);
-      expect(macroText('0 kcal'), findsNothing);
+      expect(macroText('0 kcal · 0P 0C 0F'), findsNothing);
     });
 
     testWidgets('a day whose only meal is incomplete draws NO number', (
@@ -999,16 +999,16 @@ void main() {
       );
 
       // Everyone: 1¾ servings × 500, and the meal count alone.
-      expect(macroText('875 kcal'), findsWidgets);
+      expect(macroTextContaining('875 kcal'), findsWidgets);
       expect(find.text('1 meal'), findsWidgets);
       expect(find.textContaining('of 1¾ portions'), findsNothing);
 
       await tester.tap(find.text('Jun'));
       await tester.pumpAndSettle();
       // Jun: ¾ × 500, and the denominator named beside the meal count.
-      expect(macroText('375 kcal'), findsWidgets);
+      expect(macroTextContaining('375 kcal'), findsWidgets);
       expect(find.text('1 meal · Jun · ¾ of 1¾ portions'), findsWidgets);
-      expect(macroText('875 kcal'), findsNothing);
+      expect(macroTextContaining('875 kcal'), findsNothing);
     });
   });
 
@@ -1042,7 +1042,7 @@ void main() {
         recipes: _recipesRepo(null),
       );
       // 60 g of a 350 kcal/100 g bar = 210 per portion, two eaters.
-      expect(macroText('420 kcal'), findsWidgets);
+      expect(macroTextContaining('420 kcal'), findsWidgets);
     });
 
     testWidgets('a stub row draws no number and says so in a stub '
