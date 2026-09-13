@@ -74,6 +74,12 @@ final ansiShellNavigatorKey = GlobalKey<NavigatorState>(
 /// Method are read side by side. It takes [ansiWideMeasureWidth] rather than a
 /// number, so the cap stays the layout file's business and never the router's.
 ///
+/// [measureOf] is the same answer when it depends on the route's own query:
+/// `/recipes/:id/edit` is the two-column editor, except with `?week=`, which is
+/// one column at the measure and has no second column to make. The number is
+/// still the layout file's; only which of its two the page takes is read here,
+/// where the query already is.
+///
 /// Both are facts about the route, which is why they are stated here: a screen
 /// does not measure itself ([AnsiPane]).
 GoRoute _page({
@@ -82,11 +88,16 @@ GoRoute _page({
   required Widget Function(GoRouterState state) builder,
   bool fullWidth = false,
   double Function(BuildContext context)? measure,
+  double Function(BuildContext context) Function(GoRouterState state)?
+  measureOf,
 }) => GoRoute(
   path: path,
   name: name,
-  builder: (context, state) =>
-      AnsiPane(fullWidth: fullWidth, measure: measure, child: builder(state)),
+  builder: (context, state) => AnsiPane(
+    fullWidth: fullWidth,
+    measure: measure ?? measureOf?.call(state),
+    child: builder(state),
+  ),
 );
 
 /// A tab root: [_page]'s pane rules, except that while the bar is under the
@@ -331,6 +342,9 @@ GoRouter router(Ref ref) {
           _page(
             path: '/recipes/new',
             name: 'recipe-new',
+            // The editor's two columns, at the recipe page's own cap — a new
+            // recipe is written in the same form an existing one is edited in.
+            measure: ansiWideMeasureWidth,
             builder: (state) => RecipeEditorView(
               initialTitle: state.uri.queryParameters['title'],
               initialBookId: state.uri.queryParameters['book'],
@@ -366,6 +380,14 @@ GoRouter router(Ref ref) {
           _page(
             path: '/recipes/:id/edit',
             name: 'recipe-edit',
+            // The editor is the recipe page's own two columns — the lines and
+            // the method, written side by side — so it takes the same cap.
+            // Week mode inside the same path is not: it draws no header form
+            // and no method, so there is no second column and its honest wide
+            // form is one column at the measure.
+            measureOf: (state) => state.uri.queryParameters['week'] == null
+                ? ansiWideMeasureWidth
+                : ansiMeasureWidth,
             builder: (state) {
               final week = state.uri.queryParameters['week'];
               final id = state.pathParameters['id'];
