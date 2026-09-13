@@ -325,9 +325,9 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpAnsiApp(
-      AnsiMeasure(
+      const AnsiMeasure(
         width: ansiWideMeasureWidth,
-        child: const RecipeView(recipeId: 'r1'),
+        child: RecipeView(recipeId: 'r1'),
       ),
       overrides: <Override>[
         recipeRepositoryProvider.overrideWithValue(_Repo(recipe: _recipe())),
