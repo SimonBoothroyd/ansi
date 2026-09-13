@@ -1,9 +1,15 @@
 /// Small shared widgets for the Week screen: the selectable [Pill] used by the
 /// day/slot/eater pickers, the [EaterAvatar] initial-circle, the overlapping
-/// [EaterAvatarStack] shown on a meal row (design board), and — since the week
-/// redesign — the two pieces of a presentation dish row: the [PortionsChip]
-/// and the [CookMarkerLine] beneath the title (D6).
+/// [EaterAvatarStack] shown on a meal row (design board), the [PortionsChip]
+/// and the [CookMarkerLine] beneath the title (D6), and the two targets a meal
+/// carries wherever it is drawn — [EatersTarget] and [RemoveTarget].
+///
+/// A meal is drawn twice: as the phone's dish row and as the wide matrix's
+/// card. The pieces both spellings share live here, so the two cannot print
+/// different facts or open different doors.
 library;
+
+import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
@@ -11,11 +17,18 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/units/portions.dart';
 import '../../../core/words.dart';
+import '../../../shared/ansi_chip.dart';
+import '../../../shared/ansi_toast.dart';
+import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
+import '../data/planning_providers.dart';
 import '../domain/planning.dart';
+import 'meal_editor_sheet.dart';
 import 'week_format.dart';
 import 'week_variant_format.dart';
+import 'week_view_models.dart';
 
 /// A rounded, tappable label that fills herb-green when [selected] (design
 /// board `.pchip` / `.wkchip`). An [icon] renders instead of the label (the
@@ -189,17 +202,301 @@ class PortionsChip extends StatelessWidget {
   }
 }
 
+/// The portions a meal's chip should print, or null when there is no chip to
+/// draw: an override only earns one when it DIFFERS from what its eaters would
+/// have demanded on their own (their factors summed).
+int? portionsChipFor(PlanEntry entry, List<Member> roster) {
+  final override = entry.portions;
+  if (override == null) return null;
+  final usual = eatersDemand(entry.eaterIds, {for (final m in roster) m.id: m});
+  return (override - usual).abs() > 1e-9 ? override : null;
+}
+
+/// The portions chip and the eater avatars as ONE tap target (E7), opening
+/// the meal editor.
+///
+/// When a meal has neither — nobody eating and no override — the cluster
+/// would otherwise be empty, which is both an untappable target and a silent
+/// rendering of a real data condition (the macro lens excludes such an entry
+/// with a reason). It says `nobody` instead: the state, named, and something
+/// to aim at.
+class EatersTarget extends StatelessWidget {
+  const EatersTarget({
+    required this.entry,
+    required this.roster,
+    required this.portions,
+    super.key,
+  });
+
+  final PlanEntry entry;
+  final List<Member> roster;
+  final int? portions;
+
+  @override
+  Widget build(BuildContext context) {
+    final nobody = entry.eaterIds.isEmpty && portions == null;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => showMealEditorSheet(context, entry: entry),
+      child: Padding(
+        // Vertical padding is the hit area, not decoration: the avatars are
+        // 24 pt tall and this brings the target to ~44.
+        padding: const EdgeInsets.fromLTRB(8, 10, 4, 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (portions != null) ...[
+              PortionsChip(portions: portions!),
+              const SizedBox(width: 8),
+            ],
+            if (nobody)
+              Text('nobody', style: ansiMono(size: 10, color: AnsiColors.muted))
+            else
+              EaterAvatarStack(
+                roster: roster,
+                eaterIds: entry.eaterIds.toSet(),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The `−` (E3): removes the meal, and hands back an undo.
+///
+/// Muted, not red. A destructive glyph on every row of a resting screen
+/// shouts, and the colour was never what made this safe — the undo is. There
+/// is deliberately no confirm dialog: it would tax every removal to prevent a
+/// rare mis-tap, and everything needed to put the meal back is in hand.
+class RemoveTarget extends ConsumerWidget {
+  const RemoveTarget({required this.entry, required this.roster, super.key});
+
+  final PlanEntry entry;
+  final List<Member> roster;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => unawaited(_remove(context, ref)),
+      child: const Padding(
+        padding: EdgeInsets.fromLTRB(8, 10, 4, 10),
+        child: Icon(FLucideIcons.minus, size: 16, color: AnsiColors.muted),
+      ),
+    );
+  }
+
+  Future<void> _remove(BuildContext context, WidgetRef ref) async {
+    final repo = ref.read(planningRepositoryProvider);
+    final weekStart = ref.read(viewedWeekStartProvider);
+    // Captured BEFORE the write: the undo fires from a toast up to six
+    // seconds later, by which time this row is certainly gone — it is the row
+    // that was just removed. `ref` and this context are unusable by then; the
+    // container and the root overlay are not (`shared/write.dart`).
+    final container = ProviderScope.containerOf(context, listen: false);
+    final host = hostContextOf(context);
+    final day = ref.read(weekShapeProvider).labelFull(entry.dayOfWeek);
+    final removed = await ref.writeOk(
+      context,
+      'remove that meal',
+      () => repo.removeEntry(entry.id),
+    );
+    if (!removed) return;
+    showAnsiUndoToast(
+      // The host outlives the row — and the row is the one just removed.
+      // ignore: use_build_context_synchronously
+      host.context,
+      what: 'Removed ${entry.title ?? 'that meal'} from $day.',
+      // What would come back, in the words the row used: an undo you cannot
+      // audit is a promise, not a control.
+      detail: _undoDetail(),
+      onUndo: () => unawaited(
+        // The same door every other post-await write goes through
+        // (`shared/write.dart`), so a failed undo says so instead of
+        // vanishing.
+        container.write(
+          host,
+          'put that meal back',
+          // A new row with the same facts — the id was the removed one's, and
+          // nothing downstream keys on it (the cook plan and the list both
+          // re-derive from the week). A snack comes back as a snack, with its
+          // amount: an undo that quietly dropped half the row would be worse
+          // than no undo.
+          () => entry.isIngredient
+              ? repo.addIngredientEntry(
+                  weekStart: weekStart,
+                  dayOfWeek: entry.dayOfWeek,
+                  mealSlot: entry.mealSlot,
+                  ingredientId: entry.ingredientId!,
+                  eaterIds: entry.eaterIds,
+                  quantity: entry.quantity,
+                  unit: entry.unit,
+                  measureId: entry.measureId,
+                  portions: entry.portions,
+                )
+              : repo.addEntry(
+                  weekStart: weekStart,
+                  dayOfWeek: entry.dayOfWeek,
+                  mealSlot: entry.mealSlot,
+                  recipeId: entry.recipeId!,
+                  eaterIds: entry.eaterIds,
+                  portions: entry.portions,
+                ),
+        ),
+      ),
+    );
+  }
+
+  String _undoDetail() {
+    final names = [
+      for (final m in roster)
+        if (entry.eaterIds.contains(m.id)) m.displayName,
+    ];
+    final demand = eatersDemand(entry.eaterIds, {
+      for (final m in roster) m.id: m,
+    });
+    final portions = entry.portions?.toDouble() ?? demand;
+    return [
+      entry.mealSlot.toLowerCase(),
+      if (names.isNotEmpty) names.join(' & '),
+      formatPortions(portions),
+    ].join(' · ');
+  }
+}
+
+/// The lens (D8): `Everyone · Ada · Jun` — whose numbers the week is read as.
+///
+/// Selecting a person DIMS the meals they are not eating rather than removing
+/// them: a hard filter renders a day the other person cooks for themselves as
+/// an empty day, which is false. Dimming also makes a `⇄ shared` tag
+/// unnecessary, because both avatars are right there.
+///
+/// The everyone option is called `Everyone`, never `Shared` — that word names a
+/// per-entry fact, and one word cannot mean both.
+class WeekLensRow extends StatelessWidget {
+  const WeekLensRow({required this.lens, required this.roster, super.key});
+
+  final ValueNotifier<String?> lens;
+  final List<Member> roster;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      child: Row(
+        children: [
+          Text('for', style: ansiMono(size: 10, color: AnsiColors.muted)),
+          const SizedBox(width: 8),
+          AnsiChip(
+            label: 'Everyone',
+            selected: lens.value == null,
+            onTap: () => lens.value = null,
+          ),
+          for (final (i, m) in roster.indexed)
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: AnsiChip(
+                label: m.displayName,
+                selected: lens.value == m.id,
+                icon: EaterAvatar(member: m, color: memberColor(i)),
+                onTap: () => lens.value = m.id,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The one add door a day card has (E5) — its last row, in every state.
+///
+/// v2 had two widgets here: a dashed `＋ Add a meal` box that existed only in
+/// edit mode, and a separate `nothing planned` line that existed only in
+/// presentation on an empty day. They were the same door wearing two hats,
+/// and keeping them in step was a standing cost. This is one widget whose
+/// only variation is its wording, so the affordance that fills a region is
+/// always on the region (D5b, stated strictly).
+///
+/// It sits with the MEALS, above the day's total: it adds a *meal*, not a
+/// number, so it belongs to the list it extends, and the macro line stays
+/// what closes the card.
+///
+/// Deliberately not the dashed box in both states: seven permanent dashed
+/// rectangles is the noise v2 built a whole mode to escape. The quiet mono
+/// line carries the same door at a fraction of the weight.
+class AddMealLine extends StatelessWidget {
+  const AddMealLine({
+    required this.empty,
+    required this.onTap,
+    this.padding = const EdgeInsets.fromLTRB(16, 10, 16, 12),
+    super.key,
+  });
+
+  /// Whether the day has no meals — the wording, and nothing else, changes.
+  final bool empty;
+  final VoidCallback onTap;
+
+  /// The inset around the line. A matrix column is barely 111 px wide and has
+  /// to spend on the words what a day card spends on its margin.
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: padding,
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: AnsiColors.line)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              FLucideIcons.plus,
+              size: 11,
+              color: empty ? AnsiColors.muted : AnsiColors.herb,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              empty ? 'nothing planned' : 'add a meal',
+              style: ansiMono(
+                size: 11,
+                color: empty ? AnsiColors.muted : AnsiColors.herb,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// The dish row's SECOND line (D6, owner-ruled): the cook marker sits under
 /// the title, not in a column beside it — so it reads as a sentence about the
 /// dish, and can carry a full clause without squeezing the title.
 class CookMarkerLine extends ConsumerWidget {
-  const CookMarkerLine({required this.marker, this.todayDayOfWeek, super.key});
+  const CookMarkerLine({
+    required this.marker,
+    this.todayDayOfWeek,
+    this.wrap = false,
+    super.key,
+  });
 
   final CookMarker marker;
 
   /// Today's offset within the week when the current week is on screen — see
   /// [cookMarkerLabel].
   final int? todayDayOfWeek;
+
+  /// Whether the label may run onto further lines instead of ellipsising.
+  ///
+  /// A phone row has a whole width for one clause and clips what will not fit;
+  /// a matrix column is ~111 px, where every marker would clip. Wrapping keeps
+  /// the words — the marker's words are the cook plan's, and half of
+  /// `from Tuesday's batch` names the wrong day.
+  final bool wrap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -217,7 +514,7 @@ class CookMarkerLine extends ConsumerWidget {
               ref.watch(weekShapeProvider),
               todayDayOfWeek: todayDayOfWeek,
             ),
-            overflow: TextOverflow.ellipsis,
+            overflow: wrap ? TextOverflow.clip : TextOverflow.ellipsis,
             style: ansiMono(
               size: 10.5,
               color: frozen ? AnsiColors.frozen : AnsiColors.muted,

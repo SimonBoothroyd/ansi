@@ -31,6 +31,11 @@
 /// screen with nothing in it: header, switcher, lens row, seven day cards and
 /// the week band all render, exactly as they do for a full week.
 ///
+/// **At [AnsiLayout.expanded] the same week is a matrix** — seven day columns
+/// against the slot rows the week actually has (`week_matrix.dart`). It is one
+/// view model, one set of words and one set of doors, drawn in two shapes: this
+/// file's list below the band, the matrix above it.
+///
 /// The week itself is a position, not a singleton — see `week_header.dart` and
 /// `week_view_models.dart`.
 library;
@@ -44,12 +49,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
-import '../../../core/units/portions.dart';
 import '../../../core/units/units.dart';
 import '../../../core/week_shape.dart';
-import '../../../shared/ansi_chip.dart';
 import '../../../shared/ansi_error_state.dart';
-import '../../../shared/ansi_toast.dart';
+import '../../../shared/ansi_layout.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
@@ -57,15 +60,14 @@ import '../../cook_plan/domain/cook_plan.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
-import '../data/planning_providers.dart';
 import '../domain/planning.dart';
 import 'confirm_meal_sheet.dart';
 import 'copy_last_week.dart';
-import 'meal_editor_sheet.dart';
 import 'recipe_picker_sheet.dart';
 import 'week_format.dart';
 import 'week_header.dart';
 import 'week_macro_widgets.dart';
+import 'week_matrix.dart';
 import 'week_view_models.dart';
 import 'week_widgets.dart';
 
@@ -212,6 +214,30 @@ class WeekView extends HookConsumerWidget {
         // and starts meaning "seven empty days" (D5).
         data: (plan) {
           final empty = plan == null || plan.entries.isEmpty;
+          if (AnsiLayout.of(context) == AnsiLayout.expanded) {
+            return WeekMatrix(
+              weekStart: weekStart,
+              plan: plan,
+              roster: roster,
+              lens: lens,
+              scope: scope,
+              cookPlan: cookPlan,
+              todayDayOfWeek: todayDayOfWeek,
+              onAddMeal: (dayOfWeek) => unawaited(
+                _addMealFlow(
+                  context,
+                  ref,
+                  weekStart: weekStart,
+                  dayOfWeek: dayOfWeek,
+                ),
+              ),
+              onCopyLastWeek: empty && lastWeek != null
+                  ? () => unawaited(
+                      copyLastWeekInto(context, ref, weekStart: weekStart),
+                    )
+                  : null,
+            );
+          }
           return ListView(
             padding: const EdgeInsets.only(top: 8, bottom: 24),
             children: [
@@ -224,7 +250,7 @@ class WeekView extends HookConsumerWidget {
                   ),
                 ),
               CopyLastWeekNotice(weekStart: weekStart),
-              _LensRow(lens: lens, roster: roster),
+              WeekLensRow(lens: lens, roster: roster),
               for (var d = 0; d < 7; d++)
                 _DayCard(
                   weekStart: weekStart,
@@ -243,52 +269,6 @@ class WeekView extends HookConsumerWidget {
             ],
           );
         },
-      ),
-    );
-  }
-}
-
-/// The lens (D8): `Everyone · Ada · Jun`, sitting immediately above the first
-/// day card — beside the numbers, because whose numbers you are reading is now
-/// its only real consequence.
-///
-/// Selecting a person DIMS the meals they are not eating rather than removing
-/// them: a hard filter renders a day the other person cooks for themselves as
-/// an empty day, which is false. Dimming also makes a `⇄ shared` tag
-/// unnecessary, because both avatars are right there.
-///
-/// The everyone option is called `Everyone`, never `Shared` — that word names a
-/// per-entry fact, and one word cannot mean both.
-class _LensRow extends StatelessWidget {
-  const _LensRow({required this.lens, required this.roster});
-
-  final ValueNotifier<String?> lens;
-  final List<Member> roster;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-      child: Row(
-        children: [
-          Text('for', style: ansiMono(size: 10, color: AnsiColors.muted)),
-          const SizedBox(width: 8),
-          AnsiChip(
-            label: 'Everyone',
-            selected: lens.value == null,
-            onTap: () => lens.value = null,
-          ),
-          for (final (i, m) in roster.indexed)
-            Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: AnsiChip(
-                label: m.displayName,
-                selected: lens.value == m.id,
-                icon: EaterAvatar(member: m, color: memberColor(i)),
-                onTap: () => lens.value = m.id,
-              ),
-            ),
-        ],
       ),
     );
   }
@@ -577,14 +557,6 @@ class _DishRow extends ConsumerWidget {
         (ref.watch(viewedWeekOverridesProvider).asData?.value[entry.recipeId] ??
                 const [])
             .isNotEmpty;
-    // The chip is the OVERRIDE, and only when it differs from what the eaters
-    // would have demanded on their own (their factors summed).
-    final override = entry.portions;
-    final usual = eatersDemand(entry.eaterIds, {
-      for (final m in roster) m.id: m,
-    });
-    final showPortions = override != null && (override - usual).abs() > 1e-9;
-
     return Opacity(
       opacity: dimmed ? 0.38 : 1,
       child: Column(
@@ -634,12 +606,12 @@ class _DishRow extends ConsumerWidget {
                   ),
                 ),
               ),
-              _EatersTarget(
+              EatersTarget(
                 entry: entry,
                 roster: roster,
-                portions: showPortions ? override : null,
+                portions: portionsChipFor(entry, roster),
               ),
-              _RemoveTarget(entry: entry, roster: roster),
+              RemoveTarget(entry: entry, roster: roster),
             ],
           ),
           if (marker != null || edited)
@@ -674,213 +646,6 @@ class _DishRow extends ConsumerWidget {
               ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-/// The portions chip and the eater avatars as ONE tap target (E7), opening
-/// the meal editor.
-///
-/// When a meal has neither — nobody eating and no override — the cluster
-/// would otherwise be empty, which is both an untappable target and a silent
-/// rendering of a real data condition (the macro lens excludes such an entry
-/// with a reason). It says `nobody` instead: the state, named, and something
-/// to aim at.
-class _EatersTarget extends StatelessWidget {
-  const _EatersTarget({
-    required this.entry,
-    required this.roster,
-    required this.portions,
-  });
-
-  final PlanEntry entry;
-  final List<Member> roster;
-  final int? portions;
-
-  @override
-  Widget build(BuildContext context) {
-    final nobody = entry.eaterIds.isEmpty && portions == null;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => showMealEditorSheet(context, entry: entry),
-      child: Padding(
-        // Vertical padding is the hit area, not decoration: the avatars are
-        // 24 pt tall and this brings the target to ~44.
-        padding: const EdgeInsets.fromLTRB(8, 10, 4, 10),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (portions != null) ...[
-              PortionsChip(portions: portions!),
-              const SizedBox(width: 8),
-            ],
-            if (nobody)
-              Text('nobody', style: ansiMono(size: 10, color: AnsiColors.muted))
-            else
-              EaterAvatarStack(
-                roster: roster,
-                eaterIds: entry.eaterIds.toSet(),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The `−` (E3): removes the meal, and hands back an undo.
-///
-/// Muted, not red. A destructive glyph on every row of a resting screen
-/// shouts, and the colour was never what made this safe — the undo is. There
-/// is deliberately no confirm dialog: it would tax every removal to prevent a
-/// rare mis-tap, and everything needed to put the meal back is in hand.
-class _RemoveTarget extends ConsumerWidget {
-  const _RemoveTarget({required this.entry, required this.roster});
-
-  final PlanEntry entry;
-  final List<Member> roster;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => unawaited(_remove(context, ref)),
-      child: const Padding(
-        padding: EdgeInsets.fromLTRB(8, 10, 4, 10),
-        child: Icon(FLucideIcons.minus, size: 16, color: AnsiColors.muted),
-      ),
-    );
-  }
-
-  Future<void> _remove(BuildContext context, WidgetRef ref) async {
-    final repo = ref.read(planningRepositoryProvider);
-    final weekStart = ref.read(viewedWeekStartProvider);
-    // Captured BEFORE the write: the undo fires from a toast up to six
-    // seconds later, by which time this row is certainly gone — it is the row
-    // that was just removed. `ref` and this context are unusable by then; the
-    // container and the root overlay are not (`shared/write.dart`).
-    final container = ProviderScope.containerOf(context, listen: false);
-    final host = hostContextOf(context);
-    final day = ref.read(weekShapeProvider).labelFull(entry.dayOfWeek);
-    final removed = await ref.writeOk(
-      context,
-      'remove that meal',
-      () => repo.removeEntry(entry.id),
-    );
-    if (!removed) return;
-    showAnsiUndoToast(
-      // The host outlives the row — and the row is the one just removed.
-      // ignore: use_build_context_synchronously
-      host.context,
-      what: 'Removed ${entry.title ?? 'that meal'} from $day.',
-      // What would come back, in the words the row used: an undo you cannot
-      // audit is a promise, not a control.
-      detail: _undoDetail(),
-      onUndo: () => unawaited(
-        // The same door every other post-await write goes through
-        // (`shared/write.dart`), so a failed undo says so instead of
-        // vanishing.
-        container.write(
-          host,
-          'put that meal back',
-          // A new row with the same facts — the id was the removed one's, and
-          // nothing downstream keys on it (the cook plan and the list both
-          // re-derive from the week). A snack comes back as a snack, with its
-          // amount: an undo that quietly dropped half the row would be worse
-          // than no undo.
-          () => entry.isIngredient
-              ? repo.addIngredientEntry(
-                  weekStart: weekStart,
-                  dayOfWeek: entry.dayOfWeek,
-                  mealSlot: entry.mealSlot,
-                  ingredientId: entry.ingredientId!,
-                  eaterIds: entry.eaterIds,
-                  quantity: entry.quantity,
-                  unit: entry.unit,
-                  measureId: entry.measureId,
-                  portions: entry.portions,
-                )
-              : repo.addEntry(
-                  weekStart: weekStart,
-                  dayOfWeek: entry.dayOfWeek,
-                  mealSlot: entry.mealSlot,
-                  recipeId: entry.recipeId!,
-                  eaterIds: entry.eaterIds,
-                  portions: entry.portions,
-                ),
-        ),
-      ),
-    );
-  }
-
-  String _undoDetail() {
-    final names = [
-      for (final m in roster)
-        if (entry.eaterIds.contains(m.id)) m.displayName,
-    ];
-    final demand = eatersDemand(entry.eaterIds, {
-      for (final m in roster) m.id: m,
-    });
-    final portions = entry.portions?.toDouble() ?? demand;
-    return [
-      entry.mealSlot.toLowerCase(),
-      if (names.isNotEmpty) names.join(' & '),
-      formatPortions(portions),
-    ].join(' · ');
-  }
-}
-
-/// The one add door a day card has (E5) — its last row, in every state.
-///
-/// v2 had two widgets here: a dashed `＋ Add a meal` box that existed only in
-/// edit mode, and a separate `nothing planned` line that existed only in
-/// presentation on an empty day. They were the same door wearing two hats,
-/// and keeping them in step was a standing cost. This is one widget whose
-/// only variation is its wording, so the affordance that fills a region is
-/// always on the region (D5b, stated strictly).
-///
-/// It sits with the MEALS, above the day's total: it adds a *meal*, not a
-/// number, so it belongs to the list it extends, and the macro line stays
-/// what closes the card.
-///
-/// Deliberately not the dashed box in both states: seven permanent dashed
-/// rectangles is the noise v2 built a whole mode to escape. The quiet mono
-/// line carries the same door at a fraction of the weight.
-class AddMealLine extends StatelessWidget {
-  const AddMealLine({required this.empty, required this.onTap, super.key});
-
-  /// Whether the day has no meals — the wording, and nothing else, changes.
-  final bool empty;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-        decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: AnsiColors.line)),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              FLucideIcons.plus,
-              size: 11,
-              color: empty ? AnsiColors.muted : AnsiColors.herb,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              empty ? 'nothing planned' : 'add a meal',
-              style: ansiMono(
-                size: 11,
-                color: empty ? AnsiColors.muted : AnsiColors.herb,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -922,26 +687,7 @@ class _FirstMealBar extends ConsumerWidget {
           if (hasLastWeek)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Align(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onCopyLastWeek,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AnsiColors.herbSoft,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      'copy last week',
-                      style: ansiMono(size: 11, color: AnsiColors.herbDeep),
-                    ),
-                  ),
-                ),
-              ),
+              child: Align(child: CopyLastWeekChip(onTap: onCopyLastWeek)),
             ),
         ],
       ),
