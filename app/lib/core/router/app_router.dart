@@ -15,7 +15,7 @@
 /// state changes (the `refresh` notifier).
 library;
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -33,10 +33,28 @@ import '../../features/planning/presentation/week_view.dart';
 import '../../features/recipes/presentation/recipe_editor_view.dart';
 import '../../features/recipes/presentation/recipe_view.dart';
 import '../../features/shopping/presentation/shopping_view.dart';
+import '../../shared/ansi_layout.dart';
 import '../../shared/ansi_tab_shell.dart';
 import '../sync/session.dart';
 
 part 'app_router.g.dart';
+
+/// A full-screen page, in the app's measure.
+///
+/// Every route below the shell builds through this, so the wrap that centres a
+/// page on a wide window is written once here instead of at the top of fifteen
+/// screens — and a screen cannot forget it. The shell's four tabs are wrapped
+/// by the shell itself (`shared/ansi_tab_shell.dart`), which is why the
+/// branches keep the plain [GoRoute].
+GoRoute _page({
+  required String path,
+  required String name,
+  required Widget Function(GoRouterState state) builder,
+}) => GoRoute(
+  path: path,
+  name: name,
+  builder: (context, state) => AnsiMeasure(child: builder(state)),
+);
 
 /// The app's routes. `/recipes/new` is declared before `/recipes/:id` so the
 /// literal wins over the param.
@@ -73,15 +91,15 @@ GoRouter router(Ref ref) {
       return null;
     },
     routes: [
-      GoRoute(
+      _page(
         path: '/sign-in',
         name: 'sign-in',
-        builder: (context, state) => const SignInView(),
+        builder: (state) => const SignInView(),
       ),
-      GoRoute(
+      _page(
         path: '/connecting',
         name: 'connecting',
-        builder: (context, state) => const ConnectingView(),
+        builder: (state) => const ConnectingView(),
       ),
       // The four tabs are branches of one shell, so switching a tab changes an
       // index inside a single unchanged root page: the bar never moves, and
@@ -133,10 +151,10 @@ GoRouter router(Ref ref) {
       // Everything below stays a top-level sibling of the shell: pushed on the
       // root Navigator, so it covers the bar and keeps the platform's own push
       // transition and back gesture (D2).
-      GoRoute(
+      _page(
         path: '/import',
         name: 'import',
-        builder: (context, state) => ImportView(
+        builder: (state) => ImportView(
           initialBookId: state.uri.queryParameters['book'],
           initialSectionId: state.uri.queryParameters['section'],
         ),
@@ -145,15 +163,15 @@ GoRouter router(Ref ref) {
       // `/ingredients` (the vocabulary manager) are pushed like `/import`,
       // never a fifth tab: the four tabs are the loop, and neither an account
       // nor a vocabulary is a phase of it.
-      GoRoute(
+      _page(
         path: '/account',
         name: 'account',
-        builder: (context, state) => const AccountView(),
+        builder: (state) => const AccountView(),
       ),
-      GoRoute(
+      _page(
         path: '/ingredients',
         name: 'ingredients',
-        builder: (context, state) => const IngredientListView(),
+        builder: (state) => const IngredientListView(),
       ),
       // `/ingredients/new` — the ONE door to making an ingredient. It is the
       // same form, with no row behind it yet: nothing is written until Save, so
@@ -162,20 +180,20 @@ GoRouter router(Ref ref) {
       // row without retyping.
       //
       // Declared BEFORE `/ingredients/:id` so `new` is a route and not an id.
-      GoRoute(
+      _page(
         path: '/ingredients/new',
         name: 'ingredient-new',
-        builder: (context, state) =>
+        builder: (state) =>
             IngredientDetailView(name: state.uri.queryParameters['name'] ?? ''),
       ),
       // `?edit=1` opens the editing posture instead of the fact sheet — what a
       // door that exists to CHANGE a field hands over (a recipe's macro fix
       // marker, the import review's piece-weight door, the manager's stub
       // band). Everything else lands on the row as it reads.
-      GoRoute(
+      _page(
         path: '/ingredients/:id',
         name: 'ingredient',
-        builder: (context, state) => IngredientDetailView(
+        builder: (state) => IngredientDetailView(
           ingredientId: state.pathParameters['id'],
           edit: state.uri.queryParameters[kEditPostureQueryParam] == '1',
         ),
@@ -186,10 +204,10 @@ GoRouter router(Ref ref) {
       // hands over, so the recipe lands on the shelf that was tapped instead of
       // in the default book. `?handback=1` is the line picker's door: Save
       // pops the recipe back to the line that is waiting on it.
-      GoRoute(
+      _page(
         path: '/recipes/new',
         name: 'recipe-new',
-        builder: (context, state) => RecipeEditorView(
+        builder: (state) => RecipeEditorView(
           initialTitle: state.uri.queryParameters['title'],
           initialBookId: state.uri.queryParameters['book'],
           initialSectionId: state.uri.queryParameters['section'],
@@ -203,10 +221,10 @@ GoRouter router(Ref ref) {
       // nothing about the page itself; it is what lets the page offer the
       // week door beside its own Edit, and the page re-checks it against the
       // week before it does.
-      GoRoute(
+      _page(
         path: '/recipes/:id',
         name: 'recipe',
-        builder: (context, state) => RecipeView(
+        builder: (state) => RecipeView(
           recipeId: state.pathParameters['id']!,
           weekKey: state.uri.queryParameters['week'],
         ),
@@ -216,10 +234,10 @@ GoRouter router(Ref ref) {
       // 0043). It is a query param rather than a route because the mode is a
       // fact about what Save writes, exactly as `?title=` is a fact about what
       // the draft starts from.
-      GoRoute(
+      _page(
         path: '/recipes/:id/edit',
         name: 'recipe-edit',
-        builder: (context, state) {
+        builder: (state) {
           final week = state.uri.queryParameters['week'];
           final id = state.pathParameters['id'];
           return week == null || id == null

@@ -35,12 +35,37 @@ FThemeData ansiThemeData() {
     border: AnsiColors.line,
     card: AnsiColors.surface,
   );
-  return FThemeData(
-    colors: colors,
-    touch: true,
-    debugLabel: 'Ansi',
-  ).copyWith(bottomNavigationBarStyle: _bottomNavStyle());
+  final base = FThemeData(colors: colors, touch: true, debugLabel: 'Ansi');
+  return base.copyWith(
+    bottomNavigationBarStyle: _bottomNavStyle(),
+    toasterStyle: _toasterStyle(base),
+  );
 }
+
+/// The toast: bottom-centre, and never wider than the measure.
+///
+/// Both are facts about the app rather than about one call site, so they are
+/// stated here once — `showFToast` falls back to `toastAlignment` when a caller
+/// names no alignment, and the cap rides on every toast variant.
+///
+/// **Bottom-centre**, because a toast at the top of the window would sit over a
+/// screen's header, which is where every header action lives. **Capped at the
+/// measure** — `breakpoints.sm`, the width every page is drawn in
+/// (`shared/ansi_layout.dart`) — because a toast wider than the column it
+/// reports on reads as a second, competing layout. On a phone neither this cap
+/// nor Forui's own is ever reached.
+FToasterStyleDelta _toasterStyle(FThemeData base) => FToasterStyleDelta.delta(
+  toastAlignment: FToastAlignment.bottomCenter,
+  toastStyles: FVariantsDelta.delta([
+    FVariantOperation.all(
+      FToastStyleDelta.delta(
+        constraints: base.toasterStyle.toastStyles.primary.constraints.copyWith(
+          maxWidth: base.breakpoints.sm,
+        ),
+      ),
+    ),
+  ]),
+);
 
 /// The bottom bar's selected item, stepped herb → herbDeep.
 ///

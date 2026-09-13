@@ -50,6 +50,11 @@ against the code. (Vendored snapshots of *other people's* docs live in
 - [`navigation.md`](./navigation.md) — the tab shell and why the bar is one
   instance, the cross-fade spec, what back does on every screen state, the
   root-navigator rule for sheets and dialogs, and the tap guard.
+- [`wide-screen.md`](./wide-screen.md) — the three layouts and their numbers
+  (compact · medium · expanded, on Forui's own breakpoints), the one file under
+  `lib/` allowed to read the viewport and the structural test that holds it, the
+  two places the 640 measure is applied, and what a screen may and may not do
+  with width.
 - [`errors-and-sync-health.md`](./errors-and-sync-health.md) — the one rule (a
   toast reports an act, a banner reports a state), the one door every write goes
   through and the test that holds it, the four sync states and the words for

@@ -6,9 +6,12 @@
 /// sync banner, not this.
 ///
 /// A toast sits **bottom-centre**, above the tab bar, so it never covers a
-/// header action; it needs an `FToaster` ancestor, which `app.dart` installs
-/// once beside `FTheme`. A widget test that pumps a bare screen must use
-/// `pumpAnsiApp` (`test/helpers/pump_app.dart`) or `showFToast` throws.
+/// header action, and it is never drawn wider than the measure a page sits in.
+/// Both are set once on the theme's toaster style
+/// (`core/theme/ansi_theme.dart`), so no function here restates them. A toast
+/// needs an `FToaster` ancestor, which `app.dart` installs once beside
+/// `FTheme`. A widget test that pumps a bare screen must use `pumpAnsiApp`
+/// (`test/helpers/pump_app.dart`) or `showFToast` throws.
 ///
 /// The words are the design's, not a developer's: never "Error", never
 /// "Failed", never an exception's `toString()`. See
@@ -50,7 +53,6 @@ void showAnsiFailureToast(
   showFToast(
     context: context,
     variant: FToastVariant.destructive,
-    alignment: FToastAlignment.bottomCenter,
     duration: _toastDuration,
     icon: const Icon(FLucideIcons.circleAlert),
     title: Text('Couldn’t $what.'),
@@ -81,7 +83,6 @@ void showAnsiProblemToast(
 }) {
   showFToast(
     context: context,
-    alignment: FToastAlignment.bottomCenter,
     duration: _toastDuration,
     icon: const Icon(FLucideIcons.info),
     title: const Text('Something went wrong.'),
@@ -122,7 +123,6 @@ void showAnsiUndoToast(
 }) {
   showFToast(
     context: context,
-    alignment: FToastAlignment.bottomCenter,
     duration: _toastDuration,
     icon: const Icon(FLucideIcons.minus),
     title: Text(what),

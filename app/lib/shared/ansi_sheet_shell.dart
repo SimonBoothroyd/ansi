@@ -26,6 +26,7 @@ import 'package:forui/forui.dart';
 
 import '../core/theme/ansi_theme.dart';
 import '../core/theme/ansi_tokens.dart';
+import 'ansi_layout.dart';
 import 'ansi_modals.dart';
 
 /// How a sheet offers its way out.
@@ -82,6 +83,9 @@ class AnsiSheetShell extends StatelessWidget {
 
   /// A fraction of the screen height to pin the sheet to. Null sizes it to its
   /// content, which is what all but the search-driven sheets want.
+  ///
+  /// Resolved through [ansiViewportHeight]: the height of the window is a
+  /// viewport read, and those live in `shared/ansi_layout.dart`.
   final double? heightFactor;
 
   final double topPadding;
@@ -117,7 +121,7 @@ class AnsiSheetShell extends StatelessWidget {
     return Container(
       height: heightFactor == null
           ? null
-          : MediaQuery.sizeOf(context).height * heightFactor!,
+          : ansiViewportHeight(context, heightFactor!),
       decoration: const BoxDecoration(
         color: AnsiColors.paper,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
