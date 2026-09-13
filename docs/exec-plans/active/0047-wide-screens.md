@@ -118,6 +118,17 @@ changes, and the code gets one place that reads the viewport.
 - 2026-09-13 — ADR-0002's "PowerSync web is in beta" line is **no longer
   true**; the ADR is immutable, so release.md §6.3 carries the correction
   until the wide-screen design doc exists to hold it.
+- 2026-09-13 — **Cook on a desk is one schedule sheet, not two-up cards.** The
+  built pair read as gappy and corporate: a card is mostly air around one small
+  timeline, and a grid of them leaves a hole under a short one. The sheet spends
+  the width on a **shared axis** instead — seven day columns drawn once, faint
+  verticals through every row, a row per recipe — so a day is read down a column
+  rather than by comparing seven little bars, and a short row is page because no
+  box is drawn round it. Capped at 1140 and centred. Nothing about a session
+  changes: the phone's tile and the row read one `SessionSpeech` and one
+  `CookTimelineSpec`, and every door the card had (the title for this week, the
+  whole-batch toggle the tick follows, a gap's fix) is on the row, with the split
+  and freezer notes moved from their boxes into the row's margin. Owner call.
 - 2026-09-13 — **A tab root and a pushed page share one opt-out.** `AnsiPane`
   is the only applier of the measure, and both router helpers pass it the same
   `fullWidth` flag: `_branch` for the four tab roots (the shelf, the matrix,

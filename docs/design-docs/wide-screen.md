@@ -108,10 +108,10 @@ second source of truth about what a page is, and the wide answer then has to be
 chased screen by screen.
 
 **All four tab roots opt out**, through `_branch`: the Library's shelf, the
-Week's matrix, Cook's two-up and the Shop's list with its provenance pane are
-each a pane's worth of design, and each caps itself where its own drawing says —
-Cook at 1000 and centred, the Shop pair at the measure plus its 360 pane, the
-shelf a grid and the matrix the whole width.
+Week's matrix, Cook's schedule sheet and the Shop's list with its provenance
+pane are each a pane's worth of design, and each caps itself where its own
+drawing says — Cook at 1140 and centred, the Shop pair at the measure plus its
+360 pane, the shelf a grid and the matrix the whole width.
 
 **A pushed page opts out the same way**, through `_page`'s `fullWidth`:
 `/books/:id`, where a book is a ~200 px section index beside its recipes, which
@@ -189,7 +189,7 @@ frame behind it is in that screen's own file, under its `Wide · ≥ 1024` rule.
 | **Library** (`features/books`) | at `expanded` the body is a **grid of fixed-height book tiles** (four across at 1440, three on an iPad) rather than a column of cards; the fold is not read; a tile opens the book page. The search field, the ranked results column, the `＋ new book` door and the vocabulary shelf are the phone's. |
 | **Book page** (`/books/:id`, `features/books`) | **two panes**: a 200 section index (counts, current lit, tapping scrolls the one list) beside the recipes at the measure; every row and menu is the Library's own. |
 | **Shop** (`features/shopping`) | the walk stays **one column at the measure** — two phones drive it at once, and a checked row must not move — with a 360 pane beside it holding one row's `from …` breakdown open. A row's **name** points the pane at it; the row's own tap is still the tick, and the aisles and the one basket section are the phone's. |
-| **Cook** (`features/cook_plan`) | the session cards run **two-up, capped at 1000 and centred**. A card is a whole session and never splits across a column, so the width buys rows of cards rather than a re-drawn card; an odd count ends in a ragged row. |
+| **Cook** (`features/cook_plan`) | the plan is **one schedule sheet, capped at 1140 and centred**: a row per recipe against seven day columns drawn once — a herb tick with its `×N` on the cook day, a herb-soft band for as long as the batch keeps, a dot on every day it feeds, amber for a day only the freezer reaches — with the covers sentence at the row's end and the split or freezer note in its margin. One set of words (`SessionSpeech`) and one keep-window geometry (`CookTimelineSpec`) serve both forms, and every door the phone's card has is on the row. |
 | **Ingredients manager** (`features/ingredients`) | **two panes**: the vocabulary (its search field and stub band pinned, the aisle sections scrolling under them, the add door at the foot) and the fact sheet, capped at 720, opened **in place** rather than pushed. `/ingredients/:id` lands on the same split with that row lit; `?edit=1` stays the form in the measure at every width. |
 
 The two pages of the manager and the book page opt out of the router's

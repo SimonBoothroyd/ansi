@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Cook &amp; Shop</h1>
-    <p class="view-status">built · matches code 2026-09-12 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: differs 2026-09-13: at ≥ 1024 a row’s breakdown is drawn only in the provenance pane, and the walk keeps the 640 measure beside it · <a href="../../exec-plans/active/0047-wide-screens.md">plan 0047</a></p>
+    <p class="view-status">built · matches code 2026-09-12 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: cook matches code 2026-09-13; shop differs 2026-09-13: at ≥ 1024 a row’s breakdown is drawn only in the provenance pane, and the walk keeps the 640 measure beside it · <a href="../../exec-plans/active/0047-wide-screens.md">plan 0047</a></p>
     <p class="view-blurb">Two tabs derived from the week on screen — sessions grouped by recipe and split by shelf life, then one list summed from them, saying where every line came from.</p>
 </header>
 
@@ -470,7 +470,7 @@
     </div>
 
     <div class="frame wide">
-        <p class="frame-name"><b>wide &middot; cook</b> &middot; Cook lit; the switcher is still the only title, and the session cards run two-up with each card’s anatomy unchanged — recipe, portions, the week’s four-word clause where there is one, the split or join note, the freshness timeline, and a batch said in its own fraction</p>
+        <p class="frame-name"><b>wide &middot; cook</b> &middot; Cook lit; the switcher is still the only title, and the whole plan is ONE schedule sheet — a row per recipe against a seven-day axis drawn once, capped at 1140 and centred. In the row: the recipe and its facts, then the track — a herb tick with its <code>&times;N</code> on the cook day, a herb-soft band for as long as the batch keeps, a dot on every day it feeds, amber for a day only the freezer reaches — and the covers sentence in words at the row&rsquo;s end<br><span style="color:var(--gone)">differs:</span> there is <b>no card at this width</b>. The phone&rsquo;s session tile becomes a row on the shared axis, its per-session timeline becomes that row&rsquo;s share of the one axis, and the split or freezer note moves out of its box into the row&rsquo;s <b>margin behind a 2 px rule</b></p>
         <div class="desk">
             <div class="lip"><i></i><i></i><i></i></div>
             <div class="dscreen">
@@ -484,39 +484,95 @@
                 <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></span>Account</div>
             </div>
             <div class="main">
-                <div class="wflat" style="max-width:1000px;width:100%;margin:0 auto">
-                    <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span></div>
+                <div class="wck wflat">
+                    <div class="wkhdr"><span class="chev">&lsaquo;</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">&#9662;</span></span><span class="chev">&rsaquo;</span></div>
                     <p class="conv-note" style="margin-top:6px;letter-spacing:.04em">grouped by recipe &middot; split by shelf life</p>
-                    <div class="wcook" style="margin-top:14px">
-                        <div class="cook split">
-                            <div class="cook-title">Weeknight Chicken Curry</div>
-                            <div class="cook-sub">4 portions across the week &middot; keeps 4 d</div>
-                            <div class="session"><div class="ses-top"><span class="ses-when">Cook Mon</span><span class="ses-scale">×1</span></div><div class="ses-covers">covers Mon + Thu dinner &middot; 4 portions</div>
-                                <div class="tl"><div class="tl-cook"></div><div class="tl-track"><span class="tl-fresh" style="flex:4"></span><span class="tl-gone" style="flex:3"></span></div><div class="tl-days"><span>Mon</span><span>Thu</span><span>Fri</span></div></div></div>
-                            <div class="split-note"><span class="ic">⚑</span><span>A later meal falls past the 4-day window — cook it again, fresh.</span></div>
+
+                    <div class="wck-head wck-g">
+                        <div class="wck-lbl">RECIPE</div>
+                        <div class="wck-days">
+                                <div class="wck-d"><div class="t"></div><span class="n">MON</span><span class="dd">31</span></div>
+                                <div class="wck-d today"><div class="t"></div><span class="n">TUE</span><span class="dd">1</span></div>
+                                <div class="wck-d"><div class="t"></div><span class="n">WED</span><span class="dd">2</span></div>
+                                <div class="wck-d"><div class="t"></div><span class="n">THU</span><span class="dd">3</span></div>
+                                <div class="wck-d"><div class="t"></div><span class="n">FRI</span><span class="dd">4</span></div>
+                                <div class="wck-d"><div class="t"></div><span class="n">SAT</span><span class="dd">5</span></div>
+                                <div class="wck-d"><div class="t"></div><span class="n">SUN</span><span class="dd">6</span></div>
                         </div>
-                        <div class="cook">
-                            <div class="cook-title">Slow-Cooker Beef Ragù</div>
-                            <div class="cook-sub">4 portions across the week &middot; keeps 4 d &middot; freezable &middot; edited for this week</div>
-                            <div class="session"><div class="ses-top"><span class="ses-when">Cook Tue</span><span class="ses-scale">×1</span></div><div class="ses-covers">covers Tue + Sat dinner &middot; 4 portions</div>
-                                <div class="tl"><div class="tl-cook"></div><div class="tl-track"><span class="tl-fresh" style="flex:2"></span><span class="tl-aging" style="flex:5"></span></div><div class="tl-days"><span>Tue</span><span>Fri</span><span>Sat</span></div></div></div>
-                            <div class="frz-note"><span class="ic">❄</span><span>Saturday is far off, but Slow-Cooker Beef Ragù freezes — cook once Tuesday, freeze Saturday’s share.</span></div>
+                        <div></div>
+                    </div>
+
+                    <div class="wck-body">
+                        <div class="wck-verts"><i style="--n:1"></i><i style="--n:2"></i><i style="--n:3"></i><i style="--n:4"></i><i style="--n:5"></i><i style="--n:6"></i></div>
+
+                        <div class="wck-row wck-g">
+                            <div>
+                                <div class="wck-name">Weeknight Chicken Curry</div>
+                                <div class="wck-facts">6 portions across the week &middot; keeps 4 d</div>
+                            </div>
+                            <div class="wck-track">
+                                <span class="band" style="--at:0;--span:5"></span>
+                                <span class="band" style="--at:5;--span:2"></span>
+                                <span class="tick" style="--at:0"></span><span class="x" style="--at:0">&times;2</span>
+                                <span class="tick" style="--at:5"></span><span class="x" style="--at:5">&times;1</span>
+                                <span class="dot" style="--at:3"></span>
+                            </div>
+                            <div>
+                                <div class="wck-ses"><div class="wck-when">Cook Mon &times;2</div><div class="wck-cov">covers Mon + Thu dinner &middot; 4 portions</div></div>
+                                <div class="wck-ses"><div class="wck-when">Cook Sat &times;1</div><div class="wck-cov">covers Sat dinner &middot; 2 portions</div></div>
+                                <div class="wck-note"><i></i><span>A later meal falls past the 4-day window &mdash; cook it again, fresh.</span></div>
+                            </div>
                         </div>
-                        <div class="cook">
-                            <div class="cook-title">Romesco Aioli &middot; for Sausage Sliders</div>
-                            <div class="cook-sub">derived from a component line &middot; keeps 5 d</div>
-                            <div class="session"><div class="ses-top"><span class="ses-when">Cook by Sat</span><span class="ses-scale">×¼ batch</span></div>
-                                <div class="ses-covers">covers Sausage Sliders &middot; cook Sat — makes 1 cup, you need ¼</div>
-                                <div class="tl"><div class="tl-cook"></div><div class="tl-track"><span class="tl-fresh" style="flex:5"></span><span class="tl-gone" style="flex:2"></span></div><div class="tl-days"><span>Sat</span><span>Wed</span><span>Thu</span></div></div></div>
-                            <div class="split-note"><span class="ic">⚑</span><span>A batch makes 1 cup and Saturday needs ¼ — the rest is yours. Nothing here tracks the leftover.</span></div>
+
+                        <div class="wck-row wck-g">
+                            <div>
+                                <div class="wck-name">Slow-Cooker Beef Ragù</div>
+                                <div class="wck-facts">4 portions across the week &middot; keeps 3 d &middot; freezable &middot; edited for this week</div>
+                            </div>
+                            <div class="wck-track">
+                                <span class="band" style="--at:1;--span:4"></span>
+                                <span class="tick" style="--at:1"></span><span class="x" style="--at:1">&times;1</span>
+                                <span class="dot past" style="--at:5"></span>
+                            </div>
+                            <div>
+                                <div class="wck-ses"><div class="wck-when">Cook Tue &times;1</div><div class="wck-cov">covers Tue + Sat dinner &middot; 4 portions</div></div>
+                                <div class="wck-note frz"><i></i><span>Saturday is far off, but Slow-Cooker Beef Ragù freezes &mdash; cook once Tuesday, freeze Saturday&rsquo;s share.</span></div>
+                            </div>
                         </div>
+
+                        <div class="wck-row wck-g">
+                            <div>
+                                <div class="wck-name">Romesco Aioli &middot; for Sausage Sliders</div>
+                                <div class="wck-facts">derived from a component line &middot; keeps 5 d</div>
+                            </div>
+                            <div class="wck-track">
+                                <span class="band" style="--at:5;--span:2"></span>
+                                <span class="tick" style="--at:5"></span><span class="x" style="--at:5">&times;&frac14;</span>
+                            </div>
+                            <div>
+                                <div class="wck-ses"><div class="wck-when">Cook by Sat &times;&frac14; batch</div><div class="wck-cov">covers Sausage Sliders &middot; cook Sat &mdash; makes 1 cup, you need &frac14;</div></div>
+                                <div class="wck-note"><i></i><span>A batch makes 1 cup and Saturday needs &frac14; &mdash; the rest is yours. Nothing here tracks the leftover.</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="wck-g">
+                        <div></div>
+                        <div class="wck-key">
+                            <span><i class="k-cook"></i>cook</span>
+                            <span><i class="k-eat"></i>eaten</span>
+                            <span><i class="k-keep"></i>keeps</span>
+                            <span><i class="k-past"></i>past the window</span>
+                        </div>
+                        <div></div>
                     </div>
                 </div>
             </div>
             </div>
         </div>
-        <p class="conv-note" style="margin:10px 4px 0">A card is a whole session and never splits across a column, so the width buys rows of cards rather than a re-drawn card; a three-cook week ends in a ragged row, which is what a three-cook week is. Two-up caps at about 1000, because a session card read at half a desk is already at its measure.</p>
-        <p class="conv-note" style="margin:6px 4px 0">The card still says four words and no more when the week varies a recipe — <b>edited for this week</b> on the sub-line — and Cook stays read-only: <b>optional is the week’s decision</b>, taken on the recipe page, and the shop’s echo is where its names are doors.</p>
+        <p class="conv-note" style="margin:10px 4px 0">Two-up cards read as <b>gappy and corporate</b>: every card was mostly air around one small timeline, and the grid left a hole under a short one. The width&rsquo;s real dividend is a <b>shared axis</b> — seven days drawn once, faint verticals carrying them through every row — so &ldquo;what is cooking on Thursday&rdquo; is a glance down a column instead of seven little bars compared by eye. A row with one session is short, and that is page, because no box is drawn round it.</p>
+        <p class="conv-note" style="margin:6px 4px 0">Nothing about a session changes with the width: the same <b>covers</b> sentence, the same four-word <b>edited for this week</b> clause, the same split and freezer notes word for word, and a batch said in its own fraction. Every door the card had is on the row — the <b>recipe name</b> opens the recipe for this week, the whole-batch nudge is a line under the covers sentence whose tap the tick follows, and a component gap keeps its named reason and its <i>Set the yield</i> door. A gap&rsquo;s day is a bare amber tick: the day is known, the scale is not, and none is invented.</p>
+        <p class="conv-note" style="margin:6px 4px 0">The cost is a <b>convention to learn</b> — tick, dot, band, amber dot — so the sheet states it in a key once, under the axis. At 1180 the day pitch narrows and the name column gives up width; the seven-day axis and the centring never do.</p>
     </div>
 
 </div>

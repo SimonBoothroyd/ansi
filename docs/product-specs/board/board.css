@@ -1518,9 +1518,60 @@
     .wprov-h .n{flex:1;font-size:14px;font-weight:500;}
     .wprov-h .t{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;}
 
-    /* 3 · cook — two columns of the phone's own session card */
-    .wcook{max-width:1000px;width:100%;margin:0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start;}
-    .wcook .cook{margin:0;}
+    /* 3 · cook — ONE schedule sheet: a row per recipe against a seven-day axis
+       drawn once. Nothing is enclosed; hairlines, type and the day pitch do the
+       work the cards were doing, so a short row reads as page rather than as a
+       hole. The real cap is 1140 — recipe column, seven days at a 66 px pitch,
+       the column of words — and the desk frame is drawn at its own scale, so the
+       pitch is a variable and every mark is placed in terms of it. */
+    .wck{--pitch:50px;--recipe:258px;--says:230px;--gap:20px;width:100%;margin:0 auto;}
+    .wck-g{display:grid;grid-template-columns:var(--recipe) calc(var(--pitch)*7) var(--says);column-gap:var(--gap);}
+    /* the head: the seven days once, today in herb under its own 2 px tick */
+    .wck-head{align-items:end;margin-top:14px;}
+    .wck-lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.16em;color:var(--muted);padding-bottom:3px;}
+    .wck-days{display:grid;grid-template-columns:repeat(7,var(--pitch));}
+    .wck-d{text-align:center;}
+    .wck-d .t{height:2px;margin:0 10px 7px;background:transparent;}
+    .wck-d.today .t{background:var(--herb);}
+    .wck-d .n{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.12em;color:var(--muted);}
+    .wck-d .dd{display:block;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);margin-top:3px;}
+    .wck-d.today .n,.wck-d.today .dd{color:var(--herb);}
+    /* the rows, and the faint day boundaries running behind all of them at once
+       — which is what makes every row the same seven days */
+    .wck-body{position:relative;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+    .wck-verts{position:absolute;top:0;bottom:0;left:calc(var(--recipe) + var(--gap));width:calc(var(--pitch)*7);pointer-events:none;}
+    .wck-verts i{position:absolute;top:0;bottom:0;width:1px;background:var(--line);left:calc(var(--n)*var(--pitch));}
+    .wck-row{padding:18px 0;}
+    .wck-row+.wck-row{border-top:1px solid var(--line);}
+    .wck-name{font-family:'Spectral',serif;font-size:17px;font-weight:500;letter-spacing:-.01em;line-height:1.2;}
+    .wck-facts{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);margin-top:6px;}
+    /* the track: a herb tick with its ×N on the cook day, a band for as long as
+       the batch keeps, a dot on every day it feeds — amber past the window */
+    .wck-track{position:relative;height:44px;}
+    .wck-track .band{position:absolute;top:0;height:22px;background:var(--herb-soft);left:calc(var(--at)*var(--pitch));width:calc(var(--span)*var(--pitch));}
+    .wck-track .tick{position:absolute;top:0;height:22px;width:2px;background:var(--herb);left:calc(var(--at)*var(--pitch) + var(--pitch)*.42);}
+    .wck-track .tick.none{background:var(--aging);}
+    .wck-track .x{position:absolute;top:27px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--herb-deep);left:calc(var(--at)*var(--pitch) + var(--pitch)*.42 + 5px);}
+    .wck-track .dot{position:absolute;top:8px;width:6px;height:6px;border-radius:50%;background:var(--herb);left:calc(var(--at)*var(--pitch) + var(--pitch)*.5 - 3px);}
+    .wck-track .dot.past{background:var(--aging);}
+    /* the words at the row's end: the session, its covers sentence, and the note
+       in the margin behind a 2 px rule instead of inside a box */
+    .wck-when{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--herb-deep);}
+    .wck-cov{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);margin-top:5px;line-height:1.45;}
+    .wck-ses+.wck-ses{margin-top:12px;}
+    .wck-note{display:flex;gap:9px;margin-top:13px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;line-height:1.5;}
+    .wck-note i{flex:none;width:2px;background:var(--aging);}
+    .wck-note span{color:#7A5A16;}
+    .wck-note.frz i{background:#83B4D2;}
+    .wck-note.frz span{color:#3B6076;}
+    .wck-door{display:inline-flex;align-items:center;gap:3px;margin:9px 0 0 11px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--herb-deep);}
+    /* what the marks mean, stated once under the sheet rather than learned */
+    .wck-key{display:flex;align-items:center;gap:18px;padding-top:14px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);}
+    .wck-key span{display:flex;align-items:center;gap:6px;}
+    .wck-key .k-cook{width:2px;height:11px;background:var(--herb);}
+    .wck-key .k-eat{width:6px;height:6px;border-radius:50%;background:var(--herb);}
+    .wck-key .k-keep{width:16px;height:9px;background:var(--herb-soft);}
+    .wck-key .k-past{width:6px;height:6px;border-radius:50%;background:var(--aging);}
 
     /* 4/5 · the fact sheet in a pane: the phone's own value lines, and the
        ⋯ the page keeps Edit behind */
