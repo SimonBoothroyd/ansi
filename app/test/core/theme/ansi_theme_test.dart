@@ -66,4 +66,17 @@ void main() {
     expect(restIcon.color, AnsiColors.muted);
     expect(restText.color, AnsiColors.muted);
   });
+
+  test('the toast is anchored bottom-centre and capped at the measure, on '
+      'every variant', () {
+    final toaster = ansiThemeData().toasterStyle;
+
+    expect(toaster.toastAlignment, FToastAlignment.bottomCenter);
+    for (final style in [
+      toaster.toastStyles.primary,
+      toaster.toastStyles.destructive,
+    ]) {
+      expect(style.constraints.maxWidth, ansiThemeData().breakpoints.sm);
+    }
+  });
 }

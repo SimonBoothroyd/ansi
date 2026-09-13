@@ -13,6 +13,11 @@
 /// leaves the app (D3-b — the Android convention, one step, cannot loop). The
 /// rule is stated here rather than inherited from whatever `context.go` left on
 /// the stack.
+///
+/// The whole shell sits in one [AnsiMeasure], so on a wide window the tabs, the
+/// banner and the bar stay one centred column together — a bar stretched over a
+/// desktop monitor while its content is 640 wide is two layouts, not one. This
+/// is the tabs' single wrap: no tab root wraps itself.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -20,6 +25,7 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 
 import 'ansi_bottom_nav.dart';
+import 'ansi_layout.dart';
 import 'sync_banner.dart';
 
 /// The branch the app treats as home: back from anywhere else lands here first.
@@ -47,19 +53,21 @@ class AnsiTabShell extends StatelessWidget {
     onPopInvokedWithResult: (didPop, _) {
       if (!didPop) shell.goBranch(kHomeBranch);
     },
-    child: FScaffold(
-      // Each tab screen has its own FScaffold inside the branch, which applies
-      // the page padding already; leaving it on here would double it.
-      childPad: false,
-      footer: AnsiBottomNav(shell: shell),
-      child: Column(
-        children: [
-          // The sync banner belongs to the app, not to a tab, so it lives here
-          // exactly once, above every branch. It draws nothing at all while
-          // sync is healthy — which is almost always.
-          const AnsiSyncBanner(),
-          Expanded(child: shell),
-        ],
+    child: AnsiMeasure(
+      child: FScaffold(
+        // Each tab screen has its own FScaffold inside the branch, which
+        // applies the page padding already; leaving it on here would double it.
+        childPad: false,
+        footer: AnsiBottomNav(shell: shell),
+        child: Column(
+          children: [
+            // The sync banner belongs to the app, not to a tab, so it lives
+            // here exactly once, above every branch. It draws nothing at all
+            // while sync is healthy — which is almost always.
+            const AnsiSyncBanner(),
+            Expanded(child: shell),
+          ],
+        ),
       ),
     ),
   );
