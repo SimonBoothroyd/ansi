@@ -23,6 +23,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/account/presentation/account_view.dart';
 import '../../features/auth/presentation/connecting_view.dart';
 import '../../features/auth/presentation/sign_in_view.dart';
+import '../../features/books/presentation/book_page_view.dart';
 import '../../features/books/presentation/library_view.dart';
 import '../../features/cook_plan/presentation/cook_view.dart';
 import '../../features/import/presentation/import_view.dart';
@@ -46,14 +47,25 @@ part 'app_router.g.dart';
 /// screens — and a screen cannot forget it. The shell's four tabs are wrapped
 /// by the shell itself (`shared/ansi_tab_shell.dart`), which is why the
 /// branches keep the plain [GoRoute].
+///
+/// [usesWidth] is the deliberate opt-out, for a page whose honest form at
+/// [AnsiLayout.expanded] is wider than one column — the book page's section
+/// index beside its recipes. It changes nothing below that band: on a phone and
+/// a portrait tablet the page is centred in the measure like every other. The
+/// opt-out lives here rather than in the page, so the measure still has exactly
+/// two appliers and a screen still never wraps itself.
 GoRoute _page({
   required String path,
   required String name,
   required Widget Function(GoRouterState state) builder,
+  bool usesWidth = false,
 }) => GoRoute(
   path: path,
   name: name,
-  builder: (context, state) => AnsiMeasure(child: builder(state)),
+  builder: (context, state) =>
+      usesWidth && AnsiLayout.of(context) == AnsiLayout.expanded
+      ? builder(state)
+      : AnsiMeasure(child: builder(state)),
 );
 
 /// The app's routes. `/recipes/new` is declared before `/recipes/:id` so the
@@ -158,6 +170,17 @@ GoRouter router(Ref ref) {
           initialBookId: state.uri.queryParameters['book'],
           initialSectionId: state.uri.queryParameters['section'],
         ),
+      ),
+      // One book on a page of its own. Pushed like the rest, so it covers the
+      // bar and back returns to the Library — and deep-linkable, which is the
+      // point of a book having a URL at all. It is the one page that USES the
+      // width: at `expanded` its sections are an index beside the recipes,
+      // so it opts out of the measure there (see [_page]).
+      _page(
+        path: '/books/:id',
+        name: 'book',
+        usesWidth: true,
+        builder: (state) => BookPageView(bookId: state.pathParameters['id']!),
       ),
       // `/account` (the household, this device, the session) and
       // `/ingredients` (the vocabulary manager) are pushed like `/import`,

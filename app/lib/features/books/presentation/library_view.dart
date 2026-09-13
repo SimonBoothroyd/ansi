@@ -1,6 +1,16 @@
 /// The Library — the app's home screen. Books hold user-named sections, each
 /// listing the recipes filed under it (design board: "Books · your own
 /// sections, not presets").
+///
+/// **Two bodies over one screen.** On a phone and a portrait tablet the books
+/// are cards that fold open onto their sections, which is the only honest shape
+/// for one column. At [AnsiLayout.expanded] they are a shelf of fixed-height
+/// tiles instead: a name, its count line and the first titles on it, opening
+/// the book's own page ([BookPageView]) where the sections get room. The fold
+/// is not read there — a tile is already the folded book, and a page is already
+/// the open one. Everything else on the screen is the same object in both: the
+/// search field, the one ranked column of results, the `＋ new book` door and
+/// the Ingredients shelf.
 library;
 
 import 'dart:async';
@@ -15,26 +25,22 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/words.dart';
 import '../../../shared/ansi_error_state.dart';
-import '../../../shared/ansi_modals.dart';
-import '../../../shared/ansi_more_trigger.dart';
+import '../../../shared/ansi_layout.dart';
 import '../../../shared/ansi_search_field.dart';
 import '../../../shared/dashed_border_box.dart';
-import '../../../shared/format.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/write.dart';
 import '../../account/presentation/account_view.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/presentation/ingredient_list_view.dart'
     show kIngredientsRoute;
-import '../../ingredients/presentation/macros_format.dart';
-import '../../recipes/data/recipe_providers.dart';
 import '../../recipes/domain/recipe.dart';
 import '../data/book_providers.dart';
 import '../domain/book.dart';
 import '../domain/library_search.dart';
-import 'book_pick_sheet.dart';
+import 'book_page_view.dart';
+import 'book_rows.dart';
 import 'book_view_models.dart';
-import 'recipe_move_sheet.dart';
 import 'text_prompt.dart';
 
 class LibraryView extends HookConsumerWidget {
@@ -50,6 +56,10 @@ class LibraryView extends HookConsumerWidget {
     final field = useTextEditingController();
     final typed = useValueListenable(field).text;
     final searching = typed.trim().isNotEmpty;
+    // The one band this screen reads: a shelf of tiles is a different honest
+    // answer, not a wider version of the card list, and it arrives with its own
+    // board frame. Everything below the band is written for one width, as ever.
+    final shelf = AnsiLayout.of(context) == AnsiLayout.expanded;
 
     return FScaffold(
       // A tab root sits INSIDE the shell's scaffold, which already shrinks
@@ -90,20 +100,14 @@ class LibraryView extends HookConsumerWidget {
               data: (books) => switch (books) {
                 _ when searching => _SearchResults(books: books, query: typed),
                 [] => const _EmptyState(),
+                _ when shelf => _Shelf(books: books),
                 _ => ListView(
                   padding: const EdgeInsets.only(top: 4, bottom: 28),
                   children: [
                     for (final b in books) _BookCard(book: b, books: books),
                     // E7: the dashed row the v2 board drew and the build
                     // missed. It closes the books.
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                      child: DashedAction(
-                        icon: FLucideIcons.bookPlus,
-                        label: 'new book',
-                        onTap: () => unawaited(promptForNewBook(context, ref)),
-                      ),
-                    ),
+                    const _NewBookDoor(),
                     // E5: and then a different kind of shelf.
                     const _IngredientsShelf(),
                   ],
@@ -146,7 +150,7 @@ class _SearchResults extends StatelessWidget {
           ),
         ),
         for (final hit in hits)
-          _RecipeRow(recipe: hit.recipe, filing: hit.filing),
+          LibraryRecipeRow(recipe: hit.recipe, filing: hit.filing),
       ],
     );
   }
@@ -274,16 +278,19 @@ class _BookCard extends ConsumerWidget {
                             color: AnsiColors.surface,
                           ),
                         ),
-                        _BookMenu(book: book, books: books),
+                        BookMenu(book: book, books: books),
                       ],
                     ),
                   ),
                   if (expanded) ...[
                     for (final section in book.sections)
-                      _SectionBlock(book: book, section: section),
+                      BookSectionBlock(book: book, section: section),
                     if (book.unsectioned.isNotEmpty)
-                      _SectionBlock(book: book, unsectioned: book.unsectioned),
-                    if (_isEmpty) _EmptyShelf(book: book),
+                      BookSectionBlock(
+                        book: book,
+                        unsectioned: book.unsectioned,
+                      ),
+                    if (_isEmpty) EmptyShelf(book: book),
                     // No dashed add-a-section row here: `New section` is in
                     // the book `⋯` immediately above. An expanded card is
                     // books, sections and recipes — no furniture.
@@ -301,715 +308,217 @@ class _BookCard extends ConsumerWidget {
   bool get _isEmpty => book.sections.isEmpty && book.unsectioned.isEmpty;
 }
 
-/// "New section", from the book `⋯` — its one door since 0028 E3 retired the
-/// card's dashed twin. The invitation D5 was protecting ("name it anything")
-/// lives in the prompt's own hint, which is where a person actually reads it.
-Future<void> promptForNewSection(
-  BuildContext context,
-  WidgetRef ref,
-  String bookId,
-) async {
-  // The prompt's keyboard shrinks the Library under it, so the card row that
-  // opened it can be unmounted by the time Add is tapped: the write goes
-  // through handles that outlive the row (`hostContextOf`), never a `ref`
-  // after the await and never a `context.mounted` bail that drops the name.
-  final container = ProviderScope.containerOf(context, listen: false);
-  final host = hostContextOf(context);
-  final name = await promptForText(
-    context,
-    title: 'New section',
-    hint: 'Name it anything',
-    confirm: 'Add',
-    clean: NameKind.title,
-  );
-  if (name == null || name.trim().isEmpty) return;
-  await container.write(
-    host,
-    'add that section',
-    () => container.read(bookRepositoryProvider).createSection(bookId, name),
+/// The door that makes a book, under the last of them — the same row on the
+/// card list and under the shelf's grid, because it closes the books in
+/// either body.
+class _NewBookDoor extends ConsumerWidget {
+  const _NewBookDoor();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+    child: DashedAction(
+      icon: FLucideIcons.bookPlus,
+      label: 'new book',
+      onTap: () => unawaited(promptForNewBook(context, ref)),
+    ),
   );
 }
 
-/// The book header's `⋯` — [_SectionMenu]'s menu one level up (D4).
-///
-/// Same [FPopoverMenu], same items in the same order, so nothing new is
-/// learned. Reorder is deliberately the sections' clunky Move up / Move down:
-/// books do not get drag-and-drop while sections still lack it.
-class _BookMenu extends ConsumerWidget {
-  const _BookMenu({required this.book, required this.books});
+/// Every tile is this tall, whatever it holds — a band over a body, and neither
+/// one negotiates.
+const double kBookTileHeight = 180;
 
-  final Book book;
+/// The widest a tile is drawn. The grid asks for as many columns as fit at this
+/// extent, so the count follows the window rather than being typed in: four
+/// across a 1440 window beside the chrome, three on an iPad in landscape, two
+/// when the pane narrows to the measure.
+const double kBookTileMaxWidth = 320;
+
+/// The books as a shelf at [AnsiLayout.expanded]: a grid of fixed-height tiles,
+/// with the doors that are not books running full width beneath it.
+///
+/// The grid is the only thing the width changes. The `＋ new book` row and the
+/// Ingredients shelf are the phone's own, in the phone's order — a tile grid
+/// is a better shelf than a column of cards; it is not a licence to redraw
+/// what was never a shelf.
+class _Shelf extends StatelessWidget {
+  const _Shelf({required this.books});
+
   final List<Book> books;
 
-  Future<void> _move(BuildContext context, WidgetRef ref, int delta) async {
-    final ids = books.map((b) => b.id).toList();
-    final from = ids.indexOf(book.id);
-    final to = from + delta;
-    if (from < 0 || to < 0 || to >= ids.length) return;
-    ids
-      ..removeAt(from)
-      ..insert(to, book.id);
-    await ref.write(
-      context,
-      'reorder the books',
-      () => ref.read(bookRepositoryProvider).reorderBooks(ids),
-    );
-  }
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final repo = ref.read(bookRepositoryProvider);
-    return FPopoverMenu(
-      menuBuilder: (_, controller, _) => [
-        FItemGroup(
-          children: [
-            FItem(
-              prefix: const Icon(FLucideIcons.pencil),
-              title: const Text('Rename'),
-              onPress: () async {
-                unawaited(controller.hide());
-                // The prompt's keyboard can unmount this header row; the
-                // write continues through handles that outlive it.
-                final container = ProviderScope.containerOf(
-                  context,
-                  listen: false,
-                );
-                final host = hostContextOf(context);
-                final name = await promptForText(
-                  context,
-                  title: 'Rename book',
-                  hint: 'Book name',
-                  initial: book.name,
-                  confirm: 'Rename',
-                  clean: NameKind.title,
-                );
-                if (name == null || name.trim().isEmpty) return;
-                await container.write(
-                  host,
-                  'rename that book',
-                  () => repo.renameBook(book.id, name),
-                );
-              },
-            ),
-            FItem(
-              prefix: const Icon(FLucideIcons.plus),
-              title: const Text('New section'),
-              onPress: () {
-                unawaited(controller.hide());
-                unawaited(promptForNewSection(context, ref, book.id));
-              },
-            ),
-            FItem(
-              prefix: const Icon(FLucideIcons.arrowUp),
-              title: const Text('Move up'),
-              onPress: () {
-                unawaited(controller.hide());
-                unawaited(_move(context, ref, -1));
-              },
-            ),
-            FItem(
-              prefix: const Icon(FLucideIcons.arrowDown),
-              title: const Text('Move down'),
-              onPress: () {
-                unawaited(controller.hide());
-                unawaited(_move(context, ref, 1));
-              },
-            ),
-          ],
+  Widget build(BuildContext context) => CustomScrollView(
+    slivers: [
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        sliver: SliverGrid(
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: kBookTileMaxWidth,
+            mainAxisExtent: kBookTileHeight,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          delegate: SliverChildBuilderDelegate(
+            (context, i) => _BookTile(book: books[i]),
+            childCount: books.length,
+          ),
         ),
-        FItemGroup(
-          children: [
-            FItem(
-              prefix: const Icon(FLucideIcons.trash2),
-              title: const Text('Delete book'),
-              onPress: () {
-                unawaited(controller.hide());
-                unawaited(confirmDeleteBook(context, ref, book, books));
-              },
-            ),
-          ],
-        ),
-      ],
-      builder: (context, controller, _) =>
-          AnsiMoreTrigger(onTap: controller.toggle, color: AnsiColors.surface),
-    );
-  }
-}
-
-/// Deleting a book: refuse with a count and a door, or confirm (D4).
-///
-/// The 8.5/8.6 ruling verbatim — "it holds 42 recipes" is something a person
-/// can act on, "failed" is not. A book is a shelf, not a container, so this
-/// never cascades to the recipes; and the count is read from the REPOSITORY at
-/// the moment of the tap, like `usedIn`, never from the cached tree.
-Future<void> confirmDeleteBook(
-  BuildContext context,
-  WidgetRef ref,
-  Book book,
-  List<Book> books,
-) async {
-  // Keep-alive, read before the first await: every branch below crosses a
-  // dialog, and a throwaway notifier would be disposed before its callback ran.
-  // The container and the host context outlive the header row that opened
-  // the menu (`hostContextOf`): every dialog after the first await opens
-  // from the host, and the write goes through the container — never a `ref`
-  // after an await, never a `context.mounted` bail that drops a confirmed
-  // delete or move.
-  final repo = ref.read(bookRepositoryProvider);
-  final container = ProviderScope.containerOf(context, listen: false);
-  final host = hostContextOf(context);
-
-  if (books.length <= 1) {
-    // Separate on purpose: `ensureDefaultBook()` would re-mint a book on the
-    // next launch, and a book that reappears after you delete it is worse than
-    // being told no.
-    await refuseAnsi(
-      host.context,
-      title: 'Can’t delete “${book.name}”',
-      body: 'This is your only book — every recipe needs a shelf.',
-    );
-    return;
-  }
-
-  final held = await repo.countRecipesIn(book.id);
-
-  if (held > 0) {
-    final move = await refuseAnsi(
-      // The host outlives the row — see [hostContextOf].
-      // ignore: use_build_context_synchronously
-      host.context,
-      title: 'Can’t delete “${book.name}” yet',
-      body:
-          'It holds $held ${plural(held, 'recipe')}. Move '
-          '${plural(held, 'it', plural: 'them')} to another book first, or '
-          'delete ${plural(held, 'it', plural: 'them')}.',
-      door: 'Move them to…',
-    );
-    if (!move) return;
-    final target = await showBookPickSheet(
-      // The host outlives the row — see [hostContextOf].
-      // ignore: use_build_context_synchronously
-      host.context,
-      moving: held,
-      from: book,
-      candidates: [
-        for (final b in books)
-          if (b.id != book.id) b,
-      ],
-    );
-    if (target == null) return;
-    await container.write(
-      host,
-      'move those recipes',
-      () => repo.moveBookContents(fromBookId: book.id, toBookId: target.id),
-    );
-    return;
-  }
-
-  final confirmed = await askAnsi(
-    // The host outlives the row — see [hostContextOf].
-    // ignore: use_build_context_synchronously
-    host.context,
-    title: 'Delete “${book.name}”?',
-    body: 'The shelf is empty, so nothing goes with it.',
-    confirm: 'Delete',
-  );
-  if (!confirmed) return;
-  await container.write(
-    host,
-    'delete “${book.name}”',
-    () => repo.deleteBook(book.id),
+      ),
+      const SliverToBoxAdapter(child: _NewBookDoor()),
+      const SliverToBoxAdapter(child: _IngredientsShelf()),
+      const SliverToBoxAdapter(child: SizedBox(height: 28)),
+    ],
   );
 }
 
-/// The first-run shelf: the app opens on this, so it offers the two doors in
-/// place rather than sending you to find a menu. Both doors carry the book,
-/// exactly as the section `＋` does — a recipe started from an empty shelf
-/// files onto that shelf, not onto whichever book sorts first.
-class _EmptyShelf extends StatelessWidget {
-  const _EmptyShelf({required this.book});
+/// One book on the shelf: the name on its herb band with the count line the
+/// card's header carries, then **titles only**.
+///
+/// The Library's recipe row is two lines and carries its own `⋯`; three of
+/// those do not fit the body a fixed tile leaves, and a row that drops its
+/// second line is a row the app does not have. So a tile lists what is on the
+/// shelf and the book's page draws the rows — which is also why the tile has
+/// no menu: every control the card offered is one tap away, on the page it
+/// opens.
+///
+/// The ★ comes along because it only ever reported. A title too long for the
+/// tile is clipped here; where it is a row, it wraps.
+class _BookTile extends StatelessWidget {
+  const _BookTile({required this.book});
 
   final Book book;
 
-  String _route(String path) =>
-      Uri(path: path, queryParameters: {'book': book.id}).toString();
+  /// How many titles a tile shows before it counts the rest.
+  static const _peekCount = 3;
+
+  /// The book's recipes in the order its page lists them, so the first titles
+  /// on the tile are the first titles on the page.
+  List<RecipeSummary> get _recipes => [
+    for (final section in book.sections) ...section.recipes,
+    ...book.unsectioned,
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AnsiColors.line)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Nothing on this shelf yet',
-            style: ansiSerif(size: 15, color: AnsiColors.muted),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: DashedAction(
-                  icon: FLucideIcons.plus,
-                  label: 'new recipe',
-                  onTap: () => context.pushOnce(_route('/recipes/new')),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: DashedAction(
-                  icon: FLucideIcons.download,
-                  label: 'import one',
-                  onTap: () => context.pushOnce(_route('/import')),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
+    final recipes = _recipes;
+    final peek = recipes.take(_peekCount).toList();
+    final rest = recipes.length - peek.length;
 
-/// What a book says it holds — `42 recipes · 3 sections`.
-///
-/// A fold that hides how much it hides is a fold you stop trusting, so the
-/// line reads the same open or shut. An empty shelf says **"no recipes yet"**,
-/// never `0 recipes`, and a book with no sections omits that half entirely — a
-/// zero that renders looks like a bug.
-String bookCountLine(Book book) {
-  final recipes =
-      book.unsectioned.length +
-      book.sections.fold<int>(0, (n, s) => n + s.recipes.length);
-  final sections = book.sections.length;
-  return [
-    if (recipes == 0)
-      'no recipes yet'
-    else
-      '$recipes ${plural(recipes, 'recipe')}',
-    if (sections > 0) '$sections ${plural(sections, 'section')}',
-  ].join(' · ');
-}
-
-/// What a recipe row says under its title — `serves 4 · 520 kcal · 28 g
-/// protein`, or `serves 2` on its own.
-///
-/// **Honest numbers, or silence** (invariant 3). A recipe whose macros are
-/// incomplete prints the serves and stops: no `—`, no `incomplete` badge, no
-/// nag. The badge belongs where a person is *choosing* what to cook — the
-/// picker row wears one and says which lines it is waiting on — and a browsing
-/// row that nagged on every stub is the exact thing this line's ancestor was
-/// refused for. Silence here costs nothing: the recipe page says why.
-///
-/// `kcal` and `protein` are the two the recipe page's per-serving panel leads
-/// with, so the two surfaces agree about what matters; carb and fat stay on the
-/// page. [RecipeSummary.macros] is already per-serving and already computed in
-/// the same watch the library reads, so this line costs no query.
-String recipeStatsLine(RecipeSummary recipe) {
-  final serves = 'serves ${formatQuantity(recipe.servingsBase)}';
-  final perServing = recipe.macros?.perServing;
-  if (perServing == null) return serves;
-  return '$serves · ${formatKcal(perServing.kcal)} kcal · '
-      '${formatGrams(perServing.protein)} g protein';
-}
-
-/// One section (or the synthetic Unsectioned bucket, when [section] is null)
-/// and its recipe rows.
-class _SectionBlock extends ConsumerWidget {
-  const _SectionBlock({
-    required this.book,
-    this.section,
-    this.unsectioned = const [],
-  });
-
-  final Book book;
-  final BookSection? section;
-  final List<RecipeSummary> unsectioned;
-
-  List<RecipeSummary> get _recipes => section?.recipes ?? unsectioned;
-  String get _label => section?.name ?? 'Unsectioned';
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final section = this.section;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AnsiColors.line)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _label,
-                  style: ansiSerif(
-                    size: 14,
-                    color: section == null
-                        ? AnsiColors.muted
-                        : AnsiColors.herbDeep,
-                    weight: FontWeight.w400,
-                  ).copyWith(fontStyle: FontStyle.italic),
-                ),
-              ),
-              // E2: the two doors that make a recipe, on the row that knows
-              // where the recipe goes. `Unsectioned` gets one too — it has no
-              // `⋯`, and it is the door for "this book, no section".
-              _SectionAddMenu(book: book, section: section),
-              if (section != null) _SectionMenu(book: book, section: section),
-            ],
-          ),
-          if (_recipes.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Text(
-                'No recipes yet',
-                style: ansiMono(size: 11, color: AnsiColors.muted),
-              ),
-            )
-          else
-            for (final r in _recipes)
-              _RecipeRow(recipe: r, bookId: book.id, sectionId: section?.id),
-        ],
-      ),
-    );
-  }
-}
-
-/// The `＋` on a section label — the header menu's wording, on a row that knows
-/// its book and its section.
-///
-/// The header `＋` could only ever promise "a recipe, somewhere"; this one
-/// carries `?book=&section=` so the editor opens already filed. `section` is
-/// null on the synthetic Unsectioned bucket, which files into the book alone.
-class _SectionAddMenu extends StatelessWidget {
-  const _SectionAddMenu({required this.book, this.section});
-
-  final Book book;
-  final BookSection? section;
-
-  /// `/recipes/new` and `/import` take the same two parameters, so the door
-  /// that opens is the only thing that differs between the items.
-  String _route(String path) => Uri(
-    path: path,
-    queryParameters: {
-      'book': book.id,
-      if (section != null) 'section': section!.id,
-    },
-  ).toString();
-
-  @override
-  Widget build(BuildContext context) {
-    return FPopoverMenu(
-      menuBuilder: (_, controller, _) => [
-        FItemGroup(
-          children: [
-            FItem(
-              prefix: const Icon(FLucideIcons.cookingPot),
-              title: const Text('New recipe'),
-              onPress: () {
-                unawaited(controller.hide());
-                context.pushOnce(_route('/recipes/new'));
-              },
-            ),
-            FItem(
-              prefix: const Icon(FLucideIcons.download),
-              title: const Text('Import a recipe'),
-              onPress: () {
-                unawaited(controller.hide());
-                context.pushOnce(_route('/import'));
-              },
-            ),
-          ],
-        ),
-      ],
-      builder: (context, controller, _) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: controller.toggle,
-        child: const Padding(
-          // The touch target the glyph does not have on its own, on a row
-          // whose other control is a `⋯` of the same weight.
-          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          child: Icon(FLucideIcons.plus, size: 15, color: AnsiColors.herb),
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionMenu extends ConsumerWidget {
-  const _SectionMenu({required this.book, required this.section});
-
-  final Book book;
-  final BookSection section;
-
-  /// Moves [section] by [delta] positions within [book] and persists the order.
-  Future<void> _move(BuildContext context, WidgetRef ref, int delta) async {
-    final ids = book.sections.map((s) => s.id).toList();
-    final from = ids.indexOf(section.id);
-    final to = from + delta;
-    if (from < 0 || to < 0 || to >= ids.length) return;
-    ids
-      ..removeAt(from)
-      ..insert(to, section.id);
-    await ref.write(
-      context,
-      'reorder the sections',
-      () => ref.read(bookRepositoryProvider).reorderSections(book.id, ids),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final repo = ref.read(bookRepositoryProvider);
-    return FPopoverMenu(
-      menuBuilder: (_, controller, _) => [
-        FItemGroup(
-          children: [
-            FItem(
-              prefix: const Icon(FLucideIcons.pencil),
-              title: const Text('Rename'),
-              onPress: () async {
-                unawaited(controller.hide());
-                // As for the book rename: the keyboard can unmount this row.
-                final container = ProviderScope.containerOf(
-                  context,
-                  listen: false,
-                );
-                final host = hostContextOf(context);
-                final name = await promptForText(
-                  context,
-                  title: 'Rename section',
-                  hint: 'Section name',
-                  initial: section.name,
-                  confirm: 'Rename',
-                  clean: NameKind.title,
-                );
-                if (name == null || name.trim().isEmpty) return;
-                await container.write(
-                  host,
-                  'rename that section',
-                  () => repo.renameSection(section.id, name),
-                );
-              },
-            ),
-            FItem(
-              prefix: const Icon(FLucideIcons.arrowUp),
-              title: const Text('Move up'),
-              onPress: () {
-                unawaited(controller.hide());
-                unawaited(_move(context, ref, -1));
-              },
-            ),
-            FItem(
-              prefix: const Icon(FLucideIcons.arrowDown),
-              title: const Text('Move down'),
-              onPress: () {
-                unawaited(controller.hide());
-                unawaited(_move(context, ref, 1));
-              },
-            ),
-            FItem(
-              prefix: const Icon(FLucideIcons.trash2),
-              title: const Text('Delete'),
-              onPress: () {
-                unawaited(controller.hide());
-                unawaited(
-                  ref.write(
-                    context,
-                    'delete that section',
-                    () => repo.deleteSection(section.id),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ],
-      builder: (context, controller, _) =>
-          AnsiMoreTrigger(onTap: controller.toggle),
-    );
-  }
-}
-
-/// One recipe: the title on its own line, then [recipeStatsLine] under it, with
-/// the ★ and the `⋯` in the corner.
-///
-/// The star REPORTS ONLY (D6). [RecipeSummary.favorite] has existed since 0011
-/// and the picker has a Favorites tab, so a library that cannot show a star
-/// makes the recipe page's star feel like it went nowhere — but toggling stays
-/// on the recipe page, and this row keeps its single tap target. Absent when
-/// false, never a hollow outline on every line: the stub badge's rule.
-///
-/// **The macro badge this row once refused is now its second line, and the
-/// refusal is superseded.** What was refused was a *badge on every row* — "on
-/// honest numbers most rows would show a number nobody asked for, or an
-/// `incomplete` nag". A second line that simply says less when it knows less is
-/// a different object: it never nags, and it buys the title the whole first
-/// line back, which is what the number was costing. See [recipeStatsLine].
-///
-/// Still refused: a "keeps 4 d" chip — shelf life is a *planning* fact, which
-/// is why the picker row carries it and a browsing row doesn't.
-///
-/// No `›`: the whole row was already the door, and the chevron was competing
-/// with the `⋯` for the same corner.
-///
-/// [filing] is set only on a search result, where the tree that would have said
-/// where this lives is not on screen.
-class _RecipeRow extends StatelessWidget {
-  const _RecipeRow({
-    required this.recipe,
-    this.filing,
-    this.bookId,
-    this.sectionId,
-  });
-
-  final RecipeSummary recipe;
-  final Filing? filing;
-
-  /// Where this row is filed, when the tree knows — the shelf "Move to…"
-  /// marks as `here now` and refuses to move to. A search result carries the
-  /// filing's NAMES but not its ids, so both are null there and every shelf
-  /// is offered.
-  final String? bookId;
-  final String? sectionId;
-
-  @override
-  Widget build(BuildContext context) {
-    final filing = this.filing;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => context.pushOnce('/recipes/${recipe.id}'),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    recipe.title.isEmpty ? 'Untitled recipe' : recipe.title,
-                    style: ansiSerif(size: 17),
-                  ),
-                  if (filing != null)
+      onTap: () => context.pushOnce(bookRoute(book.id)),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(color: AnsiColors.line),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                color: AnsiColors.herb,
+                padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      '${filing.book} · ${filing.section ?? 'Unsectioned'}',
-                      style: ansiMono(size: 10, color: AnsiColors.muted),
+                      book.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: ansiSerif(
+                        size: 16,
+                        color: AnsiColors.surface,
+                        weight: FontWeight.w500,
+                      ),
                     ),
-                  const SizedBox(height: 2),
-                  Text(
-                    recipeStatsLine(recipe),
-                    style: ansiMono(size: 10, color: AnsiColors.muted),
-                  ),
-                ],
+                    const SizedBox(height: 3),
+                    Text(
+                      bookCountLine(book),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: ansiMono(
+                        size: 10,
+                        color: AnsiColors.surface,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            if (recipe.favorite) ...[
-              const Icon(FLucideIcons.star, size: 13, color: AnsiColors.aging),
-              const SizedBox(width: 6),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 9, 14, 9),
+                  child: peek.isEmpty
+                      // An empty shelf says so on its band already, so the
+                      // body is the door, not a second sentence about nothing.
+                      ? Align(
+                          alignment: Alignment.topLeft,
+                          child: DashedAction(
+                            icon: FLucideIcons.plus,
+                            label: 'new recipe',
+                            onTap: () => context.pushOnce(
+                              Uri(
+                                path: '/recipes/new',
+                                queryParameters: {'book': book.id},
+                              ).toString(),
+                            ),
+                          ),
+                        )
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (final r in peek) _TileTitle(recipe: r),
+                            if (rest > 0) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                '+ $rest more',
+                                style: ansiMono(
+                                  size: 10,
+                                  color: AnsiColors.muted,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                ),
+              ),
             ],
-            _RecipeRowMenu(
-              recipe: recipe,
-              bookId: bookId,
-              sectionId: sectionId,
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// The recipe row's own `⋯`, rather than a long-press nobody finds.
-///
-/// The ★ only REPORTS on the row and the toggle lives in here, one deliberate
-/// tap away — so the row's own tap means exactly one thing, open the recipe.
-class _RecipeRowMenu extends ConsumerWidget {
-  const _RecipeRowMenu({
-    required this.recipe,
-    required this.bookId,
-    required this.sectionId,
-  });
+/// One title on a tile: clipped at one line, with the ★ it reports.
+class _TileTitle extends StatelessWidget {
+  const _TileTitle({required this.recipe});
 
   final RecipeSummary recipe;
-  final String? bookId;
-  final String? sectionId;
-
-  Future<void> _move(BuildContext context, WidgetRef ref) async {
-    // The row can be unmounted under the sheet (a fold, or a sync landing), so
-    // the write goes through handles captured before the await.
-    final container = ProviderScope.containerOf(context, listen: false);
-    final host = hostContextOf(context);
-    final books = ref.read(libraryProvider).asData?.value ?? const [];
-    if (books.isEmpty) return;
-
-    final target = await showRecipeMoveSheet(
-      // The host outlives the row — see [hostContextOf].
-      // ignore: use_build_context_synchronously
-      host.context,
-      title: recipe.title.isEmpty ? 'Untitled recipe' : recipe.title,
-      books: books,
-      currentBookId: bookId,
-      currentSectionId: sectionId,
-    );
-    if (target == null) return;
-    await container.write(
-      host,
-      'move that recipe',
-      () => container
-          .read(recipeRepositoryProvider)
-          .setFiling(recipe.id, target.bookId, target.sectionId),
-    );
-  }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return FPopoverMenu(
-      menuBuilder: (_, controller, _) => [
-        FItemGroup(
-          children: [
-            FItem(
-              prefix: const Icon(FLucideIcons.arrowRight),
-              title: const Text('Move to…'),
-              onPress: () {
-                unawaited(controller.hide());
-                unawaited(_move(context, ref));
-              },
-            ),
-            FItem(
-              prefix: Icon(
-                recipe.favorite ? FLucideIcons.starOff : FLucideIcons.star,
-              ),
-              title: Text(recipe.favorite ? 'Unfavorite' : 'Favorite'),
-              onPress: () {
-                unawaited(controller.hide());
-                unawaited(
-                  ref.write(
-                    context,
-                    recipe.favorite ? 'unfavourite it' : 'favourite it',
-                    () => ref
-                        .read(recipeRepositoryProvider)
-                        .setFavorite(recipe.id, !recipe.favorite),
-                  ),
-                );
-              },
-            ),
-          ],
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 3),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            recipe.title.isEmpty ? 'Untitled recipe' : recipe.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: ansiSerif(size: 14, weight: FontWeight.w400),
+          ),
         ),
+        if (recipe.favorite) ...[
+          const SizedBox(width: 6),
+          const Icon(FLucideIcons.star, size: 11, color: AnsiColors.aging),
+        ],
       ],
-      builder: (context, controller, _) => AnsiMoreTrigger.inline(
-        onTap: controller.toggle,
-        color: AnsiColors.muted,
-      ),
-    );
-  }
+    ),
+  );
 }
 
 /// The vocabulary as a shelf of its own — **a rule and a row, not a card**.
