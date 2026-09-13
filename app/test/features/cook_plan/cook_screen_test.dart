@@ -405,13 +405,9 @@ void main() {
         [true, true, true, false, false, false, false],
       );
       // Nothing else on the row is a cook.
-      expect(
-        [
-          for (var d = 1; d < 7; d++)
-            marks(tester, 'Chicken Curry', d).cookScale,
-        ],
-        everyElement(isNull),
-      );
+      expect([
+        for (var d = 1; d < 7; d++) marks(tester, 'Chicken Curry', d).cookScale,
+      ], everyElement(isNull));
       // The day the window carried it to is a plain eaten dot; the cook day
       // takes the tick and no dot.
       expect(marks(tester, 'Chicken Curry', 2).dot, CookTrackDot.eaten);
