@@ -126,13 +126,13 @@ class ReviewLineCard extends ConsumerWidget {
       attention: attention,
       dragIndex: dragIndex,
       collapseEpoch: collapseEpoch,
-      collapsed: (onExpand) => _Collapsed(
+      collapsed: (onExpand) => ReviewLineRow(
         line: line,
         resolution: resolution,
         issues: effective.issues,
-        onExpand: onExpand,
+        onTap: onExpand,
       ),
-      expanded: (onCollapse) => _Expanded(
+      expanded: (onCollapse) => ReviewLineForm(
         line: line,
         resolution: resolution,
         validation: effective,
@@ -276,18 +276,36 @@ const kAddedHereNote = 'added here — not on the page';
 
 /// The compact three-part row: amount · ingredient · notes, a pencil, and (when
 /// still open) a clear "needs you" label. Tapping anywhere expands it.
-class _Collapsed extends StatelessWidget {
-  const _Collapsed({
+class ReviewLineRow extends StatelessWidget {
+  const ReviewLineRow({
     required this.line,
     required this.resolution,
     required this.issues,
-    required this.onExpand,
+    required this.onTap,
+    this.pencil = true,
+    this.sourceLine = true,
+    super.key,
   });
 
   final ReconLine line;
   final LineResolution resolution;
   final List<LineIssue> issues;
-  final VoidCallback onExpand;
+
+  /// What the row does when it is pressed: opens the card on a phone, points
+  /// the panel at this line on a desk.
+  final VoidCallback onTap;
+
+  /// Whether the row carries the pencil that says "this opens". False where
+  /// the row does not open into anything — the wide review, where the form is
+  /// already standing beside the list.
+  final bool pencil;
+
+  /// Whether a flagged row repeats what the page printed under it.
+  ///
+  /// True on a phone, where it is the only copy of the source there is. False
+  /// on a wide screen, where the page itself is a column away and set larger:
+  /// the duplicate would be the same words twice, five centimetres apart.
+  final bool sourceLine;
 
   @override
   Widget build(BuildContext context) {
@@ -306,13 +324,14 @@ class _Collapsed extends StatelessWidget {
     // words to know which supported unit they meant.
     final reference = rawLineText(raw);
     final showSource =
+        sourceLine &&
         issues.contains(LineIssue.unitNotAllowed) &&
         !resolution.addedAtReview &&
         reference.isNotEmpty;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: onExpand,
+      onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -367,8 +386,14 @@ class _Collapsed extends StatelessWidget {
                     ),
                   ),
                 ),
-              const SizedBox(width: 8),
-              const Icon(FLucideIcons.pencil, size: 14, color: AnsiColors.herb),
+              if (pencil) ...[
+                const SizedBox(width: 8),
+                const Icon(
+                  FLucideIcons.pencil,
+                  size: 14,
+                  color: AnsiColors.herb,
+                ),
+              ],
             ],
           ),
           // The board's `l3-note`: a line the page never printed says so on
@@ -403,14 +428,15 @@ class _Collapsed extends StatelessWidget {
 /// (tap the ingredient), then the amount editor + notes — which stay disabled
 /// until an ingredient is matched (round-2 #7: a unit/note is meaningless with
 /// no ingredient to derive an allowed set from).
-class _Expanded extends ConsumerWidget {
-  const _Expanded({
+class ReviewLineForm extends ConsumerWidget {
+  const ReviewLineForm({
     required this.line,
     required this.resolution,
     required this.validation,
     required this.matched,
     required this.onCollapse,
     required this.onDrop,
+    super.key,
   });
 
   final ReconLine line;
@@ -517,9 +543,16 @@ class _Expanded extends ConsumerWidget {
           // The match goes through the controller's own door, which also
           // lands a counted line on the row's whole measure once the row's
           // measures are read.
-          onResolveExisting: (id, name, {required correction}) => container
-              .read(importControllerProvider.notifier)
-              .resolveLine(_index, id, name, correction: correction),
+          onResolveExisting:
+              (id, name, {required correction, created = false}) => container
+                  .read(importControllerProvider.notifier)
+                  .resolveLine(
+                    _index,
+                    id,
+                    name,
+                    correction: correction,
+                    created: created,
+                  ),
           onLinkRecipe: (c) =>
               update((r) => r.linkToRecipe(c.recipeId, c.title)),
           onUnlink: () => update((r) => r.unlink()),

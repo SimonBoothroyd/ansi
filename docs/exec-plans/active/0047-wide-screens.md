@@ -231,6 +231,23 @@ changes, and the code gets one place that reads the viewport.
   basket section: it did not leave the list, and moving the pane off it would
   be a second thing one tick did. Below `expanded` nothing moves — the whole
   row is the tick, and the breakdown opens under it.
+- 2026-09-13 — **The wide import review needed the wire to change, so it did —
+  additively.** The frames put the page beside the lines with the current
+  line's span lit, and the code had neither half: `ImportReconciling` kept no
+  memory of the URL or the photo paths, and the payload threw the fetched page
+  away. Both are now carried. The state holds the `ImportSource`, which is the
+  photo column's only possible source (its pages are local files the payload
+  never mentions), and `import-recipe` sends two optional fields — `source_text`
+  (bounded at 20k, well under the prompt's 120k) and a per-line `source_span`
+  — omitted whenever there is nothing to say, so a photo import's payload and
+  the golden fixture's byte-order are untouched by their existence. The span is
+  **located, not extracted**: the server looks for the line's own verbatim
+  printed words in the exact string it is about to send and emits a range only
+  where they are unambiguous. Asking the model for offsets would have meant a
+  prompt, a schema and a re-blessed gold set for a drawing affordance; a fuzzy
+  locate would have lit the wrong words, which is a lie about the page. A line
+  it cannot place has no span and the column shows the plain page — the same
+  never-invent trade the whole pipeline makes.
 
 - 2026-09-13 — **The recipe editor is the recipe page's two columns, written
   instead of read.** Same cap, same seam, one header across the top with the

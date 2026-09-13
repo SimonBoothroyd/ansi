@@ -583,6 +583,272 @@ as double,
 
 
 /// @nodoc
+mixin _$SourceSpan {
+
+ int get start; int get end;
+/// Create a copy of SourceSpan
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SourceSpanCopyWith<SourceSpan> get copyWith => _$SourceSpanCopyWithImpl<SourceSpan>(this as SourceSpan, _$identity);
+
+  /// Serializes this SourceSpan to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SourceSpan&&(identical(other.start, start) || other.start == start)&&(identical(other.end, end) || other.end == end));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,start,end);
+
+@override
+String toString() {
+  return 'SourceSpan(start: $start, end: $end)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $SourceSpanCopyWith<$Res>  {
+  factory $SourceSpanCopyWith(SourceSpan value, $Res Function(SourceSpan) _then) = _$SourceSpanCopyWithImpl;
+@useResult
+$Res call({
+ int start, int end
+});
+
+
+
+
+}
+/// @nodoc
+class _$SourceSpanCopyWithImpl<$Res>
+    implements $SourceSpanCopyWith<$Res> {
+  _$SourceSpanCopyWithImpl(this._self, this._then);
+
+  final SourceSpan _self;
+  final $Res Function(SourceSpan) _then;
+
+/// Create a copy of SourceSpan
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? start = null,Object? end = null,}) {
+  return _then(_self.copyWith(
+start: null == start ? _self.start : start // ignore: cast_nullable_to_non_nullable
+as int,end: null == end ? _self.end : end // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [SourceSpan].
+extension SourceSpanPatterns on SourceSpan {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _SourceSpan value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _SourceSpan() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _SourceSpan value)  $default,){
+final _that = this;
+switch (_that) {
+case _SourceSpan():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _SourceSpan value)?  $default,){
+final _that = this;
+switch (_that) {
+case _SourceSpan() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int start,  int end)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _SourceSpan() when $default != null:
+return $default(_that.start,_that.end);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int start,  int end)  $default,) {final _that = this;
+switch (_that) {
+case _SourceSpan():
+return $default(_that.start,_that.end);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int start,  int end)?  $default,) {final _that = this;
+switch (_that) {
+case _SourceSpan() when $default != null:
+return $default(_that.start,_that.end);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _SourceSpan implements SourceSpan {
+  const _SourceSpan({required this.start, required this.end});
+  factory _SourceSpan.fromJson(Map<String, dynamic> json) => _$SourceSpanFromJson(json);
+
+@override final  int start;
+@override final  int end;
+
+/// Create a copy of SourceSpan
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$SourceSpanCopyWith<_SourceSpan> get copyWith => __$SourceSpanCopyWithImpl<_SourceSpan>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SourceSpanToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SourceSpan&&(identical(other.start, start) || other.start == start)&&(identical(other.end, end) || other.end == end));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,start,end);
+
+@override
+String toString() {
+  return 'SourceSpan(start: $start, end: $end)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$SourceSpanCopyWith<$Res> implements $SourceSpanCopyWith<$Res> {
+  factory _$SourceSpanCopyWith(_SourceSpan value, $Res Function(_SourceSpan) _then) = __$SourceSpanCopyWithImpl;
+@override @useResult
+$Res call({
+ int start, int end
+});
+
+
+
+
+}
+/// @nodoc
+class __$SourceSpanCopyWithImpl<$Res>
+    implements _$SourceSpanCopyWith<$Res> {
+  __$SourceSpanCopyWithImpl(this._self, this._then);
+
+  final _SourceSpan _self;
+  final $Res Function(_SourceSpan) _then;
+
+/// Create a copy of SourceSpan
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? start = null,Object? end = null,}) {
+  return _then(_SourceSpan(
+start: null == start ? _self.start : start // ignore: cast_nullable_to_non_nullable
+as int,end: null == end ? _self.end : end // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$MatchCandidate {
 
  String get ingredientId; String get canonicalName; double get score;
@@ -2118,7 +2384,11 @@ mixin _$ReconLine {
 /// are none — and when no recipe-title matcher is wired at all — so an
 /// absent field must decode to exactly what it decoded before this
 /// existed: the empty list, no chip, and a byte-identical commit.
- List<RecipeCandidate> get recipeCandidates;
+ List<RecipeCandidate> get recipeCandidates;/// Where this line sits in [ReconciliationPayload.sourceText], when the
+/// extractor knows. Omitted by the server otherwise, exactly as
+/// [recipeCandidates] is, so a payload without it decodes to the same
+/// bytes it always did.
+ SourceSpan? get sourceSpan;
 /// Create a copy of ReconLine
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2131,16 +2401,16 @@ $ReconLineCopyWith<ReconLine> get copyWith => _$ReconLineCopyWithImpl<ReconLine>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReconLine&&(identical(other.raw, raw) || other.raw == raw)&&(identical(other.band, band) || other.band == band)&&const DeepCollectionEquality().equals(other.candidates, candidates)&&const DeepCollectionEquality().equals(other.recipeCandidates, recipeCandidates));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReconLine&&(identical(other.raw, raw) || other.raw == raw)&&(identical(other.band, band) || other.band == band)&&const DeepCollectionEquality().equals(other.candidates, candidates)&&const DeepCollectionEquality().equals(other.recipeCandidates, recipeCandidates)&&(identical(other.sourceSpan, sourceSpan) || other.sourceSpan == sourceSpan));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,raw,band,const DeepCollectionEquality().hash(candidates),const DeepCollectionEquality().hash(recipeCandidates));
+int get hashCode => Object.hash(runtimeType,raw,band,const DeepCollectionEquality().hash(candidates),const DeepCollectionEquality().hash(recipeCandidates),sourceSpan);
 
 @override
 String toString() {
-  return 'ReconLine(raw: $raw, band: $band, candidates: $candidates, recipeCandidates: $recipeCandidates)';
+  return 'ReconLine(raw: $raw, band: $band, candidates: $candidates, recipeCandidates: $recipeCandidates, sourceSpan: $sourceSpan)';
 }
 
 
@@ -2151,11 +2421,11 @@ abstract mixin class $ReconLineCopyWith<$Res>  {
   factory $ReconLineCopyWith(ReconLine value, $Res Function(ReconLine) _then) = _$ReconLineCopyWithImpl;
 @useResult
 $Res call({
- RawLineItem raw, MatchBand band, List<MatchCandidate> candidates, List<RecipeCandidate> recipeCandidates
+ RawLineItem raw, MatchBand band, List<MatchCandidate> candidates, List<RecipeCandidate> recipeCandidates, SourceSpan? sourceSpan
 });
 
 
-$RawLineItemCopyWith<$Res> get raw;
+$RawLineItemCopyWith<$Res> get raw;$SourceSpanCopyWith<$Res>? get sourceSpan;
 
 }
 /// @nodoc
@@ -2168,13 +2438,14 @@ class _$ReconLineCopyWithImpl<$Res>
 
 /// Create a copy of ReconLine
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? raw = null,Object? band = null,Object? candidates = null,Object? recipeCandidates = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? raw = null,Object? band = null,Object? candidates = null,Object? recipeCandidates = null,Object? sourceSpan = freezed,}) {
   return _then(_self.copyWith(
 raw: null == raw ? _self.raw : raw // ignore: cast_nullable_to_non_nullable
 as RawLineItem,band: null == band ? _self.band : band // ignore: cast_nullable_to_non_nullable
 as MatchBand,candidates: null == candidates ? _self.candidates : candidates // ignore: cast_nullable_to_non_nullable
 as List<MatchCandidate>,recipeCandidates: null == recipeCandidates ? _self.recipeCandidates : recipeCandidates // ignore: cast_nullable_to_non_nullable
-as List<RecipeCandidate>,
+as List<RecipeCandidate>,sourceSpan: freezed == sourceSpan ? _self.sourceSpan : sourceSpan // ignore: cast_nullable_to_non_nullable
+as SourceSpan?,
   ));
 }
 /// Create a copy of ReconLine
@@ -2185,6 +2456,18 @@ $RawLineItemCopyWith<$Res> get raw {
   
   return $RawLineItemCopyWith<$Res>(_self.raw, (value) {
     return _then(_self.copyWith(raw: value));
+  });
+}/// Create a copy of ReconLine
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$SourceSpanCopyWith<$Res>? get sourceSpan {
+    if (_self.sourceSpan == null) {
+    return null;
+  }
+
+  return $SourceSpanCopyWith<$Res>(_self.sourceSpan!, (value) {
+    return _then(_self.copyWith(sourceSpan: value));
   });
 }
 }
@@ -2268,10 +2551,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( RawLineItem raw,  MatchBand band,  List<MatchCandidate> candidates,  List<RecipeCandidate> recipeCandidates)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( RawLineItem raw,  MatchBand band,  List<MatchCandidate> candidates,  List<RecipeCandidate> recipeCandidates,  SourceSpan? sourceSpan)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReconLine() when $default != null:
-return $default(_that.raw,_that.band,_that.candidates,_that.recipeCandidates);case _:
+return $default(_that.raw,_that.band,_that.candidates,_that.recipeCandidates,_that.sourceSpan);case _:
   return orElse();
 
 }
@@ -2289,10 +2572,10 @@ return $default(_that.raw,_that.band,_that.candidates,_that.recipeCandidates);ca
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( RawLineItem raw,  MatchBand band,  List<MatchCandidate> candidates,  List<RecipeCandidate> recipeCandidates)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( RawLineItem raw,  MatchBand band,  List<MatchCandidate> candidates,  List<RecipeCandidate> recipeCandidates,  SourceSpan? sourceSpan)  $default,) {final _that = this;
 switch (_that) {
 case _ReconLine():
-return $default(_that.raw,_that.band,_that.candidates,_that.recipeCandidates);case _:
+return $default(_that.raw,_that.band,_that.candidates,_that.recipeCandidates,_that.sourceSpan);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2309,10 +2592,10 @@ return $default(_that.raw,_that.band,_that.candidates,_that.recipeCandidates);ca
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( RawLineItem raw,  MatchBand band,  List<MatchCandidate> candidates,  List<RecipeCandidate> recipeCandidates)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( RawLineItem raw,  MatchBand band,  List<MatchCandidate> candidates,  List<RecipeCandidate> recipeCandidates,  SourceSpan? sourceSpan)?  $default,) {final _that = this;
 switch (_that) {
 case _ReconLine() when $default != null:
-return $default(_that.raw,_that.band,_that.candidates,_that.recipeCandidates);case _:
+return $default(_that.raw,_that.band,_that.candidates,_that.recipeCandidates,_that.sourceSpan);case _:
   return null;
 
 }
@@ -2324,7 +2607,7 @@ return $default(_that.raw,_that.band,_that.candidates,_that.recipeCandidates);ca
 @JsonSerializable()
 
 class _ReconLine implements ReconLine {
-  const _ReconLine({required this.raw, required this.band, final  List<MatchCandidate> candidates = const <MatchCandidate>[], final  List<RecipeCandidate> recipeCandidates = const <RecipeCandidate>[]}): _candidates = candidates,_recipeCandidates = recipeCandidates;
+  const _ReconLine({required this.raw, required this.band, final  List<MatchCandidate> candidates = const <MatchCandidate>[], final  List<RecipeCandidate> recipeCandidates = const <RecipeCandidate>[], this.sourceSpan}): _candidates = candidates,_recipeCandidates = recipeCandidates;
   factory _ReconLine.fromJson(Map<String, dynamic> json) => _$ReconLineFromJson(json);
 
 @override final  RawLineItem raw;
@@ -2351,6 +2634,11 @@ class _ReconLine implements ReconLine {
   return EqualUnmodifiableListView(_recipeCandidates);
 }
 
+/// Where this line sits in [ReconciliationPayload.sourceText], when the
+/// extractor knows. Omitted by the server otherwise, exactly as
+/// [recipeCandidates] is, so a payload without it decodes to the same
+/// bytes it always did.
+@override final  SourceSpan? sourceSpan;
 
 /// Create a copy of ReconLine
 /// with the given fields replaced by the non-null parameter values.
@@ -2365,16 +2653,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReconLine&&(identical(other.raw, raw) || other.raw == raw)&&(identical(other.band, band) || other.band == band)&&const DeepCollectionEquality().equals(other._candidates, _candidates)&&const DeepCollectionEquality().equals(other._recipeCandidates, _recipeCandidates));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReconLine&&(identical(other.raw, raw) || other.raw == raw)&&(identical(other.band, band) || other.band == band)&&const DeepCollectionEquality().equals(other._candidates, _candidates)&&const DeepCollectionEquality().equals(other._recipeCandidates, _recipeCandidates)&&(identical(other.sourceSpan, sourceSpan) || other.sourceSpan == sourceSpan));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,raw,band,const DeepCollectionEquality().hash(_candidates),const DeepCollectionEquality().hash(_recipeCandidates));
+int get hashCode => Object.hash(runtimeType,raw,band,const DeepCollectionEquality().hash(_candidates),const DeepCollectionEquality().hash(_recipeCandidates),sourceSpan);
 
 @override
 String toString() {
-  return 'ReconLine(raw: $raw, band: $band, candidates: $candidates, recipeCandidates: $recipeCandidates)';
+  return 'ReconLine(raw: $raw, band: $band, candidates: $candidates, recipeCandidates: $recipeCandidates, sourceSpan: $sourceSpan)';
 }
 
 
@@ -2385,11 +2673,11 @@ abstract mixin class _$ReconLineCopyWith<$Res> implements $ReconLineCopyWith<$Re
   factory _$ReconLineCopyWith(_ReconLine value, $Res Function(_ReconLine) _then) = __$ReconLineCopyWithImpl;
 @override @useResult
 $Res call({
- RawLineItem raw, MatchBand band, List<MatchCandidate> candidates, List<RecipeCandidate> recipeCandidates
+ RawLineItem raw, MatchBand band, List<MatchCandidate> candidates, List<RecipeCandidate> recipeCandidates, SourceSpan? sourceSpan
 });
 
 
-@override $RawLineItemCopyWith<$Res> get raw;
+@override $RawLineItemCopyWith<$Res> get raw;@override $SourceSpanCopyWith<$Res>? get sourceSpan;
 
 }
 /// @nodoc
@@ -2402,13 +2690,14 @@ class __$ReconLineCopyWithImpl<$Res>
 
 /// Create a copy of ReconLine
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? raw = null,Object? band = null,Object? candidates = null,Object? recipeCandidates = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? raw = null,Object? band = null,Object? candidates = null,Object? recipeCandidates = null,Object? sourceSpan = freezed,}) {
   return _then(_ReconLine(
 raw: null == raw ? _self.raw : raw // ignore: cast_nullable_to_non_nullable
 as RawLineItem,band: null == band ? _self.band : band // ignore: cast_nullable_to_non_nullable
 as MatchBand,candidates: null == candidates ? _self._candidates : candidates // ignore: cast_nullable_to_non_nullable
 as List<MatchCandidate>,recipeCandidates: null == recipeCandidates ? _self._recipeCandidates : recipeCandidates // ignore: cast_nullable_to_non_nullable
-as List<RecipeCandidate>,
+as List<RecipeCandidate>,sourceSpan: freezed == sourceSpan ? _self.sourceSpan : sourceSpan // ignore: cast_nullable_to_non_nullable
+as SourceSpan?,
   ));
 }
 
@@ -2420,6 +2709,18 @@ $RawLineItemCopyWith<$Res> get raw {
   
   return $RawLineItemCopyWith<$Res>(_self.raw, (value) {
     return _then(_self.copyWith(raw: value));
+  });
+}/// Create a copy of ReconLine
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$SourceSpanCopyWith<$Res>? get sourceSpan {
+    if (_self.sourceSpan == null) {
+    return null;
+  }
+
+  return $SourceSpanCopyWith<$Res>(_self.sourceSpan!, (value) {
+    return _then(_self.copyWith(sourceSpan: value));
   });
 }
 }
@@ -2700,7 +3001,15 @@ as List<ReconLine>,
 /// @nodoc
 mixin _$ReconciliationPayload {
 
- String get title; int? get servingsBase; String? get servingsRaw; String? get yieldRaw;@TimeFieldConverter() TimeRange? get totalTimeSeconds;@TimeFieldConverter() TimeRange? get cookTimeSeconds; bool get truncated; ImportImageQuality get imageQuality; List<String> get parseWarnings; List<ReconGroup> get groups; List<Step> get steps;
+ String get title; int? get servingsBase; String? get servingsRaw; String? get yieldRaw;@TimeFieldConverter() TimeRange? get totalTimeSeconds;@TimeFieldConverter() TimeRange? get cookTimeSeconds; bool get truncated; ImportImageQuality get imageQuality; List<String> get parseWarnings; List<ReconGroup> get groups; List<Step> get steps;/// The text the server actually read this recipe out of — a **link**
+/// import's fetched page, bounded server-side. Null for a
+/// photo import, where the pages are images the phone already holds, and
+/// null from any server that does not send it.
+///
+/// It is the source column's copy on a desk. Bounded because a page's
+/// text is unbounded and this rides the same response as the recipe: the
+/// cap is the server's, stated in `import-recipe/index.ts`.
+ String? get sourceText;
 /// Create a copy of ReconciliationPayload
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2713,16 +3022,16 @@ $ReconciliationPayloadCopyWith<ReconciliationPayload> get copyWith => _$Reconcil
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReconciliationPayload&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.servingsRaw, servingsRaw) || other.servingsRaw == servingsRaw)&&(identical(other.yieldRaw, yieldRaw) || other.yieldRaw == yieldRaw)&&(identical(other.totalTimeSeconds, totalTimeSeconds) || other.totalTimeSeconds == totalTimeSeconds)&&(identical(other.cookTimeSeconds, cookTimeSeconds) || other.cookTimeSeconds == cookTimeSeconds)&&(identical(other.truncated, truncated) || other.truncated == truncated)&&(identical(other.imageQuality, imageQuality) || other.imageQuality == imageQuality)&&const DeepCollectionEquality().equals(other.parseWarnings, parseWarnings)&&const DeepCollectionEquality().equals(other.groups, groups)&&const DeepCollectionEquality().equals(other.steps, steps));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReconciliationPayload&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.servingsRaw, servingsRaw) || other.servingsRaw == servingsRaw)&&(identical(other.yieldRaw, yieldRaw) || other.yieldRaw == yieldRaw)&&(identical(other.totalTimeSeconds, totalTimeSeconds) || other.totalTimeSeconds == totalTimeSeconds)&&(identical(other.cookTimeSeconds, cookTimeSeconds) || other.cookTimeSeconds == cookTimeSeconds)&&(identical(other.truncated, truncated) || other.truncated == truncated)&&(identical(other.imageQuality, imageQuality) || other.imageQuality == imageQuality)&&const DeepCollectionEquality().equals(other.parseWarnings, parseWarnings)&&const DeepCollectionEquality().equals(other.groups, groups)&&const DeepCollectionEquality().equals(other.steps, steps)&&(identical(other.sourceText, sourceText) || other.sourceText == sourceText));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,title,servingsBase,servingsRaw,yieldRaw,totalTimeSeconds,cookTimeSeconds,truncated,imageQuality,const DeepCollectionEquality().hash(parseWarnings),const DeepCollectionEquality().hash(groups),const DeepCollectionEquality().hash(steps));
+int get hashCode => Object.hash(runtimeType,title,servingsBase,servingsRaw,yieldRaw,totalTimeSeconds,cookTimeSeconds,truncated,imageQuality,const DeepCollectionEquality().hash(parseWarnings),const DeepCollectionEquality().hash(groups),const DeepCollectionEquality().hash(steps),sourceText);
 
 @override
 String toString() {
-  return 'ReconciliationPayload(title: $title, servingsBase: $servingsBase, servingsRaw: $servingsRaw, yieldRaw: $yieldRaw, totalTimeSeconds: $totalTimeSeconds, cookTimeSeconds: $cookTimeSeconds, truncated: $truncated, imageQuality: $imageQuality, parseWarnings: $parseWarnings, groups: $groups, steps: $steps)';
+  return 'ReconciliationPayload(title: $title, servingsBase: $servingsBase, servingsRaw: $servingsRaw, yieldRaw: $yieldRaw, totalTimeSeconds: $totalTimeSeconds, cookTimeSeconds: $cookTimeSeconds, truncated: $truncated, imageQuality: $imageQuality, parseWarnings: $parseWarnings, groups: $groups, steps: $steps, sourceText: $sourceText)';
 }
 
 
@@ -2733,7 +3042,7 @@ abstract mixin class $ReconciliationPayloadCopyWith<$Res>  {
   factory $ReconciliationPayloadCopyWith(ReconciliationPayload value, $Res Function(ReconciliationPayload) _then) = _$ReconciliationPayloadCopyWithImpl;
 @useResult
 $Res call({
- String title, int? servingsBase, String? servingsRaw, String? yieldRaw,@TimeFieldConverter() TimeRange? totalTimeSeconds,@TimeFieldConverter() TimeRange? cookTimeSeconds, bool truncated, ImportImageQuality imageQuality, List<String> parseWarnings, List<ReconGroup> groups, List<Step> steps
+ String title, int? servingsBase, String? servingsRaw, String? yieldRaw,@TimeFieldConverter() TimeRange? totalTimeSeconds,@TimeFieldConverter() TimeRange? cookTimeSeconds, bool truncated, ImportImageQuality imageQuality, List<String> parseWarnings, List<ReconGroup> groups, List<Step> steps, String? sourceText
 });
 
 
@@ -2750,7 +3059,7 @@ class _$ReconciliationPayloadCopyWithImpl<$Res>
 
 /// Create a copy of ReconciliationPayload
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? title = null,Object? servingsBase = freezed,Object? servingsRaw = freezed,Object? yieldRaw = freezed,Object? totalTimeSeconds = freezed,Object? cookTimeSeconds = freezed,Object? truncated = null,Object? imageQuality = null,Object? parseWarnings = null,Object? groups = null,Object? steps = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? title = null,Object? servingsBase = freezed,Object? servingsRaw = freezed,Object? yieldRaw = freezed,Object? totalTimeSeconds = freezed,Object? cookTimeSeconds = freezed,Object? truncated = null,Object? imageQuality = null,Object? parseWarnings = null,Object? groups = null,Object? steps = null,Object? sourceText = freezed,}) {
   return _then(_self.copyWith(
 title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,servingsBase: freezed == servingsBase ? _self.servingsBase : servingsBase // ignore: cast_nullable_to_non_nullable
@@ -2763,7 +3072,8 @@ as bool,imageQuality: null == imageQuality ? _self.imageQuality : imageQuality /
 as ImportImageQuality,parseWarnings: null == parseWarnings ? _self.parseWarnings : parseWarnings // ignore: cast_nullable_to_non_nullable
 as List<String>,groups: null == groups ? _self.groups : groups // ignore: cast_nullable_to_non_nullable
 as List<ReconGroup>,steps: null == steps ? _self.steps : steps // ignore: cast_nullable_to_non_nullable
-as List<Step>,
+as List<Step>,sourceText: freezed == sourceText ? _self.sourceText : sourceText // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 /// Create a copy of ReconciliationPayload
@@ -2872,10 +3182,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String title,  int? servingsBase,  String? servingsRaw,  String? yieldRaw, @TimeFieldConverter()  TimeRange? totalTimeSeconds, @TimeFieldConverter()  TimeRange? cookTimeSeconds,  bool truncated,  ImportImageQuality imageQuality,  List<String> parseWarnings,  List<ReconGroup> groups,  List<Step> steps)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String title,  int? servingsBase,  String? servingsRaw,  String? yieldRaw, @TimeFieldConverter()  TimeRange? totalTimeSeconds, @TimeFieldConverter()  TimeRange? cookTimeSeconds,  bool truncated,  ImportImageQuality imageQuality,  List<String> parseWarnings,  List<ReconGroup> groups,  List<Step> steps,  String? sourceText)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReconciliationPayload() when $default != null:
-return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldRaw,_that.totalTimeSeconds,_that.cookTimeSeconds,_that.truncated,_that.imageQuality,_that.parseWarnings,_that.groups,_that.steps);case _:
+return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldRaw,_that.totalTimeSeconds,_that.cookTimeSeconds,_that.truncated,_that.imageQuality,_that.parseWarnings,_that.groups,_that.steps,_that.sourceText);case _:
   return orElse();
 
 }
@@ -2893,10 +3203,10 @@ return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldRaw,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String title,  int? servingsBase,  String? servingsRaw,  String? yieldRaw, @TimeFieldConverter()  TimeRange? totalTimeSeconds, @TimeFieldConverter()  TimeRange? cookTimeSeconds,  bool truncated,  ImportImageQuality imageQuality,  List<String> parseWarnings,  List<ReconGroup> groups,  List<Step> steps)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String title,  int? servingsBase,  String? servingsRaw,  String? yieldRaw, @TimeFieldConverter()  TimeRange? totalTimeSeconds, @TimeFieldConverter()  TimeRange? cookTimeSeconds,  bool truncated,  ImportImageQuality imageQuality,  List<String> parseWarnings,  List<ReconGroup> groups,  List<Step> steps,  String? sourceText)  $default,) {final _that = this;
 switch (_that) {
 case _ReconciliationPayload():
-return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldRaw,_that.totalTimeSeconds,_that.cookTimeSeconds,_that.truncated,_that.imageQuality,_that.parseWarnings,_that.groups,_that.steps);case _:
+return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldRaw,_that.totalTimeSeconds,_that.cookTimeSeconds,_that.truncated,_that.imageQuality,_that.parseWarnings,_that.groups,_that.steps,_that.sourceText);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2913,10 +3223,10 @@ return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldRaw,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String title,  int? servingsBase,  String? servingsRaw,  String? yieldRaw, @TimeFieldConverter()  TimeRange? totalTimeSeconds, @TimeFieldConverter()  TimeRange? cookTimeSeconds,  bool truncated,  ImportImageQuality imageQuality,  List<String> parseWarnings,  List<ReconGroup> groups,  List<Step> steps)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String title,  int? servingsBase,  String? servingsRaw,  String? yieldRaw, @TimeFieldConverter()  TimeRange? totalTimeSeconds, @TimeFieldConverter()  TimeRange? cookTimeSeconds,  bool truncated,  ImportImageQuality imageQuality,  List<String> parseWarnings,  List<ReconGroup> groups,  List<Step> steps,  String? sourceText)?  $default,) {final _that = this;
 switch (_that) {
 case _ReconciliationPayload() when $default != null:
-return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldRaw,_that.totalTimeSeconds,_that.cookTimeSeconds,_that.truncated,_that.imageQuality,_that.parseWarnings,_that.groups,_that.steps);case _:
+return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldRaw,_that.totalTimeSeconds,_that.cookTimeSeconds,_that.truncated,_that.imageQuality,_that.parseWarnings,_that.groups,_that.steps,_that.sourceText);case _:
   return null;
 
 }
@@ -2928,7 +3238,7 @@ return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldRaw,
 @JsonSerializable()
 
 class _ReconciliationPayload implements ReconciliationPayload {
-  const _ReconciliationPayload({required this.title, this.servingsBase, this.servingsRaw, this.yieldRaw, @TimeFieldConverter() this.totalTimeSeconds, @TimeFieldConverter() this.cookTimeSeconds, this.truncated = false, this.imageQuality = ImportImageQuality.ok, final  List<String> parseWarnings = const <String>[], final  List<ReconGroup> groups = const <ReconGroup>[], final  List<Step> steps = const <Step>[]}): _parseWarnings = parseWarnings,_groups = groups,_steps = steps;
+  const _ReconciliationPayload({required this.title, this.servingsBase, this.servingsRaw, this.yieldRaw, @TimeFieldConverter() this.totalTimeSeconds, @TimeFieldConverter() this.cookTimeSeconds, this.truncated = false, this.imageQuality = ImportImageQuality.ok, final  List<String> parseWarnings = const <String>[], final  List<ReconGroup> groups = const <ReconGroup>[], final  List<Step> steps = const <Step>[], this.sourceText}): _parseWarnings = parseWarnings,_groups = groups,_steps = steps;
   factory _ReconciliationPayload.fromJson(Map<String, dynamic> json) => _$ReconciliationPayloadFromJson(json);
 
 @override final  String title;
@@ -2960,6 +3270,15 @@ class _ReconciliationPayload implements ReconciliationPayload {
   return EqualUnmodifiableListView(_steps);
 }
 
+/// The text the server actually read this recipe out of — a **link**
+/// import's fetched page, bounded server-side. Null for a
+/// photo import, where the pages are images the phone already holds, and
+/// null from any server that does not send it.
+///
+/// It is the source column's copy on a desk. Bounded because a page's
+/// text is unbounded and this rides the same response as the recipe: the
+/// cap is the server's, stated in `import-recipe/index.ts`.
+@override final  String? sourceText;
 
 /// Create a copy of ReconciliationPayload
 /// with the given fields replaced by the non-null parameter values.
@@ -2974,16 +3293,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReconciliationPayload&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.servingsRaw, servingsRaw) || other.servingsRaw == servingsRaw)&&(identical(other.yieldRaw, yieldRaw) || other.yieldRaw == yieldRaw)&&(identical(other.totalTimeSeconds, totalTimeSeconds) || other.totalTimeSeconds == totalTimeSeconds)&&(identical(other.cookTimeSeconds, cookTimeSeconds) || other.cookTimeSeconds == cookTimeSeconds)&&(identical(other.truncated, truncated) || other.truncated == truncated)&&(identical(other.imageQuality, imageQuality) || other.imageQuality == imageQuality)&&const DeepCollectionEquality().equals(other._parseWarnings, _parseWarnings)&&const DeepCollectionEquality().equals(other._groups, _groups)&&const DeepCollectionEquality().equals(other._steps, _steps));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReconciliationPayload&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.servingsRaw, servingsRaw) || other.servingsRaw == servingsRaw)&&(identical(other.yieldRaw, yieldRaw) || other.yieldRaw == yieldRaw)&&(identical(other.totalTimeSeconds, totalTimeSeconds) || other.totalTimeSeconds == totalTimeSeconds)&&(identical(other.cookTimeSeconds, cookTimeSeconds) || other.cookTimeSeconds == cookTimeSeconds)&&(identical(other.truncated, truncated) || other.truncated == truncated)&&(identical(other.imageQuality, imageQuality) || other.imageQuality == imageQuality)&&const DeepCollectionEquality().equals(other._parseWarnings, _parseWarnings)&&const DeepCollectionEquality().equals(other._groups, _groups)&&const DeepCollectionEquality().equals(other._steps, _steps)&&(identical(other.sourceText, sourceText) || other.sourceText == sourceText));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,title,servingsBase,servingsRaw,yieldRaw,totalTimeSeconds,cookTimeSeconds,truncated,imageQuality,const DeepCollectionEquality().hash(_parseWarnings),const DeepCollectionEquality().hash(_groups),const DeepCollectionEquality().hash(_steps));
+int get hashCode => Object.hash(runtimeType,title,servingsBase,servingsRaw,yieldRaw,totalTimeSeconds,cookTimeSeconds,truncated,imageQuality,const DeepCollectionEquality().hash(_parseWarnings),const DeepCollectionEquality().hash(_groups),const DeepCollectionEquality().hash(_steps),sourceText);
 
 @override
 String toString() {
-  return 'ReconciliationPayload(title: $title, servingsBase: $servingsBase, servingsRaw: $servingsRaw, yieldRaw: $yieldRaw, totalTimeSeconds: $totalTimeSeconds, cookTimeSeconds: $cookTimeSeconds, truncated: $truncated, imageQuality: $imageQuality, parseWarnings: $parseWarnings, groups: $groups, steps: $steps)';
+  return 'ReconciliationPayload(title: $title, servingsBase: $servingsBase, servingsRaw: $servingsRaw, yieldRaw: $yieldRaw, totalTimeSeconds: $totalTimeSeconds, cookTimeSeconds: $cookTimeSeconds, truncated: $truncated, imageQuality: $imageQuality, parseWarnings: $parseWarnings, groups: $groups, steps: $steps, sourceText: $sourceText)';
 }
 
 
@@ -2994,7 +3313,7 @@ abstract mixin class _$ReconciliationPayloadCopyWith<$Res> implements $Reconcili
   factory _$ReconciliationPayloadCopyWith(_ReconciliationPayload value, $Res Function(_ReconciliationPayload) _then) = __$ReconciliationPayloadCopyWithImpl;
 @override @useResult
 $Res call({
- String title, int? servingsBase, String? servingsRaw, String? yieldRaw,@TimeFieldConverter() TimeRange? totalTimeSeconds,@TimeFieldConverter() TimeRange? cookTimeSeconds, bool truncated, ImportImageQuality imageQuality, List<String> parseWarnings, List<ReconGroup> groups, List<Step> steps
+ String title, int? servingsBase, String? servingsRaw, String? yieldRaw,@TimeFieldConverter() TimeRange? totalTimeSeconds,@TimeFieldConverter() TimeRange? cookTimeSeconds, bool truncated, ImportImageQuality imageQuality, List<String> parseWarnings, List<ReconGroup> groups, List<Step> steps, String? sourceText
 });
 
 
@@ -3011,7 +3330,7 @@ class __$ReconciliationPayloadCopyWithImpl<$Res>
 
 /// Create a copy of ReconciliationPayload
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? title = null,Object? servingsBase = freezed,Object? servingsRaw = freezed,Object? yieldRaw = freezed,Object? totalTimeSeconds = freezed,Object? cookTimeSeconds = freezed,Object? truncated = null,Object? imageQuality = null,Object? parseWarnings = null,Object? groups = null,Object? steps = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? title = null,Object? servingsBase = freezed,Object? servingsRaw = freezed,Object? yieldRaw = freezed,Object? totalTimeSeconds = freezed,Object? cookTimeSeconds = freezed,Object? truncated = null,Object? imageQuality = null,Object? parseWarnings = null,Object? groups = null,Object? steps = null,Object? sourceText = freezed,}) {
   return _then(_ReconciliationPayload(
 title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,servingsBase: freezed == servingsBase ? _self.servingsBase : servingsBase // ignore: cast_nullable_to_non_nullable
@@ -3024,7 +3343,8 @@ as bool,imageQuality: null == imageQuality ? _self.imageQuality : imageQuality /
 as ImportImageQuality,parseWarnings: null == parseWarnings ? _self._parseWarnings : parseWarnings // ignore: cast_nullable_to_non_nullable
 as List<String>,groups: null == groups ? _self._groups : groups // ignore: cast_nullable_to_non_nullable
 as List<ReconGroup>,steps: null == steps ? _self._steps : steps // ignore: cast_nullable_to_non_nullable
-as List<Step>,
+as List<Step>,sourceText: freezed == sourceText ? _self.sourceText : sourceText // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

@@ -137,6 +137,82 @@ void main() {
     });
   });
 
+  group('the source text and its spans — the additive fields (0047)', () {
+    // Same rule as `recipe_candidates`: the server omits both whenever there
+    // is nothing to say — a photo import, or a link whose intake produced no
+    // text — so an absent field has to decode exactly as it did before they
+    // existed.
+    test('ABSENT fields decode as no source and no span', () {
+      final payload = ReconciliationPayload.fromJson(const {
+        'title': 'Stew',
+        'groups': [
+          {
+            'name': null,
+            'lines': [
+              {
+                'raw': {'ingredient_text': 'onion'},
+                'band': 'auto',
+                'candidates': <Object?>[],
+              },
+            ],
+          },
+        ],
+      });
+      expect(payload.sourceText, isNull);
+      expect(payload.flatLines.single.sourceSpan, isNull);
+    });
+
+    test('the canned payload still parses source-free', () {
+      final canned = ReconciliationPayload.fromJson(
+        jsonDecode(cannedReconciliationPayloadJson) as Map<String, Object?>,
+      );
+      expect(canned.sourceText, isNull);
+      expect(canned.flatLines.every((l) => l.sourceSpan == null), isTrue);
+    });
+
+    test('a PRESENT pair decodes the page and the range into it', () {
+      final payload = ReconciliationPayload.fromJson(const {
+        'title': 'Stew',
+        'source_text': 'Ingredients: 900 g chicken thighs, boneless',
+        'groups': [
+          {
+            'name': null,
+            'lines': [
+              {
+                'raw': {'ingredient_text': 'chicken thighs, boneless'},
+                'band': 'auto',
+                'candidates': <Object?>[],
+                'source_span': {'start': 13, 'end': 43},
+              },
+            ],
+          },
+        ],
+      });
+      final span = payload.flatLines.single.sourceSpan!;
+      expect(span.start, 13);
+      expect(span.end, 43);
+      // The range indexes the string the payload is carrying — which is the
+      // whole contract between the two fields.
+      expect(
+        payload.sourceText!.substring(span.start, span.end),
+        '900 g chicken thighs, boneless',
+      );
+    });
+
+    test('a span can ride a line that carries no candidates at all', () {
+      final line = ReconLine.fromJson(const {
+        'raw': {'ingredient_text': 'rose harissa'},
+        'band': 'none',
+        'candidates': <Object?>[],
+        'source_span': {'start': 4, 'end': 20},
+      });
+      expect(line.band, MatchBand.none);
+      expect(line.candidates, isEmpty);
+      expect(line.recipeCandidates, isEmpty);
+      expect(line.sourceSpan, const SourceSpan(start: 4, end: 20));
+    });
+  });
+
   group('ReconciliationPayload from a blessed gold file', () {
     test('mint-pea-soup parses with fraction portions and multi-timers', () {
       final payload = goldPayload('mint-pea-soup');

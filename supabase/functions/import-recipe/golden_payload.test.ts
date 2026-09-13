@@ -283,6 +283,13 @@ function goldenDeps(): ImportDeps {
     url: "https://example.test/contract-sampler",
     jsonld: null,
     text: "Contract Sampler Stew\n(the mock adapter ignores this text)",
+    // 0047: the readable page, so the fixture pins `source_text` and a MIX of
+    // spans — five lines this text prints and can be pointed at, and the
+    // gochujang, which it does not print at all and so carries no span.
+    page_text: "Contract Sampler Stew. Serves 4. Ingredients: " +
+      "2 medium onion, finely chopped; 2\u20133 cloves garlic; " +
+      "One 400 g tin coconut milk; flat-leaf parsley, to serve; " +
+      "30 g parmasan cheese, grated.",
   };
   return {
     adapter: new MockAdapter({
@@ -383,6 +390,23 @@ Deno.test("golden payload — the fixture covers every load-bearing shape", asyn
   );
   assert(p.truncated);
   assertEquals(p.image_quality, "degraded");
+  // 0047: the page's text, and a MIX of spans — every span indexes that exact
+  // string, and the one line the page never printed carries none.
+  assert(p.source_text !== undefined, "no source_text in the golden");
+  const spanned = flat.filter((l) => l.source_span !== undefined);
+  assertEquals(spanned.length, 5, "spanned line count");
+  assert(
+    flat.some((l) => l.source_span === undefined),
+    "no unplaceable line in the golden",
+  );
+  for (const l of spanned) {
+    const { start, end } = l.source_span!;
+    assert(start >= 0 && end <= p.source_text!.length && start < end);
+    assert(
+      p.source_text!.slice(start, end).length === end - start,
+      "a span must index the text the payload carries",
+    );
+  }
   assert(p.parse_warnings.length > 0);
   assertEquals(p.groups.length, 2);
   assertEquals(p.groups[0].name, null);

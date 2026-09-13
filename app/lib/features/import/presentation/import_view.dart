@@ -13,12 +13,14 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_back.dart';
+import '../../../shared/ansi_layout.dart';
 import '../../../shared/ansi_modals.dart';
 import '../data/photo_intake.dart';
 import '../domain/import_repository.dart';
 import '../domain/import_stage.dart';
 import 'import_view_models.dart';
 import 'reconciliation_view.dart';
+import 'wide_review_view.dart';
 
 class ImportView extends HookConsumerWidget {
   const ImportView({this.initialBookId, this.initialSectionId, super.key});
@@ -57,6 +59,9 @@ class ImportView extends HookConsumerWidget {
     // good" over a Save that will not open is the header telling the opposite
     // story to the button. Say the honest thing instead; the button below
     // carries the retry.
+    // The one band this screen asks for: at expanded the review is three
+    // columns (`wide_review_view.dart`), and below it the phone's page.
+    final wide = AnsiLayout.of(context) == AnsiLayout.expanded;
     final validation = ref.watch(importValidationProvider);
     final unchecked =
         state is ImportReconciling &&
@@ -93,23 +98,38 @@ class ImportView extends HookConsumerWidget {
             ),
         ],
       ),
-      child: switch (state) {
-        ImportIdle() => _IntakeForm(
+      // The route is `fullWidth`, so from expanded up this page is handed the
+      // whole pane; below it AnsiPane has already centred it in the measure and
+      // `wide` is false. The intake form is NOT drawn wide: one field, one
+      // button and the photo doors are a column by nature, so it stays the
+      // phone's form and the columns appear once there is a source to put in
+      // the first of them.
+      child: switch ((state, wide)) {
+        (ImportIdle(), _) => _IntakeForm(
           initialBookId: initialBookId,
           initialSectionId: initialSectionId,
         ),
-        ImportFailed(:final message) => _IntakeForm(
+        (ImportFailed(:final message), _) => _IntakeForm(
           error: message,
           initialBookId: initialBookId,
           initialSectionId: initialSectionId,
         ),
-        ImportLoading(:final rows, :final fromPhotos) => _Reading(
+        (ImportLoading(:final rows, :final request), true) => WideReadingBody(
+          rows: rows,
+          request: request,
+          checklist: _Reading(
+            rows: rows,
+            fromPhotos: request is ImportFromPhotos,
+          ),
+        ),
+        (ImportLoading(:final rows, :final fromPhotos), _) => _Reading(
           rows: rows,
           fromPhotos: fromPhotos,
         ),
-        ImportReconciling() => ReconciliationBody(state: state),
-        ImportCommitting() => const _Busy(label: 'Saving…'),
-        ImportCommitted() => const _Busy(label: 'Done'),
+        (final ImportReconciling s, true) => WideReviewBody(state: s),
+        (final ImportReconciling s, _) => ReconciliationBody(state: s),
+        (ImportCommitting(), _) => const _Busy(label: 'Saving…'),
+        (ImportCommitted(), _) => const _Busy(label: 'Done'),
       },
     );
   }

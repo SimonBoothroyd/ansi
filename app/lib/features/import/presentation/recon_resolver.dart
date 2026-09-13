@@ -50,7 +50,12 @@ class Resolver extends StatelessWidget {
   /// Resolves the line to a vocabulary row — a candidate, a search hit, or the
   /// row the create-new chain just made in the ingredient form, which lands on
   /// the line as the ordinary matched state.
-  final void Function(String id, String name, {required bool correction})
+  final void Function(
+    String id,
+    String name, {
+    required bool correction,
+    bool created,
+  })
   onResolveExisting;
 
   /// Links the line to the tapped recipe. Null where linking is not offered.
@@ -83,12 +88,13 @@ class Resolver extends StatelessWidget {
     );
     if (pick == null) return;
     switch (pick) {
-      case PickExisting(:final ingredient):
+      case PickExisting(:final ingredient, :final created):
         // A search override of the band's match is a correction → alias write.
         onResolveExisting(
           ingredient.id,
           ingredient.canonicalName,
           correction: true,
+          created: created,
         );
       case PickCandidate(:final candidate):
         onResolveExisting(
@@ -160,10 +166,16 @@ class Resolver extends StatelessWidget {
           size: FButtonSizeVariant.sm,
           prefix: const Icon(FLucideIcons.search),
           onPress: () => _openSearch(context),
-          child: Text(
-            candidates.isEmpty && offers.isEmpty
-                ? 'Find or create ingredient'
-                : 'Something else',
+          // Flexible, because this button stands in a 640-wide card on a phone
+          // and in a 340 panel on a desk: without it the longer label runs off
+          // the narrow one instead of taking a second line.
+          child: Flexible(
+            child: Text(
+              candidates.isEmpty && offers.isEmpty
+                  ? 'Find or create ingredient'
+                  : 'Something else',
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
       ],
@@ -406,8 +418,14 @@ class PickCandidate extends ReconcilePick {
 }
 
 class PickExisting extends ReconcilePick {
-  const PickExisting(this.ingredient);
+  const PickExisting(this.ingredient, {this.created = false});
   final Ingredient ingredient;
+
+  /// The row did not exist when the sheet opened — it was made through the
+  /// create-new footer, on the flesh-out form (§9). The resolution carries the
+  /// mark so the wide review's work queue can list those lines apart and out
+  /// of its count; nothing about the match itself differs.
+  final bool created;
 }
 
 /// Opens the vocab search sheet PRE-SEEDED with this line's [candidates] +
@@ -473,7 +491,8 @@ class _ReconcileSheet extends HookConsumerWidget {
       footer: AddNewIngredientRow(
         query: search.query.trim().isEmpty ? seedName : search.query,
         label: (name) => 'create "$name" as a new ingredient',
-        onCreated: (ing) => Navigator.of(context).pop(PickExisting(ing)),
+        onCreated: (ing) =>
+            Navigator.of(context).pop(PickExisting(ing, created: true)),
       ),
     );
   }

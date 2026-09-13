@@ -38,6 +38,14 @@ export interface RawBlob {
   url: string | null; // provenance only; the sanitize stage ignores it
   jsonld: Record<string, unknown> | null; // raw schema.org/Recipe when source=jsonld
   text: string | null; // page text or vision transcription
+  /**
+   * ADDITIVE (0047): the fetched page's visible text, bounded, for the app's
+   * source column — never an input to sanitize, which reads `text`/`jsonld`
+   * alone. It is set on BOTH link branches (a JSON-LD page still has a page a
+   * person can read), and absent from a transcription blob, whose pages are
+   * images the phone already holds.
+   */
+  page_text?: string;
 }
 
 // --- Extraction output: ExtractionResult (§4.4) ------------------------------
@@ -244,12 +252,33 @@ export interface MatchedLine {
 // change here is a change to that contract. Step refs are still by line_index;
 // the app remaps them to line_item_ids on commit.
 
+/**
+ * Where a line was read from inside {@link ReconciliationPayload.source_text}:
+ * a half-open character range `[start, end)` into that exact string.
+ *
+ * ADDITIVE (0047), and LOCATED rather than guessed — `source_span.ts` emits one
+ * only for an unambiguous verbatim occurrence of what the line printed, and
+ * omits the field otherwise. Never-invent: a span nobody can point at is no
+ * span.
+ */
+export interface SourceSpan {
+  start: number;
+  end: number;
+}
+
 export interface ReconLine {
   raw: RawLineItem;
   band: MatchBand;
   candidates: MatchCandidate[];
   /** See {@link MatchedLine.recipe_candidates} — present only when non-empty. */
   recipe_candidates?: RecipeCandidate[];
+  /**
+   * ADDITIVE (0047): where this line sits in {@link
+   * ReconciliationPayload.source_text}. OMITTED when there is no source text,
+   * or when the line's printed words cannot be pointed at unambiguously — so a
+   * client that predates the field decodes exactly what it decoded before.
+   */
+  source_span?: SourceSpan;
 }
 
 export interface ReconGroup {
@@ -269,4 +298,13 @@ export interface ReconciliationPayload {
   parse_warnings: string[];
   groups: ReconGroup[];
   steps: Step[];
+  /**
+   * ADDITIVE (0047): the page's own text, for the wide review's source column.
+   * Bounded server-side at `SOURCE_TEXT_MAX_CHARS` (jsonld.ts) — a page's text
+   * is unbounded and this rides the same response as the recipe.
+   *
+   * OMITTED for a photo import (the pages are images the phone already holds)
+   * and whenever intake produced no page text at all.
+   */
+  source_text?: string;
 }

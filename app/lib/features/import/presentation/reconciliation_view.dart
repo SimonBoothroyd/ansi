@@ -54,7 +54,6 @@ class ReconciliationBody extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(importControllerProvider.notifier);
     final payload = state.payload;
-    final byIndex = {for (final r in state.resolutions) r.lineIndex: r};
     // Per-line validity (matched? range picked? unit in the ingredient's
     // allowed set?) + inline unit chips — drives each card's flag, its unit
     // suggestions, AND the Save gate. Read through `AsyncValue.value`, NOT
@@ -64,14 +63,6 @@ class ReconciliationBody extends HookConsumerWidget {
     // until the new one lands.
     final validation = ref.watch(importValidationProvider);
     final byLine = validation.value;
-    final issuesByLine = byLine == null
-        ? null
-        : {for (final e in byLine.entries) e.key: e.value.issues};
-    // The vocab read behind the gate failed and has never answered: Save
-    // cannot open, and the count it would otherwise show is the structural
-    // one — zero, once every line is matched. "0 line(s) need you" over a
-    // disabled button is a wall with no door.
-    final unchecked = byLine == null && validation.hasError;
     // The method's step cards read the same recipe a save would write — so the
     // "Reads as" fold shows live amounts, and a chip keyed on
     // `previewLineId(i)` resolves without any extra plumbing (seam D4). The
@@ -105,42 +96,18 @@ class ReconciliationBody extends HookConsumerWidget {
     // the row positions ARE the drag's arithmetic, and a silently skipped row
     // would file the next drop one line off.
     final collapseEpoch = useState(0);
-    final rows = <Widget>[];
-    for (final group in state.sections) {
-      rows.add(
-        _SectionHeading(
-          key: ValueKey('review-section-${group.id}'),
-          group: group,
-          removable: state.sections.length > 1,
-        ),
-      );
-      for (final i in group.lines) {
-        final resolution = byIndex[i];
-        rows.add(
-          resolution == null
-              ? SizedBox.shrink(key: ValueKey('review-line-$i'))
-              : ReviewLineCard(
-                  key: ValueKey('review-line-$i'),
-                  line: state.lineAt(i),
-                  resolution: resolution,
-                  validation: byLine?[i],
-                  dragIndex: rows.length,
-                  collapseEpoch: collapseEpoch.value,
-                ),
-        );
-      }
-    }
-
-    // Save is gated on EVERY line being valid: matched, range picked, and a
-    // unit inside the matched ingredient's allowed set (round-2 #2). While
-    // validation has never yet loaded it stays disabled — and `buildCommit`
-    // re-checks the same map, so the button can't be the only thing holding
-    // the invariant.
-    final canSave =
-        issuesByLine != null && state.canCommit && allLinesValid(issuesByLine);
-    // ONE count, shared with the header's "N to review" (they were two
-    // different rules and the header never decremented).
-    final outstanding = ref.watch(importOutstandingLinesProvider);
+    final rows = reviewRowList(
+      state: state,
+      byLine: byLine,
+      row: (line, resolution, validation, dragIndex) => ReviewLineCard(
+        key: ValueKey('review-line-${resolution.lineIndex}'),
+        line: line,
+        resolution: resolution,
+        validation: validation,
+        dragIndex: dragIndex,
+        collapseEpoch: collapseEpoch.value,
+      ),
+    );
 
     final source = payload.yieldRaw?.trim();
     final sourceStated = source != null && source.isNotEmpty;
@@ -160,7 +127,7 @@ class ReconciliationBody extends HookConsumerWidget {
               // The never-invent strip sits ABOVE the form: with the title an
               // editable field now, it reads as "about the whole import"
               // before the fields begin.
-              _SourceNotes(payload: payload),
+              ImportSourceNotes(payload: payload),
               // The editor's header, hosted by the controller (D4). What
               // only the review knows is drawn around it through the note
               // slot, not inside a copy of it: whether the page printed a
@@ -193,7 +160,7 @@ class ReconciliationBody extends HookConsumerWidget {
               // The count is what the recipe will HAVE — a dropped line is
               // on its way out, and counting it would contradict the greyed
               // card saying so.
-              _SectionHeader(
+              ReviewSectionHeader(
                 label: 'Ingredients',
                 count: keptLines(state.resolutions).length,
               ),
@@ -219,35 +186,121 @@ class ReconciliationBody extends HookConsumerWidget {
               // The two doors sit TIGHT under the last line: they belong to
               // the list, not to the screen, and a gap reads as a section
               // break that is not there.
-              _ListDoors(recipe: recipe, sections: state.sections),
+              ReviewListDoors(recipe: recipe, sections: state.sections),
               const SizedBox(height: 24),
               MethodEditor(recipe: recipe, notifier: methodHost),
               const SizedBox(height: 20),
-              FButton(
-                // A failed check is the one disabled state with something to
-                // do: re-running the read is the whole fix, so the button
-                // becomes the retry rather than a dead end.
-                onPress: canSave
-                    ? () => controller.commit(issuesByLine: issuesByLine)
-                    : unchecked
-                    ? () => ref.invalidate(importValidationProvider)
-                    : null,
-                child: Text(
-                  canSave
-                      ? 'Save recipe'
-                      : keptLines(state.resolutions).isEmpty
-                      // Every line dropped: the count would read "0 line(s)
-                      // need you", which is true and useless.
-                      ? 'Nothing left to save'
-                      : unchecked
-                      ? 'Couldn’t check the lines — try again'
-                      : '$outstanding line(s) need you',
-                ),
-              ),
+              ReviewCommitBar(state: state),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The flat row list the review drags: a heading per section, then a row per
+/// line index that section holds.
+///
+/// Both forms of the review build it — the phone's expanding cards and the
+/// wide screen's bare rows — because the arithmetic is load-bearing and must
+/// not be written twice. **Every index a section holds takes a row** whether or
+/// not a resolution answers for it: the row positions ARE the drag's
+/// arithmetic, and a silently skipped row would file the next drop one line
+/// off.
+///
+/// [row] is handed the line, its resolution, its validation and its position
+/// in this list — the drag index — and returns whatever that screen draws.
+List<Widget> reviewRowList({
+  required ImportReconciling state,
+  required Map<int, LineValidation>? byLine,
+  required Widget Function(
+    ReconLine line,
+    LineResolution resolution,
+    LineValidation? validation,
+    int dragIndex,
+  )
+  row,
+}) {
+  final byIndex = {for (final r in state.resolutions) r.lineIndex: r};
+  final rows = <Widget>[];
+  for (final group in state.sections) {
+    rows.add(
+      ReviewSectionHeading(
+        key: ValueKey('review-section-${group.id}'),
+        group: group,
+        removable: state.sections.length > 1,
+      ),
+    );
+    for (final i in group.lines) {
+      final resolution = byIndex[i];
+      rows.add(
+        resolution == null
+            ? SizedBox.shrink(key: ValueKey('review-line-$i'))
+            : row(state.lineAt(i), resolution, byLine?[i], rows.length),
+      );
+    }
+  }
+  return rows;
+}
+
+/// The Save gate, and the one sentence that says why it is shut.
+///
+/// It is a widget rather than a slab of the body because the wide review draws
+/// it as the **lines column's footer** — the number on it is about the lines,
+/// and a bar across the source pane would say the page has something to save.
+/// Two places, one rule: the gate, its retry and its three labels are written
+/// once here, and `buildCommit` re-asserts the same map at the seam so this
+/// button is never the only thing holding the invariant.
+class ReviewCommitBar extends ConsumerWidget {
+  const ReviewCommitBar({required this.state, super.key});
+
+  final ImportReconciling state;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controller = ref.read(importControllerProvider.notifier);
+    // `.value`, never `asData`: a recompute passes through a loading state
+    // whose data-only view is null, and reading THAT blinked the button on
+    // every keystroke.
+    final validation = ref.watch(importValidationProvider);
+    final byLine = validation.value;
+    final issuesByLine = byLine == null
+        ? null
+        : {for (final e in byLine.entries) e.key: e.value.issues};
+    // The vocab read behind the gate failed and has never answered: Save
+    // cannot open, and the count it would otherwise show is the structural
+    // one — zero, once every line is matched. "0 line(s) need you" over a
+    // disabled button is a wall with no door.
+    final unchecked = byLine == null && validation.hasError;
+    // Save is gated on EVERY line being valid: matched, range picked, and a
+    // unit inside the matched ingredient's allowed set (round-2 #2). While
+    // validation has never yet loaded it stays disabled.
+    final canSave =
+        issuesByLine != null && state.canCommit && allLinesValid(issuesByLine);
+    // ONE count, shared with the header's "N to review" (they were two
+    // different rules and the header never decremented).
+    final outstanding = ref.watch(importOutstandingLinesProvider);
+    return FButton(
+      // A failed check is the one disabled state with something to do:
+      // re-running the read is the whole fix, so the button becomes the retry
+      // rather than a dead end.
+      onPress: canSave
+          ? () => controller.commit(issuesByLine: issuesByLine)
+          : unchecked
+          ? () => ref.invalidate(importValidationProvider)
+          : null,
+      child: Text(
+        canSave
+            ? 'Save recipe'
+            : keptLines(state.resolutions).isEmpty
+            // Every line dropped: the count would read "0 line(s) need you",
+            // which is true and useless.
+            ? 'Nothing left to save'
+            : unchecked
+            ? 'Couldn’t check the lines — try again'
+            : '$outstanding line(s) need you',
+      ),
     );
   }
 }
@@ -262,8 +315,8 @@ class ReconciliationBody extends HookConsumerWidget {
 /// of a recipe that never divided its ingredients, and an empty field over
 /// the first line would be furniture. `＋ section` is the way out of it, and
 /// the moment there are two, both are nameable.
-class _SectionHeading extends ConsumerWidget {
-  const _SectionHeading({
+class ReviewSectionHeading extends ConsumerWidget {
+  const ReviewSectionHeading({
     required this.group,
     required this.removable,
     super.key,
@@ -314,8 +367,12 @@ class _SectionHeading extends ConsumerWidget {
 ///
 /// A line added here lands in the LAST section, which is what makes
 /// `＋ section` then `＋ ingredient` read as one gesture.
-class _ListDoors extends ConsumerWidget {
-  const _ListDoors({required this.recipe, required this.sections});
+class ReviewListDoors extends ConsumerWidget {
+  const ReviewListDoors({
+    required this.recipe,
+    required this.sections,
+    super.key,
+  });
 
   final Recipe recipe;
   final List<ReviewGroup> sections;
@@ -420,8 +477,8 @@ List<String> sourceNotes(ReconciliationPayload payload) => <String?>[
 /// [sourceNotes] at the top of the review — the never-invent flags (0014)
 /// belong on screen, not in a log. Each is a reason to look harder at the lines
 /// below, so they read as one quiet block rather than an alarm.
-class _SourceNotes extends StatelessWidget {
-  const _SourceNotes({required this.payload});
+class ImportSourceNotes extends StatelessWidget {
+  const ImportSourceNotes({required this.payload, super.key});
 
   final ReconciliationPayload payload;
 
@@ -474,8 +531,12 @@ class _SourceNotes extends StatelessWidget {
 }
 
 /// A section header: the mono label + a count pill + a rule.
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.label, required this.count});
+class ReviewSectionHeader extends StatelessWidget {
+  const ReviewSectionHeader({
+    required this.label,
+    required this.count,
+    super.key,
+  });
 
   final String label;
   final int count;

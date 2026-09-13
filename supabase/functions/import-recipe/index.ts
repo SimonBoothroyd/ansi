@@ -30,6 +30,7 @@ import type {
   ReconLine,
 } from "../_shared/types.ts";
 import { deriveUnitHints } from "../_shared/unit_hints.ts";
+import { locateSourceSpan } from "../_shared/source_span.ts";
 import { ImportError, isTimeoutFailure } from "../_shared/errors.ts";
 
 // Re-exported for the stages that raise it and everything that catches it — the
@@ -165,7 +166,7 @@ export async function importRecipe(
       );
     }
     done("matched");
-    return assemble(extraction, matched);
+    return assemble(extraction, matched, blob);
   } finally {
     deps.adapter.onProgress = previousProgress;
   }
@@ -203,7 +204,13 @@ function flattenLines(groups: { line_items: RawLineItem[] }[]): RawLineItem[] {
 function assemble(
   extraction: ExtractionResult,
   matched: MatchedLine[],
+  blob: RawBlob,
 ): ReconciliationPayload {
+  // 0047: the page as a person reads it, when intake had one. A photo import's
+  // blob carries no `page_text` — its pages are files the phone already holds
+  // — so this is undefined there and the field is omitted, exactly as
+  // `recipe_candidates` is when empty.
+  const sourceText = blob.page_text;
   const groups: ReconGroup[] = [];
   let cursor = 0;
   for (const g of extraction.groups) {
@@ -221,6 +228,13 @@ function assemble(
       if (m.recipe_candidates && m.recipe_candidates.length > 0) {
         line.recipe_candidates = m.recipe_candidates;
       }
+      // 0047, same rule: a span rides along only where the line's own printed
+      // words can be pointed at in that text unambiguously. Located, never
+      // guessed — see `_shared/source_span.ts`.
+      if (sourceText) {
+        const span = locateSourceSpan(sourceText, m.raw);
+        if (span) line.source_span = span;
+      }
       return line;
     });
     groups.push({ name: g.name, lines });
@@ -237,6 +251,9 @@ function assemble(
     parse_warnings: extraction.parse_warnings,
     groups,
     steps: extraction.steps, // refs stay by line_index — untouched
+    // Omitted rather than null when there is none, so a payload from a photo
+    // import is byte-identical to the one this function used to build.
+    ...(sourceText ? { source_text: sourceText } : {}),
   };
 }
 

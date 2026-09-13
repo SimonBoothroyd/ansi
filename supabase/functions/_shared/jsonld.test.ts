@@ -15,6 +15,7 @@ import {
   MAX_BODY_BYTES,
   MAX_REDIRECTS,
   MAX_TEXT_CHARS,
+  SOURCE_TEXT_MAX_CHARS,
 } from "./jsonld.ts";
 import { ImportError } from "./errors.ts";
 // Parity anchor: the seed miner's proven block scanner (a separate deno project,
@@ -350,6 +351,26 @@ Deno.test("buildRawBlob — page text is capped for the prompt", () => {
   const huge = `<html><body><p>${"word ".repeat(60_000)}</p></body></html>`;
   const blob = buildRawBlob(huge, null);
   assertEquals(blob.text?.length, MAX_TEXT_CHARS);
+});
+
+Deno.test("buildRawBlob — the readable page rides BOTH link branches (0047)", () => {
+  // A JSON-LD page is still a page: `text` stays null (the prompt reads the
+  // structured object), and `page_text` carries what a person would read.
+  const structured = buildRawBlob(PLAIN_RECIPE, "https://example.test/curry");
+  assertEquals(structured.text, null);
+  assertStringIncludes(structured.page_text ?? "", "Weeknight Chicken Curry");
+
+  const fallback = buildRawBlob(NO_JSONLD, "https://example.test/soup");
+  assertStringIncludes(fallback.page_text ?? "", "Grandma's Soup");
+  // The same stripping the prompt's copy gets — no scripts, no styles.
+  assertEquals(fallback.page_text?.includes("console.log"), false);
+});
+
+Deno.test("buildRawBlob — the readable page is capped well under the prompt's", () => {
+  const huge = `<html><body><p>${"word ".repeat(60_000)}</p></body></html>`;
+  const blob = buildRawBlob(huge, null);
+  assertEquals(blob.page_text?.length, SOURCE_TEXT_MAX_CHARS);
+  assert(SOURCE_TEXT_MAX_CHARS < MAX_TEXT_CHARS);
 });
 
 Deno.test("private-address classification — the ranges that matter", () => {

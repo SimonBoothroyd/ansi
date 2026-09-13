@@ -255,6 +255,23 @@ this contract is ever touched:
   `confidence` — the shaky-import signals, asked of the model in the same call.
   They are rendered at the top of the review screen, never swallowed.
 
+**The page itself rides along, for the screen that has room to show it.** Two
+additive fields carry it: `source_text`, the fetched page's visible text —
+bounded at `SOURCE_TEXT_MAX_CHARS` (20,000 characters, far under the 120,000 the
+prompt may read, because this copy crosses the wire on every import and is read
+by a person) — and, per line, `source_span` `{start, end}` into that exact
+string. Both are **omitted when there is nothing to say**: a photo import
+carries neither (its pages are files the phone already holds), and so does a
+link whose intake produced no text, so those payloads are byte-identical to the
+ones before the fields existed. The span is **located, never guessed**
+(`_shared/source_span.ts`): the line's own verbatim printed words are looked for
+in the string the payload is about to carry, and a range is emitted only where
+they can be pointed at unambiguously — the model emits no offsets and is never
+asked for any. A line nobody can place simply has no span, and the wide review
+(`design-docs/wide-screen.md`) then draws the plain page. A lit range on the
+wrong words would tell a reader the page said something it did not, which is the
+never-invent rule in its smallest form.
+
 Two more shape notes: `notes` splits non-identity prep off the identity string
 ("Juice of 1 lemon" → the **lemon** is the ingredient, `notes: "juiced"` — so
 shopping buys a lemon and never invents a juice volume); and **timers are tokens,

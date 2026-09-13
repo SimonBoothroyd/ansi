@@ -270,6 +270,7 @@ class LineValidation {
     this.unitMeasure,
     this.sourceLine,
     this.pieceWeightMissing = false,
+    this.rowIsStub = false,
   });
 
   final List<LineIssue> issues;
@@ -297,6 +298,13 @@ class LineValidation {
   /// the row rather than offering to type it here (owner: "it's a property
   /// the ingredient must define").
   final bool pieceWeightMissing;
+
+  /// The matched row is a `stub` — real, plannable, and honest about the
+  /// numbers it has not got. It gates NOTHING (a stub commits perfectly well);
+  /// it rides here because the row is already in hand from the one vocab
+  /// query, and the wide review's work queue prints the word beside a row
+  /// created during this review.
+  final bool rowIsStub;
 
   bool get isClean => issues.isEmpty;
 }

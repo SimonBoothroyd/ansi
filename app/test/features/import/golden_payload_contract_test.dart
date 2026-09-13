@@ -265,6 +265,40 @@ void main() {
     });
   });
 
+  group('the source text and its spans (0047)', () {
+    test('the page arrived, and every span indexes it', () {
+      // Both fields are optional on the wire, so a rename or a dropped key
+      // decodes as null rather than throwing — which is why they are asserted
+      // to values the default could never produce, like every field above.
+      expect(payload.sourceText, isNotNull);
+      expect(payload.sourceText, contains('Contract Sampler Stew'));
+      for (final line in flat) {
+        final span = line.sourceSpan;
+        if (span == null) continue;
+        expect(span.start, inInclusiveRange(0, payload.sourceText!.length - 1));
+        expect(span.end, inInclusiveRange(1, payload.sourceText!.length));
+        expect(span.start, lessThan(span.end));
+      }
+    });
+
+    test('a span points at what the line printed', () {
+      final onion = flat.firstWhere((l) => l.raw.ingredientText == 'onion');
+      final span = onion.sourceSpan!;
+      expect(
+        payload.sourceText!.substring(span.start, span.end),
+        '2 medium onion',
+      );
+    });
+
+    test('a line the page never printed carries no span', () {
+      // The other half of the contract: the server omits the key rather than
+      // aiming it somewhere plausible, and the mirror decodes that as null.
+      final unplaceable = flat.where((l) => l.sourceSpan == null);
+      expect(unplaceable, hasLength(1));
+      expect(unplaceable.single.raw.ingredientText, 'gochujang paste');
+    });
+  });
+
   test('TimeFieldConverter is symmetric on both wire forms', () {
     // The one hand-written converter in the mirror, and the only place the
     // contract is polymorphic (`number | {low,high} | null`). Asymmetry here

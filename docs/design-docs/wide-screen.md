@@ -116,8 +116,9 @@ the Week a fixed 560 pane with the agenda taking whatever is left.
 
 **A pushed page opts out the same way**, through `_page`'s `fullWidth`:
 `/books/:id`, where a book is a ~200 px section index beside its recipes, which
-does not fit 640, and `/ingredients` and `/ingredients/:id`, the manager's two
-panes. Below the band each is centred like every other page. One flag over both
+does not fit 640; `/ingredients` and `/ingredients/:id`, the manager's two
+panes; and `/import`, whose review is the page beside the lines beside one
+line's form. Below the band each is centred like every other page. One flag over both
 helpers, so the measure still has exactly two appliers and a screen still never
 wraps itself — opting out is a route's stated decision, readable in one place,
 not a widget quietly escaping its parent.
@@ -217,6 +218,7 @@ frame behind it is in that screen's own file, under its `Wide · ≥ 1024` rule.
 | **Shop** (`features/shopping`) | the walk stays **one column at the measure** — two phones drive it at once, and a checked row must not move — with a 360 pane beside it holding one row's `from …` breakdown open. The row's two answers are split in one place: the **check box ticks** — its own 31 × 44 target, the row's vertical padding folded in so the box is drawn where the phone draws it — and a tap **anywhere else on the row** points the pane at it, lit. A ticked row keeps the pane as it walks to the basket section. The aisles and the one basket section are the phone's, and below `expanded` the whole row is still the tick. |
 | **Cook** (`features/cook_plan`) | the plan is **one schedule sheet, capped at 1140 and centred**: a row per recipe against seven day columns drawn once — a herb tick with its `×N` on the cook day, a herb-soft band for as long as the batch keeps, a dot on every day it feeds, amber for a day only the freezer reaches — with the covers sentence at the row's end and the split or freezer note in its margin. One set of words (`SessionSpeech`) and one keep-window geometry (`CookTimelineSpec`) serve both forms, and every door the phone's card has is on the row. |
 | **Recipe editor** (`features/recipes`) | at `expanded` the phone's one scroll becomes **two columns under one header**, capped at `ansiWideMeasureWidth` like the page it edits: the header's six sections folded onto two rows — the title over the lines and the filing over the method, then the four small facts as cells, every one the shipped control — over a 420 lines column and a method column that takes the rest. One `SliverCrossAxisGroup`, so the lines are still ONE reorderable list and the step cards are still lazy. The width buys one relationship: a focused step lights the lines its chips point at (the Shop's own selected-row wash) and rings the chip the caret is inside. **Week mode** (`?week=`) draws no header form and no method, so it has no second column: one column at the measure, with the week's own statement in a column at the row's right end. |
+| **Import review** (`features/import`) | **three columns, capped at 1240 and centred**: the SOURCE at 380 (a link's fetched page with the selected line's span lit, a photo import's pages with a thumbnail each), the LINES at 480 — the phone's rows on bare paper, amber as a 2 px margin rule, one row washed herb, no expand-in-place — and a 340 PANEL holding that line's form, which is the phone's *expanded card* verbatim. Idle, the panel is the import's outstanding work grouped by what each line wants, read from the one validation map the header count and the Save gate read. The commit bar is the lines column's footer. Narrowing, the source gives up its width first (floor 300), then the panel (300), and the lines last (440). The reading state draws the source column already. |
 | **Ingredients manager** (`features/ingredients`) | **two panes**: the vocabulary (its search field and stub band pinned, the aisle sections scrolling under them, the add door at the foot) and the fact sheet, capped at 720, opened **in place** rather than pushed. `/ingredients/:id` lands on the same split with that row lit; `?edit=1` stays the form in the measure at every width. |
 
 The recipe page and the recipe editor keep one wrap and pass a wider cap
@@ -225,8 +227,8 @@ route's own query — `?week=` is a different page inside `/recipes/:id/edit` �
 so it comes through `_page`'s `measureOf` instead, still naming the layout
 file's number rather than a new one.
 
-The two pages of the manager and the book page opt out of the router's
-measure through `_page`'s `fullWidth` flag — handed the whole pane once the
+The two pages of the manager, the book page and `/import` opt out of the
+router's measure through `_page`'s `fullWidth` flag — handed the whole pane once the
 chrome is beside the content, in the measure below it — never by wrapping or
 unwrapping themselves. The four tab roots say the same thing through `_branch`.
 

@@ -596,3 +596,79 @@ Deno.test("makeHandler — method, body, and pipeline errors map to codes", asyn
   // carrying an `error` event. Covered above; what this pins is that the
   // pre-pipeline rejections are still plain statuses.
 });
+
+// --- 0047: the page's own text, and where each line sits in it ---------------
+
+/**
+ * A page whose visible text prints three of the canned extraction's four
+ * lines — the salt is deliberately absent, so one line cannot be placed.
+ */
+const pageText = "Test Curry. Serves 4. Ingredients: 900 g chicken thighs, " +
+  "boneless; 150 g onion, diced; 400 g coconut milk.";
+
+function pageDeps(over: Partial<ImportDeps> = {}): ImportDeps {
+  return deps({
+    fetchBlob: (url) =>
+      Promise.resolve({
+        source: "page_text",
+        url,
+        jsonld: null,
+        text: pageText,
+        page_text: pageText,
+      }),
+    ...over,
+  });
+}
+
+Deno.test("importRecipe — a link import carries the page's text and a span per line", async () => {
+  const payload = await importRecipe({ url: "u" }, pageDeps());
+  assertEquals(payload.source_text, pageText);
+
+  const flat = payload.groups.flatMap((g) => g.lines);
+  const chicken = flat.find((l) =>
+    l.raw.ingredient_text === "chicken thighs, boneless"
+  )!;
+  const span = chicken.source_span!;
+  // The span is a real range into the string the payload is carrying, and what
+  // it points at is what the page printed — amount through identity.
+  assertEquals(
+    payload.source_text!.slice(span.start, span.end),
+    "900 g chicken thighs, boneless",
+  );
+  // Every line the page printed can be pointed at.
+  for (const l of flat) {
+    if (l.raw.ingredient_text === "salt") continue;
+    assert(l.source_span, `no span for ${l.raw.ingredient_text}`);
+  }
+});
+
+Deno.test("importRecipe — a line the text cannot place carries no span, and the key is absent", async () => {
+  // The page never printed the salt line, so there is nothing to point at and
+  // the field is omitted rather than aimed somewhere plausible.
+  const payload = await importRecipe({ url: "u" }, pageDeps());
+  const salt = payload.groups.flatMap((g) => g.lines).find((l) =>
+    l.raw.ingredient_text === "salt"
+  )!;
+  assertEquals("source_span" in salt, false);
+});
+
+Deno.test("importRecipe — a photo import carries neither field", async () => {
+  // A transcription blob has no `page_text`: the pages are files the phone
+  // already holds, so the payload is byte-identical to the pre-0047 one.
+  const payload = await importRecipe(
+    { images: [new Uint8Array([1])] },
+    deps({ adapter: fakeAdapter({ withVision: true }) }),
+  );
+  assertEquals("source_text" in payload, false);
+  for (const l of payload.groups.flatMap((g) => g.lines)) {
+    assertEquals("source_span" in l, false);
+  }
+});
+
+Deno.test("importRecipe — no page text means no span, even on a link", async () => {
+  const payload = await importRecipe({ url: "u" }, deps());
+  assertEquals("source_text" in payload, false);
+  for (const l of payload.groups.flatMap((g) => g.lines)) {
+    assertEquals("source_span" in l, false);
+  }
+});
