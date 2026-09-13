@@ -21,7 +21,7 @@ operator statement is owed.
 
 | What | Plan |
 |------|------|
-| Wide screens, first pass — the shell, the measure, and every view that uses the width on web and an iPad in landscape; the web build in CI. Sign-in on the web and the Pages host wait on two owner steps | [0047](./active/0047-wide-screens.md) |
+| Wide screens — the shell, the measure, and every view that uses the width on web and an iPad in landscape (Cook as one schedule sheet, the Library as a ledger, the Week as today beside its agenda); the web build in CI. Sign-in on the web and the Pages host wait on two owner steps | [0047](./active/0047-wide-screens.md) |
 
 ## Shipped
 
