@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe page</h1>
-    <p class="view-status">built · matches code 2026-09-12 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: proposed <a href="../../exec-plans/active/0047-wide-screens.md">plan 0047</a></p>
+    <p class="view-status">built · matches code 2026-09-12 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: matches code 2026-09-13 · <a href="../../exec-plans/active/0047-wide-screens.md">plan 0047</a></p>
     <p class="view-blurb">Two tabs, a scaler, and one per-serving panel closing the ingredients tab — with a total, or with the reason there isn’t one. The <b>⋯</b> menu can also print each line’s own macros under its name. The page is set as reading matter: serif title, sans lines, mono figures, kitchen fractions as glyphs (<b>1½</b>), and one filled shape — the chip row — above the tabs. Opened <b>from a week</b> it draws that week’s lines, and the <code>optional</code> tag is the switch that ticks a line in for it; from the Library the tag is a tag.</p>
 </header>
 
@@ -363,7 +363,7 @@
 <div class="board-wide">
 
     <div class="frame wide">
-        <p class="frame-name"><b>wide · the recipe</b> · the width buys one thing — <i>Ingredients</i> and <i>Method</i> read together; the page is capped and centred, and the total stays at the foot of the lines it sums <span class="tag-prop">proposed</span></p>
+        <p class="frame-name"><b>wide · the recipe</b> · the width buys one thing — <i>Ingredients</i> and <i>Method</i> read together; the page is capped and centred, and the total stays at the foot of the lines it sums</p>
         <div class="desk">
             <div class="lip"><i></i><i></i><i></i></div>
             <div class="dscreen">
@@ -429,10 +429,11 @@
         <p class="conv-note" style="margin:4px 4px 0">the method column is the <b>phone's line, unwidened</b>: a mono number in its own column, the ingredient a <b>plain herb word</b>, the live amount its <b>pill</b>, and the timer keeping the outlined pill it has because it is a measurement rather than a word in the sentence. A second step re-using the chicken carries <i>no</i> pill, because the amount was already said</p>
         <p class="conv-note" style="margin:4px 4px 0">an amount reads the same in both columns: <b>2 onion, medium</b> and <b>1 lime, whole</b> say the measure's own words (<a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a>), the chicken stays a bare <b>6</b> because its row names no size, and the amount cell wraps rather than shove the name out of the column</p>
         <p class="conv-note" style="margin:4px 4px 0">the panel is <b>not a right rail</b>: a per-serving total belongs at the end of the lines it sums, at their width · <b>Used in · N</b> is absent because nothing points at this recipe, exactly as on the phone</p>
+        <p class="differs-note">differs: the page's back control is the header's own chevron and does not name the door it came through; the scaler's label breaks over two lines, as it does on the phone. The rail beside the page is the shell's answer rather than this view's — <a href="./navigation.html">navigation.html</a> carries its status.</p>
     </div>
 
     <div class="frame wide">
-        <p class="frame-name"><b>wide · the honest refusal</b> · a page cropped to its two columns — the panel refuses under the ingredients, in the phone's own words <span class="tag-prop">proposed</span></p>
+        <p class="frame-name"><b>wide · the honest refusal</b> · a page cropped to its two columns — the panel refuses under the ingredients, in the phone's own words</p>
         <div class="desk">
             <div class="lip"><i></i><i></i><i></i></div>
             <div class="dscreen wr-short">
@@ -480,10 +481,11 @@
         </div>
         <p class="conv-note" style="margin:10px 4px 0">the width changes <b>nothing</b> about the refusal — the same badge, the same sentence in the same order, the same two named lines, each opening the thing that fixes it. It sits at the foot of the ingredients column, at the column's width</p>
         <p class="conv-note" style="margin:4px 4px 0">the marked lines keep their <b>amber marker under the amount</b>, and the method beside them is untouched: a step chips the line it uses whether or not the total can count it</p>
+        <p class="differs-note">differs: the back control and the rail, as in the first frame.</p>
     </div>
 
     <div class="frame wide">
-        <p class="frame-name"><b>wide · from the week</b> · the same page reached from a week slot — the band under the title, the tag as a switch, and the week's own re-summation under the lines <span class="tag-prop">proposed</span></p>
+        <p class="frame-name"><b>wide · from the week</b> · the same page reached from a week slot — the band under the title, the tag as a switch, and the week's own re-summation under the lines</p>
         <div class="desk">
             <div class="lip"><i></i><i></i><i></i></div>
             <div class="dscreen wr-short">
@@ -555,6 +557,7 @@
         <p class="conv-note" style="margin:4px 4px 0">the width gives the second door somewhere to hang: the <b>⋯</b> menu opens under itself in the hero, and it is the menu the phone shows from a week — <b>Edit recipe</b> beside <b>Edit for this week · Tue &amp; Sat only</b>, so the two read as two. From the Library the page is untouched: no band, no second item, and the tag is a tag</p>
         <p class="conv-note" style="margin:4px 4px 0">the tag is the <b>switch</b> in this column too — an empty ring to tick, filled herb with a check and the word <b>included</b> once ticked — and the rest of week mode is read-only beside it: the week's own amount, a line it leaves out <b>struck and muted</b>, and an added line after the last group</p>
         <p class="conv-note" style="margin:4px 4px 0">the panel under the lines is the <b>week's own re-summation</b>, with the <b>OPTIONAL</b> row and its caption, and the <b>INCLUDED</b> row outside that caption because it names lines the total <i>does</i> cover</p>
+        <p class="differs-note">differs: the back control and the rail, as in the first frame.</p>
     </div>
 
 </div>

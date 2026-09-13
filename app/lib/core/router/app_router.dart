@@ -46,14 +46,20 @@ part 'app_router.g.dart';
 /// screens — and a screen cannot forget it. The shell's four tabs are wrapped
 /// by the shell itself (`shared/ansi_tab_shell.dart`), which is why the
 /// branches keep the plain [GoRoute].
+///
+/// [measure] is how wide the page is capped, for the page whose expanded form
+/// is not one column. It takes [ansiWideMeasureWidth] rather than a number, so
+/// the cap stays the layout file's business and never the router's.
 GoRoute _page({
   required String path,
   required String name,
   required Widget Function(GoRouterState state) builder,
+  double Function(BuildContext context)? measure,
 }) => GoRoute(
   path: path,
   name: name,
-  builder: (context, state) => AnsiMeasure(child: builder(state)),
+  builder: (context, state) =>
+      AnsiMeasure(width: measure, child: builder(state)),
 );
 
 /// The app's routes. `/recipes/new` is declared before `/recipes/:id` so the
@@ -224,6 +230,10 @@ GoRouter router(Ref ref) {
       _page(
         path: '/recipes/:id',
         name: 'recipe',
+        // The one page so far whose expanded form uses the width: Ingredients
+        // and Method are two columns read together, so it is capped wider than
+        // the measure and never stretched.
+        measure: ansiWideMeasureWidth,
         builder: (state) => RecipeView(
           recipeId: state.pathParameters['id']!,
           weekKey: state.uri.queryParameters['week'],

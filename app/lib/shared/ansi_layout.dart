@@ -75,6 +75,25 @@ enum AnsiLayout {
 /// (`core/theme/ansi_theme.dart`).
 double ansiMeasureWidth(BuildContext context) => context.theme.breakpoints.sm;
 
+/// The horizontal gutter a page pads its content by.
+///
+/// It lives beside the measure because the two are read together: a cap that
+/// wants the *columns* inside a page to be a stated width has to add the
+/// gutters back on.
+const double ansiPageGutter = 20;
+
+/// The cap for a page whose [AnsiLayout.expanded] form is **two columns**.
+///
+/// Below expanded it is [ansiMeasureWidth]: such a page is the phone's page,
+/// centred, exactly like every other one. At expanded it is a measure and a
+/// half of content plus the page's own [ansiPageGutter]s — two columns of Ansi
+/// text side by side, together no wider than the app has ever read at, and the
+/// number is still the theme's rather than a literal.
+double ansiWideMeasureWidth(BuildContext context) =>
+    AnsiLayout.of(context) == AnsiLayout.expanded
+    ? ansiMeasureWidth(context) * 1.5 + ansiPageGutter * 2
+    : ansiMeasureWidth(context);
+
 /// Centres its child in a column no wider than the measure.
 ///
 /// A **no-op at [AnsiLayout.compact]** — it returns the child untouched, so on
@@ -87,9 +106,17 @@ double ansiMeasureWidth(BuildContext context) => context.theme.breakpoints.sm;
 /// every page pushed over the shell (`core/router/app_router.dart`). A screen
 /// does not wrap itself.
 class AnsiMeasure extends StatelessWidget {
-  const AnsiMeasure({required this.child, super.key});
+  const AnsiMeasure({required this.child, this.width, super.key});
 
   final Widget child;
+
+  /// How wide this page is capped, given the band — [ansiMeasureWidth] when
+  /// null, which is what every page that is a column by nature wants.
+  ///
+  /// A page whose expanded form uses the width passes [ansiWideMeasureWidth]
+  /// instead. It is a function of the context rather than a number because the
+  /// answer is the band's, and the band is read here.
+  final double Function(BuildContext context)? width;
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +124,9 @@ class AnsiMeasure extends StatelessWidget {
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: ansiMeasureWidth(context)),
+        constraints: BoxConstraints(
+          maxWidth: (width ?? ansiMeasureWidth)(context),
+        ),
         child: child,
       ),
     );

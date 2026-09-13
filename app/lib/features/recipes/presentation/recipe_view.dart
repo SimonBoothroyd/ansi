@@ -1,5 +1,6 @@
 /// The recipe page: grouped ingredients that scale live with a servings
-/// control, plus the method — laid out as Ingredients / Method tabs.
+/// control, plus the method — Ingredients / Method tabs on a phone, and two
+/// columns read together once there is room for both.
 ///
 /// The Ingredients tab closes with the per-serving macro panel (step 9,
 /// [RecipeMacroPanel]) — the only number on this page the servings scaler
@@ -26,6 +27,14 @@
 /// yes*, writing the week's include row. The panel reads the week's own
 /// re-summation, so ticking a line in recounts it. From the Library none of
 /// that exists: where there is no week there is no decision to make.
+///
+/// **At [AnsiLayout.expanded] there are no tabs**, because the width buys the
+/// one thing this page wanted: Ingredients and Method side by side, read
+/// together. The hero runs across the top and gains the scaler and the `⋯`;
+/// the ingredients column closes with the per-serving panel at its own width
+/// and then `Used in · N`, where a tab would have been. Every row in both
+/// columns is the widget the phone draws — there is no second copy of a line,
+/// a step or a panel anywhere below.
 library;
 
 import 'dart:async';
@@ -40,6 +49,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
 import '../../../shared/ansi_error_state.dart';
+import '../../../shared/ansi_layout.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_stepper_row.dart';
 import '../../../shared/format.dart';
@@ -118,7 +128,10 @@ class _RecipeBody extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final servings = useState(recipe.servingsBase);
     final tab = useState(0);
-    final title = recipe.title.isEmpty ? 'Untitled recipe' : recipe.title;
+    // Both columns are on screen at expanded, so there is nothing to switch
+    // between: no tab bar, the scaler and the `⋯` in the hero, and the
+    // back-links under the ingredients column instead of behind a tab.
+    final wide = AnsiLayout.of(context) == AnsiLayout.expanded;
     // The back-links: the tab exists only while something points here (D9),
     // and the same rows carry the count D5's delete refusal speaks. A
     // still-loading query reads as "nothing points here yet" — two tabs, the
@@ -140,17 +153,6 @@ class _RecipeBody extends HookConsumerWidget {
     // The last back-link can go while the tab is open; fall back rather than
     // stare at a pane that no longer exists.
     final index = tab.value < tabs.length ? tab.value : 0;
-    // The favorite flag lives on the list summary (the planner's Favorites
-    // tab reads the same row), not the aggregate — resolve it from there.
-    final favorite =
-        ref
-            .watch(recipeListProvider)
-            .asData
-            ?.value
-            .where((r) => r.id == recipe.id)
-            .firstOrNull
-            ?.favorite ??
-        false;
     // A reading posture, held for the session (see [ShowLineMacros]) — the
     // menu offers it only from the tab it changes.
     final lineMacros = ref.watch(showLineMacrosProvider);
@@ -183,6 +185,57 @@ class _RecipeBody extends HookConsumerWidget {
               .asData
               ?.value[recipe.id];
 
+    // One hero, one ingredients column, one method column, one back-link list:
+    // built once here and placed by the band, so neither layout can drift into
+    // being a second version of the page.
+    final hero = _Hero(
+      recipe: recipe,
+      // One band, under the title: which days of the week you came from cook
+      // this, and whether the week varies it. It is what makes the ⋯ menu's
+      // second item legible before it is opened.
+      band: plannedWeek == null
+          ? null
+          : PlannedThisWeekBand(days: placement.days, edited: placement.edited),
+    );
+    final menu = _RecipeMenu(
+      recipe: recipe,
+      showLineMacros: lineMacros,
+      // At expanded the ingredients are always on screen, so the toggle is
+      // always about something visible.
+      offerLineMacros: wide || index == 0,
+      plannedWeek: plannedWeek,
+      days: placement.days,
+      inHeader: !wide,
+    );
+    final factor = scaleFactorFor(recipe, servings.value);
+    final scaler = _ScaleControl(
+      servings: servings.value,
+      factor: factor,
+      onChanged: (v) => servings.value = v,
+    );
+    final ingredients = _IngredientsTab(
+      recipe: recipe,
+      servings: servings.value,
+      onServings: (v) => servings.value = v,
+      showLineMacros: lineMacros,
+      // The scaler is in the hero at expanded, where it reaches both columns.
+      showScaler: !wide,
+      weekStart: plannedWeek == null
+          ? null
+          : weekStartOfKey(plannedWeek, ref.watch(weekShapeProvider)),
+      overrides: overrides,
+      weekSummary: weekSummary,
+    );
+    final method = _MethodTab(recipe: recipe, servings: servings.value);
+    final backLinks = usesFailed
+        ? AnsiErrorState(
+            what: 'what this is used in',
+            error: usesAsync.error!,
+            stackTrace: usesAsync.stackTrace,
+            onRetry: () => ref.invalidate(recipeUsedInProvider(recipe.id)),
+          )
+        : _UsedInList(uses: uses);
+
     return FScaffold(
       childPad: false,
       header: FHeader.nested(
@@ -196,160 +249,141 @@ class _RecipeBody extends HookConsumerWidget {
                 context.canPop() ? context.pop() : context.goOnce('/'),
           ),
         ],
-        suffixes: [
-          FPopoverMenu(
-            // `menuBuilder`, not `menu`: an item has to be able to dismiss the
-            // menu it was picked from before it navigates or opens a dialog.
-            menuBuilder: (_, controller, _) => [
-              FItemGroup(
-                children: [
-                  // The Favorites-tab marking affordance (7.7): a star
-                  // toggle, household-shared like the recipe itself.
-                  FItem(
-                    prefix: Icon(
-                      favorite ? FLucideIcons.starOff : FLucideIcons.star,
-                    ),
-                    title: Text(favorite ? 'Unfavorite' : 'Favorite'),
-                    onPress: () {
-                      unawaited(controller.hide());
-                      unawaited(
-                        ref.write(
-                          context,
-                          favorite ? 'unfavourite it' : 'favourite it',
-                          () => ref
-                              .read(recipeRepositoryProvider)
-                              .setFavorite(recipe.id, !favorite),
-                        ),
-                      );
-                    },
-                  ),
-                  // The per-line macro toggle lives here rather than in a
-                  // control of its own: the page already has one door for its
-                  // less-used verbs, and a second surface beside the panel
-                  // would sit below the fold it changes.
-                  if (index == 0)
-                    FItem(
-                      prefix: const Icon(FLucideIcons.sigma),
-                      title: Text(
-                        lineMacros ? 'Hide line macros' : 'Show line macros',
-                      ),
-                      onPress: () {
-                        unawaited(controller.hide());
-                        ref.read(showLineMacrosProvider.notifier).toggle();
-                      },
-                    ),
-                  // Named "Edit recipe" only where the week door stands
-                  // beside it: the rename exists so the two doors read as
-                  // two, and from the Library there is only one.
-                  FItem(
-                    prefix: const Icon(FLucideIcons.pencil),
-                    title: Text(plannedWeek == null ? 'Edit' : 'Edit recipe'),
-                    onPress: () {
-                      unawaited(controller.hide());
-                      context.pushOnce('/recipes/${recipe.id}/edit');
-                    },
-                  ),
-                  // The second door into week mode (the first is the row at
-                  // the foot of the meal editor sheet). It is here because
-                  // this is where a planned recipe is LOOKED at — the owner
-                  // went looking on Cook and on the Week and found nothing.
-                  // It names the days it covers, because what it changes is
-                  // those days and not the recipe.
-                  if (plannedWeek != null)
-                    FItem(
-                      prefix: const Icon(FLucideIcons.calendarCog),
-                      title: Text(
-                        editForThisWeekItem(
-                          placement.days,
-                          ref.watch(weekShapeProvider).shortLabels,
-                          weekKey: plannedWeek,
-                        ),
-                      ),
-                      onPress: () {
-                        unawaited(controller.hide());
-                        context.pushOnce(
-                          '/recipes/${recipe.id}/edit?week=$plannedWeek',
-                        );
-                      },
-                    ),
-                  FItem(
-                    prefix: const Icon(FLucideIcons.trash2),
-                    title: const Text('Delete'),
-                    onPress: () {
-                      unawaited(controller.hide());
-                      unawaited(_confirmDelete(context, ref));
-                    },
-                  ),
-                ],
-              ),
-            ],
-            builder: (context, controller, _) => FHeaderAction(
-              icon: const Icon(FLucideIcons.ellipsis),
-              onPress: controller.toggle,
-            ),
-          ),
-        ],
+        // At expanded the same menu hangs in the hero beside the scaler, which
+        // is where the width gives it room. One door either way.
+        suffixes: [if (!wide) menu],
       ),
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
-        children: [
-          Text(_breadcrumb(recipe), style: ansiLabel(color: AnsiColors.herb)),
-          const SizedBox(height: 8),
-          Text(title, style: ansiSerif(size: 33, weight: FontWeight.w700)),
-          // One band, under the title: which days of the week you came from
-          // cook this, and whether the week varies it. It is what makes the
-          // ⋯ menu's second item legible before it is opened.
-          if (plannedWeek != null) ...[
-            const SizedBox(height: 10),
-            PlannedThisWeekBand(days: placement.days, edited: placement.edited),
-          ],
-          const SizedBox(height: 12),
-          _Chips(recipe: recipe),
-          const SizedBox(height: 20),
-          _TabBar(
-            labels: tabs,
-            index: index,
-            onChanged: (i) => tab.value = i,
-            // The Method tab's chips carry live numbers, and nothing on that
-            // tab says what they are scaled to — the scaler is a tab away.
-            // Same servings state, so the two can never disagree.
-            trailing: index != 1
-                ? null
-                : Text(
-                    'for ${formatQuantity(servings.value)} servings · '
-                    '${formatQuantity(scaleFactorFor(recipe, servings.value))}'
-                    '×',
-                    style: ansiMono(size: 11, color: AnsiColors.muted),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-          ),
-          const SizedBox(height: 4),
-          if (index == 0)
-            _IngredientsTab(
-              recipe: recipe,
-              servings: servings.value,
-              onServings: (v) => servings.value = v,
-              showLineMacros: lineMacros,
-              weekStart: plannedWeek == null
-                  ? null
-                  : weekStartOfKey(plannedWeek, ref.watch(weekShapeProvider)),
-              overrides: overrides,
-              weekSummary: weekSummary,
-            )
-          else if (index == 1)
-            _MethodTab(recipe: recipe, servings: servings.value)
-          else if (usesFailed)
-            AnsiErrorState(
-              what: 'what this is used in',
-              error: usesAsync.error!,
-              stackTrace: usesAsync.stackTrace,
-              onRetry: () => ref.invalidate(recipeUsedInProvider(recipe.id)),
-            )
-          else
-            _UsedInTab(uses: uses),
-        ],
+        padding: const EdgeInsets.fromLTRB(
+          ansiPageGutter,
+          4,
+          ansiPageGutter,
+          32,
+        ),
+        children: wide
+            ? [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: hero),
+                    const SizedBox(width: 20),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(width: _kScalerWidth, child: scaler),
+                        const SizedBox(width: 12),
+                        menu,
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const _Hairline(),
+                const SizedBox(height: 18),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: _kIngredientsColumn,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const _ColumnHeading('Ingredients'),
+                          ingredients,
+                          // Where the third tab would have been: the
+                          // back-links close the column the recipe is read in,
+                          // and only while something points here (D9).
+                          if (usesFailed || uses.isNotEmpty) ...[
+                            const SizedBox(height: 26),
+                            _ColumnHeading(
+                              usesFailed
+                                  ? 'Used in'
+                                  : usedInTabLabel(uses.length),
+                            ),
+                            backLinks,
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 22),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [const _ColumnHeading('Method'), method],
+                      ),
+                    ),
+                  ],
+                ),
+              ]
+            : [
+                hero,
+                const SizedBox(height: 20),
+                _TabBar(
+                  labels: tabs,
+                  index: index,
+                  onChanged: (i) => tab.value = i,
+                  // The Method tab's chips carry live numbers, and nothing on
+                  // that tab says what they are scaled to — the scaler is a
+                  // tab away. Same servings state, so the two can never
+                  // disagree.
+                  trailing: index != 1
+                      ? null
+                      : Text(
+                          'for ${formatQuantity(servings.value)} servings · '
+                          '${formatQuantity(factor)}×',
+                          style: ansiMono(size: 11, color: AnsiColors.muted),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                ),
+                const SizedBox(height: 4),
+                if (index == 0)
+                  ingredients
+                else if (index == 1)
+                  method
+                else
+                  backLinks,
+              ],
       ),
+    );
+  }
+}
+
+/// The two columns at [AnsiLayout.expanded]: the ingredients column is fixed
+/// so an amount and a name keep their own widths whatever the window does, and
+/// the method column takes the rest — at the page's cap that is about 600, the
+/// length a step reads at on a phone.
+const double _kIngredientsColumn = 340;
+
+/// The scaler in the expanded hero. Wide enough for "12 servings" on one line.
+const double _kScalerWidth = 300;
+
+/// The page's top: the book line, the title, the week band when a week owns the
+/// page, and the chips. Identical in both layouts — at expanded it simply has
+/// the scaler and the `⋯` beside it instead of above the tabs.
+class _Hero extends StatelessWidget {
+  const _Hero({required this.recipe, this.band});
+
+  final Recipe recipe;
+
+  /// The planned-this-week line, between the title and the chips. Null from
+  /// the Library, where there is no week to state.
+  final Widget? band;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = recipe.title.isEmpty ? 'Untitled recipe' : recipe.title;
+    final band = this.band;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(_breadcrumb(recipe), style: ansiLabel(color: AnsiColors.herb)),
+        const SizedBox(height: 8),
+        Text(title, style: ansiSerif(size: 33, weight: FontWeight.w700)),
+        if (band != null) ...[const SizedBox(height: 10), band],
+        const SizedBox(height: 12),
+        _Chips(recipe: recipe),
+      ],
     );
   }
 
@@ -362,68 +396,251 @@ class _RecipeBody extends HookConsumerWidget {
         .join(' · ');
     return crumbs.isEmpty ? 'RECIPE' : crumbs;
   }
+}
 
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
-    // D5, the 8.5 ingredient-delete ruling verbatim: a recipe something points
-    // at is not deleted, and the refusal names the count — "used in 2 recipes"
-    // is something a person can act on, "failed" is not. Read the repository
-    // (keepAlive) rather than the tab's cached rows: the answer must be the
-    // one that is true at the moment of the tap.
-    //
-    // Guarded, because the alternative is the worst outcome this front knows
-    // of: a check that threw would leave `uses` unknown, and an unknown that
-    // reads as "nothing points here" turns a refusal into a delete.
-    //
-    // This page is a whole route and does not unmount under its dialogs, but
-    // the rule is one rule (`hostContextOf`): what runs after an awaited
-    // dialog goes through the container and the host, never `ref`.
-    final repository = ref.read(recipeRepositoryProvider);
-    final container = ProviderScope.containerOf(context, listen: false);
-    final host = hostContextOf(context);
-    final uses = await container.write(
-      host,
-      'check what uses this recipe',
-      () => repository.usedIn(recipe.id),
-    );
-    if (uses == null) return;
-    if (uses.isNotEmpty) {
-      await refuseAnsi(
-        // The host outlives the row — see [hostContextOf].
-        // ignore: use_build_context_synchronously
-        host.context,
-        title: 'Can’t delete this recipe',
-        body: deleteRefusalText(
-          recipes: uses.map((u) => u.recipeId).toSet().length,
-          lines: uses.length,
+/// A column's name at [AnsiLayout.expanded] — the micro-label over a rule that
+/// the tab bar's underline is doing on a phone.
+class _ColumnHeading extends StatelessWidget {
+  const _ColumnHeading(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(label.toUpperCase(), style: ansiLabel()),
         ),
-      );
-      return;
-    }
+        const _Hairline(),
+      ],
+    );
+  }
+}
 
-    final ok = await askAnsi(
+/// The page's one door for its less-used verbs: the favourite toggle, the
+/// per-line macros, Edit — and, from a week, that week's own editor and the
+/// days it covers. It hangs off the header on a phone and in the hero at
+/// [AnsiLayout.expanded]; it is the same menu, built once.
+class _RecipeMenu extends ConsumerWidget {
+  const _RecipeMenu({
+    required this.recipe,
+    required this.showLineMacros,
+    required this.offerLineMacros,
+    required this.plannedWeek,
+    required this.days,
+    required this.inHeader,
+  });
+
+  final Recipe recipe;
+
+  /// Whether the trigger is the header's own action or the bare glyph the hero
+  /// hangs it on: [FHeaderAction] asserts on an [FHeader] ancestor it does not
+  /// have out here.
+  final bool inHeader;
+
+  /// Whether the lines are currently printing their own macros — the item says
+  /// what the tap will do.
+  final bool showLineMacros;
+
+  /// Whether to offer that toggle at all: only where the lines it changes are
+  /// on screen.
+  final bool offerLineMacros;
+
+  /// The week that plans this recipe, once checked against the week itself.
+  /// Null from the Library, and then the second door does not exist.
+  final String? plannedWeek;
+
+  /// Which days of that week cook it, for the door's own label.
+  final List<int> days;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // The favorite flag lives on the list summary (the planner's Favorites
+    // tab reads the same row), not the aggregate — resolve it from there.
+    final favorite =
+        ref
+            .watch(recipeListProvider)
+            .asData
+            ?.value
+            .where((r) => r.id == recipe.id)
+            .firstOrNull
+            ?.favorite ??
+        false;
+    final plannedWeek = this.plannedWeek;
+    return FPopoverMenu(
+      // `menuBuilder`, not `menu`: an item has to be able to dismiss the
+      // menu it was picked from before it navigates or opens a dialog.
+      menuBuilder: (_, controller, _) => [
+        FItemGroup(
+          children: [
+            // The Favorites-tab marking affordance (7.7): a star
+            // toggle, household-shared like the recipe itself.
+            FItem(
+              prefix: Icon(favorite ? FLucideIcons.starOff : FLucideIcons.star),
+              title: Text(favorite ? 'Unfavorite' : 'Favorite'),
+              onPress: () {
+                unawaited(controller.hide());
+                unawaited(
+                  ref.write(
+                    context,
+                    favorite ? 'unfavourite it' : 'favourite it',
+                    () => ref
+                        .read(recipeRepositoryProvider)
+                        .setFavorite(recipe.id, !favorite),
+                  ),
+                );
+              },
+            ),
+            // The per-line macro toggle lives here rather than in a
+            // control of its own: the page already has one door for its
+            // less-used verbs, and a second surface beside the panel
+            // would sit below the fold it changes.
+            if (offerLineMacros)
+              FItem(
+                prefix: const Icon(FLucideIcons.sigma),
+                title: Text(
+                  showLineMacros ? 'Hide line macros' : 'Show line macros',
+                ),
+                onPress: () {
+                  unawaited(controller.hide());
+                  ref.read(showLineMacrosProvider.notifier).toggle();
+                },
+              ),
+            // Named "Edit recipe" only where the week door stands
+            // beside it: the rename exists so the two doors read as
+            // two, and from the Library there is only one.
+            FItem(
+              prefix: const Icon(FLucideIcons.pencil),
+              title: Text(plannedWeek == null ? 'Edit' : 'Edit recipe'),
+              onPress: () {
+                unawaited(controller.hide());
+                context.pushOnce('/recipes/${recipe.id}/edit');
+              },
+            ),
+            // The second door into week mode (the first is the row at
+            // the foot of the meal editor sheet). It is here because
+            // this is where a planned recipe is LOOKED at — the owner
+            // went looking on Cook and on the Week and found nothing.
+            // It names the days it covers, because what it changes is
+            // those days and not the recipe.
+            if (plannedWeek != null)
+              FItem(
+                prefix: const Icon(FLucideIcons.calendarCog),
+                title: Text(
+                  editForThisWeekItem(
+                    days,
+                    ref.watch(weekShapeProvider).shortLabels,
+                    weekKey: plannedWeek,
+                  ),
+                ),
+                onPress: () {
+                  unawaited(controller.hide());
+                  context.pushOnce(
+                    '/recipes/${recipe.id}/edit?week=$plannedWeek',
+                  );
+                },
+              ),
+            FItem(
+              prefix: const Icon(FLucideIcons.trash2),
+              title: const Text('Delete'),
+              onPress: () {
+                unawaited(controller.hide());
+                unawaited(_confirmDelete(context, ref, recipe));
+              },
+            ),
+          ],
+        ),
+      ],
+      builder: (context, controller, _) => inHeader
+          ? FHeaderAction(
+              icon: const Icon(FLucideIcons.ellipsis),
+              onPress: controller.toggle,
+            )
+          // In the hero there is no header to be an action of, so the glyph
+          // stands on its own, sized to the row it sits in.
+          : GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: controller.toggle,
+              child: const Padding(
+                padding: EdgeInsets.all(6),
+                child: Icon(
+                  FLucideIcons.ellipsis,
+                  size: 18,
+                  color: AnsiColors.muted,
+                ),
+              ),
+            ),
+    );
+  }
+}
+
+Future<void> _confirmDelete(
+  BuildContext context,
+  WidgetRef ref,
+  Recipe recipe,
+) async {
+  // D5, the 8.5 ingredient-delete ruling verbatim: a recipe something points
+  // at is not deleted, and the refusal names the count — "used in 2 recipes"
+  // is something a person can act on, "failed" is not. Read the repository
+  // (keepAlive) rather than the tab's cached rows: the answer must be the
+  // one that is true at the moment of the tap.
+  //
+  // Guarded, because the alternative is the worst outcome this front knows
+  // of: a check that threw would leave `uses` unknown, and an unknown that
+  // reads as "nothing points here" turns a refusal into a delete.
+  //
+  // This page is a whole route and does not unmount under its dialogs, but
+  // the rule is one rule (`hostContextOf`): what runs after an awaited
+  // dialog goes through the container and the host, never `ref`.
+  final repository = ref.read(recipeRepositoryProvider);
+  final container = ProviderScope.containerOf(context, listen: false);
+  final host = hostContextOf(context);
+  final uses = await container.write(
+    host,
+    'check what uses this recipe',
+    () => repository.usedIn(recipe.id),
+  );
+  if (uses == null) return;
+  if (uses.isNotEmpty) {
+    await refuseAnsi(
       // The host outlives the row — see [hostContextOf].
       // ignore: use_build_context_synchronously
       host.context,
-      title: 'Delete recipe?',
-      body: 'This removes it from your recipes.',
-      confirm: 'Delete',
-      destructive: true,
+      title: 'Can’t delete this recipe',
+      body: deleteRefusalText(
+        recipes: uses.map((u) => u.recipeId).toSet().length,
+        lines: uses.length,
+      ),
     );
-    if (ok) {
-      final deleted = await container.writeOk(
-        host,
-        'delete that recipe',
-        () => repository.deleteRecipe(recipe.id),
-      );
-      if (!deleted) return;
-      // `go`, not a replacement — the one post-action navigation where it is
-      // right. This page is pushed ABOVE the whole tab shell, and the shell is
-      // the bottom of the root stack; `go('/')` lands on the Library branch
-      // exactly there, where back means "leave from home" (D3-b). A
-      // `pushReplacement('/')` would instead stack a SECOND shell page over
-      // the first.
-      if (context.mounted) context.go('/');
-    }
+    return;
+  }
+
+  final ok = await askAnsi(
+    // The host outlives the row — see [hostContextOf].
+    // ignore: use_build_context_synchronously
+    host.context,
+    title: 'Delete recipe?',
+    body: 'This removes it from your recipes.',
+    confirm: 'Delete',
+    destructive: true,
+  );
+  if (ok) {
+    final deleted = await container.writeOk(
+      host,
+      'delete that recipe',
+      () => repository.deleteRecipe(recipe.id),
+    );
+    if (!deleted) return;
+    // `go`, not a replacement — the one post-action navigation where it is
+    // right. This page is pushed ABOVE the whole tab shell, and the shell is
+    // the bottom of the root stack; `go('/')` lands on the Library branch
+    // exactly there, where back means "leave from home" (D3-b). A
+    // `pushReplacement('/')` would instead stack a SECOND shell page over
+    // the first.
+    if (context.mounted) context.go('/');
   }
 }
 
@@ -588,12 +805,15 @@ class _Chip extends StatelessWidget {
   }
 }
 
-/// The "Used in · N" tab (D9): one row per referencing LINE — the parent
+/// The "Used in · N" back-links (D9): one row per referencing LINE — the parent
 /// recipe, what its line asks for, and that amount as a share of a batch —
 /// each pushing the parent. An amount that does not resolve says why rather
 /// than guessing a share (D2).
-class _UsedInTab extends StatelessWidget {
-  const _UsedInTab({required this.uses});
+///
+/// It is a tab on a phone and the foot of the ingredients column at
+/// [AnsiLayout.expanded]; the rows are the same rows.
+class _UsedInList extends StatelessWidget {
+  const _UsedInList({required this.uses});
 
   final List<RecipeUse> uses;
 
@@ -654,6 +874,7 @@ class _IngredientsTab extends ConsumerWidget {
     required this.servings,
     required this.onServings,
     required this.showLineMacros,
+    required this.showScaler,
     required this.weekStart,
     required this.overrides,
     required this.weekSummary,
@@ -665,6 +886,12 @@ class _IngredientsTab extends ConsumerWidget {
 
   /// Whether each line prints its own macros under its name (the `⋯` toggle).
   final bool showLineMacros;
+
+  /// Whether the servings scaler opens the list. False at
+  /// [AnsiLayout.expanded], where it sits in the hero and reaches the method
+  /// column too — it is the same control and the same servings state either
+  /// way, so the two can never disagree.
+  final bool showScaler;
 
   /// The first day of the week this page was opened from, once that week was
   /// found to actually plan the recipe. Null from the Library — and then every
@@ -797,13 +1024,15 @@ class _IngredientsTab extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 16),
-        _ScaleControl(
-          servings: servings,
-          factor: factor,
-          onChanged: onServings,
-        ),
-        const SizedBox(height: 20),
+        if (showScaler) ...[
+          const SizedBox(height: 16),
+          _ScaleControl(
+            servings: servings,
+            factor: factor,
+            onChanged: onServings,
+          ),
+          const SizedBox(height: 20),
+        ],
         for (final group in recipe.groups) ...[
           if (group.name != null) ...[
             Padding(
