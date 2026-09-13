@@ -197,9 +197,10 @@ GoRouter router(Ref ref) {
           // `.indexedStack` — that convenience constructor hard-wires its
           // container and leaves no hook for the cross-fade.
           //
-          // All four roots take the pane: the Library's shelf, the Week's
-          // matrix, Cook's two-up and the Shop's list with its provenance pane
-          // are each a pane's worth of design, and each caps itself where its
+          // All four roots take the pane: the Library's shelf, the Week's day
+          // pane and agenda, Cook's two-up and the Shop's list with its
+          // provenance pane are each a pane's worth of design, and each caps
+          // itself where its
           // own drawing says. It is the same opt-out a pushed page uses, so
           // there is one rule here and not two.
           StatefulShellRoute(

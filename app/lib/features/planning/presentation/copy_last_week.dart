@@ -111,8 +111,8 @@ class CopyLastWeekNotice extends ConsumerWidget {
 /// The `copy last week` chip an empty week offers.
 ///
 /// It is the one door both shapes of the screen share: beside the phone's
-/// "Add the first meal" button, and under the wide matrix's head, where the
-/// seven column feet already carry the add doors so a primary would be a
+/// "Add the first meal" button, and above the wide screen's two panes, where
+/// the agenda's seven add doors already cover the days so a primary would be a
 /// second door to the same place. Drawn only while the week has zero entries
 /// and there is a week behind it — the permanent home is the switcher menu.
 class CopyLastWeekChip extends StatelessWidget {

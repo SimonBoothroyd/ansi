@@ -529,10 +529,9 @@ class CookMarkerLine extends ConsumerWidget {
 
   /// Whether the label may run onto further lines instead of ellipsising.
   ///
-  /// A phone row has a whole width for one clause and clips what will not fit;
-  /// a matrix column is ~111 px, where every marker would clip. Wrapping keeps
-  /// the words — the marker's words are the cook plan's, and half of
-  /// `from Tuesday's batch` names the wrong day.
+  /// A phone row has a whole width for one clause and clips what will not fit.
+  /// The wide day pane wraps instead: it has no reason to shorten anything, and
+  /// half of `from Tuesday's batch` names the wrong day.
   final bool wrap;
 
   @override
