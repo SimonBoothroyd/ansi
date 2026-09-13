@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Navigation &amp; the shell</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>core/router</code> · <code>shared/ansi_tab_shell.dart</code> · <a href="../../design-docs/navigation.md">navigation.md</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · wide: proposed <a href="../../exec-plans/active/0047-wide-screens.md">plan 0043</a></p>
+    <p class="view-status">built · matches code 2026-09-04 · <code>core/router</code> · <code>shared/ansi_tab_shell.dart</code> · <a href="../../design-docs/navigation.md">navigation.md</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · wide: proposed <a href="../../exec-plans/active/0047-wide-screens.md">plan 0047</a></p>
     <p class="view-blurb">One bar that never moves, one place a tap can go, and one stated rule for back. The bar is the fixed point in every transition.</p>
 </header>
 
@@ -202,7 +202,7 @@
                 </div>
             </div>
         </div>
-        <p class="wide-cap"><b>Cook carries the keyboard focus ring</b> — 2 px herb, offset 2 px; Tab walks the four destinations and then the footer door. Account is the only household door on wide, so the Library header does not draw a second one.</p>
+        <p class="wide-cap"><b>Cook carries the keyboard focus ring</b> — 2 px herb, offset 2 px; Tab walks the four destinations and then the footer door. Account is the only household door on wide, so the Library header does not draw a second one. The rail draws exactly what the shared style carries and no more — the label voice, the bar’s mono uppercase against Forui’s sans sentence case, is still open in <a href="../../exec-plans/active/0047-wide-screens.md">plan 0047</a>.</p>
     </div>
 
     <div class="frame wide">
@@ -226,7 +226,7 @@
                 </div>
             </div>
         </div>
-        <p class="wide-cap">The browser’s <b>Back</b> does the same thing this control does — one step, to the tab the page was opened from.</p>
+        <p class="wide-cap">The browser’s <b>Back</b> does the same thing this control does — one step, to the tab the page was opened from, and the control names which: a recipe pushed from the Week or from Cook carries <code>?week=</code> and reads <b>‹ Week</b> or <b>‹ Cook</b>.</p>
     </div>
 
     <div class="frame wide wnv-ipad">
@@ -262,28 +262,29 @@
             <div class="dscreen wnv-screen">
                 <div class="rail">
                     <div class="wm">Ansi<span class="dot">.</span></div>
-                    <div class="ri on"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></span><span>Library</span></div>
-                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg></span><span>Week</span></div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></span><span>Library</span></div>
+                    <div class="ri on"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg></span><span>Week</span></div>
                     <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg></span><span>Cook</span></div>
                     <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 11-1 9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1 9"/></svg></span><span>Shop</span></div>
                     <div class="grow"></div>
                     <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>Account</span></div>
                 </div>
                 <div class="main">
-                    <p class="ttl">Library</p>
-                    <div class="wnv-slab">the shelf underneath, untouched</div>
+                    <p class="ttl">Week</p>
+                    <div class="wnv-slab">the week underneath, untouched</div>
                 </div>
                 <div class="wnv-over">
                     <div class="wnv-scrim"></div>
                     <div class="wnv-dlg">
-                        <div class="wnv-dhead"><span class="t">Add to the week</span><span class="x">×</span></div>
+                        <div class="wnv-dhead"><span class="t">Add to plan</span><span class="x">×</span></div>
+                        <p class="wnv-dsub">to · Wednesday</p>
                         <div class="wnv-slab" style="min-height:150px">the sheet’s own body, unchanged — one builder, two presentations</div>
                         <span class="wnv-dim">max 560 · height follows the body</span>
                     </div>
                 </div>
             </div>
         </div>
-        <p class="wide-cap">The same call presents a <b>sheet under 640</b> and a <b>dialog at and above it</b>, through the one door in <code>ansi_modals.dart</code>. The barrier still covers the whole window, sidebar included, because the modal is on the root navigator.</p>
+        <p class="wide-cap">The same call presents a <b>sheet under 640</b> and a <b>dialog at and above it</b>, through the one door in <code>ansi_modals.dart</code>. The barrier still covers the whole window, sidebar included, because the modal is on the root navigator. The sheet drawn here is the confirm: the day came with the flow, so it is the subtitle rather than a question, and the <b>slot</b> inside the body opens on that day’s next unfilled default.</p>
 
         <p class="wnv-sub"><b>the tall one</b> · a search-driven picker is a fixed 560 × 640 dialog, not full height</p>
         <div class="desk" style="width:720px">
@@ -296,7 +297,7 @@
                 <div class="wnv-over">
                     <div class="wnv-scrim"></div>
                     <div class="wnv-dlg fixed">
-                        <div class="wnv-dhead"><span class="t">Pick an ingredient</span><span class="x">×</span></div>
+                        <div class="wnv-dhead"><span class="t">Add an ingredient</span><span class="x">×</span></div>
                         <div class="wnv-field">Search the vocabulary…</div>
                         <div class="wnv-slab">the results scroll inside the dialog — the field never leaves the top</div>
                         <span class="wnv-dim">560 × 640 · fixed</span>
@@ -304,7 +305,7 @@
                 </div>
             </div>
         </div>
-        <p class="wide-cap">On the phone this one asks for no height cap (<code>mainAxisMaxRatio: null</code>); on wide it stops at 640 and scrolls inside, so a long vocabulary cannot push the search field off the top.</p>
+        <p class="wide-cap">On the phone this one asks for no height cap (<code>mainAxisMaxRatio: null</code>); on wide it stops at 640 and scrolls inside, so a long vocabulary cannot push the search field off the top. A door <i>inside</i> a sheet still opens a whole page over it, because both are routes on the same root navigator: this picker’s “…or write it as a new recipe” row pushes <code>/recipes/new?handback=1</code> and the meal editor’s foot row pushes the per-week editor at <code>/recipes/:id/edit?week=</code> — each one popping back onto the dialog that is still waiting.</p>
     </div>
 
     <div class="frame wide wnv-treef">
@@ -319,16 +320,16 @@
             <div>&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├─ branch 1 · <b class="hi">/week</b></div>
             <div>&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├─ branch 2 · <b class="hi">/cook</b></div>
             <div>&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└─ branch 3 · <b class="hi">/shop</b></div>
-            <div>&nbsp;&nbsp;&nbsp;├─ <b>/recipes/new</b> <span class="neut">neutral rail</span></div>
-            <div>&nbsp;&nbsp;&nbsp;├─ <b>/recipes/:id</b> <span class="neut">neutral rail</span></div>
-            <div>&nbsp;&nbsp;&nbsp;├─ <b>/recipes/:id/edit</b> <span class="neut">neutral rail</span></div>
-            <div>&nbsp;&nbsp;&nbsp;├─ <b>/import</b> <span class="neut">neutral rail</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/recipes/new</b> <span class="neut">neutral rail</span> <span class="qp">?title= ?book= ?section= ?handback=1</span> <span style="opacity:.7">· handback pops it onto the waiting line</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/recipes/:id</b> <span class="neut">neutral rail</span> <span class="qp">?week=</span> <span style="opacity:.7">· the week that plans it, so the page can offer the week door</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/recipes/:id/edit</b> <span class="neut">neutral rail</span> <span class="qp">?week=</span> <span style="opacity:.7">· with it, the per-week editor; without it, the recipe’s own</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/import</b> <span class="neut">neutral rail</span> <span class="qp">?book= ?section=</span> <span style="opacity:.7">· the shelf the ＋ was tapped on</span></div>
             <div>&nbsp;&nbsp;&nbsp;├─ <b>/ingredients</b> <span class="neut">neutral rail</span></div>
-            <div>&nbsp;&nbsp;&nbsp;├─ <b>/ingredients/new</b> <span class="neut">neutral rail</span></div>
-            <div>&nbsp;&nbsp;&nbsp;├─ <b>/ingredients/:id</b> <span class="neut">neutral rail</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/ingredients/new</b> <span class="neut">neutral rail</span> <span class="qp">?name=</span> <span style="opacity:.7">· the words already typed into a picker</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/ingredients/:id</b> <span class="neut">neutral rail</span> <span class="qp">?edit=1</span> <span style="opacity:.7">· the form, not the fact sheet</span></div>
             <div>&nbsp;&nbsp;&nbsp;└─ <b>/account</b> <span class="neut">neutral rail</span> <span style="opacity:.7">· the footer door opens it</span></div>
         </div>
-        <p class="wide-cap">The pushed routes stay siblings of the tab shell — on the phone they cover the bar; on wide the outer shell keeps drawing the sidebar beside them, unlit.</p>
+        <p class="wide-cap">The pushed routes stay siblings of the tab shell — on the phone they cover the bar; on wide the outer shell keeps drawing the sidebar beside them, unlit. <b>Eight of them</b>, which is the router’s own list; the queries beside each are what its builder reads.</p>
     </div>
 
 </div>
