@@ -1,6 +1,6 @@
 # Exec plan: field test, round twelve — the basket, the slot as a field, a piece-weighted row bought in pieces
 
-- **Status:** active — landed on main, host gate green, the simulator leg still owed
+- **Status:** active — landed on main, host gate and the week simulator leg green; ships on the next tag
 - **Owner:** agent
 - **Roadmap step:** — (the first family week on `v0.15.0`)
 - **Created:** 2026-09-12
@@ -473,11 +473,9 @@ third kind of planned meal beside a recipe and a bare ingredient:
 - [x] `ARCHITECTURE.md`'s standing table still true for the shop and the
       week.
 - [x] `app/AGENTS.md` "Current focus" and command list still true.
-- [ ] `make test-sim FILE=week` on a booted simulator. **Not run:** the
-      week lane rewrote `week_test.dart`'s slot assertions (an empty day now
-      opens on Breakfast) by reading the rule, and the landing session's
-      permission classifier refused the simulator run. Run it before the
-      next tag.
+- [x] `make test-sim FILE=week` run by the owner on a booted simulator after
+      the whole-measure and confetti lanes landed: green. The rewritten slot
+      assertions (an empty day opens on Breakfast) hold on the device.
 - [x] Tech-debt rows: the sync row narrowed; no corner cut.
 - [x] No migrations, no seed change.
 - [x] Host gate green on the stacked tree: `make analyze`, `make test`
