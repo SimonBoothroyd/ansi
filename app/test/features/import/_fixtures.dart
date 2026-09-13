@@ -33,6 +33,7 @@ ReconLine reconLine(
   double score = 0.97,
   List<MatchCandidate> candidates = const [],
   List<RecipeCandidate> recipeCandidates = const [],
+  SourceSpan? sourceSpan,
 }) => ReconLine(
   raw: RawLineItem(
     ingredientText: text,
@@ -54,6 +55,7 @@ ReconLine reconLine(
       ),
   ],
   recipeCandidates: recipeCandidates,
+  sourceSpan: sourceSpan,
 );
 
 /// A payload of one group holding [lines] — grouping is
@@ -66,6 +68,7 @@ ReconciliationPayload reconPayload(
   TimeRange? cookTimeSeconds,
   List<String> parseWarnings = const [],
   List<Step> steps = const [],
+  String? sourceText,
 }) => ReconciliationPayload(
   title: title,
   servingsBase: servingsBase,
@@ -74,6 +77,7 @@ ReconciliationPayload reconPayload(
   parseWarnings: parseWarnings,
   groups: [ReconGroup(lines: lines)],
   steps: steps,
+  sourceText: sourceText,
 );
 
 /// The plain complete row a review suite matches its one line to when which

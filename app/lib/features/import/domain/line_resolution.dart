@@ -55,6 +55,7 @@ class LineResolution {
     this.isDropped = false,
     this.optional = false,
     this.addedAtReview = false,
+    this.createdHere = false,
   });
 
   /// The resolution for a line the **review minted** — one the page never
@@ -154,6 +155,16 @@ class LineResolution {
   /// photo we could barely read.
   final bool addedAtReview;
 
+  /// The VOCABULARY ROW this line resolved to was created during this review —
+  /// the picker's create-new door, through the flesh-out form (§9).
+  ///
+  /// Distinct from [addedAtReview], which is about the LINE. Nothing about
+  /// validity turns on it: a row created here commits perfectly well, which is
+  /// exactly why the wide review's work queue lists these apart and **out of
+  /// the count** rather than as work outstanding. A stub is a real, plannable
+  /// line with numbers it has not got yet.
+  final bool createdHere;
+
   /// Whether this line is a sub-recipe COMPONENT (step 8.6 / D1) rather than
   /// an ingredient line.
   bool get isComponent => linkedRecipeId != null;
@@ -194,6 +205,7 @@ class LineResolution {
     bool clearLink = false,
     bool clearQuantity = false,
     bool clearNotes = false,
+    bool? createdHere,
   }) => LineResolution(
     lineIndex: lineIndex,
     band: band,
@@ -214,6 +226,7 @@ class LineResolution {
     isDropped: isDropped ?? this.isDropped,
     optional: optional ?? this.optional,
     addedAtReview: addedAtReview,
+    createdHere: createdHere ?? this.createdHere,
   );
 
   /// Drops the line from the import — reversible until Save ([undrop]).
@@ -233,10 +246,15 @@ class LineResolution {
     String ingredientId,
     String name, {
     bool correction = false,
+    bool created = false,
   }) => copyWith(
     chosenIngredientId: ingredientId,
     chosenName: name,
     isCorrection: correction,
+    // The mark follows the ROW, so re-matching onto an existing row takes it
+    // off again: the queue would otherwise keep listing a line whose new row
+    // nobody made here. Only the wide review's work queue reads it.
+    createdHere: created,
     // Matching an ingredient UN-LINKS a component line: exactly one identity
     // (D1's XOR), and re-picking is how a link is undone (D7's rule too).
     clearLink: true,

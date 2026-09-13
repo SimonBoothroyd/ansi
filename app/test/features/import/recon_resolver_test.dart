@@ -50,8 +50,9 @@ void main() {
                   isRange: false,
                   unit: null,
                 ),
-                onResolveExisting: (id, name, {required correction}) =>
-                    picked = id,
+                onResolveExisting:
+                    (id, name, {required correction, created = false}) =>
+                        picked = id,
               ),
             ),
           ),
@@ -81,7 +82,8 @@ void main() {
                   candidates: const [],
                   resolution: resolution,
                   sourceLine: sourceLine,
-                  onResolveExisting: (_, _, {required correction}) {},
+                  onResolveExisting:
+                      (_, _, {required correction, created = false}) {},
                 ),
               ),
             ),

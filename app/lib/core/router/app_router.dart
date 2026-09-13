@@ -257,6 +257,11 @@ GoRouter router(Ref ref) {
           _page(
             path: '/import',
             name: 'import',
+            // The review USES the width: from expanded up it is the source
+            // page, the lines and one line's form as three columns, so it
+            // takes the whole pane and caps itself where its own drawing says
+            // (see [WideReviewBody]).
+            fullWidth: true,
             builder: (state) => ImportView(
               initialBookId: state.uri.queryParameters['book'],
               initialSectionId: state.uri.queryParameters['section'],

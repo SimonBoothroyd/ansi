@@ -2384,8 +2384,8 @@ mixin _$ReconLine {
 /// are none — and when no recipe-title matcher is wired at all — so an
 /// absent field must decode to exactly what it decoded before this
 /// existed: the empty list, no chip, and a byte-identical commit.
- List<RecipeCandidate> get recipeCandidates;/// Where this line sits in [ReconciliationPayload.sourceText] (plan 0047),
-/// when the extractor knows. Omitted by the server otherwise, exactly as
+ List<RecipeCandidate> get recipeCandidates;/// Where this line sits in [ReconciliationPayload.sourceText], when the
+/// extractor knows. Omitted by the server otherwise, exactly as
 /// [recipeCandidates] is, so a payload without it decodes to the same
 /// bytes it always did.
  SourceSpan? get sourceSpan;
@@ -2634,8 +2634,8 @@ class _ReconLine implements ReconLine {
   return EqualUnmodifiableListView(_recipeCandidates);
 }
 
-/// Where this line sits in [ReconciliationPayload.sourceText] (plan 0047),
-/// when the extractor knows. Omitted by the server otherwise, exactly as
+/// Where this line sits in [ReconciliationPayload.sourceText], when the
+/// extractor knows. Omitted by the server otherwise, exactly as
 /// [recipeCandidates] is, so a payload without it decodes to the same
 /// bytes it always did.
 @override final  SourceSpan? sourceSpan;
@@ -3002,7 +3002,7 @@ as List<ReconLine>,
 mixin _$ReconciliationPayload {
 
  String get title; int? get servingsBase; String? get servingsRaw; String? get yieldRaw;@TimeFieldConverter() TimeRange? get totalTimeSeconds;@TimeFieldConverter() TimeRange? get cookTimeSeconds; bool get truncated; ImportImageQuality get imageQuality; List<String> get parseWarnings; List<ReconGroup> get groups; List<Step> get steps;/// The text the server actually read this recipe out of — a **link**
-/// import's fetched page, bounded server-side (plan 0047). Null for a
+/// import's fetched page, bounded server-side. Null for a
 /// photo import, where the pages are images the phone already holds, and
 /// null from any server that does not send it.
 ///
@@ -3271,7 +3271,7 @@ class _ReconciliationPayload implements ReconciliationPayload {
 }
 
 /// The text the server actually read this recipe out of — a **link**
-/// import's fetched page, bounded server-side (plan 0047). Null for a
+/// import's fetched page, bounded server-side. Null for a
 /// photo import, where the pages are images the phone already holds, and
 /// null from any server that does not send it.
 ///

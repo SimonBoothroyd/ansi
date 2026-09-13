@@ -126,10 +126,10 @@ abstract class RawLineItem with _$RawLineItem {
 /// Where a line was read from inside [ReconciliationPayload.sourceText] —
 /// a half-open character range, `[start, end)`, into that exact string.
 ///
-/// Additive (plan 0047): the server emits it only when the extractor can say
-/// where the line came from, and omits the field entirely otherwise. The wide
-/// review lights the range in its source column; nothing else reads it, and a
-/// payload without one still renders the plain page text.
+/// Additive: the server emits it only where the line's own printed words can
+/// be pointed at in that text unambiguously, and omits the field entirely
+/// otherwise. The wide review lights the range in its source column; nothing
+/// else reads it, and a payload without one still renders the plain page.
 ///
 /// It indexes the text the server sent, not the page: [ReconciliationPayload
 /// .sourceText] is bounded, so a span is only ever emitted for a line that
@@ -249,8 +249,8 @@ abstract class ReconLine with _$ReconLine {
     /// existed: the empty list, no chip, and a byte-identical commit.
     @Default(<RecipeCandidate>[]) List<RecipeCandidate> recipeCandidates,
 
-    /// Where this line sits in [ReconciliationPayload.sourceText] (plan 0047),
-    /// when the extractor knows. Omitted by the server otherwise, exactly as
+    /// Where this line sits in [ReconciliationPayload.sourceText], when the
+    /// extractor knows. Omitted by the server otherwise, exactly as
     /// [recipeCandidates] is, so a payload without it decodes to the same
     /// bytes it always did.
     SourceSpan? sourceSpan,
@@ -288,7 +288,7 @@ abstract class ReconciliationPayload with _$ReconciliationPayload {
     @Default(<Step>[]) List<Step> steps,
 
     /// The text the server actually read this recipe out of — a **link**
-    /// import's fetched page, bounded server-side (plan 0047). Null for a
+    /// import's fetched page, bounded server-side. Null for a
     /// photo import, where the pages are images the phone already holds, and
     /// null from any server that does not send it.
     ///

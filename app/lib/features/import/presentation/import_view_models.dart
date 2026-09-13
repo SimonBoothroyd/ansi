@@ -51,14 +51,20 @@ class ImportIdle extends ImportState {
 /// an estimate — before the plan's first event arrives, [rows] is simply
 /// empty.
 class ImportLoading extends ImportState {
-  const ImportLoading({required this.rows, required this.fromPhotos});
+  const ImportLoading({required this.rows, required this.request});
 
   /// The checklist, in the server's order. Empty until the plan arrives.
   final List<StageProgress> rows;
 
-  /// Which door this import came through — the only thing the screen's wording
-  /// needs beyond the stage ids.
-  final bool fromPhotos;
+  /// What the cook handed intake. It rides the loading state so the wide
+  /// review's SOURCE column can be drawn while the server is still reading:
+  /// photo pages are local files the cook just chose, and a link at least has
+  /// its URL. The phone's checklist reads only [fromPhotos] off it.
+  final ImportSource request;
+
+  /// Which door this import came through — the only thing the checklist's
+  /// wording needs beyond the stage ids.
+  bool get fromPhotos => request is ImportFromPhotos;
 }
 
 /// The payload is back; the user is resolving lines. Immutable — every edit
@@ -66,6 +72,7 @@ class ImportLoading extends ImportState {
 class ImportReconciling extends ImportState {
   ImportReconciling({
     required this.payload,
+    required this.request,
     required this.resolutions,
     required this.header,
     this.editedSteps,
@@ -73,6 +80,17 @@ class ImportReconciling extends ImportState {
   }) : sections = sections ?? initialGroups(payload);
 
   final ReconciliationPayload payload;
+
+  /// What the cook handed intake — the URL, or the photo pages' local paths.
+  ///
+  /// The payload is the server's word about the page; this is the page
+  /// itself, or the way back to it. It rides the state because the wide
+  /// review's SOURCE column has nothing to draw without it: a photo import's
+  /// pages are files on this device that the payload never mentions, and a
+  /// link import's URL is the caption over the fetched text. Nothing on the
+  /// phone reads it.
+  final ImportSource request;
+
   final List<LineResolution> resolutions;
 
   /// The ingredient list's SECTIONS as the human holds them: the payload's
@@ -191,6 +209,7 @@ class ImportReconciling extends ImportState {
     List<ReviewGroup>? sections,
   }) => ImportReconciling(
     payload: payload,
+    request: request,
     resolutions: resolutions ?? this.resolutions,
     header: header ?? this.header,
     editedSteps: editedSteps ?? this.editedSteps,
@@ -252,12 +271,12 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
   Duration _elapsed = Duration.zero;
 
   /// Opens the reading screen with nothing claimed yet and starts the clock.
-  void _startStageClock({required bool fromPhotos}) {
+  void _startStageClock({required ImportSource request}) {
     _stageTimer?.cancel();
     _plan = const [];
     _finished.clear();
     _elapsed = Duration.zero;
-    _publishStages(fromPhotos: fromPhotos);
+    _publishStages(request: request);
     _stageTimer = Timer.periodic(_stageTick, (timer) {
       // The notifier is autoDispose and the user can leave mid-import; writing
       // `state` — or even reading it — on a disposed notifier throws.
@@ -266,13 +285,13 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
         return;
       }
       _elapsed += _stageTick;
-      _publishStages(fromPhotos: fromPhotos);
+      _publishStages(request: request);
     });
   }
 
   /// Folds a server event into the checklist. Called from the repository's
   /// `onProgress`, which can fire after the user has left the screen.
-  void _onProgress(ImportProgress progress, {required bool fromPhotos}) {
+  void _onProgress(ImportProgress progress, {required ImportSource request}) {
     if (!ref.mounted || state is! ImportLoading) return;
     switch (progress) {
       case ImportPlanned(:final stages):
@@ -283,13 +302,13 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
         // the local one behind it would make the running row start negative.
         if (elapsed > _elapsed) _elapsed = elapsed;
     }
-    _publishStages(fromPhotos: fromPhotos);
+    _publishStages(request: request);
   }
 
-  void _publishStages({required bool fromPhotos}) {
+  void _publishStages({required ImportSource request}) {
     state = ImportLoading(
       rows: stageChecklist(plan: _plan, finished: _finished, elapsed: _elapsed),
-      fromPhotos: fromPhotos,
+      request: request,
     );
   }
 
@@ -310,8 +329,7 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
     // A new page is a new sitting: nothing the last one relabelled has a chip
     // left to put its word back on.
     clearRelabels();
-    final fromPhotos = source is ImportFromPhotos;
-    _startStageClock(fromPhotos: fromPhotos);
+    _startStageClock(request: source);
     try {
       // Both keepAlive repositories are resolved BEFORE the first await: this
       // notifier can be disposed across the gap, and `ref` goes with it.
@@ -321,7 +339,7 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
       final measureRepo = ref.read(measureRepositoryProvider);
       final payload = await importRepo.startImport(
         source,
-        onProgress: (p) => _onProgress(p, fromPhotos: fromPhotos),
+        onProgress: (p) => _onProgress(p, request: source),
       );
       // The draft is FILED from the start, so FILE UNDER shows where the
       // recipe will land rather than a blank a human has to fill before
@@ -342,6 +360,7 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
       // otherwise: 0014's attempt-then-flag, over the whole header now.
       state = ImportReconciling(
         payload: payload,
+        request: source,
         resolutions: resolutions,
         header: headerDraft(payload, bookId: filedBookId, sectionId: sectionId),
       );
@@ -365,13 +384,19 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
     String ingredientId,
     String name, {
     required bool correction,
+    bool created = false,
   }) async {
     final s = state;
     if (s is! ImportReconciling) return;
     final before = s.resolutions.firstWhere((r) => r.lineIndex == lineIndex);
     updateResolution(
       lineIndex,
-      (r) => r.resolveToIngredient(ingredientId, name, correction: correction),
+      (r) => r.resolveToIngredient(
+        ingredientId,
+        name,
+        correction: correction,
+        created: created,
+      ),
     );
     // Both keepAlive repositories are read before the first await (the
     // file's rule: `ref` does not survive this notifier's disposal).
@@ -820,6 +845,7 @@ Future<Map<int, LineValidation>> importValidation(Ref ref) async {
           : acceptableUnitChips(ingredient, measures, parsedUnit: r.unit),
       unitMeasure: measureNamed(r.unit, measures),
       pieceWeightMissing: countNeedsPieceWeight(r, ingredient),
+      rowIsStub: ingredient?.status == IngredientStatus.stub,
       // No extra read: the row is already in hand from the one vocab query
       // above.
       sourceLine: ingredient == null ? null : sourceProvenanceLine(ingredient),
