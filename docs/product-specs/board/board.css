@@ -1270,15 +1270,29 @@
   .lw-head .lib-hfield{flex:none;width:340px;}
 
   /* the shelf: a grid that decides its own column count, of tiles that do
-     NOT decide their own height — a shelf stays a shelf at thirty books */
-  .lw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;align-items:start;}
-  .lw-tile{height:172px;display:flex;flex-direction:column;background:var(--frame);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
-  .lw-band{background:var(--herb);color:#fff;padding:9px 12px 10px;min-height:56px;}
-  .lw-band .bn{font-family:'Spectral',serif;font-size:15px;font-weight:500;line-height:1.2;}
-  .lw-band .bc{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;opacity:.85;margin-top:3px;}
-  .lw-body{flex:1;min-height:0;padding:3px 12px 9px;display:flex;flex-direction:column;overflow:hidden;}
-  .lw-body .lib-row{padding:3px 0;gap:7px;}
-  .lw-body .lib-row .t{font-size:13.5px;}
+     NOT decide their own height — a shelf stays a shelf at thirty books.
+     The 200 minimum is what makes FOUR fit: this 1120 frame leaves a 878
+     content lane, and 4 × 200 + 3 × 14 = 842 lands inside it while a fifth
+     column cannot. The frame stands in for a 1440 window, where the same
+     rule fits four ~257 wide and a narrower window folds to three. */
+  .lw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;align-items:start;}
+  /* One height, every tile: 180, which is a 70 band and the 108 the body
+     gets between the tile's two hairlines. Nothing inside is allowed to
+     push it — a long book name is clamped to the band's two lines, and the
+     body lists what those 108 hold. */
+  .lw-tile{height:180px;display:flex;flex-direction:column;background:var(--frame);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  .lw-band{flex:none;height:70px;background:var(--herb);color:#fff;padding:9px 12px 10px;display:flex;flex-direction:column;}
+  .lw-band .bn{font-family:'Spectral',serif;font-size:15px;font-weight:500;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .lw-band .bc{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;opacity:.85;margin-top:auto;padding-top:3px;}
+  .lw-body{flex:1;min-height:0;padding:4px 12px 9px;display:flex;flex-direction:column;overflow:hidden;}
+  /* what a tile lists is TITLES, not the Library's row: that row is two
+     lines — the title, then serves and the per-serving macros — and it
+     carries its own ⋯, so it is drawn where it can be read, on the book
+     page the tile opens and in the search column */
+  .lw-peek .pk{display:flex;align-items:center;gap:7px;padding:3px 0;border-bottom:1px dotted var(--line);}
+  .lw-peek .pk:last-child{border-bottom:none;}
+  .lw-peek .pk .t{flex:1;min-width:0;font-family:'Spectral',serif;font-size:12.5px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .lw-peek .pk .star{flex:none;color:var(--aging);font-size:10px;}
   .lw-more{margin-top:auto;padding-top:5px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
   .lw-door{margin-top:auto;text-align:center;border:1px dashed var(--line);border-radius:10px;padding:9px 6px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--herb);}
 
