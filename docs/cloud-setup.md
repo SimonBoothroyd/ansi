@@ -70,6 +70,24 @@ the memory note referenced from the step-7 exec plan; this doc is cloud-only.
    > *then* remove the `io.mise.app` entry from Redirect URLs and tick
    > checklist row 2. Removing it earlier strands any build still on the old
    > scheme; leaving it forever keeps a dead redirect target listed.
+
+   **The web origins — OWED, nobody has added these yet.** A browser cannot
+   open `io.ansi.app://…`, so the web build asks to come back to the page it
+   is served from (`webOAuthRedirect`,
+   `app/lib/features/auth/presentation/oauth_redirect.dart`). Supabase refuses
+   a redirect it has not been shown, so each origin the app is served from has
+   to be listed **before** Google sign-in works there. On the same screen
+   (**Authentication → URL Configuration**), add to **Redirect URLs**:
+
+   | Add | Why |
+   |---|---|
+   | `https://simonboothroyd.github.io/ansi/` | the GitHub Pages site for `github.com/SimonBoothroyd/ansi`. It is a *project* site, so the `/ansi/` path is part of the URL — the bare origin will not match. |
+   | `https://simonboothroyd.github.io/ansi/**` | the wildcard sibling, so the return trip with Supabase's own `?code=` on it is accepted. |
+   | `http://localhost:8080/` and `http://localhost:8080/**` | development — `make run-web`, or a `python3 -m http.server` on whichever port you use. Supabase treats every port as its own origin, so the port has to match what you serve on. |
+
+   Leave **Site URL** alone: it is the fallback for a redirect that was not
+   listed, and pointing it at a browser origin would send a *phone's* OAuth to
+   a web page.
 7. **Dev convenience:** turn **Confirm email OFF** while testing email/password
    (Sign In / Providers → Email) — the free tier rate-limits confirmation emails
    hard. Turn it back on before anything real. (OAuth users are auto-confirmed.)
@@ -473,7 +491,7 @@ project, not because anything in it is secret.
 | # | Setting (where) | Expected value |
 |---|-----------------|----------------|
 | 1 | Auth hook (Supabase → Authentication → Auth Hooks → Custom Access Token) | **Enabled**, function `public.add_household_claim`. Load-bearing: no hook ⇒ no `household_id` claim ⇒ nothing syncs. |
-| 2 | Redirect URLs (Supabase → Authentication → URL Configuration) | **Cutover open (§1.6).** Both `io.ansi.app://login-callback` (the current scheme) and `io.mise.app://login-callback` (the pre-rename one) are listed — confirmed on the dashboard 2026-09-01. **Verified in use:** Google is the only enabled sign-in and the owner signs in with it on `io.ansi.app` builds daily, so the new entry works; the `io.mise.app` entry can be removed at any time. |
+| 2 | Redirect URLs (Supabase → Authentication → URL Configuration) | **Cutover open (§1.6).** Both `io.ansi.app://login-callback` (the current scheme) and `io.mise.app://login-callback` (the pre-rename one) are listed — confirmed on the dashboard 2026-09-01. **Verified in use:** Google is the only enabled sign-in and the owner signs in with it on `io.ansi.app` builds daily, so the new entry works; the `io.mise.app` entry can be removed at any time. **Owed for web:** the browser origins in §1.6 (the Pages site and the dev `localhost` port) are **not** listed yet — until they are, "Continue with Google" in a browser is refused at the redirect. |
 | 3 | Email confirmations (Supabase → Authentication → Sign In / Providers → Email) | OFF while testing email/password (free-tier rate limits); **turn back ON before anything real**. `cloud_verify.sh` warns while it's off. |
 | 4 | Google provider (same screen → Google) | Enabled, with the Web OAuth client id/secret (§1.5). `cloud_verify.sh` checks this one via `/auth/v1/settings`. |
 | 5 | PowerSync JWKS URI (PowerSync dashboard → instance → Client Auth) | "Use Supabase Auth" checked; JWKS URI = `<CLOUD_SUPABASE_URL>/auth/v1/.well-known/jwks.json` |

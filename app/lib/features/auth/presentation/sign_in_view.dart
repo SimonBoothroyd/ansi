@@ -8,6 +8,7 @@
 /// the session controller take it from there — this screen never navigates.
 library;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
@@ -18,13 +19,7 @@ import '../../../core/config/env.dart';
 import '../../../core/sync/session.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
-
-/// The deep-link the OAuth provider returns to. Registered in FOUR places that
-/// must agree, or OAuth sign-in dead-ends on the redirect: `supabase/config.toml`
-/// (local), the iOS `Info.plist` CFBundleURLSchemes, the Android manifest's
-/// intent-filter, and — for cloud — the Supabase dashboard's Redirect URLs
-/// (docs/cloud-setup.md §1.6).
-const _oauthRedirect = 'io.ansi.app://login-callback';
+import 'oauth_redirect.dart';
 
 class SignInView extends HookConsumerWidget {
   const SignInView({super.key});
@@ -159,17 +154,22 @@ class SignInView extends HookConsumerWidget {
                       : () => run(
                           () => supabase.auth.signInWithOAuth(
                             OAuthProvider.google,
-                            redirectTo: Env.isConfigured
-                                ? _oauthRedirect
-                                : null,
-                            // The default in-app browser sheet does NOT
-                            // dismiss itself when the io.ansi.app deep link
-                            // fires — the app signs in underneath while the
-                            // sheet sits on "loading" forever. The external
-                            // browser backgrounds itself when the redirect
-                            // foregrounds the app.
-                            authScreenLaunchMode:
-                                LaunchMode.externalApplication,
+                            redirectTo: oauthRedirectFor(
+                              Uri.base,
+                              configured: Env.isConfigured,
+                            ),
+                            // Native only. The default in-app browser sheet
+                            // does NOT dismiss itself when the io.ansi.app
+                            // deep link fires — the app signs in underneath
+                            // while the sheet sits on "loading" forever. The
+                            // external browser backgrounds itself when the
+                            // redirect foregrounds the app. In a browser there
+                            // is no sheet to launch: the tab navigates to
+                            // Google and back, so a launch mode would be a
+                            // setting about nothing.
+                            authScreenLaunchMode: kIsWeb
+                                ? LaunchMode.platformDefault
+                                : LaunchMode.externalApplication,
                           ),
                         ),
                   child: const Text('Continue with Google'),
