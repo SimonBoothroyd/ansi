@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Navigation &amp; the shell</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>core/router</code> · <code>shared/ansi_tab_shell.dart</code> · <a href="../../design-docs/navigation.md">navigation.md</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a></p>
+    <p class="view-status">built · matches code 2026-09-04 · <code>core/router</code> · <code>shared/ansi_tab_shell.dart</code> · <a href="../../design-docs/navigation.md">navigation.md</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · wide: proposed <a href="../../exec-plans/active/0047-wide-screens.md">plan 0043</a></p>
     <p class="view-blurb">One bar that never moves, one place a tap can go, and one stated rule for back. The bar is the fixed point in every transition.</p>
 </header>
 
@@ -174,6 +174,161 @@
             <div>└─ <b>/account</b> ┘</div>
         </div>
         <p class="conv-note">Keeping the Library at <b>/</b> rather than renaming it <span style="font-family:'IBM Plex Mono',monospace">/library</span> is deliberate: every existing link, every <span style="font-family:'IBM Plex Mono',monospace">?from=</span> in flight and the redirect’s own <span style="font-family:'IBM Plex Mono',monospace">loc == '/'</span> case keep working untouched.</p>
+    </div>
+
+</div>
+
+<h2 class="wide-rule">Wide · ≥ 1024</h2>
+
+<div class="board-wide">
+
+    <div class="frame wide">
+        <p class="frame-name"><b>wide · the shell</b> · the bar becomes a sidebar — the same four destinations, Week lit, Account the quiet footer door. 1120 px stands in for a 1440 window.</p>
+        <div class="desk">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="dscreen">
+                <div class="rail">
+                    <div class="wm">Ansi<span class="dot">.</span></div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></span><span>Library</span></div>
+                    <div class="ri on"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg></span><span>Week</span></div>
+                    <div class="ri focus"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg></span><span>Cook</span></div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 11-1 9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1 9"/></svg></span><span>Shop</span></div>
+                    <div class="grow"></div>
+                    <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>Account</span></div>
+                </div>
+                <div class="main">
+                    <p class="ttl">Week</p>
+                    <div class="wnv-slab">the Week lane draws the grid — this frame is the shell around it</div>
+                </div>
+            </div>
+        </div>
+        <p class="wide-cap"><b>Cook carries the keyboard focus ring</b> — 2 px herb, offset 2 px; Tab walks the four destinations and then the footer door. Account is the only household door on wide, so the Library header does not draw a second one.</p>
+    </div>
+
+    <div class="frame wide">
+        <p class="frame-name"><b>wide · a pushed page</b> · the sidebar stays, and goes <b>neutral</b> — nothing lit — while the page draws its own back control</p>
+        <div class="desk">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="dscreen">
+                <div class="rail neutral">
+                    <div class="wm">Ansi<span class="dot">.</span></div>
+                    <div class="ri on"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></span><span>Library</span></div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg></span><span>Week</span></div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg></span><span>Cook</span></div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 11-1 9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1 9"/></svg></span><span>Shop</span></div>
+                    <div class="grow"></div>
+                    <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>Account</span></div>
+                </div>
+                <div class="main">
+                    <div class="back">‹ Library</div>
+                    <p class="ttl">Harissa Chicken &amp; Butter Beans</p>
+                    <div class="wnv-slab">the recipe lane draws the page</div>
+                </div>
+            </div>
+        </div>
+        <p class="wide-cap">The browser’s <b>Back</b> does the same thing this control does — one step, to the tab the page was opened from.</p>
+    </div>
+
+    <div class="frame wide wnv-ipad">
+        <p class="frame-name"><b>wide · 1024–1279 · the rail</b> · an iPad in landscape: the sidebar collapses to a 64 px icon rail, labels become tooltips, the footer door stays an icon</p>
+        <div class="desk">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="dscreen">
+                <div class="rail icons">
+                    <div class="wm">A<span class="dot">.</span></div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></span></div>
+                    <div class="ri on"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg></span></div>
+                    <div class="wnv-hov">
+                        <div class="ri hovered"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg></span></div>
+                        <span class="wnv-tip">Cook</span>
+                    </div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 11-1 9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1 9"/></svg></span></div>
+                    <div class="grow"></div>
+                    <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span></div>
+                </div>
+                <div class="main">
+                    <p class="ttl">Week</p>
+                    <div class="wnv-slab">the same content pane, 64 px wider than it would be under a 188 px sidebar</div>
+                </div>
+            </div>
+        </div>
+        <p class="wide-cap">Under 1280 the label is a <b>tooltip</b> on hover or focus, not a second line — the four destinations stay reachable without spending 188 px of a 1024 pt window.</p>
+    </div>
+
+    <div class="frame wide">
+        <p class="frame-name"><b>wide · a sheet becomes a dialog</b> · what <code>showAnsiSheet</code> presents bottom-up on the phone, presented at ≥ 640 as a centred dialog, max 560 wide</p>
+        <div class="desk">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="dscreen wnv-screen">
+                <div class="rail">
+                    <div class="wm">Ansi<span class="dot">.</span></div>
+                    <div class="ri on"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></span><span>Library</span></div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg></span><span>Week</span></div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg></span><span>Cook</span></div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 11-1 9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1 9"/></svg></span><span>Shop</span></div>
+                    <div class="grow"></div>
+                    <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>Account</span></div>
+                </div>
+                <div class="main">
+                    <p class="ttl">Library</p>
+                    <div class="wnv-slab">the shelf underneath, untouched</div>
+                </div>
+                <div class="wnv-over">
+                    <div class="wnv-scrim"></div>
+                    <div class="wnv-dlg">
+                        <div class="wnv-dhead"><span class="t">Add to the week</span><span class="x">×</span></div>
+                        <div class="wnv-slab" style="min-height:150px">the sheet’s own body, unchanged — one builder, two presentations</div>
+                        <span class="wnv-dim">max 560 · height follows the body</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p class="wide-cap">The same call presents a <b>sheet under 640</b> and a <b>dialog at and above it</b>, through the one door in <code>ansi_modals.dart</code>. The barrier still covers the whole window, sidebar included, because the modal is on the root navigator.</p>
+
+        <p class="wnv-sub"><b>the tall one</b> · a search-driven picker is a fixed 560 × 640 dialog, not full height</p>
+        <div class="desk" style="width:720px">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="dscreen wnv-screen tall">
+                <div class="main">
+                    <p class="ttl">Harissa Chicken &amp; Butter Beans</p>
+                    <div class="wnv-slab">the page underneath, untouched</div>
+                </div>
+                <div class="wnv-over">
+                    <div class="wnv-scrim"></div>
+                    <div class="wnv-dlg fixed">
+                        <div class="wnv-dhead"><span class="t">Pick an ingredient</span><span class="x">×</span></div>
+                        <div class="wnv-field">Search the vocabulary…</div>
+                        <div class="wnv-slab">the results scroll inside the dialog — the field never leaves the top</div>
+                        <span class="wnv-dim">560 × 640 · fixed</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p class="wide-cap">On the phone this one asks for no height cap (<code>mainAxisMaxRatio: null</code>); on wide it stops at 640 and scrolls inside, so a long vocabulary cannot push the search field off the top.</p>
+    </div>
+
+    <div class="frame wide wnv-treef">
+        <p class="frame-name"><b>wide · the route tree</b> · an outer shell draws the sidebar around <b>both</b> the tab shell and the pushed routes, so it survives a push</p>
+        <div class="nv-tree">
+            <div><span class="rt">root navigator</span></div>
+            <div>├─ <b>/sign-in</b> <span style="opacity:.7">· gate, no sidebar</span></div>
+            <div>├─ <b>/connecting</b> <span style="opacity:.7">· gate, no sidebar</span></div>
+            <div>└─ <span class="out">WIDE SHELL — the sidebar lives here, ≥ 1024</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <span class="sh">TAB SHELL — the rail lit, one item</span></div>
+            <div>&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├─ branch 0 · <b class="hi">/</b> Library</div>
+            <div>&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├─ branch 1 · <b class="hi">/week</b></div>
+            <div>&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├─ branch 2 · <b class="hi">/cook</b></div>
+            <div>&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└─ branch 3 · <b class="hi">/shop</b></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/recipes/new</b> <span class="neut">neutral rail</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/recipes/:id</b> <span class="neut">neutral rail</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/recipes/:id/edit</b> <span class="neut">neutral rail</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/import</b> <span class="neut">neutral rail</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/ingredients</b> <span class="neut">neutral rail</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/ingredients/new</b> <span class="neut">neutral rail</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/ingredients/:id</b> <span class="neut">neutral rail</span></div>
+            <div>&nbsp;&nbsp;&nbsp;└─ <b>/account</b> <span class="neut">neutral rail</span> <span style="opacity:.7">· the footer door opens it</span></div>
+        </div>
+        <p class="wide-cap">The pushed routes stay siblings of the tab shell — on the phone they cover the bar; on wide the outer shell keeps drawing the sidebar beside them, unlit.</p>
     </div>
 
 </div>

@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ansi board — Book</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./board.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="view-head">
+    <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
+    <h1 class="view-title">Book</h1>
+    <p class="view-status">proposed · <a href="../../exec-plans/active/0047-wide-screens.md">plan 0043</a> · <a href="../../exec-plans/backlog.md">backlog: per-book detail</a></p>
+    <p class="view-blurb">One book on a page of its own — its name, its count, its sections and the recipes filed under each; on wide the sections become a left index and the recipes keep a readable measure.</p>
+</header>
+
+<div class="board">
+
+    <div class="frame">
+        <p class="frame-name"><b>The book page</b> · the tree the Library card holds today, given a page: the same section labels, the same <b>＋</b>, the same book <b>⋯</b>; the bar is gone because this is pushed</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+            <div class="r-hero">
+                <div class="bk-nm">Our Cookbook</div>
+                <div class="bk-ct">42 recipes · 3 sections</div>
+            </div>
+            <div class="sec bk-sec" style="margin-top:14px">
+                <div class="sec-lab sec-lab3"><span class="lbl">Weeknight</span><span class="ctl3"><span class="p">＋</span><span>⋯</span></span></div>
+                <div class="lib-row" style="align-items:flex-start">
+                    <span class="t" style="white-space:normal">Weeknight Chicken Curry
+                        <span class="lib-stats">serves 4 · 520 kcal · 28 g protein</span>
+                    </span>
+                    <span class="star">★</span><span class="rm">⋯</span>
+                </div>
+                <div class="lib-row" style="align-items:flex-start">
+                    <span class="t" style="white-space:normal">Harissa Chicken &amp; Butter Beans
+                        <span class="lib-stats">serves 4</span>
+                    </span>
+                    <span class="rm">⋯</span>
+                </div>
+            </div>
+            <div class="sec bk-sec">
+                <div class="sec-lab sec-lab3"><span class="lbl">Slow Sundays</span><span class="ctl3"><span class="p">＋</span><span>⋯</span></span></div>
+                <div class="lib-row" style="align-items:flex-start">
+                    <span class="t" style="white-space:normal">Roast Chicken &amp; Bread Sauce
+                        <span class="lib-stats">serves 6 · 705 kcal · 52 g protein</span>
+                    </span>
+                    <span class="rm">⋯</span>
+                </div>
+            </div>
+            <div class="sec bk-sec">
+                <div class="sec-lab sec-lab3"><span class="lbl">Small plates</span><span class="ctl3"><span class="p">＋</span><span>⋯</span></span></div>
+                <div class="lib-row" style="align-items:flex-start">
+                    <span class="t" style="white-space:normal">Sausage Sliders
+                        <span class="lib-stats">serves 8</span>
+                    </span>
+                    <span class="rm">⋯</span>
+                </div>
+            </div>
+            <div class="sec bk-sec">
+                <div class="sec-lab sec-lab3" style="color:var(--muted)"><span class="lbl">Unsectioned</span><span class="ctl3"><span class="p">＋</span></span></div>
+                <div class="lib-row" style="align-items:flex-start">
+                    <span class="t" style="white-space:normal">Miso Salmon
+                        <span class="lib-stats">serves 2</span>
+                    </span>
+                    <span class="rm">⋯</span>
+                </div>
+                <div class="lib-row" style="align-items:flex-start">
+                    <span class="t" style="white-space:normal">House Ragù
+                        <span class="lib-stats">serves 6 · 610 kcal · 34 g protein</span>
+                    </span>
+                    <span class="rm">⋯</span>
+                </div>
+            </div>
+        </div></div>
+    </div>
+
+</div>
+
+<h2 class="wide-rule">Wide · ≥ 1024</h2>
+
+<div class="board-wide">
+
+    <div class="frame wide">
+        <p class="frame-name"><b>wide · the book</b> · a pushed page, so the sidebar goes <b>neutral</b> and the page draws its own back. The sections become a <b>spine</b> that lights the one you are in — an index, not a filter; the recipes hold a 600 measure however wide the window gets</p>
+        <div class="desk">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="dscreen">
+                <div class="rail neutral">
+                    <div class="wm">Ansi<span class="dot">.</span></div>
+                    <div class="ri on"><span class="ic"><svg viewBox="0 0 24 24"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></span>Library</div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg></span>Week</div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24"><path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg></span>Cook</div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24"><path d="m15 11-1 9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1 9"/></svg></span>Shop</div>
+                    <div class="grow"></div>
+                    <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Account</div>
+                </div>
+                <div class="main">
+                    <div class="back">‹ Library</div>
+                    <div class="bk-top">
+                        <div style="flex:1;min-width:0">
+                            <div class="bk-nm">Everyday</div>
+                            <div class="bk-ct">68 recipes · 10 sections</div>
+                        </div>
+                        <span class="more">⋯</span>
+                    </div>
+                    <div class="bk-panes">
+                        <div class="bk-ix">
+                            <div class="ir on"><span class="nm">Pasta</span><span class="n">9</span></div>
+                            <div class="ir"><span class="nm">Traybakes</span><span class="n">8</span></div>
+                            <div class="ir"><span class="nm">Curries &amp; Dals</span><span class="n">7</span></div>
+                            <div class="ir"><span class="nm">Fish</span><span class="n">7</span></div>
+                            <div class="ir"><span class="nm">Rice Bowls</span><span class="n">6</span></div>
+                            <div class="ir"><span class="nm">Stir-fries</span><span class="n">6</span></div>
+                            <div class="ir"><span class="nm">Soups</span><span class="n">6</span></div>
+                            <div class="ir"><span class="nm">Eggs</span><span class="n">5</span></div>
+                            <div class="ir"><span class="nm">Salads</span><span class="n">5</span></div>
+                            <div class="ir"><span class="nm">Grains</span><span class="n">4</span></div>
+                            <div class="ir q"><span class="nm">Unsectioned</span><span class="n">5</span></div>
+                        </div>
+                        <div class="bk-list">
+                            <div class="bk-grp">
+                                <div class="sec-lab sec-lab3"><span class="lbl">Pasta</span><span class="ctl3"><span class="p">＋</span><span>⋯</span></span></div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Lemon &amp; Anchovy Spaghetti
+                                        <span class="lib-stats">serves 2 · 640 kcal · 24 g protein</span>
+                                    </span>
+                                    <span class="rm">⋯</span>
+                                </div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Cacio e Pepe
+                                        <span class="lib-stats">serves 2</span>
+                                    </span>
+                                    <span class="rm">⋯</span>
+                                </div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Sausage &amp; Fennel Rigatoni
+                                        <span class="lib-stats">serves 4 · 780 kcal · 34 g protein</span>
+                                    </span>
+                                    <span class="star">★</span><span class="rm">⋯</span>
+                                </div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Tomato &amp; Butter Sauce
+                                        <span class="lib-stats">serves 4</span>
+                                    </span>
+                                    <span class="rm">⋯</span>
+                                </div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Baked Feta Pasta
+                                        <span class="lib-stats">serves 4</span>
+                                    </span>
+                                    <span class="rm">⋯</span>
+                                </div>
+                            </div>
+                            <div class="bk-grp">
+                                <div class="sec-lab sec-lab3"><span class="lbl">Traybakes</span><span class="ctl3"><span class="p">＋</span><span>⋯</span></span></div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Chorizo &amp; Chickpea Traybake
+                                        <span class="lib-stats">serves 4 · 610 kcal · 30 g protein</span>
+                                    </span>
+                                    <span class="rm">⋯</span>
+                                </div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Harissa Cauliflower
+                                        <span class="lib-stats">serves 2</span>
+                                    </span>
+                                    <span class="rm">⋯</span>
+                                </div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Sheet-Pan Sausages &amp; Grapes
+                                        <span class="lib-stats">serves 4</span>
+                                    </span>
+                                    <span class="rm">⋯</span>
+                                </div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Lemon Chicken Traybake
+                                        <span class="lib-stats">serves 4 · 540 kcal · 42 g protein</span>
+                                    </span>
+                                    <span class="rm">⋯</span>
+                                </div>
+                            </div>
+                            <div class="bk-grp">
+                                <div class="sec-lab sec-lab3"><span class="lbl">Curries &amp; Dals</span><span class="ctl3"><span class="p">＋</span><span>⋯</span></span></div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Tarka Dal
+                                        <span class="lib-stats">serves 4 · 380 kcal · 16 g protein</span>
+                                    </span>
+                                    <span class="rm">⋯</span>
+                                </div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Chickpea Curry
+                                        <span class="lib-stats">serves 4</span>
+                                    </span>
+                                    <span class="rm">⋯</span>
+                                </div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Keema Peas
+                                        <span class="lib-stats">serves 4 · 520 kcal · 33 g protein</span>
+                                    </span>
+                                    <span class="rm">⋯</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="frame wide lw-short">
+        <p class="frame-name"><b>wide · a two-section book</b> · the spine holds two names and <i>Unsectioned</i>, and nothing else changes — a small book comes out short, not lonely</p>
+        <div class="desk">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="dscreen">
+                <div class="rail neutral">
+                    <div class="wm">Ansi<span class="dot">.</span></div>
+                    <div class="ri on"><span class="ic"><svg viewBox="0 0 24 24"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></span>Library</div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg></span>Week</div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24"><path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg></span>Cook</div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24"><path d="m15 11-1 9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1 9"/></svg></span>Shop</div>
+                    <div class="grow"></div>
+                    <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Account</div>
+                </div>
+                <div class="main">
+                    <div class="back">‹ Library</div>
+                    <div class="bk-top">
+                        <div style="flex:1;min-width:0">
+                            <div class="bk-nm">Baking</div>
+                            <div class="bk-ct">9 recipes · 2 sections</div>
+                        </div>
+                        <span class="more">⋯</span>
+                    </div>
+                    <div class="bk-panes">
+                        <div class="bk-ix">
+                            <div class="ir on"><span class="nm">Slow Sundays</span><span class="n">4</span></div>
+                            <div class="ir"><span class="nm">Sweet</span><span class="n">4</span></div>
+                            <div class="ir q"><span class="nm">Unsectioned</span><span class="n">1</span></div>
+                        </div>
+                        <div class="bk-list">
+                            <div class="bk-grp">
+                                <div class="sec-lab sec-lab3"><span class="lbl">Slow Sundays</span><span class="ctl3"><span class="p">＋</span><span>⋯</span></span></div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Pretzel Buns
+                                        <span class="lib-stats">serves 8</span>
+                                    </span>
+                                    <span class="rm">⋯</span>
+                                </div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Focaccia
+                                        <span class="lib-stats">serves 8</span>
+                                    </span>
+                                    <span class="rm">⋯</span>
+                                </div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Cinnamon Buns
+                                        <span class="lib-stats">serves 12</span>
+                                    </span>
+                                    <span class="rm">⋯</span>
+                                </div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Sourdough Loaf
+                                        <span class="lib-stats">serves 10</span>
+                                    </span>
+                                    <span class="rm">⋯</span>
+                                </div>
+                            </div>
+                            <div class="bk-grp">
+                                <div class="sec-lab sec-lab3"><span class="lbl">Sweet</span><span class="ctl3"><span class="p">＋</span><span>⋯</span></span></div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Lemon Tart
+                                        <span class="lib-stats">serves 8</span>
+                                    </span>
+                                    <span class="rm">⋯</span>
+                                </div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Bakewell Slice
+                                        <span class="lib-stats">serves 12</span>
+                                    </span>
+                                    <span class="rm">⋯</span>
+                                </div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Protein Pancakes
+                                        <span class="lib-stats">serves 2 · 430 kcal · 31 g protein</span>
+                                    </span>
+                                    <span class="star">★</span><span class="rm">⋯</span>
+                                </div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Buttermilk Waffles
+                                        <span class="lib-stats">serves 4</span>
+                                    </span>
+                                    <span class="rm">⋯</span>
+                                </div>
+                            </div>
+                            <div class="bk-grp">
+                                <div class="sec-lab sec-lab3" style="color:var(--muted)"><span class="lbl">Unsectioned</span><span class="ctl3"><span class="p">＋</span></span></div>
+                                <div class="lib-row" style="align-items:flex-start">
+                                    <span class="t" style="white-space:normal">Chicken Stock
+                                        <span class="lib-stats">serves 8</span>
+                                    </span>
+                                    <span class="rm">⋯</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<p class="view-foot"><a href="./index.html">← every view</a> · <a href="./README.md">how this board is kept</a></p>
+
+</div>
+</body>
+</html>

@@ -7,7 +7,7 @@ The board is **what the app looks like today**. One file per screen. Open
   chrome, frame anatomy. Every view links it and nothing else styles a frame.
 - `index.html` — the masthead, the system strip (palette · type · the
   freshness signature) and one status row per view.
-- One file per view, in the order the app is used: `library` · `recipe-page` ·
+- One file per view, in the order the app is used: `library` · `book` · `recipe-page` ·
   `recipe-editor` · `import-review` · `ingredient-picker` ·
   `quantity-measures` · `recipe-picker-confirm` · `ingredients-manager` ·
   `ingredient-detail` · `week` · `cook-shop` · `navigation` · `errors-sync` ·
@@ -31,6 +31,14 @@ The board is **what the app looks like today**. One file per screen. Open
    line on that frame — never silently.
 5. **The status date is a verification date.** It is the last time somebody
    read the view against `app/lib`. Bump it when you have actually looked.
+6. **A wide frame is not a version.** The phone frame and the wide frame
+   (web, iPad landscape — the `≥ 1024` layout) are both current at once, so
+   both live in the screen's own file. Wide frames sit in their own
+   `.board-wide` row under an `<h2>` rule reading `Wide · ≥ 1024`, drawn in
+   the `.desk` chrome from `board.css`, and every wide frame's name opens
+   with the word *wide*. A screen whose wide answer is "centred, unchanged"
+   draws no wide frame; its status line carries one clause instead. While a
+   wide frame is unbuilt it is `proposed`, like any proposal.
 
 ## The status line
 
@@ -40,6 +48,14 @@ One per view, fixed grammar:
 built · matches code <date> · features/<dir> · <ADR / plan links>
 built · differs <date>: <one sentence> · features/<dir> · <links>
 not built · <backlog row>
+```
+
+A view with a wide answer adds one clause, after the links:
+
+```
+… · wide: proposed <plan link>        (frames drawn, not built)
+… · wide: matches code <date>          (built and read against app/lib)
+… · wide: same, centred at 640         (no frame; the phone layout, capped)
 ```
 
 ## Working on a screen

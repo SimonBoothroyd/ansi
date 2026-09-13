@@ -1171,3 +1171,332 @@
         .cel.play .pc{animation:cel-pop 1.5s cubic-bezier(.2,.7,.35,1) var(--d) forwards;}
         @keyframes cel-pop{0%{transform:translate(0,0) rotate(0) scale(.5);opacity:0;}8%{opacity:1;transform:translate(calc(var(--dx)*.3),calc(var(--dy)*.45)) rotate(calc(var(--r)*.25)) scale(1.05);}45%{transform:translate(var(--dx),var(--dy)) rotate(var(--r)) scale(1);opacity:1;}85%{opacity:1;}100%{transform:translate(calc(var(--dx)*1.15),calc(var(--dy) + 420px)) rotate(calc(var(--r)*2.2)) scale(.9);opacity:0;}}
         @media (prefers-reduced-motion:reduce){.cel *,.cel *::after{animation-duration:.01s!important;transition-duration:.01s!important;}}
+
+    /* ---- Wide frames (web · iPad landscape · ≥ 1024) ------------------
+       A wide frame is not a version of the phone frame: both are current
+       at once. It lives in the SAME screen file, in its own .board-wide row
+       under an <h2> rule reading "Wide · ≥ 1024", and its frame name opens
+       with the word "wide". A screen whose wide answer is "centred,
+       unchanged" draws no frame — its status line says so in one clause. */
+    .board-wide{display:flex;flex-direction:column;gap:26px;align-items:flex-start;margin-top:8px;}
+    .frame.wide{width:1120px;max-width:100%;}
+    .desk{background:var(--frame);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;}
+    .desk .lip{height:22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px;padding:0 12px;background:var(--paper);}
+    .desk .lip i{width:8px;height:8px;border-radius:50%;background:var(--line);display:block;}
+    .desk .dscreen{display:flex;min-height:600px;align-items:stretch;}
+    /* the sidebar: four destinations, Account as the quiet footer door.
+       .neutral = a pushed page (nothing lit; the page draws its own back) */
+    .desk .rail{flex:0 0 188px;border-right:1px solid var(--line);background:var(--paper);padding:14px 10px 12px;display:flex;flex-direction:column;gap:3px;}
+    .desk .rail .wm{font-family:'Spectral',serif;font-weight:500;font-size:19px;letter-spacing:-.02em;padding:2px 10px 12px;}
+    .desk .rail .wm .dot{color:var(--herb);}
+    .desk .rail .ri{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;font-size:12.5px;font-weight:500;color:var(--ink);}
+    .desk .rail .ri.on{background:var(--herb-soft);color:var(--herb-deep);}
+    .desk .rail.neutral .ri.on{background:transparent;color:var(--ink);}
+    .desk .rail .ri .ic{width:18px;height:18px;flex:none;display:inline-flex;}
+    .desk .rail .ri .ic svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+    .desk .rail .grow{flex:1;}
+    .desk .rail .ri.quiet{color:var(--muted);font-weight:400;font-size:12px;}
+    /* the content pane; .measure caps a centred view, .full uses the width */
+    .desk .main{flex:1;min-width:0;padding:20px 26px 24px;display:flex;flex-direction:column;}
+    .desk .main.measure>*{max-width:640px;margin-left:auto;margin-right:auto;width:100%;}
+    .desk .back{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+    .desk .ttl{font-family:'Spectral',serif;font-size:22px;font-weight:500;letter-spacing:-.01em;margin:0 0 14px;}
+    .desk .cols{display:grid;gap:22px;align-items:start;}
+    .desk .hair{border-top:1px solid var(--line);}
+    .wide-rule{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:14px;margin:54px 0 18px;}
+    .wide-rule::after{content:"";flex:1;height:1px;background:var(--line);}
+    .wide-cap{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);margin:9px 0 0 4px;max-width:96ch;line-height:1.65;}
+    .wide-cap b{color:var(--herb-deep);font-weight:500;}
+    .wide-cap code{background:var(--herb-soft);color:var(--herb-deep);border-radius:5px;padding:1px 5px;}
+    .desk .tag-prop{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#7A5A16;background:#FBF3E3;border-radius:5px;padding:2px 5px;}
+
+    /* ---- Wide · navigation (shell states, the dialog rule) ------------ */
+
+    /* the <h2> rule that opens a wide row, the sub-head inside a frame, and
+       the one-line caption a wide frame carries under it */
+    .wnv-sub{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin:26px 0 10px 4px;}
+    .wnv-sub b{color:var(--ink);font-weight:500;}
+
+    /* keyboard focus — the state a phone never had and the web always has */
+    .desk .rail .ri.focus{outline:2px solid var(--herb);outline-offset:2px;}
+    /* pointer hover on an unlit item: a neutral wash, never the lit herb-soft */
+    .desk .rail .ri.hovered{background:var(--line);}
+
+    /* a placeholder slab — the lane that owns the screen draws the real thing */
+    .wnv-slab{flex:1;min-height:170px;border:1px dashed var(--line);border-radius:12px;background:var(--paper);display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);}
+
+    /* 1024–1279 (an iPad in landscape): the sidebar collapses to an icon rail */
+    .frame.wide.wnv-ipad{width:800px;}
+    .desk .rail.icons{flex:0 0 64px;padding:14px 0 12px;align-items:center;gap:5px;}
+    .desk .rail.icons .wm{padding:2px 0 14px;font-size:20px;}
+    .desk .rail.icons .ri{padding:9px;gap:0;justify-content:center;}
+    .wnv-hov{display:flex;flex-direction:column;align-items:center;gap:5px;}
+    .wnv-tip{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--frame);border:1px solid var(--line);border-radius:5px;padding:1px 5px;white-space:nowrap;}
+
+    /* a sheet at and above 640 is a dialog. The barrier covers the whole
+       window — the sidebar included — because the modal is on the root
+       navigator, which is the phone rule unchanged. */
+    .wnv-screen{position:relative;}
+    .wnv-screen.tall{min-height:760px;}
+    .wnv-over{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
+    .wnv-scrim{position:absolute;inset:0;background:rgba(24,33,28,.34);}
+    .wnv-dlg{position:relative;width:560px;max-width:calc(100% - 40px);background:var(--frame);border:1px solid var(--line);border-radius:16px;box-shadow:0 20px 54px rgba(24,33,28,.24);padding:18px 20px 20px;display:flex;flex-direction:column;gap:13px;}
+    .wnv-dlg.fixed{height:640px;}
+    .wnv-dhead{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+    .wnv-dhead .t{font-family:'Spectral',serif;font-size:19px;font-weight:500;letter-spacing:-.01em;}
+    .wnv-dhead .x{color:var(--muted);font-size:18px;line-height:1;}
+    .wnv-field{border:1px solid var(--line);border-radius:10px;background:var(--paper);padding:9px 12px;font-size:12.5px;color:var(--muted);}
+    .wnv-dim{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);align-self:flex-end;}
+
+    /* the wide route tree: the outer shell, and the pushed rows' neutral rail */
+    .frame.wide.wnv-treef{width:660px;}
+    .nv-tree .out{background:#EEF3EC;border:1px solid var(--herb-soft);border-radius:5px;padding:1px 5px;color:var(--herb-deep);}
+    .nv-tree .neut{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:1px 5px;}
+
+    /* ---- Wide · library and the book page ----------------------------- */
+  /* Lane-local additions only. The shelf and the book page reuse the
+     library's shipped classes — .lib-hfield/.lib-row/.lib-stats/.lib-vocab/
+     .lib-newbook/.sec-lab/.sec-lab3/.list-h/.res-row/.res-nm/.res-cat/
+     .r-hero/.abar — and the .desk chrome above. */
+
+  /* the <h2> every wide row sits under (README rule 6) */
+
+  /* the header: the field alone — the household door moved to the sidebar */
+  .lw-head{display:flex;align-items:center;margin:0 0 16px;}
+  .lw-head .lib-hfield{flex:none;width:340px;}
+
+  /* the shelf: a grid that decides its own column count, of tiles that do
+     NOT decide their own height — a shelf stays a shelf at thirty books */
+  .lw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;align-items:start;}
+  .lw-tile{height:172px;display:flex;flex-direction:column;background:var(--frame);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  .lw-band{background:var(--herb);color:#fff;padding:9px 12px 10px;min-height:56px;}
+  .lw-band .bn{font-family:'Spectral',serif;font-size:15px;font-weight:500;line-height:1.2;}
+  .lw-band .bc{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;opacity:.85;margin-top:3px;}
+  .lw-body{flex:1;min-height:0;padding:3px 12px 9px;display:flex;flex-direction:column;overflow:hidden;}
+  .lw-body .lib-row{padding:3px 0;gap:7px;}
+  .lw-body .lib-row .t{font-size:13.5px;}
+  .lw-more{margin-top:auto;padding-top:5px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
+  .lw-door{margin-top:auto;text-align:center;border:1px dashed var(--line);border-radius:10px;padding:9px 6px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--herb);}
+
+  /* what closes the shelf runs the width, as it does under the phone's books */
+  .lw-newbook{margin-left:0;margin-right:0;margin-top:16px;}
+  .lw-vocab{margin-top:26px;padding-left:0;padding-right:0;}
+
+  /* search: one ranked column at a measure, however wide the window is */
+  .lw-col{width:100%;max-width:720px;}
+  .lw-col .list-h{margin-left:0;margin-right:0;}
+  .lw-col .res-row{padding-left:0;padding-right:0;}
+  .lw-short .dscreen{min-height:430px;}
+
+  /* the book page — drawn once, worn by both layouts */
+  .bk-ct{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;color:var(--muted);}
+  .bk-nm{font-family:'Spectral',serif;font-size:24px;font-weight:500;line-height:1.1;letter-spacing:-.01em;margin:2px 0 5px;}
+  .bk-sec{padding-left:20px;padding-right:20px;}
+  .bk-top{display:flex;align-items:flex-start;gap:16px;margin:0 0 18px;}
+  .bk-top .more{flex:none;color:var(--muted);font-size:17px;line-height:1;padding-top:6px;}
+  .bk-panes{display:grid;grid-template-columns:200px minmax(0,600px);gap:30px;align-items:start;}
+  /* the index is a spine, not a filter: it lights the section you are in */
+  .bk-ix .ir{display:flex;align-items:baseline;gap:9px;padding:6px 9px;border-radius:8px;}
+  .bk-ix .ir .nm{flex:1;min-width:0;font-family:'Spectral',serif;font-style:italic;font-size:13.5px;color:var(--ink);}
+  .bk-ix .ir .n{flex:none;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
+  .bk-ix .ir.on{background:var(--herb-soft);}
+  .bk-ix .ir.on .nm{color:var(--herb-deep);}
+  .bk-ix .ir.q .nm{color:var(--muted);}
+  .bk-grp{margin-bottom:22px;}
+  .bk-grp:last-child{margin-bottom:0;}
+
+    /* ---- Wide · week (the matrix, the day macros) --------------------- */
+    /* The week on a desk is a MATRIX whose rows are the slots that EXIST in
+       the week on screen — derived from the meals planned, never a fixed set
+       (`meal_slot` is free text). One grid template is shared by the head
+       row, the slot rows, the column feet and both macro treatments, so every
+       number under a day sits under that day. Rows size to their content: a
+       heavy day makes its own row taller and inflates nothing else, and the
+       head row and the feet are pinned while the matrix between them scrolls,
+       so no day pushes either off screen. Nothing here draws a drag
+       affordance — week v3 refuses `move`. */
+    .wx-note{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);line-height:1.6;max-width:88ch;margin:10px 4px 0;}
+    .wx-note b{color:var(--ink);font-weight:500;}
+
+    /* the week switcher and the lens on one line — the width's first dividend */
+    .wx-top{display:flex;align-items:center;gap:18px;margin:0 0 14px;}
+    .wx-top .wkhdr{padding:0;flex:none;}
+    .wx-top .wkhdr .wt{flex:none;font-size:19px;}
+    .wx-top .lensrow{padding:0;margin-left:auto;}
+
+    .wx{--gut:46px;display:grid;grid-template-columns:var(--gut) repeat(7,minmax(0,1fr));}
+    .wx>*{min-width:0;}
+    /* the head row: seven days, today in herb */
+    .wx-h{padding:0 6px 9px;}
+    .wx-h+.wx-h{border-left:1px solid var(--line);}
+    .wx-h .dn{font-family:'Spectral',serif;font-size:14px;font-weight:500;line-height:1.15;}
+    .wx-h .dd{display:block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);margin-top:2px;}
+    .wx-h.today .dn{color:var(--herb-deep);}
+    .wx-h .todaytag{margin:4px 0 0;display:inline-block;}
+    /* the gutter names each slot row that exists, and does nothing else */
+    .wx-slot{border-top:1px solid var(--line);padding:11px 8px 0 0;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+    /* a cell is quiet paper; an EMPTY one carries no control at all — a box
+       with a `+` in it manufactures emptiness seven times a row */
+    .wx-cell{border-top:1px solid var(--line);border-left:1px solid var(--line);background:var(--paper);padding:6px;display:flex;flex-direction:column;gap:6px;}
+    /* one meal: the phone row's anatomy compacted to a card, every target
+       drawn (the `−` included) because nothing on this board waits for hover */
+    .wx-meal{background:var(--frame);border:1px solid var(--line);border-radius:10px;padding:6px 7px 7px;display:flex;flex-direction:column;gap:5px;}
+    .wx-nm{font-size:12px;font-weight:600;color:var(--herb-deep);line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+    /* an ingredient in a slot is visibly not a recipe: no herb-deep title */
+    .wx-meal.ing .wx-nm{font-weight:400;color:var(--ink);}
+    .wx-meal.ing .cookmark{font-family:'IBM Plex Mono',monospace;}
+    .wx-mrow{display:flex;align-items:center;gap:6px;}
+    .wx-mrow .avs{flex:1;}
+    .wx-meal .rmv{padding-left:0;font-size:14px;}
+    /* the cook marker keeps its words in a narrow column by wrapping */
+    .wx-meal .cookmark{display:flex;flex-wrap:wrap;white-space:normal;line-height:1.4;align-self:flex-start;}
+    .wx-meal .portchip,.wx-meal .badge-inc{align-self:flex-start;}
+
+    /* the column foot: the day's ONE ＋ add a meal, in every state, pinned */
+    .wx-foot{border-top:1px solid var(--line);border-left:1px solid var(--line);padding:8px 6px 10px;}
+    .wx-add{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);}
+    .wx-add .plus{color:var(--herb);font-size:13px;}
+    /* treatment (a): kcal and the mandatory denominator, one mono line */
+    .wx-kc{margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted);line-height:1.55;}
+    .wx-kc b{font-size:9px;font-weight:500;color:var(--ink);}
+    .wx-kc .part{color:var(--aging);}
+    .wx-kc .badge-inc{font-size:8px;padding:1px 5px;}
+
+    /* treatment (a)'s band: the rest of the day's macros under the matrix,
+       each day a small block rather than a strip that wraps by accident */
+    .wx-bl{border-top:1px solid var(--line);padding:10px 8px 0 0;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+    .wx-bd{border-top:1px solid var(--line);border-left:1px solid var(--line);background:var(--paper);padding:9px 6px 10px;}
+    .wx-bd .daymac{margin-top:0;padding-top:0;border-top:none;gap:8px 9px;}
+    .wx-bd .dm{font-size:10.5px;}
+    .wx-bd .dm-exc,.wx-bd .dm-none{margin-top:6px;line-height:1.45;}
+
+    /* treatment (b)'s table: the same seven columns, read down instead of
+       across — numbers right-aligned so a row can be compared */
+    .wx-tl{border-top:1px solid var(--line);padding:5px 8px 5px 0;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+    .wx-tc{border-top:1px solid var(--line);border-left:1px solid var(--line);padding:5px 6px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:var(--ink);}
+    .wx-tc .u{font-size:9px;font-weight:400;color:var(--muted);margin-left:2px;}
+    .wx-tc.den{font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;}
+    .wx-tc.den.part{color:var(--aging);}
+    .wx-tc.exc{font-size:9px;font-weight:400;color:var(--muted);line-height:1.45;text-align:right;}
+    .wx-tc.exc b{color:var(--ink);font-weight:500;}
+
+    /* iPad landscape at 1180, drawn at the same scale as the 1440 frames —
+       so the desk is the narrower window's share of the frame, the rail keeps
+       its icons and loses its words, and every column loses about 10 px */
+    .wx-ipad{max-width:918px;}
+    .wx-ipad .rail{flex:0 0 64px;padding:14px 8px 12px;}
+    .wx-ipad .rail .wm{text-align:center;padding:2px 0 12px;}
+    .wx-ipad .rail .ri{justify-content:center;gap:0;padding:9px 0;}
+    .wx-ipad .rail .rl{display:none;}
+    .wx-ipad .main{padding-left:18px;padding-right:18px;}
+    .wx-ipad .wx{--gut:40px;}
+    .wx-ipad .wx-cell,.wx-ipad .wx-foot,.wx-ipad .wx-h{padding-left:5px;padding-right:5px;}
+
+    /* ---- Wide · recipe page -------------------------------------------
+       A recipe is a page, not a dashboard: the width buys one thing —
+       Ingredients and Method read together — and nothing else. So the page
+       is capped and centred inside the content pane, and the per-serving
+       total stays at the foot of the lines it sums.
+
+       The desk's 1120 stands in for a 1440 window (its 188 rail stands in
+       for the 240 sidebar), so every width here is drawn at that scale:
+       the ~1000 cap is 780, and the ~340 / ~600 columns are 272 / 486. */
+    .wr{width:100%;max-width:780px;align-self:center;}
+    /* the phone's 20 px gutters belong to the phone; the column carries them */
+    .wr .r-hero,.wr .grp,.wr .macro,.wr .macro-lab,.wr .macro-inc,
+    .wr .notcounted,.wr .conv-note{margin-left:0;margin-right:0;}
+    .wr .r-hero{padding:0;}
+    .wr .r-title{font-size:26px;margin:5px 0 10px;}
+    .wr .grp:first-of-type{margin-top:0;}
+    /* the hero reads across the top: identity left, the scaler and ⋯ right */
+    .wr-hero{display:flex;align-items:flex-start;gap:20px;padding-bottom:16px;border-bottom:1px solid var(--line);}
+    .wr-hero .hl{flex:1;min-width:0;}
+    .wr-hero .hr{flex:none;display:flex;align-items:center;gap:12px;}
+    .wr .scaler{margin:0;width:300px;}
+    .wr .scaler .val{white-space:nowrap;}
+    .wr-dots{color:var(--muted);font-size:16px;line-height:1;}
+    /* the two tabs become two columns; nothing else about them changes */
+    .wr-cols{display:grid;grid-template-columns:272px 1fr;gap:22px;align-items:start;margin-top:18px;}
+    .wr-ch{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+    /* a method step: the shipped ink disc, then the sentence with its chips */
+    .wr-cols .step{padding:12px 0;}
+    .wr-sn{width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;flex:none;}
+    .wr-sb{flex:1;min-width:0;font-size:14px;line-height:1.7;padding-top:3px;}
+    /* a frame shown short — a page cropped, the way the phone frames crop */
+    .desk .dscreen.wr-short{min-height:0;}
+
+    /* ---- Wide · cook, shop, ingredients ------------------------------- */
+
+    /* the <h2> rule a .board-wide row sits under */
+
+    /* The 20 px gutter belongs to the phone screen. Inside a desk pane the
+       pane owns the padding, so the shared rows run flush to its edge and
+       nothing is re-drawn to sit here. */
+    .wflat .sl-group,.wflat .item,.wflat .topup,.wflat .conv-note,
+    .wflat .flabel,.wflat .list-h,.wflat .cook,.wflat .state,
+    .wflat .field,.wflat .fq,.wflat .stub-foot,.wflat .addnew,
+    .wflat .rc-note{margin-left:0;margin-right:0;}
+    .wflat .res-row,.wflat .er-shopsync,.wflat .wkhdr{padding-left:0;padding-right:0;}
+
+    /* 1 · the walk — one column, capped, centred in the width */
+    .wmeasure{max-width:720px;width:100%;margin:0 auto;}
+
+    /* 2 · list + provenance, 4/5 · list + fact sheet. The panes divide the
+       whole content lane, so it gives up its padding and each pane keeps
+       its own; the divider runs the full height. */
+    .desk .main.wpanes{padding:0;}
+    .wsplit{display:flex;align-items:stretch;flex:1;min-height:0;}
+    .wpane{min-height:0;overflow:hidden;padding:16px 22px 20px;display:flex;flex-direction:column;}
+    .wpane+.wpane{border-left:1px solid var(--line);}
+    /* the list never goes under 360 and takes whatever the sheet does not;
+       the sheet caps at 720, so no gutter is left dead at any width */
+    .wpane.wlist{flex:1 1 360px;min-width:360px;}
+    .wpane.wsheet{flex:0 1 720px;min-width:460px;}
+    .wpane.wprov{flex:0 0 360px;min-width:360px;background:var(--paper);}
+    /* the page's own controls on a pushed page, above both panes */
+    .wtop{flex:none;padding:14px 22px 12px;border-bottom:1px solid var(--line);}
+    .wtop .back{margin-bottom:6px;}
+    .wtop .ttl{margin:0;}
+
+    /* a long list gets a scroll model: the search field and the stub band are
+       pinned, and only the section below them travels */
+    .wpin{flex:none;}
+    .wscroll{flex:1;min-height:0;overflow:hidden;position:relative;}
+    .wscroll::after{content:"";position:absolute;left:0;right:0;bottom:0;height:44px;background:linear-gradient(rgba(255,255,255,0),var(--frame));pointer-events:none;}
+    .wscroll .wsh{position:sticky;top:0;background:var(--frame);padding-top:2px;}
+
+    /* the row the pane is reading */
+    .item.wsel,.res-row.wsel{background:var(--herb-soft);border-radius:11px;padding-left:11px;padding-right:11px;}
+    .item.wsel{border-bottom-color:transparent;}
+
+    /* the provenance pane: the phone's expand-in-place, held open beside */
+    .wpane.wprov .prov{margin-left:0;}
+    .wprov-h{display:flex;align-items:baseline;gap:10px;margin:2px 0 10px;}
+    .wprov-h .n{flex:1;font-size:14px;font-weight:500;}
+    .wprov-h .t{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;}
+
+    /* 3 · cook — two columns of the phone's own session card */
+    .wcook{max-width:1000px;width:100%;margin:0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start;}
+    .wcook .cook{margin:0;}
+
+    /* 4/5 · the fact sheet in a pane: the phone's own value lines, and the
+       ⋯ the page keeps Edit behind */
+    .wsheet-h{position:relative;display:flex;align-items:flex-start;gap:12px;}
+    .wsheet-h .r-title{margin:0;font-size:26px;}
+    .wsheet-h .dots{margin-left:auto;color:var(--muted);font-size:18px;line-height:1.2;}
+    .wmenu{position:absolute;top:26px;right:0;width:158px;margin:0;z-index:2;}
+    .wflat .grp-wrap{margin:22px 0 0;}
+    .wval{margin:6px 0 0;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+    .wval.quiet{color:var(--muted);}
+    .wflat .wval+.flabel{margin-top:14px;}
+
+    /* a desk drawn to a height, so the long pane clips and the scroll model
+       is visible rather than implied */
+    .desk .dscreen.h1000{height:1000px;}
+    .desk .dscreen.h640{height:640px;}
+
+    /* the fact sheet's state dot, in the colours the code paints:
+       fresh for a complete row, muted for a stub */
+    .sdot.ok{background:var(--fresh);}
+    .sdot.mute{background:var(--muted);}
+

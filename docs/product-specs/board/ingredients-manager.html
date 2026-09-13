@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Ingredients manager</h1>
-    <p class="view-status">built · matches code 2026-09-10 · <code>features/ingredients</code> · <a href="../../exec-plans/completed/0020-ingredients-manager.md">plan 0020</a> · <a href="../../decisions/0005-two-tier-vocabulary.md">ADR-0005</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a></p>
+    <p class="view-status">built · matches code 2026-09-10 · <code>features/ingredients</code> · <a href="../../exec-plans/completed/0020-ingredients-manager.md">plan 0020</a> · <a href="../../decisions/0005-two-tier-vocabulary.md">ADR-0005</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · wide: proposed <a href="../../exec-plans/active/0047-wide-screens.md">plan 0043</a></p>
     <p class="view-blurb">The whole vocabulary, one pushed screen: what still needs filling in, then every row under its aisle — each saying what it can convert and what it is missing.</p>
 </header>
 
@@ -105,6 +105,280 @@
             <p class="conv-note">the <b>picker</b> is deliberately left out: it is a search surface, and a description under every row is noise while you are typing</p>
             <p class="conv-note">it costs no read: the vocabulary query already selects the column, and the same rule prints the same line in the <a href="./import-review.html">import review’s</a> identity cell</p>
         </div></div>
+    </div>
+
+</div>
+
+<h2 class="wide-rule">Wide &middot; ≥ 1024</h2>
+
+<div class="board-wide">
+
+    <div class="frame wide">
+        <p class="frame-name"><b>wide &middot; the manager beside the fact sheet</b> &middot; reached from the Library's shelf row, so the sidebar goes neutral and the page draws its own back; the search field and the stub band are pinned, only <span style="font-family:'IBM Plex Mono',monospace">All ingredients</span> travels, and the add door stays at the pane's foot where 319 rows cannot push it away</p>
+        <div class="desk">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="dscreen h1000">
+            <div class="rail neutral">
+                <div class="wm">Ansi<span class="dot">.</span></div>
+                <div class="ri on"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></span>Library</div>
+                <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg></span>Week</div>
+                <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg></span>Cook</div>
+                <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 11-1 9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1 9"/></svg></span>Shop</div>
+                <div class="grow"></div>
+                <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></span>Account</div>
+            </div>
+            <div class="main wpanes">
+                <div class="wtop">
+                    <span class="back">‹ Library</span>
+                    <h3 class="ttl">Ingredients</h3>
+                </div>
+                <div class="wsplit">
+                    <div class="wpane wlist wflat">
+                        <div class="wpin">
+                            <div class="field"><div class="search"><span class="mag">⌕</span><span style="color:var(--muted)">Search your vocabulary</span><span class="care"></span></div></div>
+                            <div class="fq"><div class="fq-title"><span class="n">Needs fleshing out</span><span class="c">4 stubs</span></div>
+                                <div class="stub"><span class="sn">Curry leaves, fresh</span><span class="need">needs <span>macros</span></span></div>
+                                <div class="stub"><span class="sn">Tamarind paste</span><span class="need"><span>needs completing</span> &middot; usda prefilled</span></div>
+                                <div class="stub"><span class="sn">Kraft mac &amp; cheese</span><span class="need"><span>needs completing</span> &middot; barcode prefilled</span></div>
+                                <div class="stub"><span class="sn">Fenugreek</span><span class="need">needs <span>macros</span></span></div>
+                            </div>
+                            <p class="stub-foot">A stub stays out of macro totals until you confirm it.</p>
+                        </div>
+                        <div class="wscroll">
+                            <p class="list-h wsh">All ingredients &middot; 319</p>
+                            <div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Almond flour</div>
+                                    <span class="res-cat">Baking &middot; has density &middot; 1 measure</span>
+                                    <div class="mline">579 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 21P 50F 22C <span class="per">/100 g</span></div></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Almonds</div>
+                                    <span class="res-cat">Nuts &amp; seeds &middot; has density &middot; 2 measures</span>
+                                    <div class="mline">579 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 21P 50F 22C &middot; 13 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="fibre"><title>fibre</title><path d="M2 22 16 8"/><path d="M3.47 12.53 5 11l1.53 1.53a3.5 3.5 0 0 1 0 4.94L5 19l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M7.47 8.53 9 7l1.53 1.53a3.5 3.5 0 0 1 0 4.94L9 15l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M11.47 4.53 13 3l1.53 1.53a3.5 3.5 0 0 1 0 4.94L13 11l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M20 2h2v2a4 4 0 0 1-4 4h-2V6a4 4 0 0 1 4-4Z"/><path d="M11.47 17.47 13 19l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L5 19l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M15.47 13.47 17 15l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L9 15l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M19.47 9.47 21 11l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L13 11l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/></svg> <span class="per">/100 g</span></div></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Butter beans</div>
+                                    <span class="res-cat">Pantry &middot; has density &middot; 2 measures</span>
+                                    <div class="mline">115 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 8P 0F 20C <span class="per">/100 g</span></div></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Chex Cereal</div>
+                                    <span class="res-cat">Pantry &middot; has density &middot; 1 measure</span>
+                                    <div class="mline" style="color:var(--muted)">usda &middot; Cereals ready-to-eat, GENERAL MILLS, Corn CHEX</div>
+                                    <div class="mline">379 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 7P 3F 84C <span class="per">/100 g</span></div></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Chicken thigh, boneless</div>
+                                    <span class="res-cat">Meat &middot; 3 measures</span>
+                                    <div class="mline">179 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 24P 9F 0C <span class="per">/100 g</span></div></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Coconut milk, canned</div>
+                                    <span class="res-cat">Dairy alt &middot; has density &middot; 2 measures</span>
+                                    <div class="mline">197 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 2P 20F 3C <span class="per">/100 g</span></div></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Curry leaves, fresh <span class="res-badge">stub</span></div>
+                                    <span class="res-cat">Produce &middot; needs macros — no zeros shown</span></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Fenugreek <span class="res-badge">stub</span></div>
+                                    <span class="res-cat">needs macros — no zeros shown</span></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Kale</div>
+                                    <span class="res-cat">Produce &middot; has density &middot; 2 measures</span>
+                                    <div class="mline" style="color:var(--muted)">edited &middot; usda &middot; Kale, raw</div>
+                                    <div class="mline">35 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 3P 2F 4C <span class="per">/100 g</span></div></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Kraft mac &amp; cheese <span class="res-badge">stub</span></div>
+                                    <span class="res-cat">needs completing &middot; barcode prefilled</span></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row wsel">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Mango</div>
+                                    <span class="res-cat">Produce &middot; has density &middot; 3 measures</span>
+                                    <div class="mline">60 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 1P 0F 15C <span class="per">/100 g</span></div></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Nutella</div>
+                                    <span class="res-cat">Pantry &middot; has density</span>
+                                    <div class="mline" style="color:var(--muted)">barcode &middot; Ferrero Nutella</div>
+                                    <div class="mline">539 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 6P 31F 58C <span class="per">/100 g</span></div></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Nutritional yeast</div>
+                                    <span class="res-cat">Pantry &middot; no density — volume units locked</span>
+                                    <div class="mline">385 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 50P 5F 36C <span class="per">/100 g</span></div></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Roma tomato</div>
+                                    <span class="res-cat">Produce &middot; has density &middot; 2 measures</span>
+                                    <div class="mline">18 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 1P 0F 4C <span class="per">/100 g</span></div></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Tamarind paste <span class="res-badge">stub</span></div>
+                                    <span class="res-cat">needs completing &middot; usda prefilled</span></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Yellow onion</div>
+                                    <span class="res-cat">Produce &middot; 3 measures</span>
+                                    <div class="mline">40 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 1P 0F 9C &middot; 2 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="fibre"><title>fibre</title><path d="M2 22 16 8"/><path d="M3.47 12.53 5 11l1.53 1.53a3.5 3.5 0 0 1 0 4.94L5 19l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M7.47 8.53 9 7l1.53 1.53a3.5 3.5 0 0 1 0 4.94L9 15l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M11.47 4.53 13 3l1.53 1.53a3.5 3.5 0 0 1 0 4.94L13 11l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M20 2h2v2a4 4 0 0 1-4 4h-2V6a4 4 0 0 1 4-4Z"/><path d="M11.47 17.47 13 19l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L5 19l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M15.47 13.47 17 15l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L9 15l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M19.47 9.47 21 11l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L13 11l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/></svg> <span class="per">/100 g</span></div></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                            </div>
+                        </div>
+                        <div class="addnew">add an ingredient — by hand, or scan a barcode</div>
+                    </div>
+                    <div class="wpane wsheet wflat">
+                        <div class="wsheet-h">
+                            <div><h2 class="r-title">Mango</h2><p class="conv-note" style="margin:0">also known as mangoes</p></div>
+                            <span class="dots">⋯</span>
+                            <div class="lib-menu wmenu"><div class="mi"><span class="ic">✎</span><span class="lb">Edit</span></div></div>
+                        </div>
+
+                        <div class="state" style="margin-top:14px">
+                            <div class="sh" style="font-weight:400;font-size:12px;color:var(--muted)"><span class="sdot ok"></span><span>Complete — counts in conversions and macro totals.</span></div>
+                        </div>
+
+                        <div class="grp-wrap"><p class="grp-h">Identity</p></div>
+                        <p class="flabel">Category</p>
+                        <p class="wval">produce</p>
+
+                        <div class="grp-wrap"><p class="grp-h">Nutrition</p></div>
+                        <p class="conv-note" style="margin:6px 0 0">usda &middot; Mango, raw</p>
+                        <p class="flabel" style="margin-top:14px">Macros</p>
+                        <p class="wval">60 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 1P 0F 15C &middot; 2 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="fibre"><title>fibre</title><path d="M2 22 16 8"/><path d="M3.47 12.53 5 11l1.53 1.53a3.5 3.5 0 0 1 0 4.94L5 19l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M7.47 8.53 9 7l1.53 1.53a3.5 3.5 0 0 1 0 4.94L9 15l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M11.47 4.53 13 3l1.53 1.53a3.5 3.5 0 0 1 0 4.94L13 11l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M20 2h2v2a4 4 0 0 1-4 4h-2V6a4 4 0 0 1 4-4Z"/><path d="M11.47 17.47 13 19l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L5 19l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M15.47 13.47 17 15l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L9 15l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M19.47 9.47 21 11l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L13 11l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/></svg> /100 g</p>
+
+                        <div class="grp-wrap"><p class="grp-h">Units &amp; measures</p></div>
+                        <p class="flabel">Default unit</p>
+                        <p class="wval">piece</p>
+                        <p class="flabel" style="margin-bottom:2px">Allowed units</p>
+                        <p class="conv-note" style="margin:0">what a line may say</p>
+                        <p class="wval">piece &middot; g &middot; kg &middot; oz &middot; lb &middot; cup &middot; tsp &middot; tbsp &middot; ml &middot; l</p>
+                        <p class="flabel">Piece weight</p>
+                        <p class="wval">1 piece weighs 200 g</p>
+                        <p class="flabel">Density</p>
+                        <p class="wval">1 cup weighs 156.15 g &middot; 0.66 g/ml</p>
+                        <p class="flabel" style="margin-bottom:2px">Measures</p>
+                        <p class="conv-note" style="margin:0 0 6px">count-like, in the basis</p>
+                        <div class="field" style="margin-bottom:6px">
+                            <div class="msr-row"><span class="srcdot usda"></span><span class="mlab">mango, medium &middot; 200 g</span><span class="msrc">USDA portion</span></div>
+                            <div class="msr-row"><span class="srcdot you"></span><span class="mlab">half &middot; 100 g</span><span class="msrc">yours</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+        <p class="conv-note" style="margin:10px 4px 0">The sheet is the <a href="./ingredient-detail.html">ingredient-detail</a> view, unchanged — <b>Edit</b> behind its <span style="font-family:'IBM Plex Mono',monospace">⋯</span>, every field stated rather than offered — shown <i>beside</i> the list instead of pushed over it.</p>
+    </div>
+
+    <div class="frame wide">
+        <p class="frame-name"><b>wide &middot; the manager &middot; a stub selected</b> &middot; the same two panes, shorter: a stub row opened from <span style="font-family:'IBM Plex Mono',monospace">All ingredients</span> opens as a row, so the sheet reads in its stub posture — one call to action, never a zero</p>
+        <div class="desk">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="dscreen h640">
+            <div class="rail neutral">
+                <div class="wm">Ansi<span class="dot">.</span></div>
+                <div class="ri on"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></span>Library</div>
+                <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg></span>Week</div>
+                <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg></span>Cook</div>
+                <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 11-1 9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1 9"/></svg></span>Shop</div>
+                <div class="grow"></div>
+                <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></span>Account</div>
+            </div>
+            <div class="main wpanes">
+                <div class="wtop">
+                    <span class="back">‹ Library</span>
+                    <h3 class="ttl">Ingredients</h3>
+                </div>
+                <div class="wsplit">
+                    <div class="wpane wlist wflat">
+                        <div class="wpin">
+                            <div class="field"><div class="search"><span class="mag">⌕</span><span style="color:var(--muted)">Search your vocabulary</span><span class="care"></span></div></div>
+                            <div class="fq"><div class="fq-title"><span class="n">Needs fleshing out</span><span class="c">4 stubs</span></div>
+                                <div class="stub"><span class="sn">Curry leaves, fresh</span><span class="need">needs <span>macros</span></span></div>
+                                <div class="stub"><span class="sn">Tamarind paste</span><span class="need"><span>needs completing</span> &middot; usda prefilled</span></div>
+                                <div class="stub"><span class="sn">Kraft mac &amp; cheese</span><span class="need"><span>needs completing</span> &middot; barcode prefilled</span></div>
+                                <div class="stub"><span class="sn">Fenugreek</span><span class="need">needs <span>macros</span></span></div>
+                            </div>
+                            <p class="stub-foot">A stub stays out of macro totals until you confirm it.</p>
+                        </div>
+                        <div class="wscroll">
+                            <p class="list-h wsh">All ingredients &middot; 319</p>
+                            <div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Chex Cereal</div>
+                                    <span class="res-cat">Pantry &middot; has density &middot; 1 measure</span>
+                                    <div class="mline" style="color:var(--muted)">usda &middot; Cereals ready-to-eat, GENERAL MILLS, Corn CHEX</div>
+                                    <div class="mline">379 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 7P 3F 84C <span class="per">/100 g</span></div></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row wsel">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Curry leaves, fresh <span class="res-badge">stub</span></div>
+                                    <span class="res-cat">Produce &middot; needs macros — no zeros shown</span></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Fenugreek <span class="res-badge">stub</span></div>
+                                    <span class="res-cat">needs macros — no zeros shown</span></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Kale</div>
+                                    <span class="res-cat">Produce &middot; has density &middot; 2 measures</span>
+                                    <div class="mline" style="color:var(--muted)">edited &middot; usda &middot; Kale, raw</div>
+                                    <div class="mline">35 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 3P 2F 4C <span class="per">/100 g</span></div></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Kraft mac &amp; cheese <span class="res-badge">stub</span></div>
+                                    <span class="res-cat">needs completing &middot; barcode prefilled</span></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Mango</div>
+                                    <span class="res-cat">Produce &middot; has density &middot; 3 measures</span>
+                                    <div class="mline">60 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 1P 0F 15C <span class="per">/100 g</span></div></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Nutella</div>
+                                    <span class="res-cat">Pantry &middot; has density</span>
+                                    <div class="mline" style="color:var(--muted)">barcode &middot; Ferrero Nutella</div>
+                                    <div class="mline">539 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 6P 31F 58C <span class="per">/100 g</span></div></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                                <div class="res-row">
+                                    <div style="flex:1;min-width:0"><div class="res-nm">Nutritional yeast</div>
+                                    <span class="res-cat">Pantry &middot; no density — volume units locked</span>
+                                    <div class="mline">385 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 50P 5F 36C <span class="per">/100 g</span></div></div>
+                                    <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
+                            </div>
+                        </div>
+                        <div class="addnew">add an ingredient — by hand, or scan a barcode</div>
+                    </div>
+                    <div class="wpane wsheet wflat">
+                        <div class="wsheet-h">
+                            <div><h2 class="r-title">Curry leaves, fresh</h2></div>
+                            <span class="dots">⋯</span>
+                        </div>
+
+                        <div class="state" style="margin-top:14px">
+                            <div class="sh" style="font-weight:400;font-size:12px;color:var(--muted)"><span class="sdot mute"></span><span>Still a stub — left out of macro totals until confirmed.</span></div>
+                        </div>
+                        <span class="btn primary" style="margin:12px 0 0;display:block;text-align:center">Fill it in</span>
+
+                        <div class="grp-wrap"><p class="grp-h">Nutrition</p></div>
+                        <p class="conv-note" style="margin:6px 0 0">usda &middot; Curry leaves, raw</p>
+                        <p class="flabel" style="margin-top:14px">Macros</p>
+                        <p class="wval quiet">needs macros</p>
+
+                        <div class="grp-wrap"><p class="grp-h">Units &amp; measures</p></div>
+                        <p class="flabel">Density</p>
+                        <p class="wval quiet">none yet — unlocks volume⇄weight</p>
+                        <p class="flabel" style="margin-bottom:2px">Measures</p>
+                        <p class="wval quiet">No measures yet.</p>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+        <p class="conv-note" style="margin:10px 4px 0"><b>Fill it in</b> is the only button the reading posture ever draws; it turns the sheet into the form, whose one <b>Save</b> is still the whole write — the band beside it keeps the same row as a work queue entry, and that door opens the fields instead.</p>
     </div>
 
 </div>
