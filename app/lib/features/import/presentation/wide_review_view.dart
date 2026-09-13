@@ -23,11 +23,14 @@
 /// in place, is unchanged.
 library;
 
+import 'dart:async';
+
 import 'package:cross_file/cross_file.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
@@ -356,6 +359,19 @@ class _SourceColumn extends StatelessWidget {
   }
 }
 
+/// Opens [url] in the platform's browser, and says nothing when it cannot: the
+/// column beside this door already holds the page's words, so a failed launch
+/// costs the reader nothing they did not already have.
+Future<void> _open(String url) async {
+  final uri = Uri.tryParse(url);
+  if (uri == null) return;
+  try {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  } on Object {
+    // Nothing to say: the page is already on screen.
+  }
+}
+
 /// A link import's source: the URL, then the page's own text with the selected
 /// line lit.
 class _PageText extends StatefulWidget {
@@ -404,7 +420,26 @@ class _PageTextState extends State<_PageText> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('THE PAGE', style: ansiLabel()),
+        Row(
+          children: [
+            Expanded(child: Text('THE PAGE', style: ansiLabel())),
+            Semantics(
+              label: 'Open the page',
+              button: true,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                // The page itself, in a real browser — the one thing this
+                // column cannot be: it is text, and the original has pictures,
+                // a comments section and the cook's own bookmark.
+                onTap: () => unawaited(_open(widget.url)),
+                child: Text(
+                  'open ↗',
+                  style: ansiMono(size: 10.5, color: AnsiColors.herb),
+                ),
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 6),
         Text(
           widget.url,
@@ -739,6 +774,7 @@ class _WideLineRow extends StatelessWidget {
           issues: effective.issues,
           onTap: onSelect,
           pencil: false,
+          sourceLine: false,
         ),
       ),
     );
@@ -909,8 +945,19 @@ class _WorkQueue extends StatelessWidget {
       children: [
         for (final group in groups) ...[
           _QueueHeading(label: group.work.label, count: group.items.length),
-          for (final item in group.items)
+          for (final item in group.items) ...[
             _QueueItem(item: item, onTap: () => onSelect(item.lineIndex)),
+            if (item.openIngredientId != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  '${item.name} has no piece weight yet — that is the row’s '
+                  'fact, so the door goes to the row. Every other bare count '
+                  'of it clears with it.',
+                  style: ansiMono(size: 10, color: AnsiColors.muted),
+                ),
+              ),
+          ],
         ],
         if (created.isNotEmpty) ...[
           const SizedBox(height: 18),

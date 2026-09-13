@@ -280,6 +280,31 @@ void main() {
       // It is the phone's own gate, with the phone's own words.
       expect(find.byType(ReviewCommitBar), findsOne);
     });
+
+    testWidgets('a row does not repeat the page — the page is a column away', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      _desk(tester);
+      await tester.pumpWidget(_host(await _reviewing()));
+      await tester.pumpAndSettle();
+
+      // The cilantro line's unit is refused, which on a phone is exactly when
+      // the row prints `from source:` under itself. Here the same words are
+      // set larger, five centimetres away, so the duplicate goes.
+      expect(find.text('Pick a supported unit'), findsWidgets);
+      expect(
+        find.descendant(
+          of: find.byKey(kWideLinesKey),
+          matching: find.textContaining('from source:'),
+        ),
+        findsNothing,
+      );
+      // …and it comes back the moment the source column is not there.
+      _narrow(tester);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('from source:'), findsWidgets);
+    });
   });
 
   group('the reading state at a desk', () {

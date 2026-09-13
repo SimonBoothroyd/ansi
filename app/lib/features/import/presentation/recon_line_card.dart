@@ -283,6 +283,7 @@ class ReviewLineRow extends StatelessWidget {
     required this.issues,
     required this.onTap,
     this.pencil = true,
+    this.sourceLine = true,
     super.key,
   });
 
@@ -298,6 +299,13 @@ class ReviewLineRow extends StatelessWidget {
   /// the row does not open into anything — the wide review, where the form is
   /// already standing beside the list.
   final bool pencil;
+
+  /// Whether a flagged row repeats what the page printed under it.
+  ///
+  /// True on a phone, where it is the only copy of the source there is. False
+  /// on a wide screen, where the page itself is a column away and set larger:
+  /// the duplicate would be the same words twice, five centimetres apart.
+  final bool sourceLine;
 
   @override
   Widget build(BuildContext context) {
@@ -316,6 +324,7 @@ class ReviewLineRow extends StatelessWidget {
     // words to know which supported unit they meant.
     final reference = rawLineText(raw);
     final showSource =
+        sourceLine &&
         issues.contains(LineIssue.unitNotAllowed) &&
         !resolution.addedAtReview &&
         reference.isNotEmpty;
