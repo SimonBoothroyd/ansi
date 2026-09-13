@@ -17,6 +17,14 @@
 /// in one inert strip with the step count and the title. And there is **no
 /// grip**: a reorder is not storable this week, and a drag that silently
 /// reverts on reopen is worse than no drag.
+///
+/// **Wide is one column, deliberately.** With no header form and no method
+/// there is no second column to make, so from [AnsiLayout.expanded] up this is
+/// the same list at the same 640 measure, centred in the pane the sidebar
+/// leaves. What the measure does buy is a column for the week's own statement
+/// at the row's right end: every row is then one line and the changes read down
+/// an edge, which is what makes the foot's *drops 5 changes* a count you can
+/// check rather than one you take on trust.
 library;
 
 import 'dart:async';
@@ -30,6 +38,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_back.dart';
 import '../../../shared/ansi_error_state.dart';
+import '../../../shared/ansi_layout.dart';
 import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
 import '../../ingredients/domain/allowed_units.dart';
@@ -352,90 +361,125 @@ class _WeekLineRow extends ConsumerWidget {
       }
     }
 
+    // The measure's own extra: the week's statement at the row's right end
+    // instead of under the name, so a row is one line and the changes read
+    // down an edge. Below expanded it stays under the name, where a phone has
+    // no room for a second column.
+    final wide = AnsiLayout.of(context) == AnsiLayout.expanded;
+
+    final amount = Semantics(
+      label: 'Amount',
+      button: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: struck ? null : () => unawaited(editAmount()),
+        child: SizedBox(
+          // A measure that weighs a piece is a word (ADR-0016), so at the
+          // measure the column is wide enough to say one — the only thing on
+          // this list that can still take a row to two lines.
+          width: wide ? kWeekAmountWidth : kLineAmountWidth,
+          child: Text(
+            amountOfLine(item).isEmpty ? '—' : amountOfLine(item),
+            style: ansiMono(
+              size: 14,
+              color: AnsiColors.muted,
+            ).copyWith(decoration: struck ? TextDecoration.lineThrough : null),
+          ),
+        ),
+      ),
+    );
+
+    final identity = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: struck ? null : () => unawaited(editIdentity()),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: item.ingredientName,
+              style: ansiSans(size: 15, weight: FontWeight.w500, color: muted)
+                  .copyWith(
+                    decoration: struck ? TextDecoration.lineThrough : null,
+                  ),
+            ),
+            ...noteSpans(item.note),
+          ],
+        ),
+      ),
+    );
+
+    // One slot per row, never two badges at once: a line this week has changed
+    // says what it did and offers the undo; an untouched optional line says it
+    // is optional and offers the way in. Ticking it in IS a change, so the
+    // first takes over from the second.
+    final statement = change != null
+        ? _WeekTag(
+            change: change!,
+            base: base,
+            alignEnd: wide,
+            onReset: () => change == WeekChange.added
+                ? notifier.removeOrExclude(item.id)
+                : notifier.reset(item.id),
+          )
+        : item.optional
+        ? _OptionalSwitch(
+            alignEnd: wide,
+            onTap: () =>
+                notifier.setOptional(item.id, optional: !item.optional),
+          )
+        : null;
+
+    final bin = struck
+        ? null
+        : FButton.icon(
+            variant: FButtonVariant.ghost,
+            onPress: () => notifier.removeOrExclude(item.id),
+            child: const Icon(FLucideIcons.x),
+          );
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 5, 20, 5),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Semantics(
-            label: 'Amount',
-            button: true,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: struck ? null : () => unawaited(editAmount()),
-              child: SizedBox(
-                width: kLineAmountWidth,
-                child: Text(
-                  amountOfLine(item).isEmpty ? '—' : amountOfLine(item),
-                  style: ansiMono(size: 14, color: AnsiColors.muted).copyWith(
-                    decoration: struck ? TextDecoration.lineThrough : null,
+        crossAxisAlignment: wide
+            ? CrossAxisAlignment.center
+            : CrossAxisAlignment.start,
+        children: wide
+            ? [
+                amount,
+                const SizedBox(width: 10),
+                Expanded(child: identity),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: kWeekStatementWidth,
+                  child: statement ?? const SizedBox.shrink(),
+                ),
+                const SizedBox(width: 4),
+                if (bin != null) bin else const SizedBox(width: 12),
+              ]
+            : [
+                amount,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [identity, ?statement],
                   ),
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: struck ? null : () => unawaited(editIdentity()),
-                  child: Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: item.ingredientName,
-                          style:
-                              ansiSans(
-                                size: 15,
-                                weight: FontWeight.w500,
-                                color: muted,
-                              ).copyWith(
-                                decoration: struck
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                              ),
-                        ),
-                        ...noteSpans(item.note),
-                      ],
-                    ),
-                  ),
-                ),
-                // One slot under the name, never two badges at once: a line
-                // this week has changed says what it did and offers the undo;
-                // an untouched optional line says it is optional and offers
-                // the way in. Ticking it in IS a change, so the first takes
-                // over from the second.
-                if (change != null)
-                  _WeekTag(
-                    change: change!,
-                    base: base,
-                    onReset: () => change == WeekChange.added
-                        ? notifier.removeOrExclude(item.id)
-                        : notifier.reset(item.id),
-                  )
-                else if (item.optional)
-                  _OptionalSwitch(
-                    onTap: () =>
-                        notifier.setOptional(item.id, optional: !item.optional),
-                  ),
+                const SizedBox(width: 4),
+                ?bin,
               ],
-            ),
-          ),
-          const SizedBox(width: 4),
-          if (!struck)
-            FButton.icon(
-              variant: FButtonVariant.ghost,
-              onPress: () => notifier.removeOrExclude(item.id),
-              child: const Icon(FLucideIcons.x),
-            ),
-        ],
       ),
     );
   }
 }
+
+/// The amount column at the measure — wide enough for a whole measure in its
+/// own words (ADR-0016), where the phone's [kLineAmountWidth] wraps one.
+const double kWeekAmountWidth = 118;
+
+/// The column the week's own statement stands in at the measure: the tag and
+/// the control that undoes it, set at the row's right end.
+const double kWeekStatementWidth = 256;
 
 /// The tag and its reset — one badge vocabulary on a recipe line, not two, so
 /// it wears the `optional` tag's voice. The reset is the dish row's `−` idiom:
@@ -446,18 +490,24 @@ class _WeekTag extends StatelessWidget {
     required this.change,
     required this.base,
     required this.onReset,
+    this.alignEnd = false,
   });
 
   final WeekChange change;
   final LineItem? base;
   final VoidCallback onReset;
 
+  /// In its own column at the measure, so it sets from the row's right edge
+  /// and the changes read down one line.
+  final bool alignEnd;
+
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 4),
+    padding: EdgeInsets.only(top: alignEnd ? 0 : 4),
     child: Wrap(
       spacing: 6,
       runSpacing: 4,
+      alignment: alignEnd ? WrapAlignment.end : WrapAlignment.start,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         FBadge(
@@ -493,9 +543,12 @@ class _WeekTag extends StatelessWidget {
 /// It wears `_WeekTag`'s own shape — a badge and the muted action beside it —
 /// because that is the one badge vocabulary a recipe line has.
 class _OptionalSwitch extends StatelessWidget {
-  const _OptionalSwitch({required this.onTap});
+  const _OptionalSwitch({required this.onTap, this.alignEnd = false});
 
   final VoidCallback onTap;
+
+  /// See [_WeekTag.alignEnd].
+  final bool alignEnd;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -508,11 +561,12 @@ class _OptionalSwitch extends StatelessWidget {
       // target is padded out to a comfortable one rather than drawn bigger.
       child: Container(
         constraints: const BoxConstraints(minHeight: 32),
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(top: 4),
+        alignment: alignEnd ? Alignment.centerRight : Alignment.centerLeft,
+        padding: EdgeInsets.only(top: alignEnd ? 0 : 4),
         child: Wrap(
           spacing: 6,
           runSpacing: 4,
+          alignment: alignEnd ? WrapAlignment.end : WrapAlignment.start,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             const OptionalTag(),
