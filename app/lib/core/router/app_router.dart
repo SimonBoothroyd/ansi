@@ -23,6 +23,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/account/presentation/account_view.dart';
 import '../../features/auth/presentation/connecting_view.dart';
 import '../../features/auth/presentation/sign_in_view.dart';
+import '../../features/books/presentation/book_page_view.dart';
 import '../../features/books/presentation/library_view.dart';
 import '../../features/cook_plan/presentation/cook_view.dart';
 import '../../features/import/presentation/import_view.dart';
@@ -51,22 +52,26 @@ part 'app_router.g.dart';
 /// is not one column. It takes [ansiWideMeasureWidth] rather than a number, so
 /// the cap stays the layout file's business and never the router's.
 ///
-/// [wrap] is how the handful of pages whose honest form USES the width opt
-/// out: false leaves the page unwrapped, and the page itself applies the
-/// measure at the bands where it is still the phone's page. Everything else
-/// takes the default and is centred.
+/// [usesWidth] is the deliberate opt-out, for a page whose honest form at
+/// [AnsiLayout.expanded] is wider than one column — the book page's section
+/// index beside its recipes, the manager's two panes. It changes nothing below
+/// that band: on a phone and a portrait tablet the page is centred in the
+/// measure like every other. The opt-out lives here rather than in the page,
+/// so the measure still has exactly two appliers and a screen still never
+/// wraps itself.
 GoRoute _page({
   required String path,
   required String name,
   required Widget Function(GoRouterState state) builder,
   double Function(BuildContext context)? measure,
-  bool wrap = true,
+  bool usesWidth = false,
 }) => GoRoute(
   path: path,
   name: name,
-  builder: (context, state) => wrap
-      ? AnsiMeasure(width: measure, child: builder(state))
-      : builder(state),
+  builder: (context, state) =>
+      usesWidth && AnsiLayout.of(context) == AnsiLayout.expanded
+      ? builder(state)
+      : AnsiMeasure(width: measure, child: builder(state)),
 );
 
 /// The manager, at whatever width it is opened at: the phone's one column in
@@ -211,6 +216,17 @@ GoRouter router(Ref ref) {
           initialSectionId: state.uri.queryParameters['section'],
         ),
       ),
+      // One book on a page of its own. Pushed like the rest, so it covers the
+      // bar and back returns to the Library — and deep-linkable, which is the
+      // point of a book having a URL at all. It is the one page that USES the
+      // width: at `expanded` its sections are an index beside the recipes,
+      // so it opts out of the measure there (see [_page]).
+      _page(
+        path: '/books/:id',
+        name: 'book',
+        usesWidth: true,
+        builder: (state) => BookPageView(bookId: state.pathParameters['id']!),
+      ),
       // `/account` (the household, this device, the session) and
       // `/ingredients` (the vocabulary manager) are pushed like `/import`,
       // never a fifth tab: the four tabs are the loop, and neither an account
@@ -226,7 +242,7 @@ GoRouter router(Ref ref) {
       _page(
         path: '/ingredients',
         name: 'ingredients',
-        wrap: false,
+        usesWidth: true,
         builder: (state) => const _IngredientsPage(),
       ),
       // `/ingredients/new` — the ONE door to making an ingredient. It is the
@@ -249,7 +265,7 @@ GoRouter router(Ref ref) {
       _page(
         path: '/ingredients/:id',
         name: 'ingredient',
-        wrap: false,
+        usesWidth: true,
         builder: (state) => _IngredientPage(
           id: state.pathParameters['id']!,
           edit: state.uri.queryParameters[kEditPostureQueryParam] == '1',

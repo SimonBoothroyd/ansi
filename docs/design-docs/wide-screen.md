@@ -71,6 +71,14 @@ Twice. A screen never wraps itself.
   through it, so a new screen is in the measure the day it is added and cannot
   forget to be.
 
+**One page opts out, and says so in the router.** `_page` takes a `usesWidth`
+flag, and the only route that passes it is `/books/:id`: at `expanded` a book is
+a ~200 px section index beside its recipes, which does not fit 640. Below that
+band it is centred like every other page. The flag lives on the helper rather
+than in the screen, so the measure still has exactly two appliers and a screen
+still never wraps itself — opting out is a route's stated decision, readable in
+one place, not a widget quietly escaping its parent.
+
 The **toast** is capped at the measure and anchored bottom-centre on the theme's
 toaster style (`app/lib/core/theme/ansi_theme.dart`), so no call site restates
 either. On a phone the cap is never reached.
@@ -106,13 +114,15 @@ frame behind it is in that screen's own file, under its `Wide · ≥ 1024` rule.
 
 | Screen | From `expanded` up |
 |---|---|
+| **Library** (`features/books`) | at `expanded` the body is a **grid of fixed-height book tiles** (four across at 1440, three on an iPad) rather than a column of cards; the fold is not read; a tile opens the book page. The search field, the ranked results column, the `＋ new book` door and the vocabulary shelf are the phone's. |
+| **Book page** (`/books/:id`, `features/books`) | **two panes**: a 200 section index (counts, current lit, tapping scrolls the one list) beside the recipes at the measure; every row and menu is the Library's own. |
 | **Shop** (`features/shopping`) | the walk stays **one column at the measure** — two phones drive it at once, and a checked row must not move — with a 360 pane beside it holding one row's `from …` breakdown open. A row's **name** points the pane at it; the row's own tap is still the tick, and the aisles and the one basket section are the phone's. |
 | **Cook** (`features/cook_plan`) | the session cards run **two-up, capped at 1000 and centred**. A card is a whole session and never splits across a column, so the width buys rows of cards rather than a re-drawn card; an odd count ends in a ragged row. |
 | **Ingredients manager** (`features/ingredients`) | **two panes**: the vocabulary (its search field and stub band pinned, the aisle sections scrolling under them, the add door at the foot) and the fact sheet, capped at 720, opened **in place** rather than pushed. `/ingredients/:id` lands on the same split with that row lit; `?edit=1` stays the form in the measure at every width. |
 
-The two pages of the manager are the app's first routes to opt out of the
-router's measure, through `_page`'s `measure:` parameter — they apply the
-measure themselves at the bands where they are still the phone's page.
+The two pages of the manager and the book page opt out of the router's
+measure through `_page`'s `usesWidth` flag — unwrapped at `expanded`, in the
+measure below it — never by wrapping or unwrapping themselves.
 
 ## 5. The board's wide frames
 

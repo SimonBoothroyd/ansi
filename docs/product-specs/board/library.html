@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Library</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>features/books</code> · <a href="../../exec-plans/completed/0028-library-v3.md">plan 0028</a> · <a href="../../exec-plans/completed/0033-library-v2-decisions.md">plan 0033</a> · <a href="../../exec-plans/completed/0037-library-rows.md">plan 0037</a> · wide: proposed <a href="../../exec-plans/active/0047-wide-screens.md">plan 0047</a></p>
+    <p class="view-status">built · matches code 2026-09-13 · <code>features/books</code> · <a href="../../exec-plans/completed/0028-library-v3.md">plan 0028</a> · <a href="../../exec-plans/completed/0033-library-v2-decisions.md">plan 0033</a> · <a href="../../exec-plans/completed/0037-library-rows.md">plan 0037</a> · <a href="../../exec-plans/active/0047-wide-screens.md">plan 0047</a> · wide: differs 2026-09-13: the shelf fills the pane it is given, which the tab shell still caps at the measure, and the header keeps its <b>👥</b> until the sidebar's Account replaces it</p>
     <p class="view-blurb">The app’s home shelf — books, sections, rows; the field is the header, and every control hangs off a row that already existed.</p>
 </header>
 
@@ -457,11 +457,13 @@
             </div>
         </div>
         <p class="wide-cap">A tile is <b>180 px, always</b> — a 70 px band over the 108 px the body gets. The band carries the book’s name and the phone’s own count line, <code>42 recipes · 3 sections</code>, or <code>no recipes yet</code> where the shelf is empty; a name past the band’s two lines is clipped there rather than allowed to shorten the body.</p>
+        <p class="differs-note">differs: the grid asks for as many columns as fit at a <b>320 px</b> tile — four across the 1160 pane a 1440 window leaves beside the sidebar, three on an iPad in landscape. Both of those are the shell's pane: until it hands a branch root the whole width, the tab shell centres the Library at the 640 measure and the same grid draws <b>two</b> columns. The header's <b>👥</b> is likewise the shell's to remove, and it is still there</p>
         <p class="wide-cap">What the body lists is <b>titles</b>. The Library’s recipe row is two lines — the title, then <code>serves 4 · 520 kcal · 28 g protein</code> — and it carries its own <b>⋯</b>; three of those do not fit 108 px, and a row that drops its second line is a row the app does not have. So the shelf lists what is on it, and the <b>book page</b> a tile opens draws the row, as the search column below does. The <b>★</b> stays: it reports, it never files, and a title past the tile’s width is clipped here — where it is a row, it wraps instead.</p>
     </div>
 
     <div class="frame wide lw-short">
         <p class="frame-name"><b>wide · search results</b> · one ranked column at a 720 measure, each row keeping its <b>Book · Section</b> filing line — a second column would only make rank harder to read</p>
+        <p class="differs-note">differs: the built column is the app's one measure, <b>640</b>, not 720 — it is the phone's list, capped by the shell rather than by anything of its own</p>
         <div class="desk">
             <div class="lip"><i></i><i></i><i></i></div>
             <div class="dscreen">

@@ -90,7 +90,10 @@ screen: [`../docs/design-docs/navigation.md`](../docs/design-docs/navigation.md)
   them with `AnsiMeasure`, which centres a page in a 640 column from medium up
   and is a no-op on a phone. The measure is applied in exactly two places — the
   tab shell wraps everything it owns, the router's `_page` helper wraps every
-  pushed page — so **a screen never wraps or measures itself**. Enforced by
+  pushed page — so **a screen never wraps or measures itself**. A page whose
+  honest wide form is wider than one column opts out by passing `usesWidth` to
+  that same helper (only `/books/:id` does today), which keeps the decision in
+  the router rather than inside the screen. Enforced by
   `test/structure/one_viewport_reader_test.dart`, which fails on
   `MediaQuery.sizeOf`, `MediaQuery.of(context).size` or `LayoutBuilder` anywhere
   else. Inset reads (`viewInsetsOf`, `paddingOf`) are not viewport reads and are

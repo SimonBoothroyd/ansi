@@ -66,6 +66,22 @@ changes, and the code gets one place that reads the viewport.
   are a left index against the recipes at a readable measure. The
   per-device fold does not exist on wide. Search results stay one ranked
   column. Owner call; retires the backlog's per-book detail row when built.
+- 2026-09-13 — **The page exists, and the backlog row is deleted.**
+  `/books/:id` ships with the shelf: the book's name and count line, its
+  sections in order with `Unsectioned` last, and the Library card's own
+  widgets for every control (`features/books/book_rows.dart`, shared by the
+  card and the page). What the retired row asked for beyond that — a cover
+  or colour (`book.color`), notes, per-book search — is **not** built and no
+  migration was added for it; the page earned its place from the width, not
+  from a book wanting decoration. The router's `_page` helper gained one
+  flag, `usesWidth`, so a page whose honest wide form is two panes opts out
+  of the measure at `expanded` and stays centred everywhere else.
+- 2026-09-13 — **The shelf fills the pane it is given.** The grid takes as
+  many columns as fit at a 320 px tile. Until the shell lane hands a branch
+  root the whole width, the tab shell still centres the Library at the
+  measure, so a desk window draws two columns rather than four, and the
+  Library header keeps its household door until the sidebar's Account
+  replaces it. Both are named on `library.html` as `differs`.
 
 - 2026-09-13 — **W1's platform half is built** (release.md §6, app/AGENTS.md):
   OAuth returns to the served page, photo import reads a blob URL through

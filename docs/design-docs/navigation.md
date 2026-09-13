@@ -74,7 +74,7 @@ branch, and an intercepted pop is spent on `goBranch(0)`.
 |---|---|---|
 | **Library tab** | leaves the app — this is home | nothing (no gesture at a stack root) |
 | **Week · Cook · Shop tab** | → the **Library tab**; a second back leaves | nothing |
-| **A pushed page** (recipe · editor · import · ingredients) | pops to the tab under it | works — interactive, tracks the finger |
+| **A pushed page** (recipe · editor · import · ingredients · a book) | pops to the tab under it | works — interactive, tracks the finger |
 | **The ingredient page while it is being EDITED** | leaves the editing posture, back onto the row's fact sheet — the same step the header chevron takes | held by that mode, so it resumes on the fact sheet one tap away |
 | **A page landed on after an import commit or a NEW recipe's save** | pops to where it was opened from — the page replaced the flow that made it | works |
 | **The recipe page after saving an EXISTING recipe** | the editor has popped back onto it; back pops to where the recipe was opened from | works |
@@ -97,9 +97,9 @@ something the user watches happen rather than something that happens to them.
 
 ### Pushed pages stay top-level
 
-`/recipes/new`, `/recipes/:id`, `/recipes/:id/edit`, `/import`, `/ingredients`,
-`/ingredients/new`, `/ingredients/:id` and `/account` are **siblings of the
-shell**, not children of a branch. They
+`/recipes/new`, `/recipes/:id`, `/recipes/:id/edit`, `/import`, `/books/:id`,
+`/ingredients`, `/ingredients/new`, `/ingredients/:id` and `/account` are
+**siblings of the shell**, not children of a branch. They
 are pushed on the root Navigator, so they cover the bar and keep each platform's
 own push transition and back gesture. `/recipes/:id` is reachable from four
 places in three different tabs; nesting it would mean either duplicating it per
@@ -121,6 +121,16 @@ plain doors — a manager row, an ingredient's name on a recipe line — read.
 `/ingredients/new` is always the form and is the one exit that still leaves
 the page: it has no fact sheet behind it, so it **pops with the row it made**,
 which is what the picker that pushed it awaits (below).
+
+`/books/:id` is one book on a page of its own, opened by a tile on the wide
+Library's shelf and by a pasted link. **Back returns to the Library**, through
+the same `canPop() ? pop() : go('/')` the recipe page uses: a cold deep link
+straight at a book has no shell page beneath it, so the fallback is doing real
+work there. It is a sibling of the shell for the ordinary reason — it must cover
+the bar — and it is the one pushed page that does not sit in the measure at
+`expanded`, where its sections are an index beside its recipes (the router's
+`_page` helper takes a `usesWidth` flag; see
+[wide-screen.md](./wide-screen.md)).
 
 The bar being gone inside a recipe is the honest signal that you have left the
 tab loop — the same rule the Ingredients manager already locked.
