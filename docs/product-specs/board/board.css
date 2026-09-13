@@ -1404,24 +1404,34 @@
     .wr{width:100%;max-width:780px;align-self:center;}
     /* the phone's 20 px gutters belong to the phone; the column carries them */
     .wr .r-hero,.wr .grp,.wr .macro,.wr .macro-lab,.wr .macro-inc,
-    .wr .notcounted,.wr .conv-note{margin-left:0;margin-right:0;}
+    .wr .notcounted,.wr .nc-row,.wr .nc-cap,
+    .wr .conv-note{margin-left:0;margin-right:0;}
     .wr .r-hero{padding:0;}
     .wr .r-title{font-size:26px;margin:5px 0 10px;}
     .wr .grp:first-of-type{margin-top:0;}
+    /* a measure that weighs a piece is a word, not a digit (ADR-0016), so the
+       amount cell wraps rather than pushing the name out of a 272 px column */
+    .wr .l3-amt{white-space:normal;}
+    /* five cells in that column: the strip tightens its own padding rather
+       than dropping a fibre figure the recipe can state */
+    .wr .macro .m{padding-left:3px;padding-right:3px;}
+    .wr .macro .ml{letter-spacing:.04em;}
     /* the hero reads across the top: identity left, the scaler and ⋯ right */
     .wr-hero{display:flex;align-items:flex-start;gap:20px;padding-bottom:16px;border-bottom:1px solid var(--line);}
     .wr-hero .hl{flex:1;min-width:0;}
-    .wr-hero .hr{flex:none;display:flex;align-items:center;gap:12px;}
+    .wr-hero .hr{position:relative;flex:none;display:flex;align-items:center;gap:12px;}
+    /* the page's one door for its less-used verbs, hung under that ⋯ */
+    .wr-menu{position:absolute;top:26px;right:0;width:250px;margin:0;z-index:2;}
     .wr .scaler{margin:0;width:300px;}
     .wr .scaler .val{white-space:nowrap;}
     .wr-dots{color:var(--muted);font-size:16px;line-height:1;}
     /* the two tabs become two columns; nothing else about them changes */
     .wr-cols{display:grid;grid-template-columns:272px 1fr;gap:22px;align-items:start;margin-top:18px;}
     .wr-ch{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line);}
-    /* a method step: the shipped ink disc, then the sentence with its chips */
-    .wr-cols .step{padding:12px 0;}
-    .wr-sn{width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;flex:none;}
-    .wr-sb{flex:1;min-width:0;font-size:14px;line-height:1.7;padding-top:3px;}
+    /* a method step is the phone's own line, unchanged by the width: a mono
+       number in its own column, the ingredient a plain herb word, the live
+       amount its pill. Only the phone's 20 px gutters go. */
+    .wr .mrow{padding-left:0;padding-right:0;}
     /* a frame shown short — a page cropped, the way the phone frames crop */
     .desk .dscreen.wr-short{min-height:0;}
 
