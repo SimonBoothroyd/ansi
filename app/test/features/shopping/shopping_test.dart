@@ -460,38 +460,17 @@ void main() {
       expect(completesTheList(const ShoppingList(), item('Flour')), isFalse);
     });
 
-    test('the completion key is the sorted item identities', () {
-      expect(completionKeyOf(almostDone), 'Flour|Lime');
-      // Ticking changes nothing about WHICH list this is — a derived row
-      // gaining its entry on first check-off included.
-      final ticked = ShoppingList(
-        groups: [
-          ShoppingGroup(label: 'Produce', items: [item('Lime', checked: true)]),
-          const ShoppingGroup(
-            label: 'Baking',
-            items: [
-              ShoppingItem(
-                name: 'Flour',
-                ingredientId: 'Flour',
-                entryId: 'e-flour',
-                checked: true,
-              ),
-            ],
-          ),
-        ],
-      );
-      expect(completionKeyOf(ticked), completionKeyOf(almostDone));
-      // A row added since is a new list.
-      final grown = almostDone.copyWith(
-        groups: [
-          ...almostDone.groups,
-          ShoppingGroup(label: 'Dairy', items: [item('Milk')]),
-        ],
-      );
-      expect(completionKeyOf(grown), 'Flour|Lime|Milk');
-      // A free-text row is known by its entry.
+    test('a free-text row is known by its entry', () {
+      // A derived row is known by its ingredient, so it still recognises
+      // itself once check-off lazily gives it an entry.
       const towels = ShoppingItem(name: 'Paper towels', entryId: 'e1');
       expect(shoppingItemIdentity(towels), 'e1');
+      const flour = ShoppingItem(
+        name: 'Flour',
+        ingredientId: 'Flour',
+        entryId: 'e-flour',
+      );
+      expect(shoppingItemIdentity(flour), 'Flour');
     });
   });
 

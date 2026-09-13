@@ -547,16 +547,13 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
   }
 
   /// The last tick's celebration: a light haptic and, unless the phone asks
-  /// for no animation, the confetti from this row's box. Armed once per list
-  /// ([LastTickCelebration]), so the other phone's finish and a re-tick of
-  /// the same row play nothing.
+  /// for no animation, the confetti from this row's box. Asked of the list as
+  /// it stands before the write ([completesTheList]), so the other phone's
+  /// finish plays nothing and every finishing tick here plays — untick the
+  /// last row, tick it again, and the confetti comes back.
   void _celebrateIfLastTick() {
     final list = ref.read(currentShoppingListProvider).asData?.value;
-    if (list == null) return;
-    final armed = ref
-        .read(lastTickCelebrationProvider.notifier)
-        .arm(ref.read(viewedWeekStartProvider), list, item);
-    if (!armed) return;
+    if (list == null || !completesTheList(list, item)) return;
     unawaited(HapticFeedback.lightImpact());
     if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) return;
     final box = _box.currentContext?.findRenderObject();

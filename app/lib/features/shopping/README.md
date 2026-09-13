@@ -24,7 +24,7 @@ derived on the domain (`ShoppingList.openGroups` / `basketGroups` / `basket` /
 
 ## The last tick
 
-When the tick that finishes the list is made **on this phone**, the phone
+Whenever the tick that finishes the list is made **on this phone**, the phone
 celebrates: a light haptic, and confetti of the food itself — about thirty
 pieces, Lucide glyphs the app already ships (leaf, wheat, carrot), a berry
 and plain strips, in the eight `AnsiConfetti` colours, the one deliberate
@@ -40,12 +40,10 @@ appears.
 The rules are held in code and tested. `completesTheList` (domain) says
 whether this tick takes the list from exactly one unticked row to none — never
 on a list of one item — decided on the list as it stands before the write, so
-a completion arriving by sync plays nothing. `LastTickCelebration` (view
-model) plays once per list: its key is the viewed week plus
-`completionKeyOf`, the sorted item identities (ingredient id, or the entry id
-of a free-text row), so unticking and re-ticking the last row does not replay
-and a row added since can. `MediaQuery.disableAnimations` skips the burst and
-keeps the haptic.
+a completion arriving by sync plays nothing. The view asks it on every tick
+and nothing is remembered between them: untick the last row, tick it again,
+and the confetti comes back. `MediaQuery.disableAnimations` skips the burst
+and keeps the haptic.
 
 ## Layout
 

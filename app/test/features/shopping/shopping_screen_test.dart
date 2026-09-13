@@ -700,8 +700,8 @@ void main() {
       expect(haptics, isEmpty);
     });
 
-    testWidgets('once per list: unticking and re-ticking the last row does '
-        'not replay, and a row added since makes a new list', (tester) async {
+    testWidgets('every finish plays: re-ticking the last row bursts again, '
+        'and so does a row added since', (tester) async {
       final haptics = _recordHaptics(tester);
       final repo = _FakeShoppingRepo(oneLeft(), live: true);
       await tester.pumpWidget(
@@ -714,17 +714,19 @@ void main() {
       expect(find.byType(ConfettiBurst), findsOneWidget);
       await settleBurst(tester);
 
-      // Untick from the basket, then tick again: the same list, done twice.
+      // Untick from the basket, then tick again: the same list, finished a
+      // second time, and it celebrates a second time.
       await tester.tap(find.text('Onion'));
       await tester.pump();
       expect(find.text('everything’s in the basket'), findsNothing);
       await tester.tap(find.text('Onion'));
       await tester.pump();
       expect(find.text('everything’s in the basket'), findsOneWidget);
-      expect(find.byType(ConfettiBurst), findsNothing);
-      expect(haptics, hasLength(1));
+      expect(find.byType(ConfettiBurst), findsOneWidget);
+      expect(haptics, hasLength(2));
+      await settleBurst(tester);
 
-      // Flour joins (a top-up, say) and is ticked: a new list, a new moment.
+      // Flour joins (a top-up, say) and is ticked: another finish.
       repo.emit(
         repo.list.copyWith(
           groups: [
@@ -740,7 +742,7 @@ void main() {
       await tester.tap(find.text('Flour'));
       await tester.pump();
       expect(find.byType(ConfettiBurst), findsOneWidget);
-      expect(haptics, hasLength(2));
+      expect(haptics, hasLength(3));
       await settleBurst(tester);
     });
 
