@@ -175,15 +175,10 @@ void main() {
       final days = cookTrackDays([(s, '×2')]);
       expect(days[1].cookScale, '×2');
       expect(days[1].dot, CookTrackDot.none);
-      expect([for (final d in days) d.keeps], [
-        false,
-        true,
-        true,
-        true,
-        true,
-        false,
-        false,
-      ]);
+      expect(
+        [for (final d in days) d.keeps],
+        [false, true, true, true, true, false, false],
+      );
       expect(days[3].dot, CookTrackDot.eaten);
     });
 
@@ -215,24 +210,14 @@ void main() {
       final first = _session(cookDay: 0, keeps: 1, covers: [_meal(0, 'D', 2)]);
       final second = _session(cookDay: 5, keeps: 1, covers: [_meal(5, 'D', 2)]);
       final days = cookTrackDays([(first, '×1'), (second, '×1')]);
-      expect([for (final d in days) d.cookScale], [
-        '×1',
-        null,
-        null,
-        null,
-        null,
-        '×1',
-        null,
-      ]);
-      expect([for (final d in days) d.keeps], [
-        true,
-        true,
-        false,
-        false,
-        false,
-        true,
-        true,
-      ]);
+      expect(
+        [for (final d in days) d.cookScale],
+        ['×1', null, null, null, null, '×1', null],
+      );
+      expect(
+        [for (final d in days) d.keeps],
+        [true, true, false, false, false, true, true],
+      );
     });
   });
 
