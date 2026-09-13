@@ -69,7 +69,7 @@ List<String> slotRowsOf(WeekPlan? plan) {
   return [for (final p in indexed) p.$2];
 }
 
-class WeekMatrix extends ConsumerWidget {
+class WeekMatrix extends StatelessWidget {
   const WeekMatrix({
     required this.weekStart,
     required this.plan,
@@ -103,12 +103,12 @@ class WeekMatrix extends ConsumerWidget {
   final VoidCallback? onCopyLastWeek;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final slots = slotRowsOf(plan);
     final copy = onCopyLastWeek;
-    // The shell caps a branch root at the 640 measure; a matrix is one of the
-    // views that asks for the width instead, through the shell's full-width
-    // pane. Until then this fills whatever width it is handed.
+    // A matrix is a view that USES the width, so it belongs in the full-width
+    // pane the tab shell offers a branch root that opts out of the 640 measure.
+    // It fills whatever width it is handed and caps nothing itself.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
