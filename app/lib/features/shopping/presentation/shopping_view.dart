@@ -105,8 +105,8 @@ class ShoppingView extends ConsumerWidget {
 ///
 /// [selection] is null on a phone, where every row draws its own breakdown
 /// under it. At [AnsiLayout.expanded] it is the pane's seam: the row it is
-/// reading lights up, a row's NAME points the pane at it, and no row draws a
-/// breakdown of its own.
+/// reading lights up, a tap anywhere on a row but its check box points the pane
+/// at it, and no row draws a breakdown of its own.
 Widget _shoppingList(
   BuildContext context,
   WidgetRef ref,
@@ -172,7 +172,8 @@ class _Selection {
   /// The identity of the row the pane is on.
   final String identity;
 
-  /// Points the pane at a row. The row's own tap is still the tick.
+  /// Points the pane at a row — what a tap on the row does at this width. The
+  /// check box keeps the tick.
   final ValueChanged<ShoppingItem> read;
 }
 
@@ -190,8 +191,12 @@ class _WideShop extends ConsumerStatefulWidget {
 }
 
 class _WideShopState extends ConsumerState<_WideShop> {
-  /// The row a name has pointed the pane at, or null while the pane is reading
+  /// The row a tap has pointed the pane at, or null while the pane is reading
   /// the first row of the walk.
+  ///
+  /// Held as an identity, so a row the pane is on that is ticked keeps the pane
+  /// as it walks to the basket section — the row did not go anywhere, and
+  /// moving the pane off it would be a second thing the tick did.
   String? _reading;
 
   @override
@@ -703,7 +708,9 @@ class _OptionalLinesEchoState extends ConsumerState<OptionalLinesEcho> {
 }
 
 /// One shopping line: check box · name · total, with the provenance breakdown
-/// beneath. Tapping the row (or its box) toggles check-off. A purely user-added
+/// beneath. On a phone, tapping the row (or its box) toggles check-off; at
+/// [AnsiLayout.expanded] the box is the only thing that ticks and the rest of
+/// the row points the pane at it. A purely user-added
 /// line (a non-food item, or an ingredient that's only a manual top-up) can be
 /// removed by swiping it away or long-pressing — a cook-derived line can't (its
 /// quantity comes from the week; drop its top-up via the edit sheet instead).
@@ -713,9 +720,14 @@ class _ItemRow extends ConsumerStatefulWidget {
   final ShoppingItem item;
 
   /// Non-null at [AnsiLayout.expanded], where the breakdown is held open in the
-  /// pane beside the list instead of under the row: the row's NAME is then the
-  /// door that points the pane at it, the row's tap is still the tick, and the
-  /// row the pane is on is lit.
+  /// pane beside the list instead of under the row: the CHECK BOX is then the
+  /// only thing that ticks, a tap anywhere else on the row points the pane at
+  /// it, and the row the pane is on is lit.
+  ///
+  /// Owner's reading of the first cut, where the name selected and the row
+  /// ticked: *"pressing the title selects, but the row toggles on/off, which is
+  /// a bit confusing"*. One press cannot mean two things, so the tick keeps the
+  /// control that draws it and the row becomes the pane's pointer.
   final _Selection? selection;
 
   @override
@@ -810,7 +822,10 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
     );
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: _toggle,
+      // A phone's row IS the tick. At expanded the row is the pane's pointer
+      // instead, and the box below keeps the tick — the name selecting while
+      // the row toggled was one press with two answers.
+      onTap: selection == null ? _toggle : () => selection.read(item),
       onLongPress: item.isUserAdded
           ? () => _confirmRemove(context, ref, item)
           : null,
@@ -818,7 +833,10 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
         key: reading ? kShopReadingRowKey : null,
         margin: const EdgeInsets.symmetric(horizontal: 20),
         padding: EdgeInsets.symmetric(
-          vertical: 11,
+          // At expanded the row's own top and bottom are folded into the tick
+          // target, so a thumb aimed at the box lands on it; the tail puts the
+          // bottom half back under itself.
+          vertical: selection == null ? 11 : 0,
           horizontal: reading ? 11 : 0,
         ),
         decoration: reading
@@ -835,17 +853,30 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
           children: [
             Row(
               children: [
-                _CheckBox(key: _box, checked: item.checked),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: selection == null
-                      ? name
-                      : GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => selection.read(item),
-                          child: name,
-                        ),
-                ),
+                if (selection == null) ...[
+                  _CheckBox(key: _box, checked: item.checked),
+                  const SizedBox(width: 11),
+                ] else
+                  // The one thing on a wide row that ticks. The box is drawn
+                  // exactly where the phone draws it — nothing about a row
+                  // changes with the width — inside a target that takes the
+                  // row's full height and the whole run up to the name:
+                  // 31 × 44, which is why the row's vertical padding moved in
+                  // here.
+                  GestureDetector(
+                    key: shopTickTargetKey(shoppingItemIdentity(item)),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: _toggle,
+                    child: SizedBox(
+                      width: 31,
+                      height: 44,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: _CheckBox(key: _box, checked: item.checked),
+                      ),
+                    ),
+                  ),
+                Expanded(child: name),
                 const SizedBox(width: 8),
                 Text(
                   itemTotal(item),
@@ -891,12 +922,22 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
                 ),
               ),
             ],
+            // The bottom half of the padding the tick target took, put back
+            // under a tail that would otherwise sit on the hairline.
+            if (selection != null && secondary.isNotEmpty)
+              const SizedBox(height: 11),
           ],
         ),
       ),
     );
   }
 }
+
+/// The key on a wide row's tick target — the only thing that ticks at
+/// [AnsiLayout.expanded], named by [shoppingItemIdentity] so a test can tick
+/// one named row without hunting for a box.
+ValueKey<String> shopTickTargetKey(String identity) =>
+    ValueKey('shop-tick-$identity');
 
 /// The red "delete" panel revealed behind a row as it's swiped away.
 class _DeleteBackground extends StatelessWidget {

@@ -192,6 +192,20 @@ changes, and the code gets one place that reads the viewport.
   the cost, taken knowingly, is that scanning the week to decide what to cook
   now means opening a day.
 
+- 2026-09-13 — **On the wide Shop the check box ticks and the row selects.**
+  The owner reads the built pane and finds the row answering two things at
+  once: *"pressing the title selects, but the row toggles on/off, which is a
+  bit confusing. Feels like just the checkbox should toggle; the rest should
+  select."* So the row splits where the drawing already splits it. The box is
+  the only tick, inside its own 31 × 44 target — the row's vertical padding
+  moves into that target, so a thumb aimed at the box lands on it and the box
+  is still drawn exactly where the phone draws it — and a tap anywhere else,
+  name, amount or blank, points the pane at that row and lights it. The name
+  stops being a special door. A ticked row keeps the pane while it walks to the
+  basket section: it did not leave the list, and moving the pane off it would
+  be a second thing one tick did. Below `expanded` nothing moves — the whole
+  row is the tick, and the breakdown opens under it.
+
 ## Notes / open questions
 
 - Week on wide: where the week band (total, average, `n of 7 days`) sits is

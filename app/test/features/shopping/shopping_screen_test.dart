@@ -1177,9 +1177,36 @@ void main() {
       );
     });
 
-    testWidgets("a row's name points the pane at it, and does NOT tick it", (
-      tester,
-    ) async {
+    testWidgets('the check box ticks, and ticking says nothing about which '
+        'row the pane is reading', (tester) async {
+      deskWidth(tester);
+      final repo = _FakeShoppingRepo(listWithBasket());
+      await tester.pumpWidget(
+        _host([shoppingRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pump();
+
+      // The pane is on Flour, the first row of the walk; Halloumi's box is a
+      // target of its own, 31 x 44, big enough for the thumb of a shopper.
+      final box = find.byKey(shopTickTargetKey('halloumi'));
+      expect(tester.getSize(box), const Size(31, 44));
+      await tester.tap(box);
+      await tester.pump();
+
+      expect(repo.tickCalls, 1);
+      expect(repo.lastChecked, isTrue);
+      expect(
+        find.descendant(
+          of: find.byKey(kShopReadingRowKey),
+          matching: find.text('Flour'),
+        ),
+        findsOneWidget,
+        reason: 'grabbing a row is not reading it — the pane has not moved',
+      );
+    });
+
+    testWidgets('a tap on the name, or on the amount, points the pane at that '
+        'row and does NOT tick it', (tester) async {
       deskWidth(tester);
       final repo = _FakeShoppingRepo(listWithBasket());
       await tester.pumpWidget(
@@ -1199,24 +1226,65 @@ void main() {
         ),
         findsOneWidget,
       );
+
+      // The amount is the rest of the row, and the rest of the row selects
+      // too: only the box ticks. Flour's total, to move the pane back.
+      await tester.tap(find.text('500 g'));
+      await tester.pump();
+
+      expect(
+        find.descendant(
+          of: find.byKey(kShopReadingRowKey),
+          matching: find.text('Flour'),
+        ),
+        findsOneWidget,
+      );
       expect(
         repo.tickCalls,
         0,
-        reason: "reading a row is not grabbing it — the tick is the row's tap",
+        reason: 'reading a row is not grabbing it — only the box ticks',
       );
     });
 
-    testWidgets('the row is still the tick: the pane changes nothing about '
-        'what a tap does', (tester) async {
+    testWidgets('the row the pane is on keeps it when it is ticked — it walks '
+        'to the basket section, it does not leave the list', (tester) async {
       deskWidth(tester);
+      final repo = _FakeShoppingRepo(listWithBasket(), live: true);
+      await tester.pumpWidget(
+        _host([shoppingRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pump();
+
+      // Read Halloumi, then tick it: the derivation moves it under IN THE
+      // BASKET, and the pane stays on the row the shopper was reading.
+      await tester.tap(find.text('Halloumi'));
+      await tester.pump();
+      await tester.tap(find.byKey(shopTickTargetKey('halloumi')));
+      await tester.pump();
+
+      expect(find.text('In the basket · 2'.toUpperCase()), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(kShopReadingRowKey),
+          matching: find.text('Halloumi'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('DAIRY · IN THE BASKET'), findsOneWidget);
+    });
+
+    testWidgets('below 1024 the phone rule is untouched: the whole row ticks, '
+        'and there is no pane to point at', (tester) async {
       final repo = _FakeShoppingRepo(listWithBasket());
       await tester.pumpWidget(
         _host([shoppingRepositoryProvider.overrideWithValue(repo)]),
       );
       await tester.pump();
 
-      // Halloumi's own total, which only the row draws — the pane is on Flour.
-      await tester.tap(find.text('250 g'));
+      expect(find.byKey(kShopReadingRowKey), findsNothing);
+      expect(find.byKey(shopTickTargetKey('halloumi')), findsNothing);
+
+      await tester.tap(find.text('Halloumi'));
       await tester.pump();
 
       expect(repo.tickCalls, 1);
