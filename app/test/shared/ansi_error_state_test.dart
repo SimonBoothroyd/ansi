@@ -49,6 +49,22 @@ void main() {
       expect(describeFailure(ClientException('x')), expected);
     });
 
+    test('a browser never throws a SocketException, and its own shape reads '
+        'the same', () {
+      // Verbatim what package:http's BrowserClient raises for a failed fetch —
+      // offline, DNS, CORS and mixed content all arrive as this one string,
+      // and on the web it is the ONLY network failure describeFailure sees.
+      expect(
+        describeFailure(
+          ClientException(
+            'XMLHttpRequest error.',
+            Uri.parse('https://example.supabase.co/rest/v1/ingredient'),
+          ),
+        ),
+        'couldn’t reach the server',
+      );
+    });
+
     test('a local database failure says it is the phone, not the network', () {
       expect(
         describeFailure(SqliteException(1, 'disk I/O error')),
