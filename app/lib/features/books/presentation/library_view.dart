@@ -4,13 +4,20 @@
 ///
 /// **Two bodies over one screen.** On a phone and a portrait tablet the books
 /// are cards that fold open onto their sections, which is the only honest shape
-/// for one column. At [AnsiLayout.expanded] they are a shelf of fixed-height
-/// tiles instead: a name, its count line and the first titles on it, opening
-/// the book's own page ([BookPageView]) where the sections get room. The fold
-/// is not read there — a tile is already the folded book, and a page is already
-/// the open one. Everything else on the screen is the same object in both: the
-/// search field, the one ranked column of results, the `＋ new book` door and
-/// the Ingredients shelf.
+/// for one column. At [AnsiLayout.expanded] they are a **ledger** instead: one
+/// column of books at [kLedgerWidth], centred, with a [kAzIndexWidth] A–Z index
+/// down the right margin. A book is a heading row — its name, a dotted leader,
+/// its count line in a column of numbers, its `⋯` — over its first recipes as
+/// indented lines and one remainder row saying what the rest of it is. No tile,
+/// no grid, no dark band: the owner refused those on sight ("corporate"), and
+/// what replaced them states every fact once and sets it in a column on bare
+/// paper.
+///
+/// **What the width does not change.** The fold is the phone's own, per book
+/// and per device, read from the same store; the search field, the one ranked
+/// column of results, the `＋ new book` door and the Ingredients shelf are the
+/// same objects; and every row, menu and section widget is shared with the card
+/// and with the book page ([BookPageView]), which a heading row still opens.
 library;
 
 import 'dart:async';
@@ -20,6 +27,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/search/search_query.dart' show foldDiacritics;
 import '../../../core/text/name_clean.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
@@ -28,13 +36,13 @@ import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_layout.dart';
 import '../../../shared/ansi_search_field.dart';
 import '../../../shared/dashed_border_box.dart';
+import '../../../shared/dotted_leader.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/write.dart';
 import '../../account/presentation/account_view.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/presentation/ingredient_list_view.dart'
     show kIngredientsRoute;
-import '../../recipes/domain/recipe.dart';
 import '../data/book_providers.dart';
 import '../domain/book.dart';
 import '../domain/library_search.dart';
@@ -56,10 +64,49 @@ class LibraryView extends HookConsumerWidget {
     final field = useTextEditingController();
     final typed = useValueListenable(field).text;
     final searching = typed.trim().isNotEmpty;
-    // The one band this screen reads: a shelf of tiles is a different honest
-    // answer, not a wider version of the card list, and it arrives with its own
-    // board frame. Everything below the band is written for one width, as ever.
-    final shelf = AnsiLayout.of(context) == AnsiLayout.expanded;
+    // The one band this screen reads: a ledger is a different honest answer,
+    // not a wider version of the card list, and it arrives with its own board
+    // frame. Everything below the band is written for one width, as ever.
+    final ledger = AnsiLayout.of(context) == AnsiLayout.expanded;
+
+    final body = library.when(
+      loading: () => const Center(child: FCircularProgress()),
+      error: (e, st) => AnsiErrorState(
+        what: 'the library',
+        error: e,
+        stackTrace: st,
+        onRetry: () => ref.invalidate(libraryProvider),
+      ),
+      // While a query is live the tree is gone, so the fold state is
+      // ignored: there is nothing to fold. Clearing the field restores
+      // it exactly as it was, folds included.
+      data: (books) => switch (books) {
+        // A ranked column is a column at every width: the results keep the
+        // measure and the ledger's own left edge, and the A–Z margin goes with
+        // the books it indexes.
+        _ when searching && ledger => Align(
+          alignment: Alignment.topLeft,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: ansiMeasureWidth(context)),
+            child: _SearchResults(books: books, query: typed),
+          ),
+        ),
+        _ when searching => _SearchResults(books: books, query: typed),
+        [] => const _EmptyState(),
+        _ when ledger => _Ledger(books: books),
+        _ => ListView(
+          padding: const EdgeInsets.only(top: 4, bottom: 28),
+          children: [
+            for (final b in books) _BookCard(book: b, books: books),
+            // E7: the dashed row the v2 board drew and the build
+            // missed. It closes the books.
+            const _NewBookDoor(),
+            // E5: and then a different kind of shelf.
+            const _IngredientsShelf(),
+          ],
+        ),
+      },
+    );
 
     return FScaffold(
       // A tab root sits INSIDE the shell's scaffold, which already shrinks
@@ -73,54 +120,31 @@ class LibraryView extends HookConsumerWidget {
       // the slot instead, and the one control left is a LINK, not a menu: a
       // control that navigates has nowhere to put a sixth item, which is the
       // whole difference between this and the `⋯` it replaces.
-      header: FHeader.nested(
-        title: AnsiSearchField(hint: 'Search recipes', controller: field),
-        suffixes: [
-          // One household door, not two: once the chrome is beside the content
-          // Account is the sidebar's footer item, and that is the only door
-          // there is.
-          if (!AnsiShell.of(context).beside)
-            FHeaderAction(
-              icon: const Icon(FLucideIcons.users),
-              onPress: () => context.pushOnce(kAccountRoute),
+      //
+      // The ledger has NO header: a field stretched over a pane is the admin
+      // bar the owner refused, so on a desk the field is a 300 px line at the
+      // head of the ledger's own column ([_LedgerHead]) and there is nothing
+      // else up there to hold. The household door is hidden either way once the
+      // chrome is beside the content — Account is the sidebar's footer item,
+      // and that is the only door there is.
+      header: ledger
+          ? null
+          : FHeader.nested(
+              title: AnsiSearchField(hint: 'Search recipes', controller: field),
+              suffixes: [
+                if (!AnsiShell.of(context).beside)
+                  FHeaderAction(
+                    icon: const Icon(FLucideIcons.users),
+                    onPress: () => context.pushOnce(kAccountRoute),
+                  ),
+              ],
             ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: library.when(
-              loading: () => const Center(child: FCircularProgress()),
-              error: (e, st) => AnsiErrorState(
-                what: 'the library',
-                error: e,
-                stackTrace: st,
-                onRetry: () => ref.invalidate(libraryProvider),
-              ),
-              // While a query is live the tree is gone, so the fold state is
-              // ignored: there is nothing to fold. Clearing the field restores
-              // it exactly as it was, folds included.
-              data: (books) => switch (books) {
-                _ when searching => _SearchResults(books: books, query: typed),
-                [] => const _EmptyState(),
-                _ when shelf => _Shelf(books: books),
-                _ => ListView(
-                  padding: const EdgeInsets.only(top: 4, bottom: 28),
-                  children: [
-                    for (final b in books) _BookCard(book: b, books: books),
-                    // E7: the dashed row the v2 board drew and the build
-                    // missed. It closes the books.
-                    const _NewBookDoor(),
-                    // E5: and then a different kind of shelf.
-                    const _IngredientsShelf(),
-                  ],
-                ),
-              },
+      child: ledger
+          ? _LedgerFrame(field: field, child: body)
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [Expanded(child: body)],
             ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -329,198 +353,510 @@ class _NewBookDoor extends ConsumerWidget {
   );
 }
 
-/// Every tile is this tall, whatever it holds — a band over a body, and neither
-/// one negotiates.
-const double kBookTileHeight = 180;
-
-/// The widest a tile is drawn. The grid asks for as many columns as fit at this
-/// extent, so the count follows the window rather than being typed in: four
-/// across a 1440 window beside the chrome, three on an iPad in landscape, two
-/// when the pane narrows to the measure.
-const double kBookTileMaxWidth = 320;
-
-/// The books as a shelf at [AnsiLayout.expanded]: a grid of fixed-height tiles,
-/// with the doors that are not books running full width beneath it.
+/// The widest the ledger's one column of books is drawn.
 ///
-/// The grid is the only thing the width changes. The `＋ new book` row and the
-/// Ingredients shelf are the phone's own, in the phone's order — a tile grid
-/// is a better shelf than a column of cards; it is not a licence to redraw
-/// what was never a shelf.
-class _Shelf extends StatelessWidget {
-  const _Shelf({required this.books});
+/// Measured from the longest line a book heading makes — a name, a leader, and
+/// `42 recipes · 3 sections` — rather than chosen to fill the pane: past this
+/// the leader is doing nothing but crossing empty paper. Below it the column is
+/// fluid, and the index stays in the margin.
+const double kLedgerWidth = 900;
 
-  final List<Book> books;
+/// The A–Z index down the right margin, and the clear paper before it.
+const double kAzIndexWidth = 34;
+const double kAzIndexGap = 40;
+
+/// The search field at the head of the ledger — a line you type a recipe name
+/// into, not a bar across the pane.
+const double kLedgerFieldWidth = 300;
+
+/// How far a book's recipe lines are set in from its heading row.
+const double kLedgerIndent = 24;
+
+/// How many recipes a book lists before the remainder row counts the rest.
+///
+/// The same three the phone's tile listed and the book page opens with: enough
+/// to recognise a book by what is in it, few enough that ten books are still
+/// one screen.
+const int kLedgerPeek = 3;
+
+/// The ledger's own frame: the head strip, then whatever the body is, in one
+/// centred column no wider than the ledger and its margin together.
+///
+/// The strip is **outside** the body on purpose. It holds the field, and a
+/// field that scrolled away with the books — or vanished when a query emptied
+/// the tree under it — would be a field you cannot clear.
+class _LedgerFrame extends StatelessWidget {
+  const _LedgerFrame({required this.field, required this.child});
+
+  final TextEditingController field;
+  final Widget child;
 
   @override
-  Widget build(BuildContext context) => CustomScrollView(
-    slivers: [
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-        sliver: SliverGrid(
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: kBookTileMaxWidth,
-            mainAxisExtent: kBookTileHeight,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          delegate: SliverChildBuilderDelegate(
-            (context, i) => _BookTile(book: books[i]),
-            childCount: books.length,
-          ),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: ansiPageGutter),
+    child: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxWidth: kLedgerWidth + kAzIndexGap + kAzIndexWidth,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 10),
+            _LedgerHead(field: field),
+            const SizedBox(height: 18),
+            Expanded(child: child),
+          ],
         ),
       ),
-      const SliverToBoxAdapter(child: _NewBookDoor()),
-      const SliverToBoxAdapter(child: _IngredientsShelf()),
-      const SliverToBoxAdapter(child: SizedBox(height: 28)),
+    ),
+  );
+}
+
+/// The head strip: the field as a line, and the quiet door that makes a book.
+class _LedgerHead extends StatelessWidget {
+  const _LedgerHead({required this.field});
+
+  final TextEditingController field;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      SizedBox(
+        width: kLedgerFieldWidth,
+        child: AnsiSearchField(hint: 'Search recipes', controller: field),
+      ),
+      const Spacer(),
+      const _NewBookLink(),
     ],
   );
 }
 
-/// One book on the shelf: the name on its herb band with the count line the
-/// card's header carries, then **titles only**.
+/// `＋ new book` as a word, not a dashed slab.
 ///
-/// The Library's recipe row is two lines and carries its own `⋯`; three of
-/// those do not fit the body a fixed tile leaves, and a row that drops its
-/// second line is a row the app does not have. So a tile lists what is on the
-/// shelf and the book's page draws the rows — which is also why the tile has
-/// no menu: every control the card offered is one tap away, on the page it
-/// opens.
+/// The phone's [DashedAction] closes a column of cards, where a dashed rule is
+/// the last thing on the page and reads as an invitation. At the head of a
+/// ledger the same slab would be furniture across the top of a page whose whole
+/// claim is that it has none — so the door keeps its icon, its mono voice and
+/// its herb ink, and loses the box.
+class _NewBookLink extends ConsumerWidget {
+  const _NewBookLink();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: () => unawaited(promptForNewBook(context, ref)),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(FLucideIcons.bookPlus, size: 13, color: AnsiColors.herb),
+          const SizedBox(width: 6),
+          Text(
+            'new book',
+            style: ansiMono(
+              size: 10.5,
+              color: AnsiColors.herb,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// The books as a ledger at [AnsiLayout.expanded]: one column of heading rows
+/// and their lines, with the A–Z index in the margin beside it.
 ///
-/// The ★ comes along because it only ever reported. A title too long for the
-/// tile is clipped here; where it is a row, it wraps.
-class _BookTile extends StatelessWidget {
-  const _BookTile({required this.book});
+/// The index is a **jump**, not a sort and not a filter: the books stay in the
+/// household's own order — what `Move up` and `Move down` write — and a lit
+/// letter scrolls to the first book that starts with it. That is what lets the
+/// shape hold at twenty-five books without becoming a grid.
+///
+/// A [StatefulWidget] for the same reason the book page's panes are: it owns a
+/// scroll position, which belongs to the widget that owns the controller and
+/// dies with it.
+class _Ledger extends StatefulWidget {
+  const _Ledger({required this.books});
 
-  final Book book;
+  final List<Book> books;
 
-  /// How many titles a tile shows before it counts the rest.
-  static const _peekCount = 3;
+  @override
+  State<_Ledger> createState() => _LedgerState();
+}
 
-  /// The book's recipes in the order its page lists them, so the first titles
-  /// on the tile are the first titles on the page.
-  List<RecipeSummary> get _recipes => [
-    for (final section in book.sections) ...section.recipes,
-    ...book.unsectioned,
-  ];
+class _LedgerState extends State<_Ledger> {
+  final _scroll = ScrollController();
+
+  /// One key per book, so the index can scroll to it. Kept across rebuilds — a
+  /// fresh key would rebuild the book and lose the row states inside it.
+  final _keys = <String, GlobalKey>{};
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  GlobalKey _keyFor(String id) => _keys.putIfAbsent(id, GlobalKey.new);
+
+  /// Scrolls the ledger until [bookId]'s heading row is at the top.
+  void _show(String bookId) {
+    final target = _keys[bookId]?.currentContext;
+    if (target != null) {
+      unawaited(
+        Scrollable.ensureVisible(
+          target,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+        ),
+      );
+      return;
+    }
+    // A book far enough down has not been built, so there is no context to
+    // scroll to. Jumping to the end builds the tail; the book is then there to
+    // land on, one frame later. (The book page's index does the same.)
+    if (!_scroll.hasClients) return;
+    _scroll.jumpTo(_scroll.position.maxScrollExtent);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final built = _keys[bookId]?.currentContext;
+      if (built != null) unawaited(Scrollable.ensureVisible(built));
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final recipes = _recipes;
-    final peek = recipes.take(_peekCount).toList();
-    final rest = recipes.length - peek.length;
+    final books = widget.books;
+    final lit = {for (final book in books) bookInitial(book)};
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => context.pushOnce(bookRoute(book.id)),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border.all(color: AnsiColors.line),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                color: AnsiColors.herb,
-                padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      book.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: ansiSerif(
-                        size: 16,
-                        color: AnsiColors.surface,
-                        weight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      bookCountLine(book),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: ansiMono(
-                        size: 10,
-                        color: AnsiColors.surface,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _ColumnHeads(books: books.length),
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 9, 14, 9),
-                  child: peek.isEmpty
-                      // An empty shelf says so on its band already, so the
-                      // body is the door, not a second sentence about nothing.
-                      ? Align(
-                          alignment: Alignment.topLeft,
-                          child: DashedAction(
-                            icon: FLucideIcons.plus,
-                            label: 'new recipe',
-                            onTap: () => context.pushOnce(
-                              Uri(
-                                path: '/recipes/new',
-                                queryParameters: {'book': book.id},
-                              ).toString(),
-                            ),
-                          ),
-                        )
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            for (final r in peek) _TileTitle(recipe: r),
-                            if (rest > 0) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                '+ $rest more',
-                                style: ansiMono(
-                                  size: 10,
-                                  color: AnsiColors.muted,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
+                child: ListView(
+                  controller: _scroll,
+                  padding: const EdgeInsets.only(bottom: 36),
+                  children: [
+                    for (final book in books)
+                      _LedgerBook(
+                        key: _keyFor(book.id),
+                        book: book,
+                        books: books,
+                      ),
+                    // The vocabulary closes the ledger exactly as it closes the
+                    // phone's books, minus the phone's gutters: the ledger's
+                    // column IS the gutter here.
+                    const _IngredientsShelf(gutter: 0),
+                  ],
                 ),
               ),
             ],
           ),
+        ),
+        const SizedBox(width: kAzIndexGap),
+        SizedBox(
+          width: kAzIndexWidth,
+          child: _AzIndex(
+            lit: lit,
+            onLetter: (letter) => _show(
+              books.firstWhere((book) => bookInitial(book) == letter).id,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// What the ledger's two columns hold — which is what makes the right edge a
+/// column and not a row of loose numbers.
+class _ColumnHeads extends StatelessWidget {
+  const _ColumnHeads({required this.books});
+
+  final int books;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: const BoxDecoration(
+      border: Border(bottom: BorderSide(color: AnsiColors.line)),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: Row(
+        children: [
+          Text('BOOKS · $books', style: ansiLabel()),
+          const Spacer(),
+          Text('COUNTS · STATS', style: ansiLabel()),
+        ],
+      ),
+    ),
+  );
+}
+
+/// One book in the ledger: the heading row, its first lines, the remainder, and
+/// a hairline to close it. No box, no fill, no band.
+class _LedgerBook extends ConsumerWidget {
+  const _LedgerBook({required this.book, required this.books, super.key});
+
+  final Book book;
+
+  /// The whole library — what the book menu's reorder moves against, and what
+  /// its delete counts before refusing.
+  final List<Book> books;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final folded = ref.watch(foldedBooksProvider).asData?.value ?? const {};
+    final open = !folded.contains(book.id);
+    final all = bookRecipesInPageOrder(book);
+    final shown = all.take(open ? kLedgerPeek : 0).toList();
+
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AnsiColors.line)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(0, 15, 0, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _HeadingRow(book: book, books: books, open: open),
+            if (open) ...[
+              for (final filed in shown)
+                Padding(
+                  padding: const EdgeInsets.only(left: kLedgerIndent),
+                  child: LibraryRecipeRow.ledger(
+                    recipe: filed.recipe,
+                    bookId: book.id,
+                    sectionId: filed.sectionId,
+                  ),
+                ),
+              if (all.length > shown.length)
+                Padding(
+                  padding: const EdgeInsets.only(left: kLedgerIndent, top: 2),
+                  child: _RemainderRow(book: book, shown: shown.length),
+                ),
+              // The first-run doors, in place — the same two the phone's empty
+              // card offers, because the app can still open on this.
+              if (all.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(left: kLedgerIndent, top: 6),
+                  child: EmptyShelf(book: book),
+                ),
+            ],
+          ],
         ),
       ),
     );
   }
 }
 
-/// One title on a tile: clipped at one line, with the ★ it reports.
-class _TileTitle extends StatelessWidget {
-  const _TileTitle({required this.recipe});
+/// A book's heading row: the fold's chevron, the name, a dotted leader into the
+/// counts column, and the book's own `⋯`.
+///
+/// Three targets, each doing one thing: the chevron folds (the phone's own
+/// per-device state, so a book shut on this desk is shut here tomorrow), the
+/// name opens the book's page, and the `⋯` is [BookMenu] — the same menu the
+/// card's herb band and the page's header bar hang.
+class _HeadingRow extends ConsumerWidget {
+  const _HeadingRow({
+    required this.book,
+    required this.books,
+    required this.open,
+  });
 
-  final RecipeSummary recipe;
+  final Book book;
+  final List<Book> books;
+  final bool open;
+
+  /// The widest a book's name is set before it is clipped — as with a recipe
+  /// line, the counts are a fact and the name is a label.
+  static const double nameMax = 460;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 3),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            recipe.title.isEmpty ? 'Untitled recipe' : recipe.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: ansiSerif(size: 14, weight: FontWeight.w400),
+  Widget build(BuildContext context, WidgetRef ref) => Row(
+    children: [
+      GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () =>
+            unawaited(ref.read(foldedBooksProvider.notifier).toggle(book.id)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(0, 6, 8, 6),
+          child: Icon(
+            open ? FLucideIcons.chevronDown : FLucideIcons.chevronRight,
+            size: 14,
+            color: AnsiColors.muted,
           ),
         ),
-        if (recipe.favorite) ...[
-          const SizedBox(width: 6),
-          const Icon(FLucideIcons.star, size: 11, color: AnsiColors.aging),
-        ],
+      ),
+      Flexible(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => context.pushOnce(bookRoute(book.id)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: nameMax),
+            child: Text(
+              book.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: ansiSerif(size: 18, weight: FontWeight.w500),
+            ),
+          ),
+        ),
+      ),
+      const AnsiDottedLeader(),
+      Text(
+        bookCountLine(book),
+        style: ansiMono(size: 10, color: AnsiColors.muted, letterSpacing: 0.7),
+      ),
+      BookMenu.inline(book: book, books: books),
+    ],
+  );
+}
+
+/// What the fold still holds — `39 more, in 3 sections` — and the `＋` that
+/// files a recipe into this book.
+///
+/// The row itself is the door to the book's page, where the sections get their
+/// names back: in the ledger a section is a **count on this row** and nothing
+/// else, because a ledger that listed every section would be the tree, and the
+/// tree is the phone's shape.
+class _RemainderRow extends StatelessWidget {
+  const _RemainderRow({required this.book, required this.shown});
+
+  final Book book;
+  final int shown;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: () => context.pushOnce(bookRoute(book.id)),
+    child: Row(
+      children: [
+        const Icon(FLucideIcons.chevronRight, size: 12, color: AnsiColors.herb),
+        const SizedBox(width: 7),
+        Text(
+          bookRemainderLine(book, shown: shown),
+          style: ansiMono(
+            size: 10.5,
+            color: AnsiColors.herb,
+            letterSpacing: 0.3,
+          ),
+        ),
+        const Spacer(),
+        // The phone's own "this book, no section" door, which is what a
+        // remainder row's ＋ has always meant.
+        SectionAddMenu(book: book),
       ],
+    ),
+  );
+}
+
+/// Which letter a book files under in the margin: its first, folded off its
+/// accents ("Élan" indexes at **E**, where somebody would look for it), and
+/// `#` for a name that starts with anything else.
+String bookInitial(Book book) {
+  final name = foldDiacritics(book.name.trim()).toUpperCase();
+  if (name.isEmpty) return '#';
+  final first = name[0];
+  return first.codeUnitAt(0) >= 0x41 && first.codeUnitAt(0) <= 0x5A
+      ? first
+      : '#';
+}
+
+/// The margin's letters: the bucket for everything that does not start with a
+/// letter, then A–Z.
+final List<String> kAzLetters = [
+  '#',
+  for (var c = 0; c < 26; c++) String.fromCharCode(0x41 + c),
+];
+
+/// The A–Z index down the right margin.
+///
+/// Every letter is drawn, lit or not: an index that hid its gaps would be an
+/// index you stop trusting, and the gaps are the point — they say the shelf has
+/// nothing under D. Only a lit letter is a door.
+class _AzIndex extends StatelessWidget {
+  const _AzIndex({required this.lit, required this.onLetter});
+
+  final Set<String> lit;
+  final ValueChanged<String> onLetter;
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // The margin says what it is, once, in the same micro-voice as the
+        // ledger's column heads.
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Text(
+            'A–Z',
+            textAlign: TextAlign.right,
+            style: ansiMono(size: 8, color: AnsiColors.muted, letterSpacing: 1),
+          ),
+        ),
+        for (final letter in kAzLetters)
+          LibraryIndexLetter(
+            letter: letter,
+            lit: lit.contains(letter),
+            onTap: () => onLetter(letter),
+          ),
+      ],
+    ),
+  );
+}
+
+/// One letter in the A–Z margin.
+///
+/// Public so a test can read the index's state the way a person does — which
+/// letters are lit — rather than by matching on ink.
+class LibraryIndexLetter extends StatelessWidget {
+  const LibraryIndexLetter({
+    required this.letter,
+    required this.lit,
+    required this.onTap,
+    super.key,
+  });
+
+  final String letter;
+
+  /// Whether a book on the shelf starts with this letter.
+  final bool lit;
+
+  final VoidCallback onTap;
+
+  /// The row a letter sits in — tall enough to hit, short enough that all
+  /// twenty-seven are one margin.
+  static const double rowHeight = 20;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: lit ? onTap : null,
+    child: SizedBox(
+      height: rowHeight,
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: Text(
+          letter,
+          style: ansiMono(
+            size: 10,
+            // An unlit letter is drawn in the hairline's own ink: present,
+            // and plainly not a door.
+            color: lit ? AnsiColors.herbDeep : AnsiColors.line,
+            weight: lit ? FontWeight.w500 : FontWeight.w400,
+          ),
+        ),
+      ),
     ),
   );
 }
@@ -541,7 +877,12 @@ class _TileTitle extends StatelessWidget {
 /// fold would put 300 rows inside a card). Its position, after the books, is
 /// part of the claim: a different kind of shelf, drawn a different way.
 class _IngredientsShelf extends ConsumerWidget {
-  const _IngredientsShelf();
+  const _IngredientsShelf({this.gutter = ansiPageGutter});
+
+  /// The inset either side of the row's contents — the phone's own gutter, and
+  /// zero in the ledger, whose column already is the gutter. The rule itself
+  /// runs edge to edge in both, which is the part that matters.
+  final double gutter;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -566,7 +907,7 @@ class _IngredientsShelf extends ConsumerWidget {
             border: Border(top: BorderSide(color: AnsiColors.line)),
           ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 2),
+            padding: EdgeInsets.fromLTRB(gutter, 14, gutter, 2),
             child: Row(
               children: [
                 // The vocabulary's own glyph. Not the nav's `library` icon:

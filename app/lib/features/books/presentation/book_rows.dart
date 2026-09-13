@@ -1,10 +1,11 @@
 /// The grammar of a book's contents — its `⋯`, its sections, and the recipe
 /// rows filed under them.
 ///
-/// Two screens draw the same book: the Library's card on a phone, and the book
-/// page a wide shelf's tile opens. They share these widgets rather than each
-/// keeping a copy of the menu, the count line and the row, so an item added to
-/// a menu here is offered at both doors and neither can drift.
+/// Three surfaces draw the same book: the Library's card on a phone, the
+/// ledger's heading row and lines on a desk, and the book page either of them
+/// opens. They share these widgets rather than each keeping a copy of the menu,
+/// the count line and the row, so an item added to a menu here is offered at
+/// every door and none of them can drift.
 library;
 
 import 'dart:async';
@@ -20,6 +21,7 @@ import '../../../core/words.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_more_trigger.dart';
 import '../../../shared/dashed_border_box.dart';
+import '../../../shared/dotted_leader.dart';
 import '../../../shared/format.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/write.dart';
@@ -69,24 +71,30 @@ Future<void> promptForNewSection(
 /// learned. Reorder is deliberately the sections' clunky Move up / Move down:
 /// books do not get drag-and-drop while sections still lack it.
 ///
-/// The menu is one object with two triggers, because a book is offered from two
-/// places: the shelf card's herb band, where the glyph is drawn in the surface
-/// ink over the fill, and the book page's own header bar, where it is the
-/// scaffold's trailing action beside the back chevron. Only the trigger differs
-/// — the items, their order and what each one writes are the same, which is the
-/// whole reason there is one widget.
+/// The menu is one object with three triggers, because a book is offered from
+/// three places: the card's herb band, where the glyph is drawn in the surface
+/// ink over the fill; the book page's own header bar, where it is the
+/// scaffold's trailing action beside the back chevron; and the ledger's heading
+/// row, where it is the bare glyph at the end of the counts column. Only the
+/// trigger differs — the items, their order and what each one writes are the
+/// same, which is the whole reason there is one widget.
 class BookMenu extends ConsumerWidget {
   const BookMenu({required this.book, required this.books, super.key})
-    : _onHeaderBar = false;
+    : _trigger = _Trigger.band;
 
   /// The `⋯` as a page header's trailing action, for the book's own page.
   const BookMenu.headerBar({required this.book, required this.books, super.key})
-    : _onHeaderBar = true;
+    : _trigger = _Trigger.headerBar;
+
+  /// The bare `⋯`, for a heading row that ends in a column of numbers and has
+  /// no room for a button's own padding.
+  const BookMenu.inline({required this.book, required this.books, super.key})
+    : _trigger = _Trigger.inline;
 
   final Book book;
   final List<Book> books;
 
-  final bool _onHeaderBar;
+  final _Trigger _trigger;
 
   Future<void> _move(BuildContext context, WidgetRef ref, int delta) async {
     final ids = books.map((b) => b.id).toList();
@@ -177,18 +185,27 @@ class BookMenu extends ConsumerWidget {
           ],
         ),
       ],
-      builder: (context, controller, _) => _onHeaderBar
-          ? FHeaderAction(
-              icon: const Icon(FLucideIcons.ellipsis),
-              onPress: controller.toggle,
-            )
-          : AnsiMoreTrigger(
-              onTap: controller.toggle,
-              color: AnsiColors.surface,
-            ),
+      builder: (context, controller, _) => switch (_trigger) {
+        _Trigger.headerBar => FHeaderAction(
+          icon: const Icon(FLucideIcons.ellipsis),
+          onPress: controller.toggle,
+        ),
+        _Trigger.inline => AnsiMoreTrigger.inline(
+          onTap: controller.toggle,
+          color: AnsiColors.muted,
+        ),
+        _Trigger.band => AnsiMoreTrigger(
+          onTap: controller.toggle,
+          color: AnsiColors.surface,
+        ),
+      },
     );
   }
 }
+
+/// Where a [BookMenu]'s `⋯` is hung — the only thing that differs between the
+/// three doors onto one menu.
+enum _Trigger { band, headerBar, inline }
 
 /// Deleting a book: refuse with a count and a door, or confirm (D4).
 ///
@@ -346,6 +363,41 @@ String bookCountLine(Book book) {
       '$recipes ${plural(recipes, 'recipe')}',
     if (sections > 0) '$sections ${plural(sections, 'section')}',
   ].join(' · ');
+}
+
+/// A book's recipes in the order its page lists them — every section in turn,
+/// then the unsectioned — each carrying the section it is filed under, so a row
+/// drawn away from its section block still knows where it lives.
+///
+/// One order, read from one place: the ledger's first lines are the book page's
+/// first rows, and "3 more" means the three under the ones already on screen.
+List<({RecipeSummary recipe, String? sectionId})> bookRecipesInPageOrder(
+  Book book,
+) => [
+  for (final section in book.sections)
+    for (final recipe in section.recipes)
+      (recipe: recipe, sectionId: section.id),
+  for (final recipe in book.unsectioned) (recipe: recipe, sectionId: null),
+];
+
+/// What the ledger's remainder row says a fold still holds — `39 more, in 3
+/// sections`, or `1 more` where the book keeps no sections.
+///
+/// The sections it counts are the ones with a recipe **not already listed**:
+/// the row is a description of what is behind it, not a second printing of the
+/// book's own count line, which the heading row above has already given.
+String bookRemainderLine(Book book, {required int shown}) {
+  final all = bookRecipesInPageOrder(book);
+  final hidden = all.skip(shown);
+  final sections = hidden
+      .map((e) => e.sectionId)
+      .whereType<String>()
+      .toSet()
+      .length;
+  return [
+    '${hidden.length} more',
+    if (sections > 0) 'in $sections ${plural(sections, 'section')}',
+  ].join(', ');
 }
 
 /// What a recipe row says under its title — `serves 4 · 520 kcal · 28 g
@@ -620,6 +672,13 @@ class SectionMenu extends ConsumerWidget {
 ///
 /// [filing] is set only on a search result, where the tree that would have said
 /// where this lives is not on screen.
+///
+/// **[LibraryRecipeRow.ledger] is the same row set as one line**, for the
+/// Library's wide body: the title, a dotted leader, and [recipeStatsLine] in
+/// the ledger's own right-hand column, with the ★ and the `⋯` after it. It
+/// does not *drop* the second line — it sets it — which is the difference
+/// between this and the tile that was refused for listing bare titles. Same
+/// menu, same star rule, same single tap onto the recipe.
 class LibraryRecipeRow extends StatelessWidget {
   const LibraryRecipeRow({
     required this.recipe,
@@ -627,10 +686,31 @@ class LibraryRecipeRow extends StatelessWidget {
     this.bookId,
     this.sectionId,
     super.key,
-  });
+  }) : _ledger = false;
+
+  /// The one-line form, for the ledger.
+  ///
+  /// No [filing]: a ledger line is drawn under the book it is filed in, so the
+  /// line that says where it lives would be repeating the heading above it.
+  const LibraryRecipeRow.ledger({
+    required this.recipe,
+    this.bookId,
+    this.sectionId,
+    super.key,
+  }) : filing = null,
+       _ledger = true;
 
   final RecipeSummary recipe;
   final Filing? filing;
+
+  /// Drawn as one ledger line rather than the phone's two-line row.
+  final bool _ledger;
+
+  /// The widest a title is set before it gives way — the leader may shrink to a
+  /// stub, but the stats are a whole fact and are never half-printed.
+  static const double titleMax = 460;
+
+  String get _title => recipe.title.isEmpty ? 'Untitled recipe' : recipe.title;
 
   /// Where this row is filed, when the tree knows — the shelf "Move to…"
   /// marks as `here now` and refuses to move to. A search result carries the
@@ -645,46 +725,75 @@ class LibraryRecipeRow extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => context.pushOnce('/recipes/${recipe.id}'),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    recipe.title.isEmpty ? 'Untitled recipe' : recipe.title,
-                    style: ansiSerif(size: 17),
-                  ),
-                  if (filing != null)
-                    Text(
-                      '${filing.book} · ${filing.section ?? 'Unsectioned'}',
-                      style: ansiMono(size: 10, color: AnsiColors.muted),
-                    ),
-                  const SizedBox(height: 2),
-                  Text(
-                    recipeStatsLine(recipe),
-                    style: ansiMono(size: 10, color: AnsiColors.muted),
-                  ),
-                ],
-              ),
-            ),
-            if (recipe.favorite) ...[
-              const Icon(FLucideIcons.star, size: 13, color: AnsiColors.aging),
-              const SizedBox(width: 6),
-            ],
-            _RecipeRowMenu(
-              recipe: recipe,
-              bookId: bookId,
-              sectionId: sectionId,
-            ),
-          ],
-        ),
-      ),
+      child: _ledger ? _line() : _stack(filing),
     );
   }
+
+  /// The phone's row: the title over its own second line, the ★ and the `⋯`.
+  Widget _stack(Filing? filing) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_title, style: ansiSerif(size: 17)),
+              if (filing != null)
+                Text(
+                  '${filing.book} · ${filing.section ?? 'Unsectioned'}',
+                  style: ansiMono(size: 10, color: AnsiColors.muted),
+                ),
+              const SizedBox(height: 2),
+              Text(
+                recipeStatsLine(recipe),
+                style: ansiMono(size: 10, color: AnsiColors.muted),
+              ),
+            ],
+          ),
+        ),
+        if (recipe.favorite) ...[
+          const Icon(FLucideIcons.star, size: 13, color: AnsiColors.aging),
+          const SizedBox(width: 6),
+        ],
+        _RecipeRowMenu(recipe: recipe, bookId: bookId, sectionId: sectionId),
+      ],
+    ),
+  );
+
+  /// The ledger's line: the same facts, set across one line into the column of
+  /// numbers the whole body is ruled to.
+  ///
+  /// The title is the cell that gives way — capped at [titleMax] and clipped —
+  /// because a stats line half-printed is a wrong number, and a title clipped
+  /// is a title you still recognise.
+  Widget _line() => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 5),
+    child: Row(
+      children: [
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: titleMax),
+          child: Text(
+            _title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: ansiSerif(size: 15, weight: FontWeight.w400),
+          ),
+        ),
+        const AnsiDottedLeader(),
+        Text(
+          recipeStatsLine(recipe),
+          style: ansiMono(size: 10, color: AnsiColors.muted),
+        ),
+        if (recipe.favorite) ...[
+          const SizedBox(width: 7),
+          const Icon(FLucideIcons.star, size: 12, color: AnsiColors.aging),
+        ],
+        _RecipeRowMenu(recipe: recipe, bookId: bookId, sectionId: sectionId),
+      ],
+    ),
+  );
 }
 
 /// The recipe row's own `⋯`, rather than a long-press nobody finds.
