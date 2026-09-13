@@ -8,6 +8,9 @@
 /// cropped file (~1568px) and base64-encodes it for the edge function — so the
 /// phone never ships a full-res photo.
 ///
+/// In a browser the flow is shorter and the screen says so: pages are chosen
+/// as files, there is no camera door and no crop step ([cropSeam]).
+///
 /// The camera door photographs as many pages as the cook has: after each shot
 /// is cropped it asks whether there is another, so a recipe that runs over a
 /// page break is shot page by page in one sitting rather than photographed
@@ -29,6 +32,7 @@
 /// view hands over a closure that is live exactly as long as the screen is.
 library;
 
+import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -102,11 +106,11 @@ class PhotoIntakeService {
 /// The real photo intake: `image_picker` — the camera, reopened per page by
 /// [PhotoIntakeService.pickAndCrop], or the library's multi-select (the only
 /// source that works on the iOS simulator — it has no camera) — feeding
-/// `image_cropper`'s native crop + rotate editor, one page at a time.
-/// Confirming a page with no edits is a single tap; the editor's rotate
-/// control handles deskew.
+/// [cropSeam], one page at a time: `image_cropper`'s native crop + rotate
+/// editor on a phone, and nothing at all in a browser. Confirming a page with
+/// no edits is a single tap; the editor's rotate control handles deskew.
 ///
-/// The provider supplies the two native seams only. The question between
+/// The provider supplies the two platform seams only. The question between
 /// pages needs a `BuildContext` and so is passed in by the view.
 ///
 /// A refused camera permission surfaces from `image_picker` as a
@@ -115,7 +119,6 @@ class PhotoIntakeService {
 @Riverpod(keepAlive: true)
 PhotoIntakeService photoIntake(Ref ref) {
   final picker = ImagePicker();
-  final cropper = ImageCropper();
   return PhotoIntakeService(
     pickImages: (source) async {
       switch (source) {
@@ -127,19 +130,40 @@ PhotoIntakeService photoIntake(Ref ref) {
           return [for (final f in files) f.path];
       }
     },
-    cropImage: (sourcePath) async {
-      final result = await cropper.cropImage(
-        sourcePath: sourcePath,
-        uiSettings: [
-          IOSUiSettings(title: 'Crop'),
-          // uCrop ships with freestyle (freely resizable) crop OFF, and the
-          // plugin only turns it on when lockAspectRatio is explicitly false —
-          // omit it and Android is stuck with a fixed-ratio box while iOS is
-          // freeform.
-          AndroidUiSettings(toolbarTitle: 'Crop', lockAspectRatio: false),
-        ],
-      );
-      return result?.path;
-    },
+    cropImage: cropSeam(),
   );
+}
+
+/// The crop/rotate step, where there is one.
+///
+/// On a phone it is `image_cropper`'s native editor. **In a browser there is
+/// no crop step at all**: the plugin throws without `WebUiSettings`, and
+/// supplying those means shipping the cropperjs stylesheet and script in
+/// `web/index.html` *and* threading a `BuildContext` into a provider that
+/// deliberately has none (see the seam note at the top of this file). That is
+/// a third-party editor and a rewiring for a door a household reaches from a
+/// browser rarely and can always reach from a phone — so the web build hands
+/// the page through untouched and the import screen says so, rather than
+/// pretending to crop or throwing at the tap.
+///
+/// [web] is the platform, injectable so the skip is a tested fact rather than
+/// a branch nobody on the VM can reach.
+@visibleForTesting
+CropImage cropSeam({bool web = kIsWeb}) {
+  if (web) return (sourcePath) async => sourcePath;
+  final cropper = ImageCropper();
+  return (sourcePath) async {
+    final result = await cropper.cropImage(
+      sourcePath: sourcePath,
+      uiSettings: [
+        IOSUiSettings(title: 'Crop'),
+        // uCrop ships with freestyle (freely resizable) crop OFF, and the
+        // plugin only turns it on when lockAspectRatio is explicitly false —
+        // omit it and Android is stuck with a fixed-ratio box while iOS is
+        // freeform.
+        AndroidUiSettings(toolbarTitle: 'Crop', lockAspectRatio: false),
+      ],
+    );
+    return result?.path;
+  };
 }

@@ -3,10 +3,10 @@
     "short_name": "Ansi",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#F4F6F1",
+    "theme_color": "#2C6A3A",
+    "description": "Plan the week you want to eat. Ansi derives what to cook in batches and buys each thing once.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

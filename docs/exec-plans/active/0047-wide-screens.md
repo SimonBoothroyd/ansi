@@ -20,7 +20,7 @@ changes, and the code gets one place that reads the viewport.
       medium 640–1023, expanded ≥ 1024, on Forui's own `FBreakpoints`), held
       by a structural test.
 - [ ] Web build in CI, hosted; Google sign-in returns to the deployed origin.
-- [ ] Photo import and the barcode scan are gated on web, not thrown.
+- [x] Photo import and the barcode scan are gated on web, not thrown.
 - [ ] Docs updated: `docs/design-docs/wide-screen.md`, `app/AGENTS.md`
       (the "phone-first" bullet), ADR-0002's PowerSync web line.
 
@@ -66,6 +66,20 @@ changes, and the code gets one place that reads the viewport.
   are a left index against the recipes at a readable measure. The
   per-device fold does not exist on wide. Search results stay one ranked
   column. Owner call; retires the backlog's per-book detail row when built.
+
+- 2026-09-13 — **W1's platform half is built** (release.md §6, app/AGENTS.md):
+  OAuth returns to the served page, photo import reads a blob URL through
+  `XFile` and downscales through `compute`, the crop step is skipped on web
+  (cropperjs + a `BuildContext` the provider has not got was judged
+  disproportionate) and the scan door is not drawn. A `web` job builds the
+  browser bundle on every tag and a gated `pages` job deploys it. **Two
+  operator steps are owed before a browser can sign in:** the Supabase
+  redirect origins (cloud-setup.md §1.6) and Pages → Source: GitHub Actions.
+  The endpoint-disclosure trade that hosting carries is release.md §6.2 —
+  owner's call, not an agent's.
+- 2026-09-13 — ADR-0002's "PowerSync web is in beta" line is **no longer
+  true**; the ADR is immutable, so release.md §6.3 carries the correction
+  until the wide-screen design doc exists to hold it.
 
 ## Notes / open questions
 

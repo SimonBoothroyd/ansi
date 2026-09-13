@@ -71,6 +71,7 @@ library;
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
@@ -893,7 +894,13 @@ class _DetailForm extends ConsumerWidget {
           // all, and not `usda_fdc:`, so no card either — USDA cleared, with
           // no way back to it.
           _FillItIn(
-            scan: stub
+            // Not in a browser: the scan needs a camera and a detector the tab
+            // has not got, and a door that opens on "no camera is available
+            // here" is a door that should not have been drawn. The typed
+            // barcode field on the sheet is the path that always works — but
+            // it is reached through this door, so on the web the whole row is
+            // simply the form, filled by hand.
+            scan: stub && !kIsWeb
                 ? _GhostButton(
                     label: 'Scan a barcode',
                     onTap: busy ? null : scan,

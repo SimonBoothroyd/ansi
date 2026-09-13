@@ -153,15 +153,48 @@ void main() {
         lookup: _finds(),
         resolver: resolver,
         // Exactly what the plugin's errorBuilder renders on a denied
-        // permission — the real widget, not a mock of the copy.
-        cameraPane: (_, _) => const CameraOffNotice(permissionDenied: true),
+        // permission — the real widget, not a mock of the copy. The one thing
+        // injected is the platform's answer to "can I open the settings
+        // pane?", which no widget test has a launcher to answer.
+        cameraPane: (_, _) => CameraOffNotice(
+          permissionDenied: true,
+          canOpenSettings: () async => true,
+        ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text("Ansi can't open the camera"), findsOneWidget);
       expect(find.text('Open Settings'), findsOneWidget);
       expect(find.textContaining('both end in the same place'), findsOneWidget);
 
       // The point of the state: it is not a dead end.
+      await _typeAndLookUp(tester, _code);
+      expect(resolver.draft?.suggestedName, 'Ruokaan Fraiche');
+    });
+
+    testWidgets('a platform that cannot open Settings is not offered the '
+        'button — the message and the typed field stand alone', (tester) async {
+      final resolver = _Resolver();
+      await _pump(
+        tester,
+        lookup: _finds(),
+        resolver: resolver,
+        // The web's answer, and Android's: nothing here opens `app-settings:`.
+        cameraPane: (_, _) => CameraOffNotice(
+          permissionDenied: true,
+          canOpenSettings: () async => false,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text("Ansi can't open the camera"), findsOneWidget);
+      expect(
+        find.text('Open Settings'),
+        findsNothing,
+        reason: 'a control that cannot do its job must not be drawn',
+      );
+
+      // Still not a dead end.
       await _typeAndLookUp(tester, _code);
       expect(resolver.draft?.suggestedName, 'Ruokaan Fraiche');
     });

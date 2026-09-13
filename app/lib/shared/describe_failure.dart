@@ -12,6 +12,8 @@
 library;
 
 import 'dart:async';
+// SocketException only. On the web this resolves to Flutter's stub library, so
+// the type exists to match against and simply never arrives — see the arm.
 import 'dart:io';
 
 import 'package:http/http.dart' show ClientException;
@@ -27,6 +29,14 @@ String describeFailure(Object error) => switch (error) {
   AuthException(:final message) => message,
   FunctionException() => 'the server refused this request',
   TimeoutException() => 'the server didn’t answer in time',
+  // Both vocabularies for the same fact — nothing came back. `dart:io`'s
+  // SocketException is a phone's; `http`'s ClientException is what a browser
+  // gets, because `BrowserClient` reports every failed fetch (DNS, offline,
+  // CORS, a blocked mixed-content request) as one 'XMLHttpRequest error.' with
+  // no detail the platform will let it read. On the web the first arm is dead
+  // code that still compiles — Flutter's web SDK declares the class — and the
+  // second one is the whole of it, so the sentence has to be true without
+  // knowing which came.
   SocketException() || ClientException() => 'couldn’t reach the server',
   SqliteException() =>
     'the local database didn’t answer — this is on the phone, not the network',

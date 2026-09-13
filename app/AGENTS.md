@@ -244,10 +244,29 @@ Notes:
 - **Fonts** must be bundled to render (Spectral / IBM Plex Mono in
   `assets/fonts/`, declared in `pubspec.yaml`); Inter comes from Forui. After
   adding a font, `flutter clean` + rebuild so the iOS bundle picks it up.
-- **Web fallback** (no Xcode needed): `dart run powersync:setup_web` once (fetches
-  the sqlite3 wasm + workers into `web/`), then `flutter run -d web-server` and
-  open it in a browser. `core/sync/database.dart` already branches on `kIsWeb`
-  (web has no filesystem — PowerSync persists via OPFS/IndexedDB).
+- **The web build** (no Xcode needed): `make run-web` (Chrome, with the defines
+  from `.env.local`), or `flutter build web --release --base-href /` and serve
+  `build/web`. Nothing to fetch first — `web/` already holds the two PowerSync
+  workers and `sqlite3.wasm`, and `test/structure/web_workers_match_powersync_test.dart`
+  fails if a `powersync` bump leaves them stale (`dart run powersync:setup_web`
+  refreshes them). `core/sync/database.dart` branches on `kIsWeb`: there is no
+  filesystem, so PowerSync persists via OPFS/IndexedDB, and it needs no
+  COOP/COEP headers to do it.
+
+  Four platform facts the app holds explicitly, each a `kIsWeb` branch with a
+  test rather than a `try`/`catch` around a plugin — **a screen must not offer
+  what the browser cannot do**:
+
+  | | On the web |
+  |---|---|
+  | Google sign-in | returns to the page the app is served from (`features/auth/presentation/oauth_redirect.dart`), not the `io.ansi.app://` scheme. Every origin must be listed in Supabase → URL Configuration first (`../docs/cloud-setup.md` §1.6). |
+  | Photo import | one "choose image files" door; pages are read through `XFile` (a blob URL, not a `dart:io` file) and downscaled through `compute`, never `Isolate.run` |
+  | Crop / rotate | skipped, and the screen says so — `image_cropper` needs `WebUiSettings` + cropperjs in `web/index.html` |
+  | Barcode scan | door not drawn; the typed barcode field is the path, as it always was |
+
+  Routes are **hash URLs** (`…/#/week`) because the host is a static one that
+  cannot rewrite a deep link. Hosting, the owed Pages setup and the trade it
+  carries: `../docs/release.md` §6.
 
 ## Current focus
 

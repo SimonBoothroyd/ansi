@@ -21,10 +21,10 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
-import 'dart:isolate';
 import 'dart:typed_data';
 
+import 'package:cross_file/cross_file.dart';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:image/image.dart' as img;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -420,8 +420,17 @@ class EdgeImportRepository implements ImportRepository {
   }
 
   /// Builds the invoke body: a URL passes straight through; photos are read
-  /// from their on-device paths and base64-encoded (the edge fn decodes them
-  /// back to bytes for the vision tier).
+  /// back from whatever the picker called them and base64-encoded (the edge fn
+  /// decodes them back to bytes for the vision tier).
+  ///
+  /// Two platform facts shape this loop. A page is read through [XFile], not
+  /// `dart:io`: on a phone the picker's path is a file and on the web it is a
+  /// `blob:` URL with no filesystem behind it, and `XFile` is the one reader
+  /// that answers to both. And the downscale goes through `compute`, which is
+  /// a background isolate where there are isolates and a plain call in the
+  /// browser, where `Isolate.run` throws — a page decode is heavy enough to
+  /// want off the UI thread, but not so heavy that the web build should refuse
+  /// to import rather than jank for a moment.
   Future<Map<String, Object?>> _bodyFor(ImportSource source) async {
     switch (source) {
       case ImportFromUrl(:final url):
@@ -429,10 +438,8 @@ class EdgeImportRepository implements ImportRepository {
       case ImportFromPhotos(:final imagePaths):
         final images = <String>[];
         for (final path in imagePaths) {
-          final raw = await File(path).readAsBytes();
-          // Downscale off the UI isolate before encoding — a full-res page can
-          // take seconds to decode in pure Dart.
-          final small = await Isolate.run(() => downscaleForUpload(raw));
+          final raw = await XFile(path).readAsBytes();
+          final small = await compute(downscaleForUpload, raw);
           images.add(base64Encode(small));
         }
         return {'images': images};

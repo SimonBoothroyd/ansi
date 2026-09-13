@@ -341,6 +341,159 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ---------------------------------------------------------------------------
+  # Web: the browser build, and the hosted copy of it.
+  #
+  # Same trigger and the same three defines as android, so what a browser runs
+  # is the configuration a phone runs. Two things about it are worth knowing
+  # before reading the steps:
+  #
+  #   1. `--base-href` must match where Pages serves the app. This is a PROJECT
+  #      site (github.com/<owner>/<repo> → <owner>.github.io/<repo>/), so the
+  #      repo name is part of every asset URL; with the default "/" the page
+  #      loads and every asset 404s. It is derived from GITHUB_REPOSITORY
+  #      rather than typed, so a rename cannot leave it stale.
+  #   2. The bundle is a PUBLIC copy of the three defines. `main.dart.js` has
+  #      them compiled in and anyone can read them — the anon key is public by
+  #      design (RLS is the protection, docs/SECURITY.md) but the Supabase and
+  #      PowerSync endpoints stop being private the moment this is hosted.
+  #      That is the trade the owner accepts by turning Pages on, and it is
+  #      written up in docs/release.md §6.
+  #
+  # The deploy is a separate job, gated on Pages actually being configured:
+  # `actions/deploy-pages` fails outright against a repo with Pages off, and a
+  # red release job for a host nobody has set up yet would be a lie about the
+  # build. Build → artifact always; publish only when there is somewhere to
+  # publish to.
+  # ---------------------------------------------------------------------------
+  web:
+    name: web (browser build)
+    needs: guard
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read # only to ASK whether Pages is configured (the step below)
+    outputs:
+      pages_configured: ${{ steps.pages.outputs.configured }}
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('app/pubspec.lock') }}
+          restore-keys: pub-${{ runner.os }}-
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - run: flutter pub get
+      - run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Derive the Pages base href
+        id: href
+        run: |
+          base="/${GITHUB_REPOSITORY#*/}/"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "base href: $base"
+
+      # The committed PowerSync workers + sqlite3.wasm in app/web are copied in
+      # by this build; app/test/structure/web_workers_match_powersync_test.dart
+      # is what stops a stale pair shipping.
+      - name: Build web (release)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          POWERSYNC_URL: ${{ secrets.POWERSYNC_URL }}
+          BASE_HREF: ${{ steps.href.outputs.base }}
+        run: |
+          flutter build web --release \
+            --base-href "$BASE_HREF" \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
+            --dart-define=POWERSYNC_URL="$POWERSYNC_URL"
+          du -sh build/web
+          ls -l build/web
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-release
+          path: app/build/web
+          if-no-files-found: error
+
+      # The Pages-shaped copy of the same directory. Uploading it is harmless
+      # when Pages is off — it is just another artifact — and it has to happen
+      # in THIS job, because deploy-pages consumes an artifact from the run.
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app/build/web
+
+      # Is there a host? `GET /repos/{owner}/{repo}/pages` answers 404 until
+      # somebody enables Pages with source "GitHub Actions" (docs/release.md
+      # §6). Advisory, never fatal — the build above already proved itself.
+      - name: Pages configured? (advisory, never fatal)
+        id: pages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/pages" >/dev/null 2>&1; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "✓ Pages is configured — the build will be deployed"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Pages deploy SKIPPED — this repo has no GitHub Pages site."
+            echo "The web build is attached to this run as the 'web-release' artifact."
+            echo "To host it: Settings → Pages → Source: GitHub Actions (once), then"
+            echo "re-run this workflow. Read docs/release.md §6 FIRST — hosting the"
+            echo "build publishes the Supabase and PowerSync endpoints it is compiled"
+            echo "with, and the OAuth origins have to be added to Supabase or Google"
+            echo "sign-in dead-ends in the browser (docs/cloud-setup.md §1.6)."
+          fi
+
+  # ---------------------------------------------------------------------------
+  # The hosted copy. Tag-only, like the Release: a workflow_dispatch rehearsal
+  # from a branch must not become the live site, and Pages has only one.
+  # ---------------------------------------------------------------------------
+  pages:
+    name: github pages (deploy)
+    needs: web
+    if: >-
+      needs.web.outputs.pages_configured == 'true' &&
+      startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write # create the deployment
+      id-token: write # deploy-pages authenticates with an OIDC token
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    # Two tags landing together must not race each other onto one site.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: Summary
+        run: |
+          {
+            echo "### Hosted"
+            echo
+            echo "**${{ steps.deploy.outputs.page_url }}** · release **${GITHUB_REF_NAME}**"
+            echo
+            echo "Cross-origin isolation (COOP/COEP) is NOT set and is not needed:"
+            echo "PowerSync's web build opens, writes and persists without it."
+            echo "The router is on hash URLs because Pages cannot rewrite a deep"
+            echo "link — see docs/release.md §6."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
   # iOS: COMPILE PROOF ONLY, deliberately.
   #
   # Ansi is a two-person household app installed from Xcode, not from the App
