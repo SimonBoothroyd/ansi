@@ -48,6 +48,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
+import '../../../shared/ansi_back.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_layout.dart';
 import '../../../shared/ansi_modals.dart';
@@ -242,11 +243,17 @@ class _RecipeBody extends HookConsumerWidget {
         prefixes: [
           FHeaderAction.back(
             // A cold deep link lands here with no shell page beneath
-            // (navigation.md §6), so there is nothing to pop: fall back to
-            // the Library. Every other arrival — a push, or the editor's
-            // Save replacing itself on a new recipe — has an opener under it.
+            // (navigation.md §6), so there is nothing to pop. Every other
+            // arrival — a push, or the editor's Save replacing itself on a
+            // new recipe — has an opener under it.
+            //
+            // `?week=` is the one page that knows its referring tab: the URL
+            // says this recipe is being read AS the week plans it, so that is
+            // the tab it belongs to. The raw parameter, not the placement
+            // the body re-checks: what the link says is where the reader came
+            // from, whether or not the meal is still on that week.
             onPress: () =>
-                context.canPop() ? context.pop() : context.goOnce('/'),
+                ansiBack(context, home: weekKey == null ? '/' : '/week'),
           ),
         ],
         // At expanded the same menu hangs in the hero beside the scaler, which

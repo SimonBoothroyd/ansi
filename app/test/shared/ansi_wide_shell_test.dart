@@ -321,12 +321,24 @@ void main() {
     ) async {
       final router = _router();
       await _pump(tester, router, _desk);
+      router.go('/week');
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Account'));
       await tester.pumpAndSettle();
 
       expect(find.text('account screen'), findsOneWidget);
       expect(_litLabel(tester), isNull);
+      // A door like any other means it PUSHES — the footer item is a page over
+      // where you were, not a destination replacing it, so the page's own
+      // chevron has something to pop. `shared/ansi_back.dart` and
+      // `test/shared/ansi_back_test.dart` hold the rest of that rule.
+      expect(router.canPop(), isTrue);
+      expect(
+        _items(tester).where((i) => _labelOf(i) == 'Account'),
+        hasLength(1),
+        reason: 'one household door on wide, not two',
+      );
     });
   });
 
@@ -427,6 +439,7 @@ void main() {
     /// the chrome beside a pushed page is neutral, so the page's own header is
     /// the only way back — and each of these already draws one.
     const pushedViews = [
+      'lib/features/books/presentation/book_page_view.dart',
       'lib/features/import/presentation/import_view.dart',
       'lib/features/account/presentation/account_view.dart',
       'lib/features/ingredients/presentation/ingredient_list_view.dart',

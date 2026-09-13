@@ -75,7 +75,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/text/name_clean.dart';
@@ -84,6 +83,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/ansi_back.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
@@ -150,6 +150,11 @@ const kFormSaveKey = ValueKey('form-save');
 /// The dock's CTA: `Mark complete` on a stored stub. A complete row and a row
 /// that does not exist yet each carry one button instead — Save.
 const kFormCompleteKey = ValueKey('form-complete');
+
+/// The manager this page is a row of — where back lands when there is
+/// nothing under it. Spelled here rather than imported from the list view,
+/// which imports this file.
+const _managerRoute = '/ingredients';
 
 class IngredientDetailView extends HookConsumerWidget {
   const IngredientDetailView({
@@ -286,10 +291,10 @@ FHeader _header(
 }) {
   final back = FHeaderAction.back(
     // A cold deep link lands here with no page beneath, so there is nothing
-    // to pop: fall back to the manager, exactly as the delete does.
-    onPress:
-        onBack ??
-        () => context.canPop() ? context.pop() : context.goOnce('/ingredients'),
+    // to pop: fall back to the manager, exactly as the delete does. A row is
+    // a detail OF the vocabulary, which is why its home is the manager and
+    // not the Library.
+    onPress: onBack ?? () => ansiBack(context, home: _managerRoute),
   );
   // The reading posture leads with the name in the body, the way the recipe
   // page does, so it names none here rather than saying it twice.
@@ -721,7 +726,7 @@ class _DetailForm extends ConsumerWidget {
         done();
         return;
       }
-      context.canPop() ? context.pop(result) : context.goOnce('/ingredients');
+      ansiBack(context, home: _managerRoute, result: result);
     }
 
     // **A near match, taken.** Only the create form offers this: there the
@@ -788,7 +793,7 @@ class _DetailForm extends ConsumerWidget {
         form.delete,
       );
       if (outcome is! Deleted || !context.mounted) return;
-      context.canPop() ? context.pop() : context.goOnce('/ingredients');
+      ansiBack(context, home: _managerRoute);
     }
 
     // What the row's measures ARE, as the form holds them: the loaded ones

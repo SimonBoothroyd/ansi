@@ -20,14 +20,13 @@ import 'dart:async';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_back.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_layout.dart';
-import '../../../shared/guarded_navigation.dart';
 import '../domain/book.dart';
 import 'book_rows.dart';
 import 'book_view_models.dart';
@@ -93,14 +92,14 @@ class _BackOnly extends StatelessWidget {
 }
 
 /// The page's own back control: pops to whatever opened it, and falls back to
-/// the Library on a cold deep link, where there is genuinely nothing beneath.
+/// the Library on a cold deep link, where there is genuinely nothing beneath —
+/// the one rule, from the one place (`shared/ansi_back.dart`).
 class _BackAction extends StatelessWidget {
   const _BackAction();
 
   @override
-  Widget build(BuildContext context) => FHeaderAction.back(
-    onPress: () => context.canPop() ? context.pop() : context.goOnce('/'),
-  );
+  Widget build(BuildContext context) =>
+      FHeaderAction.back(onPress: () => ansiBack(context));
 }
 
 class _BookBody extends StatelessWidget {

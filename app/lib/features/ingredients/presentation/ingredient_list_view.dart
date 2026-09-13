@@ -22,13 +22,13 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/aisles.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/words.dart';
+import '../../../shared/ansi_back.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_layout.dart';
 import '../../../shared/ansi_search_field.dart';
@@ -142,11 +142,7 @@ class IngredientListView extends HookConsumerWidget {
 
     final header = FHeader.nested(
       title: Text('Ingredients', style: ansiHeaderTitle()),
-      prefixes: [
-        FHeaderAction.back(
-          onPress: () => context.canPop() ? context.pop() : context.goOnce('/'),
-        ),
-      ],
+      prefixes: [FHeaderAction.back(onPress: () => ansiBack(context))],
       suffixes: [
         FHeaderAction(icon: const Icon(FLucideIcons.plus), onPress: addNew),
       ],
