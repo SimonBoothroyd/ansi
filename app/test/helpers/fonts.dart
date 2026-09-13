@@ -31,3 +31,12 @@ Future<void> loadAnsiFonts() async {
     await loader.load();
   }
 }
+
+/// Forui's Lucide icon font, so a test that MEASURES an icon (a unit glyph
+/// among figures) gets the real glyph rather than a fallback's blank box.
+Future<void> loadLucideIcons() async {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  final loader = FontLoader('packages/forui_assets/ForuiLucideIcons')
+    ..addFont(rootBundle.load('packages/forui_assets/assets/lucide.ttf'));
+  await loader.load();
+}

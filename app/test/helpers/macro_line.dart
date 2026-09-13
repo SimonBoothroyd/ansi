@@ -22,6 +22,14 @@ Finder macroTextContaining(String text) => find.byWidgetPredicate(
   description: 'macro line containing "$text"',
 );
 
+/// The word an icon stands in for, however it is wrapped — a unit glyph sits
+/// inside a paint-only [Transform] so it can be centred on the digits.
+String? _iconLabel(Widget widget) => switch (widget) {
+  Icon(:final semanticLabel) => semanticLabel,
+  SingleChildRenderObjectWidget(child: final child?) => _iconLabel(child),
+  _ => null,
+};
+
 /// One span tree, flattened: its text, with every icon read out as the word
 /// it stands in for.
 String spokenText(InlineSpan span) {
@@ -30,8 +38,8 @@ String spokenText(InlineSpan span) {
     switch (child) {
       case TextSpan(:final text?):
         buffer.write(text);
-      case WidgetSpan(child: final Icon icon):
-        buffer.write(icon.semanticLabel ?? '');
+      case WidgetSpan(:final child):
+        buffer.write(_iconLabel(child) ?? '');
       default:
         break;
     }

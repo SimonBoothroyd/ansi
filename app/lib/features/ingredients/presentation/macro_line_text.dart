@@ -19,6 +19,7 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
+import '../../../core/theme/ansi_theme.dart';
 import '../../../core/units/macros.dart';
 import 'macros_format.dart';
 
@@ -29,21 +30,38 @@ const kMacroEnergyIcon = FLucideIcons.flame;
 /// Fibre. Lucide's `wheat`: a sheaf, which is what the figure is about.
 const kMacroFibreIcon = FLucideIcons.wheat;
 
-/// A unit glyph after its number, sized to the line's cap height and painted
-/// in the line's own colour so it sits ON the line rather than beside it.
+/// A unit glyph after its number, sized to the line and painted in the line's
+/// own colour so it sits ON the line rather than beside it.
+///
+/// **It is centred on the digits, by construction.** The box sits on the
+/// baseline ([PlaceholderAlignment.aboveBaseline]) and is then dropped, in
+/// paint only, by half of what it overshoots the cap height
+/// ([kMonoCapHeight]) — so the glyph's middle lands on the middle of a
+/// figure's ink, which runs from the baseline to the cap.
+/// [PlaceholderAlignment.middle] cannot do that: it centres on the font's
+/// ascent/descent midpoint, which is higher than the digits and moves with
+/// the line's [TextStyle.height], so one glyph rides at a different altitude
+/// on every surface that draws it.
+///
+/// The box is a whole number of logical pixels because Flutter centres an
+/// [Icon]'s glyph inside a box of its own, and a box that lands between
+/// pixels lets that centring drift by up to half of one.
 InlineSpan macroUnitSpan(
   IconData icon, {
   required String label,
   required TextStyle style,
-}) => WidgetSpan(
-  alignment: PlaceholderAlignment.middle,
-  child: Icon(
-    icon,
-    size: (style.fontSize ?? 12) * 0.95,
-    color: style.color,
-    semanticLabel: label,
-  ),
-);
+}) {
+  final fontSize = style.fontSize ?? 12;
+  final box = (fontSize * 0.95).roundToDouble();
+  return WidgetSpan(
+    alignment: PlaceholderAlignment.aboveBaseline,
+    baseline: TextBaseline.alphabetic,
+    child: Transform.translate(
+      offset: Offset(0, (box - fontSize * kMonoCapHeight) / 2),
+      child: Icon(icon, size: box, color: style.color, semanticLabel: label),
+    ),
+  );
+}
 
 /// The spans of `197 🔥 · 2P 3C 20F · 1.5 🌾`, in [style].
 ///

@@ -115,6 +115,17 @@ TextStyle ansiSans({
   fontWeight: weight,
 );
 
+/// IBM Plex Mono's cap height, as a fraction of the font size (the face's own
+/// `OS/2.sCapHeight`, 698/1000 em). A digit's ink runs from the baseline up to
+/// exactly this.
+///
+/// It is the measurement a glyph set among figures is centred on. The
+/// alternative — the font's ascent/descent midpoint, which is what
+/// `PlaceholderAlignment.middle` uses — sits above the digits and moves with
+/// [TextStyle.height], so one glyph rides at a different altitude on every
+/// line the app draws.
+const double kMonoCapHeight = 0.698;
+
 /// A monospace style for data (quantities, units, scale factors).
 TextStyle ansiMono({
   required double size,
