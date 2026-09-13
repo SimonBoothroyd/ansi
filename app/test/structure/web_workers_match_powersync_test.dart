@@ -45,10 +45,11 @@ void main() {
   test('the sync worker was compiled from the locked powersync_core', () {
     final locked = _lockedVersion('powersync_core');
     final worker = File('web/powersync_sync.worker.js').readAsStringSync();
+    // The stamp is a user-agent fragment: `powersync-dart-core/1.8.0 Dart (…`,
+    // so the version runs to the first space. The class admits a prerelease or
+    // build suffix rather than silently matching the numeric head of one.
     final stamped = RegExp(
-      r'powersync-dart-core/(\d+\.\d+\.\d+[^\s"'
-      r"'"
-      r']*)',
+      'powersync-dart-core/([0-9A-Za-z.+-]+)',
     ).firstMatch(worker)?.group(1);
 
     expect(
