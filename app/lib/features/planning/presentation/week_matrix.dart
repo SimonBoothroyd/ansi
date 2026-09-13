@@ -123,7 +123,10 @@ class WeekMatrix extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: _HeadRow(weekStart: weekStart, todayDayOfWeek: todayDayOfWeek),
         ),
-        Expanded(
+        // Flexible, not Expanded: a week of three slot rows draws its feet
+        // directly under the last row, the way the grid does, and only a week
+        // too tall for the window scrolls under feet parked at the bottom.
+        Flexible(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
