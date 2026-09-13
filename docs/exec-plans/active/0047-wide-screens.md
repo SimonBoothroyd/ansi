@@ -127,6 +127,18 @@ changes, and the code gets one place that reads the viewport.
   it. One vocabulary for "this view uses the pane", so the shell lane's roots
   and the view lanes' pages are not two rules that have to be kept in step.
 
+- 2026-09-13 — First pass landed: the layout file and the measure, the shell
+  (sidebar, rail, neutral chrome on a pushed page, sheets as dialogs from
+  medium up), the Week matrix, the shelf and the book page, the recipe page's
+  two columns, Cook two-up, the Shop's provenance pane, the manager's two
+  panes, and the web platform work (OAuth origin, gated camera and barcode
+  doors, the worker-freshness test, a `web` job with a Pages deploy that
+  waits for the owner to enable Pages). Moving modals onto the shell
+  navigator moved `hostContextOf` with them: a sheet that popped through the
+  root's overlay popped the app instead. Gate: `make test` green, the full
+  `make test-sim` on an iPhone 17 simulator green (ten scenarios, nine files)
+  after two smoke assertions were brought up to ADR-0016.
+
 ## Notes / open questions
 
 - Week on wide: where the week band (total, average, `n of 7 days`) sits is
