@@ -108,6 +108,38 @@ class CopyLastWeekNotice extends ConsumerWidget {
   }
 }
 
+/// The `copy last week` chip an empty week offers.
+///
+/// It is the one door both shapes of the screen share: beside the phone's
+/// "Add the first meal" button, and under the wide matrix's head, where the
+/// seven column feet already carry the add doors so a primary would be a
+/// second door to the same place. Drawn only while the week has zero entries
+/// and there is a week behind it — the permanent home is the switcher menu.
+class CopyLastWeekChip extends StatelessWidget {
+  const CopyLastWeekChip({required this.onTap, super.key});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: AnsiColors.herbSoft,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          'copy last week',
+          style: ansiMono(size: 11, color: AnsiColors.herbDeep),
+        ),
+      ),
+    );
+  }
+}
+
 /// `Copied 7 meals from last week`.
 String copiedMealsLine(int meals) =>
     'Copied $meals ${plural(meals, 'meal')} from last week';

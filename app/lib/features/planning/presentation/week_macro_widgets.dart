@@ -6,6 +6,11 @@
 /// recipe line's dense grammar ([MacroStrip]) — a week reads in the same
 /// words an ingredient does.
 ///
+/// The wide matrix draws the day's line in two halves, split at its first
+/// separator, because a 111 px column cannot hold it: [DayMacroFootLine] in the
+/// column foot and [DayMacroBandCell] in the band beneath. Same states, same
+/// order, same words — the split is where the line breaks, not what it says.
+///
 /// The rule, in the order it is applied:
 ///
 /// 1. **empty** (`considered == 0`) — `no meals`, or `no meals for Ada` under
@@ -111,13 +116,23 @@ String excludedLine(MealSetMacros macros) =>
 /// in the total stated it ([Macros.fiber]); an absent one prints nothing at
 /// all, never a zero (invariant 3).
 class MacroStrip extends StatelessWidget {
-  const MacroStrip({required this.macros, this.size = 11, super.key});
+  const MacroStrip({
+    required this.macros,
+    this.size = 11,
+    this.part = MacroStripPart.whole,
+    super.key,
+  });
 
   final Macros macros;
   final double size;
 
+  /// How much of the line to draw. The wide matrix reads a day's line in two
+  /// places — see [MacroStripPart].
+  final MacroStripPart part;
+
   @override
   Widget build(BuildContext context) {
+    final style = ansiMono(size: size, weight: FontWeight.w500);
     // A macro number is never clipped or ellipsised — a truncated `1 234` is
     // a wrong number, not a shortened one (invariant 3). So when the widest
     // honest total outgrows its band the whole line scales down together,
@@ -127,16 +142,37 @@ class MacroStrip extends StatelessWidget {
       alignment: AlignmentDirectional.centerStart,
       child: Text.rich(
         TextSpan(
-          children: macroLineSpans(
-            macros,
-            style: ansiMono(size: size, weight: FontWeight.w500),
-            kcal: formatMacroNumber,
-            grams: formatMacroGrams,
-          ),
+          children: switch (part) {
+            MacroStripPart.whole => macroLineSpans(
+              macros,
+              style: style,
+              kcal: formatMacroNumber,
+              grams: formatMacroGrams,
+            ),
+            MacroStripPart.grams => macroGramsSpans(
+              macros,
+              style: style,
+              grams: formatMacroGrams,
+            ),
+          },
         ),
       ),
     );
   }
+}
+
+/// Which part of the dense macro line a [MacroStrip] draws.
+///
+/// The wide matrix splits a day's line at its FIRST separator and puts the two
+/// halves in two places — the energy figure in the day's column foot
+/// ([DayMacroFootLine]), the grams in the band under that column
+/// ([DayMacroBandCell]). Same line, same figures, same glyphs.
+enum MacroStripPart {
+  /// `1 900 🔥 · 90P 212C 70F · 24 🌾` — the whole line, as a phone draws it.
+  whole,
+
+  /// `90P 212C 70F · 24 🌾` — everything after the first separator.
+  grams,
 }
 
 /// The day card's foot: the macro line and its denominator, or one of the two
@@ -208,6 +244,129 @@ class DayMacroLine extends StatelessWidget {
             child: Text(
               'left out: ${excludedLine(macros)}',
               style: ansiMono(size: 10, color: AnsiColors.muted),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// A day's line as the wide matrix's **column foot** draws it: the energy
+/// figure and its mandatory denominator, and nothing else.
+///
+/// It is [DayMacroLine]'s own content, split at the line's first separator — a
+/// 111 px column cannot hold `1 900 🔥 · 90P 212C 70F · 24 🌾`, so the grams go
+/// to [DayMacroBandCell] under the same column. The four states are the same
+/// four, in the same order and the same words: an empty day says `no meals`, a
+/// day that resolved nothing refuses with the badge and no number at all, and a
+/// partial day still states `1 of 2 meals` here (what it left out is named in
+/// the band, once, rather than in both places).
+class DayMacroFootLine extends StatelessWidget {
+  const DayMacroFootLine({
+    required this.macros,
+    required this.scope,
+    super.key,
+  });
+
+  final MealSetMacros macros;
+  final String scope;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = ansiMono(size: 10, color: AnsiColors.muted);
+    // 1 · an absence is an absence, never a zero.
+    if (macros.isEmpty) {
+      return Text(
+        scope == 'Everyone' ? 'no meals' : 'no meals for $scope',
+        style: muted,
+      );
+    }
+    // 2 · nothing resolved: no number at all. The reasons are the band's —
+    // saying them twice under one column is saying them twice.
+    if (macros.isRefused) {
+      return Row(
+        children: [
+          const IncompleteBadge(),
+          const SizedBox(width: 6),
+          Flexible(child: Text('no total', style: muted)),
+        ],
+      );
+    }
+    // 3/4 · the energy figure and the denominator, as ONE wrapping line: a Row
+    // of two widgets cannot take a second line, and this one has to at 1180
+    // for a partial day.
+    return Text.rich(
+      TextSpan(
+        children: [
+          ...macroEnergySpans(
+            macros.total!,
+            style: ansiMono(size: 11, weight: FontWeight.w500),
+            kcal: formatMacroNumber,
+          ),
+          TextSpan(
+            text: ' · ${denominatorLine(macros, scope: scope)}',
+            style: muted,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A day's line as the wide matrix's **band** draws it: the grams, the fibre
+/// tail, and what the day left out.
+///
+/// The band is one full-width block under the seven column feet, so each cell
+/// sits under the day it belongs to and the figures read across. It is the
+/// second half of [DayMacroFootLine]'s line plus the exclusions, in
+/// [excludedLine]'s exact words — the incomplete-day refusal is honoured here
+/// too: a day that resolved nothing prints the badge and the reasons, never a
+/// number.
+class DayMacroBandCell extends StatelessWidget {
+  const DayMacroBandCell({
+    required this.macros,
+    required this.scope,
+    super.key,
+  });
+
+  final MealSetMacros macros;
+  final String scope;
+
+  @override
+  Widget build(BuildContext context) {
+    if (macros.isEmpty) {
+      return Text(
+        scope == 'Everyone' ? 'no meals' : 'no meals for $scope',
+        style: ansiMono(size: 10, color: AnsiColors.muted),
+      );
+    }
+    if (macros.isRefused) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const IncompleteBadge(),
+          const SizedBox(height: 5),
+          Text(
+            'no total — ${excludedLine(macros)}',
+            style: ansiMono(size: 10, color: AnsiColors.muted),
+          ),
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        MacroStrip(
+          macros: macros.total!,
+          size: 10.5,
+          part: MacroStripPart.grams,
+        ),
+        if (macros.isPartial)
+          Padding(
+            padding: const EdgeInsets.only(top: 5),
+            child: Text(
+              'left out: ${excludedLine(macros)}',
+              style: ansiMono(size: 9.5, color: AnsiColors.muted),
             ),
           ),
       ],

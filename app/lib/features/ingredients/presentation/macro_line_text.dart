@@ -78,15 +78,37 @@ List<InlineSpan> macroLineSpans(
   required TextStyle style,
   String Function(double) kcal = formatKcal,
   String Function(double) grams = formatGrams,
+}) => [
+  ...macroEnergySpans(m, style: style, kcal: kcal),
+  TextSpan(text: ' · ', style: style),
+  ...macroGramsSpans(m, style: style, grams: grams),
+];
+
+/// The line's first segment on its own — `197 🔥`.
+///
+/// It is split out because the Week's wide matrix reads the day's line in two
+/// places: the energy figure rides in the column foot and the grams stand in a
+/// band under the day they belong to. Two halves of ONE line, from one builder,
+/// so a split surface cannot drift into a second dialect.
+List<InlineSpan> macroEnergySpans(
+  Macros m, {
+  required TextStyle style,
+  String Function(double) kcal = formatKcal,
+}) => [
+  TextSpan(text: '${kcal(m.kcal)} ', style: style),
+  macroUnitSpan(kMacroEnergyIcon, label: 'kcal', style: style),
+];
+
+/// Everything after that first separator — `2P 3C 20F · 1.5 🌾`.
+List<InlineSpan> macroGramsSpans(
+  Macros m, {
+  required TextStyle style,
+  String Function(double) grams = formatGrams,
 }) {
   final fiber = m.fiber;
   return [
-    TextSpan(text: '${kcal(m.kcal)} ', style: style),
-    macroUnitSpan(kMacroEnergyIcon, label: 'kcal', style: style),
     TextSpan(
-      text:
-          ' · ${grams(m.protein)}P ${grams(m.carb)}C '
-          '${grams(m.fat)}F',
+      text: '${grams(m.protein)}P ${grams(m.carb)}C ${grams(m.fat)}F',
       style: style,
     ),
     if (fiber != null) ...[
