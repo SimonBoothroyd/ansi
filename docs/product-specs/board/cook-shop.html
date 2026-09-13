@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Cook &amp; Shop</h1>
-    <p class="view-status">built · matches code 2026-09-12 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: proposed <a href="../../exec-plans/active/0047-wide-screens.md">plan 0043</a></p>
+    <p class="view-status">built · matches code 2026-09-12 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: proposed <a href="../../exec-plans/active/0047-wide-screens.md">plan 0047</a></p>
     <p class="view-blurb">Two tabs derived from the week on screen — sessions grouped by recipe and split by shelf life, then one list summed from them, saying where every line came from.</p>
 </header>
 
@@ -160,7 +160,6 @@
         </div>
 
 
-        <div class="frame">
         <div class="frame">
             <p class="frame-name"><b>The last tick</b> · confetti of the food itself: thirty pieces — leaves, wheat, berries, carrots and plain strips, in a kitchen’s colours — burst from the box you just ticked, fill the width of the screen and fall past the bottom, over the list. About 1.5 s, one painter, and a light haptic at the tick</p>
             <div class="phone"><div class="notch"></div><div class="screen cel">
@@ -345,7 +344,7 @@
 <div class="board-wide">
 
     <div class="frame wide">
-        <p class="frame-name"><b>wide &middot; the list</b> &middot; Shop lit in the sidebar; the walk stays one column at a hand’s measure, centred, with the store groups, the opened provenance, the flag band and the optional-lines echo exactly as the phone draws them</p>
+        <p class="frame-name"><b>wide &middot; the list</b> &middot; Shop lit in the sidebar; the walk stays one column at a hand’s measure, centred, with the aisles, the basket section, the counts in their own measure, the opened provenance and the three echo rows exactly as the phone draws them</p>
         <div class="desk">
             <div class="lip"><i></i><i></i><i></i></div>
             <div class="dscreen">
@@ -363,34 +362,48 @@
                     <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span></div>
                     <div class="er-shopsync"><span class="sy"></span><span class="st">Synced &middot; 14:02</span></div>
                     <p class="conv-note" style="margin-top:10px;letter-spacing:.04em">summed from the cook plan &middot; with provenance</p>
+                    <div class="sl-group">Produce</div>
+                    <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Lime</span><span class="item-total">2½ lime, whole</span></div>
+                        <div class="item-sub">167.5 g → buy 3</div>
+                        <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry &middot; cook Mon</span><span>1 lime, whole</span></div><div class="prov-line"><span class="src">Charred Broccoli &amp; Halloumi Salad &middot; cook Wed</span><span>1½ lime, whole</span></div></div></div>
+                    <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Yellow onion</span><span class="item-total">5 onion, medium</span></div>
+                        <div class="item-sub">550 g</div>
+                        <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry &middot; cook Mon</span><span>3 onion, medium</span></div><div class="prov-line"><span class="src">Slow-Cooker Beef Ragù &middot; cook Tue</span><span>2 onion, medium</span></div></div></div>
+                    <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Charred broccoli</span><span class="item-total">1 head</span></div>
+                        <div class="item-sub">350 g</div>
+                        <div class="prov"><div class="prov-line"><span class="src">Charred Broccoli &amp; Halloumi Salad &middot; cook Wed</span><span>1 head</span></div></div></div>
+                    <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Flat-leaf parsley</span><span class="item-total">1 bunch</span></div>
+                        <div class="item-sub">30 g</div>
+                        <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry</span><span>1 bunch</span></div></div></div>
+                    <div class="sl-group">Dairy</div>
+                    <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Halloumi</span><span class="item-total">250 g</span></div>
+                        <div class="prov"><div class="prov-line"><span class="src">Charred Broccoli &amp; Halloumi Salad &middot; cook Wed</span><span>250 g</span></div></div></div>
+                    <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Greek yoghurt</span><span class="item-total">500 g</span></div>
+                        <div class="prov"><div class="prov-line"><span class="src">Snack &middot; Tue</span><span>250 g</span></div><div class="prov-line"><span class="src">Snack &middot; Thu</span><span>250 g</span></div></div></div>
                     <div class="sl-group">Baking</div>
                     <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Flour</span><span class="item-total">500 g</span></div>
-                        <div class="prov"><div class="prov-line"><span class="src">Curry batch &middot; cook Mon</span><span>300 g</span></div><div class="prov-line"><span class="src">Oat Cookies</span><span>150 g</span></div><div class="prov-line manual"><span class="src">＋ manual top-up</span><span>50 g</span></div></div></div>
-                    <div class="sl-group">Produce</div>
-                    <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Yellow onion</span><span class="item-total">5 med</span></div>
-                        <div class="prov"><div class="prov-line"><span class="src">Curry batch &middot; cook Mon</span><span>3 med</span></div><div class="prov-line"><span class="src">Ragù &middot; cook Tue</span><span>2 med</span></div></div></div>
-                    <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Charred broccoli</span><span class="item-total">1 head</span></div>
-                        <div class="prov"><div class="prov-line"><span class="src">Charred Broccoli &amp; Halloumi Salad &middot; cook Wed</span><span>1 head</span></div></div></div>
-                    <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Flat-leaf parsley</span><span class="item-total">1 bunch</span></div></div>
-                    <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Ginger, fresh</span><span class="item-total">30 g</span></div></div>
-                    <div class="sl-group">Dairy</div>
-                    <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Halloumi</span><span class="item-total">250 g</span></div></div>
-                    <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Greek yoghurt</span><span class="item-total">500 g</span></div></div>
+                        <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry &middot; cook Mon</span><span>300 g</span></div><div class="prov-line"><span class="src">Oat Cookies</span><span>150 g</span></div><div class="prov-line manual"><span class="src">＋ manual top-up</span><span>50 g</span></div></div></div>
                     <div class="sl-group">Pantry</div>
                     <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Vegetable Broth</span><span class="item-total">250 ml</span></div>
                         <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry &middot; cook Mon</span><span>250 ml</span></div></div></div>
+                    <div class="sl-group">In the basket &middot; 3</div>
+                    <div class="sl-group sub">Produce</div>
+                    <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Ginger, fresh</span><span class="item-total">30 g</span></div></div>
+                    <div class="sl-group sub">Pantry</div>
                     <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Coconut milk, canned</span><span class="item-total">400 ml</span></div></div>
-                    <div class="sl-group">Non-food</div>
-                    <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Paper towels</span><span class="item-total">—</span></div></div>
-                    <div class="sl-group">Sausage Sliders &middot; <span style="color:#7A5A16;letter-spacing:0;text-transform:none">⚑ 1 component unresolved — see Cook</span></div>
+                    <div class="sl-group sub">Non-food</div>
+                    <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Paper towels</span><span class="item-total">—</span></div></div>
+                    <div class="sl-group" style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">Sausage Sliders<span style="color:#7A5A16;letter-spacing:0;text-transform:none">⚑ 1 component unresolved — see Cook</span></div>
                     <p class="conv-note" style="margin-top:0">nothing from that component is in this list — and nothing was invented to put it there</p>
-                    <div class="sl-group" style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">Weeknight Chicken Curry<span style="text-transform:none;letter-spacing:0;font-size:10.5px">&middot; 2 optional lines not listed — lime, coriander</span></div>
+                    <div class="sl-group" style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">Weeknight Chicken Curry<span style="color:#7A5A16;letter-spacing:0;text-transform:none">⚑ Sauerkraut &middot; ingredient removed &middot; pick again in the recipe</span></div>
+                    <div class="sl-group" style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">Weeknight Chicken Curry<span style="text-transform:none;letter-spacing:0;font-size:10.5px">2 optional lines not listed — <span style="color:var(--herb-deep);font-weight:500">lime</span>, <span style="color:var(--herb-deep);font-weight:500">coriander</span></span></div>
                     <div class="topup">＋ add item or top up an ingredient</div>
                 </div>
             </div>
             </div>
         </div>
-        <p class="conv-note" style="margin:10px 4px 0">The list is a <b>walking order</b>, and a column the hand’s width is its honest form: two phones drive this screen at once, and a row that a second pair of eyes ticks must not move under the first.</p>
+        <p class="conv-note" style="margin:10px 4px 0">The list is a <b>walking order</b>, and a column the hand’s width is its honest form: two phones drive this screen at once, and the width must not hand the walk a second column to re-find a row in. A tick sends the row to the <b>one basket section</b> at the foot, keeping its aisle inside it — the same place on both phones — and the aisles above hold only what is still to grab.</p>
+        <p class="conv-note" style="margin:6px 4px 0">Nothing about a row changes with the width: a row asked for in one measure is counted in it (<b>2½ lime, whole</b>), the grams sit under the count with the round-up after them, every row says where it came from, and the three echo rows keep their voices — amber for a defect somebody can fix, muted for a rule somebody chose, with the <b>optional names as doors</b>. The last tick’s confetti plays here as it does on the phone.</p>
     </div>
 
     <div class="frame wide">
@@ -413,33 +426,41 @@
                         <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span></div>
                         <div class="er-shopsync"><span class="sy"></span><span class="st">Synced &middot; 14:02</span></div>
                         <p class="conv-note" style="margin-top:10px;letter-spacing:.04em">summed from the cook plan &middot; with provenance</p>
-                        <div class="sl-group">Baking</div>
-                        <div class="item wsel"><div class="item-top"><span class="box"></span><span class="item-name">Flour</span><span class="item-total">500 g</span></div></div>
                         <div class="sl-group">Produce</div>
-                        <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Yellow onion</span><span class="item-total">5 med</span></div></div>
-                        <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Charred broccoli</span><span class="item-total">1 head</span></div></div>
-                        <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Flat-leaf parsley</span><span class="item-total">1 bunch</span></div></div>
-                        <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Ginger, fresh</span><span class="item-total">30 g</span></div></div>
+                        <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Lime</span><span class="item-total">2½ lime, whole</span></div>
+                            <div class="item-sub">167.5 g → buy 3</div></div>
+                        <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Yellow onion</span><span class="item-total">5 onion, medium</span></div>
+                            <div class="item-sub">550 g</div></div>
+                        <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Charred broccoli</span><span class="item-total">1 head</span></div>
+                            <div class="item-sub">350 g</div></div>
+                        <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Flat-leaf parsley</span><span class="item-total">1 bunch</span></div>
+                            <div class="item-sub">30 g</div></div>
                         <div class="sl-group">Dairy</div>
                         <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Halloumi</span><span class="item-total">250 g</span></div></div>
                         <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Greek yoghurt</span><span class="item-total">500 g</span></div></div>
+                        <div class="sl-group">Baking</div>
+                        <div class="item wsel"><div class="item-top"><span class="box"></span><span class="item-name">Flour</span><span class="item-total">500 g</span></div></div>
                         <div class="sl-group">Pantry</div>
                         <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Vegetable Broth</span><span class="item-total">250 ml</span></div></div>
+                        <div class="sl-group">In the basket &middot; 3</div>
+                        <div class="sl-group sub">Produce</div>
+                        <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Ginger, fresh</span><span class="item-total">30 g</span></div></div>
+                        <div class="sl-group sub">Pantry</div>
                         <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Coconut milk, canned</span><span class="item-total">400 ml</span></div></div>
-                        <div class="sl-group">Non-food</div>
-                        <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Paper towels</span><span class="item-total">—</span></div></div>
+                        <div class="sl-group sub">Non-food</div>
+                        <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Paper towels</span><span class="item-total">—</span></div></div>
                         <div class="topup">＋ add item or top up an ingredient</div>
                     </div>
                     <div class="wpane wprov wflat">
                         <p class="list-h" style="margin:0 0 8px">Where it came from</p>
                         <div class="wprov-h"><span class="n">Flour</span><span class="t">500 g</span></div>
                         <div class="prov">
-                            <div class="prov-line"><span class="src">Curry batch &middot; cook Mon</span><span>300 g</span></div>
+                            <div class="prov-line"><span class="src">Weeknight Chicken Curry &middot; cook Mon</span><span>300 g</span></div>
                             <div class="prov-line"><span class="src">Oat Cookies</span><span>150 g</span></div>
                             <div class="prov-line manual"><span class="src">＋ manual top-up</span><span>50 g</span></div>
                         </div>
                         <div class="hair" style="margin:14px 0 0"></div>
-                        <p class="conv-note" style="margin-top:12px">the pane reads the row the list is on; ticking a row does not change what it says, and no row moves to open it</p>
+                        <p class="conv-note" style="margin-top:12px">the pane reads the row the list is on, and opening it moves nothing — a tick is still what sends a row to the basket, where it folds its provenance away</p>
                     </div>
                 </div>
             </div>
@@ -449,7 +470,7 @@
     </div>
 
     <div class="frame wide">
-        <p class="frame-name"><b>wide &middot; cook</b> &middot; Cook lit; the switcher is still the only title, and the session cards run two-up with each card’s anatomy unchanged — recipe, portions, the split or join note, the freshness timeline</p>
+        <p class="frame-name"><b>wide &middot; cook</b> &middot; Cook lit; the switcher is still the only title, and the session cards run two-up with each card’s anatomy unchanged — recipe, portions, the week’s four-word clause where there is one, the split or join note, the freshness timeline, and a batch said in its own fraction</p>
         <div class="desk">
             <div class="lip"><i></i><i></i><i></i></div>
             <div class="dscreen">
@@ -470,31 +491,32 @@
                         <div class="cook split">
                             <div class="cook-title">Weeknight Chicken Curry</div>
                             <div class="cook-sub">4 portions across the week &middot; keeps 4 d</div>
-                            <div class="session"><div class="ses-top"><span class="ses-when">Cook Mon</span><span class="ses-scale">×1</span></div><div class="ses-covers">covers Mon dinner + Thu dinner &middot; 4 portions</div>
+                            <div class="session"><div class="ses-top"><span class="ses-when">Cook Mon</span><span class="ses-scale">×1</span></div><div class="ses-covers">covers Mon + Thu dinner &middot; 4 portions</div>
                                 <div class="tl"><div class="tl-cook"></div><div class="tl-track"><span class="tl-fresh" style="flex:4"></span><span class="tl-gone" style="flex:3"></span></div><div class="tl-days"><span>Mon</span><span>Thu</span><span>Fri</span></div></div></div>
-                            <div class="split-note"><span class="ic">⚑</span><span>A later instance falls past the 4-day window — cook it again, fresh.</span></div>
+                            <div class="split-note"><span class="ic">⚑</span><span>A later meal falls past the 4-day window — cook it again, fresh.</span></div>
                         </div>
                         <div class="cook">
                             <div class="cook-title">Slow-Cooker Beef Ragù</div>
-                            <div class="cook-sub">4 portions &middot; Tue &amp; Sat &middot; freezable</div>
+                            <div class="cook-sub">4 portions across the week &middot; keeps 4 d &middot; freezable &middot; edited for this week</div>
                             <div class="session"><div class="ses-top"><span class="ses-when">Cook Tue</span><span class="ses-scale">×1</span></div><div class="ses-covers">covers Tue + Sat dinner &middot; 4 portions</div>
                                 <div class="tl"><div class="tl-cook"></div><div class="tl-track"><span class="tl-fresh" style="flex:2"></span><span class="tl-aging" style="flex:5"></span></div><div class="tl-days"><span>Tue</span><span>Fri</span><span>Sat</span></div></div></div>
-                            <div class="frz-note"><span class="ic">❄</span><span>Saturday is far off, but Ragù freezes — cook once Tuesday, freeze Saturday’s share.</span></div>
+                            <div class="frz-note"><span class="ic">❄</span><span>Saturday is far off, but Slow-Cooker Beef Ragù freezes — cook once Tuesday, freeze Saturday’s share.</span></div>
                         </div>
                         <div class="cook">
                             <div class="cook-title">Romesco Aioli &middot; for Sausage Sliders</div>
                             <div class="cook-sub">derived from a component line &middot; keeps 5 d</div>
-                            <div class="session"><div class="ses-top"><span class="ses-when">Cook by Sat</span><span class="ses-scale">×0.25</span></div>
-                                <div class="ses-covers">covers Sausage Sliders &middot; cook Sat — makes 1 cup, you need 0.25</div>
+                            <div class="session"><div class="ses-top"><span class="ses-when">Cook by Sat</span><span class="ses-scale">×¼ batch</span></div>
+                                <div class="ses-covers">covers Sausage Sliders &middot; cook Sat — makes 1 cup, you need ¼</div>
                                 <div class="tl"><div class="tl-cook"></div><div class="tl-track"><span class="tl-fresh" style="flex:5"></span><span class="tl-gone" style="flex:2"></span></div><div class="tl-days"><span>Sat</span><span>Wed</span><span>Thu</span></div></div></div>
-                            <div class="split-note"><span class="ic">⚑</span><span>A batch makes 1 cup and Saturday needs 0.25 — the rest is yours. Nothing here tracks the leftover.</span></div>
+                            <div class="split-note"><span class="ic">⚑</span><span>A batch makes 1 cup and Saturday needs ¼ — the rest is yours. Nothing here tracks the leftover.</span></div>
                         </div>
                     </div>
                 </div>
             </div>
             </div>
         </div>
-        <p class="conv-note" style="margin:10px 4px 0">A card is a whole session and never splits across a column, so the width buys rows of cards rather than a re-drawn card; a three-cook week ends in a ragged row, which is what a three-cook week is.</p>
+        <p class="conv-note" style="margin:10px 4px 0">A card is a whole session and never splits across a column, so the width buys rows of cards rather than a re-drawn card; a three-cook week ends in a ragged row, which is what a three-cook week is. Two-up caps at about 1000, because a session card read at half a desk is already at its measure.</p>
+        <p class="conv-note" style="margin:6px 4px 0">The card still says four words and no more when the week varies a recipe — <b>edited for this week</b> on the sub-line — and Cook stays read-only: <b>optional is the week’s decision</b>, taken on the recipe page, and the shop’s echo is where its names are doors.</p>
     </div>
 
 </div>
