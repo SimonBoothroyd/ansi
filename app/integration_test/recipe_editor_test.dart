@@ -290,19 +290,34 @@ void main() {
     expect(items.first['measure_id'], isNotNull);
     expect(items.first['unit'], 'piece');
     expect(items.last['quantity'], 1);
-    // The Onion line was added WITHOUT touching a chip, so it takes the row's
-    // default unit and points at NO measure: a bare count is weighed by the
-    // ingredient's own piece weight, not by a measure the row points back at
-    // (ADR-0015 — no measure is pointed at by a row). What makes `1 piece`
-    // honest is therefore on the vocabulary row, and that is what this asserts:
-    // one onion is the curated medium onion, said as a number.
+    // The Onion line was added WITHOUT touching a chip, so it lands on the
+    // row's WHOLE MEASURE: `onion, medium` weighs what the row says one onion
+    // weighs, which makes it this household's word for one (ADR-0016), and the
+    // sheet a caller opens with no choice named opens on it. Done therefore
+    // writes the measure's FK, exactly as if the chip had been tapped.
+    //
+    // The stored `unit` is still `piece` — a measure line always carries the
+    // honest count fallback beside its FK, so a vanished measure degrades to a
+    // count and never to invented grams (the Garlic line above, step 7.6) —
+    // so `measure_id` is the assertion that says which word the line got.
     expect(items.last['unit'], 'piece');
-    expect(items.last['measure_id'], isNull);
+    expect(items.last['measure_id'], isNotNull);
+    final onionMeasure = await db.get(
+      'SELECT label, basis_amount FROM ingredient_measure WHERE id = ?',
+      [items.last['measure_id']],
+    );
+    expect(onionMeasure['label'], 'onion, medium');
     final onion = await db.get(
       'SELECT piece_basis_amount, piece_source FROM ingredient WHERE id = ?',
       [items.last['ingredient_id']],
     );
     expect(onion['piece_basis_amount'], greaterThan(0));
+    // Nothing is stored to say which measure is the row's word: the reading is
+    // these two numbers agreeing (ADR-0016 §1, `wholeMeasureOf`).
+    expect(
+      (onionMeasure['basis_amount']! as num).toDouble(),
+      (onion['piece_basis_amount']! as num).toDouble(),
+    );
     expect(onion['piece_source'], 'borrowed from onion, medium');
 
     // After the server round-trip the view still stands and the steps are

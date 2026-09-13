@@ -3,10 +3,10 @@
 ///
 /// The lines cover the four shapes a review has to answer: an auto match
 /// confirmed, a printed RANGE picked, a counted-produce line that arrives
-/// UNFLAGGED on its curated default measure, and an unmatched line taken
-/// through the create-new chain onto a row of its own. The saved recipe lands
-/// FILED in a book, with tokenized steps whose refs are real `line_item` ids
-/// and the defaulted line carrying a real `measure_id`.
+/// UNFLAGGED on its row's whole measure (ADR-0016), and an unmatched line
+/// taken through the create-new chain onto a row of its own. The saved recipe
+/// lands FILED in a book, with tokenized steps whose refs are real `line_item`
+/// ids and the defaulted line carrying a real `measure_id`.
 ///
 /// The import repository is overridden to the local one, so NO edge function
 /// and NO LLM is called — see `SmokeStack.openLibraryWithLocalImport`.
@@ -71,10 +71,12 @@ void main() {
   // printed as `piece`. The template's red bell pepper is a piece-default row
   // with a PIECE WEIGHT (ADR-0015: 119 g, borrowed from "pepper, medium" by
   // the seed and by migration 0039's backfill), so `piece` is an admitted
-  // unit on it and the line arrives clean and commits as an honest `piece`
-  // line — weighed by the row, not by a measure. This is the one place that
-  // runs end to end, because the weight comes off a really synced
-  // `ingredient.piece_basis_amount` rather than a fixture.
+  // unit on it and the line arrives clean; and because "pepper, medium"
+  // weighs exactly that, it is the row's WHOLE MEASURE (ADR-0016), so the
+  // review hands the line that word unflagged and it commits on the measure's
+  // FK. This is the one place that runs end to end, because both numbers come
+  // off really synced columns — `ingredient.piece_basis_amount` and
+  // `ingredient_measure.basis_amount` — rather than a fixture.
   testWidgets('import: link → review → resolve → saved recipe in the Library', (
     tester,
   ) async {
@@ -142,10 +144,12 @@ void main() {
     await pickRangeAmountForLine(tester, 1);
     expect(lineShows(1, 'Set the amount'), isFalse);
 
-    // Line 5 — "2 red peppers": a NUMBER AND NO THING, `piece`, on a row
-    // whose piece weight makes `piece` sayable (ADR-0015). Nothing is spent
-    // on the line and nothing is said on the card: the unit is admitted for
-    // the ordinary reason, so there is no flag, no chip row and no note.
+    // Line 5 — "2 red peppers": a NUMBER AND NO THING, printed `piece`, on a
+    // row whose piece weight makes `piece` sayable (ADR-0015) and whose
+    // "pepper, medium" therefore reads as its whole measure — the word the
+    // review has already handed this line (ADR-0016). Nothing is spent on the
+    // line and nothing is said on the card: the unit is honest either way, so
+    // there is no flag, no chip row and no note.
     await expandLine(tester, 5);
     expect(
       lineShows(5, 'Pick a supported unit'),
@@ -267,29 +271,41 @@ void main() {
     );
     expect(optionalLines['c'] as int, 2);
 
-    // ADR-0015, end to end: the counted line committed as a bare `piece` line
-    // — no measure_id — and it still counts toward the macros and the
-    // shopping total, because the ROW carries what one weighs. The weight
-    // rode down through sync as an ordinary ingredient column.
+    // ADR-0016, end to end: the extraction printed `piece`, and the review
+    // landed the counted line on the row's WHOLE MEASURE the moment its match
+    // resolved — `pepper, medium` weighs what the row says one pepper weighs,
+    // so it is the household's word for one — unflagged, exactly as if the
+    // chip had been tapped, and the commit wrote that measure's FK.
+    //
+    // The stored `unit` stays `piece`: a measure line always carries the
+    // honest count fallback beside its FK (migration 0009), so a vanished
+    // measure degrades to a count, never to invented grams. Both numbers rode
+    // down through sync as ordinary columns — the reading is stored nowhere,
+    // it is the measure's amount and the row's piece weight agreeing.
     final pepperLine = await db.get(
-      'SELECT li.quantity, li.unit, li.measure_id, i.default_unit, '
+      'SELECT li.quantity, li.unit, li.measure_id, im.label AS measure_label, '
+      'im.basis_amount AS measure_amount, i.default_unit, '
       'i.piece_basis_amount, i.piece_source '
       'FROM recipe_line_item li '
       'JOIN ingredient_group g ON g.id = li.group_id '
       'JOIN ingredient i ON i.id = li.ingredient_id '
+      'LEFT JOIN ingredient_measure im '
+      'ON im.id = li.measure_id AND im.deleted_at IS NULL '
       "WHERE g.recipe_id = ? AND i.match_text = 'red bell pepper' "
       'AND li.deleted_at IS NULL',
       [recipeId],
     );
     expect(
       pepperLine['measure_id'],
-      isNull,
-      reason: 'a piece line is weighed by its row, not by a measure',
+      isNotNull,
+      reason: 'a counted line lands on the row’s whole measure (ADR-0016)',
     );
+    expect(pepperLine['measure_label'], 'pepper, medium');
     expect(pepperLine['unit'], 'piece');
     expect(pepperLine['quantity'], 2);
     expect(pepperLine['default_unit'], 'piece');
-    expect((pepperLine['piece_basis_amount'] as num).toDouble(), 119);
+    expect((pepperLine['piece_basis_amount']! as num).toDouble(), 119);
+    expect((pepperLine['measure_amount']! as num).toDouble(), 119);
     expect(pepperLine['piece_source'], 'borrowed from pepper, medium');
     final refs = [
       for (final s in steps)
