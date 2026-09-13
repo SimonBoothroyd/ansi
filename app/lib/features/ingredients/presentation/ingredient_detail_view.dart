@@ -155,6 +155,7 @@ class IngredientDetailView extends HookConsumerWidget {
     this.ingredientId,
     this.name = '',
     this.edit = false,
+    this.embedded = false,
     this.lookup,
     this.cameraPane,
     super.key,
@@ -177,6 +178,13 @@ class IngredientDetailView extends HookConsumerWidget {
   /// there on: `⋯ ▸ Edit` switches into editing, Save and back switch out of
   /// it, and neither navigates — one page, two faces.
   final bool edit;
+
+  /// True when the sheet is drawn BESIDE the vocabulary rather than pushed over
+  /// it — the manager's two panes on a window wide enough for both. The page
+  /// that holds the panes draws the one back control above them, so the fact
+  /// sheet's own header then carries the `⋯` alone. Nothing else about the
+  /// sheet changes with it.
+  final bool embedded;
 
   /// Forwarded to the form's barcode scan. Both exist for tests and are null
   /// in app code — the router builds this page with neither, and the scan
@@ -214,6 +222,7 @@ class IngredientDetailView extends HookConsumerWidget {
       if (!editing.value) {
         return _ReadPosture(
           ingredient: row,
+          embedded: embedded,
           onEdit: () => editing.value = true,
         );
       }
@@ -272,6 +281,7 @@ FHeader _header(
   String? title,
   VoidCallback? onBack,
   List<Widget> suffixes = const [],
+  bool showBack = true,
 }) {
   final back = FHeaderAction.back(
     // A cold deep link lands here with no page beneath, so there is nothing
@@ -283,7 +293,10 @@ FHeader _header(
   // The reading posture leads with the name in the body, the way the recipe
   // page does, so it names none here rather than saying it twice.
   if (title == null) {
-    return FHeader.nested(prefixes: [back], suffixes: suffixes);
+    return FHeader.nested(
+      prefixes: [if (showBack) back],
+      suffixes: suffixes,
+    );
   }
   return FHeader.nested(
     title: Text(
@@ -334,10 +347,20 @@ const kReadFillItInKey = ValueKey('read-fill-it-in');
 /// totals, and `Fill it in` opens the editing posture at the fields that
 /// would end that.
 class _ReadPosture extends ConsumerWidget {
-  const _ReadPosture({required this.ingredient, required this.onEdit});
+  const _ReadPosture({
+    required this.ingredient,
+    required this.onEdit,
+    this.embedded = false,
+  });
 
   final Ingredient ingredient;
   final VoidCallback onEdit;
+
+  /// Drawn beside the vocabulary rather than pushed over it — see
+  /// [IngredientDetailView.embedded]. The page above the panes owns the back.
+  ///
+
+  final bool embedded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -367,6 +390,7 @@ class _ReadPosture extends ConsumerWidget {
       childPad: false,
       header: _header(
         context,
+        showBack: !embedded,
         suffixes: [
           FPopoverMenu(
             // `menuBuilder`, not `menu`: an item dismisses the menu it was

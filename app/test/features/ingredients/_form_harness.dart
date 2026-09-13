@@ -25,6 +25,7 @@ import 'package:ansi/features/ingredients/presentation/density_entry.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_list_view.dart';
 import 'package:ansi/features/ingredients/presentation/piece_weight_entry.dart';
+import 'package:ansi/shared/ansi_layout.dart';
 import 'package:ansi/shared/ansi_sheet_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -429,17 +430,29 @@ Widget host(
       ),
       // The app's own wiring: `?edit=1` is what opens the editing posture,
       // so a suite that drives the form asks for the route the app hands a
-      // fix door rather than being handed a flag no screen sets.
+      // fix door rather than being handed a flag no screen sets. And a row's
+      // READING posture is two pages, decided by width, exactly as
+      // `core/router/app_router.dart` decides it: the pushed fact sheet on a
+      // phone, the manager's two panes with that row lit from expanded up.
       GoRoute(
         path: '/ingredients/:id',
-        builder: (_, state) => IngredientDetailView(
-          ingredientId: state.pathParameters['id'],
-          edit: state.uri.queryParameters[kEditPostureQueryParam] == '1',
-          // The form's own scan (plan 0025 #8): a test hands in the client
-          // and a camera-less pane the way the add sheet's tests do.
-          lookup: lookup,
-          cameraPane: lookup == null ? null : (_, _) => const SizedBox.shrink(),
-        ),
+        builder: (context, state) {
+          final id = state.pathParameters['id'];
+          final edit = state.uri.queryParameters[kEditPostureQueryParam] == '1';
+          if (!edit && AnsiLayout.of(context) == AnsiLayout.expanded) {
+            return IngredientListView(selectedId: id);
+          }
+          return IngredientDetailView(
+            ingredientId: id,
+            edit: edit,
+            // The form's own scan (plan 0025 #8): a test hands in the client
+            // and a camera-less pane the way the add sheet's tests do.
+            lookup: lookup,
+            cameraPane: lookup == null
+                ? null
+                : (_, _) => const SizedBox.shrink(),
+          );
+        },
       ),
     ],
   );
