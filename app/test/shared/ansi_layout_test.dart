@@ -10,6 +10,7 @@
 // actually handed, and a media query that disagrees with the layout would let a
 // broken cap pass.
 import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/theme/ansi_tokens.dart';
 import 'package:ansi/shared/ansi_layout.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -65,6 +66,7 @@ Future<AnsiLayout> bandAt(WidgetTester tester, double width) async {
 }
 
 void main() {
+  _groundTests();
   group('AnsiLayout.of', () {
     testWidgets('is compact right up to the sm breakpoint', (tester) async {
       expect(await bandAt(tester, 320), AnsiLayout.compact);
@@ -265,3 +267,44 @@ void main() {
 }
 
 bool _beside(AnsiShell form) => form.beside;
+
+// The ground past the measure is the board's paper, and the page inside it
+// keeps its surface. Nothing else paints there: on iOS the root view is black,
+// on the web it is the document body, and a centred page must not show either.
+void _groundTests() {
+  testWidgets('the measure paints paper past the page and surface under it', (
+    tester,
+  ) async {
+    await pumpWindow(
+      tester,
+      800,
+      const AnsiMeasure(
+        child: SizedBox(key: _childKey, width: double.infinity, height: 40),
+      ),
+    );
+    final boxes = tester
+        .widgetList<ColoredBox>(find.byType(ColoredBox))
+        .map((b) => b.color)
+        .toList();
+    expect(boxes, containsAll([AnsiColors.paper, AnsiColors.surface]));
+    final paper = find.byWidgetPredicate(
+      (w) => w is ColoredBox && w.color == AnsiColors.paper,
+    );
+    expect(tester.getSize(paper).width, 800);
+    final surface = find.byWidgetPredicate(
+      (w) => w is ColoredBox && w.color == AnsiColors.surface,
+    );
+    expect(tester.getSize(surface).width, 640);
+  });
+
+  testWidgets('a phone is not painted over: the child comes back bare', (
+    tester,
+  ) async {
+    await pumpWindow(
+      tester,
+      402,
+      const AnsiMeasure(child: SizedBox(key: _childKey, height: 40)),
+    );
+    expect(find.byType(ColoredBox), findsNothing);
+  });
+}

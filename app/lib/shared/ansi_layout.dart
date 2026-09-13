@@ -41,6 +41,8 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
+import '../core/theme/ansi_tokens.dart';
+
 /// The three widths the app designs for.
 ///
 /// Read from the window's width against the theme's `FBreakpoints`:
@@ -171,13 +173,20 @@ class AnsiMeasure extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (AnsiLayout.of(context) == AnsiLayout.compact) return child;
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: (width ?? ansiMeasureWidth)(context),
+    // The ground either side of the measure is the paper the board draws a
+    // centred page on. It has to be painted here: a page paints only its own
+    // column, and what shows past it otherwise is the platform's root view —
+    // black on iOS, the document body on the web.
+    return ColoredBox(
+      color: AnsiColors.paper,
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: (width ?? ansiMeasureWidth)(context),
+          ),
+          child: ColoredBox(color: AnsiColors.surface, child: child),
         ),
-        child: child,
       ),
     );
   }
