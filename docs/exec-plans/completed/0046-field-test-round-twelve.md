@@ -1,6 +1,6 @@
 # Exec plan: field test, round twelve — the basket, the slot as a field, a piece-weighted row bought in pieces
 
-- **Status:** active — landed on main, host gate and the week simulator leg green; ships on the next tag
+- **Status:** done — shipped as `v0.16.0`
 - **Owner:** agent
 - **Roadmap step:** — (the first family week on `v0.15.0`)
 - **Created:** 2026-09-12
