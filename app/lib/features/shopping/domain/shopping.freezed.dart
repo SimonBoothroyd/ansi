@@ -353,8 +353,8 @@ mixin _$ShoppingItem {
 /// (invariant 3). Null when the item doesn't qualify (see
 /// [wholeUnitHintFor]), and null whenever [measureTotal] or [pieceTotal]
 /// is set: a row already counted in its measure or its pieces needs no
-/// second way to say the same thing (the piece total carries its own
-/// round-up).
+/// second way to say the same thing (each count carries its own
+/// round-up under it).
  WholeUnitHint? get wholeUnitHint;
 /// Create a copy of ShoppingItem
 /// with the given fields replaced by the non-null parameter values.
@@ -607,8 +607,8 @@ class _ShoppingItem extends ShoppingItem {
 /// (invariant 3). Null when the item doesn't qualify (see
 /// [wholeUnitHintFor]), and null whenever [measureTotal] or [pieceTotal]
 /// is set: a row already counted in its measure or its pieces needs no
-/// second way to say the same thing (the piece total carries its own
-/// round-up).
+/// second way to say the same thing (each count carries its own
+/// round-up under it).
 @override final  WholeUnitHint? wholeUnitHint;
 
 /// Create a copy of ShoppingItem

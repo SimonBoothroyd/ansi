@@ -4,9 +4,10 @@
 /// and the [CookMarkerLine] beneath the title (D6), and the two targets a meal
 /// carries wherever it is drawn — [EatersTarget] and [RemoveTarget].
 ///
-/// A meal is drawn twice: as the phone's dish row and as the wide matrix's
-/// card. The pieces both spellings share live here, so the two cannot print
-/// different facts or open different doors.
+/// A meal is drawn three times: as the phone's dish row, as the wide day
+/// pane's large entry and as one line of the wide agenda. The pieces those
+/// spellings share live here, so no two of them can print different facts or
+/// open different doors.
 library;
 
 import 'dart:async';
@@ -200,6 +201,31 @@ class PortionsChip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// What a meal's title READS as: the dish it names, or the standing words for
+/// a target that is gone.
+///
+/// Both spellings of "gone" are here rather than at each drawing, because a
+/// deleted recipe and a deleted ingredient are different sentences and every
+/// surface must say the same one.
+String mealTitleText(PlanEntry entry) =>
+    entry.title ??
+    (entry.isIngredient ? '(deleted ingredient)' : '(deleted recipe)');
+
+/// Where a meal's title GOES, or null when there is nothing to open.
+///
+/// The thing it names: a recipe's page, carrying the week it is planned in
+/// (`?week=`) so that page can offer the week door beside its own Edit, or —
+/// for a bare ingredient (A-D5: an ingredient detail link at most, never a
+/// recipe door on a row that is not a recipe) — its ingredient page, plain,
+/// since a snack has no recipe to vary. A deleted target has no page, so the
+/// title is inert and the meal's other targets carry the row.
+String? mealTitleRoute(PlanEntry entry, {required String weekKey}) {
+  if (entry.title == null) return null;
+  return entry.isIngredient
+      ? '/ingredients/${entry.ingredientId}'
+      : '/recipes/${entry.recipeId}?week=$weekKey';
 }
 
 /// The portions a meal's chip should print, or null when there is no chip to
@@ -430,6 +456,7 @@ class AddMealLine extends StatelessWidget {
     required this.empty,
     required this.onTap,
     this.padding = const EdgeInsets.fromLTRB(16, 10, 16, 12),
+    this.divider = true,
     super.key,
   });
 
@@ -437,9 +464,17 @@ class AddMealLine extends StatelessWidget {
   final bool empty;
   final VoidCallback onTap;
 
-  /// The inset around the line. A matrix column is barely 111 px wide and has
-  /// to spend on the words what a day card spends on its margin.
+  /// The inset around the line. The wide day pane has a margin to spend where
+  /// a phone card does not.
   final EdgeInsets padding;
+
+  /// Whether the line draws the hairline that separates it from the meals
+  /// above.
+  ///
+  /// It does on a card, where the rule is the card's own grid. It does not in
+  /// the wide agenda, where the only rules are the ones BETWEEN days — a
+  /// seventh hairline inside each day would make seven days look like fourteen.
+  final bool divider;
 
   @override
   Widget build(BuildContext context) {
@@ -448,8 +483,10 @@ class AddMealLine extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: padding,
-        decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: AnsiColors.line)),
+        decoration: BoxDecoration(
+          border: divider
+              ? const Border(top: BorderSide(color: AnsiColors.line))
+              : null,
         ),
         child: Row(
           children: [

@@ -559,4 +559,73 @@ void main() {
       expect(macros.total!.fiber, 6);
     });
   });
+
+  group('one meal, as served', () {
+    test(
+      'is the recipe\u2019s per-serving figure times the portions planned',
+      () {
+        // Two eaters, so the served meal is twice the per-serving figure — the
+        // same multiplication the day total does, at the scope of one meal.
+        final meal = servedMealMacros(_entry(id: 'a'), summaryFor: _summaries);
+        expect(
+          meal.total,
+          const Macros(kcal: 200, protein: 20, carb: 40, fat: 10),
+        );
+        expect(meal.counted, 1);
+        expect(meal.considered, 1, reason: 'the denominator is 1 meal');
+        expect(meal.excluded, isEmpty);
+        // And the day that contains it reads the same figure — the part and the
+        // sum are one function, so the pane and its ledger cannot disagree.
+        expect(_sum([_entry(id: 'a')]).total, meal.total);
+      },
+    );
+
+    test('an override is the portions, not the eater count', () {
+      final meal = servedMealMacros(
+        _entry(id: 'a', portions: 3),
+        summaryFor: _summaries,
+      );
+      expect(meal.total!.kcal, 300);
+    });
+
+    test('an incomplete recipe refuses, naming the meal and its reason', () {
+      final meal = servedMealMacros(
+        _entry(id: 'a', recipeId: 'stub'),
+        summaryFor: _summaries,
+      );
+      expect(meal.total, isNull, reason: 'never a number for a stub');
+      expect(meal.isRefused, isTrue);
+      expect(meal.excluded.single.reason, MealExclusion.incomplete);
+      expect(meal.excluded.single.label, 'Curry');
+    });
+
+    test('a meal with nobody eating it refuses rather than reading zero', () {
+      final meal = servedMealMacros(
+        _entry(id: 'a', eaters: const []),
+        summaryFor: _summaries,
+      );
+      expect(meal.isRefused, isTrue);
+      expect(meal.excluded.single.reason, MealExclusion.noEaters);
+    });
+
+    test(
+      'under a lens, somebody else\u2019s meal is out of scope, not a zero',
+      () {
+        final meal = servedMealMacros(
+          _entry(id: 'a', eaters: const ['jun']),
+          summaryFor: _summaries,
+          lensMemberId: 'ada',
+        );
+        expect(meal.isEmpty, isTrue, reason: 'never Ada\u2019s to count');
+        expect(meal.total, isNull);
+        // Her own meal is her own share of it: one eater, one serving.
+        final hers = servedMealMacros(
+          _entry(id: 'a'),
+          summaryFor: _summaries,
+          lensMemberId: 'ada',
+        );
+        expect(hers.total!.kcal, 100);
+      },
+    );
+  });
 }

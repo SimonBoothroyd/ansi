@@ -1278,6 +1278,132 @@ final class WeekMacrosFamily extends $Family
   String toString() => r'weekMacrosProvider';
 }
 
+/// One MEAL's macros under [lens], as served to the people eating it — the
+/// same reading again, at the narrowest scope there is (the wide Week's day
+/// pane prints one under each dish).
+///
+/// Keyed by the entry's id rather than handed the entry, so the figure follows
+/// the live week: change the portions or the eaters and this re-reads the row
+/// the write produced, exactly as the day total does. An id the week no longer
+/// has reads as an empty set — `no meals` — which is the honest answer for a
+/// meal that has just been removed.
+
+@ProviderFor(mealMacros)
+const mealMacrosProvider = MealMacrosFamily._();
+
+/// One MEAL's macros under [lens], as served to the people eating it — the
+/// same reading again, at the narrowest scope there is (the wide Week's day
+/// pane prints one under each dish).
+///
+/// Keyed by the entry's id rather than handed the entry, so the figure follows
+/// the live week: change the portions or the eaters and this re-reads the row
+/// the write produced, exactly as the day total does. An id the week no longer
+/// has reads as an empty set — `no meals` — which is the honest answer for a
+/// meal that has just been removed.
+
+final class MealMacrosProvider
+    extends $FunctionalProvider<MealSetMacros, MealSetMacros, MealSetMacros>
+    with $Provider<MealSetMacros> {
+  /// One MEAL's macros under [lens], as served to the people eating it — the
+  /// same reading again, at the narrowest scope there is (the wide Week's day
+  /// pane prints one under each dish).
+  ///
+  /// Keyed by the entry's id rather than handed the entry, so the figure follows
+  /// the live week: change the portions or the eaters and this re-reads the row
+  /// the write produced, exactly as the day total does. An id the week no longer
+  /// has reads as an empty set — `no meals` — which is the honest answer for a
+  /// meal that has just been removed.
+  const MealMacrosProvider._({
+    required MealMacrosFamily super.from,
+    required (String, String?) super.argument,
+  }) : super(
+         retry: null,
+         name: r'mealMacrosProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$mealMacrosHash();
+
+  @override
+  String toString() {
+    return r'mealMacrosProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  $ProviderElement<MealSetMacros> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  MealSetMacros create(Ref ref) {
+    final argument = this.argument as (String, String?);
+    return mealMacros(ref, argument.$1, argument.$2);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(MealSetMacros value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<MealSetMacros>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is MealMacrosProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$mealMacrosHash() => r'f0fa893ccf164c5e79b92b5ab95e617aa3ed3eb2';
+
+/// One MEAL's macros under [lens], as served to the people eating it — the
+/// same reading again, at the narrowest scope there is (the wide Week's day
+/// pane prints one under each dish).
+///
+/// Keyed by the entry's id rather than handed the entry, so the figure follows
+/// the live week: change the portions or the eaters and this re-reads the row
+/// the write produced, exactly as the day total does. An id the week no longer
+/// has reads as an empty set — `no meals` — which is the honest answer for a
+/// meal that has just been removed.
+
+final class MealMacrosFamily extends $Family
+    with $FunctionalFamilyOverride<MealSetMacros, (String, String?)> {
+  const MealMacrosFamily._()
+    : super(
+        retry: null,
+        name: r'mealMacrosProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// One MEAL's macros under [lens], as served to the people eating it — the
+  /// same reading again, at the narrowest scope there is (the wide Week's day
+  /// pane prints one under each dish).
+  ///
+  /// Keyed by the entry's id rather than handed the entry, so the figure follows
+  /// the live week: change the portions or the eaters and this re-reads the row
+  /// the write produced, exactly as the day total does. An id the week no longer
+  /// has reads as an empty set — `no meals` — which is the honest answer for a
+  /// meal that has just been removed.
+
+  MealMacrosProvider call(String entryId, String? lens) =>
+      MealMacrosProvider._(argument: (entryId, lens), from: this);
+
+  @override
+  String toString() => r'mealMacrosProvider';
+}
+
 /// One day's macros under [lens] — the SAME function over a narrower set, so
 /// the week is never a sum of rounded day totals.
 

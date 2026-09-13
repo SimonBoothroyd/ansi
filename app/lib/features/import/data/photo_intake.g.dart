@@ -8,11 +8,15 @@ part of 'photo_intake.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// The real photo intake: `image_picker` — the camera for one page, or the
-/// library's multi-select (the only source that works on the iOS simulator —
-/// it has no camera) — feeding `image_cropper`'s native crop + rotate editor,
-/// one page at a time. Confirming a page with no edits is a single tap; the
-/// editor's rotate control handles deskew.
+/// The real photo intake: `image_picker` — the camera, reopened per page by
+/// [PhotoIntakeService.pickAndCrop], or the library's multi-select (the only
+/// source that works on the iOS simulator — it has no camera) — feeding
+/// [cropSeam], one page at a time: `image_cropper`'s native crop + rotate
+/// editor on a phone, and nothing at all in a browser. Confirming a page with
+/// no edits is a single tap; the editor's rotate control handles deskew.
+///
+/// The provider supplies the two platform seams only. The question between
+/// pages needs a `BuildContext` and so is passed in by the view.
 ///
 /// A refused camera permission surfaces from `image_picker` as a
 /// `PlatformException`; it is left to propagate, because a door that silently
@@ -21,11 +25,15 @@ part of 'photo_intake.dart';
 @ProviderFor(photoIntake)
 const photoIntakeProvider = PhotoIntakeProvider._();
 
-/// The real photo intake: `image_picker` — the camera for one page, or the
-/// library's multi-select (the only source that works on the iOS simulator —
-/// it has no camera) — feeding `image_cropper`'s native crop + rotate editor,
-/// one page at a time. Confirming a page with no edits is a single tap; the
-/// editor's rotate control handles deskew.
+/// The real photo intake: `image_picker` — the camera, reopened per page by
+/// [PhotoIntakeService.pickAndCrop], or the library's multi-select (the only
+/// source that works on the iOS simulator — it has no camera) — feeding
+/// [cropSeam], one page at a time: `image_cropper`'s native crop + rotate
+/// editor on a phone, and nothing at all in a browser. Confirming a page with
+/// no edits is a single tap; the editor's rotate control handles deskew.
+///
+/// The provider supplies the two platform seams only. The question between
+/// pages needs a `BuildContext` and so is passed in by the view.
 ///
 /// A refused camera permission surfaces from `image_picker` as a
 /// `PlatformException`; it is left to propagate, because a door that silently
@@ -39,11 +47,15 @@ final class PhotoIntakeProvider
           PhotoIntakeService
         >
     with $Provider<PhotoIntakeService> {
-  /// The real photo intake: `image_picker` — the camera for one page, or the
-  /// library's multi-select (the only source that works on the iOS simulator —
-  /// it has no camera) — feeding `image_cropper`'s native crop + rotate editor,
-  /// one page at a time. Confirming a page with no edits is a single tap; the
-  /// editor's rotate control handles deskew.
+  /// The real photo intake: `image_picker` — the camera, reopened per page by
+  /// [PhotoIntakeService.pickAndCrop], or the library's multi-select (the only
+  /// source that works on the iOS simulator — it has no camera) — feeding
+  /// [cropSeam], one page at a time: `image_cropper`'s native crop + rotate
+  /// editor on a phone, and nothing at all in a browser. Confirming a page with
+  /// no edits is a single tap; the editor's rotate control handles deskew.
+  ///
+  /// The provider supplies the two platform seams only. The question between
+  /// pages needs a `BuildContext` and so is passed in by the view.
   ///
   /// A refused camera permission surfaces from `image_picker` as a
   /// `PlatformException`; it is left to propagate, because a door that silently
@@ -82,4 +94,4 @@ final class PhotoIntakeProvider
   }
 }
 
-String _$photoIntakeHash() => r'7fceeb698836608cbd492b0323bd7b3ce6b01d69';
+String _$photoIntakeHash() => r'46a64682b507823e3e1fce9aab374d70f5177ae3';

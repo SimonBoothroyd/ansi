@@ -564,7 +564,8 @@ as List<CoveredMeal>,
 /// @nodoc
 mixin _$ComponentDemand {
 
- String get parentRecipeId; String get parentTitle;/// The demanding parent session's cook day (0=Mon..6=Sun) — the day this
+ String get parentRecipeId; String get parentTitle;/// The demanding parent session's cook day (0..6 from the week's first
+/// day) — the day this
 /// batch has to be ready *by*.
  int get cookDay;/// Batches of the sub-recipe, already multiplied through the parent
 /// session's own scale factor.
@@ -769,7 +770,8 @@ class _ComponentDemand implements ComponentDemand {
 
 @override final  String parentRecipeId;
 @override final  String parentTitle;
-/// The demanding parent session's cook day (0=Mon..6=Sun) — the day this
+/// The demanding parent session's cook day (0..6 from the week's first
+/// day) — the day this
 /// batch has to be ready *by*.
 @override final  int cookDay;
 /// Batches of the sub-recipe, already multiplied through the parent
