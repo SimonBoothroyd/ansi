@@ -17,7 +17,7 @@ back, and owns the human decisions and the commit.
 
 ```
 ImportView (intake)                   presentation/import_view.dart
-  paste a URL  ·  pick photos → crop/rotate each page
+  paste a URL  ·  shoot page after page, or pick photos → crop/rotate each
       │
       ▼  ImportController.startImport(ImportSource)
 ImportRepository.startImport                 ← the seam that varies (below)
@@ -64,7 +64,8 @@ import/
     remote_import_repository.dart EdgeImportRepository — functions.invoke
     sse.dart                     the text/event-stream reader behind it
     sample_payloads.dart          the canned/offline payload (see below)
-    photo_intake.dart            pick → crop/rotate, behind injectable seams
+    photo_intake.dart            shoot/pick → crop/rotate → "another page?",
+                                 behind injectable seams
     import_providers.dart        importRepositoryProvider (keepAlive)
   presentation/
     import_view.dart             intake screen

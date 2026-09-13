@@ -8,16 +8,25 @@
 /// cropped file (~1568px) and base64-encodes it for the edge function — so the
 /// phone never ships a full-res photo.
 ///
-/// The camera door is one page per tap: a book that spans pages is either
-/// shot as one spread or photographed first and picked from the library, so
-/// the common single-page case stays one shot, one crop, no "another page?"
-/// question in between.
+/// The camera door photographs as many pages as the cook has: after each shot
+/// is cropped it asks whether there is another, so a recipe that runs over a
+/// page break is shot page by page in one sitting rather than photographed
+/// first and picked back out of the library. Dismissing the camera ends the
+/// shooting and imports what has been kept. The library door, already
+/// multi-select, never asks.
 ///
 /// [PhotoIntakeService] is the pure, testable loop over two injected seams —
 /// `pickImages` (a [PhotoSource] → source paths) and `cropImage` (one page →
 /// cropped path, or null if the user backed out of that page). The real seams
 /// (`image_picker` + `image_cropper`) are plugged in by [photoIntakeProvider];
 /// the native editors themselves aren't unit-tested, but the per-page loop is.
+///
+/// The third seam, [AskAnotherPage], is a **parameter of
+/// [PhotoIntakeService.pickAndCrop]** and not a constructor argument, because
+/// asking needs a `BuildContext` and the provider that builds the service has
+/// none: a constructor seam would have to be nullable, supplied by nobody, and
+/// the one caller that can ask would be passing it anyway. As a parameter the
+/// view hands over a closure that is live exactly as long as the screen is.
 library;
 
 import 'package:image_cropper/image_cropper.dart';
@@ -26,8 +35,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'photo_intake.g.dart';
 
-/// Where the pages come from: the camera (one page per capture) or the photo
-/// library (any number, multi-select).
+/// Where the pages come from: the camera (one shot per capture, repeated for
+/// as long as the cook keeps saying yes) or the photo library (any number,
+/// multi-select, asked for once).
 enum PhotoSource { camera, library }
 
 /// Picks or captures recipe photos and returns their source paths, in order.
@@ -37,6 +47,12 @@ typedef PickImages = Future<List<String>> Function(PhotoSource source);
 /// Opens the crop/rotate editor for [sourcePath]; returns the cropped file's
 /// path, or null when the user cancelled this page.
 typedef CropImage = Future<String?> Function(String sourcePath);
+
+/// Asks whether there is another page to photograph, given how many pages are
+/// already kept ([pagesSoFar], never zero). True reopens the camera; false —
+/// including a dismissal, and including a screen that is gone — reads the
+/// pages already kept.
+typedef AskAnotherPage = Future<bool> Function(int pagesSoFar);
 
 class PhotoIntakeService {
   const PhotoIntakeService({
@@ -48,27 +64,50 @@ class PhotoIntakeService {
   final PickImages _pickImages;
   final CropImage _cropImage;
 
-  /// Captures or picks photos from [source], then crops/rotates each in turn.
-  /// A page the user cancels in the cropper is dropped (the rest still
-  /// import); returns the cropped paths in pick order. An empty result
-  /// (nothing picked, camera dismissed, or every page cancelled) means "start
-  /// nothing" — the caller must not kick off an import.
-  Future<List<String>> pickAndCrop(PhotoSource source) async {
-    final picked = await _pickImages(source);
+  /// Captures or picks photos from [source], then crops/rotates each in turn,
+  /// returning the cropped paths in the order they were taken. A page the user
+  /// cancels in the cropper is dropped and the rest still import. An empty
+  /// result (nothing picked, camera dismissed on the first page, or every page
+  /// cancelled) means "start nothing" — the caller must not kick off an import.
+  ///
+  /// From the camera the door reopens for as long as [askAnotherPage] answers
+  /// yes, so a recipe spread over pages is one sitting of shoot → crop → "and
+  /// another". Three edges hold that loop honest: dismissing the camera ends
+  /// the shooting and keeps what is already cropped; a first page cancelled in
+  /// the cropper leaves nothing kept, so there is nothing to ask *about* and
+  /// the question is skipped; but a page cancelled once something is kept still
+  /// asks, which is how a bad shot is retaken. Without [askAnotherPage] — and
+  /// from the library, whose multi-select already took every page at once — it
+  /// is one pass and no question.
+  Future<List<String>> pickAndCrop(
+    PhotoSource source, {
+    AskAnotherPage? askAnotherPage,
+  }) async {
     final cropped = <String>[];
-    for (final path in picked) {
-      final result = await _cropImage(path);
-      if (result != null) cropped.add(result);
-    }
+    do {
+      final picked = await _pickImages(source);
+      if (picked.isEmpty) break;
+      for (final path in picked) {
+        final result = await _cropImage(path);
+        if (result != null) cropped.add(result);
+      }
+    } while (source == PhotoSource.camera &&
+        cropped.isNotEmpty &&
+        askAnotherPage != null &&
+        await askAnotherPage(cropped.length));
     return cropped;
   }
 }
 
-/// The real photo intake: `image_picker` — the camera for one page, or the
-/// library's multi-select (the only source that works on the iOS simulator —
-/// it has no camera) — feeding `image_cropper`'s native crop + rotate editor,
-/// one page at a time. Confirming a page with no edits is a single tap; the
-/// editor's rotate control handles deskew.
+/// The real photo intake: `image_picker` — the camera, reopened per page by
+/// [PhotoIntakeService.pickAndCrop], or the library's multi-select (the only
+/// source that works on the iOS simulator — it has no camera) — feeding
+/// `image_cropper`'s native crop + rotate editor, one page at a time.
+/// Confirming a page with no edits is a single tap; the editor's rotate
+/// control handles deskew.
+///
+/// The provider supplies the two native seams only. The question between
+/// pages needs a `BuildContext` and so is passed in by the view.
 ///
 /// A refused camera permission surfaces from `image_picker` as a
 /// `PlatformException`; it is left to propagate, because a door that silently

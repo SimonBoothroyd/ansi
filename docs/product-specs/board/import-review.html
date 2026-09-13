@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Import review</h1>
-    <p class="view-status">built · matches code 2026-09-12 · <code>features/import</code> · <code>recipes/presentation/line_card.dart</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/completed/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a></p>
+    <p class="view-status">built · matches code 2026-09-13 · <code>features/import</code> · <code>recipes/presentation/line_card.dart</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/completed/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a></p>
     <p class="view-blurb">One form with two doors, then the whole import on one editable screen: the editor’s own header, a card per line, the method as step cards, and a Save gate that counts the same number the header does.</p>
 </header>
 
@@ -31,7 +31,7 @@
                 <div class="savebtn">Import from link</div>
                 <div style="display:flex;gap:10px;margin:20px 20px 0"><div class="ghostbtn" style="flex:1;justify-content:center;padding:13px">◻ Take a photo</div><div class="ghostbtn" style="flex:1;justify-content:center;padding:13px">▣ Choose photos</div></div>
                 <p class="conv-note" style="margin-top:14px">link button stays disabled on an empty field</p>
-                <p class="rc-note">Photos run <b style="color:var(--ink)">shoot or pick → crop each page → import the set</b>; the camera takes one page per tap (a spread is one shot; more pages go through the library), and dismissing the camera or cancelling every page starts nothing. Failures come back to this same form with the error under it, never a dead end.</p>
+                <p class="rc-note">Photos run <b style="color:var(--ink)">shoot or pick → crop each page → import the set</b>; the camera keeps going for as long as you have pages — each shot is cropped, then a dialog asks <b style="color:var(--ink)">Another page</b> or <b style="color:var(--ink)">Read it</b> — and dismissing the camera reads the pages already kept, while cancelling the very first crop starts nothing. Failures come back to this same form with the error under it, never a dead end.</p>
             </div></div>
         </div>
 

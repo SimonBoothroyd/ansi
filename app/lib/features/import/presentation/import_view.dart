@@ -11,6 +11,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../data/photo_intake.dart';
 import '../domain/import_repository.dart';
@@ -262,7 +263,25 @@ class _IntakeForm extends HookConsumerWidget {
     final intake = ref.read(photoIntakeProvider);
 
     Future<void> importPhotos(PhotoSource source) async {
-      final paths = await intake.pickAndCrop(source);
+      final paths = await intake.pickAndCrop(
+        source,
+        // The camera's between-pages question. It is the view that owns it,
+        // not the service, because it is the only party holding a context —
+        // and a screen that has gone away answers no, which keeps the pages
+        // already shot rather than dropping them.
+        askAnotherPage: (pagesSoFar) async {
+          if (!context.mounted) return false;
+          return askAnsi(
+            context,
+            title: pagesSoFar == 1
+                ? '1 page so far'
+                : '$pagesSoFar pages so far',
+            body: 'Photograph the next page, or read what you have.',
+            confirm: 'Another page',
+            cancel: 'Read it',
+          );
+        },
+      );
       if (paths.isEmpty) return;
       await controller.startImport(
         ImportFromPhotos(paths),
@@ -301,10 +320,11 @@ class _IntakeForm extends HookConsumerWidget {
           child: const Text('Import from link'),
         ),
         const SizedBox(height: 24),
-        // The photo door, split by where the page comes from: shoot it now, or
-        // pick one or more from the library. Either way it is pick → crop/
-        // rotate each → import the cropped set. An empty result (nothing
-        // picked, camera dismissed, every page cancelled) starts nothing; the
+        // The photo door, split by where the page comes from: shoot them now,
+        // page after page until the cook says to read it, or pick one or more
+        // from the library. Either way it is pick → crop/rotate each → import
+        // the cropped set. An empty result (nothing picked, camera dismissed
+        // with nothing kept, every page cancelled) starts nothing; the
         // repository downscales each page before upload.
         Row(
           children: [
