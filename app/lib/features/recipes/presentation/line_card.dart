@@ -32,6 +32,7 @@ import 'package:forui/forui.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_tap.dart';
 import '../../../shared/reorder_grip.dart';
 import 'ingredient_line.dart';
 
@@ -212,36 +213,20 @@ class LineCardHead extends StatelessWidget {
         Expanded(child: identity),
         if (onRemove != null) ...[
           const SizedBox(width: 8),
-          Semantics(
-            label: 'Remove the line',
-            button: true,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onRemove,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4),
-                child: Icon(
-                  FLucideIcons.trash2,
-                  size: 16,
-                  color: AnsiColors.muted,
-                ),
-              ),
-            ),
+          AnsiTap(
+            onTap: onRemove,
+            semanticsLabel: 'Remove the line',
+            color: AnsiColors.muted,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: const Icon(FLucideIcons.trash2, size: 16),
           ),
         ],
         const SizedBox(width: 8),
-        Semantics(
-          label: 'Close the line',
-          button: true,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onCollapse,
-            child: const Icon(
-              FLucideIcons.chevronUp,
-              size: 18,
-              color: AnsiColors.muted,
-            ),
-          ),
+        AnsiTap(
+          onTap: onCollapse,
+          semanticsLabel: 'Close the line',
+          color: AnsiColors.muted,
+          child: const Icon(FLucideIcons.chevronUp, size: 18),
         ),
       ],
     );

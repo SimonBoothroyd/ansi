@@ -13,6 +13,8 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
+import 'ansi_tap.dart';
+
 class AnsiMoreTrigger extends StatelessWidget {
   const AnsiMoreTrigger({
     required this.onTap,
@@ -44,22 +46,29 @@ class AnsiMoreTrigger extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final glyph = Icon(FLucideIcons.ellipsis, size: size, color: color);
     if (_bare) {
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.only(left: gap),
-          child: glyph,
+      // The gap stays OUTSIDE the tap. It is the space between this control
+      // and the one before it, and a hover ground that reached into it would
+      // read as one wide target rather than as the `⋯`.
+      return Padding(
+        padding: const EdgeInsets.only(left: gap),
+        child: AnsiTap(
+          onTap: onTap,
+          color: color,
+          semanticsLabel: 'More',
+          child: Icon(FLucideIcons.ellipsis, size: size),
         ),
       );
     }
+    // The button shape is left to Forui. `FButtonVariant.ghost` already hovers
+    // with `secondary` under `secondaryForeground` — the same two tokens
+    // [AnsiTap] uses — and rings with the theme's outline, so re-drawing it as
+    // an [AnsiTap] would buy nothing and would re-size a phone control.
     return FButton.icon(
       variant: FButtonVariant.ghost,
       size: compact ? FButtonSizeVariant.sm : FButtonSizeVariant.md,
       onPress: onTap,
-      child: glyph,
+      child: Icon(FLucideIcons.ellipsis, size: size, color: color),
     );
   }
 }

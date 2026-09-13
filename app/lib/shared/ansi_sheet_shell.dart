@@ -32,6 +32,7 @@ import '../core/theme/ansi_theme.dart';
 import '../core/theme/ansi_tokens.dart';
 import 'ansi_layout.dart';
 import 'ansi_modals.dart';
+import 'ansi_tap.dart';
 
 /// How a sheet offers its way out.
 enum AnsiSheetDismiss {
@@ -160,9 +161,9 @@ class AnsiSheetShell extends StatelessWidget {
       children: [
         if (dismiss == AnsiSheetDismiss.x ||
             dismiss == AnsiSheetDismiss.back) ...[
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
+          AnsiTap(
             onTap: onDismiss ?? () => Navigator.of(context).pop(),
+            semanticsLabel: dismiss == AnsiSheetDismiss.x ? 'Close' : 'Back',
             child: Icon(
               dismiss == AnsiSheetDismiss.x
                   ? FLucideIcons.x

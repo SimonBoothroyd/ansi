@@ -191,6 +191,32 @@ changes, and the code gets one place that reads the viewport.
   was bought by *moving* the relationship rather than by stating it better;
   the cost, taken knowingly, is that scanning the week to decide what to cook
   now means opening a day.
+- 2026-09-13 — **A glyph answers a pointer through one style, and a wide pane
+  keeps a gutter for the bar.** The owner's report — *most burger menu buttons
+  show no response when hovering … on Library they collide with the scroll bar* —
+  was two faults with one cause each. Every glyph control in the app was a bare
+  `GestureDetector`, which paints no ground, draws no focus ring and (because
+  Forui's tappable style defaults its cursor to `defer`) never even changes the
+  arrow; so the answer was the same everywhere and it was nothing. `AnsiTap`
+  (`shared/ansi_tap.dart`) is now that answer, over Forui's `FTappable`: a
+  herb-soft ground under a herb-deep glyph, the theme's 2 px herb ring at 2 px
+  clear, a click cursor and a 32 px minimum target. The two colours are the pair
+  `FButtonVariant.ghost` already hovers with (`secondary` /
+  `secondaryForeground`), so a `⋯` drawn as a ghost button and a `⋯` drawn as an
+  `AnsiTap` read as one control in two shapes; the ring and the cursor are set
+  once on the theme, which is also what gave the sidebar, every button and every
+  header action a visible hover. **Two deliberate limits.** The 44 px touch
+  target is written down and not applied: growing every phone glyph to it from
+  underneath would re-lay-out the week card, the header row and every dense
+  line, and this pass was to leave the phone alone — so the minimum is
+  mouse-only and no phone row moves. And mouse drag-to-scroll stays off: it
+  would not have broken drag-to-reorder (the grips use their own all-device
+  recognisers) but it would take click-drag text selection away from every
+  recipe and ingredient row, and the wheel was never missing. The collision
+  half is `AnsiScrollBehavior` plus `ansiScrollPadding`: the bar is the app's
+  now — 8 px thick, 2 px in, always visible on a mouse, never drawn on a finger
+  — and six wide panes add thickness + margin + 8 to their right padding, one
+  derived number, so widening the bar widens the gutter with it.
 
 ## Notes / open questions
 

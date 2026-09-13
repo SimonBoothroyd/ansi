@@ -23,6 +23,7 @@ import '../../../core/words.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_layout.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/ansi_scroll.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/sync_status_line.dart';
@@ -125,7 +126,10 @@ Widget _shoppingList(
   // this screen's affordances — the add-item door works with no plan at
   // all, which is exactly why it must not be taken away.
   data: (data) => ListView(
-    padding: const EdgeInsets.only(top: 6, bottom: 24),
+    padding: ansiScrollPadding(
+      context,
+      const EdgeInsets.only(top: 6, bottom: 24),
+    ),
     children: [
       const _ListCaption(),
       if (data.isEmpty) const _NothingToBuyLine(),

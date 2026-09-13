@@ -165,6 +165,21 @@ door** — the Library's header does not draw a second one. One door, not two.
   genuinely differs by band rather than by pixel — a second region beside the
   content, a control that becomes a hover affordance. That is a design decision,
   and it arrives with a board frame.
+- **Must:** answer a pointer. On a mouse-and-keyboard device every glyph-only
+  control — the `⋯`, the `−`, the `＋` doors, the fold chevrons, the sidebar
+  items, the A–Z letters, the agenda's `›` — takes its hover (a herb-soft ground
+  under a herb-deep glyph), its 2 px herb focus ring, its click cursor and its
+  32 px minimum target from **one shared style**: `AnsiTap`
+  (`app/lib/shared/ansi_tap.dart`) over Forui's `FTappable`, with the ring and
+  the cursor stated once on the theme so a `FButton` and a swept glyph say the
+  same thing. None of it exists on a phone, and the target minimum is applied
+  only where the pointer is a mouse, so no phone row moves. And **a wide pane
+  keeps a right gutter for the scrollbar** — `ansiScrollPadding`
+  (`app/lib/shared/ansi_scroll.dart`), the bar's thickness plus its margin plus
+  8 px of air — because the bar is drawn over the content, last, and a `⋯` at the
+  end of a ledger row would otherwise sit under the thumb. The bar itself is the
+  app's: one `AnsiScrollBehavior` at the root, a stated thickness and margin,
+  always visible on a mouse and never drawn at all on a finger.
 - **May:** opt out of the measure, for a view whose honest form uses the width.
   That is the same design decision, made deliberately. Such a page is capped
   wider rather than stretched: it passes a `measure:` through the router's

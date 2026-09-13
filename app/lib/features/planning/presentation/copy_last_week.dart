@@ -19,6 +19,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/words.dart';
+import '../../../shared/ansi_tap.dart';
 import '../../../shared/write.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
@@ -88,14 +89,11 @@ class CopyLastWeekNotice extends ConsumerWidget {
                     style: ansiMono(size: 11, color: AnsiColors.muted),
                   ),
                 ),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
+                AnsiTap(
                   onTap: ref.read(lastCopyReportProvider.notifier).clear,
-                  child: const Icon(
-                    FLucideIcons.x,
-                    size: 13,
-                    color: AnsiColors.muted,
-                  ),
+                  semanticsLabel: 'Dismiss the report',
+                  color: AnsiColors.muted,
+                  child: const Icon(FLucideIcons.x, size: 13),
                 ),
               ],
             ),

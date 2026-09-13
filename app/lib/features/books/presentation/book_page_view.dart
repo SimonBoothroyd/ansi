@@ -27,6 +27,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_layout.dart';
+import '../../../shared/ansi_scroll.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../domain/book.dart';
 import 'book_rows.dart';
@@ -336,7 +337,10 @@ class _PanesState extends State<_Panes> {
                     ),
                     child: ListView(
                       controller: _scroll,
-                      padding: const EdgeInsets.only(bottom: 32),
+                      padding: ansiScrollPadding(
+                        context,
+                        const EdgeInsets.only(bottom: 32),
+                      ),
                       children: _sections(
                         book,
                         keys: {

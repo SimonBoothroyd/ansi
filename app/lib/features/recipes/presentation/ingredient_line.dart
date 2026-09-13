@@ -62,6 +62,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/ansi_tap.dart';
 import '../../ingredients/presentation/macro_line_text.dart';
 import '../domain/line_display.dart';
 import '../domain/recipe.dart';
@@ -236,14 +237,11 @@ class RecipeIngredientLine extends StatelessWidget {
               ),
               if (onEditAmount != null) ...[
                 const SizedBox(width: 8),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
+                AnsiTap(
                   onTap: onEditAmount,
-                  child: const Icon(
-                    FLucideIcons.pencil,
-                    size: 14,
-                    color: AnsiColors.herb,
-                  ),
+                  semanticsLabel: 'Edit the amount',
+                  color: AnsiColors.herb,
+                  child: const Icon(FLucideIcons.pencil, size: 14),
                 ),
               ],
             ],

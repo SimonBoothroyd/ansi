@@ -148,9 +148,9 @@ class AnsiSideNav extends StatelessWidget {
     backgroundColor: FVariantsValueDelta.delta([
       FVariantValueDeltaOperation.base(const Color(0x00000000)),
     ]),
-    // Forui's own focus ring, lifted off the item so it reads as a ring rather
-    // than as a second selected state.
-    focusedOutlineStyle: const FFocusedOutlineStyleDelta.delta(spacing: 2),
+    // The focus ring is the theme's now — 2 px herb, 2 px clear, the same one
+    // every swept glyph wears (`core/theme/ansi_theme.dart`) — so the sidebar
+    // no longer states its own lift here.
   );
 }
 

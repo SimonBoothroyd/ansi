@@ -35,11 +35,92 @@ FThemeData ansiThemeData() {
     border: AnsiColors.line,
     card: AnsiColors.surface,
   );
-  final base = FThemeData(colors: colors, touch: true, debugLabel: 'Ansi');
+  final typography = FTypography.inherit(colors: colors, touch: true);
+  final base = FThemeData(
+    colors: colors,
+    touch: true,
+    typography: typography,
+    style: _style(colors, typography),
+    debugLabel: 'Ansi',
+  );
   return base.copyWith(
     bottomNavigationBarStyle: _bottomNavStyle(),
+    headerStyles: _headerStyles(),
     toasterStyle: _toasterStyle(base),
   );
+}
+
+/// The two answers every tappable thing in the app owes a mouse and a keyboard,
+/// stated once on the theme rather than fifty times at the call sites.
+///
+/// **A click cursor.** Forui's [FTappableStyle] defaults to
+/// `MouseCursor.defer`, which on the web means the arrow never changes — so a
+/// `⋯`, a sidebar item and a ghost button all read as text. Every Forui
+/// tappable resolves its cursor from here, so one line gives the whole app a
+/// pointer; a disabled one keeps the plain arrow, which is the honest word for
+/// *not a door*.
+///
+/// **A ring you can see.** Forui's default is 1 px, 3 px clear. At 1 px, herb
+/// on paper, a focused control is a rumour. 2 px at 2 px clear is the board's
+/// ring: thick enough to find by eye while tabbing, tight enough that it does
+/// not read as a second selected state. `AnsiTap` (`shared/ansi_tap.dart`)
+/// inherits it and re-states only the radius.
+FStyle _style(FColors colors, FTypography typography) =>
+    FStyle.inherit(
+      colors: colors,
+      typography: typography,
+      touch: true,
+    ).copyWith(
+      focusedOutlineStyle: const FFocusedOutlineStyleDelta.delta(
+        width: 2,
+        spacing: 2,
+      ),
+      tappableStyle: FTappableStyleDelta.delta(
+        cursor: FVariantsValueDelta.delta([
+          FVariantValueDeltaOperation.base(SystemMouseCursors.click),
+          FVariantValueDeltaOperation.exact({
+            FTappableVariantConstraint.disabled,
+          }, SystemMouseCursors.basic),
+        ]),
+      ),
+    );
+
+/// The header's own glyphs — the back chevron, the `⋯`, the `＋` — answering a
+/// pointer in the same two colours as everything else.
+///
+/// `FHeaderAction` is an `FTappable` already: it hovers, it rings, and after
+/// [_style] it has a cursor. What it hovered *with* was `colors.hover(ink)`, a
+/// lightening of near-black that on paper is invisible — the owner's "no
+/// response" — and `FHeaderActionStyle` has no ground in its contract to tint
+/// instead. So here the glyph carries the whole answer: its ink steps to
+/// `secondaryForeground`, the same herb-deep an `AnsiTap` moves its glyph to.
+/// Deliberately not a fork of Forui's header action with a ground bolted on:
+/// the two tokens *are* the shared style, and this is them in the one shape
+/// that cannot hold a ground.
+FVariantsDelta<
+  FHeaderVariantConstraint,
+  FHeaderVariant,
+  FHeaderStyle,
+  FHeaderStyleDelta
+>
+_headerStyles() {
+  const hover = IconThemeDataDelta.delta(color: AnsiColors.herbDeep);
+  return FVariantsDelta.delta([
+    FVariantOperation.all(
+      FHeaderStyleDelta.delta(
+        actionStyle: FHeaderActionStyleDelta.delta(
+          iconStyle: FVariantsDelta.delta([
+            FVariantOperation.exact({
+              FTappableVariantConstraint.hovered,
+            }, hover),
+            FVariantOperation.exact({
+              FTappableVariantConstraint.pressed,
+            }, hover),
+          ]),
+        ),
+      ),
+    ),
+  ]);
 }
 
 /// The toast: bottom-centre, and never wider than the measure.
