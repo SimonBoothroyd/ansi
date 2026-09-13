@@ -53,6 +53,7 @@ class LineCard extends HookWidget {
     this.collapseEpoch = 0,
     this.attention = false,
     this.borderAtRest = true,
+    this.lit = false,
     super.key,
   });
 
@@ -78,6 +79,12 @@ class LineCard extends HookWidget {
   /// list look unfinished.
   final bool borderAtRest;
 
+  /// Whether a step being written points at this line — the wide editor's one
+  /// use of the width. It is view state that follows focus and is never
+  /// stored, and it only shows on the bare row: an open card is already the
+  /// loudest thing in the column.
+  final bool lit;
+
   @override
   Widget build(BuildContext context) {
     // Local to the row: several cards stand open at once, and each survives
@@ -97,6 +104,7 @@ class LineCard extends HookWidget {
     return LineCardSurface(
       attention: attention,
       bordered: borderAtRest,
+      lit: lit,
       child: LineCardGrip(
         dragIndex: dragIndex,
         child: collapsed(() => open.value = true),
@@ -113,6 +121,7 @@ class LineCardSurface extends StatelessWidget {
     this.attention = false,
     this.dropped = false,
     this.bordered = true,
+    this.lit = false,
     super.key,
   });
 
@@ -127,16 +136,35 @@ class LineCardSurface extends StatelessWidget {
 
   final bool bordered;
 
+  /// See [LineCard.lit] — the Shop pane's own selected-row wash, on the bare
+  /// row. The hairline goes with it: a rule under a washed row cuts it in half.
+  final bool lit;
+
   @override
   Widget build(BuildContext context) {
     if (!bordered) {
+      final row = Padding(
+        padding: const EdgeInsets.symmetric(vertical: 9),
+        child: child,
+      );
       return Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 9),
-            child: child,
-          ),
-          Container(height: 1, color: AnsiColors.line),
+          if (lit)
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: AnsiColors.herbSoft,
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: row,
+              ),
+            )
+          else
+            row,
+          // Kept as a gap when the wash takes the rule's place, so lighting a
+          // line never moves the ones under it.
+          Container(height: 1, color: lit ? null : AnsiColors.line),
         ],
       );
     }
