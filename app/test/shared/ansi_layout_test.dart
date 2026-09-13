@@ -19,11 +19,7 @@ const _windowHeight = 600.0;
 const _childKey = Key('measured child');
 
 /// Pumps [child] in a window [width] logical pixels across.
-Future<void> pumpWindow(
-  WidgetTester tester,
-  double width,
-  Widget child,
-) async {
+Future<void> pumpWindow(WidgetTester tester, double width, Widget child) async {
   tester.view
     ..devicePixelRatio = 1
     ..physicalSize = Size(width, _windowHeight);
@@ -34,6 +30,22 @@ Future<void> pumpWindow(
       child: FTheme(data: ansiThemeData(), child: child),
     ),
   );
+}
+
+/// The shell form [width] calls for, read the way a widget reads it.
+Future<AnsiShell> shellAt(WidgetTester tester, double width) async {
+  late AnsiShell form;
+  await pumpWindow(
+    tester,
+    width,
+    Builder(
+      builder: (context) {
+        form = AnsiShell.of(context);
+        return const SizedBox.shrink();
+      },
+    ),
+  );
+  return form;
 }
 
 /// The band [width] falls in, read the way a widget reads it.
@@ -67,6 +79,84 @@ void main() {
     testWidgets('is expanded from lg up', (tester) async {
       expect(await bandAt(tester, 1024), AnsiLayout.expanded);
       expect(await bandAt(tester, 1600), AnsiLayout.expanded);
+    });
+  });
+
+  group('AnsiShell.of', () {
+    testWidgets('is the bar through compact AND medium, up to lg', (
+      tester,
+    ) async {
+      expect(await shellAt(tester, 390), AnsiShell.bar);
+      expect(await shellAt(tester, 800), AnsiShell.bar);
+      expect(await shellAt(tester, 1023), AnsiShell.bar);
+    });
+
+    testWidgets('is the icon rail from lg to just under xl', (tester) async {
+      expect(await shellAt(tester, 1024), AnsiShell.rail);
+      expect(await shellAt(tester, 1279), AnsiShell.rail);
+    });
+
+    testWidgets('is the full sidebar from xl up', (tester) async {
+      expect(await shellAt(tester, 1280), AnsiShell.sidebar);
+      expect(await shellAt(tester, 1920), AnsiShell.sidebar);
+    });
+
+    testWidgets('beside is the question a layout actually asks', (
+      tester,
+    ) async {
+      expect(await shellAt(tester, 1023), isNot(predicate(_beside)));
+      expect(await shellAt(tester, 1024), predicate(_beside));
+    });
+  });
+
+  group('AnsiPane', () {
+    Future<Rect> paneRect(
+      WidgetTester tester,
+      double width, {
+      bool fullWidth = false,
+      bool insideShellMeasure = false,
+    }) async {
+      await pumpWindow(
+        tester,
+        width,
+        AnsiPane(
+          fullWidth: fullWidth,
+          insideShellMeasure: insideShellMeasure,
+          child: const SizedBox.expand(key: _childKey),
+        ),
+      );
+      return tester.getRect(find.byKey(_childKey));
+    }
+
+    testWidgets('measures a pushed page at every width', (tester) async {
+      expect((await paneRect(tester, 402)).width, 402);
+      expect((await paneRect(tester, 800)).width, 640);
+      expect((await paneRect(tester, 1440)).width, 640);
+    });
+
+    testWidgets('leaves a tab root to the shell while the bar is under it', (
+      tester,
+    ) async {
+      // The shell wraps the branches AND the bar in one measure there; a second
+      // wrap inside it would be the screen measuring itself.
+      expect(
+        (await paneRect(tester, 800, insideShellMeasure: true)).width,
+        800,
+      );
+      // Beside the content there is no bar to keep company with, so the branch
+      // root measures its own pane.
+      expect(
+        (await paneRect(tester, 1440, insideShellMeasure: true)).width,
+        640,
+      );
+    });
+
+    testWidgets('a full-width page takes the pane, but only once there IS a '
+        'pane', (tester) async {
+      // At bar the window IS the pane: a 900 px browser window stays one
+      // column, which is what keeps the phone layout honest at every width.
+      expect((await paneRect(tester, 900, fullWidth: true)).width, 640);
+      expect((await paneRect(tester, 1440, fullWidth: true)).width, 1440);
     });
   });
 
@@ -129,3 +219,5 @@ void main() {
     expect(height, _windowHeight / 2);
   });
 }
+
+bool _beside(AnsiShell form) => form.beside;

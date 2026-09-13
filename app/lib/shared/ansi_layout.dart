@@ -25,6 +25,13 @@
 /// screen that wants to *use* the width asks for it deliberately, by not
 /// sitting in the measure.
 ///
+/// **The shell's form** is the second question this file answers
+/// ([AnsiShell.of]): whether the app's navigation is a bar under the content,
+/// an icon rail beside it, or a full sidebar. It is a different question from
+/// the band — the bar covers two bands, and the rail/sidebar split falls inside
+/// one — so it is its own vocabulary rather than a `switch` on [AnsiLayout]
+/// repeated in three files.
+///
 /// What a screen may do with width: nothing. What it may do instead: ask
 /// [AnsiLayout.of] for a band, in the rare case where the honest answer differs
 /// by band rather than by pixel. See
@@ -67,6 +74,49 @@ enum AnsiLayout {
   }
 }
 
+/// The form the app's navigation chrome takes at a given width.
+///
+/// Read from the window's width against the theme's `FBreakpoints`: [bar] below
+/// `lg` (1024), [rail] from `lg` to just under `xl` (1024–1279), [sidebar] from
+/// `xl` (1280) up.
+///
+/// Deliberately not a view on [AnsiLayout]: [bar] spans both [AnsiLayout
+/// .compact] and [AnsiLayout.medium] — a 900 px window is too wide for the
+/// phone layout to stretch but too narrow to spend 188 px on chrome — while
+/// [rail] and [sidebar] split [AnsiLayout.expanded] in two. Two questions, two
+/// answers, asked in the same file.
+enum AnsiShell {
+  /// The bottom bar, under the content. The phone's shell, and the one a
+  /// half-screen browser window keeps.
+  bar,
+
+  /// A 64 px icon rail beside the content, labels as tooltips — an iPad in
+  /// landscape, where the labels would cost a sixth of the window.
+  rail,
+
+  /// The full sidebar beside the content: icons with their labels, and the
+  /// wordmark above them.
+  sidebar;
+
+  /// The form [context]'s window calls for.
+  ///
+  /// Depends on the media query, so a widget that calls this rebuilds when the
+  /// window is resized or the device rotated.
+  static AnsiShell of(BuildContext context) {
+    final breakpoints = context.theme.breakpoints;
+    final width = MediaQuery.sizeOf(context).width;
+    return switch (width) {
+      _ when width < breakpoints.lg => bar,
+      _ when width < breakpoints.xl => rail,
+      _ => sidebar,
+    };
+  }
+
+  /// Whether the chrome sits **beside** the content rather than under it, which
+  /// is what makes the window's remainder a *pane* instead of the whole window.
+  bool get beside => this != bar;
+}
+
 /// The widest a column of content is drawn: the theme's `sm` breakpoint, which
 /// is also the ceiling of [AnsiLayout.compact].
 ///
@@ -83,9 +133,9 @@ double ansiMeasureWidth(BuildContext context) => context.theme.breakpoints.sm;
 /// it horizontally, leaving it at the top of whatever space it was given.
 ///
 /// It is applied in two places, and should stay that way: the tab shell wraps
-/// everything it owns (`shared/ansi_tab_shell.dart`), and the router wraps
-/// every page pushed over the shell (`core/router/app_router.dart`). A screen
-/// does not wrap itself.
+/// everything it owns while the bar is under the content
+/// (`shared/ansi_tab_shell.dart`), and the router wraps every route in an
+/// [AnsiPane] (`core/router/app_router.dart`). A screen does not wrap itself.
 class AnsiMeasure extends StatelessWidget {
   const AnsiMeasure({required this.child, super.key});
 
@@ -101,6 +151,51 @@ class AnsiMeasure extends StatelessWidget {
         child: child,
       ),
     );
+  }
+}
+
+/// One page's share of the window: the measure, unless the page is one of the
+/// few that uses the width.
+///
+/// This is where [AnsiMeasure] is applied from, and the only place a page's
+/// width is decided — `core/router/app_router.dart` wraps every route in one,
+/// so the decision is a fact about the route rather than something a screen
+/// does to itself.
+///
+/// [fullWidth] is the opt-out, for a view whose honest form spreads across the
+/// pane (the Week's matrix, the Library's shelf). It applies only once the
+/// chrome is beside the content: at [AnsiShell.bar] there is no pane to fill —
+/// the window *is* the pane — so a full-width page still sits in the measure,
+/// which is what keeps a 900 px browser window one column.
+///
+/// [insideShellMeasure] is for the four tab roots. At [AnsiShell.bar] the tab
+/// shell wraps everything it owns — the branches *and* the bottom bar — in one
+/// measure, because a bar stretched over a monitor above a 640-wide page is two
+/// layouts; so a branch root must not wrap itself there. Once the chrome is
+/// beside the content that single wrap is gone (there is no bar to keep company
+/// with) and the branch root measures its own pane like any other page.
+class AnsiPane extends StatelessWidget {
+  const AnsiPane({
+    required this.child,
+    this.fullWidth = false,
+    this.insideShellMeasure = false,
+    super.key,
+  });
+
+  final Widget child;
+
+  /// The page uses the whole content pane instead of the measure.
+  final bool fullWidth;
+
+  /// The tab shell already measures this page at [AnsiShell.bar].
+  final bool insideShellMeasure;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!AnsiShell.of(context).beside) {
+      return insideShellMeasure ? child : AnsiMeasure(child: child);
+    }
+    return fullWidth ? child : AnsiMeasure(child: child);
   }
 }
 
