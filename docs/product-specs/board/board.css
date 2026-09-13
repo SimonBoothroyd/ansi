@@ -1258,50 +1258,78 @@
     .nv-tree .qp{color:var(--herb-deep);}
 
     /* ---- Wide · library and the book page ----------------------------- */
-  /* Lane-local additions only. The shelf and the book page reuse the
+  /* Lane-local additions only. The ledger and the book page reuse the
      library's shipped classes — .lib-hfield/.lib-row/.lib-stats/.lib-vocab/
-     .lib-newbook/.sec-lab/.sec-lab3/.list-h/.res-row/.res-nm/.res-cat/
-     .r-hero/.abar — and the .desk chrome above. */
+     .sec-lab/.sec-lab3/.list-h/.res-row/.res-nm/.res-cat/.r-hero/.abar —
+     and the .desk chrome above. */
 
   /* the <h2> every wide row sits under (README rule 6) */
 
-  /* the header: the field alone — the household door moved to the sidebar */
-  .lw-head{display:flex;align-items:center;margin:0 0 16px;}
-  .lw-head .lib-hfield{flex:none;width:340px;}
+  /* the head strip: the field as a LINE, and the quiet mono door that makes a
+     book. 233 here is the real 300 at this frame's 0.78 scale. A field as wide
+     as the pane is an admin bar — the one thing the owner named when he
+     refused the tiles — so it is measured to what somebody types into it, and
+     the door beside it is a word, not a dashed slab. No household door: the
+     sidebar's Account is the one there is. */
+  .lw-head{display:flex;align-items:flex-end;justify-content:space-between;gap:22px;margin:0 0 20px;}
+  .lw-head .lib-hfield{flex:none;width:233px;background:none;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:0 0 7px;}
+  .lw-nb{flex:none;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.05em;color:var(--herb);}
 
-  /* the shelf: a grid that decides its own column count, of tiles that do
-     NOT decide their own height — a shelf stays a shelf at thirty books.
-     The 200 minimum is what makes FOUR fit: this 1120 frame leaves a 878
-     content lane, and 4 × 200 + 3 × 14 = 842 lands inside it while a fifth
-     column cannot. The frame stands in for a 1440 window, where the same
-     rule fits four ~257 wide and a narrower window folds to three. */
-  .lw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;align-items:start;}
-  /* One height, every tile: 180, which is a 70 band and the 108 the body
-     gets between the tile's two hairlines. Nothing inside is allowed to
-     push it — a long book name is clamped to the band's two lines, and the
-     body lists what those 108 hold. */
-  .lw-tile{height:180px;display:flex;flex-direction:column;background:var(--frame);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
-  .lw-band{flex:none;height:70px;background:var(--herb);color:#fff;padding:9px 12px 10px;display:flex;flex-direction:column;}
-  .lw-band .bn{font-family:'Spectral',serif;font-size:15px;font-weight:500;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-  .lw-band .bc{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;opacity:.85;margin-top:auto;padding-top:3px;}
-  .lw-body{flex:1;min-height:0;padding:4px 12px 9px;display:flex;flex-direction:column;overflow:hidden;}
-  /* what a tile lists is TITLES, not the Library's row: that row is two
-     lines — the title, then serves and the per-serving macros — and it
-     carries its own ⋯, so it is drawn where it can be read, on the book
-     page the tile opens and in the search column */
-  .lw-peek .pk{display:flex;align-items:center;gap:7px;padding:3px 0;border-bottom:1px dotted var(--line);}
-  .lw-peek .pk:last-child{border-bottom:none;}
-  .lw-peek .pk .t{flex:1;min-width:0;font-family:'Spectral',serif;font-size:12.5px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .lw-peek .pk .star{flex:none;color:var(--aging);font-size:10px;}
-  .lw-more{margin-top:auto;padding-top:5px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
-  .lw-door{margin-top:auto;text-align:center;border:1px dashed var(--line);border-radius:10px;padding:9px 6px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--herb);}
+  /* the ledger: ONE column of books on bare paper, and the A–Z index in the
+     right margin. Widths are drawn at 0.78 — the 700 / 31 / 26 here are 900 /
+     40 / 34 in the 1440 window this frame stands in for, and the 900 is
+     measured from the longest heading a book makes rather than chosen for
+     symmetry. Below it the column is fluid (880 on an iPad in landscape) and
+     the index stays in the margin. */
+  .lg{width:100%;max-width:757px;align-self:center;display:flex;gap:31px;align-items:flex-start;}
+  .lg-col{flex:1;min-width:0;}
+  /* the column heads, which is what makes the right edge a column and not a
+     row of loose numbers */
+  .lg-hd{display:flex;align-items:center;justify-content:space-between;padding-bottom:7px;border-bottom:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.17em;text-transform:uppercase;color:var(--muted);}
+  /* one book: a heading row, its recipes indented under it, the remainder, and
+     a hairline to close it. No box, no band, no fill — the dark herb band is
+     exactly what was refused */
+  .lg-bk{border-bottom:1px solid var(--line);padding:15px 0 17px;}
+  .lg-h{display:flex;align-items:center;gap:10px;}
+  .lg-h .cv{flex:none;width:12px;color:var(--muted);font-size:11px;}
+  .lg-h .nm{flex:none;font-family:'Spectral',serif;font-size:16px;font-weight:500;}
+  /* the leader carries the eye from a name to its counts, which is what lets
+     the counts sit in a column of their own instead of chasing the name */
+  .lg-h .ldr,.lg-rows .ldr{flex:1;min-width:16px;border-bottom:1px dotted var(--line);transform:translateY(-3px);}
+  .lg-h .ct{flex:none;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.07em;color:var(--muted);}
+  /* a recipe line is the phone's own row, indented, with its second line moved
+     INTO the counts column: the stats are not dropped, they are set */
+  .lg-rows{margin-top:5px;padding-left:22px;}
+  .lg-rows .lib-row{padding:5px 0;border-bottom:none;}
+  /* the title gives way first when the column narrows: the leader can shrink
+     to a stub, but the stats are a whole fact and are never half-printed */
+  .lg-rows .lib-row .t{flex:0 1 auto;min-width:0;font-size:13px;}
+  .lg-rows .lib-row .lib-stats{flex:none;display:block;margin-top:0;font-size:9px;}
+  /* the remainder: one row per book saying what the fold still holds, the ＋
+     that files a recipe into the book, and the row itself the door to its page */
+  .lg-more{display:flex;align-items:center;gap:8px;margin-top:3px;padding-left:22px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.03em;color:var(--herb);}
+  .lg-more .cv{flex:none;font-size:11px;}
+  .lg-more .p{margin-left:auto;font-size:12px;}
 
-  /* what closes the shelf runs the width, as it does under the phone's books */
-  .lw-newbook{margin-left:0;margin-right:0;margin-top:16px;}
-  .lw-vocab{margin-top:26px;padding-left:0;padding-right:0;}
+  /* the A–Z margin: how twenty-five books stay scannable without the ledger
+     changing shape. A letter that has a book is a door that scrolls to it;
+     the rest are drawn in the hairline's own ink, because an index that hides
+     its gaps is an index you stop trusting. It indexes the FIRST LETTER of a
+     book, not an order: the books keep the household's own */
+  .lg-ix{flex:0 0 26px;padding-top:92px;display:flex;flex-direction:column;}
+  .lg-ix .lb{height:14px;display:flex;align-items:center;justify-content:flex-end;font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:.14em;color:var(--muted);margin-bottom:5px;}
+  .lg-ix .lt{height:14px;display:flex;align-items:center;justify-content:flex-end;font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--line);}
+  .lg-ix .lt.on{color:var(--herb-deep);font-weight:500;}
 
-  /* search: one ranked column at a measure, however wide the window is */
-  .lw-col{width:100%;max-width:720px;}
+  /* the vocabulary closes the ledger, as it closes the phone's books */
+  .lw-vocab{margin-top:24px;padding-left:0;padding-right:0;}
+
+  /* both wide frames stand in the same lane, so the field is in the same
+     place whether you are reading books or reading results */
+  .lg-plain{width:100%;max-width:757px;align-self:center;}
+  /* search: one ranked column at the app's OWN measure, however wide the
+     window is — 498 here is the 640 the phone's list is drawn at */
+  .lw-col{width:100%;max-width:498px;}
   .lw-col .list-h{margin-left:0;margin-right:0;}
   .lw-col .res-row{padding-left:0;padding-right:0;}
   .lw-short .dscreen{min-height:430px;}
