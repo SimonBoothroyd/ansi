@@ -6,6 +6,18 @@ How a screen in Ansi gets on stage and how it leaves. Traced against the code
 Four tabs are the app's loop — **Library → Week → Cook → Shop**. Everything
 else is a page pushed over them.
 
+**On a wide window the loop stands beside the content instead of under it.**
+From `lg` up an outer `ShellRoute` wraps the tab shell *and* every pushed page,
+and its builder draws the four destinations as a sidebar (a 64 px icon rail with
+tooltips below `xl`), with Account as its footer door — the only household door
+there, so the Library's header does not draw a second one. It is drawn outside
+the navigator that holds the pages, so a push does not animate it, duplicate it
+or lose it. On a pushed page it goes **neutral**: nothing lit, because nothing
+in the loop is where you are, and the page's own header chevron is the way back.
+That is the same sentence the phone says by taking the bar away, in the one form
+a sidebar can say it. Widths, forms and the full-pane opt-out:
+[`wide-screen.md`](./wide-screen.md).
+
 ---
 
 ## 1. One bar, above four branches
@@ -16,8 +28,8 @@ builder is `AnsiTabShell` (`app/lib/shared/ansi_tab_shell.dart`), which owns the
 single `FScaffold(footer: AnsiBottomNav(...))`.
 
 **The bar is one widget instance, and a tab switch cannot move it.** Switching a
-tab changes an index *inside* the shell; the root Navigator's page list does not
-change, so no route transition runs. Before this, every tab screen built its own
+tab changes an index *inside* the shell; the shell Navigator's page list does
+not change, so no route transition runs. Before this, every tab screen built its own
 `FScaffold.footer` and a switch was a `context.go` that replaced the whole page —
 two copies of the bar crossing over each other, always in the "forward"
 direction whichever way you had moved along the bar.
@@ -99,9 +111,10 @@ something the user watches happen rather than something that happens to them.
 
 `/recipes/new`, `/recipes/:id`, `/recipes/:id/edit`, `/import`, `/books/:id`,
 `/ingredients`, `/ingredients/new`, `/ingredients/:id` and `/account` are
-**siblings of the shell**, not children of a branch. They
-are pushed on the root Navigator, so they cover the bar and keep each platform's
-own push transition and back gesture. `/recipes/:id` is reachable from four
+**siblings of the tab shell**, not children of a branch. They are pushed on the
+shell Navigator — the one the outer shell owns, holding the tab shell and every
+page over it — so they cover the bar and keep each platform's own push
+transition and back gesture. `/recipes/:id` is reachable from four
 places in three different tabs; nesting it would mean either duplicating it per
 branch or teleporting the user to the Library when they tap a recipe in Cook.
 `/ingredients/:id` is in the same position: the manager's rows, the import
@@ -126,10 +139,10 @@ which is what the picker that pushed it awaits (below).
 Library's shelf and by a pasted link. **Back returns to the Library**, through
 the same `canPop() ? pop() : go('/')` the recipe page uses: a cold deep link
 straight at a book has no shell page beneath it, so the fallback is doing real
-work there. It is a sibling of the shell for the ordinary reason — it must cover
-the bar — and it is the one pushed page that does not sit in the measure at
-`expanded`, where its sections are an index beside its recipes (the router's
-`_page` helper takes a `usesWidth` flag; see
+work there. It is a sibling of the tab shell for the ordinary reason — it must
+cover the bar — and it is a pushed page that does not sit in the measure once
+the chrome is beside the content, where its sections are an index beside its
+recipes (the router's `_page` helper takes a `fullWidth` flag; see
 [wide-screen.md](./wide-screen.md)).
 
 The bar being gone inside a recipe is the honest signal that you have left the
@@ -156,7 +169,7 @@ The one exception is the **delete** case (`recipe_view.dart`), which keeps
 the bottom of the root stack, so `go('/')` lands on the Library branch exactly
 there. A `pushReplacement('/')` would stack a *second* shell page over the first.
 
-## 4. Modals open on the root navigator
+## 4. Modals open on the shell navigator
 
 Under the shell, `Navigator.of(context)` inside a tab screen is the **branch**
 Navigator, and Forui's `showFSheet`/`showFDialog` both default to
@@ -166,8 +179,20 @@ tappable beside it**.
 
 So every modal goes through one wrapper each —
 **`showAnsiSheet` / `showAnsiDialog`** (`app/lib/shared/ansi_modals.dart`) —
-which set the root navigator, and for sheets bake in the geometry all of them
-asked for anyway (bottom-up, no height cap, safe-area padded).
+which pin it to the app's **shell** navigator (`ansiShellNavigatorKey`), the one
+that holds the tab shell and every pushed page, and for sheets bake in the
+geometry all of them asked for anyway (bottom-up, no height cap, safe-area
+padded). `showAnsiSheet` also decides the modal's *form*: a bottom sheet on a
+phone, a centred dialog from medium up ([`wide-screen.md`](./wide-screen.md)
+§6), with the same builder and the same return value either way.
+
+**The shell navigator, not the root above it.** A modal on the root would cover
+the sidebar too, but it would also sit above the pushed pages — and a picker
+that pushes the flesh-out form over its own surface and awaits the row it made
+(§5) needs that form to land *on* the picker. A page and a modal stack in a
+knowable order only when they share a navigator, so they do; the cost is that on
+a wide window the barrier stops at the content pane and the sidebar stays
+clickable beside an open dialog.
 
 `Navigator.of(context).pop(result)` from inside a modal still dismisses the
 modal: it is the nearest route either way. Only the owning Navigator changed.
@@ -175,8 +200,8 @@ modal: it is the nearest route either way. Only the owning Navigator changed.
 
 ### A sheet that closes itself pops once
 
-A modal on the root navigator sits directly above the shell's one page, so a
-second pop is no longer a harmless no-op: it takes the shell with it, and
+A modal on the shell navigator sits directly above the tab shell's one page, so
+a second pop is no longer a harmless no-op: it takes the shell with it, and
 go_router asserts *"popped the last page off the stack"*. The trap is a sheet
 that closes itself when its data disappears **and** also pops explicitly from
 the action that removed it. Rule: an auto-dismiss fires only while the sheet is
@@ -237,16 +262,16 @@ Pushing first would leave the overlay parented to a page that is now underneath
 
 ## 6. The auth gate is untouched by all of it
 
-`/sign-in` and `/connecting` stay top-level siblings of the shell, so they render
-on the root Navigator with no bar. The gate is a top-level `redirect` reading
+`/sign-in` and `/connecting` stay top-level siblings of the outer shell, so they
+render on the root Navigator with no bar and no sidebar. The gate is a top-level `redirect` reading
 `state.matchedLocation`, which is unchanged for a branch route — `/week` still
 matches as `/week` — and the `?from=` round-trip still restores a deep link,
 into the right tab. Keeping the Library at `/` rather than renaming it
 `/library` is deliberate: every existing link, every `?from=` in flight and the
 redirect's own `loc == '/'` case keep working untouched.
 
-A cold deep link to a pushed page lands on the root Navigator with **no shell
-page beneath it**, so `canPop()` is false and the recipe header's
+A cold deep link to a pushed page lands on the shell Navigator with **no tab
+shell page beneath it**, so `canPop()` is false and the recipe header's
 `canPop() ? pop() : go('/')` fallback is doing real work. That is the only
 remaining case where a pushed page has no back gesture, and it is the correct
 one.
@@ -256,10 +281,14 @@ one.
 - `app/test/shared/ansi_tab_shell_test.dart` — the two back rules (asserted
   against the platform channel, so "leaves the app" is observed rather than
   inferred), re-tap-to-root, offstage-but-mounted, state across a switch.
-- `app/test/shared/ansi_modals_test.dart` — each modal form opens on the root
-  navigator while the branch's stays empty, plus a **structural** test that
-  fails the build if anything under `lib/` calls Forui's own
-  `showFSheet`/`showFDialog`.
+- `app/test/shared/ansi_modals_test.dart` — each modal form opens above the
+  branch while the branch's own navigator stays empty, the sheet/dialog split
+  and its geometry, plus a **structural** test that fails the build if anything
+  under `lib/` calls Forui's own `showFSheet`/`showFDialog`.
+- `app/test/shared/ansi_wide_shell_test.dart` — the three chrome forms, the
+  neutral sidebar on a pushed page, the back rules asserted again from inside
+  the outer shell, a page pushed from inside a modal landing on it, and a
+  **structural** test that every pushed page draws its own back control.
 - `app/test/shared/guarded_navigation_test.dart` — the dedupe contract, plus a
   **structural** test that fails on a bare `context.push`/`go`/`pushReplacement`
   in a view, with a named exception list for the post-action landings.

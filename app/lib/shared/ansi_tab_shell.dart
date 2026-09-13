@@ -14,10 +14,18 @@
 /// rule is stated here rather than inherited from whatever `context.go` left on
 /// the stack.
 ///
-/// The whole shell sits in one [AnsiMeasure], so on a wide window the tabs, the
-/// banner and the bar stay one centred column together — a bar stretched over a
-/// desktop monitor while its content is 640 wide is two layouts, not one. This
-/// is the tabs' single wrap: no tab root wraps itself.
+/// While the bar is under the content the whole shell sits in one
+/// [AnsiMeasure], so on a wide window the tabs, the banner and the bar stay one
+/// centred column together — a bar stretched over a desktop monitor while its
+/// content is 640 wide is two layouts, not one. This is the tabs' single wrap:
+/// no tab root wraps itself.
+///
+/// Once the chrome moves **beside** the content the bar is gone and so is that
+/// wrap: the sidebar is drawn by the outer shell, once and outside every
+/// Navigator (`core/router/app_router.dart`), and each branch root measures its
+/// own pane through the router's [AnsiPane]. That is what lets a tab root ask
+/// for the whole pane — the Week's matrix, the Library's shelf — instead of
+/// being capped by a wrap it cannot see.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -53,22 +61,56 @@ class AnsiTabShell extends StatelessWidget {
     onPopInvokedWithResult: (didPop, _) {
       if (!didPop) shell.goBranch(kHomeBranch);
     },
-    child: AnsiMeasure(
-      child: FScaffold(
-        // Each tab screen has its own FScaffold inside the branch, which
-        // applies the page padding already; leaving it on here would double it.
-        childPad: false,
-        footer: AnsiBottomNav(shell: shell),
-        child: Column(
-          children: [
-            // The sync banner belongs to the app, not to a tab, so it lives
-            // here exactly once, above every branch. It draws nothing at all
-            // while sync is healthy — which is almost always.
-            const AnsiSyncBanner(),
-            Expanded(child: shell),
-          ],
-        ),
-      ),
+    child: AnsiShell.of(context).beside
+        ? _PaneShell(shell: shell)
+        : AnsiMeasure(child: _BarShell(shell: shell)),
+  );
+}
+
+/// The shell with its bar under the content: the phone's form, and what a
+/// window up to `lg` keeps.
+class _BarShell extends StatelessWidget {
+  const _BarShell({required this.shell});
+
+  final StatefulNavigationShell shell;
+
+  @override
+  Widget build(BuildContext context) => FScaffold(
+    // Each tab screen has its own FScaffold inside the branch, which
+    // applies the page padding already; leaving it on here would double it.
+    childPad: false,
+    footer: AnsiBottomNav(shell: shell),
+    child: Column(
+      children: [
+        // The sync banner belongs to the app, not to a tab, so it lives
+        // here exactly once, above every branch. It draws nothing at all
+        // while sync is healthy — which is almost always.
+        const AnsiSyncBanner(),
+        Expanded(child: shell),
+      ],
+    ),
+  );
+}
+
+/// The shell as a content pane: no bar, no measure, and the sidebar drawn
+/// around it by the outer shell.
+///
+/// The banner stays the pane's full width rather than sitting in a branch's
+/// measure: it is the app's own band, like the sidebar, and it draws nothing at
+/// all while sync is healthy.
+class _PaneShell extends StatelessWidget {
+  const _PaneShell({required this.shell});
+
+  final StatefulNavigationShell shell;
+
+  @override
+  Widget build(BuildContext context) => FScaffold(
+    childPad: false,
+    child: Column(
+      children: [
+        const AnsiSyncBanner(),
+        Expanded(child: shell),
+      ],
     ),
   );
 }

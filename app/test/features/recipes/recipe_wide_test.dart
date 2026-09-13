@@ -160,9 +160,11 @@ void main() {
     final source = File('lib/core/router/app_router.dart').readAsStringSync();
     final start = source.indexOf("path: '/recipes/:id',");
     expect(start, isNot(-1), reason: 'the recipe route should exist');
+    // Up to the route declared after it, so the slice does not depend on how
+    // deeply the route list happens to be indented.
     final route = source.substring(
       start,
-      source.indexOf('),\n      ),', start),
+      source.indexOf("path: '/recipes/:id/edit'", start),
     );
     expect(
       route,

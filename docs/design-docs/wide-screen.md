@@ -3,7 +3,8 @@
 Ansi runs on a phone, on an iPad in landscape and in a browser window that can
 be any width at all. This is how the app answers that width: with three named
 bands, one file that reads the viewport, and one widget that every page sits
-inside.
+inside — and, from `lg` up, a shell whose navigation stands beside the content
+rather than under it.
 
 ---
 
@@ -13,7 +14,7 @@ inside.
 |---|---|---|---|
 | **compact** | `< 640` | a phone, either orientation | the layout every screen is written for, edge to edge |
 | **medium** | `640 – 1023` | a portrait tablet, a half-screen browser | the same layout, centred in a 640 column |
-| **expanded** | `≥ 1024` | a landscape tablet, a desktop browser | the same layout, centred in a 640 column |
+| **expanded** | `≥ 1024` | a landscape tablet, a desktop browser | the same layout, centred in the pane left beside the sidebar |
 
 The numbers are **Forui's own** `FBreakpoints` — `sm` 640, `lg` 1024 — read off
 the theme rather than typed into the app. They are Tailwind's, which is why they
@@ -26,10 +27,10 @@ re-verify against the board. A screen that wants to *use* the width does so by
 deliberately not sitting in the measure, and that is a design decision with a
 board frame behind it, not a side effect of a wide window.
 
-`medium` and `expanded` do the same thing to a page today. They are still two
-bands rather than one, because they differ in what fits *beside* a page — a
-persistent sidebar needs `expanded`, and the split is where that decision will
-be read.
+`medium` and `expanded` do the same thing to a page; they differ in what fits
+*beside* it. A persistent sidebar needs `expanded`, and that is the split's
+whole job — the chrome's own form is a second question, answered by `AnsiShell`
+(§4), because it does not divide at the same widths.
 
 ## 2. Where the reader lives
 
@@ -40,6 +41,15 @@ viewport.** It holds three things:
   the window's width against the theme's breakpoints.
 - `AnsiMeasure` — a widget that centres its child in a column no wider than the
   measure, and is a **no-op at compact**, returning the child untouched.
+- `AnsiShell` — the **form the navigation takes**, and `AnsiShell.of(context)`:
+  `bar` below `lg`, `rail` from `lg` to just under `xl`, `sidebar` from `xl` up.
+  A second question rather than a view on `AnsiLayout`, because the answers do
+  not line up: `bar` spans compact *and* medium (a 900 px window is too wide for
+  the phone layout to stretch and too narrow to spend 188 px on chrome), while
+  `rail` and `sidebar` split `expanded` in two. `form.beside` is the question
+  most callers actually ask — is there a pane, or is the window the pane?
+- `AnsiPane` — the widget the router wraps **every** route in, and the only
+  place `AnsiMeasure` is applied from. Section 3.
 - `ansiViewportHeight(context, factor)` — a share of the window's height, for a
   sheet pinned to a fraction of the screen. It lives here for one reason: it is
   a viewport read.
@@ -64,26 +74,88 @@ Twice. A screen never wraps itself.
 
 - **The tab shell** (`app/lib/shared/ansi_tab_shell.dart`) wraps everything it
   owns — the sync banner, the four branches and the bottom bar — in one
-  `AnsiMeasure`. The bar is inside the measure on purpose: a bar stretched
-  across a monitor above a 640-wide page is two layouts, not one.
-- **The router** (`app/lib/core/router/app_router.dart`) wraps every page
-  pushed over the shell, in its `_page` helper. Every non-branch route builds
-  through it, so a new screen is in the measure the day it is added and cannot
-  forget to be.
+  `AnsiMeasure`, **while the bar is under the content**. The bar is inside the
+  measure on purpose: a bar stretched across a monitor above a 640-wide page is
+  two layouts, not one.
+- **The router** (`app/lib/core/router/app_router.dart`) wraps every route in an
+  `AnsiPane`, through its `_page` and `_branch` helpers. Every screen in the app
+  builds through one of the two, so a new screen is in its pane the day it is
+  added and cannot forget to be.
 
-**One page opts out, and says so in the router.** `_page` takes a `usesWidth`
-flag, and the only route that passes it is `/books/:id`: at `expanded` a book is
-a ~200 px section index beside its recipes, which does not fit 640. Below that
-band it is centred like every other page. The flag lives on the helper rather
-than in the screen, so the measure still has exactly two appliers and a screen
-still never wraps itself — opting out is a route's stated decision, readable in
-one place, not a widget quietly escaping its parent.
+`_branch` is the four tab roots, and it passes `insideShellMeasure: true`: while
+the bar is under the content the shell's single wrap already covers them, and a
+second one there would be the screen measuring itself. Once the chrome is beside
+the content that wrap is gone — there is no bar to keep company with — and each
+branch root measures its own pane like any other page.
+
+### The full-pane opt-out
+
+A view whose honest form uses the width says so **on its route**:
+
+```dart
+_branch(path: '/week', name: 'week', fullWidth: true,
+        builder: (state) => const WeekView()),
+```
+
+`fullWidth` takes the whole content pane instead of the measure — and only once
+the chrome is beside the content. At `AnsiShell.bar` there is no pane to fill:
+the window *is* the pane, so a full-width page still sits in the measure, which
+is what keeps a 900 px browser window one column rather than a stretched phone.
+
+It is a fact about the route rather than something the screen does to itself,
+for the same reason the measure is: a screen that decides its own width is a
+second source of truth about what a page is, and the wide answer then has to be
+chased screen by screen.
+
+**All four tab roots opt out**, through `_branch`: the Library's shelf, the
+Week's matrix, Cook's two-up and the Shop's list with its provenance pane are
+each a pane's worth of design, and each caps itself where its own drawing says —
+Cook at 1000 and centred, the Shop pair at the measure plus its 360 pane, the
+shelf a grid and the matrix the whole width.
+
+**A pushed page opts out the same way**, through `_page`'s `fullWidth`:
+`/books/:id`, where a book is a ~200 px section index beside its recipes, which
+does not fit 640, and `/ingredients` and `/ingredients/:id`, the manager's two
+panes. Below the band each is centred like every other page. One flag over both
+helpers, so the measure still has exactly two appliers and a screen still never
+wraps itself — opting out is a route's stated decision, readable in one place,
+not a widget quietly escaping its parent.
 
 The **toast** is capped at the measure and anchored bottom-centre on the theme's
 toaster style (`app/lib/core/theme/ansi_theme.dart`), so no call site restates
 either. On a phone the cap is never reached.
 
-## 4. What a screen may do with width
+## 4. The shell beside the content
+
+From `lg` up the four destinations move off the bottom and stand beside the
+page: `app/lib/shared/ansi_side_nav.dart` draws them, and
+`app/lib/shared/ansi_wide_shell.dart` is the builder of the router's **outer
+`ShellRoute`**, which wraps the tab shell *and* every pushed page.
+
+| Form | Width | What it draws |
+|---|---|---|
+| `bar` | `< 1024` | nothing — the tab shell keeps its bottom bar, and the outer shell returns the navigator untouched |
+| `rail` | `1024 – 1279` | a 64 px icon rail, labels as tooltips on hover or focus |
+| `sidebar` | `≥ 1280` | the 188 px sidebar: the wordmark, the four destinations with their labels, Account in the footer |
+
+Three things follow from the sidebar being drawn **outside** the navigator that
+holds the pages, and they are the reason it is:
+
+- **A push keeps the chrome.** The sidebar takes no part in a route transition,
+  so it cannot slide in over itself, fade, or appear twice while a page animates.
+- **It is one instance.** The lit destination is read from the location, so the
+  lit form and the neutral form are one widget with a different index rather
+  than two sidebars that have to agree.
+- **Nothing lit is the signal that you have left the tab loop.** On a phone the
+  bar being gone says it; a sidebar cannot go away, so a pushed page goes quiet
+  behind and draws its own back control. Every pushed page already carries one
+  in its header, and a structural test
+  (`app/test/shared/ansi_wide_shell_test.dart`) keeps it that way.
+
+**Account is the sidebar's footer item, and on wide it is the only household
+door** — the Library's header does not draw a second one. One door, not two.
+
+## 5. What a screen may do with width
 
 - **May not:** read the window's size, build a `LayoutBuilder`, or cap itself.
   Fixed logical-px spacing remains the idiom; sizes are not derived from screen
@@ -121,10 +193,41 @@ frame behind it is in that screen's own file, under its `Wide · ≥ 1024` rule.
 | **Ingredients manager** (`features/ingredients`) | **two panes**: the vocabulary (its search field and stub band pinned, the aisle sections scrolling under them, the add door at the foot) and the fact sheet, capped at 720, opened **in place** rather than pushed. `/ingredients/:id` lands on the same split with that row lit; `?edit=1` stays the form in the measure at every width. |
 
 The two pages of the manager and the book page opt out of the router's
-measure through `_page`'s `usesWidth` flag — unwrapped at `expanded`, in the
-measure below it — never by wrapping or unwrapping themselves.
+measure through `_page`'s `fullWidth` flag — handed the whole pane once the
+chrome is beside the content, in the measure below it — never by wrapping or
+unwrapping themselves. The four tab roots say the same thing through `_branch`.
 
-## 5. The board's wide frames
+## 6. A sheet on a phone is a dialog on a desk
+
+`showAnsiSheet` (`app/lib/shared/ansi_modals.dart`) presents the **same builder**
+two ways: a bottom sheet at `AnsiLayout.compact`, and from `medium` up a centred
+dialog. There is no bottom edge worth rising from on a desk, and nothing to gain
+by spanning the window.
+
+- A **short** sheet is sized to its content, at most **560** wide. Narrower than
+  the measure on purpose: a dialog as wide as the page it covers reads as a
+  second page.
+- A **tall** one — a sheet that asks for a share of the screen's height
+  (`heightFactor`, which is every `PickerShell`) — takes the dialog's own
+  **640**, so a long vocabulary scrolls inside it instead of pushing the search
+  field off the top. A short window shortens it rather than overflowing.
+- **Esc dismisses**, and a dismissal is not an answer: every caller already
+  reads a null as the no.
+- The sheet shell's bottom pad (`max(keyboard, home indicator) + 12`) is not
+  applied in the dialog form, and neither is its lip: a centred dialog has no
+  strip beneath it and a ring on all four sides. It lifts itself off the
+  keyboard.
+
+**All 21 call sites are unchanged**, and so is every return value. The form is
+the door's business, not theirs.
+
+One consequence worth stating: the dialog opens on the app's shell navigator —
+the one navigator holding the tab shell and every pushed page — so its barrier
+covers the pages but **not** the sidebar beside them. That is the price of
+keeping a page pushed from inside a sheet landing *on* the sheet (the add-new
+chain), which needs the two on one navigator. See `navigation.md` §4.
+
+## 7. The board's wide frames
 
 The design board draws wide answers in the screen's **own** file, never in a
 second copy: a `.board-wide` row under a `Wide · ≥ 1024` rule, in the `desk`
@@ -135,9 +238,10 @@ one `wide:` clause on its status line instead.
 The rules, and the exact status-line clauses, are
 [`board/README.md`](../product-specs/board/README.md) rule 6.
 
-## 6. What this does not answer yet
+## 8. What this does not answer yet
 
-The chrome beside the content at `expanded`, sheets that become dialogs, and the
-views that use the width rather than centring in it are the later legs of
+The views that use the width rather than centring in it — the Week's matrix, the
+Library's shelf, the recipe page's columns, the Ingredients master-detail — are
+the later legs of
 [`exec-plans/active/0047-wide-screens.md`](../exec-plans/active/0047-wide-screens.md),
 which also carries the owner's decisions about what each of those looks like.

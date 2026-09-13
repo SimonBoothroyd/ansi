@@ -267,6 +267,21 @@ void main() {
     expect(find.byType(FHeaderAction), findsOneWidget);
   });
 
+  testWidgets('on wide the header draws no household door — the sidebar is '
+      'the one door', (tester) async {
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(_host(_repo(_library)));
+    await tester.pump();
+
+    // Account is a footer item in the sidebar there, and two doors to the same
+    // room is the accretion this pass exists to avoid.
+    expect(find.byIcon(FLucideIcons.users), findsNothing);
+    expect(find.byType(FHeaderAction), findsNothing);
+    expect(find.byType(AnsiSearchField), findsOneWidget);
+  });
+
   testWidgets('the household control opens /account', (tester) async {
     late GoRouter router;
     await tester.pumpWidget(_routedHost(_repo(_library), (r) => router = r));

@@ -294,10 +294,7 @@ FHeader _header(
   // The reading posture leads with the name in the body, the way the recipe
   // page does, so it names none here rather than saying it twice.
   if (title == null) {
-    return FHeader.nested(
-      prefixes: [if (showBack) back],
-      suffixes: suffixes,
-    );
+    return FHeader.nested(prefixes: [if (showBack) back], suffixes: suffixes);
   }
   return FHeader.nested(
     title: Text(

@@ -317,7 +317,9 @@ void main() {
       find.textContaining('nothing came back for “Curry leaves, fresh”'),
       findsOneWidget,
     );
-    expect(find.byType(FDialog), findsNothing);
+    // One surface, not two: at this width the sheet is itself presented as a
+    // dialog, so anything raised over it would show up here.
+    expect(find.byType(FDialog), findsOneWidget);
     await tester.tap(find.byIcon(FLucideIcons.x).last);
     await tester.pumpAndSettle();
     expect((await repo.byId('curry'))!.source, 'usda_fdc:11216');

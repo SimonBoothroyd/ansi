@@ -32,9 +32,11 @@ changes, and the code gets one place that reads the viewport.
 2. **W1 — the phone layout on a URL.** The layout file, every tab root and
    pushed page in the measure, the toast capped, the OAuth branch, a `web`
    job, a host. No screen redesign.
-3. **W2 — the shell.** Sidebar at ≥ 1024, neutral with a back control on a
-   pushed page; sheets become dialogs through `ansi_modals.dart`; hover,
-   focus, tooltips, keyboard reorder.
+3. **W2 — the shell.** Built: the sidebar at ≥ 1280 and the icon rail from
+   1024, neutral on a pushed page, which draws its own back control; sheets
+   become dialogs through `ansi_modals.dart`; tooltips and focus rings. Left:
+   the keyboard reorder, and the first Tab on a cold page landing on the page
+   rather than on the sidebar.
 4. **W3 — the width.** Week matrix, book page, recipe page columns,
    Ingredients master-detail, import review with a source pane.
 
@@ -61,6 +63,25 @@ changes, and the code gets one place that reads the viewport.
   free text). Every day keeps its one `＋ add a meal` at the column foot in
   every state. The phone's per-day macro strip does not survive a 146 px
   column and is redrawn for wide. Owner call.
+- 2026-09-13 — **The outer shell preserves every back rule.** One `ShellRoute`
+  now wraps the tab shell and all eight pushed routes, and the table in
+  `navigation.md` §3 holds row by row: the tab shell's `PopScope` still rides
+  the page that carries it, so a non-Library tab spends its back on coming home
+  and the Library tab leaves the app; a pushed page pops to the tab under it; a
+  cold deep link still reports `canPop() == false`, because go_router's own
+  `canPop` walks into nested shells. On wide the browser's Back does what the
+  page's own control does. Asserted in `app/test/shared/ansi_wide_shell_test.dart`
+  against the real route shape.
+- 2026-09-13 — **Modals open on the shell navigator, not the root above it.**
+  The root would put a sheet above the pushed pages as well, and the add-new
+  chain (a picker pushing the flesh-out form over its own surface) needs the
+  form to land ON the sheet — a page and a modal stack in a knowable order only
+  when they share a navigator. The cost, taken knowingly: a dialog's barrier
+  stops at the content pane, so the sidebar stays clickable beside it. The
+  board's dialog frame says otherwise and the view carries a `differs:` clause.
+- 2026-09-13 — **The sidebar speaks Forui's voice.** Sentence-case sans labels
+  in the rail against the bar's mono uppercase: a bar item is a word under a
+  glyph, a sidebar item is a line of a list. Closes the label-voice question.
 - 2026-09-10 — **A book gets its own page.** The Library on wide is a shelf
   of fixed-height book tiles; a tile opens the book page, whose sections
   are a left index against the recipes at a readable measure. The
@@ -74,8 +95,9 @@ changes, and the code gets one place that reads the viewport.
   or colour (`book.color`), notes, per-book search — is **not** built and no
   migration was added for it; the page earned its place from the width, not
   from a book wanting decoration. The router's `_page` helper gained one
-  flag, `usesWidth`, so a page whose honest wide form is two panes opts out
-  of the measure at `expanded` and stays centred everywhere else.
+  flag, `fullWidth`, so a page whose honest wide form is two panes opts out
+  of the measure once the chrome is beside the content and stays centred
+  everywhere else.
 - 2026-09-13 — **The shelf fills the pane it is given.** The grid takes as
   many columns as fit at a 320 px tile. Until the shell lane hands a branch
   root the whole width, the tab shell still centres the Library at the
@@ -96,6 +118,14 @@ changes, and the code gets one place that reads the viewport.
 - 2026-09-13 — ADR-0002's "PowerSync web is in beta" line is **no longer
   true**; the ADR is immutable, so release.md §6.3 carries the correction
   until the wide-screen design doc exists to hold it.
+- 2026-09-13 — **A tab root and a pushed page share one opt-out.** `AnsiPane`
+  is the only applier of the measure, and both router helpers pass it the same
+  `fullWidth` flag: `_branch` for the four tab roots (the shelf, the matrix,
+  Cook's two-up, the Shop's list beside its provenance pane), `_page` for
+  `/books/:id` and the two `/ingredients` routes. A page that stays one wrap
+  but needs a wider cap passes `measure:` instead — `/recipes/:id`, and only
+  it. One vocabulary for "this view uses the pane", so the shell lane's roots
+  and the view lanes' pages are not two rules that have to be kept in step.
 
 ## Notes / open questions
 
@@ -112,8 +142,6 @@ changes, and the code gets one place that reads the viewport.
   Complete strip amber in one frame and fresh green in another; the phone
   navigation back-table counts (sheets, dialogs) are stale against the code.
 
-- The wide chrome's labels: the phone bar is mono uppercase; Forui's
-  `FSidebar` is sans sentence-case. Decide before the board says built.
 - Two phones drive the Shop at once; a checked row must not move under the
   other shopper. Wide keeps the list one column.
 - Drag-to-move on the Week matrix: week v3 refuses `move`. The matrix must

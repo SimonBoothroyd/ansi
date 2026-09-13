@@ -76,10 +76,14 @@ class LibraryView extends HookConsumerWidget {
       header: FHeader.nested(
         title: AnsiSearchField(hint: 'Search recipes', controller: field),
         suffixes: [
-          FHeaderAction(
-            icon: const Icon(FLucideIcons.users),
-            onPress: () => context.pushOnce(kAccountRoute),
-          ),
+          // One household door, not two: once the chrome is beside the content
+          // Account is the sidebar's footer item, and that is the only door
+          // there is.
+          if (!AnsiShell.of(context).beside)
+            FHeaderAction(
+              icon: const Icon(FLucideIcons.users),
+              onPress: () => context.pushOnce(kAccountRoute),
+            ),
         ],
       ),
       child: Column(

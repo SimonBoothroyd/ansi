@@ -1410,8 +1410,10 @@ void main() {
       // close enough" together — a person cannot act differently on the two,
       // and the server trigger re-runs the same probe on upload either way.
       expect(find.textContaining('nothing came back for'), findsOneWidget);
-      // No dialog, and the row is untouched.
-      expect(find.byType(FDialog), findsNothing);
+      // Nothing is RAISED over the short-list, and the row is untouched. One
+      // surface: at this width the sheet is itself presented as a dialog, so a
+      // refusal on top of it would make two.
+      expect(find.byType(FDialog), findsOneWidget);
       expect((await repo.byId('curry'))!.macros, isNull);
     });
   });

@@ -10,7 +10,11 @@
 /// indicator, whichever is up. A sheet that adds only `viewInsets.bottom`
 /// looks right with a keyboard open and puts its confirm button under the
 /// home-indicator gesture strip without one, where a tap either does nothing
-/// or leaves the app.
+/// or leaves the app. In the **dialog form** ([AnsiModalSurface]) it answers
+/// neither — a centred dialog has no strip beneath it and the dialog route
+/// lifts itself off the keyboard — so the pad is a plain 20, the lip and its
+/// hairline go (a dialog has a ring on all four sides), and a sheet pinned to a
+/// share of the screen fills the dialog's own height instead.
 ///
 /// **Header variants are options, not copies.** Centred serif 20 over an X is
 /// the default; the meal sheets draw a left-aligned serif 22, the timer and
@@ -101,16 +105,21 @@ class AnsiSheetShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // In a dialog the bottom pad has nothing to answer: a centred dialog has no
+    // home-indicator strip under it, and the dialog route lifts the whole thing
+    // clear of the keyboard itself.
+    final dialog = AnsiModalSurface.isDialog(context);
     final padding = EdgeInsets.only(
       left: 20,
       right: 20,
       top: topPadding,
-      bottom:
-          math.max(
-            MediaQuery.viewInsetsOf(context).bottom,
-            MediaQuery.paddingOf(context).bottom,
-          ) +
-          12,
+      bottom: dialog
+          ? 20
+          : math.max(
+                  MediaQuery.viewInsetsOf(context).bottom,
+                  MediaQuery.paddingOf(context).bottom,
+                ) +
+                12,
     );
     final column = Column(
       mainAxisSize: heightFactor == null ? MainAxisSize.min : MainAxisSize.max,
@@ -119,13 +128,25 @@ class AnsiSheetShell extends StatelessWidget {
     );
 
     return Container(
-      height: heightFactor == null
-          ? null
-          : ansiViewportHeight(context, heightFactor!),
-      decoration: const BoxDecoration(
+      // A sheet pinned to a share of the screen becomes a dialog pinned to the
+      // dialog's own height: `infinity` against the route's maximum, so a short
+      // window shortens it rather than overflowing it.
+      height: switch ((heightFactor, dialog)) {
+        (null, _) => null,
+        (_, true) => double.infinity,
+        (final factor?, false) => ansiViewportHeight(context, factor),
+      },
+      decoration: BoxDecoration(
         color: AnsiColors.paper,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: AnsiColors.line)),
+        // The radius-20 lip and the hairline above it are the sheet's edge
+        // against the bottom of the screen. A dialog has a ring of its own, on
+        // all four sides.
+        borderRadius: dialog
+            ? null
+            : const BorderRadius.vertical(top: Radius.circular(20)),
+        border: dialog
+            ? null
+            : const Border(top: BorderSide(color: AnsiColors.line)),
       ),
       child: scrollable
           ? SingleChildScrollView(padding: padding, child: column)

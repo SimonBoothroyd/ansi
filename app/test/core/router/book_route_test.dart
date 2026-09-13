@@ -2,9 +2,10 @@
 ///
 /// Two halves, because neither alone is the claim. The structural half reads
 /// the router's own source: the route is declared through `_page` (so it
-/// is pushed over the shell and sits in the measure), it takes its id from the
-/// path, and it is the one page that opts out of the measure at `expanded`. The
-/// widget half resolves that pattern for real and lands on the book it names.
+/// is pushed over the tab shell and sits in the measure), it takes its id from
+/// the path, and it takes the whole pane once the chrome is beside the content.
+/// The widget half resolves that pattern for real and lands on the book it
+/// names.
 library;
 
 import 'dart:io';
@@ -41,7 +42,7 @@ void main() {
     expect(route, contains("state.pathParameters['id']"));
     expect(
       route,
-      contains('usesWidth: true'),
+      contains('fullWidth: true'),
       reason: 'two panes do not fit the measure at expanded',
     );
   });
