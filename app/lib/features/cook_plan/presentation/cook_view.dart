@@ -20,6 +20,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/week_shape.dart';
 import '../../../shared/ansi_callout.dart';
 import '../../../shared/ansi_error_state.dart';
+import '../../../shared/ansi_layout.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../account/data/household_providers.dart';
 import '../../planning/presentation/week_format.dart';
@@ -77,28 +78,69 @@ class CookView extends ConsumerWidget {
           stackTrace: st,
           onRetry: () => ref.invalidate(currentCookPlanProvider),
         ),
-        data: (data) => ListView(
-          padding: const EdgeInsets.only(top: 6, bottom: 24),
-          children: [
-            const _PlanCaption(),
-            if (data.isEmpty) const _NothingToCookLine(),
-            for (final recipe in data.recipes) ...[
-              // Two denominations, two cards (D3): a recipe that is both
-              // planned and demanded as a component shows its portions
-              // and its batches side by side, never summed.
-              if (recipe.mealSessions.isNotEmpty) _RecipeCard(recipe: recipe),
-              if (recipe.componentSessions.isNotEmpty)
-                _ComponentCard(recipe: recipe),
-            ],
-            // Components the plan could not derive: a named gap, never
-            // a ×1 (D3).
-            for (final gap in data.gaps) _GapCard(gap: gap),
-          ],
-        ),
+        data: (data) => _plan(context, data),
       ),
     );
   }
+
+  /// The cards, in one column on a phone and two abreast from
+  /// [AnsiLayout.expanded] up.
+  ///
+  /// A card is a whole session and never splits across a column, so the width
+  /// buys ROWS of cards rather than a re-drawn card — and the pair caps at
+  /// [kCookTwoUpWidth], because a session card read at half a desk is already
+  /// at its measure.
+  Widget _plan(BuildContext context, CookPlan data) {
+    final cards = <Widget>[
+      for (final recipe in data.recipes) ...[
+        // Two denominations, two cards (D3): a recipe that is both
+        // planned and demanded as a component shows its portions
+        // and its batches side by side, never summed.
+        if (recipe.mealSessions.isNotEmpty) _RecipeCard(recipe: recipe),
+        if (recipe.componentSessions.isNotEmpty) _ComponentCard(recipe: recipe),
+      ],
+      // Components the plan could not derive: a named gap, never a ×1 (D3).
+      for (final gap in data.gaps) _GapCard(gap: gap),
+    ];
+    final wide = AnsiLayout.of(context) == AnsiLayout.expanded;
+    final body = ListView(
+      padding: const EdgeInsets.only(top: 6, bottom: 24),
+      children: [
+        const _PlanCaption(),
+        if (data.isEmpty) const _NothingToCookLine(),
+        if (wide) ..._twoUp(cards) else ...cards,
+      ],
+    );
+    if (!wide) return body;
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: kCookTwoUpWidth),
+        child: body,
+      ),
+    );
+  }
+
+  /// The cards paired into rows, each card keeping its own anatomy and its own
+  /// margins. An odd count ends in a ragged row, which is what an odd week is.
+  List<Widget> _twoUp(List<Widget> cards) => [
+    for (var i = 0; i < cards.length; i += 2)
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: cards[i]),
+          Expanded(
+            child: i + 1 < cards.length
+                ? cards[i + 1]
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+  ];
 }
+
+/// How wide the two-up grid is ever drawn.
+const kCookTwoUpWidth = 1000.0;
 
 class _PlanCaption extends StatelessWidget {
   const _PlanCaption();
