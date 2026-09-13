@@ -696,18 +696,19 @@ class _HeadingRow extends ConsumerWidget {
           ),
         ),
       ),
-      Flexible(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => context.pushOnce(bookRoute(book.id)),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: nameMax),
-            child: Text(
-              book.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: ansiSerif(size: 18, weight: FontWeight.w500),
-            ),
+      // Capped rather than [Flexible]: a flexible name would divide the row's
+      // free space with the leader and leave the counts short of the column
+      // they are ruled to.
+      GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => context.pushOnce(bookRoute(book.id)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: nameMax),
+          child: Text(
+            book.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: ansiSerif(size: 18, weight: FontWeight.w500),
           ),
         ),
       ),

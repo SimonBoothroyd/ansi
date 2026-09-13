@@ -207,6 +207,20 @@ void main() {
     expect(find.text('Weeknight'), findsNothing);
   });
 
+  testWidgets('a book’s counts and a recipe’s stats end on one edge — it is a '
+      'column, not a row of loose numbers', (tester) async {
+    _wide(tester);
+    await tester.pumpWidget(_host(_library));
+    await tester.pumpAndSettle();
+
+    // The leader is the row's only flexible cell. Give the name a flex of its
+    // own and it halves the free space with the leader, leaving every count
+    // short of the column it is ruled to — which is the whole ledger.
+    final counts = tester.getRect(find.text('5 recipes · 2 sections'));
+    final stats = tester.getRect(find.text('serves 4'));
+    expect(counts.right, stats.right);
+  });
+
   testWidgets('the remainder row counts what the lines did not show, and the '
       'sections still holding it', (tester) async {
     _wide(tester);
