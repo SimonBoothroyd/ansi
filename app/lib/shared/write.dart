@@ -21,6 +21,7 @@ import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../core/observability/crash_sink.dart';
+import '../core/router/app_router.dart';
 import 'ansi_toast.dart';
 
 /// Runs one user-initiated write and reports its failure honestly.
@@ -136,12 +137,18 @@ Future<bool> guardedWriteOk(
 /// sheet's keyboard shrinks it, so the card that opened the sheet scrolls out
 /// and unmounts while the sheet is still up. Riverpod 3 throws when a
 /// `WidgetRef` outlives its widget, and a `context.mounted` bail avoids the
-/// throw only by dropping the write the user just confirmed. The overlay sits
-/// below the app's one `FTheme` and `FToaster` and inside the root navigator,
-/// so every `showAnsi*` door and [showAnsiFailureToast] work from it. Held by
+/// throw only by dropping the write the user just confirmed. The overlay is
+/// the one every modal opens on — the app's shell navigator's while the app
+/// is mounted (`shared/ansi_modals.dart`), the root's before it — so every
+/// `showAnsi*` door and [showAnsiFailureToast] work from it, and
+/// `Navigator.of(host.context).pop()` pops the sheet that is on top of it
+/// rather than a page under it. Held by
 /// `test/structure/no_ref_after_await_test.dart`.
-HostContext hostContextOf(BuildContext context) =>
-    HostContext(Navigator.of(context, rootNavigator: true).overlay!.context);
+HostContext hostContextOf(BuildContext context) => HostContext(
+  (ansiShellNavigatorKey.currentState?.overlay ??
+          Navigator.of(context, rootNavigator: true).overlay!)
+      .context,
+);
 
 /// A context that is safe across async gaps — see [hostContextOf].
 ///
