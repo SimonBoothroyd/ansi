@@ -85,7 +85,19 @@ either. On a phone the cap is never reached.
   content, a control that becomes a hover affordance. That is a design decision,
   and it arrives with a board frame.
 - **May:** opt out of the measure, for a view whose honest form uses the width.
-  That is the same design decision, made deliberately.
+  That is the same design decision, made deliberately. Such a page is capped
+  wider rather than stretched: it passes a `measure:` through the router's
+  `_page` helper, and the number is the layout file's (`ansiWideMeasureWidth`),
+  never the router's or the screen's.
+
+**The screens that use the width**, one line each:
+
+- **The recipe page** — at `expanded` it has no tabs: Ingredients and Method are
+  two columns read together under one hero, which carries the scaler and the
+  `⋯`; the per-serving panel closes the ingredients column at that column's
+  width, with `Used in · N` under it while the count is non-zero. It is capped
+  at `ansiWideMeasureWidth` — a measure and a half plus the page's own gutters,
+  about 1000. Below `expanded` it is the phone's page, centred at 640.
 
 ## 5. The board's wide frames
 
