@@ -51,6 +51,17 @@ export const MAX_REDIRECTS = 3;
 export const MAX_BODY_BYTES = 2_000_000;
 /** Chars of page text that may reach the prompt. */
 export const MAX_TEXT_CHARS = 120_000;
+/**
+ * Chars of page text that may reach the APP, on {@link RawBlob.page_text} and
+ * from there the payload's `source_text` (0047).
+ *
+ * Far under {@link MAX_TEXT_CHARS}: the prompt's copy is billed once and read
+ * by a model, while this one crosses the wire on every import and is read by a
+ * person in a 380 px column. 20k characters is a long recipe page's visible
+ * text with room to spare, and it bounds the SSE `result` frame — which is one
+ * line of JSON — to something a phone can hold.
+ */
+export const SOURCE_TEXT_MAX_CHARS = 20_000;
 
 /**
  * Scans an HTML document for every schema.org/Recipe JSON-LD block and returns
@@ -106,8 +117,20 @@ function collectRecipes(node: unknown, out: Record<string, unknown>[]): void {
  */
 export function buildRawBlob(html: string, url: string | null): RawBlob {
   const recipes = extractRecipeObjects(html);
+  // The page as a PERSON reads it (0047), on both branches and bounded
+  // separately: a JSON-LD page is still a page, and the review's source column
+  // has to be able to show it. It is never an input to sanitize — `text` and
+  // `jsonld` are, and neither moves here.
+  const visible = htmlToText(html);
+  const pageText = visible.slice(0, SOURCE_TEXT_MAX_CHARS);
   if (recipes.length > 0) {
-    return { source: "jsonld", url, jsonld: recipes[0], text: null };
+    return {
+      source: "jsonld",
+      url,
+      jsonld: recipes[0],
+      text: null,
+      page_text: pageText,
+    };
   }
   // Bounded before it leaves this module: `text` goes straight into the ①
   // prompt, and a 5 MB page of comments would be billed in full.
@@ -115,7 +138,8 @@ export function buildRawBlob(html: string, url: string | null): RawBlob {
     source: "page_text",
     url,
     jsonld: null,
-    text: htmlToText(html).slice(0, MAX_TEXT_CHARS),
+    text: visible.slice(0, MAX_TEXT_CHARS),
+    page_text: pageText,
   };
 }
 
