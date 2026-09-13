@@ -2,23 +2,23 @@
 <html>
 <head>
   <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
+    The base path the app is served from. `flutter build web --base-href` fills
+    this in: "/" for a user site or a local `python3 -m http.server`, "/ansi/"
+    for the GitHub Pages project site (.github/workflows/release.yml). It must
+    start and end with a slash.
 
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
+    The router stays on HASH urls (.../#/week) because Pages serves static
+    files and cannot rewrite a deep link back to index.html — a path url would
+    404 on every refresh and on every link anyone shares. See docs/release.md.
   -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Plan the week you want to eat. Ansi derives what to cook in batches and buys each thing once.">
+  <!-- The paper the app is painted on, so the browser's own chrome and the
+       first frame are not a flash of white (AnsiColors.paper / .herb). -->
+  <meta name="theme-color" content="#2C6A3A">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -31,16 +31,13 @@
 
   <title>Ansi</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* The paper ground, before Flutter has painted anything. */
+    body { background-color: #F4F6F1; margin: 0; }
+  </style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
