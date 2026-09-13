@@ -154,7 +154,10 @@ holds the pages, and they are the reason it is:
   (`app/test/shared/ansi_wide_shell_test.dart`) keeps it that way.
 
 **Account is the sidebar's footer item, and on wide it is the only household
-door** — the Library's header does not draw a second one. One door, not two.
+door** — the Library's header does not draw a second one. One door, not two. It
+**pushes** the page, the way the phone's header door does, so the page's own
+chevron has something to pop; the four destinations above it `go`
+([`navigation.md`](./navigation.md) §3).
 
 ## 5. What a screen may do with width
 

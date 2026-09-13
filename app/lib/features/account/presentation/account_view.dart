@@ -14,12 +14,12 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/sync/session.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_back.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/sync_health_row.dart';
 import '../../planning/presentation/household_section.dart';
@@ -37,7 +37,10 @@ class AccountView extends ConsumerWidget {
       // not above us here, so the scaffold keeps its own inset handling.
       header: FHeader.nested(
         title: Text('Account', style: ansiHeaderTitle()),
-        prefixes: [FHeaderAction.back(onPress: () => context.pop())],
+        // Both doors to this page push it — the Library header's on a phone,
+        // the sidebar's footer item on wide — so the usual arrival pops. A
+        // pasted `/#/account` has nothing under it, and lands on the Library.
+        prefixes: [FHeaderAction.back(onPress: () => ansiBack(context))],
       ),
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),

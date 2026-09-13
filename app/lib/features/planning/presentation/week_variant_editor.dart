@@ -23,12 +23,12 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/ansi_back.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
@@ -58,6 +58,11 @@ class WeekVariantEditorView extends ConsumerWidget {
   /// carries.
   final String weekKey;
 
+  /// Puts the form down: onto the page it edits, or onto that page's own
+  /// route when a pasted link left nothing under this one.
+  void _back(BuildContext context) =>
+      ansiBack(context, home: '/recipes/$recipeId?week=$weekKey');
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final draft = weekVariantDraftProvider(recipeId, weekKey);
@@ -68,7 +73,9 @@ class WeekVariantEditorView extends ConsumerWidget {
       childPad: false,
       header: FHeader.nested(
         title: Text('Edit for this week', style: ansiHeaderTitle()),
-        prefixes: [FHeaderAction.back(onPress: () => context.pop())],
+        // This form is a page over the recipe as that week plans it, so
+        // that is where it belongs when nothing is under it.
+        prefixes: [FHeaderAction.back(onPress: () => _back(context))],
         suffixes: [
           FButton(
             size: FButtonSizeVariant.sm,
@@ -81,7 +88,9 @@ class WeekVariantEditorView extends ConsumerWidget {
                       notifier.save,
                     );
                     if (saved == null || !context.mounted) return;
-                    context.pop();
+                    // The same helper the chevron uses: a Save with nothing to
+                    // pop must not write the diff and then strand the form.
+                    _back(context);
                   },
             child: const Text('Save'),
           ),

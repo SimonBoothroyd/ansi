@@ -10,13 +10,17 @@ else is a page pushed over them.
 From `lg` up an outer `ShellRoute` wraps the tab shell *and* every pushed page,
 and its builder draws the four destinations as a sidebar (a 64 px icon rail with
 tooltips below `xl`), with Account as its footer door — the only household door
-there, so the Library's header does not draw a second one. It is drawn outside
-the navigator that holds the pages, so a push does not animate it, duplicate it
-or lose it. On a pushed page it goes **neutral**: nothing lit, because nothing
-in the loop is where you are, and the page's own header chevron is the way back.
-That is the same sentence the phone says by taking the bar away, in the one form
-a sidebar can say it. Widths, forms and the full-pane opt-out:
-[`wide-screen.md`](./wide-screen.md).
+there, so the Library's header does not draw a second one — and it **pushes**,
+like the Library header's own does, because Account is a page rather than a
+fifth destination: it lands over where you were, and its chevron then has
+something to pop (§3). The four destinations still `go`.
+
+The sidebar is drawn outside the navigator that holds the pages, so a push does
+not animate it, duplicate it or lose it. On a pushed page it goes **neutral**:
+nothing lit, because nothing in the loop is where you are, and the page's own
+header chevron is the way back. That is the same sentence the phone says by
+taking the bar away, in the one form a sidebar can say it. Widths, forms and the
+full-pane opt-out: [`wide-screen.md`](./wide-screen.md).
 
 ---
 
@@ -93,7 +97,33 @@ branch, and an intercepted pop is spent on `goBranch(0)`.
 | **A page landed on after a delete** | leaves the app — it *is* the Library tab now | n/a |
 | **A modal sheet or dialog** | dismisses it | the sheet's own downward drag |
 | **An open popover menu** | n/a — the menu closes itself the moment an item is chosen | n/a |
-| **A cold deep link straight to a recipe** | leaves the app — there is genuinely nothing behind it | nothing, correctly |
+| **A pushed page with nothing under it** — a cold deep link, a restored `?from=` | leaves the app — there is genuinely nothing behind it | nothing, correctly |
+| ↳ its **own chevron**, in the same state | goes to the page's home branch (below) — a control that does nothing is not an answer | n/a |
+
+### Nothing to pop is a case, not an accident
+
+`context.pop()` on a page with an empty stack throws
+`GoError('There is nothing to pop')`, and inside a pointer handler that throw is
+reported to `FlutterError.onError` and swallowed — so the control *does nothing*,
+in every build, with no bar, no sidebar destination and (on the web) no system
+back gesture standing in for it. Two ordinary arrivals land a pushed page that
+way: a **cold deep link** (a pasted URL, a shared link, a `?from=` restored
+after the sign-in gate) and any **`go`** that reached it, which replaces the
+whole match list instead of stacking a page on it.
+
+So every pushed page's back control goes through one helper —
+**`ansiBack(context, home: …)`** (`app/lib/shared/ansi_back.dart`): pop what is
+under the page, or `go` the page's **home** when nothing is. `home` is the page
+saying what it is a detail of, never a guess about history: `/` for the pages
+reached from the loop, `/ingredients` for a row of the vocabulary, the recipe
+for its editor, and the **referring tab** where the page knows it — a recipe
+opened with `?week=` was opened from the Week, so that is where it goes back to.
+The fallback runs through `goOnce`, so a chevron hit twice navigates once. A
+structural test fails the build on a bare `context.pop()` anywhere under
+`lib/shared` or a feature's `presentation/`.
+
+`Navigator.of(context).pop()` inside a **modal** is a different call and stays:
+a modal always has the page it opened over beneath it (§4).
 
 Leaving takes **two** backs from any tab, and exactly two. Not a full tab
 history: Library→Week→Library→Week is four backs to leave and the user cannot
@@ -137,10 +167,10 @@ which is what the picker that pushed it awaits (below).
 
 `/books/:id` is one book on a page of its own, opened by a tile on the wide
 Library's shelf and by a pasted link. **Back returns to the Library**, through
-the same `canPop() ? pop() : go('/')` the recipe page uses: a cold deep link
-straight at a book has no shell page beneath it, so the fallback is doing real
-work there. It is a sibling of the tab shell for the ordinary reason — it must
-cover the bar — and it is a pushed page that does not sit in the measure once
+the same `ansiBack` every pushed page uses (§3): a cold deep link straight at a
+book has no shell page beneath it, so the fallback is doing real work there. It
+is a sibling of the tab shell for the ordinary reason — it must cover the bar —
+and it is a pushed page that does not sit in the measure once
 the chrome is beside the content, where its sections are an index beside its
 recipes (the router's `_page` helper takes a `fullWidth` flag; see
 [wide-screen.md](./wide-screen.md)).
@@ -271,10 +301,10 @@ into the right tab. Keeping the Library at `/` rather than renaming it
 redirect's own `loc == '/'` case keep working untouched.
 
 A cold deep link to a pushed page lands on the shell Navigator with **no tab
-shell page beneath it**, so `canPop()` is false and the recipe header's
-`canPop() ? pop() : go('/')` fallback is doing real work. That is the only
-remaining case where a pushed page has no back gesture, and it is the correct
-one.
+shell page beneath it**, so `canPop()` is false and `ansiBack`'s `home` fallback
+is doing real work (§3). The **gesture** is genuinely absent there, and that is
+correct — there is nothing behind to drag back to. The **chevron** is not: it
+takes the page home.
 
 ## 7. What holds the rules
 
@@ -285,6 +315,10 @@ one.
   branch while the branch's own navigator stays empty, the sheet/dialog split
   and its geometry, plus a **structural** test that fails the build if anything
   under `lib/` calls Forui's own `showFSheet`/`showFDialog`.
+- `app/test/shared/ansi_back_test.dart` — `ansiBack`'s contract, every pushed
+  route's chevron from **both** arrivals (pushed over the shell, and opened
+  cold), the wide Account door pushing while the four destinations still `go`,
+  and the structural test that fails on a bare `context.pop()` in a view.
 - `app/test/shared/ansi_wide_shell_test.dart` — the three chrome forms, the
   neutral sidebar on a pushed page, the back rules asserted again from inside
   the outer shell, a page pushed from inside a modal landing on it, and a

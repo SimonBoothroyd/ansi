@@ -87,11 +87,18 @@ class AnsiSideNav extends StatelessWidget {
       children: [
         // The one door to the household on wide, and quiet: it is where you go
         // to change something about the app, not a phase of the loop.
+        //
+        // **A push, unlike the four destinations below.** Account is a pushed
+        // PAGE rather than a destination, so it lands on top of where you were
+        // — exactly as the phone's Library-header door pushes it — and its own
+        // chevron then has something to pop. A `go` here replaced the whole
+        // match list with that one page, so the page's back had nothing under
+        // it and did nothing at all (`shared/ansi_back.dart`).
         _Item(
           icon: FLucideIcons.users,
           label: 'Account',
           rail: _rail,
-          onPress: () => context.goOnce(_accountRoute),
+          onPress: () => context.pushOnce(_accountRoute),
         ),
       ],
     ),

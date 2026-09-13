@@ -23,6 +23,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/units.dart';
 import '../../../core/words.dart';
+import '../../../shared/ansi_back.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/format.dart';
@@ -105,7 +106,18 @@ class RecipeEditorView extends ConsumerWidget {
           recipeId == null ? 'New recipe' : 'Edit recipe',
           style: ansiHeaderTitle(),
         ),
-        prefixes: [FHeaderAction.back(onPress: () => context.pop())],
+        // Editing an existing recipe is a page over that recipe, so with
+        // nothing under it — a pasted `/recipes/9/edit` — back belongs on the
+        // recipe. A new recipe has no page of its own yet, so it belongs on
+        // the Library.
+        prefixes: [
+          FHeaderAction.back(
+            onPress: () => ansiBack(
+              context,
+              home: recipeId == null ? '/' : '/recipes/$recipeId',
+            ),
+          ),
+        ],
         suffixes: [
           FButton(
             size: FButtonSizeVariant.sm,
@@ -136,9 +148,17 @@ class RecipeEditorView extends ConsumerWidget {
                     // line is still open under the editor, and landing on the
                     // new recipe's page would abandon it.
                     if (recipeId != null) {
-                      context.pop();
+                      // Through the back helper, not a bare pop: an editor
+                      // opened by a pasted link has nothing under it, and a
+                      // Save that then threw left the recipe written and the
+                      // person still in the form.
+                      ansiBack(context, home: '/recipes/$recipeId');
                     } else if (handsBackTarget) {
-                      context.pop(saved.asSubRecipeTarget);
+                      ansiBack(
+                        context,
+                        home: '/recipes/${saved.id}',
+                        result: saved.asSubRecipeTarget,
+                      );
                     } else {
                       context.pushReplacement('/recipes/${saved.id}');
                     }

@@ -12,8 +12,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_back.dart';
 import '../../../shared/ansi_modals.dart';
-import '../../../shared/guarded_navigation.dart';
 import '../data/photo_intake.dart';
 import '../domain/import_repository.dart';
 import '../domain/import_stage.dart';
@@ -67,15 +67,9 @@ class ImportView extends HookConsumerWidget {
       header: FHeader.nested(
         title: Text(title, style: ansiHeaderTitle()),
         prefixes: [
-          FHeaderAction.back(
-            onPress: () {
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.goOnce('/');
-              }
-            },
-          ),
+          // An import is always started from a door, so back pops it; a
+          // pasted `/import` has nothing under it and lands on the Library.
+          FHeaderAction.back(onPress: () => ansiBack(context)),
         ],
         suffixes: [
           if (reviewCount != null)
