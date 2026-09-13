@@ -206,6 +206,22 @@ changes, and the code gets one place that reads the viewport.
   be a second thing one tick did. Below `expanded` nothing moves — the whole
   row is the tick, and the breakdown opens under it.
 
+- 2026-09-13 — **The recipe editor is the recipe page's two columns, written
+  instead of read.** Same cap, same seam, one header across the top with the
+  title over the lines and the filing over the method, and every one of the four
+  small facts still the shipped control — a header redrawn as bare lines would
+  state a fact and take away the stepper that sets it. Built as one
+  `SliverCrossAxisGroup`, so the lines stay ONE reorderable list and the step
+  cards stay lazy. The width buys exactly one relationship: a focused step lights
+  the lines its chips point at and rings the chip the caret is inside — following
+  **focus**, never the pointer, read off the draft, never stored. Two departures
+  from the frame, both from real type against drawn type: the list's two foot
+  doors **stack** in the 420 column (side by side they want 544), and the ring is
+  the frame's inset herb rule without its hairline, because a text run carries one
+  background paint. **Week mode is one column at the measure** — no header form
+  and no method means no second column — so `_page` gained `measureOf`: the cap
+  when it depends on the route's own query.
+
 ## Notes / open questions
 
 - Week on wide: where the week band (total, average, `n of 7 days`) sits is
