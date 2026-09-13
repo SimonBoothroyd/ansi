@@ -71,6 +71,14 @@ Twice. A screen never wraps itself.
   through it, so a new screen is in the measure the day it is added and cannot
   forget to be.
 
+**One page opts out, and says so in the router.** `_page` takes a `usesWidth`
+flag, and the only route that passes it is `/books/:id`: at `expanded` a book is
+a ~200 px section index beside its recipes, which does not fit 640. Below that
+band it is centred like every other page. The flag lives on the helper rather
+than in the screen, so the measure still has exactly two appliers and a screen
+still never wraps itself — opting out is a route's stated decision, readable in
+one place, not a widget quietly escaping its parent.
+
 The **toast** is capped at the measure and anchored bottom-centre on the theme's
 toaster style (`app/lib/core/theme/ansi_theme.dart`), so no call site restates
 either. On a phone the cap is never reached.
@@ -85,7 +93,15 @@ either. On a phone the cap is never reached.
   content, a control that becomes a hover affordance. That is a design decision,
   and it arrives with a board frame.
 - **May:** opt out of the measure, for a view whose honest form uses the width.
-  That is the same design decision, made deliberately.
+  That is the same design decision, made deliberately — a pushed page does it by
+  passing `usesWidth` to the router's `_page` helper (§3), never by wrapping or
+  unwrapping itself.
+
+Two views take the second option today, both from the Library's own frames: at
+`expanded` the Library body is a grid of fixed-height book tiles rather than a
+column of cards, and the book page a tile opens is two panes. Everything else on
+both screens — the search field, the ranked results column, the `＋ new book`
+door, the vocabulary shelf, every row and menu — is the phone's, unchanged.
 
 ## 5. The board's wide frames
 

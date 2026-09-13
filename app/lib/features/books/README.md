@@ -19,10 +19,31 @@ books/
     book_repository_impl.dart  SqliteBookRepository over local PowerSync
     book_providers.dart        bookRepositoryProvider (keepAlive)
   presentation/
-    library_view.dart      the `/` home screen (book cards → sections → recipes)
+    library_view.dart      the `/` home screen (book cards → sections → recipes,
+                           or a shelf of book tiles on a wide window)
+    book_page_view.dart    the `/books/:id` page — one book, sections as an
+                           index beside the recipes at `expanded`
+    book_rows.dart         what both of those draw: the book `⋯`, a section
+                           block with its `＋` and `⋯`, the recipe row and its
+                           `⋯`, the count and stats lines
     book_view_models.dart  libraryProvider (stream)
     text_prompt.dart       shared name/rename dialog
 ```
+
+**One book, two doors, one set of widgets.** The Library card and the book page
+are different containers around the same objects, so every control lives in
+`book_rows.dart` and neither screen owns a copy: an item added to the book menu
+appears at both doors, and a change to the recipe row changes both. The page is
+pushed (`/books/:id`), so it covers the bar and back returns to the Library.
+
+**What the width changes.** At `AnsiLayout.expanded` the Library body is a grid
+of fixed-height book tiles — the name on its herb band, the count line, the first
+three titles and `+ N more`, or the `＋` where a shelf is bare — and a tile opens
+the page. Tiles list **titles only**: the recipe row is two lines with a `⋯`, and
+three of those do not fit the body a fixed tile leaves. The fold is not read
+there (a tile is the folded book), and everything that is not a book — the `＋ new
+book` door, the Ingredients shelf, the ranked search column — is the phone's own,
+in the phone's order.
 
 ## What the Library's rows say
 
