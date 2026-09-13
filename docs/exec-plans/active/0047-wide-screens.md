@@ -69,6 +69,17 @@ changes, and the code gets one place that reads the viewport.
 
 ## Notes / open questions
 
+- Week on wide: where the week band (total, average, `n of 7 days`) sits;
+  what an empty week draws (a matrix with no slot rows); the phone's snack
+  day says `4 meals` over three drawn rows.
+- Library tiles carry titles, not stats: three two-line rows do not fit a
+  fixed tile and most books have no board-stated macros.
+- Recipe page: a struck (per-week) line's chip in the method column has no
+  stated rendering; the 272 px ingredients column wraps whole-measure amounts.
+- Board debts outside the wide frames: `ingredient-detail.html` paints the
+  Complete strip amber in one frame and fresh green in another; the phone
+  navigation back-table counts (sheets, dialogs) are stale against the code.
+
 - The wide chrome's labels: the phone bar is mono uppercase; Forui's
   `FSidebar` is sans sentence-case. Decide before the board says built.
 - Two phones drive the Shop at once; a checked row must not move under the
