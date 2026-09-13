@@ -19,11 +19,7 @@ const _windowHeight = 600.0;
 const _childKey = Key('measured child');
 
 /// Pumps [child] in a window [width] logical pixels across.
-Future<void> pumpWindow(
-  WidgetTester tester,
-  double width,
-  Widget child,
-) async {
+Future<void> pumpWindow(WidgetTester tester, double width, Widget child) async {
   tester.view
     ..devicePixelRatio = 1
     ..physicalSize = Size(width, _windowHeight);
