@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Import review</h1>
-    <p class="view-status">built · matches code 2026-09-13 · <code>features/import</code> · <code>recipes/presentation/line_card.dart</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/completed/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: same, centred at 640</p>
+    <p class="view-status">built · matches code 2026-09-13 · <code>features/import</code> · <code>recipes/presentation/line_card.dart</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/completed/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: proposed <a href="../../exec-plans/active/0047-wide-screens.md">plan 0047</a></p>
     <p class="view-blurb">One form with two doors, then the whole import on one editable screen: the editor’s own header, a card per line, the method as step cards, and a Save gate that counts the same number the header does.</p>
 </header>
 
@@ -416,6 +416,266 @@
             <p class="conv-note">correcting a line no longer throws the page back to the title: opening a sheet drops focus, and so does dragging the list</p>
         </div></div>
     </div>
+</div>
+
+<h2 class="wide-rule">Wide &middot; &ge; 1024</h2>
+
+<div class="board-wide">
+
+    <div class="frame wide">
+        <p class="frame-name"><b>wide &middot; the review, mid-way</b> <span class="tag-prop">proposed</span> &middot; a pushed page: the sidebar goes neutral and the page draws its own back. Three columns capped at <b>1240</b> — the source at 380, the lines at 480, the panel at 340 — drawn here at the board's 0.78, so the 294 / 370 / 264 below stand for those numbers and the rail keeps its real 188. One line is selected; its span is lit in the page on the left, and its form is held open on the right</p>
+        <div class="desk">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="dscreen wr-short" style="height:800px">
+            <div class="rail neutral">
+                <div class="wm">Ansi<span class="dot">.</span></div>
+                <div class="ri on"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></span>Library</div>
+                <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg></span>Week</div>
+                <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg></span>Cook</div>
+                <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 11-1 9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1 9"/></svg></span>Shop</div>
+                <div class="grow"></div>
+                <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></span>Account</div>
+            </div>
+            <div class="main wpanes">
+                <div class="wtop">
+                    <span class="back">&lsaquo; Library</span>
+                    <div class="ir-top"><h3 class="ttl">Review recipe</h3><span class="ct">3 to review</span></div>
+                </div>
+                <div class="wsplit">
+
+                    <div class="wpane ir-src">
+                        <div class="ir-sh"><span class="l">The page</span><span class="go">open &#8599;</span></div>
+                        <p class="ir-url">bbcgoodfood.com/recipes/weeknight-chicken-curry</p>
+                        <div class="ir-txt">
+                            <div class="h">Weeknight chicken curry</div>
+                            <p>Serves 4 &middot; makes about 1.8 kg</p>
+                            <div class="lab">Ingredients</div>
+                            <span class="ln">6 boneless chicken thighs</span>
+                            <span class="ln">400 g chopped tomatoes, drained</span>
+                            <span class="ln lit">2&ndash;3 cloves garlic</span>
+                            <span class="ln">a good pinch Aleppo chilli flakes (optional)</span>
+                            <span class="ln">1 tbsp rose harissa</span>
+                            <span class="ln">2 red onions, thinly sliced</span>
+                            <span class="ln">1 tsp smoked paprika</span>
+                            <span class="ln">1 lemon, juiced</span>
+                            <div class="lab">Method</div>
+                            <span class="ln">1. Heat the oven to 220&deg;C. Toss the onions and peppers with the oil on a large tray.</span>
+                            <span class="ln">2. Roast for 25&ndash;30 min, turning once, until the edges are properly charred.</span>
+                        </div>
+                        <p class="conv-note" style="margin-top:14px">this column scrolls on its own, so reading the page never moves a line out from under the hand</p>
+                    </div>
+
+                    <div class="wpane ir-lines">
+                        <div class="wscroll ir-scroll">
+                            <p class="conv-note" style="margin-top:0">scrolled &mdash; above these lines sit the never-invent strip and the editor&rsquo;s own header form (title &middot; serves &middot; makes &middot; times &middot; shelf life &middot; filing), unchanged and in the phone&rsquo;s order. <b>a laptop window shows the form or the lines, not both</b>, and drawing the scroll is the honest way to say so</p>
+                            <div class="tsec"><span class="tl">Ingredients</span><span class="tc">8</span><span class="rule"></span></div>
+
+                            <div class="ir-row"><span class="gr">&#8942;&#8942;</span><span class="am">6</span><span class="bd"><span class="id">Chicken thigh, boneless</span></span></div>
+                            <div class="ir-row"><span class="gr">&#8942;&#8942;</span><span class="am">400 g</span><span class="bd"><span class="id">Chopped tomatoes</span><span class="nt">drained</span></span></div>
+                            <div class="ir-row attn sel"><span class="gr">&#8942;&#8942;</span><span class="am">2&ndash;3 cloves</span><span class="bd"><span class="id">garlic cloves</span></span><span class="tag attn-tag"><span>&#9888;</span><span>Match an ingredient</span></span></div>
+                            <div class="ir-row attn"><span class="gr">&#8942;&#8942;</span><span class="am">a good pinch</span><span class="bd"><span class="id">Aleppo chilli flakes</span></span><span class="tag attn-tag"><span>&#9888;</span><span>Match an ingredient</span></span></div>
+                            <div class="ir-row attn"><span class="gr">&#8942;&#8942;</span><span class="am">tbsp</span><span class="bd"><span class="id">Rose harissa</span></span><span class="tag attn-tag"><span>&#9888;</span><span>Set the amount</span></span></div>
+                            <div class="ir-row"><span class="gr">&#8942;&#8942;</span><span class="am">2</span><span class="bd"><span class="id">Red onion</span><span class="nt">thinly sliced</span></span></div>
+                            <div class="ir-row"><span class="gr">&#8942;&#8942;</span><span class="am">1 tsp</span><span class="bd"><span class="id">Smoked paprika</span></span></div>
+                            <div class="ir-row"><span class="gr">&#8942;&#8942;</span><span class="am">1</span><span class="bd"><span class="id">Lemon</span><span class="nt">juiced</span></span></div>
+
+                            <div style="display:flex;gap:8px;margin-top:8px">
+                                <span class="ghostbtn" style="margin-top:0;flex:1;justify-content:center">&#65291; ingredient</span>
+                                <span class="ghostbtn" style="margin-top:0;flex:1;justify-content:center">&#65291; section</span>
+                            </div>
+
+                            <div class="tsec"><span class="tl">Method</span><span class="tc">4</span><span class="rule"></span><span class="ci" style="color:var(--muted);font-size:12px">&ctdot;</span></div>
+                            <div class="mstep" style="margin-left:0;margin-right:0">
+                                <div class="mstep-h"><span class="n">Step 1</span><span class="ic">&#9650;</span><span class="ic">&#9660;</span><span class="ic">&#128465;</span></div>
+                                <div class="mstep-in">Heat the oven to 220&deg;C. Toss the <span class="echip">red onions</span> with the <span class="echip">olive oil</span> on a large tray.</div>
+                            </div>
+                            <div class="mstep" style="margin-left:0;margin-right:0">
+                                <div class="mstep-h"><span class="n">Step 2</span><span class="ic">&#9650;</span><span class="ic">&#9660;</span><span class="ic">&#128465;</span></div>
+                                <div class="mstep-in">Roast for <span class="echip tmr">25&ndash;30 min</span>, turning once, until the edges are properly charred.</div>
+                            </div>
+                        </div>
+                        <div class="ir-foot">
+                            <span class="ct">header count &middot; row flags &middot; Save read one map</span>
+                            <span class="ir-btn off">3 line(s) need you</span>
+                        </div>
+                    </div>
+
+                    <div class="wpane ir-panel">
+                        <div class="ir-ph"><span>The line</span><span class="of">3 of 8</span></div>
+                        <div class="chead"><span class="cn">garlic cloves</span><span class="ci">&#128465;</span></div>
+                        <div class="srcline">from source:&nbsp; 2&ndash;3 cloves garlic</div>
+                        <div class="lflags"><span class="lflag tog">optional</span></div>
+                        <div class="attn-tag"><span>&#9888;</span><span>Match an ingredient</span></div>
+                        <p class="flabel" style="margin:10px 0 6px">Did you mean</p>
+                        <div class="suggests" style="margin-top:0"><span class="sug">Garlic</span><span class="sug">Garlic granules</span></div>
+                        <div class="ghostbtn">&#8981; Something else</div>
+                        <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip off">2&ndash;3 cloves</span></span></div>
+                        <div class="lockhint">Match an ingredient first — then the amount and notes unlock.</div>
+                        <div class="ir-pfoot">the card's own contents, held open beside the list instead of pushing it down. <b style="color:var(--ink)">Nothing here is saved until Save</b>, exactly as on the phone</div>
+                    </div>
+
+                </div>
+            </div>
+            </div>
+        </div>
+        <p class="wide-cap"><b>What the width is spent on, and nothing else.</b> The phone's review asks somebody to hold two things in their head at once: what the page said, and what we made of it. The only place the page survives there is the <code>from source:</code> line under each row. On a desk the page can simply <b>be there</b> — so the left column is the source at a readable measure and the row's duplicate <code>from source:</code> line goes, because the same words are now set larger, in order, five centimetres away. Under 1024 the line stays: it is the only copy there is.</p>
+        <p class="wide-cap"><b>A line is a row, not a card.</b> The card's border was the affordance for expanding it, and expanding is what the panel took over — so the list is rows on bare paper, like the Library's ledger and the Shop's walk. Each keeps the phone's three parts (the mono amount in its own column, the identity, the note) and its <b>grip</b>, since drag was always a collapsed-row gesture and on wide every row is collapsed, which makes the whole list draggable rather than only the shut part of it. A flagged row has no amber box because it has no box at all: the amber is a <b>2 px rule in its margin</b>, Cook's own device, carrying the same <code>&#9888;</code> tag and the same words. The selected row takes the Shop's herb wash — one idiom for "the pane is reading this one", in both views.</p>
+        <p class="wide-cap"><b>The bin, the optional switch, the amount door, the unit chips and the notes field are all in the panel</b>, which is where they are on the phone: on its <i>expanded</i> card, never on the collapsed row. So nothing drawn was dropped and nothing moved between states — the state just stopped being a fold and became a column. The panel's head says which line it holds and where that line sits (<code>3 of 8</code>), the header form stays at the top of the lines column where the phone has it, and the method's step cards go on down the same column under the ingredients.</p>
+        <p class="wide-cap"><b>The commit bar is the lines column's footer, not the page's.</b> The number on it is about the lines, and a bar drawn across the source pane would say the page has something to save. It reads the same map the header count and every row flag read, which is the one rule this screen has always had.</p>
+        <p class="wide-cap"><b>At 1180 the source gives up its width first</b>, to a 300 floor, and the panel after it; the lines never go under 440, because they are what a person is reading. Below 1024 this frame does not exist — the phone review, expanding in place, is unchanged.</p>
+        <p class="differs-note">this frame needs two things the code has not got, and neither is drawing work. <b>The request is not kept:</b> <code>ImportReconciling</code> carries the payload and no memory of the URL or the photo paths that produced it, so the source column has nothing to draw from until the state holds the request. <b>And a page's text never comes back:</b> the frozen contract returns <code>ingredient_text</code> + <code>raw_amount</code> per line and throws the fetched page away, so the lit span above is a <i>proposal for two additive fields</i> — the source text, and a per-line span into it. Until they exist, the honest version of this column for a link import is the lines as we read them, in page order, which buys almost nothing: <b>the span is the feature</b>. The photo door needs only the first half — the pages are already local files.</p>
+    </div>
+
+    <div class="frame wide">
+        <p class="frame-name"><b>wide &middot; the panel idle, with the work queue</b> <span class="tag-prop">proposed</span> &middot; nothing selected, so the panel holds the import's own outstanding work — every item a flag that is already on a row, gathered and grouped, read from the one map the count and the Save gate read. A photo import, so the source column is the pages: page 2 of 3 large, the set as a strip under it</p>
+        <div class="desk">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="dscreen wr-short" style="height:800px">
+            <div class="rail neutral">
+                <div class="wm">Ansi<span class="dot">.</span></div>
+                <div class="ri on"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></span>Library</div>
+                <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg></span>Week</div>
+                <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg></span>Cook</div>
+                <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 11-1 9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1 9"/></svg></span>Shop</div>
+                <div class="grow"></div>
+                <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></span>Account</div>
+            </div>
+            <div class="main wpanes">
+                <div class="wtop">
+                    <span class="back">&lsaquo; Library</span>
+                    <div class="ir-top"><h3 class="ttl">Review recipe</h3><span class="ct">5 to review</span></div>
+                </div>
+                <div class="wsplit">
+
+                    <div class="wpane ir-src">
+                        <div class="ir-sh"><span class="l">The pages &middot; 2 of 3</span></div>
+                        <div class="ir-page">
+                            <i class="hd"></i>
+                            <i></i><i class="md"></i><i></i><i class="sh"></i>
+                            <i></i><i class="md"></i><i></i><i></i><i class="sh"></i>
+                            <i class="md"></i><i></i><i class="sh"></i>
+                        </div>
+                        <div class="ir-thumbs">
+                            <div class="ir-th"><i></i><i></i><i></i><span class="n">p1</span></div>
+                            <div class="ir-th on"><i></i><i></i><i></i><span class="n">p2</span></div>
+                            <div class="ir-th"><i></i><i></i><i></i><span class="n">p3</span></div>
+                        </div>
+                        <p class="conv-note" style="margin-top:13px">the pages as they were handed over — a thumbnail each, the current one large. <b>No box is drawn on a photo</b>: nothing on the wire carries one, so a selected line's own words are pinned under the page instead of a rectangle somebody would trust</p>
+                        <p class="conv-note">nothing is selected here, so the page stands alone</p>
+                    </div>
+
+                    <div class="wpane ir-lines">
+                        <div class="wscroll ir-scroll">
+                            <p class="conv-note" style="margin-top:0">scrolled to the lines, as in the frame above &mdash; the strip and the header form are the phone&rsquo;s, at the top of this same column</p>
+                            <div class="tsec"><span class="tl">Ingredients</span><span class="tc">9</span><span class="rule"></span></div>
+
+                            <div class="ir-row"><span class="gr">&#8942;&#8942;</span><span class="am">2 pepper, medium</span><span class="bd"><span class="id">Red bell pepper</span><span class="nt">deseeded</span></span></div>
+                            <div class="ir-row"><span class="gr">&#8942;&#8942;</span><span class="am">1</span><span class="bd"><span class="id">Avocado</span><span class="nt">smashed</span></span></div>
+                            <div class="ir-row attn"><span class="gr">&#8942;&#8942;</span><span class="am">2&ndash;3 cloves</span><span class="bd"><span class="id">garlic cloves</span></span><span class="tag attn-tag"><span>&#9888;</span><span>Match an ingredient</span></span></div>
+                            <div class="ir-row attn"><span class="gr">&#8942;&#8942;</span><span class="am">a good pinch</span><span class="bd"><span class="id">Aleppo chilli flakes</span></span><span class="tag attn-tag"><span>&#9888;</span><span>Match an ingredient</span></span></div>
+                            <div class="ir-row attn"><span class="gr">&#8942;&#8942;</span><span class="am">tbsp</span><span class="bd"><span class="id">Rose harissa</span></span><span class="tag attn-tag"><span>&#9888;</span><span>Set the amount</span></span></div>
+                            <div class="ir-row attn"><span class="gr">&#8942;&#8942;</span><span class="am">1 bunch</span><span class="bd"><span class="id">bunch of cilantro</span><span class="nt">chopped</span></span><span class="tag attn-tag"><span>&#9888;</span><span>Pick a supported unit</span></span></div>
+                            <div class="ir-row attn"><span class="gr">&#8942;&#8942;</span><span class="am">2</span><span class="bd"><span class="id">Dragon fruit</span><span class="nt">cubed</span></span><span class="tag attn-tag"><span>&#9888;</span><span>Pick a supported unit</span></span></div>
+                            <div class="ir-row"><span class="gr">&#8942;&#8942;</span><span class="am">1 tsp</span><span class="bd"><span class="id">Smoked paprika</span></span></div>
+                            <div class="ir-row"><span class="gr">&#8942;&#8942;</span><span class="am">1</span><span class="bd"><span class="id">Lemon</span><span class="nt">juiced</span></span></div>
+
+                            <div style="display:flex;gap:8px;margin-top:8px">
+                                <span class="ghostbtn" style="margin-top:0;flex:1;justify-content:center">&#65291; ingredient</span>
+                                <span class="ghostbtn" style="margin-top:0;flex:1;justify-content:center">&#65291; section</span>
+                            </div>
+
+                            <div class="tsec"><span class="tl">Method</span><span class="tc">3</span><span class="rule"></span><span class="ci" style="color:var(--muted);font-size:12px">&ctdot;</span></div>
+                            <div class="mstep" style="margin-left:0;margin-right:0">
+                                <div class="mstep-h"><span class="n">Step 1</span><span class="ic">&#9650;</span><span class="ic">&#9660;</span><span class="ic">&#128465;</span></div>
+                                <div class="mstep-in">Heat the oven to 220&deg;C. Toss the <span class="echip">red peppers</span> with the <span class="echip">olive oil</span> on a large tray.</div>
+                            </div>
+                        </div>
+                        <div class="ir-foot">
+                            <span class="ct">the queue beside this bar counts the same five</span>
+                            <span class="ir-btn off">5 line(s) need you</span>
+                        </div>
+                    </div>
+
+                    <div class="wpane ir-panel">
+                        <div class="ir-ph"><span>What still needs you</span><span class="of">5</span></div>
+                        <div class="ir-qh"><span>Match an ingredient</span><span class="n">2</span></div>
+                        <div class="ir-qi"><span class="n">garlic cloves</span><span class="w">2&ndash;3 cloves</span></div>
+                        <div class="ir-qi"><span class="n">Aleppo chilli flakes</span><span class="w">a good pinch</span></div>
+                        <div class="ir-qh"><span>Set the amount</span><span class="n">1</span></div>
+                        <div class="ir-qi"><span class="n">Rose harissa</span><span class="w">tbsp</span></div>
+                        <div class="ir-qh"><span>Pick a supported unit</span><span class="n">2</span></div>
+                        <div class="ir-qi"><span class="n">bunch of cilantro</span><span class="w">&ldquo;bunch&rdquo;</span></div>
+                        <div class="ir-qi"><span class="n">Dragon fruit</span><span class="go">open the row &rsaquo;</span></div>
+                        <div class="lockhint" style="margin-left:0">Dragon fruit has no piece weight yet — that is the row's fact, so the door goes to the row. Every other bare count of it clears with it.</div>
+                        <div class="ir-qh quiet" style="margin-top:18px"><span>Created here</span><span class="n">1</span></div>
+                        <div class="ir-qi"><span class="n">Dragon fruit</span><span class="w">stub</span></div>
+                        <div class="lockhint" style="margin-left:0">it saves as it stands and is <b>out of the count</b> — a stub is a real, plannable line with numbers it has not got yet. It surfaces in the Ingredients manager's stub band.</div>
+                        <div class="ir-pfoot">nothing new is counted here. Every item above is a flag already drawn on its row, read from the <b style="color:var(--ink)">one validation map</b> the header count, the row flags and the Save gate read — so the queue cannot say four while the bar says five. Tapping an item selects its line, and the panel becomes the form</div>
+                    </div>
+
+                </div>
+            </div>
+            </div>
+        </div>
+        <p class="wide-cap"><b>An empty panel beside a list of work would be the width wasted.</b> With nothing selected the panel says what is left, grouped by <i>what it wants</i> rather than by line order — which is the one thing a twenty-line import is hard to see: that four of the five outstanding lines are the same job done four times. It is a <b>view</b>, not a feature: no new number, no new state, nothing that can disagree with a row. The groups are the <code>&#9888;</code> labels the rows already carry, in the order the phone's gate checks them.</p>
+        <p class="wide-cap"><b>The piece-weight item is not a new flag.</b> A counted line on a row with no weight meets the ordinary unsupported-unit gate, which is why it sits under <i>Pick a supported unit</i> with the cilantro's <code>bunch</code> — and why its one door is <b>the row</b>, since what one of a thing weighs is the ingredient's property and never the import's. <b>Created here</b> is drawn apart and quiet for the opposite reason: a stub commits perfectly well, so it is out of the count, and saying so is the whole point of putting it on screen.</p>
+        <p class="wide-cap"><b>The queue does not replace the rows.</b> Every flag is still on its own line, with its own words, where somebody scrolling will meet it — the phone's screen is the one that has to work alone, and nothing here is only reachable from the panel. This is the same rule the Shop's provenance pane holds: the pane is the width's offer, not a second place the truth lives.</p>
+    </div>
+
+    <div class="frame wide">
+        <p class="frame-name"><b>wide &middot; reading</b> <span class="tag-prop">proposed</span> &middot; the page's first state. The <b>source column is already drawn</b> — the cook handed those pages over, so there is nothing to wait for on the left — and the streamed checklist stands in the lane the lines and the panel will take, each row something that <i>happened</i>, carrying the time it took</p>
+        <div class="desk">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="dscreen wr-short" style="height:560px">
+            <div class="rail neutral">
+                <div class="wm">Ansi<span class="dot">.</span></div>
+                <div class="ri on"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></span>Library</div>
+                <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg></span>Week</div>
+                <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg></span>Cook</div>
+                <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 11-1 9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1 9"/></svg></span>Shop</div>
+                <div class="grow"></div>
+                <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></span>Account</div>
+            </div>
+            <div class="main wpanes">
+                <div class="wtop">
+                    <span class="back">&lsaquo; Library</span>
+                    <div class="ir-top"><h3 class="ttl">Import a recipe</h3></div>
+                </div>
+                <div class="wsplit">
+
+                    <div class="wpane ir-src">
+                        <div class="ir-sh"><span class="l">The pages &middot; 3</span></div>
+                        <div class="ir-page">
+                            <i class="hd"></i>
+                            <i></i><i class="md"></i><i></i><i class="sh"></i>
+                            <i></i><i class="md"></i><i></i><i class="sh"></i>
+                        </div>
+                        <div class="ir-thumbs">
+                            <div class="ir-th on"><i></i><i></i><i></i><span class="n">p1</span></div>
+                            <div class="ir-th"><i></i><i></i><i></i><span class="n">p2</span></div>
+                            <div class="ir-th"><i></i><i></i><i></i><span class="n">p3</span></div>
+                        </div>
+                        <p class="conv-note" style="margin-top:13px">a link import draws the <b>URL</b> here and no thumbnails, because there is one page and we have not got it yet</p>
+                    </div>
+
+                    <div class="ir-read">
+                        <div class="in">
+                            <div class="ir-stage"><span class="mk">&#10003;</span><span class="lb">Photos received</span><span class="el">0:03</span></div>
+                            <div class="ir-stage"><span class="mk">&#10003;</span><span class="lb">Photos read</span><span class="el">0:22</span></div>
+                            <div class="ir-stage now"><span class="mk"><span class="ir-spin"></span></span><span class="lb">Writing the recipe out&hellip;</span><span class="el">0:14</span></div>
+                            <div class="ir-stage wait"><span class="mk"><span class="ir-dot"></span></span><span class="lb">Ingredients matched</span></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            </div>
+        </div>
+        <p class="wide-cap"><b>The checklist is the phone's, unchanged</b> — a check for done, a spinner for the one running, a dot for one that has not started; a pending row shows no clock because it has no honest duration yet; the running row is written in the tense it is in (<b>Writing the recipe out&hellip;</b> becomes <b>Recipe written out</b> the moment the server's event lands). Before the first event the lane says only <b>Sending&hellip;</b>, because no stage has happened. It is centred in the lane it stands in rather than stretched across it: four short rows spread over 900 px would be a progress screen pretending to be a dashboard.</p>
+        <p class="wide-cap"><b>What the width actually changes here is that the source arrives first.</b> The pages are local files the cook just chose, so the left column can be drawn while the server is still reading them — and the wait then has something in it to look at that is <i>theirs</i>, not a reassurance about ours. When the review lands, that column does not move: the lines and the panel open beside it, and the page you were looking at is the page the first line is lit in.</p>
+        <p class="wide-cap">The <b>intake form</b> is not drawn at this width: one field, one button and the photo doors are a column by nature, so it stays the phone's form centred in the measure, and the three columns appear when there is a source to put in the first of them. Every failure still comes back to that form with the reason under it.</p>
+    </div>
+
 </div>
 
 <p class="view-foot"><a href="./index.html">← every view</a> · <a href="./README.md">how this board is kept</a></p>

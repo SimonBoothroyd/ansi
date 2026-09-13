@@ -1665,3 +1665,140 @@
     .sdot.ok{background:var(--fresh);}
     .sdot.mute{background:var(--muted);}
 
+
+    /* ---- Wide · import review ----------------------------------------- */
+
+    /* The review is a PUSHED page (neutral rail, its own back), and the width
+       buys exactly two things the phone cannot do:
+
+       1 · the SOURCE beside the lines — the page's own words, or the photo
+           pages, on the left at a measure somebody can read, with the
+           selected line's span lit;
+       2 · editing in a PERSISTENT PANEL rather than a card that expands in
+           place, so a twenty-line list never jumps under the hand.
+
+       Three columns, capped at 1240: source 380 · lines 480 · panel 340.
+       Drawn here at the board's own 0.78 — the 294 / 370 / 264 below stand
+       for those numbers — with the sidebar at its real 188. Everything
+       INSIDE the columns is the phone's markup: .lcard's contents, .l3's
+       grid, .attn-tag, .chosen, .erow, .suggests, .srcnotes, .tsec. No new
+       row anatomy was invented for the width. */
+
+    /* the columns. The LINES are the elastic one: the phone's rows are what a
+       person is reading, so they never give up width. At 1180 the source
+       narrows first, to a 300 floor, and the panel after it. */
+    .wpane.ir-src{flex:0 0 294px;min-width:0;background:var(--paper);padding:14px 18px 18px;}
+    .wpane.ir-lines{flex:1 1 auto;min-width:0;padding:0;}
+    .wpane.ir-panel{flex:0 0 264px;min-width:0;padding:14px 18px 18px;}
+
+    /* the phone's 20 px gutter belongs to the phone screen; inside a pane the
+       pane owns the padding, so every shared row runs flush to its edge */
+    .ir-scroll .tsec,.ir-scroll .srcnotes,.ir-scroll .flabel,
+    .ir-scroll .conv-note,.ir-scroll .qtyrow,.ir-scroll .portion,
+    .ir-scroll .frow,.ir-scroll .crow,.ir-scroll .lib-file3,
+    .ir-panel .conv-note,.ir-panel .flabel,.ir-src .conv-note{margin-left:0;margin-right:0;}
+    .ir-scroll .ghostbtn,.ir-panel .ghostbtn{margin-left:0;}
+
+    /* the lines column: one scroller with the COMMIT BAR as its footer line.
+       The bar spans this column and not the page, because the number on it is
+       about the lines — the source pane has nothing to commit. */
+    .ir-lines{display:flex;flex-direction:column;}
+    .ir-scroll{flex:1;min-height:0;overflow:hidden;position:relative;padding:14px 18px 0;}
+    .ir-foot{flex:none;display:flex;align-items:center;gap:12px;border-top:1px solid var(--line);background:var(--frame);padding:11px 18px;}
+    .ir-foot .ct{flex:1;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);line-height:1.5;}
+    .ir-btn{flex:none;background:var(--herb);color:#fff;border-radius:10px;padding:9px 18px;font-size:12.5px;font-weight:600;}
+    .ir-btn.off{background:var(--line);color:var(--muted);}
+
+    /* the page's own controls, above all three panes */
+    .ir-top{display:flex;align-items:baseline;gap:12px;}
+    .ir-top .ttl{flex:none;}
+    .ir-top .ct{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);}
+    .ir-top .ct.ok{color:var(--herb);}
+
+    /* ONE LINE, as a row. No box: the card's border was the affordance for
+       expanding it, and expanding is what the panel took over — so a line is
+       a row on bare paper like every other list in the app. It keeps the
+       phone's own three parts (a mono amount in its own column, the identity,
+       the note) and its GRIP, because drag was always a collapsed-row
+       gesture and on wide every row is collapsed. */
+    .ir-row{position:relative;display:grid;grid-template-columns:13px 78px 1fr;gap:10px;align-items:baseline;padding:9px 10px;border-bottom:1px solid var(--line);}
+    .ir-row .gr{font-size:9px;line-height:1;color:var(--line);letter-spacing:-2px;}
+    .ir-row .am{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
+    .ir-row .bd{min-width:0;}
+    .ir-row .bd .id{font-size:12.5px;}
+    .ir-row .bd .nt{font-size:11.5px;color:var(--muted);margin-left:6px;}
+    .ir-row .tag{grid-column:2/-1;margin-top:0;}
+    /* a flagged row has no amber BOX round it, because it has no box at all:
+       the amber is a 2 px rule in the row's own margin — the Cook sheet's
+       device, and the same ink the phone's border used */
+    .ir-row.attn::before{content:"";position:absolute;left:0;top:7px;bottom:7px;width:2px;background:var(--aging);}
+    /* the row the panel is editing. Exactly the Shop's selected-row wash, so
+       "the pane is reading this one" reads the same in both views */
+    .ir-row.sel{background:var(--herb-soft);border-radius:10px;border-bottom-color:transparent;}
+
+    /* the source column. A URL import draws the page's words; a photo import
+       draws the pages. The head names which, and carries the one door out. */
+    .ir-sh{display:flex;align-items:baseline;gap:8px;margin:0 0 9px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+    .ir-sh .l{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);}
+    .ir-sh .go{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--herb);}
+    .ir-url{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);word-break:break-all;margin:0 0 12px;line-height:1.55;}
+    /* ~46 characters at this scale is the 60 the 380 column is drawn for */
+    .ir-txt{font-size:11.5px;line-height:1.8;}
+    .ir-txt .h{font-family:'Spectral',serif;font-size:15px;font-weight:500;margin:0 0 4px;}
+    .ir-txt .lab{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:13px 0 5px;}
+    .ir-txt .ln{display:block;}
+    .ir-txt p{margin:0;color:var(--muted);}
+    /* the lit span: the herb wash and a 2 px herb rule, which is what makes
+       "this row is that line" true both ways */
+    .ir-txt .ln.lit{background:var(--herb-soft);border-left:2px solid var(--herb);margin-left:-8px;padding-left:6px;border-radius:0 4px 4px 0;}
+
+    /* the photo pages, as they were handed over: the current one large, the
+       set as a strip under it. A photo has NO span to light — nothing on the
+       wire carries a box on an image — so the selected line's own words are
+       pinned under the page rather than drawn on it. */
+    .ir-page{border:1px solid var(--line);background:var(--frame);border-radius:4px;padding:15px 13px;}
+    .ir-page i{display:block;height:5px;border-radius:3px;background:var(--line);margin-bottom:9px;}
+    .ir-page i.sh{width:62%;}
+    .ir-page i.md{width:84%;}
+    .ir-page i.hd{height:8px;width:52%;background:#D7DED2;margin-bottom:14px;}
+    .ir-thumbs{display:flex;gap:8px;margin-top:10px;}
+    .ir-th{flex:1;border:1px solid var(--line);background:var(--frame);border-radius:3px;padding:6px 5px 4px;}
+    .ir-th i{display:block;height:3px;border-radius:2px;background:var(--line);margin-bottom:3px;}
+    .ir-th .n{display:block;font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:var(--muted);margin-top:4px;text-align:center;}
+    .ir-th.on{border-color:var(--herb);box-shadow:0 0 0 2px var(--herb-soft);}
+    .ir-th.on .n{color:var(--herb-deep);}
+
+    /* the panel. Its head names the line it is holding open and its place in
+       the list; the BIN lives here because it lives on the phone's expanded
+       head, and nowhere else. */
+    .ir-ph{display:flex;align-items:baseline;gap:8px;margin:0 0 10px;padding-bottom:8px;border-bottom:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);}
+    .ir-ph .of{margin-left:auto;letter-spacing:.1em;}
+    .ir-pfoot{margin-top:14px;padding-top:11px;border-top:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);line-height:1.6;}
+
+    /* the panel with nothing selected: the import's OWN work, gathered. It is
+       not a new fact and not a new number — every item is a flag already on a
+       row, read from the one validation map the header count and the Save
+       gate read, so the three cannot drift. Tapping one selects its line. */
+    .ir-qh{display:flex;align-items:baseline;gap:8px;margin:15px 0 4px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--aging);}
+    .ir-qh .n{margin-left:auto;}
+    .ir-qh.quiet{color:var(--muted);}
+    .ir-qi{display:flex;align-items:baseline;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:12px;}
+    .ir-qi .n{flex:1;min-width:0;}
+    .ir-qi .w{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);}
+    .ir-qi .go{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--herb);}
+
+    /* the reading checklist, standing where the lines and the panel will be.
+       The source column is already drawn, because the cook handed it over —
+       the wait is about what the server is making of it, not about what it
+       is. Every row is the phone's own, in the tense it is in. */
+    .ir-read{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;padding:0 40px;}
+    .ir-read .in{width:100%;max-width:330px;margin:0 auto;}
+    .ir-stage{display:flex;align-items:center;gap:10px;padding:7px 0;}
+    .ir-stage .mk{flex:none;width:20px;text-align:center;color:var(--herb);font-size:12px;}
+    .ir-stage .lb{flex:1;font-size:12.5px;}
+    .ir-stage .el{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted);}
+    .ir-stage.now .lb{font-weight:600;}
+    .ir-stage.now .el{color:var(--herb);}
+    .ir-stage.wait .lb{color:var(--muted);}
+    .ir-spin{display:inline-block;width:13px;height:13px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--herb);vertical-align:middle;}
+    .ir-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--line);vertical-align:middle;}
