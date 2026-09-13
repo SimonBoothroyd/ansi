@@ -137,6 +137,14 @@ Widget _host(List<Override> overrides, {bool disableAnimations = false}) =>
       ),
     );
 
+/// A desk-width window — the band the provenance pane belongs to. The other
+/// suites run at the default surface, which is a phone's column.
+void deskWidth(WidgetTester tester) {
+  tester.view.physicalSize = const Size(1440, 1000);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+}
+
 /// Records every haptic the phone is asked for, by type.
 List<String> _recordHaptics(WidgetTester tester) {
   final haptics = <String>[];
@@ -1055,6 +1063,164 @@ void main() {
       await tester.pump();
 
       expect(variants.ticked, isEmpty);
+    });
+  });
+
+  group('at a desk', () {
+    /// Flour (two sources and a top-up), Halloumi, and one row already in the
+    /// basket — enough to ask where each row's breakdown is drawn.
+    ShoppingList listWithBasket() => ShoppingList(
+      groups: [
+        ShoppingGroup(
+          label: 'Baking',
+          items: [
+            ShoppingItem(
+              name: 'Flour',
+              ingredientId: 'flour',
+              totals: [Quantity(500, g)],
+              contributions: const [
+                ShoppingContribution(
+                  source: ContributionSource.cookSession,
+                  label: 'Curry · cook Mon',
+                  quantity: 300,
+                  unit: g,
+                  cookDay: 0,
+                ),
+                ShoppingContribution(
+                  source: ContributionSource.manual,
+                  label: 'manual top-up',
+                  quantity: 50,
+                  unit: g,
+                  contributionId: 'c1',
+                ),
+              ],
+            ),
+          ],
+        ),
+        ShoppingGroup(
+          label: 'Dairy',
+          items: [
+            ShoppingItem(
+              name: 'Halloumi',
+              entryId: 'e-halloumi',
+              ingredientId: 'halloumi',
+              totals: [Quantity(250, g)],
+              contributions: const [
+                ShoppingContribution(
+                  source: ContributionSource.cookSession,
+                  label: 'Halloumi Salad · cook Wed',
+                  quantity: 250,
+                  unit: g,
+                  cookDay: 2,
+                ),
+              ],
+            ),
+          ],
+        ),
+        const ShoppingGroup(
+          label: 'Pantry',
+          items: [
+            ShoppingItem(
+              name: 'Coconut milk, canned',
+              entryId: 'e-coconut',
+              ingredientId: 'coconut',
+              checked: true,
+            ),
+          ],
+        ),
+      ],
+    );
+
+    testWidgets('the breakdown moves into a pane beside the walk, which still '
+        'holds its aisles and its one basket section', (tester) async {
+      deskWidth(tester);
+      await tester.pumpWidget(
+        _host([
+          shoppingRepositoryProvider.overrideWithValue(
+            _FakeShoppingRepo(listWithBasket()),
+          ),
+        ]),
+      );
+      await tester.pump();
+
+      // The pane reads the first row of the walk until a name says otherwise.
+      expect(find.text('WHERE IT CAME FROM'), findsOneWidget);
+      expect(find.byKey(kShopReadingRowKey), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(kShopReadingRowKey),
+          matching: find.text('Flour'),
+        ),
+        findsOneWidget,
+      );
+      // Its whole breakdown is in the pane — every source, and the top-up that
+      // is still editable there — and drawn exactly once, because no row under
+      // 1024's rule is drawing one of its own.
+      expect(find.text('Curry · cook Mon'), findsOneWidget);
+      expect(find.text('manual top-up'), findsOneWidget);
+      // A row the pane is NOT reading says nothing about where it came from.
+      expect(find.text('Halloumi Salad · cook Wed'), findsNothing);
+      // The pane names where the row is walked to; the walk keeps its aisles
+      // and its one basket section, exactly as a phone draws them.
+      expect(find.text('BAKING'), findsWidgets);
+      expect(find.text('DAIRY'), findsOneWidget);
+      expect(find.text('In the basket · 1'.toUpperCase()), findsOneWidget);
+      // …and a ticked row is still in that section, not back in its aisle —
+      // and reading one says where it is in the words the list uses.
+      expect(find.text('Coconut milk, canned'), findsOneWidget);
+      await tester.tap(find.text('Coconut milk, canned'));
+      await tester.pump();
+      expect(find.text('PANTRY · IN THE BASKET'), findsOneWidget);
+      expect(
+        find.text('nothing to trace — an item you added by hand'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets("a row's name points the pane at it, and does NOT tick it", (
+      tester,
+    ) async {
+      deskWidth(tester);
+      final repo = _FakeShoppingRepo(listWithBasket());
+      await tester.pumpWidget(
+        _host([shoppingRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Halloumi'));
+      await tester.pump();
+
+      expect(find.text('Halloumi Salad · cook Wed'), findsOneWidget);
+      expect(find.text('Curry · cook Mon'), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byKey(kShopReadingRowKey),
+          matching: find.text('Halloumi'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        repo.tickCalls,
+        0,
+        reason: "reading a row is not grabbing it — the tick is the row's tap",
+      );
+    });
+
+    testWidgets('the row is still the tick: the pane changes nothing about '
+        'what a tap does', (tester) async {
+      deskWidth(tester);
+      final repo = _FakeShoppingRepo(listWithBasket());
+      await tester.pumpWidget(
+        _host([shoppingRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pump();
+
+      // Halloumi's own total, which only the row draws — the pane is on Flour.
+      await tester.tap(find.text('250 g'));
+      await tester.pump();
+
+      expect(repo.tickCalls, 1);
+      expect(repo.lastChecked, isTrue);
     });
   });
 }

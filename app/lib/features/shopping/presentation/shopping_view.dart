@@ -21,6 +21,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/words.dart';
 import '../../../shared/ansi_error_state.dart';
+import '../../../shared/ansi_layout.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
@@ -85,63 +86,265 @@ class ShoppingView extends ConsumerWidget {
       child: Column(
         children: [
           const AnsiSyncStatusLine(noun: 'tick'),
-          Expanded(child: _list(context, ref, list)),
+          // The width buys ONE thing here: the breakdown a phone opens under a
+          // row, held open in a pane beside the walk. The walk itself is the
+          // same single column at the measure — two phones drive this screen
+          // at once, and a second column to re-find a row in is not an offer.
+          Expanded(
+            child: AnsiLayout.of(context) == AnsiLayout.expanded
+                ? const _WideShop()
+                : _shoppingList(context, ref, list),
+          ),
         ],
       ),
     );
   }
+}
 
-  Widget _list(
-    BuildContext context,
-    WidgetRef ref,
-    AsyncValue<ShoppingList> list,
-  ) => list.when(
-    loading: () => const Center(child: FCircularProgress()),
-    error: (e, st) => AnsiErrorState(
-      what: 'the shopping list',
-      error: e,
-      stackTrace: st,
-      onRetry: () => ref.invalidate(currentShoppingListProvider),
-    ),
-    // D5b: the screen never swaps itself out for a data condition. An
-    // empty list is a quiet line INSIDE the list chrome, keeping both of
-    // this screen's affordances — the add-item door works with no plan at
-    // all, which is exactly why it must not be taken away.
-    data: (data) => ListView(
-      padding: const EdgeInsets.only(top: 6, bottom: 24),
-      children: [
-        const _ListCaption(),
-        if (data.isEmpty) const _NothingToBuyLine(),
-        // The aisles hold only what is still to grab; a ticked row leaves for
-        // the basket section at the bottom, so what is and isn't in the
-        // trolley reads at a glance. When the aisles are empty but the trip
-        // is not, the line below says so where they were.
-        if (data.allTicked) const _EverythingInBasketLine(),
-        for (final group in data.openGroups) _Group(group: group),
-        if (data.basket.isNotEmpty) _Basket(groups: data.basketGroups),
-        // What the list is short by, and why it is silent about it
-        // (step 8.6 / D4): an unresolved component contributes
-        // nothing — never an invented quantity — so the parent it
-        // belongs to says so and points at the surface that fixes
-        // it. A list that is quietly short is worse than one that
-        // says what it left out.
-        for (final note in data.unresolvedComponents)
-          _UnresolvedEcho(note: note),
-        // …and what it cannot buy because the thing itself is gone: a line, or
-        // a planned meal, whose vocab row was retired. Amber like the
-        // unresolved echo, because it is the same kind of news — a defect
-        // somebody can fix — and the words name where the pick is.
-        for (final note in data.retiredIngredients)
-          RetiredIngredientEcho(note: note),
-        // …and what it left out BY RULE: an optional line contributes nothing,
-        // and the recipe it belongs to says which lines, in the same voice —
-        // muted, not amber, because a rule somebody chose is not a defect
-        // somebody can fix.
-        for (final note in data.optionalLines) OptionalLinesEcho(note: note),
-        const _AddItemButton(),
-      ],
-    ),
-  );
+/// The walk: the aisles, the basket section, the echo rows and the add door.
+///
+/// [selection] is null on a phone, where every row draws its own breakdown
+/// under it. At [AnsiLayout.expanded] it is the pane's seam: the row it is
+/// reading lights up, a row's NAME points the pane at it, and no row draws a
+/// breakdown of its own.
+Widget _shoppingList(
+  BuildContext context,
+  WidgetRef ref,
+  AsyncValue<ShoppingList> list, {
+  _Selection? selection,
+}) => list.when(
+  loading: () => const Center(child: FCircularProgress()),
+  error: (e, st) => AnsiErrorState(
+    what: 'the shopping list',
+    error: e,
+    stackTrace: st,
+    onRetry: () => ref.invalidate(currentShoppingListProvider),
+  ),
+  // D5b: the screen never swaps itself out for a data condition. An
+  // empty list is a quiet line INSIDE the list chrome, keeping both of
+  // this screen's affordances — the add-item door works with no plan at
+  // all, which is exactly why it must not be taken away.
+  data: (data) => ListView(
+    padding: const EdgeInsets.only(top: 6, bottom: 24),
+    children: [
+      const _ListCaption(),
+      if (data.isEmpty) const _NothingToBuyLine(),
+      // The aisles hold only what is still to grab; a ticked row leaves for
+      // the basket section at the bottom, so what is and isn't in the
+      // trolley reads at a glance. When the aisles are empty but the trip
+      // is not, the line below says so where they were.
+      if (data.allTicked) const _EverythingInBasketLine(),
+      for (final group in data.openGroups)
+        _Group(group: group, selection: selection),
+      if (data.basket.isNotEmpty)
+        _Basket(groups: data.basketGroups, selection: selection),
+      // What the list is short by, and why it is silent about it
+      // (step 8.6 / D4): an unresolved component contributes
+      // nothing — never an invented quantity — so the parent it
+      // belongs to says so and points at the surface that fixes
+      // it. A list that is quietly short is worse than one that
+      // says what it left out.
+      for (final note in data.unresolvedComponents) _UnresolvedEcho(note: note),
+      // …and what it cannot buy because the thing itself is gone: a line, or
+      // a planned meal, whose vocab row was retired. Amber like the
+      // unresolved echo, because it is the same kind of news — a defect
+      // somebody can fix — and the words name where the pick is.
+      for (final note in data.retiredIngredients)
+        RetiredIngredientEcho(note: note),
+      // …and what it left out BY RULE: an optional line contributes nothing,
+      // and the recipe it belongs to says which lines, in the same voice —
+      // muted, not amber, because a rule somebody chose is not a defect
+      // somebody can fix.
+      for (final note in data.optionalLines) OptionalLinesEcho(note: note),
+      const _AddItemButton(),
+    ],
+  ),
+);
+
+/// The row the provenance pane is reading, and how a row asks to be read.
+///
+/// The row is named by [shoppingItemIdentity] rather than by a position: the
+/// list re-derives whenever the week, a tick or the other shopper changes it,
+/// and an index does not survive that.
+class _Selection {
+  const _Selection({required this.identity, required this.read});
+
+  /// The identity of the row the pane is on.
+  final String identity;
+
+  /// Points the pane at a row. The row's own tap is still the tick.
+  final ValueChanged<ShoppingItem> read;
+}
+
+/// The Shop at [AnsiLayout.expanded]: the walk at the measure, and the
+/// breakdown beside it.
+///
+/// The pane reads one row at a time and changes nothing — a tick is still what
+/// sends a row to the basket, and a row the pane is reading stays exactly where
+/// the aisles put it.
+class _WideShop extends ConsumerStatefulWidget {
+  const _WideShop();
+
+  @override
+  ConsumerState<_WideShop> createState() => _WideShopState();
+}
+
+class _WideShopState extends ConsumerState<_WideShop> {
+  /// The row a name has pointed the pane at, or null while the pane is reading
+  /// the first row of the walk.
+  String? _reading;
+
+  @override
+  Widget build(BuildContext context) {
+    final list = ref.watch(currentShoppingListProvider);
+    final data = list.asData?.value;
+    // Aisle order, the walk before the basket — so "the first row" is the first
+    // thing still to grab, which is where a shopper is.
+    final rows = <({ShoppingItem item, String aisle})>[
+      for (final g in data?.openGroups ?? const <ShoppingGroup>[])
+        for (final i in g.items) (item: i, aisle: g.label),
+      for (final g in data?.basketGroups ?? const <ShoppingGroup>[])
+        for (final i in g.items) (item: i, aisle: g.label),
+    ];
+    final reading =
+        rows
+            .where((r) => shoppingItemIdentity(r.item) == _reading)
+            .firstOrNull ??
+        rows.firstOrNull;
+
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: ansiMeasureWidth(context) + kProvenancePaneWidth,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: _shoppingList(
+                context,
+                ref,
+                list,
+                selection: reading == null
+                    ? null
+                    : _Selection(
+                        identity: shoppingItemIdentity(reading.item),
+                        read: (item) => setState(
+                          () => _reading = shoppingItemIdentity(item),
+                        ),
+                      ),
+              ),
+            ),
+            _ProvenancePane(item: reading?.item, aisle: reading?.aisle),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The row the provenance pane is reading — exported so a test names the lit
+/// row rather than hunting for a background colour. Only one row carries it.
+const kShopReadingRowKey = ValueKey('shop-reading-row');
+
+/// How wide the provenance pane is drawn — the one measurement this screen's
+/// wide frame adds, and the same 360 the board's pane is drawn at.
+const kProvenancePaneWidth = 360.0;
+
+/// The breakdown the phone opens under a row, held open beside the walk: what
+/// the row is, what it came to, which recipes and sessions asked for it, and
+/// the manual top-up, which is editable here exactly as it is inline.
+class _ProvenancePane extends StatelessWidget {
+  const _ProvenancePane({required this.item, required this.aisle});
+
+  /// Null only while the list is empty or still loading — there is no row to
+  /// read then, and the pane says so rather than drawing an empty frame.
+  final ShoppingItem? item;
+  final String? aisle;
+
+  @override
+  Widget build(BuildContext context) {
+    final row = item;
+    return Container(
+      width: kProvenancePaneWidth,
+      decoration: const BoxDecoration(
+        color: AnsiColors.paper,
+        border: Border(left: BorderSide(color: AnsiColors.line)),
+      ),
+      padding: const EdgeInsets.fromLTRB(22, 16, 22, 20),
+      child: row == null
+          ? Text(
+              'nothing to trace yet',
+              style: ansiMono(size: 11.5, color: AnsiColors.muted),
+            )
+          : ListView(
+              children: [
+                Text(
+                  'Where it came from'.toUpperCase(),
+                  style: ansiMono(
+                    size: 10,
+                    color: AnsiColors.muted,
+                    letterSpacing: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Expanded(child: Text(row.name, style: ansiSans(size: 14))),
+                    const SizedBox(width: 8),
+                    Text(
+                      itemTotal(row),
+                      style: ansiMono(size: 13, weight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+                if (itemSecondary(row) case final secondary
+                    when secondary.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Text(
+                      secondary,
+                      style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
+                    ),
+                  ),
+                // Where the row is: the aisle it is walked to, and whether it
+                // is already in the basket — the two words the list says about
+                // its position, said here for the row the pane is on.
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    [
+                      ?aisle?.toUpperCase(),
+                      if (row.checked) 'In the basket'.toUpperCase(),
+                    ].join(' · '),
+                    style: ansiMono(
+                      size: 9,
+                      color: AnsiColors.muted,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(height: 1, color: AnsiColors.line),
+                const SizedBox(height: 12),
+                if (row.contributions.isEmpty)
+                  Text(
+                    'nothing to trace — an item you added by hand',
+                    style: ansiMono(size: 10.5, color: AnsiColors.muted),
+                  )
+                else
+                  _Provenance(
+                    itemName: row.name,
+                    ingredientId: row.ingredientId,
+                    contributions: row.contributions,
+                  ),
+              ],
+            ),
+    );
+  }
 }
 
 class _ListCaption extends StatelessWidget {
@@ -164,9 +367,10 @@ class _ListCaption extends StatelessWidget {
 }
 
 class _Group extends StatelessWidget {
-  const _Group({required this.group});
+  const _Group({required this.group, this.selection});
 
   final ShoppingGroup group;
+  final _Selection? selection;
 
   @override
   Widget build(BuildContext context) {
@@ -184,7 +388,8 @@ class _Group extends StatelessWidget {
             ),
           ),
         ),
-        for (final item in group.items) _ItemRow(item: item),
+        for (final item in group.items)
+          _ItemRow(item: item, selection: selection),
       ],
     );
   }
@@ -196,9 +401,10 @@ class _Group extends StatelessWidget {
 /// aisles would have put them. A ticked row keeps its ticked look and its
 /// tap: tapping unticks it and it returns to its aisle on the next derivation.
 class _Basket extends StatelessWidget {
-  const _Basket({required this.groups});
+  const _Basket({required this.groups, this.selection});
 
   final List<ShoppingGroup> groups;
+  final _Selection? selection;
 
   @override
   Widget build(BuildContext context) {
@@ -231,7 +437,8 @@ class _Basket extends StatelessWidget {
               ),
             ),
           ),
-          for (final item in group.items) _ItemRow(item: item),
+          for (final item in group.items)
+            _ItemRow(item: item, selection: selection),
         ],
       ],
     );
@@ -501,9 +708,15 @@ class _OptionalLinesEchoState extends ConsumerState<OptionalLinesEcho> {
 /// removed by swiping it away or long-pressing — a cook-derived line can't (its
 /// quantity comes from the week; drop its top-up via the edit sheet instead).
 class _ItemRow extends ConsumerStatefulWidget {
-  const _ItemRow({required this.item});
+  const _ItemRow({required this.item, this.selection});
 
   final ShoppingItem item;
+
+  /// Non-null at [AnsiLayout.expanded], where the breakdown is held open in the
+  /// pane beside the list instead of under the row: the row's NAME is then the
+  /// door that points the pane at it, the row's tap is still the tick, and the
+  /// row the pane is on is lit.
+  final _Selection? selection;
 
   @override
   ConsumerState<_ItemRow> createState() => _ItemRowState();
@@ -585,6 +798,16 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
 
   Widget _rowBody() {
     final secondary = item.checked ? '' : itemSecondary(item);
+    final selection = widget.selection;
+    final reading =
+        selection != null && selection.identity == shoppingItemIdentity(item);
+    final name = Text(
+      item.name,
+      style: ansiSans(
+        size: 14,
+        color: item.checked ? AnsiColors.muted : AnsiColors.ink,
+      ).copyWith(decoration: item.checked ? TextDecoration.lineThrough : null),
+    );
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _toggle,
@@ -592,12 +815,21 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
           ? () => _confirmRemove(context, ref, item)
           : null,
       child: Container(
+        key: reading ? kShopReadingRowKey : null,
         margin: const EdgeInsets.symmetric(horizontal: 20),
-        padding: const EdgeInsets.symmetric(vertical: 11),
-        decoration: const BoxDecoration(
-          color: AnsiColors.surface,
-          border: Border(bottom: BorderSide(color: AnsiColors.line)),
+        padding: EdgeInsets.symmetric(
+          vertical: 11,
+          horizontal: reading ? 11 : 0,
         ),
+        decoration: reading
+            ? BoxDecoration(
+                color: AnsiColors.herbSoft,
+                borderRadius: BorderRadius.circular(11),
+              )
+            : const BoxDecoration(
+                color: AnsiColors.surface,
+                border: Border(bottom: BorderSide(color: AnsiColors.line)),
+              ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -606,20 +838,13 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
                 _CheckBox(key: _box, checked: item.checked),
                 const SizedBox(width: 11),
                 Expanded(
-                  child: Text(
-                    item.name,
-                    style:
-                        ansiSans(
-                          size: 14,
-                          color: item.checked
-                              ? AnsiColors.muted
-                              : AnsiColors.ink,
-                        ).copyWith(
-                          decoration: item.checked
-                              ? TextDecoration.lineThrough
-                              : null,
+                  child: selection == null
+                      ? name
+                      : GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => selection.read(item),
+                          child: name,
                         ),
-                  ),
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -651,7 +876,11 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
             // Every row says where it came from — a single source is still a
             // source, and a shopper reading one line should not have to
             // remember which recipe asked for it.
-            if (!item.checked && item.contributions.isNotEmpty) ...[
+            // …under the row on a phone, and in the pane beside the list at
+            // expanded, which is the whole of what the width buys here.
+            if (selection == null &&
+                !item.checked &&
+                item.contributions.isNotEmpty) ...[
               const SizedBox(height: 6),
               Padding(
                 padding: const EdgeInsets.only(left: 31),

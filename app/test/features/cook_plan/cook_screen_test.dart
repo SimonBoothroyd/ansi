@@ -309,6 +309,73 @@ void main() {
     );
     expect(find.text('recipe r1'), findsOneWidget);
   });
+
+  group('at a desk', () {
+    /// A desk-width window — the band the two-up grid belongs to. Tall, so
+    /// three whole cards are laid out rather than built lazily.
+    void deskWidth(WidgetTester tester) {
+      tester.view.physicalSize = const Size(1440, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+    }
+
+    List<Override> threeCooks() => [
+      cookPlanRepositoryProvider.overrideWithValue(
+        FakeCookPlanRepository.of([
+          _recipe('Chicken Curry', {0: 2}),
+          _recipe('House Ragù', {1: 2}),
+          _recipe('Bean Stew', {2: 2}),
+        ]),
+      ),
+    ];
+
+    testWidgets('the session cards run two-up, centred, and a card is never '
+        'split across a column', (tester) async {
+      deskWidth(tester);
+      await tester.pumpWidget(_host(threeCooks()));
+      await tester.pump();
+
+      final first = tester.getTopLeft(find.text('Chicken Curry'));
+      final second = tester.getTopLeft(find.text('House Ragù'));
+      final third = tester.getTopLeft(find.text('Bean Stew'));
+
+      // Two abreast: the second card sits beside the first, on its line.
+      expect(second.dx, greaterThan(first.dx));
+      expect(second.dy, first.dy);
+      // …and the third starts the next row, ragged, which is what a
+      // three-cook week is.
+      expect(third.dx, first.dx);
+      expect(third.dy, greaterThan(first.dy));
+      // The grid caps and centres: a session card read at half a desk is
+      // already at its measure, so the pair does not run to the window's edge.
+      expect(first.dx, greaterThan(150));
+      expect(
+        tester.getBottomRight(find.text('House Ragù')).dx,
+        lessThan(1440 - 150),
+      );
+      // Every card keeps its own anatomy, and the caption still leads.
+      expect(find.text('Cook Mon'), findsOneWidget);
+      expect(find.text('Cook Tue'), findsOneWidget);
+      expect(find.text('Cook Wed'), findsOneWidget);
+      expect(
+        find.text('grouped by recipe · split by shelf life'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('below expanded the same plan is one column', (tester) async {
+      tester.view.physicalSize = const Size(1000, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(_host(threeCooks()));
+      await tester.pump();
+
+      final first = tester.getTopLeft(find.text('Chicken Curry'));
+      final second = tester.getTopLeft(find.text('House Ragù'));
+      expect(second.dx, first.dx);
+      expect(second.dy, greaterThan(first.dy));
+    });
+  });
 }
 
 /// A week with the sliders planned for Saturday and a ¼-cup aioli component,

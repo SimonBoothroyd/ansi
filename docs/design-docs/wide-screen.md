@@ -99,6 +99,21 @@ either. On a phone the cap is never reached.
   at `ansiWideMeasureWidth` — a measure and a half plus the page's own gutters,
   about 1000. Below `expanded` it is the phone's page, centred at 640.
 
+### What each wide screen does with the width
+
+One row per screen that uses the width rather than centring in it — the board
+frame behind it is in that screen's own file, under its `Wide · ≥ 1024` rule.
+
+| Screen | From `expanded` up |
+|---|---|
+| **Shop** (`features/shopping`) | the walk stays **one column at the measure** — two phones drive it at once, and a checked row must not move — with a 360 pane beside it holding one row's `from …` breakdown open. A row's **name** points the pane at it; the row's own tap is still the tick, and the aisles and the one basket section are the phone's. |
+| **Cook** (`features/cook_plan`) | the session cards run **two-up, capped at 1000 and centred**. A card is a whole session and never splits across a column, so the width buys rows of cards rather than a re-drawn card; an odd count ends in a ragged row. |
+| **Ingredients manager** (`features/ingredients`) | **two panes**: the vocabulary (its search field and stub band pinned, the aisle sections scrolling under them, the add door at the foot) and the fact sheet, capped at 720, opened **in place** rather than pushed. `/ingredients/:id` lands on the same split with that row lit; `?edit=1` stays the form in the measure at every width. |
+
+The two pages of the manager are the app's first routes to opt out of the
+router's measure, through `_page`'s `measure:` parameter — they apply the
+measure themselves at the bands where they are still the phone's page.
+
 ## 5. The board's wide frames
 
 The design board draws wide answers in the screen's **own** file, never in a

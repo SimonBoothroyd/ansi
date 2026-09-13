@@ -50,17 +50,63 @@ part 'app_router.g.dart';
 /// [measure] is how wide the page is capped, for the page whose expanded form
 /// is not one column. It takes [ansiWideMeasureWidth] rather than a number, so
 /// the cap stays the layout file's business and never the router's.
+///
+/// [wrap] is how the handful of pages whose honest form USES the width opt
+/// out: false leaves the page unwrapped, and the page itself applies the
+/// measure at the bands where it is still the phone's page. Everything else
+/// takes the default and is centred.
 GoRoute _page({
   required String path,
   required String name,
   required Widget Function(GoRouterState state) builder,
   double Function(BuildContext context)? measure,
+  bool wrap = true,
 }) => GoRoute(
   path: path,
   name: name,
-  builder: (context, state) =>
-      AnsiMeasure(width: measure, child: builder(state)),
+  builder: (context, state) => wrap
+      ? AnsiMeasure(width: measure, child: builder(state))
+      : builder(state),
 );
+
+/// The manager, at whatever width it is opened at: the phone's one column in
+/// the measure, and — from [AnsiLayout.expanded] up — the vocabulary and one
+/// row as two panes of one page, which is a form that uses the width
+/// deliberately and caps its own columns.
+class _IngredientsPage extends StatelessWidget {
+  const _IngredientsPage();
+
+  @override
+  Widget build(BuildContext context) =>
+      AnsiLayout.of(context) == AnsiLayout.expanded
+      ? const IngredientListView()
+      : const AnsiMeasure(child: IngredientListView());
+}
+
+/// `/ingredients/:id` is two pages, decided by width.
+///
+/// Its READING posture is the fact sheet pushed over the list on a phone, and
+/// the manager's two panes with that row lit from [AnsiLayout.expanded] up — a
+/// cold deep link included, so a shared URL opens what the person who sent it
+/// was looking at. Its EDITING posture (`?edit=1`) is the form, in the measure,
+/// at every width: a door that exists to change one field is not a reason to
+/// redraw the page it was opened from.
+class _IngredientPage extends StatelessWidget {
+  const _IngredientPage({required this.id, required this.edit});
+
+  final String id;
+  final bool edit;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!edit && AnsiLayout.of(context) == AnsiLayout.expanded) {
+      return IngredientListView(selectedId: id);
+    }
+    return AnsiMeasure(
+      child: IngredientDetailView(ingredientId: id, edit: edit),
+    );
+  }
+}
 
 /// The app's routes. `/recipes/new` is declared before `/recipes/:id` so the
 /// literal wins over the param.
@@ -174,10 +220,14 @@ GoRouter router(Ref ref) {
         name: 'account',
         builder: (state) => const AccountView(),
       ),
+      // The manager and one row both draw their own columns from expanded up,
+      // so they opt out of the router's measure and apply it themselves below
+      // it (`_IngredientsPage`, `_IngredientPage`).
       _page(
         path: '/ingredients',
         name: 'ingredients',
-        builder: (state) => const IngredientListView(),
+        wrap: false,
+        builder: (state) => const _IngredientsPage(),
       ),
       // `/ingredients/new` — the ONE door to making an ingredient. It is the
       // same form, with no row behind it yet: nothing is written until Save, so
@@ -199,8 +249,9 @@ GoRouter router(Ref ref) {
       _page(
         path: '/ingredients/:id',
         name: 'ingredient',
-        builder: (state) => IngredientDetailView(
-          ingredientId: state.pathParameters['id'],
+        wrap: false,
+        builder: (state) => _IngredientPage(
+          id: state.pathParameters['id']!,
           edit: state.uri.queryParameters[kEditPostureQueryParam] == '1',
         ),
       ),
