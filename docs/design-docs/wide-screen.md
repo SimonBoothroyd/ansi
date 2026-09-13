@@ -197,6 +197,13 @@ chevron has something to pop; the four destinations above it `go`
   width, with `Used in · N` under it while the count is non-zero. It is capped
   at `ansiWideMeasureWidth` — a measure and a half plus the page's own gutters,
   about 1000. Below `expanded` it is the phone's page, centred at 640.
+- **The recipe editor** — the same recipe, so the same cap: one header across
+  the top (the title over the lines, the filing over the method, then serves /
+  makes / times / shelf life as four cells), the ingredient lines left in a
+  fixed 420 column and the method right as the phone's step cards. While a step
+  has focus the lines its chips point at are lit and the chip the caret is
+  inside is ringed — view state that follows focus, never the pointer, and never
+  stored. Week mode (`?week=`) is one column at the measure instead.
 
 ### What each wide screen does with the width
 
@@ -209,7 +216,14 @@ frame behind it is in that screen's own file, under its `Wide · ≥ 1024` rule.
 | **Book page** (`/books/:id`, `features/books`) | **two panes**: a 200 section index (counts, current lit, tapping scrolls the one list) beside the recipes at the measure; every row and menu is the Library's own. |
 | **Shop** (`features/shopping`) | the walk stays **one column at the measure** — two phones drive it at once, and a checked row must not move — with a 360 pane beside it holding one row's `from …` breakdown open. The row's two answers are split in one place: the **check box ticks** — its own 31 × 44 target, the row's vertical padding folded in so the box is drawn where the phone draws it — and a tap **anywhere else on the row** points the pane at it, lit. A ticked row keeps the pane as it walks to the basket section. The aisles and the one basket section are the phone's, and below `expanded` the whole row is still the tick. |
 | **Cook** (`features/cook_plan`) | the plan is **one schedule sheet, capped at 1140 and centred**: a row per recipe against seven day columns drawn once — a herb tick with its `×N` on the cook day, a herb-soft band for as long as the batch keeps, a dot on every day it feeds, amber for a day only the freezer reaches — with the covers sentence at the row's end and the split or freezer note in its margin. One set of words (`SessionSpeech`) and one keep-window geometry (`CookTimelineSpec`) serve both forms, and every door the phone's card has is on the row. |
+| **Recipe editor** (`features/recipes`) | at `expanded` the phone's one scroll becomes **two columns under one header**, capped at `ansiWideMeasureWidth` like the page it edits: the header's six sections folded onto two rows — the title over the lines and the filing over the method, then the four small facts as cells, every one the shipped control — over a 420 lines column and a method column that takes the rest. One `SliverCrossAxisGroup`, so the lines are still ONE reorderable list and the step cards are still lazy. The width buys one relationship: a focused step lights the lines its chips point at (the Shop's own selected-row wash) and rings the chip the caret is inside. **Week mode** (`?week=`) draws no header form and no method, so it has no second column: one column at the measure, with the week's own statement in a column at the row's right end. |
 | **Ingredients manager** (`features/ingredients`) | **two panes**: the vocabulary (its search field and stub band pinned, the aisle sections scrolling under them, the add door at the foot) and the fact sheet, capped at 720, opened **in place** rather than pushed. `/ingredients/:id` lands on the same split with that row lit; `?edit=1` stays the form in the measure at every width. |
+
+The recipe page and the recipe editor keep one wrap and pass a wider cap
+through `_page`'s `measure`. The editor's is the one cap that depends on the
+route's own query — `?week=` is a different page inside `/recipes/:id/edit` —
+so it comes through `_page`'s `measureOf` instead, still naming the layout
+file's number rather than a new one.
 
 The two pages of the manager and the book page opt out of the router's
 measure through `_page`'s `fullWidth` flag — handed the whole pane once the

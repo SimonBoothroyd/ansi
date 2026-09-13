@@ -190,7 +190,7 @@ void main() {
 
   testWidgets('the grip drags the row, and nothing else does', (tester) async {
     filterForuiSemanticsAssertions();
-    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.physicalSize = const Size(1000, 3000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 

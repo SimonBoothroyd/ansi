@@ -56,10 +56,24 @@ import 'method_span_controller.dart';
 import 'method_timer_sheet.dart';
 
 class MethodEditor extends StatelessWidget {
-  const MethodEditor({required this.recipe, required this.notifier, super.key});
+  const MethodEditor({
+    required this.recipe,
+    required this.notifier,
+    this.onStepFocus,
+    this.ringsCaretChip = false,
+    super.key,
+  });
 
   final Recipe recipe;
   final MethodEditing notifier;
+
+  /// Told which step has the caret, so a host with the width can light the
+  /// lines that step's chips point at. Null on the phone and at review, where
+  /// there is nothing beside the method to light.
+  final void Function(String stepId, {required bool focused})? onStepFocus;
+
+  /// See [MethodSpanController.ringsCaretChip].
+  final bool ringsCaretChip;
 
   @override
   Widget build(BuildContext context) {
@@ -70,41 +84,31 @@ class MethodEditor extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Row(
-            children: [
-              Text('METHOD', style: ansiLabel()),
-              const SizedBox(width: 8),
-              Text(
-                '${steps.length}',
-                style: ansiMono(size: 11, color: AnsiColors.muted),
-              ),
-              const Spacer(),
-              FPopoverMenu(
-                // `menuBuilder`, not `menu`: the item has to dismiss its own
-                // menu before the confirm opens over it.
-                menuBuilder: (_, controller, _) => [
-                  FItemGroup(
-                    children: [
-                      FItem(
-                        prefix: const Icon(FLucideIcons.type),
-                        title: const Text('Convert to plain text'),
-                        onPress: () {
-                          unawaited(controller.hide());
-                          unawaited(_confirmFlatten(context, notifier));
-                        },
-                      ),
-                    ],
+        EditorSectionHead(
+          label: 'METHOD',
+          count: '${steps.length}',
+          trailing: FPopoverMenu(
+            // `menuBuilder`, not `menu`: the item has to dismiss its own
+            // menu before the confirm opens over it.
+            menuBuilder: (_, controller, _) => [
+              FItemGroup(
+                children: [
+                  FItem(
+                    prefix: const Icon(FLucideIcons.type),
+                    title: const Text('Convert to plain text'),
+                    onPress: () {
+                      unawaited(controller.hide());
+                      unawaited(_confirmFlatten(context, notifier));
+                    },
                   ),
                 ],
-                builder: (_, controller, _) => AnsiMoreTrigger(
-                  onTap: controller.toggle,
-                  size: 16,
-                  compact: true,
-                ),
               ),
             ],
+            builder: (_, controller, _) => AnsiMoreTrigger(
+              onTap: controller.toggle,
+              size: 16,
+              compact: true,
+            ),
           ),
         ),
         if (substitution != null) _SubstitutionNotice(substitution),
@@ -118,6 +122,8 @@ class MethodEditor extends StatelessWidget {
             recipe: recipe,
             notifier: notifier,
             flagged: substitution?.stepIds.contains(step.id) ?? false,
+            onFocusChange: onStepFocus,
+            ringsCaretChip: ringsCaretChip,
             relabels: [
               for (final r in relabels)
                 if (r.stepId == step.id) r,
@@ -134,6 +140,52 @@ class MethodEditor extends StatelessWidget {
     );
   }
 }
+
+/// The name over a section of the editor: the micro-label, the count beside
+/// it, and whatever door the section keeps at its right end.
+///
+/// The METHOD header has always been this row; on the wide editor the
+/// ingredients column takes the same one, so the two columns are named the
+/// same way rather than one of them growing a heading of its own.
+class EditorSectionHead extends StatelessWidget {
+  const EditorSectionHead({
+    required this.label,
+    this.count,
+    this.trailing,
+    super.key,
+  });
+
+  final String label;
+
+  /// What the section holds, in the mono voice — `6`, `7 lines · 2 groups`.
+  final String? count;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: ConstrainedBox(
+      // The height the section's own door sets, stated once so a head with a
+      // door and a head without one are the same box — which is what puts the
+      // two wide columns' first rows on one line.
+      constraints: const BoxConstraints(minHeight: kEditorSectionHeadHeight),
+      child: Row(
+        children: [
+          Text(label, style: ansiLabel()),
+          if (count case final count?) ...[
+            const SizedBox(width: 8),
+            Text(count, style: ansiMono(size: 11, color: AnsiColors.muted)),
+          ],
+          const Spacer(),
+          if (trailing case final trailing?) trailing,
+        ],
+      ),
+    ),
+  );
+}
+
+/// See [EditorSectionHead] — the `⋯` door's own height.
+const double kEditorSectionHeadHeight = 40;
 
 /// Hands the keyboard back to nobody when a step's sheet closes.
 ///
@@ -161,6 +213,8 @@ class MethodStepCard extends HookConsumerWidget {
     required this.notifier,
     this.flagged = false,
     this.relabels = const [],
+    this.onFocusChange,
+    this.ringsCaretChip = false,
     super.key,
   });
 
@@ -178,6 +232,14 @@ class MethodStepCard extends HookConsumerWidget {
   /// Each moved chip's previous word, so "keep the old word" is one tap.
   final List<ChipRelabel> relabels;
 
+  /// See [MethodEditor.onStepFocus]. Told on the focus node's own
+  /// notification rather than from the build, because what hears it lights
+  /// something outside this card.
+  final void Function(String stepId, {required bool focused})? onFocusChange;
+
+  /// See [MethodSpanController.ringsCaretChip].
+  final bool ringsCaretChip;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = useMemoized(() => MethodSpanController(step), const []);
@@ -186,10 +248,20 @@ class MethodStepCard extends HookConsumerWidget {
       controller.sync(step);
       return null;
     }, [step]);
+    controller.ringsCaretChip = ringsCaretChip;
 
     final focusNode = useFocusNode();
     useListenable(focusNode);
     final focused = focusNode.hasFocus;
+    // Through a ref, so the subscription is made once per node and still calls
+    // whatever the host handed us on the latest build.
+    final report = useRef(onFocusChange)..value = onFocusChange;
+    final stepId = step.id;
+    useEffect(() {
+      void tell() => report.value?.call(stepId, focused: focusNode.hasFocus);
+      focusNode.addListener(tell);
+      return () => focusNode.removeListener(tell);
+    }, [focusNode, stepId]);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),

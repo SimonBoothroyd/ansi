@@ -9,6 +9,21 @@
 /// under another heading files it there. Reordering a line and moving it
 /// between groups are the same gesture, and a moved line keeps its id — which
 /// is what keeps every method chip pointing at it.
+///
+/// **At [AnsiLayout.expanded] the same form is two columns** under one header:
+/// the lines left in the row grammar they already have, the method right as
+/// the same step cards, capped and centred like the recipe page — the page and
+/// the editor are the same recipe, so they measure the same. Nothing is
+/// re-drawn for the width: the rows, the chips, the cards, the step cards and
+/// all five doors are the phone's, laid out beside each other instead of under
+/// each other, and the list is still ONE reorderable list.
+///
+/// What the width buys is a single relationship: while a step has focus, every
+/// line its chips point at wears the Shop pane's selected-row wash and the chip
+/// the caret is inside is ringed, so a chip is written, read back and repaired
+/// without scrolling between the two. It follows **focus**, never the pointer —
+/// a hover-only link is a target that is not drawn — it is view state that is
+/// never stored, and a resting editor lights nothing.
 library;
 
 import 'dart:async';
@@ -25,6 +40,7 @@ import '../../../core/units/units.dart';
 import '../../../core/words.dart';
 import '../../../shared/ansi_back.dart';
 import '../../../shared/ansi_error_state.dart';
+import '../../../shared/ansi_layout.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/format.dart';
 import '../../../shared/guarded_navigation.dart';
@@ -33,6 +49,7 @@ import '../../../shared/write.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
+import '../domain/method_draft.dart';
 import '../domain/recipe.dart';
 import 'component_format.dart';
 import 'component_quantity_sheet.dart';
@@ -181,6 +198,16 @@ class RecipeEditorView extends ConsumerWidget {
   }
 }
 
+/// How wide the ingredients column is drawn at [AnsiLayout.expanded].
+///
+/// Fixed, and the one number the width does not give back: an 84 px amount, a
+/// grip, a name and a note is what that row is, so at 1024 the 92 px the cap
+/// loses all come out of the method column instead.
+const double kEditorLinesColumn = 420;
+
+/// The seam between the two columns — the recipe page's own.
+const double kEditorColumnGap = 22;
+
 class _EditorForm extends HookWidget {
   const _EditorForm({required this.recipe, required this.notifier});
 
@@ -189,15 +216,33 @@ class _EditorForm extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final wide = AnsiLayout.of(context) == AnsiLayout.expanded;
     // Bumped when a drag starts: every open line card closes, so what crosses
     // the list is a row like every other row rather than forms of wildly
     // different heights.
     final collapseEpoch = useState(0);
+    // Which step has the caret. View state, never stored, and read only at
+    // expanded — on a phone the lines it would light are a scroll away.
+    final focusedStep = useState<String?>(null);
+    final onStepFocus = useCallback((String stepId, {required bool focused}) {
+      // A step losing focus clears the lighting only if it is the step that
+      // set it: the loss and the next gain arrive in either order.
+      if (focused) {
+        focusedStep.value = stepId;
+      } else if (focusedStep.value == stepId) {
+        focusedStep.value = null;
+      }
+    }, const []);
+    final lit = wide
+        ? _litLines(notifier, focusedStep.value)
+        : const <String>{};
+
     // ONE flat list per recipe: a heading row starts each group, and every
     // line row after it belongs to it. A line dropped under another heading is
     // filed under that heading, so reordering a line and moving it to another
     // group are one gesture rather than two features.
     final rows = <Widget>[];
+    var lineCount = 0;
     for (final group in recipe.groups) {
       rows.add(
         _GroupHeading(
@@ -208,6 +253,7 @@ class _EditorForm extends HookWidget {
         ),
       );
       for (final item in group.items) {
+        lineCount++;
         rows.add(
           _LineItemEditor(
             key: ValueKey('line-${item.id}'),
@@ -216,10 +262,27 @@ class _EditorForm extends HookWidget {
             notifier: notifier,
             dragIndex: rows.length,
             collapseEpoch: collapseEpoch.value,
+            lit: lit.contains(item.id),
           ),
         );
       }
     }
+
+    final lines = SliverReorderableList(
+      itemCount: rows.length,
+      itemBuilder: (context, index) => rows[index],
+      onReorderItem: notifier.moveLine,
+      // An open card closes as soon as a drag begins.
+      onReorderStart: (_) => collapseEpoch.value++,
+      proxyDecorator: liftedRow,
+    );
+    final doors = _ListDoors(recipe: recipe, notifier: notifier, stacked: wide);
+    final method = MethodEditor(
+      recipe: recipe,
+      notifier: notifier,
+      onStepFocus: wide ? onStepFocus : null,
+      ringsCaretChip: wide,
+    );
 
     return CustomScrollView(
       // Once you start dragging the list you have finished typing, and a field
@@ -227,83 +290,236 @@ class _EditorForm extends HookWidget {
       // every keyboard metrics change — enough to throw the page to the title
       // while a line further down is being corrected.
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-          // The header is the one the import review renders too: the notifier
-          // is its host, so a section added there lands here without a second
-          // copy.
-          sliver: SliverList.list(children: [RecipeHeaderForm(host: notifier)]),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          sliver: SliverReorderableList(
-            itemCount: rows.length,
-            itemBuilder: (context, index) => rows[index],
-            onReorderItem: notifier.moveLine,
-            // An open card closes as soon as a drag begins.
-            onReorderStart: (_) => collapseEpoch.value++,
-            proxyDecorator: liftedRow,
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
-          // A list rather than one box: the slivers stay lazy, so a long
-          // method's step cards are not all built to show the top of the page.
-          sliver: SliverList.list(
-            children: [
-              _ListDoors(recipe: recipe, notifier: notifier),
-              const SizedBox(height: 28),
-              MethodEditor(recipe: recipe, notifier: notifier),
+      slivers: wide
+          ? [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                  ansiPageGutter,
+                  8,
+                  ansiPageGutter,
+                  0,
+                ),
+                sliver: SliverList.list(
+                  children: [_WideHeader(host: notifier)],
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                  ansiPageGutter,
+                  20,
+                  ansiPageGutter,
+                  40,
+                ),
+                // One scroll, two columns — the recipe page's own shape, drawn
+                // as slivers so the lines stay ONE reorderable list and a long
+                // method's cards are still built lazily.
+                sliver: SliverCrossAxisGroup(
+                  slivers: [
+                    SliverConstrainedCrossAxis(
+                      maxExtent: kEditorLinesColumn,
+                      sliver: SliverMainAxisGroup(
+                        slivers: [
+                          SliverToBoxAdapter(
+                            child: EditorSectionHead(
+                              label: 'INGREDIENTS',
+                              count: _linesAndGroups(
+                                lineCount,
+                                recipe.groups.length,
+                              ),
+                            ),
+                          ),
+                          lines,
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: doors,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.only(left: kEditorColumnGap),
+                      sliver: SliverList.list(children: [method]),
+                    ),
+                  ],
+                ),
+              ),
+            ]
+          : [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                // The header is the one the import review renders too: the
+                // notifier is its host, so a section added there lands here
+                // without a second copy.
+                sliver: SliverList.list(
+                  children: [RecipeHeaderForm(host: notifier)],
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                sliver: lines,
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+                // A list rather than one box: the slivers stay lazy, so a long
+                // method's step cards are not all built to show the top of the
+                // page.
+                sliver: SliverList.list(
+                  children: [doors, const SizedBox(height: 28), method],
+                ),
+              ),
             ],
-          ),
-        ),
-      ],
     );
   }
+}
+
+/// What the ingredients column's head says it holds — the frame's own words.
+String _linesAndGroups(int lines, int groups) {
+  final counted = '$lines ${plural(lines, 'line')}';
+  return groups > 1 ? '$counted · $groups groups' : counted;
+}
+
+/// The lines the step with the caret points at.
+///
+/// Read off the draft rather than remembered, so a chip added, re-pointed or
+/// removed while the step is being written changes what is lit on the same
+/// keystroke. A step id the draft no longer has — the step was deleted while it
+/// held focus — lights nothing.
+Set<String> _litLines(RecipeEditor notifier, String? stepId) {
+  if (stepId == null) return const {};
+  for (final step in notifier.methodDraft()) {
+    if (step.id != stepId) continue;
+    return {
+      for (final span in step.spans)
+        if (span is RefSpan) ...span.refs,
+    };
+  }
+  return const {};
+}
+
+/// The wide editor's header: the phone's six sections in the phone's order,
+/// folded onto two rows.
+///
+/// Row one sits on the columns' own axis — the title over the lines, the filing
+/// over the method — so nothing in the editor is measured against a third grid.
+/// Row two is the four small facts across the cap, each still the shipped
+/// control: a header redrawn as bare lines would state the facts and take away
+/// the steppers and the chip control that set them.
+class _WideHeader extends StatelessWidget {
+  const _WideHeader({required this.host});
+
+  final RecipeHeaderHost host;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: kEditorLinesColumn,
+            child: RecipeHeaderForm(
+              host: host,
+              sections: const [RecipeHeaderSection.title],
+            ),
+          ),
+          const SizedBox(width: kEditorColumnGap),
+          Expanded(
+            child: RecipeHeaderForm(
+              host: host,
+              sections: const [RecipeHeaderSection.fileUnder],
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 16),
+      Container(height: 1, color: AnsiColors.line),
+      const SizedBox(height: 15),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final (i, section) in const [
+            RecipeHeaderSection.serves,
+            RecipeHeaderSection.makes,
+            RecipeHeaderSection.times,
+            RecipeHeaderSection.shelfLife,
+          ].indexed) ...[
+            if (i > 0) const SizedBox(width: 18),
+            Expanded(
+              child: RecipeHeaderForm(
+                host: host,
+                sections: [section],
+                dense: true,
+                timeCaptions: false,
+              ),
+            ),
+          ],
+        ],
+      ),
+    ],
+  );
 }
 
 /// The list's own two doors, tight under the last line — the review screen's
 /// pair, in the editor's words. A line added lands in the LAST group, which is
 /// what makes *Add group* then *Add ingredient* read as one gesture; the drag
 /// then puts it wherever it belongs.
+///
+/// The same two doors in the wide editor, [stacked]: side by side they want
+/// 544 and the ingredients column is 420, and a column that holds an amount, a
+/// grip, a name and a note is not the thing to narrow for a pair of buttons.
 class _ListDoors extends StatelessWidget {
-  const _ListDoors({required this.recipe, required this.notifier});
+  const _ListDoors({
+    required this.recipe,
+    required this.notifier,
+    this.stacked = false,
+  });
 
   final Recipe recipe;
   final RecipeEditor notifier;
 
+  /// One door over the other, for the wide editor's 420 column.
+  final bool stacked;
+
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Expanded(
-        child: FButton(
-          variant: FButtonVariant.outline,
-          size: FButtonSizeVariant.sm,
-          prefix: const Icon(FLucideIcons.plus),
-          onPress: () => unawaited(
-            addLineToGroup(
-              context,
-              group: recipe.groups.last,
-              recipeId: recipe.id,
-              notifier: notifier,
-            ),
-          ),
-          child: const Text('Add ingredient'),
+  Widget build(BuildContext context) {
+    final addLine = FButton(
+      variant: FButtonVariant.outline,
+      size: FButtonSizeVariant.sm,
+      prefix: const Icon(FLucideIcons.plus),
+      onPress: () => unawaited(
+        addLineToGroup(
+          context,
+          group: recipe.groups.last,
+          recipeId: recipe.id,
+          notifier: notifier,
         ),
       ),
-      const SizedBox(width: 8),
-      Expanded(
-        child: FButton(
-          variant: FButtonVariant.outline,
-          size: FButtonSizeVariant.sm,
-          prefix: const Icon(FLucideIcons.plus),
-          onPress: notifier.addGroup,
-          child: const Text('Add group'),
-        ),
-      ),
-    ],
-  );
+      child: const Text('Add ingredient'),
+    );
+    final addGroup = FButton(
+      variant: FButtonVariant.outline,
+      size: FButtonSizeVariant.sm,
+      prefix: const Icon(FLucideIcons.plus),
+      onPress: notifier.addGroup,
+      child: const Text('Add group'),
+    );
+    if (stacked) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [addLine, const SizedBox(height: 8), addGroup],
+      );
+    }
+    return Row(
+      children: [
+        Expanded(child: addLine),
+        const SizedBox(width: 8),
+        Expanded(child: addGroup),
+      ],
+    );
+  }
 }
 
 /// One group's heading row: the name as an editable field, and the bin.
@@ -423,6 +639,7 @@ class _LineItemEditor extends ConsumerWidget {
     required this.notifier,
     required this.dragIndex,
     required this.collapseEpoch,
+    this.lit = false,
     super.key,
   });
 
@@ -438,6 +655,9 @@ class _LineItemEditor extends ConsumerWidget {
 
   /// Bumped by the list when a drag starts: this card closes with the rest.
   final int collapseEpoch;
+
+  /// Whether the step being written points at this line. See [LineCard.lit].
+  final bool lit;
 
   /// The amount cell's label. Every line prints what the recipe page prints;
   /// only an unresolved measure id adds anything, and what it adds is the
@@ -471,6 +691,7 @@ class _LineItemEditor extends ConsumerWidget {
         notifier: notifier,
         dragIndex: dragIndex,
         collapseEpoch: collapseEpoch,
+        lit: lit,
       );
     }
 
@@ -534,6 +755,7 @@ class _LineItemEditor extends ConsumerWidget {
       amount: _label,
       dragIndex: dragIndex,
       collapseEpoch: collapseEpoch,
+      lit: lit,
       onEditAmount: editQuantity,
       rowIdentity: Text.rich(
         TextSpan(
@@ -572,6 +794,7 @@ class _ComponentLineEditor extends StatelessWidget {
     required this.notifier,
     required this.dragIndex,
     required this.collapseEpoch,
+    this.lit = false,
   });
 
   final LineItem item;
@@ -579,6 +802,7 @@ class _ComponentLineEditor extends StatelessWidget {
   final RecipeEditor notifier;
   final int dragIndex;
   final int collapseEpoch;
+  final bool lit;
 
   @override
   Widget build(BuildContext context) {
@@ -617,6 +841,7 @@ class _ComponentLineEditor extends StatelessWidget {
       amount: componentAmountText(item.quantity, item.unit),
       dragIndex: dragIndex,
       collapseEpoch: collapseEpoch,
+      lit: lit,
       onEditAmount: editQuantity,
       // A dangling link reads as the plain text it stored, muted, and says why
       // there is no chip — the recipe page's own degradation.
@@ -687,6 +912,7 @@ class _EditorLine extends StatelessWidget {
     required this.dragIndex,
     required this.collapseEpoch,
     required this.onEditAmount,
+    this.lit = false,
   });
 
   final LineItem item;
@@ -706,10 +932,14 @@ class _EditorLine extends StatelessWidget {
   final int collapseEpoch;
   final VoidCallback onEditAmount;
 
+  /// Whether the step being written points at this line. See [LineCard.lit].
+  final bool lit;
+
   @override
   Widget build(BuildContext context) => LineCard(
     dragIndex: dragIndex,
     collapseEpoch: collapseEpoch,
+    lit: lit,
     // A saved recipe has no line that needs the user, and it has no wall of
     // boxes either: the border is what "open" looks like.
     borderAtRest: false,

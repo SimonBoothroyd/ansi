@@ -329,7 +329,7 @@ void main() {
   testWidgets('the EDITOR tags an optional line too — an ingredient row and a '
       'component row alike', (tester) async {
     filterForuiSemanticsAssertions();
-    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.physicalSize = const Size(1000, 3000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
@@ -534,7 +534,7 @@ void main() {
       'here yet', (tester) async {
     filterForuiSemanticsAssertions();
     // The form is one long scroll; give it room so both lines are built.
-    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.physicalSize = const Size(1000, 3000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
@@ -588,7 +588,7 @@ void main() {
   testWidgets('the EDITOR names a retired ingredient and its card’s identity '
       'door opens the picker, so the line can be re-pointed', (tester) async {
     filterForuiSemanticsAssertions();
-    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.physicalSize = const Size(1000, 3000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 

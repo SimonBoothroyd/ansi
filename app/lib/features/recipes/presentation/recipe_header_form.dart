@@ -108,6 +108,8 @@ class RecipeHeaderForm extends StatelessWidget {
     required this.host,
     this.notes = const RecipeHeaderNotes(),
     this.timeCaptions = true,
+    this.sections = kRecipeHeaderSections,
+    this.dense = false,
     super.key,
   });
 
@@ -119,13 +121,28 @@ class RecipeHeaderForm extends StatelessWidget {
   /// review is dense enough already (frame b).
   final bool timeCaptions;
 
+  /// Which of [kRecipeHeaderSections] this instance draws, in order.
+  ///
+  /// All six on a phone, where the header is one column. The wide editor folds
+  /// the same six onto two rows — the title over the lines, the filing over
+  /// the method, then the four small facts across the cap — by asking for them
+  /// a cell at a time. It is the same form either way: a cell is a slice of
+  /// the section list, never a second control.
+  final List<RecipeHeaderSection> sections;
+
+  /// The wide header's four cells: a quarter of the cap is not a column, so
+  /// each fact states itself with the row's own short word and the compact
+  /// stepper, and the paragraphs that explain a control to a first-time
+  /// reader are left to the phone's one-column form.
+  final bool dense;
+
   @override
   Widget build(BuildContext context) {
     final recipe = host.header;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final (i, section) in kRecipeHeaderSections.indexed) ...[
+        for (final (i, section) in sections.indexed) ...[
           if (i > 0) const SizedBox(height: 20),
           _section(section, recipe),
         ],
@@ -170,7 +187,7 @@ class RecipeHeaderForm extends StatelessWidget {
                   style: ansiMono(size: 11, color: AnsiColors.muted),
                 ),
               ),
-            _MakesSection(recipe: recipe, host: host),
+            _MakesSection(recipe: recipe, host: host, dense: dense),
             if (notes.afterMakes case final hint?)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
@@ -185,32 +202,55 @@ class RecipeHeaderForm extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             AnsiMicroLabel(section.label),
-            _StepperRow(
-              label: 'Cook',
-              caption: timeCaptions ? 'hands-on and on the heat' : null,
-              value: recipe.cookTimeSeconds,
-              step: 60,
-              format: formatDuration,
-              unsetText: 'not set',
-              onChanged: host.setCookTime,
-            ),
-            const SizedBox(height: 8),
-            _StepperRow(
-              label: 'Total',
-              caption: timeCaptions ? 'start to plate' : null,
-              value: recipe.totalTimeSeconds,
-              step: 60,
-              format: formatDuration,
-              unsetText: 'not set',
-              onChanged: host.setTotalTime,
-            ),
+            if (dense) ...[
+              _MiniStepperRow(
+                word: 'cook',
+                value: recipe.cookTimeSeconds,
+                step: 60,
+                format: formatDuration,
+                unsetText: 'not set',
+                onChanged: host.setCookTime,
+              ),
+              const SizedBox(height: 7),
+              _MiniStepperRow(
+                word: 'total',
+                value: recipe.totalTimeSeconds,
+                step: 60,
+                format: formatDuration,
+                unsetText: 'not set',
+                onChanged: host.setTotalTime,
+              ),
+            ] else ...[
+              _StepperRow(
+                label: 'Cook',
+                caption: timeCaptions ? 'hands-on and on the heat' : null,
+                value: recipe.cookTimeSeconds,
+                step: 60,
+                format: formatDuration,
+                unsetText: 'not set',
+                onChanged: host.setCookTime,
+              ),
+              const SizedBox(height: 8),
+              _StepperRow(
+                label: 'Total',
+                caption: timeCaptions ? 'start to plate' : null,
+                value: recipe.totalTimeSeconds,
+                step: 60,
+                format: formatDuration,
+                unsetText: 'not set',
+                onChanged: host.setTotalTime,
+              ),
+            ],
           ],
         ),
         RecipeHeaderSection.shelfLife => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             AnsiMicroLabel(section.label),
-            _ShelfLifeSection(recipe: recipe, host: host),
+            if (dense)
+              _DenseShelfLife(recipe: recipe, host: host)
+            else
+              _ShelfLifeSection(recipe: recipe, host: host),
           ],
         ),
         RecipeHeaderSection.fileUnder => Column(
@@ -233,10 +273,19 @@ class RecipeHeaderForm extends StatelessWidget {
 /// family. It can only be added once the first is stated, which is what the
 /// migration's CHECK says too — a save must not be able to bounce off it.
 class _MakesSection extends HookWidget {
-  const _MakesSection({required this.recipe, required this.host});
+  const _MakesSection({
+    required this.recipe,
+    required this.host,
+    this.dense = false,
+  });
 
   final Recipe recipe;
   final RecipeHeaderHost host;
+
+  /// See [RecipeHeaderForm.dense] — a quarter of the wide cap holds the two
+  /// yield rows and the door between them, and not the paragraph that explains
+  /// the second slot's offer.
+  final bool dense;
 
   /// The units a yield may be stated in: everything an ingredient line can say
   /// except the imprecise words — "makes a pinch" is not a yield, and `batch`
@@ -288,14 +337,15 @@ class _MakesSection extends HookWidget {
               host.setSecondYield(qty, u);
             },
           ),
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              'the second slot only offers the other families — two ways of '
-              'saying one batch, never two numbers in one family',
-              style: ansiMono(size: 11, color: AnsiColors.muted),
+          if (!dense)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                'the second slot only offers the other families — two ways of '
+                'saying one batch, never two numbers in one family',
+                style: ansiMono(size: 11, color: AnsiColors.muted),
+              ),
             ),
-          ),
         ] else if (hasFirst) ...[
           const SizedBox(height: 8),
           Align(
@@ -305,7 +355,9 @@ class _MakesSection extends HookWidget {
               size: FButtonSizeVariant.sm,
               prefix: const Icon(FLucideIcons.plus),
               onPress: () => unit2.value = otherFamilies.first,
-              child: const Text('Another denomination'),
+              // The eyebrow overhead already says MAKES, and a quarter of the
+              // wide cap does not hold the longer way of saying it.
+              child: Text(dense ? 'Another' : 'Another denomination'),
             ),
           ),
         ],
@@ -482,6 +534,114 @@ class _ShelfLifeSection extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// The wide header's SHELF LIFE cell: the same two facts, each with the row's
+/// own short word beside the control.
+///
+/// The paragraph that says what fridge days drive is not here — it explains a
+/// control to somebody meeting it, and a quarter of the cap is where somebody
+/// who already knows changes a number. The phone's form still carries it.
+class _DenseShelfLife extends StatelessWidget {
+  const _DenseShelfLife({required this.recipe, required this.host});
+
+  final Recipe recipe;
+  final RecipeHeaderHost host;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _MiniStepperRow(
+        word: 'fridge',
+        value: recipe.keepsForDays,
+        format: _ShelfLifeSection._days,
+        unsetText: 'not set',
+        onChanged: host.setKeepsForDays,
+      ),
+      const SizedBox(height: 7),
+      Row(
+        children: [
+          const _MiniWord('freezes'),
+          const SizedBox(width: 9),
+          FSwitch(value: recipe.freezable, onChange: host.setFreezable),
+        ],
+      ),
+      if (recipe.freezable) ...[
+        const SizedBox(height: 7),
+        _MiniStepperRow(
+          word: 'freezer',
+          value: recipe.freezerDays,
+          format: _ShelfLifeSection._days,
+          unsetText: 'no limit',
+          onChanged: host.setFreezerDays,
+        ),
+      ],
+    ],
+  );
+}
+
+/// The word a wide header cell puts beside a control — the eyebrow's voice, at
+/// the fixed width that keeps two facts in one cell reading as a pair.
+class _MiniWord extends StatelessWidget {
+  const _MiniWord(this.word);
+
+  final String word;
+
+  @override
+  Widget build(BuildContext context) =>
+      SizedBox(width: 40, child: Text(word.toUpperCase(), style: ansiLabel()));
+}
+
+/// One fact in a wide header cell: the word, then the compact stepper.
+///
+/// The same [AnsiStepperRow] the phone's row uses, in its small size — a
+/// quarter of the cap does not hold a sentence, two 44 pt buttons and a
+/// hundred-pixel reading.
+class _MiniStepperRow extends StatelessWidget {
+  const _MiniStepperRow({
+    required this.word,
+    required this.value,
+    required this.format,
+    required this.unsetText,
+    required this.onChanged,
+    this.step = 1,
+  });
+
+  final String word;
+  final int? value;
+  final int step;
+  final String Function(int value) format;
+  final String unsetText;
+  final ValueChanged<int?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = this.value;
+    return AnsiStepperRow(
+      small: true,
+      leading: Padding(
+        padding: const EdgeInsets.only(right: 9),
+        child: _MiniWord(word),
+      ),
+      onDecrement: value == null
+          ? null
+          : () => onChanged(value <= step ? null : value - step),
+      onIncrement: () => onChanged((value ?? 0) + step),
+      value: SizedBox(
+        width: 74,
+        child: Text(
+          value == null ? unsetText : format(value),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: value == null
+              ? ansiMono(size: 12, color: AnsiColors.muted)
+              : ansiMono(size: 13.5, weight: FontWeight.w600),
+        ),
+      ),
     );
   }
 }
