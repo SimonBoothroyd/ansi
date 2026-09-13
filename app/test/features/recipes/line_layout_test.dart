@@ -133,7 +133,7 @@ void main() {
   testWidgets('the editor prints the same row — amount cell, identity, note — '
       'on one line', (tester) async {
     filterForuiSemanticsAssertions();
-    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.physicalSize = const Size(1000, 3000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
@@ -166,7 +166,7 @@ void main() {
   testWidgets('“used in N steps” is on the open card, under the head — never '
       'on the row a cook scans', (tester) async {
     filterForuiSemanticsAssertions();
-    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.physicalSize = const Size(1000, 3000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 

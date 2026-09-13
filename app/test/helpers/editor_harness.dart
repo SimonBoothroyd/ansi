@@ -218,8 +218,14 @@ Future<void> scrollToMethod(WidgetTester tester) => tester.scrollUntilVisible(
 /// Gives the test a surface tall enough to hold the whole editor form, so a
 /// suite can tap anything without scrolling. (Scrolling the form disposes
 /// Forui's `FSelect` items mid-frame, which throws from inside the package.)
+///
+/// **Tall, and deliberately under `lg`.** These suites are about the one-column
+/// form every screen is written for; a surface wide enough to be a desk would
+/// quietly move all of them onto the editor's two-column layout and leave the
+/// phone's untested. The wide form has its own suite
+/// (`test/features/recipes/recipe_editor_wide_test.dart`).
 void tallSurface(WidgetTester tester) {
-  tester.view.physicalSize = const Size(1200, 4400);
+  tester.view.physicalSize = const Size(1000, 4400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 }
