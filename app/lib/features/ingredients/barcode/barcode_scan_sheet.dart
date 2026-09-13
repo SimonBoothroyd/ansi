@@ -18,6 +18,7 @@ library;
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -171,8 +172,16 @@ class BarcodeScanSheet extends HookWidget {
   }
 }
 
+/// The preview, where there is a camera to preview. In a browser there is
+/// not: `mobile_scanner`'s web build fetches its detector from a CDN at run
+/// time and then asks for a camera, so it is never built here — the sheet
+/// draws its own "no camera" state and the typed field below finishes the job.
+/// The door onto this sheet is not offered on the web either
+/// (`ingredient_detail_view.dart`); this is the second lock on the same gate.
 Widget _defaultCameraPane(BuildContext context, ValueChanged<String> onCode) =>
-    _MobileScannerPane(onCode: onCode);
+    kIsWeb
+    ? const CameraOffNotice(permissionDenied: false)
+    : _MobileScannerPane(onCode: onCode);
 
 /// The plugin's preview, with permission refusal rendered as a designed state
 /// rather than a crash (board frame: "camera is off").
@@ -284,13 +293,30 @@ class _CameraFrame extends StatelessWidget {
 /// "Ansi can't open the camera" — shown in place of the preview, with the
 /// typed field below still live. Public so the widget tests assert the copy
 /// the plugin path actually renders.
-class CameraOffNotice extends StatelessWidget {
-  const CameraOffNotice({required this.permissionDenied, super.key});
+class CameraOffNotice extends HookWidget {
+  const CameraOffNotice({
+    required this.permissionDenied,
+    this.canOpenSettings = _canOpenAppSettings,
+    super.key,
+  });
 
   final bool permissionDenied;
 
+  /// Whether this platform can open the app's own settings pane — asked
+  /// rather than assumed, because the button below is drawn only where the
+  /// answer is yes. Injectable so both answers are testable.
+  final Future<bool> Function() canOpenSettings;
+
   @override
   Widget build(BuildContext context) {
+    // Starts false: a button that appears a frame late is honest, and one
+    // drawn on a hunch and then removed is a flicker.
+    final canOpen =
+        useFuture(
+          useMemoized(canOpenSettings, [canOpenSettings]),
+          initialData: false,
+        ).data ??
+        false;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -312,7 +338,7 @@ class CameraOffNotice extends StatelessWidget {
             textAlign: TextAlign.center,
             style: ansiMono(size: 10, color: AnsiColors.line),
           ),
-          if (permissionDenied) ...[
+          if (permissionDenied && canOpen) ...[
             const SizedBox(height: 10),
             FButton(
               variant: FButtonVariant.outline,
@@ -327,12 +353,27 @@ class CameraOffNotice extends StatelessWidget {
   }
 }
 
-/// iOS opens the app's own settings pane for this scheme. A refusal is
-/// swallowed: the typed field is the path that always works, so a dead
-/// button must not become an error the user has to dismiss.
+/// iOS opens the app's own settings pane for this scheme. Nowhere else does:
+/// a browser cannot open a foreign scheme at all, and the button is not drawn
+/// where this answers false — a control that does nothing is worse than no
+/// control, because the person keeps pressing it.
+Future<bool> _canOpenAppSettings() async {
+  try {
+    return await canLaunchUrl(_appSettings);
+  } on Object {
+    // No launcher on this platform (or none registered, as in a widget test).
+    return false;
+  }
+}
+
+final _appSettings = Uri.parse('app-settings:');
+
+/// Opens that pane. A refusal is swallowed: the typed field is the path that
+/// always works, so a dead button must not become an error the user has to
+/// dismiss.
 Future<void> _openSettings() async {
   try {
-    await launchUrl(Uri.parse('app-settings:'));
+    await launchUrl(_appSettings);
   } on PlatformException {
     // nothing to do — the typed field below is the working path
   }

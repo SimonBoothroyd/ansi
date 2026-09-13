@@ -18,6 +18,7 @@
 /// is what a search is for.
 library;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
@@ -170,7 +171,12 @@ class IngredientListView extends HookConsumerWidget {
                     onTap: addNew,
                     child: FCard(
                       child: Text(
-                        'add an ingredient — by hand, or scan a barcode',
+                        // The scan door does not exist in a browser (the
+                        // detector wants a camera the tab has not got), so the
+                        // card must not advertise it there.
+                        kIsWeb
+                            ? 'add an ingredient'
+                            : 'add an ingredient — by hand, or scan a barcode',
                         textAlign: TextAlign.center,
                         style: ansiMono(size: 11, color: AnsiColors.herb),
                       ),
