@@ -48,6 +48,8 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/week_shape.dart';
 import '../../../shared/ansi_layout.dart';
+import '../../../shared/ansi_scroll.dart';
+import '../../../shared/ansi_tap.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../account/data/household_providers.dart';
 import '../../cook_plan/domain/cook_plan.dart';
@@ -285,7 +287,10 @@ class _DayPane extends ConsumerWidget {
           // ceremony — what must not scroll away is the day's total.
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.only(top: 20, bottom: 6),
+              padding: ansiScrollPadding(
+                context,
+                const EdgeInsets.only(top: 20, bottom: 6),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -530,7 +535,10 @@ class _Agenda extends ConsumerWidget {
         ),
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.only(bottom: 26),
+            padding: ansiScrollPadding(
+              context,
+              const EdgeInsets.only(bottom: 26),
+            ),
             children: [
               for (var d = 0; d < 7; d++)
                 _AgendaDay(
@@ -604,9 +612,11 @@ class _AgendaDay extends ConsumerWidget {
           // The heading is the target that opens the day at left; the `›` is
           // what draws it, and the day already open draws none (there is
           // nowhere to go).
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
+          AnsiTap(
             onTap: selected ? null : onSelect,
+            // The heading is the door, and the `›` only draws it — so the
+            // ground is the whole heading rather than the glyph at its end.
+            radius: 4,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
@@ -647,6 +657,9 @@ class _AgendaDay extends ConsumerWidget {
                     size: 15,
                     color: AnsiColors.muted,
                   ),
+                // The `›` keeps its own ink: this row's ground is a heading's,
+                // and a whole day name stepping to herb-deep on hover would
+                // read as the day being selected.
               ],
             ),
           ),

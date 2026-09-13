@@ -34,6 +34,7 @@ import '../../../core/units/measure.dart';
 import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/amount_and_unit.dart';
+import '../../../shared/ansi_tap.dart';
 import '../../../shared/format.dart';
 import '../../../shared/inline_amount_field.dart';
 import '../../../shared/reorder_grip.dart';
@@ -378,14 +379,11 @@ class MeasureRow extends StatelessWidget {
               style: ansiMono(size: 9, color: AnsiColors.muted),
             ),
             const SizedBox(width: 8),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
+            AnsiTap(
               onTap: () => onDelete(measure),
-              child: const Icon(
-                FLucideIcons.trash2,
-                size: 15,
-                color: AnsiColors.muted,
-              ),
+              semanticsLabel: 'Delete the measure',
+              color: AnsiColors.muted,
+              child: const Icon(FLucideIcons.trash2, size: 15),
             ),
           ],
         ),

@@ -26,6 +26,7 @@ import '../../../core/week_shape.dart';
 import '../../../shared/ansi_callout.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_layout.dart';
+import '../../../shared/ansi_scroll.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../account/data/household_providers.dart';
 import '../../planning/presentation/week_format.dart';
@@ -102,7 +103,10 @@ class CookView extends ConsumerWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: kCookSheetWidth),
           child: ListView(
-            padding: const EdgeInsets.only(top: 6, bottom: 24),
+            padding: ansiScrollPadding(
+              context,
+              const EdgeInsets.only(top: 6, bottom: 24),
+            ),
             children: [
               const _PlanCaption(),
               if (data.isEmpty)

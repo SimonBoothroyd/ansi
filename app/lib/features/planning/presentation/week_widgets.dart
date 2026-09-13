@@ -21,6 +21,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/portions.dart';
 import '../../../core/words.dart';
 import '../../../shared/ansi_chip.dart';
+import '../../../shared/ansi_tap.dart';
 import '../../../shared/ansi_toast.dart';
 import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
@@ -50,9 +51,9 @@ class Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return AnsiTap(
       onTap: onTap,
+      radius: AnsiRadii.pill,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
@@ -261,29 +262,24 @@ class EatersTarget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final nobody = entry.eaterIds.isEmpty && portions == null;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return AnsiTap(
       onTap: () => showMealEditorSheet(context, entry: entry),
-      child: Padding(
-        // Vertical padding is the hit area, not decoration: the avatars are
-        // 24 pt tall and this brings the target to ~44.
-        padding: const EdgeInsets.fromLTRB(8, 10, 4, 10),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (portions != null) ...[
-              PortionsChip(portions: portions!),
-              const SizedBox(width: 8),
-            ],
-            if (nobody)
-              Text('nobody', style: ansiMono(size: 10, color: AnsiColors.muted))
-            else
-              EaterAvatarStack(
-                roster: roster,
-                eaterIds: entry.eaterIds.toSet(),
-              ),
+      semanticsLabel: 'Who is eating',
+      // Vertical padding is the hit area, not decoration: the avatars are
+      // 24 pt tall and this brings the target to ~44.
+      padding: const EdgeInsets.fromLTRB(8, 10, 4, 10),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (portions != null) ...[
+            PortionsChip(portions: portions!),
+            const SizedBox(width: 8),
           ],
-        ),
+          if (nobody)
+            Text('nobody', style: ansiMono(size: 10, color: AnsiColors.muted))
+          else
+            EaterAvatarStack(roster: roster, eaterIds: entry.eaterIds.toSet()),
+        ],
       ),
     );
   }
@@ -303,13 +299,12 @@ class RemoveTarget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return AnsiTap(
       onTap: () => unawaited(_remove(context, ref)),
-      child: const Padding(
-        padding: EdgeInsets.fromLTRB(8, 10, 4, 10),
-        child: Icon(FLucideIcons.minus, size: 16, color: AnsiColors.muted),
-      ),
+      semanticsLabel: 'Remove the meal',
+      color: AnsiColors.muted,
+      padding: const EdgeInsets.fromLTRB(8, 10, 4, 10),
+      child: const Icon(FLucideIcons.minus, size: 16),
     );
   }
 
@@ -478,9 +473,11 @@ class AddMealLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return AnsiTap(
       onTap: onTap,
+      // The line is the door, so the ground is the line: a `＋` that lit on its
+      // own would say the glyph is the target and the words beside it are not.
+      radius: 0,
       child: Container(
         padding: padding,
         decoration: BoxDecoration(

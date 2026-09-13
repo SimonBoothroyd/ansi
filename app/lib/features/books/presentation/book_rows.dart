@@ -20,6 +20,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/words.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_more_trigger.dart';
+import '../../../shared/ansi_tap.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/dotted_leader.dart';
 import '../../../shared/format.dart';
@@ -539,15 +540,14 @@ class SectionAddMenu extends StatelessWidget {
           ],
         ),
       ],
-      builder: (context, controller, _) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      builder: (context, controller, _) => AnsiTap(
         onTap: controller.toggle,
-        child: const Padding(
-          // The touch target the glyph does not have on its own, on a row
-          // whose other control is a `⋯` of the same weight.
-          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          child: Icon(FLucideIcons.plus, size: 15, color: AnsiColors.herb),
-        ),
+        semanticsLabel: 'File a recipe here',
+        color: AnsiColors.herb,
+        // The touch target the glyph does not have on its own, on a row
+        // whose other control is a `⋯` of the same weight.
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        child: const Icon(FLucideIcons.plus, size: 15),
       ),
     );
   }

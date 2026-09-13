@@ -25,6 +25,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../shared/ansi_tap.dart';
 import '../../account/data/household_providers.dart';
 import 'copy_last_week.dart';
 import 'week_format.dart';
@@ -92,17 +93,12 @@ class _Chevron extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: semantics,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          child: Icon(icon, size: 18, color: AnsiColors.muted),
-        ),
-      ),
+    return AnsiTap(
+      onTap: onTap,
+      semanticsLabel: semantics,
+      color: AnsiColors.muted,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: Icon(icon, size: 18),
     );
   }
 }

@@ -31,6 +31,7 @@ import '../../../core/words.dart';
 import '../../../shared/ansi_back.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_layout.dart';
+import '../../../shared/ansi_scroll.dart';
 import '../../../shared/ansi_search_field.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../data/ingredient_providers.dart';
@@ -174,7 +175,10 @@ class IngredientListView extends HookConsumerWidget {
                   vocabulary,
                   all,
                   () => ListView(
-                    padding: const EdgeInsets.fromLTRB(22, 0, 22, 8),
+                    padding: ansiScrollPadding(
+                      context,
+                      const EdgeInsets.fromLTRB(22, 0, 22, 8),
+                    ),
                     children: searching
                         ? _searchResults(
                             search.results,

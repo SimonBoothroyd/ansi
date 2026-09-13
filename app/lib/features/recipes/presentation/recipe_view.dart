@@ -53,6 +53,7 @@ import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_layout.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_stepper_row.dart';
+import '../../../shared/ansi_tap.dart';
 import '../../../shared/format.dart';
 import '../../../shared/freshness_bar.dart';
 import '../../../shared/guarded_navigation.dart';
@@ -568,17 +569,12 @@ class _RecipeMenu extends ConsumerWidget {
             )
           // In the hero there is no header to be an action of, so the glyph
           // stands on its own, sized to the row it sits in.
-          : GestureDetector(
-              behavior: HitTestBehavior.opaque,
+          : AnsiTap(
               onTap: controller.toggle,
-              child: const Padding(
-                padding: EdgeInsets.all(6),
-                child: Icon(
-                  FLucideIcons.ellipsis,
-                  size: 18,
-                  color: AnsiColors.muted,
-                ),
-              ),
+              semanticsLabel: 'More',
+              color: AnsiColors.muted,
+              padding: const EdgeInsets.all(6),
+              child: const Icon(FLucideIcons.ellipsis, size: 18),
             ),
     );
   }

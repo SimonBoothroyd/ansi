@@ -28,6 +28,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/portions.dart';
+import '../../../shared/ansi_tap.dart';
 import '../../../shared/format.dart';
 import '../../../shared/incomplete_macros.dart';
 import '../../account/data/household_providers.dart';
@@ -447,19 +448,18 @@ class _StepButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return AnsiTap(
       onTap: onTap,
+      color: AnsiColors.herb,
       child: Container(
         width: 40,
         height: 40,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: AnsiColors.surface,
           border: Border.all(color: AnsiColors.line),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AnsiRadii.box),
         ),
-        child: Icon(icon, size: 16, color: AnsiColors.herb),
+        child: Icon(icon, size: 16),
       ),
     );
   }

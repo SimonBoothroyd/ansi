@@ -34,7 +34,9 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/words.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_layout.dart';
+import '../../../shared/ansi_scroll.dart';
 import '../../../shared/ansi_search_field.dart';
+import '../../../shared/ansi_tap.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/dotted_leader.dart';
 import '../../../shared/guarded_navigation.dart';
@@ -443,15 +445,16 @@ class _NewBookLink extends ConsumerWidget {
   const _NewBookLink();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => GestureDetector(
-    behavior: HitTestBehavior.opaque,
+  Widget build(BuildContext context, WidgetRef ref) => AnsiTap(
     onTap: () => unawaited(promptForNewBook(context, ref)),
+    color: AnsiColors.herb,
+    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
     child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      padding: EdgeInsets.zero,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(FLucideIcons.bookPlus, size: 13, color: AnsiColors.herb),
+          const Icon(FLucideIcons.bookPlus, size: 13),
           const SizedBox(width: 6),
           Text(
             'new book',
@@ -542,7 +545,10 @@ class _LedgerState extends State<_Ledger> {
               Expanded(
                 child: ListView(
                   controller: _scroll,
-                  padding: const EdgeInsets.only(bottom: 36),
+                  padding: ansiScrollPadding(
+                    context,
+                    const EdgeInsets.only(bottom: 36),
+                  ),
                   children: [
                     for (final book in books)
                       _LedgerBook(
@@ -683,17 +689,15 @@ class _HeadingRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => Row(
     children: [
-      GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      AnsiTap(
         onTap: () =>
             unawaited(ref.read(foldedBooksProvider.notifier).toggle(book.id)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(0, 6, 8, 6),
-          child: Icon(
-            open ? FLucideIcons.chevronDown : FLucideIcons.chevronRight,
-            size: 14,
-            color: AnsiColors.muted,
-          ),
+        semanticsLabel: open ? 'Fold the book' : 'Unfold the book',
+        color: AnsiColors.muted,
+        padding: const EdgeInsets.fromLTRB(0, 6, 8, 6),
+        child: Icon(
+          open ? FLucideIcons.chevronDown : FLucideIcons.chevronRight,
+          size: 14,
         ),
       ),
       // Capped rather than [Flexible]: a flexible name would divide the row's
@@ -736,12 +740,13 @@ class _RemainderRow extends StatelessWidget {
   final int shown;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    behavior: HitTestBehavior.opaque,
+  Widget build(BuildContext context) => AnsiTap(
     onTap: () => context.pushOnce(bookRoute(book.id)),
+    color: AnsiColors.herb,
+    radius: 4,
     child: Row(
       children: [
-        const Icon(FLucideIcons.chevronRight, size: 12, color: AnsiColors.herb),
+        const Icon(FLucideIcons.chevronRight, size: 12),
         const SizedBox(width: 7),
         Text(
           bookRemainderLine(book, shown: shown),
@@ -840,9 +845,13 @@ class LibraryIndexLetter extends StatelessWidget {
   static const double rowHeight = 20;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    behavior: HitTestBehavior.opaque,
+  Widget build(BuildContext context) => AnsiTap(
     onTap: lit ? onTap : null,
+    // The margin's twenty-seven rows ARE the geometry: grown to the pointer's
+    // 32 they would be a column, not a margin. The row is 20 and stays 20;
+    // the ground and the ring fill it.
+    minTarget: false,
+    radius: 4,
     child: SizedBox(
       height: rowHeight,
       child: Align(
