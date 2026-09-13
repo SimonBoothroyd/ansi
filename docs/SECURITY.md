@@ -11,6 +11,13 @@ Hobby scale, but the basics are non-negotiable.
   function secret and must never ship in the Flutter bundle. (ADR-0004.)
 - The Supabase **anon key** is public by design; it is *not* a secret. Real
   protection comes from Row-Level Security, below.
+- **A hosted web build publishes every `--dart-define` it was compiled with.**
+  They are baked into `main.dart.js`, which anyone can read: the anon key
+  (public anyway) and both endpoints. The endpoints are kept as repo secrets so
+  a public repo's logs never print them, and hosting hands them out, so what
+  keeps it safe is the one setting that must not be relaxed — **public sign-up
+  stays OFF**, or a stranger with the endpoints can provision a household.
+  Trade and owed steps: [`release.md` §6.2](./release.md#62-the-trade-hosting-publishes-the-endpoints).
 
 ## Auth & data isolation
 
