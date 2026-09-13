@@ -8,17 +8,20 @@ part of 'week_variant_view_models.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's Monday
+/// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's first
+/// day
 /// as `YYYY-MM-DD` — the query param the door opens the editor with.
 
 @ProviderFor(WeekVariantDraft)
 const weekVariantDraftProvider = WeekVariantDraftFamily._();
 
-/// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's Monday
+/// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's first
+/// day
 /// as `YYYY-MM-DD` — the query param the door opens the editor with.
 final class WeekVariantDraftProvider
     extends $AsyncNotifierProvider<WeekVariantDraft, WeekVariant> {
-  /// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's Monday
+  /// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's first
+  /// day
   /// as `YYYY-MM-DD` — the query param the door opens the editor with.
   const WeekVariantDraftProvider._({
     required WeekVariantDraftFamily super.from,
@@ -58,7 +61,8 @@ final class WeekVariantDraftProvider
 
 String _$weekVariantDraftHash() => r'88ed6e614bf3649b79aac6db863a0bab5669de42';
 
-/// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's Monday
+/// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's first
+/// day
 /// as `YYYY-MM-DD` — the query param the door opens the editor with.
 
 final class WeekVariantDraftFamily extends $Family
@@ -79,7 +83,8 @@ final class WeekVariantDraftFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's Monday
+  /// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's first
+  /// day
   /// as `YYYY-MM-DD` — the query param the door opens the editor with.
 
   WeekVariantDraftProvider call(String recipeId, String weekKey) =>
@@ -89,7 +94,8 @@ final class WeekVariantDraftFamily extends $Family
   String toString() => r'weekVariantDraftProvider';
 }
 
-/// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's Monday
+/// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's first
+/// day
 /// as `YYYY-MM-DD` — the query param the door opens the editor with.
 
 abstract class _$WeekVariantDraft extends $AsyncNotifier<WeekVariant> {

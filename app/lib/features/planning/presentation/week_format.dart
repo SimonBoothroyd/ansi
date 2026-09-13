@@ -43,6 +43,20 @@ String formatDayMonth(DateTime date) =>
 String formatDayDate(DateTime weekStart, int dayOfWeek) =>
     formatDayMonth(weekStart.add(Duration(days: dayOfWeek)));
 
+/// The week's seven days as a span — `13–19 Sep`, or `28 Sep – 4 Oct` where it
+/// crosses a month.
+///
+/// The month is said ONCE while one month holds the week: repeating it is the
+/// kind of noise the wide Week was redrawn to lose. A week that straddles two
+/// months says both, because leaving one out would date four of its days
+/// wrongly.
+String formatWeekSpan(DateTime weekStart) {
+  final last = weekStart.add(const Duration(days: 6));
+  return weekStart.month == last.month
+      ? '${weekStart.day}–${formatDayMonth(last)}'
+      : '${formatDayMonth(weekStart)} – ${formatDayMonth(last)}';
+}
+
 /// How the Week screen NAMES the week it is showing (D2).
 ///
 /// A week is a position, not a date, so the title says the position whenever

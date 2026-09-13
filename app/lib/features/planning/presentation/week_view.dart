@@ -31,10 +31,10 @@
 /// screen with nothing in it: header, switcher, lens row, seven day cards and
 /// the week band all render, exactly as they do for a full week.
 ///
-/// **At [AnsiLayout.expanded] the same week is a matrix** — seven day columns
-/// against the slot rows the week actually has (`week_matrix.dart`). It is one
-/// view model, one set of words and one set of doors, drawn in two shapes: this
-/// file's list below the band, the matrix above it.
+/// **At [AnsiLayout.expanded] the same week is one day beside the week that
+/// scrolls** — a 560 px day pane and a vertical agenda (`week_wide.dart`). It
+/// is one view model, one set of words and one set of doors, drawn in two
+/// shapes: this file's list below the band, the two panes above it.
 ///
 /// The week itself is a position, not a singleton — see `week_header.dart` and
 /// `week_view_models.dart`.
@@ -67,8 +67,8 @@ import 'recipe_picker_sheet.dart';
 import 'week_format.dart';
 import 'week_header.dart';
 import 'week_macro_widgets.dart';
-import 'week_matrix.dart';
 import 'week_view_models.dart';
+import 'week_wide.dart';
 import 'week_widgets.dart';
 
 /// The add flow: pick from the ONE door, then confirm slot/eaters/portions.
@@ -178,6 +178,11 @@ class WeekView extends HookConsumerWidget {
     // null = Everyone; a member id = that person's lens (D8: it dims, it does
     // not remove).
     final lens = useState<String?>(null);
+    // Which day the wide day pane draws. VIEW state, held here beside the lens
+    // because both are questions about how this screen is being READ, not facts
+    // about the week — and neither persists: come back to the Week and it is
+    // today again, under Everyone. Null means "the default" (see [WeekWide]).
+    final selectedDay = useState<int?>(null);
     final scope =
         roster
             .where((m) => m.id == lens.value)
@@ -215,7 +220,7 @@ class WeekView extends HookConsumerWidget {
         data: (plan) {
           final empty = plan == null || plan.entries.isEmpty;
           if (AnsiLayout.of(context) == AnsiLayout.expanded) {
-            return WeekMatrix(
+            return WeekWide(
               weekStart: weekStart,
               plan: plan,
               roster: roster,
@@ -223,6 +228,7 @@ class WeekView extends HookConsumerWidget {
               scope: scope,
               cookPlan: cookPlan,
               todayDayOfWeek: todayDayOfWeek,
+              selectedDay: selectedDay,
               onAddMeal: (dayOfWeek) => unawaited(
                 _addMealFlow(
                   context,
@@ -530,7 +536,6 @@ class _DishRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final snack = entry.isIngredient;
-    final deleted = entry.title == null;
     final plan = cookPlan;
     // E6: the marker is never suppressed — there is no mode left to suppress
     // it in, and the cook consequence is most worth reading while planning.
@@ -551,6 +556,7 @@ class _DishRow extends ConsumerWidget {
     // page's week door is only offered to an arrival that names a week which
     // actually plans the recipe.
     final weekKey = isoDateOf(ref.watch(viewedWeekStartProvider));
+    final route = mealTitleRoute(entry, weekKey: weekKey);
     // Every planned day of a varied recipe says so, because the variant is
     // per (week, recipe) — two rows describing one pot cannot disagree.
     final edited =
@@ -567,33 +573,22 @@ class _DishRow extends ConsumerWidget {
               Expanded(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  // The title opens the thing it NAMES — a recipe's page, or,
-                  // for a snack, its ingredient page (A-D5: an ingredient
-                  // detail link at most; never a recipe door on a row that is
-                  // not a recipe). A deleted target has no page to open, so
-                  // the title is inert — the row's other two targets still
-                  // work, because the meal is still a real row on the week.
-                  // The dish's page is opened WITH the week it is planned in
-                  // (`?week=`), so the page can offer the week door beside
-                  // its own Edit. A snack has no recipe to vary, so its
-                  // ingredient page is opened plain.
-                  onTap: deleted
-                      ? null
-                      : () => context.pushOnce(
-                          snack
-                              ? '/ingredients/${entry.ingredientId}'
-                              : '/recipes/${entry.recipeId}?week=$weekKey',
-                        ),
+                  // The title opens the thing it NAMES, with the week it is
+                  // planned in — [mealTitleRoute] holds which page that is, for
+                  // this row and for the wide day pane both. A deleted target
+                  // has no page to open, so the title is inert; the row's other
+                  // two targets still work, because the meal is still a real
+                  // row on the week.
+                  onTap: route == null ? null : () => context.pushOnce(route),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     child: Text(
-                      entry.title ??
-                          (snack ? '(deleted ingredient)' : '(deleted recipe)'),
+                      mealTitleText(entry),
                       // A snack is VISIBLY not a recipe (A-D5): the dish's
                       // emphasis is what says "this is a dish with a page
                       // behind it", so a bare ingredient reads at the row's
                       // ordinary weight instead of borrowing it.
-                      style: deleted
+                      style: entry.title == null
                           ? ansiSans(size: 15, color: AnsiColors.muted)
                           : ansiSans(
                               size: snack ? 14 : 15,

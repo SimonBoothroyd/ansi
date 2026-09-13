@@ -243,6 +243,33 @@ PortionMacros ingredientPortionMacros(
   };
 }
 
+/// What ONE planned meal is worth **as served to the people eating it** — the
+/// figure the wide Week prints under a dish in the day pane.
+///
+/// It is [sumPlannedMacros] over a set of one, and deliberately nothing else:
+/// a meal's served figure is `perServing × the portions planned`, which is
+/// exactly the multiplication a day total already does per entry, and a second
+/// implementation of it in a widget is the drift `shared/incomplete_macros.dart`
+/// exists to prevent. Everything else follows for free — the lens (a meal
+/// somebody else eats is out of scope and comes back [MealSetMacros.isEmpty]),
+/// the refusals (an incomplete recipe, a missing one, no eaters, an unweighable
+/// snack) and their exact words.
+///
+/// So the caller draws the same three states it draws for a day, at the scope
+/// of one meal: an absence, a refusal that prints no number at all, or a total
+/// whose denominator is `1 meal`.
+MealSetMacros servedMealMacros(
+  PlanEntry entry, {
+  required RecipeMacroSummary? Function(String recipeId) summaryFor,
+  String? lensMemberId,
+  Map<String, Member> membersById = const {},
+}) => sumPlannedMacros(
+  [entry],
+  summaryFor: summaryFor,
+  lensMemberId: lensMemberId,
+  membersById: membersById,
+);
+
 /// Sums `perServing × servings` over [entries].
 ///
 /// * **Everyone** ([lensMemberId] null) — `servings = demandPortions`, the

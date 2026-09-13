@@ -24,7 +24,7 @@
 /// wrap: the sidebar is drawn by the outer shell, once and outside every
 /// Navigator (`core/router/app_router.dart`), and each branch root measures its
 /// own pane through the router's [AnsiPane]. That is what lets a tab root ask
-/// for the whole pane — the Week's matrix, the Library's shelf — instead of
+/// for the whole pane — the Week's two panes, the Library's shelf — instead of
 /// being capped by a wrap it cannot see.
 library;
 

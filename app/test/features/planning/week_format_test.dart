@@ -242,6 +242,15 @@ void main() {
     });
   });
 
+  group('formatWeekSpan \u2014 the wide agenda\u2019s eyebrow', () {
+    test('says the month once, and twice only when the week crosses one', () {
+      expect(formatWeekSpan(DateTime.utc(2026, 9, 13)), '13\u201319 Sep');
+      // A week that straddles two months names both: leaving one out would
+      // date four of its days wrongly.
+      expect(formatWeekSpan(DateTime.utc(2026, 8, 31)), '31 Aug \u2013 6 Sep');
+    });
+  });
+
   group('formatLastPlanned — picker recency', () {
     test('same day is today', () {
       expect(formatLastPlanned(DateTime.utc(2026, 8, 27), today), 'today');

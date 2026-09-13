@@ -201,7 +201,8 @@ class AnsiMeasure extends StatelessWidget {
 /// does to itself.
 ///
 /// [fullWidth] is the opt-out, for a view whose honest form spreads across the
-/// pane (the Week's matrix, the Library's shelf). It applies only once the
+/// pane (the Week's day pane and agenda, the Library's shelf). It applies only
+/// once the
 /// chrome is beside the content: at [AnsiShell.bar] there is no pane to fill —
 /// the window *is* the pane — so a full-width page still sits in the measure,
 /// which is what keeps a 900 px browser window one column.

@@ -297,6 +297,32 @@ MealSetMacros weekMacros(Ref ref, String? lens) {
   );
 }
 
+/// One MEAL's macros under [lens], as served to the people eating it — the
+/// same reading again, at the narrowest scope there is (the wide Week's day
+/// pane prints one under each dish).
+///
+/// Keyed by the entry's id rather than handed the entry, so the figure follows
+/// the live week: change the portions or the eaters and this re-reads the row
+/// the write produced, exactly as the day total does. An id the week no longer
+/// has reads as an empty set — `no meals` — which is the honest answer for a
+/// meal that has just been removed.
+@riverpod
+MealSetMacros mealMacros(Ref ref, String entryId, String? lens) {
+  final plan = ref.watch(viewedWeekProvider).asData?.value;
+  final entries = [
+    for (final e in plan?.entries ?? const <PlanEntry>[])
+      if (e.id == entryId) e,
+  ];
+  if (entries.isEmpty) return const MealSetMacros();
+  final macros = ref.watch(weekRecipeMacrosProvider);
+  return servedMealMacros(
+    entries.first,
+    summaryFor: (id) => macros[id],
+    lensMemberId: lens,
+    membersById: ref.watch(membersByIdProvider),
+  );
+}
+
 /// One day's macros under [lens] — the SAME function over a narrower set, so
 /// the week is never a sum of rounded day totals.
 @riverpod
