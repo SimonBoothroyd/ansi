@@ -141,6 +141,13 @@ class AnsiSideNav extends StatelessWidget {
         FTappableVariantConstraint.selected,
       }, const TextStyleDelta.delta(color: AnsiColors.herbDeep)),
     ]),
+    // The rail's ground is paper, and an item at rest is part of it: Forui's
+    // default paints the surface colour under every item, which on paper reads
+    // as five white pills. Only the lit one, and whatever the pointer is over,
+    // gets a shape of its own.
+    backgroundColor: FVariantsValueDelta.delta([
+      FVariantValueDeltaOperation.base(const Color(0x00000000)),
+    ]),
     // Forui's own focus ring, lifted off the item so it reads as a ring rather
     // than as a second selected state.
     focusedOutlineStyle: const FFocusedOutlineStyleDelta.delta(spacing: 2),

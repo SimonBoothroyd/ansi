@@ -4,12 +4,12 @@
 /// again from inside the outer shell that now wraps the whole app.
 library;
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:ansi/core/router/app_router.dart';
 import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/shared/ansi_bottom_nav.dart';
-import 'package:ansi/shared/ansi_layout.dart';
 import 'package:ansi/shared/ansi_modals.dart';
 import 'package:ansi/shared/ansi_side_nav.dart';
 import 'package:ansi/shared/ansi_tab_shell.dart';
@@ -27,8 +27,16 @@ import '../helpers/source_scan.dart';
 /// chrome) around the tab shell AND the pushed pages. Only the screens are
 /// stand-ins.
 GoRouter _router() {
-  Widget tab(String label) =>
-      FScaffold(resizeToAvoidBottomInset: false, child: Text(label));
+  Widget tab(String label) => FScaffold(
+    resizeToAvoidBottomInset: false,
+    child: Column(
+      children: [
+        Text(label),
+        // Something in the page for the focus to reach after the sidebar.
+        FButton(onPress: () {}, child: const Text('in the page')),
+      ],
+    ),
+  );
 
   final router = GoRouter(
     initialLocation: '/',
@@ -118,6 +126,22 @@ String? _litLabel(WidgetTester tester) {
   return lit.isEmpty ? null : _labelOf(lit.single);
 }
 
+/// The label of the sidebar item holding the keyboard focus, or null when the
+/// focus is somewhere else entirely.
+String? _focusedSideNavLabel() {
+  final context = FocusManager.instance.primaryFocus?.context;
+  if (context == null) return null;
+  FSidebarItem? item;
+  context.visitAncestorElements((element) {
+    if (element.widget case final FSidebarItem found) {
+      item = found;
+      return false;
+    }
+    return true;
+  });
+  return item == null ? null : _labelOf(item!);
+}
+
 /// Records the platform calls Flutter makes to leave the app, so "back exits"
 /// is asserted rather than inferred.
 List<String> _recordSystemNavigation(WidgetTester tester) {
@@ -184,6 +208,50 @@ void main() {
       expect(find.byType(FTooltip), findsNWidgets(5));
     });
 
+    testWidgets('the rail centres its icons in its own width', (tester) async {
+      await _pump(tester, _router(), _iPad);
+
+      for (final icon in const [
+        FLucideIcons.library,
+        FLucideIcons.calendarDays,
+        FLucideIcons.cookingPot,
+        FLucideIcons.shoppingBasket,
+        FLucideIcons.users,
+      ]) {
+        expect(
+          tester.getRect(find.byIcon(icon)).center.dx,
+          closeTo(kAnsiRailWidth / 2, 1),
+          reason: 'an icon-only rail that is not centred reads as clipped',
+        );
+      }
+    });
+
+    testWidgets('Tab walks the sidebar in order, then leaves it for the page', (
+      tester,
+    ) async {
+      await _pump(tester, _router(), _desk);
+
+      // Into the chrome, through it in the order it is drawn, and out the far
+      // side — the four destinations, then the footer door, then the page.
+      final walked = <String?>[];
+      for (var i = 0; i < 7; i++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pumpAndSettle();
+        walked.add(_focusedSideNavLabel());
+      }
+
+      expect(walked.skipWhile((l) => l == null).toList(), [
+        'Library',
+        'Week',
+        'Cook',
+        'Shop',
+        'Account',
+        // Out of the sidebar again: the chrome is a stop on the way to the
+        // page, not a trap the keyboard cannot leave.
+        null,
+      ]);
+    });
+
     testWidgets('the content pane is what the page is measured in', (
       tester,
     ) async {
@@ -204,7 +272,7 @@ void main() {
       router.go('/week');
       await tester.pumpAndSettle();
 
-      router.push('/recipes/7');
+      unawaited(router.push('/recipes/7'));
       await tester.pumpAndSettle();
 
       // One sidebar, still there, with nothing lit — and the page's own back
@@ -223,7 +291,7 @@ void main() {
     testWidgets('the browser Back does what the control does', (tester) async {
       final router = _router();
       await _pump(tester, router, _desk);
-      router.push('/recipes/7');
+      unawaited(router.push('/recipes/7'));
       await tester.pumpAndSettle();
       expect(_litLabel(tester), isNull);
 
@@ -237,7 +305,7 @@ void main() {
     testWidgets('a destination leaves the pushed page behind', (tester) async {
       final router = _router();
       await _pump(tester, router, _desk);
-      router.push('/recipes/7');
+      unawaited(router.push('/recipes/7'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Shop'));

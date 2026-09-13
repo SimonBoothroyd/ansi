@@ -25,6 +25,8 @@ lib/
 
 `shared/ansi_tab_shell.dart` is the app's navigation spine: the four tabs are
 branches of one `StatefulShellRoute` and the bottom bar lives there, **once**.
+From `lg` up the bar is replaced by the sidebar `shared/ansi_wide_shell.dart`
+draws around the whole app, and `showAnsiSheet` presents its sheet as a dialog.
 Two rules follow, and both are held by structural tests rather than by this
 paragraph — a tab screen never draws its own footer, and a sheet or dialog opens
 through `showAnsiSheet`/`showAnsiDialog` (`shared/ansi_modals.dart`), because
@@ -85,12 +87,14 @@ screen: [`../docs/design-docs/navigation.md`](../docs/design-docs/navigation.md)
 - **Phone-first layout, and one file reads the viewport.** Fixed logical-px
   spacing is the idiom here; don't derive sizes from screen dimensions ad hoc.
   `shared/ansi_layout.dart` is the **only** file under `lib/` allowed to ask how
-  wide the window is: it names the three bands (`AnsiLayout` — compact < 640,
-  medium 640–1023, expanded ≥ 1024, off Forui's own `FBreakpoints`) and applies
-  them with `AnsiMeasure`, which centres a page in a 640 column from medium up
-  and is a no-op on a phone. The measure is applied in exactly two places — the
-  tab shell wraps everything it owns, the router's `_page` helper wraps every
-  pushed page — so **a screen never wraps or measures itself**. Enforced by
+  wide the window is. It answers two questions: the three bands (`AnsiLayout` —
+  compact < 640, medium 640–1023, expanded ≥ 1024, off Forui's own
+  `FBreakpoints`), and the form the navigation takes (`AnsiShell` — `bar`
+  < 1024, `rail` 1024–1279, `sidebar` ≥ 1280). `AnsiMeasure` centres a page in a
+  640 column from medium up and is a no-op on a phone; `AnsiPane` is the wrapper
+  that applies it, and `core/router/app_router.dart` puts **every** route in one
+  (`fullWidth: true` for a view that uses the pane instead), so **a screen never
+  wraps or measures itself**. Enforced by
   `test/structure/one_viewport_reader_test.dart`, which fails on
   `MediaQuery.sizeOf`, `MediaQuery.of(context).size` or `LayoutBuilder` anywhere
   else. Inset reads (`viewInsetsOf`, `paddingOf`) are not viewport reads and are
