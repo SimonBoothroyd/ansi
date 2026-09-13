@@ -21,7 +21,7 @@ operator statement is owed.
 
 | What | Plan |
 |------|------|
-| Field test, round twelve — ticked items gather in one basket section at the foot of the shop, a meal's slot is a field of its editor and the add flow defaults to the day's first unfilled slot (Snack joins the four), a piece-weighted row is bought in pieces on the shop, and the last tick on this phone bursts confetti of the food itself. No migrations | [0046](./active/0046-field-test-round-twelve.md) |
+| Field test, round twelve — ticked items gather in one basket section at the foot of the shop, a meal's slot is a field of its editor and the add flow defaults to the day's first unfilled slot (Snack joins the four), a piece-weighted row is bought in pieces on the shop and the basket keeps its aisles, a measure that weighs a piece is the row's word for one at every door (ADR-0016; existing lines re-pointed on cloud by hand), and the last tick on this phone bursts confetti of the food itself. No migrations | [0046](./active/0046-field-test-round-twelve.md) |
 
 ## Shipped
 
