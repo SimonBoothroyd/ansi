@@ -127,6 +127,23 @@ changes, and the code gets one place that reads the viewport.
   it. One vocabulary for "this view uses the pane", so the shell lane's roots
   and the view lanes' pages are not two rules that have to be kept in step.
 
+- 2026-09-13 — **The Library on wide is a ledger, not a shelf of tiles.**
+  Owner's call on the built shelf, on his own household at 1440: *"corporate"*
+  — the solid dark herb bands, the uniform four-across grid and the full-width
+  search bar read as a SaaS dashboard, which is the one thing the product is
+  not. What replaces them states every fact once and sets it in a column on
+  bare paper: one ledger column at 900, centred, with a 34 px A–Z index in the
+  right margin; a book is a heading row (name, dotted leader, count line, `⋯`)
+  over its first three recipes as one-line rows and a remainder row that opens
+  the book page; the search field is a 300 px line, not a bar. Three things the
+  tiles could not do come back with it — the **fold**, which is the phone's own
+  per-device state and now reads the same store on both bodies; the recipe
+  row's **stats**, set into the counts column instead of dropped for want of
+  tile height; and **twenty-five books**, which the margin keeps scannable
+  without the shape changing. It supersedes the 2026-09-10 tile ruling and the
+  2026-09-13 "the shelf fills the pane" note; `/books/:id` is unchanged, and is
+  still the door a heading row opens.
+
 - 2026-09-13 — First pass landed: the layout file and the measure, the shell
   (sidebar, rail, neutral chrome on a pushed page, sheets as dialogs from
   medium up), the Week matrix, the shelf and the book page, the recipe page's
@@ -146,8 +163,9 @@ changes, and the code gets one place that reads the viewport.
   per-day band carries every day's figures, and a narrower window still has
   the phone's band. The phone's snack day says `4 meals` over three drawn
   rows.
-- Library tiles carry titles, not stats: three two-line rows do not fit a
-  fixed tile and most books have no board-stated macros.
+- The ledger's density is the risk the direction was chosen with: it sits one
+  notch from a spreadsheet, and if "corporate" meant "too much at once" it can
+  fail on the same word. Worth a second look on his own 25 books.
 - Recipe page: a struck (per-week) line's chip in the method column has no
   stated rendering; the 272 px ingredients column wraps whole-measure amounts.
 - Board debts outside the wide frames: `ingredient-detail.html` paints the
