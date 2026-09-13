@@ -108,10 +108,11 @@ second source of truth about what a page is, and the wide answer then has to be
 chased screen by screen.
 
 **All four tab roots opt out**, through `_branch`: the Library's shelf, the
-Week's matrix, Cook's two-up and the Shop's list with its provenance pane are
-each a pane's worth of design, and each caps itself where its own drawing says —
-Cook at 1000 and centred, the Shop pair at the measure plus its 360 pane, the
-shelf a grid and the matrix the whole width.
+Week's day pane beside its agenda, Cook's two-up and the Shop's list with its
+provenance pane are each a pane's worth of design, and each caps itself where its
+own drawing says — Cook at 1000 and centred, the Shop pair at the measure plus
+its 360 pane, the shelf a grid, and the Week a fixed 560 pane with the agenda
+taking whatever is left.
 
 **A pushed page opts out the same way**, through `_page`'s `fullWidth`:
 `/books/:id`, where a book is a ~200 px section index beside its recipes, which
@@ -240,8 +241,8 @@ The rules, and the exact status-line clauses, are
 
 ## 8. What this does not answer yet
 
-The views that use the width rather than centring in it — the Week's matrix, the
-Library's shelf, the recipe page's columns, the Ingredients master-detail — are
-the later legs of
+The views that use the width rather than centring in it — the Week's day pane
+and agenda, the Library's shelf, the recipe page's columns, the Ingredients
+master-detail — are the later legs of
 [`exec-plans/active/0047-wide-screens.md`](../exec-plans/active/0047-wide-screens.md),
 which also carries the owner's decisions about what each of those looks like.

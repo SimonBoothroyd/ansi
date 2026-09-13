@@ -1115,21 +1115,28 @@ say what each tap means without one.
   meals a person is not eating rather than removing them: a day somebody else
   cooks for themselves is not an empty day.
 
-**On a wide screen (≥ 1024) the same week is a matrix.** Seven day columns from
-the household's first day, and down the side the slot rows the week *actually
-has* — derived from its own meals, because a slot is free text and a fixed
-four-row grid would both invent rows nobody planned and refuse the one somebody
-typed. An empty cell is quiet paper with no control in it; a meal is the dish
-row's own anatomy compacted into a card, with the same three targets drawn and
-nothing draggable, because the week still has no **move**. The head row and the
-column feet stay pinned while the rows between them scroll, so no day can push
-another day's door or figures off screen, and every column keeps its one
-`＋ add a meal` in every state. A day's macro line splits at its first
-separator — the energy figure and its mandatory denominator in the column foot,
-the grams and the fibre tail in one full-width band under the matrix, each block
-under the day it belongs to — in the same words, with the same refusals and the
-same named exclusions as the phone's line. A narrower window gets the phone's
-list, unchanged.
+**On a wide screen (≥ 1024) the same week is one day beside the week that
+scrolls.** A fixed 560 px **day pane** on the left draws ONE day at reading size
+— today by default, or whichever day the agenda's `›` last pointed at, which is
+view state and never persists. Each of its meals carries its slot, who is eating,
+what cooks, its `−`, and one line of **its own macros as served to the eaters**:
+the recipe's per-serving figure times the portions planned, read through the same
+function the day total sums with, so a part and the whole cannot disagree. The
+day's ledger is pinned to the pane's foot — `3 661 kcal · 3 meals` over
+`protein 255 g · carbs 366 g · fat 145 g · fibre 76 g`, spelt out rather than in
+the phone's glyph strip, because the pane has the room a 320 px line has not.
+
+The **agenda** takes the rest and scrolls: seven day headings from the
+household's first day, one energy line and its mandatory denominator under each,
+and that day's meals as single lines under small-caps slot labels — wrapping
+allowed, never truncated. An eater initial prints only where the meal is not for
+everyone; every line keeps its `−` and every day its one `＋ add a meal`, in
+every state. The batch story is deliberately **not** on the agenda: no cook
+marker, no batch tick, no per-day grams. That relationship reads in the day pane,
+one tap away, and in Cook — clarity was bought by moving it rather than by
+repeating it seven times. Nothing is draggable, because the week still has no
+**move**. The refusals are the phone's, in the phone's words, on both sides. A
+narrower window gets the phone's list, unchanged.
 
 **Macros on a set of meals — the rule (invariant 3 at a new scope):**
 

@@ -37,8 +37,8 @@ changes, and the code gets one place that reads the viewport.
    become dialogs through `ansi_modals.dart`; tooltips and focus rings. Left:
    the keyboard reorder, and the first Tab on a cold page landing on the page
    rather than on the sidebar.
-4. **W3 — the width.** Week matrix, book page, recipe page columns,
-   Ingredients master-detail, import review with a source pane.
+4. **W3 — the width.** Week's day pane and agenda, book page, recipe page
+   columns, Ingredients master-detail, import review with a source pane.
 
 ## Decision log
 
@@ -62,7 +62,7 @@ changes, and the code gets one place that reads the viewport.
   in the week on screen, derived, never a fixed count (`meal_slot` is
   free text). Every day keeps its one `＋ add a meal` at the column foot in
   every state. The phone's per-day macro strip does not survive a 146 px
-  column and is redrawn for wide. Owner call.
+  column and is redrawn for wide. Owner call. *(Reversed 2026-09-13, below.)*
 - 2026-09-13 — **The outer shell preserves every back rule.** One `ShellRoute`
   now wraps the tab shell and all eight pushed routes, and the table in
   `navigation.md` §3 holds row by row: the tab shell's `PopScope` still rides
@@ -120,8 +120,9 @@ changes, and the code gets one place that reads the viewport.
   until the wide-screen design doc exists to hold it.
 - 2026-09-13 — **A tab root and a pushed page share one opt-out.** `AnsiPane`
   is the only applier of the measure, and both router helpers pass it the same
-  `fullWidth` flag: `_branch` for the four tab roots (the shelf, the matrix,
-  Cook's two-up, the Shop's list beside its provenance pane), `_page` for
+  `fullWidth` flag: `_branch` for the four tab roots (the shelf, the Week's
+  two panes, Cook's two-up, the Shop's list beside its provenance pane),
+  `_page` for
   `/books/:id` and the two `/ingredients` routes. A page that stays one wrap
   but needs a wider cap passes `measure:` instead — `/recipes/:id`, and only
   it. One vocabulary for "this view uses the pane", so the shell lane's roots
@@ -129,7 +130,7 @@ changes, and the code gets one place that reads the viewport.
 
 - 2026-09-13 — First pass landed: the layout file and the measure, the shell
   (sidebar, rail, neutral chrome on a pushed page, sheets as dialogs from
-  medium up), the Week matrix, the shelf and the book page, the recipe page's
+  medium up), the Week at width, the shelf and the book page, the recipe page's
   two columns, Cook two-up, the Shop's provenance pane, the manager's two
   panes, and the web platform work (OAuth origin, gated camera and barcode
   doors, the worker-freshness test, a `web` job with a Pages deploy that
@@ -139,13 +140,37 @@ changes, and the code gets one place that reads the viewport.
   `make test-sim` on an iPhone 17 simulator green (ten scenarios, nine files)
   after two smoke assertions were brought up to ADR-0016.
 
+- 2026-09-13 — **The Week at width is today, then the week — not a matrix.**
+  The owner read the built matrix on his own household and called it busy: it
+  bought one screenful with a clipped 11 px line per meal, a bordered card
+  round every one of them, and `from Sunday's batch` printed fifteen times.
+  A desk scrolls, so the wide Week does not have to be a calendar — *"clarity
+  over compactness wins"*. The left pane is a fixed **560** drawing ONE day at
+  reading size (today by default; the agenda's `›` moves it, and the choice is
+  view state that never persists), and the rest is the whole week as a vertical
+  agenda: a heading and one energy line per day, meals as single wrapping lines
+  under their slot labels, an eater initial only where the meal is not for
+  everyone, the `−` on every line and one `＋ add a meal` per day. Owner call.
+  Two consequences he ruled on directly. **Per-meal macros** are on the left as
+  well as the day's — `per serving × the portions planned`, read through
+  `servedMealMacros`, which is the day total's own function over a set of one,
+  so a dish's line and the ledger that sums it cannot drift; the wide form
+  spells the figures out (`protein 255 g`) because a 560 px pane has the room
+  the phone's glyph strip was compressed for. And **the batch story leaves the
+  right pane**: no cook marker, no batch tick, no leader column, no per-day
+  grams there. Nothing on the agenda says Wednesday's dinner is Monday's
+  leftovers — that reads in the day pane, one tap away, and in Cook. Clarity
+  was bought by *moving* the relationship rather than by stating it better;
+  the cost, taken knowingly, is that scanning the week to decide what to cook
+  now means opening a day.
+
 ## Notes / open questions
 
 - Week on wide: where the week band (total, average, `n of 7 days`) sits is
-  still open, and the built matrix draws none rather than guessing — the
-  per-day band carries every day's figures, and a narrower window still has
-  the phone's band. The phone's snack day says `4 meals` over three drawn
-  rows.
+  still open, and the built screen draws none rather than guessing — the day
+  pane's ledger carries the open day's figures, the agenda carries every day's
+  energy, and a narrower window still has the phone's band. The phone's snack
+  day says `4 meals` over three drawn rows.
 - Library tiles carry titles, not stats: three two-line rows do not fit a
   fixed tile and most books have no board-stated macros.
 - Recipe page: a struck (per-week) line's chip in the method column has no
@@ -156,8 +181,9 @@ changes, and the code gets one place that reads the viewport.
 
 - Two phones drive the Shop at once; a checked row must not move under the
   other shopper. Wide keeps the list one column.
-- Drag-to-move on the Week matrix: week v3 refuses `move`. The matrix must
-  not promise it until it is a real operation.
+- Drag-to-move on the Week: week v3 refuses `move`. Neither pane may promise
+  it until it is a real operation — which is also why the agenda is a list of
+  lines and not a column of tiles.
 
 ## Step-done checklist
 
