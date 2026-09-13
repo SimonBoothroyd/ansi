@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe editor</h1>
-    <p class="view-status">built · matches code 2026-09-12 · <code>features/recipes</code> · <code>presentation/line_card.dart</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · wide: same, centred at 640</p>
+    <p class="view-status">built · matches code 2026-09-12 · <code>features/recipes</code> · <code>presentation/line_card.dart</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · wide: proposed <a href="../../exec-plans/active/0047-wide-screens.md">plan 0047</a></p>
     <p class="view-blurb">One header form under two hosts, and a method written as step cards with live ingredient chips — select the words, say what they are. Opened with <code>?week=</code> it edits the same list for one planned week and saves a diff against the recipe instead of the recipe.</p>
 </header>
 
@@ -449,6 +449,213 @@
                 <p class="conv-note" style="text-align:center;margin-bottom:14px">Cancel</p>
             </div>
         </div></div>
+    </div>
+
+</div>
+
+<h2 class="wide-rule">Wide &middot; &ge; 1024</h2>
+
+<div class="board-wide">
+
+    <div class="frame wide">
+        <p class="frame-name"><span class="tag-prop">proposed</span><b>wide &middot; the editor, mid-edit</b> &middot; one header across the top, the lines left and the method right &mdash; and the step being written lighting the three lines its chips point at</p>
+        <div class="desk">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="dscreen">
+                <div class="rail neutral">
+                    <div class="wm">Ansi<span class="dot">.</span></div>
+                    <div class="ri on"><span class="ic"><svg viewBox="0 0 24 24" role="img" aria-label="Library"><title>Library</title><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></span>Library</div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" role="img" aria-label="Week"><title>Week</title><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg></span>Week</div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" role="img" aria-label="Cook"><title>Cook</title><path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg></span>Cook</div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" role="img" aria-label="Shop"><title>Shop</title><path d="m15 11-1 9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1 9"/></svg></span>Shop</div>
+                    <div class="grow"></div>
+                    <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24" role="img" aria-label="Account"><title>Account</title><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></span>Account</div>
+                </div>
+                <div class="main">
+                    <div class="we">
+                        <div class="we-top"><span class="back">&lsaquo; Pretzel Bun Sliders</span><h2 class="ttl">Edit recipe</h2><span class="we-save">Save</span></div>
+                        <div class="we-head">
+                            <div class="we-hlanes">
+                                <div class="we-f"><p class="flabel">Title</p><div class="fin big">Pretzel Bun Sliders</div></div>
+                                <div class="we-f"><p class="flabel">File under</p><div class="lib-file3"><span class="bc3">Our Cookbook &middot; Weeknight</span><span class="ed">change &rsaquo;</span></div></div>
+                            </div>
+                            <div class="we-hfacts">
+                                <div class="we-f"><p class="flabel">Serves</p><div class="stepper"><span class="s">&ndash;</span><span class="qv">4</span><span class="s">+</span></div></div>
+                                <div class="we-f"><p class="flabel">Makes <span style="color:var(--muted);text-transform:none;letter-spacing:0">&middot; optional</span></p><div class="qtyrow"><span class="addm-in g">8</span><span class="uchip on">piece</span></div></div>
+                                <div class="we-f"><p class="flabel">Times</p>
+                                    <div class="we-mini"><span class="k">cook</span><div class="stepper"><span class="s">&ndash;</span><span class="qv">35 min</span><span class="s">+</span></div></div>
+                                    <div class="we-mini"><span class="k">total</span><div class="stepper"><span class="s" style="color:var(--line)">&ndash;</span><span class="qv unset">not set</span><span class="s">+</span></div></div>
+                                </div>
+                                <div class="we-f"><p class="flabel">Shelf life</p>
+                                    <div class="we-mini"><span class="k">fridge</span><div class="stepper"><span class="s">&ndash;</span><span class="qv">3 days</span><span class="s">+</span></div></div>
+                                    <div class="we-mini"><span class="k">freezes</span><span class="fsw off"></span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="we-cols">
+                            <div>
+                                <p class="wr-ch we-ch">Ingredients<span class="n">7 lines &middot; 2 groups</span></p>
+                                <div class="we-grp"><span class="in">for the sliders</span><span class="bin">&#128465;</span></div>
+                                <div class="l3 edit drag we-lit"><span class="l3-grip">&#8942;&#8942;</span><span class="l3-amt">8</span><span class="l3-body"><span class="ichip">&#8618; Pretzel Buns</span><span class="l3-note">split and toasted</span></span><span class="l3-pen">&#9998;</span></div>
+                                <div class="l3 edit drag"><span class="l3-grip">&#8942;&#8942;</span><span class="l3-amt">600 g</span><span class="l3-body"><span class="l3-id">Ground beef, 20%</span><span class="l3-note">shaped into 8 patties</span></span><span class="l3-pen">&#9998;</span></div>
+                                <div class="l3 edit drag we-lit"><span class="l3-grip">&#8942;&#8942;</span><span class="l3-amt">2 tbsp</span><span class="l3-body"><span class="l3-id">Garlic butter</span><span class="l3-note">melted</span></span><span class="l3-pen">&#9998;</span></div>
+                                <div class="l3 edit drag we-lit"><span class="l3-grip">&#8942;&#8942;</span><span class="l3-amt">1 tbsp</span><span class="l3-body"><span class="l3-id">Everything Spice</span></span><span class="l3-pen">&#9998;</span></div>
+                                <div class="l3 edit drag"><span class="l3-grip">&#8942;&#8942;</span><span class="l3-amt">0.5 tsp</span><span class="l3-body"><span class="l3-id">Kosher salt</span></span><span class="l3-pen">&#9998;</span></div>
+                                <div class="we-grp"><span class="in">to serve</span><span class="bin">&#128465;</span></div>
+                                <div class="l3 edit drag"><span class="l3-grip">&#8942;&#8942;</span><span class="l3-amt">1 handful</span><span class="l3-body"><span class="l3-id">Cilantro</span><span class="wv-tag" style="margin-left:8px">optional</span></span><span class="l3-pen">&#9998;</span></div>
+                                <div class="l3 edit drag"><span class="l3-grip">&#8942;&#8942;</span><span class="l3-amt">to taste</span><span class="l3-body"><span class="l3-id" style="color:var(--muted);font-weight:400">Sauerkraut</span><span class="wv-tag" style="margin-left:8px">ingredient removed &middot; pick again</span></span><span class="l3-pen">&#9998;</span></div>
+                                <div class="we-foot"><span class="ghostbtn">&#65291; Add ingredient</span><span class="ghostbtn">&#65291; Add group</span></div>
+                            </div>
+                            <div>
+                                <p class="wr-ch we-ch">Method<span class="n">6 steps &middot; editing step 4</span></p>
+                                <div class="mstep" style="margin-top:0">
+                                    <div class="mstep-h"><span class="n">Step 3</span><span class="ic">&#9650;</span><span class="ic">&#9660;</span><span class="ic">&#128465;</span></div>
+                                    <div class="mstep-in">Sear the <span class="echip">patties</span> hard on one side, flip them once, and let them rest while the oven does the buns.</div>
+                                </div>
+                                <div class="mstep on">
+                                    <div class="mstep-h"><span class="n">Step 4</span><span class="ic">&#9650;</span><span class="ic">&#9660;</span><span class="ic">&#128465;</span></div>
+                                    <div class="mstep-in">Split the <span class="echip">buns</span> in half crosswise and place them cut side up on a baking sheet. Brush the tops with the melted <span class="echip">garlic butter</span>, then scatter the <span class="echip we-at">everything spice</span><span class="care" style="display:inline-block;width:1.5px;height:14px;background:var(--herb);vertical-align:-2px;margin-left:1px"></span> liberally over each one.</div>
+                                    <div class="mstep-tools"><span class="mtool k">&#65291; ingredient</span><span class="mtool">&#9201; timer</span></div>
+                                    <div class="mstep-pv"><span class="pvl">Reads as</span>Split the <span class="mchip">buns<span class="mqn">8</span></span> in half crosswise&hellip; Brush the tops with the melted <span class="mchip">garlic butter<span class="mqn">2 tbsp</span></span>, then scatter the <span class="mchip">everything spice<span class="mqn">1 tbsp</span></span> liberally over each one.</div>
+                                </div>
+                                <div class="mstep">
+                                    <div class="mstep-h"><span class="n">Step 5</span><span class="ic">&#9650;</span><span class="ic">&#9660;</span><span class="ic">&#128465;</span></div>
+                                    <div class="mstep-in">Toast them under a hot grill for <span class="echip tmr">2&ndash;3 min</span>, until the edges catch and the spice smells of itself.</div>
+                                </div>
+                                <div class="mstep">
+                                    <div class="mstep-h"><span class="n">Step 6</span><span class="ic">&#9650;</span><span class="ic">&#9660;</span><span class="ic">&#128465;</span></div>
+                                    <div class="mstep-in">Build each slider, scatter over the <span class="echip">cilantro</span>, and take the tray to the table.</div>
+                                </div>
+                                <div class="addstep">&#65291; Add a step</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p class="wide-cap"><b>The width buys one thing.</b> A chip and the line it names are on screen together, so writing a chip, reading it back and repairing it stop being three trips through one scroll. Everything else is the phone's: the same row grammar with its 84&nbsp;px amount column and its grip, the same card behind every row, the same step cards with the same <b>Reads as</b> fold, the same <code>&#65291; Add a step</code>. Nothing here is a second control for something the phone already does.</p>
+        <p class="conv-note" style="margin:9px 4px 0"><b>The lit lines are the mechanism.</b> While a step has focus, every line its chips point at wears the Shop pane's own selected-row wash &mdash; <code>.item.wsel</code>, herb-soft and quiet &mdash; and the chip the caret is inside is ringed, so the pair reads from either end. It <b>follows focus, not the pointer</b>: a hover-only link would be a target that is not drawn, and this board's rule is that every target stays drawn. It is <b>view state</b>, never stored, and with no step being edited nothing is lit &mdash; a resting editor is a plain list beside a plain method</p>
+        <p class="conv-note" style="margin:4px 4px 0"><b>It lights one way.</b> A line does not light its steps back, and no line grows a <i>go to step 4</i> door: the count a reader wants standing over <b>change &rsaquo;</b> and the bin is <b>used in N steps</b>, and that is still on the card, where the phone put it</p>
+        <p class="conv-note" style="margin:4px 4px 0"><b>The header is the phone's six sections in the phone's order</b>, folded onto two rows: <b>title</b> over the lines and <b>file under</b> over the method &mdash; row one sits on the columns' own axis, so nothing in the editor is measured against a third grid &mdash; then <b>serves</b>, <b>makes</b>, <b>times</b> and <b>shelf life</b> as four cells across the cap. Every one of them is the <b>shipped control</b>: a header redrawn as bare lines would state the facts and take away the steppers and the chip control that set them, which is the trade the amount cell already refused</p>
+        <p class="conv-note" style="margin:4px 4px 0"><b>A pushed page, so the sidebar is neutral and the page draws its own back</b> &mdash; named for the door it came through. <b>Save is where the phone has it</b>, the header's right end, which on a desk is the top right of the page rather than of the window; nothing is stored until it is pressed, <b>&lsaquo;</b> abandons the draft, and the browser's Back does what that control does</p>
+        <p class="conv-note" style="margin:4px 4px 0"><b>What gives, and where.</b> The cap is the recipe page's ~1000, and the pair is 420 + 558. At <b>1180</b> the <i>chrome</i> gives, not the page: the sidebar is the 64&nbsp;px icon rail from 1024, so the pane is still wider than the cap and the editor is drawn exactly as here. At <b>1024</b> the page gives 92&nbsp;px, all of it from the <b>method</b> column (558 &rarr; 466): the ingredients column holds 420, because an 84&nbsp;px amount, a grip, a name and a note is what that row is. Below 1024 the editor is the <b>phone's one scroll, centred at 640</b> &mdash; unchanged, and not re-verified here</p>
+        <p class="conv-note" style="margin:4px 4px 0">the <b>grip stays</b> at every width and the list is still one draggable list, so filing a line under another heading is still the drag it is on the phone. The <b>keyboard</b> reorder a desk asks for is not drawn: it is owed by <a href="../../exec-plans/active/0047-wide-screens.md">plan 0047</a>'s W2 and would be a promise this frame cannot keep</p>
+    </div>
+
+    <div class="frame wide">
+        <p class="frame-name"><span class="tag-prop">proposed</span><b>wide &middot; a line's identity, as a dialog</b> &middot; the shipped line target picker in the form a sheet takes from 640 up &mdash; opened from the card the row still opens in place</p>
+        <div class="desk">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="dscreen">
+                <div class="rail neutral">
+                    <div class="wm">Ansi<span class="dot">.</span></div>
+                    <div class="ri on"><span class="ic"><svg viewBox="0 0 24 24" role="img" aria-label="Library"><title>Library</title><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></span>Library</div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" role="img" aria-label="Week"><title>Week</title><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg></span>Week</div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" role="img" aria-label="Cook"><title>Cook</title><path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg></span>Cook</div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" role="img" aria-label="Shop"><title>Shop</title><path d="m15 11-1 9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1 9"/></svg></span>Shop</div>
+                    <div class="grow"></div>
+                    <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24" role="img" aria-label="Account"><title>Account</title><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></span>Account</div>
+                </div>
+                <div class="main wnv-screen tall">
+                    <div class="we">
+                        <div class="we-top"><span class="back">&lsaquo; Pretzel Bun Sliders</span><h2 class="ttl">Edit recipe</h2><span class="we-save">Save</span></div>
+                        <div class="we-cols" style="margin-top:14px">
+                            <div>
+                                <p class="wr-ch we-ch">Ingredients<span class="n">7 lines &middot; 2 groups</span></p>
+                                <div class="l3 edit drag"><span class="l3-grip">&#8942;&#8942;</span><span class="l3-amt">8</span><span class="l3-body"><span class="ichip">&#8618; Pretzel Buns</span></span><span class="l3-pen">&#9998;</span></div>
+                                <div class="lcard" style="margin:6px 0">
+                                    <div class="chead"><span class="cn">Garlic butter&nbsp;&nbsp;<span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--herb);font-weight:400">change &rsaquo;</span></span><span class="ci">&#128465;</span><span class="ci">&#8963;</span></div>
+                                    <div class="usedin">used in 2 steps</div>
+                                    <div class="lflags"><span class="lflag tog">optional</span></div>
+                                    <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">2 tbsp <span class="pen">&#9998;</span></span></span></div>
+                                    <div class="erow"><span class="elab">Notes</span><span class="ebody"><div class="notesin">melted</div></span></div>
+                                </div>
+                                <div class="l3 edit drag"><span class="l3-grip">&#8942;&#8942;</span><span class="l3-amt">1 tbsp</span><span class="l3-body"><span class="l3-id">Everything Spice</span></span><span class="l3-pen">&#9998;</span></div>
+                                <div class="l3 edit drag"><span class="l3-grip">&#8942;&#8942;</span><span class="l3-amt">0.5 tsp</span><span class="l3-body"><span class="l3-id">Kosher salt</span></span><span class="l3-pen">&#9998;</span></div>
+                            </div>
+                            <div>
+                                <p class="wr-ch we-ch">Method<span class="n">6 steps</span></p>
+                                <div class="mstep" style="margin-top:0">
+                                    <div class="mstep-h"><span class="n">Step 4</span><span class="ic">&#9650;</span><span class="ic">&#9660;</span><span class="ic">&#128465;</span></div>
+                                    <div class="mstep-in">Split the <span class="echip">buns</span> in half crosswise&hellip; Brush the tops with the melted <span class="echip">garlic butter</span>, then scatter the <span class="echip">everything spice</span> liberally over each one.</div>
+                                </div>
+                                <div class="mstep">
+                                    <div class="mstep-h"><span class="n">Step 5</span><span class="ic">&#9650;</span><span class="ic">&#9660;</span><span class="ic">&#128465;</span></div>
+                                    <div class="mstep-in">Toast them under a hot grill for <span class="echip tmr">2&ndash;3 min</span>, until the edges catch.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="wnv-over">
+                        <div class="wnv-scrim"></div>
+                        <div class="wnv-dlg fixed">
+                            <div class="wnv-dhead"><span class="t">Change Garlic butter to</span><span class="x">&#10005;</span></div>
+                            <p class="wnv-dsub">the line keeps its id &middot; 2 chips follow it</p>
+                            <div class="wnv-field">&#8981;&nbsp;&nbsp;garlic butter<span class="care" style="display:inline-block;width:1.5px;height:14px;background:var(--herb);vertical-align:-3px;margin-left:2px"></span></div>
+                            <div style="flex:1;min-height:0;overflow:hidden">
+                                <p class="list-h" style="margin:0 0 4px">Your recipes</p>
+                                <div class="res-row" style="padding-left:0;padding-right:0"><div style="flex:1;min-width:0"><span class="ichip">&#8618; Garlic Butter</span><div class="res-cat" style="margin-top:3px">makes 120 g &middot; 4 lines</div></div><span class="rplus">&#65291;</span></div>
+                                <p class="list-h" style="margin:12px 0 4px">Ingredients</p>
+                                <div class="res-row" style="padding-left:0;padding-right:0"><div style="flex:1;min-width:0"><div class="res-nm">Butter, salted</div><span class="res-cat">Dairy &middot; has density</span><div class="mline">717 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 1P 81F 0C <span class="per">/100 g</span></div></div><span class="rplus">&#65291;</span></div>
+                                <div class="res-row" style="padding-left:0;padding-right:0"><div style="flex:1;min-width:0"><div class="res-nm">Garlic</div><span class="res-cat">Produce &middot; 1 clove = 3 g</span><div class="mline">149 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 6P 1F 33C <span class="per">/100 g</span></div></div><span class="rplus">&#65291;</span></div>
+                                <div class="res-row" style="padding-left:0;padding-right:0"><div style="flex:1;min-width:0"><div class="res-nm">Ghee</div><span class="res-cat">Dairy &middot; has density</span><div class="mline">876 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 0P 100F 0C <span class="per">/100 g</span></div></div><span class="rplus">&#65291;</span></div>
+                                <div class="addnew" style="margin:14px 0 0">&#65291; can&rsquo;t find it? add &ldquo;garlic butter&rdquo; as a new ingredient</div>
+                            </div>
+                            <span class="wnv-dim">560 &times; 640 &middot; esc closes</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p class="wide-cap"><b>Nothing is re-drawn.</b> A sheet is a dialog from 640 up &mdash; <code>ansi_modals.dart</code>, one builder presented two ways &mdash; so all five of the editor's doors arrive in this form and the editor builds none of them: the <b>amount</b> sheet with its keypad and its chip row of units, this <b>line target picker</b>, the <b>method line picker</b> a chip points with, the <b>chip</b> editor and the <b>timer</b>. A picker asks for a share of the height, so it takes the dialog's <b>640</b> and the vocabulary scrolls <i>inside</i> it rather than pushing the search field off the top.</p>
+        <p class="conv-note" style="margin:9px 4px 0"><b>The row is still one door.</b> The card opens <b>in place</b>, in the 420 column, exactly as it does on the phone &mdash; the head is the identity with <b>change &rsaquo;</b> beside it, <b>used in 2 steps</b> under it, the flag row, the amount as the chip control and notes as a field. The width does not turn a card into a third pane: a line's facts belong beside the line, and a pane for them would be a second place a note can be typed</p>
+        <p class="conv-note" style="margin:4px 4px 0"><b>The barrier stops at the content pane.</b> Modals open on the shell navigator, not the root above it, so the sidebar stays clickable beside the dialog &mdash; the price of the add-new chain landing <i>on</i> the sheet, taken knowingly in <a href="../../exec-plans/active/0047-wide-screens.md">plan 0047</a> and carried as a <code>differs:</code> by <a href="./navigation.html">navigation.html</a>. This frame draws what the code does rather than the rule the phone frames imply</p>
+        <p class="conv-note" style="margin:4px 4px 0"><b>Esc dismisses, and a dismissal is not an answer</b> &mdash; the picker returns nothing and the line keeps its id, which is what keeps the two chips pointing at it. A pick <i>re-points</i>: the id survives, the chips follow, and the notice about the sentences they changed lands at the head of the <b>Method</b> column, where the words it changed are &mdash; not on the line</p>
+        <p class="conv-note" style="margin:4px 4px 0">the picker is <b>unchanged in content</b>: search, <b>Your recipes</b> above <b>Ingredients</b>, the macro line on every vocabulary row, and the door that writes a new ingredient at the foot. What a desk adds is that the list it is searching &mdash; this recipe's own lines &mdash; is <i>behind</i> the dialog rather than under it</p>
+    </div>
+
+    <div class="frame wide">
+        <p class="frame-name"><span class="tag-prop">proposed</span><b>wide &middot; week mode</b> &middot; the variant editor has no header form and no method, so there is no second column to make &mdash; one column at the measure, with the week's own statement in a column of its own</p>
+        <div class="desk">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="dscreen">
+                <div class="rail neutral">
+                    <div class="wm">Ansi<span class="dot">.</span></div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" role="img" aria-label="Library"><title>Library</title><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></span>Library</div>
+                    <div class="ri on"><span class="ic"><svg viewBox="0 0 24 24" role="img" aria-label="Week"><title>Week</title><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg></span>Week</div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" role="img" aria-label="Cook"><title>Cook</title><path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg></span>Cook</div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" role="img" aria-label="Shop"><title>Shop</title><path d="m15 11-1 9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1 9"/></svg></span>Shop</div>
+                    <div class="grow"></div>
+                    <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24" role="img" aria-label="Account"><title>Account</title><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></span>Account</div>
+                </div>
+                <div class="main">
+                    <div class="we we-wk">
+                        <div class="we-top"><span class="back">&lsaquo; Week</span><h2 class="ttl">Edit for this week</h2><span class="we-save">Save</span></div>
+                        <div class="wv-band" style="margin-top:14px">
+                            <span class="k">This week only</span>
+                            <div class="t">Slow-Cooker Beef Rag&ugrave;</div>
+                            <div class="s">Week of 14 Sep &middot; Tue and Sat both cook these lines<br>The recipe is not changed.</div>
+                        </div>
+                        <div class="wv-from">from the recipe &middot; not edited here: <b>serves 4</b> &middot; <b>6 steps</b> &middot; Slow-Cooker Beef Rag&ugrave;</div>
+                        <div class="we-grp inert">for the rag&ugrave;</div>
+                        <div class="l3 edit"><span class="l3-amt">400 g</span><span class="l3-body"><span class="l3-id">Beef mince, 5%</span></span><span class="wv-meta"><span class="wv-tag">this week &middot; was 400 g Pork sausage</span><span class="wv-reset">&#8634; reset</span></span><span class="l3-pen">&#10005;</span></div>
+                        <div class="l3 edit"><span class="l3-amt">3 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">finely chopped</span></span><span class="wv-meta"><span class="wv-tag">this week &middot; was 2</span><span class="wv-reset">&#8634; reset</span></span><span class="l3-pen">&#10005;</span></div>
+                        <div class="l3 edit wv-off"><span class="l3-amt">250 ml</span><span class="l3-body"><span class="l3-id">Red wine</span></span><span class="wv-meta"><span class="wv-tag">this week &middot; left out</span><span class="wv-reset">&#8634; reset</span></span></div>
+                        <div class="l3 edit"><span class="l3-amt">30 g</span><span class="l3-body"><span class="l3-id">Parmesan, grated</span><span class="l3-note">to finish</span></span><span class="wv-meta"><span class="wv-tag">this week &middot; included</span><span class="wv-reset">&#8634; reset</span></span><span class="l3-pen">&#10005;</span></div>
+                        <div class="l3 edit wv-off"><span class="l3-amt">1 handful</span><span class="l3-body"><span class="l3-id">Basil</span><span class="l3-note">torn</span></span><span class="wv-meta"><span class="wv-tag">optional</span><span class="wv-reset">&#65291; include this week</span></span></div>
+                        <div class="we-grp inert">to serve</div>
+                        <div class="l3 edit"><span class="l3-amt">2</span><span class="l3-body"><span class="l3-id">Lime</span><span class="l3-note">cut into wedges</span></span><span class="wv-meta"><span class="wv-tag">this week &middot; added</span><span class="wv-reset">&#10005; remove</span></span><span class="l3-pen">&#10005;</span></div>
+                        <div class="we-foot"><span class="ghostbtn">&#65291; Add ingredient</span></div>
+                        <div class="dngr" style="margin-top:16px">Back to the recipe &middot; drops 5 changes</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p class="wide-cap"><b>The width buys nothing here, and the frame says so.</b> Week mode draws no header form and no method &mdash; a chip cannot point at a line the week may exclude or add, and a control drawn and refused is a control you explain on every tap &mdash; so the one thing the width was for is absent. Its honest wide form is the <b>measure</b>: one column, centred, in the pane the sidebar leaves.</p>
+        <p class="conv-note" style="margin:9px 4px 0"><b>What the measure does buy</b> is a column for the week's own statement. At 390 the tag and its reset wrap under the name; at 640 they sit at the row's right end, so <b>every row is one line</b> and the five changes read <i>down an edge</i> instead of being hunted under five names &mdash; which is what makes the foot's <b>drops 5 changes</b> a count you can check rather than one you take on trust. The amount column widens with it, to hold a whole measure in its own words &mdash; <b>3 onion, medium</b>, <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> &mdash; and that is the one thing left on this list that can take a row to two lines</p>
+        <p class="conv-note" style="margin:4px 4px 0"><b>Nothing else moves.</b> The band is the shipped one, herb-soft and small, in its place under the strip; <b>from the recipe</b> keeps <b>serves 4</b> and the step count in mono with nothing to tap; group headings are <b>inert text</b>; there is <b>no grip</b>, because a reorder is not storable this week; an excluded line stays <b>struck and muted</b> with no bin and its reset as the only way back; an added line's control is <b>&#10005; remove</b>, and an optional line the week has not asked for reads exactly like an excluded one, its tag being the switch that includes it</p>
+        <p class="conv-note" style="margin:4px 4px 0"><b>At 1180 and at 1024 nothing gives</b>: the measure is 640 at every width above it, so all that changes is the pane it is centred in &mdash; the sidebar becomes the 64&nbsp;px icon rail below 1280, and the column sits where it sits. Below 1024 this is the phone's screen, unchanged</p>
+        <p class="conv-note" style="margin:4px 4px 0">the swap's picker is the same <b>dialog</b> as the frame above, with <i>Your recipes</i> suppressed and the week's own title and subtitle passed into it &mdash; week mode still builds nothing</p>
     </div>
 
 </div>

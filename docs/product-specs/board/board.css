@@ -1208,7 +1208,7 @@
     .wide-cap{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);margin:9px 0 0 4px;max-width:96ch;line-height:1.65;}
     .wide-cap b{color:var(--herb-deep);font-weight:500;}
     .wide-cap code{background:var(--herb-soft);color:var(--herb-deep);border-radius:5px;padding:1px 5px;}
-    .desk .tag-prop{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#7A5A16;background:#FBF3E3;border-radius:5px;padding:2px 5px;}
+    .desk .tag-prop,.frame-name .tag-prop{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#7A5A16;background:#FBF3E3;border-radius:5px;padding:2px 5px;}
 
     /* ---- Wide · navigation (shell states, the dialog rule) ------------ */
 
@@ -1802,3 +1802,99 @@
     .ir-stage.wait .lb{color:var(--muted);}
     .ir-spin{display:inline-block;width:13px;height:13px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--herb);vertical-align:middle;}
     .ir-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--line);vertical-align:middle;}
+    /* ---- Wide · recipe editor -----------------------------------------
+       The editor at >= 1024 is the phone's editor with its two halves side by
+       side: the lines on the left in the row grammar they already have, the
+       method on the right as the same step cards. The width buys exactly one
+       thing — a chip and the line it names are on screen together, so a chip
+       can be written, read back and repaired without scrolling between them.
+
+       The cap is the recipe page's (~1000): the page and the editor are the
+       same recipe, so they measure the same. Widths are drawn at this frame's
+       0.78 — the 780 here is that cap, and the 328 / 430 columns are the
+       420 / 558 the window gives them. */
+    .we{width:100%;max-width:780px;align-self:center;}
+    /* the phone's 20 px gutters belong to the phone; the column carries them */
+    .we .l3,.we .lcard,.we .mstep,.we .flabel,.we .frow,.we .qtyrow,
+    .we .portion,.we .lib-file3,.we .conv-note,.we .addstep,.we .dngr,
+    .we .tsec,.we .wv-band,.we .wv-from,.we .state{margin-left:0;margin-right:0;}
+
+    /* the page's own strip: the back the pushed page draws for itself, what
+       this page is, and Save where the phone keeps it — the header's suffix,
+       which on a desk is the top right of the page rather than of the window */
+    .we-top{display:flex;align-items:center;gap:14px;padding-bottom:11px;border-bottom:1px solid var(--line);}
+    .we-top .back{margin:0;}
+    .we-top .ttl{flex:1;margin:0;font-size:19px;}
+    .we-save{flex:none;background:var(--herb);color:#fff;border-radius:9px;padding:7px 15px;font-size:12px;font-weight:600;}
+
+    /* the header form: the phone's six sections in the phone's order, folded
+       onto two rows. Row one sits on the columns' own axis — the title over
+       the lines, the filing over the method — so nothing in the editor is
+       measured against a third grid. Row two is the four small facts across
+       the cap, each still the shipped control: a header drawn as bare lines
+       would state the facts and take away the steppers that set them. */
+    .we-head{padding:16px 0 4px;}
+    .we-hlanes{display:grid;grid-template-columns:328px 1fr;gap:22px;}
+    .we-hfacts{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:16px;padding-top:15px;border-top:1px solid var(--line);}
+    .we-f .flabel{margin-bottom:7px;}
+    .we-f .stepper{padding:7px 9px;}
+    .we-f .stepper .s{width:22px;height:22px;border-radius:7px;font-size:13px;}
+    .we-f .stepper .qv{font-size:13.5px;}
+    .we-f .stepper .qv.unset{font-size:12px;color:var(--muted);font-weight:400;}
+    .we-f .qtyrow{margin:0;gap:8px;}
+    .we-f .fin.big{font-size:19px;}
+    /* a cell holding two facts of one kind — cook and total, the fridge and
+       the freezer — each with its own word beside the control */
+    .we-mini{display:flex;align-items:center;gap:9px;}
+    .we-mini+.we-mini{margin-top:7px;}
+    .we-mini .k{flex:none;width:36px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+    .we-mini .stepper{flex:1;}
+    .we-mini .fsw{width:34px;height:20px;}
+    .we-mini .fsw::after{width:15px;height:15px;}
+
+    /* the two columns, and the heads that name them: the recipe page's own
+       column head with the list's count set at its right */
+    .we-cols{display:grid;grid-template-columns:328px 1fr;gap:22px;align-items:start;margin-top:20px;}
+    .we-ch{display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
+    .we-ch .n{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;color:var(--muted);text-transform:none;}
+
+    /* a group heading is a row of the list, so it stays a field and a bin */
+    .we-grp{display:flex;align-items:center;gap:9px;margin:15px 0 3px;}
+    .we-grp:first-child{margin-top:0;}
+    .we-grp .in{flex:1;min-width:0;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;}
+    .we-grp .bin{flex:none;color:var(--muted);font-size:12px;}
+    /* an inert heading — week mode, where a group is text and nothing else */
+    .we-grp.inert{font-size:12.5px;color:var(--muted);margin:14px 0 2px;}
+    .we-foot{display:flex;gap:8px;margin-top:12px;}
+    .we-foot .ghostbtn{margin-top:0;flex:1;justify-content:center;}
+
+    /* THE POINT OF THE WIDTH. While a step has focus, every line its chips
+       point at wears the Shop pane's own selected-row wash (.item.wsel):
+       quiet, drawn, and never a hover state — it follows focus, it is view
+       state that is never stored, and with no step being edited nothing is
+       lit. The chip the caret is inside is ringed, so the pair reads in both
+       directions without either end shouting. */
+    .we .l3.we-lit{background:var(--herb-soft);border-radius:9px;padding-left:8px;padding-right:8px;border-bottom-color:transparent;}
+    .echip.we-at{box-shadow:inset 0 -1.5px 0 var(--herb),0 0 0 1px rgba(44,106,58,.38);}
+
+    /* Week mode has no header form and no method — a chip cannot point at a
+       line the week may exclude or add — so there is no second column to
+       make, and the honest wide form is ONE column at the measure. What the
+       measure buys is a column for the week's own statement: every row is one
+       line, and the changes read down an edge instead of being found under
+       five names. Type is drawn at its real size everywhere on this board, so
+       this column is drawn at its real 640 rather than at the frame's 0.78 —
+       the pair above cannot be, because a 1000 cap does not fit the frame. */
+    .we-wk{max-width:640px;}
+    .we-wk .l3.edit{grid-template-columns:118px 1fr 256px 12px;gap:10px;align-items:center;}
+    /* a measure that weighs a piece is a word (ADR-0016), so the amount
+       column is wide enough to say one and wraps rather than run into the
+       name — the only thing on this list that can take a row to two lines */
+    .we-wk .l3-amt{white-space:normal;}
+    .we-wk .wv-meta{margin-top:0;justify-content:flex-end;}
+    .we-wk .wv-from{margin-top:9px;}
+
+    /* the proposed marker, worn in a wide frame's NAME: the one rule above
+       gained the selector rather than a second copy of itself, and all a name
+       needs is the gap before the words */
+    .frame-name .tag-prop{margin-right:7px;}
