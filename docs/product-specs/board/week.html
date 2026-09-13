@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Week</h1>
-    <p class="view-status">built · matches code 2026-09-12 · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0038-plan-an-ingredient.md">plan 0038</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · wide: proposed <a href="../../exec-plans/active/0047-wide-screens.md">plan 0043</a></p>
+    <p class="view-status">built · matches code 2026-09-12 · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0038-plan-an-ingredient.md">plan 0038</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · wide: proposed <a href="../../exec-plans/active/0047-wide-screens.md">plan 0047</a></p>
     <p class="view-blurb">One screen with one state — no mode, no separate page. The switcher is the only title, and the week on screen is the week Cook and Shop follow.</p>
 </header>
 
@@ -317,7 +317,7 @@
 <h2 class="wide-rule">Wide &middot; &ge; 1024</h2>
 <div class="board-wide">
     <div class="frame wide">
-        <p class="frame-name"><b>wide &middot; the week</b> &middot; the week switcher and the lens across the top, then a matrix whose rows are the slots this week actually has &mdash; four, because four exist</p>
+        <p class="frame-name"><b>wide &middot; the week</b> &middot; the switcher and the lens across the top, then a matrix whose columns are the week&rsquo;s own seven days and whose rows are the slots it actually has &mdash; four, because four exist</p>
         <div class="desk">
             <div class="lip"><i></i><i></i><i></i></div>
             <div class="dscreen">
@@ -362,10 +362,10 @@
                         <div class="wx-cell"></div>
                         <div class="wx-slot">Dinner</div>
                         <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Weeknight Chicken Curry</div><span class="cookmark"><span class="mini-fresh"></span>cooks today &middot; batch of 1&frac34;</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
-                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Slow-Cooker Beef Rag&ugrave;</div><span class="cookmark"><span class="mini-fresh"></span>cooks Tue &middot; batch of 2</span><span class="portchip">3 portions</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
+                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Slow-Cooker Beef Rag&ugrave;</div><span class="wv-marks"><span class="cookmark"><span class="mini-fresh"></span>cooks Tue &middot; batch of 2</span><span class="cookmark from">edited for this week</span></span><span class="portchip">3 portions</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
                         <div class="wx-cell"></div>
                         <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Weeknight Chicken Curry</div><span class="cookmark from">from Monday&rsquo;s batch</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
-                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Slow-Cooker Beef Rag&ugrave;</div><span class="cookmark from">from Tuesday&rsquo;s batch</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
+                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Slow-Cooker Beef Rag&ugrave;</div><span class="wv-marks"><span class="cookmark from">from Tuesday&rsquo;s batch</span><span class="cookmark from">edited for this week</span></span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
                         <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Sausage Sliders</div><span class="badge-inc">incomplete</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
                         <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Sausage Sliders</div><span class="badge-inc">incomplete</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
                         <div class="wx-slot">Snack</div>
@@ -377,22 +377,23 @@
                         <div class="wx-cell"></div>
                         <div class="wx-cell"></div>
                         <div class="wx-slot"></div>
-                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>1 900</b> kcal &middot; 2 meals</div></div>
-                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>2 270</b> kcal &middot; 3 meals</div></div>
-                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc">nothing planned</div></div>
-                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>1 040</b> kcal &middot; 1 meal</div></div>
-                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>2 690</b> kcal &middot; 3 items</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>1 900 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></b> &middot; 2 meals</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>2 270 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></b> &middot; 3 meals</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc">no meals</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>1 040 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></b> &middot; 1 meal</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>2 690 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></b> &middot; 3 meals</div></div>
                         <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><span class="badge-inc">incomplete</span> no total</div></div>
-                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>860</b> kcal &middot; <span class="part">1 of 2 meals</span></div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>860 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></b> &middot; <span class="part">1 of 2 meals</span></div></div>
                     </div>
                 </div>
             </div>
         </div>
-        <p class="wx-note">the head row and the column feet are <b>pinned</b>: the switcher, the lens and the seven day names stay put, and so does every day&rsquo;s one <span style="font-family:'IBM Plex Mono',monospace">&#65291; add a meal</span> and its total, while the matrix between them scrolls &mdash; no day can push either off screen. Rows are what the week has: <b>Snack</b> exists because Friday has two, and its other six cells are quiet paper &mdash; no box, no <span style="font-family:'IBM Plex Mono',monospace">+</span>, nothing to dismiss. A row is as tall as its own tallest day and no taller: Tuesday&rsquo;s two lunches deepen the <b>Lunch</b> row and leave quiet paper either side of it, and no other row moves. And nothing here is a tile to be dragged: week v3 has no <b>move</b>, so the card is worked the way the phone row is &mdash; the title, the avatars, the <span style="font-family:'IBM Plex Mono',monospace">&minus;</span>, all drawn.</p>
+        <p class="wx-note">the head row and the column feet are <b>pinned</b>: the switcher, the lens and the seven day names stay put, and so does every day&rsquo;s one <span style="font-family:'IBM Plex Mono',monospace">&#65291; add a meal</span> and its total, while the matrix between them scrolls &mdash; no day can push either off screen. The seven columns run from the <b>household&rsquo;s first day</b>, the day the week is addressed by, so a Sunday-start household reads Sunday first and Saturday last and the title dates the week from it. Rows are what the week has: <b>Snack</b> exists because Friday has two, and its other six cells are quiet paper &mdash; no box, no <span style="font-family:'IBM Plex Mono',monospace">+</span>, nothing to dismiss. A row is as tall as its own tallest day and no taller: Tuesday&rsquo;s two lunches deepen the <b>Lunch</b> row and leave quiet paper either side of it, and no other row moves. And nothing here is a tile to be dragged: week v3 has no <b>move</b>, so the card is worked the way the phone row is &mdash; the title, the avatars, the <span style="font-family:'IBM Plex Mono',monospace">&minus;</span>, all drawn.</p>
+        <p class="wx-note">a card prints the facts the phone row prints, and no others. A recipe the week has edited carries <span style="font-family:'IBM Plex Mono',monospace">edited for this week</span> under its cook marker on <b>every</b> card it appears on &mdash; Tuesday&rsquo;s pot and Friday&rsquo;s share of it &mdash; because one variant is held per week and recipe, and two cards of the same pot cannot disagree. The avatars and the portions chip are one target: they open the meal editor, a dialog at this width, whose fields are the slot, who is eating and the portions, with the <span style="font-family:'IBM Plex Mono',monospace">edit for this week &rsaquo;</span> door last. The title opens the recipe it names, carrying the week it is planned in. The foot carries the day&rsquo;s energy and its denominator and nothing else &mdash; the rest of the line, and why a day refuses or leaves a meal out, is the next two frames&rsquo; question.</p>
     </div>
 
     <div class="frame wide">
-        <p class="frame-name"><b>wide &middot; day macros &middot; the foot line</b> &middot; kcal and the denominator under each column; the rest of the day, and everything it left out, in one band under the matrix</p>
+        <p class="frame-name"><b>wide &middot; day macros &middot; the foot line</b> &middot; energy and the denominator under each column; the rest of the day&rsquo;s own line, and everything it left out, in one band under the matrix</p>
         <div class="desk">
             <div class="lip"><i></i><i></i><i></i></div>
             <div class="dscreen">
@@ -421,33 +422,33 @@
                         <div class="wx-h"><span class="dn">Sunday</span><span class="dd">6 Sep</span></div>
                         <div class="wx-slot">Dinner</div>
                         <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Weeknight Chicken Curry</div><span class="cookmark"><span class="mini-fresh"></span>cooks today &middot; batch of 1&frac34;</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
-                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Slow-Cooker Beef Rag&ugrave;</div><span class="cookmark"><span class="mini-fresh"></span>cooks Tue &middot; batch of 2</span><span class="portchip">3 portions</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
+                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Slow-Cooker Beef Rag&ugrave;</div><span class="wv-marks"><span class="cookmark"><span class="mini-fresh"></span>cooks Tue &middot; batch of 2</span><span class="cookmark from">edited for this week</span></span><span class="portchip">3 portions</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
                         <div class="wx-cell"></div>
                         <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Weeknight Chicken Curry</div><span class="cookmark from">from Monday&rsquo;s batch</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
-                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Slow-Cooker Beef Rag&ugrave;</div><span class="cookmark from">from Tuesday&rsquo;s batch</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
+                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Slow-Cooker Beef Rag&ugrave;</div><span class="wv-marks"><span class="cookmark from">from Tuesday&rsquo;s batch</span><span class="cookmark from">edited for this week</span></span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
                         <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Sausage Sliders</div><span class="badge-inc">incomplete</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
                         <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Sausage Sliders</div><span class="badge-inc">incomplete</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
                         <div class="wx-slot"></div>
-                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>1 900</b> kcal &middot; 2 meals</div></div>
-                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>2 270</b> kcal &middot; 3 meals</div></div>
-                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc">nothing planned</div></div>
-                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>1 040</b> kcal &middot; 1 meal</div></div>
-                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>2 690</b> kcal &middot; 3 items</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>1 900 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></b> &middot; 2 meals</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>2 270 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></b> &middot; 3 meals</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc">no meals</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>1 040 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></b> &middot; 1 meal</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>2 690 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></b> &middot; 3 meals</div></div>
                         <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><span class="badge-inc">incomplete</span> no total</div></div>
-                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>860</b> kcal &middot; <span class="part">1 of 2 meals</span></div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>860 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></b> &middot; <span class="part">1 of 2 meals</span></div></div>
                         <div class="wx-bl">per day</div>
-                        <div class="wx-bd"><div class="daymac"><span class="dm">90<span class="u">g p</span></span><span class="dm">212<span class="u">g c</span></span><span class="dm">70<span class="u">g f</span></span><span class="dm">24<span class="u">g <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="fibre"><title>fibre</title><path d="M2 22 16 8"/><path d="M3.47 12.53 5 11l1.53 1.53a3.5 3.5 0 0 1 0 4.94L5 19l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M7.47 8.53 9 7l1.53 1.53a3.5 3.5 0 0 1 0 4.94L9 15l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M11.47 4.53 13 3l1.53 1.53a3.5 3.5 0 0 1 0 4.94L13 11l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M20 2h2v2a4 4 0 0 1-4 4h-2V6a4 4 0 0 1 4-4Z"/><path d="M11.47 17.47 13 19l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L5 19l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M15.47 13.47 17 15l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L9 15l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M19.47 9.47 21 11l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L13 11l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/></svg></span></span></div></div>
-                        <div class="wx-bd"><div class="daymac"><span class="dm">144<span class="u">g p</span></span><span class="dm">162<span class="u">g c</span></span><span class="dm">110<span class="u">g f</span></span></div></div>
-                        <div class="wx-bd"><div class="daymac"><span class="dm-none">nothing planned</span></div></div>
-                        <div class="wx-bd"><div class="daymac"><span class="dm">68<span class="u">g p</span></span><span class="dm">96<span class="u">g c</span></span><span class="dm">38<span class="u">g f</span></span></div></div>
-                        <div class="wx-bd"><div class="daymac"><span class="dm">176<span class="u">g p</span></span><span class="dm">188<span class="u">g c</span></span><span class="dm">124<span class="u">g f</span></span></div></div>
-                        <div class="wx-bd"><div class="daymac"><span class="badge-inc">incomplete</span><span class="dm-none">no total &mdash; the day&rsquo;s only meal is incomplete &middot; 1 stub line</span></div></div>
-                        <div class="wx-bd"><div class="daymac"><span class="dm">22<span class="u">g p</span></span><span class="dm">116<span class="u">g c</span></span><span class="dm">32<span class="u">g f</span></span><div class="dm-exc">left out: <b style="color:var(--ink)">Sausage Sliders</b> <span class="badge-inc">incomplete</span> 1 stub line</div></div></div>
+                        <div class="wx-bd"><div class="daymac"><span class="dm">90P 212C 70F &middot; 24 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="fibre"><title>fibre</title><path d="M2 22 16 8"/><path d="M3.47 12.53 5 11l1.53 1.53a3.5 3.5 0 0 1 0 4.94L5 19l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M7.47 8.53 9 7l1.53 1.53a3.5 3.5 0 0 1 0 4.94L9 15l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M11.47 4.53 13 3l1.53 1.53a3.5 3.5 0 0 1 0 4.94L13 11l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M20 2h2v2a4 4 0 0 1-4 4h-2V6a4 4 0 0 1 4-4Z"/><path d="M11.47 17.47 13 19l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L5 19l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M15.47 13.47 17 15l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L9 15l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M19.47 9.47 21 11l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L13 11l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/></svg></span></div></div>
+                        <div class="wx-bd"><div class="daymac"><span class="dm">144P 162C 110F</span></div></div>
+                        <div class="wx-bd"><div class="daymac"><span class="dm-none">no meals</span></div></div>
+                        <div class="wx-bd"><div class="daymac"><span class="dm">68P 96C 38F</span></div></div>
+                        <div class="wx-bd"><div class="daymac"><span class="dm">176P 188C 124F</span></div></div>
+                        <div class="wx-bd"><div class="daymac"><span class="badge-inc">incomplete</span><span class="dm-none">no total &mdash; Sausage Sliders &middot; 1 stub line</span></div></div>
+                        <div class="wx-bd"><div class="daymac"><span class="dm">22P 116C 32F</span><div class="dm-exc">left out: <b style="color:var(--ink)">Sausage Sliders</b> &middot; 1 stub line</div></div></div>
                     </div>
                 </div>
             </div>
         </div>
-        <p class="wx-note">the matrix is drawn from its dinner row down, so the feet and the band line up under the same seven columns. <b>What it costs:</b> the band is a second full-width block &mdash; about 150 px of height, set by Saturday&rsquo;s refusal, which pushes the matrix up by that much and is the first thing under the fold on a short window. The foot line fits every day but the partial one, whose <span style="font-family:'IBM Plex Mono',monospace">1 of 2 meals</span> takes a second line rather than being shortened; the words are the phone&rsquo;s and do not get abbreviated to fit a column.</p>
+        <p class="wx-note">the matrix is drawn from its dinner row down, so the feet and the band line up under the same seven columns. The day&rsquo;s figures are the <b>phone&rsquo;s own line, split at its first separator</b>: the energy figure and the mandatory denominator ride in the column foot, and <span style="font-family:'IBM Plex Mono',monospace">90P 212C 70F</span> and its fibre tail stand in the band under the day they belong to &mdash; the same figures, the same initials against them, the same two glyphs, and no <b>g</b> anywhere. Fibre comes and goes here as it does on the phone: Monday states it because both its meals do. Saturday refuses in the phone&rsquo;s own words &mdash; the badge and <span style="font-family:'IBM Plex Mono',monospace">no total &mdash; Sausage Sliders &middot; 1 stub line</span> &mdash; and Sunday names what it left out under its figures. <b>What it costs:</b> the band is a second full-width block &mdash; about 105 px of height, set by Saturday&rsquo;s refusal and Sunday&rsquo;s exclusions, which pushes the matrix up by that much and is the first thing under the fold on a short window. Every foot line holds on one line at this width, the partial day&rsquo;s <span style="font-family:'IBM Plex Mono',monospace">1 of 2 meals</span> included; the words are the phone&rsquo;s and are never abbreviated to fit a column.</p>
     </div>
 
     <div class="frame wide">
@@ -480,10 +481,10 @@
                         <div class="wx-h"><span class="dn">Sunday</span><span class="dd">6 Sep</span></div>
                         <div class="wx-slot">Dinner</div>
                         <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Weeknight Chicken Curry</div><span class="cookmark"><span class="mini-fresh"></span>cooks today &middot; batch of 1&frac34;</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
-                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Slow-Cooker Beef Rag&ugrave;</div><span class="cookmark"><span class="mini-fresh"></span>cooks Tue &middot; batch of 2</span><span class="portchip">3 portions</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
+                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Slow-Cooker Beef Rag&ugrave;</div><span class="wv-marks"><span class="cookmark"><span class="mini-fresh"></span>cooks Tue &middot; batch of 2</span><span class="cookmark from">edited for this week</span></span><span class="portchip">3 portions</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
                         <div class="wx-cell"></div>
                         <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Weeknight Chicken Curry</div><span class="cookmark from">from Monday&rsquo;s batch</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
-                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Slow-Cooker Beef Rag&ugrave;</div><span class="cookmark from">from Tuesday&rsquo;s batch</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
+                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Slow-Cooker Beef Rag&ugrave;</div><span class="wv-marks"><span class="cookmark from">from Tuesday&rsquo;s batch</span><span class="cookmark from">edited for this week</span></span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
                         <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Sausage Sliders</div><span class="badge-inc">incomplete</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
                         <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Sausage Sliders</div><span class="badge-inc">incomplete</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
                         <div class="wx-slot"></div>
@@ -494,7 +495,7 @@
                         <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div></div>
                         <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div></div>
                         <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div></div>
-                        <div class="wx-tl">kcal</div>
+                        <div class="wx-tl"><svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> kcal</div>
                         <div class="wx-tc">1 900</div>
                         <div class="wx-tc">2 270</div>
                         <div class="wx-tc"></div>
@@ -503,31 +504,31 @@
                         <div class="wx-tc"><span class="badge-inc">incomplete</span></div>
                         <div class="wx-tc">860</div>
                         <div class="wx-tl">protein</div>
-                        <div class="wx-tc">90<span class="u">g</span></div>
-                        <div class="wx-tc">144<span class="u">g</span></div>
+                        <div class="wx-tc">90</div>
+                        <div class="wx-tc">144</div>
                         <div class="wx-tc"></div>
-                        <div class="wx-tc">68<span class="u">g</span></div>
-                        <div class="wx-tc">176<span class="u">g</span></div>
+                        <div class="wx-tc">68</div>
+                        <div class="wx-tc">176</div>
                         <div class="wx-tc"></div>
-                        <div class="wx-tc">22<span class="u">g</span></div>
+                        <div class="wx-tc">22</div>
                         <div class="wx-tl">carbs</div>
-                        <div class="wx-tc">212<span class="u">g</span></div>
-                        <div class="wx-tc">162<span class="u">g</span></div>
+                        <div class="wx-tc">212</div>
+                        <div class="wx-tc">162</div>
                         <div class="wx-tc"></div>
-                        <div class="wx-tc">96<span class="u">g</span></div>
-                        <div class="wx-tc">188<span class="u">g</span></div>
+                        <div class="wx-tc">96</div>
+                        <div class="wx-tc">188</div>
                         <div class="wx-tc"></div>
-                        <div class="wx-tc">116<span class="u">g</span></div>
+                        <div class="wx-tc">116</div>
                         <div class="wx-tl">fat</div>
-                        <div class="wx-tc">70<span class="u">g</span></div>
-                        <div class="wx-tc">110<span class="u">g</span></div>
+                        <div class="wx-tc">70</div>
+                        <div class="wx-tc">110</div>
                         <div class="wx-tc"></div>
-                        <div class="wx-tc">38<span class="u">g</span></div>
-                        <div class="wx-tc">124<span class="u">g</span></div>
+                        <div class="wx-tc">38</div>
+                        <div class="wx-tc">124</div>
                         <div class="wx-tc"></div>
-                        <div class="wx-tc">32<span class="u">g</span></div>
-                        <div class="wx-tl">fibre</div>
-                        <div class="wx-tc">24<span class="u">g</span></div>
+                        <div class="wx-tc">32</div>
+                        <div class="wx-tl"><svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="fibre"><title>fibre</title><path d="M2 22 16 8"/><path d="M3.47 12.53 5 11l1.53 1.53a3.5 3.5 0 0 1 0 4.94L5 19l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M7.47 8.53 9 7l1.53 1.53a3.5 3.5 0 0 1 0 4.94L9 15l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M11.47 4.53 13 3l1.53 1.53a3.5 3.5 0 0 1 0 4.94L13 11l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M20 2h2v2a4 4 0 0 1-4 4h-2V6a4 4 0 0 1 4-4Z"/><path d="M11.47 17.47 13 19l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L5 19l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M15.47 13.47 17 15l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L9 15l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M19.47 9.47 21 11l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L13 11l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/></svg> fibre</div>
+                        <div class="wx-tc">24</div>
                         <div class="wx-tc"></div>
                         <div class="wx-tc"></div>
                         <div class="wx-tc"></div>
@@ -537,9 +538,9 @@
                         <div class="wx-tl"></div>
                         <div class="wx-tc den">2 meals</div>
                         <div class="wx-tc den">3 meals</div>
-                        <div class="wx-tc den">nothing planned</div>
+                        <div class="wx-tc den">no meals</div>
                         <div class="wx-tc den">1 meal</div>
-                        <div class="wx-tc den">3 items</div>
+                        <div class="wx-tc den">3 meals</div>
                         <div class="wx-tc den"></div>
                         <div class="wx-tc den part">1 of 2 meals</div>
                         <div class="wx-tl">left out</div>
@@ -548,13 +549,13 @@
                         <div class="wx-tc exc"></div>
                         <div class="wx-tc exc"></div>
                         <div class="wx-tc exc"></div>
-                        <div class="wx-tc exc"><b>Sausage Sliders</b><br>incomplete &middot; 1 stub line</div>
-                        <div class="wx-tc exc"><b>Sausage Sliders</b><br>incomplete &middot; 1 stub line</div>
+                        <div class="wx-tc exc"><b>Sausage Sliders</b><br>1 stub line</div>
+                        <div class="wx-tc exc"><b>Sausage Sliders</b><br>1 stub line</div>
                     </div>
                 </div>
             </div>
         </div>
-        <p class="wx-note">the matrix is again drawn from its dinner row down, and the column foot keeps only its <span style="font-family:'IBM Plex Mono',monospace">&#65291; add a meal</span>; kcal, the three grams, fibre, the denominator and the exclusions all read down the table. A blank cell is a number the day does not have: Wednesday has nothing planned, and <b>Saturday</b>&rsquo;s kcal cell carries the badge instead of a number &mdash; its only meal is incomplete, so the rest of its row stays blank. <b>Fibre</b> is stated only where every counted meal stated it. There is <b>no week column</b>: a week total needs every day whole, and two days here are not &mdash; Saturday has no number at all and Sunday counts 1 of 2 meals. <b>What it costs:</b> it is a second thing to read, and the taller of the two &mdash; about 210 px against the band&rsquo;s 150. A glance at one day is now a glance down a column of a table rather than a line under the day.</p>
+        <p class="wx-note">the matrix is again drawn from its dinner row down, and the column foot keeps only its <span style="font-family:'IBM Plex Mono',monospace">&#65291; add a meal</span>; energy, the three macros, fibre, the denominator and the exclusions all read down the table. The gutter takes over the line&rsquo;s own naming &mdash; the initial that sits against a figure on the phone (<span style="font-family:'IBM Plex Mono',monospace">90P</span>) is the row the figure is read on &mdash; so a cell is a bare number, and nothing prints <b>g</b> here either. A blank cell is a number the day does not have: Wednesday has no meals, and <b>Saturday</b>&rsquo;s energy cell carries the badge instead of a number &mdash; its only meal is incomplete, so the rest of its column stays blank. <b>Fibre</b> is stated only where every counted meal stated it. There is <b>no week column</b>: a week total needs every day whole, and two days here are not &mdash; Saturday has no number at all and Sunday counts 1 of 2 meals. <b>What it costs:</b> it is a second thing to read, and the taller of the two &mdash; about 215 px against the band&rsquo;s 105. A glance at one day is now a glance down a column of a table rather than a line under the day.</p>
     </div>
 
     <div class="frame wide">
@@ -603,10 +604,10 @@
                         <div class="wx-cell"></div>
                         <div class="wx-slot">Dinner</div>
                         <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Weeknight Chicken Curry</div><span class="cookmark"><span class="mini-fresh"></span>cooks today &middot; batch of 1&frac34;</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
-                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Slow-Cooker Beef Rag&ugrave;</div><span class="cookmark"><span class="mini-fresh"></span>cooks Tue &middot; batch of 2</span><span class="portchip">3 portions</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
+                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Slow-Cooker Beef Rag&ugrave;</div><span class="wv-marks"><span class="cookmark"><span class="mini-fresh"></span>cooks Tue &middot; batch of 2</span><span class="cookmark from">edited for this week</span></span><span class="portchip">3 portions</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
                         <div class="wx-cell"></div>
                         <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Weeknight Chicken Curry</div><span class="cookmark from">from Monday&rsquo;s batch</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
-                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Slow-Cooker Beef Rag&ugrave;</div><span class="cookmark from">from Tuesday&rsquo;s batch</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
+                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Slow-Cooker Beef Rag&ugrave;</div><span class="wv-marks"><span class="cookmark from">from Tuesday&rsquo;s batch</span><span class="cookmark from">edited for this week</span></span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
                         <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Sausage Sliders</div><span class="badge-inc">incomplete</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
                         <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Sausage Sliders</div><span class="badge-inc">incomplete</span><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
                         <div class="wx-slot">Snack</div>
@@ -618,18 +619,81 @@
                         <div class="wx-cell"></div>
                         <div class="wx-cell"></div>
                         <div class="wx-slot"></div>
-                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>1 900</b> kcal &middot; 2 meals</div></div>
-                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>2 270</b> kcal &middot; 3 meals</div></div>
-                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc">nothing planned</div></div>
-                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>1 040</b> kcal &middot; 1 meal</div></div>
-                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>2 690</b> kcal &middot; 3 items</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>1 900 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></b> &middot; 2 meals</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>2 270 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></b> &middot; 3 meals</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc">no meals</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>1 040 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></b> &middot; 1 meal</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>2 690 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></b> &middot; 3 meals</div></div>
                         <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><span class="badge-inc">incomplete</span> no total</div></div>
-                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>860</b> kcal &middot; <span class="part">1 of 2 meals</span></div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div><div class="wx-kc"><b>860 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg></b> &middot; <span class="part">1 of 2 meals</span></div></div>
                     </div>
                 </div>
             </div>
         </div>
-        <p class="wx-note">the rail keeps its icons and drops its words at 64 px, the gutter gives up 6 px and a column 8 &mdash; 119 px to 111. <b>What gives is text, not structure:</b> the seven columns and all four slot rows hold, every name still sits on two lines, and the foot line still fits on one &mdash; for every day but two, where the partial day&rsquo;s <span style="font-family:'IBM Plex Mono',monospace">1 of 2 meals</span> and Saturday&rsquo;s refusal each take a second, and the first of those already does at 1440. The <b>cook marker</b> is what pays: <span style="font-family:'IBM Plex Mono',monospace">from Tuesday&rsquo;s batch</span> runs to three lines under a snack-heavy Friday. The two-line clamp on a name is drawn as the rule and nothing in this week reaches it; a longer title ellipses rather than turning a row into a paragraph.</p>
+        <p class="wx-note">the rail keeps its icons and drops its words at 64 px, the gutter gives up 6 px and a column 8 &mdash; 119 px to 111. <b>What gives is text, not structure:</b> the seven columns and all four slot rows hold, every name still sits on two lines, and the foot line still fits on one &mdash; for every day but two, where the partial day&rsquo;s <span style="font-family:'IBM Plex Mono',monospace">1 of 2 meals</span> and Saturday&rsquo;s refusal each take a second, and neither does at 1440. The <b>cook marker</b> is what pays: <span style="font-family:'IBM Plex Mono',monospace">from Tuesday&rsquo;s batch</span> runs to three lines under a snack-heavy Friday, and the variant&rsquo;s <span style="font-family:'IBM Plex Mono',monospace">edited for this week</span> stacks under it rather than beside it, because in a column this narrow nothing fits beside anything. The two-line clamp on a name is drawn as the rule and nothing in this week reaches it; a longer title ellipses rather than turning a row into a paragraph.</p>
+    </div>
+
+    <div class="frame wide">
+        <p class="frame-name"><b>wide &middot; copy last week</b> &middot; the meals come over and the week says what they left behind &mdash; one band under the head, the full width, above the matrix</p>
+        <div class="desk wx-short">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="dscreen">
+                <div class="rail">
+                    <div class="wm">Ansi<span class="dot">.</span></div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></span><span class="rl">Library</span></div>
+                    <div class="ri on"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg></span><span class="rl">Week</span></div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg></span><span class="rl">Cook</span></div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 11-1 9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1 9"/></svg></span><span class="rl">Shop</span></div>
+                    <div class="grow"></div>
+                    <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></span><span class="rl">Account</span></div>
+                </div>
+                <div class="main">
+                    <div class="wx-top">
+                        <div class="wkhdr"><span class="chev">&lsaquo;</span><span class="wt">Next week<span class="dt">21 Sep</span><span class="caret">&#9662;</span></span><span class="chev">&rsaquo;</span></div>
+                        <div class="lensrow"><span class="lbl">for</span><span class="pchip on">Everyone</span><span class="pchip"><span class="av a">A</span>Ada</span><span class="pchip"><span class="av j">J</span>Jun</span></div>
+                    </div>
+                    <div class="state wx-state">
+                        <div class="sh"><span>&#9432;</span><span style="flex:1;font-weight:400;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)">Copied 7 meals from last week</span><span style="color:var(--muted);font-weight:400">&#10005;</span></div>
+                        <div class="sb" style="color:var(--ink)">One recipe&rsquo;s this-week changes were left behind &mdash; Slow-Cooker Beef Rag&ugrave; (5 changes). Last week&rsquo;s meals came over; last week&rsquo;s changes did not. Open one and edit for this week if you want it again.</div>
+                    </div>
+                    <div class="wx">
+                        <div class="wx-h"></div>
+                        <div class="wx-h"><span class="dn">Monday</span><span class="dd">21 Sep</span></div>
+                        <div class="wx-h"><span class="dn">Tuesday</span><span class="dd">22 Sep</span></div>
+                        <div class="wx-h"><span class="dn">Wednesday</span><span class="dd">23 Sep</span></div>
+                        <div class="wx-h"><span class="dn">Thursday</span><span class="dd">24 Sep</span></div>
+                        <div class="wx-h"><span class="dn">Friday</span><span class="dd">25 Sep</span></div>
+                        <div class="wx-h"><span class="dn">Saturday</span><span class="dd">26 Sep</span></div>
+                        <div class="wx-h"><span class="dn">Sunday</span><span class="dd">27 Sep</span></div>
+                        <div class="wx-slot">Bkfst</div>
+                        <div class="wx-cell"></div>
+                        <div class="wx-cell"></div>
+                        <div class="wx-cell"></div>
+                        <div class="wx-cell"></div>
+                        <div class="wx-cell"></div>
+                        <div class="wx-cell"></div>
+                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Buttermilk Pancakes</div><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
+                        <div class="wx-slot">Dinner</div>
+                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Weeknight Chicken Curry</div><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
+                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Slow-Cooker Beef Rag&ugrave;</div><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
+                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Sheet-Pan Miso Salmon</div><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
+                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Charred Broccoli &amp; Halloumi Salad</div><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
+                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Herb &amp; Feta Frittata</div><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
+                        <div class="wx-cell"><div class="wx-meal"><div class="wx-nm">Miso Salmon Rice Bowl</div><div class="wx-mrow"><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">&minus;</span></div></div></div>
+                        <div class="wx-cell"></div>
+                        <div class="wx-slot"></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div></div>
+                        <div class="wx-foot"><div class="wx-add"><span class="plus">&#65291;</span>add a meal</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p class="wx-note">the state is the phone&rsquo;s, at the width: it sits under the pinned head and above the head row, runs the whole matrix rather than a column of it, stays true until the <span style="font-family:'IBM Plex Mono',monospace">&#10005;</span> or the week moving, and a week that dropped nothing draws no band at all. Not one card carries <span style="font-family:'IBM Plex Mono',monospace">edited for this week</span>, which is what the sentence is for: the meals came over and the changes did not. The rows are still the slots the week has &mdash; a copy of six dinners and a breakfast is two rows, not seven &mdash; and every column foot keeps its one <span style="font-family:'IBM Plex Mono',monospace">&#65291; add a meal</span>. The day&rsquo;s numbers read as the two macro frames above draw them; this frame places the band.</p>
     </div>
 </div>
 
