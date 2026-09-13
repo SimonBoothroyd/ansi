@@ -82,10 +82,20 @@ screen: [`../docs/design-docs/navigation.md`](../docs/design-docs/navigation.md)
   Setup: `make powersync-core` (fetches the core extension; `make test-app` runs
   it) and, on macOS, `brew install sqlite` — the system SQLite omits extension
   loading.
-- **Phone-first layout.** Fixed logical-px spacing is the idiom here; don't
-  derive sizes from screen dimensions ad hoc. One shared max-width wrapper
-  arrives with the web step (roadmap step 10) and is the only place that reads
-  the viewport.
+- **Phone-first layout, and one file reads the viewport.** Fixed logical-px
+  spacing is the idiom here; don't derive sizes from screen dimensions ad hoc.
+  `shared/ansi_layout.dart` is the **only** file under `lib/` allowed to ask how
+  wide the window is: it names the three bands (`AnsiLayout` — compact < 640,
+  medium 640–1023, expanded ≥ 1024, off Forui's own `FBreakpoints`) and applies
+  them with `AnsiMeasure`, which centres a page in a 640 column from medium up
+  and is a no-op on a phone. The measure is applied in exactly two places — the
+  tab shell wraps everything it owns, the router's `_page` helper wraps every
+  pushed page — so **a screen never wraps or measures itself**. Enforced by
+  `test/structure/one_viewport_reader_test.dart`, which fails on
+  `MediaQuery.sizeOf`, `MediaQuery.of(context).size` or `LayoutBuilder` anywhere
+  else. Inset reads (`viewInsetsOf`, `paddingOf`) are not viewport reads and are
+  fine. The whole picture:
+  [`../docs/design-docs/wide-screen.md`](../docs/design-docs/wide-screen.md).
 - **Reads come from PowerSync's local SQLite** as watched queries, surfaced as
   providers. The app does not call Supabase REST directly for synced data.
 - **Run codegen after touching any `@riverpod`, `@freezed`, or JSON type:**

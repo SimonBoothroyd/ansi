@@ -16,7 +16,7 @@ changes, and the code gets one place that reads the viewport.
 
 - [ ] Every board view carries a `wide:` status clause; views that change draw
       a `proposed` wide frame in their own file.
-- [ ] `shared/ansi_layout.dart` is the single viewport reader (compact < 640,
+- [x] `shared/ansi_layout.dart` is the single viewport reader (compact < 640,
       medium 640–1023, expanded ≥ 1024, on Forui's own `FBreakpoints`), held
       by a structural test.
 - [ ] Web build in CI, hosted; Google sign-in returns to the deployed origin.
