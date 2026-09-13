@@ -1115,6 +1115,22 @@ say what each tap means without one.
   meals a person is not eating rather than removing them: a day somebody else
   cooks for themselves is not an empty day.
 
+**On a wide screen (≥ 1024) the same week is a matrix.** Seven day columns from
+the household's first day, and down the side the slot rows the week *actually
+has* — derived from its own meals, because a slot is free text and a fixed
+four-row grid would both invent rows nobody planned and refuse the one somebody
+typed. An empty cell is quiet paper with no control in it; a meal is the dish
+row's own anatomy compacted into a card, with the same three targets drawn and
+nothing draggable, because the week still has no **move**. The head row and the
+column feet stay pinned while the rows between them scroll, so no day can push
+another day's door or figures off screen, and every column keeps its one
+`＋ add a meal` in every state. A day's macro line splits at its first
+separator — the energy figure and its mandatory denominator in the column foot,
+the grams and the fibre tail in one full-width band under the matrix, each block
+under the day it belongs to — in the same words, with the same refusals and the
+same named exclusions as the phone's line. A narrower window gets the phone's
+list, unchanged.
+
 **Macros on a set of meals — the rule (invariant 3 at a new scope):**
 
 > A meal-set total shows the sum of the meals that **resolved**, is labelled

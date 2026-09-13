@@ -69,9 +69,11 @@ changes, and the code gets one place that reads the viewport.
 
 ## Notes / open questions
 
-- Week on wide: where the week band (total, average, `n of 7 days`) sits;
-  what an empty week draws (a matrix with no slot rows); the phone's snack
-  day says `4 meals` over three drawn rows.
+- Week on wide: where the week band (total, average, `n of 7 days`) sits is
+  still open, and the built matrix draws none rather than guessing — the
+  per-day band carries every day's figures, and a narrower window still has
+  the phone's band. The phone's snack day says `4 meals` over three drawn
+  rows.
 - Library tiles carry titles, not stats: three two-line rows do not fit a
   fixed tile and most books have no board-stated macros.
 - Recipe page: a struck (per-week) line's chip in the method column has no
