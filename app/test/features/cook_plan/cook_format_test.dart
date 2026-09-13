@@ -163,6 +163,79 @@ void main() {
     });
   });
 
+  group('cookTrackDays', () {
+    test('the cook day takes the tick, the band runs the window, and an eaten '
+        'day inside it is a plain dot', () {
+      // Cook Tue(1), keeps 3 → the band runs Tue→Fri; Thu is eaten inside it.
+      final s = _session(
+        cookDay: 1,
+        keeps: 3,
+        covers: [_meal(1, 'Dinner', 2), _meal(3, 'Dinner', 2)],
+      );
+      final days = cookTrackDays([(s, '×2')]);
+      expect(days[1].cookScale, '×2');
+      expect(days[1].dot, CookTrackDot.none);
+      expect([for (final d in days) d.keeps], [
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+      ]);
+      expect(days[3].dot, CookTrackDot.eaten);
+    });
+
+    test('a day past the keep window is the amber one', () {
+      // Cook Tue(1), keeps 3, Saturday from the freezer.
+      final s = _session(
+        cookDay: 1,
+        keeps: 3,
+        freezable: true,
+        covers: [_meal(1, 'Dinner', 2), _meal(5, 'Dinner', 2)],
+      );
+      final days = cookTrackDays([(s, '×2')]);
+      expect(days[5].dot, CookTrackDot.pastWindow);
+      expect(days[5].keeps, isFalse);
+      expect(days[4].keeps, isTrue);
+    });
+
+    test('unknown shelf life marks nothing past a window it does not have', () {
+      final s = _session(
+        cookDay: 0,
+        covers: [_meal(0, 'Dinner', 2), _meal(6, 'Dinner', 2)],
+      );
+      final days = cookTrackDays([(s, '×2')]);
+      expect(days[6].dot, CookTrackDot.eaten);
+      expect([for (final d in days) d.keeps], everyElement(isTrue));
+    });
+
+    test('two sessions of one recipe fill one track, each its own tick', () {
+      final first = _session(cookDay: 0, keeps: 1, covers: [_meal(0, 'D', 2)]);
+      final second = _session(cookDay: 5, keeps: 1, covers: [_meal(5, 'D', 2)]);
+      final days = cookTrackDays([(first, '×1'), (second, '×1')]);
+      expect([for (final d in days) d.cookScale], [
+        '×1',
+        null,
+        null,
+        null,
+        null,
+        '×1',
+        null,
+      ]);
+      expect([for (final d in days) d.keeps], [
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+      ]);
+    });
+  });
+
   group('wholeBatchNudgeLine', () {
     test('spells out the whole-batch advice with honest leftovers', () {
       // The closing clause is honest about the accepted gap (tracker row):

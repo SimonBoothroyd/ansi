@@ -360,3 +360,171 @@ class CookTimelineSpec {
   /// Whether a hatched "gone" tail runs from [frozenTo] to the week's end.
   final bool hasGone;
 }
+
+/// Everything one cook session SAYS, gathered once.
+///
+/// The phone draws it as a paper tile and a desk draws it as a row on the
+/// week's shared axis; both read this, so there is one set of words and one set
+/// of rulings about them — which day a batch is named for, whether the scale is
+/// portions or batches, whether the whole-batch nudge is offered at all —
+/// rather than two drawings deciding the same things twice.
+class SessionSpeech {
+  const SessionSpeech({
+    required this.when,
+    required this.scale,
+    required this.trackScale,
+    required this.covers,
+    required this.wholeBatchShown,
+    this.nudge,
+  });
+
+  /// The speech for [session] in the week's own shape.
+  ///
+  /// [showWholeBatch] is the display toggle's state — the honest raw factor
+  /// until somebody asks for the whole batch, and nothing is persisted either
+  /// way. [denomination] is the target's stated yield, for a component
+  /// session's arithmetic; null drops the clause rather than guessing it.
+  factory SessionSpeech.of(
+    CookSession session,
+    WeekShape shape, {
+    bool showWholeBatch = false,
+    YieldDenomination? denomination,
+  }) {
+    // A component session is never nudged to a whole batch: batches ARE its
+    // denomination (the domain returns null for it).
+    final nudge = wholeBatchNudgeFor(session);
+    final whole = nudge != null && showWholeBatch;
+    final component = session.isComponent;
+    return SessionSpeech(
+      when: component
+          // A component batch has to be ready BY its parents' cook day, not on
+          // one of its own.
+          ? componentWhenLabel(session.demands.map((d) => d.cookDay), shape)
+          : 'Cook ${shape.labelShort(session.cookDay)}',
+      scale: component
+          ? componentScaleLabel(session)
+          : whole
+          ? '×${nudge.factor}'
+          : formatScale(session.scaleFactor),
+      trackScale: component
+          ? formatScale(session.batchesToCook ?? 0)
+          : whole
+          ? '×${nudge.factor}'
+          : formatScale(session.scaleFactor),
+      covers: component
+          ? componentCoversLine(session, shape, denomination: denomination)
+          : coversLine(session, shape),
+      wholeBatchShown: whole,
+      nudge: nudge == null
+          ? null
+          : whole
+          ? 'showing the whole batch — tap for the honest '
+                '${formatScale(session.scaleFactor)}'
+          : wholeBatchNudgeLine(nudge, rawFactor: session.scaleFactor),
+    );
+  }
+
+  /// The day this batch is named for — `Cook Mon`, or a component's `Cook by
+  /// Sat`.
+  final String when;
+
+  /// The scale as the reader sees it: `×1.5`, a component's `×0.25 batch`, or
+  /// the nudged whole batch while the toggle is on.
+  final String scale;
+
+  /// The same scale with no denomination word, for the tick on a seven-day
+  /// track where a day is sixty-odd pixels wide.
+  final String trackScale;
+
+  /// The "covers …" sentence.
+  final String covers;
+
+  /// Whether the whole-batch view is the one on screen.
+  final bool wholeBatchShown;
+
+  /// The whole-batch line — the nudge before a tap, the way back after one.
+  /// Null when the batch is already whole, and for every component session.
+  final String? nudge;
+}
+
+/// What one day of the week carries on a Cook row's track: nothing, a day this
+/// batch feeds, or a day it feeds PAST its keep window — the amber one, which
+/// only a freezer rescue can reach.
+enum CookTrackDot { none, eaten, pastWindow }
+
+/// One day of one recipe's track on the wide Cook sheet.
+class CookTrackDay {
+  const CookTrackDay({
+    this.keeps = false,
+    this.cookScale,
+    this.unscaled = false,
+    this.dot = CookTrackDot.none,
+  });
+
+  /// The keep window runs through this day — the herb-soft band.
+  final bool keeps;
+
+  /// A cook session starts here, and this is its `×N` — the herb tick.
+  final String? cookScale;
+
+  /// A batch is wanted here and the plan could not scale it — the amber tick of
+  /// a component gap. Never a `×1`: that is the invented number this app
+  /// refuses.
+  final bool unscaled;
+
+  /// Whether a meal eats from this recipe today, and whether it is inside the
+  /// window.
+  final CookTrackDot dot;
+}
+
+/// The seven days of one recipe's track, merged from all of its sessions.
+///
+/// Each session contributes a tick on its cook day, a band from that day to the
+/// end of its keep window ([CookTimelineSpec] owns that geometry, so the sheet
+/// and the phone's timeline cannot disagree about where the window closes), and
+/// a dot on every OTHER day it feeds — amber past the window, because a meal
+/// out there is only reachable from the freezer. The cook day takes the tick
+/// and no dot: the tick already says the batch is eaten from that day.
+///
+/// Sessions of one recipe never share a day — a split opens a new session
+/// precisely when the window cannot reach — so the merge is a fill, not a
+/// contest.
+List<CookTrackDay> cookTrackDays(List<(CookSession, String)> sessions) {
+  final keeps = List.filled(7, false);
+  final scales = List<String?>.filled(7, null);
+  final dots = List.filled(7, CookTrackDot.none);
+  for (final (session, scale) in sessions) {
+    if (session.cookDay < 0 || session.cookDay > 6) continue;
+    final spec = CookTimelineSpec.of(session);
+    scales[session.cookDay] = scale;
+    final windowEnd = spec.freshTo.floor().clamp(0, 6);
+    for (var day = session.cookDay; day <= windowEnd; day++) {
+      keeps[day] = true;
+    }
+    for (final day in session.coveredDays) {
+      if (day == session.cookDay || day < 0 || day > 6) continue;
+      dots[day] = day > spec.freshTo
+          ? CookTrackDot.pastWindow
+          : CookTrackDot.eaten;
+    }
+  }
+  return [
+    for (var day = 0; day < 7; day++)
+      CookTrackDay(keeps: keeps[day], cookScale: scales[day], dot: dots[day]),
+  ];
+}
+
+/// The track of a component the plan could NOT derive: a tick on every day a
+/// batch is wanted, no band and no scale — the row states the days it knows and
+/// nothing it does not.
+List<CookTrackDay> cookTrackDaysForGap(Iterable<int> days) {
+  final wanted = days.where((d) => d >= 0 && d <= 6).toSet();
+  return [
+    for (var day = 0; day < 7; day++)
+      CookTrackDay(unscaled: wanted.contains(day)),
+  ];
+}
+
+/// The day-of-month figure under a day's initials on the sheet's shared axis.
+String cookSheetDayNumber(DateTime weekStart, int dayOfWeek) =>
+    '${weekStart.add(Duration(days: dayOfWeek)).day}';

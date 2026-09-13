@@ -8,6 +8,11 @@
 /// split recipe (a later meal outran the fridge window) is flagged; a freezer
 /// rescue (a freezable dish reaching a far meal from the freezer) gets its own
 /// note. Nothing to sync: the plan re-derives per device from synced inputs.
+///
+/// **At [AnsiLayout.expanded] the same plan is one schedule sheet** — a row per
+/// recipe against seven day columns drawn once ([CookSheet]) — because the
+/// width's dividend is a shared axis, not a grid of cards with a hole in it.
+/// Below expanded this file draws the whole screen.
 library;
 
 import 'package:flutter/foundation.dart' show listEquals;
@@ -30,6 +35,7 @@ import '../../recipes/domain/component_math.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
 import '../domain/cook_plan.dart';
 import 'cook_format.dart';
+import 'cook_sheet.dart';
 import 'cook_view_models.dart';
 
 class CookView extends ConsumerWidget {
@@ -83,64 +89,50 @@ class CookView extends ConsumerWidget {
     );
   }
 
-  /// The cards, in one column on a phone and two abreast from
+  /// The plan: a column of cards on a phone, and ONE schedule sheet from
   /// [AnsiLayout.expanded] up.
   ///
-  /// A card is a whole session and never splits across a column, so the width
-  /// buys ROWS of cards rather than a re-drawn card — and the pair caps at
-  /// [kCookTwoUpWidth], because a session card read at half a desk is already
-  /// at its measure.
+  /// The sheet is the same plan on a shared seven-day axis, capped at
+  /// [kCookSheetWidth] and centred in the pane — the width buys a week you can
+  /// read down a Tuesday, not a grid of cards with a hole under a short one.
   Widget _plan(BuildContext context, CookPlan data) {
-    final cards = <Widget>[
-      for (final recipe in data.recipes) ...[
-        // Two denominations, two cards (D3): a recipe that is both
-        // planned and demanded as a component shows its portions
-        // and its batches side by side, never summed.
-        if (recipe.mealSessions.isNotEmpty) _RecipeCard(recipe: recipe),
-        if (recipe.componentSessions.isNotEmpty) _ComponentCard(recipe: recipe),
-      ],
-      // Components the plan could not derive: a named gap, never a ×1 (D3).
-      for (final gap in data.gaps) _GapCard(gap: gap),
-    ];
-    final wide = AnsiLayout.of(context) == AnsiLayout.expanded;
-    final body = ListView(
+    if (AnsiLayout.of(context) == AnsiLayout.expanded) {
+      return Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: kCookSheetWidth),
+          child: ListView(
+            padding: const EdgeInsets.only(top: 6, bottom: 24),
+            children: [
+              const _PlanCaption(),
+              if (data.isEmpty)
+                const _NothingToCookLine()
+              else
+                CookSheet(plan: data),
+            ],
+          ),
+        ),
+      );
+    }
+    return ListView(
       padding: const EdgeInsets.only(top: 6, bottom: 24),
       children: [
         const _PlanCaption(),
         if (data.isEmpty) const _NothingToCookLine(),
-        if (wide) ..._twoUp(cards) else ...cards,
+        for (final recipe in data.recipes) ...[
+          // Two denominations, two cards (D3): a recipe that is both
+          // planned and demanded as a component shows its portions
+          // and its batches side by side, never summed.
+          if (recipe.mealSessions.isNotEmpty) _RecipeCard(recipe: recipe),
+          if (recipe.componentSessions.isNotEmpty)
+            _ComponentCard(recipe: recipe),
+        ],
+        // Components the plan could not derive: a named gap, never a ×1 (D3).
+        for (final gap in data.gaps) _GapCard(gap: gap),
       ],
     );
-    if (!wide) return body;
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: kCookTwoUpWidth),
-        child: body,
-      ),
-    );
   }
-
-  /// The cards paired into rows, each card keeping its own anatomy and its own
-  /// margins. An odd count ends in a ragged row, which is what an odd week is.
-  List<Widget> _twoUp(List<Widget> cards) => [
-    for (var i = 0; i < cards.length; i += 2)
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: cards[i]),
-          Expanded(
-            child: i + 1 < cards.length
-                ? cards[i + 1]
-                : const SizedBox.shrink(),
-          ),
-        ],
-      ),
-  ];
 }
-
-/// How wide the two-up grid is ever drawn.
-const kCookTwoUpWidth = 1000.0;
 
 class _PlanCaption extends StatelessWidget {
   const _PlanCaption();
@@ -396,14 +388,16 @@ class _SessionTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // A component session is never nudged to a whole batch: batches ARE its
-    // denomination (the domain returns null for it).
-    final nudge = wholeBatchNudgeFor(session);
     final key = cookSessionKey(session);
-    final showWhole =
-        nudge != null && ref.watch(wholeBatchDisplayProvider(key));
-    final component = session.isComponent;
-    final shape = ref.watch(weekShapeProvider);
+    // One set of words for both forms: the tile and the wide sheet's row read
+    // the same speech, so neither decides on its own what a session says.
+    final speech = SessionSpeech.of(
+      session,
+      ref.watch(weekShapeProvider),
+      showWholeBatch: ref.watch(wholeBatchDisplayProvider(key)),
+      denomination: denomination,
+    );
+    final nudge = speech.nudge;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(11, 10, 11, 11),
@@ -420,36 +414,19 @@ class _SessionTile extends ConsumerWidget {
             children: [
               Expanded(
                 child: Text(
-                  component
-                      // A component batch has to be ready BY its parents' cook
-                      // day, not on one of its own (D3).
-                      ? componentWhenLabel(
-                          session.demands.map((d) => d.cookDay),
-                          shape,
-                        )
-                      : 'Cook ${shape.labelShort(session.cookDay)}',
+                  speech.when,
                   style: ansiSans(size: 13, weight: FontWeight.w600),
                 ),
               ),
               Text(
-                component
-                    ? componentScaleLabel(session)
-                    : showWhole
-                    ? '×${nudge.factor}'
-                    : formatScale(session.scaleFactor),
+                speech.scale,
                 style: ansiMono(size: 12, color: AnsiColors.herbDeep),
               ),
             ],
           ),
           const SizedBox(height: 6),
           Text(
-            component
-                ? componentCoversLine(
-                    session,
-                    shape,
-                    denomination: denomination,
-                  )
-                : coversLine(session, shape),
+            speech.covers,
             style: ansiSans(size: 11, color: AnsiColors.muted),
           ),
           if (nudge != null) ...[
@@ -464,7 +441,7 @@ class _SessionTile extends ConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.only(top: 1),
                     child: Icon(
-                      showWhole
+                      speech.wholeBatchShown
                           ? FLucideIcons.rotateCcw
                           : FLucideIcons.circleArrowUp,
                       size: 13,
@@ -474,13 +451,7 @@ class _SessionTile extends ConsumerWidget {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      showWhole
-                          ? 'showing the whole batch — tap for the honest '
-                                '${formatScale(session.scaleFactor)}'
-                          : wholeBatchNudgeLine(
-                              nudge,
-                              rawFactor: session.scaleFactor,
-                            ),
+                      nudge,
                       style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
                     ),
                   ),
