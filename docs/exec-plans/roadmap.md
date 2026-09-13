@@ -78,6 +78,7 @@ rows below, in that order.)
 | — | An empty shelf's two doors carry their book, so a recipe started there files onto that shelf; the Makefile shells the pinned Supabase CLI by path | `v0.14.0` | — |
 | — | The seed follows the owner's rows again — Ginger's inch piece at 7 g, both can measures on Canned Diced Tomatoes, the Persian cucumber measures, Sauerkraut admitting to-taste. Reseed on deploy | `v0.14.0` | — |
 | — | Field test, round twelve — ticked items gather in one basket section at the foot of the shop, a meal's slot is a field of its editor and the add flow defaults to the day's first unfilled slot (Snack joins the four), a piece-weighted row is bought in pieces on the shop and the basket keeps its aisles, a measure that weighs a piece is the row's word for one at every door (ADR-0016; existing lines re-pointed on cloud by hand), and the last tick on this phone bursts confetti of the food itself. No migrations | `v0.16.0` | [0046](./completed/0046-field-test-round-twelve.md) · [ADR-0016](../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md) |
+| — | Three owner notes on round twelve — the week's day foot and band read in the ingredient line's grammar with every unit glyph centred on the digits, the confetti plays on every finishing tick, and the camera door photographs page after page | `v0.16.1` | — |
 
 ## Stretch
 
