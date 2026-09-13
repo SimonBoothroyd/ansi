@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Library</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>features/books</code> · <a href="../../exec-plans/completed/0028-library-v3.md">plan 0028</a> · <a href="../../exec-plans/completed/0033-library-v2-decisions.md">plan 0033</a> · <a href="../../exec-plans/completed/0037-library-rows.md">plan 0037</a> · wide: proposed <a href="../../exec-plans/active/0047-wide-screens.md">plan 0043</a></p>
+    <p class="view-status">built · matches code 2026-09-04 · <code>features/books</code> · <a href="../../exec-plans/completed/0028-library-v3.md">plan 0028</a> · <a href="../../exec-plans/completed/0033-library-v2-decisions.md">plan 0033</a> · <a href="../../exec-plans/completed/0037-library-rows.md">plan 0037</a> · wide: proposed <a href="../../exec-plans/active/0047-wide-screens.md">plan 0047</a></p>
     <p class="view-blurb">The app’s home shelf — books, sections, rows; the field is the header, and every control hangs off a row that already existed.</p>
 </header>
 
@@ -263,7 +263,7 @@
 <div class="board-wide">
 
     <div class="frame wide">
-        <p class="frame-name"><b>wide · the shelf</b> · every book is a tile of the <b>same fixed height</b>, and <code>auto-fill</code> picks the column count — three in this 1120 frame, more when the window earns it. No household door in the header: the sidebar’s <b>Account</b> is the one door</p>
+        <p class="frame-name"><b>wide · the shelf</b> · every book is a tile of the <b>same fixed height</b>, and <code>auto-fill</code> picks the column count off a <b>200 px minimum</b> — <b>four</b> across this 1120 frame, four in the 1440 window it stands in for, three when the window narrows. No household door in the header: the sidebar’s <b>Account</b> is the one door</p>
         <div class="desk">
             <div class="lip"><i></i><i></i><i></i></div>
             <div class="dscreen">
@@ -283,120 +283,144 @@
 
                     <div class="lw-grid">
                         <div class="lw-tile">
-                            <div class="lw-band"><div class="bn">Our Cookbook</div><div class="bc">42 recipes · 3 sections</div></div>
+                            <div class="lw-band"><div class="bn">Our Cookbook</div><div class="bc">42 recipes &middot; 3 sections</div></div>
                             <div class="lw-body">
-                                <div class="lib-row"><span class="t">Weeknight Chicken Curry</span><span class="star">★</span></div>
-                                <div class="lib-row"><span class="t">Miso Salmon</span></div>
-                                <div class="lib-row"><span class="t">House Ragù</span></div>
+                                <div class="lw-peek">
+                                    <div class="pk"><span class="t">Weeknight Chicken Curry</span><span class="star">★</span></div>
+                                    <div class="pk"><span class="t">Miso Salmon</span></div>
+                                    <div class="pk"><span class="t">House Ragù</span></div>
+                                </div>
                                 <div class="lw-more">+ 39 more</div>
                             </div>
                         </div>
 
                         <div class="lw-tile">
-                            <div class="lw-band"><div class="bn">Everyday</div><div class="bc">68 recipes · 10 sections</div></div>
+                            <div class="lw-band"><div class="bn">Everyday</div><div class="bc">68 recipes &middot; 10 sections</div></div>
                             <div class="lw-body">
-                                <div class="lib-row"><span class="t">Lemon &amp; Anchovy Spaghetti</span></div>
-                                <div class="lib-row"><span class="t">Tarka Dal</span></div>
-                                <div class="lib-row"><span class="t">Soy-Butter Rice Bowl</span></div>
+                                <div class="lw-peek">
+                                    <div class="pk"><span class="t">Lemon &amp; Anchovy Spaghetti</span></div>
+                                    <div class="pk"><span class="t">Tarka Dal</span></div>
+                                    <div class="pk"><span class="t">Soy-Butter Rice Bowl</span></div>
+                                </div>
                                 <div class="lw-more">+ 65 more</div>
                             </div>
                         </div>
 
                         <div class="lw-tile">
-                            <div class="lw-band"><div class="bn">Baking</div><div class="bc">9 recipes · 2 sections</div></div>
+                            <div class="lw-band"><div class="bn">Baking</div><div class="bc">9 recipes &middot; 2 sections</div></div>
                             <div class="lw-body">
-                                <div class="lib-row"><span class="t">Pretzel Buns</span></div>
-                                <div class="lib-row"><span class="t">Lemon Tart</span></div>
-                                <div class="lib-row"><span class="t">Chicken Stock</span></div>
+                                <div class="lw-peek">
+                                    <div class="pk"><span class="t">Pretzel Buns</span></div>
+                                    <div class="pk"><span class="t">Lemon Tart</span></div>
+                                    <div class="pk"><span class="t">Chicken Stock</span></div>
+                                </div>
                                 <div class="lw-more">+ 6 more</div>
                             </div>
                         </div>
 
                         <div class="lw-tile">
-                            <div class="lw-band"><div class="bn">Sunday Roasts</div><div class="bc">14 recipes · 2 sections</div></div>
+                            <div class="lw-band"><div class="bn">Sunday Roasts</div><div class="bc">14 recipes &middot; 2 sections</div></div>
                             <div class="lw-body">
-                                <div class="lib-row"><span class="t">Porchetta</span></div>
-                                <div class="lib-row"><span class="t">Braised Short Rib</span></div>
-                                <div class="lib-row"><span class="t">Cauliflower Cheese</span></div>
+                                <div class="lw-peek">
+                                    <div class="pk"><span class="t">Porchetta</span></div>
+                                    <div class="pk"><span class="t">Braised Short Rib</span></div>
+                                    <div class="pk"><span class="t">Cauliflower Cheese</span></div>
+                                </div>
                                 <div class="lw-more">+ 11 more</div>
                             </div>
                         </div>
 
                         <div class="lw-tile">
-                            <div class="lw-band"><div class="bn">Soups &amp; Stews</div><div class="bc">18 recipes · 3 sections</div></div>
+                            <div class="lw-band"><div class="bn">Soups &amp; Stews</div><div class="bc">18 recipes &middot; 3 sections</div></div>
                             <div class="lw-body">
-                                <div class="lib-row"><span class="t">Ribollita</span></div>
-                                <div class="lib-row"><span class="t">Split Pea &amp; Ham</span></div>
-                                <div class="lib-row"><span class="t">White Bean &amp; Kale</span></div>
+                                <div class="lw-peek">
+                                    <div class="pk"><span class="t">Ribollita</span></div>
+                                    <div class="pk"><span class="t">Split Pea &amp; Ham</span></div>
+                                    <div class="pk"><span class="t">White Bean &amp; Kale</span></div>
+                                </div>
                                 <div class="lw-more">+ 15 more</div>
                             </div>
                         </div>
 
                         <div class="lw-tile">
-                            <div class="lw-band"><div class="bn">Salads &amp; Sides</div><div class="bc">12 recipes · 2 sections</div></div>
+                            <div class="lw-band"><div class="bn">Salads &amp; Sides</div><div class="bc">12 recipes &middot; 2 sections</div></div>
                             <div class="lw-body">
-                                <div class="lib-row"><span class="t">Charred Broccoli &amp; Halloumi Salad</span></div>
-                                <div class="lib-row"><span class="t">Black Rice</span></div>
-                                <div class="lib-row"><span class="t">Romesco Toasts</span></div>
+                                <div class="lw-peek">
+                                    <div class="pk"><span class="t">Charred Broccoli &amp; Halloumi Salad</span></div>
+                                    <div class="pk"><span class="t">Black Rice</span></div>
+                                    <div class="pk"><span class="t">Romesco Toasts</span></div>
+                                </div>
                                 <div class="lw-more">+ 9 more</div>
                             </div>
                         </div>
 
                         <div class="lw-tile">
-                            <div class="lw-band"><div class="bn">Takeaway at Home</div><div class="bc">11 recipes · 2 sections</div></div>
+                            <div class="lw-band"><div class="bn">Takeaway at Home</div><div class="bc">11 recipes &middot; 2 sections</div></div>
                             <div class="lw-body">
-                                <div class="lib-row"><span class="t">Chana Masala</span></div>
-                                <div class="lib-row"><span class="t">Salt &amp; Pepper Tofu</span></div>
-                                <div class="lib-row"><span class="t">Thai Green Curry</span></div>
+                                <div class="lw-peek">
+                                    <div class="pk"><span class="t">Chana Masala</span></div>
+                                    <div class="pk"><span class="t">Salt &amp; Pepper Tofu</span></div>
+                                    <div class="pk"><span class="t">Thai Green Curry</span></div>
+                                </div>
                                 <div class="lw-more">+ 8 more</div>
                             </div>
                         </div>
 
                         <div class="lw-tile">
-                            <div class="lw-band"><div class="bn">Christmas, Thanksgiving and Other Big Days</div><div class="bc">23 recipes · 5 sections</div></div>
+                            <div class="lw-band"><div class="bn">Christmas, Thanksgiving and Other Big Days</div><div class="bc">23 recipes &middot; 5 sections</div></div>
                             <div class="lw-body">
-                                <div class="lib-row"><span class="t">Pigs in Blankets</span></div>
-                                <div class="lib-row"><span class="t">Braised Red Cabbage</span></div>
+                                <div class="lw-peek">
+                                    <div class="pk"><span class="t">Pigs in Blankets</span></div>
+                                    <div class="pk"><span class="t">Braised Red Cabbage</span></div>
+                                </div>
                                 <div class="lw-more">+ 21 more</div>
                             </div>
                         </div>
 
                         <div class="lw-tile">
-                            <div class="lw-band"><div class="bn">Batch Cooking</div><div class="bc">16 recipes · 3 sections</div></div>
+                            <div class="lw-band"><div class="bn">Batch Cooking</div><div class="bc">16 recipes &middot; 3 sections</div></div>
                             <div class="lw-body">
-                                <div class="lib-row"><span class="t">Freezer Meatballs</span></div>
-                                <div class="lib-row"><span class="t">Overnight Oats</span></div>
-                                <div class="lib-row"><span class="t">Chilli for the Freezer</span></div>
+                                <div class="lw-peek">
+                                    <div class="pk"><span class="t">Freezer Meatballs</span></div>
+                                    <div class="pk"><span class="t">Overnight Oats</span></div>
+                                    <div class="pk"><span class="t">Chilli for the Freezer</span></div>
+                                </div>
                                 <div class="lw-more">+ 13 more</div>
                             </div>
                         </div>
 
                         <div class="lw-tile">
-                            <div class="lw-band"><div class="bn">The Grill</div><div class="bc">8 recipes · 2 sections</div></div>
+                            <div class="lw-band"><div class="bn">The Grill</div><div class="bc">8 recipes &middot; 2 sections</div></div>
                             <div class="lw-body">
-                                <div class="lib-row"><span class="t">Smashed Burgers</span></div>
-                                <div class="lib-row"><span class="t">Charred Corn</span></div>
-                                <div class="lib-row"><span class="t">Chimichurri</span></div>
+                                <div class="lw-peek">
+                                    <div class="pk"><span class="t">Smashed Burgers</span></div>
+                                    <div class="pk"><span class="t">Charred Corn</span></div>
+                                    <div class="pk"><span class="t">Chimichurri</span></div>
+                                </div>
                                 <div class="lw-more">+ 5 more</div>
                             </div>
                         </div>
 
                         <div class="lw-tile">
-                            <div class="lw-band"><div class="bn">Breakfast</div><div class="bc">13 recipes · 2 sections</div></div>
+                            <div class="lw-band"><div class="bn">Breakfast</div><div class="bc">13 recipes &middot; 2 sections</div></div>
                             <div class="lw-body">
-                                <div class="lib-row"><span class="t">Shakshuka</span></div>
-                                <div class="lib-row"><span class="t">Congee</span></div>
-                                <div class="lib-row"><span class="t">Breakfast Burrito</span></div>
+                                <div class="lw-peek">
+                                    <div class="pk"><span class="t">Shakshuka</span></div>
+                                    <div class="pk"><span class="t">Congee</span></div>
+                                    <div class="pk"><span class="t">Breakfast Burrito</span></div>
+                                </div>
                                 <div class="lw-more">+ 10 more</div>
                             </div>
                         </div>
 
                         <div class="lw-tile">
-                            <div class="lw-band"><div class="bn">Jun’s Mum’s Recipes</div><div class="bc">19 recipes · 4 sections</div></div>
+                            <div class="lw-band"><div class="bn">Jun’s Mum’s Recipes</div><div class="bc">19 recipes &middot; 4 sections</div></div>
                             <div class="lw-body">
-                                <div class="lib-row"><span class="t">Braised Pork Belly</span></div>
-                                <div class="lib-row"><span class="t">Cold Sesame Noodles</span></div>
-                                <div class="lib-row"><span class="t">Scallion Pancakes</span></div>
+                                <div class="lw-peek">
+                                    <div class="pk"><span class="t">Braised Pork Belly</span></div>
+                                    <div class="pk"><span class="t">Cold Sesame Noodles</span></div>
+                                    <div class="pk"><span class="t">Scallion Pancakes</span></div>
+                                </div>
                                 <div class="lw-more">+ 16 more</div>
                             </div>
                         </div>
@@ -407,11 +431,13 @@
                         </div>
 
                         <div class="lw-tile">
-                            <div class="lw-band"><div class="bn">Drinks</div><div class="bc">6 recipes · 1 section</div></div>
+                            <div class="lw-band"><div class="bn">Drinks</div><div class="bc">6 recipes &middot; 1 section</div></div>
                             <div class="lw-body">
-                                <div class="lib-row"><span class="t">Ginger Cordial</span></div>
-                                <div class="lib-row"><span class="t">Negroni</span></div>
-                                <div class="lib-row"><span class="t">Espresso Martini</span></div>
+                                <div class="lw-peek">
+                                    <div class="pk"><span class="t">Ginger Cordial</span></div>
+                                    <div class="pk"><span class="t">Negroni</span></div>
+                                    <div class="pk"><span class="t">Espresso Martini</span></div>
+                                </div>
                                 <div class="lw-more">+ 3 more</div>
                             </div>
                         </div>
@@ -430,6 +456,8 @@
                 </div>
             </div>
         </div>
+        <p class="wide-cap">A tile is <b>180 px, always</b> — a 70 px band over the 108 px the body gets. The band carries the book’s name and the phone’s own count line, <code>42 recipes · 3 sections</code>, or <code>no recipes yet</code> where the shelf is empty; a name past the band’s two lines is clipped there rather than allowed to shorten the body.</p>
+        <p class="wide-cap">What the body lists is <b>titles</b>. The Library’s recipe row is two lines — the title, then <code>serves 4 · 520 kcal · 28 g protein</code> — and it carries its own <b>⋯</b>; three of those do not fit 108 px, and a row that drops its second line is a row the app does not have. So the shelf lists what is on it, and the <b>book page</b> a tile opens draws the row, as the search column below does. The <b>★</b> stays: it reports, it never files, and a title past the tile’s width is clipped here — where it is a row, it wraps instead.</p>
     </div>
 
     <div class="frame wide lw-short">
