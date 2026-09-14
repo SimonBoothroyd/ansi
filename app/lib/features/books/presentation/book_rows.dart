@@ -366,40 +366,27 @@ String bookCountLine(Book book) {
   ].join(' · ');
 }
 
-/// A book's recipes in the order its page lists them — every section in turn,
-/// then the unsectioned — each carrying the section it is filed under, so a row
-/// drawn away from its section block still knows where it lives.
+/// What a section says it holds — `4 recipes`, or `no recipes yet` on one
+/// nobody has filed into.
 ///
-/// One order, read from one place: the ledger's first lines are the book page's
-/// first rows, and "3 more" means the three under the ones already on screen.
-List<({RecipeSummary recipe, String? sectionId})> bookRecipesInPageOrder(
-  Book book,
-) => [
-  for (final section in book.sections)
-    for (final recipe in section.recipes)
-      (recipe: recipe, sectionId: section.id),
-  for (final recipe in book.unsectioned) (recipe: recipe, sectionId: null),
-];
+/// [bookCountLine]'s grammar one level down, and for the same reason: a zero
+/// that renders looks like a bug. It is the fact that lets a section label sit
+/// in the ledger's own counts column beside the book's.
+String sectionCountLine(int count) =>
+    count == 0 ? 'no recipes yet' : '$count ${plural(count, 'recipe')}';
 
-/// What the ledger's remainder row says a fold still holds — `39 more, in 3
-/// sections`, or `1 more` where the book keeps no sections.
+/// The voice a section label wears wherever it is drawn — italic Spectral,
+/// herb-deep for a name somebody typed and muted for the synthetic
+/// `Unsectioned` bucket, which is a bucket and not a name.
 ///
-/// The sections it counts are the ones with a recipe **not already listed**:
-/// the row is a description of what is behind it, not a second printing of the
-/// book's own count line, which the heading row above has already given.
-String bookRemainderLine(Book book, {required int shown}) {
-  final all = bookRecipesInPageOrder(book);
-  final hidden = all.skip(shown);
-  final sections = hidden
-      .map((e) => e.sectionId)
-      .whereType<String>()
-      .toSet()
-      .length;
-  return [
-    '${hidden.length} more',
-    if (sections > 0) 'in $sections ${plural(sections, 'section')}',
-  ].join(', ');
-}
+/// One style from one place, because three surfaces set it: the phone's block,
+/// the book page's, and the ledger's heading line. A section that read as a
+/// different kind of thing on a desk would be the tree relabelled.
+TextStyle ansiSectionLabel({required bool named}) => ansiSerif(
+  size: 14,
+  color: named ? AnsiColors.herbDeep : AnsiColors.muted,
+  weight: FontWeight.w400,
+).copyWith(fontStyle: FontStyle.italic);
 
 /// What a recipe row says under its title — `serves 4 · 520 kcal · 28 g
 /// protein`, or `serves 2` on its own.
@@ -456,13 +443,7 @@ class BookSectionBlock extends ConsumerWidget {
               Expanded(
                 child: Text(
                   _label,
-                  style: ansiSerif(
-                    size: 14,
-                    color: section == null
-                        ? AnsiColors.muted
-                        : AnsiColors.herbDeep,
-                    weight: FontWeight.w400,
-                  ).copyWith(fontStyle: FontStyle.italic),
+                  style: ansiSectionLabel(named: section != null),
                 ),
               ),
               // E2: the two doors that make a recipe, on the row that knows
@@ -489,6 +470,65 @@ class BookSectionBlock extends ConsumerWidget {
               ),
         ],
       ),
+    );
+  }
+}
+
+/// One section as a **ledger heading line**: its name in the same italic the
+/// card's block sets, a dotted leader into the counts column, what it holds,
+/// and the two controls the phone's label carries — the `＋` that files a
+/// recipe into this section and the section's own `⋯`.
+///
+/// [BookSectionBlock] is a *block*: a hairline, a label, and the rows inside
+/// it. This is one line, because the ledger lists every section of every book
+/// in one long list and each recipe under it is a line of its own — so a block
+/// would be a shrink-wrapped list inside a list. Same label, same menus, same
+/// order; only the container is gone.
+///
+/// [section] is null for the synthetic `Unsectioned` bucket, which comes last
+/// and carries no `⋯`: there is nothing to rename, reorder or delete about a
+/// bucket, exactly as on the card.
+class BookSectionLine extends StatelessWidget {
+  const BookSectionLine({
+    required this.book,
+    required this.count,
+    this.section,
+    super.key,
+  });
+
+  final Book book;
+  final BookSection? section;
+
+  /// How many recipes are filed under it — the fact that puts this label in the
+  /// same right-hand column as the book's own count line.
+  final int count;
+
+  /// The widest a section name is set before it gives way, as a book's name and
+  /// a recipe's title are: the count is a fact, the name is a label.
+  static const double nameMax = 400;
+
+  @override
+  Widget build(BuildContext context) {
+    final section = this.section;
+    return Row(
+      children: [
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: nameMax),
+          child: Text(
+            section?.name ?? 'Unsectioned',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: ansiSectionLabel(named: section != null),
+          ),
+        ),
+        const AnsiDottedLeader(),
+        Text(
+          sectionCountLine(count),
+          style: ansiMono(size: 9.5, color: AnsiColors.muted),
+        ),
+        SectionAddMenu(book: book, section: section),
+        if (section != null) SectionMenu.inline(book: book, section: section),
+      ],
     );
   }
 }
@@ -554,10 +594,22 @@ class SectionAddMenu extends StatelessWidget {
 }
 
 class SectionMenu extends ConsumerWidget {
-  const SectionMenu({required this.book, required this.section, super.key});
+  const SectionMenu({required this.book, required this.section, super.key})
+    : _inline = false;
+
+  /// The bare `⋯`, for the ledger's section line — which ends in a column of
+  /// numbers, a `＋` and this, and has no room for a button's own padding. The
+  /// menu and its items are the phone's, exactly as [BookMenu.inline] is.
+  const SectionMenu.inline({
+    required this.book,
+    required this.section,
+    super.key,
+  }) : _inline = true;
 
   final Book book;
   final BookSection section;
+
+  final bool _inline;
 
   /// Moves [section] by [delta] positions within [book] and persists the order.
   Future<void> _move(BuildContext context, WidgetRef ref, int delta) async {
@@ -642,8 +694,12 @@ class SectionMenu extends ConsumerWidget {
           ],
         ),
       ],
-      builder: (context, controller, _) =>
-          AnsiMoreTrigger(onTap: controller.toggle),
+      builder: (context, controller, _) => _inline
+          ? AnsiMoreTrigger.inline(
+              onTap: controller.toggle,
+              color: AnsiColors.muted,
+            )
+          : AnsiMoreTrigger(onTap: controller.toggle),
     );
   }
 }

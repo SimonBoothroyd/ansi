@@ -1286,9 +1286,9 @@
   /* the column heads, which is what makes the right edge a column and not a
      row of loose numbers */
   .lg-hd{display:flex;align-items:center;justify-content:space-between;padding-bottom:7px;border-bottom:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.17em;text-transform:uppercase;color:var(--muted);}
-  /* one book: a heading row, its recipes indented under it, the remainder, and
-     a hairline to close it. No box, no band, no fill — the dark herb band is
-     exactly what was refused */
+  /* one book: a heading row, every section and every recipe it holds indented
+     under it, and a hairline to close it. No box, no band, no fill — the dark
+     herb band is exactly what was refused */
   .lg-bk{border-bottom:1px solid var(--line);padding:15px 0 17px;}
   .lg-h{display:flex;align-items:center;gap:10px;}
   .lg-h .cv{flex:none;width:12px;color:var(--muted);font-size:11px;}
@@ -1297,19 +1297,26 @@
      the counts sit in a column of their own instead of chasing the name */
   .lg-h .ldr,.lg-rows .ldr{flex:1;min-width:16px;border-bottom:1px dotted var(--line);transform:translateY(-3px);}
   .lg-h .ct{flex:none;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.07em;color:var(--muted);}
-  /* a recipe line is the phone's own row, indented, with its second line moved
-     INTO the counts column: the stats are not dropped, they are set */
-  .lg-rows{margin-top:5px;padding-left:22px;}
+  /* a section is one heading LINE, not the phone's block: the same italic
+     label, a leader into the same counts column, what it holds, and the two
+     controls the card hangs on it. Unsectioned is .q — a bucket, not a name
+     somebody typed — and carries the ＋ and no ⋯ */
+  .lg-sec{display:flex;align-items:center;gap:9px;margin-top:9px;padding-left:19px;}
+  .lg-sec .lbl{flex:none;font-family:'Spectral',serif;font-style:italic;font-size:13px;color:var(--herb-deep);}
+  .lg-sec.q .lbl{color:var(--muted);}
+  .lg-sec .ldr{flex:1;min-width:16px;border-bottom:1px dotted var(--line);transform:translateY(-3px);}
+  .lg-sec .ct{flex:none;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.06em;color:var(--muted);}
+  .lg-sec .p{flex:none;color:var(--herb);font-size:12px;}
+  .lg-sec .rm{flex:none;color:var(--muted);font-size:12px;}
+  /* a recipe line is the phone's own row, indented one step further than the
+     section it is filed in, with its second line moved INTO the counts column:
+     the stats are not dropped, they are set */
+  .lg-rows{margin-top:2px;padding-left:34px;}
   .lg-rows .lib-row{padding:5px 0;border-bottom:none;}
   /* the title gives way first when the column narrows: the leader can shrink
      to a stub, but the stats are a whole fact and are never half-printed */
   .lg-rows .lib-row .t{flex:0 1 auto;min-width:0;font-size:13px;}
   .lg-rows .lib-row .lib-stats{flex:none;display:block;margin-top:0;font-size:9px;}
-  /* the remainder: one row per book saying what the fold still holds, the ＋
-     that files a recipe into the book, and the row itself the door to its page */
-  .lg-more{display:flex;align-items:center;gap:8px;margin-top:3px;padding-left:22px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.03em;color:var(--herb);}
-  .lg-more .cv{flex:none;font-size:11px;}
-  .lg-more .p{margin-left:auto;font-size:12px;}
 
   /* the A–Z margin: how twenty-five books stay scannable without the ledger
      changing shape. A letter that has a book is a door that scrolls to it;

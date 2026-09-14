@@ -89,8 +89,8 @@ List<Override> _repo(List<Book> books) => [
 ];
 
 /// The page under a real router, deep-linked straight at a book: the arrival a
-/// pasted URL makes, and the one a tile's push makes once the Library is behind
-/// it.
+/// pasted URL makes, which is the only arrival there is — the Library's ledger
+/// lists every section and every recipe itself and links to nothing.
 Widget _host(
   List<Book> books, {
   String initial = '/books/b1',

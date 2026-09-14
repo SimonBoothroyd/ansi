@@ -1,6 +1,11 @@
 /// One book on a page of its own — the tree the Library's card holds, given a
 /// URL (design board: **Book**).
 ///
+/// **Nothing in the app links here.** The Library's ledger lists every section
+/// and every recipe of every book, so there is no fact left for a second screen
+/// to give — the page stays because `/books/:id` is a URL somebody can paste or
+/// bookmark, and because the phone's card may yet want a door onto it.
+///
 /// It is a pushed page, so the tab bar is gone and back returns to the Library:
 /// the bar being absent is what says you have left the tab loop. Nothing here
 /// folds — the page *is* the book already open — and every control the card
@@ -31,9 +36,6 @@ import '../../../shared/ansi_scroll.dart';
 import '../domain/book.dart';
 import 'book_rows.dart';
 import 'book_view_models.dart';
-
-/// The route a shelf tile opens, and the one a link can be pasted at.
-String bookRoute(String bookId) => '/books/$bookId';
 
 /// How wide the section index is drawn at [AnsiLayout.expanded].
 ///

@@ -153,8 +153,24 @@ changes, and the code gets one place that reads the viewport.
   row's **stats**, set into the counts column instead of dropped for want of
   tile height; and **twenty-five books**, which the margin keeps scannable
   without the shape changing. It supersedes the 2026-09-10 tile ruling and the
-  2026-09-13 "the shelf fills the pane" note; `/books/:id` is unchanged, and is
-  still the door a heading row opens.
+  2026-09-13 "the shelf fills the pane" note.
+
+- 2026-09-13 — **The ledger is fully open: one screen, everything on it.** The
+  owner read the built ledger and refused the split it implied — *"I don't like
+  the split on Library. Laptops have lots of real estate, so one Library screen
+  showing everything is the better flavour."* So the peek and its remainder row
+  go: under each heading row the ledger now lists **every section** as a
+  one-line heading in the phone's own grammar (the italic label, its count, its
+  `＋` and `⋯`, `Unsectioned` last) and **every recipe** under each as a ledger
+  line. Nothing counts what is not shown, because nothing is not shown; the
+  per-book fold is the only thing that hides anything, and open is the default.
+  `/books/:id` keeps its route, its view and its tests — it is deep-linkable,
+  and the phone may want a door onto it — but **nothing in the Library links to
+  it any more**, so the heading row's name is a name and not a door. The cost
+  taken knowingly: the screen is long. That is what the owner asked for, and it
+  is why the body is one lazy `SliverList` over flattened lines rather than a
+  widget per book — 25 books and a few hundred recipes must cost only the lines
+  in the window, and the A–Z margin has to seek to a book that is not built yet.
 
 - 2026-09-13 — First pass landed: the layout file and the measure, the shell
   (sidebar, rail, neutral chrome on a pushed page, sheets as dialogs from
