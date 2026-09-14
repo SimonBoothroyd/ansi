@@ -280,9 +280,8 @@ Notes:
 
   Routes are **hash URLs** (`…/#/week`) because the host is a static one that
   cannot rewrite a deep link, and an imperative push is reflected in that hash,
-  so a refresh lands on the page that was on screen. The host, the one
-  environment rule still refusing its deploy, and the trade hosting carries:
-  `../docs/release.md` §6.
+  so a refresh lands on the page that was on screen. The host, its environment
+  rule, and the trade hosting carries: `../docs/release.md` §6.
 
 ## Current focus
 

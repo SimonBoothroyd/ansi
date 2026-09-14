@@ -15,9 +15,9 @@ The detail is in the plan; the landing dates are in the
 1. Step 11 (anti-waste), still stretch, or the first idea worth building off
    the [backlog](./backlog.md).
 
-Two operator acts are owed on the web, both the owner's: the `github-pages`
-environment has to admit a `v*` tag before the deploy lands, and one browser
-sign-in has to be walked once it does ([release.md §6.1](../release.md#61-the-host)).
+The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));
+one browser sign-in on it is still to be walked, and the `deploy-supabase`
+workflow is owed for `v0.17.0`'s additive import fields (§4.2).
 The seed is the owner's own vocabulary and a reseed follows his rows, so no
 operator statement is owed there.
 

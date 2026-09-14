@@ -19,7 +19,9 @@ changes, and the code gets one place that reads the viewport.
 - [x] `shared/ansi_layout.dart` is the single viewport reader (compact < 640,
       medium 640–1023, expanded ≥ 1024, on Forui's own `FBreakpoints`), held
       by a structural test.
-- [ ] Web build in CI, hosted; Google sign-in returns to the deployed origin.
+- [x] Web build in CI, hosted; Google sign-in returns to the deployed origin
+      (the redirect is the served origin; the first browser sign-in is the
+      owner's to walk).
       *Half done: the `web` job builds the bundle on every tag and the code
       returns to the served origin, and the Supabase redirect origins are
       listed. The `pages` deploy has not landed — the `github-pages`
