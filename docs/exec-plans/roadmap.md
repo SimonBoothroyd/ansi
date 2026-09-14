@@ -1,8 +1,9 @@
 # Roadmap — what is next, and what shipped
 
 The numbered build sequence (spec §7, reordered around the meal-planning core)
-ran to step 9 and is finished; steps 10 and 11 stay stretch. The unit of work
-now is a **plan** — one file in [`active/`](./active), moved to
+ran to step 9 and is finished; step 10 has since shipped and step 11 stays
+stretch. The unit of work now is a **plan** — one file in
+[`active/`](./active), moved to
 [`completed/`](./completed) when it lands. Read **Next** before starting. The
 tables below are an index: one line on what exists and which plan bought it.
 The detail is in the plan; the landing dates are in the
@@ -11,17 +12,19 @@ The detail is in the plan; the landing dates are in the
 
 ## Next
 
-1. Step 10 (web) or step 11 (anti-waste), both stretch, or the first
-   idea worth building off the [backlog](./backlog.md).
+1. Step 11 (anti-waste), still stretch, or the first idea worth building off
+   the [backlog](./backlog.md).
 
+Two operator acts are owed on the web, both the owner's: the `github-pages`
+environment has to admit a `v*` tag before the deploy lands, and one browser
+sign-in has to be walked once it does ([release.md §6.1](../release.md#61-the-host)).
 The seed is the owner's own vocabulary and a reseed follows his rows, so no
-operator statement is owed.
+operator statement is owed there.
 
 ## On main, not yet tagged
 
 | What | Plan |
 |------|------|
-| Wide screens — the shell, the measure, and every view that uses the width on web and an iPad in landscape (Cook as one schedule sheet, the Library as a ledger, the Week as today beside its agenda); the web build in CI. Sign-in on the web and the Pages host wait on two owner steps | [0047](./active/0047-wide-screens.md) |
 
 ## Shipped
 
@@ -80,10 +83,9 @@ rows below, in that order.)
 | — | The seed follows the owner's rows again — Ginger's inch piece at 7 g, both can measures on Canned Diced Tomatoes, the Persian cucumber measures, Sauerkraut admitting to-taste. Reseed on deploy | `v0.14.0` | — |
 | — | Field test, round twelve — ticked items gather in one basket section at the foot of the shop, a meal's slot is a field of its editor and the add flow defaults to the day's first unfilled slot (Snack joins the four), a piece-weighted row is bought in pieces on the shop and the basket keeps its aisles, a measure that weighs a piece is the row's word for one at every door (ADR-0016; existing lines re-pointed on cloud by hand), and the last tick on this phone bursts confetti of the food itself. No migrations | `v0.16.0` | [0046](./completed/0046-field-test-round-twelve.md) · [ADR-0016](../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md) |
 | — | Three owner notes on round twelve — the week's day foot and band read in the ingredient line's grammar with every unit glyph centred on the digits, the confetti plays on every finishing tick, and the camera door photographs page after page | `v0.16.1` | — |
+| 10 | Wide screens — one file reads the viewport and one wrapper applies the measure, a sidebar and rail stand beside the content with sheets as dialogs, and each view that earns the width takes it: Cook as one schedule sheet on a shared seven-day axis, the Library as an open ledger, the Week as today beside the week's agenda, the recipe page and its editor in two columns, the import review with the page beside the lines and the current line's span lit, the Shop with a provenance pane, the vocabulary in two panes. Every glyph control answers a pointer through one style, the URL is the route, and the browser build ships from CI. **Deferred:** the phone's 44 px touch targets (mouse-only for now), mouse drag-to-scroll, the Week band's wide home, and the lit span, which waits on a `deploy-supabase` run — `import-recipe` changed additively. No migrations | `v0.17.0` | [0047](./completed/0047-wide-screens.md) |
 
 ## Stretch
 
-- **10 — Web UI.** Near-free with Flutter; the first lane is a centred phone
-  layout behind one breakpoint file. Unscheduled.
 - **11 — Anti-waste extras.** Freezer batching, monotony warnings,
   package-size flags. Unscheduled.

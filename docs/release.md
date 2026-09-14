@@ -357,7 +357,7 @@ builds, but nothing enforces it.
 Append-only: one row per tag, newest last. Every tag since `v0.4.0` has put a
 signed APK and AAB on its GitHub Release, with `play-internal` skipped by
 design; through `v0.14.0` the APK was a fat build (88–94 MB) and from the next
-tag it is arm64-only (about 35 MB). The AAB (76–81 MB) keeps every ABI. "Deploy" is the deploy-supabase run that
+tag it is arm64-only (about 35 MB). The AAB (76–83 MB) keeps every ABI. "Deploy" is the deploy-supabase run that
 went first when the tag needed one.
 
 | Tag | Date | What | Runs |
@@ -387,6 +387,7 @@ went first when the tag needed one.
 | `v0.15.0` | 2026-09-12 | Field test round eleven on v0.14.0 (plan 0045) — a flagged import amount prints empty instead of a unit the row cannot carry, the recipe editor's line opens into the review's card so a note can be set, and a household chooses the day its week starts with the flip re-homing its weeks on the server; after the 0043 cloud push, no reseed; a pre-existing red on main (tests reading the local-only gold corpus) fixed to skip | release 34712409998 · deploy 34711560878 |
 | `v0.16.0` | 2026-09-13 | Field test round twelve on v0.15.0 (plan 0046) — ticked rows gather in a basket section that keeps its aisles, a meal's slot is a field of its editor and an add opens on the day's first unfilled slot, a piece-weighted row is bought in pieces, a measure that weighs a piece is the row's word for one at every door (ADR-0016; the owner re-pointed existing lines on cloud by hand), and the last tick bursts confetti; no migrations, no deploy | release 34728629162 |
 | `v0.16.1` | 2026-09-13 | Three owner notes on v0.16.0, built in parallel lanes — the week's day foot and band read in the ingredient line's grammar (flame and sheaf, no `g`) with every unit glyph centred on the digits by construction and a pixel guard under the real fonts, the shop's confetti plays on every finishing tick rather than once per list, and the camera door photographs page after page with a question between them; no migrations, no deploy | release 34762113346 |
+| `v0.17.0` | 2026-09-13 | Step 10 — wide screens on the web and on an iPad in landscape (plan 0047): one outer shell putting a rail or sidebar beside the content with every back rule unmoved and sheets presented as dialogs, one file reading the viewport and one wrapper applying the measure, Cook as a single schedule sheet, the Library as an open ledger, the Week as today beside the week's agenda, the recipe page and its editor in two columns, the import review in three with the read page beside the lines, the Shop's provenance pane and the vocabulary's two panes, a hover and a focus ring on every glyph control, and the URL following the route. The browser bundle builds in CI; no migrations. `import-recipe` gained two optional fields additively, so **a deploy-supabase run is owed** before a source span can light. **`pages` did not deploy** — the `github-pages` environment refuses a `v*` tag (§6.1), which failed the job and the run with it; `guard` · `android` · `web` · `ios` are green and the signed APK and AAB are on the Release | release 34801815051 (pages ✗) |
 
 ## 4. Deploy Supabase
 
@@ -502,8 +503,9 @@ record the run in cloud-setup's ledger.
 5. `git tag vX.Y.Z && git push origin vX.Y.Z`. (No pubspec bump needed — the
    tag is the version of record, §3c.)
 6. Watch the run: `guard` · `android` · `web` · `ios` green, `play-internal`
-   skipped by design, and `pages` deployed or skipped depending on whether
-   Pages is configured (§6).
+   skipped by design, and `pages` deployed — it skips itself where no host
+   exists, and fails the whole run where the `github-pages` environment will
+   not admit the tag (§6.1).
 7. Install the APK from the GitHub Release on each phone. Sign in; confirm
    sync.
 8. Add the tag's row to §3d, append the deploy to cloud-setup's ledger if
@@ -517,22 +519,36 @@ and attaches the output as the `web-release` artifact; the **pages** job
 publishes that artifact to GitHub Pages, and runs only on a tag, and only when
 Pages is actually configured.
 
-### 6.1 What the owner still owes (Pages is NOT set up)
+### 6.1 The host
 
-Nothing hosts the web build today. The build job is green and the deploy job
-skips itself with a notice. Two acts turn it on, in this order — and read §6.2
-first, because hosting publishes something:
+Pages is **on**, with **Settings → Pages → Source: GitHub Actions** — not
+"Deploy from a branch", which ignores the workflow and serves the repo. The
+site's address is `https://simonboothroyd.github.io/ansi/`: a *project* site,
+which is why the build's `--base-href` is `/<repo>/` rather than `/` and why a
+bundle built for the root 404s every asset (§6.5). The browser origins a
+sign-in needs are listed on the Supabase dashboard
+([`cloud-setup.md` §1.6](./cloud-setup.md#1-supabase-cloud-project)). Switching
+the host on was the owner's call to accept §6.2's trade — read that section
+before changing anything here.
 
-1. **Supabase → Authentication → URL Configuration**: add the browser origins
-   (`https://<owner>.github.io/<repo>/` and its `/**`, plus the `localhost`
-   port you develop on). Without them "Continue with Google" in a browser is
-   refused at the redirect. The table is in
-   [`cloud-setup.md` §1.6](./cloud-setup.md#1-supabase-cloud-project).
-2. **Settings → Pages → Source: GitHub Actions** (once). Not "Deploy from a
-   branch" — the workflow uploads an artifact and deploys it; a branch source
-   ignores the workflow and serves the repo. Then re-run the release workflow,
-   or push the next tag, and the site appears at
-   `https://<owner>.github.io/<repo>/`.
+**Nothing is served at that address yet.** The `pages` job finds Pages
+configured, then dies in a second without running a step: the `github-pages`
+deployment environment admits only its own default branch, and every deploy
+here is triggered by a `v*` tag — `Tag "vX.Y.Z" is not allowed to deploy to
+github-pages due to environment protection rules`. The job is not `continue-on-
+error`, so it also takes the tag's whole release run red. One act clears it:
+**Settings → Environments → github-pages → Deployment branches and tags** → add
+a rule that admits `v*`. Deploying from `main` instead would publish a commit no
+tag names, which is the wrong trade for a runbook built around the tag.
+
+What a future operator re-checks, in this order:
+
+1. `GET /repos/<owner>/<repo>/pages` answers at all (that call is the `web`
+   job's own gate) and reports `build_type: workflow`.
+2. The `github-pages` environment admits the ref that is deploying.
+3. The origins in cloud-setup §1.6 still list the site, or "Continue with
+   Google" is refused at the redirect rather than on the page.
+4. `--base-href` still matches the path Pages serves the app from.
 
 ### 6.2 The trade: hosting publishes the endpoints
 
@@ -579,8 +595,9 @@ Three doors are gated, not broken — each says what it is rather than throwing:
 
 Each row is a `kIsWeb` branch with a test behind it, not a `try`/`catch` around
 a plugin: the point is that the screen never offers what the platform cannot do.
-When the wide-screen design doc lands (plan 0047), the layout half of the web
-story belongs there and this table stays here with the hosting.
+The layout half of the web story is
+[`wide-screen.md`](./design-docs/wide-screen.md); this table stays here with the
+hosting.
 
 ### 6.5 Serving the build locally
 
