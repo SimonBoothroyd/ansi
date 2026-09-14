@@ -7,17 +7,25 @@
 /// for one column. At [AnsiLayout.expanded] they are a **ledger** instead: one
 /// column of books at [kLedgerWidth], centred, with a [kAzIndexWidth] A–Z index
 /// down the right margin. A book is a heading row — its name, a dotted leader,
-/// its count line in a column of numbers, its `⋯` — over its first recipes as
-/// indented lines and one remainder row saying what the rest of it is. No tile,
-/// no grid, no dark band: the owner refused those on sight ("corporate"), and
-/// what replaced them states every fact once and sets it in a column on bare
-/// paper.
+/// its count line in a column of numbers, its `⋯` — over **every section it
+/// keeps and every recipe under each**, each set as one line into the same
+/// column. No tile, no grid, no dark band: the owner refused those on sight
+/// ("corporate"), and what replaced them states every fact once and sets it in
+/// a column on bare paper.
+///
+/// **The ledger is open.** A laptop has the room, so the wide Library shows the
+/// whole shelf rather than a peek and a count of the rest: no fold row saying
+/// `39 more, in 3 sections`, and no second screen to go to for the section
+/// names — the owner's call, *"one Library screen showing everything is the
+/// better flavour"*. It is long and it scrolls, which is what a desk does.
+/// `/books/:id` still exists and is still deep-linkable; nothing here links to
+/// it.
 ///
 /// **What the width does not change.** The fold is the phone's own, per book
-/// and per device, read from the same store; the search field, the one ranked
-/// column of results, the `＋ new book` door and the Ingredients shelf are the
-/// same objects; and every row, menu and section widget is shared with the card
-/// and with the book page ([BookPageView]), which a heading row still opens.
+/// and per device, read from the same store — folded is the exception, open the
+/// default; the search field, the one ranked column of results, the
+/// `＋ new book` door and the Ingredients shelf are the same objects; and every
+/// row, menu and section widget is shared with the card and with the book page.
 library;
 
 import 'dart:async';
@@ -45,10 +53,10 @@ import '../../account/presentation/account_view.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/presentation/ingredient_list_view.dart'
     show kIngredientsRoute;
+import '../../recipes/domain/recipe.dart';
 import '../data/book_providers.dart';
 import '../domain/book.dart';
 import '../domain/library_search.dart';
-import 'book_page_view.dart';
 import 'book_rows.dart';
 import 'book_view_models.dart';
 import 'text_prompt.dart';
@@ -371,15 +379,13 @@ const double kAzIndexGap = 40;
 /// into, not a bar across the pane.
 const double kLedgerFieldWidth = 300;
 
-/// How far a book's recipe lines are set in from its heading row.
+/// How far a book's sections are set in from its heading row.
 const double kLedgerIndent = 24;
 
-/// How many recipes a book lists before the remainder row counts the rest.
-///
-/// The same three the phone's tile listed and the book page opens with: enough
-/// to recognise a book by what is in it, few enough that ten books are still
-/// one screen.
-const int kLedgerPeek = 3;
+/// How far a recipe line is set in — one step further, so the three levels the
+/// ledger holds are readable as three without a rule or a box drawn round any
+/// of them.
+const double kLedgerRecipeIndent = 44;
 
 /// The ledger's own frame: the head strip, then whatever the body is, in one
 /// centred column no wider than the ledger and its margin together.
@@ -478,24 +484,40 @@ class _NewBookLink extends ConsumerWidget {
 /// letter scrolls to the first book that starts with it. That is what lets the
 /// shape hold at twenty-five books without becoming a grid.
 ///
+/// **One sliver list, however long the shelf is.** The whole ledger is
+/// flattened to [_LedgerRow]s and handed to a single [SliverList], so
+/// twenty-five books and a few hundred recipes build only the lines in the
+/// window. A widget per book holding its own sections would be one enormous
+/// sliver child, laid out in full the moment its book came on screen; a nested
+/// [ListView] per book would shrink-wrap, which is that cost again with a
+/// scroll position nobody asked for.
+///
 /// A [StatefulWidget] for the same reason the book page's panes are: it owns a
 /// scroll position, which belongs to the widget that owns the controller and
 /// dies with it.
-class _Ledger extends StatefulWidget {
+class _Ledger extends ConsumerStatefulWidget {
   const _Ledger({required this.books});
 
   final List<Book> books;
 
   @override
-  State<_Ledger> createState() => _LedgerState();
+  ConsumerState<_Ledger> createState() => _LedgerState();
 }
 
-class _LedgerState extends State<_Ledger> {
+class _LedgerState extends ConsumerState<_Ledger> {
   final _scroll = ScrollController();
 
   /// One key per book, so the index can scroll to it. Kept across rebuilds — a
   /// fresh key would rebuild the book and lose the row states inside it.
   final _keys = <String, GlobalKey>{};
+
+  /// The flattened ledger as the last build computed it — held because a seek
+  /// has to know where a book falls in a list it cannot see yet, and read
+  /// nowhere else.
+  List<_LedgerRow> _rows = const [];
+
+  /// How many frames a seek may spend landing on a book that is not built.
+  static const int _seekFrames = 12;
 
   @override
   void dispose() {
@@ -506,7 +528,15 @@ class _LedgerState extends State<_Ledger> {
   GlobalKey _keyFor(String id) => _keys.putIfAbsent(id, GlobalKey.new);
 
   /// Scrolls the ledger until [bookId]'s heading row is at the top.
-  void _show(String bookId) {
+  ///
+  /// A book far enough down the lazy list has not been built, so there is no
+  /// context to reveal. The seek then reads where the row falls in the flat
+  /// list, jumps to the offset that is in proportion to it and asks again on
+  /// the next frame: every jump builds a new window and refines the list's own
+  /// extent, so the row is a few frames away at most. It gives up after
+  /// [_seekFrames], or as soon as a jump would not move — a margin that cannot
+  /// find a book is better than one that scrolls for ever.
+  void _show(String bookId, {int frame = 0}) {
     final target = _keys[bookId]?.currentContext;
     if (target != null) {
       unawaited(
@@ -518,20 +548,30 @@ class _LedgerState extends State<_Ledger> {
       );
       return;
     }
-    // A book far enough down has not been built, so there is no context to
-    // scroll to. Jumping to the end builds the tail; the book is then there to
-    // land on, one frame later. (The book page's index does the same.)
-    if (!_scroll.hasClients) return;
-    _scroll.jumpTo(_scroll.position.maxScrollExtent);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final built = _keys[bookId]?.currentContext;
-      if (built != null) unawaited(Scrollable.ensureVisible(built));
-    });
+    if (!mounted || !_scroll.hasClients || frame >= _seekFrames) return;
+    final at = _rows.indexWhere(
+      (row) => row is _BookHeadRow && row.book.id == bookId,
+    );
+    if (at < 0) return;
+    final position = _scroll.position;
+    final estimate = (position.maxScrollExtent * at / _rows.length).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    if (estimate == position.pixels) return;
+    _scroll.jumpTo(estimate);
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _show(bookId, frame: frame + 1),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final books = widget.books;
+    // The fold is read here, once, rather than in every line: the flat list is
+    // what the fold changes — a shut book contributes its heading row alone.
+    final folded = ref.watch(foldedBooksProvider).asData?.value ?? const {};
+    _rows = _ledgerRows(books, folded);
     final lit = {for (final book in books) bookInitial(book)};
 
     return Row(
@@ -543,23 +583,21 @@ class _LedgerState extends State<_Ledger> {
             children: [
               _ColumnHeads(books: books.length),
               Expanded(
-                child: ListView(
+                child: CustomScrollView(
                   controller: _scroll,
-                  padding: ansiScrollPadding(
-                    context,
-                    const EdgeInsets.only(bottom: 36),
-                  ),
-                  children: [
-                    for (final book in books)
-                      _LedgerBook(
-                        key: _keyFor(book.id),
-                        book: book,
-                        books: books,
+                  slivers: [
+                    SliverPadding(
+                      padding: ansiScrollPadding(
+                        context,
+                        const EdgeInsets.only(bottom: 36),
                       ),
-                    // The vocabulary closes the ledger exactly as it closes the
-                    // phone's books, minus the phone's gutters: the ledger's
-                    // column IS the gutter here.
-                    const _IngredientsShelf(gutter: 0),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          _line,
+                          childCount: _rows.length,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -579,6 +617,176 @@ class _LedgerState extends State<_Ledger> {
       ],
     );
   }
+
+  /// One line of the ledger, built as it comes into the window.
+  Widget _line(BuildContext context, int index) {
+    final row = _rows[index];
+    final next = index + 1 < _rows.length ? _rows[index + 1] : null;
+    // A hairline closes a book under its last line, wherever that falls — the
+    // rule the phone's card gets for free from its border.
+    final closes =
+        row is! _ShelfRow &&
+        (next == null || next is _BookHeadRow || next is _ShelfRow);
+
+    return _LedgerSlot(
+      // The heading row is what the A–Z margin scrolls to, so it is the line
+      // that carries the book's key.
+      key: row is _BookHeadRow ? _keyFor(row.book.id) : null,
+      closes: closes,
+      child: switch (row) {
+        _BookHeadRow(:final book, :final open) => Padding(
+          padding: EdgeInsets.only(top: 15, bottom: open ? 4 : 0),
+          child: _HeadingRow(book: book, books: widget.books, open: open),
+        ),
+        _SectionRow(:final book, :final section, :final count) => Padding(
+          padding: const EdgeInsets.only(
+            left: kLedgerIndent,
+            top: 9,
+            bottom: 1,
+          ),
+          child: BookSectionLine(book: book, section: section, count: count),
+        ),
+        _RecipeLineRow(:final book, :final recipe, :final sectionId) => Padding(
+          padding: const EdgeInsets.only(left: kLedgerRecipeIndent),
+          child: LibraryRecipeRow.ledger(
+            recipe: recipe,
+            bookId: book.id,
+            sectionId: sectionId,
+          ),
+        ),
+        // The first-run doors, in place — the same two the phone's empty card
+        // offers, because the app can still open on this.
+        _EmptyBookRow(:final book) => Padding(
+          padding: const EdgeInsets.only(left: kLedgerIndent, top: 6),
+          child: EmptyShelf(book: book),
+        ),
+        // The vocabulary closes the ledger exactly as it closes the phone's
+        // books, minus the phone's gutters: the ledger's column IS the gutter.
+        _ShelfRow() => const _IngredientsShelf(gutter: 0),
+      },
+    );
+  }
+}
+
+/// One line of the open ledger: a book's heading row, a section's, a recipe
+/// under one, the two doors an empty book offers, or the vocabulary shelf that
+/// closes the column.
+///
+/// The ledger is a list of these rather than a list of books, so that every
+/// line — not every book — is what the sliver list builds lazily.
+sealed class _LedgerRow {
+  const _LedgerRow();
+}
+
+class _BookHeadRow extends _LedgerRow {
+  const _BookHeadRow({required this.book, required this.open});
+
+  final Book book;
+
+  /// Whether the fold is letting the book's own lines through.
+  final bool open;
+}
+
+class _SectionRow extends _LedgerRow {
+  const _SectionRow({required this.book, required this.count, this.section});
+
+  final Book book;
+
+  /// Null for the synthetic `Unsectioned` bucket, which comes last.
+  final BookSection? section;
+
+  final int count;
+}
+
+class _RecipeLineRow extends _LedgerRow {
+  const _RecipeLineRow({
+    required this.book,
+    required this.recipe,
+    required this.sectionId,
+  });
+
+  final Book book;
+  final RecipeSummary recipe;
+  final String? sectionId;
+}
+
+class _EmptyBookRow extends _LedgerRow {
+  const _EmptyBookRow({required this.book});
+
+  final Book book;
+}
+
+class _ShelfRow extends _LedgerRow {
+  const _ShelfRow();
+}
+
+/// The whole shelf as one flat list of lines: every book's heading row, and
+/// under an open one every section in the book's own order with `Unsectioned`
+/// last and every recipe under each.
+///
+/// This is the ledger's whole claim in one function — the wide Library lists
+/// **everything**, so nothing here counts, truncates or defers to another page.
+/// A folded book contributes its heading row alone, which is what the fold has
+/// always meant, and the vocabulary shelf is the last line, as it is the last
+/// row on the phone.
+List<_LedgerRow> _ledgerRows(List<Book> books, Set<String> folded) {
+  final rows = <_LedgerRow>[];
+  for (final book in books) {
+    final open = !folded.contains(book.id);
+    rows.add(_BookHeadRow(book: book, open: open));
+    if (!open) continue;
+    for (final section in book.sections) {
+      rows.add(
+        _SectionRow(
+          book: book,
+          section: section,
+          count: section.recipes.length,
+        ),
+      );
+      for (final recipe in section.recipes) {
+        rows.add(
+          _RecipeLineRow(book: book, recipe: recipe, sectionId: section.id),
+        );
+      }
+    }
+    if (book.unsectioned.isNotEmpty) {
+      rows.add(_SectionRow(book: book, count: book.unsectioned.length));
+      for (final recipe in book.unsectioned) {
+        rows.add(_RecipeLineRow(book: book, recipe: recipe, sectionId: null));
+      }
+    }
+    // The phone's own rule for a bare shelf: no sections and nothing unfiled.
+    if (book.sections.isEmpty && book.unsectioned.isEmpty) {
+      rows.add(_EmptyBookRow(book: book));
+    }
+  }
+  return rows..add(const _ShelfRow());
+}
+
+/// Where a line sits in the column, and the hairline that closes a book.
+///
+/// The border is on the **last line of a book** rather than on a box round the
+/// book, because there is no box: a book is a heading and the lines under it,
+/// and the rule under the last of them is what says the next heading is a new
+/// one.
+class _LedgerSlot extends StatelessWidget {
+  const _LedgerSlot({required this.closes, required this.child, super.key});
+
+  final bool closes;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => closes
+      ? DecoratedBox(
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: AnsiColors.line)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: child,
+          ),
+        )
+      : child;
 }
 
 /// What the ledger's two columns hold — which is what makes the right edge a
@@ -606,71 +814,15 @@ class _ColumnHeads extends StatelessWidget {
   );
 }
 
-/// One book in the ledger: the heading row, its first lines, the remainder, and
-/// a hairline to close it. No box, no fill, no band.
-class _LedgerBook extends ConsumerWidget {
-  const _LedgerBook({required this.book, required this.books, super.key});
-
-  final Book book;
-
-  /// The whole library — what the book menu's reorder moves against, and what
-  /// its delete counts before refusing.
-  final List<Book> books;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final folded = ref.watch(foldedBooksProvider).asData?.value ?? const {};
-    final open = !folded.contains(book.id);
-    final all = bookRecipesInPageOrder(book);
-    final shown = all.take(open ? kLedgerPeek : 0).toList();
-
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AnsiColors.line)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(0, 15, 0, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _HeadingRow(book: book, books: books, open: open),
-            if (open) ...[
-              for (final filed in shown)
-                Padding(
-                  padding: const EdgeInsets.only(left: kLedgerIndent),
-                  child: LibraryRecipeRow.ledger(
-                    recipe: filed.recipe,
-                    bookId: book.id,
-                    sectionId: filed.sectionId,
-                  ),
-                ),
-              if (all.length > shown.length)
-                Padding(
-                  padding: const EdgeInsets.only(left: kLedgerIndent, top: 2),
-                  child: _RemainderRow(book: book, shown: shown.length),
-                ),
-              // The first-run doors, in place — the same two the phone's empty
-              // card offers, because the app can still open on this.
-              if (all.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(left: kLedgerIndent, top: 6),
-                  child: EmptyShelf(book: book),
-                ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// A book's heading row: the fold's chevron, the name, a dotted leader into the
 /// counts column, and the book's own `⋯`.
 ///
-/// Three targets, each doing one thing: the chevron folds (the phone's own
-/// per-device state, so a book shut on this desk is shut here tomorrow), the
-/// name opens the book's page, and the `⋯` is [BookMenu] — the same menu the
-/// card's herb band and the page's header bar hang.
+/// Two targets, each doing one thing: the chevron folds (the phone's own
+/// per-device state, so a book shut on this desk is shut here tomorrow) and the
+/// `⋯` is [BookMenu] — the same menu the card's herb band and the page's header
+/// bar hang. **The name is not a door.** It was the way to `/books/:id` while
+/// the ledger showed three lines and a count; the ledger now shows the book, so
+/// there is nothing behind the name to go to.
 class _HeadingRow extends ConsumerWidget {
   const _HeadingRow({
     required this.book,
@@ -703,17 +855,13 @@ class _HeadingRow extends ConsumerWidget {
       // Capped rather than [Flexible]: a flexible name would divide the row's
       // free space with the leader and leave the counts short of the column
       // they are ruled to.
-      GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => context.pushOnce(bookRoute(book.id)),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: nameMax),
-          child: Text(
-            book.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: ansiSerif(size: 18, weight: FontWeight.w500),
-          ),
+      ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: nameMax),
+        child: Text(
+          book.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: ansiSerif(size: 18, weight: FontWeight.w500),
         ),
       ),
       const AnsiDottedLeader(),
@@ -723,45 +871,6 @@ class _HeadingRow extends ConsumerWidget {
       ),
       BookMenu.inline(book: book, books: books),
     ],
-  );
-}
-
-/// What the fold still holds — `39 more, in 3 sections` — and the `＋` that
-/// files a recipe into this book.
-///
-/// The row itself is the door to the book's page, where the sections get their
-/// names back: in the ledger a section is a **count on this row** and nothing
-/// else, because a ledger that listed every section would be the tree, and the
-/// tree is the phone's shape.
-class _RemainderRow extends StatelessWidget {
-  const _RemainderRow({required this.book, required this.shown});
-
-  final Book book;
-  final int shown;
-
-  @override
-  Widget build(BuildContext context) => AnsiTap(
-    onTap: () => context.pushOnce(bookRoute(book.id)),
-    color: AnsiColors.herb,
-    radius: 4,
-    child: Row(
-      children: [
-        const Icon(FLucideIcons.chevronRight, size: 12),
-        const SizedBox(width: 7),
-        Text(
-          bookRemainderLine(book, shown: shown),
-          style: ansiMono(
-            size: 10.5,
-            color: AnsiColors.herb,
-            letterSpacing: 0.3,
-          ),
-        ),
-        const Spacer(),
-        // The phone's own "this book, no section" door, which is what a
-        // remainder row's ＋ has always meant.
-        SectionAddMenu(book: book),
-      ],
-    ),
   );
 }
 

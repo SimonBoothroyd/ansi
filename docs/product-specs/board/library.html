@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Library</h1>
-    <p class="view-status">built · matches code 2026-09-13 · <code>features/books</code> · <a href="../../exec-plans/completed/0028-library-v3.md">plan 0028</a> · <a href="../../exec-plans/completed/0033-library-v2-decisions.md">plan 0033</a> · <a href="../../exec-plans/completed/0037-library-rows.md">plan 0037</a> · <a href="../../exec-plans/active/0047-wide-screens.md">plan 0047</a> · wide: differs 2026-09-13: the ledger is built as drawn — the one departure is the search field, which is the app's own bordered field at 300 px rather than an underline</p>
+    <p class="view-status">built · matches code 2026-09-13 · <code>features/books</code> · <a href="../../exec-plans/completed/0028-library-v3.md">plan 0028</a> · <a href="../../exec-plans/completed/0033-library-v2-decisions.md">plan 0033</a> · <a href="../../exec-plans/completed/0037-library-rows.md">plan 0037</a> · <a href="../../exec-plans/active/0047-wide-screens.md">plan 0047</a> · wide: differs 2026-09-13: the ledger is built as drawn, fully open — the one departure is the search field, which is the app's own bordered field at 300 px rather than an underline</p>
     <p class="view-blurb">The app’s home shelf — books, sections, rows; the field is the header, and every control hangs off a row that already existed.</p>
 </header>
 
@@ -263,7 +263,7 @@
 <div class="board-wide">
 
     <div class="frame wide">
-        <p class="frame-name"><b>wide · the ledger</b> · one column of books at <b>900</b>, centred, and a <b>34 px A–Z index</b> down the right margin. Every fact stated once and set in a column on bare paper — no tile, no dark band, no grid. No household door in the header: the sidebar’s <b>Account</b> is the one door</p>
+        <p class="frame-name"><b>wide · the ledger, fully open</b> · one column of books at <b>900</b>, centred, and a <b>34 px A–Z index</b> down the right margin — showing <b>every section and every recipe</b> of every open book. Every fact stated once and set in a column on bare paper: no tile, no dark band, no grid, and no second screen to go to. No household door in the header either — the sidebar’s <b>Account</b> is the one door</p>
         <div class="desk">
             <div class="lip"><i></i><i></i><i></i></div>
             <div class="dscreen">
@@ -293,8 +293,15 @@
                                     <span class="cv">⌄</span>
                                     <span class="nm">Our Cookbook</span>
                                     <span class="ldr"></span>
-                                    <span class="ct">42 recipes · 3 sections</span>
+                                    <span class="ct">11 recipes · 3 sections</span>
                                     <span class="rm">⋯</span>
+                                </div>
+
+                                <div class="lg-sec">
+                                    <span class="lbl">Weeknight</span>
+                                    <span class="ldr"></span>
+                                    <span class="ct">4 recipes</span>
+                                    <span class="p">＋</span><span class="rm">⋯</span>
                                 </div>
                                 <div class="lg-rows">
                                     <div class="lib-row">
@@ -303,6 +310,81 @@
                                         <span class="lib-stats">serves 4 · 520 kcal · 28 g protein</span>
                                         <span class="star">★</span><span class="rm">⋯</span>
                                     </div>
+                                    <div class="lib-row">
+                                        <span class="t">Harissa Chicken &amp; Butter Beans</span>
+                                        <span class="ldr"></span>
+                                        <span class="lib-stats">serves 4</span>
+                                        <span class="rm">⋯</span>
+                                    </div>
+                                    <div class="lib-row">
+                                        <span class="t">Charred Broccoli &amp; Orzo</span>
+                                        <span class="ldr"></span>
+                                        <span class="lib-stats">serves 2 · 480 kcal · 18 g protein</span>
+                                        <span class="rm">⋯</span>
+                                    </div>
+                                    <div class="lib-row">
+                                        <span class="t">Kimchi Fried Rice</span>
+                                        <span class="ldr"></span>
+                                        <span class="lib-stats">serves 2</span>
+                                        <span class="rm">⋯</span>
+                                    </div>
+                                </div>
+
+                                <div class="lg-sec">
+                                    <span class="lbl">Slow Sundays</span>
+                                    <span class="ldr"></span>
+                                    <span class="ct">3 recipes</span>
+                                    <span class="p">＋</span><span class="rm">⋯</span>
+                                </div>
+                                <div class="lg-rows">
+                                    <div class="lib-row">
+                                        <span class="t">Roast Chicken &amp; Bread Sauce</span>
+                                        <span class="ldr"></span>
+                                        <span class="lib-stats">serves 6 · 705 kcal · 52 g protein</span>
+                                        <span class="rm">⋯</span>
+                                    </div>
+                                    <div class="lib-row">
+                                        <span class="t">Porchetta</span>
+                                        <span class="ldr"></span>
+                                        <span class="lib-stats">serves 8 · 640 kcal · 46 g protein</span>
+                                        <span class="rm">⋯</span>
+                                    </div>
+                                    <div class="lib-row">
+                                        <span class="t">Slow-Roast Lamb Shoulder</span>
+                                        <span class="ldr"></span>
+                                        <span class="lib-stats">serves 6</span>
+                                        <span class="rm">⋯</span>
+                                    </div>
+                                </div>
+
+                                <div class="lg-sec">
+                                    <span class="lbl">Small plates</span>
+                                    <span class="ldr"></span>
+                                    <span class="ct">2 recipes</span>
+                                    <span class="p">＋</span><span class="rm">⋯</span>
+                                </div>
+                                <div class="lg-rows">
+                                    <div class="lib-row">
+                                        <span class="t">Sausage Sliders</span>
+                                        <span class="ldr"></span>
+                                        <span class="lib-stats">serves 8</span>
+                                        <span class="rm">⋯</span>
+                                    </div>
+                                    <div class="lib-row">
+                                        <span class="t">Whipped Feta &amp; Honey</span>
+                                        <span class="ldr"></span>
+                                        <span class="lib-stats">serves 4 · 290 kcal · 9 g protein</span>
+                                        <span class="rm">⋯</span>
+                                    </div>
+                                </div>
+
+                                <div class="lg-sec q">
+                                    <span class="lbl">Unsectioned</span>
+                                    <span class="ldr"></span>
+                                    <span class="ct">2 recipes</span>
+                                    <span class="p">＋</span>
+                                </div>
+                                <div class="lg-rows">
                                     <div class="lib-row">
                                         <span class="t">Miso Salmon</span>
                                         <span class="ldr"></span>
@@ -316,7 +398,6 @@
                                         <span class="rm">⋯</span>
                                     </div>
                                 </div>
-                                <div class="lg-more"><span class="cv">›</span><span>39 more, in 3 sections</span><span class="p">＋</span></div>
                             </div>
 
                             <div class="lg-bk">
@@ -373,9 +454,10 @@
                 </div>
             </div>
         </div>
-        <p class="wide-cap">A book is a <b>heading row</b>: the fold’s own chevron, the name in Spectral, a <b>dotted leader</b> into the counts column that carries the phone’s own line — <code>42 recipes · 3 sections</code>, or <code>no recipes yet</code> — and the book’s <b>⋯</b> as an inline glyph, the same menu the phone’s herb band hangs and the book page’s header bar wears. The <b>fold is the phone’s</b>, per book, per device: <i>Baking</i> is shut here and shows its heading alone, which is why the count line has to read the same open or shut.</p>
-        <p class="wide-cap">An open book lists <b>three recipe lines</b>, indented, each the Library’s own row with its second line <b>moved into the counts column</b> rather than dropped — <i>Miso Salmon</i> has a stub in it, so it still says <code>serves 2</code> and nothing else. Then one <b>remainder row</b>: <code>39 more, in 3 sections</code>, the <b>＋</b> that files a recipe into the book, and the row itself the door to <code>/books/:id</code>, where the sections get their names back. Sections are <b>counts on that row</b> and nowhere else in the ledger.</p>
-        <p class="wide-cap">The <b>A–Z margin</b> is what makes this shape hold at twenty-five books: a letter with a book on the shelf is lit and <b>scrolls the ledger to it</b>, the rest are drawn in the hairline’s ink. It indexes first letters, not order — the books keep the household’s own, which is what <i>Move up</i> and <i>Move down</i> write. <code>#</code> takes a book that starts with a digit.</p>
+        <p class="wide-cap">A book is a <b>heading row</b>: the fold’s own chevron, the name in Spectral, a <b>dotted leader</b> into the counts column that carries the phone’s own line — <code>11 recipes · 3 sections</code>, or <code>no recipes yet</code> — and the book’s <b>⋯</b> as an inline glyph, the same menu the phone’s herb band hangs and the book page’s header bar wears. The name is a <b>name</b>, not a door: there is nothing behind it left to see. The <b>fold is the phone’s</b>, per book, per device, and it is the one thing that hides anything: <i>Baking</i> is shut here and shows its heading alone, which is why the count line has to read the same open or shut. Open is the default.</p>
+        <p class="wide-cap">An open book lists <b>every section it keeps and every recipe under each</b>, <i>Unsectioned</i> last. A section is one <b>heading line</b> — the phone’s italic label, a leader into the same counts column, what it holds (<code>4 recipes</code>, or <code>no recipes yet</code>), then the <b>＋</b> that files a recipe into it and the section’s <b>⋯</b>; <i>Unsectioned</i> carries the ＋ and no ⋯, exactly as on the card. A recipe is one line, indented from its section, with its second line <b>set into the counts column</b> rather than dropped — <i>Kimchi Fried Rice</i> has a stub in it, so it still says <code>serves 2</code> and nothing else. Three levels, read as three from their indents: no box, no band, no rule but the hairline that closes a book.</p>
+        <p class="wide-cap">Nothing counts the rest, because there is no rest — <b>no remainder row</b>, and no door out to <code>/books/:id</code>. A laptop has the room: <i>“one Library screen showing everything is the better flavour.”</i> It is long and it scrolls, which is what a desk does, and it is one lazy list of lines, so twenty-five books cost only the lines in the window.</p>
+        <p class="wide-cap">The <b>A–Z margin</b> is what makes that hold: a letter with a book on the shelf is lit and <b>scrolls the ledger to it</b>, the rest are drawn in the hairline’s ink. It indexes first letters, not order — the books keep the household’s own, which is what <i>Move up</i> and <i>Move down</i> write. <code>#</code> takes a book that starts with a digit.</p>
         <p class="differs-note">differs: the field is the app’s <b>one search field</b> at 300 px — Forui’s bordered box, not the underline drawn here. An underline would be a second field anatomy for one screen, and the field is shared with the ingredients manager and every picker</p>
     </div>
 

@@ -1,8 +1,10 @@
-/// The Library at `expanded` — the ledger, its A–Z margin, and what stays put.
+/// The Library at `expanded` — the ledger, fully open, its A–Z margin, and what
+/// stays put.
 ///
 /// The phone's card list is covered by `library_view_test.dart`; this file is
 /// only about what the width changes. A book is a heading row with its counts
-/// set in a column, its first lines under it and one remainder row; the margin
+/// set in a column, over **every section it keeps and every recipe under each**
+/// — no peek, no remainder row, and no door out to `/books/:id`. The margin
 /// lights the letters that have books and scrolls to them; a search still
 /// answers with one ranked column; and below the band nothing moved.
 library;
@@ -166,7 +168,7 @@ bool _isLit(WidgetTester tester, String letter) =>
 double _offset(WidgetTester tester) => tester
     .widget<Scrollable>(
       find.descendant(
-        of: find.byType(ListView),
+        of: find.byType(CustomScrollView),
         matching: find.byType(Scrollable),
       ),
     )
@@ -190,21 +192,90 @@ void main() {
     expect(find.text('Preserves'), findsOneWidget);
     expect(find.text('no recipes yet'), findsOneWidget);
 
-    // Three lines, in the book page's own order, each the Library's row with
-    // its stats set in the counts column rather than dropped.
-    expect(find.byType(LibraryRecipeRow), findsNWidgets(3));
+    // Every line of the book, in the book page's own order, each the Library's
+    // row with its stats set in the counts column rather than dropped.
+    expect(find.byType(LibraryRecipeRow), findsNWidgets(5));
     expect(find.text('Chicken Curry'), findsOneWidget);
     expect(find.text('Harissa Chicken'), findsOneWidget);
     expect(find.text('Porchetta'), findsOneWidget);
-    expect(find.text('Miso Salmon'), findsNothing);
+    expect(find.text('Miso Salmon'), findsOneWidget);
+    expect(find.text('House Ragù'), findsOneWidget);
     expect(find.text('serves 4'), findsOneWidget);
     expect(find.text('serves 8'), findsOneWidget);
     // The ★ reports here as it does on the phone's row.
     expect(find.byIcon(FLucideIcons.star), findsOneWidget);
-    // Sections are counts, not blocks: the tree stays on the phone and on the
-    // book page.
+    // A section is a heading LINE, not the phone's block: the same italic
+    // label, its own count in the ledger's column, and no box round it.
     expect(find.byType(BookSectionBlock), findsNothing);
-    expect(find.text('Weeknight'), findsNothing);
+    expect(find.byType(BookSectionLine), findsNWidgets(3));
+  });
+
+  testWidgets('every section of a book is a heading line, Unsectioned last, '
+      'with its recipes under it', (tester) async {
+    _wide(tester);
+    await tester.pumpWidget(_host(_library));
+    await tester.pumpAndSettle();
+
+    // The book's own order: the sections it keeps, then the bucket.
+    expect(find.text('Weeknight'), findsOneWidget);
+    expect(find.text('Slow Sundays'), findsOneWidget);
+    expect(find.text('Unsectioned'), findsOneWidget);
+    // Each says what it holds, in the book's own grammar one level down.
+    expect(find.text('2 recipes'), findsNWidgets(2)); // Weeknight, Unsectioned
+    expect(find.text('1 recipe'), findsOneWidget); // Slow Sundays
+
+    double top(String text) => tester.getRect(find.text(text)).top;
+
+    // Every recipe sits under the section it is filed in, and the buckets in
+    // the order the book page lists them.
+    expect(top('Weeknight'), lessThan(top('Chicken Curry')));
+    expect(top('Chicken Curry'), lessThan(top('Harissa Chicken')));
+    expect(top('Harissa Chicken'), lessThan(top('Slow Sundays')));
+    expect(top('Slow Sundays'), lessThan(top('Porchetta')));
+    expect(top('Porchetta'), lessThan(top('Unsectioned')));
+    expect(top('Unsectioned'), lessThan(top('Miso Salmon')));
+    expect(top('Miso Salmon'), lessThan(top('House Ragù')));
+    // And the next book's heading is below all of it.
+    expect(top('House Ragù'), lessThan(top('Preserves')));
+
+    // A section is set in from its book, and a recipe in from its section: the
+    // three levels read as three without a rule or a box round any of them.
+    final book = tester.getRect(find.text('Our Cookbook')).left;
+    final section = tester.getRect(find.text('Weeknight')).left;
+    final recipe = tester.getRect(find.text('Chicken Curry')).left;
+    expect(section, greaterThan(book));
+    expect(recipe, greaterThan(section));
+  });
+
+  testWidgets('every control the phone hangs on a section is on its line', (
+    tester,
+  ) async {
+    late GoRouter router;
+    _wide(tester);
+    await tester.pumpWidget(_host(_library, expose: (r) => router = r));
+    await tester.pumpAndSettle();
+
+    // Two named sections and the bucket each carry the `＋` that files a recipe
+    // where it is; only the named two carry a `⋯`, because there is nothing to
+    // rename, reorder or delete about a bucket.
+    expect(find.byType(SectionAddMenu), findsNWidgets(3));
+    expect(find.byType(SectionMenu), findsNWidgets(2));
+
+    // The `＋` on `Weeknight` opens the editor already filed there.
+    final line = find.ancestor(
+      of: find.text('Weeknight'),
+      matching: find.byType(BookSectionLine),
+    );
+    await tester.tap(
+      find.descendant(of: line, matching: find.byType(SectionAddMenu)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New recipe'));
+    await tester.pumpAndSettle();
+
+    expect(router.state.uri.path, '/recipes/new');
+    expect(router.state.uri.queryParameters['book'], 'b1');
+    expect(router.state.uri.queryParameters['section'], 's1');
   });
 
   testWidgets('a book’s counts and a recipe’s stats end on one edge — it is a '
@@ -221,82 +292,80 @@ void main() {
     expect(counts.right, stats.right);
   });
 
-  testWidgets('the remainder row counts what the lines did not show, and the '
-      'sections still holding it', (tester) async {
+  testWidgets('nothing counts the rest, because there is no rest: no '
+      'remainder row anywhere in the ledger', (tester) async {
     _wide(tester);
     await tester.pumpWidget(_host(_library));
     await tester.pumpAndSettle();
 
-    // Five recipes, three drawn: two left, and both of them unsectioned —
-    // `Slow Sundays` gave up its only recipe to the third line.
-    expect(find.text('2 more'), findsOneWidget);
-
-    // The row is the door to the book's own page, where the sections are named.
-    await tester.tap(find.text('2 more'));
-    await tester.pumpAndSettle();
-    expect(find.text('book b1'), findsOneWidget);
-  });
-
-  testWidgets('a remainder still inside a section says which', (tester) async {
-    _wide(tester);
-    await tester.pumpWidget(
-      _host(const [
-        Book(
-          id: 'b1',
-          name: 'Our Cookbook',
-          sections: [
-            BookSection(
-              id: 's1',
-              name: 'Weeknight',
-              recipes: [
-                RecipeSummary(id: 'r1', title: 'One', servingsBase: 2),
-                RecipeSummary(id: 'r2', title: 'Two', servingsBase: 2),
-                RecipeSummary(id: 'r3', title: 'Three', servingsBase: 2),
-                RecipeSummary(id: 'r4', title: 'Four', servingsBase: 2),
-              ],
-            ),
-            BookSection(
-              id: 's2',
-              name: 'Sundays',
-              recipes: [
-                RecipeSummary(id: 'r5', title: 'Five', servingsBase: 2),
-              ],
-            ),
-          ],
-        ),
-      ]),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('2 more, in 2 sections'), findsOneWidget);
+    // Five recipes, five lines. The row that used to read `2 more` and open the
+    // book page is gone with the peek it was counting past.
+    expect(find.textContaining('more'), findsNothing);
   });
 
   testWidgets('the fold is the phone’s own: a folded book is its heading row '
-      'alone, and the chevron opens it again', (tester) async {
+      'alone, and the chevron opens the whole book again', (tester) async {
     _wide(tester);
     await tester.pumpWidget(_host(_library, folded: {'b1'}));
     await tester.pumpAndSettle();
 
     // Arrived folded: the count line reads the same shut as open, and there is
-    // nothing under it.
+    // nothing under it — no sections either, now that they are lines.
     expect(find.text('5 recipes · 2 sections'), findsOneWidget);
     expect(find.byType(LibraryRecipeRow), findsNothing);
-    expect(find.text('2 more'), findsNothing);
+    expect(find.byType(BookSectionLine), findsNothing);
+    expect(find.text('Weeknight'), findsNothing);
 
     await tester.tap(find.byIcon(FLucideIcons.chevronRight).first);
     await tester.pumpAndSettle();
-    expect(find.byType(LibraryRecipeRow), findsNWidgets(3));
+
+    // Open is the default, and it is the whole book: every section and every
+    // recipe, not a peek.
+    expect(find.byType(BookSectionLine), findsNWidgets(3));
+    expect(find.byType(LibraryRecipeRow), findsNWidgets(5));
   });
 
-  testWidgets('the heading row’s name opens the book page', (tester) async {
+  testWidgets('no door out of the Library: the heading row’s name is a name, '
+      'and nothing here opens /books/:id', (tester) async {
+    late GoRouter router;
     _wide(tester);
-    await tester.pumpWidget(_host(_library));
+    await tester.pumpWidget(_host(_library, expose: (r) => router = r));
     await tester.pumpAndSettle();
 
+    // The name was the door while the ledger showed three lines and a count.
+    // The ledger now shows the book, so the tap goes nowhere.
     await tester.tap(find.text('Our Cookbook'));
     await tester.pumpAndSettle();
+    expect(router.state.uri.path, '/');
+    expect(find.text('book b1'), findsNothing);
 
-    expect(find.text('book b1'), findsOneWidget);
+    // Nor does any other line of it — the route is still there for a pasted
+    // link, and the Library is not what pastes it.
+    await tester.tap(find.text('5 recipes · 2 sections'));
+    await tester.tap(find.text('Weeknight'));
+    await tester.pumpAndSettle();
+    expect(router.state.uri.path, '/');
+    expect(find.text('book b1'), findsNothing);
+  });
+
+  testWidgets('the ledger is one lazy sliver list, not a list of lists', (
+    tester,
+  ) async {
+    _wide(tester);
+    await tester.pumpWidget(_host(_manyBooks));
+    await tester.pumpAndSettle();
+
+    // One scroll view over every line of every book. A nested list per book
+    // would shrink-wrap each one and lay out a whole book the moment its
+    // heading came on screen, which is what 25 books cannot afford.
+    final ledger = find.byType(CustomScrollView);
+    expect(ledger, findsOneWidget);
+    expect(
+      find.descendant(of: ledger, matching: find.byType(ListView)),
+      findsNothing,
+    );
+    // Lazy: the tail of a ten-book shelf is not built at rest.
+    expect(find.text('Zero Waste 4'), findsNothing);
   });
 
   testWidgets('the A–Z margin lights the letters that have books, and only '
@@ -317,13 +386,14 @@ void main() {
   });
 
   testWidgets('a letter scrolls the ledger to its book', (tester) async {
-    // Ten books of four recipes is longer than any window, which is the only
-    // state in which scrolling means anything.
+    // Ten books of four recipes, every one of them listed, is far longer than
+    // any window — which is the only state in which scrolling means anything,
+    // and the state a book past the fold has to be found in.
     _wide(tester);
     await tester.pumpWidget(_host(_manyBooks));
     await tester.pumpAndSettle();
 
-    final list = tester.getRect(find.byType(ListView));
+    final list = tester.getRect(find.byType(CustomScrollView));
     expect(_offset(tester), 0);
 
     await tester.tap(_letter('M'));
@@ -454,10 +524,11 @@ void main() {
     expect(find.byType(BookSectionBlock), findsWidgets);
     expect(find.byType(LibraryRecipeRow), findsWidgets);
     expect(find.text('Weeknight'), findsOneWidget);
-    // Nothing of the ledger reaches down here.
+    // Nothing of the ledger reaches down here: not the margin, not the column
+    // heads, and not the section heading LINE — a phone section is a block.
     expect(find.byType(LibraryIndexLetter), findsNothing);
     expect(find.text('BOOKS · 2'), findsNothing);
-    expect(find.text('2 more'), findsNothing);
+    expect(find.byType(BookSectionLine), findsNothing);
     // The phone's own header and its dashed doors are where they were.
     expect(find.byIcon(FLucideIcons.users), findsOneWidget);
     expect(find.byType(DashedAction), findsWidgets);

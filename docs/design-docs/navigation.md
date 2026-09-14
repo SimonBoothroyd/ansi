@@ -165,8 +165,9 @@ plain doors — a manager row, an ingredient's name on a recipe line — read.
 the page: it has no fact sheet behind it, so it **pops with the row it made**,
 which is what the picker that pushed it awaits (below).
 
-`/books/:id` is one book on a page of its own, opened by a tile on the wide
-Library's shelf and by a pasted link. **Back returns to the Library**, through
+`/books/:id` is one book on a page of its own, reached by a pasted link and by
+nothing else: the wide Library's ledger lists every section and every recipe of
+every book, so no row there opens it. **Back returns to the Library**, through
 the same `ansiBack` every pushed page uses (§3): a cold deep link straight at a
 book has no shell page beneath it, so the fallback is doing real work there. It
 is a sibling of the tab shell for the ordinary reason — it must cover the bar —
