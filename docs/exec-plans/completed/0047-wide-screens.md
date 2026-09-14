@@ -1,6 +1,6 @@
 # Exec plan: Wide screens — web and iPad landscape
 
-- **Status:** active
+- **Status:** done — shipped as `v0.17.0`
 - **Owner:** Simon (design), agents in lanes
 - **Roadmap step:** Step 10 — Web UI
 - **Created:** 2026-09-10
@@ -20,6 +20,11 @@ changes, and the code gets one place that reads the viewport.
       medium 640–1023, expanded ≥ 1024, on Forui's own `FBreakpoints`), held
       by a structural test.
 - [ ] Web build in CI, hosted; Google sign-in returns to the deployed origin.
+      *Half done: the `web` job builds the bundle on every tag and the code
+      returns to the served origin, and the Supabase redirect origins are
+      listed. The `pages` deploy has not landed — the `github-pages`
+      environment refuses a `v*` tag (release.md §6.1) — so nothing is served
+      and no browser sign-in has been walked.*
 - [x] Photo import and the barcode scan are gated on web, not thrown.
 - [x] Docs updated: `docs/design-docs/wide-screen.md`, `app/AGENTS.md`
       (the "phone-first" bullet), ADR-0002's PowerSync web line.
@@ -323,9 +328,24 @@ changes, and the code gets one place that reads the viewport.
 
 ## Step-done checklist
 
-- [ ] Roadmap row 10 flipped, with what shipped and what was deferred.
-- [ ] `ARCHITECTURE.md` standing table updated for the shell and layout.
-- [ ] `app/AGENTS.md` "phone-first" bullet rewritten.
-- [ ] Tech-debt rows added for corners cut (worker/wasm refresh, barcode on
-      web), retired for the max-width wrapper debt.
-- [ ] `make ci` green.
+- [x] Roadmap row 10 flipped, with what shipped and what was deferred; the
+      untagged row moved into Shipped under `v0.17.0`.
+- [x] `ARCHITECTURE.md` standing table updated: the navigation, wide-screen,
+      books, recipes, planning, cook-plan, shopping, both import and CI rows.
+      The wide-screen row is 🟢 — one reader, one applier, both held by a
+      structural test — and names the two limits taken by choice.
+- [x] `app/AGENTS.md`'s layout paragraph is the phone-first bullet rewritten,
+      and its "Current focus" points at the roadmap, which is current.
+- [x] Tech-debt rows added: the web workers nothing refreshes, the crop and the
+      scan gated off on web, the 44 px target not applied, drag-to-scroll off,
+      the source span's proportional scroll, the Week band with no wide home,
+      the wide empty week, `/books/:id` reachable only by a pasted link, the
+      Complete dot's two colours on the board, and the `pages` deploy the
+      environment refuses. Nothing to retire: no max-width-wrapper row was ever
+      opened — the measure arrived with its own applier in this plan's first
+      pass.
+- [x] `make ci` green on the stacked tree, and `make test-sim` green on an
+      iPhone 17 simulator (ten scenarios, nine files) at the first pass.
+- [x] No migrations. `import-recipe` changed **additively** (`source_text` and
+      a per-line `source_span`, both optional), so a `deploy-supabase` run is
+      owed before a review can light a span; nothing breaks until it happens.

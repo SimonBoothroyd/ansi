@@ -275,8 +275,25 @@ The rules, and the exact status-line clauses, are
 
 ## 8. What this does not answer yet
 
-The views that use the width rather than centring in it — the Week's day pane
-and agenda, the Library's shelf, the recipe page's columns, the Ingredients
-master-detail — are the later legs of
-[`exec-plans/active/0047-wide-screens.md`](../exec-plans/active/0047-wide-screens.md),
-which also carries the owner's decisions about what each of those looks like.
+Four things a desk asks for that no width here answers:
+
+- **Where the Week's band lives.** The phone's week band (total, average,
+  `n of 7 days`) has no wide home; the day pane carries the open day's figures
+  and the agenda carries each day's energy, so the built screen draws none
+  rather than guess a place for it.
+- **A finger on a wide screen.** The 32 px minimum target `AnsiTap` gives a
+  glyph control is a *mouse* minimum. The phone's 44 px rule is written down
+  and deliberately not applied to those controls, because growing them from
+  underneath would re-lay-out the week card and every dense line.
+- **Drag.** Mouse drag-to-scroll is off — it would take click-drag text
+  selection away from every recipe and ingredient row — and neither Week pane
+  offers drag-to-move a meal, because the week has no `move` operation to
+  promise.
+- **A keyboard.** Tab order is the framework's: the reorder a desk would do
+  with the arrow keys is not built, and a cold page's first Tab lands on the
+  sidebar rather than the page.
+
+The owner's decisions behind every wide answer above are the decision log of
+[`exec-plans/completed/0047-wide-screens.md`](../exec-plans/completed/0047-wide-screens.md);
+what someone still owes is in the
+[tracker](../exec-plans/tech-debt-tracker.md).

@@ -25,8 +25,10 @@ lib/
 
 `shared/ansi_tab_shell.dart` is the app's navigation spine: the four tabs are
 branches of one `StatefulShellRoute` and the bottom bar lives there, **once**.
-From `lg` up the bar is replaced by the sidebar `shared/ansi_wide_shell.dart`
-draws around the whole app, and `showAnsiSheet` presents its sheet as a dialog.
+From `lg` up the bar is replaced by the rail — a sidebar from 1280 —
+that `shared/ansi_wide_shell.dart` draws around the whole app, one outer
+`ShellRoute` over the tab shell and every pushed route; from `medium` up
+`showAnsiSheet` presents the same builder as a dialog.
 Two rules follow, and both are held by structural tests rather than by this
 paragraph — a tab screen never draws its own footer, and a sheet or dialog opens
 through `showAnsiSheet`/`showAnsiDialog` (`shared/ansi_modals.dart`), because
@@ -96,10 +98,13 @@ screen: [`../docs/design-docs/navigation.md`](../docs/design-docs/navigation.md)
   — through `_page` for a pushed page and `_branch` for a tab root — so **a
   screen never wraps or measures itself**. `fullWidth: true` is the one opt-out,
   for a view that takes the whole content pane once the chrome is beside it:
-  `/books/:id`, `/ingredients`, `/ingredients/:id` and all four tab roots (`/`,
-  `/week`, `/cook`, `/shop`) today. `/recipes/:id` instead passes
-  `measure: ansiWideMeasureWidth` — still one wrap, capped wider than 640 for
-  its two columns. Enforced by
+  `/import`, `/books/:id`, `/ingredients`, `/ingredients/:id` and all four tab
+  roots (`/`, `/week`, `/cook`, `/shop`) today. A page that stays one wrap but
+  needs a wider cap passes `measure: ansiWideMeasureWidth` instead —
+  `/recipes/new` and `/recipes/:id` — or `measureOf` where the cap depends on
+  the route's own query, which is the editor alone: `/recipes/:id/edit?week=`
+  is one column at 640 because week mode draws no header form and no method.
+  Enforced by
   `test/structure/one_viewport_reader_test.dart`, which fails on
   `MediaQuery.sizeOf`, `MediaQuery.of(context).size` or `LayoutBuilder` anywhere
   else. Inset reads (`viewInsetsOf`, `paddingOf`) are not viewport reads and are
@@ -274,8 +279,10 @@ Notes:
   | Barcode scan | door not drawn; the typed barcode field is the path, as it always was |
 
   Routes are **hash URLs** (`…/#/week`) because the host is a static one that
-  cannot rewrite a deep link. Hosting, the owed Pages setup and the trade it
-  carries: `../docs/release.md` §6.
+  cannot rewrite a deep link, and an imperative push is reflected in that hash,
+  so a refresh lands on the page that was on screen. The host, the one
+  environment rule still refusing its deploy, and the trade hosting carries:
+  `../docs/release.md` §6.
 
 ## Current focus
 
