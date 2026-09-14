@@ -28,7 +28,12 @@ void main() {
     final offenders = <String>[];
     for (final path in _tabRoots) {
       final source = File(path).readAsStringSync();
-      final first = source.indexOf('return FScaffold(');
+      // The root scaffold is the FIRST one the file builds. Three of the four
+      // are wrapped rather than returned bare — the week tabs sit inside
+      // `WeekInTheLocation`, which names the week on screen in the URL and
+      // draws nothing of its own — so this looks for the scaffold, not for a
+      // `return` in front of it.
+      final first = source.indexOf('FScaffold(');
       expect(first, isNot(-1), reason: '$path should build its FScaffold');
       // The root scaffold's argument list runs to the first `child:`.
       final args = source.substring(first, source.indexOf('child:', first));
