@@ -1847,7 +1847,7 @@
        the freezer — each with its own word beside the control */
     .we-mini{display:flex;align-items:center;gap:9px;}
     .we-mini+.we-mini{margin-top:7px;}
-    .we-mini .k{flex:none;width:36px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+    .we-mini .k{flex:none;width:44px;white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
     .we-mini .stepper{flex:1;}
     .we-mini .fsw{width:34px;height:20px;}
     .we-mini .fsw::after{width:15px;height:15px;}
