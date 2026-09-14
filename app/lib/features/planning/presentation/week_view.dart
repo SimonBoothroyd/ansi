@@ -66,6 +66,7 @@ import 'copy_last_week.dart';
 import 'recipe_picker_sheet.dart';
 import 'week_format.dart';
 import 'week_header.dart';
+import 'week_in_the_location.dart';
 import 'week_macro_widgets.dart';
 import 'week_view_models.dart';
 import 'week_wide.dart';
@@ -148,7 +149,23 @@ Future<void> _addMealFlow(
 }
 
 class WeekView extends HookConsumerWidget {
-  const WeekView({super.key});
+  const WeekView({this.weekKey, this.dayKey, super.key});
+
+  /// `?week=YYYY-MM-DD` — the week this tab was opened at, seated on arrival so
+  /// a refresh or a pasted link opens the week you were looking at
+  /// ([WeekInTheLocation]).
+  final String? weekKey;
+
+  /// `?day=YYYY-MM-DD` — which day the wide day pane stands on. **The URL is
+  /// where that choice lives**, not a notifier beside it: the `›` restates the
+  /// location and the pane reads it back, so one refresh lands on the same day
+  /// and back still leaves the week in one press (`restateOnce`).
+  ///
+  /// A date rather than an index, so it says what it means in a shared link and
+  /// so a date left over from another week simply does not match — the pane
+  /// falls back to its default (today, or the week's first day) instead of
+  /// pointing at a day this week does not have.
+  final String? dayKey;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -177,12 +194,20 @@ class WeekView extends HookConsumerWidget {
 
     // null = Everyone; a member id = that person's lens (D8: it dims, it does
     // not remove).
+    //
+    // The lens stays a notifier and stays OUT of the URL: it is a question
+    // about how the numbers are being read, not a position, and a link that
+    // silently scoped a household's week to one eater would be a link nobody
+    // meant to send.
     final lens = useState<String?>(null);
-    // Which day the wide day pane draws. VIEW state, held here beside the lens
-    // because both are questions about how this screen is being READ, not facts
-    // about the week — and neither persists: come back to the Week and it is
-    // today again, under Everyone. Null means "the default" (see [WeekWide]).
-    final selectedDay = useState<int?>(null);
+    // Which day the wide day pane draws, read off `?day=` — null means "the
+    // default" (see [WeekWide]). A date from another week does not match and so
+    // does not count.
+    final chosen = dayKey == null ? null : DateTime.tryParse(dayKey!);
+    final selectedDay = chosen != null && shape.weekStartOf(chosen) == weekStart
+        ? shape.offsetOf(chosen)
+        : null;
+    final day = selectedDay ?? todayDayOfWeek ?? 0;
     final scope =
         roster
             .where((m) => m.id == lens.value)
@@ -190,91 +215,108 @@ class WeekView extends HookConsumerWidget {
             .firstOrNull ??
         'Everyone';
 
-    return FScaffold(
-      // A tab root sits INSIDE the shell's scaffold, which already shrinks
-      // the branch area for the keyboard; a second scaffold subtracting the
-      // same inset squeezes the content twice (Android showed a list a few
-      // lines tall after the sign-in keyboard).
-      resizeToAvoidBottomInset: false,
-      // "Copy last week" has ONE permanent home — the switcher menu — plus the
-      // empty-week chip below.
-      header: FHeader.nested(
-        title: WeekSwitcher(
-          // The menu speaks in this tab's derivation — "9 meals" — for the
-          // week on screen; the other rows stay bare.
-          detailFor: (monday) => week.asData == null || monday != weekStart
-              ? null
-              : formatMealCount(week.asData!.value?.entries.length ?? 0),
+    return WeekInTheLocation(
+      path: '/week',
+      weekKey: weekKey,
+      // The day is only a question the WIDE day pane asks. A phone draws all
+      // seven days and stands on none of them, so it names none — the one thing
+      // that differs by width in the whole location.
+      also: AnsiLayout.of(context) == AnsiLayout.expanded
+          ? {'day': isoDateOf(shape.dateFor(weekStart, day))}
+          : const {},
+      child: FScaffold(
+        // A tab root sits INSIDE the shell's scaffold, which already shrinks
+        // the branch area for the keyboard; a second scaffold subtracting the
+        // same inset squeezes the content twice (Android showed a list a few
+        // lines tall after the sign-in keyboard).
+        resizeToAvoidBottomInset: false,
+        // "Copy last week" has ONE permanent home — the switcher menu — plus
+        // the empty-week chip below.
+        header: FHeader.nested(
+          title: WeekSwitcher(
+            // The menu speaks in this tab's derivation — "9 meals" — for the
+            // week on screen; the other rows stay bare.
+            detailFor: (monday) => week.asData == null || monday != weekStart
+                ? null
+                : formatMealCount(week.asData!.value?.entries.length ?? 0),
+          ),
         ),
-      ),
-      child: week.when(
-        loading: () => const Center(child: FCircularProgress()),
-        error: (e, st) => AnsiErrorState(
-          what: 'the week',
-          error: e,
-          stackTrace: st,
-          onRetry: () => ref.invalidate(viewedWeekProvider),
-        ),
-        // `watchWeek` emitting null stops meaning "show a different screen"
-        // and starts meaning "seven empty days" (D5).
-        data: (plan) {
-          final empty = plan == null || plan.entries.isEmpty;
-          if (AnsiLayout.of(context) == AnsiLayout.expanded) {
-            return WeekWide(
-              weekStart: weekStart,
-              plan: plan,
-              roster: roster,
-              lens: lens,
-              scope: scope,
-              cookPlan: cookPlan,
-              todayDayOfWeek: todayDayOfWeek,
-              selectedDay: selectedDay,
-              onAddMeal: (dayOfWeek) => unawaited(
-                _addMealFlow(
-                  context,
-                  ref,
-                  weekStart: weekStart,
-                  dayOfWeek: dayOfWeek,
-                ),
-              ),
-              onCopyLastWeek: empty && lastWeek != null
-                  ? () => unawaited(
-                      copyLastWeekInto(context, ref, weekStart: weekStart),
-                    )
-                  : null,
-            );
-          }
-          return ListView(
-            padding: const EdgeInsets.only(top: 8, bottom: 24),
-            children: [
-              if (empty)
-                _FirstMealBar(
-                  weekStart: weekStart,
-                  hasLastWeek: lastWeek != null,
-                  onCopyLastWeek: () => unawaited(
-                    copyLastWeekInto(context, ref, weekStart: weekStart),
+        child: week.when(
+          loading: () => const Center(child: FCircularProgress()),
+          error: (e, st) => AnsiErrorState(
+            what: 'the week',
+            error: e,
+            stackTrace: st,
+            onRetry: () => ref.invalidate(viewedWeekProvider),
+          ),
+          // `watchWeek` emitting null stops meaning "show a different screen"
+          // and starts meaning "seven empty days" (D5).
+          data: (plan) {
+            final empty = plan == null || plan.entries.isEmpty;
+            if (AnsiLayout.of(context) == AnsiLayout.expanded) {
+              return WeekWide(
+                weekStart: weekStart,
+                plan: plan,
+                roster: roster,
+                lens: lens,
+                scope: scope,
+                cookPlan: cookPlan,
+                todayDayOfWeek: todayDayOfWeek,
+                selectedDay: day,
+                onSelectDay: (d) => context.restateOnce(
+                  weekLocation(
+                    '/week',
+                    weekStart,
+                    also: {'day': isoDateOf(shape.dateFor(weekStart, d))},
                   ),
                 ),
-              CopyLastWeekNotice(weekStart: weekStart),
-              WeekLensRow(lens: lens, roster: roster),
-              for (var d = 0; d < 7; d++)
-                _DayCard(
-                  weekStart: weekStart,
-                  dayOfWeek: d,
-                  entries: plan?.entriesForDay(d) ?? const [],
-                  roster: roster,
-                  lens: lens.value,
-                  scope: scope,
-                  cookPlan: cookPlan,
-                  todayDayOfWeek: todayDayOfWeek,
+                onAddMeal: (dayOfWeek) => unawaited(
+                  _addMealFlow(
+                    context,
+                    ref,
+                    weekStart: weekStart,
+                    dayOfWeek: dayOfWeek,
+                  ),
                 ),
-              WeekMacroBand(
-                macros: ref.watch(weekMacrosProvider(lens.value)),
-                scope: scope,
-              ),
-            ],
-          );
-        },
+                onCopyLastWeek: empty && lastWeek != null
+                    ? () => unawaited(
+                        copyLastWeekInto(context, ref, weekStart: weekStart),
+                      )
+                    : null,
+              );
+            }
+            return ListView(
+              padding: const EdgeInsets.only(top: 8, bottom: 24),
+              children: [
+                if (empty)
+                  _FirstMealBar(
+                    weekStart: weekStart,
+                    hasLastWeek: lastWeek != null,
+                    onCopyLastWeek: () => unawaited(
+                      copyLastWeekInto(context, ref, weekStart: weekStart),
+                    ),
+                  ),
+                CopyLastWeekNotice(weekStart: weekStart),
+                WeekLensRow(lens: lens, roster: roster),
+                for (var d = 0; d < 7; d++)
+                  _DayCard(
+                    weekStart: weekStart,
+                    dayOfWeek: d,
+                    entries: plan?.entriesForDay(d) ?? const [],
+                    roster: roster,
+                    lens: lens.value,
+                    scope: scope,
+                    cookPlan: cookPlan,
+                    todayDayOfWeek: todayDayOfWeek,
+                  ),
+                WeekMacroBand(
+                  macros: ref.watch(weekMacrosProvider(lens.value)),
+                  scope: scope,
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

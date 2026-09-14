@@ -33,6 +33,7 @@ import '../../cook_plan/presentation/cook_view_models.dart';
 import '../../planning/data/planning_providers.dart';
 import '../../planning/presentation/week_format.dart';
 import '../../planning/presentation/week_header.dart';
+import '../../planning/presentation/week_in_the_location.dart';
 import '../../planning/presentation/week_view_models.dart';
 import '../../recipes/domain/effective_lines.dart';
 import '../data/shopping_providers.dart';
@@ -44,59 +45,71 @@ import 'shopping_format.dart';
 import 'shopping_view_models.dart';
 
 class ShoppingView extends ConsumerWidget {
-  const ShoppingView({super.key});
+  const ShoppingView({this.weekKey, super.key});
 
   /// The tab root's stable anchor: the header no longer names the screen, so
   /// the smoke test waits on this key instead of a title.
   static const rootKey = ValueKey('shop-root');
+
+  /// `?week=YYYY-MM-DD` — the week this tab was opened at, so a refresh or a
+  /// pasted link sums the week you were looking at rather than this one. The
+  /// list still derives from the one shared position
+  /// ([viewedWeekStartProvider]); this only seats it on arrival and names it
+  /// afterwards ([WeekInTheLocation]).
+  final String? weekKey;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final list = ref.watch(currentShoppingListProvider);
     final viewed = ref.watch(viewedWeekStartProvider);
 
-    return FScaffold(
-      key: rootKey,
-      // A tab root sits INSIDE the shell's scaffold, which already shrinks
-      // the branch area for the keyboard; a second scaffold subtracting the
-      // same inset squeezes the content twice (Android showed a list a few
-      // lines tall after the sign-in keyboard).
-      resizeToAvoidBottomInset: false,
-      // D7a/D7c: the list derives from the ONE viewed week (and since 0018 its
-      // check-offs and top-ups belong to that week), so the switcher is the
-      // whole title — no screen name, no pill. No "copy last week": that is a
-      // Week write (D7b).
-      header: FHeader.nested(
-        title: WeekSwitcher(
-          showCopyLastWeek: false,
-          // The menu speaks in this tab's derivation — "6 items" — for the
-          // week it has already summed; the other rows stay bare.
-          detailFor: (weekStart) {
-            final data = list.asData?.value;
-            if (data == null || weekStart != viewed) return null;
-            return formatItemCount(
-              data.groups.fold(0, (n, g) => n + g.items.length),
-            );
-          },
-        ),
-      ),
-      // The status line sits between the header and the scroll, not inside it
-      // (D9): mid-aisle, an answer that has scrolled away is no answer. The
-      // shell's banner, when there is one, sits above this whole column — the
-      // banner says something is wrong, this says where you stand.
-      child: Column(
-        children: [
-          const AnsiSyncStatusLine(noun: 'tick'),
-          // The width buys ONE thing here: the breakdown a phone opens under a
-          // row, held open in a pane beside the walk. The walk itself is the
-          // same single column at the measure — two phones drive this screen
-          // at once, and a second column to re-find a row in is not an offer.
-          Expanded(
-            child: AnsiLayout.of(context) == AnsiLayout.expanded
-                ? const _WideShop()
-                : _shoppingList(context, ref, list),
+    return WeekInTheLocation(
+      path: '/shop',
+      weekKey: weekKey,
+      child: FScaffold(
+        key: rootKey,
+        // A tab root sits INSIDE the shell's scaffold, which already shrinks
+        // the branch area for the keyboard; a second scaffold subtracting the
+        // same inset squeezes the content twice (Android showed a list a few
+        // lines tall after the sign-in keyboard).
+        resizeToAvoidBottomInset: false,
+        // D7a/D7c: the list derives from the ONE viewed week (and since 0018
+        // its check-offs and top-ups belong to that week), so the switcher is
+        // the whole title — no screen name, no pill. No "copy last week": that
+        // is a Week write (D7b).
+        header: FHeader.nested(
+          title: WeekSwitcher(
+            showCopyLastWeek: false,
+            // The menu speaks in this tab's derivation — "6 items" — for the
+            // week it has already summed; the other rows stay bare.
+            detailFor: (weekStart) {
+              final data = list.asData?.value;
+              if (data == null || weekStart != viewed) return null;
+              return formatItemCount(
+                data.groups.fold(0, (n, g) => n + g.items.length),
+              );
+            },
           ),
-        ],
+        ),
+        // The status line sits between the header and the scroll, not inside it
+        // (D9): mid-aisle, an answer that has scrolled away is no answer. The
+        // shell's banner, when there is one, sits above this whole column — the
+        // banner says something is wrong, this says where you stand.
+        child: Column(
+          children: [
+            const AnsiSyncStatusLine(noun: 'tick'),
+            // The width buys ONE thing here: the breakdown a phone opens
+            // under a row, held open in a pane beside the walk. The walk
+            // itself is the same single column at the measure — two phones
+            // drive this screen at once, and a second column to re-find a row
+            // in is not an offer.
+            Expanded(
+              child: AnsiLayout.of(context) == AnsiLayout.expanded
+                  ? const _WideShop()
+                  : _shoppingList(context, ref, list),
+            ),
+          ],
+        ),
       ),
     );
   }

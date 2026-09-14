@@ -306,7 +306,85 @@ is doing real work (§3). The **gesture** is genuinely absent there, and that is
 correct — there is nothing behind to drag back to. The **chevron** is not: it
 takes the page home.
 
-## 7. What holds the rules
+## 7. The URL is the route
+
+On the web the address bar is a control, not a caption: it is what a refresh
+reads, what a shared link carries, and the only place browser back and forward
+can land. So **every location the app shows is reported**, and every location it
+reports can be opened cold.
+
+`GoRouter.optionURLReflectsImperativeAPIs = true`
+(`ansiUrlFollowsEveryPush()`, `app/lib/core/router/app_router.dart`) is what
+makes that true. go_router reports the *matched* route list and ignores
+everything reached through `push`; every page above the four tab roots here is
+pushed, so with the default the bar reported whichever tab root the push landed
+on — and because Flutter's hash strategy omits the `#` for `/`, opening a recipe
+and then its editor left the bar showing a bare host. Back and forward still
+worked (each push takes a history entry and go_router serialises the match list
+into `history.state`); a refresh, which can only read the URL, landed on the
+Library. go_router advises against the flag *because a pushed route is not always
+deep-linkable*. Every pushed route here is, and `ansi_back_test.dart`'s
+"opened cold" group is what says so, route by route (§8).
+
+So the bar reads, per screen:
+
+| On screen | The bar |
+|---|---|
+| the four tab roots | `#/`, `#/week?week=…`, `#/cook?week=…`, `#/shop?week=…` |
+| a recipe, and as the week plans it | `#/recipes/<id>`, `#/recipes/<id>?week=…` |
+| its editor, and week mode | `#/recipes/<id>/edit`, `#/recipes/<id>/edit?week=…` |
+| a new recipe | `#/recipes/new` (`?title=`, `?book=`, `?section=`, `?handback=1`) |
+| a book, the manager, one row, its form | `#/books/<id>`, `#/ingredients`, `#/ingredients/<id>`, `#/ingredients/<id>?edit=1` |
+| import, the household | `#/import`, `#/account` |
+| the gates | `#/sign-in?from=…`, `#/connecting?from=…` |
+
+Hash URLs, not paths: GitHub Pages cannot rewrite an unknown path back to
+`index.html`, so a path URL would 404 on every refresh and every shared link
+([`release.md` §6.3](../release.md#63-two-facts-about-the-build)).
+
+### What view state is in the URL, and what is not
+
+The test is **would a refresh be wrong without it, and is the answer one a link
+could honestly carry?** Two things pass:
+
+- **The week on screen** — `?week=YYYY-MM-DD` on `/week`, `/cook` and `/shop`,
+  the same week key `/recipes/:id` already takes. The week is one keep-alive
+  position shared by all three tabs, because all three draw the switcher that
+  moves it; a provider is not a URL, so a reload on week + 2 used to land on this
+  week. Each tab now **seats itself from `?week=` once, on a cold start, and
+  names the position afterwards** — one reader, one writer, no drift
+  (`week_in_the_location.dart`).
+- **The day the wide Week's pane stands on** — `?day=YYYY-MM-DD` on `/week`,
+  today when absent. A date rather than an index, so a link says what it means
+  and a date from another week simply does not match. A phone draws all seven
+  days and stands on none, so it names none.
+
+Both are written with **`restateOnce`** (`shared/guarded_navigation.dart`): a
+`replace` inside `Router.neglect`, so the bar changes in place, the screen keeps
+its state and the history gets **no new entry**. Back leaves the week; it does
+not walk backwards through every day and week that was read.
+
+These deliberately stay out:
+
+- **the Shop's selected provenance row** and **the Library's fold** — a pane
+  pointing at a row, and a disclosure. Neither is a place; both are re-reached by
+  looking at the screen.
+- **search text** — mid-typing state, and a link carrying somebody's half-typed
+  query is a link nobody meant to send.
+- **the Week's per-person lens** — a question about how the numbers are being
+  read, not a position. A link that silently scoped a household's week to one
+  eater would be read as the week itself.
+
+### The gate holds the deep link, it does not drop it
+
+`ansiGate` carries any non-gate location through **both** gates in `?from=`,
+query and all, and returns to it the moment the session is ready — so a refresh
+on `#/recipes/9/edit?week=…` lands there however long Supabase takes to restore
+the session, rather than on the Library (§6). The gates are routes themselves, so
+the bar says `#/sign-in` while one is on screen: that alone tells you reporting
+is working, without signing in.
+
+## 8. What holds the rules
 
 - `app/test/shared/ansi_tab_shell_test.dart` — the two back rules (asserted
   against the platform channel, so "leaves the app" is observed rather than
@@ -324,8 +402,21 @@ takes the page home.
   the outer shell, a page pushed from inside a modal landing on it, and a
   **structural** test that every pushed page draws its own back control.
 - `app/test/shared/guarded_navigation_test.dart` — the dedupe contract, plus a
-  **structural** test that fails on a bare `context.push`/`go`/`pushReplacement`
-  in a view, with a named exception list for the post-action landings.
+  **structural** test that fails on a bare
+  `context.push`/`go`/`pushReplacement`/`replace` in a view, with a named
+  exception list for the post-action landings.
+- `app/test/core/router/url_is_the_route_test.dart` — §7, read off the
+  `routeInformationUpdated` call Flutter makes on `SystemChannels.navigation`,
+  which IS what the bar shows. Every pushed page reports its own location (driven
+  off `ansi_back_test.dart`'s own table, so a new pushed route cannot land
+  without URL coverage), a pop reports what it went back to, a restate leaves an
+  open sheet standing, the gate's `?from=` round-trip, and a **structural** pair:
+  the app flips the flag, and the three week tabs read their own query.
+- `app/test/features/planning/week_in_the_location_test.dart` — a bare tab names
+  the week, a cold `?week=` seats it, a `?week=` that is not a date is ignored,
+  stepping the week restates with no history entry, and an offstage tab does not
+  rename the page you are on. The `?day=` round-trip through the real `›` is in
+  `week_wide_test.dart`.
 - `app/integration_test/` (`make test-sim`, local-only; `backToShell` lives in
   `support/editor.dart`) — drives the real bar on a simulator;
   `backToShell`'s predicate is "the nav bar is in
@@ -333,7 +424,7 @@ takes the page home.
 
 ---
 
-## 8. What was refused, and why it stays refused
+## 9. What was refused, and why it stays refused
 
 These are the alternatives that keep being proposed. Each was weighed once.
 

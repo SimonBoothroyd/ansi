@@ -13,6 +13,9 @@
 ///
 /// The redirect re-runs on Supabase auth changes AND on [SessionController]
 /// state changes (the `refresh` notifier).
+///
+/// **The URL is the route** — see [ansiUrlFollowsEveryPush] and
+/// `docs/design-docs/navigation.md` §7.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -146,10 +149,70 @@ class _IngredientPage extends StatelessWidget {
   }
 }
 
+/// Makes the browser's address bar name the page you are looking at.
+///
+/// go_router reports the location of the *matched* route list to the engine and
+/// **ignores anything reached through the imperative API** — `push`,
+/// `pushReplacement`, `replace` — unless this one global is flipped
+/// (`GoRouter.optionURLReflectsImperativeAPIs`, default `false`). Every page in
+/// this app above the four tab roots is pushed (§ the pushed-pages list in
+/// `navigation.md`), so with the default the bar kept reporting whichever tab
+/// root the push landed on: open a recipe, then its editor, and the bar still
+/// said `/`. Flutter's own hash strategy then drops the `#` for `/` entirely
+/// (`HashUrlStrategy.prepareExternalUrl`), which is why the owner's screenshot
+/// shows a bare host while `/recipes/:id/edit` is on screen.
+///
+/// Each push still got its own history *entry* (go_router reports with
+/// `replace: false`), and go_router serialises the whole match list into
+/// `history.state` — so back and forward worked while the bar and a refresh,
+/// which can only read the URL, did not. That is the owner's "refresh loses
+/// where I am sometimes": it was lost on a pushed page and kept on a tab root.
+///
+/// go_router's own doc comment advises against this flag *because a pushed
+/// route is not always deep-linkable*. In this app it always is: every pushed
+/// route resolves from a cold start, and `ansi_back_test.dart` pins exactly
+/// that for each one, from both arrivals. The caveat does not apply here, and
+/// the flag is what makes the two agree.
+void ansiUrlFollowsEveryPush() {
+  GoRouter.optionURLReflectsImperativeAPIs = true;
+}
+
+/// The auth gate, as a function of the location and the two facts about the
+/// session — so it can be read, and tested, without a Supabase client.
+///
+/// Returns the location to redirect to, or null to let [state] through.
+///
+/// It never drops a deep link. A location that is not a gate and not `/` is
+/// carried through both gates in `?from=`, and returned to the moment the
+/// session is ready — so a cold `#/recipes/9` on a browser refresh lands on
+/// that recipe rather than on the Library, however long the session takes to
+/// come back. `?from=` is captured from `state.uri`, query and all, so a
+/// `#/recipes/:id/edit?week=…` survives whole.
+String? ansiGate(
+  GoRouterState state, {
+  required bool signedIn,
+  required bool ready,
+}) {
+  final loc = state.matchedLocation;
+  final atGate = loc == '/sign-in' || loc == '/connecting';
+  // The location to return to after the gates: carried through them via
+  // `?from=`, captured when a non-gate location first gets redirected.
+  final from = state.uri.queryParameters['from'];
+  final dest = atGate ? from : (loc == '/' ? null : state.uri.toString());
+  String gate(String path) => dest == null
+      ? path
+      : Uri(path: path, queryParameters: {'from': dest}).toString();
+  if (!signedIn) return loc == '/sign-in' ? null : gate('/sign-in');
+  if (!ready) return loc == '/connecting' ? null : gate('/connecting');
+  if (atGate) return from ?? '/';
+  return null;
+}
+
 /// The app's routes. `/recipes/new` is declared before `/recipes/:id` so the
 /// literal wins over the param.
 @Riverpod(keepAlive: true)
 GoRouter router(Ref ref) {
+  ansiUrlFollowsEveryPush();
   // Fires the redirect on either auth changes or session-readiness changes.
   final refresh = ValueNotifier<int>(0);
   final sub = Supabase.instance.client.auth.onAuthStateChange.listen(
@@ -163,23 +226,11 @@ GoRouter router(Ref ref) {
   return GoRouter(
     initialLocation: '/',
     refreshListenable: refresh,
-    redirect: (context, state) {
-      final signedIn = Supabase.instance.client.auth.currentSession != null;
-      final ready = ref.read(sessionControllerProvider) is SessionReady;
-      final loc = state.matchedLocation;
-      final atGate = loc == '/sign-in' || loc == '/connecting';
-      // The location to return to after the gates: carried through them via
-      // `?from=`, captured when a non-gate location first gets redirected.
-      final from = state.uri.queryParameters['from'];
-      final dest = atGate ? from : (loc == '/' ? null : state.uri.toString());
-      String gate(String path) => dest == null
-          ? path
-          : Uri(path: path, queryParameters: {'from': dest}).toString();
-      if (!signedIn) return loc == '/sign-in' ? null : gate('/sign-in');
-      if (!ready) return loc == '/connecting' ? null : gate('/connecting');
-      if (atGate) return from ?? '/';
-      return null;
-    },
+    redirect: (context, state) => ansiGate(
+      state,
+      signedIn: Supabase.instance.client.auth.currentSession != null,
+      ready: ref.read(sessionControllerProvider) is SessionReady,
+    ),
     routes: [
       _page(
         path: '/sign-in',
@@ -228,13 +279,21 @@ GoRouter router(Ref ref) {
                   ),
                 ],
               ),
+              // The three week tabs each name the week on screen in their own
+              // `?week=`, and the Week also names the day its pane stands on —
+              // the two facts that would otherwise be lost on a refresh
+              // ([WeekInTheLocation]). `?week=` is the same `YYYY-MM-DD` week
+              // key `/recipes/:id` already takes.
               StatefulShellBranch(
                 routes: [
                   _branch(
                     path: '/week',
                     name: 'week',
                     fullWidth: true,
-                    builder: (state) => const WeekView(),
+                    builder: (state) => WeekView(
+                      weekKey: state.uri.queryParameters['week'],
+                      dayKey: state.uri.queryParameters['day'],
+                    ),
                   ),
                 ],
               ),
@@ -244,7 +303,8 @@ GoRouter router(Ref ref) {
                     path: '/cook',
                     name: 'cook',
                     fullWidth: true,
-                    builder: (state) => const CookView(),
+                    builder: (state) =>
+                        CookView(weekKey: state.uri.queryParameters['week']),
                   ),
                 ],
               ),
@@ -254,7 +314,9 @@ GoRouter router(Ref ref) {
                     path: '/shop',
                     name: 'shop',
                     fullWidth: true,
-                    builder: (state) => const ShoppingView(),
+                    builder: (state) => ShoppingView(
+                      weekKey: state.uri.queryParameters['week'],
+                    ),
                   ),
                 ],
               ),

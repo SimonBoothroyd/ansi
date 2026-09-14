@@ -187,7 +187,10 @@ Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) =>
       overrides: _withCook(overrides, null),
       expose: expose,
       routes: {
-        '/week': (_, _) => const WeekView(),
+        '/week': (_, state) => WeekView(
+          weekKey: state.uri.queryParameters['week'],
+          dayKey: state.uri.queryParameters['day'],
+        ),
         '/recipes/:id': (_, state) =>
             FScaffold(child: Text('recipe ${state.pathParameters['id']}')),
       },
@@ -858,7 +861,10 @@ void main() {
     // targets, not this sheet's job.
     await tester.tap(find.byType(EaterAvatarStack).first);
     await tester.pumpAndSettle();
-    expect(router.state.uri.toString(), '/week');
+    // Still the Week: the cluster opens a sheet, it does not navigate. The
+    // path, not the whole location — the Week names the week on screen in its
+    // own `?week=` (`week_in_the_location.dart`).
+    expect(router.state.uri.path, '/week');
     expect(find.text('SLOT'), findsOneWidget);
     expect(find.text("WHO'S EATING"), findsOneWidget);
     expect(find.text('PORTIONS'), findsOneWidget);

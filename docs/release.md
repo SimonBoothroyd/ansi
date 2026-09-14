@@ -563,7 +563,9 @@ that; nothing in the repo makes it for them.
   cannot rewrite an unknown path back to `index.html`, so `usePathUrlStrategy()`
   would give clean URLs that 404 on every refresh and every shared link. It
   becomes a one-line change the day the app is hosted somewhere with an SPA
-  rewrite.
+  rewrite. What each route puts *in* that hash, and why the bar follows a pushed
+  page at all, is
+  [`navigation.md` §7](./design-docs/navigation.md#7-the-url-is-the-route).
 
 ### 6.4 What a browser does not get
 

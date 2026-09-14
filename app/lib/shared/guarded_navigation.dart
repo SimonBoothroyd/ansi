@@ -29,6 +29,12 @@
 /// waits for back, and only then resolves — and it keeps the same top-location
 /// guard, so a double tap still opens one form.
 ///
+/// [GuardedNavigation.restateOnce] is the odd one out and is not navigation at
+/// all: it rewrites the CURRENT page's query so the address bar names the view
+/// state on screen (`/week?day=…`), with no history entry and no rebuild of the
+/// page. It is here because it is the fourth member of the same family and
+/// because the structural test below bans the bare `context.replace` it wraps.
+///
 /// A structural test (`test/shared/guarded_navigation_test.dart`) fails the
 /// build if a view under `lib/features/**/presentation` or `lib/shared` calls
 /// bare `context.push` again.
@@ -75,6 +81,38 @@ extension GuardedNavigation on BuildContext {
     if (_isTop(router, location)) return;
     router.go(location);
   }
+
+  /// Restates the page you are already on, so the address bar names the view
+  /// state on it — `/week?day=YYYY-MM-DD`. **Not navigation:** the page does
+  /// not change, no transition runs, and the screen keeps its state.
+  ///
+  /// It goes through `replace` inside [Router.neglect], and that pair is what
+  /// makes those three things true. `replace` reuses the page key, so the
+  /// screen is not rebuilt from scratch and the branch keeps its own navigator;
+  /// [Router.neglect] reports the new location with `replace: true`, so the
+  /// browser history gets **no new entry** — back leaves the week rather than
+  /// walking backwards through every day the reader looked at. (go_router's
+  /// `replace` on its own still reports `replace: false`, i.e. one history
+  /// entry per day: that is the trap this wraps.)
+  ///
+  /// A no-op when the location already says this, so a rebuild cannot churn.
+  void restateOnce(String location) {
+    final router = GoRouter.of(this);
+    if (_isTop(router, location)) return;
+    Router.neglect(this, () => router.replace<void>(location));
+  }
+
+  /// The PATH of the page currently on top, with no query — the page the
+  /// address bar names. Null when there is no router above this context.
+  ///
+  /// What an offstage screen asks before it restates anything: all four tab
+  /// branches stay mounted and rebuild while a pushed page is on top, and only
+  /// the one on top may name the location ([restateOnce]).
+  ///
+  /// Nullable because a screen pumped on its own — which is how most of this
+  /// suite tests one — has no router at all, and a screen that names the
+  /// location when there is one must still BUILD when there is not.
+  String? get topLocationPath => GoRouter.maybeOf(this)?.state.uri.path;
 }
 
 bool _isTop(GoRouter router, String location) =>

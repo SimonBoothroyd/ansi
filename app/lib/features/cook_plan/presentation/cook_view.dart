@@ -31,6 +31,7 @@ import '../../../shared/guarded_navigation.dart';
 import '../../account/data/household_providers.dart';
 import '../../planning/presentation/week_format.dart';
 import '../../planning/presentation/week_header.dart';
+import '../../planning/presentation/week_in_the_location.dart';
 import '../../planning/presentation/week_view_models.dart';
 import '../../recipes/domain/component_math.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
@@ -40,52 +41,63 @@ import 'cook_sheet.dart';
 import 'cook_view_models.dart';
 
 class CookView extends ConsumerWidget {
-  const CookView({super.key});
+  const CookView({this.weekKey, super.key});
 
   /// The tab root's stable anchor: the header no longer names the screen, so
   /// the smoke test waits on this key instead of a title.
   static const rootKey = ValueKey('cook-root');
+
+  /// `?week=YYYY-MM-DD` — the week this tab was opened at, so a refresh or a
+  /// pasted link derives the week you were looking at rather than this one. The
+  /// plan itself still comes from the one shared position
+  /// ([viewedWeekStartProvider]); this only seats it on arrival and names it
+  /// afterwards ([WeekInTheLocation]).
+  final String? weekKey;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final plan = ref.watch(currentCookPlanProvider);
     final viewed = ref.watch(viewedWeekStartProvider);
 
-    return FScaffold(
-      key: rootKey,
-      // A tab root sits INSIDE the shell's scaffold, which already shrinks
-      // the branch area for the keyboard; a second scaffold subtracting the
-      // same inset squeezes the content twice (Android showed a list a few
-      // lines tall after the sign-in keyboard).
-      resizeToAvoidBottomInset: false,
-      // D7a/D7c: the plan derives from the ONE viewed week, so the switcher
-      // is the whole title — no screen name (the lit tab says where you are),
-      // no pill (the switcher's dot and its "This week" item are the same
-      // information). No "copy last week": that is a Week write (D7b).
-      header: FHeader.nested(
-        title: WeekSwitcher(
-          showCopyLastWeek: false,
-          // The menu speaks in this tab's derivation — "2 cooks", not "9
-          // meals" — for the week it has already derived. The other rows stay
-          // bare rather than deriving two more plans just to label them.
-          detailFor: (weekStart) {
-            final data = plan.asData?.value;
-            if (data == null || weekStart != viewed) return null;
-            return formatCookCount(
-              data.recipes.fold(0, (n, r) => n + r.sessions.length),
-            );
-          },
+    return WeekInTheLocation(
+      path: '/cook',
+      weekKey: weekKey,
+      child: FScaffold(
+        key: rootKey,
+        // A tab root sits INSIDE the shell's scaffold, which already shrinks
+        // the branch area for the keyboard; a second scaffold subtracting the
+        // same inset squeezes the content twice (Android showed a list a few
+        // lines tall after the sign-in keyboard).
+        resizeToAvoidBottomInset: false,
+        // D7a/D7c: the plan derives from the ONE viewed week, so the switcher
+        // is the whole title — no screen name (the lit tab says where you are),
+        // no pill (the switcher's dot and its "This week" item are the same
+        // information). No "copy last week": that is a Week write (D7b).
+        header: FHeader.nested(
+          title: WeekSwitcher(
+            showCopyLastWeek: false,
+            // The menu speaks in this tab's derivation — "2 cooks", not "9
+            // meals" — for the week it has already derived. The other rows stay
+            // bare rather than deriving two more plans just to label them.
+            detailFor: (weekStart) {
+              final data = plan.asData?.value;
+              if (data == null || weekStart != viewed) return null;
+              return formatCookCount(
+                data.recipes.fold(0, (n, r) => n + r.sessions.length),
+              );
+            },
+          ),
         ),
-      ),
-      child: plan.when(
-        loading: () => const Center(child: FCircularProgress()),
-        error: (e, st) => AnsiErrorState(
-          what: 'the cook plan',
-          error: e,
-          stackTrace: st,
-          onRetry: () => ref.invalidate(currentCookPlanProvider),
+        child: plan.when(
+          loading: () => const Center(child: FCircularProgress()),
+          error: (e, st) => AnsiErrorState(
+            what: 'the cook plan',
+            error: e,
+            stackTrace: st,
+            onRetry: () => ref.invalidate(currentCookPlanProvider),
+          ),
+          data: (data) => _plan(context, data),
         ),
-        data: (data) => _plan(context, data),
       ),
     );
   }

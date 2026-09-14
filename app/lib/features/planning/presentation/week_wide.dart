@@ -114,6 +114,7 @@ class WeekWide extends StatelessWidget {
     required this.cookPlan,
     required this.todayDayOfWeek,
     required this.selectedDay,
+    required this.onSelectDay,
     required this.onAddMeal,
     required this.onCopyLastWeek,
     super.key,
@@ -132,11 +133,18 @@ class WeekWide extends StatelessWidget {
   final CookPlan? cookPlan;
   final int? todayDayOfWeek;
 
-  /// The day the left pane draws — VIEW state, not a setting. Null means "the
-  /// default", which is today when the week on screen contains it and the
-  /// week's first day otherwise. The `›` sets it; nothing persists it, so
-  /// coming back to the Week lands on today again.
-  final ValueNotifier<int?> selectedDay;
+  /// The day the left pane draws, already resolved — today when the week on
+  /// screen contains it, the week's first day otherwise.
+  ///
+  /// It lives in the LOCATION (`/week?day=YYYY-MM-DD`), which is what makes a
+  /// refresh land back on it; [onSelectDay] restates the location and the new
+  /// day arrives back through here. See `WeekView.dayKey`.
+  final int selectedDay;
+
+  /// The `›`: stand on another day. It restates the location rather than
+  /// pushing, so browser back leaves the week instead of walking back through
+  /// every day that was read.
+  final void Function(int dayOfWeek) onSelectDay;
 
   /// Opens the add flow on one day — the phone card's own door, with its day.
   final void Function(int dayOfWeek) onAddMeal;
@@ -146,7 +154,7 @@ class WeekWide extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final day = selectedDay.value ?? todayDayOfWeek ?? 0;
+    final day = selectedDay;
     final copy = onCopyLastWeek;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -190,7 +198,7 @@ class WeekWide extends StatelessWidget {
                   scope: scope,
                   todayDayOfWeek: todayDayOfWeek,
                   selectedDay: day,
-                  onSelectDay: (d) => selectedDay.value = d,
+                  onSelectDay: onSelectDay,
                   onAddMeal: onAddMeal,
                 ),
               ),

@@ -265,6 +265,24 @@ changes, and the code gets one place that reads the viewport.
   and no method means no second column — so `_page` gained `measureOf`: the cap
   when it depends on the route's own query.
 
+- 2026-09-13 — **The URL is the route, on the web.** The owner's bar said a bare
+  host while `/recipes/:id/edit` was on screen: go_router reports the *matched*
+  route list and ignores anything reached by `push`, and every page above the
+  four tab roots here is pushed, so the bar kept reporting the tab root
+  underneath — and Flutter's hash strategy omits the `#` for `/`. Back and
+  forward worked (each push takes a history entry, with the match list in
+  `history.state`); a refresh, which can only read the URL, did not.
+  `optionURLReflectsImperativeAPIs = true` is the fix, and its own caveat — a
+  pushed route may not be deep-linkable — does not apply, because every pushed
+  route here already is and `ansi_back_test.dart` pins that per route. View state
+  followed: the week on screen goes in `?week=` on `/week`, `/cook` and `/shop`,
+  and the wide Week's day in `?day=` on `/week`, both restated with `replace`
+  inside `Router.neglect` so back leaves the week instead of walking the days.
+  The Shop's selected row, the Library's fold, search text and the Week's lens
+  stay out: a pane pointing somewhere and a half-typed query are not places, and
+  a link that scoped a household's week to one eater would be read as the week.
+  navigation.md §7.
+
 ## Notes / open questions
 
 - Week on wide: where the week band (total, average, `n of 7 days`) sits is

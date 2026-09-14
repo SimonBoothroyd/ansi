@@ -31,6 +31,7 @@ import 'package:ansi/features/recipes/domain/recipe_macros.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_cook_plan_repository.dart';
@@ -124,6 +125,12 @@ FakeCookPlanRepository _batched() => FakeCookPlanRepository.of([
 /// Pumps the Week. [window] defaults to a 1440 × 1000 desk, where the screen is
 /// the day pane beside the agenda; pass null for the default test window
 /// (800 × 600 — `medium`, where the phone list is still the layout).
+/// The Week under the REAL router, at [initial].
+///
+/// A router rather than a bare `home:` because the day the pane stands on now
+/// lives in the location (`/week?day=…`): the agenda's `›` restates the URL and
+/// the pane reads the day back off it, so there is nothing to observe without
+/// one. [expose] hands the router back for a test that reads the location.
 Future<void> _pumpWeek(
   WidgetTester tester, {
   WeekPlan? week,
@@ -131,6 +138,8 @@ Future<void> _pumpWeek(
   RecipeMacroSummary? macros = _complete,
   FakeCookPlanRepository? cook,
   Size? window = const Size(1440, 1000),
+  String initial = '/week',
+  void Function(GoRouter router)? expose,
 }) async {
   if (window != null) {
     tester.view.physicalSize = window;
@@ -168,16 +177,36 @@ Future<void> _pumpWeek(
         ),
         weekShapeProvider.overrideWithValue(_shape),
       ],
-      child: MaterialApp(
+      child: MaterialApp.router(
         theme: ansiHostTheme(),
-        home: FTheme(
+        routerConfig: _router(initial, expose),
+        builder: (context, child) => FTheme(
           data: ansiThemeData(),
-          child: const FToaster(child: WeekView()),
+          child: FToaster(child: child!),
         ),
       ),
     ),
   );
   await tester.pumpAndSettle();
+}
+
+/// `/week`, reading its two query params exactly as `app_router.dart` does.
+GoRouter _router(String initial, void Function(GoRouter router)? expose) {
+  final router = GoRouter(
+    initialLocation: initial,
+    routes: [
+      GoRoute(
+        path: '/week',
+        builder: (context, state) => WeekView(
+          weekKey: state.uri.queryParameters['week'],
+          dayKey: state.uri.queryParameters['day'],
+        ),
+      ),
+    ],
+  );
+  addTearDown(router.dispose);
+  expose?.call(router);
+  return router;
 }
 
 /// The day pane's heading — the one 38 px serif on the screen.
@@ -286,6 +315,46 @@ void main() {
     expect(find.text('TODAY'), findsOneWidget);
     // Still six: the newly-open day gave its `›` up and today took one.
     expect(_agendaChevrons(), findsNWidgets(6));
+  });
+
+  testWidgets('the day the pane stands on is in the URL, and comes back from '
+      'it', (tester) async {
+    // What the owner asked for: refresh on a day and land on that day. The `›`
+    // restates the location; a cold start at that location opens the same pane.
+    late GoRouter router;
+    await _pumpWeek(tester, week: _week(), expose: (r) => router = r);
+
+    await tester.tap(_agendaHeading(_otherDay));
+    await tester.pumpAndSettle();
+
+    final day = isoDateOf(_shape.dateFor(_weekStart, _otherDay));
+    expect(
+      router.state.uri.toString(),
+      '/week?week=${isoDateOf(_weekStart)}&day=$day',
+    );
+    // A restate, not a push: nothing to press back through, so back leaves the
+    // week rather than walking the days that were read.
+    expect(router.canPop(), isFalse);
+
+    // Cold, at exactly that location: the same day is the one drawn large.
+    await _pumpWeek(
+      tester,
+      week: _week(),
+      initial: '/week?week=${isoDateOf(_weekStart)}&day=$day',
+    );
+    expect(_paneHeading(_otherDay), findsOneWidget);
+    expect(_paneHeading(_todayOffset), findsNothing);
+  });
+
+  testWidgets('a `?day=` from another week does not point at a day this one '
+      'has not got', (tester) async {
+    // The pane falls back to its default rather than obeying a stale link.
+    final stale = isoDateOf(
+      _shape.dateFor(_weekStart.add(const Duration(days: 7)), _otherDay),
+    );
+    await _pumpWeek(tester, week: _week(), initial: '/week?day=$stale');
+
+    expect(_paneHeading(_todayOffset), findsOneWidget);
   });
 
   testWidgets('every meal in the pane carries its own served macros', (
