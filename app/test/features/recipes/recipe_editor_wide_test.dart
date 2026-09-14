@@ -23,8 +23,12 @@ import 'package:ansi/features/recipes/presentation/line_card.dart';
 import 'package:ansi/features/recipes/presentation/method_editor.dart';
 import 'package:ansi/features/recipes/presentation/method_span_controller.dart';
 import 'package:ansi/features/recipes/presentation/recipe_editor_view.dart';
+import 'package:ansi/shared/amount_and_unit.dart';
 import 'package:ansi/shared/ansi_layout.dart';
+import 'package:ansi/shared/ansi_stepper_row.dart';
+import 'package:ansi/shared/inline_amount_field.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
@@ -64,22 +68,36 @@ Widget _host(Widget child, List<Override> overrides) {
 
 /// A desk-width window, with the editor in the cap the router gives it — so
 /// the columns are measured at the width they are really drawn at.
+///
+/// [rail] puts the shell's 64 px icon rail beside the page, which is what the
+/// app really draws from 1024: the band is read off the *window* and the cap
+/// off the *pane*, so 1024 with the rail is the narrowest pane the wide header
+/// is ever drawn in — 10 px narrower per cell than 1024 without it.
 Future<FakeRecipeRepo> _pumpWide(
   WidgetTester tester, {
   Recipe recipe = importedRecipe,
   Size surface = const Size(1440, 2600),
+  bool rail = false,
 }) async {
   filterForuiSemanticsAssertions();
   tester.view.physicalSize = surface;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   final repo = FakeRecipeRepo(recipe);
+  const page = AnsiMeasure(
+    width: ansiWideMeasureWidth,
+    child: RecipeEditorView(recipeId: '1'),
+  );
   await tester.pumpWidget(
     _host(
-      const AnsiMeasure(
-        width: ansiWideMeasureWidth,
-        child: RecipeEditorView(recipeId: '1'),
-      ),
+      rail
+          ? const Row(
+              children: [
+                SizedBox(width: 64),
+                Expanded(child: page),
+              ],
+            )
+          : page,
       [
         recipeRepositoryProvider.overrideWithValue(repo),
         ingredientRepositoryProvider.overrideWithValue(
@@ -111,6 +129,34 @@ Finder get _stepFields => find.byWidgetPredicate(
 
 double _left(WidgetTester tester, Finder of) => tester.getTopLeft(of).dx;
 double _top(WidgetTester tester, Finder of) => tester.getTopLeft(of).dy;
+
+/// The words the wide header's dense cells put beside their controls, as drawn.
+const _denseWords = ['COOK', 'TOTAL', 'FRIDGE', 'FREEZES', 'FREEZER'];
+
+/// A draft with every fact a dense cell can grow already stated, so all five
+/// words and both conditional controls are on screen.
+final _everyFact = importedRecipe.copyWith(
+  yieldQty: 8,
+  yieldUnit: pieces,
+  freezable: true,
+  keepsForDays: 3,
+);
+
+/// How many lines a label REALLY takes in the box it was given — off the
+/// rendered paragraph's own text and its own width, not off what the widget
+/// meant. A word the column is too narrow for reads as two lines here whether
+/// it wrapped or was clipped into looking like one.
+int _lines(WidgetTester tester, Finder of) {
+  final paragraph = tester.renderObject<RenderParagraph>(of);
+  final painter = TextPainter(
+    text: paragraph.text,
+    textDirection: TextDirection.ltr,
+    textScaler: paragraph.textScaler,
+  )..layout(maxWidth: paragraph.size.width);
+  final lines = painter.computeLineMetrics().length;
+  painter.dispose();
+  return lines;
+}
 
 void main() {
   group('structural: the router caps the editor like the page it edits', () {
@@ -227,12 +273,7 @@ void main() {
       'cap, where a quarter of it is 226 px', (tester) async {
     await _pumpWide(
       tester,
-      recipe: importedRecipe.copyWith(
-        yieldQty: 8,
-        yieldUnit: pieces,
-        freezable: true,
-        keepsForDays: 3,
-      ),
+      recipe: _everyFact,
       // The narrowest window the two columns are drawn in.
       surface: const Size(1024, 2600),
     );
@@ -242,6 +283,113 @@ void main() {
     expect(find.text('Another'), findsOneWidget);
     expect(find.text('FREEZER'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  // Every expanded width the header is drawn at — and 1024 again with the rail
+  // beside it, which is the narrowest pane of the four. A word that does not
+  // fit its column used to break inside itself (`TOTA/L`, `FRID/GE`,
+  // `FREE/ZES`), which is a label that has stopped being a word.
+  for (final (width, rail) in [
+    (1512.0, false),
+    (1280.0, false),
+    (1024.0, false),
+    (1024.0, true),
+  ]) {
+    final at = rail ? '$width beside the rail' : '$width';
+    testWidgets('at $at every dense label is one whole word', (tester) async {
+      await _pumpWide(
+        tester,
+        recipe: _everyFact,
+        surface: Size(width, 2600),
+        rail: rail,
+      );
+
+      for (final word in _denseWords) {
+        final label = find.text(word);
+        expect(
+          label,
+          findsOneWidget,
+          reason: '$word is one of the cells’ words',
+        );
+        // The column it was given is wide enough for the whole word…
+        expect(_lines(tester, label), 1, reason: '$word broke inside itself');
+        // …and it could not break inside itself even if it were not.
+        final text = tester.widget<Text>(label);
+        expect(text.softWrap, isFalse, reason: '$word may not soft-wrap');
+        expect(text.maxLines, 1, reason: '$word is one line');
+      }
+
+      // The four cells are still one row across the cap.
+      for (final cell in ['MAKES', 'TIMES', 'SHELF LIFE']) {
+        expect(
+          _top(tester, find.text(cell)),
+          _top(tester, find.text('SERVES')),
+          reason: '$cell left the row of four at $at',
+        );
+      }
+
+      // The word gave nothing back: every stepper keeps both buttons at their
+      // touch size.
+      for (final row in find.byType(AnsiStepperRow).evaluate()) {
+        final buttons = find.descendant(
+          of: find.byWidget(row.widget),
+          matching: find.byType(FButton),
+        );
+        expect(buttons, findsNWidgets(2));
+        for (var i = 0; i < 2; i++) {
+          final size = tester.getSize(buttons.at(i));
+          expect(size.width, greaterThanOrEqualTo(40));
+          expect(size.height, greaterThanOrEqualTo(40));
+        }
+      }
+
+      // MAKES keeps its shape too: the qualifier beside the eyebrow on its
+      // line, and the amount still one row with its unit chip.
+      expect(_lines(tester, find.text('MAKES')), 1);
+      expect(_lines(tester, find.text('· optional')), 1);
+      expect(
+        _top(tester, find.text('· optional')),
+        _top(tester, find.text('MAKES')),
+      );
+      expect(
+        _left(tester, find.text('· optional')),
+        greaterThan(_left(tester, find.text('MAKES'))),
+      );
+      expect(find.byType(AmountAndUnitField), findsOneWidget);
+      expect(
+        tester.getSize(find.byType(AmountAndUnitField)).height,
+        kInlineControlHeight,
+      );
+
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('below expanded the header is the phone’s — the cells’ short '
+      'words are not drawn at all', (tester) async {
+    await _pumpWide(
+      tester,
+      recipe: _everyFact,
+      surface: const Size(1000, 3000),
+    );
+    for (final word in _denseWords) {
+      expect(
+        find.text(word),
+        findsNothing,
+        reason: '$word is a wide cell’s word, not the phone’s',
+      );
+    }
+    // The phone's own rows, with the sentences the wide cells drop.
+    for (final label in [
+      'Cook',
+      'Total',
+      'Keeps in the fridge',
+      'Keeps in the freezer',
+      'Freezes',
+      'Another denomination',
+    ]) {
+      expect(find.text(label), findsOneWidget, reason: '$label is the phone’s');
+    }
   });
 
   testWidgets('a step with focus lights the lines its chips point at, and '

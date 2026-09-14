@@ -134,6 +134,9 @@ class RecipeHeaderForm extends StatelessWidget {
   /// each fact states itself with the row's own short word and the compact
   /// stepper, and the paragraphs that explain a control to a first-time
   /// reader are left to the phone's one-column form.
+  ///
+  /// The word sits beside its control where the cell holds both and on the line
+  /// above it where it does not — see [_DenseRow]. Never inside the word.
   final bool dense;
 
   @override
@@ -562,12 +565,9 @@ class _DenseShelfLife extends StatelessWidget {
         onChanged: host.setKeepsForDays,
       ),
       const SizedBox(height: 7),
-      Row(
-        children: [
-          const _MiniWord('freezes'),
-          const SizedBox(width: 9),
-          FSwitch(value: recipe.freezable, onChange: host.setFreezable),
-        ],
+      _DenseRow(
+        word: 'freezes',
+        control: FSwitch(value: recipe.freezable, onChange: host.setFreezable),
       ),
       if (recipe.freezable) ...[
         const SizedBox(height: 7),
@@ -583,16 +583,81 @@ class _DenseShelfLife extends StatelessWidget {
   );
 }
 
-/// The word a wide header cell puts beside a control — the eyebrow's voice, at
-/// the fixed width that keeps two facts in one cell reading as a pair.
-class _MiniWord extends StatelessWidget {
-  const _MiniWord(this.word);
+/// Every word a wide header cell puts beside a control.
+///
+/// The label column is measured over the whole family rather than over the
+/// row's own word, so the two-fact cells start their controls on one axis — and
+/// so a word added here widens the column instead of breaking inside itself.
+const _kDenseWords = ['cook', 'total', 'fridge', 'freezes', 'freezer'];
+
+/// The measured label column, per text scale. Measuring is cheap but the header
+/// rebuilds on every keystroke in the title field, and the answer only ever
+/// changes when the reader's type size does.
+final _denseWordColumns = <TextScaler, double>{};
+
+/// How wide a dense cell's label column is: the widest of [_kDenseWords] at
+/// [ansiLabel], at the reader's own text scale.
+///
+/// Measured, never guessed. A column guessed at 40 px held COOK and broke
+/// TOTAL, FRIDGE, FREEZES and FREEZER inside themselves at every expanded
+/// width — the bug this replaces — and a guess would break again the first
+/// time the type scale, the tracking or the word list moved.
+double _denseWordColumn(BuildContext context) {
+  final scaler = MediaQuery.textScalerOf(context);
+  return _denseWordColumns.putIfAbsent(scaler, () {
+    var widest = 0.0;
+    for (final word in _kDenseWords) {
+      final painter = TextPainter(
+        text: TextSpan(text: word.toUpperCase(), style: ansiLabel()),
+        textDirection: TextDirection.ltr,
+        textScaler: scaler,
+      )..layout();
+      if (painter.width > widest) widest = painter.width;
+      painter.dispose();
+    }
+    // Up to the whole pixel: a column a fraction short of the word it holds is
+    // the same clipped word, drawn to look like a rounding error.
+    return widest.ceilToDouble();
+  });
+}
+
+/// One fact in a wide header cell: the word, then the control that sets it —
+/// beside it where a quarter of the cap holds both, on the line under it where
+/// it does not.
+///
+/// A [Wrap] rather than a [Row] because the word is the part that must not
+/// give: it is drawn at its measured width and never breaks inside itself, so
+/// when the pair is wider than the cell the *control* moves down a line. That
+/// is the fold from 1024 to 1063, where the rail's 64 px leave the cell 216
+/// and the pair wants 220. The four cells stay on one row at every expanded
+/// width either way, and the stepper keeps its buttons at their touch size,
+/// which is the trade the broken word was silently making instead.
+class _DenseRow extends StatelessWidget {
+  const _DenseRow({required this.word, required this.control});
 
   final String word;
 
+  /// The stepper or switch this fact is set with — the shipped control.
+  final Widget control;
+
   @override
-  Widget build(BuildContext context) =>
-      SizedBox(width: 40, child: Text(word.toUpperCase(), style: ansiLabel()));
+  Widget build(BuildContext context) => Wrap(
+    spacing: 9,
+    runSpacing: 3,
+    crossAxisAlignment: WrapCrossAlignment.center,
+    children: [
+      SizedBox(
+        width: _denseWordColumn(context),
+        child: Text(
+          word.toUpperCase(),
+          style: ansiLabel(),
+          softWrap: false,
+          maxLines: 1,
+        ),
+      ),
+      control,
+    ],
+  );
 }
 
 /// One fact in a wide header cell: the word, then the compact stepper.
@@ -620,26 +685,25 @@ class _MiniStepperRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final value = this.value;
-    return AnsiStepperRow(
-      small: true,
-      leading: Padding(
-        padding: const EdgeInsets.only(right: 9),
-        child: _MiniWord(word),
-      ),
-      onDecrement: value == null
-          ? null
-          : () => onChanged(value <= step ? null : value - step),
-      onIncrement: () => onChanged((value ?? 0) + step),
-      value: SizedBox(
-        width: 74,
-        child: Text(
-          value == null ? unsetText : format(value),
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: value == null
-              ? ansiMono(size: 12, color: AnsiColors.muted)
-              : ansiMono(size: 13.5, weight: FontWeight.w600),
+    return _DenseRow(
+      word: word,
+      control: AnsiStepperRow(
+        small: true,
+        onDecrement: value == null
+            ? null
+            : () => onChanged(value <= step ? null : value - step),
+        onIncrement: () => onChanged((value ?? 0) + step),
+        value: SizedBox(
+          width: 74,
+          child: Text(
+            value == null ? unsetText : format(value),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: value == null
+                ? ansiMono(size: 12, color: AnsiColors.muted)
+                : ansiMono(size: 13.5, weight: FontWeight.w600),
+          ),
         ),
       ),
     );
