@@ -15,6 +15,7 @@ import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_list_view.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_picker.dart';
+import 'package:ansi/shared/ansi_search_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -79,6 +80,13 @@ bool isEllipsis(FHeaderAction action) {
   return icon is Icon && icon.icon == FLucideIcons.ellipsis;
 }
 
+/// The manager's search field. A pick restates the page it was made on, so
+/// what was typed in here has to still be here afterwards.
+final Finder searchField = find.descendant(
+  of: find.byType(AnsiSearchField),
+  matching: find.byType(TextField),
+);
+
 /// The vocabulary's own scroller, which the manager keys so its offset
 /// survives the page being rebuilt under it.
 final Finder vocabularyScroller = find.byKey(kVocabularyScrollKey);
@@ -103,10 +111,6 @@ int rowInsideViewport(WidgetTester tester) {
 
 void main() {
   group('the manager at a desk', () {
-    // The manager remembers where the vocabulary was left, and a suite pumps
-    // one after another in the same process.
-    setUp(resetVocabularyScroll);
-
     testWidgets('a deep link to a row opens the two panes with that row lit, '
         'and the sheet is the one the phone pushes', (tester) async {
       filterForuiSemanticsAssertions();
@@ -174,6 +178,7 @@ void main() {
       // `/ingredients` opens on no row, and says so where the sheet will be.
       expect(find.text('Pick a row to read what it says.'), findsOneWidget);
       expect(find.byKey(kVocabularyReadingRowKey), findsNothing);
+      final depth = router.routerDelegate.currentConfiguration.matches.length;
 
       await tester.tap(find.text('Nutritional yeast').first);
       await tester.pumpAndSettle();
@@ -196,14 +201,13 @@ void main() {
       // Back leaves the manager rather than walking back up every row read.
       expect(
         router.routerDelegate.currentConfiguration.matches.length,
-        1,
+        depth,
         reason: 'a pick must replace the location, never push a second page',
       );
     });
 
-    testWidgets('the work queue opens the fields, and says so in the URL', (
-      tester,
-    ) async {
+    testWidgets('the work queue still opens the fields, in the pane — and the '
+        'URL carries the row, not the posture', (tester) async {
       filterForuiSemanticsAssertions();
       deskWidth(tester);
       late final GoRouter router;
@@ -216,33 +220,82 @@ void main() {
       await tester.pumpAndSettle();
 
       // The band is a work queue: its door is the fields, not a fact sheet
-      // that repeats what the row is short of — and the door it opens is the
-      // editing posture's own location, the one the recipe page's fix markers
-      // and the import review already hand over.
+      // that repeats what the row is short of. It opens them BESIDE the queue
+      // — a vocabulary you can only fill in by leaving it is a vocabulary you
+      // fill in one row per visit.
       await tester.tap(find.text('Curry leaves, fresh').first);
       await tester.pumpAndSettle();
 
-      expect(
-        router.state.uri.toString(),
-        ingredientDetailRoute('curry', edit: true),
-      );
       expect(find.text('CANONICAL NAME'), findsOneWidget);
+      expect(find.text('Needs fleshing out'), findsOneWidget);
+      // The location names the row and stops there: which posture its pane
+      // opened in is a mode, and a link that silently put somebody in a form
+      // is a link nobody meant to send.
+      expect(router.state.uri.toString(), ingredientDetailRoute('curry'));
       expect(
-        router.routerDelegate.currentConfiguration.matches.length,
-        1,
-        reason: 'the band restates the location, it does not stack a page',
+        router.state.uri.queryParameters,
+        isEmpty,
+        reason: 'the posture is not a place',
       );
+    });
+
+    testWidgets('and a later pick leaves the fields behind: the posture '
+        'belongs to the row it was asked for', (tester) async {
+      filterForuiSemanticsAssertions();
+      deskWidth(tester);
+      await tester.pumpWidget(
+        host(FakeIngredientRepo(const [mango, curryLeaves, yeast])),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Curry leaves, fresh').first);
+      await tester.pumpAndSettle();
+      expect(find.text('CANONICAL NAME'), findsOneWidget);
+
+      await tester.tap(find.text('Nutritional yeast').first);
+      await tester.pumpAndSettle();
+      expect(
+        find.text('CANONICAL NAME'),
+        findsNothing,
+        reason: 'a row opened from the vocabulary opens as a row, to be read',
+      );
+      expect(find.text(_completeStrip), findsOneWidget);
+    });
+
+    testWidgets('a pick restates the page it was made on: the search field '
+        'keeps what was typed into it', (tester) async {
+      filterForuiSemanticsAssertions();
+      deskWidth(tester);
+      await tester.pumpWidget(
+        host(FakeIngredientRepo(const [mango, curryLeaves, yeast])),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(searchField, 'yeast');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Nutritional yeast').first);
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<TextField>(searchField).controller!.text,
+        'yeast',
+        reason:
+            'the two locations are one page: a pick that emptied the field '
+            'would put the whole vocabulary back under a reader who had '
+            'narrowed it',
+      );
+      expect(find.byKey(kVocabularyReadingRowKey), findsOneWidget);
     });
 
     testWidgets('the pane never flashes a titled header or a back chevron '
         'while the row it was handed is still on its way', (tester) async {
       filterForuiSemanticsAssertions();
       deskWidth(tester);
+      // An empty vocabulary AND a by-id watch that never answers: the pane
+      // has nothing to draw from either side, which is the frame the chrome
+      // used to appear in.
       await tester.pumpWidget(
-        host(
-          StalledByIdRepo(const [mango, curryLeaves, yeast]),
-          at: ingredientDetailRoute('mango'),
-        ),
+        host(StalledByIdRepo(const []), at: ingredientDetailRoute('mango')),
       );
       await tester.pump();
 
@@ -260,6 +313,7 @@ void main() {
       );
       // The list beside it still draws the page's own one way back.
       expect(find.text('Ingredients'), findsOneWidget);
+      expect(find.text('…'), findsOneWidget);
     });
 
     testWidgets('and it does not draw one on the way in from a pick either — '
@@ -360,6 +414,48 @@ void main() {
         tester.getRect(find.byKey(kVocabularyReadingRowKey)).top,
         closeTo(tapped.top, 1),
       );
+    });
+
+    testWidgets('a pick fills the pane on its FIRST frame, off the vocabulary '
+        'the list beside it is already drawing', (tester) async {
+      filterForuiSemanticsAssertions();
+      deskWidth(tester);
+      await tester.pumpWidget(
+        host(StalledByIdRepo(const [mango, curryLeaves, yeast])),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Nutritional yeast').first);
+      // One `pump`, and the by-id watch of this repository never answers: what
+      // is on screen can only have come from the vocabulary. The two queries
+      // have the same projection, so that copy IS the row.
+      await tester.pump();
+
+      expect(find.text(_completeStrip), findsOneWidget);
+      expect(
+        find.text('…'),
+        findsNothing,
+        reason: 'the row was in memory; there was nothing to wait for',
+      );
+      expect(
+        find.descendant(
+          of: find.byType(IngredientDetailView),
+          matching: find.text('Nutritional yeast'),
+        ),
+        findsWidgets,
+      );
+    });
+
+    testWidgets('but a cold deep link, before the vocabulary is here, still '
+        'says it is waiting', (tester) async {
+      filterForuiSemanticsAssertions();
+      deskWidth(tester);
+      await tester.pumpWidget(
+        host(StalledByIdRepo(const []), at: ingredientDetailRoute('mango')),
+      );
+      await tester.pump();
+
+      expect(find.text('…'), findsOneWidget);
     });
 
     testWidgets('below expanded a row is still a page pushed over the list', (

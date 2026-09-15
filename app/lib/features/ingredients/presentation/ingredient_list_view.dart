@@ -20,7 +20,7 @@ library;
 
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
@@ -54,24 +54,11 @@ const kVocabularyReadingRowKey = ValueKey('vocabulary-reading-row');
 const kFactSheetPaneWidth = 720.0;
 
 /// The vocabulary's own scroller — exported so a test names the list rather
-/// than picking a `ListView` out of a page that has several.
+/// than picking a `ListView` out of a page that has several. Its offset
+/// survives a pick because `/ingredients` and `/ingredients/:id` are one page
+/// (`_IngredientPage`, `core/router/app_router.dart`), so the scroller is the
+/// same element either side of the restate.
 const kVocabularyScrollKey = ValueKey('vocabulary-scroller');
-
-/// Where the vocabulary was last left.
-///
-/// `/ingredients` and `/ingredients/:id` are two routes, so a pick rebuilds
-/// the page under the reader and its scroller with it. A `PageStorageKey`
-/// cannot carry the offset across that: a bucket belongs to one route, and
-/// which route the manager is on is exactly what a pick changes. One manager
-/// is ever on screen, so one offset is enough — and it is the one fact about
-/// this screen worth keeping, because a vocabulary you have to find your
-/// place in again is a vocabulary you scroll twice.
-double _vocabularyOffset = 0;
-
-/// Forgets where the vocabulary was left. One process pumps manager after
-/// manager in a suite; a reader opens one.
-@visibleForTesting
-void resetVocabularyScroll() => _vocabularyOffset = 0;
 
 /// How many index-guided jumps the reveal below is allowed before it gives up.
 /// Each one builds the rows around where the lit row should be, so the second
@@ -139,23 +126,33 @@ class IngredientListView extends HookConsumerWidget {
     // down a vocabulary leaves no history to walk back out through: Back
     // leaves the manager, it does not step back up the rows.
     //
-    // [picked] and [atFields] are the fallback for a screen pumped with no
-    // router above it, which is how much of this suite builds one.
+    // The row is in the URL; the POSTURE it opens in is not. Which row the
+    // pane is reading is a place — a refresh should keep it and a link should
+    // carry it — but whether that pane opened at the fields is a mode of it,
+    // like the Shop's selected row or the Library's fold, and a link that
+    // silently put somebody in a form is a link nobody meant to send.
+    //
+    // [picked] is the fallback for a screen pumped with no router above it,
+    // which is how much of this suite builds one.
     final routed = context.topLocationPath != null;
     final picked = useState<String?>(selectedId);
-    final atFields = useState(false);
     useEffect(() {
       picked.value = selectedId;
-      atFields.value = false;
       return null;
     }, [selectedId]);
     final reading = wide ? (routed ? selectedId : picked.value) : null;
-    final readingAtFields = !routed && atFields.value;
+    // Held as the id whose pane opens at the fields, not as a flag: the pick
+    // that carries the posture also restates the location, and a bare flag
+    // would outlive the row it was set for and open the NEXT row at its
+    // fields.
+    final atFields = useState<String?>(null);
+    final readingAtFields = reading != null && atFields.value == reading;
 
     // A vocabulary row opens as a row: what it is, what it converts, what it
     // counts for — the same posture a recipe opens in from the Library, with
     // `⋯ ▸ Edit` behind it.
     void open(Ingredient i) {
+      atFields.value = null;
       if (!wide) {
         context.pushOnce(ingredientDetailRoute(i.id));
         return;
@@ -165,23 +162,27 @@ class IngredientListView extends HookConsumerWidget {
         return;
       }
       picked.value = i.id;
-      atFields.value = false;
     }
 
     // The band is a WORK QUEUE, and its rows say what each one is short of.
     // Landing them on a fact sheet that repeats "needs macros" would put a
     // menu between the queue and the fields it exists to fill in.
+    //
+    // On a desk that happens in the pane, beside the queue it was picked from:
+    // the location says which row, and the pane opens it at its fields. A
+    // vocabulary you can only fill in by leaving it is a vocabulary you fill in
+    // one row per visit.
     void fleshOut(Ingredient i) {
       if (!wide) {
         context.pushOnce(ingredientDetailRoute(i.id, edit: true));
         return;
       }
+      atFields.value = i.id;
       if (routed) {
-        context.restateOnce(ingredientDetailRoute(i.id, edit: true));
+        context.restateOnce(ingredientDetailRoute(i.id));
         return;
       }
       picked.value = i.id;
-      atFields.value = true;
     }
 
     // The `＋` opens the form itself: it writes on Save, so it can BE the
@@ -198,18 +199,7 @@ class IngredientListView extends HookConsumerWidget {
     // it roughly is, which builds it, and then reveals it exactly. A row that
     // is already on screen is left alone — that is every tap, and a tap must
     // not move the list out from under the finger.
-    final listController = useScrollController(
-      initialScrollOffset: _vocabularyOffset,
-    );
-    useEffect(() {
-      void remember() {
-        if (!listController.hasClients) return;
-        _vocabularyOffset = listController.offset;
-      }
-
-      listController.addListener(remember);
-      return () => listController.removeListener(remember);
-    }, [listController]);
+    final listController = useScrollController();
     final readingRowKey = useMemoized(GlobalKey.new);
     final ordered = searching
         ? search.results

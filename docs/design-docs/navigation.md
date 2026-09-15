@@ -359,24 +359,33 @@ could honestly carry?** Three things pass:
   today when absent. A date rather than an index, so a link says what it means
   and a date from another week simply does not match. A phone draws all seven
   days and stands on none, so it names none.
-- **The vocabulary row the wide manager is reading** — `/ingredients/<id>`, and
-  `?edit=1` from the stub band. The row is already a page: it is the location
-  the phone pushes, so the desk's two panes are a way of DRAWING that page, not
-  a second kind of state beside it. A pick used to be a flag inside the widget,
-  and the three things that follow from that were all reported at once — a
-  refresh lost the row, the link said `/ingredients`, and a recipe's ingredient
-  door and a tap in the list were two different places. Arriving on one lights
-  the row **and scrolls it into view**: a lit row nobody can see is not a
-  selection.
+- **The vocabulary row the wide manager is reading** — `/ingredients/<id>`. The
+  row is already a page: it is the location the phone pushes, so the desk's two
+  panes are a way of DRAWING that page, not a second kind of state beside it.
+  Three things followed from the pick being a flag inside the widget instead —
+  a refresh lost the row, the link said `/ingredients`, and a recipe's
+  ingredient door and a tap in the list were two different places. Arriving on
+  one lights the row **and scrolls it into view**: a lit row nobody can see is
+  not a selection. What the URL does *not* carry is which posture the pane
+  opened in — the stub band's door restates the same bare `/ingredients/<id>`
+  and opens its fields in the pane, because filling a stub in is a mode of the
+  pane and not somewhere a link should land. (`?edit=1` remains the editing
+  posture's own location for a door that arrives cold — a recipe's fix marker,
+  the import review — where there is no pane to be a mode of.)
 
 All three are written with **`restateOnce`** (`shared/guarded_navigation.dart`):
 a `replace` inside `Router.neglect`, so the bar changes in place, the screen
 keeps its state and the history gets **no new entry**. Back leaves the week — or
 the manager — rather than walking backwards through every day, week or row that
-was read. The manager's is the one restate that crosses BETWEEN two routes
-(`/ingredients` and `/ingredients/:id`), so the page under it is rebuilt: the
-list carries its own scroll offset across, because a `PageStorageKey` belongs to
-one route and which route this screen is on is exactly what a pick changes.
+was read.
+
+The manager's is the one restate that crosses BETWEEN two routes, and that costs
+something the Week's does not: `/ingredients` and `/ingredients/:id` are built by
+**one widget** (`_IngredientPage`, `core/router/app_router.dart`), so the manager
+sits at the same depth under both and the element is reused. Two builders would
+put it at two depths, and the first pick would throw the screen away and rebuild
+it — the scroll, the search field's text and the pane's posture with it. A
+restatement that reloads the screen is not a restatement.
 
 These deliberately stay out:
 

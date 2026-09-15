@@ -419,44 +419,41 @@ Widget host(
   final router = GoRouter(
     initialLocation: at,
     routes: [
+      // The manager is always reached PUSHED, from the Library's shelf row,
+      // and that is load-bearing here rather than scenery: go_router's
+      // `replace` keeps the page key of the page it replaces only while
+      // something is left underneath it. A manager that were the only page in
+      // the stack would get a brand new page — and so a brand new screen — on
+      // every pick, which is the one thing a restatement must not do. Nesting
+      // these under a root gives them the page the app has under them.
       GoRoute(
-        path: '/ingredients',
-        builder: (_, _) => const IngredientListView(),
-      ),
-      // Declared BEFORE `:id`, so `new` is a route and not an ingredient id.
-      GoRoute(
-        path: '/ingredients/new',
-        builder: (_, state) => IngredientDetailView(
-          name: state.uri.queryParameters['name'] ?? '',
-          lookup: lookup,
-          cameraPane: lookup == null ? null : (_, _) => const SizedBox.shrink(),
-        ),
-      ),
-      // The app's own wiring: `?edit=1` is what opens the editing posture,
-      // so a suite that drives the form asks for the route the app hands a
-      // fix door rather than being handed a flag no screen sets. And a row's
-      // READING posture is two pages, decided by width, exactly as
-      // `core/router/app_router.dart` decides it: the pushed fact sheet on a
-      // phone, the manager's two panes with that row lit from expanded up.
-      GoRoute(
-        path: '/ingredients/:id',
-        builder: (context, state) {
-          final id = state.pathParameters['id'];
-          final edit = state.uri.queryParameters[kEditPostureQueryParam] == '1';
-          if (!edit && AnsiLayout.of(context) == AnsiLayout.expanded) {
-            return IngredientListView(selectedId: id);
-          }
-          return IngredientDetailView(
-            ingredientId: id,
-            edit: edit,
-            // The form's own scan (plan 0025 #8): a test hands in the client
-            // and a camera-less pane the way the add sheet's tests do.
-            lookup: lookup,
-            cameraPane: lookup == null
-                ? null
-                : (_, _) => const SizedBox.shrink(),
-          );
-        },
+        path: '/',
+        builder: (_, _) => const FScaffold(child: SizedBox.shrink()),
+        routes: [
+          GoRoute(
+            path: 'ingredients',
+            builder: (_, _) => const _HostIngredientPage(),
+          ),
+          // Declared BEFORE `:id`, so `new` is a route and not an id.
+          GoRoute(
+            path: 'ingredients/new',
+            builder: (_, state) => IngredientDetailView(
+              name: state.uri.queryParameters['name'] ?? '',
+              lookup: lookup,
+              cameraPane: lookup == null
+                  ? null
+                  : (_, _) => const SizedBox.shrink(),
+            ),
+          ),
+          GoRoute(
+            path: 'ingredients/:id',
+            builder: (_, state) => _HostIngredientPage(
+              id: state.pathParameters['id'],
+              edit: state.uri.queryParameters[kEditPostureQueryParam] == '1',
+              lookup: lookup,
+            ),
+          ),
+        ],
       ),
     ],
   );
@@ -475,6 +472,40 @@ Widget host(
       builder: (context, child) => FTheme(data: ansiThemeData(), child: child!),
     ),
   );
+}
+
+/// The app's own `_IngredientPage`, restated for these suites: ONE widget for
+/// `/ingredients` and `/ingredients/:id`, so the two locations put the manager
+/// at the same depth and a pick keeps the screen it was made on.
+///
+/// `?edit=1` is what opens the editing posture, so a suite that drives the form
+/// asks for the route the app hands a fix door rather than being handed a flag
+/// no screen sets. A row's READING posture is two pages decided by width,
+/// exactly as `core/router/app_router.dart` decides it: the pushed fact sheet
+/// on a phone, the manager's two panes with that row lit from expanded up.
+class _HostIngredientPage extends StatelessWidget {
+  const _HostIngredientPage({this.id, this.edit = false, this.lookup});
+
+  final String? id;
+  final bool edit;
+
+  /// The form's own barcode scan (plan 0025 #8): a test hands in the client
+  /// and a camera-less pane the way the add sheet's tests do.
+  final OffLookup? lookup;
+
+  @override
+  Widget build(BuildContext context) {
+    if (id == null) return const IngredientListView();
+    if (!edit && AnsiLayout.of(context) == AnsiLayout.expanded) {
+      return IngredientListView(selectedId: id);
+    }
+    return IngredientDetailView(
+      ingredientId: id,
+      edit: edit,
+      lookup: lookup,
+      cameraPane: lookup == null ? null : (_, _) => const SizedBox.shrink(),
+    );
+  }
 }
 
 /// Opens the flesh-out form's header `⋯` — where the actions that are not
