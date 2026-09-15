@@ -1042,6 +1042,14 @@
        live amount in the pill beside it — the pill is the marked thing */
     .mchip{font-weight:600;color:var(--herb-deep);}
     .mqn{display:inline-block;margin-left:4px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:var(--herb);background:var(--herb-soft);border-radius:5px;padding:1px 5px;}
+    /* ticked off by the cook: muted AND ruled through, the pill's ground
+       dropping to the hairline. The week's own "not this time" is the same
+       muting with NO rule — the line-through is what the cook's hand means */
+    .mchip.struck{color:var(--muted);text-decoration:line-through;}
+    .mchip.wk{color:var(--muted);}
+    .mchip.struck .mqn,.mchip.wk .mqn{color:var(--muted);background:var(--line);}
+    .mrow.struck{color:var(--muted);text-decoration:line-through;}
+    .mrow.struck .mn{color:var(--muted);text-decoration:none;}
     /* a step: a mono digit in its own column, never an ink disc */
     .mrow{display:flex;gap:14px;padding:9px 20px;font-size:13px;line-height:1.55;}
     .mrow + .mrow{border-top:1px solid var(--line);}

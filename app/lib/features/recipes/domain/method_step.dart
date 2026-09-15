@@ -146,10 +146,21 @@ class MethodChipSpan extends MethodSpan {
     required this.label,
     this.amount,
     this.constituents = const [],
+    this.lineIds = const [],
   });
   final String label;
   final String? amount;
   final List<String> constituents;
+
+  /// The line ids the chip resolved to, in ref order — parallel to
+  /// [constituents] on a collective, one entry on a single-ref chip, and empty
+  /// where the payload dropped the line.
+  ///
+  /// A view needs it to answer a question the names cannot: whether the line
+  /// behind a chip is one *this week* leaves out. A ref that resolves to
+  /// nothing is absent here exactly as it is absent from [constituents], so the
+  /// two lists index together.
+  final List<String> lineIds;
 }
 
 /// A timer chip, its span already formatted ("6–8 min").
@@ -183,6 +194,7 @@ List<MethodSpan> foldMethod(
             label: _chipLabel(label, refs, lineById),
             amount: _chipAmount(refs, amountRule, portion, lineById, factor),
             constituents: _constituents(refs, lineById),
+            lineIds: _resolvedRefs(refs, lineById),
           ),
         );
     }
@@ -232,6 +244,17 @@ List<String> _resolvedNames(List<String> refs, Map<String, LineItem> lineById) {
     if (name.isNotEmpty) names.add(name);
   }
   return names;
+}
+
+/// The refs of [_resolvedNames], in the same order — the id half of the same
+/// filter, so a view can index the names and the lines together.
+List<String> _resolvedRefs(List<String> refs, Map<String, LineItem> lineById) {
+  final resolved = <String>[];
+  for (final ref in refs) {
+    final name = lineById[ref]?.ingredientName.trim() ?? '';
+    if (name.isNotEmpty) resolved.add(ref);
+  }
+  return resolved;
 }
 
 /// The number a chip renders, or null when it is quantity-less.

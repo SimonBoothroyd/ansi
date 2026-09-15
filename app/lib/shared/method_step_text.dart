@@ -4,7 +4,17 @@
 ///
 /// The recipe page and the import review screen show the same method with the
 /// same chips. The only thing that legitimately varies between them is the
-/// prose type size, so that is the only knob.
+/// prose type size — and, on the recipe page alone, whether a chip can be
+/// *ticked off*. Every knob for that is null by default, so a surface that
+/// hands none of them over renders exactly what it always did.
+///
+/// **Two struck states, and they must not read alike.** A chip can be crossed
+/// off by the cook ([MethodStepText.struckChips], [MethodStepText.stepStruck])
+/// — *I have added that* — or left out by the week
+/// ([MethodStepText.weekExcluded]) — *we are not cooking that this time*. The
+/// first is muted **and** ruled through, the Shop's own "got it" style; the
+/// second is muted only. One is a thing you did, the other a thing the plan
+/// says, and a cook glancing back at a step has to be able to tell them apart.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -18,12 +28,31 @@ import '../features/recipes/domain/recipe.dart';
 
 /// Renders [step]'s tokens, deriving each chip's live amount from [lineById]
 /// (scaled by [factor]). [textSize] is the prose size; the chips size with it.
+///
+/// ## Ticking off
+///
+/// A chip is addressed by its **ordinal in the step** — the nth ingredient chip
+/// in reading order, counting a collective's constituents as the chips they
+/// are and skipping timers, which are never tappable. That ordinal is the whole
+/// identity: the caller holds the set, so a chip identifies itself by where it
+/// is rather than by a line id, and two chips on the same line tick
+/// independently (a cook adds the garlic twice).
+///
+/// [stepStruck] is the step's own answer and it wins over every chip in it,
+/// because text decoration does not cross into a [WidgetSpan]: a struck step
+/// whose chips stayed live would be a ruled sentence with bright words in it.
+/// It does not *clear* the chips' own state — striking a step and un-striking
+/// it leaves each chip exactly as the cook had it.
 class MethodStepText extends StatelessWidget {
   const MethodStepText({
     required this.step,
     required this.lineById,
     this.factor = 1,
     this.textSize = 16,
+    this.struckChips,
+    this.stepStruck = false,
+    this.onToggleChip,
+    this.weekExcluded = const {},
     super.key,
   });
 
@@ -32,10 +61,28 @@ class MethodStepText extends StatelessWidget {
   final double factor;
   final double textSize;
 
+  /// The ordinals of the chips the cook has ticked off. Null on a surface that
+  /// does not tick anything off.
+  final Set<int>? struckChips;
+
+  /// Whether the whole step is ticked off — its prose ruled through and every
+  /// chip in it struck with it.
+  final bool stepStruck;
+
+  /// Ticks the chip at that ordinal. Null leaves every chip inert, with no tap
+  /// target, no cursor and no focus stop — which is what the import review and
+  /// the editor's preview want.
+  final ValueChanged<int>? onToggleChip;
+
+  /// The line ids a week leaves out. Their chips read muted, never ruled
+  /// through: see the library doc on the two struck states.
+  final Set<String> weekExcluded;
+
   @override
   Widget build(BuildContext context) {
     final spans = foldMethod(step, lineById: lineById, factor: factor);
     final children = <InlineSpan>[];
+    var chip = 0;
     for (var i = 0; i < spans.length; i++) {
       final span = spans[i];
       switch (span) {
@@ -45,10 +92,18 @@ class MethodStepText extends StatelessWidget {
           children.add(
             _chip(MethodChip(label: text, timer: true, textSize: textSize)),
           );
-        case MethodChipSpan(:final label, :final amount, :final constituents):
+        case MethodChipSpan(
+          :final label,
+          :final amount,
+          :final constituents,
+          :final lineIds,
+        ):
           // A collective with no label of its own IS its constituents.
           if (label.isEmpty && constituents.isNotEmpty) {
-            children.addAll(_collectiveRun(constituents, amount));
+            children.addAll(
+              _collectiveRun(constituents, lineIds, amount, chip),
+            );
+            chip += constituents.length;
             break;
           }
           // The portion/quantity rides on the label chip; the constituents
@@ -65,20 +120,44 @@ class MethodStepText extends StatelessWidget {
                       )
                     : amount,
                 textSize: textSize,
+                struck: _struck(chip),
+                // A mixture is out only when everything in it is out — one
+                // excluded constituent leaves the mixture itself live, and
+                // says so on the constituent's own chip.
+                weekStruck: lineIds.isNotEmpty && lineIds.every(_excluded),
+                onTap: _toggle(chip),
               ),
             ),
           );
+          chip++;
           if (constituents.isNotEmpty) {
-            children.addAll(_constituentSpans(constituents));
+            children.addAll(_constituentSpans(constituents, lineIds, chip));
+            chip += constituents.length;
           }
       }
     }
+    final prose = ansiSans(size: textSize, height: 1.5);
     return Text.rich(
       TextSpan(
         children: children,
-        style: ansiSans(size: textSize, height: 1.5),
+        style: stepStruck
+            ? prose.copyWith(
+                color: AnsiColors.muted,
+                decoration: TextDecoration.lineThrough,
+              )
+            : prose,
       ),
     );
+  }
+
+  bool _struck(int chip) =>
+      stepStruck || (struckChips?.contains(chip) ?? false);
+
+  bool _excluded(String lineId) => weekExcluded.contains(lineId);
+
+  VoidCallback? _toggle(int chip) {
+    final onToggle = onToggleChip;
+    return onToggle == null ? null : () => onToggle(chip);
   }
 
   /// A blank-labelled collective as the run it actually is — `Kale, Avocado,
@@ -91,7 +170,9 @@ class MethodStepText extends StatelessWidget {
   /// of wrapping. Same mechanics as [_constituentSpans].
   Iterable<InlineSpan> _collectiveRun(
     List<String> names,
+    List<String> lineIds,
     String? amount,
+    int firstChip,
   ) sync* {
     for (var i = 0; i < names.length; i++) {
       if (i > 0) yield const TextSpan(text: ', ');
@@ -100,6 +181,9 @@ class MethodStepText extends StatelessWidget {
           label: names[i],
           amount: i == 0 ? amount : null,
           textSize: textSize,
+          struck: _struck(firstChip + i),
+          weekStruck: i < lineIds.length && _excluded(lineIds[i]),
+          onTap: _toggle(firstChip + i),
         ),
       );
     }
@@ -111,11 +195,23 @@ class MethodStepText extends StatelessWidget {
   /// WidgetSpan holding a Row: a WidgetSpan is an atomic box to the line
   /// breaker, so a packed run of eight constituents would overflow the step
   /// instead of wrapping onto the next line.
-  Iterable<InlineSpan> _constituentSpans(List<String> constituents) sync* {
+  Iterable<InlineSpan> _constituentSpans(
+    List<String> constituents,
+    List<String> lineIds,
+    int firstChip,
+  ) sync* {
     yield const TextSpan(text: ' (');
     for (var i = 0; i < constituents.length; i++) {
       if (i > 0) yield const TextSpan(text: ' ');
-      yield _chip(MethodChip(label: constituents[i], textSize: textSize - 1));
+      yield _chip(
+        MethodChip(
+          label: constituents[i],
+          textSize: textSize - 1,
+          struck: _struck(firstChip + i),
+          weekStruck: i < lineIds.length && _excluded(lineIds[i]),
+          onTap: _toggle(firstChip + i),
+        ),
+      );
     }
     yield const TextSpan(text: ')');
   }
@@ -164,13 +260,24 @@ String? _unrepeatedAmount(String? amount, MethodSpan? next) {
 /// Nothing pads the chip sideways either, so the comma after it hugs the word.
 ///
 /// A [timer] chip keeps its outlined paper pill and clock glyph: it is not a
-/// word in the sentence, it is a measurement the step hands you.
+/// word in the sentence, it is a measurement the step hands you. It is also
+/// the one chip that never ticks off: a duration is not a thing you add.
+///
+/// **[struck]** is the cook's tick — the word muted and ruled through, the
+/// pill's ground dropping from the herb wash to the hairline. **[weekStruck]**
+/// is the week leaving the line out — the same muting, and deliberately no
+/// rule, so the two never read as one another. The geometry does not move
+/// under either: a struck chip occupies the pixels it did, because a sentence
+/// that reflows as you tick through it is a sentence you lose your place in.
 class MethodChip extends StatelessWidget {
   const MethodChip({
     required this.label,
     this.amount,
     this.timer = false,
     this.textSize = 16,
+    this.struck = false,
+    this.weekStruck = false,
+    this.onTap,
     super.key,
   });
 
@@ -178,6 +285,16 @@ class MethodChip extends StatelessWidget {
   final String? amount;
   final bool timer;
   final double textSize;
+
+  /// Ticked off by the cook this session: muted **and** ruled through.
+  final bool struck;
+
+  /// Left out by the week this page was opened from: muted only.
+  final bool weekStruck;
+
+  /// Toggles [struck]. Null leaves the chip inert — no target, no cursor, no
+  /// focus stop.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -187,34 +304,48 @@ class MethodChip extends StatelessWidget {
     if (timer) return _timer(text);
 
     final amount = this.amount;
-    return Row(
+    final muted = struck || weekStruck;
+    final chip = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           text,
           style: ansiSans(
             size: textSize - 1,
-            color: AnsiColors.herbDeep,
+            color: muted ? AnsiColors.muted : AnsiColors.herbDeep,
             weight: FontWeight.w600,
-          ),
+          ).copyWith(decoration: struck ? TextDecoration.lineThrough : null),
         ),
         if (amount != null) ...[
           const SizedBox(width: 4),
           DecoratedBox(
             decoration: BoxDecoration(
-              color: AnsiColors.herbSoft,
+              color: muted ? AnsiColors.line : AnsiColors.herbSoft,
               borderRadius: BorderRadius.circular(5),
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
               child: Text(
                 amount,
-                style: ansiMono(size: 12, color: AnsiColors.herb),
+                style: ansiMono(
+                  size: 12,
+                  color: muted ? AnsiColors.muted : AnsiColors.herb,
+                ),
               ),
             ),
           ),
         ],
       ],
+    );
+    final onTap = this.onTap;
+    if (onTap == null) return chip;
+    // Labelled, so the sweep that bans a bare tap around a lone glyph does not
+    // apply — and a word-wide target needs no growing on a phone.
+    return FTappable(
+      onPress: onTap,
+      semanticsLabel: text,
+      behavior: HitTestBehavior.opaque,
+      child: chip,
     );
   }
 

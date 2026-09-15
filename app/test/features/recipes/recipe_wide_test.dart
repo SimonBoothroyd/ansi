@@ -18,6 +18,7 @@ import 'package:ansi/features/planning/presentation/week_recipe_band.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:ansi/features/recipes/domain/line_override.dart';
+import 'package:ansi/features/recipes/domain/method_step.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
 import 'package:ansi/features/recipes/domain/recipe_repository.dart';
@@ -26,6 +27,7 @@ import 'package:ansi/features/recipes/presentation/recipe_macro_panel.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view.dart';
 import 'package:ansi/shared/ansi_layout.dart';
 import 'package:ansi/shared/incomplete_macros.dart';
+import 'package:ansi/shared/method_step_text.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -85,6 +87,32 @@ Recipe _recipe({RecipeMacroSummary? macros = _complete}) => Recipe(
     ),
   ],
 );
+
+/// The same recipe with a tokenized method, so the right column has chips in
+/// it. The chip labels are lower case, and so tell themselves apart from the
+/// ingredient names the left column is drawing at the same time.
+Recipe _tokenized() => _recipe().copyWith(
+  steps: const [],
+  methodSteps: const [
+    MethodStep(
+      tokens: [
+        MethodText(s: 'Brown the '),
+        MethodRef(refs: ['l1'], label: 'chicken'),
+        MethodText(s: ' in a wide pan.'),
+      ],
+    ),
+  ],
+);
+
+/// The ink one method chip's word is painted in.
+TextStyle _chipStyle(WidgetTester tester, String label) => tester
+    .widget<Text>(
+      find.descendant(
+        of: find.byWidgetPredicate((w) => w is MethodChip && w.label == label),
+        matching: find.text(label),
+      ),
+    )
+    .style!;
 
 class _Repo extends FakeRecipeRepository {
   _Repo({super.recipe, this.uses = const []});
@@ -317,6 +345,30 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Edit for this week'), findsOneWidget);
     expect(find.text('Edit recipe'), findsOneWidget);
+  });
+
+  testWidgets('a method chip ticks off in the two-column layout too — one '
+      'page, one set of ticks', (tester) async {
+    await _pumpWide(tester, recipe: _tokenized());
+
+    expect(_chipStyle(tester, 'chicken').decoration, isNull);
+
+    await tester.tap(find.text('chicken'));
+    await tester.pumpAndSettle();
+
+    expect(
+      _chipStyle(tester, 'chicken').decoration,
+      TextDecoration.lineThrough,
+    );
+    // The left column is untouched: a tick is about the method, not the line.
+    final line = tester.widget<RecipeIngredientLine>(
+      find.byWidgetPredicate(
+        (w) =>
+            w is RecipeIngredientLine &&
+            w.uses.ingredientName == 'Chicken thigh',
+      ),
+    );
+    expect(line.struck, isFalse);
   });
 
   testWidgets('at a phone width the page is the page it has always been', (
