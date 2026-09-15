@@ -18,6 +18,8 @@
 /// is what a search is for.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -50,6 +52,19 @@ const kVocabularyReadingRowKey = ValueKey('vocabulary-reading-row');
 /// How wide the fact-sheet pane is ever drawn beside the vocabulary. A row
 /// reads at a page's measure, not at a desk's width.
 const kFactSheetPaneWidth = 720.0;
+
+/// The vocabulary's own scroller — exported so a test names the list rather
+/// than picking a `ListView` out of a page that has several. Its offset
+/// survives a pick because `/ingredients` and `/ingredients/:id` are one page
+/// (`_IngredientPage`, `core/router/app_router.dart`), so the scroller is the
+/// same element either side of the restate.
+const kVocabularyScrollKey = ValueKey('vocabulary-scroller');
+
+/// How many index-guided jumps the reveal below is allowed before it gives up.
+/// Each one builds the rows around where the lit row should be, so the second
+/// pass normally finds it; the cap is there so a list that cannot settle stops
+/// asking for frames rather than spinning.
+const _revealAttempts = 6;
 
 class IngredientListView extends HookConsumerWidget {
   const IngredientListView({this.selectedId, super.key});
@@ -101,45 +116,124 @@ class IngredientListView extends HookConsumerWidget {
     // Wide enough for the vocabulary and one row at once: a row then opens IN
     // PLACE, in the pane beside the list, rather than as a page over it.
     final wide = AnsiLayout.of(context) == AnsiLayout.expanded;
-    // Which row the pane is reading, and whether it opened at the fields.
-    // Seeded by the route — a cold deep link to `/ingredients/:id` lands on
-    // the same split with that row lit — and moved by a tap, which navigates
-    // nothing.
+    final sections = _sections(all);
+
+    // **The location IS the selection.** A pick restates `/ingredients/:id`,
+    // so the row the pane is reading is the row the address bar names: a
+    // refresh keeps it, the link is worth sending, and a recipe's ingredient
+    // door and a tap in this list land in exactly the same place. It goes
+    // through [restateOnce] — `replace` inside `Router.neglect` — so reading
+    // down a vocabulary leaves no history to walk back out through: Back
+    // leaves the manager, it does not step back up the rows.
+    //
+    // The row is in the URL; the POSTURE it opens in is not. Which row the
+    // pane is reading is a place — a refresh should keep it and a link should
+    // carry it — but whether that pane opened at the fields is a mode of it,
+    // like the Shop's selected row or the Library's fold, and a link that
+    // silently put somebody in a form is a link nobody meant to send.
+    //
+    // [picked] is the fallback for a screen pumped with no router above it,
+    // which is how much of this suite builds one.
+    final routed = context.topLocationPath != null;
     final picked = useState<String?>(selectedId);
-    final atFields = useState(false);
     useEffect(() {
       picked.value = selectedId;
-      atFields.value = false;
       return null;
     }, [selectedId]);
+    final reading = wide ? (routed ? selectedId : picked.value) : null;
+    // Held as the id whose pane opens at the fields, not as a flag: the pick
+    // that carries the posture also restates the location, and a bare flag
+    // would outlive the row it was set for and open the NEXT row at its
+    // fields.
+    final atFields = useState<String?>(null);
+    final readingAtFields = reading != null && atFields.value == reading;
 
     // A vocabulary row opens as a row: what it is, what it converts, what it
     // counts for — the same posture a recipe opens in from the Library, with
     // `⋯ ▸ Edit` behind it.
     void open(Ingredient i) {
-      if (wide) {
-        picked.value = i.id;
-        atFields.value = false;
+      atFields.value = null;
+      if (!wide) {
+        context.pushOnce(ingredientDetailRoute(i.id));
         return;
       }
-      context.pushOnce(ingredientDetailRoute(i.id));
+      if (routed) {
+        context.restateOnce(ingredientDetailRoute(i.id));
+        return;
+      }
+      picked.value = i.id;
     }
 
     // The band is a WORK QUEUE, and its rows say what each one is short of.
     // Landing them on a fact sheet that repeats "needs macros" would put a
     // menu between the queue and the fields it exists to fill in.
+    //
+    // On a desk that happens in the pane, beside the queue it was picked from:
+    // the location says which row, and the pane opens it at its fields. A
+    // vocabulary you can only fill in by leaving it is a vocabulary you fill in
+    // one row per visit.
     void fleshOut(Ingredient i) {
-      if (wide) {
-        picked.value = i.id;
-        atFields.value = true;
+      if (!wide) {
+        context.pushOnce(ingredientDetailRoute(i.id, edit: true));
         return;
       }
-      context.pushOnce(ingredientDetailRoute(i.id, edit: true));
+      atFields.value = i.id;
+      if (routed) {
+        context.restateOnce(ingredientDetailRoute(i.id));
+        return;
+      }
+      picked.value = i.id;
     }
 
     // The `＋` opens the form itself: it writes on Save, so it can BE the
     // create surface — back out of it and there is nothing to clean up.
     void addNew() => context.pushOnce(newIngredientRoute());
+
+    // Arriving on `/ingredients/:id` — a pasted link, a recipe's ingredient
+    // door — lights a row that can be three hundred rows down the vocabulary,
+    // and a lit row nobody can see is not a selection. Put it on screen once,
+    // after the list has laid out.
+    //
+    // The vocabulary is one lazy sliver, so the row a deep link lands on has
+    // no render object to reveal: the walk jumps to where the row's INDEX says
+    // it roughly is, which builds it, and then reveals it exactly. A row that
+    // is already on screen is left alone — that is every tap, and a tap must
+    // not move the list out from under the finger.
+    final listController = useScrollController();
+    final readingRowKey = useMemoized(GlobalKey.new);
+    final ordered = searching
+        ? search.results
+        : [for (final section in sections) ...section.rows];
+    useEffect(() {
+      if (reading == null) return null;
+      final index = ordered.indexWhere((i) => i.id == reading);
+      if (index < 0) return null;
+      var done = false;
+      var attempts = 0;
+      void step(Duration _) {
+        if (done || !listController.hasClients) return;
+        if (readingRowKey.currentContext case final rowContext?) {
+          done = true;
+          if (!_onScreen(rowContext, listController)) {
+            unawaited(Scrollable.ensureVisible(rowContext, alignment: 0.3));
+          }
+          return;
+        }
+        if (attempts++ >= _revealAttempts) return;
+        final extent = listController.position.maxScrollExtent;
+        listController.jumpTo(
+          (extent * index / ordered.length).clamp(0.0, extent),
+        );
+        WidgetsBinding.instance.addPostFrameCallback(step);
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback(step);
+      return () => done = true;
+      // The vocabulary's own length is a dependency, not decoration: a cold
+      // deep link builds this screen before the rows have arrived, and an
+      // effect that only watched the selection would have given up on an
+      // empty list and never looked again.
+    }, [reading, ordered.length]);
 
     final header = FHeader.nested(
       title: Text('Ingredients', style: ansiHeaderTitle()),
@@ -175,6 +269,8 @@ class IngredientListView extends HookConsumerWidget {
                   vocabulary,
                   all,
                   () => ListView(
+                    key: kVocabularyScrollKey,
+                    controller: listController,
                     padding: ansiScrollPadding(
                       context,
                       const EdgeInsets.fromLTRB(22, 0, 22, 8),
@@ -184,9 +280,15 @@ class IngredientListView extends HookConsumerWidget {
                             search.results,
                             typed,
                             open,
-                            reading: picked.value,
+                            reading: reading,
+                            readingKey: readingRowKey,
                           )
-                        : _vocabularyRows(all, open, reading: picked.value),
+                        : _vocabularyRows(
+                            sections,
+                            open,
+                            reading: reading,
+                            readingKey: readingRowKey,
+                          ),
                   ),
                 ),
               ),
@@ -197,8 +299,8 @@ class IngredientListView extends HookConsumerWidget {
                   maxWidth: kFactSheetPaneWidth,
                 ),
                 child: _SheetPane(
-                  ingredientId: picked.value,
-                  atFields: atFields.value,
+                  ingredientId: reading,
+                  atFields: readingAtFields,
                 ),
               ),
             ),
@@ -232,7 +334,7 @@ class IngredientListView extends HookConsumerWidget {
                   else ...[
                     if (stubs.isNotEmpty)
                       _StubBand(stubs: stubs, onOpen: fleshOut),
-                    ..._vocabularyRows(all, open),
+                    ..._vocabularyRows(sections, open),
                   ],
                   const SizedBox(height: 16),
                   _addDoor(addNew),
@@ -276,11 +378,12 @@ class IngredientListView extends HookConsumerWidget {
   /// fact-sheet pane is on, which is lit; null on a phone, where the row a
   /// person is reading is a page and not a row.
   List<Widget> _vocabularyRows(
-    List<Ingredient> all,
+    List<({String label, List<Ingredient> rows})> sections,
     ValueChanged<Ingredient> onOpen, {
     String? reading,
+    GlobalKey? readingKey,
   }) => [
-    for (final section in _sections(all)) ...[
+    for (final section in sections) ...[
       Padding(
         padding: const EdgeInsets.only(top: 16, bottom: 4),
         child: Text(
@@ -296,6 +399,7 @@ class IngredientListView extends HookConsumerWidget {
           onOpen: onOpen,
           showCategory: false,
           reading: ing.id == reading,
+          readingKey: readingKey,
         ),
       ],
     ],
@@ -340,6 +444,7 @@ class IngredientListView extends HookConsumerWidget {
     String query,
     ValueChanged<Ingredient> onOpen, {
     String? reading,
+    GlobalKey? readingKey,
   }) {
     if (results.isEmpty) {
       return [
@@ -360,10 +465,26 @@ class IngredientListView extends HookConsumerWidget {
           ingredient: ing,
           onOpen: onOpen,
           reading: ing.id == reading,
+          readingKey: readingKey,
         ),
       ],
     ];
   }
+}
+
+/// Whether the lit row is where a reader can already see it, whole.
+///
+/// A tap's own row always is, and the reveal leaves the list exactly where the
+/// finger left it — scrolling under a tap is the manager's own version of the
+/// page jumping as you read.
+bool _onScreen(BuildContext rowContext, ScrollController controller) {
+  final row = rowContext.findRenderObject();
+  final viewport = controller.position.context.notificationContext
+      ?.findRenderObject();
+  if (row is! RenderBox || viewport is! RenderBox) return false;
+  if (!row.hasSize || !viewport.hasSize) return false;
+  final top = viewport.globalToLocal(row.localToGlobal(Offset.zero)).dy;
+  return top >= 0 && top + row.size.height <= viewport.size.height;
 }
 
 /// The picker row, wearing the manager's chevron. Rendering it twice in two
@@ -374,6 +495,7 @@ class _ManagerRow extends StatelessWidget {
     required this.onOpen,
     this.showCategory = true,
     this.reading = false,
+    this.readingKey,
   });
 
   final Ingredient ingredient;
@@ -381,6 +503,11 @@ class _ManagerRow extends StatelessWidget {
 
   /// The row the fact-sheet pane is on, lit so the two panes read as one page.
   final bool reading;
+
+  /// The list's one handle on whichever row is lit, so the scroller can find
+  /// it once it exists. It travels with the selection, which is a reparent
+  /// inside the one list.
+  final GlobalKey? readingKey;
 
   /// False under a section header, which has already said it. Search results
   /// replace the headers with one flat list, so there the row says it again.
@@ -404,14 +531,17 @@ class _ManagerRow extends StatelessWidget {
       ),
     );
     if (!reading) return row;
-    return Container(
-      key: kVocabularyReadingRowKey,
-      decoration: BoxDecoration(
-        color: AnsiColors.herbSoft,
-        borderRadius: BorderRadius.circular(11),
+    return KeyedSubtree(
+      key: readingKey,
+      child: Container(
+        key: kVocabularyReadingRowKey,
+        decoration: BoxDecoration(
+          color: AnsiColors.herbSoft,
+          borderRadius: BorderRadius.circular(11),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 11),
+        child: row,
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 11),
-      child: row,
     );
   }
 }

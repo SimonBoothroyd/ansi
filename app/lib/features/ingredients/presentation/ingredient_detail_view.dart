@@ -215,6 +215,24 @@ class IngredientDetailView extends HookConsumerWidget {
     }
     final async = ref.watch(ingredientByIdProvider(ingredientId!));
 
+    // The row, from whichever live copy has it first.
+    //
+    // This page is keyed per row inside the manager's pane, so every pick
+    // opens a fresh by-id watch and waits a frame for its first emission —
+    // while the row being waited for is already in memory, in the vocabulary
+    // the list beside it is drawing. The two queries have the same projection
+    // (`SELECT i.*, measureCount`), so the vocabulary's copy IS this row, not
+    // a thinner stand-in, and reading it removes the wait rather than papering
+    // over it. Only while the watch is still opening: an `AsyncData(null)`
+    // means the row is gone, and a row that is gone must say so.
+    //
+    // The vocabulary is only asked for where it is already being drawn —
+    // beside this pane. A phone's pushed page takes the wait rather than
+    // subscribe a whole vocabulary to save a frame.
+    final seed = embedded && async.isLoading
+        ? _rowIn(ref.watch(vocabularyProvider).asData?.value, ingredientId!)
+        : null;
+
     // The form owns its own scaffold: the header's `⋯` menu and the pinned
     // action bar both act on form state (the pending edits, the busy flag,
     // the one message line), and a scaffold built above them could only
@@ -224,7 +242,7 @@ class IngredientDetailView extends HookConsumerWidget {
     // Either is built only once the row is HERE, so the ViewModel seeds its
     // draft from a real row rather than from a blank it would have to
     // reconcile.
-    if (async.asData?.value case final row?) {
+    if (async.asData?.value ?? seed case final row?) {
       if (!editing.value) {
         return _ReadPosture(
           ingredient: row,
@@ -262,9 +280,19 @@ class IngredientDetailView extends HookConsumerWidget {
         ),
       );
     }
+    // The states with no row yet wear the SAME chrome the row will: embedded,
+    // the page holding the panes owns the one back control and the pane owns
+    // none, so a header with a title and a chevron here is chrome that exists
+    // for one frame and then goes. Every pick in the manager pays that frame —
+    // the pane is keyed per row, so each one opens a fresh watch — and what
+    // the reader saw was `Ingredient ‹` flashing over the sheet they asked for.
     return FScaffold(
       childPad: false,
-      header: _header(context, title: 'Ingredient'),
+      header: _header(
+        context,
+        title: embedded ? null : 'Ingredient',
+        showBack: !embedded,
+      ),
       child: switch (async) {
         AsyncError(:final error) => _Centered('Could not open it — $error'),
         AsyncLoading() => const _Centered('…'),
@@ -274,6 +302,15 @@ class IngredientDetailView extends HookConsumerWidget {
       },
     );
   }
+}
+
+/// One row out of the live vocabulary, or null — what the manager's pane reads
+/// its first frame from while its own watch is opening.
+Ingredient? _rowIn(List<Ingredient>? all, String id) {
+  for (final row in all ?? const <Ingredient>[]) {
+    if (row.id == id) return row;
+  }
+  return null;
 }
 
 /// The page header, shared by the form and the states that have no row yet.
@@ -307,7 +344,9 @@ FHeader _header(
       style: ansiHeaderTitle(),
       overflow: TextOverflow.ellipsis,
     ),
-    prefixes: [back],
+    // [showBack] holds on the titled header too, not only on the untitled
+    // one: a caller that says it draws no chevron means it in both.
+    prefixes: [if (showBack) back],
     suffixes: suffixes,
   );
 }

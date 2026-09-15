@@ -120,27 +120,40 @@ GoRoute _branch({
   ),
 );
 
-/// `/ingredients/:id` is two pages, decided by width.
+/// `/ingredients` and `/ingredients/:id` — two locations of **one page**: the
+/// vocabulary, and the vocabulary with a row picked out of it.
 ///
-/// Its READING posture is the fact sheet pushed over the list on a phone, and
-/// the manager's two panes with that row lit once the chrome is beside the
-/// content — a cold deep link included, so a shared URL opens what the person
-/// who sent it was looking at. Its EDITING posture (`?edit=1`) is the form, in
-/// the measure, at every width: a door that exists to change one field is not a
-/// reason to redraw the page it was opened from.
+/// `/ingredients/:id`'s READING posture is the fact sheet pushed over the list
+/// on a phone, and the manager's two panes with that row lit once the chrome is
+/// beside the content — a cold deep link included, so a shared URL opens what
+/// the person who sent it was looking at. Its EDITING posture (`?edit=1`) is
+/// the form, in the measure, at every width: a door that exists to change one
+/// field is not a reason to redraw the page it was opened from.
 ///
-/// Below that band there is nothing here to decide: the route is declared
+/// **Both locations are built here, and that is the point.** On a desk a pick
+/// restates from one to the other, and two builders would put
+/// [IngredientListView] at two different depths — directly under the pane on
+/// one, under this widget on the other. The element in that slot is then thrown
+/// away and rebuilt on the first pick, taking the screen's whole state with it:
+/// where the vocabulary was scrolled to, what was typed in the search field,
+/// and which posture the pane was opened in. One widget of one shape is what
+/// makes a pick a restatement rather than a reload.
+///
+/// Below the wide band there is nothing here to decide: the route is declared
 /// `fullWidth`, so [AnsiPane] has already centred whatever this returns in the
 /// measure. From it, the pane hands over the whole width and the form asks for
 /// the measure back.
 class _IngredientPage extends StatelessWidget {
-  const _IngredientPage({required this.id, required this.edit});
+  const _IngredientPage({this.id, this.edit = false});
 
-  final String id;
+  /// Null on `/ingredients`, where the manager is the whole page and the pane
+  /// beside it is waiting to be given a row.
+  final String? id;
   final bool edit;
 
   @override
   Widget build(BuildContext context) {
+    if (id == null) return const IngredientListView();
     final detail = IngredientDetailView(ingredientId: id, edit: edit);
     if (!AnsiShell.of(context).beside) return detail;
     return edit
@@ -369,7 +382,7 @@ GoRouter router(Ref ref) {
             path: '/ingredients',
             name: 'ingredients',
             fullWidth: true,
-            builder: (state) => const IngredientListView(),
+            builder: (state) => const _IngredientPage(),
           ),
           // `/ingredients/new` — the ONE door to making an ingredient. It is
           // the same form, with no row behind it yet: nothing is written until
@@ -396,7 +409,7 @@ GoRouter router(Ref ref) {
             name: 'ingredient',
             fullWidth: true,
             builder: (state) => _IngredientPage(
-              id: state.pathParameters['id']!,
+              id: state.pathParameters['id'],
               edit: state.uri.queryParameters[kEditPostureQueryParam] == '1',
             ),
           ),
