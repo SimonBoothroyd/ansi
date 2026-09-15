@@ -108,11 +108,11 @@ second source of truth about what a page is, and the wide answer then has to be
 chased screen by screen.
 
 **All four tab roots opt out**, through `_branch`: the Library's ledger, the
-Week's day pane beside its agenda, Cook's schedule sheet and the Shop's list
+Week's agenda beside its day pane, Cook's schedule sheet and the Shop's list
 with its provenance pane are each a pane's worth of design, and each caps itself
 where its own drawing says — Cook at 1140 and centred, the Shop pair at the
 measure plus its 360 pane, the Library ledger at 900 with its margin index, and
-the Week a fixed 560 pane with the agenda taking whatever is left.
+the Week a fixed 340 agenda with the day pane taking whatever is left.
 
 **A pushed page opts out the same way**, through `_page`'s `fullWidth`:
 `/books/:id`, where a book is a ~200 px section index beside its recipes, which
@@ -171,7 +171,7 @@ chevron has something to pop; the four destinations above it `go`
   and it arrives with a board frame.
 - **Must:** answer a pointer. On a mouse-and-keyboard device every glyph-only
   control — the `⋯`, the `−`, the `＋` doors, the fold chevrons, the sidebar
-  items, the A–Z letters, the agenda's `›` — takes its hover (a herb-soft ground
+  items, the A–Z letters — takes its hover (a herb-soft ground
   under a herb-deep glyph), its 2 px herb focus ring, its click cursor and its
   32 px minimum target from **one shared style**: `AnsiTap`
   (`app/lib/shared/ansi_tap.dart`) over Forui's `FTappable`, with the ring and
@@ -215,6 +215,7 @@ frame behind it is in that screen's own file, under its `Wide · ≥ 1024` rule.
 |---|---|
 | **Library** (`features/books`) | at `expanded` the body is a **ledger, fully open**: one column of books capped at 900 and centred, with a 34 px **A–Z index** in the right margin that lights the letters with books and scrolls to them. A book is a heading row — name, dotted leader, count line, `⋯` — over **every section it keeps and every recipe under each**: a section is a one-line heading (italic label, count, `＋`, `⋯`), a recipe one line with its stats in the same column, `Unsectioned` last. No remainder row and no link to `/books/:id`. The **fold is read**, the phone's own per-device state, and it is the only thing that hides anything. The whole shelf is one lazy `SliverList`, so length costs only the lines in the window; the field is 300 px at the head of the column rather than a header bar, and the ranked results column, the `＋ new book` door and the vocabulary shelf are the phone's. |
 | **Book page** (`/books/:id`, `features/books`) | **two panes**: a 200 section index (counts, current lit, tapping scrolls the one list) beside the recipes at the measure; every row and menu is the Library's own. Nothing links here — the ledger lists what the page holds — so it is reached by a pasted link. |
+| **Week** (`features/planning`) | **two panes, the week at left**: a fixed **340 agenda** — a heading per day (name, date, `TODAY`, and what the day holds at its right edge), every meal of that day as ONE wrapping mono run with an eater mark only where the meal is not for everyone, and the day's macros as the phone's own strip — beside a **day pane** that takes the rest and draws one day as a page, capped at a 600 reading measure: the day at 24, a dish at 17, each meal's figures as the muted strip, and the ledger pinned to the foot with its grams spelt out. The week's band pins to the agenda's foot. There is **one** add door and it is in the pane; the day the pane stands on lives in the location (`/week?day=`), so a refresh lands back on it. |
 | **Shop** (`features/shopping`) | the walk stays **one column at the measure** — two phones drive it at once, and a checked row must not move — with a 360 pane beside it holding one row's `from …` breakdown open. The row's two answers are split in one place: the **check box ticks** — its own 31 × 44 target, the row's vertical padding folded in so the box is drawn where the phone draws it — and a tap **anywhere else on the row** points the pane at it, lit. A ticked row keeps the pane as it walks to the basket section. The aisles and the one basket section are the phone's, and below `expanded` the whole row is still the tick. |
 | **Cook** (`features/cook_plan`) | the plan is **one schedule sheet, capped at 1140 and centred**: a row per recipe against seven day columns drawn once — a herb tick with its `×N` on the cook day, a herb-soft band for as long as the batch keeps, a dot on every day it feeds, amber for a day only the freezer reaches — with the covers sentence at the row's end and the split or freezer note in its margin. One set of words (`SessionSpeech`) and one keep-window geometry (`CookTimelineSpec`) serve both forms, and every door the phone's card has is on the row. |
 | **Recipe editor** (`features/recipes`) | at `expanded` the phone's one scroll becomes **two columns under one header**, capped at `ansiWideMeasureWidth` like the page it edits: the header's six sections folded onto two rows — the title over the lines and the filing over the method, then the four small facts as cells, every one the shipped control — over a 420 lines column and a method column that takes the rest. One `SliverCrossAxisGroup`, so the lines are still ONE reorderable list and the step cards are still lazy. The width buys one relationship: a focused step lights the lines its chips point at (the Shop's own selected-row wash) and rings the chip the caret is inside. **Week mode** (`?week=`) draws no header form and no method, so it has no second column: one column at the measure, with the week's own statement in a column at the row's right end. |
@@ -275,12 +276,8 @@ The rules, and the exact status-line clauses, are
 
 ## 8. What this does not answer yet
 
-Four things a desk asks for that no width here answers:
+Three things a desk asks for that no width here answers:
 
-- **Where the Week's band lives.** The phone's week band (total, average,
-  `n of 7 days`) has no wide home; the day pane carries the open day's figures
-  and the agenda carries each day's energy, so the built screen draws none
-  rather than guess a place for it.
 - **A finger on a wide screen.** The 32 px minimum target `AnsiTap` gives a
   glyph control is a *mouse* minimum. The phone's 44 px rule is written down
   and deliberately not applied to those controls, because growing them from

@@ -1358,15 +1358,14 @@
   .bk-grp{margin-bottom:22px;}
   .bk-grp:last-child{margin-bottom:0;}
 
-    /* ---- Wide · week (the day pane, the agenda) ------------------------ */
-    /* The week on a desk is ONE DAY drawn large beside the whole week as a
-       vertical agenda that scrolls. The matrix that stood here fitted seven
-       days into one screenful and paid for it in clipped 11 px lines, a border
-       round every meal and `from Sunday's batch` fifteen times; a desk scrolls,
-       so it does not have to be a calendar. The left pane is a fixed 560 and
-       the agenda takes the rest — at 1180 the agenda gives up the whole
-       difference and absorbs it in slack, not in type. Nothing here draws a
-       drag affordance: week v3 refuses `move`. */
+    /* ---- Wide · week (the agenda, the day pane) ------------------------ */
+    /* The week on a desk is the WEEK at left, small enough to scan, and one
+       day at right, drawn as a page. The first build had it the other way
+       round and paid for it twice: every dish was set at 24 px in the pane and
+       again at 16.5 px beside it, so the screen read as two lists arguing. The
+       agenda is a fixed 340 and the day pane takes the rest — at 1180 the pane
+       gives up the whole difference and absorbs it in reading slack, not in
+       type. Nothing here draws a drag affordance: the week refuses `move`. */
     .wx-note{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);line-height:1.6;max-width:88ch;margin:10px 4px 0;}
     .wx-note b{color:var(--ink);font-weight:500;}
 
@@ -1382,122 +1381,123 @@
     .wx-main .wx-top{margin:0 26px 14px;}
     .wx-body{display:flex;flex:1;min-height:0;border-top:1px solid var(--line);}
 
-    /* ---- the day pane ---- */
-    .wx-pane{flex:0 0 560px;border-right:1px solid var(--line);display:flex;flex-direction:column;padding:26px 30px 22px;min-width:0;}
+    /* ---- the agenda, at LEFT ---- */
+    .wx-agenda{flex:0 0 340px;border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;position:relative;overflow:hidden;}
+    .wx-kick{display:flex;align-items:baseline;gap:12px;flex:none;padding:22px 22px 8px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.2em;color:var(--muted);}
+    .wx-kick i{font-style:normal;font-weight:400;letter-spacing:0;color:#A9B3AB;}
+    .wx-list{flex:1;min-height:0;}
+    /* a day is a heading, one run of names and one strip. The whole row is the
+       door — there is nothing else on it to aim at — and the day already open
+       takes the herb rule the phone gives today */
+    .wx-day{border-top:1px solid var(--line);border-left:3px solid transparent;padding:11px 18px 12px 17px;}
+    .wx-day.on{background:#EDF3EC;border-left-color:var(--herb);}
+    .wx-dh{display:flex;align-items:baseline;gap:9px;}
+    .wx-dh .dn{font-family:'Spectral',serif;font-size:15.5px;font-weight:500;letter-spacing:-.005em;color:var(--ink);}
+    .wx-day.on .wx-dh .dn{color:var(--herb-deep);}
+    .wx-day.void .wx-dh .dn{color:var(--muted);}
+    .wx-dh .dd{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);}
+    .wx-dh .tdy{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.18em;color:var(--herb);}
+    /* what the day HOLDS, at the right edge: the heading counts, because the
+       figures are the strip under it */
+    .wx-dh .kc{margin-left:auto;padding-left:10px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums;}
+    .wx-dh .kc.none{color:#A9B3AB;}
+    /* EVERY meal, in one wrapping run: names whole and never truncated, a faint
+       dot between them, and an eater mark only where the meal is not for
+       everyone. A five-meal day takes three lines here, which is what every
+       name costs and what was chosen over `and 3 more` */
+    .wx-run{margin-top:4px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;line-height:1.55;color:var(--muted);}
+    .wx-run .sep{color:#A9B3AB;padding:0 4px;}
+    .wx-run .em{font-size:8.5px;letter-spacing:.06em;color:#A9B3AB;vertical-align:super;margin-left:1px;}
+    .wx-day.void .wx-run{color:#A9B3AB;font-style:italic;}
+    /* the day's macros in the strip the phone already speaks, so the agenda,
+       the day pane and a recipe row cannot drift into three dialects. A day
+       that resolved nothing draws NO strip and states the refusal instead */
+    .wx-strip{margin-top:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums;}
+    .wx-strip.ref{margin-top:5px;display:flex;align-items:flex-start;gap:8px;font-weight:400;font-size:10.5px;color:var(--muted);white-space:normal;}
+    /* the week's own ledger, pinned to the agenda's foot — the home the phone's
+       band never had on a desk. An empty week draws none of it */
+    .wx-wband{margin-top:auto;flex:none;border-top:1px solid var(--line);padding:12px 22px 16px;}
+    .wx-wband .wx-strip{margin-top:0;font-size:13px;}
+    .wx-wband .wsub{margin-top:4px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);}
+
+    /* ---- the day pane, at RIGHT ---- */
+    .wx-pane{flex:1;min-width:0;display:flex;flex-direction:column;padding:22px 34px 20px 30px;}
     /* drawn only when the day IS today: a permanent strip that sometimes says
        nothing is a strip that says nothing */
-    .wx-eyeb{display:flex;align-items:center;gap:12px;margin-bottom:12px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.2em;color:var(--herb);}
+    .wx-eyeb{display:flex;align-items:center;gap:12px;margin-bottom:10px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.2em;color:var(--herb);}
     .wx-eyeb::after{content:"";flex:1;height:1px;background:var(--line);}
-    .wx-dhead{display:flex;align-items:baseline;gap:14px;}
-    .wx-dn{font-family:'Spectral',serif;font-size:38px;font-weight:500;letter-spacing:-.015em;line-height:1.05;}
+    .wx-dhead{display:flex;align-items:baseline;gap:12px;}
+    .wx-dn{font-family:'Spectral',serif;font-size:24px;font-weight:500;letter-spacing:-.01em;line-height:1.1;}
     .wx-dd{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
     /* the meals scroll, the ledger does not: a five-meal day is taller than an
-       iPad's pane, and the thing that must not scroll away is the total */
-    .wx-scroll{flex:1;min-height:0;overflow:hidden;padding-top:20px;}
-    .wx-meal{border-top:1px solid var(--line);margin-top:22px;padding-top:20px;}
-    .wx-scroll>.wx-meal:first-child{margin-top:0;}
+       iPad's pane, and the thing that must not scroll away is the total. Both
+       are capped at a reading measure — the pane takes the window's width, but
+       a dish is a line of reading and an 800 px line of reading is not one */
+    .wx-scroll{flex:1;min-height:0;overflow:hidden;padding-top:12px;max-width:600px;}
+    .wx-meal{border-top:1px solid var(--line);margin-top:10px;padding-top:10px;}
+    .wx-scroll>.wx-meal:first-child{margin-top:0;border-top:none;}
     .wx-mhead{display:flex;align-items:center;gap:10px;}
     .wx-slab{font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);}
     .wx-mhead .grow{flex:1;}
     .wx-mhead .av{width:19px;height:19px;font-size:9px;border-color:var(--paper);}
-    /* the dish at reading size, and never truncated: clarity over compactness */
-    .wx-dish{font-family:'Spectral',serif;font-size:24px;font-weight:500;line-height:1.22;margin-top:4px;}
-    .wx-pane .cookmark{margin-top:10px;font-size:10.5px;white-space:normal;}
+    /* the plan slot's own size, and never truncated. A snack is visibly not a
+       recipe: same size, no emphasis */
+    .wx-dish{font-family:'Spectral',serif;font-size:17px;font-weight:500;line-height:1.3;margin-top:2px;}
+    .wx-dish.snack{font-weight:400;color:var(--muted);}
+    .wx-pane .cookmark{margin-top:6px;font-size:10.5px;white-space:normal;}
     .wx-pane .cookmark .mini-fresh{width:26px;height:5px;}
     .wx-pane .portchip{font-size:9px;}
-    /* ONE meal's macros, as served to the people eating it — the owner's own
-       addition on top of the chosen variant. Spelt out, like the ledger */
-    .wx-mmac{margin-top:9px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted);line-height:1.5;}
-    .wx-mmac.ref{display:flex;align-items:flex-start;gap:8px;}
-    .wx-padd{display:flex;align-items:center;gap:8px;margin-top:22px;padding:13px 0;border-top:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--herb);}
+    /* ONE meal's macros, as served to the people eating it — the same strip,
+       muted, so the screen speaks one macro grammar */
+    .wx-mstrip{margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;}
+    .wx-mstrip.ref{display:flex;align-items:flex-start;gap:8px;white-space:normal;}
+    .wx-padd{display:flex;align-items:center;gap:8px;margin-top:12px;padding:11px 0;border-top:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--herb);max-width:600px;}
     .wx-padd.none{color:var(--muted);}
     .wx-padd.none .plus{color:var(--muted);}
     /* the day's ledger, pinned to the foot: energy and the mandatory
-       denominator, then the grams — spelt out, because the pane has the room a
-       phone's glyph strip never had */
-    .wx-ledger{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);}
+       denominator, then the grams — the ONE line on this screen that spells its
+       figures out, because it is the one place with the room to say them */
+    .wx-ledger{margin-top:auto;padding-top:12px;border-top:1px solid var(--line);max-width:600px;}
     .wx-lkc{display:flex;align-items:baseline;gap:10px;}
-    .wx-lkc b{font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:500;letter-spacing:-.01em;color:var(--ink);}
-    .wx-lkc span{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);}
+    .wx-lkc b{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:500;letter-spacing:-.01em;color:var(--ink);}
+    .wx-lkc span{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--muted);}
     .wx-lkc span.part{color:var(--aging);}
-    .wx-lgram{margin-top:7px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
+    .wx-lgram{margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted);}
     .wx-lnone{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);}
-
-    /* ---- the agenda ---- */
-    .wx-agenda{flex:1;min-width:0;display:flex;flex-direction:column;position:relative;overflow:hidden;}
-    .wx-kick{display:flex;align-items:baseline;gap:12px;flex:none;padding:26px 26px 10px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.2em;color:var(--muted);}
-    .wx-kick i{font-style:normal;font-weight:400;letter-spacing:0;color:#A9B3AB;}
-    .wx-list{flex:1;min-height:0;overflow:hidden;}
-    /* a day is a heading, a number line, its meals and its door. The lit day —
-       the one open at left — takes the herb rule the phone gives today */
-    .wx-day{border-top:1px solid var(--line);border-left:3px solid transparent;padding:11px 26px 13px 23px;}
-    .wx-day.on{background:#EDF3EC;border-left-color:var(--herb);}
-    .wx-dh{display:flex;align-items:baseline;gap:11px;}
-    .wx-dh .dn{font-family:'Spectral',serif;font-size:20px;font-weight:500;letter-spacing:-.005em;color:var(--ink);}
-    .wx-day.on .wx-dh .dn{color:var(--herb-deep);}
-    .wx-day.void .wx-dh .dn{color:var(--muted);}
-    .wx-dh .dd{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);}
-    .wx-dh .tdy{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.18em;color:var(--herb);}
-    /* one quiet mark, no caption: it says the day opens at left. The day
-       already open draws none — there is nowhere to go */
-    .wx-dh .go{margin-left:auto;flex:none;display:inline-flex;color:var(--muted);}
-    .wx-dh .go svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;}
-    .wx-dkc{margin-top:6px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:500;color:var(--ink);}
-    .wx-dkc span{font-weight:400;color:var(--muted);}
-    .wx-dkc span.sep{color:#A9B3AB;}
-    .wx-dkc.none{font-weight:400;color:#A9B3AB;}
-    .wx-dkc.ref{display:flex;align-items:flex-start;gap:8px;font-weight:400;color:var(--muted);}
-    .wx-asl{margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:500;letter-spacing:.17em;text-transform:uppercase;color:var(--muted);line-height:1.1;}
-    /* one meal, one line: the dish, an eater mark ONLY where the meal is not
-       for everyone, and the `−`. No cook marker, no batch tick, no figure —
-       those are the pane's, and saying them here is what made the matrix
-       unreadable. Wrapping is allowed; truncation never happens */
-    .wx-line{display:flex;align-items:flex-start;gap:12px;margin-top:4px;}
-    .wx-line .nm{flex:1;min-width:0;font-family:'Spectral',serif;font-size:16.5px;font-weight:400;line-height:1.4;}
-    .wx-line .em{flex:none;padding-top:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;color:#8A968C;}
-    .wx-line .rmv{padding-top:4px;font-size:14px;}
-    .wx-aadd{display:inline-flex;align-items:center;gap:6px;margin-top:11px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.03em;color:var(--herb);}
-    .wx-aadd.none{color:var(--muted);}
-    .wx-aadd.none .plus{color:var(--muted);}
-    /* the fold, drawn: the week is taller than the pane, and the thumb says so
-       rather than the frame pretending the week fits */
-    .wx-thumb{position:absolute;right:5px;width:3px;border-radius:2px;background:#D8E0D9;}
 
     /* what the last copy left behind: the phone's own state box, running the
        full width under the lens and above both panes. A week that dropped
        nothing draws none */
     .wx-state{margin:0 26px 14px;}
-    /* the desk is a WINDOW, and the week is taller than it: the frame is drawn
-       at a real height so the fold is a fact rather than a claim, and the agenda
-       clips at it with its thumb drawn beside */
-    .wx-desk .dscreen{height:786px;min-height:0;}
+    /* the desk is a WINDOW, and the frame is drawn at a real height. The
+       compact agenda is the first version of this screen whose seven days fit
+       one without a fold — which is what the small voice bought */
+    .wx-desk .dscreen{height:870px;min-height:0;}
     /* the copy band costs the panes its own height, and takes it from the
        window rather than from the day pane's add door */
-    .wx-band .dscreen{height:846px;}
-    /* an empty week is seven headings and their doors, and the frame draws
-       ALL seven: a frame that folded one away would be arguing the opposite of
-       what it is here to say */
-    .wx-short .dscreen{height:892px;}
-    .wx-short .wx-day{padding-top:9px;padding-bottom:11px;}
-    .wx-short .wx-aadd{margin-top:8px;}
+    .wx-band .dscreen{height:960px;}
+    /* an empty week is seven headings and a pane that says the day holds
+       nothing; there is no band under it at all */
+    .wx-short .dscreen{height:700px;}
 
     /* iPad landscape at 1180, drawn at the same scale as the 1440 frames — so
        the desk is the narrower window's share of the frame, the rail keeps its
-       icons and loses its words, and the AGENDA gives up all 136 px while the
-       day pane holds its 560 unchanged */
-    .wx-ipad{max-width:918px;}
+       icons and loses its words, and the DAY PANE gives up all 260 px while
+       the agenda holds its 340 unchanged */
+    .frame.wide.wx-ipad{width:918px;}
     .wx-ipad .rail{flex:0 0 64px;padding:14px 8px 12px;}
     .wx-ipad .rail .wm{text-align:center;padding:2px 0 12px;}
     .wx-ipad .rail .ri{justify-content:center;gap:0;padding:9px 0;}
     .wx-ipad .rail .rl{display:none;}
-    .wx-ipad .wx-day{padding-left:19px;padding-right:20px;}
-    .wx-ipad .wx-kick{padding-left:22px;padding-right:20px;}
-    /* the two panes keep their REAL proportion of the narrower window — 560
-       against 556, all but even — so what the frame shows is the agenda
-       spending the whole 136 px and the pane spending none. The rail is the
+    .wx-ipad .wx-pane{padding:20px 24px 18px 24px;}
+    /* the two panes keep their REAL proportion of the narrower window — the
+       agenda's 340 against a pane of 456 — so what the frame shows is the pane
+       spending the whole 260 px and the agenda spending none. The rail is the
        one thing not to scale: it keeps the board's own 64 px so its icons stay
        legible at this size. */
-    .wx-ipad .wx-pane{flex:0 0 430px;padding:22px 24px 20px;}
+    .wx-ipad .wx-agenda{flex:0 0 262px;}
+    .wx-ipad .wx-day{padding-left:13px;padding-right:14px;}
+    .wx-ipad .wx-kick,.wx-ipad .wx-wband{padding-left:17px;padding-right:17px;}
 
     /* ---- Wide · recipe page -------------------------------------------
        A recipe is a page, not a dashboard: the width buys one thing —

@@ -6,12 +6,13 @@
 /// recipe line's dense grammar ([MacroStrip]) — a week reads in the same
 /// words an ingredient does.
 ///
-/// The **wide** Week says the same things in words instead of glyphs, because
-/// it has the room: [DayEnergyLine] under each agenda heading, [DayLedger] at
-/// the foot of the day pane, and [MealMacroLine] under one dish. Same four
-/// states in the same order, the same denominators and the same refusals — the
-/// figures are spelt out (`protein 255 g`) rather than compressed (`255P`),
-/// which is what a phone strip is compressed *for*.
+/// The **wide** Week draws the same four states again, in the same order and
+/// with the same denominators and refusals: [MealMacroLine] under one dish,
+/// [DayEnergyLine] where a day states its energy in words, [DayLedger] pinned
+/// to the day pane's foot, and [WeekFootBand] at the agenda's. Only the
+/// **ledger** spells its figures out (`protein 255 g` rather than `255P`) — it
+/// is the one place with the room to say them and it says them once, while
+/// every line above it is the strip the phone already speaks.
 ///
 /// The rule, in the order it is applied:
 ///
@@ -88,6 +89,25 @@ String denominatorLine(MealSetMacros macros, {required String scope}) {
   return [mealDenominator(macros), if (share != null) share].join(' · ');
 }
 
+/// `no meals`, or `no meals for Ada` under a lens — the Week's one way of
+/// saying an absence, wherever it says it.
+///
+/// [scope] is `Everyone` or the member's display name. An absence is never
+/// `0 kcal` and never a blank: a day holding nothing has to say so, and under
+/// a lens it has to say whose nothing it is.
+String noMealsLine(String scope) =>
+    scope == 'Everyone' ? 'no meals' : 'no meals for $scope';
+
+/// What a day HOLDS, in one phrase — `3 meals`, `2 of 3 meals`, or the
+/// absence.
+///
+/// The wide agenda prints it at the right edge of a day's heading, where the
+/// figures themselves are the strip underneath. It is [mealDenominator] and
+/// [noMealsLine] and nothing else, so a heading and a total cannot disagree
+/// about how many meals a day has.
+String dayCountLabel(MealSetMacros macros, {required String scope}) =>
+    macros.isEmpty ? noMealsLine(scope) : mealDenominator(macros);
+
 /// Why one meal was left out, in the shared vocabulary where there is one.
 String exclusionNote(ExcludedMeal meal) => switch (meal.reason) {
   // The picker row's, the confirm card's and the recipe panel's exact words.
@@ -118,14 +138,29 @@ String excludedLine(MealSetMacros macros) =>
 /// in the total stated it ([Macros.fiber]); an absent one prints nothing at
 /// all, never a zero (invariant 3).
 class MacroStrip extends StatelessWidget {
-  const MacroStrip({required this.macros, this.size = 11, super.key});
+  const MacroStrip({
+    required this.macros,
+    this.size = 11,
+    this.color = AnsiColors.ink,
+    this.weight = FontWeight.w500,
+    super.key,
+  });
 
   final Macros macros;
   final double size;
 
+  /// The line's ink. Muted is the wide day pane's voice, where one meal's
+  /// figures sit under a dish that is the thing being read; ink is a total's,
+  /// wherever a total closes a day, a week or a card.
+  final Color color;
+
+  /// The line's weight — the muted voice drops to [FontWeight.w400] with the
+  /// colour, so a per-meal strip does not read as another total.
+  final FontWeight weight;
+
   @override
   Widget build(BuildContext context) {
-    final style = ansiMono(size: size, weight: FontWeight.w500);
+    final style = ansiMono(size: size, color: color, weight: weight);
     // A macro number is never clipped or ellipsised — a truncated `1 234` is
     // a wrong number, not a shortened one (invariant 3). So when the widest
     // honest total outgrows its band the whole line scales down together,
@@ -196,7 +231,7 @@ class DayMacroLine extends StatelessWidget {
     // 1 · an absence is an absence, never a zero.
     if (macros.isEmpty) {
       return Text(
-        scope == 'Everyone' ? 'no meals' : 'no meals for $scope',
+        noMealsLine(scope),
         style: ansiMono(size: 11, color: AnsiColors.muted),
       );
     }
@@ -276,12 +311,7 @@ class DayEnergyLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final muted = ansiMono(size: size - 1.5, color: AnsiColors.muted);
     // 1 · an absence is an absence, never a zero.
-    if (macros.isEmpty) {
-      return Text(
-        scope == 'Everyone' ? 'no meals' : 'no meals for $scope',
-        style: muted,
-      );
-    }
+    if (macros.isEmpty) return Text(noMealsLine(scope), style: muted);
     // 2 · nothing resolved: no number at all, and the reasons in full — the
     // wide pane has the width the phone's card had to borrow from.
     if (macros.isRefused) {
@@ -378,7 +408,10 @@ class DayLedger extends StatelessWidget {
 ///   is not drawn, because there is nothing true to write on it.
 /// * **refused** — the badge and the reason, in [exclusionNote]'s exact words
 ///   (`1 stub line`, `no eaters`, `stub ingredient`), and never a number.
-/// * **counted** — `620 kcal · protein 60 g · carbs 80 g · fat 40 g`.
+/// * **counted** — the [MacroStrip], muted: `620 🔥 · 60P 80C 40F`.
+///   The dense grammar rather than the spelt-out grams, because the pane draws
+///   one of these under every dish and the words are then said five times on a
+///   Monday; the grams stay in the day's pinned ledger, which says them once.
 class MealMacroLine extends StatelessWidget {
   const MealMacroLine({required this.macros, super.key});
 
@@ -411,9 +444,10 @@ class MealMacroLine extends StatelessWidget {
         ],
       );
     }
-    return Text(
-      '${spelledEnergy(total)} · ${spelledGrams(total)}',
-      style: ansiMono(size: 11.5, color: AnsiColors.muted),
+    return MacroStrip(
+      macros: total,
+      color: AnsiColors.muted,
+      weight: FontWeight.w400,
     );
   }
 }
@@ -520,6 +554,85 @@ class WeekMacroBand extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// `avg 2 915 · 6 of 7 days` — the week's figures in one sub-line.
+///
+/// Both halves state a denominator, which is the whole point: an average over
+/// the days that counted is not an average over seven, and a week that plans
+/// four days did not eat three days' less. The average is absent — and prints
+/// nothing rather than a zero — when nothing counted.
+String weekAverageLine(MealSetMacros macros) {
+  final average = macros.perDayAverage;
+  return [
+    if (average != null) 'avg ${formatMacroNumber(average.kcal)}',
+    '${macros.daysContributing} of 7 days',
+  ].join(' · ');
+}
+
+/// The week's own ledger, pinned to the foot of the wide agenda: the total as
+/// a [MacroStrip], and [weekAverageLine] under it.
+///
+/// It is [WeekMacroBand]'s content in the wide form's voice. The phone's band
+/// is a bordered card at the end of a scroll with a paragraph explaining what
+/// the biggest number on the screen is not; here the days are right above it
+/// and the strip is the same line each of them draws, so the sum reads as
+/// their sum and needs no card to say so.
+///
+/// **An empty week draws nothing at all** — the band's own empty rule, minus
+/// the sentence. Seven days each already saying `no meals` do not need an
+/// eighth absence under them, and a foot that is sometimes blank is how this
+/// pane says the week is blank.
+class WeekFootBand extends StatelessWidget {
+  const WeekFootBand({required this.macros, required this.scope, super.key});
+
+  final MealSetMacros macros;
+
+  /// Whose numbers these are — `Everyone`, or a member's display name.
+  final String scope;
+
+  @override
+  Widget build(BuildContext context) {
+    if (macros.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.fromLTRB(22, 12, 22, 16),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: AnsiColors.line)),
+      ),
+      child: macros.isRefused
+          // Nothing resolved: no number, and the reasons named — the refusal
+          // every other total on this screen makes, in the same words.
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const IncompleteBadge(),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'no total — ${excludedLine(macros)}',
+                    style: ansiMono(size: 10.5, color: AnsiColors.muted),
+                  ),
+                ),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                MacroStrip(macros: macros.total!, size: 13),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    [
+                      weekAverageLine(macros),
+                      if (scope != 'Everyone') scope,
+                    ].join(' · '),
+                    style: ansiMono(size: 10.5, color: AnsiColors.muted),
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }

@@ -1,6 +1,7 @@
-// The Week at a wide surface: today drawn large in the day pane, the whole week
-// as a scrolling agenda beside it, one macro line per meal, and the batch story
-// staying out of the right-hand pane.
+// The Week at a wide surface: the week as a compact agenda at LEFT, one day
+// drawn as a page at right, every meal of a day in one run, one macro strip per
+// day, the week's band at the agenda's foot — and the batch story staying out
+// of the agenda.
 //
 // The window is set with `tester.view.physicalSize`, not `setSurfaceSize`:
 // `AnsiLayout.of` reads `MediaQuery.sizeOf`, which follows the view, while
@@ -22,6 +23,7 @@ import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/presentation/week_format.dart';
+import 'package:ansi/features/planning/presentation/week_macro_widgets.dart';
 import 'package:ansi/features/planning/presentation/week_view.dart';
 import 'package:ansi/features/planning/presentation/week_wide.dart';
 import 'package:ansi/features/planning/presentation/week_widgets.dart';
@@ -209,33 +211,39 @@ GoRouter _router(String initial, void Function(GoRouter router)? expose) {
   return router;
 }
 
-/// The day pane's heading — the one 38 px serif on the screen.
+/// The day pane's heading — the one 24 px serif on the screen.
 Finder _paneHeading(int dayOfWeek) => find.byWidgetPredicate(
   (w) =>
       w is Text &&
       w.data == _shape.labelFull(dayOfWeek) &&
-      w.style?.fontSize == 38,
+      w.style?.fontSize == 24,
   description: 'the day pane’s heading for day $dayOfWeek',
 );
 
-/// One agenda heading — 20 px, against the pane's 38.
+/// One agenda heading — 15.5 px, against the pane's 24.
 Finder _agendaHeading(int dayOfWeek) => find.byWidgetPredicate(
   (w) =>
       w is Text &&
       w.data == _shape.labelFull(dayOfWeek) &&
-      w.style?.fontSize == 20,
+      w.style?.fontSize == 15.5,
   description: 'the agenda heading for day $dayOfWeek',
 );
 
-/// The agenda's own `›` marks, told apart from the switcher's 18 px chevron in
-/// the header by their size.
-Finder _agendaChevrons() => find.byWidgetPredicate(
-  (w) => w is Icon && w.icon == FLucideIcons.chevronRight && w.size == 15,
-  description: 'the agenda’s › marks',
+/// One day's meals as the agenda draws them: ONE run, spoken.
+Finder _run(String text) => find.byWidgetPredicate(
+  (w) => w is Text && w.textSpan != null && spokenText(w.textSpan!) == text,
+  description: 'the agenda run "$text"',
 );
 
-/// `600 kcal · protein 60 g · carbs 80 g · fat 40 g` — one meal's served line.
-const _mealLine = '600 kcal · protein 60 g · carbs 80 g · fat 40 g';
+/// The agenda's own pane, the 340 column the whole week is drawn in.
+Finder _agendaColumn() => find.byWidgetPredicate(
+  (w) => w is SizedBox && w.width == 340,
+  description: 'the 340 agenda column',
+);
+
+/// `600 kcal · 60P 80C 40F` — one meal served to two eaters, in the strip both
+/// panes now speak. It is a day's line too, on the day that holds one meal.
+const _mealStrip = '600 kcal · 60P 80C 40F';
 
 void main() {
   group('slot groups', () {
@@ -270,6 +278,22 @@ void main() {
     });
   });
 
+  testWidgets('the agenda is the left pane, at 340, with the day beside it', (
+    tester,
+  ) async {
+    await _pumpWeek(tester, week: _week());
+
+    // The 340 column is the FIRST child of the row, and the day pane takes
+    // whatever is left of the window — the swap the owner asked for.
+    final agenda = tester.getRect(_agendaColumn());
+    expect(agenda.width, 340);
+    expect(tester.getTopLeft(find.text('THE WEEK')).dx, lessThan(agenda.right));
+    expect(
+      tester.getTopLeft(_paneHeading(_todayOffset)).dx,
+      greaterThanOrEqualTo(agenda.right),
+    );
+  });
+
   testWidgets('the day pane opens on TODAY, and the agenda lists the week', (
     tester,
   ) async {
@@ -289,37 +313,76 @@ void main() {
     }
     expect(find.text('THE WEEK'), findsOneWidget);
     expect(find.text(formatWeekSpan(_weekStart)), findsOneWidget);
-
-    // The add door on every day plus the pane's own: two days have meals, five
-    // do not, and the pane is on a day that does.
-    expect(find.text('add a meal'), findsNWidgets(3));
-    expect(find.text('nothing planned'), findsNWidgets(5));
   });
 
-  testWidgets('the agenda heading’s › moves that day into the pane', (
+  testWidgets('the agenda names every meal of a day in ONE run', (
     tester,
   ) async {
     await _pumpWeek(tester, week: _week());
 
-    // The day already open draws no `›`; the other six do.
-    expect(_agendaChevrons(), findsNWidgets(6));
+    // Today's two meals are one line, whole names, a faint `·` between them —
+    // not two rows, and nothing shortened.
+    expect(
+      _run('Buttermilk Pancakes · Weeknight Chicken Curry'),
+      findsOneWidget,
+    );
+    // The day beside it holds one meal and says exactly that one.
+    expect(_run('Weeknight Chicken Curry'), findsOneWidget);
+    // A day that holds nothing says so, and never `0 kcal`.
+    expect(find.text('nothing planned'), findsNWidgets(5));
+  });
+
+  testWidgets(
+    'a meal that is not for everyone carries its initial in the run',
+    (tester) async {
+      await _pumpWeek(
+        tester,
+        week: WeekPlan(
+          id: 'w',
+          weekStart: _weekStart,
+          entries: [
+            _meal(
+              'e1',
+              _todayOffset,
+              'Breakfast',
+              title: 'Buttermilk Pancakes',
+            ),
+            _meal('e2', _todayOffset, 'Dinner', eaters: const ['m1']),
+          ],
+        ),
+      );
+
+      // The mark rides on the name it belongs to, and only on that one: the
+      // pancakes both eat carry nothing.
+      expect(
+        _run('Buttermilk Pancakes · Weeknight Chicken CurryA'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('a tap anywhere on a day moves it into the pane', (tester) async {
+    await _pumpWeek(tester, week: _week());
 
     await tester.tap(_agendaHeading(_otherDay));
     await tester.pumpAndSettle();
 
-    // That day is now the one drawn large, and the pane's TODAY eyebrow is
+    // That day is now the one drawn as a page, and the pane's TODAY eyebrow is
     // gone with it — the pane is not on today any more, and says so by not
     // saying so.
     expect(_paneHeading(_otherDay), findsOneWidget);
     expect(_paneHeading(_todayOffset), findsNothing);
     expect(find.text('TODAY'), findsOneWidget);
-    // Still six: the newly-open day gave its `›` up and today took one.
-    expect(_agendaChevrons(), findsNWidgets(6));
+
+    // The run is a target too, not only the heading: the whole day is the door.
+    await tester.tap(_run('Buttermilk Pancakes · Weeknight Chicken Curry'));
+    await tester.pumpAndSettle();
+    expect(_paneHeading(_todayOffset), findsOneWidget);
   });
 
   testWidgets('the day the pane stands on is in the URL, and comes back from '
       'it', (tester) async {
-    // What the owner asked for: refresh on a day and land on that day. The `›`
+    // What the owner asked for: refresh on a day and land on that day. A tap
     // restates the location; a cold start at that location opens the same pane.
     late GoRouter router;
     await _pumpWeek(tester, week: _week(), expose: (r) => router = r);
@@ -336,7 +399,7 @@ void main() {
     // week rather than walking the days that were read.
     expect(router.canPop(), isFalse);
 
-    // Cold, at exactly that location: the same day is the one drawn large.
+    // Cold, at exactly that location: the same day is the one drawn as a page.
     await _pumpWeek(
       tester,
       week: _week(),
@@ -357,20 +420,47 @@ void main() {
     expect(_paneHeading(_todayOffset), findsOneWidget);
   });
 
-  testWidgets('every meal in the pane carries its own served macros', (
+  testWidgets('there is ONE add door, and it is in the day pane', (
     tester,
   ) async {
     await _pumpWeek(tester, week: _week());
 
+    // The owner's call: the agenda has nowhere honest for seven doors, so it
+    // has none at all and the pane keeps the one.
+    expect(find.text('add a meal'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('add a meal')).dx,
+      greaterThanOrEqualTo(tester.getRect(_agendaColumn()).right),
+    );
+    // And none of the agenda's furniture came with it: the slot label is the
+    // pane's, and so is every `−` — the run carries none.
+    expect(find.text('BREAKFAST'), findsOneWidget);
+    expect(find.byType(RemoveTarget), findsNWidgets(2));
+    for (final remove in tester.widgetList(find.byType(RemoveTarget))) {
+      expect(
+        tester.getTopLeft(find.byWidget(remove)).dx,
+        greaterThanOrEqualTo(tester.getRect(_agendaColumn()).right),
+      );
+    }
+  });
+
+  testWidgets('every meal in the pane carries its own served macros, and every '
+      'day its own strip', (tester) async {
+    await _pumpWeek(tester, week: _week());
+
     // Today's two meals: the recipe's per-serving figure MULTIPLIED by the
-    // portions planned, spelt out in words rather than the phone's glyphs.
-    expect(find.text(_mealLine), findsNWidgets(2));
-    // The ledger under them is the sum of exactly those two lines, with its
-    // mandatory denominator — the parts and the whole read one function, so
-    // they cannot disagree. Drawn twice: the pane's foot and today's agenda
-    // line.
-    expect(macroText('1 200 kcal · 2 meals'), findsNWidgets(2));
+    // portions planned, in the strip the phone already speaks — twice in the
+    // pane, and once more as the agenda's line for the day that holds one meal.
+    expect(macroText(_mealStrip), findsNWidgets(3));
+    // Today's own line is the sum of exactly those two meals, drawn once, in
+    // the agenda — the parts and the whole read one function, so they cannot
+    // disagree.
+    expect(macroText('1 200 kcal · 120P 160C 80F'), findsOneWidget);
+    // The ledger under the pane keeps the words, with its mandatory
+    // denominator: it is the one place with the room to spell the grams out.
+    expect(macroText('1 200 kcal · 2 meals'), findsOneWidget);
     expect(find.text('protein 120 g · carbs 160 g · fat 80 g'), findsOneWidget);
+    expect(find.textContaining('carbs'), findsOneWidget);
   });
 
   testWidgets('a meal whose recipe is incomplete refuses instead of printing '
@@ -384,30 +474,47 @@ void main() {
     // Per meal: the badge and the reason in the shared vocabulary — the exact
     // words the recipe panel and the picker row refuse in — and no figure.
     expect(find.text('no total — 1 stub line'), findsNWidgets(2));
-    // The day refuses too, and NAMES what it left out rather than counting it:
-    // once in the pane's ledger, once on today's agenda line.
+    // A refused day draws NO strip, on either side, and the week's band none
+    // either — there is no number to draw.
+    expect(find.byType(MacroStrip), findsNothing);
+    // It NAMES what it left out rather than counting it: the pane's ledger,
+    // today's agenda line and the week's band.
     expect(
       find.textContaining('Buttermilk Pancakes · 1 stub line'),
-      findsNWidgets(2),
+      findsNWidgets(3),
     );
     expect(macroTextContaining('kcal'), findsNothing);
     expect(find.textContaining('kcal'), findsNothing);
     expect(find.textContaining('carbs'), findsNothing);
   });
 
-  testWidgets('each agenda day states its energy and its denominator', (
+  testWidgets('each agenda day states what it holds at its heading', (
     tester,
   ) async {
     await _pumpWeek(tester, week: _week());
 
-    // One plain line per day that has meals, under its heading.
-    expect(macroText('600 kcal · 1 meal'), findsOneWidget);
+    // The count is the heading's, because the figures are the strip under it.
+    expect(find.text('2 meals'), findsOneWidget);
+    expect(find.text('1 meal'), findsOneWidget);
     // The five empty days say so, and not one of them says nought.
     expect(find.text('no meals'), findsNWidgets(5));
-    expect(macroText('0 kcal \u00b7 0 meals'), findsNothing);
-    // The grams stay in the pane: two meal lines and one ledger, and nothing
-    // on the right.
-    expect(find.textContaining('carbs'), findsNWidgets(3));
+    expect(macroText('0 kcal · 0 meals'), findsNothing);
+  });
+
+  testWidgets('the week band is drawn at the agenda’s foot', (tester) async {
+    await _pumpWeek(tester, week: _week());
+
+    final band = tester.getRect(find.byType(WeekFootBand));
+    final agenda = tester.getRect(_agendaColumn());
+    // In the agenda's column, at its bottom — under the seventh day, not
+    // beside the day pane.
+    expect(band.left, agenda.left);
+    expect(band.right, agenda.right);
+    expect(band.bottom, agenda.bottom);
+    // The week's total in the days' own strip, and the average with both of
+    // its denominators under it.
+    expect(macroText('1 800 kcal · 180P 240C 120F'), findsOneWidget);
+    expect(find.text('avg 900 · 2 of 7 days'), findsOneWidget);
   });
 
   testWidgets('the batch story stays out of the agenda', (tester) async {
@@ -417,40 +524,48 @@ void main() {
     // of 4` on the cook day, `from <day>'s batch` on the day it feeds.
     expect(find.textContaining('batch'), findsOneWidget);
     // And the agenda says nothing about it: no marker, no fresh→gone bar, on
-    // any of the seven lines. That is the trade the owner took — the
+    // any of the seven days. That is the trade the owner took — the
     // relationship moved to the pane rather than being repeated seven times.
     expect(find.byType(MiniFreshBar), findsOneWidget);
   });
 
-  testWidgets('an empty week draws seven headings, their doors and the copy '
+  testWidgets('an empty week draws seven headings, one door and the copy '
       'chip', (tester) async {
     await _pumpWeek(tester, last: _week());
 
     for (var d = 0; d < 7; d++) {
       expect(_agendaHeading(d), findsOneWidget);
     }
-    // Seven agenda doors and the pane's own, all saying the same thing about a
-    // day that holds nothing.
+    // Seven agenda days saying a day holds nothing, and the pane's one door
+    // saying it of the day it is on.
     expect(find.text('nothing planned'), findsNWidgets(8));
     expect(find.text('add a meal'), findsNothing);
     expect(find.text('copy last week'), findsOneWidget);
-    // The phone's primary is not drawn twice: the agenda already has the doors.
+    // The phone's primary is not drawn twice: the pane already has the door.
     expect(find.text('Add the first meal'), findsNothing);
-    // Eight absences — seven agenda lines and the pane's ledger — and no zero.
+    // Eight absences — seven headings and the pane's ledger — and no zero.
     expect(find.text('no meals'), findsNWidgets(8));
     expect(macroTextContaining('kcal'), findsNothing);
+    // The band draws NOTHING on a week with nothing in it: seven days already
+    // said so, and an eighth absence under them says nothing new.
+    expect(tester.getSize(find.byType(WeekFootBand)).height, 0);
   });
 
   testWidgets('an iPad in landscape holds the same two panes', (tester) async {
-    // 1180 × 820: the day pane keeps its 560 and the agenda gives up the 136,
-    // absorbing it in slack rather than in type — and nothing overflows (the
-    // harness fails the test if anything does).
+    // 1180 × 820: the agenda keeps its 340 and the day pane gives up the 260,
+    // absorbing it in reading slack rather than in type — and nothing
+    // overflows (the harness fails the test if anything does).
     await _pumpWeek(tester, week: _week(), window: const Size(1180, 820));
 
+    expect(tester.getRect(_agendaColumn()).width, 340);
     expect(_paneHeading(_todayOffset), findsOneWidget);
     expect(_agendaHeading(_otherDay), findsOneWidget);
-    expect(find.text(_mealLine), findsNWidgets(2));
-    expect(macroText('1 200 kcal · 2 meals'), findsNWidgets(2));
+    expect(
+      _run('Buttermilk Pancakes · Weeknight Chicken Curry'),
+      findsOneWidget,
+    );
+    expect(macroText(_mealStrip), findsNWidgets(3));
+    expect(macroText('1 200 kcal · 2 meals'), findsOneWidget);
   });
 
   testWidgets('a narrower window still gets the phone list, untouched', (
@@ -460,10 +575,10 @@ void main() {
 
     // The phone's own day card: its dense glyph strip whole, its `nothing
     // planned` door, and not one of the wide form's words or marks.
-    expect(macroText('600 kcal · 60P 80C 40F'), findsOneWidget);
+    expect(macroText('600 kcal · 60P 80C 40F'), findsWidgets);
     expect(find.text('nothing planned'), findsWidgets);
     expect(find.text('THE WEEK'), findsNothing);
     expect(find.textContaining('carbs'), findsNothing);
-    expect(_agendaChevrons(), findsNothing);
+    expect(find.byType(WeekFootBand), findsNothing);
   });
 }
