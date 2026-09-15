@@ -80,7 +80,6 @@ class _MealEditorSheet extends ConsumerWidget {
       subtitle:
           '${ref.watch(weekShapeProvider).labelFull(entry.dayOfWeek)} · '
           '${entry.mealSlot.toLowerCase()}',
-      titleSize: 22,
       centerTitle: false,
       dismiss: AnsiSheetDismiss.close,
       topPadding: 16,

@@ -438,7 +438,10 @@ class _Name extends StatelessWidget {
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
-          child: Text(title, style: ansiSerif(size: 19).copyWith(height: 1.2)),
+          child: Text(
+            title,
+            style: ansiSerif(size: AnsiType.row).copyWith(height: 1.2),
+          ),
         ),
         Padding(
           padding: const EdgeInsets.only(top: 7),

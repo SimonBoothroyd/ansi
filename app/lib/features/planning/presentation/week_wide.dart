@@ -355,7 +355,10 @@ class _DayPane extends ConsumerWidget {
               Flexible(
                 child: Text(
                   ref.watch(weekShapeProvider).labelFull(dayOfWeek),
-                  style: ansiSerif(size: 24, weight: FontWeight.w500),
+                  style: ansiSerif(
+                    size: AnsiType.title,
+                    weight: FontWeight.w500,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -531,16 +534,16 @@ class _PaneMeal extends ConsumerWidget {
                   // No truncation anywhere in this pane: a name that needs two
                   // lines takes two. `Clarity over compactness wins.`
                   style: entry.title == null
-                      ? ansiSerif(size: 17, color: AnsiColors.muted)
+                      ? ansiSerif(size: AnsiType.row, color: AnsiColors.muted)
                       // A snack is VISIBLY not a recipe (A-D5) — the dish's
                       // emphasis is what says "there is a page behind this".
                       : snack
                       ? ansiSerif(
-                          size: 17,
+                          size: AnsiType.row,
                           weight: FontWeight.w400,
                           color: AnsiColors.muted,
                         )
-                      : ansiSerif(size: 17, weight: FontWeight.w500),
+                      : ansiSerif(size: AnsiType.row, weight: FontWeight.w500),
                 ),
               ),
             ),
@@ -726,7 +729,7 @@ class _AgendaDay extends ConsumerWidget {
                 Text(
                   shape.labelFull(dayOfWeek),
                   style: ansiSerif(
-                    size: 15.5,
+                    size: AnsiType.small,
                     weight: FontWeight.w500,
                     color: selected
                         ? AnsiColors.herbDeep

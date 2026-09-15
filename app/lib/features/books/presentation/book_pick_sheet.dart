@@ -66,7 +66,6 @@ class _BookPickSheetState extends State<_BookPickSheet> {
         for (final book in widget.candidates)
           AnsiSelectRow(
             label: book.name,
-            labelSize: 17,
             selected: book.id == _target?.id,
             onTap: () => setState(() => _target = book),
           ),

@@ -219,7 +219,7 @@ class _Wordmark extends StatelessWidget {
         ],
       ),
       textAlign: rail ? TextAlign.center : TextAlign.start,
-      style: ansiSerif(size: 19, weight: FontWeight.w500),
+      style: ansiSerif(size: AnsiType.heading, weight: FontWeight.w500),
     ),
   );
 }

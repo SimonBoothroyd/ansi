@@ -87,7 +87,7 @@ class MealRecipeCard extends StatelessWidget {
               children: [
                 Text(
                   recipe.title.isEmpty ? 'Untitled recipe' : recipe.title,
-                  style: ansiSerif(size: 17),
+                  style: ansiSerif(size: AnsiType.row),
                 ),
                 if (shelf.isNotEmpty)
                   Padding(

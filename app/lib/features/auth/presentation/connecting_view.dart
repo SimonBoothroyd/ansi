@@ -39,7 +39,7 @@ class ConnectingView extends ConsumerWidget {
               children: [
                 Text(
                   'Ansi',
-                  style: ansiSerif(size: 34),
+                  style: ansiSerif(size: AnsiType.display),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),

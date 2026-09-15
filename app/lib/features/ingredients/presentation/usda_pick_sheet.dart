@@ -68,7 +68,6 @@ class UsdaPickSheet extends HookConsumerWidget {
 
     return AnsiSheetShell(
       title: 'USDA · for “$name”',
-      titleSize: 18,
       children: [
         const SizedBox(height: 14),
         if (candidates.connectionState != ConnectionState.done)

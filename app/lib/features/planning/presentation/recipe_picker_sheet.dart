@@ -574,7 +574,7 @@ class _RecipeRow extends StatelessWidget {
                 children: [
                   Text(
                     recipe.title.isEmpty ? 'Untitled recipe' : recipe.title,
-                    style: ansiSerif(size: 16),
+                    style: ansiSerif(size: AnsiType.row),
                   ),
                   if (fileUnder.isNotEmpty || planned != null) ...[
                     const SizedBox(height: 2),

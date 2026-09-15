@@ -6,7 +6,8 @@
 /// go_router needs) so nothing flashes un-themed behind the Forui tree.
 ///
 /// Typography follows the design board's three roles:
-/// * **serif** ([ansiSerif]) — recipe titles and lowercase group headers,
+/// * **serif** ([ansiSerif]) — recipe titles and lowercase group headers, at
+///   the five sizes [AnsiType] names,
 /// * **sans** (Forui's default) — all interface text,
 /// * **mono** ([ansiMono]) — data: quantities, units, scale factors, and the
 ///   letter-spaced uppercase micro-labels ([ansiLabel]).
@@ -187,7 +188,43 @@ const List<String> _monoStack = ['IBM Plex Mono', 'Menlo', 'monospace'];
 // Inter comes from Forui (its default family), not a separate bundle.
 const List<String> _sansStack = ['packages/forui/Inter'];
 
-/// A serif style for titles and group headers.
+/// The serif's sizes, one per **role** rather than one per call site.
+///
+/// A title's size follows from *what the title is*, so two screens showing
+/// the same kind of thing cannot drift a pixel apart. A number chosen at a
+/// call site says how big this one is and nothing about why, which gives the
+/// next screen to draw a recipe's name nothing to copy but a guess.
+///
+/// Pass one of these to [ansiSerif] and nothing else:
+/// `test/structure/serif_sizes_come_from_the_scale_test.dart` fails on a
+/// numeric literal anywhere outside this file. A new size is a new role, and a
+/// new role is a line here with the places it is used.
+abstract final class AnsiType {
+  /// The one big in-body hero title a page is named by: the recipe page, the
+  /// ingredient page, and the wordmark on the sign-in and connecting screens.
+  static const double display = 33;
+
+  /// A title over a body that is not the app bar's: a book page's name, the
+  /// wide Week's day name.
+  static const double title = 24;
+
+  /// A header bar's title ([ansiHeaderTitle]), a sheet's or dialog's title, a
+  /// book's name wherever it heads its recipes, the sidebar's wordmark, and
+  /// the sentence an empty or failed screen leads with.
+  static const double heading = 20;
+
+  /// A recipe's name in a list, a dish on the Week, a planned slot, a day
+  /// heading on the phone, a section title inside a form, and the italic
+  /// heading that names a group of ingredient lines.
+  static const double row = 17;
+
+  /// A dense line that is one of many: the Library ledger's recipe row, a
+  /// book page's index entry, the wide Week agenda's day, a pickable row in a
+  /// filing sheet, and the italic label that divides a list into sections.
+  static const double small = 15;
+}
+
+/// A serif style for titles and group headers. [size] comes from [AnsiType].
 TextStyle ansiSerif({
   required double size,
   Color color = AnsiColors.ink,
@@ -201,11 +238,25 @@ TextStyle ansiSerif({
   fontWeight: weight,
 );
 
+/// The serif's face and metrics as a *delta*, for the few places the text is
+/// drawn by a Forui component rather than by a [Text] of ours.
+///
+/// A component owns the ink of its own content and hint — a text field greys
+/// its placeholder, lights its value — so a style that replaced them wholesale
+/// would flatten those states. This changes the face and the size and leaves
+/// every colour the component chose alone.
+TextStyleDelta ansiSerifDelta({required double size}) => TextStyleDelta.delta(
+  fontFamily: 'Spectral',
+  fontFamilyFallback: _serifStack,
+  fontSize: size,
+  height: 1.15,
+);
+
 /// The app-bar page title — one consistent serif across every screen's header
 /// (design board `.ttl`), so the top bars read as one family. Use it for the
 /// `FHeader`/`FHeader.nested` title on every screen. The recipe page is the
 /// deliberate exception: a large in-body hero title instead of a bar title.
-TextStyle ansiHeaderTitle() => ansiSerif(size: 20);
+TextStyle ansiHeaderTitle() => ansiSerif(size: AnsiType.heading);
 
 /// A sans style for interface text and ingredient/step body copy.
 TextStyle ansiSans({

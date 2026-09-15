@@ -374,7 +374,7 @@ class _Card extends StatelessWidget {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: onTitleTap,
-            child: Text(title, style: ansiSerif(size: 19)),
+            child: Text(title, style: ansiSerif(size: AnsiType.row)),
           ),
           const SizedBox(height: 3),
           Text(subtitle, style: ansiMono(size: 10.5, color: AnsiColors.muted)),

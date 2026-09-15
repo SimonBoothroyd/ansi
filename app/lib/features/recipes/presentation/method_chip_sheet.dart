@@ -91,7 +91,6 @@ class _ChipSheet extends HookWidget {
 
     return AnsiSheetShell(
       title: 'Chip',
-      titleSize: 18,
       centerTitle: false,
       children: [
         const SizedBox(height: 14),

@@ -70,7 +70,7 @@ class _TextPromptDialogState extends State<_TextPromptDialog> {
   Widget build(BuildContext context) {
     return FDialog(
       animation: widget.animation,
-      title: Text(widget.title, style: ansiSerif(size: 20)),
+      title: Text(widget.title, style: ansiSerif(size: AnsiType.heading)),
       body: Padding(
         padding: const EdgeInsets.only(top: 8),
         child: FTextField(

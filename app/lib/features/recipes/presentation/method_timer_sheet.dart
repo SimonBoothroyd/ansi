@@ -96,7 +96,6 @@ class _TimerSheet extends HookWidget {
 
     return AnsiSheetShell(
       title: 'Timer',
-      titleSize: 18,
       centerTitle: false,
       children: [
         const SizedBox(height: 14),

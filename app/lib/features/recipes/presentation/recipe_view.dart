@@ -110,7 +110,10 @@ class RecipeView extends ConsumerWidget {
       data: (recipe) => recipe == null
           ? FScaffold(
               child: Center(
-                child: Text('Recipe not found', style: ansiSerif(size: 20)),
+                child: Text(
+                  'Recipe not found',
+                  style: ansiSerif(size: AnsiType.heading),
+                ),
               ),
             )
           : _RecipeBody(recipe: recipe, weekKey: weekKey),
@@ -415,7 +418,10 @@ class _Hero extends StatelessWidget {
       children: [
         Text(_breadcrumb(recipe), style: ansiLabel(color: AnsiColors.herb)),
         const SizedBox(height: 8),
-        Text(title, style: ansiSerif(size: 33, weight: FontWeight.w700)),
+        Text(
+          title,
+          style: ansiSerif(size: AnsiType.display, weight: FontWeight.w700),
+        ),
         if (band != null) ...[const SizedBox(height: 10), band],
         const SizedBox(height: 12),
         _Chips(recipe: recipe),
@@ -1083,7 +1089,7 @@ class _IngredientsTab extends ConsumerWidget {
                 // ("for the curry", design board), so no prefix is added here.
                 group.name!,
                 style: ansiSerif(
-                  size: 18,
+                  size: AnsiType.row,
                   color: AnsiColors.herbDeep,
                   weight: FontWeight.w400,
                 ).copyWith(fontStyle: FontStyle.italic),

@@ -86,6 +86,14 @@ screen: [`../docs/design-docs/navigation.md`](../docs/design-docs/navigation.md)
   Setup: `make powersync-core` (fetches the core extension; `make test-app` runs
   it) and, on macOS, `brew install sqlite` — the system SQLite omits extension
   loading.
+- **A serif size is a role, not a number.** `ansiSerif` takes one of the five
+  `AnsiType` constants — `display`, `title`, `heading`, `row`, `small`
+  (`core/theme/ansi_theme.dart`), each documented with the places it is used —
+  so a recipe's name is the same size in the ledger, the Week, a picker and a
+  cook card. A literal at a call site fails
+  `test/structure/serif_sizes_come_from_the_scale_test.dart`; a size no role
+  fits is a missing role, added there with its sites, not a number here.
+
 - **Phone-first layout, and one file reads the viewport.** Fixed logical-px
   spacing is the idiom here; don't derive sizes from screen dimensions ad hoc.
   `shared/ansi_layout.dart` is the **only** file under `lib/` allowed to ask how

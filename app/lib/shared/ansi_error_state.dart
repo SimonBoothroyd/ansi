@@ -92,7 +92,7 @@ class AnsiErrorState extends StatelessWidget {
             Text(
               'Couldn’t load $what.',
               textAlign: TextAlign.center,
-              style: ansiSerif(size: 18),
+              style: ansiSerif(size: AnsiType.heading),
             ),
             const SizedBox(height: 8),
             Text(

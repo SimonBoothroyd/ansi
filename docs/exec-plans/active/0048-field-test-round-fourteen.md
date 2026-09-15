@@ -64,11 +64,11 @@ Lane `week` — `features/planning`, the board:
 
 Lane `scale` — `core/theme`, every serif title (queued behind `week`):
 
-- [ ] `ansi_theme.dart` gains a named type scale for the serif (display,
+- [x] `ansi_theme.dart` gains a named type scale for the serif (display,
       title, heading, row, small — whatever the sweep shows the app actually
       uses), and every serif title in `app/lib` reads one of them. A
       structural test bans a raw `ansiSerif(size:` literal outside the theme.
-- [ ] A recipe's name is set at one size per role across the Library ledger,
+- [x] A recipe's name is set at one size per role across the Library ledger,
       the phone Library, the Week (both bodies), the picker, the cook sheet
       and the book page — the table in the decision log says which.
 
@@ -133,6 +133,33 @@ Gate: `make analyze` · `make test` · `make docs-check` per lane; one full
   band's sub-line names the scope (`avg 1 752 · 5 of 7 days · Ada`), because a
   rescoped total that does not say whose it is is the one number on the screen
   that could be read as the household's.
+- 2026-09-14 — **`scale`: five roles, and the number leaves the call site.**
+  `AnsiType` names the serif's five sizes in `ansi_theme.dart`; every
+  `ansiSerif` in `app/lib` passes one, and
+  `test/structure/serif_sizes_come_from_the_scale_test.dart` fails on a
+  literal anywhere else. The values are the ones the app already used most, so
+  the majority of sites sit still; where two sites shared a role and differed
+  by a pixel or two, the more-used value won.
+
+  | role | size | where it is used — *(was)* |
+  |---|---|---|
+  | `display` | 33 | the recipe page's hero, the ingredient page's hero, the wordmark on sign-in and connecting *(34)* |
+  | `title` | 24 | the wide Week's day name, a book page's name *(28)* |
+  | `heading` | 20 | every header bar's title, every sheet and dialog title *(six sheets at 18 or 22)*, a book's name in the Library ledger *(18)* and in the phone's book header *(19)*, the sidebar's wordmark *(19)*, the ingredient named atop the quantity sheet *(22)*, and the sentence an empty or failed screen leads with *(18 and 22)* |
+  | `row` | 17 | the phone Library's stacked recipe row, a planned slot, the phone Week's day heading, the wide Week's dish, the phone Week's dish *(the interface sans at 15 / 14)*, a cook card and the cook sheet's row *(19)*, the planner's picker result *(16)*, the italic heading over a group of ingredient lines *(18)*, a section title in the ingredient form, a housemate's name, and the editor's own title field *(Forui's sans at 16)* |
+  | `small` | 15 | the Library ledger's recipe row, a book page's index entry *(14)*, the wide Week agenda's day *(15.5)*, a filing sheet's pickable row *(15 and 17)*, the move sheet's book heading, the italic label that divides a list into sections *(14)* |
+
+- 2026-09-14 — **A size knob is how the drift got in, so both are gone.**
+  `AnsiSheetShell.titleSize` and `AnsiSelectRow.labelSize` let six sheets and
+  one picker each choose a number; a sheet's title is a `heading` and a
+  pickable row is `small`, so neither widget takes a size any more.
+- 2026-09-14 — **The phone Week's dish joins the serif.** A recipe's name was
+  set in the interface sans on that one screen and in the serif on every
+  other, which is the half of the owner's note that is not a number. It now
+  reads at `row`, the size the day pane beside it uses; the board draws the
+  phone row in sans at 13.5 and now says so in a `differs:` line, for the
+  owner to rule on.
+
 - 2026-09-14 — **Strike is the chip's tap.** Method chips were inert on the
   recipe page, so the tap was free; navigation for a sub-recipe chip, when
   it exists, is a different token type. A chip strikes only itself; a step

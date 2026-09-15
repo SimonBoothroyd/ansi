@@ -447,6 +447,7 @@ class _TitleField extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final controller = useTextEditingController(text: host.header.title);
+    final voice = ansiSerifDelta(size: AnsiType.row);
     return Focus(
       onFocusChange: (hasFocus) {
         if (hasFocus) return;
@@ -458,6 +459,15 @@ class _TitleField extends HookWidget {
       child: FTextField(
         key: const ValueKey('recipe-title'),
         hint: 'e.g. Weeknight Chicken Curry',
+        // The field a recipe is named in, in the voice the name is read in
+        // everywhere else. Forui's own field is the interface sans, so a title
+        // changed its face between the editor and the page that shows it.
+        style: FTextFieldStyleDelta.delta(
+          contentTextStyle: FVariantsDelta.delta([
+            FVariantOperation.all(voice),
+          ]),
+          hintTextStyle: FVariantsDelta.delta([FVariantOperation.all(voice)]),
+        ),
         control: FTextFieldControl.managed(
           controller: controller,
           onChange: (v) => host.setTitle(v.text),
