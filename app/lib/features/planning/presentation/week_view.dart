@@ -631,12 +631,9 @@ class _DishRow extends ConsumerWidget {
                       // behind it", so a bare ingredient reads at the row's
                       // ordinary weight instead of borrowing it.
                       style: entry.title == null
-                          ? ansiSerif(
-                              size: AnsiType.row,
-                              color: AnsiColors.muted,
-                            )
-                          : ansiSerif(
-                              size: AnsiType.row,
+                          ? ansiSans(size: 15, color: AnsiColors.muted)
+                          : ansiSans(
+                              size: snack ? 14 : 15,
                               color: snack
                                   ? AnsiColors.ink
                                   : AnsiColors.herbDeep,
