@@ -262,9 +262,19 @@ class IngredientDetailView extends HookConsumerWidget {
         ),
       );
     }
+    // The states with no row yet wear the SAME chrome the row will: embedded,
+    // the page holding the panes owns the one back control and the pane owns
+    // none, so a header with a title and a chevron here is chrome that exists
+    // for one frame and then goes. Every pick in the manager pays that frame —
+    // the pane is keyed per row, so each one opens a fresh watch — and what
+    // the reader saw was `Ingredient ‹` flashing over the sheet they asked for.
     return FScaffold(
       childPad: false,
-      header: _header(context, title: 'Ingredient'),
+      header: _header(
+        context,
+        title: embedded ? null : 'Ingredient',
+        showBack: !embedded,
+      ),
       child: switch (async) {
         AsyncError(:final error) => _Centered('Could not open it — $error'),
         AsyncLoading() => const _Centered('…'),
@@ -307,7 +317,9 @@ FHeader _header(
       style: ansiHeaderTitle(),
       overflow: TextOverflow.ellipsis,
     ),
-    prefixes: [back],
+    // [showBack] holds on the titled header too, not only on the untitled
+    // one: a caller that says it draws no chevron means it in both.
+    prefixes: [if (showBack) back],
     suffixes: suffixes,
   );
 }
