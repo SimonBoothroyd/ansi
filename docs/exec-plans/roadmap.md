@@ -16,8 +16,7 @@ The detail is in the plan; the landing dates are in the
    the [backlog](./backlog.md).
 
 The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));
-one browser sign-in on it is still to be walked, and the `deploy-supabase`
-workflow is owed for `v0.17.0`'s additive import fields (§4.2).
+one browser sign-in on it is still to be walked.
 The seed is the owner's own vocabulary and a reseed follows his rows, so no
 operator statement is owed there.
 
@@ -84,6 +83,7 @@ rows below, in that order.)
 | — | Field test, round twelve — ticked items gather in one basket section at the foot of the shop, a meal's slot is a field of its editor and the add flow defaults to the day's first unfilled slot (Snack joins the four), a piece-weighted row is bought in pieces on the shop and the basket keeps its aisles, a measure that weighs a piece is the row's word for one at every door (ADR-0016; existing lines re-pointed on cloud by hand), and the last tick on this phone bursts confetti of the food itself. No migrations | `v0.16.0` | [0046](./completed/0046-field-test-round-twelve.md) · [ADR-0016](../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md) |
 | — | Three owner notes on round twelve — the week's day foot and band read in the ingredient line's grammar with every unit glyph centred on the digits, the confetti plays on every finishing tick, and the camera door photographs page after page | `v0.16.1` | — |
 | 10 | Wide screens — one file reads the viewport and one wrapper applies the measure, a sidebar and rail stand beside the content with sheets as dialogs, and each view that earns the width takes it: Cook as one schedule sheet on a shared seven-day axis, the Library as an open ledger, the Week as today beside the week's agenda, the recipe page and its editor in two columns, the import review with the page beside the lines and the current line's span lit, the Shop with a provenance pane, the vocabulary in two panes. Every glyph control answers a pointer through one style, the URL is the route, and the browser build ships from CI. **Deferred:** the phone's 44 px touch targets (mouse-only for now), mouse drag-to-scroll, the Week band's wide home, and the lit span, which waits on a `deploy-supabase` run — `import-recipe` changed additively. No migrations | `v0.17.0` | [0047](./completed/0047-wide-screens.md) |
+| — | Field test, round fourteen — the wide Week redrawn as a small agenda at left (every meal in one mono run, the phone's macro strip per day, the week's band at the foot) beside the day at the phone's meal size with one add door; the serif's five named sizes with a guard; the vocabulary's wide pane without a loading header, its pick in the URL and its lit row on screen; the servings scaler, the search field and the Shop's sync line each fixed once; and a method chip or step struck off while cooking. No migrations | `v0.18.0` | [0048](./completed/0048-field-test-round-fourteen.md) |
 
 ## Stretch
 

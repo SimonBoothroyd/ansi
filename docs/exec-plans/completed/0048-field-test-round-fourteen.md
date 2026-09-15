@@ -1,6 +1,6 @@
 # Exec plan: field test, round fourteen — the desk in use: the Week redrawn, the type scale, and seven web notes
 
-- **Status:** in progress
+- **Status:** done — shipped as `v0.18.0`
 - **Owner:** Simon (design), agents in lanes
 - **Roadmap step:** — (the first days on `v0.17.0` in a browser)
 - **Created:** 2026-09-14
@@ -107,8 +107,8 @@ Lane `strike` — `shared/method_step_text.dart`, `features/recipes`:
 - [ ] A week-struck line's chip in the method reads muted only, so it cannot
       be confused with a cook-struck one (closes 0047's stated gap).
 
-Gate: `make analyze` · `make test` · `make docs-check` per lane; one full
-`make test-sim` on the integrated branch before the tag.
+Gate: `make analyze` · `make test` · `make docs-check` per lane, then once on
+the integrated branch; one full `make test-sim` on it before the tag.
 
 ## Decision log
 
