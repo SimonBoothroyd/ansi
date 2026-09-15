@@ -25,6 +25,7 @@ import 'package:ansi/features/recipes/presentation/ingredient_line.dart';
 import 'package:ansi/features/recipes/presentation/recipe_macro_panel.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view.dart';
 import 'package:ansi/shared/ansi_layout.dart';
+import 'package:ansi/shared/ansi_stepper_row.dart';
 import 'package:ansi/shared/incomplete_macros.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -342,5 +343,40 @@ void main() {
     expect(find.text('Method'), findsOneWidget);
     expect(find.text('INGREDIENTS'), findsNothing);
     expect(find.text('Brown the chicken in a wide pan.'), findsNothing);
+  });
+
+  testWidgets('the servings scaler is one control, not a band across the '
+      'measure', (tester) async {
+    filterForuiSemanticsAssertions();
+    // Medium: the tabs are still drawn, so the scaler sits above the lines
+    // rather than in the hero — and the page is already at its 640 measure,
+    // which is where an uncapped stepper stretched to.
+    tester.view.physicalSize = const Size(900, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpAnsiApp(
+      const AnsiMeasure(
+        width: ansiWideMeasureWidth,
+        child: RecipeView(recipeId: 'r1'),
+      ),
+      overrides: <Override>[
+        recipeRepositoryProvider.overrideWithValue(_Repo(recipe: _recipe())),
+      ],
+    );
+    await tester.pumpAndSettle();
+
+    final scaler = find.byType(AnsiStepperRow);
+    expect(scaler, findsOneWidget);
+    final rect = tester.getRect(scaler);
+    // Capped at the width the hero gives it, rather than spreading its two
+    // buttons across the 640 measure.
+    expect(rect.width, lessThanOrEqualTo(300));
+    // And the buttons are the small ones — Forui's touch `sm`, 40, not the
+    // `md` 44 that made this box taller than the title beside it. The box's
+    // own height is the buttons' plus its padding, and is left to the font.
+    final button = find.descendant(of: scaler, matching: find.byType(FButton));
+    expect(button, findsNWidgets(2));
+    expect(tester.getRect(button.first).height, 40);
+    expect(tester.getRect(button.last).height, 40);
   });
 }

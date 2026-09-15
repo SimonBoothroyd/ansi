@@ -6,6 +6,7 @@
 /// (being offline is not a state this app reports) and **"failed"**.
 library;
 
+import 'dart:async';
 import 'package:ansi/core/sync/dropped_write.dart';
 import 'package:ansi/core/sync/sync_health.dart';
 import 'package:ansi/core/theme/ansi_theme.dart';
@@ -159,6 +160,10 @@ void main() {
     ) async {
       await tester.pumpWidget(_bothReadouts(const SyncWaiting(queued: 2)));
       await tester.pump();
+      // The Library's line answers a question someone went looking for, so it
+      // is there at once. The Shop's waits out its grace first.
+      expect(find.text('2 changes waiting'), findsOneWidget); // Library
+      await tester.pump(waitingGrace + const Duration(milliseconds: 1));
 
       expect(find.text('2 changes waiting'), findsOneWidget); // Library
       expect(find.text('2 ticks waiting'), findsOneWidget); // Shop
@@ -229,6 +234,90 @@ void main() {
 
       expect(find.textContaining('recipe · put · r1'), findsOneWidget);
       expect(find.textContaining('42501'), findsOneWidget);
+    });
+  });
+
+  group('the Shop line does not move the list', () {
+    /// The Shop's shape: the line above the scroll, outside it, with a row to
+    /// watch. Driven by a controller so a queue can be made to last.
+    Widget shop(Stream<SyncHealth> health) => ProviderScope(
+      overrides: [
+        // ignore: scoped_providers_should_specify_dependencies, root test scope
+        syncHealthProvider.overrideWith((ref) => health),
+      ],
+      child: MaterialApp(
+        home: FTheme(
+          data: ansiThemeData(),
+          child: Column(
+            children: [
+              const AnsiSyncStatusLine(noun: 'tick'),
+              Expanded(
+                child: ListView(
+                  children: const [
+                    SizedBox(height: 44, child: Text('Tomatoes')),
+                    SizedBox(height: 44, child: Text('Butter beans')),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    /// A state, delivered and drawn. The stream reaches the provider on one
+    /// pump and the widget on the next, and the grace timer starts from the
+    /// second — so both pumps happen here, at no cost in elapsed time.
+    Future<void> emit(
+      WidgetTester tester,
+      StreamController<SyncHealth> health,
+      SyncHealth state,
+    ) async {
+      health.add(state);
+      await tester.pump();
+      await tester.pump();
+    }
+
+    testWidgets('a tick that uploads in a moment draws nothing at all', (
+      tester,
+    ) async {
+      final health = StreamController<SyncHealth>();
+      addTearDown(health.close);
+      await tester.pumpWidget(shop(health.stream));
+      await tester.pump();
+      final firstRow = tester.getTopLeft(find.text('Tomatoes'));
+
+      await emit(tester, health, const SyncWaiting(queued: 1));
+      await tester.pump(const Duration(milliseconds: 200));
+      // Inside the grace, so the strip never appears…
+      expect(find.textContaining('waiting'), findsNothing);
+      expect(tester.getTopLeft(find.text('Tomatoes')), firstRow);
+
+      await emit(tester, health, SyncSettled(_now));
+      // …and a queue nobody was shown gets no confirmation either.
+      expect(find.textContaining('Synced'), findsNothing);
+      expect(tester.getTopLeft(find.text('Tomatoes')), firstRow);
+
+      await tester.pump(settledLinger + waitingGrace);
+      expect(find.textContaining('Synced'), findsNothing);
+      expect(tester.getTopLeft(find.text('Tomatoes')), firstRow);
+    });
+
+    testWidgets('a queue that lasts says so — in the same place, at the same '
+        'height', (tester) async {
+      final health = StreamController<SyncHealth>();
+      addTearDown(health.close);
+      await tester.pumpWidget(shop(health.stream));
+      await tester.pump();
+      final firstRow = tester.getTopLeft(find.text('Tomatoes'));
+
+      await emit(tester, health, const SyncWaiting(queued: 1));
+      await tester.pump(const Duration(seconds: 2));
+
+      expect(find.text('1 tick waiting'), findsOneWidget);
+      // The slot was always there: saying something does not cost the list a
+      // single pixel of travel.
+      expect(tester.getTopLeft(find.text('Tomatoes')), firstRow);
     });
   });
 }
