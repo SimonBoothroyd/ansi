@@ -363,7 +363,9 @@ class _RecipeBody extends HookConsumerWidget {
 /// length a step reads at on a phone.
 const double _kIngredientsColumn = 340;
 
-/// The scaler in the expanded hero. Wide enough for "12 servings" on one line.
+/// The scaler's width, in the expanded hero and above the lines alike. Wide
+/// enough for "12 servings" on one line, and never wider: a stepper is read
+/// as one object, and the buttons belong beside the number they change.
 const double _kScalerWidth = 300;
 
 /// The page's top: the book line, the title, the week band when a week owns the
@@ -1029,10 +1031,20 @@ class _IngredientsTab extends ConsumerWidget {
       children: [
         if (showScaler) ...[
           const SizedBox(height: 16),
-          _ScaleControl(
-            servings: servings,
-            factor: factor,
-            onChanged: onServings,
+          // The column stretches its children, and a stretched stepper spreads
+          // its slack between the two buttons — at a desk width that is a
+          // control the width of the measure. It is capped at the width the
+          // hero draws it at, and starts where the lines under it start.
+          Align(
+            alignment: Alignment.centerLeft,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: _kScalerWidth),
+              child: _ScaleControl(
+                servings: servings,
+                factor: factor,
+                onChanged: onServings,
+              ),
+            ),
           ),
           const SizedBox(height: 20),
         ],
@@ -1258,8 +1270,9 @@ class _ScaleControl extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: AnsiStepperRow(
+          small: true,
           leading: Expanded(
             child: Text(
               'Scale\nto',
