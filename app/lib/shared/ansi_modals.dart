@@ -189,7 +189,7 @@ Future<bool> askAnsi(
     context: context,
     builder: (context, style, animation) => FDialog(
       animation: animation,
-      title: Text(title, style: ansiSerif(size: 20)),
+      title: Text(title, style: ansiSerif(size: AnsiType.heading)),
       body: _dialogBody(body, caveat: caveat, caveatLabel: caveatLabel),
       actions: [
         FButton(
@@ -225,7 +225,7 @@ Future<bool> refuseAnsi(
     context: context,
     builder: (context, style, animation) => FDialog(
       animation: animation,
-      title: Text(title, style: ansiSerif(size: 20)),
+      title: Text(title, style: ansiSerif(size: AnsiType.heading)),
       body: _dialogBody(body),
       actions: [
         if (door != null)

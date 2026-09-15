@@ -424,7 +424,7 @@ class _ReadPosture extends ConsumerWidget {
         children: [
           Text(
             ing.canonicalName,
-            style: ansiSerif(size: 33, weight: FontWeight.w700),
+            style: ansiSerif(size: AnsiType.display, weight: FontWeight.w700),
           ),
           if (alsoKnownAs.isNotEmpty)
             Padding(
@@ -2478,7 +2478,7 @@ class _Group extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(title, style: ansiSerif(size: 17)),
+        Text(title, style: ansiSerif(size: AnsiType.row)),
         const SizedBox(height: 7),
         Container(height: 1, color: AnsiColors.line),
         ...children,

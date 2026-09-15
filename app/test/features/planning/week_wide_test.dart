@@ -211,21 +211,21 @@ GoRouter _router(String initial, void Function(GoRouter router)? expose) {
   return router;
 }
 
-/// The day pane's heading — the one 24 px serif on the screen.
+/// The day pane's heading — the one title-sized serif on the screen.
 Finder _paneHeading(int dayOfWeek) => find.byWidgetPredicate(
   (w) =>
       w is Text &&
       w.data == _shape.labelFull(dayOfWeek) &&
-      w.style?.fontSize == 24,
+      w.style?.fontSize == AnsiType.title,
   description: 'the day pane’s heading for day $dayOfWeek',
 );
 
-/// One agenda heading — 15.5 px, against the pane's 24.
+/// One agenda heading — the small role, against the pane's title.
 Finder _agendaHeading(int dayOfWeek) => find.byWidgetPredicate(
   (w) =>
       w is Text &&
       w.data == _shape.labelFull(dayOfWeek) &&
-      w.style?.fontSize == 15.5,
+      w.style?.fontSize == AnsiType.small,
   description: 'the agenda heading for day $dayOfWeek',
 );
 

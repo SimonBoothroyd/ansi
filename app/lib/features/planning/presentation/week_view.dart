@@ -414,7 +414,7 @@ class _DayCard extends ConsumerWidget {
             children: [
               Text(
                 ref.watch(weekShapeProvider).labelFull(dayOfWeek),
-                style: ansiSerif(size: 17),
+                style: ansiSerif(size: AnsiType.row),
               ),
               const SizedBox(width: 8),
               // The date is load-bearing once weeks vary (D6).
@@ -631,9 +631,12 @@ class _DishRow extends ConsumerWidget {
                       // behind it", so a bare ingredient reads at the row's
                       // ordinary weight instead of borrowing it.
                       style: entry.title == null
-                          ? ansiSans(size: 15, color: AnsiColors.muted)
-                          : ansiSans(
-                              size: snack ? 14 : 15,
+                          ? ansiSerif(
+                              size: AnsiType.row,
+                              color: AnsiColors.muted,
+                            )
+                          : ansiSerif(
+                              size: AnsiType.row,
                               color: snack
                                   ? AnsiColors.ink
                                   : AnsiColors.herbDeep,

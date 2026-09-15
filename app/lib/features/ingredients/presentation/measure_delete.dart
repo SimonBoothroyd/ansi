@@ -98,7 +98,7 @@ class _UsedBy extends StatelessWidget {
                 Expanded(
                   child: Text(
                     r.title,
-                    style: ansiSerif(size: 15),
+                    style: ansiSerif(size: AnsiType.small),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),

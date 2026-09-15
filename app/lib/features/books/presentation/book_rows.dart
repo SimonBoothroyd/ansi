@@ -318,7 +318,7 @@ class EmptyShelf extends StatelessWidget {
         children: [
           Text(
             'Nothing on this shelf yet',
-            style: ansiSerif(size: 15, color: AnsiColors.muted),
+            style: ansiSerif(size: AnsiType.small, color: AnsiColors.muted),
           ),
           const SizedBox(height: 10),
           Row(
@@ -383,7 +383,7 @@ String sectionCountLine(int count) =>
 /// the book page's, and the ledger's heading line. A section that read as a
 /// different kind of thing on a desk would be the tree relabelled.
 TextStyle ansiSectionLabel({required bool named}) => ansiSerif(
-  size: 14,
+  size: AnsiType.small,
   color: named ? AnsiColors.herbDeep : AnsiColors.muted,
   weight: FontWeight.w400,
 ).copyWith(fontStyle: FontStyle.italic);
@@ -795,7 +795,7 @@ class LibraryRecipeRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_title, style: ansiSerif(size: 17)),
+              Text(_title, style: ansiSerif(size: AnsiType.row)),
               if (filing != null)
                 Text(
                   '${filing.book} · ${filing.section ?? 'Unsectioned'}',
@@ -834,7 +834,7 @@ class LibraryRecipeRow extends StatelessWidget {
             _title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: ansiSerif(size: 15, weight: FontWeight.w400),
+            style: ansiSerif(size: AnsiType.small, weight: FontWeight.w400),
           ),
         ),
         const AnsiDottedLeader(),

@@ -90,7 +90,10 @@ class _RecipeMoveSheetState extends State<_RecipeMoveSheet> {
                     padding: const EdgeInsets.only(top: 4, bottom: 6),
                     child: Text(
                       book.name,
-                      style: ansiSerif(size: 15, color: AnsiColors.herbDeep),
+                      style: ansiSerif(
+                        size: AnsiType.small,
+                        color: AnsiColors.herbDeep,
+                      ),
                     ),
                   ),
                   // Every shelf inside the book, the bucket first: a book

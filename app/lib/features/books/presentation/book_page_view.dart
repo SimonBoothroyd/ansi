@@ -75,7 +75,10 @@ class BookPageView extends ConsumerWidget {
           return FScaffold(
             header: const _BackOnly(),
             child: Center(
-              child: Text('Book not found', style: ansiSerif(size: 20)),
+              child: Text(
+                'Book not found',
+                style: ansiSerif(size: AnsiType.heading),
+              ),
             ),
           );
         }
@@ -140,7 +143,10 @@ class _BookHero extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(book.name, style: ansiSerif(size: 28, weight: FontWeight.w700)),
+      Text(
+        book.name,
+        style: ansiSerif(size: AnsiType.title, weight: FontWeight.w700),
+      ),
       const SizedBox(height: 4),
       Text(
         bookCountLine(book),
@@ -402,7 +408,7 @@ class _IndexRow extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: ansiSerif(
-                  size: 14,
+                  size: AnsiType.small,
                   color: ink,
                   weight: lit ? FontWeight.w600 : FontWeight.w400,
                 ),

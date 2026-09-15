@@ -43,7 +43,6 @@ Future<Unit?> showUnitPickSheet(
   context: context,
   builder: (sheetContext) => AnsiSheetShell(
     title: 'Unit',
-    titleSize: 18,
     centerTitle: false,
     scrollable: true,
     children: [

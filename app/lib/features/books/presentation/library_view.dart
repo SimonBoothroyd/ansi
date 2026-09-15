@@ -214,7 +214,7 @@ class _NoHits extends StatelessWidget {
         Text(
           'Nothing matches “$query”',
           textAlign: TextAlign.center,
-          style: ansiSerif(size: 20),
+          style: ansiSerif(size: AnsiType.heading),
         ),
         const SizedBox(height: 18),
         DashedAction(
@@ -284,7 +284,7 @@ class _BookCard extends ConsumerWidget {
                               Text(
                                 book.name,
                                 style: ansiSerif(
-                                  size: 19,
+                                  size: AnsiType.heading,
                                   color: AnsiColors.surface,
                                   weight: FontWeight.w500,
                                 ),
@@ -861,7 +861,7 @@ class _HeadingRow extends ConsumerWidget {
           book.name,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: ansiSerif(size: 18, weight: FontWeight.w500),
+          style: ansiSerif(size: AnsiType.heading, weight: FontWeight.w500),
         ),
       ),
       const AnsiDottedLeader(),
@@ -1087,7 +1087,7 @@ class _EmptyState extends ConsumerWidget {
           children: [
             const Icon(FLucideIcons.library, size: 44, color: AnsiColors.herb),
             const SizedBox(height: 14),
-            Text('No books yet', style: ansiSerif(size: 22)),
+            Text('No books yet', style: ansiSerif(size: AnsiType.heading)),
             const SizedBox(height: 6),
             Text(
               'A book is a shelf — name it whatever you call it out loud.',

@@ -58,7 +58,6 @@ class AnsiSheetShell extends StatelessWidget {
     required this.children,
     this.title,
     this.subtitle,
-    this.titleSize = 20,
     this.centerTitle = true,
     this.dismiss = AnsiSheetDismiss.x,
     this.onDismiss,
@@ -74,8 +73,6 @@ class AnsiSheetShell extends StatelessWidget {
 
   /// Mono context line under the title ("to · Wednesday, Dinner").
   final String? subtitle;
-
-  final double titleSize;
 
   /// Centred over the X (the picker idiom) or aligned left beside it.
   final bool centerTitle;
@@ -179,7 +176,7 @@ class AnsiSheetShell extends StatelessWidget {
               child: Text(
                 name,
                 textAlign: TextAlign.center,
-                style: ansiSerif(size: titleSize),
+                style: ansiSerif(size: AnsiType.heading),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -192,7 +189,7 @@ class AnsiSheetShell extends StatelessWidget {
             Expanded(
               child: Text(
                 name,
-                style: ansiSerif(size: titleSize),
+                style: ansiSerif(size: AnsiType.heading),
                 overflow: TextOverflow.ellipsis,
               ),
             ),

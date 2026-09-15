@@ -70,7 +70,7 @@ class SignInView extends HookConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Ansi', style: ansiSerif(size: 34)),
+                Text('Ansi', style: ansiSerif(size: AnsiType.display)),
                 const SizedBox(height: 6),
                 Text(
                   'Plan the week you want to eat.',

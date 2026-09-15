@@ -17,7 +17,6 @@ class AnsiSelectRow extends StatelessWidget {
     required this.onTap,
     this.note,
     this.enabled = true,
-    this.labelSize = 15,
     super.key,
   });
 
@@ -32,7 +31,6 @@ class AnsiSelectRow extends StatelessWidget {
   /// False greys the row and refuses the tap: a "move" that moves nothing is
   /// a tap that lies about what it did.
   final bool enabled;
-  final double labelSize;
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +53,7 @@ class AnsiSelectRow extends StatelessWidget {
               child: Text(
                 label,
                 style: ansiSerif(
-                  size: labelSize,
+                  size: AnsiType.small,
                   color: enabled ? AnsiColors.ink : AnsiColors.muted,
                 ),
               ),

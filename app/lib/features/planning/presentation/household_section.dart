@@ -67,7 +67,10 @@ class HouseholdSection extends ConsumerWidget {
                     EaterAvatar(member: m, color: memberColor(i)),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(m.displayName, style: ansiSerif(size: 17)),
+                      child: Text(
+                        m.displayName,
+                        style: ansiSerif(size: AnsiType.row),
+                      ),
                     ),
                     Text(
                       '×${formatFraction(m.portionFactor)}',

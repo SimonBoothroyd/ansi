@@ -353,7 +353,7 @@ class _QuantitySurface extends StatelessWidget {
             Flexible(
               child: Text(
                 ingredient.canonicalName,
-                style: ansiSerif(size: 22),
+                style: ansiSerif(size: AnsiType.heading),
                 overflow: TextOverflow.ellipsis,
               ),
             ),

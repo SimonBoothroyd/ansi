@@ -197,7 +197,6 @@ class _ConfirmMealSheet extends HookConsumerWidget {
       // the sheet names it back the way the meal editor names the row it was
       // opened from.
       subtitle: 'to · ${shape.labelFull(dayOfWeek)}',
-      titleSize: 22,
       centerTitle: false,
       dismiss: AnsiSheetDismiss.none,
       topPadding: 16,
