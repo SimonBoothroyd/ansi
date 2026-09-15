@@ -1,4 +1,5 @@
 import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/theme/ansi_tokens.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/domain/method_step.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
@@ -43,11 +44,24 @@ const _blankCollectiveRefs = [
   'salt',
 ];
 
-Widget _host(MethodStep step) => MaterialApp(
+Widget _host(
+  MethodStep step, {
+  Set<int>? struckChips,
+  bool stepStruck = false,
+  ValueChanged<int>? onToggleChip,
+  Set<String> weekExcluded = const {},
+}) => MaterialApp(
   home: FTheme(
     data: ansiThemeData(),
     child: FScaffold(
-      child: MethodStepText(step: step, lineById: _lines),
+      child: MethodStepText(
+        step: step,
+        lineById: _lines,
+        struckChips: struckChips,
+        stepStruck: stepStruck,
+        onToggleChip: onToggleChip,
+        weekExcluded: weekExcluded,
+      ),
     ),
   ),
 );
@@ -57,6 +71,34 @@ List<String> _chipLabels(WidgetTester tester) => tester
     .widgetList<MethodChip>(find.byType(MethodChip))
     .map((c) => c.label)
     .toList();
+
+/// The ink one chip's word is actually painted in.
+TextStyle _labelStyle(WidgetTester tester, String label) => tester
+    .widget<Text>(
+      find.descendant(
+        of: find.byWidgetPredicate((w) => w is MethodChip && w.label == label),
+        matching: find.text(label),
+      ),
+    )
+    .style!;
+
+/// Anything that answers a tap. By predicate rather than by type: Forui's
+/// `FTappable` is a const factory for `AnimatedTappable`, so `find.byType`
+/// finds none of them and a `findsNothing` written that way proves nothing.
+final _tappable = find.byWidgetPredicate((w) => w is FTappable);
+
+/// The step's prose style — the root span of its one rich text.
+TextStyle _proseStyle(WidgetTester tester) => tester
+    .widget<Text>(
+      find
+          .descendant(
+            of: find.byType(MethodStepText),
+            matching: find.byType(Text),
+          )
+          .first,
+    )
+    .textSpan!
+    .style!;
 
 void main() {
   testWidgets('a collective chip renders its label then every constituent', (
@@ -391,5 +433,107 @@ void main() {
     final chips = tester.widgetList<MethodChip>(find.byType(MethodChip));
     expect(chips.first.amount, 'half');
     expect(chips.skip(1).map((c) => c.amount), everyElement(isNull));
+  });
+
+  group('ticking off is opt-in, and the two struck states read apart', () {
+    const step = MethodStep(
+      tokens: [
+        MethodText(s: 'Melt the '),
+        MethodRef(refs: ['butter'], label: 'butter'),
+        MethodText(s: ', then simmer for '),
+        MethodTimer(lowSeconds: 360, highSeconds: 480),
+        MethodText(s: '.'),
+      ],
+    );
+
+    testWidgets('handed no callback nothing is tappable, and the ink is the '
+        'ink it always was — the review and the editor preview', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_host(step));
+
+      expect(_tappable, findsNothing);
+      expect(_labelStyle(tester, 'butter').color, AnsiColors.herbDeep);
+      expect(_labelStyle(tester, 'butter').decoration, isNull);
+      expect(_proseStyle(tester).decoration, isNull);
+    });
+
+    testWidgets('handed one, the ingredient chip is a target and the timer '
+        'is not — a duration is not a thing you add', (tester) async {
+      final ticked = <int>[];
+      await tester.pumpWidget(_host(step, onToggleChip: ticked.add));
+
+      expect(_tappable, findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byWidgetPredicate((w) => w is MethodChip && w.timer),
+          matching: _tappable,
+        ),
+        findsNothing,
+      );
+
+      await tester.tap(find.text('butter'));
+      await tester.pumpAndSettle();
+      expect(ticked, [0]);
+    });
+
+    testWidgets('a cook-struck chip is muted AND ruled; a week-excluded one '
+        'is muted only', (tester) async {
+      await tester.pumpWidget(
+        _host(step, struckChips: const {0}, onToggleChip: (_) {}),
+      );
+
+      expect(_labelStyle(tester, 'butter').color, AnsiColors.muted);
+      expect(
+        _labelStyle(tester, 'butter').decoration,
+        TextDecoration.lineThrough,
+      );
+
+      await tester.pumpWidget(
+        _host(step, weekExcluded: const {'butter'}, onToggleChip: (_) {}),
+      );
+
+      expect(_labelStyle(tester, 'butter').color, AnsiColors.muted);
+      expect(_labelStyle(tester, 'butter').decoration, isNull);
+    });
+
+    testWidgets('a struck step rules its prose AND every chip in it — a '
+        'decoration does not cross into a widget span', (tester) async {
+      await tester.pumpWidget(_host(step, stepStruck: true));
+
+      expect(_proseStyle(tester).decoration, TextDecoration.lineThrough);
+      expect(_proseStyle(tester).color, AnsiColors.muted);
+      expect(
+        _labelStyle(tester, 'butter').decoration,
+        TextDecoration.lineThrough,
+      );
+    });
+
+    testWidgets('a collective run ticks off one constituent at a time', (
+      tester,
+    ) async {
+      const collective = MethodStep(
+        tokens: [
+          MethodText(s: 'Blend the '),
+          MethodRef(refs: ['kale', 'avocado', 'garlic'], label: ''),
+          MethodText(s: '.'),
+        ],
+      );
+      final ticked = <int>[];
+      await tester.pumpWidget(
+        _host(collective, struckChips: const {1}, onToggleChip: ticked.add),
+      );
+
+      expect(_labelStyle(tester, 'Kale').decoration, isNull);
+      expect(
+        _labelStyle(tester, 'Avocado').decoration,
+        TextDecoration.lineThrough,
+      );
+      expect(_labelStyle(tester, 'Garlic').decoration, isNull);
+
+      await tester.tap(find.text('Garlic'));
+      await tester.pumpAndSettle();
+      expect(ticked, [2]);
+    });
   });
 }

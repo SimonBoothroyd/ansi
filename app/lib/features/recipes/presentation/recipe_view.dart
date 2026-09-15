@@ -130,6 +130,19 @@ class _RecipeBody extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final servings = useState(recipe.servingsBase);
     final tab = useState(0);
+    // What the cook has ticked off while standing at the hob. A reading
+    // posture like the servings beside it (see [ShowLineMacros]) and a shorter
+    // one: it is about *this* pass through *this* method, so it lives here and
+    // dies with the page — no provider, no row, nothing to sync. The keys are
+    // positional (`s2`, `s2:c0` — see [_MethodTab]), so nothing in the recipe
+    // has to carry an id for the sake of a tick.
+    final struck = useState(const <String>{});
+    void toggleStruck(String key) {
+      final next = {...struck.value};
+      if (!next.remove(key)) next.add(key);
+      struck.value = next;
+    }
+
     // Both columns are on screen at expanded, so there is nothing to switch
     // between: no tab bar, the scaler and the `⋯` in the hero, and the
     // back-links under the ingredients column instead of behind a tab.
@@ -228,7 +241,20 @@ class _RecipeBody extends HookConsumerWidget {
       overrides: overrides,
       weekSummary: weekSummary,
     );
-    final method = _MethodTab(recipe: recipe, servings: servings.value);
+    final method = _MethodTab(
+      recipe: recipe,
+      servings: servings.value,
+      struck: struck.value,
+      onToggle: toggleStruck,
+      // The lines this week leaves out, so the method's chips can say so too.
+      // Until now only the ingredients column knew, and a cook reading the
+      // step still saw a live chip for something nobody is cooking.
+      weekExcluded: {
+        for (final o in overrides)
+          if (o.action == LineOverrideAction.exclude)
+            if (o.recipeLineItemId != null) o.recipeLineItemId!,
+      },
+    );
     final backLinks = usesFailed
         ? AnsiErrorState(
             what: 'what this is used in',
@@ -1302,11 +1328,49 @@ class _ScaleControl extends StatelessWidget {
   }
 }
 
+/// The method, with the cook's ticks on it.
+///
+/// **What a tap does.** A chip is one thing you add, and tapping it rules it
+/// through. A step is everything it says: tapping anywhere else on the row
+/// rules the prose through *and* every chip in it, because a decoration on a
+/// text span does not cross into the widget spans the chips are — a ruled
+/// sentence with bright chips still in it would read as a step half-done.
+/// Plain (never-tokenized) steps take the same tap; they simply have no chips.
+///
+/// **The two are independent.** Un-striking a step lifts the step's own rule
+/// and leaves each chip as the cook had it — the chip that was already ticked
+/// stays ticked. So the state is two kinds of key over one set: `s2` for the
+/// step, `s2:c0` for the nth chip in it, both positional, both belonging to
+/// this reading of this page.
 class _MethodTab extends StatelessWidget {
-  const _MethodTab({required this.recipe, required this.servings});
+  const _MethodTab({
+    required this.recipe,
+    required this.servings,
+    this.struck = const {},
+    this.onToggle,
+    this.weekExcluded = const {},
+  });
 
   final Recipe recipe;
   final double servings;
+
+  /// The struck keys, in the shape the class doc describes.
+  final Set<String> struck;
+
+  /// Toggles one of those keys. Null renders the method read-only.
+  final ValueChanged<String>? onToggle;
+
+  /// Line ids this week leaves out — muted in the method, never ruled through.
+  final Set<String> weekExcluded;
+
+  /// The chip ordinals struck within step [index].
+  Set<int> _struckChips(int index) {
+    final prefix = 's$index:c';
+    return {
+      for (final key in struck)
+        if (key.startsWith(prefix)) int.parse(key.substring(prefix.length)),
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1338,10 +1402,18 @@ class _MethodTab extends StatelessWidget {
             if (i > 0) const FDivider(),
             _StepRow(
               number: i + 1,
+              struck: struck.contains('s$i'),
+              onToggle: onToggle == null ? null : () => onToggle!('s$i'),
               child: MethodStepText(
                 step: tokenized[i],
                 lineById: lineById,
                 factor: factor,
+                stepStruck: struck.contains('s$i'),
+                struckChips: onToggle == null ? null : _struckChips(i),
+                onToggleChip: onToggle == null
+                    ? null
+                    : (chip) => onToggle!('s$i:c$chip'),
+                weekExcluded: weekExcluded,
               ),
             ),
           ],
@@ -1357,7 +1429,18 @@ class _MethodTab extends StatelessWidget {
           if (i > 0) const FDivider(),
           _StepRow(
             number: i + 1,
-            child: Text(plain[i], style: ansiSans(size: 16, height: 1.4)),
+            struck: struck.contains('s$i'),
+            onToggle: onToggle == null ? null : () => onToggle!('s$i'),
+            child: Text(
+              plain[i],
+              style: struck.contains('s$i')
+                  ? ansiSans(
+                      size: 16,
+                      height: 1.4,
+                      color: AnsiColors.muted,
+                    ).copyWith(decoration: TextDecoration.lineThrough)
+                  : ansiSans(size: 16, height: 1.4),
+            ),
           ),
         ],
       ],
@@ -1371,15 +1454,26 @@ class _MethodTab extends StatelessWidget {
 /// per step stacked a row of filled circles down the left of a page whose
 /// whole argument is that the words come first — and the digit's job is only
 /// to let a cook find their place again.
+/// Handed an [onToggle] the whole row is the target — the number's column
+/// included, and the gaps between the words. A cook's hand is wet and their
+/// eyes are on the pan; aiming at a word is not the gesture. The chips inside
+/// keep their own taps, because a child is hit-tested first.
 class _StepRow extends StatelessWidget {
-  const _StepRow({required this.number, required this.child});
+  const _StepRow({
+    required this.number,
+    required this.child,
+    this.struck = false,
+    this.onToggle,
+  });
 
   final int number;
   final Widget child;
+  final bool struck;
+  final VoidCallback? onToggle;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    final row = Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1393,7 +1487,7 @@ class _StepRow extends StatelessWidget {
                 '$number',
                 style: ansiMono(
                   size: 13,
-                  color: AnsiColors.herb,
+                  color: struck ? AnsiColors.muted : AnsiColors.herb,
                   weight: FontWeight.w600,
                 ),
               ),
@@ -1403,6 +1497,14 @@ class _StepRow extends StatelessWidget {
           Expanded(child: child),
         ],
       ),
+    );
+    final onToggle = this.onToggle;
+    if (onToggle == null) return row;
+    return FTappable(
+      onPress: onToggle,
+      semanticsLabel: 'step $number',
+      behavior: HitTestBehavior.opaque,
+      child: row,
     );
   }
 }

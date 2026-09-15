@@ -14,6 +14,7 @@ library;
 
 import 'dart:io';
 
+import 'package:ansi/core/theme/ansi_tokens.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
@@ -21,10 +22,12 @@ import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/presentation/week_recipe_band.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/line_override.dart';
+import 'package:ansi/features/recipes/domain/method_step.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
 import 'package:ansi/features/recipes/presentation/ingredient_line.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view.dart';
+import 'package:ansi/shared/method_step_text.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -137,12 +140,30 @@ class _Planner extends FakePlanningRepository {
       Stream.value(_week(plansIt: plansIt));
 }
 
+/// The same recipe with a tokenized method: the chip on `l3` is what a week
+/// that leaves that line out has to be able to say something about.
+final _tokenized = _recipe.copyWith(
+  steps: const [],
+  methodSteps: const [
+    MethodStep(
+      tokens: [
+        MethodText(s: 'Brown the '),
+        MethodRef(refs: ['l1'], label: 'sausage'),
+        MethodText(s: ', then shower it with '),
+        MethodRef(refs: ['l3'], label: 'parmesan'),
+        MethodText(s: '.'),
+      ],
+    ),
+  ],
+);
+
 List<Override> _overrides({
   required FakeWeekVariantRepository variants,
   bool plansIt = true,
+  Recipe? recipe,
 }) => [
   recipeRepositoryProvider.overrideWithValue(
-    FakeRecipeRepository(recipe: _recipe),
+    FakeRecipeRepository(recipe: recipe ?? _recipe),
   ),
   planningRepositoryProvider.overrideWithValue(_Planner(plansIt: plansIt)),
   weekVariantRepositoryProvider.overrideWithValue(variants),
@@ -155,6 +176,7 @@ Future<GoRouter> _pumpPage(
   String? week,
   bool plansIt = true,
   FakeWeekVariantRepository? variants,
+  Recipe? recipe,
 }) async {
   filterForuiSemanticsAssertions();
   late GoRouter router;
@@ -163,6 +185,7 @@ Future<GoRouter> _pumpPage(
       initial: week == null ? '/recipes/r1' : '/recipes/r1?week=$week',
       overrides: _overrides(
         plansIt: plansIt,
+        recipe: recipe,
         variants: variants ?? FakeWeekVariantRepository(),
       ),
       expose: (r) => router = r,
@@ -515,6 +538,83 @@ void main() {
       expect(find.byType(PlannedThisWeekBand), findsNothing);
       await _openMenu(tester);
       expect(find.textContaining('Edit for this week'), findsNothing);
+    });
+  });
+
+  group('the method says what the week left out, in its own voice', () {
+    /// One method chip's word, as it is painted.
+    TextStyle chipStyle(WidgetTester tester, String label) => tester
+        .widget<Text>(
+          find.descendant(
+            of: find.byWidgetPredicate(
+              (w) => w is MethodChip && w.label == label,
+            ),
+            matching: find.text(label),
+          ),
+        )
+        .style!;
+
+    Future<void> openMethod(
+      WidgetTester tester, {
+      FakeWeekVariantRepository? variants,
+    }) async {
+      await _pumpPage(
+        tester,
+        week: _weekKey,
+        recipe: _tokenized,
+        variants: variants,
+      );
+      await tester.tap(find.text('Method'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a line the week leaves out reads MUTED in the method — never '
+        'ruled through, which is what a cook ticking things off means', (
+      tester,
+    ) async {
+      await openMethod(
+        tester,
+        variants: FakeWeekVariantRepository(
+          overrides: {
+            'r1': [_override(LineOverrideAction.exclude, lineId: 'l3')],
+          },
+        ),
+      );
+
+      expect(chipStyle(tester, 'parmesan').color, AnsiColors.muted);
+      expect(chipStyle(tester, 'parmesan').decoration, isNull);
+      // The line the week still cooks is untouched.
+      expect(chipStyle(tester, 'sausage').color, AnsiColors.herbDeep);
+    });
+
+    testWidgets('and the cook can still tick that chip off — the rule is then '
+        'the one the tick draws', (tester) async {
+      await openMethod(
+        tester,
+        variants: FakeWeekVariantRepository(
+          overrides: {
+            'r1': [_override(LineOverrideAction.exclude, lineId: 'l3')],
+          },
+        ),
+      );
+
+      await tester.tap(find.text('parmesan'));
+      await tester.pumpAndSettle();
+
+      expect(
+        chipStyle(tester, 'parmesan').decoration,
+        TextDecoration.lineThrough,
+      );
+    });
+
+    testWidgets('from the Library there is no week, so no chip is muted', (
+      tester,
+    ) async {
+      await _pumpPage(tester, recipe: _tokenized);
+      await tester.tap(find.text('Method'));
+      await tester.pumpAndSettle();
+
+      expect(chipStyle(tester, 'parmesan').color, AnsiColors.herbDeep);
     });
   });
 }

@@ -7,10 +7,12 @@ import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
+import 'package:ansi/features/recipes/domain/method_step.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/presentation/ingredient_line.dart';
 import 'package:ansi/features/recipes/presentation/recipe_editor_view.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view.dart';
+import 'package:ansi/shared/method_step_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -82,6 +84,73 @@ const _recipe = Recipe(
   ],
   steps: ['Dice the onion.', 'Simmer gently.'],
 );
+
+/// The same page with a tokenized method, so its chips are real ones.
+const _cooking = Recipe(
+  id: '9',
+  title: 'Dirty Rice',
+  servingsBase: 4,
+  groups: [
+    IngredientGroup(
+      id: 'g1',
+      items: [
+        LineItem(
+          id: 'i1',
+          ingredientId: 'onion',
+          ingredientName: 'Onion',
+          unit: pieces,
+          quantity: 3,
+        ),
+        LineItem(
+          id: 'i2',
+          ingredientId: 'rice',
+          ingredientName: 'Long-grain rice',
+          unit: g,
+          quantity: 200,
+        ),
+      ],
+    ),
+  ],
+  methodSteps: [
+    MethodStep(
+      tokens: [
+        MethodText(s: 'Sweat the '),
+        MethodRef(refs: ['i1'], label: 'onion'),
+        MethodText(s: '.'),
+      ],
+    ),
+    MethodStep(
+      tokens: [
+        MethodText(s: 'Stir in the '),
+        MethodRef(refs: ['i2'], label: 'rice'),
+        MethodText(s: ' and cover.'),
+      ],
+    ),
+  ],
+);
+
+/// The ink one method chip's word is painted in.
+TextStyle _chipStyle(WidgetTester tester, String label) => tester
+    .widget<Text>(
+      find.descendant(
+        of: find.byWidgetPredicate((w) => w is MethodChip && w.label == label),
+        matching: find.text(label),
+      ),
+    )
+    .style!;
+
+/// One step's prose style, by its position in the method.
+TextStyle _stepStyle(WidgetTester tester, int step) => tester
+    .widget<Text>(
+      find
+          .descendant(
+            of: find.byType(MethodStepText).at(step),
+            matching: find.byType(Text),
+          )
+          .first,
+    )
+    .textSpan!
+    .style!;
 
 void main() {
   testWidgets('RecipeView renders the scaled ingredients + method', (
@@ -270,6 +339,121 @@ void main() {
               (w.decoration! as BoxDecoration).shape == BoxShape.circle,
         ),
         findsNothing,
+      );
+    });
+
+    testWidgets('a plain step takes the tap too — it simply has no chips', (
+      tester,
+    ) async {
+      await openMethod(tester);
+
+      expect(
+        tester.widget<Text>(find.text('Dice the onion.')).style?.decoration,
+        isNull,
+      );
+
+      // The number is in the step's own row, so tapping it is tapping the step.
+      await tester.tap(find.text('1'));
+      await tester.pumpAndSettle();
+
+      final style = tester.widget<Text>(find.text('Dice the onion.')).style!;
+      expect(style.decoration, TextDecoration.lineThrough);
+      expect(style.color, AnsiColors.muted);
+      // Only the step that was tapped.
+      expect(
+        tester.widget<Text>(find.text('Simmer gently.')).style?.decoration,
+        isNull,
+      );
+    });
+  });
+
+  group('ticking off while cooking', () {
+    Future<void> openMethod(WidgetTester tester) async {
+      await tester.pumpWidget(
+        _host(const RecipeView(recipeId: '9'), [
+          recipeRepositoryProvider.overrideWithValue(_FakeRecipeRepo(_cooking)),
+        ]),
+      );
+      await tester.pump();
+      await tester.tap(find.text('Method'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a tap on a chip rules it through, and a second tap lifts it', (
+      tester,
+    ) async {
+      await openMethod(tester);
+
+      expect(_chipStyle(tester, 'onion').decoration, isNull);
+
+      await tester.tap(find.text('onion'));
+      await tester.pumpAndSettle();
+
+      expect(
+        _chipStyle(tester, 'onion').decoration,
+        TextDecoration.lineThrough,
+      );
+      expect(_chipStyle(tester, 'onion').color, AnsiColors.muted);
+      // A chip is one thing you added: the other step's chip is untouched, and
+      // so is the prose around this one.
+      expect(_chipStyle(tester, 'rice').decoration, isNull);
+      expect(_stepStyle(tester, 0).decoration, isNull);
+
+      await tester.tap(find.text('onion'));
+      await tester.pumpAndSettle();
+
+      expect(_chipStyle(tester, 'onion').decoration, isNull);
+    });
+
+    testWidgets('a tap on the step rules its prose AND every chip in it', (
+      tester,
+    ) async {
+      await openMethod(tester);
+
+      await tester.tap(find.text('2'));
+      await tester.pumpAndSettle();
+
+      expect(_stepStyle(tester, 1).decoration, TextDecoration.lineThrough);
+      expect(_chipStyle(tester, 'rice').decoration, TextDecoration.lineThrough);
+      // Step one is untouched — the tap was about one step.
+      expect(_stepStyle(tester, 0).decoration, isNull);
+      expect(_chipStyle(tester, 'onion').decoration, isNull);
+    });
+
+    testWidgets('un-striking a step leaves the chip the cook had ticked', (
+      tester,
+    ) async {
+      await openMethod(tester);
+
+      await tester.tap(find.text('onion'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('1'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('1'));
+      await tester.pumpAndSettle();
+
+      expect(_stepStyle(tester, 0).decoration, isNull);
+      expect(
+        _chipStyle(tester, 'onion').decoration,
+        TextDecoration.lineThrough,
+      );
+    });
+
+    testWidgets('the ticks survive a trip to the Ingredients tab — the set '
+        'lives on the page, not on the tab', (tester) async {
+      await openMethod(tester);
+
+      await tester.tap(find.text('onion'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Ingredients'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Method'));
+      await tester.pumpAndSettle();
+
+      expect(
+        _chipStyle(tester, 'onion').decoration,
+        TextDecoration.lineThrough,
       );
     });
   });

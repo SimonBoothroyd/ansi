@@ -124,6 +124,23 @@ a column, not ink discs, and the Method tab's own bar carries `for 4
 servings · 1×` at its right end, read off the same servings state the
 Ingredients tab's scaler holds.
 
+**Ticking off while cooking.** On the recipe page a method chip answers a tap:
+it goes muted and ruled through — the Shop's own *got it* — so a cook can track
+what has actually gone into the pan. A tap anywhere else on the step rules the
+prose through **and** every chip in it, because a decoration on a text span does
+not cross into the widget spans the chips are; chips still toggle one at a time
+otherwise, and un-striking a step leaves each chip exactly as it was. Timer
+chips are not tappable: a duration is not a thing you add. The set is
+**ephemeral** — a `useState` beside the servings scaler, keyed positionally
+(`s2`, `s2:c0`, the nth chip in the nth step), dying with the page. Nothing is
+stored, nothing syncs, and both bands share the one set because the method is
+built once and placed by the layout. Every knob on `MethodStepText` is
+null-defaulted, so the import review and the editor's *Reads as* preview render
+exactly what they always did. A line **this week leaves out** reads muted in the
+method and is never ruled through — the rule belongs to the cook's hand, and the
+two states must not read alike. Full **cook mode** stays deferred (owner: *"I
+don't think we need a full cook mode"*); see `docs/exec-plans/backlog.md`.
+
 The editor's **header is one widget with two hosts** (plan 0025 #4):
 `presentation/recipe_header_form.dart` renders TITLE · SERVES · MAKES · TIMES ·
 SHELF LIFE · FILE UNDER from `kRecipeHeaderSections` over a `RecipeHeaderHost`
