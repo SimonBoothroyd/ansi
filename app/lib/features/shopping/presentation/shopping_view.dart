@@ -91,10 +91,12 @@ class ShoppingView extends ConsumerWidget {
             },
           ),
         ),
-        // The status line sits between the header and the scroll, not inside it
-        // (D9): mid-aisle, an answer that has scrolled away is no answer. The
-        // shell's banner, when there is one, sits above this whole column — the
-        // banner says something is wrong, this says where you stand.
+        // The status line sits between the header and the scroll, not inside
+        // it: mid-aisle, an answer that has scrolled away is no answer. It
+        // keeps its height whether or not it is saying anything, so a tick
+        // never walks the rows under the thumb that ticked one. The shell's
+        // banner, when there is one, sits above this whole column — the banner
+        // says something is wrong, this says where you stand.
         child: Column(
           children: [
             const AnsiSyncStatusLine(noun: 'tick'),

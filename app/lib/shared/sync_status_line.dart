@@ -13,10 +13,17 @@
 /// cannot disagree. What differs is the noun and the register: the banner says
 /// *something is wrong*, this says *where you stand right now*.
 ///
-/// It shows nothing when there is nothing to say — with one exception. After
-/// the queue drains it says **"Synced · just now"** for a few seconds and then
-/// retires itself. That is the confirmation a shopper actually wants ("it got
-/// there") without a permanent status bar on a grocery list.
+/// It says nothing when there is nothing to say — with one exception. After a
+/// queue it *showed* drains it says **"Synced · just now"** for a few seconds
+/// and then goes quiet again. That is the confirmation a shopper actually
+/// wants ("it got there") without a permanent status bar on a grocery list.
+///
+/// Two rules keep it from moving the list under a walking thumb, which is what
+/// a strip that comes and goes above a scroll does. **Its height is always
+/// reserved**: an empty slot fades in and out, and the rows below never
+/// travel. And a queue has to **outlive [waitingGrace]** before it is worth a
+/// word — a tick that uploads in a fifth of a second is the system working,
+/// not news, and the "Synced" that would follow it is not said either.
 ///
 /// Explicitly **not** built: per-item pending marks. A queue is the system
 /// working, and a dot on forty rows makes nothing look like something. The
@@ -39,6 +46,17 @@ import 'sync_words.dart';
 /// How long "Synced · just now" lingers after the queue drains.
 const settledLinger = Duration(seconds: 4);
 
+/// How long a queue must last before the line says so.
+///
+/// A tick's `ps_crud` row, its upload and the status that follows it are a
+/// round trip on a good connection, and the derivation behind them is itself
+/// throttled at 300 ms. Below this the queue is invisible to the person who
+/// made it, and a strip that appeared for it would only be a flinch.
+const waitingGrace = Duration(milliseconds: 700);
+
+/// How long the slot takes to fade its content in or out.
+const _fade = Duration(milliseconds: 160);
+
 class AnsiSyncStatusLine extends HookConsumerWidget {
   const AnsiSyncStatusLine({this.noun = 'change', super.key});
 
@@ -49,62 +67,107 @@ class AnsiSyncStatusLine extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final health = ref.watch(syncHealthProvider).asData?.value;
     final settled = health is SyncSettled;
+    final waiting = health is SyncWaiting;
 
-    // "Synced" is worth saying only just after something landed, so the line
-    // is driven by a one-shot timer keyed on the transition INTO settled —
-    // never a `Timer.periodic` started in build, and always disposed.
+    // Whether the queue that is ending was ever on screen. It starts true so
+    // that a screen opened onto an already-settled app still confirms once;
+    // entering a queue clears it, and only the grace timer sets it again.
+    final queueWasShown = useRef(true);
+
+    // A queue earns its strip by lasting. One-shot timer keyed on the
+    // transition INTO waiting, cancelled when the queue drains first.
+    final showWaiting = useState(false);
+    useEffect(() {
+      if (!waiting) {
+        showWaiting.value = false;
+        return null;
+      }
+      queueWasShown.value = false;
+      final timer = Timer(waitingGrace, () {
+        queueWasShown.value = true;
+        showWaiting.value = true;
+      });
+      return timer.cancel;
+    }, [waiting]);
+
+    // "Synced" is worth saying only just after something the shopper watched
+    // landed, so the line is driven by a one-shot timer keyed on the
+    // transition INTO settled — never a `Timer.periodic` started in build,
+    // and always disposed. The flag is consumed here: one queue, one
+    // confirmation.
     final showSettled = useState(false);
     useEffect(() {
       if (!settled) {
         showSettled.value = false;
         return null;
       }
+      if (!queueWasShown.value) {
+        showSettled.value = false;
+        return null;
+      }
+      queueWasShown.value = false;
       showSettled.value = true;
       final timer = Timer(settledLinger, () => showSettled.value = false);
       return timer.cancel;
     }, [settled]);
 
-    if (health == null) return const SizedBox.shrink();
-    // The banner above already says this one, loudly. Don't say it twice.
-    if (health is SyncRefused) return const SizedBox.shrink();
-    if (settled && !showSettled.value) return const SizedBox.shrink();
+    final line = health == null
+        ? null
+        : syncLine(health, noun: noun, now: DateTime.now());
+    final text = switch (health) {
+      // The banner above already says this one, loudly. Don't say it twice.
+      null || SyncRefused() => null,
+      SyncSettled() => showSettled.value ? line!.text : null,
+      SyncWaiting() => showWaiting.value ? line!.text : null,
+      _ => line!.text,
+    };
 
-    final line = syncLine(health, noun: noun, now: DateTime.now());
-    final text = line.text;
-    if (text == null) return const SizedBox.shrink();
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 7, 20, 7),
-      decoration: const BoxDecoration(
-        color: AnsiColors.surface,
-        border: Border(bottom: BorderSide(color: AnsiColors.line)),
-      ),
-      child: Row(
-        children: [
-          _Dot(tone: line.tone),
-          const SizedBox(width: 7),
-          Expanded(
-            child: Text(
-              text,
-              style: ansiMono(size: 11, color: syncToneColor(line.tone)),
-              overflow: TextOverflow.ellipsis,
-            ),
+    // The slot is drawn whether or not it is saying anything: this sits above
+    // the Shop list's scroll, and a strip that collapsed would walk every row
+    // up the screen under the thumb that ticked one. A blank line holds the
+    // same height as a full one, so there is nothing to compute.
+    return AnimatedOpacity(
+      opacity: text == null ? 0 : 1,
+      duration: _fade,
+      child: IgnorePointer(
+        ignoring: text == null,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(20, 7, 20, 7),
+          decoration: const BoxDecoration(
+            color: AnsiColors.surface,
+            border: Border(bottom: BorderSide(color: AnsiColors.line)),
           ),
-          if (health is SyncStalled) ...[
-            const SizedBox(width: 8),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => unawaited(
-                ref.read(sessionControllerProvider.notifier).reconnect(),
+          child: Row(
+            children: [
+              _Dot(tone: line?.tone ?? SyncTone.calm),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  text ?? ' ',
+                  style: ansiMono(
+                    size: 11,
+                    color: syncToneColor(line?.tone ?? SyncTone.calm),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              child: Text(
-                'Try now',
-                style: ansiMono(size: 11, color: AnsiColors.herbDeep),
-              ),
-            ),
-          ],
-        ],
+              if (text != null && health is SyncStalled) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => unawaited(
+                    ref.read(sessionControllerProvider.notifier).reconnect(),
+                  ),
+                  child: Text(
+                    'Try now',
+                    style: ansiMono(size: 11, color: AnsiColors.herbDeep),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

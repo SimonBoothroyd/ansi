@@ -144,8 +144,16 @@ They cannot disagree, because there is nothing to disagree about.
   the aisle, in exactly the place where connectivity is worst. Same provider,
   same thresholds; only the **noun** changes, to *ticks*, because on that screen
   the thing at stake is a check-off and the other person is already in the
-  user's head. After the queue drains it says *Synced · just now* for a few
-  seconds and retires itself; a grocery list does not carry a status bar.
+  user's head. After a queue it showed drains it says *Synced · just now* for a
+  few seconds and then goes quiet; a grocery list does not carry a status bar.
+
+  Two rules keep that line from moving the list under a walking thumb, which is
+  the price a strip above a scroll charges if it comes and goes. **Its height
+  is always reserved** — an empty slot fades in and out, and the rows below it
+  never travel. And a queue must **outlive a short grace** before it is worth a
+  word: a tick that uploads in a fifth of a second is the system working, not
+  news, and the *Synced* that would have followed it is not said either. What a
+  shopper sees for a healthy tick is therefore nothing at all.
 
 ---
 
