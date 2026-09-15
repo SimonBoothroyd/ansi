@@ -550,6 +550,18 @@ or any dashboard-config walk. An entry headed **pending** is the exception: it
 names a migration that is merged but **not yet on cloud**, and it is replaced by
 the ordinary entry for the run that pushes it.
 
+### 2026-09-14 — v0.17.0's function on cloud: the page comes back with the import
+
+- **deploy-supabase 34914211711** (owner-triggered, before the round-fourteen
+  landing): function deployed with the two optional fields `import-recipe`
+  gained additively in plan 0047 — `source_text` and a per-line
+  `source_span` — so the wide import review's source pane lights the
+  current line's words instead of saying the page did not come back. No
+  migration (`schema_migrations` still tops at `0043`), no reseed, no
+  sync-rule change.
+- `cloud_verify.sh`: 9 ok · 0 warn · 0 fail.
+- Nothing to do by hand on the dashboard.
+
 ### 2026-09-12 (night) — v0.15.0 on cloud: 0043, the household's first day of the week
 
 - **deploy-supabase 34711560878** (owner-triggered, after the round-eleven
