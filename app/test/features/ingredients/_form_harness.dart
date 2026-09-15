@@ -411,6 +411,10 @@ Widget host(
   FakeMeasureRepo? measures,
   UsdaProbe? probe,
   OffLookup? lookup,
+  // Hands the built router back, so a suite can ask what the address bar
+  // says. On wide that IS the assertion: the manager's selection is its
+  // location, not a flag inside a widget.
+  void Function(GoRouter)? onRouter,
 }) {
   final router = GoRouter(
     initialLocation: at,
@@ -457,6 +461,7 @@ Widget host(
     ],
   );
   addTearDown(router.dispose);
+  onRouter?.call(router);
   return ProviderScope(
     overrides: [
       ingredientRepositoryProvider.overrideWithValue(repo),

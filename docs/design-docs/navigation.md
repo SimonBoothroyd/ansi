@@ -346,7 +346,7 @@ Hash URLs, not paths: GitHub Pages cannot rewrite an unknown path back to
 ### What view state is in the URL, and what is not
 
 The test is **would a refresh be wrong without it, and is the answer one a link
-could honestly carry?** Two things pass:
+could honestly carry?** Three things pass:
 
 - **The week on screen** — `?week=YYYY-MM-DD` on `/week`, `/cook` and `/shop`,
   the same week key `/recipes/:id` already takes. The week is one keep-alive
@@ -359,17 +359,31 @@ could honestly carry?** Two things pass:
   today when absent. A date rather than an index, so a link says what it means
   and a date from another week simply does not match. A phone draws all seven
   days and stands on none, so it names none.
+- **The vocabulary row the wide manager is reading** — `/ingredients/<id>`, and
+  `?edit=1` from the stub band. The row is already a page: it is the location
+  the phone pushes, so the desk's two panes are a way of DRAWING that page, not
+  a second kind of state beside it. A pick used to be a flag inside the widget,
+  and the three things that follow from that were all reported at once — a
+  refresh lost the row, the link said `/ingredients`, and a recipe's ingredient
+  door and a tap in the list were two different places. Arriving on one lights
+  the row **and scrolls it into view**: a lit row nobody can see is not a
+  selection.
 
-Both are written with **`restateOnce`** (`shared/guarded_navigation.dart`): a
-`replace` inside `Router.neglect`, so the bar changes in place, the screen keeps
-its state and the history gets **no new entry**. Back leaves the week; it does
-not walk backwards through every day and week that was read.
+All three are written with **`restateOnce`** (`shared/guarded_navigation.dart`):
+a `replace` inside `Router.neglect`, so the bar changes in place, the screen
+keeps its state and the history gets **no new entry**. Back leaves the week — or
+the manager — rather than walking backwards through every day, week or row that
+was read. The manager's is the one restate that crosses BETWEEN two routes
+(`/ingredients` and `/ingredients/:id`), so the page under it is rebuilt: the
+list carries its own scroll offset across, because a `PageStorageKey` belongs to
+one route and which route this screen is on is exactly what a pick changes.
 
 These deliberately stay out:
 
 - **the Shop's selected provenance row** and **the Library's fold** — a pane
   pointing at a row, and a disclosure. Neither is a place; both are re-reached by
-  looking at the screen.
+  looking at the screen. (The manager's lit row is in for the opposite reason:
+  the row it points at has a location of its own either way.)
 - **search text** — mid-typing state, and a link carrying somebody's half-typed
   query is a link nobody meant to send.
 - **the Week's per-person lens** — a question about how the numbers are being
