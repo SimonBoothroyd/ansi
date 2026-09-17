@@ -61,13 +61,15 @@ class SqliteCookPlanRepository implements CookPlanRepository {
     // One row per planned meal, carrying its recipe's shelf life. A meal whose
     // recipe was deleted (r.id null) can't be cooked, so it's filtered out.
     //
-    // **The cook plan ignores a bare-ingredient meal** (step 8.14 / A-D4):
-    // a protein bar is not cooked, so it opens no session and joins no batch.
-    // The `recipe_id IS NOT NULL` clause is redundant beside the inner join —
-    // it is written anyway, because a null recipe must never read as an
-    // accident of the join. The other half of the ruling lives one derivation
-    // over: the SHOPPING list does include it, which is why that derivation
-    // walks entries rather than only sessions.
+    // **The cook plan takes RECIPE meals and nothing else.** A protein bar is
+    // not cooked (step 8.14 / A-D4), and neither is an office lunch: neither
+    // opens a session, neither joins a batch. The `recipe_id IS NOT NULL`
+    // clause is redundant beside the inner join — it is written anyway,
+    // because a null recipe must never read as an accident of the join, and
+    // because this clause is where this derivation states which kind it takes.
+    // The rest of the ruling lives one derivation over: the SHOPPING list buys
+    // an ingredient meal, which is why it walks entries rather than only
+    // sessions, and buys nothing at all for a meal eaten out.
     final rows = await _db.getAll(
       'SELECT pe.day_of_week, pe.meal_slot, pe.eaters, pe.portions, '
       'r.id AS recipe_id, r.title, r.servings_base, r.keeps_for_days, '

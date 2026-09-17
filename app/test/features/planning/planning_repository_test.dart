@@ -6,6 +6,7 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/planning/data/planning_repository_impl.dart';
 import 'package:ansi/features/planning/data/week_variant_repository_impl.dart';
+import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/domain/week_macros.dart';
 import 'package:ansi/features/recipes/domain/line_override.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
@@ -530,7 +531,7 @@ void main() {
       );
 
       final entry = (await repo.watchWeek(_thisWeek).first)!.entries.single;
-      expect(entry.isIngredient, isTrue);
+      expect(entry.kind, PlanEntryKind.ingredient);
       expect(entry.recipeId, isNull);
       expect(entry.ingredientId, 'i1');
       expect(entry.title, 'Protein bar');
@@ -639,7 +640,7 @@ void main() {
       final entry = (await repo.watchWeek(_thisWeek).first)!.entries.single;
       expect(entry.ingredientName, isNull);
       expect(entry.nutrition, isNull);
-      expect(entry.isIngredient, isTrue);
+      expect(entry.kind, PlanEntryKind.ingredient);
     });
 
     test('an unknown persisted unit stays null rather than becoming '
