@@ -121,6 +121,10 @@ String exclusionNote(ExcludedMeal meal) => switch (meal.reason) {
     meal.lineReason == null
         ? 'not counted'
         : incompleteLineNote(meal.lineReason!),
+  // A meal eaten out that nobody wrote figures for. It wears the shape a stub
+  // ingredient wears — the meal NAMED, the reason one clause — because it is
+  // the same kind of absence: `Office lunch · macros not stated`.
+  MealExclusion.outNotStated => 'macros not stated',
 };
 
 /// `left out: Sausage Sliders · 1 stub line` — every exclusion NAMED, never

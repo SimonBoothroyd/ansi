@@ -23,12 +23,13 @@
 /// day is one back-tap away while the sheet is open, and remove-and-re-add
 /// once it is placed; a wrong slot is a field of the meal editor afterwards.
 ///
-/// Since step 8.14 it places EITHER kind of meal — a recipe, or a bare
-/// ingredient whose amount the quantity sheet already settled ([MealTarget]).
-/// The slot, the eaters and the portions stepper are identical for both,
-/// because a snack carries eaters and multiplies like any other entry (A-D3);
-/// what differs is the card at the top and which repository door the write
-/// goes through.
+/// It places ANY kind of meal ([MealTarget]) — a recipe, a bare ingredient
+/// whose amount the quantity sheet already settled, or a meal eaten out. The
+/// slot, the eaters and the portions stepper are identical for all three,
+/// because every kind carries eaters and multiplies (A-D3); what differs is
+/// the card at the top, which repository door the write goes through, and one
+/// optional fold a meal eaten out alone is offered — the figures it was
+/// given, which nothing else in the app could know.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -45,6 +46,8 @@ import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../ingredients/domain/ingredient.dart';
+import '../../ingredients/presentation/ingredient_view_models.dart'
+    show MacroDraft;
 import '../../recipes/domain/recipe.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart' show defaultMealSlot;
@@ -79,6 +82,17 @@ final class SnackMeal extends MealTarget {
   final double? quantity;
   final Unit? unit;
   final Measure? measure;
+}
+
+/// A meal eaten out — the typed words, and nothing behind them.
+///
+/// Its figures are NOT carried here the way a snack's amount is: they are
+/// asked for on this sheet, in its one optional fold, because this is the only
+/// kind of meal whose macros nothing else in the app can know.
+final class OutMeal extends MealTarget {
+  const OutMeal(this.label);
+
+  final String label;
 }
 
 /// Opens the confirm sheet for [target] on [dayOfWeek], pre-selecting [slot].
@@ -119,6 +133,9 @@ class _ConfirmMealSheet extends HookConsumerWidget {
     final eaters = useState<Set<String>>({});
     // Null = track the eater count; a number is an explicit override (spec §8).
     final portionsOverride = useState<int?>(null);
+    // The optional fold's five slots, as typed — a meal eaten out only. Blank
+    // is a real answer: the meal fills its slot uncounted.
+    final stated = useState(const MacroDraft());
 
     final members = ref.watch(membersProvider);
     final shape = ref.watch(weekShapeProvider);
@@ -186,6 +203,18 @@ class _ConfirmMealSheet extends HookConsumerWidget {
               measureId: (target as SnackMeal).measure?.id,
               portions: portionsOverride.value,
             ),
+          // A half-filled panel is not a panel ([MacroDraft.isCoherent]), so
+          // it writes as "not stated" rather than as four numbers with a hole
+          // in it. The fold says so where it is typed.
+          OutMeal(:final label) => repo.addOutEntry(
+            weekStart: weekStart,
+            dayOfWeek: dayOfWeek,
+            mealSlot: slotState.value,
+            label: label,
+            eaterIds: eaters.value.toList(),
+            macros: stated.value.toMacros(),
+            portions: portionsOverride.value,
+          ),
         },
       );
       if (added != null && context.mounted) Navigator.of(context).pop();
@@ -205,6 +234,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
         switch (target) {
           RecipeMeal(:final recipe) => MealRecipeCard(recipe: recipe),
           final SnackMeal snack => MealSnackCard(snack: snack),
+          OutMeal(:final label) => MealOutCard(label: label),
         },
         if (hint != null) ...[
           const SizedBox(height: 10),
@@ -239,6 +269,16 @@ class _ConfirmMealSheet extends HookConsumerWidget {
           roster: members.asData?.value ?? const [],
           onChanged: (v) => portionsOverride.value = v < 1 ? 1 : v,
         ),
+        // The one question the other two kinds are never asked, because the
+        // app can answer it for them. Left empty the meal still fills its
+        // slot, and the week names it as uncounted — a blank is never a zero.
+        if (target is OutMeal) ...[
+          const SizedBox(height: 18),
+          MealMacrosFold(
+            draft: stated.value,
+            onChanged: (d) => stated.value = d,
+          ),
+        ],
         const SizedBox(height: 20),
         FButton(
           onPress: add,

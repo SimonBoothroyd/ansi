@@ -1,5 +1,6 @@
 /// Display strings for the Week screen: weekday labels, the week's own name,
-/// the per-dish cook marker, and a snack row's stated amount. Kept apart from
+/// the per-dish cook marker, a snack row's stated amount and what a meal eaten
+/// out prints in the marker's place. Kept apart from
 /// widgets so the labels — and, for the marker, the derivation behind them —
 /// are trivially testable.
 library;
@@ -10,6 +11,7 @@ import '../../../core/units/portions.dart';
 import '../../../core/week_shape.dart';
 import '../../../shared/format.dart';
 import '../../cook_plan/domain/cook_plan.dart';
+import '../../ingredients/presentation/macros_format.dart';
 import '../domain/planning.dart';
 
 const _months = [
@@ -224,6 +226,30 @@ String cookMarkerLabel(
   CookMarkerKind.freezerShare =>
     '${shape.labelFull(marker.cookDay)}\u2019s freezer share',
 };
+
+/// What the app will NOT do with a meal eaten out — said in the same four
+/// words wherever it is said: the picker's third answer, which offers the
+/// consequence rather than hiding it, and the confirm card that repeats it
+/// back before the meal is placed.
+const kNotCookedNotBought = 'not cooked, not bought';
+
+/// What a meal eaten OUT prints where a dish's cook marker would sit:
+/// `620 kcal · 42P — as stated`, or `macros not stated`.
+///
+/// The figures are per portion — what the canteen put on one plate — and the
+/// row says `as stated` because they were typed rather than derived: a
+/// recipe's come from its lines and an ingredient's from its vocabulary row,
+/// and this is the one meal whose numbers nothing else can check.
+///
+/// Their absence is a real state, not an empty string. The meal still fills
+/// its slot; what it does not do is join the day's total, and a row that said
+/// nothing about that would be hiding why the day's denominator moved.
+String outMacroLine(PlanEntry entry) {
+  final macros = entry.macros;
+  if (macros == null) return 'macros not stated';
+  return '${formatKcal(macros.kcal)} kcal · '
+      '${formatGrams(macros.protein)}P — as stated';
+}
 
 /// A snack row's amount, in the place a dish's cook marker would sit (step
 /// 8.14 / A-D5): `1 bar · 60 g`, `170 g`, or `no amount`.

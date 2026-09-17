@@ -79,8 +79,9 @@ import 'week_widgets.dart';
 /// first sheet opens. A recipe goes straight to the confirm sheet — its
 /// amount is its portions. A bare ingredient (step 8.14) stops at the shipped
 /// quantity sheet first, opened on the row's default unit — `piece`, weighed
-/// by the row's own piece weight (ADR-0015), so "1 bar" is a bar; then the
-/// same confirm sheet asks the questions both kinds share.
+/// by the row's own piece weight (ADR-0015), so "1 bar" is a bar. A meal eaten
+/// out goes straight through too, since its words are all of it; the confirm
+/// sheet then asks the questions every kind shares, and one only it is asked.
 Future<void> _addMealFlow(
   BuildContext context,
   WidgetRef ref, {
@@ -135,6 +136,10 @@ Future<void> _addMealFlow(
           UnitOption() => null,
         },
       );
+    case PickedMealOut(:final label):
+      // Nothing to settle first: the words ARE the meal, and the only
+      // question left is the one the confirm sheet's optional fold asks.
+      target = OutMeal(label);
   }
 
   await showConfirmMealSheet(
@@ -577,16 +582,19 @@ class _DishRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final snack = entry.isIngredient;
+    final kind = entry.kind;
+    final snack = kind == PlanEntryKind.ingredient;
+    final out = kind == PlanEntryKind.out;
     final plan = cookPlan;
     // E6: the marker is never suppressed — there is no mode left to suppress
     // it in, and the cook consequence is most worth reading while planning.
     //
-    // A SNACK has no cook marker, and that is a ruling, not an omission
-    // (step 8.14 / A-D5): nothing about a protein bar is cooked, so a row that
-    // drew a shelf-life chip or a batch hint would be describing a recipe.
-    // Its stated amount sits in the marker's place instead.
-    final marker = plan == null || snack
+    // Only a RECIPE has a cook marker, and that is a ruling, not an omission
+    // (step 8.14 / A-D5): nothing about a protein bar or a canteen lunch is
+    // cooked, so a row that drew a shelf-life chip or a batch hint would be
+    // describing a recipe. What the meal IS takes the marker's place instead —
+    // a snack's stated amount, a meal out's tag and figures.
+    final marker = plan == null || kind != PlanEntryKind.recipe
         ? null
         : cookMarkerFor(
             plan,
@@ -626,18 +634,26 @@ class _DishRow extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     child: Text(
                       mealTitleText(entry),
-                      // A snack is VISIBLY not a recipe (A-D5): the dish's
-                      // emphasis is what says "this is a dish with a page
-                      // behind it", so a bare ingredient reads at the row's
-                      // ordinary weight instead of borrowing it.
+                      // Three weights, because there are three kinds (A-D5).
+                      // The dish's emphasis is what says "this is a dish with
+                      // a page behind it", so a bare ingredient reads at the
+                      // row's ordinary weight — and a meal eaten out, which
+                      // has no page at all, reads plain and italic: the
+                      // household's own words rather than a title.
                       style: entry.title == null
                           ? ansiSans(size: 15, color: AnsiColors.muted)
                           : ansiSans(
-                              size: snack ? 14 : 15,
-                              color: snack
+                              size: snack || out ? 14 : 15,
+                              color: snack || out
                                   ? AnsiColors.ink
                                   : AnsiColors.herbDeep,
-                              weight: snack ? FontWeight.w400 : FontWeight.w600,
+                              weight: snack || out
+                                  ? FontWeight.w400
+                                  : FontWeight.w600,
+                            ).copyWith(
+                              fontStyle: out
+                                  ? FontStyle.italic
+                                  : FontStyle.normal,
                             ),
                     ),
                   ),
@@ -681,6 +697,13 @@ class _DishRow extends ConsumerWidget {
                 overflow: TextOverflow.ellipsis,
                 style: ansiMono(size: 10.5, color: AnsiColors.muted),
               ),
+            ),
+          // And the meal eaten out says the same thing in its own terms: the
+          // `out` tag, and the figures it was given or the absence of them.
+          if (out)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: OutMealLine(entry: entry),
             ),
         ],
       ),

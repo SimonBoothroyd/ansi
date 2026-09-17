@@ -28,12 +28,16 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/portions.dart';
+import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_tap.dart';
 import '../../../shared/format.dart';
 import '../../../shared/incomplete_macros.dart';
 import '../../account/data/household_providers.dart';
 import '../../books/presentation/text_prompt.dart';
 import '../../cook_plan/domain/cook_plan.dart';
+import '../../ingredients/presentation/ingredient_view_models.dart'
+    show MacroDraft;
+import '../../ingredients/presentation/macro_fields.dart';
 import '../../recipes/domain/recipe.dart';
 import '../domain/planning.dart';
 import '../domain/week_macros.dart';
@@ -246,6 +250,133 @@ class MealSnackCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The confirm sheet's card for a meal eaten OUT — the words, and what the app
+/// will not do with them.
+///
+/// It prints the consequence rather than a number, because at this point there
+/// is no number: the figures are asked for below, in the optional fold, and
+/// most meals out will never have any. The card's job is to make sure nobody
+/// places one thinking they have added a recipe.
+class MealOutCard extends StatelessWidget {
+  const MealOutCard({required this.label, super.key});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AnsiColors.surface,
+        border: Border.all(color: AnsiColors.line),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AnsiColors.paper,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              FLucideIcons.arrowUpRight,
+              size: 20,
+              color: AnsiColors.muted,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: ansiSans(
+                    size: 15,
+                  ).copyWith(fontStyle: FontStyle.italic),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Row(
+                    children: [
+                      const OutTag(),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          kNotCookedNotBought,
+                          style: ansiMono(size: 10, color: AnsiColors.muted),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The confirm sheet's one optional fold, for a meal eaten out: what the
+/// canteen printed, per portion, on the macro keypad the ingredient form uses
+/// ([MacroFields]).
+///
+/// **Optional means optional.** Left empty the meal is placed anyway and the
+/// week names it as uncounted; there is no nag and no default. A panel with a
+/// hole in it is not written either ([MacroDraft.isCoherent]) — the note under
+/// the slots says which of the two states the typing is currently in, so
+/// nobody taps Add believing four numbers were saved when three were.
+class MealMacrosFold extends StatelessWidget {
+  const MealMacrosFold({
+    required this.draft,
+    required this.onChanged,
+    super.key,
+  });
+
+  final MacroDraft draft;
+  final ValueChanged<MacroDraft> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const AnsiMicroLabel('Macros · per portion', suffix: 'optional'),
+        MacroFields(draft: draft, onChanged: onChanged),
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(
+            mealMacrosFoldNote(draft),
+            style: ansiMono(size: 10, color: AnsiColors.muted),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// What the fold says about what is typed in it: nothing stated, a panel with
+/// a hole in it, or the figures that will be saved.
+///
+/// The three states are [MacroDraft]'s own, in the week's words — a blank is
+/// never a zero, and a half-filled panel is never rounded up into one
+/// (invariant 3).
+String mealMacrosFoldNote(MacroDraft draft) {
+  if (draft.allBlank) {
+    return 'left empty — the meal fills its slot, and the day says it was '
+        'not counted';
+  }
+  if (!draft.isCoherent) {
+    return 'kcal, protein, carb and fat are one panel — a partial one is not '
+        'stated, and will not be saved';
+  }
+  return 'counted in the day and the week, as stated';
 }
 
 /// The slot picker: the default slots plus whatever custom slot the meal

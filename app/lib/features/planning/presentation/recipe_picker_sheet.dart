@@ -71,6 +71,17 @@ final class PickedIngredientMeal extends PickedMeal {
   final Ingredient ingredient;
 }
 
+/// The words themselves — a meal eaten out. Offered only when the typed words
+/// match no recipe and no ingredient, because it is an answer to "the app has
+/// nothing for this", not a fourth thing to browse.
+final class PickedMealOut extends PickedMeal {
+  const PickedMealOut(this.label);
+
+  /// What was typed, trimmed. It is the whole of the meal: nothing is minted
+  /// for it in the Library or the vocabulary.
+  final String label;
+}
+
 /// Opens the meal picker for a meal on [dayOfWeek] in [slot]. Resolves to the
 /// chosen recipe or ingredient, or null if dismissed.
 Future<PickedMeal?> showRecipePickerSheet(
@@ -133,10 +144,10 @@ class _RecipePickerSheet extends HookConsumerWidget {
     // Distinct recipes already planned this week, with the earliest day.
     final alreadyThisWeek = <String, ({String title, int day})>{};
     for (final e in week?.entries ?? const <PlanEntry>[]) {
-      // These are RECIPE quick picks. A snack is a meal too, but it is not a
-      // dish this list can re-plan, so it is skipped by name rather than by
-      // its null title (step 8.14 / B-D2).
-      if (e.isIngredient) continue;
+      // These are RECIPE quick picks. A snack and a meal eaten out are meals
+      // too, but neither is a dish this list can re-plan, so they are skipped
+      // by KIND rather than by a null title (step 8.14 / B-D2).
+      if (e.kind != PlanEntryKind.recipe) continue;
       if (e.recipeTitle == null) continue;
       final recipeId = e.recipeId!;
       final existing = alreadyThisWeek[recipeId];
@@ -260,6 +271,27 @@ class _RecipePickerSheet extends HookConsumerWidget {
       footer: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // The third answer (the one door's, not a fourth door): when the
+          // typed words hit no recipe and no ingredient, the picker offers to
+          // plan the WORDS. It says up front what the app will not do with
+          // them, so a canteen lunch is never dressed up as a one-line recipe
+          // or as a stub ingredient nobody will flesh out.
+          if (_nothingMatched(
+            query: query.value,
+            recipeTier: tier,
+            ingredientHits: ingredientHits,
+            searchedQuery: ingredientSearch.query,
+          ))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: DashedAction(
+                icon: FLucideIcons.plus,
+                label: noteItLabel(query.value),
+                onTap: () => Navigator.of(
+                  context,
+                ).pop(PickedMealOut(query.value.trim())),
+              ),
+            ),
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {
@@ -297,6 +329,37 @@ class _RecipePickerSheet extends HookConsumerWidget {
       ),
     );
   }
+}
+
+/// The third answer's own words: `note it — “Office lunch” · not cooked, not
+/// bought`.
+///
+/// The consequence is in the label rather than behind it, because that is the
+/// whole reason this row exists: the two things the app will NOT do with these
+/// words are what distinguishes them from a recipe and from an ingredient.
+String noteItLabel(String query) =>
+    'note it — “${query.trim()}” · $kNotCookedNotBought';
+
+/// Whether the typed words found NOTHING — the one condition the third answer
+/// appears under.
+///
+/// All four clauses are load-bearing. An empty query is the browse surface, so
+/// it offers nothing; [recipeTier] is null exactly when no title hit at any
+/// tier, typos included; an ingredient hit is an answer, even a guessed one;
+/// and [searchedQuery] must have caught up with what is typed, because the
+/// vocabulary search is asynchronous and a row that flashed between keystrokes
+/// would be offering to plan half a word.
+bool _nothingMatched({
+  required String query,
+  required SearchTier? recipeTier,
+  required List<Ingredient> ingredientHits,
+  required String searchedQuery,
+}) {
+  final typed = query.trim();
+  return typed.isNotEmpty &&
+      recipeTier == null &&
+      ingredientHits.isEmpty &&
+      searchedQuery.trim() == typed;
 }
 
 /// "Eating: Ada & Jun · shared" — who the plan feeds (frame c footer). The

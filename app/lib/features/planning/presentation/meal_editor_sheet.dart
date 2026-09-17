@@ -137,7 +137,10 @@ class _MealEditorSheet extends ConsumerWidget {
         // edits it — and it states its own SCOPE, because the sheet is per
         // meal and the variant is per week and recipe. Without that sub-line
         // the row would lie about what a tap changes.
-        if (entry.recipeId != null) ...[
+        // A RECIPE meal only: there are no lines to vary behind a snack or
+        // behind a meal eaten out, so the door is not drawn rather than drawn
+        // inert (the kind is asked, never a null recipe id).
+        if (entry.kind == PlanEntryKind.recipe) ...[
           const SizedBox(height: 18),
           const AnsiMicroLabel('Ingredients'),
           WeekVariantDoorRow(
