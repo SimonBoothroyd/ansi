@@ -8,10 +8,10 @@
 -- `supabase test db`.
 
 begin;
--- 14 tables x (select isolation + cross-household insert rejection)
+-- 16 tables x (select isolation + cross-household insert rejection)
 -- + current_household_id + 4 recipe.favorite checks + 2 usda_food checks
 -- + 2 household column-grant checks + 4 usda_search_* denials.
-select plan(41);
+select plan(45);
 
 -- Two households, one member each, and one row per household in every
 -- household-scoped table (A-side ids aaaaaaaa-…, B-side bbbbbbbb-…).
@@ -60,6 +60,12 @@ insert into shopping_list_entry (id, household_id, ingredient_id) values
 insert into shopping_list_contribution (id, household_id, entry_id, quantity, unit) values
  ('aaaaaaaa-0000-0000-0000-000000000010','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000009',1,'g'),
  ('bbbbbbbb-0000-0000-0000-000000000010','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000009',1,'g');
+insert into receipt (id, household_id, store, purchased_at, source) values
+ ('aaaaaaaa-0000-0000-0000-000000000012','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','TJ''s','2026-01-06T10:00:00Z','manual'),
+ ('bbbbbbbb-0000-0000-0000-000000000012','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','Whole Foods','2026-01-06T10:00:00Z','manual');
+insert into receipt_line (id, household_id, receipt_id, ingredient_id, cents, kind, pack_basis_amount) values
+ ('aaaaaaaa-0000-0000-0000-000000000013','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000012','aaaaaaaa-0000-0000-0000-000000000001',349,'item',454),
+ ('bbbbbbbb-0000-0000-0000-000000000013','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000012','bbbbbbbb-0000-0000-0000-000000000001',329,'item',454);
 insert into usda_food (fdc_id, description, match_text) values
  (1,'Flour, all purpose','flour all purpose');
 
@@ -123,7 +129,15 @@ insert into iso_case values
  (14, 'ingredient_measure',
       $$ insert into ingredient_measure (household_id, ingredient_id, label, basis_amount)
          values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000001','sack',2000) $$,
-      'new row violates row-level security policy for table "ingredient_measure"');
+      'new row violates row-level security policy for table "ingredient_measure"'),
+ (15, 'receipt',
+      $$ insert into receipt (household_id, store, purchased_at, source)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','Contraband Market','2026-01-07T10:00:00Z','manual') $$,
+      'new row violates row-level security policy for table "receipt"'),
+ (16, 'receipt_line',
+      $$ insert into receipt_line (household_id, receipt_id, ingredient_id, cents, kind)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000012','bbbbbbbb-0000-0000-0000-000000000001',199,'item') $$,
+      'new row violates row-level security policy for table "receipt_line"');
 grant select on iso_case to authenticated;
 
 -- Row-count helper. Invoker rights, so when called as `authenticated` the

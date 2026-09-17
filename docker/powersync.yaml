@@ -79,3 +79,5 @@ sync_rules:
           - select * from week_recipe_line_override where household_id = bucket.household_id
           - select * from shopping_list_entry        where household_id = bucket.household_id
           - select * from shopping_list_contribution where household_id = bucket.household_id
+          - select * from receipt                    where household_id = bucket.household_id
+          - select * from receipt_line               where household_id = bucket.household_id
