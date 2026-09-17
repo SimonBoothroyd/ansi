@@ -8,13 +8,28 @@
 /// Typography follows the design board's three roles:
 /// * **serif** ([ansiSerif]) — recipe titles and lowercase group headers, at
 ///   the five sizes [AnsiType] names,
-/// * **sans** (Forui's default) — all interface text,
+/// * **sans** ([ansiSansFamily], reached through [ansiSans]) — all interface
+///   text: every button label, menu item, tab, field and dialog,
 /// * **mono** ([ansiMono]) — data: quantities, units, scale factors, and the
 ///   letter-spaced uppercase micro-labels ([ansiLabel]).
 ///
-/// The exact faces (Spectral / Inter / IBM Plex Mono) are named first in each
-/// fallback list; when they aren't bundled the platform's generic families take
-/// over, preserving the hierarchy without any runtime font download.
+/// **All three faces ship with the app; none is downloaded.** Spectral and IBM
+/// Plex Mono are bundled by `pubspec.yaml`; Inter is bundled by Forui, so the
+/// app asks for it by the package name Flutter registers it under rather than
+/// shipping a second copy of the same family. Each role still carries a
+/// fallback list behind its face, for a glyph the face itself lacks.
+///
+/// **Every role names its own family, and the interface role names it twice.**
+/// A [TextStyle] with only a `fontFamilyFallback` inherits its *primary* family
+/// from whatever [DefaultTextStyle] it lands under — a fallback answers for a
+/// missing glyph, never for a missing family — so interface text written that
+/// way is Inter only where an ancestor happened to say so, and the host's
+/// Material default (Roboto, or the platform's own face where Roboto is not
+/// installed) anywhere else. So [ansiSans] states the family, and so does the
+/// [FTypography] every Forui widget builds its own styles from: the app's
+/// interface face is a fact about the app, not about Forui's current default
+/// or about where a widget was mounted. `ansi_type_is_on_the_theme_test.dart`
+/// resolves it on a button, a menu item, a tab and a dialog.
 library;
 
 import 'package:flutter/material.dart';
@@ -36,7 +51,17 @@ FThemeData ansiThemeData() {
     border: AnsiColors.line,
     card: AnsiColors.surface,
   );
-  final typography = FTypography.inherit(colors: colors, touch: true);
+  final typography = FTypography.inherit(
+    colors: colors,
+    touch: true,
+    // Redundant only in the sense the lint means: it is the same string Forui
+    // defaults to, and saying it is the entire point. Every button label,
+    // menu item, tab and dialog in the app is drawn from this typography, and
+    // an unstated face makes the app's interface a fact about Forui's current
+    // default rather than about the app.
+    // ignore: avoid_redundant_argument_values
+    fontFamily: ansiSansFamily,
+  );
   final base = FThemeData(
     colors: colors,
     touch: true,
@@ -183,10 +208,25 @@ ThemeData ansiHostTheme() => ThemeData(
   useMaterial3: true,
 );
 
+/// The interface face, under the name Flutter registers it with.
+///
+/// Inter is bundled — by Forui rather than by `pubspec.yaml`, because the app
+/// would otherwise ship a second copy of the same family — and a font a
+/// package declares is registered as `packages/<package>/<family>`. That
+/// prefix is the whole name: asking for plain `Inter` finds nothing.
+///
+/// It is stated here, and handed to [FTypography] in [ansiThemeData], rather
+/// than left to Forui's default. The two agree today; the point is that the
+/// app's interface face stops being a fact about Forui's defaults.
+const String ansiSansFamily = 'packages/forui/Inter';
+
 const List<String> _serifStack = ['Spectral', 'Georgia', 'serif'];
 const List<String> _monoStack = ['IBM Plex Mono', 'Menlo', 'monospace'];
-// Inter comes from Forui (its default family), not a separate bundle.
-const List<String> _sansStack = ['packages/forui/Inter'];
+const List<String> _sansStack = [
+  ansiSansFamily,
+  'Helvetica Neue',
+  'sans-serif',
+];
 
 /// The serif's sizes, one per **role** rather than one per call site.
 ///
@@ -259,12 +299,18 @@ TextStyleDelta ansiSerifDelta({required double size}) => TextStyleDelta.delta(
 TextStyle ansiHeaderTitle() => ansiSerif(size: AnsiType.heading);
 
 /// A sans style for interface text and ingredient/step body copy.
+///
+/// It names [ansiSansFamily] itself. A style that carried only the fallback
+/// list would take its primary family from the nearest [DefaultTextStyle] —
+/// Inter under a Forui surface, the Material host's face outside one — and the
+/// same sentence would be set in two faces depending on where it was drawn.
 TextStyle ansiSans({
   required double size,
   Color color = AnsiColors.ink,
   FontWeight weight = FontWeight.w400,
   double height = 1.3,
 }) => TextStyle(
+  fontFamily: ansiSansFamily,
   fontFamilyFallback: _sansStack,
   fontSize: size,
   height: height,

@@ -133,6 +133,10 @@ class _RecipePickerSheet extends HookConsumerWidget {
     final tier = bestTier([
       for (final r in recipes) recipeTitleHit(r.title, query.value),
     ]);
+
+    // What was typed with its edges off — the words an empty list says back,
+    // and the words the footer's third answer would plan.
+    final typed = query.value.trim();
     bool matches(String title) {
       if (query.value.isEmpty) return true;
       final hit = recipeTitleHit(title, query.value);
@@ -168,7 +172,7 @@ class _RecipePickerSheet extends HookConsumerWidget {
     // The second section (C-D1). Only under a typed query: with an empty one
     // the vocabulary's recents feed would bury the recipe list this screen is
     // primarily for, and nobody opened "add a meal" to browse ingredients.
-    final ingredientHits = query.value.trim().isEmpty
+    final ingredientHits = typed.isEmpty
         ? const <Ingredient>[]
         : ingredientSearch.results;
     final ingredientSection = <Widget>[
@@ -211,6 +215,7 @@ class _RecipePickerSheet extends HookConsumerWidget {
           for (final r in recipes)
             if (r.favorite && matches(r.title)) r,
         ],
+        query: typed,
         row: row,
         trailing: ingredientSection,
       ),
@@ -219,6 +224,7 @@ class _RecipePickerSheet extends HookConsumerWidget {
           recipes.where((r) => matches(r.title)).toList(),
           lastPlanned,
         ),
+        query: typed,
         row: row,
         trailing: ingredientSection,
       ),
@@ -495,14 +501,37 @@ List<RecipeSummary> _recentOrder(
   ];
 }
 
+/// The sentence a list with nothing in it says — and the two different things
+/// "nothing" can mean.
+///
+/// With no [query] the shelf itself is bare, and [bare] points at the door that
+/// fills it. With one, the shelf may be full and simply hold nothing under
+/// those words: the line names [shelf] and says the words back, the way the
+/// vocabulary tier does under its own rows, so a cook reads a *search result*
+/// rather than a verdict on their Library — and the tab's own shelf is named,
+/// because a recipe missing from Favorites may sit in the Library all the
+/// same. It stays a statement of fact and offers nothing: the third answer (a
+/// meal eaten out) is a footer door, and an empty state that proposed one too
+/// would be two offers for one miss.
+String emptyPickerLine({
+  required String query,
+  required String bare,
+  required String shelf,
+}) => query.isEmpty ? bare : 'Nothing in $shelf matches “$query”.';
+
 class _RecentList extends StatelessWidget {
   const _RecentList({
     required this.recipes,
+    required this.query,
     required this.row,
     this.trailing = const [],
   });
 
   final List<RecipeSummary> recipes;
+
+  /// What was typed, trimmed — empty when this is the browse surface.
+  final String query;
+
   final Widget Function(RecipeSummary r, {Filing? explicitFiling}) row;
 
   /// The ingredients section, in the same scroll view (C-D1).
@@ -515,7 +544,12 @@ class _RecentList extends StatelessWidget {
     if (recipes.isEmpty && trailing.isEmpty) {
       return Center(
         child: Text(
-          'No recipes yet — add one below.',
+          emptyPickerLine(
+            query: query,
+            bare: 'No recipes yet — add one below.',
+            shelf: 'the Library',
+          ),
+          textAlign: TextAlign.center,
           style: ansiMono(size: 12, color: AnsiColors.muted),
         ),
       );
@@ -527,11 +561,13 @@ class _RecentList extends StatelessWidget {
 class _FavoritesList extends StatelessWidget {
   const _FavoritesList({
     required this.recipes,
+    required this.query,
     required this.row,
     this.trailing = const [],
   });
 
   final List<RecipeSummary> recipes;
+  final String query;
   final Widget Function(RecipeSummary r, {Filing? explicitFiling}) row;
   final List<Widget> trailing;
 
@@ -540,7 +576,12 @@ class _FavoritesList extends StatelessWidget {
     if (recipes.isEmpty && trailing.isEmpty) {
       return Center(
         child: Text(
-          'No favorites yet — star a recipe from its page.',
+          emptyPickerLine(
+            query: query,
+            bare: 'No favorites yet — star a recipe from its page.',
+            shelf: 'your favorites',
+          ),
+          textAlign: TextAlign.center,
           style: ansiMono(size: 12, color: AnsiColors.muted),
         ),
       );

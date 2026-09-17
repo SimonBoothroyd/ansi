@@ -93,6 +93,17 @@ screen: [`../docs/design-docs/navigation.md`](../docs/design-docs/navigation.md)
   cook card. A literal at a call site fails
   `test/structure/serif_sizes_come_from_the_scale_test.dart`; a size no role
   fits is a missing role, added there with its sites, not a number here.
+- **Every text style names its family; a fallback is not a family.**
+  `fontFamilyFallback` answers for a glyph the face lacks — a style that names
+  no `fontFamily` takes its primary family from the nearest `DefaultTextStyle`,
+  so the same sentence sets in Inter inside a Forui surface and in the Material
+  host's face (Roboto, or the platform's own) outside one. The three roles —
+  `ansiSerif` (Spectral), `ansiSans` (`ansiSansFamily`, Forui's bundled Inter),
+  `ansiMono` (IBM Plex Mono) — each state theirs, and so does the `FTypography`
+  Forui builds every button, menu, tab, field and dialog style from, so the
+  interface face is the app's fact rather than Forui's current default.
+  `test/core/theme/ansi_type_is_on_the_theme_test.dart` resolves the family on
+  a painted button label, menu item, tab and dialog.
 
 - **Phone-first layout, and one file reads the viewport.** Fixed logical-px
   spacing is the idiom here; don't derive sizes from screen dimensions ad hoc.

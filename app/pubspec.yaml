@@ -100,8 +100,10 @@ flutter:
           weight: 500
         - asset: assets/fonts/IBMPlexMono-SemiBold.ttf
           weight: 600
-    # Inter (interface text) is NOT bundled here — Forui already ships it as
-    # `packages/forui/Inter`, which ansi_theme's sans stack points at.
+    # Inter (interface text) is NOT bundled here — Forui already ships it, and
+    # Flutter registers a package's font under `packages/<package>/<family>`.
+    # That whole string is `ansiSansFamily` in core/theme/ansi_theme.dart, which
+    # the app's typography and every ansiSans style name.
 
 # NOTE: version constraints use caret ranges with recent floors. Run
 # `flutter pub get` then `flutter pub outdated` on first checkout and let the
