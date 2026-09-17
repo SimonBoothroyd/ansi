@@ -1125,6 +1125,11 @@ String _$variantRecipeCostsHash() =>
 ///
 /// The same entries, the same portions and the same lens as [weekMacros]: the
 /// two lines of the band describe one week or they describe none.
+///
+/// It reads two price sources because a week plans two priceable things: the
+/// recipes' own summaries, already costed line by line, and the latest price of
+/// every vocabulary row, which is what a planned bare ingredient is weighed
+/// against.
 
 @ProviderFor(weekCost)
 const weekCostProvider = WeekCostFamily._();
@@ -1133,6 +1138,11 @@ const weekCostProvider = WeekCostFamily._();
 ///
 /// The same entries, the same portions and the same lens as [weekMacros]: the
 /// two lines of the band describe one week or they describe none.
+///
+/// It reads two price sources because a week plans two priceable things: the
+/// recipes' own summaries, already costed line by line, and the latest price of
+/// every vocabulary row, which is what a planned bare ingredient is weighed
+/// against.
 
 final class WeekCostProvider
     extends $FunctionalProvider<PlannedCost, PlannedCost, PlannedCost>
@@ -1141,6 +1151,11 @@ final class WeekCostProvider
   ///
   /// The same entries, the same portions and the same lens as [weekMacros]: the
   /// two lines of the band describe one week or they describe none.
+  ///
+  /// It reads two price sources because a week plans two priceable things: the
+  /// recipes' own summaries, already costed line by line, and the latest price of
+  /// every vocabulary row, which is what a planned bare ingredient is weighed
+  /// against.
   const WeekCostProvider._({
     required WeekCostFamily super.from,
     required String? super.argument,
@@ -1192,12 +1207,17 @@ final class WeekCostProvider
   }
 }
 
-String _$weekCostHash() => r'2db06f83880d803e16fabff22ea0e27cbdb5d3bc';
+String _$weekCostHash() => r'7d2f0dd2743245d426b74a761a70736004e3d337';
 
 /// What the viewed week costs to cook under [lens] — the band's second line.
 ///
 /// The same entries, the same portions and the same lens as [weekMacros]: the
 /// two lines of the band describe one week or they describe none.
+///
+/// It reads two price sources because a week plans two priceable things: the
+/// recipes' own summaries, already costed line by line, and the latest price of
+/// every vocabulary row, which is what a planned bare ingredient is weighed
+/// against.
 
 final class WeekCostFamily extends $Family
     with $FunctionalFamilyOverride<PlannedCost, String?> {
@@ -1214,6 +1234,11 @@ final class WeekCostFamily extends $Family
   ///
   /// The same entries, the same portions and the same lens as [weekMacros]: the
   /// two lines of the band describe one week or they describe none.
+  ///
+  /// It reads two price sources because a week plans two priceable things: the
+  /// recipes' own summaries, already costed line by line, and the latest price of
+  /// every vocabulary row, which is what a planned bare ingredient is weighed
+  /// against.
 
   WeekCostProvider call(String? lens) =>
       WeekCostProvider._(argument: lens, from: this);

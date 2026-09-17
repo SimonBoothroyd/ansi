@@ -202,9 +202,17 @@ The band at the foot of the week states one cost line under the macros —
 same lens, so the two lines of the band can never describe two different weeks.
 A recipe with an unpriced line has no cost at all, so its meal cannot join the
 figure; the lines that kept it out are named instead, distinct, because the
-same unpriced ingredient in three recipes is one thing to go and price. A bare
-ingredient meal is named rather than silently uncosted — a snack is not a
-recipe, and this is the recipes' summation.
+same unpriced ingredient in three recipes is one thing to go and price.
+
+A **bare ingredient meal is costed from its own row**, by
+`ingredientPortionCost`: the entry's amount, unit or measure carried to the
+row's basis through the same conversion its macros take, times the latest price
+per unit of that basis. A snack is a recipe line that happens to be the whole
+meal, and weighing it any other way would let the same yoghurt cost two figures
+depending on which screen asked. It is named with the unpriced only when the
+row really has no price, or when nothing carries its amount to the basis — the
+recipe cost's own reasons (`CostLineReason`), in its own words. A meal eaten
+out is passed over entirely: neither a cost to cook nor a gap in one.
 
 There is **no `spent` line**: what a week cost is what its receipts say, and
 the two are never reconciled

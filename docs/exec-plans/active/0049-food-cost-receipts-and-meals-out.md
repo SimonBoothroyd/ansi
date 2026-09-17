@@ -33,13 +33,16 @@ Phase one — prices and cost:
 - [x] The price sheet on the ingredient page: paid, for a pack in a unit the
       row admits (its measures leading the chip row), at a store chip; the
       dock states the per-basis figure before Done and refuses a volume pack
-      on a g-basis row with no density.
+      on a g-basis row with no density. The pack is kept **as entered** as
+      well as in the basis (0046), and the same sheet, opened on a stored
+      line, edits or deletes it.
 - [x] The **Price** group on the ingredient page, read posture: the latest as
       one line, earlier prices kept as paid, the unpriced state as one door.
 - [x] Cost summation in pure Dart beside the macro summation: per line, in
       the basis, through the same conversions; imprecise and optional lines
       out by the macro rule; a line with no price or no path to the basis is
-      **unpriced**, named, and takes the recipe's cost cell with it.
+      **unpriced**, named, and takes the recipe's cost cell with it. A planned
+      bare ingredient is costed the same way, from its own row's latest price.
 - [x] The recipe panel flips between `Macros | Cost` (seg chips, session
       posture); Cost reads *a serving · the recipe · prices from <month>*
       with `UNPRICED`, `OLDEST` and `NOT COUNTED` rows. The ⋯ item becomes
@@ -166,6 +169,31 @@ and can run beside phase one.
   figures, not a thing the household owns). Either can be reopened by the
   owner before P3 builds.
 
+- 2026-09-17 — **A price keeps the unit it was entered in** (owner). The
+  ledger stored the pack in the row's basis, so a pound read back as `454 g`.
+  Migration 0046 adds `pack_amount` + `pack_unit` beside it: `pack_unit` is a
+  units.dart catalog id, or null where the pack was tapped as one of the row's
+  own measures, in which case `pack_amount` is the COUNT of it and the
+  measure's label is the word. `pack_basis_amount` STAYS what a price is
+  derived from, so a measure re-weighed later cannot re-price a shop that
+  already happened; existing lines are backfilled with the pack the database
+  actually knew — the basis figure, in the basis unit.
+- 2026-09-17 — **An edit and a delete door for a stored price** (owner).
+  There was no way to fix a mistyped price. The Price group's *Latest* line and
+  every row under *Before* are taps onto the same sheet, opened on that line;
+  Done writes an UPDATE and keeps the day the price was paid on (a correction
+  is not a second shop), and a **Delete** under it tombstones the line behind
+  the app's shared destructive confirm. The line's receipt moves with it only
+  when it is this app's one-line `manual` kind — a photographed receipt is a
+  piece of paper, so its printed figures stay and it is never deleted here.
+- 2026-09-17 — **A planned snack is costed when its row has a price**
+  (owner: *"it should be costed if that ingredient has a price"*). It is
+  weighed the way `ingredientPortionMacros` weighs it — the entry's own amount,
+  unit or measure carried to the row's basis through the same conversion —
+  times the latest price per unit of that basis. It is named unpriced only when
+  the row truly has no price or nothing carries its amount to the basis, with
+  the recipe cost's own reasons. A meal eaten out stays passed over.
+
 - 2026-09-16 — **One vocabulary for the refusal.** The brainstorm drew a
   day scope line reading `office lunch not counted` beside a denominator of
   `2 meals`. Built, the week says the same thing in the words it already
@@ -208,4 +236,7 @@ and can run beside phase one.
 - [ ] `make ci` green on every landing so far; `make test-sim` on one
       simulator, serially, when the owner says go.
 - [ ] `deploy-supabase` run by hand for R1; sync rules recreated for 0044
-      and 0045.
+      and 0045. **0046 needs no sync-rule edit** — both receipt rules are
+      `select *`, so the two new columns arrive with the migration — but the
+      local container still has to be recreated from the checkout that holds
+      it before a device sees them.

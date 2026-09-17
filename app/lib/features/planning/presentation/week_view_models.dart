@@ -24,6 +24,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/week_shape.dart';
 import '../../account/data/household_providers.dart';
+import '../../ingredients/data/ingredient_providers.dart';
+import '../../ingredients/domain/price.dart';
 import '../../recipes/domain/line_override.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/domain/recipe_cost.dart';
@@ -256,13 +258,22 @@ Stream<Map<String, RecipeCostSummary>> variantRecipeCosts(Ref ref) => ref
 ///
 /// The same entries, the same portions and the same lens as [weekMacros]: the
 /// two lines of the band describe one week or they describe none.
+///
+/// It reads two price sources because a week plans two priceable things: the
+/// recipes' own summaries, already costed line by line, and the latest price of
+/// every vocabulary row, which is what a planned bare ingredient is weighed
+/// against.
 @riverpod
 PlannedCost weekCost(Ref ref, String? lens) {
   final plan = ref.watch(viewedWeekProvider).asData?.value;
   final costs = ref.watch(weekRecipeCostsProvider);
+  final prices =
+      ref.watch(latestPricesProvider).asData?.value ??
+      const <String, PriceObservation>{};
   return sumPlannedCost(
     plan?.entries ?? const [],
     costFor: (id) => costs[id],
+    priceFor: (id) => prices[id],
     lensMemberId: lens,
     membersById: ref.watch(membersByIdProvider),
   );
