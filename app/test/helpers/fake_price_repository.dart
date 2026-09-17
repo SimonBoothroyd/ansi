@@ -5,6 +5,7 @@ library;
 import 'dart:async';
 
 import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/ingredients/domain/price_repository.dart';
 
@@ -15,8 +16,23 @@ typedef RecordedPrice = ({
   int cents,
   double packBasisAmount,
   String store,
+  double? packAmount,
+  String? packUnitId,
   String? measureId,
   DateTime? purchasedAt,
+});
+
+/// One call to [FakePriceRepo.updatePrice] — which line was rewritten, and to
+/// what.
+typedef RewrittenPrice = ({
+  String lineId,
+  int cents,
+  double packBasisAmount,
+  String store,
+  DateTime purchasedAt,
+  double? packAmount,
+  String? packUnitId,
+  String? measureId,
 });
 
 class FakePriceRepo implements PriceRepository {
@@ -37,6 +53,8 @@ class FakePriceRepo implements PriceRepository {
   final bool throws;
 
   final recorded = <RecordedPrice>[];
+  final rewritten = <RewrittenPrice>[];
+  final deleted = <String>[];
   final _changes = StreamController<void>.broadcast();
 
   @override
@@ -72,6 +90,8 @@ class FakePriceRepo implements PriceRepository {
     required int cents,
     required double packBasisAmount,
     required String store,
+    double? packAmount,
+    String? packUnitId,
     String? measureId,
     DateTime? purchasedAt,
   }) async {
@@ -81,6 +101,8 @@ class FakePriceRepo implements PriceRepository {
       cents: cents,
       packBasisAmount: packBasisAmount,
       store: store,
+      packAmount: packAmount,
+      packUnitId: packUnitId,
       measureId: measureId,
       purchasedAt: purchasedAt,
     ));
@@ -94,9 +116,63 @@ class FakePriceRepo implements PriceRepository {
         basis: basis,
         store: store,
         purchasedAt: purchasedAt ?? DateTime.now().toUtc(),
+        packAmount: packAmount,
+        packUnit: unitById(packUnitId ?? ''),
+        measureId: measureId,
       ),
     );
     if (!storeWords.contains(store)) storeWords.insert(0, store);
+    _changes.add(null);
+  }
+
+  @override
+  Future<void> updatePrice({
+    required String lineId,
+    required int cents,
+    required double packBasisAmount,
+    required String store,
+    required DateTime purchasedAt,
+    double? packAmount,
+    String? packUnitId,
+    String? measureId,
+  }) async {
+    if (throws) throw StateError('no');
+    rewritten.add((
+      lineId: lineId,
+      cents: cents,
+      packBasisAmount: packBasisAmount,
+      store: store,
+      purchasedAt: purchasedAt,
+      packAmount: packAmount,
+      packUnitId: packUnitId,
+      measureId: measureId,
+    ));
+    final at = rows.indexWhere((p) => p.lineId == lineId);
+    if (at >= 0) {
+      final was = rows[at];
+      rows[at] = PriceObservation(
+        lineId: was.lineId,
+        receiptId: was.receiptId,
+        cents: cents,
+        discountCents: was.discountCents,
+        packBasisAmount: packBasisAmount,
+        basis: was.basis,
+        store: store,
+        purchasedAt: purchasedAt,
+        packAmount: packAmount,
+        packUnit: unitById(packUnitId ?? ''),
+        packLabel: measureId == null ? null : was.packLabel,
+        measureId: measureId,
+      );
+    }
+    _changes.add(null);
+  }
+
+  @override
+  Future<void> deletePrice(String lineId) async {
+    if (throws) throw StateError('no');
+    deleted.add(lineId);
+    rows.removeWhere((p) => p.lineId == lineId);
     _changes.add(null);
   }
 }

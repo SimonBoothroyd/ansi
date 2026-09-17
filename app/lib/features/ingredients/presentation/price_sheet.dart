@@ -22,6 +22,15 @@
 ///
 /// What Save writes is one `manual` receipt with one line — a hand-typed price
 /// and a scanned one are the same fact in the same ledger.
+///
+/// **The same sheet fixes a price that is already stored.** A tap on the Price
+/// group's *Latest* line or on any row under *Before* opens it **on that
+/// line**: the same three answers, filled in as they were entered — the pound
+/// as a pound, the bag as the bag — and Done writes an UPDATE rather than a new
+/// receipt, so correcting a typo does not leave the mistake behind as history.
+/// A **Delete** sits under it, because the other thing a mistyped price needs
+/// is to stop existing. There is no second door and no second wording: an edit
+/// is the same question asked about a line that has already been answered.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -51,19 +60,28 @@ import 'unit_chips.dart';
 /// The dock's derived line, so a test names it rather than matching prose.
 const kPriceDerivedKey = ValueKey('price-derived');
 
+/// The sheet's Delete, for the same reason.
+const kPriceDeleteKey = ValueKey('price-delete');
+
 /// Opens the price sheet for [ingredient]; resolves to true when a price was
-/// written, and null when the sheet was dismissed.
+/// written or taken back, and null when the sheet was dismissed.
+///
+/// [editing] opens it **on a stored line** rather than on a new one: the
+/// answers are filled in as they were entered, Done rewrites that line, and a
+/// Delete appears under it.
 ///
 /// Through [showAnsiSheet], which is also what makes it a centred dialog from
 /// `medium` up — the same door, in the room the window has for it.
 Future<bool?> showPriceSheet(
   BuildContext context, {
   required Ingredient ingredient,
+  PriceObservation? editing,
 }) {
   return showAnsiSheet<bool>(
     context: context,
     builder: (sheetContext) => PriceEditor(
       ingredient: ingredient,
+      editing: editing,
       onSaved: () => Navigator.of(sheetContext).pop(true),
     ),
   );
@@ -73,10 +91,15 @@ class PriceEditor extends HookConsumerWidget {
   const PriceEditor({
     required this.ingredient,
     required this.onSaved,
+    this.editing,
     super.key,
   });
 
   final Ingredient ingredient;
+
+  /// The stored price this sheet is fixing, or null when it is entering one.
+  final PriceObservation? editing;
+
   final VoidCallback onSaved;
 
   @override
@@ -90,22 +113,56 @@ class PriceEditor extends HookConsumerWidget {
     // word only when Save lands the receipt that used it.
     final coined = useState<List<String>>(const []);
     final busy = useState(false);
+    final paidField = useTextEditingController();
+    final packField = useTextEditingController();
+    // The stored line is copied into the fields ONCE, and only once the row's
+    // measures have arrived: a pack tapped as `bag` cannot be reopened on that
+    // chip before the chip exists, and re-seeding on a later frame would
+    // overwrite what the person had started typing.
+    final seeded = useRef(false);
 
-    final measures =
-        ref.watch(ingredientMeasuresProvider(ingredient.id)).asData?.value ??
-        const <Measure>[];
+    final measuresAsync = ref.watch(ingredientMeasuresProvider(ingredient.id));
+    final measures = measuresAsync.asData?.value ?? const <Measure>[];
     final prices =
         ref.watch(ingredientPricesProvider(ingredient.id)).asData?.value ??
         const <PriceObservation>[];
     final remembered =
         ref.watch(priceStoresProvider).asData?.value ?? const <String>[];
 
+    final line = editing;
+    useEffect(() {
+      if (line == null || seeded.value || measuresAsync.asData == null) {
+        return null;
+      }
+      seeded.value = true;
+      // The pack as it was ENTERED, where the line kept it and the chip it
+      // named still exists; otherwise the basis figure it is derived from,
+      // which is the honest reading of a line whose word is gone.
+      final asEntered = enteredChoice(line, measures);
+      choice.value = asEntered ?? UnitOption(line.basis.baseUnit);
+      final amount = asEntered == null
+          ? line.packBasisAmount
+          : line.packAmount ?? line.packBasisAmount;
+      packAmount.value = amount;
+      packField.text = switch (choice.value) {
+        MeasureOption() => formatAmount(amount),
+        UnitOption(:final unit) => formatAmountIn(amount, unit),
+        null => formatAmount(amount),
+      };
+      // What the line RANG UP as, which is what a person corrects. Its printed
+      // deduction is the paper's and is left exactly where it was.
+      paidCents.value = line.cents;
+      paidField.text = dollarsTyped(line.cents);
+      store.value = line.store;
+      return null;
+    }, [measuresAsync]);
+
     // The chip row opens on the row's WHOLE MEASURE where it has one (the
     // measure that weighs what a piece weighs is the row's word for one,
     // ADR-0016) and on its default unit otherwise — the same rule the
-    // quantity sheet opens on, because it is the same control. Resolved on
-    // every build rather than seeded by an effect: nothing here edits a
-    // stored line, so there is no prior choice to preserve.
+    // quantity sheet opens on, because it is the same control. A sheet opened
+    // on a stored line opens on the chip that line was entered on instead,
+    // seeded above.
     final whole = wholeMeasureOf(ingredient, measures);
     final packChoice =
         choice.value ??
@@ -122,11 +179,15 @@ class PriceEditor extends HookConsumerWidget {
 
     // Only once both halves are stated: an empty field is a question nobody
     // has answered yet, not a mistake to be named.
+    //
+    // What was PAID is the typed figure less the deduction the paper printed
+    // under it, exactly as the ledger reads it — on a hand-typed price there
+    // is none, and on a scanned line it is not this sheet's to restate.
     final derived = paidCents.value == null || packAmount.value == null
         ? null
         : priceFromEntry(
             ingredient,
-            paidCents: paidCents.value!,
+            paidCents: paidCents.value! - (line?.discountCents ?? 0),
             packAmount: packAmount.value!,
             packChoice: packChoice,
           );
@@ -155,28 +216,63 @@ class PriceEditor extends HookConsumerWidget {
       );
       if (pack is! Ok<double>) return;
       busy.value = true;
+      // The pack in BOTH denominations: the basis figure every reader derives
+      // from, and the words it was said in, which nothing derives from.
+      final entered = packAsEntered(packAmount.value!, packChoice);
+      final repository = ref.read(priceRepositoryProvider);
       final saved = await ref.writeOk(
         context,
-        'save that price',
-        () => ref
-            .read(priceRepositoryProvider)
-            .recordManualPrice(
-              ingredientId: ingredient.id,
-              cents: paidCents.value!,
-              packBasisAmount: pack.value,
-              store: pickedStore!,
-              // The pack's WORD, only where one was picked: a `piece` or a
-              // plain `454 g` points at no row, and the weight is already in
-              // the amount above.
-              measureId: switch (packChoice) {
-                MeasureOption(:final measure) => measure.id,
-                UnitOption() => null,
-              },
-            ),
+        line == null ? 'save that price' : 'change that price',
+        () => line == null
+            ? repository.recordManualPrice(
+                ingredientId: ingredient.id,
+                cents: paidCents.value!,
+                packBasisAmount: pack.value,
+                store: pickedStore!,
+                packAmount: entered.amount,
+                packUnitId: entered.unitId,
+                measureId: entered.measureId,
+              )
+            : repository.updatePrice(
+                lineId: line.lineId,
+                cents: paidCents.value!,
+                packBasisAmount: pack.value,
+                store: pickedStore!,
+                // An edit is a correction, not a second shop: the price keeps
+                // the day it was paid on.
+                purchasedAt: line.purchasedAt,
+                packAmount: entered.amount,
+                packUnitId: entered.unitId,
+                measureId: entered.measureId,
+              ),
       );
       if (!context.mounted) return;
       busy.value = false;
       if (saved) onSaved();
+    }
+
+    Future<void> remove() async {
+      // Captured BEFORE the confirm dialog: this sheet's own row can be gone
+      // by the time the answer comes back, and a `ref` that outlives its
+      // widget throws.
+      final container = ProviderScope.containerOf(context, listen: false);
+      final host = hostContextOf(context);
+      final ok = await askAnsi(
+        host.context,
+        title: 'Delete this price?',
+        body:
+            'It stops counting towards what anything costs. What was paid '
+            'before it stays.',
+        confirm: 'Delete',
+        destructive: true,
+      );
+      if (!ok) return;
+      final gone = await container.writeOk(
+        host,
+        'delete that price',
+        () => container.read(priceRepositoryProvider).deletePrice(line!.lineId),
+      );
+      if (gone) onSaved();
     }
 
     return AnsiSheetShell(
@@ -188,7 +284,9 @@ class PriceEditor extends HookConsumerWidget {
           style: ansiSerif(size: AnsiType.heading),
           overflow: TextOverflow.ellipsis,
         ),
-        if (latestPriceAside(prices.isEmpty ? null : prices.first)
+        if (line == null
+                ? latestPriceAside(prices.isEmpty ? null : prices.first)
+                : editedPriceAside(line)
             case final aside?)
           Padding(
             padding: const EdgeInsets.only(top: 3),
@@ -217,6 +315,7 @@ class PriceEditor extends HookConsumerWidget {
           // sum of money is never typed as a fraction.
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           control: FTextFieldControl.managed(
+            controller: paidField,
             onChange: (v) => paidCents.value = parseMoney(v.text),
           ),
         ),
@@ -233,6 +332,7 @@ class PriceEditor extends HookConsumerWidget {
                 // numeric pads carry no `/`.
                 keyboardType: TextInputType.text,
                 control: FTextFieldControl.managed(
+                  controller: packField,
                   onChange: (v) => packAmount.value = parseAmount(v.text),
                 ),
               ),
@@ -270,6 +370,17 @@ class PriceEditor extends HookConsumerWidget {
         _Derived(derived: derived, ingredient: ingredient),
         const SizedBox(height: 12),
         FButton(onPress: canSave ? save : null, child: const Text('Done')),
+        // The way out of a price that should not exist, under the way to fix
+        // one — and drawn only where there is something to delete.
+        if (line != null) ...[
+          const SizedBox(height: 8),
+          FButton(
+            key: kPriceDeleteKey,
+            variant: FButtonVariant.destructive,
+            onPress: busy.value ? null : remove,
+            child: const Text('Delete'),
+          ),
+        ],
       ],
     );
   }

@@ -45,6 +45,9 @@ PriceObservation price({
   double pack = 454,
   String store = "TJ's",
   String? packLabel = 'bag',
+  double? packAmount = 1,
+  Unit? packUnit,
+  String? measureId = 'm-bag',
   DateTime? on,
 }) => PriceObservation(
   lineId: lineId,
@@ -55,7 +58,10 @@ PriceObservation price({
   basis: MacrosBasis.perG,
   store: store,
   purchasedAt: on ?? DateTime.utc(2026, 9, 13),
+  packAmount: packAmount,
+  packUnit: packUnit,
   packLabel: packLabel,
+  measureId: measureId,
 );
 
 Finder get paidField => find.descendant(
@@ -171,7 +177,88 @@ void main() {
         host(
           FakeIngredientRepo(const [bananas]),
           at: ingredientDetailRoute('banana'),
-          prices: FakePriceRepo(prices: [price(packLabel: null)]),
+          prices: FakePriceRepo(
+            prices: [
+              price(
+                packLabel: null,
+                measureId: null,
+                packAmount: 454,
+                packUnit: g,
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(r"77¢ / 100 g · $3.49 for 454 g · TJ's · 13 Sep"),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a pound reads back as a pound, and still prices per 100 g', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [bananas]),
+          at: ingredientDetailRoute('banana'),
+          prices: FakePriceRepo(
+            prices: [
+              price(
+                pack: 453.59237,
+                packLabel: null,
+                measureId: null,
+                packUnit: lb,
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // What was bought was a pound. What it is worth is per 100 g, because
+      // that is the row's own dimension.
+      expect(
+        find.text(r"77¢ / 100 g · $3.49 for 1 lb · TJ's · 13 Sep"),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('two of a named pack count, and one does not', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [bananas]),
+          at: ingredientDetailRoute('banana'),
+          prices: FakePriceRepo(
+            prices: [price(cents: 698, pack: 908, packAmount: 2)],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(r"77¢ / 100 g · $6.98 for 2 bag (908 g) · TJ's · 13 Sep"),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a row written before the ledger kept the words reads as the '
+        'weight it stored', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [bananas]),
+          at: ingredientDetailRoute('banana'),
+          prices: FakePriceRepo(
+            prices: [price(packLabel: null, measureId: null, packAmount: null)],
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -394,6 +481,193 @@ void main() {
         ),
         findsOneWidget,
       );
+    });
+  });
+
+  group('fixing a price that is already stored', () {
+    testWidgets('the Latest line opens the sheet on that line, as entered', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [bananas]),
+          at: ingredientDetailRoute('banana'),
+          prices: FakePriceRepo(prices: [price()], stores: const ["TJ's"]),
+          measures: FakeMeasureRepo(const [bagMeasure]),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(kReadLatestPriceKey));
+      await tester.pumpAndSettle();
+
+      // It names the row it is about to rewrite, with its own day.
+      expect(find.text(r"editing $3.49 · TJ's · 13 Sep"), findsOneWidget);
+      // The answers are filled in as they were given: the sum, the count, and
+      // the chip the pack was tapped on.
+      expect(
+        tester.widget<EditableText>(paidField.at(0)).controller.text,
+        '3.49',
+      );
+      expect(tester.widget<EditableText>(paidField.at(1)).controller.text, '1');
+      expect(derivedText(tester), '= 77¢ / 100 g');
+      // A stored line offers the way to take it back; a new one does not.
+      expect(find.byKey(kPriceDeleteKey), findsOneWidget);
+    });
+
+    testWidgets('Done rewrites that line rather than adding another', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final prices = FakePriceRepo(
+        prices: [
+          price(measureId: null, packLabel: null, packUnit: g, packAmount: 454),
+        ],
+        stores: const ["TJ's"],
+      );
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [bananas]),
+          at: ingredientDetailRoute('banana'),
+          prices: prices,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(kReadLatestPriceKey));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(paidField.at(0), '3.99');
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FButton, 'Done'));
+      await tester.pumpAndSettle();
+
+      expect(prices.recorded, isEmpty, reason: 'no second receipt');
+      expect(prices.rewritten, hasLength(1));
+      expect(prices.rewritten.single.lineId, 'l1');
+      expect(prices.rewritten.single.cents, 399);
+      expect(prices.rewritten.single.packAmount, 454);
+      expect(prices.rewritten.single.packUnitId, 'g');
+      expect(
+        prices.rewritten.single.purchasedAt,
+        DateTime.utc(2026, 9, 13),
+        reason: 'a correction is not a second shop',
+      );
+      expect(find.byType(PriceEditor), findsNothing);
+    });
+
+    testWidgets('a row under Before opens on itself, not on the latest', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final prices = FakePriceRepo(
+        prices: [
+          price(),
+          price(lineId: 'l2', cents: 329, on: DateTime.utc(2026, 8, 23)),
+        ],
+        stores: const ["TJ's"],
+      );
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [bananas]),
+          at: ingredientDetailRoute('banana'),
+          prices: prices,
+          measures: FakeMeasureRepo(const [bagMeasure]),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(r'72¢ / 100 g · $3.29 · bag (454 g)'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(r"editing $3.29 · TJ's · 23 Aug"), findsOneWidget);
+    });
+
+    testWidgets('Delete asks first, and a no changes nothing', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final prices = FakePriceRepo(prices: [price()], stores: const ["TJ's"]);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [bananas]),
+          at: ingredientDetailRoute('banana'),
+          prices: prices,
+          measures: FakeMeasureRepo(const [bagMeasure]),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(kReadLatestPriceKey));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(kPriceDeleteKey));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete this price?'), findsOneWidget);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(FDialog),
+          matching: find.widgetWithText(FButton, 'Cancel'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(prices.deleted, isEmpty, reason: 'silence is not consent');
+      expect(find.byType(PriceEditor), findsOneWidget);
+    });
+
+    testWidgets('a confirmed Delete takes the price and closes the sheet', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final prices = FakePriceRepo(prices: [price()], stores: const ["TJ's"]);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [bananas]),
+          at: ingredientDetailRoute('banana'),
+          prices: prices,
+          measures: FakeMeasureRepo(const [bagMeasure]),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(kReadLatestPriceKey));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(kPriceDeleteKey));
+      await tester.pumpAndSettle();
+
+      // The sheet's own Delete is keyed; the dialog's is the other one.
+      await tester.tap(find.widgetWithText(FButton, 'Delete').last);
+      await tester.pumpAndSettle();
+
+      expect(prices.deleted, ['l1']);
+      expect(find.byType(PriceEditor), findsNothing);
+      // The group is back to the state a row nobody has priced wears — never
+      // a zero standing where the price was.
+      expect(find.text('Price — none yet'), findsOneWidget);
+    });
+
+    testWidgets('a new price still writes a receipt, and offers no Delete', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [bananas]),
+          at: ingredientDetailRoute('banana'),
+          prices: FakePriceRepo(prices: [price()], stores: const ["TJ's"]),
+          measures: FakeMeasureRepo(const [bagMeasure]),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await openTheSheet(tester);
+      expect(find.byKey(kPriceDeleteKey), findsNothing);
+      expect(find.textContaining('editing'), findsNothing);
+      expect(find.text("latest 77¢ / 100 g · TJ's · Sep"), findsOneWidget);
     });
   });
 }

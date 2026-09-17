@@ -12,6 +12,15 @@
 /// pack re-weighed or a discount corrected moves every screen at once and
 /// nothing has to be re-derived into a column.
 ///
+/// **The pack is kept twice, on purpose.** What the person SAID — `1 lb`, or
+/// one `bag` — is what the ledger prints back at them ([PriceObservation
+/// .packAmount]), and what it CAME TO in the row's basis unit is what every
+/// figure is derived from ([PriceObservation.packBasisAmount]). They answer
+/// different questions and must be able to disagree: a household that
+/// re-weighs its `bag` from 454 g to 500 g is saying what a bag is today, and
+/// last month's $3.49 bought last month's bag. Re-deriving the basis figure
+/// from the words would silently re-price a shop that has already happened.
+///
 /// **The honesty gate is at entry, and it refuses rather than guesses**
 /// (invariant 3). A pack is stored in the row's basis unit — grams on a
 /// per-100 g row, millilitres on a per-100 ml one — so a person who buys
@@ -133,6 +142,8 @@ class ReceiptLine {
     this.printedText,
     this.discountCents = 0,
     this.packBasisAmount,
+    this.packAmount,
+    this.packUnit,
     this.measureId,
     this.sortOrder = 0,
   });
@@ -163,7 +174,19 @@ class ReceiptLine {
   /// What the cents bought, in the ingredient's basis unit (g or ml). Null
   /// where nobody has said what the pack is, which is an honest state: the
   /// line is kept, and it simply is not a price yet.
+  ///
+  /// **Every derived figure comes from this one**, never from [packAmount].
   final double? packBasisAmount;
+
+  /// The pack as the person SAID it, read through [packUnit]: an amount in
+  /// that unit, or — with [packUnit] null and [measureId] set — a count of
+  /// that measure. Null on a line nobody has stated the pack of, and on one
+  /// written before the ledger kept the words.
+  final double? packAmount;
+
+  /// The catalog unit [packAmount] is said in, or null when the pack was
+  /// tapped as one of the row's measures (whose label is then the word).
+  final Unit? packUnit;
 
   /// The row's own word for that pack ("bag"), when the pack was named as a
   /// measure. A LABEL, never the amount — [packBasisAmount] is the number, so
@@ -197,7 +220,10 @@ class PriceObservation {
     required this.store,
     required this.purchasedAt,
     this.discountCents = 0,
+    this.packAmount,
+    this.packUnit,
     this.packLabel,
+    this.measureId,
   });
 
   final String lineId;
@@ -222,6 +248,20 @@ class PriceObservation {
   /// typed as a plain amount, and null where the measure has since been
   /// deleted — the amount is the fact, the word is how it was said.
   final String? packLabel;
+
+  /// The pack as the person SAID it — see [ReceiptLine.packAmount]. It is what
+  /// the ledger PRINTS; [packBasisAmount] is what it is read from, and the two
+  /// are deliberately different questions.
+  final double? packAmount;
+
+  /// The catalog unit [packAmount] is said in, or null for a count of
+  /// [packLabel]'s measure — see [ReceiptLine.packUnit].
+  final Unit? packUnit;
+
+  /// The measure the pack was tapped as, still by id, so the sheet reopened on
+  /// this line lands on the same chip. Kept even when the measure has been
+  /// deleted since and [packLabel] is gone.
+  final String? measureId;
 
   /// What was paid — see [ReceiptLine.paidCents].
   int get paidCents => cents - discountCents;
@@ -376,6 +416,47 @@ Result<PricePer100> priceFromEntry(
   };
 }
 
+/// The pack as it will be STORED, from the choice the person tapped — the one
+/// place the two shapes a pack can take are decided.
+///
+/// A unit chip stores the amount and the unit's catalog id; a measure chip
+/// stores the COUNT and points at the measure, whose own label is the word. So
+/// `pack_unit` is what tells a reader which of the two it is holding, and the
+/// measure's label is never copied into a second column to drift from.
+typedef PackAsEntered = ({double amount, String? unitId, String? measureId});
+
+PackAsEntered packAsEntered(double amount, UnitChoice choice) =>
+    switch (choice) {
+      MeasureOption(:final measure) => (
+        amount: amount,
+        unitId: null,
+        measureId: measure.id,
+      ),
+      UnitOption(:final unit) => (
+        amount: amount,
+        unitId: unit.id,
+        measureId: null,
+      ),
+    };
+
+/// The chip [price] was entered on, resolved against the row's [measures] —
+/// what the price sheet reopens a stored line on.
+///
+/// Null when the line kept no entered pack (a row written before the ledger
+/// held the words), or when the measure it named has been deleted since: the
+/// caller then opens on its own default rather than on a word that is gone.
+UnitChoice? enteredChoice(PriceObservation price, List<Measure> measures) {
+  if (price.packAmount == null) return null;
+  final unit = price.packUnit;
+  if (unit != null) return UnitOption(unit);
+  final id = price.measureId;
+  if (id == null) return null;
+  for (final measure in measures) {
+    if (measure.id == id) return MeasureOption(measure);
+  }
+  return null;
+}
+
 /// [line] as an observation, or null where it is not one.
 ///
 /// A line is a price when it is food, names an ingredient, states a pack and
@@ -405,6 +486,9 @@ PriceObservation? observationFrom(
     basis: basis,
     store: receipt.store,
     purchasedAt: receipt.purchasedAt,
+    packAmount: line.packAmount,
+    packUnit: line.packUnit,
     packLabel: packLabel,
+    measureId: line.measureId,
   );
 }

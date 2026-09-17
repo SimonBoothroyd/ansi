@@ -22,6 +22,7 @@ import '../../../core/money.dart';
 import '../../../core/result/result.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
+import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import '../../../core/words.dart';
 import '../../../shared/format.dart';
@@ -227,17 +228,34 @@ String measureFact(Measure measure) {
 // price sheet's own header all restate the same stored facts, so a wording
 // that changes changes once.
 
-/// What the cents bought, as the person said it: `bag (454 g)` where the pack
-/// was named as a measure, `454 g` where it was typed as a plain amount.
+/// What the cents bought, **in the words it was bought in**: `1 lb` for a pack
+/// typed as a pound, `bag (454 g)` for one tapped as the row's own measure,
+/// `454 g` where the amount was typed in the basis unit itself.
 ///
-/// The weight is always there, because the weight is the fact — the label is
-/// how it was said, and a measure deleted since leaves the number standing.
+/// The entered pack leads because it is the fact a person recognises — a pound
+/// of butter was a pound, not 454 g. The basis weight rides in brackets behind
+/// a measure's word, which on its own says nothing about size, and it stands
+/// alone on a line that kept no entered pack: that is honestly all a row
+/// written before the ledger held the words has.
 String pricePackPhrase(PriceObservation price) {
   final basis = price.basis.baseUnit;
   final weight =
       '${formatQuantityIn(price.packBasisAmount, basis)} ${basis.label}';
   final label = price.packLabel;
-  return label == null || label.isEmpty ? weight : '$label ($weight)';
+  if (label != null && label.isNotEmpty) {
+    // A count rides in front only when it is not one — `bag (454 g)`, but
+    // `2 bag (908 g)`. A pack that stated a unit rather than this measure
+    // counts nothing, and reads as the plain word.
+    final count = price.packUnit == null ? price.packAmount : null;
+    final head = count == null || count == 1
+        ? label
+        : '${formatAmount(count)} $label';
+    return '$head ($weight)';
+  }
+  final amount = price.packAmount;
+  final unit = price.packUnit;
+  if (amount == null || unit == null) return weight;
+  return '${formatAmountIn(amount, unit)} ${unit.label}';
 }
 
 /// The **latest** price as the group's one line — `77¢ / 100 g · $3.49 for bag
@@ -287,6 +305,16 @@ String? latestPriceAside(PriceObservation? price) {
   return 'latest $head · ${price.store} · '
       '${formatMonthShort(price.purchasedAt)}';
 }
+
+/// What the price sheet says over its fields when it was opened **on a stored
+/// line** — `editing $3.49 · TJ's · 13 Sep`.
+///
+/// The full day, not the month [latestPriceAside] shows: that one is context
+/// about a price being replaced, and this one names the very row about to be
+/// rewritten, so the reader can tell at a glance they are on the right one.
+String editedPriceAside(PriceObservation price) =>
+    'editing ${formatMoney(price.cents)} · ${price.store} · '
+    '${formatDayMonth(price.purchasedAt)}';
 
 /// Why a price cannot be read from what has been typed — the sentence the
 /// sheet's dock states in place of the figure, and the reason Done is refused.

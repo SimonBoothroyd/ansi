@@ -5,6 +5,7 @@ import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/units/macros.dart';
+import '../../../core/units/units.dart';
 import '../domain/price.dart';
 import '../domain/price_repository.dart';
 
@@ -43,6 +44,11 @@ class SqlitePriceRepository implements PriceRepository {
           discountCents: (r['discount_cents'] as num?)?.toInt() ?? 0,
           kind: ReceiptLineKind.fromDb(r['kind'] as String?),
           packBasisAmount: (r['pack_basis_amount'] as num?)?.toDouble(),
+          packAmount: (r['pack_amount'] as num?)?.toDouble(),
+          // A unit id this catalog does not know reads as no unit at all, and
+          // the line falls back to printing the basis figure it is derived
+          // from — never a word this app cannot stand behind.
+          packUnit: unitById((r['pack_unit'] as String?) ?? ''),
           measureId: r['measure_id'] as String?,
           sortOrder: (r['sort_order'] as int?) ?? 0,
         ),
@@ -88,7 +94,7 @@ class SqlitePriceRepository implements PriceRepository {
         .watch(
           'SELECT l.id, l.receipt_id, l.ingredient_id, l.printed_text, '
           'l.cents, l.discount_cents, l.kind, l.pack_basis_amount, '
-          'l.measure_id, l.sort_order, '
+          'l.pack_amount, l.pack_unit, l.measure_id, l.sort_order, '
           'r.store, r.purchased_at, r.source, '
           'i.macros_basis, m.label AS measure_label '
           'FROM receipt_line l '
@@ -118,7 +124,7 @@ class SqlitePriceRepository implements PriceRepository {
         .watch(
           'SELECT l.id, l.receipt_id, l.ingredient_id, l.printed_text, '
           'l.cents, l.discount_cents, l.kind, l.pack_basis_amount, '
-          'l.measure_id, l.sort_order, '
+          'l.pack_amount, l.pack_unit, l.measure_id, l.sort_order, '
           'r.store, r.purchased_at, r.source, '
           'i.macros_basis, m.label AS measure_label '
           'FROM receipt_line l '
@@ -167,31 +173,12 @@ class SqlitePriceRepository implements PriceRepository {
     required int cents,
     required double packBasisAmount,
     required String store,
+    double? packAmount,
+    String? packUnitId,
     String? measureId,
     DateTime? purchasedAt,
   }) async {
-    // Validated here and not only in the sheet, for the reason `addMeasure`
-    // states one table over: every write path has to hold the same lines, and
-    // the receipt importer is the next one.
-    final word = store.trim();
-    if (word.isEmpty) {
-      throw ArgumentError.value(store, 'store', 'must name a store');
-    }
-    if (cents <= 0) {
-      throw ArgumentError.value(
-        cents,
-        'cents',
-        'a price is what was paid, and nothing was',
-      );
-    }
-    // `!(x > 0)` (rather than `x <= 0`) also catches NaN.
-    if (!(packBasisAmount > 0) || !packBasisAmount.isFinite) {
-      throw ArgumentError.value(
-        packBasisAmount,
-        'packBasisAmount',
-        'a price needs to say what the cents bought',
-      );
-    }
+    final word = _checked(cents, packBasisAmount, store);
 
     final receiptId = _uuid.v4();
     final lineId = _uuid.v4();
@@ -215,8 +202,9 @@ class SqlitePriceRepository implements PriceRepository {
       await tx.execute(
         'INSERT INTO receipt_line (id, household_id, receipt_id, '
         'ingredient_id, cents, discount_cents, kind, pack_basis_amount, '
-        'measure_id, sort_order, created_at, updated_at) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'pack_amount, pack_unit, measure_id, sort_order, created_at, '
+        'updated_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           lineId,
           _householdId,
@@ -226,6 +214,8 @@ class SqlitePriceRepository implements PriceRepository {
           0,
           'item',
           packBasisAmount,
+          packAmount,
+          packUnitId,
           measureId,
           0,
           stamp,
@@ -233,6 +223,127 @@ class SqlitePriceRepository implements PriceRepository {
         ],
       );
     });
+  }
+
+  @override
+  Future<void> updatePrice({
+    required String lineId,
+    required int cents,
+    required double packBasisAmount,
+    required String store,
+    required DateTime purchasedAt,
+    double? packAmount,
+    String? packUnitId,
+    String? measureId,
+  }) async {
+    final word = _checked(cents, packBasisAmount, store);
+    final stamp = DateTime.now().toUtc().toIso8601String();
+    final bought = purchasedAt.toUtc().toIso8601String();
+
+    await _db.writeTransaction((tx) async {
+      // UPDATE, never an upsert: the local tables are SQLite views, and a view
+      // rejects `INSERT … ON CONFLICT`.
+      await tx.execute(
+        'UPDATE receipt_line SET cents = ?, pack_basis_amount = ?, '
+        'pack_amount = ?, pack_unit = ?, measure_id = ?, updated_at = ? '
+        'WHERE id = ? AND deleted_at IS NULL',
+        [
+          cents,
+          packBasisAmount,
+          packAmount,
+          packUnitId,
+          measureId,
+          stamp,
+          lineId,
+        ],
+      );
+      // The store, the date and the subtotal move only on this app's own
+      // one-line `manual` receipt, which has no printed figures to contradict.
+      // A photographed receipt keeps what the paper said.
+      if (await _isOneManualLine(tx, lineId)) {
+        await tx.execute(
+          'UPDATE receipt SET store = ?, purchased_at = ?, '
+          'subtotal_cents = ?, updated_at = ? '
+          'WHERE id = (SELECT receipt_id FROM receipt_line WHERE id = ?)',
+          [word, bought, cents, stamp, lineId],
+        );
+      }
+    });
+  }
+
+  @override
+  Future<void> deletePrice(String lineId) async {
+    final stamp = DateTime.now().toUtc().toIso8601String();
+    await _db.writeTransaction((tx) async {
+      // Asked BEFORE the line is tombstoned, while it is still one of the
+      // receipt's live lines to count.
+      final alone = await _isOneManualLine(tx, lineId);
+      if (alone) {
+        await tx.execute(
+          'UPDATE receipt SET deleted_at = ?, updated_at = ? '
+          'WHERE id = (SELECT receipt_id FROM receipt_line WHERE id = ?)',
+          [stamp, stamp, lineId],
+        );
+      }
+      await tx.execute(
+        'UPDATE receipt_line SET deleted_at = ?, updated_at = ? '
+        'WHERE id = ? AND deleted_at IS NULL',
+        [stamp, stamp, lineId],
+      );
+    });
+  }
+
+  /// Whether [lineId] is the only live line of a `manual` receipt — this app's
+  /// own hand-typed price, whose receipt says nothing the line does not.
+  ///
+  /// A photographed receipt answers false however few lines survive on it: it
+  /// is a piece of paper, and the paper is not a price.
+  static Future<bool> _isOneManualLine(
+    SqliteWriteContext tx,
+    String lineId,
+  ) async {
+    // `getOptional`: a line that is not there answers no rather than throwing
+    // — there is simply nothing to carry along.
+    final row = await tx.getOptional(
+      'SELECT r.source AS source, '
+      '(SELECT COUNT(*) FROM receipt_line x '
+      ' WHERE x.receipt_id = r.id AND x.deleted_at IS NULL) AS live '
+      'FROM receipt_line l JOIN receipt r ON r.id = l.receipt_id '
+      'WHERE l.id = ?',
+      [lineId],
+    );
+    return row != null &&
+        row['source'] == 'manual' &&
+        (row['live'] as num?) == 1;
+  }
+
+  /// The three honesty rules every write here holds, and the trimmed store
+  /// word they hand back.
+  ///
+  /// Validated at the repository and not only in the sheet, for the reason
+  /// `addMeasure` states one table over: every write path has to hold the same
+  /// lines, and the receipt importer is the next one.
+  static String _checked(int cents, double packBasisAmount, String store) {
+    final word = store.trim();
+    if (word.isEmpty) {
+      throw ArgumentError.value(store, 'store', 'must name a store');
+    }
+    if (cents <= 0) {
+      throw ArgumentError.value(
+        cents,
+        'cents',
+        'a price is what was paid, and nothing was',
+      );
+    }
+    // `!(x > 0)` (rather than `x <= 0`) also catches NaN.
+    if (!(packBasisAmount > 0) || !packBasisAmount.isFinite) {
+      throw ArgumentError.value(
+        packBasisAmount,
+        'packBasisAmount',
+        'a price needs to say what the cents bought',
+      );
+    }
+    return word;
   }
 }
 
@@ -248,7 +359,7 @@ Future<Map<String, PriceObservation>> loadLatestPrices(
   await db.getAll(
     'SELECT l.id, l.receipt_id, l.ingredient_id, l.printed_text, '
     'l.cents, l.discount_cents, l.kind, l.pack_basis_amount, '
-    'l.measure_id, l.sort_order, '
+    'l.pack_amount, l.pack_unit, l.measure_id, l.sort_order, '
     'r.store, r.purchased_at, r.source, '
     'i.macros_basis, m.label AS measure_label '
     'FROM receipt_line l '

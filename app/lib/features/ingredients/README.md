@@ -26,7 +26,8 @@ showIngredientPicker    ingredient_picker.dart       recipe editor, shopping top
 showQuantityUnitSheet   quantity_unit_sheet.dart     every quantity+unit in the app
         └── manage measures + DensityEntry (density_entry.dart)
 showUsdaPickSheet       usda_pick_sheet.dart         the USDA short-list a person picks from
-showPriceSheet          price_sheet.dart             paid · for · at — the one door a price is entered through
+showPriceSheet          price_sheet.dart             paid · for · at — the one door a price is entered through,
+                                                     and, opened on a stored line, edited or deleted
 
 scanBarcodeForDraft     barcode/barcode_add.dart     the barcode module's one door
 applyDraft              domain/apply_draft.dart      how a draft lands on the form's fields
@@ -242,7 +243,8 @@ ingredients/
     measure_repository.dart  named per-ingredient measures
     price.dart               the receipt, its lines, PriceObservation, and the
                              per-basis derivation with its density gate
-    price_repository.dart    the price ledger's two reads and its one write
+    price_repository.dart    the price ledger's three reads and its three
+                             writes — record, rewrite, take back
     apply_draft.dart         the one rule for landing a barcode draft on a form
     serving_measure.dart     the serving a label prints, kept as the row's one
                              `serving · 2 tbsp` measure — its label, and the
@@ -256,7 +258,8 @@ ingredients/
     ingredient_providers.dart        keepAlive repo providers + watch streams
   presentation/
     price_sheet.dart            paid · for · at, over the quantity sheet's own
-                                chip row; the dock states the derivation
+                                chip row; the dock states the derivation, and
+                                a stored line reopens it with a Delete
     ingredient_list_view.dart   the manager list
     ingredient_detail_view.dart the form — create at /ingredients/new, edit at /:id
     ingredient_view_models.dart IngredientForm — the form's draft and its Save
@@ -358,12 +361,22 @@ ingredients/
   The ledger is `receipt` + `receipt_line` (migration 0044) and a hand-typed
   price is a one-line `manual` receipt, so a typed price and a scanned one are
   the same fact read the same way — one table, one ledger, and no separate
-  observation row. The pack is stored in the row's **basis unit**, beside
-  `basis_amount` and `piece_basis_amount`, and `77¢ / 100 g` is computed at
-  read time, never written back: a pack re-weighed or a discount corrected
-  moves every screen at once. Money is integer cents throughout
+  observation row. `77¢ / 100 g` is computed at read time, never written back:
+  a pack re-weighed or a discount corrected moves every screen at once. Money
+  is integer cents throughout
   (`core/money.dart`); a discount rides beside the printed figure rather than
   inside it, and **what was paid is `cents - discount_cents`**.
+  - **The pack is kept twice, and the two answer different questions.**
+    `pack_basis_amount` is what the cents bought in the row's **basis unit**,
+    beside `basis_amount` and `piece_basis_amount`, and it is the only number
+    a figure is derived from. `pack_amount` with `pack_unit` (a units.dart
+    catalog id) is what the person SAID — and where they tapped one of the
+    row's own measures instead, `pack_unit` is null and `pack_amount` is the
+    COUNT of it, with `measure_id` carrying the word (migration 0046). So the
+    ledger prints `$3.49 for 1 lb` and `for bag (454 g)` rather than restating
+    a pound as 454 g, while the per-100 figure goes on reading the basis. They
+    must be able to disagree: a household that re-weighs its `bag` is saying
+    what a bag is today, and last month's $3.49 bought last month's bag.
   - **The honesty gate is at entry.** `packInBasis` resolves the typed pack
     into the basis and refuses across mass↔volume without the row's density —
     the macros' own gate, on the same boundary — so the sheet's dock says why
@@ -376,6 +389,16 @@ ingredients/
     retired — a receipt is history and never blocks a prune) and nothing paid
     all mean *no observation*, so the Price group says `— none yet` beside its
     own heading and offers one door.
+  - **Every stored price is a tap, onto the sheet that entered it.** The Price
+    group's *Latest* line and each row under *Before* reopen `PriceEditor` on
+    that line — paid, pack and store as they were given — and Done writes an
+    UPDATE (`updatePrice`) rather than a second receipt, keeping the day the
+    price was paid on: an edit is a correction, not a second shop. A
+    **Delete** under it soft-deletes the line after the app's shared confirm
+    (`askAnsi`, destructive). The line's receipt moves with it **only when it
+    is this app's one-line `manual` kind** — a photographed receipt is a piece
+    of paper, so its store, its date and its printed subtotal stay as printed
+    and the paper is never deleted from here.
 - **A rename rewrites `match_text`** through `normalizeMatchText` in the same
   statement. The server writes `match_text` with the phrase rules; the app must
   write the same ones, or a locally created row carries text the next import's
@@ -396,13 +419,16 @@ ingredients/
   `supabase/tests/unit_admission.sql`), `normalize_test` (the shared JSON
   vectors), `apply_draft_test` (including the pack-naming rules),
   `ingredient_test` (the provenance predicates and the one source line),
-  `price_test` (every refusal of the derivation and the entry gate, and what
-  is a price as against what is only a line of a receipt).
+  `price_test` (every refusal of the derivation and the entry gate, what is a
+  price as against what is only a line of a receipt, and the two denominations
+  a pack is kept in).
 - Repo on a real `PowerSyncDatabase`: `ingredient_repository_test`,
   `measure_repository_test` — search/recents, `saveForm` create and edit,
   density round-trips, confirm/unconfirm, delete refusal, aliases — and
   `price_repository_test`, which also pins that the typed price is two rows in
-  one transaction and both plain INSERTs.
+  one transaction and both plain INSERTs, that an edit is a PATCH and never an
+  upsert, and that a delete takes a one-line manual receipt with it and leaves
+  a photographed one standing.
 - Widget: `ingredient_list_test`, `ingredient_form_test`,
   `ingredient_usda_test`, `ingredient_macros_test`, `ingredient_picker_test`,
   `quantity_unit_sheet_test`, `ingredient_price_test`.
@@ -416,7 +442,8 @@ ingredients/
 - Barcode: `barcode/` — mapper and lookup against committed fixtures (no
   network), the scan sheet's failure states, and the public door's contract.
 - Server-side: `supabase/tests/receipts.sql` pins the price fact's shape — the
-  closed enumerations, the fence that only a food line carries a pack, the
+  closed enumerations, the fence that only a food line carries a pack in
+  either denomination, the pack as entered beside the pack in the basis, the
   typed price as a one-line `manual` receipt, and the retire that detaches a
   receipt line instead of refusing. The admission functions are pinned by
   `supabase/tests/unit_admission.sql` (pgTAP), not by anything in this feature.

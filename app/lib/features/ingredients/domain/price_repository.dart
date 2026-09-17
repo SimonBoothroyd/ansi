@@ -44,9 +44,11 @@ abstract interface class PriceRepository {
   /// [cents] is what was paid and [packBasisAmount] is what it bought, in the
   /// ingredient's basis unit — the caller resolves the pack through
   /// `packInBasis` first, so the density refusal happens where the person can
-  /// see it rather than here. [measureId] is the pack's own word when one was
-  /// picked; [purchasedAt] defaults to now, because a price typed today is a
-  /// price seen today.
+  /// see it rather than here. [packAmount] with [packUnitId], or [packAmount]
+  /// with [measureId], is the pack as the person SAID it — the pair
+  /// `packAsEntered` builds, kept so the ledger can print it back and nothing
+  /// derived from it. [purchasedAt] defaults to now, because a price typed
+  /// today is a price seen today.
   ///
   /// Throws [ArgumentError] for a non-positive [cents] or [packBasisAmount],
   /// or an empty [store] — the honesty rules hold at the repository, not only
@@ -56,7 +58,46 @@ abstract interface class PriceRepository {
     required int cents,
     required double packBasisAmount,
     required String store,
+    double? packAmount,
+    String? packUnitId,
     String? measureId,
     DateTime? purchasedAt,
   });
+
+  /// Rewrites the stored price [lineId] in place — the same four answers the
+  /// sheet asks, for a line that already exists.
+  ///
+  /// It is an **UPDATE, never an upsert**: the local tables are PowerSync
+  /// views, which reject `INSERT … ON CONFLICT`.
+  ///
+  /// The line's own facts always move. Its receipt's do too **only when the
+  /// receipt is this app's one-line `manual` kind** — store, `purchased_at`
+  /// and the subtotal that is simply the line's cents. A photographed receipt
+  /// is a piece of paper: correcting what one of its lines is understood to be
+  /// worth must not restate what the paper printed, or which shop printed it.
+  ///
+  /// [purchasedAt] is passed rather than defaulted, because an edit is a
+  /// correction and not a new shop: the caller hands back the date the price
+  /// already carried unless the person changed it.
+  ///
+  /// Throws [ArgumentError] on the same three honesty rules
+  /// [recordManualPrice] holds.
+  Future<void> updatePrice({
+    required String lineId,
+    required int cents,
+    required double packBasisAmount,
+    required String store,
+    required DateTime purchasedAt,
+    double? packAmount,
+    String? packUnitId,
+    String? measureId,
+  });
+
+  /// Soft-deletes the stored price [lineId] — a mistyped price, taken back.
+  ///
+  /// The line is always tombstoned. Its receipt is tombstoned **with** it only
+  /// when that receipt is a one-line `manual` one, which has nothing left to
+  /// be once its line is gone; a photographed receipt keeps standing, one line
+  /// shorter, because the rest of the paper is still true.
+  Future<void> deletePrice(String lineId);
 }

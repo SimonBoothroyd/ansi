@@ -63,6 +63,20 @@ String formatMoneyWhole(double cents) {
   return '$sign\$${(rounded.abs() / 100).round()}';
 }
 
+/// [cents] as the **Paid** field takes it back — `349` → `3.49`, `300` →
+/// `3.00`.
+///
+/// The round trip of [parseMoney], and the one spelling a field can be seeded
+/// with: both places, never [formatMoney]'s reading, because a field that
+/// opened on `77¢` would be a field nobody could edit. It stays integer
+/// arithmetic — money is cents, and dividing by 100 to print it would put a
+/// float where the exactness is the whole point. Non-negative, because a price
+/// is what was paid.
+String dollarsTyped(int cents) {
+  final pennies = (cents % 100).toString().padLeft(2, '0');
+  return '${cents ~/ 100}.$pennies';
+}
+
 /// A typed sum of **dollars** as whole cents — `3.49` → 349, `3` → 300,
 /// `.5` → 50 — or null when [text] is not one.
 ///

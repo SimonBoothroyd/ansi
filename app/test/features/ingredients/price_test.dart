@@ -349,6 +349,111 @@ void main() {
     });
   });
 
+  group('the pack as it was entered', () {
+    test('a unit chip stores the amount and the unit’s catalog id', () {
+      final entered = packAsEntered(1, const UnitOption(lb));
+      expect(entered.amount, 1);
+      expect(entered.unitId, 'lb');
+      expect(
+        entered.measureId,
+        isNull,
+        reason: 'a pound points at no row of the vocabulary',
+      );
+    });
+
+    test('a measure chip stores the COUNT, and the measure names it', () {
+      final entered = packAsEntered(2, const MeasureOption(_bag));
+      expect(entered.amount, 2);
+      expect(
+        entered.unitId,
+        isNull,
+        reason: 'the measure’s own label is the word — never a second copy',
+      );
+      expect(entered.measureId, 'm1');
+    });
+
+    test('an observation carries the words as well as the weight', () {
+      final observation = observationFrom(
+        const ReceiptLine(
+          id: 'l1',
+          receiptId: 'r1',
+          ingredientId: 'i1',
+          cents: 349,
+          kind: ReceiptLineKind.item,
+          // A pound, resolved once at entry — and still a pound.
+          packBasisAmount: 453.59237,
+          packAmount: 1,
+          packUnit: lb,
+        ),
+        _receipt(),
+        basis: MacrosBasis.perG,
+      )!;
+      expect(observation.packAmount, 1);
+      expect(observation.packUnit, lb);
+      expect(
+        observation.packBasisAmount,
+        closeTo(453.6, 0.1),
+        reason: 'the derivation still reads the basis figure',
+      );
+      expect(formatPricePer100(observation.per100.valueOrNull!), '77¢ / 100 g');
+    });
+
+    test('a line written before the ledger kept the words says nothing', () {
+      final observation = observationFrom(
+        const ReceiptLine(
+          id: 'l1',
+          receiptId: 'r1',
+          ingredientId: 'i1',
+          cents: 349,
+          kind: ReceiptLineKind.item,
+          packBasisAmount: 454,
+        ),
+        _receipt(),
+        basis: MacrosBasis.perG,
+      )!;
+      expect(observation.packAmount, isNull);
+      expect(observation.packUnit, isNull);
+    });
+  });
+
+  group('enteredChoice — the chip a stored line reopens on', () {
+    PriceObservation stored({double? amount, Unit? unit, String? measureId}) =>
+        PriceObservation(
+          lineId: 'l1',
+          receiptId: 'r1',
+          cents: 349,
+          packBasisAmount: 454,
+          basis: MacrosBasis.perG,
+          store: "TJ's",
+          purchasedAt: DateTime.utc(2026, 9, 13),
+          packAmount: amount,
+          packUnit: unit,
+          measureId: measureId,
+        );
+
+    test('a unit pack reopens on that unit', () {
+      expect(
+        enteredChoice(stored(amount: 1, unit: lb), const [_bag]),
+        const UnitOption(lb),
+      );
+    });
+
+    test('a measure pack reopens on that measure', () {
+      expect(
+        enteredChoice(stored(amount: 1, measureId: 'm1'), const [_bag]),
+        const MeasureOption(_bag),
+      );
+    });
+
+    test('a measure deleted since leaves nothing to reopen on', () {
+      expect(enteredChoice(stored(amount: 1, measureId: 'm1'), const []), null);
+    });
+
+    test('a line that kept no entered pack has no chip to name', () {
+      expect(enteredChoice(stored(), const [_bag]), isNull);
+    });
+  });
+
   group('the stored enumerations', () {
     test('source round-trips, and an unknown one is never “typed here”', () {
       expect(ReceiptSource.fromDb('manual'), ReceiptSource.manual);

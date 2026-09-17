@@ -87,6 +87,7 @@ import '../../../shared/ansi_back.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/ansi_tap.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/format.dart';
 import '../../../shared/guarded_navigation.dart';
@@ -377,6 +378,9 @@ const kReadFillItInKey = ValueKey('read-fill-it-in');
 /// The Price group's door onto the price sheet, named for the same reason.
 const kReadAddPriceKey = ValueKey('read-add-a-price');
 
+/// The Latest line, which is a tap onto the sheet that entered it.
+const kReadLatestPriceKey = ValueKey('read-latest-price');
+
 /// The page as it OPENS on a row that exists: the same groups in the same
 /// order, each field's value stated instead of offered.
 ///
@@ -602,6 +606,11 @@ class _ReadPosture extends ConsumerWidget {
 /// and offers the door; it never shows `$0.00`, which would be a claim about
 /// the shop rather than an absence (invariant 3). The door stays after the
 /// first price, because a price is an event and there is always another one.
+///
+/// **Every price here is a tap**, the latest and each one before it, and the
+/// tap opens the same sheet on that line — the way to fix a sum typed wrong, or
+/// to take it back. A price that could only ever be added would make the first
+/// typo permanent, and the ledger's whole claim is that it says what happened.
 class _PriceGroup extends ConsumerWidget {
   const _PriceGroup({required this.ingredient});
 
@@ -647,15 +656,26 @@ class _PriceGroup extends ConsumerWidget {
       return _Group(title: 'Price', suffix: '— none yet', children: [door]);
     }
 
+    void fix(PriceObservation price) => unawaited(
+      showPriceSheet(context, ingredient: ingredient, editing: price),
+    );
+
     final earlier = prices.skip(1).toList();
     return _Group(
       title: 'Price',
       children: [
         const _Label('LATEST', hint: 'what a recipe reads'),
-        _Fact(latestPriceFact(prices.first)),
+        AnsiTap(
+          key: kReadLatestPriceKey,
+          onTap: () => fix(prices.first),
+          // A row of words, not a glyph: it needs no square target grown
+          // under it, and growing one would move the group's rhythm.
+          minTarget: false,
+          child: _Fact(latestPriceFact(prices.first)),
+        ),
         if (earlier.isNotEmpty) ...[
           const _Label('BEFORE'),
-          _EarlierPrices(prices: earlier),
+          _EarlierPrices(prices: earlier, onTap: fix),
           const _Fact(
             'a recipe reads the latest; the rest is what you paid, kept as '
             'paid',
@@ -670,10 +690,14 @@ class _PriceGroup extends ConsumerWidget {
 
 /// The prices before the latest — the measures list's own row shape, with what
 /// was paid on the left and where and when on the right.
+///
+/// Each row is a tap onto the sheet that entered it: an old price is as
+/// mistypeable as a new one, and the ledger is the only place to say so.
 class _EarlierPrices extends StatelessWidget {
-  const _EarlierPrices({required this.prices});
+  const _EarlierPrices({required this.prices, required this.onTap});
 
   final List<PriceObservation> prices;
+  final ValueChanged<PriceObservation> onTap;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -683,7 +707,9 @@ class _EarlierPrices extends StatelessWidget {
         Builder(
           builder: (context) {
             final fact = earlierPriceFact(price);
-            return Padding(
+            return AnsiTap(
+              onTap: () => onTap(price),
+              minTarget: false,
               padding: const EdgeInsets.only(top: 7),
               child: Row(
                 children: [
