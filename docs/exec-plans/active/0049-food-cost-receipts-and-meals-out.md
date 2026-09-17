@@ -77,23 +77,26 @@ Phase two — receipts and spend:
 
 Phase three — a meal eaten out:
 
-- [ ] Migration `0045_plan_entry_out.sql`: `label text` and `macros jsonb`
+- [x] Migration `0045_plan_entry_out.sql`: `label text` and `macros jsonb`
       on `plan_entry`; the entry XOR becomes three-way (recipe · ingredient
       · label), checked in the constraint.
-- [ ] `PlanEntry.isIngredient` becomes a `kind` enum (`recipe · ingredient ·
+- [x] `PlanEntry.isIngredient` becomes a `kind` enum (`recipe · ingredient ·
       out`); `MealTarget` gains a third sealed case; a seam test asserts
       every derivation branches on the kind.
-- [ ] The picker's third answer when the typed words match nothing: *note it
+- [x] The picker's third answer when the typed words match nothing: *note it
       — "Office lunch" · not cooked, not bought*. The confirm sheet keeps
       slot, eaters and portions and adds the optional macros fold on the
       existing macro keypad.
-- [ ] The week row at a third weight: plain italic, an `out` tag where the
+- [x] The week row at a third weight: plain italic, an `out` tag where the
       cook marker sits, its figures beside it when stated; the day's scope
       line names `office lunch not counted` otherwise. Cook and Shop never
       see it. Copy last week carries it, figures and all. The default-slot
       rule treats the slot as filled.
-- [ ] Tests mirror every new domain rule; the board's hatch frames move
+- [x] Tests mirror every new domain rule; the board's hatch frames move
       into their screen files as built; roadmap and ARCHITECTURE rows.
+      A wide frame is drawn beside them: the agenda's run marks the meal with
+      a hollow dot, the day pane draws the phone's row, and the picker and
+      confirm sheet are unchanged dialogs from 640.
 
 ## Approach
 
@@ -158,6 +161,15 @@ and can run beside phase one.
   is the repeat) and **no vocabulary row** (a meal out is a label and its
   figures, not a thing the household owns). Either can be reopened by the
   owner before P3 builds.
+
+- 2026-09-16 — **One vocabulary for the refusal.** The brainstorm drew a
+  day scope line reading `office lunch not counted` beside a denominator of
+  `2 meals`. Built, the week says the same thing in the words it already
+  uses for a stub ingredient: the denominator moves to `1 of 2 meals` and the
+  day names `left out: Office lunch · macros not stated`. Two spellings of one
+  refusal would be a second vocabulary for the week to drift within, and the
+  mandatory denominator is D4's teeth. The frames on the board are drawn as
+  the code prints it.
 
 ## Notes / open questions
 

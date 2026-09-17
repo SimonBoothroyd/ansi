@@ -27,6 +27,7 @@ operator statement is owed there.
 
 | What | Plan |
 |------|------|
+| A meal eaten out — a third kind of planned meal: its words, its eaters and the per-portion macros when they were stated. It fills its slot, is neither cooked nor bought, and counts in the day only as stated. | [0049](./active/0049-food-cost-receipts-and-meals-out.md) (phase three) |
 
 ## Shipped
 

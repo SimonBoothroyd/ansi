@@ -15,8 +15,8 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe picker &amp; confirm</h1>
-    <p class="view-status">built · matches code 2026-09-12 · <code>features/planning</code> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · wide: same, as a dialog from 640</p>
-    <p class="view-blurb">Pick a recipe for a slot, then say who is eating and how much — the two steps between a day’s ＋ and a meal on the week.</p>
+    <p class="view-status">built · matches code 2026-09-16 · <code>features/planning</code> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: same, as a dialog from 640</p>
+    <p class="view-blurb">Pick a recipe for a slot, then say who is eating and how much — the two steps between a day’s ＋ and a meal on the week. One door answers three ways: a recipe, an ingredient, or the words of a meal eaten out.</p>
 </header>
 
 <div class="board">
@@ -90,6 +90,46 @@
             </div></div>
         </div>
 
+
+        <div class="frame" id="pv2-out">
+            <p class="frame-name"><b>The picker’s third answer</b> · when the typed words match no recipe and no ingredient, the one door offers to plan the words themselves — and says up front what the app will <i>not</i> do with them</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl">Add a meal</span><span class="dots"></span></div>
+                <p class="target">to · <b>Tuesday, Lunch</b></p>
+                <div class="field"><div class="search"><span class="mag">⌕</span><span>Office lunch</span><span class="care"></span></div></div>
+                <div class="rseg"><span class="rsegopt on">Recent</span><span class="rsegopt">Books</span><span class="rsegopt">Favorites</span></div>
+                <p class="conv-note" style="margin:26px 20px">No recipes yet — add one below.</p>
+                <div class="newrow" style="border-color:var(--herb);color:var(--herb)">＋ note it — “Office lunch” · not cooked, not bought</div>
+                <div class="newrow">＋ new recipe — build it from scratch</div>
+                <p class="conv-note" style="margin:14px 20px 0">The condition is all four clauses: something is typed, <b>no recipe title hit at any tier</b> (typos included), <b>no ingredient hit</b> — even a guessed one is an answer — and the vocabulary search has caught up with what is typed, so the row cannot flash between keystrokes offering to plan half a word. The list above says its own empty state; the third answer sits in the footer, above the door it is a sibling of. Tapping it resolves the picker to the <b>words</b>, trimmed: nothing is minted in the Library or the vocabulary, and the confirm sheet is next.</p>
+                <div class="foot"><span class="foot-lab">Eating: <b>Ada &amp; Jun</b> · shared</span>
+                    <span class="eaters"><span class="ep on a">A</span><span class="ep on j">J</span></span></div>
+            </div></div>
+        </div>
+
+        <div class="frame" id="pv2-out-confirm">
+            <p class="frame-name"><b>Confirm a meal eaten out</b> · the three shared questions, exactly as any meal asks them, and one optional fold the other two kinds are never asked</p>
+            <div class="phone"><div class="notch"></div><div class="screen sheet">
+                <div class="grab"></div>
+                <div class="c-h">Add to plan</div>
+                <p class="target">to · <b>Tuesday</b></p>
+                <div class="picked"><div class="rthumb" style="background:var(--paper);color:var(--muted)">↗</div>
+                    <div class="pn"><div class="ptitle" style="font-style:italic">Office lunch</div>
+                        <div class="rml"><span class="kpill">out</span> not cooked, not bought</div></div></div>
+                <p class="clabel">Slot</p>
+                <div class="slotchip">Lunch<span class="caret">▾</span></div>
+                <p class="clabel">Who's eating</p>
+                <div class="eater-row"><span class="eaters"><span class="ep on a">A</span></span><span class="lab" style="flex:none;margin-left:2px">Ada</span><span class="eaters" style="margin-left:14px"><span class="ep j">J</span></span><span class="lab" style="flex:none;margin-left:2px;color:var(--muted)">Jun</span></div>
+                <p class="clabel">Portions</p>
+                <div class="portion"><div class="pl">1 portion<small>Ada 1 — her usual</small></div>
+                    <div class="pstepper"><span class="s">–</span><span class="qv">1</span><span class="s">+</span></div></div>
+                <p class="clabel">Macros · per portion <span style="color:var(--muted);letter-spacing:0;text-transform:none">optional</span></p>
+                <div class="frow"><div class="macro-fields"><div class="mi"><div class="miv">620</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">42</div><div class="mil">protein</div></div><div class="mi"><div class="miv">55</div><div class="mil">carb</div></div><div class="mi"><div class="miv">24</div><div class="mil">fat</div></div><div class="mi"><div class="miv">&nbsp;</div><div class="mil">fibre</div></div></div></div>
+                <p class="conv-note" style="margin:8px 20px 0">counted in the day and the week, as stated</p>
+                <p class="conv-note" style="margin:8px 20px 0">the same five-slot sentence the ingredient form types a label into — one keypad, one set of widths, one rule about the fifth slot — except that these figures are <b>per portion</b> rather than per 100 of a basis, because a canteen prints a plate. The line under the slots says which of three states the typing is in: left empty, <span style="font-family:'IBM Plex Mono',monospace">left empty — the meal fills its slot, and the day says it was not counted</span>; half filled, <span style="font-family:'IBM Plex Mono',monospace">kcal, protein, carb and fat are one panel — a partial one is not stated, and will not be saved</span>; whole, the line drawn above. A blank is never a zero, and fibre is stored only if it was typed. There is no batch cue and no shelf life: nothing about this meal is cooked.</p>
+                <div class="addbtn">Add to Tuesday</div>
+            </div></div>
+        </div>
 </div>
 
 <p class="view-foot"><a href="./index.html">← every view</a> · <a href="./README.md">how this board is kept</a></p>
