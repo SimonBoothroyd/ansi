@@ -27,6 +27,7 @@ operator statement is owed there.
 
 | What | Plan |
 |------|------|
+| Food cost, phase one — a price is a row fact with history (cents for a stated pack, at a store, on a date; a hand-typed price is a one-line receipt), and a recipe, the week band and the shop read what their lines cost at the latest price: the recipe panel flips between Macros and Cost, one `Show line figures` toggle follows it, and an unpriced line is named, never zeroed. ADR-0017. Migration 0044. | [0049](./active/0049-food-cost-receipts-and-meals-out.md) (phase one) · [ADR-0017](../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md) |
 | A meal eaten out — a third kind of planned meal: its words, its eaters and the per-portion macros when they were stated. It fills its slot, is neither cooked nor bought, and counts in the day only as stated. | [0049](./active/0049-food-cost-receipts-and-meals-out.md) (phase three) |
 
 ## Shipped

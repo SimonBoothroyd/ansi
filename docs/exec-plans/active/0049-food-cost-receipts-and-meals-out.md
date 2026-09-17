@@ -192,18 +192,20 @@ and can run beside phase one.
 
 ## Step-done checklist
 
-- [ ] Roadmap: the Next list names this plan; the row moves to *On main,
-      not yet tagged* as each phase lands.
-- [ ] `ARCHITECTURE.md` standing table: ingredients (price fact), recipes
-      (cost reading), planning (the third kind), import (receipts), shopping.
-- [ ] Backlog: the three rows retire as their phase ships.
+- [x] Roadmap: the Next list names this plan; phases one and three sit under
+      *On main, not yet tagged*; phase two joins them when it lands.
+- [x] `ARCHITECTURE.md` standing table: ingredients (price fact), recipes
+      (cost reading), planning (the third kind), shopping. *(import waits on
+      receipts.)*
+- [x] Backlog: the price row and the meal-out row have retired; the receipt
+      row stays until phase two ships.
 - [ ] Board: hatch frames move into `ingredient-detail`, `recipe-page`,
       `week`, `cook-shop`, `import-review`, `recipe-picker-confirm` as
       built; a new `receipts` view file with its status row. *(the price
       frames and the four cost frames have moved; the receipt and meal-out
       frames wait on their phases.)*
 - [x] ADR-0017 (cost is a unit price) written at P2's landing.
-- [ ] `make ci` green; `make test-sim` on one simulator, serially, when the
-      owner says go.
+- [ ] `make ci` green on every landing so far; `make test-sim` on one
+      simulator, serially, when the owner says go.
 - [ ] `deploy-supabase` run by hand for R1; sync rules recreated for 0044
       and 0045.
