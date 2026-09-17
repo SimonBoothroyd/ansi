@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Cook &amp; Shop</h1>
-    <p class="view-status">built · matches code 2026-09-12 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: cook matches code 2026-09-13; shop differs 2026-09-13: at ≥ 1024 a row’s breakdown is drawn only in the provenance pane, and the walk keeps the 640 measure beside it · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a></p>
+    <p class="view-status">built · matches code 2026-09-17 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: cook matches code 2026-09-13; shop differs 2026-09-13: at ≥ 1024 a row’s breakdown is drawn only in the provenance pane, and the walk keeps the 640 measure beside it · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a></p>
     <p class="view-blurb">Two tabs derived from the week on screen — sessions grouped by recipe and split by shelf life, then one list summed from them, saying where every line came from.</p>
 </header>
 
@@ -117,13 +117,14 @@
         <p class="frame-name"><b>Shop</b> · the same switcher as the only title, with the sync line under it</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="wkhdr"><span class="chev">‹</span><span class="wt">Next week<span class="dt">7 Sep</span><span class="caret">▾</span></span><span class="chev">›</span></div>
-            <div class="er-shopsync"><span class="sy"></span><span class="st">Synced · 14:02</span></div>
+            <div class="er-shopsync"><span class="sy"></span><span class="st">Synced · 14:02</span><span class="st" style="margin-left:auto">≈ $58 still to buy</span></div>
             <p class="conv-note" style="margin:10px 20px 0;letter-spacing:.04em">summed from the cook plan · with provenance</p>
             <div class="sl-group">Produce</div>
             <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Charred broccoli</span><span class="item-total">1 head</span></div>
-                <div class="item-sub">350 g</div>
+                <div class="item-sub">350 g · no price yet</div>
                 <div class="prov"><div class="prov-line"><span class="src">Charred Broccoli &amp; Halloumi Salad · cook Wed</span><span>1 head</span></div></div></div>
             <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Halloumi</span><span class="item-total">250 g</span></div>
+                <div class="item-sub">≈ $4.75</div>
                 <div class="prov"><div class="prov-line"><span class="src">Charred Broccoli &amp; Halloumi Salad · cook Wed</span><span>250 g</span></div></div></div>
             <div class="topup">＋ add item or top up an ingredient</div>
             <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni on"><span class="ic">▤</span>Shop</div></div>
@@ -137,15 +138,16 @@
                 <p class="conv-note" style="margin:6px 20px 0;letter-spacing:.04em">summed from the cook plan · with provenance</p>
                 <div class="sl-group">Produce</div>
                 <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Lime</span><span class="item-total">2½ lime, whole</span></div>
-                    <div class="item-sub">167.5 g → buy 3</div>
+                    <div class="item-sub">167.5 g → buy 3 · ≈ $1.24</div>
                     <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>1 lime, whole</span></div><div class="prov-line"><span class="src">Charred Broccoli &amp; Halloumi Salad · cook Wed</span><span>1½ lime, whole</span></div></div>
                 </div>
                 <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Yellow onion</span><span class="item-total">5 onion, medium</span></div>
-                    <div class="item-sub">550 g</div>
+                    <div class="item-sub">550 g · ≈ $2.42</div>
                     <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>3 onion, medium</span></div><div class="prov-line"><span class="src">Slow-Cooker Beef Ragù · cook Tue</span><span>2 onion, medium</span></div></div>
                 </div>
                 <div class="sl-group">Baking</div>
                 <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Flour</span><span class="item-total">500 g</span></div>
+                    <div class="item-sub">≈ $1.35</div>
                     <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>300 g</span></div><div class="prov-line"><span class="src">Oat Cookies</span><span>150 g</span></div><div class="prov-line manual"><span class="src">＋ manual top-up</span><span>50 g</span></div></div>
                 </div>
                 <div class="sl-group">In the basket · 2</div>
@@ -156,6 +158,7 @@
                 <div class="topup">＋ add item or top up an ingredient</div>
             </div></div>
             <p class="conv-note" style="margin:10px 4px 0"><b>A row is bought in its own word.</b> Lime’s <i>lime, whole</i> weighs what the row says a piece weighs, so every door says it and the shop counts it — <b>2½ lime, whole</b>, the grams under the count and the round-up after them when the count is fractional (<a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a>). A row that weighs a piece but names no size (Avocado) reads a count of pieces, <b>≈</b> when read back from a plain weight, and a <code>piece</code> line on any weighed row folds through that weight rather than sitting beside the grams unsummed. A row asked for in one named measure keeps that count (<i>5 onion, medium</i>)</p>
+            <p class="conv-note" style="margin:6px 4px 0"><b>What the trip costs sits on the sync line</b>, where the one sentence about the whole list already lives, and each open row carries its own under the grams. Both wear <b>&asymp;</b>: a price is the latest one seen, not a quote, and the trip figure reads to the dollar because a sum over a dozen of them does not have cents of precision (<a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a>). A row with no price <i>says so</i> rather than leaving a gap &mdash; but only once something on the trip HAS one, so a household that has priced nothing is never nagged. <b>The basket carries none</b>: the line answers what is left to buy. The trip figure sums the rows it can price and the rows name the rest, which is the provenance doctrine this list has always had</p>
             <p class="conv-note" style="margin:6px 4px 0"><b>The basket is one section, always at the bottom</b> — under the aisles, above the echo rows — in aisle order then name, and keeps its aisles inside it a size down, so a ticked row is re-found where it was found. An aisle whose rows are all ticked leaves the top. A tap unticks, and the row returns to its aisle on the next derivation. Every row ticked: the aisles give way to one line, <i>everything’s in the basket</i></p>
         </div>
 
@@ -217,17 +220,17 @@
         <p class="frame-name"><b>What the list left out</b> · the recipe’s own echo row names its optional lines — never a silent omission, and each name is a <i>door</i>. A row asked for in one measure is <i>counted</i> in it, with what it weighs underneath</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span></div>
-            <div class="er-shopsync"><span class="sy"></span><span class="st">Synced · 14:02</span></div>
+            <div class="er-shopsync"><span class="sy"></span><span class="st">Synced · 14:02</span><span class="st" style="margin-left:auto">≈ $58 still to buy</span></div>
             <p class="conv-note" style="margin:6px 20px 0;letter-spacing:.04em">summed from the cook plan · with provenance</p>
             <div class="sl-group">Produce</div>
             <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Avocado</span><span class="item-total">1 piece</span></div>
                 <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>1 piece</span></div></div></div>
             <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Onion</span><span class="item-total">5 onion, medium</span></div>
-                <div class="item-sub">550 g</div>
+                <div class="item-sub">550 g · ≈ $2.42</div>
                 <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>2 onion, medium</span></div><div class="prov-line"><span class="src">Slow-Cooker Beef Ragù · cook Tue</span><span>3 onion, medium</span></div></div></div>
             <div class="sl-group">Pantry</div>
             <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Canned Lentils</span><span class="item-total">1 can (400 g), drained</span></div>
-                <div class="item-sub">240 g</div>
+                <div class="item-sub">240 g · no price yet</div>
                 <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>1 can (400 g), drained</span></div></div></div>
             <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Vegetable Broth</span><span class="item-total">250 ml</span></div>
                 <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>250 ml</span></div></div></div>
@@ -256,7 +259,7 @@
             <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Basil</span><span class="item-total">1 handful</span></div>
                 <div class="prov"><div class="prov-line"><span class="src">Slow-Cooker Beef Rag&ugrave; &middot; cook Tue &middot; this week, added</span><span>1 handful</span></div></div></div>
             <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Onion</span><span class="item-total">5 onion, medium</span></div>
-                <div class="item-sub">550 g</div>
+                <div class="item-sub">550 g · ≈ $2.42</div>
                 <div class="prov"><div class="prov-line"><span class="src">Slow-Cooker Beef Rag&ugrave; &middot; cook Tue &middot; this week, was 2 onion, medium</span><span>3 onion, medium</span></div><div class="prov-line"><span class="src">Weeknight Chicken Curry &middot; cook Thu</span><span>2 onion, medium</span></div></div></div>
 
             <div class="sl-group">Meat</div>
@@ -364,10 +367,10 @@
                     <p class="conv-note" style="margin-top:10px;letter-spacing:.04em">summed from the cook plan &middot; with provenance</p>
                     <div class="sl-group">Produce</div>
                     <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Lime</span><span class="item-total">2½ lime, whole</span></div>
-                        <div class="item-sub">167.5 g → buy 3</div>
+                        <div class="item-sub">167.5 g → buy 3 · ≈ $1.24</div>
                         <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry &middot; cook Mon</span><span>1 lime, whole</span></div><div class="prov-line"><span class="src">Charred Broccoli &amp; Halloumi Salad &middot; cook Wed</span><span>1½ lime, whole</span></div></div></div>
                     <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Yellow onion</span><span class="item-total">5 onion, medium</span></div>
-                        <div class="item-sub">550 g</div>
+                        <div class="item-sub">550 g · ≈ $2.42</div>
                         <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry &middot; cook Mon</span><span>3 onion, medium</span></div><div class="prov-line"><span class="src">Slow-Cooker Beef Ragù &middot; cook Tue</span><span>2 onion, medium</span></div></div></div>
                     <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Charred broccoli</span><span class="item-total">1 head</span></div>
                         <div class="item-sub">350 g</div>
@@ -428,9 +431,9 @@
                         <p class="conv-note" style="margin-top:10px;letter-spacing:.04em">summed from the cook plan &middot; with provenance</p>
                         <div class="sl-group">Produce</div>
                         <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Lime</span><span class="item-total">2½ lime, whole</span></div>
-                            <div class="item-sub">167.5 g → buy 3</div></div>
+                            <div class="item-sub">167.5 g → buy 3 · ≈ $1.24</div></div>
                         <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Yellow onion</span><span class="item-total">5 onion, medium</span></div>
-                            <div class="item-sub">550 g</div></div>
+                            <div class="item-sub">550 g · ≈ $2.42</div></div>
                         <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Charred broccoli</span><span class="item-total">1 head</span></div>
                             <div class="item-sub">350 g</div></div>
                         <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Flat-leaf parsley</span><span class="item-total">1 bunch</span></div>
