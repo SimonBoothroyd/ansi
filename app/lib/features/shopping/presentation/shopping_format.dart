@@ -4,6 +4,7 @@ library;
 
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../../../shared/cost_words.dart' show approxMoney;
 import '../../../shared/format.dart' show formatQuantity, formatQuantityIn;
 import '../domain/shopping.dart';
 
@@ -63,6 +64,22 @@ String itemSecondary(ShoppingItem item) {
   }
   final hint = item.wholeUnitHint;
   return hint == null ? '' : wholeUnitHintText(hint);
+}
+
+/// [itemSecondary] with what the row costs on the end — `550 g · ≈ $2.42`,
+/// or `350 g · no price yet` (ADR-0017).
+///
+/// The estimate wears `≈` because a price is the latest one seen and not a
+/// quote. A row that cannot be priced SAYS so rather than leaving a gap: a
+/// silent row would read as a free one, and the shopper is the person who can
+/// fix it. A free-text item and a numberless staple say nothing — neither is a
+/// vocabulary row with an amount, so neither has a price to be missing.
+String itemSecondaryWithCost(ShoppingItem item, {double? cents}) {
+  final base = itemSecondary(item);
+  final money = cents != null
+      ? approxMoney(cents)
+      : (item.isFreeText || !item.hasTotal ? '' : 'no price yet');
+  return [if (base.isNotEmpty) base, if (money.isNotEmpty) money].join(' · ');
 }
 
 /// A provenance line's quantity ("300 g", or "2 potato, large" when counted

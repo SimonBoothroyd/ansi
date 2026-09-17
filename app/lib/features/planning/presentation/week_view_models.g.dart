@@ -918,6 +918,310 @@ final class WeekVariantMacrosForFamily extends $Family
   String toString() => r'weekVariantMacrosForProvider';
 }
 
+/// The same for COST (ADR-0017) — a week that ticks an optional line in pays
+/// for it, so the panel's Cost reading has to be the week's own.
+
+@ProviderFor(weekVariantCostsFor)
+const weekVariantCostsForProvider = WeekVariantCostsForFamily._();
+
+/// The same for COST (ADR-0017) — a week that ticks an optional line in pays
+/// for it, so the panel's Cost reading has to be the week's own.
+
+final class WeekVariantCostsForProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Map<String, RecipeCostSummary>>,
+          Map<String, RecipeCostSummary>,
+          Stream<Map<String, RecipeCostSummary>>
+        >
+    with
+        $FutureModifier<Map<String, RecipeCostSummary>>,
+        $StreamProvider<Map<String, RecipeCostSummary>> {
+  /// The same for COST (ADR-0017) — a week that ticks an optional line in pays
+  /// for it, so the panel's Cost reading has to be the week's own.
+  const WeekVariantCostsForProvider._({
+    required WeekVariantCostsForFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'weekVariantCostsForProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$weekVariantCostsForHash();
+
+  @override
+  String toString() {
+    return r'weekVariantCostsForProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<Map<String, RecipeCostSummary>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<Map<String, RecipeCostSummary>> create(Ref ref) {
+    final argument = this.argument as String;
+    return weekVariantCostsFor(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is WeekVariantCostsForProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$weekVariantCostsForHash() =>
+    r'752a5c75f744ba0da433a75a1d762d1b7d68fc19';
+
+/// The same for COST (ADR-0017) — a week that ticks an optional line in pays
+/// for it, so the panel's Cost reading has to be the week's own.
+
+final class WeekVariantCostsForFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          Stream<Map<String, RecipeCostSummary>>,
+          String
+        > {
+  const WeekVariantCostsForFamily._()
+    : super(
+        retry: null,
+        name: r'weekVariantCostsForProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// The same for COST (ADR-0017) — a week that ticks an optional line in pays
+  /// for it, so the panel's Cost reading has to be the week's own.
+
+  WeekVariantCostsForProvider call(String weekKey) =>
+      WeekVariantCostsForProvider._(argument: weekKey, from: this);
+
+  @override
+  String toString() => r'weekVariantCostsForProvider';
+}
+
+/// Per-recipe cost summaries **for the viewed week** — the Library's figure
+/// underneath, the week's own on top, exactly as [weekRecipeMacros] layers the
+/// macros.
+
+@ProviderFor(weekRecipeCosts)
+const weekRecipeCostsProvider = WeekRecipeCostsProvider._();
+
+/// Per-recipe cost summaries **for the viewed week** — the Library's figure
+/// underneath, the week's own on top, exactly as [weekRecipeMacros] layers the
+/// macros.
+
+final class WeekRecipeCostsProvider
+    extends
+        $FunctionalProvider<
+          Map<String, RecipeCostSummary>,
+          Map<String, RecipeCostSummary>,
+          Map<String, RecipeCostSummary>
+        >
+    with $Provider<Map<String, RecipeCostSummary>> {
+  /// Per-recipe cost summaries **for the viewed week** — the Library's figure
+  /// underneath, the week's own on top, exactly as [weekRecipeMacros] layers the
+  /// macros.
+  const WeekRecipeCostsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'weekRecipeCostsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$weekRecipeCostsHash();
+
+  @$internal
+  @override
+  $ProviderElement<Map<String, RecipeCostSummary>> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  Map<String, RecipeCostSummary> create(Ref ref) {
+    return weekRecipeCosts(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Map<String, RecipeCostSummary> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<Map<String, RecipeCostSummary>>(
+        value,
+      ),
+    );
+  }
+}
+
+String _$weekRecipeCostsHash() => r'b72a44651663491449825a883c962adf449f494b';
+
+/// The re-costed figures for the recipes the viewed week varies.
+
+@ProviderFor(variantRecipeCosts)
+const variantRecipeCostsProvider = VariantRecipeCostsProvider._();
+
+/// The re-costed figures for the recipes the viewed week varies.
+
+final class VariantRecipeCostsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Map<String, RecipeCostSummary>>,
+          Map<String, RecipeCostSummary>,
+          Stream<Map<String, RecipeCostSummary>>
+        >
+    with
+        $FutureModifier<Map<String, RecipeCostSummary>>,
+        $StreamProvider<Map<String, RecipeCostSummary>> {
+  /// The re-costed figures for the recipes the viewed week varies.
+  const VariantRecipeCostsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'variantRecipeCostsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$variantRecipeCostsHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<Map<String, RecipeCostSummary>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<Map<String, RecipeCostSummary>> create(Ref ref) {
+    return variantRecipeCosts(ref);
+  }
+}
+
+String _$variantRecipeCostsHash() =>
+    r'cf3ad59962a25379df74a9faf610af8b5d500c0b';
+
+/// What the viewed week costs to cook under [lens] — the band's second line.
+///
+/// The same entries, the same portions and the same lens as [weekMacros]: the
+/// two lines of the band describe one week or they describe none.
+
+@ProviderFor(weekCost)
+const weekCostProvider = WeekCostFamily._();
+
+/// What the viewed week costs to cook under [lens] — the band's second line.
+///
+/// The same entries, the same portions and the same lens as [weekMacros]: the
+/// two lines of the band describe one week or they describe none.
+
+final class WeekCostProvider
+    extends $FunctionalProvider<PlannedCost, PlannedCost, PlannedCost>
+    with $Provider<PlannedCost> {
+  /// What the viewed week costs to cook under [lens] — the band's second line.
+  ///
+  /// The same entries, the same portions and the same lens as [weekMacros]: the
+  /// two lines of the band describe one week or they describe none.
+  const WeekCostProvider._({
+    required WeekCostFamily super.from,
+    required String? super.argument,
+  }) : super(
+         retry: null,
+         name: r'weekCostProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$weekCostHash();
+
+  @override
+  String toString() {
+    return r'weekCostProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $ProviderElement<PlannedCost> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  PlannedCost create(Ref ref) {
+    final argument = this.argument as String?;
+    return weekCost(ref, argument);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(PlannedCost value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<PlannedCost>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is WeekCostProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$weekCostHash() => r'2db06f83880d803e16fabff22ea0e27cbdb5d3bc';
+
+/// What the viewed week costs to cook under [lens] — the band's second line.
+///
+/// The same entries, the same portions and the same lens as [weekMacros]: the
+/// two lines of the band describe one week or they describe none.
+
+final class WeekCostFamily extends $Family
+    with $FunctionalFamilyOverride<PlannedCost, String?> {
+  const WeekCostFamily._()
+    : super(
+        retry: null,
+        name: r'weekCostProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// What the viewed week costs to cook under [lens] — the band's second line.
+  ///
+  /// The same entries, the same portions and the same lens as [weekMacros]: the
+  /// two lines of the band describe one week or they describe none.
+
+  WeekCostProvider call(String? lens) =>
+      WeekCostProvider._(argument: lens, from: this);
+
+  @override
+  String toString() => r'weekCostProvider';
+}
+
 /// Per-recipe macro summaries **for the viewed week**, indexed by recipe id.
 ///
 /// The Library's figure underneath, the week's own on top. A recipe the week

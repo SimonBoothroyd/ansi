@@ -14,9 +14,13 @@ import 'package:sqlite_async/sqlite_async.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../../ingredients/data/price_repository_impl.dart'
+    show loadLatestPrices;
+import '../../ingredients/domain/price.dart';
 import '../domain/component_math.dart';
 import '../domain/method_step.dart';
 import '../domain/recipe.dart';
+import '../domain/recipe_cost.dart';
 import '../domain/recipe_macros.dart';
 import '../domain/recipe_repository.dart';
 
@@ -49,6 +53,50 @@ class SqliteRecipeRepository implements RecipeRepository {
           'WHERE r.deleted_at IS NULL',
         )
         .asyncMap((_) => _loadSummaries());
+  }
+
+  /// Every recipe's cost, keyed by id — one stream for the panel, the week's
+  /// band and anything else that asks what a recipe is worth.
+  ///
+  /// It is a SEPARATE read from [watchRecipes] on purpose. A cost moves when a
+  /// receipt lands, which the summaries' watch knows nothing about, and a
+  /// macro summary must never carry money (ADR-0017 / the structural test), so
+  /// the two facts ride two streams and a surface reads whichever it is
+  /// showing.
+  @override
+  Stream<Map<String, RecipeCostSummary>> watchRecipeCosts() {
+    // Every table the load reads, each contributing a selected column: the
+    // recipes and their lines, the vocab the conversion needs, the measures,
+    // and the receipt rows the prices come off. A LEFT JOIN nothing selects
+    // from is dropped by SQLite and never becomes a trigger.
+    return _db
+        .watch(
+          'SELECT r.id, g.id, li.id, ing.id, im.id, sub.title, '
+          'rl.id, rc.id FROM recipe r '
+          'LEFT JOIN ingredient_group g ON g.recipe_id = r.id '
+          'LEFT JOIN recipe_line_item li ON li.group_id = g.id '
+          'LEFT JOIN ingredient ing ON ing.id = li.ingredient_id '
+          'LEFT JOIN ingredient_measure im ON im.id = li.measure_id '
+          'LEFT JOIN recipe sub ON sub.id = li.sub_recipe_id '
+          'LEFT JOIN receipt_line rl ON rl.ingredient_id = li.ingredient_id '
+          'LEFT JOIN receipt rc ON rc.id = rl.receipt_id '
+          'WHERE r.deleted_at IS NULL',
+        )
+        .asyncMap((_) => _loadCosts());
+  }
+
+  Future<Map<String, RecipeCostSummary>> _loadCosts() async {
+    final (nodes, nutrition) = await loadRecipeMacroNodes(_db);
+    final pricingOf = pricingResolver(nutrition, await loadLatestPrices(_db));
+    return {
+      for (final entry in nodes.entries)
+        entry.key: summarizeRecipeCost(
+          servingsBase: entry.value.servingsBase,
+          lines: entry.value.lines,
+          pricingOf: pricingOf,
+          subRecipeOf: (id) => nodes[id],
+        ),
+    };
   }
 
   Future<List<RecipeSummary>> _loadSummaries() async {
@@ -756,13 +804,16 @@ loadRecipeMacroNodes(SqliteConnection db) async {
     'im.label AS m_label, im.basis_amount AS m_amount, '
     'im.sort_order AS m_sort, im.source AS m_source, '
     'ing.macros, ing.macros_basis, ing.density_g_per_ml, '
-    'ing.piece_basis_amount, ing.status '
+    'ing.piece_basis_amount, ing.status, '
+    'ing.canonical_name AS ing_name, sub.title AS sub_title '
     'FROM recipe_line_item li '
     'JOIN ingredient_group g ON g.id = li.group_id AND g.deleted_at IS NULL '
     'LEFT JOIN ingredient ing '
     'ON ing.id = li.ingredient_id AND ing.deleted_at IS NULL '
     'LEFT JOIN ingredient_measure im '
     'ON im.id = li.measure_id AND im.deleted_at IS NULL '
+    'LEFT JOIN recipe sub '
+    'ON sub.id = li.sub_recipe_id AND sub.deleted_at IS NULL '
     'WHERE li.deleted_at IS NULL',
   );
 
@@ -777,7 +828,10 @@ loadRecipeMacroNodes(SqliteConnection db) async {
         id: r['id'] as String,
         ingredientId: r['ingredient_id'] as String?,
         subRecipeId: r['sub_recipe_id'] as String?,
-        ingredientName: '',
+        // Named, because a refusal names the lines it is waiting on: the
+        // week's re-summations and the cost walk both print these.
+        ingredientName:
+            (r['ing_name'] as String?) ?? (r['sub_title'] as String?) ?? '',
         unit: unitById(r['unit'] as String) ?? pieces,
         quantity: (r['quantity'] as num?)?.toDouble(),
         // A sub-recipe's own optional lines leave ITS total the same way
@@ -822,3 +876,19 @@ loadRecipeMacroNodes(SqliteConnection db) async {
     nutrition,
   );
 }
+
+/// The cost walk's ingredient lookup, built from the two maps the loads
+/// already have: the vocab's dimension facts, and the latest price per row.
+///
+/// An ingredient the vocab does not know resolves to null — the line is then
+/// [CostLineReason.noPathToBasis], because an unknown row states no basis to
+/// convert into. A known row with no price resolves WITH a null price, which
+/// is the different and more useful answer: [CostLineReason.noPrice], whose
+/// fix is the price sheet.
+IngredientPricing? Function(String) pricingResolver(
+  Map<String, IngredientNutrition> nutrition,
+  Map<String, PriceObservation> prices,
+) => (id) {
+  final row = nutrition[id];
+  return row == null ? null : (row: basisOf(row), price: prices[id]);
+};

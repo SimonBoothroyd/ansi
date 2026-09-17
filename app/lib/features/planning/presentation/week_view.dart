@@ -311,6 +311,7 @@ class WeekView extends HookConsumerWidget {
                   ),
                 WeekMacroBand(
                   macros: ref.watch(weekMacrosProvider(lens.value)),
+                  cost: ref.watch(weekCostProvider(lens.value)),
                   scope: scope,
                 ),
               ],

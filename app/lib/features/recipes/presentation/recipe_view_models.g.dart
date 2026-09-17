@@ -236,53 +236,123 @@ final class RecipeUsedInFamily extends $Family
   String toString() => r'recipeUsedInProvider';
 }
 
-/// Whether the recipe page prints each ingredient line's own macros under its
-/// name, beneath the per-serving panel's total.
+/// Every recipe's cost, keyed by recipe id (ADR-0017) — the Cost reading of
+/// the recipe panel, and what the week's band sums.
+///
+/// A second stream beside [recipeList] rather than a field on it: a cost moves
+/// when a receipt lands, and money never rides on a macro summary.
+
+@ProviderFor(recipeCosts)
+const recipeCostsProvider = RecipeCostsProvider._();
+
+/// Every recipe's cost, keyed by recipe id (ADR-0017) — the Cost reading of
+/// the recipe panel, and what the week's band sums.
+///
+/// A second stream beside [recipeList] rather than a field on it: a cost moves
+/// when a receipt lands, and money never rides on a macro summary.
+
+final class RecipeCostsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Map<String, RecipeCostSummary>>,
+          Map<String, RecipeCostSummary>,
+          Stream<Map<String, RecipeCostSummary>>
+        >
+    with
+        $FutureModifier<Map<String, RecipeCostSummary>>,
+        $StreamProvider<Map<String, RecipeCostSummary>> {
+  /// Every recipe's cost, keyed by recipe id (ADR-0017) — the Cost reading of
+  /// the recipe panel, and what the week's band sums.
+  ///
+  /// A second stream beside [recipeList] rather than a field on it: a cost moves
+  /// when a receipt lands, and money never rides on a macro summary.
+  const RecipeCostsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'recipeCostsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$recipeCostsHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<Map<String, RecipeCostSummary>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<Map<String, RecipeCostSummary>> create(Ref ref) {
+    return recipeCosts(ref);
+  }
+}
+
+String _$recipeCostsHash() => r'baa798871d2fb3bbb25f9d42fb7eeede913f75be';
+
+/// Whether the recipe page prints each ingredient line's own figures under its
+/// name, beneath the panel's total.
 ///
 /// A **reading posture**, not a household fact: it changes what one person is
 /// looking at right now, so it is neither written to the recipe nor synced.
 /// Keep-alive rather than per-page so the choice survives moving between
 /// recipes — a reader comparing two recipes' lines should not have to switch it
 /// back on — and it resets with the app, which is as long as a posture lasts.
+///
+/// WHICH figures it prints is [CostReading]'s answer, not this one: there is
+/// one toggle and one menu item, and the lines print whatever the panel above
+/// them is reading.
 
-@ProviderFor(ShowLineMacros)
-const showLineMacrosProvider = ShowLineMacrosProvider._();
+@ProviderFor(ShowLineFigures)
+const showLineFiguresProvider = ShowLineFiguresProvider._();
 
-/// Whether the recipe page prints each ingredient line's own macros under its
-/// name, beneath the per-serving panel's total.
+/// Whether the recipe page prints each ingredient line's own figures under its
+/// name, beneath the panel's total.
 ///
 /// A **reading posture**, not a household fact: it changes what one person is
 /// looking at right now, so it is neither written to the recipe nor synced.
 /// Keep-alive rather than per-page so the choice survives moving between
 /// recipes — a reader comparing two recipes' lines should not have to switch it
 /// back on — and it resets with the app, which is as long as a posture lasts.
-final class ShowLineMacrosProvider
-    extends $NotifierProvider<ShowLineMacros, bool> {
-  /// Whether the recipe page prints each ingredient line's own macros under its
-  /// name, beneath the per-serving panel's total.
+///
+/// WHICH figures it prints is [CostReading]'s answer, not this one: there is
+/// one toggle and one menu item, and the lines print whatever the panel above
+/// them is reading.
+final class ShowLineFiguresProvider
+    extends $NotifierProvider<ShowLineFigures, bool> {
+  /// Whether the recipe page prints each ingredient line's own figures under its
+  /// name, beneath the panel's total.
   ///
   /// A **reading posture**, not a household fact: it changes what one person is
   /// looking at right now, so it is neither written to the recipe nor synced.
   /// Keep-alive rather than per-page so the choice survives moving between
   /// recipes — a reader comparing two recipes' lines should not have to switch it
   /// back on — and it resets with the app, which is as long as a posture lasts.
-  const ShowLineMacrosProvider._()
+  ///
+  /// WHICH figures it prints is [CostReading]'s answer, not this one: there is
+  /// one toggle and one menu item, and the lines print whatever the panel above
+  /// them is reading.
+  const ShowLineFiguresProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'showLineMacrosProvider',
+        name: r'showLineFiguresProvider',
         isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$showLineMacrosHash();
+  String debugGetCreateSourceHash() => _$showLineFiguresHash();
 
   @$internal
   @override
-  ShowLineMacros create() => ShowLineMacros();
+  ShowLineFigures create() => ShowLineFigures();
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(bool value) {
@@ -293,18 +363,104 @@ final class ShowLineMacrosProvider
   }
 }
 
-String _$showLineMacrosHash() => r'b917e44158dfcf61840bfbb163f1b20a4e6607b8';
+String _$showLineFiguresHash() => r'f7f887cb0f269c979a96df0440b4c04f126da289';
 
-/// Whether the recipe page prints each ingredient line's own macros under its
-/// name, beneath the per-serving panel's total.
+/// Whether the recipe page prints each ingredient line's own figures under its
+/// name, beneath the panel's total.
 ///
 /// A **reading posture**, not a household fact: it changes what one person is
 /// looking at right now, so it is neither written to the recipe nor synced.
 /// Keep-alive rather than per-page so the choice survives moving between
 /// recipes — a reader comparing two recipes' lines should not have to switch it
 /// back on — and it resets with the app, which is as long as a posture lasts.
+///
+/// WHICH figures it prints is [CostReading]'s answer, not this one: there is
+/// one toggle and one menu item, and the lines print whatever the panel above
+/// them is reading.
 
-abstract class _$ShowLineMacros extends $Notifier<bool> {
+abstract class _$ShowLineFigures extends $Notifier<bool> {
+  bool build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
+}
+
+/// Whether the recipe panel reads COST rather than macros — the `Macros |
+/// Cost` chip pair that closes the Ingredients tab.
+///
+/// The same kind of posture as [ShowLineFigures] and held the same way: for the
+/// session, across recipes, written nowhere and synced to nobody. Somebody
+/// pricing a week's cooking stays in Cost while they move between recipes; the
+/// app forgets it when it restarts, which is as long as a posture lasts.
+
+@ProviderFor(CostReading)
+const costReadingProvider = CostReadingProvider._();
+
+/// Whether the recipe panel reads COST rather than macros — the `Macros |
+/// Cost` chip pair that closes the Ingredients tab.
+///
+/// The same kind of posture as [ShowLineFigures] and held the same way: for the
+/// session, across recipes, written nowhere and synced to nobody. Somebody
+/// pricing a week's cooking stays in Cost while they move between recipes; the
+/// app forgets it when it restarts, which is as long as a posture lasts.
+final class CostReadingProvider extends $NotifierProvider<CostReading, bool> {
+  /// Whether the recipe panel reads COST rather than macros — the `Macros |
+  /// Cost` chip pair that closes the Ingredients tab.
+  ///
+  /// The same kind of posture as [ShowLineFigures] and held the same way: for the
+  /// session, across recipes, written nowhere and synced to nobody. Somebody
+  /// pricing a week's cooking stays in Cost while they move between recipes; the
+  /// app forgets it when it restarts, which is as long as a posture lasts.
+  const CostReadingProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'costReadingProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$costReadingHash();
+
+  @$internal
+  @override
+  CostReading create() => CostReading();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$costReadingHash() => r'b4536d0397187cc64cd4adcf839c42c40ad72e9d';
+
+/// Whether the recipe panel reads COST rather than macros — the `Macros |
+/// Cost` chip pair that closes the Ingredients tab.
+///
+/// The same kind of posture as [ShowLineFigures] and held the same way: for the
+/// session, across recipes, written nowhere and synced to nobody. Somebody
+/// pricing a week's cooking stays in Cost while they move between recipes; the
+/// app forgets it when it restarts, which is as long as a posture lasts.
+
+abstract class _$CostReading extends $Notifier<bool> {
   bool build();
   @$mustCallSuper
   @override

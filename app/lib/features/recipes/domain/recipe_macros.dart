@@ -64,13 +64,15 @@ library;
 
 import 'package:meta/meta.dart';
 
-import '../../../core/result/result.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import 'component_math.dart';
 import 'effective_lines.dart';
+import 'line_basis.dart';
 import 'recipe.dart';
+
+export 'line_basis.dart' show SubRecipeNode;
 
 /// What the summation needs to know about one vocab ingredient. `macros` is
 /// null for a stub (which excludes the line — invariant 3).
@@ -91,16 +93,16 @@ typedef IngredientNutrition = ({
 /// named measure. Nothing is invented — the amount is the row's own stated
 /// fact — so the count joins the total through the same [convertMeasure] a
 /// clove or a can does.
-Measure? pieceMeasureOf(IngredientNutrition nutrition) {
-  final amount = nutrition.pieceBasisAmount;
-  if (amount == null) return null;
-  return Measure(
-    id: 'piece',
-    label: 'piece',
-    amount: amount,
-    basis: nutrition.basis,
-  );
-}
+Measure? pieceMeasureOf(IngredientNutrition nutrition) =>
+    pieceMeasureIn(basisOf(nutrition));
+
+/// [nutrition] as the dimension facts alone — what [lineAmountInBasis] needs,
+/// with the macros left behind.
+IngredientBasis basisOf(IngredientNutrition nutrition) => (
+  basis: nutrition.basis,
+  densityGPerMl: nutrition.densityGPerMl,
+  pieceBasisAmount: nutrition.pieceBasisAmount,
+);
 
 /// Why one line is not in the total — the per-line half of the refusal
 /// (seam **D5**: *"this message makes it impossible to know what ingredients
@@ -365,19 +367,6 @@ class RecipeMacroSummary {
   }
 }
 
-/// What the summation needs about one sub-recipe it walks into (step 8.6 /
-/// D8): its own lines and serving count, plus the yields the component line's
-/// amount is resolved against.
-///
-/// The caller supplies these by id; the walk is depth-first with a visited
-/// set, so a cycle raced past both guards renders the parent incomplete
-/// instead of recursing forever.
-typedef SubRecipeNode = ({
-  double servingsBase,
-  List<LineItem> lines,
-  List<YieldDenomination> yields,
-});
-
 /// Sums [lines] (a recipe's items across all groups) into a per-serving
 /// [RecipeMacroSummary]. [nutritionOf] resolves a line's ingredient id to its
 /// vocab nutrition, or null when the row is unknown locally (treated as a
@@ -517,9 +506,9 @@ RecipeMacroSummary _summarize({
       );
       continue;
     }
-    final per100 = _amountInBasis(line, nutrition);
+    final per100 = lineAmountInBasis(line, basisOf(nutrition));
     if (per100 == null) {
-      if (_isBareCount(line)) {
+      if (isBareCount(line)) {
         bareCounts++;
         note(line, MacroLineReason.needsWeight);
       } else {
@@ -627,61 +616,4 @@ _ComponentResult _componentMacros({
   return _ComponentMacros(
     perServing.scaledBy(node.servingsBase * amount.batches),
   );
-}
-
-/// Whether [line] is a bare count with a number and nothing weighing it — the
-/// D6 reason. A line pointing at a measure that has not synced in yet is NOT
-/// one: something does weigh it, this device just cannot see it, and telling
-/// the household to add a weight would send them to fix what is not broken.
-bool _isBareCount(LineItem line) =>
-    line.quantity != null &&
-    line.unit.family == UnitFamily.count &&
-    line.measure == null &&
-    line.measureId == null;
-
-/// The line's amount expressed in the ingredient's basis unit (g or ml), or
-/// null when the unit system cannot bridge it honestly. Delegates to
-/// [convert]/[convertMeasure], which already encode the whole matrix: a
-/// same-family pair converts directly, mass↔volume needs the density, and
-/// count/imprecise pairs (or invalid measure grams) are typed failures.
-double? _amountInBasis(LineItem line, IngredientNutrition nutrition) {
-  final quantity = line.quantity;
-  if (quantity == null) return null;
-
-  final to = nutrition.basis.baseUnit;
-  final measure = line.measure;
-  final Result<Quantity> converted;
-  if (measure != null) {
-    converted = convertMeasure(
-      quantity,
-      measure,
-      to: to,
-      densityGPerMl: nutrition.densityGPerMl,
-    );
-  } else if (line.measureId != null) {
-    // An unresolved measure reads as its honest count fallback — a count
-    // can't join a mass/volume total, so the line is unbridgeable until the
-    // measure row syncs in.
-    return null;
-  } else if (line.unit.family == UnitFamily.count &&
-      pieceMeasureOf(nutrition) != null) {
-    // A bare `piece` converts through the row's piece weight (ADR-0015) —
-    // the count fact the way the density is the volume fact.
-    converted = convertMeasure(
-      quantity,
-      pieceMeasureOf(nutrition)!,
-      to: to,
-      densityGPerMl: nutrition.densityGPerMl,
-    );
-  } else {
-    converted = convert(
-      Quantity(quantity, line.unit),
-      to: to,
-      densityGPerMl: nutrition.densityGPerMl,
-    );
-  }
-  return switch (converted) {
-    Ok(:final value) => value.amount,
-    Err() => null,
-  };
 }

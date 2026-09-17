@@ -38,9 +38,11 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/words.dart';
+import '../../../shared/cost_words.dart';
 import '../../../shared/incomplete_macros.dart';
 import '../../ingredients/presentation/macro_line_text.dart';
 import '../../ingredients/presentation/macros_format.dart';
+import '../domain/week_cost.dart';
 import '../domain/week_macros.dart';
 
 /// An energy figure with a thin thousands separator: `1 900`, `90`.
@@ -456,10 +458,24 @@ class MealMacroLine extends StatelessWidget {
 /// over the days that counted, and the label that stops the biggest number on
 /// the screen inviting a health reading it cannot support (D4d).
 class WeekMacroBand extends StatelessWidget {
-  const WeekMacroBand({required this.macros, required this.scope, super.key});
+  const WeekMacroBand({
+    required this.macros,
+    required this.scope,
+    this.cost,
+    super.key,
+  });
 
   final MealSetMacros macros;
   final String scope;
+
+  /// What the same meals cost to cook, at the latest prices (ADR-0017) — one
+  /// line under the macros, in the same denominator posture: the meals that
+  /// resolved, and the lines that kept the rest out, named by count.
+  ///
+  /// It is an ESTIMATE and wears `≈` to say so. There is no `spent` line here:
+  /// what a week cost is what its receipts say, and the two are never
+  /// reconciled — that line arrives with the receipts.
+  final PlannedCost? cost;
 
   /// `avg 1 425 kcal/day over the 6 days that counted` — the average states
   /// its OWN denominator too, because a week that plans four days is not a
@@ -516,9 +532,18 @@ class WeekMacroBand extends StatelessWidget {
                 const IncompleteBadge(),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    'no total — ${excludedLine(macros)}',
-                    style: ansiMono(size: 10.5, color: AnsiColors.muted),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'no total — ${excludedLine(macros)}',
+                        style: ansiMono(size: 10.5, color: AnsiColors.muted),
+                      ),
+                      // A week whose macros refuse can still have a cost: the
+                      // two readings fail for different reasons, and one
+                      // silence is no reason for two.
+                      _CostLine(cost: cost),
+                    ],
                   ),
                 ),
               ],
@@ -533,6 +558,7 @@ class WeekMacroBand extends StatelessWidget {
               ].join(' · '),
               style: ansiMono(size: 10, color: AnsiColors.muted),
             ),
+            _CostLine(cost: cost),
             if (macros.isPartial)
               Padding(
                 padding: const EdgeInsets.only(top: 3),
@@ -554,6 +580,26 @@ class WeekMacroBand extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// The band's cost line, or nothing — `≈ $71 to cook · 3 lines unpriced`.
+class _CostLine extends StatelessWidget {
+  const _CostLine({required this.cost});
+
+  final PlannedCost? cost;
+
+  @override
+  Widget build(BuildContext context) {
+    final cost = this.cost;
+    final line = cost == null
+        ? null
+        : weekCostLine(cents: cost.cents, unpriced: cost.unpriced.length);
+    if (line == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Text(line, style: ansiMono(size: 11.5)),
     );
   }
 }

@@ -20,6 +20,7 @@ import '../domain/line_reorder.dart';
 import '../domain/method_draft.dart';
 import '../domain/method_step.dart';
 import '../domain/recipe.dart';
+import '../domain/recipe_cost.dart';
 import '../domain/recipe_header_edits.dart';
 import '../domain/recipe_repository.dart';
 import 'method_editing.dart';
@@ -50,20 +51,52 @@ Future<List<RecipeUse>> recipeUsedIn(Ref ref, String id) {
   return ref.watch(recipeRepositoryProvider).usedIn(id);
 }
 
-/// Whether the recipe page prints each ingredient line's own macros under its
-/// name, beneath the per-serving panel's total.
+/// Every recipe's cost, keyed by recipe id (ADR-0017) — the Cost reading of
+/// the recipe panel, and what the week's band sums.
+///
+/// A second stream beside [recipeList] rather than a field on it: a cost moves
+/// when a receipt lands, and money never rides on a macro summary.
+@riverpod
+Stream<Map<String, RecipeCostSummary>> recipeCosts(Ref ref) =>
+    ref.watch(recipeRepositoryProvider).watchRecipeCosts();
+
+/// Whether the recipe page prints each ingredient line's own figures under its
+/// name, beneath the panel's total.
 ///
 /// A **reading posture**, not a household fact: it changes what one person is
 /// looking at right now, so it is neither written to the recipe nor synced.
 /// Keep-alive rather than per-page so the choice survives moving between
 /// recipes — a reader comparing two recipes' lines should not have to switch it
 /// back on — and it resets with the app, which is as long as a posture lasts.
+///
+/// WHICH figures it prints is [CostReading]'s answer, not this one: there is
+/// one toggle and one menu item, and the lines print whatever the panel above
+/// them is reading.
 @Riverpod(keepAlive: true)
-class ShowLineMacros extends _$ShowLineMacros {
+class ShowLineFigures extends _$ShowLineFigures {
   @override
   bool build() => false;
 
   void toggle() => state = !state;
+}
+
+/// Whether the recipe panel reads COST rather than macros — the `Macros |
+/// Cost` chip pair that closes the Ingredients tab.
+///
+/// The same kind of posture as [ShowLineFigures] and held the same way: for the
+/// session, across recipes, written nowhere and synced to nobody. Somebody
+/// pricing a week's cooking stays in Cost while they move between recipes; the
+/// app forgets it when it restarts, which is as long as a posture lasts.
+@Riverpod(keepAlive: true)
+class CostReading extends _$CostReading {
+  @override
+  bool build() => false;
+
+  /// A verb, not a setter: `show(cost: true)` is what the chip pair means,
+  /// and a named argument keeps the call site saying which reading it asked
+  /// for.
+  // ignore: use_setters_to_change_properties
+  void show({required bool cost}) => state = cost;
 }
 
 /// Resolves the vocab [Ingredient] behind an editor line item, so its unit

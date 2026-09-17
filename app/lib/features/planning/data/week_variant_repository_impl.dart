@@ -24,10 +24,13 @@ import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../../core/week_shape.dart';
+import '../../ingredients/data/price_repository_impl.dart'
+    show loadLatestPrices;
 import '../../recipes/data/recipe_repository_impl.dart'
-    show loadRecipeMacroNodes;
+    show loadRecipeMacroNodes, pricingResolver;
 import '../../recipes/domain/effective_lines.dart';
 import '../../recipes/domain/line_override.dart';
+import '../../recipes/domain/recipe_cost.dart';
 import '../../recipes/domain/recipe_macros.dart';
 import '../domain/week_variant_repository.dart';
 import 'planning_repository_impl.dart' show getOrCreateWeekPlan;
@@ -84,6 +87,57 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
   ) {
     final key = isoDateOf(weekStart);
     return _weekChanges(key).asyncMap((_) => _loadVariantRecipeMacros(key));
+  }
+
+  @override
+  Stream<Map<String, RecipeCostSummary>> watchVariantRecipeCosts(
+    DateTime weekStart,
+  ) {
+    final key = isoDateOf(weekStart);
+    // The prices ride the same watch: a receipt landing changes what a varied
+    // recipe costs this week exactly as an override does.
+    return _priceChanges(key).asyncMap((_) => _loadVariantRecipeCosts(key));
+  }
+
+  /// [_weekChanges]'s tables plus the receipt rows a cost reads.
+  Stream<void> _priceChanges(String weekKey) => _db.watch(
+    'SELECT wp.id, wro.id, r.id, g.id, li.id, i.id, im.id, rl.id, rc.id '
+    'FROM week_plan wp '
+    'LEFT JOIN week_recipe_line_override wro '
+    'ON wro.week_plan_id = wp.id AND wro.deleted_at IS NULL '
+    'LEFT JOIN recipe r ON 1 = 1 '
+    'LEFT JOIN ingredient_group g ON g.recipe_id = r.id '
+    'LEFT JOIN recipe_line_item li ON li.group_id = g.id '
+    'LEFT JOIN ingredient i ON 1 = 1 '
+    'LEFT JOIN ingredient_measure im ON 1 = 1 '
+    'LEFT JOIN receipt_line rl ON 1 = 1 '
+    'LEFT JOIN receipt rc ON 1 = 1 '
+    'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL LIMIT 1',
+    parameters: [weekKey],
+  );
+
+  Future<Map<String, RecipeCostSummary>> _loadVariantRecipeCosts(
+    String weekKey,
+  ) async {
+    final byRecipe = await _loadByRecipe(weekKey);
+    if (byRecipe.isEmpty) return const {};
+    final (nodes, nutrition) = await loadRecipeMacroNodes(_db);
+    final pricingOf = pricingResolver(nutrition, await loadLatestPrices(_db));
+    return {
+      for (final entry in nodes.entries)
+        if (byRecipe.containsKey(entry.key))
+          entry.key: summarizeRecipeCost(
+            servingsBase: entry.value.servingsBase,
+            lines: effectiveLines(
+              entry.value.lines,
+              overrides: byRecipe[entry.key] ?? const [],
+            ).kept,
+            pricingOf: pricingOf,
+            // A component is costed as the recipe stands, for the reason its
+            // macros are summed that way.
+            subRecipeOf: (id) => nodes[id],
+          ),
+    };
   }
 
   Future<Map<String, List<LineOverride>>> _loadByRecipe(String weekKey) =>

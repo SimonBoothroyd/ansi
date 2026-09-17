@@ -54,6 +54,7 @@ import '../../../shared/ansi_layout.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_stepper_row.dart';
 import '../../../shared/ansi_tap.dart';
+import '../../../shared/cost_words.dart';
 import '../../../shared/format.dart';
 import '../../../shared/freshness_bar.dart';
 import '../../../shared/guarded_navigation.dart';
@@ -61,6 +62,7 @@ import '../../../shared/incomplete_macros.dart';
 import '../../../shared/method_step_text.dart';
 import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
+import '../../ingredients/domain/price.dart';
 import '../../ingredients/presentation/ingredient_detail_view.dart'
     show ingredientDetailRoute;
 import '../../planning/data/planning_providers.dart';
@@ -73,12 +75,14 @@ import '../domain/line_display.dart';
 import '../domain/line_override.dart';
 import '../domain/method_step.dart';
 import '../domain/recipe.dart';
+import '../domain/recipe_cost.dart';
 import '../domain/recipe_macros.dart';
 import '../domain/recipe_repository.dart';
 import '../domain/scaling.dart';
 import 'component_format.dart';
 import 'ingredient_line.dart';
 import 'recipe_chip.dart';
+import 'recipe_cost_panel.dart';
 import 'recipe_macro_panel.dart';
 import 'recipe_view_models.dart';
 
@@ -134,7 +138,7 @@ class _RecipeBody extends HookConsumerWidget {
     final servings = useState(recipe.servingsBase);
     final tab = useState(0);
     // What the cook has ticked off while standing at the hob. A reading
-    // posture like the servings beside it (see [ShowLineMacros]) and a shorter
+    // posture like the servings beside it (see [ShowLineFigures]) and a shorter
     // one: it is about *this* pass through *this* method, so it lives here and
     // dies with the page — no provider, no row, nothing to sync. The keys are
     // positional (`s2`, `s2:c0` — see [_MethodTab]), so nothing in the recipe
@@ -171,9 +175,11 @@ class _RecipeBody extends HookConsumerWidget {
     // The last back-link can go while the tab is open; fall back rather than
     // stare at a pane that no longer exists.
     final index = tab.value < tabs.length ? tab.value : 0;
-    // A reading posture, held for the session (see [ShowLineMacros]) — the
-    // menu offers it only from the tab it changes.
-    final lineMacros = ref.watch(showLineMacrosProvider);
+    // Two reading postures, both held for the session (see [ShowLineFigures],
+    // [CostReading]) — the menu offers the first only from the tab it changes,
+    // and the second decides WHICH figures both it and the panel print.
+    final lineFigures = ref.watch(showLineFiguresProvider);
+    final costReading = ref.watch(costReadingProvider);
     // A PLANNED arrival: opened from the Week's dish row or the Cook card,
     // and still planned by the week that link names. The guard is the second
     // half — a link kept in a back stack after the meal was removed must not
@@ -202,6 +208,17 @@ class _RecipeBody extends HookConsumerWidget {
               .watch(weekVariantMacrosForProvider(plannedWeek))
               .asData
               ?.value[recipe.id];
+    // The cost reading's own figures, layered the same way: the week's when it
+    // varies the recipe, the Library's otherwise. Absent while the ledger
+    // loads, and the strip then draws nothing rather than a guess.
+    final weekCost = plannedWeek == null
+        ? null
+        : ref
+              .watch(weekVariantCostsForProvider(plannedWeek))
+              .asData
+              ?.value[recipe.id];
+    final cost =
+        weekCost ?? ref.watch(recipeCostsProvider).asData?.value[recipe.id];
 
     // One hero, one ingredients column, one method column, one back-link list:
     // built once here and placed by the band, so neither layout can drift into
@@ -217,10 +234,10 @@ class _RecipeBody extends HookConsumerWidget {
     );
     final menu = _RecipeMenu(
       recipe: recipe,
-      showLineMacros: lineMacros,
+      showLineFigures: lineFigures,
       // At expanded the ingredients are always on screen, so the toggle is
       // always about something visible.
-      offerLineMacros: wide || index == 0,
+      offerLineFigures: wide || index == 0,
       plannedWeek: plannedWeek,
       days: placement.days,
       inHeader: !wide,
@@ -235,7 +252,11 @@ class _RecipeBody extends HookConsumerWidget {
       recipe: recipe,
       servings: servings.value,
       onServings: (v) => servings.value = v,
-      showLineMacros: lineMacros,
+      showLineFigures: lineFigures,
+      costReading: costReading,
+      cost: cost,
+      onReading: (wantCost) =>
+          ref.read(costReadingProvider.notifier).show(cost: wantCost),
       // The scaler is in the hero at expanded, where it reaches both columns.
       showScaler: !wide,
       weekStart: plannedWeek == null
@@ -463,14 +484,14 @@ class _ColumnHeading extends StatelessWidget {
 }
 
 /// The page's one door for its less-used verbs: the favourite toggle, the
-/// per-line macros, Edit — and, from a week, that week's own editor and the
+/// per-line figures, Edit — and, from a week, that week's own editor and the
 /// days it covers. It hangs off the header on a phone and in the hero at
 /// [AnsiLayout.expanded]; it is the same menu, built once.
 class _RecipeMenu extends ConsumerWidget {
   const _RecipeMenu({
     required this.recipe,
-    required this.showLineMacros,
-    required this.offerLineMacros,
+    required this.showLineFigures,
+    required this.offerLineFigures,
     required this.plannedWeek,
     required this.days,
     required this.inHeader,
@@ -483,13 +504,13 @@ class _RecipeMenu extends ConsumerWidget {
   /// have out here.
   final bool inHeader;
 
-  /// Whether the lines are currently printing their own macros — the item says
-  /// what the tap will do.
-  final bool showLineMacros;
+  /// Whether the lines are currently printing their own figures — the item
+  /// says what the tap will do.
+  final bool showLineFigures;
 
   /// Whether to offer that toggle at all: only where the lines it changes are
   /// on screen.
-  final bool offerLineMacros;
+  final bool offerLineFigures;
 
   /// The week that plans this recipe, once checked against the week itself.
   /// Null from the Library, and then the second door does not exist.
@@ -536,19 +557,21 @@ class _RecipeMenu extends ConsumerWidget {
                 );
               },
             ),
-            // The per-line macro toggle lives here rather than in a
-            // control of its own: the page already has one door for its
-            // less-used verbs, and a second surface beside the panel
-            // would sit below the fold it changes.
-            if (offerLineMacros)
+            // The per-line toggle lives here rather than in a control of
+            // its own: the page already has one door for its less-used
+            // verbs, and a second surface beside the panel would sit below
+            // the fold it changes. ONE item for both readings — the lines
+            // print whatever the panel above them is reading, so a second
+            // item would be a second way to ask the same question.
+            if (offerLineFigures)
               FItem(
                 prefix: const Icon(FLucideIcons.sigma),
                 title: Text(
-                  showLineMacros ? 'Hide line macros' : 'Show line macros',
+                  showLineFigures ? 'Hide line figures' : 'Show line figures',
                 ),
                 onPress: () {
                   unawaited(controller.hide());
-                  ref.read(showLineMacrosProvider.notifier).toggle();
+                  ref.read(showLineFiguresProvider.notifier).toggle();
                 },
               ),
             // Named "Edit recipe" only where the week door stands
@@ -910,7 +933,10 @@ class _IngredientsTab extends ConsumerWidget {
     required this.recipe,
     required this.servings,
     required this.onServings,
-    required this.showLineMacros,
+    required this.showLineFigures,
+    required this.costReading,
+    required this.cost,
+    required this.onReading,
     required this.showScaler,
     required this.weekStart,
     required this.overrides,
@@ -921,8 +947,19 @@ class _IngredientsTab extends ConsumerWidget {
   final double servings;
   final ValueChanged<double> onServings;
 
-  /// Whether each line prints its own macros under its name (the `⋯` toggle).
-  final bool showLineMacros;
+  /// Whether each line prints its own figures under its name (the `⋯`
+  /// toggle). WHICH figures is [costReading]'s answer.
+  final bool showLineFigures;
+
+  /// Whether the panel — and therefore the lines — reads COST rather than
+  /// macros.
+  final bool costReading;
+
+  /// The recipe's honest cost, or null while the ledger is loading.
+  final RecipeCostSummary? cost;
+
+  /// Flips the panel's reading; the argument is what it is to BECOME.
+  final ValueChanged<bool> onReading;
 
   /// Whether the servings scaler opens the list. False at
   /// [AnsiLayout.expanded], where it sits in the hero and reaches the method
@@ -998,7 +1035,7 @@ class _IngredientsTab extends ConsumerWidget {
     required bool marked,
   }) {
     const nothing = (figures: null, note: null);
-    if (!showLineMacros) return nothing;
+    if (!showLineFigures || costReading) return nothing;
     // `fiber: 0` is the additive identity, so folding one use does not strip
     // the fibre a row does state ([Macros.fiber]).
     var total = const Macros(kcal: 0, protein: 0, carb: 0, fat: 0, fiber: 0);
@@ -1017,6 +1054,39 @@ class _IngredientsTab extends ConsumerWidget {
       total += contribution;
     }
     return (figures: total.scaledBy(factor), note: null);
+  }
+
+  /// The muted second line under a row's identity when the toggle is on AND
+  /// the panel is reading COST: what the row comes to at the amount shown, the
+  /// unit price behind it, and the store and month it was seen — or the reason
+  /// the strip left the row out, in the strip's own words.
+  ///
+  /// The figure is the summation's own per-line record scaled by the page's
+  /// factor, exactly as the macro line is: nothing is converted or re-priced
+  /// here, so a line cannot read one way here and another inside the total. A
+  /// folded multi-use row prints figures only when EVERY use was priced, and
+  /// it prints one chain, because the uses are one ingredient at one price.
+  String? _costLine(LineUses uses, double factor) {
+    final summary = cost;
+    if (!showLineFigures || !costReading || summary == null) return null;
+    var total = 0.0;
+    PriceObservation? price;
+    for (final use in uses.uses) {
+      final contribution = summary.lineCosts[use.id];
+      if (contribution == null) {
+        final reason = [
+          ...summary.unpriced,
+          ...summary.notCounted,
+        ].where((n) => n.lineId == use.id).firstOrNull?.reason;
+        return reason == null ? null : costLineNote(reason);
+      }
+      total += contribution.cents;
+      price ??= contribution.price;
+    }
+    return lineCostText(
+      CostLine(cents: total, price: price),
+      factor: factor,
+    );
   }
 
   @override
@@ -1047,6 +1117,8 @@ class _IngredientsTab extends ConsumerWidget {
       for (final entry in entries.values)
         if (entry.added) scaleLineItem(entry.line, factor),
     ];
+
+    final toggle = FiguresToggle(cost: costReading, onChanged: onReading);
 
     Widget line(({LineUses uses, bool excluded}) row) => _line(
       context,
@@ -1108,24 +1180,31 @@ class _IngredientsTab extends ConsumerWidget {
         // the scaler — a static per-serving figure sitting under a stepper
         // would invite the reading that the stepper drives it (it does not).
         const SizedBox(height: 22),
-        RecipeMacroPanel(
-          summary: weekSummary ?? recipe.macros,
-          onFix: (note) => _fix(context, note),
-          includedNames: [
-            for (final item in lines)
-              if (included.contains(item.id))
-                item.subRecipe?.title ?? item.ingredientName,
-          ],
-          // The week's summation drops an optional line through the seam
-          // before it runs, so its notes cannot name one; the Library's
-          // summary names them itself and is left to.
-          optionalNames: weekSummary == null
-              ? const []
-              : droppedNames(
-                  effectiveLines(lines, overrides: overrides),
-                  LineDropReason.optional,
-                ),
-        ),
+        // One strip, two readings of the same lines (ADR-0017). The pair over
+        // it is the header of whichever is showing, so the flip moves nothing
+        // on the page but the figures themselves.
+        if (costReading)
+          RecipeCostPanel(summary: cost, header: toggle)
+        else
+          RecipeMacroPanel(
+            summary: weekSummary ?? recipe.macros,
+            header: toggle,
+            onFix: (note) => _fix(context, note),
+            includedNames: [
+              for (final item in lines)
+                if (included.contains(item.id))
+                  item.subRecipe?.title ?? item.ingredientName,
+            ],
+            // The week's summation drops an optional line through the seam
+            // before it runs, so its notes cannot name one; the Library's
+            // summary names them itself and is left to.
+            optionalNames: weekSummary == null
+                ? const []
+                : droppedNames(
+                    effectiveLines(lines, overrides: overrides),
+                    LineDropReason.optional,
+                  ),
+          ),
       ],
     );
   }
@@ -1149,6 +1228,9 @@ class _IngredientsTab extends ConsumerWidget {
     final macros = row.excluded
         ? const (figures: null, note: null)
         : _macroLine(uses, summary, factor, marked: note != null);
+    // Under Cost the line says what it costs, the price behind it and where
+    // that price came from — or, in the strip's own words, why it has none.
+    final costNote = row.excluded ? null : _costLine(uses, factor);
     // The identity cell already wears `ingredient removed · pick again`,
     // inches from the name it is about; the amount column does not say the
     // same thing a second time. The panel below still names the line, and
@@ -1203,7 +1285,7 @@ class _IngredientsTab extends ConsumerWidget {
           ? null
           : incompleteLineNote(note.reason),
       macroLine: macros.figures,
-      macroLineNote: macros.note,
+      macroLineNote: macros.note ?? costNote,
       onFixMacro: note == null || saidInPlace
           ? null
           : () => _fix(context, note),

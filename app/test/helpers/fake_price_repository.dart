@@ -45,6 +45,21 @@ class FakePriceRepo implements PriceRepository {
     yield* _changes.stream.map((_) => [...rows]);
   }
 
+  /// The same rows as a latest-per-ingredient map. The fake holds ONE
+  /// ingredient's ledger, so the newest row is that ingredient's latest — and
+  /// the key is whatever that row's ingredient is said to be.
+  @override
+  Stream<Map<String, PriceObservation>> watchLatestPrices() async* {
+    yield latest;
+    yield* _changes.stream.map((_) => latest);
+  }
+
+  /// Which ingredient the fake's rows belong to, for the map read above.
+  String ingredientId = 'ing-1';
+
+  Map<String, PriceObservation> get latest =>
+      rows.isEmpty ? const {} : {ingredientId: rows.first};
+
   @override
   Stream<List<String>> watchStores() async* {
     yield [...storeWords];

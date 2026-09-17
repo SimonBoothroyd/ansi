@@ -29,31 +29,32 @@ class SqlitePriceRepository implements PriceRepository {
     Iterable<Map<String, dynamic>> rows,
   ) => [
     for (final r in rows)
-      if (observationFrom(
-            ReceiptLine(
-              id: r['id'] as String,
-              receiptId: r['receipt_id'] as String,
-              ingredientId: r['ingredient_id'] as String?,
-              printedText: r['printed_text'] as String?,
-              cents: (r['cents'] as num).toInt(),
-              discountCents: (r['discount_cents'] as num?)?.toInt() ?? 0,
-              kind: ReceiptLineKind.fromDb(r['kind'] as String?),
-              packBasisAmount: (r['pack_basis_amount'] as num?)?.toDouble(),
-              measureId: r['measure_id'] as String?,
-              sortOrder: (r['sort_order'] as int?) ?? 0,
-            ),
-            Receipt(
-              id: r['receipt_id'] as String,
-              store: (r['store'] as String?) ?? '',
-              purchasedAt: _instant(r['purchased_at']),
-              source: ReceiptSource.fromDb(r['source'] as String?),
-            ),
-            basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
-            packLabel: r['measure_label'] as String?,
-          )
-          case final observation?)
-        observation,
+      if (_observationFromRow(r) case final observation?) observation,
   ];
+
+  static PriceObservation? _observationFromRow(Map<String, dynamic> r) =>
+      observationFrom(
+        ReceiptLine(
+          id: r['id'] as String,
+          receiptId: r['receipt_id'] as String,
+          ingredientId: r['ingredient_id'] as String?,
+          printedText: r['printed_text'] as String?,
+          cents: (r['cents'] as num).toInt(),
+          discountCents: (r['discount_cents'] as num?)?.toInt() ?? 0,
+          kind: ReceiptLineKind.fromDb(r['kind'] as String?),
+          packBasisAmount: (r['pack_basis_amount'] as num?)?.toDouble(),
+          measureId: r['measure_id'] as String?,
+          sortOrder: (r['sort_order'] as int?) ?? 0,
+        ),
+        Receipt(
+          id: r['receipt_id'] as String,
+          store: (r['store'] as String?) ?? '',
+          purchasedAt: _instant(r['purchased_at']),
+          source: ReceiptSource.fromDb(r['source'] as String?),
+        ),
+        basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
+        packLabel: r['measure_label'] as String?,
+      );
 
   /// A stored timestamp as an instant. `purchased_at` is TEXT and its format
   /// differs by writer — this client writes `…T…Z`, a Postgres-sourced row
@@ -100,6 +101,51 @@ class SqlitePriceRepository implements PriceRepository {
           parameters: [ingredientId],
         )
         .map(_observations);
+  }
+
+  /// The LATEST price per ingredient, household-wide.
+  ///
+  /// The SELECT is spelled out in full for the reason [watchPrices]'s is, and
+  /// every joined table contributes a selected column so PowerSync fires this
+  /// watch when a price, a basis or a pack's word changes under it.
+  ///
+  /// The newest-first ordering does the picking: the first row for an
+  /// ingredient that IS a price (`observationFrom` — a line whose pack nobody
+  /// has stated is not one) wins, and the rest are what was paid before it.
+  @override
+  Stream<Map<String, PriceObservation>> watchLatestPrices() {
+    return _db
+        .watch(
+          'SELECT l.id, l.receipt_id, l.ingredient_id, l.printed_text, '
+          'l.cents, l.discount_cents, l.kind, l.pack_basis_amount, '
+          'l.measure_id, l.sort_order, '
+          'r.store, r.purchased_at, r.source, '
+          'i.macros_basis, m.label AS measure_label '
+          'FROM receipt_line l '
+          'JOIN receipt r ON r.id = l.receipt_id AND r.deleted_at IS NULL '
+          'LEFT JOIN ingredient i ON i.id = l.ingredient_id '
+          'LEFT JOIN ingredient_measure m ON m.id = l.measure_id '
+          'AND m.deleted_at IS NULL '
+          'WHERE l.ingredient_id IS NOT NULL AND l.deleted_at IS NULL '
+          'ORDER BY r.purchased_at DESC, l.created_at DESC, l.id DESC',
+        )
+        .map(latestByIngredient);
+  }
+
+  /// The newest readable price per ingredient, from rows already ordered
+  /// newest-first. Shared with the recipe and week loads, which read the same
+  /// query through their own connection.
+  static Map<String, PriceObservation> latestByIngredient(
+    Iterable<Map<String, dynamic>> rows,
+  ) {
+    final latest = <String, PriceObservation>{};
+    for (final r in rows) {
+      final ingredientId = r['ingredient_id'] as String?;
+      if (ingredientId == null || latest.containsKey(ingredientId)) continue;
+      final observation = _observationFromRow(r);
+      if (observation != null) latest[ingredientId] = observation;
+    }
+    return latest;
   }
 
   @override
@@ -189,3 +235,28 @@ class SqlitePriceRepository implements PriceRepository {
     });
   }
 }
+
+/// The latest price per ingredient, read once rather than watched — what the
+/// recipe and week cost loads join their lines against.
+///
+/// The query is [SqlitePriceRepository.watchLatestPrices]'s, spelled out again
+/// rather than shared as a fragment: `watch_coverage_test` reads these queries
+/// as literals, and an interpolated string is invisible to it.
+Future<Map<String, PriceObservation>> loadLatestPrices(
+  SqliteConnection db,
+) async => SqlitePriceRepository.latestByIngredient(
+  await db.getAll(
+    'SELECT l.id, l.receipt_id, l.ingredient_id, l.printed_text, '
+    'l.cents, l.discount_cents, l.kind, l.pack_basis_amount, '
+    'l.measure_id, l.sort_order, '
+    'r.store, r.purchased_at, r.source, '
+    'i.macros_basis, m.label AS measure_label '
+    'FROM receipt_line l '
+    'JOIN receipt r ON r.id = l.receipt_id AND r.deleted_at IS NULL '
+    'LEFT JOIN ingredient i ON i.id = l.ingredient_id '
+    'LEFT JOIN ingredient_measure m ON m.id = l.measure_id '
+    'AND m.deleted_at IS NULL '
+    'WHERE l.ingredient_id IS NOT NULL AND l.deleted_at IS NULL '
+    'ORDER BY r.purchased_at DESC, l.created_at DESC, l.id DESC',
+  ),
+);

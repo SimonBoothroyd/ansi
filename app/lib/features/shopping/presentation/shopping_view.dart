@@ -24,12 +24,14 @@ import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_layout.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_scroll.dart';
+import '../../../shared/cost_words.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/sync_status_line.dart';
 import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
+import '../../ingredients/data/ingredient_providers.dart';
 import '../../planning/data/planning_providers.dart';
 import '../../planning/presentation/week_format.dart';
 import '../../planning/presentation/week_header.dart';
@@ -38,6 +40,7 @@ import '../../planning/presentation/week_view_models.dart';
 import '../../recipes/domain/effective_lines.dart';
 import '../data/shopping_providers.dart';
 import '../domain/shopping.dart';
+import '../domain/shopping_cost.dart';
 import 'add_shopping_item_sheet.dart';
 import 'confetti_burst.dart';
 import 'edit_top_up_sheet.dart';
@@ -99,7 +102,13 @@ class ShoppingView extends ConsumerWidget {
         // says something is wrong, this says where you stand.
         child: Column(
           children: [
-            const AnsiSyncStatusLine(noun: 'tick'),
+            // The trip estimate rides the sync line, where the one sentence
+            // about the whole list already lives — and it stays put while the
+            // sync words come and go beside it.
+            AnsiSyncStatusLine(
+              noun: 'tick',
+              trailing: _TripEstimate(cents: ref.watch(shopTripCostProvider)),
+            ),
             // The width buys ONE thing here: the breakdown a phone opens
             // under a row, held open in a pane beside the walk. The walk
             // itself is the same single column at the measure — two phones
@@ -114,6 +123,26 @@ class ShoppingView extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+/// `≈ $58 still to buy` at the end of the sync line — what the rest of the
+/// walk comes to at the latest prices (ADR-0017).
+///
+/// Nothing at all when not one open row can be priced: `≈ $0` would read as a
+/// free trip rather than an unpriced one, and the rows themselves each say
+/// which of them has no price.
+class _TripEstimate extends StatelessWidget {
+  const _TripEstimate({required this.cents});
+
+  final double? cents;
+
+  @override
+  Widget build(BuildContext context) {
+    final line = tripEstimate(cents);
+    return line == null
+        ? const SizedBox.shrink()
+        : Text(line, style: ansiMono(size: 11, color: AnsiColors.muted));
   }
 }
 
@@ -828,7 +857,17 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
   }
 
   Widget _rowBody() {
-    final secondary = item.checked ? '' : itemSecondary(item);
+    // A ticked row carries no estimate: it is in the basket, and the figure
+    // on the sync line is about what is left to buy.
+    final secondary = item.checked
+        ? ''
+        : itemSecondaryWithCost(
+            item,
+            cents: shoppingItemCostCents(
+              item,
+              ref.watch(ingredientPricingProvider)[item.ingredientId],
+            ),
+          );
     final selection = widget.selection;
     final reading =
         selection != null && selection.identity == shoppingItemIdentity(item);

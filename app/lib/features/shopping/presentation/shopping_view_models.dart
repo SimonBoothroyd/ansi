@@ -10,9 +10,11 @@ library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../ingredients/data/ingredient_providers.dart';
 import '../../planning/presentation/week_view_models.dart';
 import '../data/shopping_providers.dart';
 import '../domain/shopping.dart';
+import '../domain/shopping_cost.dart';
 
 part 'shopping_view_models.g.dart';
 
@@ -22,3 +24,20 @@ part 'shopping_view_models.g.dart';
 Stream<ShoppingList> currentShoppingList(Ref ref) => ref
     .watch(shoppingRepositoryProvider)
     .watchShoppingList(ref.watch(viewedWeekStartProvider));
+
+/// What the rest of the trip comes to — the figure on the sync line
+/// (ADR-0017).
+///
+/// The UNTICKED rows only: what is in the basket has been picked up, and the
+/// question the line answers is what is left. Null when not one row can be
+/// priced, because `≈ $0` would read as a free trip rather than an unpriced
+/// one.
+@riverpod
+double? shopTripCost(Ref ref) {
+  final list = ref.watch(currentShoppingListProvider).asData?.value;
+  if (list == null) return null;
+  final pricing = ref.watch(ingredientPricingProvider);
+  return tripCostCents([
+    for (final group in list.openGroups) ...group.items,
+  ], (id) => pricing[id]);
+}

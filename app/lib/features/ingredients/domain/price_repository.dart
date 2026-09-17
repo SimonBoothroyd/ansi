@@ -22,6 +22,15 @@ abstract interface class PriceRepository {
   /// a refresh.
   Stream<List<PriceObservation>> watchPrices(String ingredientId);
 
+  /// The LATEST price for every ingredient the household has ever paid for,
+  /// keyed by ingredient id — the one read every cost surface makes.
+  ///
+  /// One map rather than a stream per row: a recipe costs a dozen lines, a
+  /// week costs every recipe it plans and the shop costs every aisle, so the
+  /// question is always "what does everything cost right now". A row with no
+  /// readable price is simply absent — never present with a zero.
+  Stream<Map<String, PriceObservation>> watchLatestPrices();
+
   /// The store words this household has used, most recently first — the price
   /// sheet's chip row.
   ///

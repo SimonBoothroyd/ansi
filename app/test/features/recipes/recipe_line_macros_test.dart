@@ -132,7 +132,7 @@ void main() {
     tester,
   ) async {
     await _pump(tester);
-    await _toggle(tester, 'Show line macros');
+    await _toggle(tester, 'Show line figures');
 
     expect(macroText('600 kcal · 60P 120C 30F'), findsOneWidget);
   });
@@ -140,7 +140,7 @@ void main() {
   testWidgets('the figures are the line AS SHOWN — they move with the scaler, '
       'unlike the per-serving strip', (tester) async {
     await _pump(tester);
-    await _toggle(tester, 'Show line macros');
+    await _toggle(tester, 'Show line figures');
 
     await tester.tap(find.byIcon(FLucideIcons.plus));
     await tester.pumpAndSettle();
@@ -154,7 +154,7 @@ void main() {
   testWidgets('a line excluded BY RULE says why, in the panel’s words — never '
       'a zero', (tester) async {
     await _pump(tester);
-    await _toggle(tester, 'Show line macros');
+    await _toggle(tester, 'Show line figures');
 
     // The handful says why. The optional lime says nothing here: its tag
     // already said it, and twice on one line is once too many.
@@ -166,7 +166,7 @@ void main() {
   testWidgets('a line the total is WAITING ON is not told twice — its amber '
       'marker already carries the reason', (tester) async {
     await _pump(tester);
-    await _toggle(tester, 'Show line macros');
+    await _toggle(tester, 'Show line figures');
 
     expect(find.text('stub ingredient'), findsOneWidget);
   });
@@ -175,7 +175,7 @@ void main() {
     tester,
   ) async {
     await _pump(tester);
-    await _toggle(tester, 'Show line macros');
+    await _toggle(tester, 'Show line figures');
 
     // Tofu is a stub, so there is no per-serving total at all…
     expect(find.text('incomplete'), findsOneWidget);
@@ -185,8 +185,8 @@ void main() {
 
   testWidgets('toggling it back off removes every line figure', (tester) async {
     await _pump(tester);
-    await _toggle(tester, 'Show line macros');
-    await _toggle(tester, 'Hide line macros');
+    await _toggle(tester, 'Show line figures');
+    await _toggle(tester, 'Hide line figures');
 
     expect(macroText('600 kcal · 60P 120C 30F'), findsNothing);
     expect(find.text('not counted'), findsNothing);
@@ -222,7 +222,7 @@ void main() {
       ],
     );
     await _pump(tester, recipe: folded);
-    await _toggle(tester, 'Show line macros');
+    await _toggle(tester, 'Show line figures');
 
     // The 20 g use resolved and the handful did not, so the row says the
     // exclusion rather than printing the half it could add up.
@@ -239,7 +239,7 @@ void main() {
 
     await tester.tap(find.byIcon(FLucideIcons.ellipsis));
     await tester.pumpAndSettle();
-    expect(find.text('Show line macros'), findsNothing);
+    expect(find.text('Show line figures'), findsNothing);
     expect(find.text('Edit'), findsOneWidget);
   });
 }

@@ -815,3 +815,124 @@ final class PriceStoresProvider
 }
 
 String _$priceStoresHash() => r'930835d3e6cba5b660423af2587e8216c250f134';
+
+/// The latest price for every row the household has paid for, keyed by
+/// ingredient id (ADR-0017).
+
+@ProviderFor(latestPrices)
+const latestPricesProvider = LatestPricesProvider._();
+
+/// The latest price for every row the household has paid for, keyed by
+/// ingredient id (ADR-0017).
+
+final class LatestPricesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Map<String, PriceObservation>>,
+          Map<String, PriceObservation>,
+          Stream<Map<String, PriceObservation>>
+        >
+    with
+        $FutureModifier<Map<String, PriceObservation>>,
+        $StreamProvider<Map<String, PriceObservation>> {
+  /// The latest price for every row the household has paid for, keyed by
+  /// ingredient id (ADR-0017).
+  const LatestPricesProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'latestPricesProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$latestPricesHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<Map<String, PriceObservation>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<Map<String, PriceObservation>> create(Ref ref) {
+    return latestPrices(ref);
+  }
+}
+
+String _$latestPricesHash() => r'7255ce50a4f7032725a7fee5d576ee3d5de08d57';
+
+/// What every vocabulary row costs and how its amounts convert — the lookup a
+/// surface holding amounts rather than recipe lines makes (the Shop).
+///
+/// It is assembled from two live reads the app already has, rather than from a
+/// third query: the vocabulary states the dimension facts, the ledger states
+/// the price. A row the vocabulary has not synced is simply absent, and the
+/// row that asked about it is honestly unpriceable.
+
+@ProviderFor(ingredientPricing)
+const ingredientPricingProvider = IngredientPricingProvider._();
+
+/// What every vocabulary row costs and how its amounts convert — the lookup a
+/// surface holding amounts rather than recipe lines makes (the Shop).
+///
+/// It is assembled from two live reads the app already has, rather than from a
+/// third query: the vocabulary states the dimension facts, the ledger states
+/// the price. A row the vocabulary has not synced is simply absent, and the
+/// row that asked about it is honestly unpriceable.
+
+final class IngredientPricingProvider
+    extends
+        $FunctionalProvider<
+          Map<String, IngredientPricing>,
+          Map<String, IngredientPricing>,
+          Map<String, IngredientPricing>
+        >
+    with $Provider<Map<String, IngredientPricing>> {
+  /// What every vocabulary row costs and how its amounts convert — the lookup a
+  /// surface holding amounts rather than recipe lines makes (the Shop).
+  ///
+  /// It is assembled from two live reads the app already has, rather than from a
+  /// third query: the vocabulary states the dimension facts, the ledger states
+  /// the price. A row the vocabulary has not synced is simply absent, and the
+  /// row that asked about it is honestly unpriceable.
+  const IngredientPricingProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'ingredientPricingProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$ingredientPricingHash();
+
+  @$internal
+  @override
+  $ProviderElement<Map<String, IngredientPricing>> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  Map<String, IngredientPricing> create(Ref ref) {
+    return ingredientPricing(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Map<String, IngredientPricing> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<Map<String, IngredientPricing>>(
+        value,
+      ),
+    );
+  }
+}
+
+String _$ingredientPricingHash() => r'0be8ce3ac475cc87462efef01804a21a4c2abdaf';

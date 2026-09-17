@@ -8,6 +8,7 @@ import '../../../core/config/env.dart';
 import '../../../core/sync/database.dart';
 import '../../../core/sync/session.dart';
 import '../../../core/units/measure.dart';
+import '../../recipes/domain/recipe_cost.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
 import '../domain/measure_repository.dart';
@@ -110,3 +111,34 @@ Stream<List<PriceObservation>> ingredientPrices(Ref ref, String ingredientId) =>
 @riverpod
 Stream<List<String>> priceStores(Ref ref) =>
     ref.watch(priceRepositoryProvider).watchStores();
+
+/// The latest price for every row the household has paid for, keyed by
+/// ingredient id (ADR-0017).
+@riverpod
+Stream<Map<String, PriceObservation>> latestPrices(Ref ref) =>
+    ref.watch(priceRepositoryProvider).watchLatestPrices();
+
+/// What every vocabulary row costs and how its amounts convert — the lookup a
+/// surface holding amounts rather than recipe lines makes (the Shop).
+///
+/// It is assembled from two live reads the app already has, rather than from a
+/// third query: the vocabulary states the dimension facts, the ledger states
+/// the price. A row the vocabulary has not synced is simply absent, and the
+/// row that asked about it is honestly unpriceable.
+@riverpod
+Map<String, IngredientPricing> ingredientPricing(Ref ref) {
+  final prices = ref.watch(latestPricesProvider).asData?.value ?? const {};
+  final rows =
+      ref.watch(vocabularyProvider).asData?.value ?? const <Ingredient>[];
+  return {
+    for (final row in rows)
+      row.id: (
+        row: (
+          basis: row.macrosBasis,
+          densityGPerMl: row.densityGPerMl,
+          pieceBasisAmount: row.pieceBasisAmount,
+        ),
+        price: prices[row.id],
+      ),
+  };
+}

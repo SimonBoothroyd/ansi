@@ -26,10 +26,12 @@ import '../../../core/week_shape.dart';
 import '../../account/data/household_providers.dart';
 import '../../recipes/domain/line_override.dart';
 import '../../recipes/domain/recipe.dart';
+import '../../recipes/domain/recipe_cost.dart';
 import '../../recipes/domain/recipe_macros.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
+import '../domain/week_cost.dart';
 import '../domain/week_macros.dart';
 
 part 'week_view_models.g.dart';
@@ -218,6 +220,52 @@ Stream<Map<String, RecipeMacroSummary>> weekVariantMacrosFor(
       : ref
             .watch(weekVariantRepositoryProvider)
             .watchVariantRecipeMacros(weekStart);
+}
+
+/// The same for COST (ADR-0017) — a week that ticks an optional line in pays
+/// for it, so the panel's Cost reading has to be the week's own.
+@riverpod
+Stream<Map<String, RecipeCostSummary>> weekVariantCostsFor(
+  Ref ref,
+  String weekKey,
+) {
+  final weekStart = weekStartOfKey(weekKey, ref.watch(weekShapeProvider));
+  return weekStart == null
+      ? Stream.value(const {})
+      : ref
+            .watch(weekVariantRepositoryProvider)
+            .watchVariantRecipeCosts(weekStart);
+}
+
+/// Per-recipe cost summaries **for the viewed week** — the Library's figure
+/// underneath, the week's own on top, exactly as [weekRecipeMacros] layers the
+/// macros.
+@riverpod
+Map<String, RecipeCostSummary> weekRecipeCosts(Ref ref) => {
+  ...?ref.watch(recipeCostsProvider).asData?.value,
+  ...?ref.watch(variantRecipeCostsProvider).asData?.value,
+};
+
+/// The re-costed figures for the recipes the viewed week varies.
+@riverpod
+Stream<Map<String, RecipeCostSummary>> variantRecipeCosts(Ref ref) => ref
+    .watch(weekVariantRepositoryProvider)
+    .watchVariantRecipeCosts(ref.watch(viewedWeekStartProvider));
+
+/// What the viewed week costs to cook under [lens] — the band's second line.
+///
+/// The same entries, the same portions and the same lens as [weekMacros]: the
+/// two lines of the band describe one week or they describe none.
+@riverpod
+PlannedCost weekCost(Ref ref, String? lens) {
+  final plan = ref.watch(viewedWeekProvider).asData?.value;
+  final costs = ref.watch(weekRecipeCostsProvider);
+  return sumPlannedCost(
+    plan?.entries ?? const [],
+    costFor: (id) => costs[id],
+    lensMemberId: lens,
+    membersById: ref.watch(membersByIdProvider),
+  );
 }
 
 /// An ISO `YYYY-MM-DD` week key as the first day of the week it names, or null

@@ -8,6 +8,7 @@
 library;
 
 import '../../recipes/domain/line_override.dart';
+import '../../recipes/domain/recipe_cost.dart';
 import '../../recipes/domain/recipe_macros.dart';
 
 abstract interface class WeekVariantRepository {
@@ -58,6 +59,13 @@ abstract interface class WeekVariantRepository {
   /// re-summing every recipe on every week watch would be a second answer to a
   /// question that already has one.
   Stream<Map<String, RecipeMacroSummary>> watchVariantRecipeMacros(
+    DateTime weekStart,
+  );
+
+  /// The same thing for COST (ADR-0017), for the same reason: a week that
+  /// ticks an optional line in has to pay for it, and a week that leaves one
+  /// out does not. Absent for a recipe with no variant.
+  Stream<Map<String, RecipeCostSummary>> watchVariantRecipeCosts(
     DateTime weekStart,
   );
 }

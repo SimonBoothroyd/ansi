@@ -15,6 +15,7 @@ import 'package:meta/meta.dart';
 import '../../../core/units/units.dart';
 import 'component_math.dart';
 import 'recipe.dart';
+import 'recipe_cost.dart';
 
 /// One back-link to a recipe that lists this one as a component — a row of the
 /// "Used in · N" tab (step 8.6 / D9): *target · amount · share of a batch*.
@@ -71,6 +72,11 @@ abstract interface class RecipeRepository {
   /// A single recipe with its groups and line-items assembled, or null if it
   /// doesn't exist (or is soft-deleted). Reacts to local writes.
   Stream<Recipe?> watchRecipe(String id);
+
+  /// Every recipe's cost, keyed by recipe id (ADR-0017) — a SEPARATE read from
+  /// [watchRecipes], because a cost moves when a receipt lands and because a
+  /// macro summary never carries money.
+  Stream<Map<String, RecipeCostSummary>> watchRecipeCosts();
 
   /// Insert (new id) or replace (existing id) the whole aggregate.
   Future<void> saveRecipe(Recipe recipe);

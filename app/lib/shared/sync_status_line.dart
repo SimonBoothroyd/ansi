@@ -58,10 +58,17 @@ const waitingGrace = Duration(milliseconds: 700);
 const _fade = Duration(milliseconds: 160);
 
 class AnsiSyncStatusLine extends HookConsumerWidget {
-  const AnsiSyncStatusLine({this.noun = 'change', super.key});
+  const AnsiSyncStatusLine({this.noun = 'change', this.trailing, super.key});
 
   /// Singular; pluralised for the count. Shop passes `'tick'`.
   final String noun;
+
+  /// One steady thing at the end of the strip — the Shop's trip estimate.
+  ///
+  /// It rides OUTSIDE the fade: the sync words come and go (they are news),
+  /// and what the trip comes to is not news, it is where you stand. The slot
+  /// was already always drawn, so this costs no height and moves no row.
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -126,48 +133,58 @@ class AnsiSyncStatusLine extends HookConsumerWidget {
     // the Shop list's scroll, and a strip that collapsed would walk every row
     // up the screen under the thumb that ticked one. A blank line holds the
     // same height as a full one, so there is nothing to compute.
-    return AnimatedOpacity(
-      opacity: text == null ? 0 : 1,
-      duration: _fade,
-      child: IgnorePointer(
-        ignoring: text == null,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(20, 7, 20, 7),
-          decoration: const BoxDecoration(
-            color: AnsiColors.surface,
-            border: Border(bottom: BorderSide(color: AnsiColors.line)),
-          ),
-          child: Row(
-            children: [
-              _Dot(tone: line?.tone ?? SyncTone.calm),
-              const SizedBox(width: 7),
-              Expanded(
-                child: Text(
-                  text ?? ' ',
-                  style: ansiMono(
-                    size: 11,
-                    color: syncToneColor(line?.tone ?? SyncTone.calm),
-                  ),
-                  overflow: TextOverflow.ellipsis,
+    final trailing = this.trailing;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 7, 20, 7),
+      decoration: const BoxDecoration(
+        color: AnsiColors.surface,
+        border: Border(bottom: BorderSide(color: AnsiColors.line)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: AnimatedOpacity(
+              opacity: text == null ? 0 : 1,
+              duration: _fade,
+              child: IgnorePointer(
+                ignoring: text == null,
+                child: Row(
+                  children: [
+                    _Dot(tone: line?.tone ?? SyncTone.calm),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        text ?? ' ',
+                        style: ansiMono(
+                          size: 11,
+                          color: syncToneColor(line?.tone ?? SyncTone.calm),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (text != null && health is SyncStalled) ...[
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => unawaited(
+                          ref
+                              .read(sessionControllerProvider.notifier)
+                              .reconnect(),
+                        ),
+                        child: Text(
+                          'Try now',
+                          style: ansiMono(size: 11, color: AnsiColors.herbDeep),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-              if (text != null && health is SyncStalled) ...[
-                const SizedBox(width: 8),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => unawaited(
-                    ref.read(sessionControllerProvider.notifier).reconnect(),
-                  ),
-                  child: Text(
-                    'Try now',
-                    style: ansiMono(size: 11, color: AnsiColors.herbDeep),
-                  ),
-                ),
-              ],
-            ],
+            ),
           ),
-        ),
+          if (trailing != null) ...[const SizedBox(width: 10), trailing],
+        ],
       ),
     );
   }

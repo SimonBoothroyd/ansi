@@ -8,17 +8,20 @@ library;
 
 import 'package:ansi/features/planning/domain/week_variant_repository.dart';
 import 'package:ansi/features/recipes/domain/line_override.dart';
+import 'package:ansi/features/recipes/domain/recipe_cost.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
 
 class FakeWeekVariantRepository implements WeekVariantRepository {
   FakeWeekVariantRepository({
     this.overrides = const {},
     this.variantMacros = const {},
+    this.variantCosts = const {},
   });
 
   /// Keyed by recipe id, as the repository returns it.
   final Map<String, List<LineOverride>> overrides;
   final Map<String, RecipeMacroSummary> variantMacros;
+  final Map<String, RecipeCostSummary> variantCosts;
 
   /// Every `(weekStart, recipeId, set)` a test drove a save with.
   final saved =
@@ -65,4 +68,9 @@ class FakeWeekVariantRepository implements WeekVariantRepository {
   Stream<Map<String, RecipeMacroSummary>> watchVariantRecipeMacros(
     DateTime weekStart,
   ) => Stream.value(variantMacros);
+
+  @override
+  Stream<Map<String, RecipeCostSummary>> watchVariantRecipeCosts(
+    DateTime weekStart,
+  ) => Stream.value(variantCosts);
 }

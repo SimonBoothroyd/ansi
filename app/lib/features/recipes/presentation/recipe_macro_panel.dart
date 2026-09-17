@@ -52,8 +52,14 @@ class RecipeMacroPanel extends StatelessWidget {
     this.onFix,
     this.includedNames = const [],
     this.optionalNames = const [],
+    this.header,
     super.key,
   });
+
+  /// What stands over the strip. Null keeps the micro-label the panel has
+  /// always drawn; the recipe page passes the `Macros | Cost` chip pair, which
+  /// says the same thing and offers the other reading beside it.
+  final Widget? header;
 
   /// The optional lines THIS WEEK ticked in, in stored order — named in a row
   /// of their own, because they are the one thing under this panel that came
@@ -92,10 +98,11 @@ class RecipeMacroPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Text('PER SERVING', style: ansiLabel()),
-        ),
+        header ??
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text('PER SERVING', style: ansiLabel()),
+            ),
         DecoratedBox(
           decoration: BoxDecoration(
             border: Border.all(color: AnsiColors.line),
@@ -172,11 +179,11 @@ class _NotCounted extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (imprecise != null)
-            _NotCountedRow(label: 'NOT COUNTED', names: imprecise),
+            PanelNoteRow(label: 'NOT COUNTED', names: imprecise),
           if (optional != null)
-            _NotCountedRow(label: 'OPTIONAL', names: optional),
+            PanelNoteRow(label: 'OPTIONAL', names: optional),
           if (included != null)
-            _NotCountedRow(
+            PanelNoteRow(
               label: 'INCLUDED',
               names: included,
               labelColor: AnsiColors.herb,
@@ -208,11 +215,16 @@ class _NotCounted extends StatelessWidget {
 }
 
 /// One reason's row: the micro-label, then the names it covers.
-class _NotCountedRow extends StatelessWidget {
-  const _NotCountedRow({
+///
+/// Shared with the panel's COST reading, whose `UNPRICED`, `OLDEST` and
+/// `NOT COUNTED` rows are the same claim in the same shape — a label in the
+/// amount column, the lines it covers beside it.
+class PanelNoteRow extends StatelessWidget {
+  const PanelNoteRow({
     required this.label,
     required this.names,
     this.labelColor = AnsiColors.muted,
+    super.key,
   });
 
   final String label;
@@ -317,7 +329,50 @@ class _AmberDot extends StatelessWidget {
   );
 }
 
-/// The board's four equal cells, hairline-divided: value over micro-label.
+/// The board's equal cells, hairline-divided: a value over a micro-label.
+///
+/// Four of them for the macro reading (five with fibre), three for the cost
+/// one. It is one strip, so it is one widget — the panel's two readings differ
+/// in what they say, never in how the strip is drawn.
+class PanelCells extends StatelessWidget {
+  const PanelCells({required this.cells, super.key});
+
+  /// Value then label, left to right.
+  final List<(String, String)> cells;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      for (var i = 0; i < cells.length; i++) ...[
+        if (i > 0) Container(width: 1, height: 44, color: AnsiColors.line),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+            child: Column(
+              children: [
+                Text(
+                  cells[i].$1,
+                  style: ansiMono(size: 14, weight: FontWeight.w500),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  cells[i].$2.toUpperCase(),
+                  style: ansiMono(
+                    size: 9.5,
+                    color: AnsiColors.muted,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ],
+  );
+}
+
+/// The macro reading's cells.
 class _Cells extends StatelessWidget {
   const _Cells({required this.summary});
 
@@ -339,35 +394,7 @@ class _Cells extends StatelessWidget {
       // means is said in words underneath instead.
       if (fiber != null) ('${formatGrams(fiber)} g', 'fibre'),
     ];
-    return Row(
-      children: [
-        for (var i = 0; i < cells.length; i++) ...[
-          if (i > 0) Container(width: 1, height: 44, color: AnsiColors.line),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-              child: Column(
-                children: [
-                  Text(
-                    cells[i].$1,
-                    style: ansiMono(size: 14, weight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    cells[i].$2.toUpperCase(),
-                    style: ansiMono(
-                      size: 9.5,
-                      color: AnsiColors.muted,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
+    return PanelCells(cells: cells);
   }
 }
 
