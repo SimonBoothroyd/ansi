@@ -36,18 +36,20 @@ Phase one — prices and cost:
       on a g-basis row with no density.
 - [x] The **Price** group on the ingredient page, read posture: the latest as
       one line, earlier prices kept as paid, the unpriced state as one door.
-- [ ] Cost summation in pure Dart beside the macro summation: per line, in
+- [x] Cost summation in pure Dart beside the macro summation: per line, in
       the basis, through the same conversions; imprecise and optional lines
       out by the macro rule; a line with no price or no path to the basis is
       **unpriced**, named, and takes the recipe's cost cell with it.
-- [ ] The recipe panel flips between `Macros | Cost` (seg chips, session
+- [x] The recipe panel flips between `Macros | Cost` (seg chips, session
       posture); Cost reads *a serving · the recipe · prices from <month>*
       with `UNPRICED`, `OLDEST` and `NOT COUNTED` rows. The ⋯ item becomes
       **Show line figures** and prints whichever the panel reads.
-- [ ] The week band reads `≈ $71 to cook · 3 lines unpriced` under the macro
+- [x] The week band reads `≈ $71 to cook · 3 lines unpriced` under the macro
       line; the shop's sync line carries the trip estimate and each row its
-      own under the grams, `no price yet` where there is none.
-- [ ] ADR-0017 written: cost is a unit price, never an allocation.
+      own under the grams, `no price yet` where there is none. The **wide**
+      Week has no home for the band yet (tracker row), so its cost line is
+      drawn on the phone only.
+- [x] ADR-0017 written: cost is a unit price, never an allocation.
 
 Phase two — receipts and spend:
 
@@ -122,7 +124,9 @@ and can run beside phase one.
 
 ## Decision log
 
-- 2026-09-16 — **Cost is a unit price, never an allocation.** Assigning a
+- 2026-09-16 — **Cost is a unit price, never an allocation** — written up
+  as [ADR-0017](../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md)
+  at P2's landing. Assigning a
   receipt's lines to a week's recipes was the first framing and was set
   aside: leftovers, last week's shop and a quarter's olive oil all make it an
   inventory problem, and ADR-0007 deliberately keeps no inventory. A recipe
@@ -183,8 +187,10 @@ and can run beside phase one.
 - [ ] Backlog: the three rows retire as their phase ships.
 - [ ] Board: hatch frames move into `ingredient-detail`, `recipe-page`,
       `week`, `cook-shop`, `import-review`, `recipe-picker-confirm` as
-      built; a new `receipts` view file with its status row.
-- [ ] ADR-0017 (cost is a unit price) written at P2's landing.
+      built; a new `receipts` view file with its status row. *(the price
+      frames and the four cost frames have moved; the receipt and meal-out
+      frames wait on their phases.)*
+- [x] ADR-0017 (cost is a unit price) written at P2's landing.
 - [ ] `make ci` green; `make test-sim` on one simulator, serially, when the
       owner says go.
 - [ ] `deploy-supabase` run by hand for R1; sync rules recreated for 0044

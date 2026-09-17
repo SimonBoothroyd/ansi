@@ -174,3 +174,23 @@ misleading when meals are already planned.
 - Package-size / whole-unit rounding (stretch, anti-waste — step 11).
 - "Clear list / new shopping trip" — a shared-state gesture, still unbuilt.
 - Syncs since step 7 (the overlay tables are synced, household-scoped).
+
+## What the trip costs
+
+`shopping_cost.dart` prices a row the way the recipe panel prices a line: the
+rolled-up total converted to the ingredient's basis through the same
+`quantityInBasis` seam, times the latest price per unit of that basis
+([ADR-0017](../../../../docs/decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md)).
+
+The trip's estimate rides the **sync line**, where the one sentence about the
+whole list already lives, and stays put while the sync words fade in and out
+beside it. Each **open** row carries its own under the grams; the basket's
+carry none, because the line answers what is left to buy. A row that cannot be
+priced says `no price yet` — but only once something on the trip HAS a price, so
+a household that has entered none is never nagged by forty rows at once.
+
+The trip figure sums the rows it can price and lets the rows name the rest.
+That is this list's own doctrine, not a softening of invariant 3: it already
+sums an ingredient's honest subtotals and shows the provenance of every part,
+and there is no silent zero anywhere — a trip nothing on it can price has **no**
+figure rather than `≈ $0`.

@@ -189,6 +189,36 @@ before that ruling can be in the state at all: the form and the import both
 refuse to make a new one. A `piece` line on a weighed row is an ordinary
 convertible line and is not named here.
 
+## The panel's second reading — cost
+
+The strip that closes the Ingredients tab reads one of **two** things about the
+same lines. A `Macros | Cost` chip pair sits where `PER SERVING` sat, with
+`per serving` beside it; it is a **session posture**
+(`CostReading`, keep-alive), held across recipes and written nowhere. The `⋯`
+item is one item — **Show line figures / Hide line figures**
+(`ShowLineFigures`) — and the lines print whichever the panel above them is
+reading.
+
+`recipe_cost.dart` is the macro summation's twin
+([ADR-0017](../../../../docs/decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md)):
+the same walk over the same lines, through the conversion both now share
+(`line_basis.dart`), with a price per basis unit multiplied in at the end
+instead of per-100 macros. Imprecise and optional lines leave by **exactly** the
+macro rule, through the same `effectiveLines` seam, and are named in a
+`NOT COUNTED` / `OPTIONAL` row rather than as a gap. A line with no price — or
+with no honest path from its amount to the row's basis — is **unpriced**, named
+under `UNPRICED`, and takes the recipe's cells with it, exactly as a stub takes
+the macro total. `OLDEST` names the one line whose price month differs from the
+newest, so a July jar under a September recipe is visible rather than averaged
+away.
+
+Money never enters the macro record and macros never enter the cost one; they
+share the walk and nothing else, and
+`test/structure/cost_and_macros_stay_apart_test.dart` is what keeps it that
+way. Costs ride their own stream (`RecipeRepository.watchRecipeCosts`, and
+`watchVariantRecipeCosts` for a week that varies the recipe) because a cost
+moves when a receipt lands, which the summaries' watch knows nothing about.
+
 **Deferred (implemented in later steps, not missing by accident):** cook mode,
 method ingredient-chips/timers, Notes tab, photos. See the roadmap +
 `tech-debt-tracker.md`.

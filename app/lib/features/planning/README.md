@@ -163,3 +163,21 @@ Cook (step 5), and Shop (step 6) — all four tabs are live.
 - Recipe photos (picker/confirm thumbnails are placeholders) — needs Storage.
 - Favorites tab in the picker — no favorite flag on `recipe` yet.
 - Syncs since step 7 (`week_plan`/`plan_entry` are synced, household-scoped).
+
+## What the week costs to cook
+
+The band at the foot of the week states one cost line under the macros —
+`≈ $71 to cook · 3 lines unpriced` — from `week_cost.dart`, which is
+`sumPlannedMacros`'s money twin: the same entries, the same portions and the
+same lens, so the two lines of the band can never describe two different weeks.
+A recipe with an unpriced line has no cost at all, so its meal cannot join the
+figure; the lines that kept it out are named instead, distinct, because the
+same unpriced ingredient in three recipes is one thing to go and price. A bare
+ingredient meal is named rather than silently uncosted — a snack is not a
+recipe, and this is the recipes' summation.
+
+There is **no `spent` line**: what a week cost is what its receipts say, and
+the two are never reconciled
+([ADR-0017](../../../../docs/decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md)).
+The wide Week has no home for the band yet, so the cost line is drawn on the
+phone only.
