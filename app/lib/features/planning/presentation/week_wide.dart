@@ -57,6 +57,7 @@ import '../../../shared/ansi_tap.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../account/data/household_providers.dart';
 import '../../cook_plan/domain/cook_plan.dart';
+import '../../ingredients/presentation/macro_line_text.dart';
 import '../domain/planning.dart';
 import 'copy_last_week.dart';
 import 'week_format.dart';
@@ -116,6 +117,13 @@ String? eaterMark(PlanEntry entry, List<Member> roster) {
 /// What a meal *is* reads in the pane, where a dish's weight tells a recipe
 /// from a handful of almonds; here the line is a list of names to scan, and a
 /// second ink in it would be a distinction nobody asked the agenda for.
+///
+/// **One exception, and it is not an ink**: a meal eaten OUT carries a hollow
+/// dot before its name. The agenda's other rows are all things the week will
+/// cook or buy, and this one is neither — a fact worth seeing while scanning
+/// seven days, and the only fact in the run that changes what the days below
+/// it mean. It stays in the run's own voice: the same size, the same muted
+/// colour, an outline rather than a second colour.
 List<InlineSpan> mealRunSpans(
   List<PlanEntry> entries, {
   required List<Member> roster,
@@ -134,15 +142,20 @@ List<InlineSpan> mealRunSpans(
     // D8: a meal this person is not eating fades, it does not leave — a day
     // somebody else cooks for themselves is not an empty day.
     final dimmed = lens != null && !entry.eaterIds.contains(lens);
-    spans.add(
-      TextSpan(
-        text: mealTitleText(entry),
-        style: ansiMono(
-          size: 10.5,
-          color: dimmed ? _runDimmed : AnsiColors.muted,
-        ),
-      ),
+    final name = ansiMono(
+      size: 10.5,
+      color: dimmed ? _runDimmed : AnsiColors.muted,
     );
+    if (entry.kind == PlanEntryKind.out) {
+      // Drawn through the macro line's own span builder, which sits a glyph
+      // on the middle of the digits' ink rather than on the font's ascent
+      // midpoint — the alignment a run at this size cannot afford to get
+      // wrong. Its semantic label is the word the mark replaces.
+      spans
+        ..add(macroUnitSpan(kMealOutIcon, label: 'eaten out', style: name))
+        ..add(TextSpan(text: ' ', style: name));
+    }
+    spans.add(TextSpan(text: mealTitleText(entry), style: name));
     final mark = eaterMark(entry, roster);
     if (mark != null) {
       spans.add(
@@ -474,11 +487,14 @@ class _PaneMeal extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final snack = entry.isIngredient;
+    final kind = entry.kind;
+    final snack = kind == PlanEntryKind.ingredient;
+    final out = kind == PlanEntryKind.out;
     final plan = cookPlan;
-    // A SNACK has no cook marker, and that is a ruling (A-D5): nothing about a
-    // protein bar is cooked. Its stated amount sits in the marker's place.
-    final marker = plan == null || snack
+    // Only a RECIPE has a cook marker, and that is a ruling (A-D5): nothing
+    // about a protein bar or a canteen lunch is cooked. What the meal IS takes
+    // the marker's place — a snack's amount, a meal out's tag and figures.
+    final marker = plan == null || kind != PlanEntryKind.recipe
         ? null
         : cookMarkerFor(
             plan,
@@ -535,8 +551,15 @@ class _PaneMeal extends ConsumerWidget {
                   // lines takes two. `Clarity over compactness wins.`
                   style: entry.title == null
                       ? ansiSerif(size: AnsiType.row, color: AnsiColors.muted)
-                      // A snack is VISIBLY not a recipe (A-D5) — the dish's
-                      // emphasis is what says "there is a page behind this".
+                      // Three weights for three kinds (A-D5) — the dish's
+                      // emphasis is what says "there is a page behind this",
+                      // so a snack reads plainer and a meal eaten out, which
+                      // has no page at all, reads plain and italic.
+                      : out
+                      ? ansiSerif(
+                          size: AnsiType.row,
+                          weight: FontWeight.w400,
+                        ).copyWith(fontStyle: FontStyle.italic)
                       : snack
                       ? ansiSerif(
                           size: AnsiType.row,
@@ -575,6 +598,12 @@ class _PaneMeal extends ConsumerWidget {
                   snackAmount(entry),
                   style: ansiMono(size: 11, color: AnsiColors.muted),
                 ),
+              ),
+            // And a meal eaten out says the same thing in its own terms.
+            if (out)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: OutMealLine(entry: entry, size: 11),
               ),
             // The recipe's macros, per meal, beside the day's — read through
             // the day total's own function so the parts cannot disagree with

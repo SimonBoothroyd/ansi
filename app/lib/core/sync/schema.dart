@@ -101,17 +101,23 @@ const schema = Schema([
     Column.text('week_plan_id'),
     Column.integer('day_of_week'), // offset from week_start_date, 0..6
     Column.text('meal_slot'), // free text, not a preset enum
-    // A meal is a recipe OR a bare ingredient, never both and never neither
-    // (the server's XOR check, step 8.14 / 0033). Both columns are nullable
-    // here, so every reader must branch — a null `recipe_id` means "look at
-    // `ingredient_id`", never "skip".
+    // A meal is a recipe, a bare ingredient OR words eaten out — never two of
+    // them and never none (the server's three-way XOR check). All three
+    // columns are nullable here, so every reader must branch on the KIND: a
+    // null `recipe_id` means "look at the other two", never "skip".
     Column.text('recipe_id'),
     Column.text('ingredient_id'), // → ingredient.id
+    Column.text('label'), // the words a meal eaten out IS
     // The amount of ONE portion of an ingredient meal; null on a recipe meal,
-    // whose amount is its `portions`.
+    // whose amount is its `portions`, and on a meal eaten out, which states
+    // its macros instead.
     Column.real('quantity'),
     Column.text('unit'),
     Column.text('measure_id'), // → ingredient_measure.id (nullable)
+    // Macros of ONE portion of a meal eaten out, as stated — the vocabulary's
+    // `{kcal, protein, carb, fat}` shape, per portion rather than per 100.
+    // Null means not stated, and the week names the refusal.
+    Column.text('macros'),
     Column.text('eaters'), // JSON array of household_member ids
     Column.integer('portions'), // null → defaults to |eaters|
     Column.integer('sort_order'),

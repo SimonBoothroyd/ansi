@@ -2,8 +2,9 @@
 ///
 /// PURE DART (invariant 2): no `package:flutter`. A [WeekPlan] is one week
 /// (addressed by `weekStart`, the date of its own first day) holding the
-/// [PlanEntry] meals planned across its seven days. A meal names a recipe
-/// **or** a bare ingredient — see [PlanEntry]. A [Member] is a person in the
+/// [PlanEntry] meals planned across its seven days. A meal names a recipe, a
+/// bare ingredient **or** the words of a meal eaten out — see [PlanEntryKind]
+/// and [PlanEntry]. A [Member] is a person in the
 /// household; an entry's
 /// [PlanEntry.eaterIds] point at them and the sum of their
 /// [Member.portionFactor]s is the entry's demand ([demandPortions]) unless the
@@ -21,6 +22,7 @@ library;
 // ignore_for_file: sort_unnamed_constructors_first
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../recipes/domain/recipe_macros.dart' show IngredientNutrition;
@@ -87,16 +89,39 @@ double eatersDemand(
 double demandPortions(PlanEntry entry, Map<String, Member> membersById) =>
     entry.portions?.toDouble() ?? eatersDemand(entry.eaterIds, membersById);
 
+/// What a planned meal IS — the one question every derivation asks about an
+/// entry, asked once and answered exhaustively.
+///
+/// It exists so that a null `recipe_id` can never again be read as "skip": a
+/// `switch` over this enum is checked for exhaustiveness by the compiler, so a
+/// fourth kind cannot be added without every derivation being told to say what
+/// it does with it. The server's three-way `plan_entry_target_xor` is the same
+/// promise one layer down.
+enum PlanEntryKind {
+  /// A dish from the Library. Its amount is its portions; it is cooked, it is
+  /// bought, and its macros come from its own lines.
+  recipe,
+
+  /// Something you simply *eat* — a protein bar, a yoghurt — planned as itself
+  /// rather than dressed up as a one-line recipe. Nothing is cooked; it is
+  /// bought, and it is weighed from its vocabulary row.
+  ingredient,
+
+  /// A meal eaten out: the words, and the figures the canteen printed when it
+  /// printed any. Nothing is cooked and nothing is bought — it fills its slot,
+  /// and the week counts it only from macros somebody stated.
+  out,
+}
+
 /// One planned meal on [dayOfWeek] (an offset from the week's first day, 0..6)
 /// under a free-text [mealSlot], eaten by [eaterIds].
 ///
-/// **A meal is a recipe OR a bare ingredient** — never both and never neither
-/// (step 8.14 / B-D1; the server's `plan_entry_target_xor` makes it total, the
-/// same shape a recipe line's ingredient/sub-recipe XOR has worn since 0017).
-/// Something you simply *eat* — a protein bar, a yoghurt — is planned as
-/// itself rather than dressed up as a one-line recipe.
+/// **A meal is a recipe, a bare ingredient, or a meal eaten out** — exactly
+/// one of the three, never two and never none (the server's
+/// `plan_entry_target_xor` makes it total, the same shape a recipe line's
+/// ingredient/sub-recipe XOR has worn since 0017).
 ///
-/// Which target it is decides which columns speak:
+/// Which target it is — its [kind] — decides which columns speak:
 ///
 /// * a **recipe** meal names [recipeId] ([recipeTitle] denormalised for
 ///   display, null when the recipe was deleted) and carries no amount of its
@@ -104,14 +129,18 @@ double demandPortions(PlanEntry entry, Map<String, Member> membersById) =>
 /// * an **ingredient** meal names [ingredientId] ([ingredientName]
 ///   denormalised, null when the vocab row is gone or has not synced) and
 ///   states the amount of ONE portion of it in [quantity] + [unit], or in a
-///   named [measure] ("1 bar").
+///   named [measure] ("1 bar");
+/// * a meal **eaten out** names [label] — its own words, which are the whole
+///   of it — and optionally the per-portion [macros] that were stated.
 ///
-/// It carries eaters and multiplies either way (A-D3, owner-ruled): multiple
-/// people can have the same snack, so [demandPortions] is unchanged and an
-/// ingredient meal is an ordinary entry with a different target.
+/// It carries eaters and multiplies whichever it is (A-D3, owner-ruled):
+/// multiple people can have the same snack or the same canteen lunch, so
+/// [demandPortions] is unchanged and each is an ordinary entry with a
+/// different target.
 ///
-/// Read [isIngredient] rather than testing [recipeId] for null by hand: a null
-/// recipe must never be read as "skip".
+/// Branch on [kind] rather than testing [recipeId] for null by hand: a null
+/// recipe must never be read as "skip", and a `switch` that names all three
+/// cases is how the compiler holds that.
 @freezed
 abstract class PlanEntry with _$PlanEntry {
   const PlanEntry._();
@@ -121,20 +150,32 @@ abstract class PlanEntry with _$PlanEntry {
     required int dayOfWeek,
     required String mealSlot,
 
-    /// The dish, when this meal is one. Null exactly when [ingredientId] is
-    /// set (the XOR).
+    /// The dish, when this meal is one. Null exactly when one of
+    /// [ingredientId] / [label] is set (the XOR).
     String? recipeId,
     String? recipeTitle,
 
-    /// The thing this meal IS, when it is not a recipe. Null exactly when
-    /// [recipeId] is set.
+    /// The thing this meal IS, when it is a bare ingredient. Null exactly when
+    /// one of [recipeId] / [label] is set.
     String? ingredientId,
     String? ingredientName,
+
+    /// The words a meal eaten out IS — "Office lunch". Null exactly when one
+    /// of [recipeId] / [ingredientId] is set. There is nothing behind these
+    /// words: no recipe, no vocabulary row, nothing to open.
+    String? label,
+
+    /// What ONE portion of a meal eaten out was worth, as STATED. Null means
+    /// not stated — never zero (invariant 3): the week names such a meal as
+    /// uncounted rather than weighing it at nothing. Always null on the other
+    /// two kinds, whose figures come from their recipe's lines or their
+    /// vocabulary row.
+    Macros? macros,
 
     /// The amount of ONE portion of an ingredient meal. Null (with [unit]) on
     /// a meal that states no amount — which contributes nothing to a total and
     /// says so, rather than being completed by a guess (invariant 3). Always
-    /// null on a recipe meal.
+    /// null on a recipe meal and on a meal eaten out.
     double? quantity,
     Unit? unit,
 
@@ -163,14 +204,26 @@ abstract class PlanEntry with _$PlanEntry {
     int? portions,
   }) = _PlanEntry;
 
-  /// Whether this meal is a bare ingredient rather than a recipe. The one
-  /// question every derivation asks, so it is asked in one place.
-  bool get isIngredient => ingredientId != null;
+  /// What this meal IS — the one question every derivation asks, asked in one
+  /// place and answered from the columns the XOR fills.
+  ///
+  /// The label is read first because it is the only one of the three that
+  /// needs no second row to exist: a meal eaten out is its words.
+  PlanEntryKind get kind => label != null
+      ? PlanEntryKind.out
+      : ingredientId != null
+      ? PlanEntryKind.ingredient
+      : PlanEntryKind.recipe;
 
   /// The name this meal shows, or null when the row it names is gone — a
   /// deleted recipe, or a vocab row this device cannot see. Null is a real
-  /// answer both ways: the surfaces print their own words for it.
-  String? get title => isIngredient ? ingredientName : recipeTitle;
+  /// answer for either of those: the surfaces print their own words for it.
+  /// A meal eaten out is never nameless, because its name is the whole of it.
+  String? get title => switch (kind) {
+    PlanEntryKind.recipe => recipeTitle,
+    PlanEntryKind.ingredient => ingredientName,
+    PlanEntryKind.out => label,
+  };
 
   /// The entry's own portion count before the household's factors: the
   /// [portions] override, or the eater HEAD-count. The demand a plan cooks
@@ -179,6 +232,20 @@ abstract class PlanEntry with _$PlanEntry {
   /// stepper counts in.
   int get portionsOrDefault => portions ?? eaterIds.length;
 }
+
+/// The standing words for a meal whose target is GONE — a deleted recipe, or a
+/// vocab row this device cannot see. One sentence per kind, in one place,
+/// because a deleted recipe and a deleted ingredient are different sentences
+/// and every surface must say the same one.
+///
+/// A meal eaten out cannot reach here: its words are its target, so it has
+/// nothing to lose. It keeps its own label, and the fallback names the case
+/// rather than pretending it cannot happen.
+String deletedTargetLabel(PlanEntry entry) => switch (entry.kind) {
+  PlanEntryKind.recipe => '(deleted recipe)',
+  PlanEntryKind.ingredient => '(deleted ingredient)',
+  PlanEntryKind.out => '(that meal)',
+};
 
 /// One active week, addressed by [weekStart] — the date of its own first day,
 /// date-only. [entries] are every meal planned across the week; the view

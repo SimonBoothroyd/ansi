@@ -276,4 +276,62 @@ void main() {
       expect((picked! as PickedIngredientMeal).ingredient.id, 'i1');
     });
   });
+
+  // --- The third answer: a meal eaten out ----------------------------------
+
+  group("the picker's third answer", () {
+    testWidgets('is absent on the browse surface, and absent while the words '
+        'still hit something', (tester) async {
+      filterForuiSemanticsAssertions();
+
+      await _open(tester);
+      expect(find.textContaining('note it'), findsNothing);
+
+      // A recipe hit is an answer.
+      await tester.enterText(find.byType(EditableText).first, 'chicken');
+      await tester.pumpAndSettle();
+      expect(find.textContaining('note it'), findsNothing);
+
+      // So is an ingredient hit, even where no recipe matched.
+      await tester.enterText(find.byType(EditableText).first, 'prot');
+      await tester.pumpAndSettle();
+      expect(find.text('Protein bar'), findsOneWidget);
+      expect(find.textContaining('note it'), findsNothing);
+    });
+
+    testWidgets('appears when the words hit nothing, and says what the app '
+        'will not do with them', (tester) async {
+      filterForuiSemanticsAssertions();
+
+      await _open(tester);
+      await tester.enterText(find.byType(EditableText).first, 'office lunch');
+      await tester.pumpAndSettle();
+
+      expect(find.text(noteItLabel('office lunch')), findsOneWidget);
+      expect(find.textContaining('not cooked, not bought'), findsOneWidget);
+      // Still ONE door: the new-recipe row is where it always was.
+      expect(find.textContaining('new recipe'), findsOneWidget);
+    });
+
+    testWidgets('resolves to the WORDS, trimmed — nothing is minted', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+
+      PickedMeal? picked;
+      await tester.pumpWidget(_host(onPicked: (p) => picked = p));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byType(EditableText).first,
+        '  Office lunch  ',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('note it'));
+      await tester.pumpAndSettle();
+
+      expect(picked, isA<PickedMealOut>());
+      expect((picked! as PickedMealOut).label, 'Office lunch');
+    });
+  });
 }

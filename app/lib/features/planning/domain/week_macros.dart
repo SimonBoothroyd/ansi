@@ -59,6 +59,14 @@ enum MealExclusion {
   /// the shared `incompleteLineNote` — so a snack says `stub ingredient` in
   /// exactly the words a stub recipe LINE says it (A-D5 / B-D3).
   ingredientNotCounted,
+
+  /// The meal was eaten OUT and nobody stated what it was worth. There is
+  /// nothing to weigh and nothing to look up — a canteen prints a plate or it
+  /// does not — so the meal is named and left out, in the shape a stub
+  /// ingredient already wears. An unstated FIBRE is not this: the four are the
+  /// panel, and a meal that stated them is counted whether or not it stated a
+  /// fifth.
+  outNotStated,
 }
 
 /// One meal left out of a total, and why. `label` is the dish's title as the
@@ -286,13 +294,15 @@ MealSetMacros servedMealMacros(
 ///
 /// [summaryFor] hands back a recipe's per-serving summary (null when the
 /// recipe is gone or not loaded); a bare INGREDIENT meal is weighed from the
-/// nutrition it already carries (step 8.14), so no second lookup can go
-/// missing. [membersById] carries the factors (an absent member counts 1, as
+/// nutrition it already carries (step 8.14) and a meal eaten OUT from the
+/// per-portion figures stated on it, so no second lookup can go missing for
+/// either. [membersById] carries the factors (an absent member counts 1, as
 /// [eatersDemand] says). Day and week totals come from this one function over
 /// two entry sets, so a week is never a sum of rounded days.
 ///
 /// A snack multiplies exactly like a dish (A-D3): its stated amount is ONE
-/// portion, and the same `servings` figure scales it.
+/// portion, and the same `servings` figure scales it. So does a meal eaten
+/// out — the canteen printed one plate, and two people eating it is two.
 MealSetMacros sumPlannedMacros(
   Iterable<PlanEntry> entries, {
   required RecipeMacroSummary? Function(String recipeId) summaryFor,
@@ -318,9 +328,7 @@ MealSetMacros sumPlannedMacros(
     }
     considered++;
 
-    final label =
-        entry.title ??
-        (entry.isIngredient ? '(deleted ingredient)' : '(deleted recipe)');
+    final label = entry.title ?? deletedTargetLabel(entry);
     final factorsSum = eatersDemand(eaters, membersById);
     final demand = demandPortions(entry, membersById);
     if (demand <= 0 ||
@@ -335,50 +343,68 @@ MealSetMacros sumPlannedMacros(
       continue;
     }
 
-    // The explicit branch (B-D2). A meal names a recipe or an ingredient, and
-    // the two are weighed differently — a recipe hands over a per-SERVING
-    // summary somebody else computed, a bare ingredient is weighed here from
-    // its own stated amount. Neither may fall through: a null `recipe_id` is
-    // an ingredient meal, never a meal to skip.
+    // The explicit branch (B-D2), now over all three kinds. Each is weighed in
+    // its own way — a recipe hands over a per-SERVING summary somebody else
+    // computed, a bare ingredient is weighed here from its own stated amount,
+    // and a meal eaten out is worth exactly what was typed for it or nothing
+    // at all. None may fall through: a null `recipe_id` is another kind of
+    // meal, never a meal to skip.
     final Macros? perPortion;
-    if (entry.isIngredient) {
-      final weighed = ingredientPortionMacros(entry, entry.nutrition);
-      if (weighed.perPortion == null) {
-        excluded.add((
-          entryId: entry.id,
-          label: label,
-          reason: MealExclusion.ingredientNotCounted,
-          summary: null,
-          lineReason: weighed.reason,
-        ));
-        continue;
-      }
-      perPortion = weighed.perPortion;
-    } else {
-      final summary = entry.recipeTitle == null
-          ? null
-          : summaryFor(entry.recipeId!);
-      if (summary == null) {
-        excluded.add((
-          entryId: entry.id,
-          label: label,
-          reason: MealExclusion.recipeMissing,
-          summary: null,
-          lineReason: null,
-        ));
-        continue;
-      }
-      if (summary.perServing == null) {
-        excluded.add((
-          entryId: entry.id,
-          label: label,
-          reason: MealExclusion.incomplete,
-          summary: summary,
-          lineReason: null,
-        ));
-        continue;
-      }
-      perPortion = summary.perServing;
+    switch (entry.kind) {
+      case PlanEntryKind.ingredient:
+        final weighed = ingredientPortionMacros(entry, entry.nutrition);
+        if (weighed.perPortion == null) {
+          excluded.add((
+            entryId: entry.id,
+            label: label,
+            reason: MealExclusion.ingredientNotCounted,
+            summary: null,
+            lineReason: weighed.reason,
+          ));
+          continue;
+        }
+        perPortion = weighed.perPortion;
+      case PlanEntryKind.out:
+        // Nothing is derived and nothing is looked up: the figures are the
+        // ones somebody read off a menu or a till receipt, per portion, and
+        // their absence is an absence (invariant 3).
+        final stated = entry.macros;
+        if (stated == null) {
+          excluded.add((
+            entryId: entry.id,
+            label: label,
+            reason: MealExclusion.outNotStated,
+            summary: null,
+            lineReason: null,
+          ));
+          continue;
+        }
+        perPortion = stated;
+      case PlanEntryKind.recipe:
+        final summary = entry.recipeTitle == null
+            ? null
+            : summaryFor(entry.recipeId!);
+        if (summary == null) {
+          excluded.add((
+            entryId: entry.id,
+            label: label,
+            reason: MealExclusion.recipeMissing,
+            summary: null,
+            lineReason: null,
+          ));
+          continue;
+        }
+        if (summary.perServing == null) {
+          excluded.add((
+            entryId: entry.id,
+            label: label,
+            reason: MealExclusion.incomplete,
+            summary: summary,
+            lineReason: null,
+          ));
+          continue;
+        }
+        perPortion = summary.perServing;
     }
 
     final servings = lensMemberId == null

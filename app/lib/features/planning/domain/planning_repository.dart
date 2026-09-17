@@ -8,6 +8,7 @@
 /// slot) — no whole-week replace.
 library;
 
+import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
 import 'planning.dart';
 
@@ -73,6 +74,26 @@ abstract interface class PlanningRepository {
     double? quantity,
     Unit? unit,
     String? measureId,
+    int? portions,
+  });
+
+  /// Adds a meal eaten OUT — the words, and the per-portion macros when they
+  /// were stated. The third arm of the entry XOR: this row names no recipe and
+  /// no ingredient, because there is neither behind it.
+  ///
+  /// [label] is the meal's whole identity, trimmed and non-empty (the server's
+  /// check refuses whitespace). A null [macros] means the figures were not
+  /// stated — the meal still fills its slot, and the week names it as
+  /// uncounted rather than weighing it at zero. Eaters and [portions] mean
+  /// exactly what they mean on a dish: the stated figures are what ONE portion
+  /// was worth.
+  Future<String> addOutEntry({
+    required DateTime weekStart,
+    required int dayOfWeek,
+    required String mealSlot,
+    required String label,
+    required List<String> eaterIds,
+    Macros? macros,
     int? portions,
   });
 

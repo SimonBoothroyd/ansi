@@ -9,6 +9,7 @@ library;
 
 import 'dart:async';
 
+import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/domain/planning_repository.dart';
@@ -96,6 +97,41 @@ class FakePlanningRepository implements PlanningRepository {
       eaterIds: eaterIds,
     ));
     return 'i';
+  }
+
+  /// Every meal eaten out added through [addOutEntry], in order — the third
+  /// answer's writes, for tests that assert what the confirm sheet wrote.
+  final outEntries =
+      <
+        ({
+          int dayOfWeek,
+          String mealSlot,
+          String label,
+          Macros? macros,
+          List<String> eaterIds,
+          int? portions,
+        })
+      >[];
+
+  @override
+  Future<String> addOutEntry({
+    required DateTime weekStart,
+    required int dayOfWeek,
+    required String mealSlot,
+    required String label,
+    required List<String> eaterIds,
+    Macros? macros,
+    int? portions,
+  }) async {
+    outEntries.add((
+      dayOfWeek: dayOfWeek,
+      mealSlot: mealSlot,
+      label: label,
+      macros: macros,
+      eaterIds: eaterIds,
+      portions: portions,
+    ));
+    return 'o';
   }
 
   @override

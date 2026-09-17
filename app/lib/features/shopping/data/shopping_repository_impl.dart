@@ -199,7 +199,10 @@ class SqliteShoppingRepository implements ShoppingRepository {
       'FROM week_plan wp '
       'JOIN plan_entry pe ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
       // The explicit branch: an entry with no ingredient is a RECIPE meal,
-      // already covered by the cook derivation. The join carries no liveness
+      // already covered by the cook derivation below, or a meal eaten OUT,
+      // which nothing buys and which therefore reaches neither. The kind each
+      // of the two halves takes is stated in its own WHERE clause rather than
+      // left to the join. The join carries no liveness
       // guard — an UNSYNCED row still drops out (there is no row to join, and
       // nothing truthful to say about it), but a RETIRED one is joined
       // deliberately, because its last known name is the whole of what the
@@ -304,6 +307,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
       // The explicit branch (step 8.14 / B-D2). A bare-ingredient meal has no
       // recipe to expand; it reaches the list through
       // [_derivePlannedIngredients] instead, never by falling through here.
+      // A meal eaten out reaches neither, because nothing about it is bought.
       'AND pe.recipe_id IS NOT NULL '
       'ORDER BY pe.day_of_week, pe.sort_order, pe.created_at',
       [weekKey],

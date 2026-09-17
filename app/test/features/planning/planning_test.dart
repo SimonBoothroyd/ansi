@@ -176,6 +176,90 @@ void main() {
     });
   });
 
+  group('PlanEntry.kind', () {
+    test('each of the three columns names its own kind', () {
+      const dish = PlanEntry(
+        id: 'a',
+        dayOfWeek: 0,
+        mealSlot: 'Dinner',
+        recipeId: 'r1',
+        recipeTitle: 'Curry',
+      );
+      const snack = PlanEntry(
+        id: 'b',
+        dayOfWeek: 0,
+        mealSlot: 'Snack',
+        ingredientId: 'i1',
+        ingredientName: 'Protein bar',
+      );
+      const out = PlanEntry(
+        id: 'c',
+        dayOfWeek: 0,
+        mealSlot: 'Lunch',
+        label: 'Office lunch',
+      );
+
+      expect(dish.kind, PlanEntryKind.recipe);
+      expect(snack.kind, PlanEntryKind.ingredient);
+      expect(out.kind, PlanEntryKind.out);
+
+      // The title is the thing each one names.
+      expect(dish.title, 'Curry');
+      expect(snack.title, 'Protein bar');
+      expect(out.title, 'Office lunch');
+    });
+
+    test('a target that is GONE has its own sentence per kind, and a meal '
+        'eaten out cannot lose one', () {
+      const deletedDish = PlanEntry(
+        id: 'a',
+        dayOfWeek: 0,
+        mealSlot: 'Dinner',
+        recipeId: 'r1',
+      );
+      const unsyncedRow = PlanEntry(
+        id: 'b',
+        dayOfWeek: 0,
+        mealSlot: 'Snack',
+        ingredientId: 'i1',
+      );
+      const out = PlanEntry(
+        id: 'c',
+        dayOfWeek: 0,
+        mealSlot: 'Lunch',
+        label: 'Office lunch',
+      );
+
+      expect(deletedDish.title, isNull);
+      expect(deletedTargetLabel(deletedDish), '(deleted recipe)');
+      expect(unsyncedRow.title, isNull);
+      expect(deletedTargetLabel(unsyncedRow), '(deleted ingredient)');
+      // Its words ARE its target, so there is nothing for it to lose.
+      expect(out.title, 'Office lunch');
+    });
+
+    test('a meal eaten out carries eaters and portions like any other', () {
+      const out = PlanEntry(
+        id: 'c',
+        dayOfWeek: 0,
+        mealSlot: 'Lunch',
+        label: 'Office lunch',
+        eaterIds: ['m1', 'm2'],
+      );
+      expect(out.portionsOrDefault, 2);
+      expect(demandPortions(out, const {}), 2);
+      // And it fills its slot, so the next add starts on the one after it.
+      expect(defaultMealSlot([out]), 'Breakfast');
+      expect(
+        defaultMealSlot([
+          out,
+          const PlanEntry(id: 'd', dayOfWeek: 0, mealSlot: 'Breakfast'),
+        ]),
+        'Dinner',
+      );
+    });
+  });
+
   group('formatWeekOf', () {
     test('renders the Monday as "Week of Mon D"', () {
       expect(formatWeekOf(DateTime.utc(2026, 8, 24)), 'Week of Aug 24');

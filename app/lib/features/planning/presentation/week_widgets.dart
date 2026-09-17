@@ -204,15 +204,11 @@ class PortionsChip extends StatelessWidget {
   }
 }
 
-/// What a meal's title READS as: the dish it names, or the standing words for
-/// a target that is gone.
-///
-/// Both spellings of "gone" are here rather than at each drawing, because a
-/// deleted recipe and a deleted ingredient are different sentences and every
-/// surface must say the same one.
+/// What a meal's title READS as: the thing it names, or the standing words for
+/// a target that is gone ([deletedTargetLabel] — one sentence per kind, said
+/// the same way by every surface).
 String mealTitleText(PlanEntry entry) =>
-    entry.title ??
-    (entry.isIngredient ? '(deleted ingredient)' : '(deleted recipe)');
+    entry.title ?? deletedTargetLabel(entry);
 
 /// Where a meal's title GOES, or null when there is nothing to open.
 ///
@@ -222,11 +218,17 @@ String mealTitleText(PlanEntry entry) =>
 /// recipe door on a row that is not a recipe) — its ingredient page, plain,
 /// since a snack has no recipe to vary. A deleted target has no page, so the
 /// title is inert and the meal's other targets carry the row.
+///
+/// A meal eaten OUT opens nothing, ever — there is nothing behind the words.
+/// Its title IS the meal, so an inert title is the truth here rather than a
+/// degradation.
 String? mealTitleRoute(PlanEntry entry, {required String weekKey}) {
   if (entry.title == null) return null;
-  return entry.isIngredient
-      ? '/ingredients/${entry.ingredientId}'
-      : '/recipes/${entry.recipeId}?week=$weekKey';
+  return switch (entry.kind) {
+    PlanEntryKind.recipe => '/recipes/${entry.recipeId}?week=$weekKey',
+    PlanEntryKind.ingredient => '/ingredients/${entry.ingredientId}',
+    PlanEntryKind.out => null,
+  };
 }
 
 /// The portions a meal's chip should print, or null when there is no chip to
@@ -341,29 +343,40 @@ class RemoveTarget extends ConsumerWidget {
           'put that meal back',
           // A new row with the same facts — the id was the removed one's, and
           // nothing downstream keys on it (the cook plan and the list both
-          // re-derive from the week). A snack comes back as a snack, with its
-          // amount: an undo that quietly dropped half the row would be worse
-          // than no undo.
-          () => entry.isIngredient
-              ? repo.addIngredientEntry(
-                  weekStart: weekStart,
-                  dayOfWeek: entry.dayOfWeek,
-                  mealSlot: entry.mealSlot,
-                  ingredientId: entry.ingredientId!,
-                  eaterIds: entry.eaterIds,
-                  quantity: entry.quantity,
-                  unit: entry.unit,
-                  measureId: entry.measureId,
-                  portions: entry.portions,
-                )
-              : repo.addEntry(
-                  weekStart: weekStart,
-                  dayOfWeek: entry.dayOfWeek,
-                  mealSlot: entry.mealSlot,
-                  recipeId: entry.recipeId!,
-                  eaterIds: entry.eaterIds,
-                  portions: entry.portions,
-                ),
+          // re-derive from the week). Each kind comes back as itself, with
+          // everything it carried: a snack with its amount, a meal eaten out
+          // with its words AND its figures. An undo that quietly dropped half
+          // the row would be worse than no undo.
+          () => switch (entry.kind) {
+            PlanEntryKind.ingredient => repo.addIngredientEntry(
+              weekStart: weekStart,
+              dayOfWeek: entry.dayOfWeek,
+              mealSlot: entry.mealSlot,
+              ingredientId: entry.ingredientId!,
+              eaterIds: entry.eaterIds,
+              quantity: entry.quantity,
+              unit: entry.unit,
+              measureId: entry.measureId,
+              portions: entry.portions,
+            ),
+            PlanEntryKind.out => repo.addOutEntry(
+              weekStart: weekStart,
+              dayOfWeek: entry.dayOfWeek,
+              mealSlot: entry.mealSlot,
+              label: entry.label!,
+              eaterIds: entry.eaterIds,
+              macros: entry.macros,
+              portions: entry.portions,
+            ),
+            PlanEntryKind.recipe => repo.addEntry(
+              weekStart: weekStart,
+              dayOfWeek: entry.dayOfWeek,
+              mealSlot: entry.mealSlot,
+              recipeId: entry.recipeId!,
+              eaterIds: entry.eaterIds,
+              portions: entry.portions,
+            ),
+          },
         ),
       ),
     );
@@ -593,6 +606,66 @@ class EditedForThisWeekMark extends StatelessWidget {
       kEditedForThisWeek,
       style: ansiMono(size: 9, color: AnsiColors.muted),
     ),
+  );
+}
+
+/// The mark a meal eaten out wears where the agenda has room for one glyph and
+/// no room for a tag: Lucide's `circle`, a hollow dot among the run's names.
+///
+/// Hollow deliberately — everything else in that run is a thing the week will
+/// cook or buy, and this is the one that is neither. An outline says "counted
+/// differently" without spending a second colour on it.
+const kMealOutIcon = FLucideIcons.circle;
+
+/// The `out` tag — what a meal eaten out wears where a dish wears its cook
+/// marker's fresh bar.
+///
+/// The same quiet pill the week already uses for a fact a row prints rather
+/// than a target it offers ([EditedForThisWeekMark]): this is not a door and
+/// never becomes one, because there is nothing behind the words.
+class OutTag extends StatelessWidget {
+  const OutTag({super.key});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    decoration: BoxDecoration(
+      color: AnsiColors.paper,
+      border: Border.all(color: AnsiColors.line),
+      borderRadius: BorderRadius.circular(7),
+    ),
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    child: Text('out', style: ansiMono(size: 9, color: AnsiColors.muted)),
+  );
+}
+
+/// A meal eaten out's second line: the [OutTag], and beside it the per-portion
+/// figures as stated — or the words for their absence ([outMacroLine]).
+///
+/// It sits exactly where a dish's cook marker sits, because it answers the
+/// same question that line answers for a recipe: what does this meal cost the
+/// day it is on? Nothing is cooked, so there is no batch to talk about; what
+/// there is instead is a number somebody typed, or the honest absence of one.
+class OutMealLine extends StatelessWidget {
+  const OutMealLine({required this.entry, this.size = 10.5, super.key});
+
+  final PlanEntry entry;
+
+  /// The line's size — the phone row's 10.5, the wide day pane's 11.
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      const OutTag(),
+      const SizedBox(width: 6),
+      Flexible(
+        child: Text(
+          outMacroLine(entry),
+          overflow: TextOverflow.ellipsis,
+          style: ansiMono(size: size, color: AnsiColors.muted),
+        ),
+      ),
+    ],
   );
 }
 

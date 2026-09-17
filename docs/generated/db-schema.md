@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (45 migrations, 22 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (46 migrations, 22 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -227,6 +227,8 @@ introduced in `0005_planning.sql` · RLS enabled · in the `powersync` publicati
 | `quantity` | `numeric` | yes | check (quantity is null or quantity > 0) *(added in `0033_plan_ingredient.sql`)* |
 | `unit` | `text` | yes | *(added in `0033_plan_ingredient.sql`)* |
 | `measure_id` | `uuid` | yes | references ingredient_measure(id) *(added in `0033_plan_ingredient.sql`)* |
+| `label` | `text` | yes | check (label is null or length(btrim(label)) > 0) *(added in `0045_plan_entry_out.sql`)* |
+| `macros` | `jsonb` | yes | *(added in `0045_plan_entry_out.sql`)* |
 
 ## `shopping_list_entry`
 

@@ -12,9 +12,12 @@
 ///
 /// **What it reads:** every `supabase/migrations/*.sql`, for a column
 /// declared `jsonb` inside a `create table` block and for an `alter table …
-/// add column … jsonb`. Tables that never sync to a device (`usda_food`,
-/// ADR-0005) are excluded by name — the exclusion list is the only thing
-/// here that is not derived, and it must stay short.
+/// add column … jsonb` — including the multi-clause form, where one `alter
+/// table` adds several columns separated by commas, because that is how a
+/// migration that adds a pair of columns is naturally written. Tables that
+/// never sync to a device (`usda_food`, ADR-0005) are excluded by name — the
+/// exclusion list is the only thing here that is not derived, and it must stay
+/// short.
 library;
 
 import 'dart:io';
@@ -33,8 +36,16 @@ Map<String, Set<String>> jsonbColumnsInMigrations(Iterable<File> files) {
     dotAll: true,
   );
   final column = RegExp(r'^\s*(\w+)\s+jsonb\b', multiLine: true);
+  // The whole statement, then every `add column` clause inside it: an alter
+  // adding two columns at once puts the second one several commas away from
+  // the table's name, and a pattern that insisted on adjacency would read
+  // such a migration as adding nothing.
   final alter = RegExp(
-    r'alter\s+table\s+(\w+)\s+add\s+column\s+(?:if\s+not\s+exists\s+)?(\w+)\s+jsonb\b',
+    r'alter\s+table\s+(?:if\s+exists\s+)?(\w+)\b([^;]*);',
+    caseSensitive: false,
+  );
+  final addColumn = RegExp(
+    r'add\s+column\s+(?:if\s+not\s+exists\s+)?(\w+)\s+jsonb\b',
     caseSensitive: false,
   );
   for (final file in files) {
@@ -45,7 +56,9 @@ Map<String, Set<String>> jsonbColumnsInMigrations(Iterable<File> files) {
       }
     }
     for (final a in alter.allMatches(source)) {
-      found.putIfAbsent(a.group(1)!, () => {}).add(a.group(2)!);
+      for (final c in addColumn.allMatches(a.group(2)!)) {
+        found.putIfAbsent(a.group(1)!, () => {}).add(c.group(1)!);
+      }
     }
   }
   found.removeWhere((table, _) => _serverOnly.contains(table));

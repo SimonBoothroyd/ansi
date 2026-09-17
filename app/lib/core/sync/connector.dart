@@ -33,9 +33,9 @@ bool isFatalPostgrestError(PostgrestException e) {
 
 /// The server's `jsonb` columns, per table — held in lockstep with
 /// `supabase/migrations` by `test/structure/jsonb_columns_test.dart`, which
-/// derives the set from the migrations (0002 `ingredient.macros`, 0003
-/// `recipe.steps`, 0005 `plan_entry.eaters`, 0012 `ingredient.allowed_units`)
-/// and fails the build when this map falls behind.
+/// derives the set from the migrations (`ingredient.macros`, `recipe.steps`,
+/// `plan_entry.eaters`, `plan_entry.macros`, `ingredient.allowed_units`) and
+/// fails the build when this map falls behind.
 ///
 /// PowerSync's local SQLite stores JSON values as TEXT, so a queued op carries
 /// e.g. `steps` as the *string* `'["step one"]'`. Uploading that string as-is
@@ -46,7 +46,7 @@ bool isFatalPostgrestError(PostgrestException e) {
 /// belongs in this map; decode them to native structures before upload.
 const Map<String, Set<String>> jsonbColumnsByTable = {
   'recipe': {'steps'},
-  'plan_entry': {'eaters'},
+  'plan_entry': {'eaters', 'macros'},
   'ingredient': {'macros', 'allowed_units'},
 };
 

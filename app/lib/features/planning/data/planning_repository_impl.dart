@@ -81,6 +81,10 @@ class SqlitePlanningRepository implements PlanningRepository {
     final entryRows = await _db.getAll(
       'SELECT pe.id, pe.day_of_week, pe.meal_slot, pe.recipe_id, pe.eaters, '
       'pe.portions, pe.ingredient_id, pe.quantity, pe.unit, pe.measure_id, '
+      // The third arm of the XOR. `pe.macros` is aliased because the vocab
+      // row's own `macros` is selected below and the two are different facts:
+      // one is per portion as stated, the other per 100 of a basis.
+      'pe.label, pe.macros AS stated_macros, '
       'r.title AS recipe_title, i.canonical_name AS ingredient_name, '
       'i.macros, i.density_g_per_ml, i.piece_basis_amount, '
       'im.label AS measure_label, im.basis_amount AS measure_amount, '
@@ -123,6 +127,11 @@ class SqlitePlanningRepository implements PlanningRepository {
     recipeTitle: e['recipe_title'] as String?,
     ingredientId: e['ingredient_id'] as String?,
     ingredientName: e['ingredient_name'] as String?,
+    label: e['label'] as String?,
+    // A meal eaten out is worth what somebody typed for it, per portion.
+    // `tryParse` answers null for absent OR malformed figures, which is the
+    // same answer either way: nothing was stated, and the week says so.
+    macros: Macros.tryParse(e['stated_macros'] as String?),
     quantity: (e['quantity'] as num?)?.toDouble(),
     unit: unitById(e['unit'] as String? ?? ''),
     measureId: e['measure_id'] as String?,
@@ -268,9 +277,29 @@ class SqlitePlanningRepository implements PlanningRepository {
     measureId: measureId,
   );
 
-  /// The one INSERT both add paths share. Exactly one of [recipeId] /
-  /// [ingredientId] is set — the server's `plan_entry_target_xor` refuses
-  /// anything else, and this is where the app keeps its side of that bargain.
+  @override
+  Future<String> addOutEntry({
+    required DateTime weekStart,
+    required int dayOfWeek,
+    required String mealSlot,
+    required String label,
+    required List<String> eaterIds,
+    Macros? macros,
+    int? portions,
+  }) => _insertEntry(
+    weekStart: weekStart,
+    dayOfWeek: dayOfWeek,
+    mealSlot: mealSlot,
+    label: label.trim(),
+    macros: macros,
+    eaterIds: eaterIds,
+    portions: portions,
+  );
+
+  /// The one INSERT every add path shares. Exactly one of [recipeId] /
+  /// [ingredientId] / [label] is set — the server's `plan_entry_target_xor`
+  /// refuses anything else, and this is where the app keeps its side of that
+  /// bargain.
   Future<String> _insertEntry({
     required DateTime weekStart,
     required int dayOfWeek,
@@ -278,18 +307,27 @@ class SqlitePlanningRepository implements PlanningRepository {
     required List<String> eaterIds,
     String? recipeId,
     String? ingredientId,
+    String? label,
+    Macros? macros,
     double? quantity,
     String? unit,
     String? measureId,
     int? portions,
   }) async {
     assert(
-      (recipeId == null) != (ingredientId == null),
-      'a plan entry names a recipe OR an ingredient (0033 XOR)',
+      [recipeId, ingredientId, label].where((t) => t != null).length == 1,
+      'a plan entry names a recipe, an ingredient OR a label (the XOR)',
+    );
+    assert(
+      label == null || label.isNotEmpty,
+      'a blank label names nothing (the server refuses it)',
     );
     final key = _weekKey(weekStart);
     final id = _uuid.v4();
     final now = _now();
+    // The local table holds jsonb as TEXT; the connector decodes it on the way
+    // up (`jsonbColumnsByTable`).
+    final statedMacros = macros == null ? null : jsonEncode(macros.toJson());
     await _db.writeTransaction((tx) async {
       final weekId = await _getOrCreateWeek(tx, key);
       final orderRow = await tx.get(
@@ -300,9 +338,9 @@ class SqlitePlanningRepository implements PlanningRepository {
       final order = (orderRow['m'] as int) + 1;
       await tx.execute(
         'INSERT INTO plan_entry (id, household_id, week_plan_id, day_of_week, '
-        'meal_slot, recipe_id, ingredient_id, quantity, unit, measure_id, '
-        'eaters, portions, sort_order, created_at, updated_at) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'meal_slot, recipe_id, ingredient_id, label, macros, quantity, unit, '
+        'measure_id, eaters, portions, sort_order, created_at, updated_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           id,
           _householdId,
@@ -311,6 +349,8 @@ class SqlitePlanningRepository implements PlanningRepository {
           mealSlot.trim(),
           recipeId,
           ingredientId,
+          label,
+          statedMacros,
           quantity,
           unit,
           measureId,
@@ -371,14 +411,18 @@ class SqlitePlanningRepository implements PlanningRepository {
       final entries = source.entries;
       for (var i = 0; i < entries.length; i++) {
         final e = entries[i];
-        // Copies the whole meal, whichever kind it is (step 8.14): a snack is
-        // an ordinary entry, so it is copied with its amount rather than
-        // dropped for having no recipe.
+        final stated = e.macros;
+        // Copies the whole meal, whichever kind it is: a snack is an ordinary
+        // entry, so it comes over with its amount rather than being dropped
+        // for having no recipe, and a meal eaten out comes over with its words
+        // AND its stated figures — a copy that dropped half the row would be
+        // an edit nobody asked for.
         await tx.execute(
           'INSERT INTO plan_entry (id, household_id, week_plan_id, '
-          'day_of_week, meal_slot, recipe_id, ingredient_id, quantity, unit, '
-          'measure_id, eaters, portions, sort_order, created_at, updated_at) '
-          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'day_of_week, meal_slot, recipe_id, ingredient_id, label, macros, '
+          'quantity, unit, measure_id, eaters, portions, sort_order, '
+          'created_at, updated_at) '
+          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [
             _uuid.v4(),
             _householdId,
@@ -387,6 +431,8 @@ class SqlitePlanningRepository implements PlanningRepository {
             e.mealSlot,
             e.recipeId,
             e.ingredientId,
+            e.label,
+            if (stated == null) null else jsonEncode(stated.toJson()),
             e.quantity,
             e.unit?.id,
             e.measureId,

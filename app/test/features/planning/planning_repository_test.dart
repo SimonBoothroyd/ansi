@@ -6,6 +6,7 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/planning/data/planning_repository_impl.dart';
 import 'package:ansi/features/planning/data/week_variant_repository_impl.dart';
+import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/domain/week_macros.dart';
 import 'package:ansi/features/recipes/domain/line_override.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
@@ -530,7 +531,7 @@ void main() {
       );
 
       final entry = (await repo.watchWeek(_thisWeek).first)!.entries.single;
-      expect(entry.isIngredient, isTrue);
+      expect(entry.kind, PlanEntryKind.ingredient);
       expect(entry.recipeId, isNull);
       expect(entry.ingredientId, 'i1');
       expect(entry.title, 'Protein bar');
@@ -639,7 +640,7 @@ void main() {
       final entry = (await repo.watchWeek(_thisWeek).first)!.entries.single;
       expect(entry.ingredientName, isNull);
       expect(entry.nutrition, isNull);
-      expect(entry.isIngredient, isTrue);
+      expect(entry.kind, PlanEntryKind.ingredient);
     });
 
     test('an unknown persisted unit stays null rather than becoming '
@@ -724,5 +725,113 @@ void main() {
       expect(await stream.moveNext(), isTrue);
       expect(stream.current!.entries.single.ingredientName, 'Protein flapjack');
     });
+  });
+
+  // --- A slot takes a meal eaten OUT ---------------------------------------
+
+  group('a meal eaten out', () {
+    test('round-trips as its words, its figures and its eaters', () async {
+      await repo.addOutEntry(
+        weekStart: _thisWeek,
+        dayOfWeek: 2,
+        mealSlot: 'Lunch',
+        label: 'Office lunch',
+        eaterIds: const ['m1', 'm2'],
+        macros: const Macros(kcal: 620, protein: 42, carb: 55, fat: 24),
+      );
+
+      final entry = (await repo.watchWeek(_thisWeek).first)!.entries.single;
+      expect(entry.kind, PlanEntryKind.out);
+      expect(entry.recipeId, isNull);
+      expect(entry.ingredientId, isNull);
+      expect(entry.title, 'Office lunch');
+      expect(entry.macros!.kcal, 620);
+      expect(entry.macros!.protein, 42);
+      expect(entry.macros!.fiber, isNull);
+      // Nothing is bought, so nothing is measured.
+      expect(entry.quantity, isNull);
+      expect(entry.unit, isNull);
+      expect(entry.measureId, isNull);
+      expect(entry.eaterIds, ['m1', 'm2']);
+      expect(entry.mealSlot, 'Lunch');
+    });
+
+    test('unstated figures round-trip as an absence, not a zero', () async {
+      await repo.addOutEntry(
+        weekStart: _thisWeek,
+        dayOfWeek: 2,
+        mealSlot: 'Lunch',
+        label: 'Office lunch',
+        eaterIds: const [],
+      );
+
+      final entry = (await repo.watchWeek(_thisWeek).first)!.entries.single;
+      expect(entry.kind, PlanEntryKind.out);
+      expect(entry.macros, isNull);
+    });
+
+    test('the label is trimmed, and a blank one names nothing', () async {
+      await repo.addOutEntry(
+        weekStart: _thisWeek,
+        dayOfWeek: 2,
+        mealSlot: 'Lunch',
+        label: '  Office lunch  ',
+        eaterIds: const [],
+      );
+      final entry = (await repo.watchWeek(_thisWeek).first)!.entries.single;
+      expect(entry.label, 'Office lunch');
+
+      // The server's check refuses whitespace; the app keeps its side of that
+      // bargain rather than writing a row it knows will be rejected.
+      expect(
+        () => repo.addOutEntry(
+          weekStart: _thisWeek,
+          dayOfWeek: 2,
+          mealSlot: 'Lunch',
+          label: '   ',
+          eaterIds: const [],
+        ),
+        throwsA(isA<AssertionError>()),
+      );
+    });
+
+    test('copy last week carries it, figures and all', () async {
+      await repo.addOutEntry(
+        weekStart: _lastWeek,
+        dayOfWeek: 2,
+        mealSlot: 'Lunch',
+        label: 'Office lunch',
+        eaterIds: const ['m1'],
+        macros: const Macros(
+          kcal: 620,
+          protein: 42,
+          carb: 55,
+          fat: 24,
+          fiber: 6,
+        ),
+      );
+
+      expect((await repo.copyLastWeek(_thisWeek)).meals, 1);
+      final copied = (await repo.watchWeek(_thisWeek).first)!.entries.single;
+      expect(copied.kind, PlanEntryKind.out);
+      expect(copied.label, 'Office lunch');
+      expect(copied.macros!.kcal, 620);
+      expect(copied.macros!.fiber, 6);
+      expect(copied.eaterIds, ['m1']);
+    });
+
+    test(
+      'it is NOT in the recipe recency map — that map is for dishes',
+      () async {
+        await repo.addOutEntry(
+          weekStart: _thisWeek,
+          dayOfWeek: 2,
+          mealSlot: 'Lunch',
+          label: 'Office lunch',
+          eaterIds: const [],
+        );
+        expect(await repo.watchLastPlanned().first, isEmpty);
+      },
+    );
   });
 }
