@@ -104,6 +104,48 @@ final class MeasureRepositoryProvider
 
 String _$measureRepositoryHash() => r'808d26e7592bdca5737829dc22181cadd9e2b349';
 
+@ProviderFor(priceRepository)
+const priceRepositoryProvider = PriceRepositoryProvider._();
+
+final class PriceRepositoryProvider
+    extends
+        $FunctionalProvider<PriceRepository, PriceRepository, PriceRepository>
+    with $Provider<PriceRepository> {
+  const PriceRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'priceRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$priceRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<PriceRepository> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  PriceRepository create(Ref ref) {
+    return priceRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(PriceRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<PriceRepository>(value),
+    );
+  }
+}
+
+String _$priceRepositoryHash() => r'eaaa255eaff7a96d4f1a63473bad4b33aa8989b4';
+
 /// The D7b USDA probe. Talks to Supabase REST rather than the local SQLite —
 /// the one ingredient read that must, because `usda_food` never syncs to a
 /// device (ADR-0005). Falls back to a probe that always answers "nothing"
@@ -627,3 +669,149 @@ final class IngredientAliasesFamily extends $Family
   @override
   String toString() => r'ingredientAliasesProvider';
 }
+
+/// Every price the household has paid for one ingredient, newest first — the
+/// Price group's *Latest* line and its *Before* rows, and the figure a recipe
+/// reads. Watched: a shop synced from the other phone lands on the page.
+
+@ProviderFor(ingredientPrices)
+const ingredientPricesProvider = IngredientPricesFamily._();
+
+/// Every price the household has paid for one ingredient, newest first — the
+/// Price group's *Latest* line and its *Before* rows, and the figure a recipe
+/// reads. Watched: a shop synced from the other phone lands on the page.
+
+final class IngredientPricesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<PriceObservation>>,
+          List<PriceObservation>,
+          Stream<List<PriceObservation>>
+        >
+    with
+        $FutureModifier<List<PriceObservation>>,
+        $StreamProvider<List<PriceObservation>> {
+  /// Every price the household has paid for one ingredient, newest first — the
+  /// Price group's *Latest* line and its *Before* rows, and the figure a recipe
+  /// reads. Watched: a shop synced from the other phone lands on the page.
+  const IngredientPricesProvider._({
+    required IngredientPricesFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'ingredientPricesProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$ingredientPricesHash();
+
+  @override
+  String toString() {
+    return r'ingredientPricesProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<List<PriceObservation>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<PriceObservation>> create(Ref ref) {
+    final argument = this.argument as String;
+    return ingredientPrices(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is IngredientPricesProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$ingredientPricesHash() => r'94ea033d5fbbbe670774964ae6de0efc21d092f4';
+
+/// Every price the household has paid for one ingredient, newest first — the
+/// Price group's *Latest* line and its *Before* rows, and the figure a recipe
+/// reads. Watched: a shop synced from the other phone lands on the page.
+
+final class IngredientPricesFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<List<PriceObservation>>, String> {
+  const IngredientPricesFamily._()
+    : super(
+        retry: null,
+        name: r'ingredientPricesProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Every price the household has paid for one ingredient, newest first — the
+  /// Price group's *Latest* line and its *Before* rows, and the figure a recipe
+  /// reads. Watched: a shop synced from the other phone lands on the page.
+
+  IngredientPricesProvider call(String ingredientId) =>
+      IngredientPricesProvider._(argument: ingredientId, from: this);
+
+  @override
+  String toString() => r'ingredientPricesProvider';
+}
+
+/// The store words this household has used, most recently first — the price
+/// sheet's `at` chip row. There is no store table; this is simply what has
+/// been typed before.
+
+@ProviderFor(priceStores)
+const priceStoresProvider = PriceStoresProvider._();
+
+/// The store words this household has used, most recently first — the price
+/// sheet's `at` chip row. There is no store table; this is simply what has
+/// been typed before.
+
+final class PriceStoresProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<String>>,
+          List<String>,
+          Stream<List<String>>
+        >
+    with $FutureModifier<List<String>>, $StreamProvider<List<String>> {
+  /// The store words this household has used, most recently first — the price
+  /// sheet's `at` chip row. There is no store table; this is simply what has
+  /// been typed before.
+  const PriceStoresProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'priceStoresProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$priceStoresHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<List<String>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<String>> create(Ref ref) {
+    return priceStores(ref);
+  }
+}
+
+String _$priceStoresHash() => r'930835d3e6cba5b660423af2587e8216c250f134';
