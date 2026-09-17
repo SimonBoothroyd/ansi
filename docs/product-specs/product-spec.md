@@ -651,15 +651,16 @@ go. There is no re-chip — tokenization happens only inside the import call.
   - **Changing the first day moves every week the household has planned.** The owner shops and plans on Sunday, so the week shopped for on a Sunday has to contain that Sunday's dinner; under a Monday key it belonged to the week that was ending. The flip is one server transaction (`set_household_week_start`) that re-keys `week_plan`, re-points every `plan_entry` by its own calendar date, carries the shopping ticks with their week and moves a variant only where its recipe left. Nothing is deleted and no meal changes date — only its address. It is **online-only** for exactly that reason (the same shape as the online-only match engine, ADR-0004), and residue-driven per week, so running it again is a no-op and running it after a meal queued offline repairs that week.
   - **A week is a position, not a singleton** (week redesign, D2). The app holds a *viewed week*, defaulting to the one containing today; the header names it (`This week · 31 Aug` / `Next week · 7 Sep` / `Last week · 24 Aug` / `Week of 14 Sep`) and steps through it. Unbounded in both directions; a past week is **editable, not locked** — nothing downstream corrupts, and every rule about *when* a week would lock is wrong for someone catching up on a Tuesday. There is no calendar and no month view, and "archived" is prose, not a column.
   - **Cook and Shop derive from the VIEWED week** (D3), not from the week containing today: you plan next week on a Sunday, so you must be able to cook and shop for it on a Sunday. There is **one** viewed week (plan 0025 D7a): changing it on any tab changes it on all three, and the week switcher is the **only title** of all three tabs (D7c — no "Batch cook plan" / "Shopping list"; the lit tab in the bar says where you are, which is why its selected state steps to herb-deep, D7d). The switcher's herb dot and its "This week" item are how a derived tab says which week it shows and offers the tap home; "Copy last week into this one" is a Week write and appears only on the Week screen's menu (D7b). Each tab's menu speaks in its own derivation — meals · cooks · items — for the week it has on screen.
-- `plan_entry: id · week_plan_id · day_of_week · meal_slot (user-definable) · recipe_id · ingredient_id · quantity · unit · measure_id · eaters[] (→ household_member ids) · portions (nullable override)`
+- `plan_entry: id · week_plan_id · day_of_week · meal_slot (user-definable) · recipe_id · ingredient_id · label · macros · quantity · unit · measure_id · eaters[] (→ household_member ids) · portions (nullable override)`
   - You just say *what you want to eat* per meal — no batch/leftover thinking here.
   - **Multiple entries per (day, slot) allowed** → different breakfasts, office-lunch-for-one, etc.
-  - **A meal is a recipe OR a bare ingredient** (migration 0033), never both
-    and never neither — the same XOR `recipe_line_item` has worn since 0017.
-    Something you simply *eat* — a protein bar, a yoghurt, an apple — is
-    planned as itself rather than dressed up as a one-line recipe. The `snacks`
-    slot it usually sits in cost no migration: `meal_slot` was already free
-    text.
+  - **A meal is a recipe, a bare ingredient, or one eaten out** (migrations
+    0033 and 0045) — exactly one of the three, never two and never none, the
+    same XOR `recipe_line_item` has worn since 0017. Something you simply
+    *eat* — a protein bar, a yoghurt, an apple — is planned as itself rather
+    than dressed up as a one-line recipe; something eaten OUT is planned as
+    the words it is. The `snacks` slot either usually sits in cost no
+    migration: `meal_slot` was already free text.
     - An **ingredient** entry states the amount of ONE portion
       (`quantity` + `unit`, or a `measure_id` — "1 bar" — with `unit` holding
       the honest count fallback), set with the same quantity sheet every other
@@ -671,13 +672,30 @@ go. There is no re-chip — tokenization happens only inside the import call.
     - It **carries eaters and multiplies** like any other entry — multiple
       people can have the same snack — so `eaters[]`, `portions` and the demand
       rules below are unchanged.
-    - **Every derivation branches on it explicitly**; a null `recipe_id` never
-      means "skip". Week macros weigh it from the vocab row's per-100 numbers
-      through the same basis/density matrix a recipe LINE uses, and a stub says
-      so in a stub line's exact words. **The cook plan ignores it** — nothing
-      about it is cooked, so it opens no session and joins no batch. **The
-      shopping list includes it**, which is why that derivation walks the
-      week's *entries* and not only its cook sessions.
+    - A meal **eaten out** states its `label` — the words, which are the whole
+      of it — and optionally the `macros` of ONE portion, as stated: the
+      vocabulary's `{kcal, protein, carb, fat}` shape with its optional
+      `fiber`, per portion rather than per 100 of a basis, typed on the same
+      keypad the ingredient form uses. Null macros mean **not stated**, never
+      zero. Nothing is minted for it anywhere — no recipe, no vocabulary row,
+      no measure — and it opens no page, because there is nothing behind the
+      words. It reaches the week through the picker's **third answer**, offered
+      only when the typed words match no recipe and no ingredient: *note it —
+      "Office lunch" · not cooked, not bought*.
+    - **Every derivation branches on the KIND explicitly** (`PlanEntry.kind`);
+      a null `recipe_id` never means "skip", and a `switch` over the three is
+      checked for exhaustiveness by the compiler. Week macros weigh an
+      ingredient from the vocab row's per-100 numbers through the same
+      basis/density matrix a recipe LINE uses — a stub saying so in a stub
+      line's exact words — and weigh a meal eaten out from its stated figures,
+      naming it `macros not stated` otherwise and moving the day's denominator
+      rather than counting it at zero. **The cook plan ignores** both — nothing
+      about either is cooked, so neither opens a session or joins a batch.
+      **The shopping list includes the ingredient**, which is why that
+      derivation walks the week's *entries* and not only its cook sessions, and
+      **buys nothing** for a meal eaten out. Copy last week carries every kind
+      whole, and each fills its slot, so the day's next add opens on the slot
+      after it.
     - On screen it is **visibly not a recipe**: no shelf-life chip, no batch
       hint, no recipe door (its title opens the *ingredient* page), and its
       amount where a cook marker would be. The add door is **one** door — the
