@@ -11,6 +11,7 @@
 /// asserts what is on screen does not need this and should not pay for it.
 library;
 
+import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -20,7 +21,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// title, and every face loaded costs every test in the file.
 const _faces = {
   'IBM Plex Mono': 'assets/fonts/IBMPlexMono-Regular.ttf',
-  'packages/forui/Inter': 'packages/forui/assets/fonts/inter/Inter-Regular.ttf',
+  ansiSansFamily: 'packages/forui/assets/fonts/inter/Inter-Regular.ttf',
 };
 
 /// Registers [_faces] with the test binding. Call from `setUpAll`.
