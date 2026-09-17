@@ -123,6 +123,28 @@ void main() {
     expect(cost.unpriced, ['Greek Yoghurt']);
   });
 
+  test('a meal eaten out is passed over: not a cost to cook, not a gap', () {
+    final cost = sumPlannedCost(
+      [
+        _meal('e1'),
+        const PlanEntry(
+          id: 'e2',
+          dayOfWeek: 1,
+          mealSlot: 'Lunch',
+          label: 'Office lunch',
+          eaterIds: ['m1'],
+        ),
+      ],
+      costFor: (_) => _cost(100),
+      membersById: _members,
+    );
+    // Only the curry is counted — two eaters × 100 — and the lunch is neither
+    // in the figure nor named against it, nor in the meals considered.
+    expect(cost.cents, 200);
+    expect(cost.unpriced, isEmpty);
+    expect(cost.considered, 1);
+  });
+
   test('nobody eating it is no demand — and no pricing gap either', () {
     final cost = sumPlannedCost(
       [_meal('e1', eaters: const [])],

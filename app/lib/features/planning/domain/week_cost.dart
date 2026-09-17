@@ -72,9 +72,7 @@ PlannedCost sumPlannedCost(
     }
     considered++;
 
-    final label =
-        entry.title ??
-        (entry.isIngredient ? '(deleted ingredient)' : '(deleted recipe)');
+    final label = entry.title ?? deletedTargetLabel(entry);
     final factorsSum = eatersDemand(eaters, membersById);
     final demand = demandPortions(entry, membersById);
     if (demand <= 0 ||
@@ -84,12 +82,21 @@ PlannedCost sumPlannedCost(
       continue;
     }
 
-    // A bare ingredient meal is not a recipe, so it has no recipe cost. It is
-    // named rather than skipped: the figure above must not read as if it
-    // covered it.
-    if (entry.isIngredient) {
-      name(label);
-      continue;
+    // The explicit branch over every kind, as the macros take it. A bare
+    // ingredient meal is not a recipe, so it has no recipe cost; it is named
+    // rather than skipped, so the figure above cannot read as if it covered
+    // it. A meal eaten out is neither cooked nor bought: it is not a cost to
+    // cook and not a gap in one, so it is passed over without a name and
+    // leaves the count it never joined.
+    switch (entry.kind) {
+      case PlanEntryKind.recipe:
+        break;
+      case PlanEntryKind.ingredient:
+        name(label);
+        continue;
+      case PlanEntryKind.out:
+        considered--;
+        continue;
     }
     final summary = entry.recipeTitle == null ? null : costFor(entry.recipeId!);
     if (summary == null) {
