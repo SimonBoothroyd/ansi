@@ -21,7 +21,8 @@ import 'measures_editor.dart' show SourceDot;
 /// The chip row in the order [allowedUnitChoicesFor] hands it: the row's own
 /// measures (source dot + label) · the default unit and the rest of its
 /// family · demoted other-family units · imprecise after a divider · the `+`
-/// manage chip. Horizontally scrollable; docked directly
+/// manage chip, where the host has a manage state to open. Horizontally
+/// scrollable; docked directly
 /// above the keyboard by the host sheet. On open it scrolls the selected
 /// chip into view — a stored selection can sit deep in a long row and must
 /// not open off-screen.
@@ -31,7 +32,7 @@ class UnitChipRow extends StatefulWidget {
     required this.measures,
     required this.selected,
     required this.onSelect,
-    required this.onManage,
+    this.onManage,
     this.stored,
     super.key,
   });
@@ -47,7 +48,11 @@ class UnitChipRow extends StatefulWidget {
   /// either in the filter or equal to this.
   final UnitChoice? stored;
   final ValueChanged<UnitChoice> onSelect;
-  final VoidCallback onManage;
+
+  /// Opens the host's manage-measures state, or null where the host has none
+  /// — the price sheet, where the pack is a purchase and not a vocabulary
+  /// edit. Null draws no `+` chip rather than one that does nothing.
+  final VoidCallback? onManage;
 
   @override
   State<UnitChipRow> createState() => _UnitChipRowState();
@@ -151,13 +156,15 @@ class _UnitChipRowState extends State<UnitChipRow> {
     }
     // A real icon, not a "＋" glyph — the bundled fonts lack U+FF0B,
     // so the string form renders as tofu (the library_view rule).
-    children.add(
-      UnitChip(
-        icon: const Icon(FLucideIcons.plus, size: 13, color: AnsiColors.herb),
-        accent: true,
-        onTap: widget.onManage,
-      ),
-    );
+    if (widget.onManage case final onManage?) {
+      children.add(
+        UnitChip(
+          icon: const Icon(FLucideIcons.plus, size: 13, color: AnsiColors.herb),
+          accent: true,
+          onTap: onManage,
+        ),
+      );
+    }
 
     return SizedBox(
       height: kUnitChipHeight,

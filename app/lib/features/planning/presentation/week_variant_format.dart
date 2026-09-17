@@ -11,7 +11,6 @@ library;
 
 import '../../../core/words.dart';
 import '../../recipes/domain/recipe.dart';
-import 'week_format.dart';
 
 /// What every surface with a week calls a recipe somebody has varied.
 const kEditedForThisWeek = 'edited for this week';

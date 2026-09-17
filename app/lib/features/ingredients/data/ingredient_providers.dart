@@ -11,9 +11,12 @@ import '../../../core/units/measure.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
 import '../domain/measure_repository.dart';
+import '../domain/price.dart';
+import '../domain/price_repository.dart';
 import '../domain/usda_probe.dart';
 import 'ingredient_repository_impl.dart';
 import 'measure_repository_impl.dart';
+import 'price_repository_impl.dart';
 import 'usda_probe_impl.dart';
 
 part 'ingredient_providers.g.dart';
@@ -27,6 +30,12 @@ IngredientRepository ingredientRepository(Ref ref) =>
 
 @Riverpod(keepAlive: true)
 MeasureRepository measureRepository(Ref ref) => SqliteMeasureRepository(
+  ref.watch(databaseProvider),
+  householdId: ref.watch(currentHouseholdIdProvider),
+);
+
+@Riverpod(keepAlive: true)
+PriceRepository priceRepository(Ref ref) => SqlitePriceRepository(
   ref.watch(databaseProvider),
   householdId: ref.watch(currentHouseholdIdProvider),
 );
@@ -87,3 +96,17 @@ Stream<List<String>> ingredientCategories(Ref ref) =>
 @riverpod
 Stream<List<IngredientAlias>> ingredientAliases(Ref ref, String id) =>
     ref.watch(ingredientRepositoryProvider).watchAliases(id);
+
+/// Every price the household has paid for one ingredient, newest first — the
+/// Price group's *Latest* line and its *Before* rows, and the figure a recipe
+/// reads. Watched: a shop synced from the other phone lands on the page.
+@riverpod
+Stream<List<PriceObservation>> ingredientPrices(Ref ref, String ingredientId) =>
+    ref.watch(priceRepositoryProvider).watchPrices(ingredientId);
+
+/// The store words this household has used, most recently first — the price
+/// sheet's `at` chip row. There is no store table; this is simply what has
+/// been typed before.
+@riverpod
+Stream<List<String>> priceStores(Ref ref) =>
+    ref.watch(priceRepositoryProvider).watchStores();

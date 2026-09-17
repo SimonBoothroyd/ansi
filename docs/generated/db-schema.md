@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (45 migrations, 20 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (46 migrations, 22 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -351,3 +351,44 @@ introduced in `0040_week_recipe_line_override.sql` · RLS enabled · in the `pow
 | `deleted_at` | `timestamptz` | yes |  |
 
 Table constraints: `constraint week_recipe_line_override_one_per_line unique (week_plan_id, recipe_id, recipe_line_item_id)`; `constraint week_recipe_line_override_action_shape check ( case action when 'include' then recipe_line_item_id is not null and num_nonnulls(ingredient_id, sub_recipe_id, quantity, unit, measure_id, note) = 0 when 'exclude' then recipe_line_item_id is not null and num_nonnulls(ingredient_id, sub_recipe_id, quantity, unit, measure_id, note) = 0 when 'replace' then recipe_line_item_id is not null and num_nonnulls(ingredient_id, sub_recipe_id) = 1 when 'add' then recipe_line_item_id is null and num_nonnulls(ingredient_id, sub_recipe_id) = 1 end )`; `constraint week_recipe_line_override_component_has_no_measure check (sub_recipe_id is null or measure_id is null)`; `constraint week_recipe_line_override_amount_pair check (num_nonnulls(quantity, unit) <> 1)`; `constraint week_recipe_line_override_measure_needs_amount check (measure_id is null or quantity is not null)`
+
+## `receipt`
+
+introduced in `0044_receipts.sql` · RLS enabled · in the `powersync` publication
+
+| Column | Type | Nullable | Details |
+|---|---|---|---|
+| `id` | `uuid` | no | primary key default gen_random_uuid() |
+| `household_id` | `uuid` | no | not null references household(id) |
+| `store` | `text` | no | not null |
+| `purchased_at` | `timestamptz` | no | not null |
+| `subtotal_cents` | `int` | yes |  |
+| `tax_cents` | `int` | yes |  |
+| `total_cents` | `int` | yes |  |
+| `source` | `text` | no | not null check (source in ('manual', 'photo')) |
+| `created_at` | `timestamptz` | no | not null default now() |
+| `updated_at` | `timestamptz` | no | not null default now() |
+| `deleted_at` | `timestamptz` | yes |  |
+
+## `receipt_line`
+
+introduced in `0044_receipts.sql` · RLS enabled · in the `powersync` publication
+
+| Column | Type | Nullable | Details |
+|---|---|---|---|
+| `id` | `uuid` | no | primary key default gen_random_uuid() |
+| `household_id` | `uuid` | no | not null references household(id) |
+| `receipt_id` | `uuid` | no | not null references receipt(id) |
+| `ingredient_id` | `uuid` | yes | references ingredient(id) |
+| `printed_text` | `text` | yes |  |
+| `cents` | `int` | no | not null |
+| `discount_cents` | `int` | no | not null default 0 check (discount_cents >= 0) |
+| `kind` | `text` | no | not null check (kind in ('item', 'not_food', 'tax', 'fee')) |
+| `pack_basis_amount` | `numeric` | yes | check (pack_basis_amount > 0) |
+| `measure_id` | `uuid` | yes | references ingredient_measure(id) |
+| `sort_order` | `int` | no | not null default 0 |
+| `created_at` | `timestamptz` | no | not null default now() |
+| `updated_at` | `timestamptz` | no | not null default now() |
+| `deleted_at` | `timestamptz` | yes |  |
+
+Table constraints: `constraint receipt_line_only_items_are_priced check ( kind = 'item' or (ingredient_id is null and pack_basis_amount is null and measure_id is null) )`

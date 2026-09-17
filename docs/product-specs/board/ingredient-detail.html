@@ -15,8 +15,8 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Ingredient detail</h1>
-    <p class="view-status">built · matches code 2026-09-11 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · wide: matches code 2026-09-13 — the same sheet, centred at 640, and drawn <i>beside</i> the vocabulary at <code>/ingredients/:id</code> from 1024 up; the editing posture stays centred at every width</p>
-    <p class="view-blurb"><b>One route, two postures.</b> A row that exists opens as a <b>fact sheet</b> — the same three groups (Identity, Nutrition, Units &amp; measures) with each field’s value stated instead of offered, no dock, and <code>Edit</code> in the header’s <code>⋯</code> exactly where the recipe page keeps it. <code>Edit</code> turns the same page into <b>the form</b>; Save and back turn it back. <code>/ingredients/new</code> opens the form directly — there is nothing yet to read — and so does every door that exists to <i>change</i> a field.</p>
+    <p class="view-status">built · matches code 2026-09-16 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: matches code 2026-09-13 — the same sheet, centred at 640, and drawn <i>beside</i> the vocabulary at <code>/ingredients/:id</code> from 1024 up; the editing posture stays centred at every width; the price sheet is the same sheet, as a dialog from 640</p>
+    <p class="view-blurb"><b>One route, two postures.</b> A row that exists opens as a <b>fact sheet</b> — four groups (Identity, Nutrition, Units &amp; measures, Price) with each field’s value stated instead of offered, no dock, and <code>Edit</code> in the header’s <code>⋯</code> exactly where the recipe page keeps it. <code>Edit</code> turns the first three into <b>the form</b>; Save and back turn it back. <b>Price is read here and entered nowhere else</b>: a price is an event with its own sheet, not a field the form saves. <code>/ingredients/new</code> opens the form directly — there is nothing yet to read — and so does every door that exists to <i>change</i> a field.</p>
 </header>
 
 <div class="board">
@@ -94,6 +94,68 @@
         <p class="conv-note" style="margin:6px 4px 0"><b>One item behind the</b> <span style="font-family:'IBM Plex Mono',monospace">⋯</span>. Deleting a row and returning it to a stub stay in the <i>editing</i> posture’s menu, where the form’s one message line is — that line is what speaks the delete refusal (“Still used by 3 recipes (4 lines).”), and a second surface for it would be two renderings of one rule.</p>
     </div>
 
+
+    <div class="frame">
+        <p class="frame-name"><b>Price · read on the row</b> · a fourth group, in the reading posture the page already has: the latest price as the one line a recipe reads, and what was paid before it, kept</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+            <div class="r-hero"><h2 class="r-title">Bananas, organic</h2><p class="conv-note" style="margin:0">also known as bananas</p></div>
+            <div class="state" style="margin-top:4px"><div class="sh" style="font-weight:400;font-size:12px;color:var(--muted)"><span class="sdot"></span><span>Complete — counts in conversions and macro totals.</span></div></div>
+            <div style="margin:22px 20px 0"><p class="grp-h">Units &amp; measures</p></div>
+            <p class="flabel">Default unit</p>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px">piece</p>
+            <p class="flabel" style="margin-bottom:2px">Measures</p>
+            <div class="field" style="margin-bottom:6px">
+                <div class="msr-row"><span class="srcdot you"></span><span class="mlab">bag · 454 g</span><span class="msrc">yours</span></div>
+            </div>
+            <div style="margin:22px 20px 0"><p class="grp-h">Price</p></div>
+            <p class="flabel" style="margin-bottom:0">Latest</p>
+            <p class="conv-note" style="margin:0 20px 0">what a recipe reads</p>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px"><b>77¢ / 100 g</b> · $3.49 for bag (454 g) · TJ’s · 13 Sep</p>
+            <p class="flabel" style="margin-bottom:2px">Before</p>
+            <div style="margin:0 20px">
+                <div class="msr-row"><span class="mlab">72¢ / 100 g · $3.29 · bag (454 g)</span><span class="msrc">TJ’s · 23 Aug</span></div>
+                <div class="msr-row"><span class="mlab">88¢ / 100 g · $3.99 · bag (454 g)</span><span class="msrc">Whole Foods · 2 Aug</span></div>
+            </div>
+            <p class="conv-note" style="margin:6px 20px 0">a recipe reads the latest; the rest is what you paid, kept as paid</p>
+            <div class="frow"><span class="ghostbtn" style="margin-top:10px;color:var(--herb);border-style:dashed">＋ add a price</span></div>
+        </div></div>
+        <p class="conv-note" style="margin:10px 4px 0">Every line is a stored fact restated: cents paid, the pack in the basis, the store’s name as a chip word, the receipt’s date. The <b>/100 g</b> is the one derived figure on the page, and it is derived the same way the macro line’s <i>/100 g</i> is — from the basis. A price is an event, never a column: nothing writes the derived figure back, so a pack re-weighed or a discount corrected moves every screen at once.</p>
+        <p class="conv-note" style="margin:6px 4px 0"><b>The door is drawn in both states</b>, because a price is an event and there is always another one. A row nobody has priced draws it alone — see the frame beside this one.</p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Price · none yet</b> · the same group on a row nobody has priced: the state said beside the heading, one door under it, and no zero</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+            <div class="r-hero"><h2 class="r-title">Black rice</h2></div>
+            <div style="margin:22px 20px 0"><p class="grp-h">Price <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400">— none yet</span></p></div>
+            <div class="frow"><span class="ghostbtn" style="margin-top:10px;color:var(--herb);border-style:dashed">＋ add a price</span></div>
+        </div></div>
+        <p class="conv-note" style="margin:10px 4px 0">One door, no zero. <span style="font-family:'IBM Plex Mono',monospace">$0.00</span> would be a claim about the shop rather than an absence, which is the number invariant 3 forbids — so the group says what it does not know, beside its own name, and offers the one way to end it.</p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Price · the sheet</b> · what was paid, for what pack, at which store — entered through the quantity sheet’s own chip row, at the one chip height</p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet">
+            <div class="grab"></div>
+            <div style="margin:2px 20px 0"><h2 class="r-title" style="font-size:20px">Bananas, organic</h2>
+                <div class="mline">latest 72¢ / 100 g · TJ’s · Aug</div></div>
+            <p class="flabel" style="margin-top:14px">Paid</p>
+            <div class="field"><div class="qty-big"><span class="qu" style="margin-right:4px">$</span><span class="qn">3.49</span><span class="care"></span></div></div>
+            <p class="flabel" style="margin-top:10px;margin-bottom:0">For</p>
+            <p class="conv-note" style="margin:0 20px 6px">what the money bought</p>
+            <div class="frow" style="display:flex;gap:12px;align-items:center"><span style="display:inline-block;min-width:88px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);font-family:'IBM Plex Mono',monospace;font-size:13px">1</span><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--herb-deep)">bag (454 g)</span></div>
+            <div class="frow"><div class="uchips"><span class="uchip on"><span class="srcdot you"></span>bag</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip">handful</span></div></div>
+            <p class="flabel" style="margin-top:12px">At</p>
+            <div class="frow"><div class="uchips"><span class="uchip on">TJ’s</span><span class="uchip">Whole Foods</span><span class="uchip addm">＋</span></div></div>
+            <p class="conv-note" style="margin:16px 20px 0;text-align:center"><b>= 77¢ / 100 g</b></p>
+            <div class="frow"><span class="btn primary">Done</span></div>
+        </div></div>
+        <p class="conv-note" style="margin:10px 4px 0"><b>Three questions and nothing else.</b> The sum is dollars and cents and nothing else — no fraction, no third decimal. The pack is an amount in a unit this row can already say, and the chip row is <i>the quantity sheet’s own</i>: its measures lead exactly as they do on a line, so a bag the household has named is one tap and a plain <b>454 g</b> works where nothing is named. It draws no <span style="font-family:'IBM Plex Mono',monospace">＋</span> of its own — a pack is a purchase, not a vocabulary edit — so the one <span style="font-family:'IBM Plex Mono',monospace">＋</span> on the sheet names a store.</p>
+        <p class="conv-note" style="margin:6px 4px 0"><b>The dock states the derivation, not a preview of it.</b> What the two fields come to is on screen before Done, in the figure a recipe will read, and the line above says what it replaces. When the two cannot be read as a price the same slot says why and Done is refused — <span style="font-family:'IBM Plex Mono',monospace">an imprecise word cannot be priced — say the pack in g</span>, <span style="font-family:'IBM Plex Mono',monospace">say what you paid</span>. A pack the row cannot weigh is refused before it is offered: the chip row <i>is</i> the admission set, so a g-basis row with no density never shows <code>ml</code> at all, and the dock’s density sentence is the backstop behind that rather than the everyday state.</p>
+        <p class="conv-note" style="margin:6px 4px 0"><b>The store is a word.</b> The chips are what this household has typed before, most recent first; <span style="font-family:'IBM Plex Mono',monospace">＋</span> names a new one. There is no store table. What Done writes is one receipt with one line — a hand-typed price and a scanned one are the same fact in the same ledger.</p>
+    </div>
     <div class="frame">
         <p class="frame-name"><b>The form</b> · behind <code>⋯ ▸ Edit</code>, and what <code>/ingredients/new</code> opens straight into — three groups, a status line at the top and a dock at the bottom; the USDA card appears only <i>after</i> a pick</p>
         <div class="phone"><div class="notch"></div><div class="screen">

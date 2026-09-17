@@ -1,9 +1,11 @@
 /// English the app prints — PURE DART.
 ///
-/// The plural rule and the weekday names: two things every layer says and
-/// neither belongs to one of them. The weekday tables live here, not beside
-/// the Week screen, because the shopping repository prints "· cook Mon" too
-/// and the data layer cannot reach upward into presentation for a word.
+/// The plural rule, the weekday names and the month names: things every layer
+/// says and none of them belongs to one. The weekday tables live here, not
+/// beside the Week screen, because the shopping repository prints "· cook Mon"
+/// too and the data layer cannot reach upward into presentation for a word —
+/// and the months sit beside them because a date is printed by the Week, by a
+/// price's history and by the receipts ledger.
 ///
 /// The tables are ISO-ordered and **read through the week shape**
 /// (`core/week_shape.dart`), never indexed directly: a meal's `day_of_week` is
@@ -41,3 +43,28 @@ const kWeekdayFull = [
   'Saturday',
   'Sunday',
 ];
+
+/// Short month labels, indexed 0=January..11=December.
+const kMonthShort = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+/// A bare day-and-month, e.g. `31 Aug` — the Week's day cards, and the date a
+/// price was paid on.
+String formatDayMonth(DateTime date) =>
+    '${date.day} ${kMonthShort[date.month - 1]}';
+
+/// The month alone, e.g. `Aug` — for a line where the day would be more
+/// precision than the reader wants.
+String formatMonthShort(DateTime date) => kMonthShort[date.month - 1];

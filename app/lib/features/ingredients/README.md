@@ -4,9 +4,9 @@
 
 The household's controlled vocabulary and everything that reads or writes it:
 the **picker** recipes and shopping select from, the **quantity + unit** entry
-surface (chips, measures, density), and the **manager** — the screen where the
+surface (chips, measures, density), the **manager** — the screen where the
 vocabulary is browsed and edited, including turning a bare `stub` into a
-`complete` ingredient.
+`complete` ingredient — and the **price** a row was last bought at.
 
 **The client never fuzzy-matches for a machine decision** (ADR-0004). Search
 here is deterministic retrieval for a human to pick from, over the ~300 synced
@@ -26,6 +26,7 @@ showIngredientPicker    ingredient_picker.dart       recipe editor, shopping top
 showQuantityUnitSheet   quantity_unit_sheet.dart     every quantity+unit in the app
         └── manage measures + DensityEntry (density_entry.dart)
 showUsdaPickSheet       usda_pick_sheet.dart         the USDA short-list a person picks from
+showPriceSheet          price_sheet.dart             paid · for · at — the one door a price is entered through
 
 scanBarcodeForDraft     barcode/barcode_add.dart     the barcode module's one door
 applyDraft              domain/apply_draft.dart      how a draft lands on the form's fields
@@ -239,6 +240,9 @@ ingredients/
     normalize.dart           the PHRASE normalizer — Dart twin of normalize.ts
     usda_probe.dart          the probe interface + its offline contract
     measure_repository.dart  named per-ingredient measures
+    price.dart               the receipt, its lines, PriceObservation, and the
+                             per-basis derivation with its density gate
+    price_repository.dart    the price ledger's two reads and its one write
     apply_draft.dart         the one rule for landing a barcode draft on a form
     serving_measure.dart     the serving a label prints, kept as the row's one
                              `serving · 2 tbsp` measure — its label, and the
@@ -246,10 +250,13 @@ ingredients/
   data/
     ingredient_repository_impl.dart  SqliteIngredientRepository — read + write
     measure_repository_impl.dart     measures, with merge-on-read for dup labels
+    price_repository_impl.dart       the receipt ledger's watched reads
     usda_probe_impl.dart             the `probe_usda` RPC — the feature's one
                                      deliberate read that is not local SQLite
     ingredient_providers.dart        keepAlive repo providers + watch streams
   presentation/
+    price_sheet.dart            paid · for · at, over the quantity sheet's own
+                                chip row; the dock states the derivation
     ingredient_list_view.dart   the manager list
     ingredient_detail_view.dart the form — create at /ingredients/new, edit at /:id
     ingredient_view_models.dart IngredientForm — the form's draft and its Save
@@ -347,6 +354,28 @@ ingredients/
   - **In the quantity sheet's manage state** the same editor writes on tap,
     because that host has no Save — so the `piece` chip appears the moment a
     weight is entered.
+- **A price is an event, and the figure a screen reads is derived from it.**
+  The ledger is `receipt` + `receipt_line` (migration 0044) and a hand-typed
+  price is a one-line `manual` receipt, so a typed price and a scanned one are
+  the same fact read the same way — one table, one ledger, and no separate
+  observation row. The pack is stored in the row's **basis unit**, beside
+  `basis_amount` and `piece_basis_amount`, and `77¢ / 100 g` is computed at
+  read time, never written back: a pack re-weighed or a discount corrected
+  moves every screen at once. Money is integer cents throughout
+  (`core/money.dart`); a discount rides beside the printed figure rather than
+  inside it, and **what was paid is `cents - discount_cents`**.
+  - **The honesty gate is at entry.** `packInBasis` resolves the typed pack
+    into the basis and refuses across mass↔volume without the row's density —
+    the macros' own gate, on the same boundary — so the sheet's dock says why
+    and Done is refused rather than a number being stored the row cannot
+    support. In practice the chip row is the admission set, so a unit the row
+    cannot convert is never offered; the dock's refusal is the backstop, and
+    the one a person actually reaches is an imprecise word.
+  - **A line that is not a price is not a zero.** No pack stated, not food, no
+    ingredient (the server detaches a receipt line when its ingredient is
+    retired — a receipt is history and never blocks a prune) and nothing paid
+    all mean *no observation*, so the Price group says `— none yet` beside its
+    own heading and offers one door.
 - **A rename rewrites `match_text`** through `normalizeMatchText` in the same
   statement. The server writes `match_text` with the phrase rules; the app must
   write the same ones, or a locally created row carries text the next import's
@@ -366,13 +395,17 @@ ingredients/
 - Domain: `allowed_units_test` (the ADR vectors, shared with
   `supabase/tests/unit_admission.sql`), `normalize_test` (the shared JSON
   vectors), `apply_draft_test` (including the pack-naming rules),
-  `ingredient_test` (the provenance predicates and the one source line).
+  `ingredient_test` (the provenance predicates and the one source line),
+  `price_test` (every refusal of the derivation and the entry gate, and what
+  is a price as against what is only a line of a receipt).
 - Repo on a real `PowerSyncDatabase`: `ingredient_repository_test`,
   `measure_repository_test` — search/recents, `saveForm` create and edit,
-  density round-trips, confirm/unconfirm, delete refusal, aliases.
+  density round-trips, confirm/unconfirm, delete refusal, aliases — and
+  `price_repository_test`, which also pins that the typed price is two rows in
+  one transaction and both plain INSERTs.
 - Widget: `ingredient_list_test`, `ingredient_form_test`,
   `ingredient_usda_test`, `ingredient_macros_test`, `ingredient_picker_test`,
-  `quantity_unit_sheet_test`.
+  `quantity_unit_sheet_test`, `ingredient_price_test`.
 - Layout: `density_entry_test` — the density sentence holding one run at
   402 pt, its leading space, and the fold. It loads the real fonts
   (`test/helpers/fonts.dart`) because the test binding draws every glyph as a
@@ -382,7 +415,10 @@ ingredients/
   directly — what one call hands the repository, with no widget tree.
 - Barcode: `barcode/` — mapper and lookup against committed fixtures (no
   network), the scan sheet's failure states, and the public door's contract.
-- Server-side: the admission functions are pinned by
+- Server-side: `supabase/tests/receipts.sql` pins the price fact's shape — the
+  closed enumerations, the fence that only a food line carries a pack, the
+  typed price as a one-line `manual` receipt, and the retire that detaches a
+  receipt line instead of refusing. The admission functions are pinned by
   `supabase/tests/unit_admission.sql` (pgTAP), not by anything in this feature.
   `source_edited`'s column — its default, its round-trip, and that **no
   trigger** and no rename touches it — is pinned by

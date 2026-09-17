@@ -175,6 +175,43 @@ const schema = Schema([
     ..._audit,
   ]),
 
+  // The price ledger (0044). One shop, or one hand-typed price — a typed
+  // price is a `manual` receipt with one line, so the two are the same fact
+  // read the same way. Money is integer cents, USD; the per-basis figure a
+  // screen reads is derived from the line and never stored.
+  Table('receipt', [
+    Column.text('household_id'),
+    Column.text('store'), // a chip word, not a row: there is no store table
+    Column.text('purchased_at'), // the SHOP's date, never the scan's
+    // As printed, when the paper printed one — null on a hand-typed price and
+    // never re-derived from the lines, because the sum of the lines against
+    // the printed subtotal is the reconcile figure the review shows.
+    Column.integer('subtotal_cents'),
+    Column.integer('tax_cents'),
+    Column.integer('total_cents'),
+    Column.text('source'), // 'manual' | 'photo'
+    ..._audit,
+  ]),
+  Table('receipt_line', [
+    Column.text('household_id'),
+    Column.text('receipt_id'),
+    // → ingredient.id (nullable): a non-food line, a tax line, and a line
+    // whose ingredient was retired out from under it (the server detaches it).
+    Column.text('ingredient_id'),
+    Column.text('printed_text'), // what the paper said; null when typed
+    Column.integer('cents'), // paid, after the discount; a fee may be negative
+    Column.integer('discount_cents'),
+    Column.text('kind'), // 'item' | 'not_food' | 'tax' | 'fee'
+    // What the cents bought, in the INGREDIENT's basis unit (g or ml) — the
+    // same denomination `ingredient_measure.basis_amount` uses. Null where
+    // nobody has said what the pack is: the line is kept, and it is simply
+    // not a price yet.
+    Column.real('pack_basis_amount'),
+    Column.text('measure_id'), // → ingredient_measure.id — the pack's WORD
+    Column.integer('sort_order'),
+    ..._audit,
+  ]),
+
   // Vocab — synced from the server (step 7). Owned by the household; the server
   // holds USDA-resolved macros/density, which now ride down. `macros` is the
   // server's JSONB serialized to text. `usda_food` is never here (ADR-0005).
