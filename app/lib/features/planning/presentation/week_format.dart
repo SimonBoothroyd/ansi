@@ -8,35 +8,17 @@ import 'dart:math' as math;
 
 import '../../../core/units/portions.dart';
 import '../../../core/week_shape.dart';
+import '../../../core/words.dart';
 import '../../../shared/format.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../domain/planning.dart';
-
-const _months = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
 
 /// The week header, e.g. "Week of Aug 24" for the day the week begins on.
 ///
 /// Superseded on the Week screen itself by [formatWeekTitle] (which names the
 /// week rather than dating it); kept for surfaces that only ever want the date.
 String formatWeekOf(DateTime weekStart) =>
-    'Week of ${_months[weekStart.month - 1]} ${weekStart.day}';
-
-/// A bare day-and-month, e.g. `31 Aug` — the switcher's and day cards' date.
-String formatDayMonth(DateTime date) =>
-    '${date.day} ${_months[date.month - 1]}';
+    'Week of ${formatMonthShort(weekStart)} ${weekStart.day}';
 
 /// The date of [dayOfWeek] (0..6 from the first day) within the week beginning
 /// [weekStart].

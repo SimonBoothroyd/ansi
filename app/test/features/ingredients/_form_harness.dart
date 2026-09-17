@@ -37,6 +37,7 @@ import 'package:http/testing.dart';
 
 import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/fake_measure_repository.dart';
+import '../../helpers/fake_price_repository.dart';
 import '../../helpers/silent_usda_probe.dart';
 
 const mangoMacros = Macros(kcal: 60, protein: 1, carb: 15, fat: 0);
@@ -409,6 +410,7 @@ Widget host(
   FakeIngredientRepo repo, {
   String at = '/ingredients',
   FakeMeasureRepo? measures,
+  FakePriceRepo? prices,
   UsdaProbe? probe,
   OffLookup? lookup,
   // Hands the built router back, so a suite can ask what the address bar
@@ -465,6 +467,7 @@ Widget host(
       measureRepositoryProvider.overrideWithValue(
         measures ?? FakeMeasureRepo(),
       ),
+      priceRepositoryProvider.overrideWithValue(prices ?? FakePriceRepo()),
       usdaProbeProvider.overrideWithValue(probe ?? const SilentUsdaProbe()),
     ],
     child: MaterialApp.router(
@@ -731,6 +734,7 @@ Widget addHost(
       measureRepositoryProvider.overrideWithValue(
         measures ?? FakeMeasureRepo(),
       ),
+      priceRepositoryProvider.overrideWithValue(FakePriceRepo()),
       usdaProbeProvider.overrideWithValue(probe ?? const SilentUsdaProbe()),
       if (viaProvider) offLookupProvider.overrideWithValue(buildLookup()),
     ],

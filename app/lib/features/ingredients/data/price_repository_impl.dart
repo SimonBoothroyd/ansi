@@ -30,27 +30,27 @@ class SqlitePriceRepository implements PriceRepository {
   ) => [
     for (final r in rows)
       if (observationFrom(
-        ReceiptLine(
-          id: r['id'] as String,
-          receiptId: r['receipt_id'] as String,
-          ingredientId: r['ingredient_id'] as String?,
-          printedText: r['printed_text'] as String?,
-          cents: (r['cents'] as num).toInt(),
-          discountCents: (r['discount_cents'] as num?)?.toInt() ?? 0,
-          kind: ReceiptLineKind.fromDb(r['kind'] as String?),
-          packBasisAmount: (r['pack_basis_amount'] as num?)?.toDouble(),
-          measureId: r['measure_id'] as String?,
-          sortOrder: (r['sort_order'] as int?) ?? 0,
-        ),
-        Receipt(
-          id: r['receipt_id'] as String,
-          store: (r['store'] as String?) ?? '',
-          purchasedAt: _instant(r['purchased_at']),
-          source: ReceiptSource.fromDb(r['source'] as String?),
-        ),
-        basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
-        packLabel: r['measure_label'] as String?,
-      )
+            ReceiptLine(
+              id: r['id'] as String,
+              receiptId: r['receipt_id'] as String,
+              ingredientId: r['ingredient_id'] as String?,
+              printedText: r['printed_text'] as String?,
+              cents: (r['cents'] as num).toInt(),
+              discountCents: (r['discount_cents'] as num?)?.toInt() ?? 0,
+              kind: ReceiptLineKind.fromDb(r['kind'] as String?),
+              packBasisAmount: (r['pack_basis_amount'] as num?)?.toDouble(),
+              measureId: r['measure_id'] as String?,
+              sortOrder: (r['sort_order'] as int?) ?? 0,
+            ),
+            Receipt(
+              id: r['receipt_id'] as String,
+              store: (r['store'] as String?) ?? '',
+              purchasedAt: _instant(r['purchased_at']),
+              source: ReceiptSource.fromDb(r['source'] as String?),
+            ),
+            basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
+            packLabel: r['measure_label'] as String?,
+          )
           case final observation?)
         observation,
   ];

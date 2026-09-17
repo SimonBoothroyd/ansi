@@ -18,12 +18,16 @@
 /// the two postures telling two stories.
 library;
 
+import '../../../core/money.dart';
+import '../../../core/result/result.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
+import '../../../core/words.dart';
 import '../../../shared/format.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
+import '../domain/price.dart';
 import '../domain/serving_measure.dart';
 import 'macros_format.dart';
 
@@ -215,4 +219,95 @@ String measureFact(Measure measure) {
   final basis = measure.basis.baseUnit;
   return '${measure.label} · ${formatQuantityIn(measure.amount, basis)} '
       '${basis.label}';
+}
+
+// --- The price group's sentences ---------------------------------------------
+//
+// One rule, three surfaces: the group's Latest line, its Before rows and the
+// price sheet's own header all restate the same stored facts, so a wording
+// that changes changes once.
+
+/// What the cents bought, as the person said it: `bag (454 g)` where the pack
+/// was named as a measure, `454 g` where it was typed as a plain amount.
+///
+/// The weight is always there, because the weight is the fact — the label is
+/// how it was said, and a measure deleted since leaves the number standing.
+String pricePackPhrase(PriceObservation price) {
+  final basis = price.basis.baseUnit;
+  final weight =
+      '${formatQuantityIn(price.packBasisAmount, basis)} ${basis.label}';
+  final label = price.packLabel;
+  return label == null || label.isEmpty ? weight : '$label ($weight)';
+}
+
+/// The **latest** price as the group's one line — `77¢ / 100 g · $3.49 for bag
+/// (454 g) · TJ's · 13 Sep`.
+///
+/// The per-100 figure leads because it is the one a recipe reads; everything
+/// after it is what was paid, restated, so a figure that looks wrong is
+/// traceable to the purchase that made it.
+String latestPriceFact(PriceObservation price) {
+  final paid = formatMoney(price.paidCents);
+  final head = switch (price.per100) {
+    Ok(:final value) => '${formatPricePer100(value)} · ',
+    // A stored price that cannot be read is not shown as a zero: the line
+    // leads with what was paid, and the derivation is simply absent.
+    Err() => '',
+  };
+  return '$head$paid for ${pricePackPhrase(price)} · ${price.store} · '
+      '${formatDayMonth(price.purchasedAt)}';
+}
+
+/// One **earlier** price, as the history row's own two parts: what it came to
+/// and what was paid (`72¢ / 100 g · $3.29 · bag (454 g)`), and where and when
+/// it was seen (`TJ's · 23 Aug`).
+({String paid, String seen}) earlierPriceFact(PriceObservation price) {
+  final head = switch (price.per100) {
+    Ok(:final value) => '${formatPricePer100(value)} · ',
+    Err() => '',
+  };
+  return (
+    paid: '$head${formatMoney(price.paidCents)} · ${pricePackPhrase(price)}',
+    seen: '${price.store} · ${formatDayMonth(price.purchasedAt)}',
+  );
+}
+
+/// What the price sheet says over its fields about the price it is replacing —
+/// `latest 72¢ / 100 g · TJ's · Aug` — or null on a row nobody has priced,
+/// where there is nothing to replace and nothing to say.
+///
+/// The month alone, not the day: the sheet is about the price being entered,
+/// and the last one is context rather than a record.
+String? latestPriceAside(PriceObservation? price) {
+  if (price == null) return null;
+  final head = switch (price.per100) {
+    Ok(:final value) => formatPricePer100(value),
+    Err() => formatMoney(price.paidCents),
+  };
+  return 'latest $head · ${price.store} · '
+      '${formatMonthShort(price.purchasedAt)}';
+}
+
+/// Why a price cannot be read from what has been typed — the sentence the
+/// sheet's dock states in place of the figure, and the reason Done is refused.
+///
+/// Every one of them names a way out, because a refusal a person can act on
+/// beats one they can only stare at. The codes are the unit system's own and
+/// the price domain's; an unfamiliar one says the plain thing rather than
+/// printing a code at somebody.
+String priceRefusal(Failure failure, Ingredient ingredient) {
+  final basis = ingredient.macrosBasis.baseUnit;
+  return switch (failure.code) {
+    'unit/no_density' =>
+      'this row has no density, so a volume pack cannot be weighed — set one '
+          'on the ingredient, or say the pack in ${basis.label}',
+    'unit/incompatible' =>
+      'this row does not say what one piece weighs — set a piece weight, or '
+          'say the pack in ${basis.label}',
+    'unit/imprecise' =>
+      'an imprecise word cannot be priced — say the pack in ${basis.label}',
+    'price/no_pack' => 'say what the money bought',
+    'price/nothing_paid' => 'say what you paid',
+    _ => failure.message,
+  };
 }

@@ -109,7 +109,10 @@ void main() {
       expect(prices.map((p) => p.lineId), ['l-sep', 'l-aug']);
       expect(prices.first.store, "TJ's");
       expect(prices.first.purchasedAt, DateTime.utc(2026, 9, 13, 17, 20));
-      expect(formatPricePer100(prices.first.per100.valueOrNull!), '77¢ / 100 g');
+      expect(
+        formatPricePer100(prices.first.per100.valueOrNull!),
+        '77¢ / 100 g',
+      );
       expect(formatPricePer100(prices.last.per100.valueOrNull!), '88¢ / 100 g');
     });
 
@@ -202,7 +205,12 @@ void main() {
         purchasedAt: '2026-09-13T17:20:00Z',
       );
       // Matched, but nobody has said what the pack is.
-      await _seedLine(db, id: 'l-nopack', receiptId: 'r1', packBasisAmount: null);
+      await _seedLine(
+        db,
+        id: 'l-nopack',
+        receiptId: 'r1',
+        packBasisAmount: null,
+      );
       // Marked not food in review.
       await _seedLine(
         db,
@@ -249,19 +257,22 @@ void main() {
       expect(await repo.watchPrices('apple').first, hasLength(1));
     });
 
-    test('a Postgres-shaped timestamp dates the same as this client’s', () async {
-      await _seedReceipt(
-        db,
-        id: 'r1',
-        store: "TJ's",
-        // The space separator a synced row arrives with.
-        purchasedAt: '2026-09-13 17:20:00Z',
-      );
-      await _seedLine(db, id: 'l1', receiptId: 'r1');
+    test(
+      'a Postgres-shaped timestamp dates the same as this client’s',
+      () async {
+        await _seedReceipt(
+          db,
+          id: 'r1',
+          store: "TJ's",
+          // The space separator a synced row arrives with.
+          purchasedAt: '2026-09-13 17:20:00Z',
+        );
+        await _seedLine(db, id: 'l1', receiptId: 'r1');
 
-      final prices = await repo.watchPrices('banana').first;
-      expect(prices.single.purchasedAt, DateTime.utc(2026, 9, 13, 17, 20));
-    });
+        final prices = await repo.watchPrices('banana').first;
+        expect(prices.single.purchasedAt, DateTime.utc(2026, 9, 13, 17, 20));
+      },
+    );
   });
 
   group('watchStores', () {
@@ -322,7 +333,10 @@ void main() {
       expect(receipt['total_cents'], isNull);
 
       final prices = await repo.watchPrices('banana').first;
-      expect(formatPricePer100(prices.single.per100.valueOrNull!), '77¢ / 100 g');
+      expect(
+        formatPricePer100(prices.single.per100.valueOrNull!),
+        '77¢ / 100 g',
+      );
       expect(prices.single.purchasedAt, DateTime.utc(2026, 9, 13, 17, 20));
       expect(prices.single.store, "TJ's");
     });
@@ -357,7 +371,9 @@ void main() {
       );
       final prices = await repo.watchPrices('banana').first;
       expect(
-        prices.single.purchasedAt.isBefore(before.subtract(const Duration(seconds: 1))),
+        prices.single.purchasedAt.isBefore(
+          before.subtract(const Duration(seconds: 1)),
+        ),
         isFalse,
       );
     });
@@ -382,43 +398,49 @@ void main() {
       );
     });
 
-    test('the honesty rules hold at the repository, not just the sheet', () async {
-      await expectLater(
-        repo.recordManualPrice(
-          ingredientId: 'banana',
-          cents: 0,
-          packBasisAmount: 454,
-          store: "TJ's",
-        ),
-        throwsArgumentError,
-        reason: 'a price is what was paid',
-      );
-      for (final pack in [0.0, -1.0, double.nan, double.infinity]) {
+    test(
+      'the honesty rules hold at the repository, not just the sheet',
+      () async {
         await expectLater(
           repo.recordManualPrice(
             ingredientId: 'banana',
-            cents: 349,
-            packBasisAmount: pack,
+            cents: 0,
+            packBasisAmount: 454,
             store: "TJ's",
           ),
           throwsArgumentError,
-          reason: 'pack $pack',
+          reason: 'a price is what was paid',
         );
-      }
-      expect(await repo.watchPrices('banana').first, isEmpty);
-    });
+        for (final pack in [0.0, -1.0, double.nan, double.infinity]) {
+          await expectLater(
+            repo.recordManualPrice(
+              ingredientId: 'banana',
+              cents: 349,
+              packBasisAmount: pack,
+              store: "TJ's",
+            ),
+            throwsArgumentError,
+            reason: 'pack $pack',
+          );
+        }
+        expect(await repo.watchPrices('banana').first, isEmpty);
+      },
+    );
 
-    test('the write is two rows in one transaction, and a plain INSERT', () async {
-      await drainCrudQueue(db);
-      await repo.recordManualPrice(
-        ingredientId: 'banana',
-        cents: 349,
-        packBasisAmount: 454,
-        store: "TJ's",
-      );
-      final ops = await queuedCrudOps(db);
-      expect(ops.map((o) => o['type']), ['receipt', 'receipt_line']);
-      expect(ops.every((o) => o['op'] == 'PUT'), isTrue);
-    });
+    test(
+      'the write is two rows in one transaction, and a plain INSERT',
+      () async {
+        await drainCrudQueue(db);
+        await repo.recordManualPrice(
+          ingredientId: 'banana',
+          cents: 349,
+          packBasisAmount: 454,
+          store: "TJ's",
+        );
+        final ops = await queuedCrudOps(db);
+        expect(ops.map((o) => o['type']), ['receipt', 'receipt_line']);
+        expect(ops.every((o) => o['op'] == 'PUT'), isTrue);
+      },
+    );
   });
 }

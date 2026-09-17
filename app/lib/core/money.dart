@@ -43,3 +43,34 @@ String formatMoney(int cents) {
 /// has no reading at all and must never reach here: the derivations return a
 /// refusal instead (invariant 3).
 String formatMoneyRounded(double cents) => formatMoney(cents.round());
+
+/// A typed sum of **dollars** as whole cents — `3.49` → 349, `3` → 300,
+/// `.5` → 50 — or null when [text] is not one.
+///
+/// It is the twin of [formatMoney] on the way in, and it is deliberately not
+/// the amount parser under `units/`: a sum of money is not a kitchen amount.
+/// Nobody pays ⅔ of a dollar, a `/` in a price field is a typo rather than a
+/// fraction, and a third decimal is money that does not exist — so a fraction
+/// and a third place are both refused rather than rounded into something the
+/// person did not type.
+///
+/// A comma reads as the decimal separator, the way the amount parser reads it,
+/// and a leading `\$` is tolerated for the person who types the symbol the
+/// field already prints. Nothing negative: a price is what was paid.
+int? parseMoney(String text) {
+  final trimmed = text.trim().replaceAll(',', '.');
+  final digits = trimmed.startsWith(r'$')
+      ? trimmed.substring(1).trimLeft()
+      : trimmed;
+  final match = RegExp(r'^([0-9]*)(?:\.([0-9]{0,2}))?$').firstMatch(digits);
+  if (match == null) return null;
+  final whole = match.group(1) ?? '';
+  final fraction = match.group(2);
+  // `.` alone, or an empty field: not a sum, which is different from zero.
+  if (whole.isEmpty && (fraction == null || fraction.isEmpty)) return null;
+  final dollars = whole.isEmpty ? 0 : int.parse(whole);
+  final cents = fraction == null || fraction.isEmpty
+      ? 0
+      : int.parse(fraction.padRight(2, '0'));
+  return dollars * 100 + cents;
+}

@@ -46,4 +46,50 @@ void main() {
       }
     });
   });
+
+  group('parseMoney', () {
+    test('dollars and cents become whole cents', () {
+      expect(parseMoney('3.49'), 349);
+      expect(parseMoney('0.77'), 77);
+      expect(parseMoney('12'), 1200);
+      expect(parseMoney('1.1'), 110);
+      expect(parseMoney('.5'), 50);
+      expect(parseMoney('0'), 0);
+    });
+
+    test('a comma reads as the decimal separator', () {
+      expect(parseMoney('3,49'), 349);
+    });
+
+    test('the symbol the field already prints is tolerated', () {
+      expect(parseMoney(r'$3.49'), 349);
+      expect(parseMoney(r'  $ 3.49 '), 349);
+    });
+
+    test('a third decimal is money that does not exist — refused', () {
+      expect(parseMoney('3.499'), isNull);
+    });
+
+    test('a fraction is a typo in a price field, not two thirds', () {
+      expect(parseMoney('2/3'), isNull);
+      expect(parseMoney('½'), isNull);
+    });
+
+    test('nothing typed is not zero', () {
+      expect(parseMoney(''), isNull);
+      expect(parseMoney('   '), isNull);
+      expect(parseMoney('.'), isNull);
+    });
+
+    test('a price is what was paid — nothing negative', () {
+      expect(parseMoney('-3.49'), isNull);
+    });
+
+    test('what it reads, formatMoney prints back', () {
+      for (final typed in ['3.49', '0.77', '12', '1.10']) {
+        final cents = parseMoney(typed)!;
+        expect(parseMoney(formatMoney(cents).replaceAll('¢', '')), isNotNull);
+      }
+    });
+  });
 }

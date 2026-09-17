@@ -284,7 +284,10 @@ Result<PricePer100> pricePer100({
   }
   if (paidCents <= 0) {
     return const Err(
-      Failure('price/nothing_paid', 'a price is what was paid, and nothing was'),
+      Failure(
+        'price/nothing_paid',
+        'a price is what was paid, and nothing was',
+      ),
     );
   }
   return Ok(PricePer100(paidCents * 100 / packBasisAmount, basis));
@@ -327,13 +330,12 @@ Result<double> packInBasis(
   // is the truth about it.
   final piece = pieceAsMeasure(ingredient);
   return switch (choice) {
-    MeasureOption(:final measure) =>
-      convertMeasure(
-        amount,
-        measure,
-        to: basis,
-        densityGPerMl: density,
-      ).map((q) => q.amount),
+    MeasureOption(:final measure) => convertMeasure(
+      amount,
+      measure,
+      to: basis,
+      densityGPerMl: density,
+    ).map((q) => q.amount),
     UnitOption(:final unit)
         when unit.family == UnitFamily.count && piece != null =>
       convertMeasure(
@@ -342,12 +344,11 @@ Result<double> packInBasis(
         to: basis,
         densityGPerMl: density,
       ).map((q) => q.amount),
-    UnitOption(:final unit) =>
-      convert(
-        Quantity(amount, unit),
-        to: basis,
-        densityGPerMl: density,
-      ).map((q) => q.amount),
+    UnitOption(:final unit) => convert(
+      Quantity(amount, unit),
+      to: basis,
+      densityGPerMl: density,
+    ).map((q) => q.amount),
   };
 }
 

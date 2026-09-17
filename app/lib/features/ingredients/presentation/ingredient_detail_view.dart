@@ -103,6 +103,7 @@ import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
 import '../domain/name_namespace.dart';
 import '../domain/normalize.dart';
+import '../domain/price.dart';
 import '../domain/serving_measure.dart';
 import '../domain/usda_probe.dart';
 import 'density_entry.dart';
@@ -115,6 +116,7 @@ import 'macros_format.dart';
 import 'measure_delete.dart';
 import 'measures_editor.dart';
 import 'piece_weight_entry.dart';
+import 'price_sheet.dart';
 import 'serving_row.dart';
 import 'usda_pick_sheet.dart';
 
@@ -373,6 +375,9 @@ class _Centered extends StatelessWidget {
 /// exported so a test names it rather than counting buttons.
 const kReadFillItInKey = ValueKey('read-fill-it-in');
 
+/// The Price group's door onto the price sheet, named for the same reason.
+const kReadAddPriceKey = ValueKey('read-add-a-price');
+
 /// The page as it OPENS on a row that exists: the same groups in the same
 /// order, each field's value stated instead of offered.
 ///
@@ -578,10 +583,130 @@ class _ReadPosture extends ConsumerWidget {
                 ),
             ],
           ),
+
+          _PriceGroup(ingredient: ing),
         ],
       ),
     );
   }
+}
+
+/// **Price** — what this row cost, last time and before that.
+///
+/// The latest is one line because it is the one a recipe reads; everything
+/// under it is what was paid, kept as paid. The `/100 g` is the page's one
+/// derived figure and it is derived the way the macro line's is, from the
+/// basis — so a pack bought by the pound still reads per 100 g, and the pound
+/// is on the row it was paid on.
+///
+/// **One door, no zero.** A row nobody has priced says so beside the heading
+/// and offers the door; it never shows `$0.00`, which would be a claim about
+/// the shop rather than an absence (invariant 3). The door stays after the
+/// first price, because a price is an event and there is always another one.
+class _PriceGroup extends ConsumerWidget {
+  const _PriceGroup({required this.ingredient});
+
+  final Ingredient ingredient;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(ingredientPricesProvider(ingredient.id));
+    final prices = async.asData?.value ?? const <PriceObservation>[];
+    final door = Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: DashedAction(
+        key: kReadAddPriceKey,
+        icon: FLucideIcons.plus,
+        label: 'add a price',
+        onTap: () => unawaited(showPriceSheet(context, ingredient: ingredient)),
+      ),
+    );
+
+    // Load-bearing emptiness: an errored stream drawn as "none yet" would say
+    // this row has never been bought, which is a different thing from not
+    // knowing — and it would offer the door as if that were the whole story.
+    if (async case AsyncError(:final error, :final stackTrace)) {
+      return _Group(
+        title: 'Price',
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: AnsiErrorState(
+              compact: true,
+              what: 'the prices',
+              error: error,
+              stackTrace: stackTrace,
+              onRetry: () =>
+                  ref.invalidate(ingredientPricesProvider(ingredient.id)),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (prices.isEmpty) {
+      return _Group(title: 'Price', suffix: '— none yet', children: [door]);
+    }
+
+    final earlier = prices.skip(1).toList();
+    return _Group(
+      title: 'Price',
+      children: [
+        const _Label('LATEST', hint: 'what a recipe reads'),
+        _Fact(latestPriceFact(prices.first)),
+        if (earlier.isNotEmpty) ...[
+          const _Label('BEFORE'),
+          _EarlierPrices(prices: earlier),
+          const _Fact(
+            'a recipe reads the latest; the rest is what you paid, kept as '
+            'paid',
+            muted: true,
+          ),
+        ],
+        door,
+      ],
+    );
+  }
+}
+
+/// The prices before the latest — the measures list's own row shape, with what
+/// was paid on the left and where and when on the right.
+class _EarlierPrices extends StatelessWidget {
+  const _EarlierPrices({required this.prices});
+
+  final List<PriceObservation> prices;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      for (final price in prices)
+        Builder(
+          builder: (context) {
+            final fact = earlierPriceFact(price);
+            return Padding(
+              padding: const EdgeInsets.only(top: 7),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      fact.paid,
+                      style: ansiMono(size: 12),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    fact.seen,
+                    style: ansiMono(size: 9, color: AnsiColors.muted),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+    ],
+  );
 }
 
 /// The measures as a short list — the editor's own three parts (the source
@@ -2502,9 +2627,14 @@ class _Label extends StatelessWidget {
 /// peer of every other. Three groups is the whole hierarchy — the board's
 /// field order is unchanged inside them.
 class _Group extends StatelessWidget {
-  const _Group({required this.title, required this.children});
+  const _Group({required this.title, required this.children, this.suffix});
 
   final String title;
+
+  /// A quieter clause beside the heading — `Price — none yet`. It is for the
+  /// state a group is IN, said where the group is named, so a reader knows
+  /// before they read the fields under it.
+  final String? suffix;
 
   /// Fixed slots, exactly like the list that holds the groups: a section that
   /// turns on renders `SizedBox.shrink()` when it is off rather than leaving
@@ -2517,7 +2647,19 @@ class _Group extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(title, style: ansiSerif(size: AnsiType.row)),
+        Text.rich(
+          TextSpan(
+            text: title,
+            style: ansiSerif(size: AnsiType.row),
+            children: [
+              if (suffix case final suffix?)
+                TextSpan(
+                  text: ' $suffix',
+                  style: ansiMono(size: 11, color: AnsiColors.muted),
+                ),
+            ],
+          ),
+        ),
         const SizedBox(height: 7),
         Container(height: 1, color: AnsiColors.line),
         ...children,
