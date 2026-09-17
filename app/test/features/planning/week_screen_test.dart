@@ -16,6 +16,7 @@ import 'package:ansi/features/planning/domain/planning_repository.dart';
 import 'package:ansi/features/planning/presentation/meal_fields.dart';
 import 'package:ansi/features/planning/presentation/week_format.dart';
 import 'package:ansi/features/planning/presentation/week_header.dart';
+import 'package:ansi/features/planning/presentation/week_macro_widgets.dart';
 import 'package:ansi/features/planning/presentation/week_view.dart';
 import 'package:ansi/features/planning/presentation/week_widgets.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
@@ -276,6 +277,72 @@ WeekPlan _snackWeek({
     ),
   ],
 );
+
+/// One macro slot of the confirm sheet's fold, typed into. The key is on the
+/// field, so the [EditableText] under it is what takes the text.
+Future<void> _typeMacro(WidgetTester tester, String label, String text) async {
+  await tester.enterText(
+    find.descendant(
+      of: find.byKey(ValueKey('macro-$label')),
+      matching: find.byType(EditableText),
+    ),
+    text,
+  );
+  await tester.pumpAndSettle();
+}
+
+/// Taps the sheet's Add button, scrolling it into view first: the sheet is a
+/// scrolling column, and on a small surface the button sits under the fold.
+Future<void> _addFromTheSheet(WidgetTester tester) async {
+  await tester.ensureVisible(find.text('Add to Thursday'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Add to Thursday'));
+  await tester.pumpAndSettle();
+}
+
+/// A week holding one meal eaten OUT — the words, and the figures when they
+/// were stated.
+WeekPlan _outWeek({
+  List<String> eaters = const ['m1'],
+  Macros? macros = const Macros(kcal: 620, protein: 42, carb: 55, fat: 24),
+  String label = 'Office lunch',
+}) => WeekPlan(
+  id: 'w',
+  weekStart: DateTime.utc(2026, 8, 24),
+  entries: [
+    PlanEntry(
+      id: 'e1',
+      dayOfWeek: 3,
+      mealSlot: 'Lunch',
+      label: label,
+      macros: macros,
+      eaterIds: eaters,
+    ),
+  ],
+);
+
+/// A planner whose removal of a meal eaten out is real to the stream, so the
+/// row can be watched leaving and its undo watched writing.
+class _LiveOutRepo extends _FakePlanningRepo {
+  _LiveOutRepo(WeekPlan week) : _week = week, super(week: week);
+
+  WeekPlan _week;
+  final _ctrl = StreamController<WeekPlan?>.broadcast();
+
+  @override
+  Stream<WeekPlan?> watchWeek(DateTime weekStart) async* {
+    yield _week;
+    yield* _ctrl.stream;
+  }
+
+  @override
+  Future<void> removeEntry(String entryId) async {
+    _week = _week.copyWith(
+      entries: [..._week.entries.where((e) => e.id != entryId)],
+    );
+    _ctrl.add(_week);
+  }
+}
 
 /// Ada eats a portion, Jun three-quarters of one (plan 0027).
 const _factoredRoster = [
@@ -1074,6 +1141,191 @@ void main() {
       );
       expect(find.text('no amount'), findsOneWidget);
       expect(find.textContaining('no amount'), findsWidgets);
+    });
+  });
+
+  group('noting a meal eaten out', () {
+    /// Drives the add flow from Thursday to the confirm sheet, through the
+    /// picker's third answer: nothing in this suite's Library or vocabulary
+    /// matches the words, which is the condition the answer appears under.
+    Future<_FakePlanningRepo> openNoteIt(WidgetTester tester) async {
+      filterForuiSemanticsAssertions();
+      final planning = _FakePlanningRepo(week: _plannedWeek());
+      await _pumpWeek(tester, planning: planning, recipes: _recipesRepo(null));
+      await tester.tap(find.text('add a meal').first);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(EditableText).first, 'Office lunch');
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('note it'));
+      await tester.pumpAndSettle();
+      return planning;
+    }
+
+    testWidgets('the confirm sheet keeps the three shared questions and adds '
+        'one optional fold', (tester) async {
+      await openNoteIt(tester);
+
+      expect(find.text('Add to plan'), findsOneWidget);
+      expect(find.text('Office lunch'), findsOneWidget);
+      expect(find.textContaining('not cooked, not bought'), findsOneWidget);
+      expect(find.text('SLOT'), findsOneWidget);
+      expect(find.text("WHO'S EATING"), findsOneWidget);
+      expect(find.text('PORTIONS'), findsOneWidget);
+      expect(find.text('MACROS · PER PORTION'), findsOneWidget);
+      expect(find.text('optional'), findsOneWidget);
+      // No batch cue: nothing about this meal is cooked.
+      expect(find.textContaining('batch'), findsNothing);
+      expect(find.textContaining('keeps'), findsNothing);
+    });
+
+    testWidgets('left empty, the meal is still placed — and is not counted', (
+      tester,
+    ) async {
+      final planning = await openNoteIt(tester);
+      expect(
+        find.textContaining('the meal fills its slot'),
+        findsOneWidget,
+        reason: 'the fold says what a blank means before Add is tapped',
+      );
+
+      await _addFromTheSheet(tester);
+
+      final written = planning.outEntries.single;
+      expect(written.label, 'Office lunch');
+      expect(written.macros, isNull, reason: 'a blank is never a zero');
+      expect(written.dayOfWeek, 3);
+      expect(written.mealSlot, 'Breakfast');
+      expect(written.eaterIds, ['m1', 'm2']);
+      expect(planning.ingredientEntries, isEmpty);
+    });
+
+    testWidgets('the figures typed into the fold are what is stored, per '
+        'portion', (tester) async {
+      final planning = await openNoteIt(tester);
+
+      await _typeMacro(tester, 'kcal', '620');
+      await _typeMacro(tester, 'protein', '42');
+      await _typeMacro(tester, 'carb', '55');
+      await _typeMacro(tester, 'fat', '24');
+      expect(find.textContaining('counted in the day'), findsOneWidget);
+
+      await _addFromTheSheet(tester);
+
+      final written = planning.outEntries.single.macros!;
+      expect(written.kcal, 620);
+      expect(written.protein, 42);
+      expect(written.carb, 55);
+      expect(written.fat, 24);
+      expect(written.fiber, isNull, reason: 'a fifth cell only if typed');
+    });
+
+    testWidgets('a panel with a hole in it is not stated, and says so', (
+      tester,
+    ) async {
+      final planning = await openNoteIt(tester);
+
+      await _typeMacro(tester, 'kcal', '620');
+      expect(
+        find.textContaining('a partial one is not stated'),
+        findsOneWidget,
+      );
+
+      await _addFromTheSheet(tester);
+      expect(planning.outEntries.single.macros, isNull);
+    });
+  });
+
+  group('a meal eaten out', () {
+    testWidgets('prints the out tag and its figures where a cook marker would '
+        'sit, and draws no cook marker at all', (tester) async {
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _outWeek()),
+        recipes: _recipesRepo(null),
+        // A plan that WOULD mark a recipe row, so an absent marker is this
+        // meal's own rule and not an empty derivation.
+        cook: FakeCookPlanRepository(),
+      );
+
+      expect(find.text('Office lunch'), findsOneWidget);
+      expect(find.byType(OutTag), findsOneWidget);
+      expect(find.text('620 kcal · 42P \u2014 as stated'), findsOneWidget);
+      expect(find.byType(CookMarkerLine), findsNothing);
+      expect(find.textContaining('keeps'), findsNothing);
+      expect(find.textContaining('batch'), findsNothing);
+    });
+
+    testWidgets('counts in the day total, multiplied by its eaters', (
+      tester,
+    ) async {
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _outWeek(eaters: ['m1', 'm2'])),
+        recipes: _recipesRepo(null),
+      );
+      // 620 kcal is one plate; two people each had one.
+      expect(
+        macroTextContaining('${formatMacroNumber(1240)} kcal'),
+        findsWidgets,
+      );
+      expect(macroTextContaining('84P'), findsWidgets);
+    });
+
+    testWidgets('unstated figures draw no number, and the day names the meal '
+        'it left out', (tester) async {
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _outWeek(macros: null)),
+        recipes: _recipesRepo(null),
+      );
+
+      expect(find.text('macros not stated'), findsOneWidget);
+      expect(macroTextContaining('0 kcal'), findsNothing);
+      expect(
+        find.textContaining('Office lunch \u00b7 macros not stated'),
+        findsWidgets,
+      );
+    });
+
+    testWidgets('opens no page — there is nothing behind the words', (
+      tester,
+    ) async {
+      late GoRouter router;
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: _outWeek()),
+        recipes: _recipesRepo(null),
+        expose: (r) => router = r,
+      );
+
+      expect(mealTitleRoute(_outWeek().entries.single, weekKey: 'k'), isNull);
+      await tester.tap(find.text('Office lunch'));
+      await tester.pumpAndSettle();
+      // Still the Week: nothing was pushed under the words.
+      expect(router.state.uri.path, '/week');
+      expect(find.text('Office lunch'), findsOneWidget);
+    });
+
+    testWidgets('the \u2212 removes it like any meal, and the undo puts its '
+        'words and figures back', (tester) async {
+      filterForuiSemanticsAssertions();
+      final planning = _LiveOutRepo(_outWeek());
+      await _pumpWeek(
+        tester,
+        planning: planning,
+        recipes: _recipesRepo(null),
+        expose: (_) {},
+      );
+
+      await tester.tap(find.byIcon(FLucideIcons.minus).first);
+      await tester.pumpAndSettle();
+      expect(find.text('Office lunch'), findsNothing);
+      expect(find.text('Removed Office lunch from Thursday.'), findsOneWidget);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+      expect(planning.outEntries.single.label, 'Office lunch');
+      expect(planning.outEntries.single.macros!.kcal, 620);
     });
   });
 

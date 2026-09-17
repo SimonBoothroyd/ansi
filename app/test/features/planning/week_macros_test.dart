@@ -87,6 +87,25 @@ PlanEntry _snack({
   portions: portions,
 );
 
+/// A meal eaten OUT: its words, and the per-portion figures when they were
+/// stated. Nothing behind it — no recipe to look up, no vocabulary row.
+PlanEntry _out({
+  required String id,
+  String label = 'Office lunch',
+  Macros? macros = const Macros(kcal: 620, protein: 42, carb: 55, fat: 24),
+  int day = 0,
+  List<String> eaters = const ['ada', 'jun'],
+  int? portions,
+}) => PlanEntry(
+  id: id,
+  dayOfWeek: day,
+  mealSlot: 'Lunch',
+  label: label,
+  macros: macros,
+  eaterIds: eaters,
+  portions: portions,
+);
+
 void main() {
   test('every meal complete: the total is whole and nothing is excluded', () {
     final macros = _sum([_entry(id: 'a'), _entry(id: 'b', day: 1)]);
@@ -625,6 +644,133 @@ void main() {
           lensMemberId: 'ada',
         );
         expect(hers.total!.kcal, 100);
+      },
+    );
+  });
+
+  // --- A meal eaten OUT ----------------------------------------------------
+
+  group('a meal eaten OUT', () {
+    test('counts from the figures stated on it, multiplied by its eaters', () {
+      // 620 kcal is what ONE plate was worth; two people had one each.
+      final macros = _sum([_out(id: 'a')]);
+      expect(macros.total!.kcal, closeTo(1240, 1e-9));
+      expect(macros.total!.protein, closeTo(84, 1e-9));
+      expect(macros.counted, 1);
+      expect(macros.considered, 1);
+      expect(macros.excluded, isEmpty);
+      expect(macros.demand, 2);
+    });
+
+    test('nothing is looked up for it — the summaries are never asked', () {
+      var asked = 0;
+      final macros = sumPlannedMacros(
+        [_out(id: 'a')],
+        summaryFor: (id) {
+          asked++;
+          return _hundred;
+        },
+      );
+      expect(asked, 0);
+      expect(macros.total!.kcal, closeTo(1240, 1e-9));
+    });
+
+    test('unstated figures are an exclusion, NAMED in the row\u2019s own '
+        'words — never a zero', () {
+      final macros = _sum([_out(id: 'a', macros: null)]);
+      expect(macros.total, isNull);
+      expect(macros.isRefused, isTrue);
+      expect(macros.counted, 0);
+      expect(macros.considered, 1);
+      final left = macros.excluded.single;
+      expect(left.label, 'Office lunch');
+      expect(left.reason, MealExclusion.outNotStated);
+      // Nothing is borrowed from the ingredient vocabulary's words for it.
+      expect(left.lineReason, isNull);
+      expect(left.summary, isNull);
+    });
+
+    test('it sums BESIDE recipes and snacks — one day, one total', () {
+      final macros = _sum([_entry(id: 'a'), _snack(id: 'b'), _out(id: 'c')]);
+      expect(macros.total!.kcal, closeTo(200 + 420 + 1240, 1e-9));
+      expect(macros.counted, 3);
+      expect(macros.excluded, isEmpty);
+    });
+
+    test('an uncounted one leaves the rest of the day whole, and moves the '
+        'denominator', () {
+      final macros = _sum([_entry(id: 'a'), _out(id: 'b', macros: null)]);
+      expect(macros.total!.kcal, closeTo(200, 1e-9));
+      expect(macros.counted, 1);
+      expect(macros.considered, 2);
+      expect(macros.isPartial, isTrue);
+      expect(macros.excluded.single.reason, MealExclusion.outNotStated);
+    });
+
+    test('an unstated FIBRE is not an exclusion: the meal counts, and only '
+        'the week\u2019s fibre goes', () {
+      final withFibre = _sum([
+        _out(
+          id: 'a',
+          macros: const Macros(
+            kcal: 620,
+            protein: 42,
+            carb: 55,
+            fat: 24,
+            fiber: 6,
+          ),
+        ),
+      ]);
+      expect(withFibre.total!.fiber, closeTo(12, 1e-9));
+
+      final beside = _sum([
+        _out(
+          id: 'a',
+          macros: const Macros(
+            kcal: 620,
+            protein: 42,
+            carb: 55,
+            fat: 24,
+            fiber: 6,
+          ),
+        ),
+        _out(id: 'b', day: 1),
+      ]);
+      expect(beside.counted, 2, reason: 'both meals are still counted');
+      expect(beside.excluded, isEmpty);
+      expect(beside.total!.fiber, isNull, reason: 'never a short total');
+    });
+
+    test('nobody eating it is that refusal, not the figures\u2019', () {
+      final macros = _sum([_out(id: 'a', eaters: const [])]);
+      expect(macros.excluded.single.reason, MealExclusion.noEaters);
+    });
+
+    test('an override is the portions — three plates of the same lunch', () {
+      final macros = _sum([_out(id: 'a', portions: 3)]);
+      expect(macros.total!.kcal, closeTo(1860, 1e-9));
+      expect(macros.demand, 3);
+    });
+
+    test('under a person\u2019s lens it is their share of it', () {
+      final macros = _sum([_out(id: 'a')], lens: 'ada');
+      expect(macros.total!.kcal, closeTo(620, 1e-9));
+      expect(macros.servings, 1);
+    });
+
+    test(
+      'served on its own, it is the same reading at the narrowest scope',
+      () {
+        final meal = servedMealMacros(_out(id: 'a'), summaryFor: _summaries);
+        expect(meal.total!.kcal, closeTo(1240, 1e-9));
+        expect(meal.considered, 1);
+
+        final unstated = servedMealMacros(
+          _out(id: 'a', macros: null),
+          summaryFor: _summaries,
+        );
+        expect(unstated.isRefused, isTrue);
+        expect(unstated.excluded.single.reason, MealExclusion.outNotStated);
       },
     );
   });

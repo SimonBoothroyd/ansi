@@ -1391,6 +1391,40 @@ void main() {
     });
   });
 
+  // --- A meal eaten out is bought by nobody ---------------------------------
+
+  group('a planned meal eaten OUT', () {
+    test('buys nothing, and leaves the list it stands beside whole', () async {
+      await _insertIngredient(db, 'bar', 'Protein bar', 'snacks', 'g');
+      await planning.addOutEntry(
+        weekStart: _week,
+        dayOfWeek: 1,
+        mealSlot: 'Lunch',
+        label: 'Office lunch',
+        eaterIds: const ['a', 'b'],
+      );
+
+      expect((await repo.watchShoppingList(_week).first).groups, isEmpty);
+
+      // Beside a snack that IS bought, the list holds exactly the snack.
+      await planning.addIngredientEntry(
+        weekStart: _week,
+        dayOfWeek: 1,
+        mealSlot: 'Snack',
+        ingredientId: 'bar',
+        eaterIds: const ['a'],
+        quantity: 60,
+        unit: g,
+      );
+      final list = await repo.watchShoppingList(_week).first;
+      expect(list.groups.single.items.single.name, 'Protein bar');
+      expect(
+        list.groups.expand((g) => g.items).map((i) => i.name),
+        isNot(contains('Office lunch')),
+      );
+    });
+  });
+
   // --- A planned ingredient is bought, though nothing cooks it (8.14 / A-D4) -
 
   group('a planned INGREDIENT meal', () {

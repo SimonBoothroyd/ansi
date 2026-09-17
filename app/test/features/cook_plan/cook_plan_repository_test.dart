@@ -165,6 +165,46 @@ void main() {
     });
   });
 
+  // The same ruling, one kind over: nothing about an office lunch is cooked
+  // either, and the shopping list does not buy it — which is pinned in
+  // `shopping_repository_test.dart`.
+  group('a planned meal eaten OUT', () {
+    test('opens no cook session at all', () async {
+      await planning.addOutEntry(
+        weekStart: _week,
+        dayOfWeek: 1,
+        mealSlot: 'Lunch',
+        label: 'Office lunch',
+        eaterIds: const ['a', 'b'],
+      );
+      final plan = await repo.watchCookPlan(_week).first;
+      expect(plan.isEmpty, isTrue);
+      expect(plan.recipes, isEmpty);
+    });
+
+    test('it does not disturb the dishes planned beside it', () async {
+      await _insertRecipe(db, 'ragu', 'House Ragù');
+      await planning.addEntry(
+        weekStart: _week,
+        dayOfWeek: 0,
+        mealSlot: 'Dinner',
+        recipeId: 'ragu',
+        eaterIds: const ['a', 'b'],
+      );
+      await planning.addOutEntry(
+        weekStart: _week,
+        dayOfWeek: 0,
+        mealSlot: 'Lunch',
+        label: 'Office lunch',
+        eaterIds: const ['a', 'b'],
+      );
+      final plan = await repo.watchCookPlan(_week).first;
+      expect(plan.recipes.map((r) => r.title), ['House Ragù']);
+      // Its eaters are NOT folded into the dish's batch.
+      expect(plan.recipes.single.totalPortions, 2);
+    });
+  });
+
   test('every shelf-life column reaches the plan — the clustering itself is '
       "cook_plan_test's subject, not SQL's", () async {
     await _insertRecipe(

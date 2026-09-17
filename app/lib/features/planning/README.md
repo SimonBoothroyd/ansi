@@ -7,15 +7,17 @@ Single active week; multiple entries per (day, slot); per-meal eaters;
 copy-last-week. The INPUT to the derived cook-plan / shopping pipeline (steps
 5–6) — you say *what you want to eat*, nothing about batching or leftovers.
 
-A planned meal is a **recipe or a bare ingredient** — a protein bar, a yoghurt
-— never both and never neither (`plan_entry_target_xor`, migration 0033). See
+A planned meal is a **recipe, a bare ingredient** — a protein bar, a yoghurt —
+**or a meal eaten out** — its own words and, when they were stated, the macros
+that came with it. Exactly one of the three, never two and never none
+(`plan_entry_target_xor`, migrations 0033 and 0045). See
 [The entry XOR](#the-entry-xor) below.
 
 ## What's here
 
 ```
 planning/
-  domain/         planning.dart (Member, PlanEntry, WeekPlan,
+  domain/         planning.dart (Member, PlanEntry, PlanEntryKind, WeekPlan,
                   mealSlotRank), week_macros.dart
                   (sumPlannedMacros + ingredientPortionMacros) +
                   planning_repository.dart + week_variant_repository.dart
@@ -33,7 +35,8 @@ planning/
                   household_section (the members' usual portions, a section
                   of /account — plan 0027 P-D3, moved there by 0028 E6),
                   week_widgets (Pill, EaterAvatar, EaterAvatarStack,
-                  PortionsChip, CookMarkerLine), week_format,
+                  PortionsChip, CookMarkerLine, OutTag, OutMealLine),
+                  week_format,
                   copy_last_week (the copy, and what it could not bring),
                   week_variant_door + week_variant_editor +
                   week_variant_format + week_variant_view_models
@@ -68,38 +71,59 @@ back to the recipe's own value leaving no row at all.
 
 ## The entry XOR
 
-`plan_entry` names a `recipe_id` **or** an `ingredient_id`, enforced server-side
-(migration 0033, the shape `recipe_line_item` has worn since 0017). Something
-you simply *eat* is planned as itself rather than dressed up as a one-line
-recipe.
+`plan_entry` names a `recipe_id`, an `ingredient_id` **or** a `label`, enforced
+server-side (migrations 0033 and 0045, the shape `recipe_line_item` has worn
+since 0017). Something you simply *eat* is planned as itself rather than dressed
+up as a one-line recipe; something eaten OUT is planned as the words it is,
+rather than as a vocabulary row the household does not own.
 
 - An **ingredient** entry states the amount of **one portion** —
   `quantity` + `unit`, or a `measure_id` ("1 bar") with `unit` holding the
   honest count fallback. The amount columns are refused on a recipe entry,
-  whose amount is its `portions`.
-- It **carries eaters and multiplies** like any other entry: the same `eaters`
-  array, the same `portions` override, the same Σ-portion-factor demand. Two
-  people having the same snack is two of them.
-- Read `PlanEntry.isIngredient`, never a null `recipeId` by hand. **Every
-  derivation branches explicitly**, and a null recipe never means "skip":
-  - **week macros** weigh it from the nutrition the entry carries
-    (`ingredientPortionMacros`), and name any refusal in a stub *line's* own
-    words (`MealExclusion.ingredientNotCounted` + a `MacroLineReason`);
-  - **the cook plan ignores it** — nothing about it is cooked, so it opens no
-    session and joins no batch;
-  - **the shopping list includes it**, which is why
+  whose amount is its `portions`, and on a meal eaten out, which is neither
+  measured nor bought.
+- A meal **eaten out** states its `label` and, optionally, per-portion
+  `macros` — the vocabulary's `{kcal, protein, carb, fat}` shape with its
+  optional `fiber` key, but per PORTION rather than per 100 of a basis. Null
+  macros mean **not stated**, never zero.
+- Every kind **carries eaters and multiplies**: the same `eaters` array, the
+  same `portions` override, the same Σ-portion-factor demand. Two people having
+  the same snack — or the same canteen lunch — is two of them.
+- Read `PlanEntry.kind`, never a null `recipeId` by hand. **Every derivation
+  branches explicitly** on the kind, and the compiler holds it: a `switch` over
+  `PlanEntryKind` must name all three cases.
+  - **week macros** weigh an ingredient meal from the nutrition the entry
+    carries (`ingredientPortionMacros`), naming any refusal in a stub *line's*
+    own words (`MealExclusion.ingredientNotCounted` + a `MacroLineReason`), and
+    weigh a meal eaten out from its stated figures — or name it as uncounted
+    (`MealExclusion.outNotStated` → `Office lunch · macros not stated`). An
+    unstated *fibre* is not an exclusion;
+  - **the cook plan ignores** an ingredient meal and a meal eaten out — nothing
+    about either is cooked, so neither opens a session or joins a batch;
+  - **the shopping list includes** an ingredient meal, which is why
     `SqliteShoppingRepository._derivePlannedIngredients` walks the week's
-    ENTRIES beside the cook plan's sessions.
+    ENTRIES beside the cook plan's sessions, and **buys nothing** for a meal
+    eaten out;
+  - **copy last week** carries every kind whole — a snack with its amount, a
+    meal eaten out with its words AND its figures.
+- `test/structure/plan_entry_kind_seam_test.dart` is the seam: no switch over
+  the kind carries a wildcard, no file that knows a `PlanEntry` reads a null
+  column as a kind test, and the two SQL derivations state the kind they take
+  in their own `WHERE` clause.
 
 ## The add flow
 
 Tapping a day's dashed "+ Add a meal" runs `_addMealFlow` in `week_view.dart`:
 
-1. **`showRecipePickerSheet`** — **one door for both kinds of thing**: search,
-   Recent/Books tabs, book·section subtitles (from the books `libraryProvider`),
-   dishes "already this week" as quick picks, and — once something is typed — an
-   `INGREDIENTS` section over the household vocabulary, mirroring how the
-   editor's `line_target_picker` gained "Your recipes". Returns a `PickedMeal`.
+1. **`showRecipePickerSheet`** — **one door for all three kinds of thing**:
+   search, Recent/Books tabs, book·section subtitles (from the books
+   `libraryProvider`), dishes "already this week" as quick picks, and — once
+   something is typed — an `INGREDIENTS` section over the household vocabulary,
+   mirroring how the editor's `line_target_picker` gained "Your recipes". When
+   the typed words hit **nothing** — no recipe title at any tier, no ingredient,
+   and the vocabulary search has caught up with what is typed — a third answer
+   appears in the footer: `＋ note it — "Office lunch" · not cooked, not
+   bought`. Returns a `PickedMeal`.
 2. **The quantity sheet**, for an ingredient only: the shipped
    `showQuantityUnitSheet`, opened on the row's own **default unit** — a
    piece-default row opens on `piece`, weighed by its `piece_basis_amount`
@@ -107,7 +131,12 @@ Tapping a day's dashed "+ Add a meal" runs `_addMealFlow` in `week_view.dart`:
    There is no stated default measure to seed from any more.
 3. **`showConfirmMealSheet`** — the slot, who's-eating, and a **portions**
    stepper (`plan_entry.portions`, null = track |eaters|, spec §8). It takes a
-   `MealTarget` (`RecipeMeal` / `SnackMeal`) and writes the matching entry.
+   `MealTarget` (`RecipeMeal` / `SnackMeal` / `OutMeal`) and writes the matching
+   entry. A meal eaten out is asked one more question, in an optional fold:
+   `Macros · per portion`, on the ingredient form's own `MacroFields` keypad.
+   Left empty the meal is still placed and the week names it as uncounted; a
+   half-filled panel is not stated either, and the note under the slots says
+   which of the three states the typing is in.
    The slot arrives already answered: the flow opens both sheets on the day's
    next unfilled default slot (`defaultMealSlot` — Breakfast on an empty day,
    Lunch once breakfast is planned, Dinner once all four are), so the usual
@@ -116,8 +145,9 @@ Tapping a day's dashed "+ Add a meal" runs `_addMealFlow` in `week_view.dart`:
 The picker/confirm rows show the shelf-life chips ("keeps N d · freezable"),
 and the confirm sheet surfaces a **"same batch" hint** when the new meal would
 cook alongside one already on the week — both landed in step 5 (they reuse the
-cook plan's `batchHintFor`/`clusterSessions`). Neither appears on a snack: they
-are facts about a cooked dish, and `MealSnackCard` prints its amount instead.
+cook plan's `batchHintFor`/`clusterSessions`). Neither appears on a snack or a
+meal eaten out: they are facts about a cooked dish. `MealSnackCard` prints its
+amount instead, and `MealOutCard` prints `out · not cooked, not bought`.
 
 ## Model notes
 

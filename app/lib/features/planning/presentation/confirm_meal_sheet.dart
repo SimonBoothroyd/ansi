@@ -229,6 +229,10 @@ class _ConfirmMealSheet extends HookConsumerWidget {
       centerTitle: false,
       dismiss: AnsiSheetDismiss.none,
       topPadding: 16,
+      // The card, three questions and — for a meal eaten out — a fold of five
+      // number slots are taller than a small phone's sheet. The column
+      // scrolls rather than the button being pushed off the bottom of it.
+      scrollable: true,
       children: [
         const SizedBox(height: 14),
         switch (target) {

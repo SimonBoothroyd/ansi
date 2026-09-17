@@ -342,4 +342,43 @@ void main() {
       expect(snackAmount(snack()), 'no amount');
     });
   });
+
+  group('outMacroLine — what a meal eaten out prints in that same place', () {
+    PlanEntry out({Macros? macros}) => PlanEntry(
+      id: 'e',
+      dayOfWeek: 1,
+      mealSlot: 'Lunch',
+      label: 'Office lunch',
+      macros: macros,
+    );
+
+    test('stated figures print per portion, and say they were stated', () {
+      expect(
+        outMacroLine(
+          out(macros: const Macros(kcal: 620, protein: 42, carb: 55, fat: 24)),
+        ),
+        '620 kcal · 42P \u2014 as stated',
+      );
+    });
+
+    test('they print through the shared macro rounding', () {
+      expect(
+        outMacroLine(
+          out(
+            macros: const Macros(kcal: 619.6, protein: 41.7, carb: 55, fat: 24),
+          ),
+        ),
+        '620 kcal · 42P \u2014 as stated',
+      );
+    });
+
+    test('unstated figures are a named state, never a zero', () {
+      expect(outMacroLine(out()), 'macros not stated');
+      expect(outMacroLine(out()).contains('0'), isFalse);
+    });
+
+    test('both doors say what the app will not do in the same four words', () {
+      expect(kNotCookedNotBought, 'not cooked, not bought');
+    });
+  });
 }

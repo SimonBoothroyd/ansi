@@ -152,9 +152,7 @@ List<InlineSpan> mealRunSpans(
       // midpoint — the alignment a run at this size cannot afford to get
       // wrong. Its semantic label is the word the mark replaces.
       spans
-        ..add(
-          macroUnitSpan(kMealOutIcon, label: 'eaten out', style: name),
-        )
+        ..add(macroUnitSpan(kMealOutIcon, label: 'eaten out', style: name))
         ..add(TextSpan(text: ' ', style: name));
     }
     spans.add(TextSpan(text: mealTitleText(entry), style: name));

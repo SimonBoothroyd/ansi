@@ -105,6 +105,25 @@ WeekPlan _week() => WeekPlan(
   ],
 );
 
+/// A week whose today holds one meal eaten OUT beside a dish.
+WeekPlan _outWeek({
+  Macros? macros = const Macros(kcal: 620, protein: 42, carb: 55, fat: 24),
+}) => WeekPlan(
+  id: 'w',
+  weekStart: _weekStart,
+  entries: [
+    PlanEntry(
+      id: 'o1',
+      dayOfWeek: _todayOffset,
+      mealSlot: 'Lunch',
+      label: 'Office lunch',
+      macros: macros,
+      eaterIds: const ['m1', 'm2'],
+    ),
+    _meal('e2', _todayOffset, 'Dinner'),
+  ],
+);
+
 /// The session behind the two dinners: one pot on the earlier day, covering
 /// both — so there is a batch sentence for the pane to print.
 FakeCookPlanRepository _batched() => FakeCookPlanRepository.of([
@@ -461,6 +480,50 @@ void main() {
     expect(macroText('1 200 kcal · 2 meals'), findsOneWidget);
     expect(find.text('protein 120 g · carbs 160 g · fat 80 g'), findsOneWidget);
     expect(find.textContaining('carbs'), findsOneWidget);
+  });
+
+  group('a meal eaten out', () {
+    testWidgets('the day pane draws it at the third weight, with its tag and '
+        'its figures, and no cook marker', (tester) async {
+      await _pumpWeek(tester, week: _outWeek(), cook: _batched());
+
+      expect(find.text('Office lunch'), findsWidgets);
+      expect(find.byType(OutTag), findsOneWidget);
+      expect(find.text('620 kcal · 42P \u2014 as stated'), findsOneWidget);
+      // The dish beside it still has its batch sentence, so an absent marker
+      // on this row is the kind's own rule.
+      expect(find.byType(CookMarkerLine), findsOneWidget);
+    });
+
+    testWidgets('the agenda marks it with a hollow dot, in the run\u2019s own '
+        'voice', (tester) async {
+      await _pumpWeek(tester, week: _outWeek());
+
+      // Spoken, the mark reads as the words it stands in for — which is both
+      // what a screen reader hears and what the run says.
+      expect(
+        _run('eaten out Office lunch · Weeknight Chicken Curry'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('its kcal join the day only when they were stated', (
+      tester,
+    ) async {
+      await _pumpWeek(tester, week: _outWeek());
+      // 620 × 2 eaters + the dish's 600 for the same two — the day's own
+      // strip, and the week band under it, which is this one day.
+      expect(macroTextContaining('144P 190C 88F'), findsWidgets);
+
+      await _pumpWeek(tester, week: _outWeek(macros: null));
+      expect(macroText(_mealStrip), findsWidgets);
+      expect(
+        find.textContaining('Office lunch · macros not stated'),
+        findsWidgets,
+      );
+      // The day still states its own denominator rather than a bare number.
+      expect(find.textContaining('1 of 2 meals'), findsWidgets);
+    });
   });
 
   testWidgets('a meal whose recipe is incomplete refuses instead of printing '

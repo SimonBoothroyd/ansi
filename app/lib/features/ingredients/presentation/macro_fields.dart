@@ -32,11 +32,7 @@ import 'macros_format.dart';
 /// ([Macros.fiber]): a label that prints it fills the fifth slot, one that
 /// does not leaves it blank and the row is complete regardless.
 class MacroFields extends StatelessWidget {
-  const MacroFields({
-    required this.draft,
-    required this.onChanged,
-    super.key,
-  });
+  const MacroFields({required this.draft, required this.onChanged, super.key});
 
   /// Seeds the controllers when this widget is (re)built under a new key —
   /// so it is the DRAFT, not the row: the form re-keys exactly when it has put
