@@ -205,8 +205,15 @@ const schema = Schema([
     // What the cents bought, in the INGREDIENT's basis unit (g or ml) — the
     // same denomination `ingredient_measure.basis_amount` uses. Null where
     // nobody has said what the pack is: the line is kept, and it is simply
-    // not a price yet.
+    // not a price yet. Every figure a screen derives comes from THIS.
     Column.real('pack_basis_amount'),
+    // The pack as ENTERED, which is what the ledger prints: an amount in a
+    // catalog unit (`pack_unit` a units.dart id), or a COUNT of the row's own
+    // measure when `pack_unit` is null and `measure_id` is set. Nothing is
+    // derived from it — a measure re-weighed later must not re-price a shop
+    // that already happened.
+    Column.real('pack_amount'),
+    Column.text('pack_unit'),
     Column.text('measure_id'), // → ingredient_measure.id — the pack's WORD
     Column.integer('sort_order'),
     ..._audit,

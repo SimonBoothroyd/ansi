@@ -6,8 +6,13 @@
 --   * the SHAPE — the two tables exist with the columns the app reads, the
 --     enumerations are closed (`source`, `kind`), a pack amount must be
 --     positive, and a discount is stated as a non-negative deduction;
+--   * the WORDS — a line keeps the pack in the denomination it was bought in
+--     (`pack_amount` with `pack_unit`, or a count of a measure) beside the
+--     basis figure the price is derived from, and the two are allowed to
+--     disagree;
 --   * the FENCE — only a food line can be about an ingredient or carry a
---     pack. A tax line with a pack weight would be a price nobody can read;
+--     pack, in either denomination. A tax line with a pack weight would be a
+--     price nobody can read;
 --   * the LEDGER — a hand-typed price really is a one-line `manual` receipt,
 --     so the derivation a screen reads is the same arithmetic over a scanned
 --     line and a typed one;
@@ -21,7 +26,7 @@
 -- `rls_household_isolation.sql`. Run by `supabase test db`.
 
 begin;
-select plan(22);
+select plan(29);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures: one household, a duplicate vocab pair (so the twin leg has a twin
@@ -100,6 +105,64 @@ select lives_ok(
      values ('aaaaaaaa-0000-0000-0000-000000000599','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
              'aaaaaaaa-0000-0000-0000-000000000501','COUPON',-100,'fee') $$,
   'an unattached discount is a fee line with negative cents'
+);
+
+-- ---------------------------------------------------------------------------
+-- 1b · The pack in the words it was bought in (0046).
+-- ---------------------------------------------------------------------------
+--
+-- `pack_basis_amount` is what a price is DERIVED from; `pack_amount` with
+-- `pack_unit` is what it was SAID as, and nothing reads a figure out of it.
+-- The two must be able to disagree — a measure re-weighed later must not
+-- re-price a shop that already happened.
+
+select has_column('public', 'receipt_line', 'pack_amount',
+  'a line keeps the pack as the person stated it');
+select has_column('public', 'receipt_line', 'pack_unit',
+  'and the unit they stated it in');
+
+select lives_ok(
+  $$ insert into receipt_line (id, household_id, receipt_id, ingredient_id, cents, kind,
+                               pack_basis_amount, pack_amount, pack_unit)
+     values ('aaaaaaaa-0000-0000-0000-000000000591','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+             'aaaaaaaa-0000-0000-0000-000000000501','aaaaaaaa-0000-0000-0000-000000000401',
+             349,'item',453.59237,1,'lb') $$,
+  'a pound is stored as a pound AND as the grams it came to'
+);
+
+select lives_ok(
+  $$ insert into receipt_line (id, household_id, receipt_id, ingredient_id, cents, kind,
+                               pack_basis_amount, pack_amount, measure_id)
+     values ('aaaaaaaa-0000-0000-0000-000000000592','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+             'aaaaaaaa-0000-0000-0000-000000000501','aaaaaaaa-0000-0000-0000-000000000401',
+             698,'item',908,2,'aaaaaaaa-0000-0000-0000-000000000411') $$,
+  'a measure pack states a COUNT and no unit — the measure is the word'
+);
+
+select throws_ok(
+  $$ insert into receipt_line (household_id, receipt_id, ingredient_id, cents, kind,
+                               pack_basis_amount, pack_amount)
+     values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000501',
+             'aaaaaaaa-0000-0000-0000-000000000401',349,'item',454,0) $$,
+  '23514', null,
+  'a stated pack of nothing is refused, exactly as the basis figure is'
+);
+
+select throws_ok(
+  $$ insert into receipt_line (household_id, receipt_id, ingredient_id, cents, kind,
+                               pack_basis_amount, pack_unit)
+     values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000501',
+             'aaaaaaaa-0000-0000-0000-000000000401',349,'item',454,'lb') $$,
+  '23514', null,
+  'a unit with no number beside it says nothing'
+);
+
+select throws_ok(
+  $$ insert into receipt_line (household_id, receipt_id, cents, kind, pack_amount, pack_unit)
+     values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000501',
+             88,'tax',1,'lb') $$,
+  '23514', null,
+  'a tax line states no pack in any denomination'
 );
 
 -- ---------------------------------------------------------------------------
