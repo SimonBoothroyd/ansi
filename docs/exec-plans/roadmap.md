@@ -12,8 +12,11 @@ The detail is in the plan; the landing dates are in the
 
 ## Next
 
-1. Step 11 (anti-waste), still stretch, or the first idea worth building off
-   the [backlog](./backlog.md).
+1. Food cost, receipts, and a meal eaten out —
+   [plan 0049](./active/0049-food-cost-receipts-and-meals-out.md), the first
+   ideas off the [backlog](./backlog.md), in three phases: prices and the
+   recipe's cost reading, then receipts and spend, then the meal out.
+2. Step 11 (anti-waste), still stretch.
 
 The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));
 one browser sign-in on it is still to be walked.
