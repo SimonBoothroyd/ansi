@@ -26,15 +26,15 @@ Three things the app cannot say today, each a backlog row, each drawn in
 
 Phase one — prices and cost:
 
-- [ ] Migration `0044_receipts.sql`: `receipt` and `receipt_line`, household
+- [x] Migration `0044_receipts.sql`: `receipt` and `receipt_line`, household
       RLS in the measures' shape, soft delete, PowerSync rules in both the
       docker and the cloud streams file. A hand-typed price is a one-line
       receipt with `source = 'manual'`.
-- [ ] The price sheet on the ingredient page: paid, for a pack in a unit the
+- [x] The price sheet on the ingredient page: paid, for a pack in a unit the
       row admits (its measures leading the chip row), at a store chip; the
       dock states the per-basis figure before Done and refuses a volume pack
       on a g-basis row with no density.
-- [ ] The **Price** group on the ingredient page, read posture: the latest as
+- [x] The **Price** group on the ingredient page, read posture: the latest as
       one line, earlier prices kept as paid, the unpriced state as one door.
 - [ ] Cost summation in pure Dart beside the macro summation: per line, in
       the basis, through the same conversions; imprecise and optional lines
