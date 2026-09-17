@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe picker &amp; confirm</h1>
-    <p class="view-status">built · matches code 2026-09-16 · <code>features/planning</code> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: same, as a dialog from 640</p>
+    <p class="view-status">built · matches code 2026-09-17 · <code>features/planning</code> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: same, as a dialog from 640</p>
     <p class="view-blurb">Pick a recipe for a slot, then say who is eating and how much — the two steps between a day’s ＋ and a meal on the week. One door answers three ways: a recipe, an ingredient, or the words of a meal eaten out.</p>
 </header>
 
@@ -98,10 +98,11 @@
                 <p class="target">to · <b>Tuesday, Lunch</b></p>
                 <div class="field"><div class="search"><span class="mag">⌕</span><span>Office lunch</span><span class="care"></span></div></div>
                 <div class="rseg"><span class="rsegopt on">Recent</span><span class="rsegopt">Books</span><span class="rsegopt">Favorites</span></div>
-                <p class="conv-note" style="margin:26px 20px">No recipes yet — add one below.</p>
+                <p class="conv-note" style="margin:26px 20px">Nothing in the Library matches “Office lunch”.</p>
                 <div class="newrow" style="border-color:var(--herb);color:var(--herb)">＋ note it — “Office lunch” · not cooked, not bought</div>
                 <div class="newrow">＋ new recipe — build it from scratch</div>
                 <p class="conv-note" style="margin:14px 20px 0">The condition is all four clauses: something is typed, <b>no recipe title hit at any tier</b> (typos included), <b>no ingredient hit</b> — even a guessed one is an answer — and the vocabulary search has caught up with what is typed, so the row cannot flash between keystrokes offering to plan half a word. The list above says its own empty state; the third answer sits in the footer, above the door it is a sibling of. Tapping it resolves the picker to the <b>words</b>, trimmed: nothing is minted in the Library or the vocabulary, and the confirm sheet is next.</p>
+                <p class="conv-note" style="margin:10px 20px 0"><b>A bare shelf and a search that missed are two different sentences.</b> <span style="font-family:'IBM Plex Mono',monospace">No recipes yet — add one below.</span> is what a household with no Library reads, and it points at the door under it. Once words are typed the list says them back — and names the shelf it emptied, because Favorites missing a dish is not the Library missing it: <span style="font-family:'IBM Plex Mono',monospace">Nothing in your favorites matches “…”.</span> Neither line offers anything; the miss has exactly one offer, and it is the footer's.</p>
                 <div class="foot"><span class="foot-lab">Eating: <b>Ada &amp; Jun</b> · shared</span>
                     <span class="eaters"><span class="ep on a">A</span><span class="ep on j">J</span></span></div>
             </div></div>

@@ -235,6 +235,73 @@ void main() {
     expect(find.textContaining('star a recipe'), findsOneWidget);
   });
 
+  // --- A bare shelf and a search that missed are different answers ----------
+  //
+  // The picker has a third answer for typed words (a meal eaten out), so an
+  // empty list under a query is no longer "you own no recipes" — it is "these
+  // words hit nothing here". The two states must not share a sentence.
+
+  group('an empty list', () {
+    testWidgets('points at the door that fills the shelf when NOTHING is '
+        'typed', (tester) async {
+      await _open(tester, recipes: const []);
+
+      expect(find.text('No recipes yet — add one below.'), findsOneWidget);
+    });
+
+    testWidgets('says the words back when a query matched no recipe', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+
+      await _open(tester);
+      await tester.enterText(find.byType(EditableText).first, 'office lunch');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Nothing in the Library matches “office lunch”.'),
+        findsOneWidget,
+      );
+      // The empty-LIBRARY line is a different claim, and a false one here.
+      expect(find.textContaining('No recipes yet'), findsNothing);
+      // It states a fact and offers nothing: the third answer is the footer's.
+      expect(find.text(noteItLabel('office lunch')), findsOneWidget);
+    });
+
+    testWidgets('names the tab it emptied, because Favorites is not the '
+        'Library', (tester) async {
+      filterForuiSemanticsAssertions();
+
+      await _open(tester);
+      await tester.tap(find.text('Favorites'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(EditableText).first, 'office lunch');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Nothing in your favorites matches “office lunch”.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('star a recipe'), findsNothing);
+    });
+
+    testWidgets('trims the words it quotes', (tester) async {
+      filterForuiSemanticsAssertions();
+
+      await _open(tester);
+      await tester.enterText(
+        find.byType(EditableText).first,
+        '  office lunch  ',
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Nothing in the Library matches “office lunch”.'),
+        findsOneWidget,
+      );
+    });
+  });
+
   // --- One door, two kinds of thing (step 8.14 / C-D1) ----------------------
 
   group('the ingredients section', () {
