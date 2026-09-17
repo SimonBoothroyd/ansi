@@ -4,7 +4,7 @@
 /// The two summations are deliberately the same walk over the same lines
 /// (`line_basis.dart` is the conversion both call), and that closeness is
 /// exactly what makes this worth holding mechanically. The cheapest "fix" for
-/// any future gap — a `cents` field on [RecipeMacroSummary], a `kcal` beside a
+/// any future gap — a `cents` field on `RecipeMacroSummary`, a `kcal` beside a
 /// price — would fuse two readings that must be able to refuse independently:
 /// a recipe whose macros are whole can be unpriced, and a recipe every line of
 /// which is priced can still be waiting on a stub. One record carrying both

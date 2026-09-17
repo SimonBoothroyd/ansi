@@ -55,7 +55,7 @@ void main() {
       expect(formatMoneyWhole(-812), r'-$8');
     });
 
-    test('under a dollar it keeps the cents spelling, never \$0', () {
+    test(r'under a dollar it keeps the cents spelling, never $0', () {
       expect(formatMoneyWhole(76.4), '76¢');
       expect(formatMoneyWhole(99.6), r'$1');
       expect(formatMoneyWhole(0), '0¢');

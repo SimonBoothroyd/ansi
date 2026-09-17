@@ -181,11 +181,13 @@ void main() {
     expect(find.byType(RecipeMacroPanel), findsOneWidget);
     expect(find.text('612'), findsOneWidget);
     // Placement: after the last ingredient line, per the board's Recipe frame.
+    // The strip's header on the page is the `Macros | Cost` pair, not the
+    // micro-label the panel draws when it is hosted without one.
     final ingredient = tester.getBottomLeft(
       find.textContaining('Chicken thigh', findRichText: true).first,
     );
     expect(
-      tester.getTopLeft(find.text('PER SERVING')).dy,
+      tester.getTopLeft(find.text('per serving')).dy,
       greaterThan(ingredient.dy),
     );
   });

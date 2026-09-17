@@ -141,7 +141,7 @@ void main() {
         ),
       );
 
-      expect(find.text('≈ \$71 to cook · 3 lines unpriced'), findsOneWidget);
+      expect(find.text(r'≈ $71 to cook · 3 lines unpriced'), findsOneWidget);
       // Phase one shows the plan only — what was SPENT arrives with the
       // receipts, and the two are never reconciled.
       expect(find.textContaining('spent'), findsNothing);

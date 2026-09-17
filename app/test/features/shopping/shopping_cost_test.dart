@@ -132,7 +132,7 @@ void main() {
           ),
           cents: 242,
         ),
-        '550 g · ≈ \$2.42',
+        r'550 g · ≈ $2.42',
       );
     });
 
@@ -145,7 +145,6 @@ void main() {
             totals: [Quantity(350, g)],
             pieceTotal: const (count: 1, approx: true),
           ),
-          cents: null,
           anyPriced: true,
         ),
         '350 g · no price yet',

@@ -1296,7 +1296,7 @@ void main() {
   });
 
   group('what the trip costs', () {
-    ShoppingList _list({bool checked = false}) => ShoppingList(
+    ShoppingList costList({bool checked = false}) => ShoppingList(
       groups: [
         ShoppingGroup(
           label: 'Produce',
@@ -1321,7 +1321,7 @@ void main() {
       ],
     );
 
-    List<Override> _overrides(ShoppingList list) => [
+    List<Override> costOverrides(ShoppingList list) => [
       shoppingRepositoryProvider.overrideWithValue(_FakeShoppingRepo(list)),
       ingredientPricingProvider.overrideWithValue({
         'i1': (
@@ -1346,11 +1346,11 @@ void main() {
     testWidgets('the estimate rides the sync line and each row its own', (
       tester,
     ) async {
-      await tester.pumpWidget(_host(_overrides(_list())));
+      await tester.pumpWidget(_host(costOverrides(costList())));
       await tester.pump();
 
-      expect(find.text('≈ \$2 still to buy'), findsOneWidget);
-      expect(find.text('550 g · ≈ \$2.42'), findsOneWidget);
+      expect(find.text(r'≈ $2 still to buy'), findsOneWidget);
+      expect(find.text(r'550 g · ≈ $2.42'), findsOneWidget);
       // A row with no price says so rather than leaving a gap.
       expect(find.text('350 g · no price yet'), findsOneWidget);
     });
@@ -1358,10 +1358,10 @@ void main() {
     testWidgets('a ticked row carries no estimate — it is in the basket', (
       tester,
     ) async {
-      await tester.pumpWidget(_host(_overrides(_list(checked: true))));
+      await tester.pumpWidget(_host(costOverrides(costList(checked: true))));
       await tester.pump();
 
-      expect(find.text('550 g · ≈ \$2.42'), findsNothing);
+      expect(find.text(r'550 g · ≈ $2.42'), findsNothing);
       // And it is out of the trip figure, which answers what is LEFT.
       expect(find.textContaining('still to buy'), findsNothing);
     });

@@ -110,12 +110,7 @@ void main() {
           _line(
             'x',
             quantity: 2,
-            measure: const Measure(
-              id: 'can',
-              label: 'can',
-              amount: 400,
-              basis: MacrosBasis.perG,
-            ),
+            measure: const Measure(id: 'can', label: 'can', amount: 400),
           ),
         ],
         pricingOf: _vocab(price: _price()),

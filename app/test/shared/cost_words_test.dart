@@ -24,15 +24,15 @@ PriceObservation _price({
 void main() {
   group('the two spellings', () {
     test('a summed estimate wears the ≈, a read figure does not', () {
-      expect(approxMoney(242), '≈ \$2.42');
+      expect(approxMoney(242), r'≈ $2.42');
       expect(
         lineCostText(CostLine(cents: 658, price: _price())),
-        startsWith('\$6.58 ·'),
+        startsWith(r'$6.58 ·'),
       );
     });
 
     test('a derived figure rounds once, at the edge', () {
-      expect(approxMoney(241.6), '≈ \$2.42');
+      expect(approxMoney(241.6), r'≈ $2.42');
       expect(approxMoney(76.4), '≈ 76¢');
     });
   });
@@ -41,7 +41,7 @@ void main() {
     test('a plain pack reads per 100 of the basis', () {
       expect(
         lineCostText(CostLine(cents: 1316, price: _price())),
-        '\$13.16 · \$1.10 / 100 g · TJ’s, Sep'.replaceAll('’', "'"),
+        r"$13.16 · $1.10 / 100 g · TJ's, Sep",
       );
     });
 
@@ -50,19 +50,19 @@ void main() {
         lineCostText(
           CostLine(cents: 516, price: _price(cents: 129, packLabel: 'can')),
         ),
-        "\$5.16 · \$1.29 a can · TJ's, Sep",
+        r"$5.16 · $1.29 a can · TJ's, Sep",
       );
     });
 
     test('the scaler moves the figure, never the unit price', () {
       expect(
         lineCostText(CostLine(cents: 658, price: _price()), factor: 2),
-        startsWith('\$13.16 · \$1.10 / 100 g'),
+        startsWith(r'$13.16 · $1.10 / 100 g'),
       );
     });
 
     test('a component line prints its figure alone', () {
-      expect(lineCostText(const CostLine(cents: 250)), '\$2.50');
+      expect(lineCostText(const CostLine(cents: 250)), r'$2.50');
     });
   });
 
@@ -137,15 +137,15 @@ void main() {
     test('the week band states both halves', () {
       expect(
         weekCostLine(cents: 7123, unpriced: 3),
-        '≈ \$71 to cook · 3 lines unpriced',
+        r'≈ $71 to cook · 3 lines unpriced',
       );
-      expect(weekCostLine(cents: 7123), '≈ \$71 to cook');
+      expect(weekCostLine(cents: 7123), r'≈ $71 to cook');
       expect(weekCostLine(unpriced: 1), '1 line unpriced');
       expect(weekCostLine(), isNull);
     });
 
     test('the trip estimate says nothing when nothing can be priced', () {
-      expect(tripEstimate(5800), '≈ \$58 still to buy');
+      expect(tripEstimate(5800), r'≈ $58 still to buy');
       expect(tripEstimate(null), isNull);
     });
   });
