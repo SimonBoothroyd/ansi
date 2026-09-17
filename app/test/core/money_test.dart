@@ -47,6 +47,21 @@ void main() {
     });
   });
 
+  group('formatMoneyWhole', () {
+    test('a list-scale estimate reads to the dollar', () {
+      expect(formatMoneyWhole(7134), r'$71');
+      expect(formatMoneyWhole(7150), r'$72');
+      expect(formatMoneyWhole(5800), r'$58');
+      expect(formatMoneyWhole(-812), r'-$8');
+    });
+
+    test('under a dollar it keeps the cents spelling, never \$0', () {
+      expect(formatMoneyWhole(76.4), '76¢');
+      expect(formatMoneyWhole(99.6), r'$1');
+      expect(formatMoneyWhole(0), '0¢');
+    });
+  });
+
   group('parseMoney', () {
     test('dollars and cents become whole cents', () {
       expect(parseMoney('3.49'), 349);

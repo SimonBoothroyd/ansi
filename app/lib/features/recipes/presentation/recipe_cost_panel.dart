@@ -83,7 +83,8 @@ class RecipeCostPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final summary = this.summary;
-    if (summary == null) return const SizedBox.shrink();
+    // See [RecipeMacroPanel]: the header outlives the reading under it.
+    if (summary == null) return header ?? const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

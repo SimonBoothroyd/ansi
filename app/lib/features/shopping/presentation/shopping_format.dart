@@ -72,13 +72,27 @@ String itemSecondary(ShoppingItem item) {
 /// The estimate wears `≈` because a price is the latest one seen and not a
 /// quote. A row that cannot be priced SAYS so rather than leaving a gap: a
 /// silent row would read as a free one, and the shopper is the person who can
-/// fix it. A free-text item and a numberless staple say nothing — neither is a
-/// vocabulary row with an amount, so neither has a price to be missing.
-String itemSecondaryWithCost(ShoppingItem item, {double? cents}) {
+/// fix it.
+///
+/// **[anyPriced] is what makes that a gap rather than a nag.** A household
+/// that has entered no prices at all is not missing anything — it simply has
+/// not started — and forty rows each saying `no price yet` would be the app
+/// asking for data on a screen somebody is using in an aisle. The words appear
+/// the moment one row on the trip HAS a price, which is when a blank row
+/// genuinely is a hole in the figure above it.
+///
+/// A free-text item and a numberless staple say nothing either way — neither
+/// is a vocabulary row with an amount, so neither has a price to be missing.
+String itemSecondaryWithCost(
+  ShoppingItem item, {
+  double? cents,
+  bool anyPriced = false,
+}) {
   final base = itemSecondary(item);
+  final missing = anyPriced && !item.isFreeText && item.hasTotal;
   final money = cents != null
       ? approxMoney(cents)
-      : (item.isFreeText || !item.hasTotal ? '' : 'no price yet');
+      : (missing ? 'no price yet' : '');
   return [if (base.isNotEmpty) base, if (money.isNotEmpty) money].join(' · ');
 }
 

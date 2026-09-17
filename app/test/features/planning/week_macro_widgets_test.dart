@@ -3,6 +3,7 @@
 // band it sits in is only ~316 logical px wide — with fibre on the end when
 // every meal stated it.
 import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/features/planning/domain/week_macros.dart';
 import 'package:ansi/features/planning/presentation/week_macro_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -110,5 +111,64 @@ void main() {
     );
 
     expect(macroTextContaining('fibre'), findsNothing);
+  });
+
+  group('the band states what the week costs to cook', () {
+    const macros = MealSetMacros(
+      total: Macros(kcal: 13860, protein: 704, carb: 1012, fat: 542),
+      counted: 7,
+      considered: 7,
+      daysContributing: 6,
+      servings: 7,
+      demand: 7,
+    );
+
+    testWidgets('one line under the macros, with its own qualifier', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          const WeekMacroBand(
+            macros: macros,
+            scope: 'Everyone',
+            cost: (
+              cents: 7123,
+              counted: 4,
+              considered: 7,
+              unpriced: ['Tomatoes', 'Paprika', 'Tahini'],
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('≈ \$71 to cook · 3 lines unpriced'), findsOneWidget);
+      // Phase one shows the plan only — what was SPENT arrives with the
+      // receipts, and the two are never reconciled.
+      expect(find.textContaining('spent'), findsNothing);
+    });
+
+    testWidgets('a week nothing can price says nothing about money', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          const WeekMacroBand(
+            macros: macros,
+            scope: 'Everyone',
+            cost: (cents: null, counted: 0, considered: 0, unpriced: []),
+          ),
+        ),
+      );
+
+      expect(find.textContaining('to cook'), findsNothing);
+      expect(find.textContaining('≈'), findsNothing);
+    });
+
+    testWidgets('no cost at all draws no line', (tester) async {
+      await tester.pumpWidget(
+        _host(const WeekMacroBand(macros: macros, scope: 'Everyone')),
+      );
+      expect(find.textContaining('to cook'), findsNothing);
+    });
   });
 }

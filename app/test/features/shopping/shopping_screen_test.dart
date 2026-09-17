@@ -1,11 +1,14 @@
 import 'dart:async';
 
 import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
+import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
+import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/presentation/week_header.dart';
 import 'package:ansi/features/recipes/domain/effective_lines.dart';
@@ -1289,6 +1292,78 @@ void main() {
 
       expect(repo.tickCalls, 1);
       expect(repo.lastChecked, isTrue);
+    });
+  });
+
+  group('what the trip costs', () {
+    ShoppingList _list({bool checked = false}) => ShoppingList(
+      groups: [
+        ShoppingGroup(
+          label: 'Produce',
+          items: [
+            ShoppingItem(
+              name: 'Yellow onion',
+              ingredientId: 'i1',
+              entryId: 'e1',
+              checked: checked,
+              totals: [Quantity(550, g)],
+              pieceTotal: const (count: 5, approx: true),
+            ),
+            ShoppingItem(
+              name: 'Charred broccoli',
+              ingredientId: 'i2',
+              entryId: 'e2',
+              totals: [Quantity(350, g)],
+              pieceTotal: const (count: 1, approx: true),
+            ),
+          ],
+        ),
+      ],
+    );
+
+    List<Override> _overrides(ShoppingList list) => [
+      shoppingRepositoryProvider.overrideWithValue(_FakeShoppingRepo(list)),
+      ingredientPricingProvider.overrideWithValue({
+        'i1': (
+          row: (
+            basis: MacrosBasis.perG,
+            densityGPerMl: null,
+            pieceBasisAmount: null,
+          ),
+          price: PriceObservation(
+            lineId: 'rl-1',
+            receiptId: 'r-1',
+            cents: 440,
+            packBasisAmount: 1000,
+            basis: MacrosBasis.perG,
+            store: "TJ's",
+            purchasedAt: DateTime.utc(2026, 9, 3),
+          ),
+        ),
+      }),
+    ];
+
+    testWidgets('the estimate rides the sync line and each row its own', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_host(_overrides(_list())));
+      await tester.pump();
+
+      expect(find.text('≈ \$2 still to buy'), findsOneWidget);
+      expect(find.text('550 g · ≈ \$2.42'), findsOneWidget);
+      // A row with no price says so rather than leaving a gap.
+      expect(find.text('350 g · no price yet'), findsOneWidget);
+    });
+
+    testWidgets('a ticked row carries no estimate — it is in the basket', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_host(_overrides(_list(checked: true))));
+      await tester.pump();
+
+      expect(find.text('550 g · ≈ \$2.42'), findsNothing);
+      // And it is out of the trip figure, which answers what is LEFT.
+      expect(find.textContaining('still to buy'), findsNothing);
     });
   });
 }

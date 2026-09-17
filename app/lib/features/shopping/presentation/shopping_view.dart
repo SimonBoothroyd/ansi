@@ -867,6 +867,9 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
               item,
               ref.watch(ingredientPricingProvider)[item.ingredientId],
             ),
+            // A blank row is a gap only once something on this trip has a
+            // price; before that the household simply has not started.
+            anyPriced: ref.watch(shopTripCostProvider) != null,
           );
     final selection = widget.selection;
     final reading =

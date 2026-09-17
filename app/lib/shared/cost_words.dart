@@ -23,8 +23,12 @@ import '../core/words.dart';
 import '../features/ingredients/domain/price.dart';
 import '../features/recipes/domain/recipe_cost.dart';
 
-/// `≈ $2.42` — an estimate summed over several prices. See the library note.
+/// `≈ $2.42` — one row's estimate. See the library note.
 String approxMoney(double cents) => '≈ ${formatMoneyRounded(cents)}';
+
+/// `≈ $71` — an estimate standing for a whole LIST, to the dollar
+/// ([formatMoneyWhole]).
+String approxMoneyWhole(double cents) => '≈ ${formatMoneyWhole(cents)}';
 
 /// What ONE line carries when it has no cost, in the words its reason implies
 /// — the per-line half of the refusal, and the same shape
@@ -137,7 +141,7 @@ String costRefusal(RecipeCostSummary summary) {
 /// neither — a week that plans nothing says nothing here.
 String? weekCostLine({double? cents, int unpriced = 0}) {
   final parts = [
-    if (cents != null) '${approxMoney(cents)} to cook',
+    if (cents != null) '${approxMoneyWhole(cents)} to cook',
     if (unpriced > 0) '$unpriced ${plural(unpriced, 'line')} unpriced',
   ];
   return parts.isEmpty ? null : parts.join(' · ');
@@ -150,4 +154,4 @@ String? weekCostLine({double? cents, int unpriced = 0}) {
 /// list can be priced, because `≈ $0` would read as a free trip rather than as
 /// an unpriced one.
 String? tripEstimate(double? cents) =>
-    cents == null ? null : '${approxMoney(cents)} still to buy';
+    cents == null ? null : '${approxMoneyWhole(cents)} still to buy';

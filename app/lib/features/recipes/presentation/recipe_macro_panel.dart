@@ -93,7 +93,10 @@ class RecipeMacroPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final summary = this.summary;
-    if (summary == null) return const SizedBox.shrink();
+    // The header is the page's control, not the strip's content: a reading
+    // that has not loaded must not take the pair that offers the other one
+    // with it.
+    if (summary == null) return header ?? const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

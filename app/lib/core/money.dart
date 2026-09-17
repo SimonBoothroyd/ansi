@@ -44,6 +44,25 @@ String formatMoney(int cents) {
 /// refusal instead (invariant 3).
 String formatMoneyRounded(double cents) => formatMoney(cents.round());
 
+/// [formatMoneyRounded] to the whole DOLLAR — `$71`, `-$8` — for a figure
+/// that stands for a whole list rather than for one thing.
+///
+/// A week's cooking and a shop's remaining trip are sums over a dozen latest
+/// prices, none of them a quote; printing `$71.34` there would claim a
+/// precision the figure does not have, and the two extra digits are the two a
+/// person reading "about how much is this week" never wanted. A ROW keeps its
+/// cents, because a row is one thing at one price and `$2.42` is checkable
+/// against a shelf.
+///
+/// Under a dollar it falls back to [formatMoney]'s cents spelling: `$0` would
+/// read as free.
+String formatMoneyWhole(double cents) {
+  final rounded = cents.round();
+  if (rounded.abs() < 100) return formatMoney(rounded);
+  final sign = rounded.isNegative ? '-' : '';
+  return '$sign\$${(rounded.abs() / 100).round()}';
+}
+
 /// A typed sum of **dollars** as whole cents — `3.49` → 349, `3` → 300,
 /// `.5` → 50 — or null when [text] is not one.
 ///
