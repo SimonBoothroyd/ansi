@@ -20,8 +20,9 @@
 --
 -- **Money is integer cents, USD, and nothing else.** No currency column, no
 -- numeric money, no sale flag, no average: latest wins, and the owner's
--- kitchen buys in dollars. A rate or a discount is folded into the line's own
--- cents by whoever writes the line, because what you paid is the price.
+-- kitchen buys in dollars. A discount rides BESIDE the line's own cents
+-- rather than inside them, so the paper keeps both printed figures; what was
+-- paid is `cents - discount_cents`, and what you paid is the price.
 --
 -- **The pack is stated in the row's basis unit.** `pack_basis_amount` is what
 -- the cents bought, in g or ml (`ingredient.macros_basis`, ADR-0008) — the
@@ -110,13 +111,17 @@ create table receipt_line (
   -- What the paper said, verbatim ("ORG BANANA 2LB"). Null on a hand-typed
   -- price: nothing printed it, and the ingredient names the line.
   printed_text  text,
-  -- What was paid, in integer cents, AFTER `discount_cents` is taken off. A
-  -- `fee` line may carry a negative figure — that is how a discount the
-  -- scanner could not attach to an item still lets the reconcile close.
+  -- What the line rang up as, in integer cents — the figure the paper
+  -- printed, kept verbatim so the receipt still adds up against its own
+  -- subtotal. A `fee` line may carry a negative figure: that is how a
+  -- discount the scanner could not attach to an item still lets the
+  -- reconcile close.
   cents         int not null,
-  -- The deduction printed under the item, kept beside the sum rather than
-  -- inside it, so the review can show what was knocked off. Non-negative: a
-  -- discount is stated as the amount taken away.
+  -- The deduction printed under the item, kept BESIDE the sum rather than
+  -- subtracted into it, so both printed numbers survive and the review can
+  -- show what was knocked off. Non-negative: a discount is stated as the
+  -- amount taken away. **What was paid is `cents - discount_cents`**, and
+  -- that is the figure a price is derived from — what you paid is the price.
   discount_cents int not null default 0 check (discount_cents >= 0),
   -- 'item'     — food, and the only kind that can carry a price;
   -- 'not_food' — paper towels, a bag fee, a bottle deposit: counts toward the

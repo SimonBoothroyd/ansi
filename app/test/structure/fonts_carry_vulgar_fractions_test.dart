@@ -7,9 +7,11 @@
 /// swapped for a subset build would put tofu on every recipe page and no test
 /// would notice.
 ///
-/// So this reads each bundled `.ttf`'s own `cmap` table and asserts the nine
-/// glyphs map to a glyph id. Pure Dart, no package: a font parser dependency
-/// to check nine codepoints would be the heavier thing to trust.
+/// So this reads each bundled `.ttf`'s own `cmap` table and asserts every
+/// glyph the app prints outside plain ASCII maps to a glyph id — the nine
+/// fractions, and the cent sign a price under a dollar is printed with
+/// (`77¢`). Pure Dart, no package: a font parser dependency to check ten
+/// codepoints would be the heavier thing to trust.
 library;
 
 import 'dart:io';
@@ -17,8 +19,9 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// The nine fractions `formatAmount` can print.
-const _glyphs = ['½', '⅓', '⅔', '¼', '¾', '⅛', '⅜', '⅝', '⅞'];
+/// Every non-ASCII glyph the app prints: the nine fractions `formatAmount`
+/// can print, and `formatMoney`'s cent sign.
+const _glyphs = ['½', '⅓', '⅔', '¼', '¾', '⅛', '⅜', '⅝', '⅞', '¢'];
 
 void main() {
   final fonts =
@@ -34,7 +37,7 @@ void main() {
   });
 
   for (final font in fonts) {
-    test('${font.uri.pathSegments.last} maps every vulgar fraction', () {
+    test('${font.uri.pathSegments.last} maps every glyph the app prints', () {
       final mapped = _mappedCodepoints(font.readAsBytesSync());
       for (final glyph in _glyphs) {
         expect(
@@ -50,7 +53,7 @@ void main() {
 /// The codepoints [bytes]'s `cmap` maps to a non-zero glyph id, across every
 /// format 4 (BMP) and format 12 (full-range) subtable it carries.
 ///
-/// Only the codepoints asked about matter, so the walk collects the nine
+/// Only the codepoints asked about matter, so the walk collects those
 /// rather than materialising a font's whole coverage.
 Set<int> _mappedCodepoints(Uint8List bytes) {
   final data = ByteData.sublistView(bytes);
