@@ -148,7 +148,12 @@ function fullYear(raw: string): number {
 
 /** The time of day, if the paper printed one. `null` ⇒ midnight. */
 function parseClock(s: string): { h: number; min: number; sec: number } | null {
-  const m = s.match(/\b(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([ap]\.?m\.?)?/i);
+  // The hour must not be preceded by a digit or a colon: without that,
+  // "2026-09-13T11:04:09" matches at "04:09" and the receipt lands four
+  // minutes past midnight.
+  const m = s.match(
+    /(?<![\d:])(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([ap]\.?m\.?)?/i,
+  );
   if (!m) return null;
   let h = Number(m[1]);
   const min = Number(m[2]);
@@ -186,8 +191,8 @@ export function parseReceiptDate(
   let mo = 0;
   let d = 0;
 
-  const iso = s.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/);
-  const slashed = s.match(/\b(\d{1,2})[/.](\d{1,2})[/.](\d{2,4})\b/);
+  const iso = s.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})(?!\d)/);
+  const slashed = s.match(/\b(\d{1,2})[/.](\d{1,2})[/.](\d{2,4})(?!\d)/);
   const monthFirst = s.match(
     /\b([a-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{2,4})\b/i,
   );

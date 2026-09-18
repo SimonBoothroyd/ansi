@@ -1,0 +1,28 @@
+{
+  "_comment": "SYNTHETIC, as above. Two photos, one seam of two lines, and a PRIME SAVINGS deduction printed under the item it belongs to \u2014 folded into that item's discount, never a line of its own.",
+  "provider": "claude-haiku-receipt",
+  "op": "receipt",
+  "photos": [
+    "WHOLE FOODS MARKET\n2026-09-16 11:04\n365 OLIVE OIL 8.99\nORG SPINACH 1 LB 4.49\nPRIME SAVINGS -1.00",
+    "ORG SPINACH 1 LB 4.49\nPRIME SAVINGS -1.00\nRECYCLED BAG 0.10\nSUBTOTAL 12.58\nTAX 0.00\nTOTAL 12.58"
+  ],
+  "raw": {
+    "id": "msg_fixture",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-haiku-4-5",
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"store_printed\": \"WHOLE FOODS MARKET\",\n  \"purchased_at_printed\": \"2026-09-16 11:04\",\n  \"subtotal_printed\": \"12.58\",\n  \"tax_printed\": \"0.00\",\n  \"total_printed\": \"12.58\",\n  \"lines\": [\n    {\n      \"printed_text\": \"365 OLIVE OIL 8.99\",\n      \"name_printed\": \"365 OLIVE OIL\",\n      \"amount_printed\": \"8.99\",\n      \"discount_printed\": null,\n      \"kind\": \"item\",\n      \"weight\": null,\n      \"low_confidence\": false\n    },\n    {\n      \"printed_text\": \"ORG SPINACH 1 LB 4.49\",\n      \"name_printed\": \"ORG SPINACH 1 LB\",\n      \"amount_printed\": \"4.49\",\n      \"discount_printed\": \"-1.00\",\n      \"kind\": \"item\",\n      \"weight\": null,\n      \"low_confidence\": false\n    },\n    {\n      \"printed_text\": \"RECYCLED BAG 0.10\",\n      \"name_printed\": \"RECYCLED BAG\",\n      \"amount_printed\": \"0.10\",\n      \"discount_printed\": null,\n      \"kind\": \"not_food\",\n      \"weight\": null,\n      \"low_confidence\": false\n    },\n    {\n      \"printed_text\": \"TAX 0.00\",\n      \"name_printed\": \"TAX\",\n      \"amount_printed\": \"0.00\",\n      \"discount_printed\": null,\n      \"kind\": \"tax\",\n      \"weight\": null,\n      \"low_confidence\": false\n    }\n  ],\n  \"notes\": []\n}"
+      }
+    ],
+    "stop_reason": "end_turn",
+    "usage": {
+      "input_tokens": 900,
+      "output_tokens": 600,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0
+    }
+  }
+}
