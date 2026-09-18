@@ -44,8 +44,9 @@ mutate live household data stays a human act.
 | iOS build | `release.yml` → unsigned `.app` **artifact** (compile proof only, see §3) | same tag push |
 | Migrations (`supabase/migrations/`) | `deploy-supabase.yml` → `supabase db push` | Actions → Run workflow |
 | `import-recipe` edge function | `deploy-supabase.yml` → `supabase functions deploy` | same run |
+| `import-receipt` edge function | `deploy-supabase.yml` → `supabase functions deploy` (same step, deployed by name beside it) | same run |
 | PowerSync sync streams ([`docker/powersync-cloud.streams.yaml`](../docker/powersync-cloud.streams.yaml)) | `deploy-supabase.yml` → `powersync deploy sync-config` | same run — also re-run after any cloud `db reset` |
-| Function secrets (`ANTHROPIC_API_KEY`, `IMPORT_ALLOWED_HOUSEHOLDS`) | `supabase secrets set` | **human**, [cloud-setup §3b](./cloud-setup.md) |
+| Function secrets (`ANTHROPIC_API_KEY`, `IMPORT_ALLOWED_HOUSEHOLDS` — one pair, read by both import functions) | `supabase secrets set` | **human**, [cloud-setup §3b](./cloud-setup.md) |
 | Template vocab reseed | `deploy-supabase.yml` → `seed_vocab.sql` → `seed_usda.sql` → `seed_usda_index.sql`, in that order | Actions → Run workflow with **`reseed_template`** ticked (re-runnable since migration `0020`) |
 | Rolling a reseed onto existing households | [`supabase/rollout_ingredient_refresh.sql`](../supabase/rollout_ingredient_refresh.sql) (`ingredient` columns) + [`supabase/rollout_measure_refresh.sql`](../supabase/rollout_measure_refresh.sql) (measures), preview then run | **human**, [cloud-setup §2b](./cloud-setup.md) |
 | Dashboard settings (auth hook, JWT audience, public sign-up) | Dashboards | **human**, cloud-setup's checklist |
@@ -420,7 +421,7 @@ Actions → **deploy-supabase** → Run workflow. One job, in order:
 
 1. **link** — `supabase link --project-ref $SUPABASE_PROJECT_REF`
 2. **db push** — applies migrations the project has not seen (idempotent)
-3. **functions deploy** — ships `import-recipe`
+3. **functions deploy** — ships `import-recipe` and `import-receipt`, each by name
 4. **sync streams** — validates then deploys
    `docker/powersync-cloud.streams.yaml` to the PowerSync instance
    (`powersync deploy sync-config`, CLI pinned). The CLI insists on a project

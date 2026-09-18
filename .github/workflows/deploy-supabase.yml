@@ -102,8 +102,14 @@ jobs:
         run: supabase db push
 
       # Functions ship separately from the schema; `db push` never touches them.
-      - name: 3 · Deploy the import-recipe edge function
-        run: supabase functions deploy import-recipe
+      # Both import doors, by name: `functions deploy` with no argument would
+      # ship whatever happens to be in the folder, and the two are named here so
+      # adding a third is a deliberate line in this file rather than a surprise
+      # in a deploy.
+      - name: 3 · Deploy the import edge functions
+        run: |
+          supabase functions deploy import-recipe
+          supabase functions deploy import-receipt
 
       # The committed streams YAML is the source of truth for what devices are
       # allowed to sync; a schema deploy without a matching streams deploy is
