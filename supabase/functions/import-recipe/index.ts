@@ -31,7 +31,15 @@ import type {
 } from "../_shared/types.ts";
 import { deriveUnitHints } from "../_shared/unit_hints.ts";
 import { locateSourceSpan } from "../_shared/source_span.ts";
-import { ImportError, isTimeoutFailure } from "../_shared/errors.ts";
+import { ImportError } from "../_shared/errors.ts";
+import { failureFor as sharedFailureFor } from "../_shared/failures.ts";
+import {
+  HEARTBEAT_INTERVAL_MS,
+  jsonResponse,
+  parseImages,
+  SSE_HEADERS,
+  sseFrame,
+} from "../_shared/http_edge.ts";
 
 // Re-exported for the stages that raise it and everything that catches it — the
 // class itself lives in `_shared/errors.ts` so intake and the adapters can throw
@@ -103,17 +111,11 @@ export type StageSink = (stage: ImportStageId, elapsedMs: number) => void;
 export type BeatSink = (elapsedMs: number) => void;
 
 /**
- * Longest the stream may go quiet WHILE A MODEL CALL IS STREAMING. The model
- * calls are the long stages, and before this they were also silent ones: the
- * gap between two stage events was a whole model deadline, which is what forced
- * those deadlines to fit inside the platform's idle cut-off.
- *
- * A heartbeat is not a clock tick — it is only sent because the model produced
- * output since the last frame we sent, so it means "still working", not "still
- * connected". That keeps the client's silence rung honest: silence still means
- * something is wrong, it just no longer means "the model is being slow".
+ * Longest the stream may go quiet while a model call is streaming — shared
+ * with `import-receipt` and re-exported here, where the timeout ladder's test
+ * and the spec's table have always found it.
  */
-export const HEARTBEAT_INTERVAL_MS = 10_000;
+export { HEARTBEAT_INTERVAL_MS } from "../_shared/http_edge.ts";
 
 /**
  * Runs intake → ① → ⑥ and assembles the {@link ReconciliationPayload}. Pure
@@ -259,35 +261,14 @@ function assemble(
 
 // --- HTTP boundary -----------------------------------------------------------
 
-function jsonResponse(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
-}
-
 // --- Per-call cost caps ------------------------------------------------------
-// Every image is billed to a vision model, so the request body is bounded HERE,
-// before a byte of it reaches a provider. These are deliberately generous (a
-// long recipe spans a few pages, and `resizeForUpload` shrinks big photos) —
-// they exist to stop an accidental or hostile 200-image / 100 MB call, not to
-// second-guess a real import.
-
-/** Most photos one import may carry. */
-export const MAX_IMAGES = 8;
-/** Most DECODED bytes one photo may carry (the app already downscales). */
-export const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
-// base64 inflates by 4/3; reject on the encoded length first so an oversized
-// payload is never materialised as bytes just to be measured.
-const MAX_IMAGE_B64_CHARS = Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 8;
-
-/** Decodes a base64 string to bytes (no @std dep — keeps the fn lean). */
-function decodeBase64(b64: string): Uint8Array {
-  const bin = atob(b64); // throws on non-base64 input — callers must catch
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return bytes;
-}
+// The caps, the base64 decoding and their wordings are shared with
+// `import-receipt` (`_shared/http_edge.ts`): every image is billed to a vision
+// model whichever door it came through, so there is one answer to "how big may
+// a photo be" and one sentence when it is too big. Re-exported here because
+// this module's own tests — and the app's contract — have always read them
+// from it.
+export { MAX_IMAGE_BYTES, MAX_IMAGES } from "../_shared/http_edge.ts";
 
 /**
  * Parses a decoded JSON body into an {@link ImportRequest}, or an error message
@@ -311,44 +292,11 @@ export function parseRequestBody(
   }
   if (hasUrl) return { request: { url: (b.url as string).trim() } };
   if (hasImages) {
-    const raw = b.images as unknown[];
-    if (raw.length === 0) return { error: "`images` must not be empty" };
-    if (raw.length > MAX_IMAGES) {
-      return {
-        error:
-          `too many images: ${raw.length} (at most ${MAX_IMAGES} per import)`,
-      };
-    }
-    const images: Uint8Array[] = [];
-    for (let i = 0; i < raw.length; i++) {
-      const s = raw[i];
-      if (typeof s !== "string") {
-        return { error: "`images` must be an array of base64 strings" };
-      }
-      if (s.length > MAX_IMAGE_B64_CHARS) {
-        return { error: oversizeMessage(i, (s.length / 4) * 3) };
-      }
-      let bytes: Uint8Array;
-      try {
-        bytes = decodeBase64(s);
-      } catch {
-        return { error: `image ${i + 1} is not valid base64` };
-      }
-      if (bytes.length > MAX_IMAGE_BYTES) {
-        return { error: oversizeMessage(i, bytes.length) };
-      }
-      images.push(bytes);
-    }
-    return { request: { images } };
+    const parsed = parseImages(b.images as unknown[]);
+    if ("error" in parsed) return parsed;
+    return { request: { images: parsed.images } };
   }
   return { error: "body must include a `url` or `images`" };
-}
-
-function oversizeMessage(index: number, bytes: number): string {
-  const mb = (n: number) => (n / (1024 * 1024)).toFixed(1);
-  return `image ${index + 1} is ${mb(bytes)}MB — the limit is ${
-    mb(MAX_IMAGE_BYTES)
-  }MB per image`;
 }
 
 // --- Failures: one wording, wherever it is delivered -------------------------
@@ -360,32 +308,7 @@ function oversizeMessage(index: number, bytes: number): string {
  * log gets the stack.
  */
 export function failureFor(e: unknown): { status: number; error: string } {
-  if (e instanceof ImportError) return { status: 422, error: e.message };
-  // Running out of time is not an unexpected failure, and it is not the
-  // recipe's fault — say so, and say that retrying costs nothing. Intake's own
-  // timeout arrives as an ImportError above ("could not reach that site"), so
-  // anything reaching here ran long in the MODEL.
-  if (isTimeoutFailure(e)) {
-    console.error(
-      `import-recipe: extraction timed out: ${
-        e instanceof Error ? e.message : String(e)
-      }`,
-    );
-    return {
-      status: 504,
-      error: "the model took too long to read this recipe — nothing has been " +
-        "saved, so it is safe to try again",
-    };
-  }
-  // An unexpected failure. The detail can carry provider URLs, prompt
-  // fragments, or a driver's connection string — log it, return an opaque
-  // message.
-  console.error(
-    `import-recipe: unhandled failure: ${
-      e instanceof Error ? e.stack ?? e.message : String(e)
-    }`,
-  );
-  return { status: 500, error: "import failed" };
+  return sharedFailureFor(e, { fn: "import-recipe", subject: "recipe" });
 }
 
 // --- The answer is a STREAM (§4.7) -------------------------------------------
@@ -409,19 +332,6 @@ export function failureFor(e: unknown): { status: number; error: string } {
 //     cut-off: they are now sized by what the model actually needs. The
 //     client's ladder rests on it; it is written out in
 //     `remote_import_repository.dart`.
-
-const SSE_HEADERS: Record<string, string> = {
-  "content-type": "text/event-stream",
-  "cache-control": "no-cache",
-  // Long-lived responses die to proxy buffering more often than to anything
-  // else; this is the header that turns it off where it is honoured.
-  "x-accel-buffering": "no",
-};
-
-/** One SSE frame. Data is single-line JSON, so no multi-line `data:` folding. */
-function sseFrame(event: string, data: unknown): string {
-  return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-}
 
 /**
  * Runs the pipeline and narrates it as Server-Sent Events:
