@@ -18,8 +18,8 @@
 ///   the total and never toward a price.
 ///
 /// **The match is the server's, each time.** Confirming one teaches the
-/// vocabulary nothing (exec plan 0049), so there is no alias-learning path
-/// anywhere on this screen. What carries over is the pack, on the row.
+/// vocabulary nothing, so there is no alias-learning path anywhere on this
+/// screen. What carries over is the pack, on the row.
 library;
 
 import 'package:flutter/widgets.dart';

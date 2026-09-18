@@ -61,7 +61,11 @@ class ReceiptScanView extends ConsumerWidget {
           reviewing == null ? 'Scan a receipt' : 'Review receipt',
           style: ansiHeaderTitle(),
         ),
-        prefixes: [FHeaderAction.back(onPress: () => ansiBack(context))],
+        // A scan is always started from the Shop's foot, so a pasted link to
+        // it goes home there.
+        prefixes: [
+          FHeaderAction.back(onPress: () => ansiBack(context, home: '/shop')),
+        ],
         suffixes: [
           if (reviewing != null)
             Padding(

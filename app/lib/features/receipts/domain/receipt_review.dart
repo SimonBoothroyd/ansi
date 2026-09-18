@@ -16,9 +16,9 @@
 ///   line is still a receipt, and its printed total still stands. It is
 ///   counted in the header exactly as a line's flag is.
 /// * **Nothing is learned.** A receipt's words are one store's abbreviations,
-///   so confirming a match teaches the vocabulary nothing (exec plan 0049).
-///   What carries over is the **pack**, on the row: a matched line with no
-///   printed weight opens on the pack that row was last bought in.
+///   so confirming a match teaches the vocabulary nothing. What carries over
+///   is the **pack**, on the row: a matched line with no printed weight opens
+///   on the pack that row was last bought in.
 library;
 
 import 'package:meta/meta.dart';

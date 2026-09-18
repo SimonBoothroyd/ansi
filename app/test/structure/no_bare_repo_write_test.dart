@@ -61,6 +61,12 @@ const _allowed = <String, String>{
       'default book on arrival, and a failure is the same ImportFailed.',
   'lib/features/import/presentation/import_view_models.dart:commit':
       'same — ImportFailed with the reason, under the review screen.',
+  'lib/features/receipts/presentation/receipt_view_models.dart:readReceipt':
+      'the scan controller maps every failure to ReceiptScanFailed, which the '
+      'intake form renders inline with the reason — the same posture the '
+      'import controller holds one folder over.',
+  'lib/features/receipts/presentation/receipt_view_models.dart:saveReceipt':
+      'same — ReceiptScanFailed with the reason, under the review screen.',
   'lib/features/import/presentation/import_view.dart:startImport':
       'the ImportController method, not the repository: it cannot throw.',
   'lib/features/import/presentation/reconciliation_view.dart:commit':

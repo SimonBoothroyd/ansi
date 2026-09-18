@@ -47,6 +47,26 @@ typedef Pushed = ({String path, String open, String home, String view});
 const pushedPages = <Pushed>[
   (path: '/account', open: '/account', home: '/', view: 'account_view.dart'),
   (path: '/import', open: '/import', home: '/', view: 'import_view.dart'),
+  // The receipts belong to the Shop, which is where their door stands.
+  (
+    path: '/receipts',
+    open: '/receipts',
+    home: '/shop',
+    view: 'receipt_ledger_view.dart',
+  ),
+  (
+    path: '/receipts/review',
+    open: '/receipts/review',
+    home: '/shop',
+    view: 'receipt_scan_view.dart',
+  ),
+  // One receipt is a detail OF the ledger, so it goes back to it.
+  (
+    path: '/receipts/:id',
+    open: '/receipts/r7',
+    home: '/receipts',
+    view: 'receipt_ledger_view.dart',
+  ),
   (
     path: '/books/:id',
     open: '/books/b2',

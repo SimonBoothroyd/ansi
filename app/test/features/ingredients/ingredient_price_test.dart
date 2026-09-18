@@ -39,6 +39,9 @@ const bananas = Ingredient(
 const bagMeasure = Measure(id: 'm-bag', label: 'bag', amount: 454);
 
 PriceObservation price({
+  /// A hand-typed price unless a test says otherwise: that is what this
+  /// page's own sheet writes, and it is the one kind Delete tears up whole.
+  ReceiptSource source = ReceiptSource.manual,
   String lineId = 'l1',
   int cents = 349,
   int discountCents = 0,
@@ -62,6 +65,7 @@ PriceObservation price({
   packUnit: packUnit,
   packLabel: packLabel,
   measureId: measureId,
+  source: source,
 );
 
 Finder get paidField => find.descendant(
@@ -617,6 +621,50 @@ void main() {
       expect(prices.deleted, isEmpty, reason: 'silence is not consent');
       expect(find.byType(PriceEditor), findsOneWidget);
     });
+
+    testWidgets(
+      'a line of a PHOTOGRAPHED receipt stops pricing rather than going',
+      (tester) async {
+        // The paper is still true: the cents were paid, and the receipt has
+        // to go on adding up. All that goes is the line's claim to be a
+        // price, and the confirm says so rather than offering to tear a
+        // receipt up from an ingredient page.
+        filterForuiSemanticsAssertions();
+        tallScreen(tester);
+        final prices = FakePriceRepo(
+          prices: [price(source: ReceiptSource.photo)],
+          stores: const ["TJ's"],
+        );
+        await tester.pumpWidget(
+          host(
+            FakeIngredientRepo(const [bananas]),
+            at: ingredientDetailRoute('banana'),
+            prices: prices,
+            measures: FakeMeasureRepo(const [bagMeasure]),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(kReadLatestPriceKey));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(kPriceDeleteKey));
+        await tester.pumpAndSettle();
+        expect(find.text('Stop pricing from this line?'), findsOneWidget);
+        expect(
+          find.textContaining('The line stays on its receipt'),
+          findsOneWidget,
+        );
+
+        await tester.tap(
+          find.descendant(
+            of: find.byType(FDialog),
+            matching: find.widgetWithText(FButton, 'Stop pricing'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(prices.deleted, ['l1']);
+      },
+    );
 
     testWidgets('a confirmed Delete takes the price and closes the sheet', (
       tester,

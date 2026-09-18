@@ -18,10 +18,11 @@ class SqliteReceiptRepository implements ReceiptRepository {
 
   /// The ledger list.
   ///
-  /// The two counts and the lines' sum are **correlated subqueries** rather
-  /// than a join and a GROUP BY: one row per receipt is what the list draws,
-  /// and the subqueries keep `receipt_line` in the watch's trigger set
-  /// without the aggregation a join would force on every column beside it.
+  /// The two counts and the lines' sum come from a LEFT JOIN and a GROUP BY
+  /// rather than from correlated subqueries: the join is what puts
+  /// `receipt_line` in the watch's trigger set, so a line saved on the other
+  /// phone moves this list. SQLite drops a join nothing selects from, and the
+  /// aggregates over `l` are that selection.
   ///
   /// The SELECT is spelled out in full rather than shared as a fragment —
   /// `watch_coverage_test` reads these queries as literals, and an
@@ -32,16 +33,15 @@ class SqliteReceiptRepository implements ReceiptRepository {
         .watch(
           'SELECT r.id, r.store, r.purchased_at, r.source, '
           'r.subtotal_cents, r.tax_cents, r.total_cents, '
-          '(SELECT COUNT(*) FROM receipt_line l '
-          ' WHERE l.receipt_id = r.id AND l.deleted_at IS NULL) AS line_count, '
-          '(SELECT COUNT(*) FROM receipt_line l '
-          ' WHERE l.receipt_id = r.id AND l.deleted_at IS NULL '
-          "   AND l.kind = 'not_food') AS not_food_count, "
-          '(SELECT COALESCE(SUM(l.cents - COALESCE(l.discount_cents, 0)), 0) '
-          ' FROM receipt_line l WHERE l.receipt_id = r.id '
-          "   AND l.deleted_at IS NULL AND l.kind <> 'tax') AS lines_sum "
+          'COUNT(l.id) AS line_count, '
+          "COUNT(CASE WHEN l.kind = 'not_food' THEN 1 END) AS not_food_count, "
+          "COALESCE(SUM(CASE WHEN l.kind <> 'tax' "
+          'THEN l.cents - COALESCE(l.discount_cents, 0) END), 0) AS lines_sum '
           'FROM receipt r '
+          'LEFT JOIN receipt_line l ON l.receipt_id = r.id '
+          'AND l.deleted_at IS NULL '
           'WHERE r.deleted_at IS NULL '
+          'GROUP BY r.id '
           'ORDER BY r.purchased_at DESC, r.created_at DESC, r.id DESC',
         )
         .map(

@@ -226,6 +226,9 @@ void main() {
       'lib/features/import/presentation/import_view.dart':
           'the ImportCommitted hop is a ref.listen reaction, not a tap; it '
           'replaces the spent import flow with the new recipe',
+      'lib/features/receipts/presentation/receipt_scan_view.dart':
+          'the ReceiptSaved hop is a ref.listen reaction, not a tap; it '
+          'replaces the spent scan with the receipt it just wrote',
       'lib/features/recipes/presentation/recipe_view.dart':
           'returns to the Library branch after the recipe is deleted — the '
           'shell is the bottom of the root stack, so `go` lands on it',

@@ -53,7 +53,11 @@ class ReceiptLedgerView extends ConsumerWidget {
       childPad: false,
       header: FHeader.nested(
         title: Text('Receipts', style: ansiHeaderTitle()),
-        prefixes: [FHeaderAction.back(onPress: () => ansiBack(context))],
+        // The ledger belongs to the Shop, which is where its door stands, so
+        // a cold link to it goes home there rather than to the Library.
+        prefixes: [
+          FHeaderAction.back(onPress: () => ansiBack(context, home: '/shop')),
+        ],
       ),
       child: receipts.when(
         loading: () => const Center(child: FCircularProgress()),
@@ -241,7 +245,12 @@ class StoredReceiptView extends ConsumerWidget {
       childPad: false,
       header: FHeader.nested(
         title: Text('Receipt', style: ansiHeaderTitle()),
-        prefixes: [FHeaderAction.back(onPress: () => ansiBack(context))],
+        // A receipt is a detail OF the ledger, so it goes back to it.
+        prefixes: [
+          FHeaderAction.back(
+            onPress: () => ansiBack(context, home: '/receipts'),
+          ),
+        ],
       ),
       child: receipt.when(
         loading: () => const Center(child: FCircularProgress()),
