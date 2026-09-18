@@ -635,27 +635,62 @@ void main() {
       );
     });
 
-    test('a photographed receipt is never deleted from here', () async {
-      await _seedReceipt(
-        db,
-        id: 'r-photo',
-        store: "TJ's",
-        purchasedAt: '2026-09-13T17:20:00Z',
-      );
-      await _seedLine(db, id: 'l1', receiptId: 'r-photo');
-      await _seedLine(db, id: 'l2', receiptId: 'r-photo', cents: 199);
+    test(
+      'a photographed line keeps its place and loses only its price facts',
+      () async {
+        await _seedReceipt(
+          db,
+          id: 'r-photo',
+          store: "TJ's",
+          purchasedAt: '2026-09-13T17:20:00Z',
+        );
+        await _seedMeasure(
+          db,
+          id: 'm-bag',
+          ingredientId: 'banana',
+          label: 'bag',
+          amount: 454,
+        );
+        await _seedLine(
+          db,
+          id: 'l1',
+          receiptId: 'r-photo',
+          packAmount: 1,
+          measureId: 'm-bag',
+        );
+        await _seedLine(db, id: 'l2', receiptId: 'r-photo', cents: 199);
 
-      await repo.deletePrice('l1');
+        await repo.deletePrice('l1');
 
-      final receipt = await db.get(
-        "SELECT * FROM receipt WHERE id = 'r-photo'",
-      );
-      expect(receipt['deleted_at'], isNull, reason: 'the paper stands');
-      final lines = await db.getAll(
-        'SELECT id FROM receipt_line WHERE deleted_at IS NULL',
-      );
-      expect(lines.map((r) => r['id']), ['l2']);
-    });
+        final receipt = await db.get(
+          "SELECT * FROM receipt WHERE id = 'r-photo'",
+        );
+        expect(receipt['deleted_at'], isNull, reason: 'the paper stands');
+        final line = await db.get("SELECT * FROM receipt_line WHERE id = 'l1'");
+        expect(
+          line['deleted_at'],
+          isNull,
+          reason: 'the line stays, so the receipt still adds up',
+        );
+        expect(
+          line['cents'],
+          349,
+          reason: 'the cents were paid — that is not in doubt',
+        );
+        expect(
+          line['ingredient_id'],
+          'banana',
+          reason: 'what was bought is not in doubt either; only the pack was',
+        );
+        expect(line['pack_basis_amount'], isNull);
+        expect(line['pack_amount'], isNull);
+        expect(line['pack_unit'], isNull);
+        expect(line['measure_id'], isNull);
+        expect((await repo.watchPrices('banana').first).map((p) => p.lineId), [
+          'l2',
+        ], reason: 'it stopped being a price');
+      },
+    );
 
     test('a deleted price leaves every derivation alone', () async {
       await _seedReceipt(

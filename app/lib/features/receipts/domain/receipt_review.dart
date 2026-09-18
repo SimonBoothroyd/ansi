@@ -29,7 +29,6 @@ import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
-import '../../../core/words.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/domain/price.dart';
@@ -40,6 +39,13 @@ enum ReceiptLineIssue {
   /// Food, and nobody has said what it is.
   unmatched,
 
+  /// The reader could not make out what the line rang up as, and says so
+  /// (`cents: 0` with the model's own doubt beside it). A food line with no
+  /// figure is **not** a free one: it is a line somebody has to read off the
+  /// paper, and until they do it holds Save and drags the join open, which is
+  /// exactly what a figure nobody could read should do.
+  amountMissing,
+
   /// Matched food whose row neither sells by weight here nor has a pack: the
   /// cents bought something nobody has stated the size of.
   packMissing,
@@ -49,6 +55,9 @@ enum ReceiptLineIssue {
 /// shape the recipe review's `attentionLabel` has.
 String? receiptAttentionLabel(List<ReceiptLineIssue> issues) {
   if (issues.contains(ReceiptLineIssue.unmatched)) return 'Match an ingredient';
+  if (issues.contains(ReceiptLineIssue.amountMissing)) {
+    return 'Set the amount';
+  }
   if (issues.contains(ReceiptLineIssue.packMissing)) {
     return 'Say what the pack is';
   }
@@ -67,7 +76,6 @@ class ReceiptLineDraft {
     required this.printedText,
     required this.cents,
     required this.kind,
-    required this.printedKind,
     this.discountCents = 0,
     this.weight,
     this.ingredientId,
@@ -94,10 +102,6 @@ class ReceiptLineDraft {
 
   /// What the line is NOW — a folded line reads [ReceiptKind.notFood].
   final ReceiptKind kind;
-
-  /// What the paper said it was, so a folded line can be brought back to
-  /// exactly the kind it arrived as rather than to a guess.
-  final ReceiptKind printedKind;
 
   final ReceiptWeight? weight;
 
@@ -152,6 +156,33 @@ class ReceiptLineDraft {
       (packBasisAmount ?? 0) > 0 &&
       paidCents > 0;
 
+  /// This line with the figure a person read off the paper.
+  ///
+  /// It is its own method rather than a [copyWith] field because `cents` is
+  /// the one thing on a draft that came from the PAPER: changing it is
+  /// correcting a transcription, not answering a question, and it should read
+  /// that way at the call site.
+  ReceiptLineDraft withCents(int cents) => ReceiptLineDraft(
+    index: index,
+    printedText: printedText,
+    cents: cents,
+    discountCents: discountCents,
+    kind: kind,
+    weight: weight,
+    ingredientId: ingredientId,
+    ingredientName: ingredientName,
+    packBasisAmount: packBasisAmount,
+    packAmount: packAmount,
+    packUnit: packUnit,
+    measureId: measureId,
+    packLabel: packLabel,
+    keepAsMeasure: keepAsMeasure,
+    suggestions: suggestions,
+    lowConfidence: lowConfidence,
+    photo: photo,
+    dropped: dropped,
+  );
+
   ReceiptLineDraft copyWith({
     ReceiptKind? kind,
     String? ingredientId,
@@ -172,7 +203,6 @@ class ReceiptLineDraft {
     cents: cents,
     discountCents: discountCents,
     kind: kind ?? this.kind,
-    printedKind: printedKind,
     weight: weight,
     ingredientId: clearMatch ? null : (ingredientId ?? this.ingredientId),
     ingredientName: clearMatch ? null : (ingredientName ?? this.ingredientName),
@@ -209,7 +239,6 @@ List<ReceiptLineDraft> initialReceiptDrafts(ReceiptPayload payload) => [
       cents: line.cents,
       discountCents: line.discountCents,
       kind: line.kind,
-      printedKind: line.kind,
       weight: line.weight,
       ingredientId: line.match?.auto ?? false ? line.match!.ingredientId : null,
       suggestions: line.suggestions,
@@ -276,15 +305,19 @@ String? _labelOf(String measureId, List<Measure> measures) {
   return null;
 }
 
-/// What [draft] still wants. A dropped line reports nothing — it is leaving.
+/// What [draft] still wants. A dropped line reports nothing — it is leaving,
+/// and a line that is not food is under the fold, where it counts toward the
+/// trip and toward nothing else.
 List<ReceiptLineIssue> receiptLineIssues(ReceiptLineDraft draft) {
   if (draft.dropped || !draft.kind.isFood) return const [];
-  if (draft.ingredientId == null) return const [ReceiptLineIssue.unmatched];
-  // A line that cost nothing is not a price and never will be — a free sample
-  // is honestly unpriced — so it is not held up for a pack it cannot use.
-  if (draft.paidCents <= 0) return const [];
-  if ((draft.packBasisAmount ?? 0) > 0) return const [];
-  return const [ReceiptLineIssue.packMissing];
+  return [
+    if (draft.ingredientId == null) ReceiptLineIssue.unmatched,
+    if (draft.paidCents <= 0)
+      ReceiptLineIssue.amountMissing
+    // A pack is only owed by a line that HAS a figure to divide.
+    else if (draft.ingredientId != null && !((draft.packBasisAmount ?? 0) > 0))
+      ReceiptLineIssue.packMissing,
+  ];
 }
 
 /// The whole review as one figure: the flags, the sums and the join.
@@ -407,9 +440,12 @@ String joinNote(ReceiptReviewMap map) {
 }
 
 /// `Save receipt · $84.12`, or what is still owed.
+/// The `line(s)` is the recipe review's own spelling, deliberately: the two
+/// Save bars answer the same question and a reader moving between them should
+/// not meet two grammars for it.
 String receiptSaveLabel(ReceiptReviewMap map) => map.canSave
     ? 'Save receipt · ${formatMoney(map.totalCents)}'
-    : '${map.outstanding} ${plural(map.outstanding, 'line')} need you';
+    : '${map.outstanding} line(s) need you';
 
 /// `Not food · 2 · $7.09` — the fold's heading, or null when nothing folded.
 String? foldedHeading(ReceiptReviewMap map) => map.foldedCount == 0
@@ -455,13 +491,19 @@ String? packWords(ReceiptLineDraft draft, {required MacrosBasis basis}) {
     final weighed = draft.packBasisAmount;
     return weighed == null
         ? label
-        : '$label (${formatAmountIn(weighed, basis.baseUnit)})';
+        : '$label (${_said(weighed, basis.baseUnit)})';
   }
   final amount = draft.packAmount;
   if (amount == null) return null;
   final unit = draft.packUnit;
-  return unit == null ? formatAmount(amount) : formatAmountIn(amount, unit);
+  return unit == null ? formatAmount(amount) : _said(amount, unit);
 }
+
+/// `1.32 lb`, `454 g` — an amount printed in the unit it was said in, through
+/// the app's one amount rule ([formatAmountIn]: metric reads decimal, every
+/// kitchen unit keeps its fractions).
+String _said(double amount, Unit unit) =>
+    '${formatAmountIn(amount, unit)} ${unit.label}';
 
 /// `−55¢ off` — the deduction printed under an item, said on the same line as
 /// what was paid, because what you paid is the price. Null where there was

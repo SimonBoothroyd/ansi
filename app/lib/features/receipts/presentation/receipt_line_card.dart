@@ -32,6 +32,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../shared/ansi_tap.dart';
+import '../../books/presentation/text_prompt.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/ingredient_picker.dart';
@@ -220,6 +221,20 @@ class _Expanded extends ConsumerWidget {
           const SizedBox(height: 8),
           ReceiptAttentionTag(label: label!),
         ],
+        if (issuesInclude(draft, ReceiptLineIssue.amountMissing)) ...[
+          const SizedBox(height: 10),
+          FButton(
+            variant: FButtonVariant.outline,
+            onPress: () => _setCents(context, draft),
+            child: const Text('Set the amount'),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'the reader could not make this figure out — read it off the '
+            'paper, or drop the line',
+            style: ansiMono(size: 10.5, color: AnsiColors.muted),
+          ),
+        ],
         if (issuesInclude(draft, ReceiptLineIssue.unmatched)) ...[
           if (draft.suggestions.isNotEmpty) ...[
             const SizedBox(height: 10),
@@ -281,6 +296,24 @@ class _Expanded extends ConsumerWidget {
     await container
         .read(receiptScanControllerProvider.notifier)
         .matchLine(index, picked);
+  }
+
+  /// The money door for a figure the reader could not make out. It is a
+  /// prompt rather than a sheet: there is one number to read off the paper,
+  /// and the pack sheet's whole apparatus would be furniture around it.
+  Future<void> _setCents(BuildContext context, ReceiptLineDraft draft) async {
+    final container = ProviderScope.containerOf(context, listen: false);
+    final typed = await promptForText(
+      context,
+      title: 'What did this line cost?',
+      hint: 'e.g. 3.49',
+      confirm: 'Use it',
+    );
+    final cents = typed == null ? null : parseMoney(typed);
+    if (cents == null || cents <= 0) return;
+    container
+        .read(receiptScanControllerProvider.notifier)
+        .setCents(draft.index, cents);
   }
 
   Future<void> _setPack(

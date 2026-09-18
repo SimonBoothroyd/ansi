@@ -275,17 +275,18 @@ class _KeepAsMeasure extends StatelessWidget {
   final ValueChanged<bool> onChanged;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    label: value
-        ? 'keeping the pack as a measure · tap to stop'
-        : 'not kept as a measure · tap to keep it',
-    button: true,
-    child: GestureDetector(
-      key: kKeepAsMeasureKey,
-      behavior: HitTestBehavior.opaque,
-      onTap: () => onChanged(!value),
-      child: Align(
-        alignment: Alignment.centerLeft,
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.centerLeft,
+    child: Semantics(
+      container: true,
+      button: true,
+      label: value
+          ? 'keeping the pack as a measure · tap to stop'
+          : 'not kept as a measure · tap to keep it',
+      child: GestureDetector(
+        key: kKeepAsMeasureKey,
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onChanged(!value),
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: value ? AnsiColors.herbSoft : null,

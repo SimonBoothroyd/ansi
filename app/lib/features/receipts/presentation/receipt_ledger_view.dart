@@ -388,7 +388,6 @@ ReceiptLineDraft storedLineDraft(
   cents: line.cents,
   discountCents: line.discountCents,
   kind: ReceiptKind.fromWire(line.kind),
-  printedKind: ReceiptKind.fromWire(line.kind),
   ingredientId: line.ingredientId,
   ingredientName: line.ingredientName,
   packBasisAmount: line.packBasisAmount,

@@ -540,9 +540,18 @@ class WeekMacroBand extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           if (macros.isEmpty)
-            Text(
-              'no meals yet — nothing to add up',
-              style: ansiMono(size: 11.5, color: AnsiColors.muted),
+            // A week that plans nothing can still have been shopped for: the
+            // spend is a fact about the paper, not about the plan, so it is
+            // drawn beside the absence rather than swallowed by it.
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'no meals yet — nothing to add up',
+                  style: ansiMono(size: 11.5, color: AnsiColors.muted),
+                ),
+                _SpentLine(spent: spent, shape: shape),
+              ],
             )
           else if (macros.isRefused)
             Row(

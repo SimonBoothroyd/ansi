@@ -221,8 +221,12 @@ class ReceiptScanController extends _$ReceiptScanController {
       final vocabRepo = ref.read(ingredientRepositoryProvider);
       final measureRepo = ref.read(measureRepositoryProvider);
       final priceRepo = ref.read(priceRepositoryProvider);
-      final stores = ref.read(priceStoresProvider).asData?.value ?? const [];
       final payload = await reader.readReceipt(photos, onProgress: _onProgress);
+      // Asked of the REPOSITORY, not of the store-words provider: that
+      // provider is a stream, and at the moment a scan starts it has usually
+      // not emitted yet — reading it would open the chips on nothing and
+      // hold Save shut over a household that has shopped for months.
+      final stores = await _storeWords(priceRepo);
       final drafts = initialReceiptDrafts(payload);
       final landed = await _landPacks(
         drafts,
@@ -251,6 +255,14 @@ class ReceiptScanController extends _$ReceiptScanController {
     } finally {
       _stopStageLadder();
       _reading = false;
+    }
+  }
+
+  static Future<List<String>> _storeWords(PriceRepository repo) async {
+    try {
+      return await repo.watchStores().first;
+    } on Object {
+      return const [];
     }
   }
 
@@ -355,6 +367,14 @@ class ReceiptScanController extends _$ReceiptScanController {
     }
   }
 
+  /// The *Set the amount* door's answer: what a line the reader could not
+  /// make out actually rang up as, read off the paper by a person.
+  ///
+  /// Only the printed figure moves. The deduction printed under the item is
+  /// the paper's and is left exactly where it was.
+  void setCents(int index, int cents) =>
+      _updateLine(index, (d) => d.withCents(cents));
+
   /// The *Say what the pack is* door's answer: what the cents bought, in both
   /// denominations, and the word to mint where the person asked for one.
   void setPack(
@@ -393,9 +413,12 @@ class ReceiptScanController extends _$ReceiptScanController {
     (d) => d.copyWith(kind: ReceiptKind.notFood, clearMatch: true),
   );
 
-  /// Brings a folded line back as exactly the kind the paper said it was.
+  /// *It is food* — a line under the fold comes back as an item, whether the
+  /// paper called it one or a person folded it. There is nothing else it
+  /// could come back as: the fold holds exactly the lines that are not food,
+  /// and saying one of them is food is the only thing the door means.
   void unfold(int index) =>
-      _updateLine(index, (d) => d.copyWith(kind: d.printedKind));
+      _updateLine(index, (d) => d.copyWith(kind: ReceiptKind.item));
 
   void drop(int index) => _updateLine(index, (d) => d.copyWith(dropped: true));
 
