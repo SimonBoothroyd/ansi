@@ -10,8 +10,8 @@ The board is **what the app looks like today**. One file per screen. Open
 - One file per view, in the order the app is used: `library` · `book` · `recipe-page` ·
   `recipe-editor` · `import-review` · `ingredient-picker` ·
   `quantity-measures` · `recipe-picker-confirm` · `ingredients-manager` ·
-  `ingredient-detail` · `week` · `cook-shop` · `navigation` · `errors-sync` ·
-  `account`.
+  `ingredient-detail` · `week` · `cook-shop` · `receipts` · `navigation` ·
+  `errors-sync` · `account`.
 - [`not-built.html`](./not-built.html) — frames that were drawn and never
   built, each citing its row in [`backlog.md`](../../exec-plans/backlog.md).
 

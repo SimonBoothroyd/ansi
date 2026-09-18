@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ansi board — Receipts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./board.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="view-head">
+    <p class="kicker"><a href="./index.html">Ansi &middot; the board</a></p>
+    <h1 class="view-title">Receipts</h1>
+    <p class="view-status">built &middot; matches code 2026-09-17 &middot; <code>features/receipts</code> &middot; <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> &middot; <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> &middot; <a href="../import-and-matching.md">import &amp; matching</a> &middot; <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> &middot; wide: the scan, the review and the ledger are each one column at the 640 measure; the desk&rsquo;s three-column review was drawn and is not built, and waits in <a href="./not-built.html">the hatch</a></p>
+    <p class="view-blurb">A photographed receipt reads through the recipe import&rsquo;s own pipeline, is confirmed line by line, and is kept whole &mdash; so what a week cost reads off the receipts themselves, and every matched line with a pack is a price. The door is on <a href="./cook-shop.html">the Shop&rsquo;s foot</a>; the figure it produces is <a href="./week.html">the band&rsquo;s second line</a>. <b>Nothing is written until Save.</b></p>
+</header>
+
+<div class="board">
+
+    <div class="frame">
+        <p class="frame-name"><b>Shot in parts, read in stages</b> &middot; the recipe import&rsquo;s own camera and checklist, one line of guidance added for a strip longer than a page, and the four stages named for what they read</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Scan a receipt</span><span class="dots"></span></div>
+            <p class="rc-note" style="margin-top:4px">Photograph the receipt. A long one goes in <b style="color:var(--ink)">two or three shots, top to bottom, overlapping a few lines</b> — the overlap is how the parts are joined. We read the store, the date and every line, then <b style="color:var(--ink)">you confirm each match</b>.</p>
+            <div style="display:flex;gap:10px;margin:16px 20px 0"><div class="ghostbtn" style="flex:1;justify-content:center;padding:13px">◻ Take a photo</div><div class="ghostbtn" style="flex:1;justify-content:center;padding:13px">▣ Choose photos</div></div>
+            <div style="display:flex;flex-direction:column;justify-content:center;padding:26px 40px 0">
+                <div style="display:flex;align-items:center;gap:10px;padding:7px 0"><span style="width:22px;text-align:center;color:var(--herb);font-size:13px">✓</span><span style="flex:1;font-size:13px">Photos received</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">0:02</span></div>
+                <div style="display:flex;align-items:center;gap:10px;padding:7px 0"><span style="width:22px;text-align:center;color:var(--herb);font-size:13px">✓</span><span style="flex:1;font-size:13px">Photos read</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">0:18</span></div>
+                <div style="display:flex;align-items:center;gap:10px;padding:7px 0"><span style="width:22px;text-align:center"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--herb);vertical-align:middle"></span></span><span style="flex:1;font-size:13px;font-weight:600">Writing the receipt out…</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--herb)">0:06</span></div>
+                <div style="display:flex;align-items:center;gap:10px;padding:7px 0"><span style="width:22px;text-align:center"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--line);vertical-align:middle"></span></span><span style="flex:1;font-size:13px;color:var(--muted)">Lines matched</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:14px">the same four rows as a photographed recipe, the third renamed for what it writes; the same tenses, the same clocks, the same four ways the wait can end, all back on this form</p>
+            <p class="rc-note">The parts are one strip. The transcription joins photo <i>n</i> to photo <i>n+1</i> at the longest run of identical lines the end of one shares with the start of the next — by position, never by name, because a receipt honestly prints the same item twice when two were bought. What the join gets wrong the review catches against the printed subtotal, below.</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>The review &middot; what the receipt says about itself</b> &middot; store, date and its own totals, read off the paper, with the lines&rsquo; sum held against the printed subtotal</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Review receipt</span><span class="hdrcount">3 to review</span></div>
+            <div class="srcnotes" style="margin-top:2px">
+                <div class="sn-h"><span>⚠</span><span>What we could not read</span></div>
+                <div class="sn">· The join between the second and third photo was hard to read.</div>
+            </div>
+            <p class="flabel">Store</p>
+            <div class="frow" style="margin-bottom:4px"><div class="uchips"><span class="uchip on">TJ’s</span><span class="uchip">Whole Foods</span><span class="uchip addm">＋</span></div></div>
+            <div class="frow" style="margin-bottom:10px"><div class="srcline" style="margin:0">from receipt:  TRADER JOE’S #135 · 09/13/26 05:42 PM</div></div>
+            <p class="flabel">Bought</p>
+            <div class="portion" style="margin-bottom:4px"><div class="pl">Sunday 13 Sep<small>17:42</small></div></div>
+            <div class="srcline" style="margin:0 0 12px">the receipt’s own date, not the scan’s — it files under the week it falls in</div>
+            <p class="flabel">Printed totals</p>
+            <div class="crow"><span class="cl">Subtotal</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px">$83.30</span></div>
+            <div class="crow"><span class="cl">Tax</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px">$0.82</span></div>
+            <div class="crow" style="margin-bottom:10px"><span class="cl"><b>Total</b></span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px"><b>$84.12</b></span></div>
+            <div class="lcard" style="background:var(--herb-soft);border-color:var(--herb)"><div class="l3"><span class="l3-amt" style="color:var(--herb)">✓</span><span class="l3-body"><span class="l3-id">The lines add up to $83.30</span><span class="l3-note">the receipt says the same</span></span></div></div>
+            <div class="lcard attn">
+                <div class="l3"><span class="l3-amt" style="color:var(--aging)">⚠</span><span class="l3-body"><span class="l3-id">The lines add up to $79.81</span><span class="l3-note">the receipt says $83.30 · $3.49 apart</span></span></div>
+                <div class="attn-tag"><span>⚠</span><span>Find the join — a line is missing or doubled</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:2px">the two states of one card, drawn together: the sum the lines make against the subtotal the paper printed. The receipt is saved either way — the total is the paper’s, and stands — but a card that does not close is a flag like any other, and the header counts it</p>
+            <div class="tsec" style="margin-top:6px"><span class="tl">Lines</span><span class="tc">24</span><span class="rule"></span></div>
+        </div></div>
+        <p class="conv-note" style="margin:10px 4px 0"><b>The store is a chip, and the paper’s words are under it.</b> The chips are the names the household uses; the model prints what the header printed and the review picks the chip it matches, the same <i>from source</i> line the recipe review draws under a title. A store never seen before is the <b>＋</b>, named once. The date is the receipt’s, not the scan’s: a receipt scanned on Tuesday for Sunday’s shop lands on Sunday’s week.</p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>The review &middot; the line cards</b> &middot; the recipe review&rsquo;s cards carrying money instead of an amount: a matched line states what it cost per basis, a line without a pack asks for one, a line without a match asks for that, and what is not food folds under the rest</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Review receipt</span><span class="hdrcount">4 to review</span></div>
+            <div class="tsec" style="margin-top:8px"><span class="tl">Lines</span><span class="tc">24</span><span class="rule"></span></div>
+
+            <div class="lcard">
+                <div class="l3 edit"><span class="l3-amt">$3.49</span><span class="l3-body"><span class="l3-id">Bananas, organic</span><span class="l3-note">bag (454 g) · 77¢ / 100 g</span></span><span class="l3-pen">✎</span></div>
+                <div class="srcline">from receipt:  TJ ORG BANANAS  3.49</div>
+            </div>
+            <div class="lcard">
+                <div class="l3 edit"><span class="l3-amt">$2.63</span><span class="l3-body"><span class="l3-id">Yellow onion</span><span class="l3-note">1.32 lb · 44¢ / 100 g</span></span><span class="l3-pen">✎</span></div>
+                <div class="srcline">from receipt:  YELLOW ONIONS  1.32 lb @ 1.99/lb  2.63</div>
+            </div>
+            <div class="lcard">
+                <div class="l3 edit"><span class="l3-amt">$5.49</span><span class="l3-body"><span class="l3-id">Salmon fillet</span><span class="l3-note">1.10 lb · −55¢ off · $1.10 / 100 g</span></span><span class="l3-pen">✎</span></div>
+                <div class="srcline">from receipt:  ATLANTIC SALMON  1.10 lb @ 5.49/lb  6.04<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PRIME SAVINGS  −0.55</div>
+            </div>
+
+            <div class="lcard attn">
+                <div class="chead"><span class="cn">TJ SRIRACHA  3.99</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="srcline">from receipt:  TJ SRIRACHA  3.99</div>
+                <div class="chosen"><span class="ck">✓</span><span class="cnm">Sriracha</span><span class="chint">tap to change</span><span class="ci">›</span></div>
+                <div class="attn-tag"><span>⚠</span><span>Say what the pack is</span></div>
+                <div class="erow"><span class="elab">Pack</span><span class="ebody"><span class="amtchip">set the pack <span class="pen">✎</span></span></span></div>
+                <div class="lflags"><span class="lflag tog on">keep as a measure</span></div>
+                <div class="lockhint">The paper prints no size. Entered once and kept, the next receipt lands on <i>bottle (482 g)</i> and asks nothing.</div>
+            </div>
+
+            <div class="lcard attn">
+                <div class="chead"><span class="cn">TJ MED CHDR SHRD  3.79</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="srcline">from receipt:  TJ MED CHDR SHRD  3.79</div>
+                <div class="attn-tag"><span>⚠</span><span>Match an ingredient</span></div>
+                <p class="flabel" style="margin:9px 0 6px">Did you mean</p>
+                <div class="suggests" style="margin-top:0"><span class="sug">Cheddar</span><span class="sug">Cheddar, mild</span></div>
+                <div class="ghostbtn">⌕ Something else</div>
+                <div class="ghostbtn">Not food</div>
+            </div>
+
+            <div class="lcard attn">
+                <div class="chead"><span class="cn">2 @ 0.99  1.98</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="srcline">from receipt:  2 @ 0.99  1.98</div>
+                <div class="lflags"><span class="lflag">low confidence 22%</span></div>
+                <div class="attn-tag"><span>⚠</span><span>Match an ingredient</span></div>
+                <div class="ghostbtn">⌕ Something else</div>
+                <div class="ghostbtn">Not food</div>
+                <div class="lockhint">a quantity line whose item printed above it on the other photo — the join lost the name; the sum still counts it</div>
+            </div>
+
+            <div class="sl-group" style="margin-top:14px">Not food · 2 · $7.09</div>
+            <div class="item done"><div class="item-top"><span class="item-name">PAPER TOWELS</span><span class="item-total">$6.99</span></div></div>
+            <div class="item done"><div class="item-top"><span class="item-name">BAG FEE</span><span class="item-total">$0.10</span></div></div>
+            <div class="sl-group">Tax · $0.82</div>
+
+            <div class="lcard attn">
+                <div class="chead"><span class="cn">TJ ????  ?.??</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="srcline">from receipt:  TJ ????  ?.??</div>
+                <div class="lflags"><span class="lflag">low confidence 18%</span></div>
+                <div class="chosen"><span class="ck">✓</span><span class="cnm">Tortillas</span><span class="chint">tap to change</span><span class="ci">›</span></div>
+                <div class="attn-tag"><span>⚠</span><span>Set the amount</span></div>
+                <div class="ghostbtn">Set the amount</div>
+                <div class="lockhint">the figure could not be read. A zero is not a discovery that the food is free, so the line holds Save and drags the join open until somebody reads it off the paper</div>
+            </div>
+
+            <div class="savebtn off">4 line(s) need you</div>
+            <p class="conv-note" style="text-align:center;margin-top:8px">and, closed: <b>Save receipt · $84.12</b> — header count, card flags, the join card and Save all read one map</p>
+        </div></div>
+        <p class="conv-note" style="margin:10px 4px 0"><b>A matched line is one sentence with the money first.</b> The amount slot the recipe card gives a quantity here gives the sum paid; the note under the name is the pack and what the two come to per basis. A line sold by weight needs no pack — the paper printed the pound and the rate, so the row reads them as they are and prices itself. A discount printed under an item is folded into that item’s sum, shown as a deduction on the same line, because what you paid is the price.</p>
+        <p class="conv-note" style="margin:6px 4px 0"><b>Two flags a recipe line never raises.</b> <i>Say what the pack is</i> — a matched row that neither sells by weight nor has a pack yet: the door is the price sheet’s <i>for</i> field, and the toggle keeps the answer as a measure on the row so it is asked once. <i>Not food</i> — paper towels, bag fees, a bottle deposit — moves the line under the fold, where it still counts toward the total and never toward a price. <b>The match is the server’s, each time.</b> A receipt’s words are a store’s abbreviations, and confirming one teaches the vocabulary nothing; the next receipt is matched afresh. What carries over is the pack, on the row.</p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>The ledger &middot; spend over time</b> &middot; the receipts themselves, by week and by store, with the week&rsquo;s planned cost beside what was spent</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Receipts</span><span class="dots">⋯</span></div>
+            <div class="wkfoot" style="margin-top:6px">
+                <div class="wf-h"><span class="wf-t">September · so far</span></div>
+                <div class="dm" style="display:block"><b>$412.16</b> spent &middot; 5 receipts &middot; TJ’s $301.74 &middot; Whole Foods $110.42</div>
+            </div>
+            <p class="list-h">Week of 14 Sep</p>
+            <div class="item"><div class="item-top"><span class="item-name">TJ’s</span><span class="item-total">$84.12</span></div><div class="item-sub">Sun 13 Sep · 24 lines · 2 not food</div></div>
+            <div class="item"><div class="item-top"><span class="item-name">Whole Foods</span><span class="item-total">$23.40</span></div><div class="item-sub">Wed 16 Sep · 6 lines</div></div>
+            <div class="daymac" style="margin:0 20px 8px"><span class="dm"><b>$107.52</b> spent &middot; ≈ $71 to cook</span><div class="scope" style="display:block;text-align:right;margin-top:3px">2 receipts</div></div>
+            <p class="list-h">Week of 7 Sep</p>
+            <div class="item"><div class="item-top"><span class="item-name">TJ’s</span><span class="item-total">$91.06</span></div><div class="item-sub">Sun 6 Sep · 27 lines · 1 not food</div></div>
+            <div class="daymac" style="margin:0 20px 8px"><span class="dm"><b>$91.06</b> spent &middot; ≈ $88 to cook</span><div class="scope" style="display:block;text-align:right;margin-top:3px">1 receipt</div></div>
+            <p class="list-h">Week of 31 Aug</p>
+            <div class="item"><div class="item-top"><span class="item-name">TJ’s</span><span class="item-total">$62.22</span></div><div class="item-sub">Sun 30 Aug · 19 lines</div></div>
+            <div class="item"><div class="item-top"><span class="item-name">Whole Foods</span><span class="item-total">$87.02</span></div><div class="item-sub">Sat 5 Sep · 14 lines · typed by hand</div></div>
+            <div class="daymac" style="margin:0 20px 8px"><span class="dm"><b>$149.24</b> spent &middot; ≈ $79 to cook</span><div class="scope" style="display:block;text-align:right;margin-top:3px">2 receipts</div></div>
+            <div class="topup" style="color:var(--herb)">◻ scan a receipt</div>
+        </div></div>
+        <p class="conv-note" style="margin:10px 4px 0"><b>The week is the unit, because the shop is.</b> A receipt files under the week its date falls in — the household’s own week start, so a Sunday shop sits inside the week it feeds. Each week closes with the pair the band shows, spent against planned, and a month line at the top sums the receipts by store. A receipt opens to its review, read-only, with its lines as matched. <i>Typed by hand</i> is a receipt with no photo: the price sheet on an ingredient page writes a one-line receipt here, so a hand-typed price and a scanned one are the same fact in the same ledger.</p>
+    </div>
+
+
+</div>
+
+<p class="view-foot"><a href="./index.html">&larr; every view</a> &middot; <a href="./README.md">how this board is kept</a></p>
+
+</div>
+</body>
+</html>

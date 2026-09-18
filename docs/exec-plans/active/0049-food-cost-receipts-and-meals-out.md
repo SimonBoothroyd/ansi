@@ -1,6 +1,6 @@
 # Exec plan: Food cost, receipts, and a meal eaten out
 
-- **Status:** active — phases one and three shipped as `v0.19.0`; phase two (receipts) next, after a feedback pass
+- **Status:** active — phases one and three shipped as `v0.19.0`; phase two's client (R2) is on main untagged, beside the `import-receipt` function (R1)
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 1 — the first ideas off the backlog
 - **Created:** 2026-09-16
@@ -66,19 +66,19 @@ Phase two — receipts and spend:
 - [ ] Multi-photo joins **by position**: consecutive segments of one strip,
       the seam the longest run of identical consecutive lines shared by the
       end of one and the start of the next. Never by item identity.
-- [ ] The review: store chip over the paper's words, the receipt's own date,
+- [x] The review: store chip over the paper's words, the receipt's own date,
       printed totals, and the join card holding the lines' sum against the
       subtotal — a flag, not a refusal. Line cards with money first; a
       by-weight line prices itself from the printed rate; **Say what the
       pack is** on a matched row with no pack, with *keep as a measure*;
       **Not food** moves a line under the fold. Save writes one `receipt`
       and its lines; every matched item line with a pack is a price.
-- [ ] **No alias is learned from a receipt.** The server match runs afresh
-      each time; the pack kept as a measure is what carries over.
-- [ ] The Receipts ledger, by week (the household's week start) and store,
+- [x] **No alias is learned from a receipt.** The server match runs afresh
+      each time; the pack is what carries over.
+- [x] The Receipts ledger, by week (the household's week start) and store,
       spent against planned per week, a month line on top; opened from the
       band's *spent* line and the shop's **scan a receipt** door.
-- [ ] The band shows `spent` only when a receipt is dated inside the week.
+- [x] The band shows `spent` only when a receipt is dated inside the week.
 
 Phase three — a meal eaten out:
 
@@ -203,6 +203,54 @@ and can run beside phase one.
   mandatory denominator is D4's teeth. The frames on the board are drawn as
   the code prints it.
 
+- 2026-09-17 — **The pack carries over, not the word** (R2). The board's
+  frame promised that entering a pack once means "the next receipt lands on
+  *bottle (482 g)* and asks nothing", and the obvious reading — mint a measure
+  and match on it — needed a rule for which measure is *the pack*. There is a
+  simpler fact already in the ledger: the row's **latest price** knows what
+  the household last bought it in. So a matched item line with no printed
+  weight opens on that pack, in both denominations, with the stored basis
+  figure rather than a re-derivation — a measure re-weighed since cannot
+  re-price a shop that already happened. *Keep as a measure* stays, and is now
+  a genuinely separate gain: a word the household can also say in a recipe.
+- 2026-09-17 — **An unreadable figure is flagged, never a free line** (R1's
+  contract, ruled at R2). `cents: 0` with the reader's own doubt beside it is
+  not a discovery that the food was free: it holds Save, drags the join open
+  and carries a **Set the amount** door that reads the figure off the paper.
+  The alternative — passing a zero through as "honestly unpriced" — would have
+  made a receipt quietly add up short.
+- 2026-09-17 — **Deleting a price on a photographed receipt keeps the line**
+  (owner). Phase one's delete tombstoned the line; on a piece of paper that is
+  wrong, because the cents were paid and the receipt has to go on adding up.
+  It now clears only the line's **price facts** — `pack_basis_amount`,
+  `pack_amount`, `pack_unit`, `measure_id` — and leaves `ingredient_id`,
+  because what was bought is not in doubt; only what the pack was. A hand-typed
+  one-liner still tombstones line and receipt together, having nothing left to
+  be. The confirm says which of the two is about to happen.
+- 2026-09-17 — **The ledger rides the scan door's row** (R2). The brief left
+  the choice open between a second small door on the Shop and a long-press on
+  the first. Neither: a third dashed box is a third thing to read past on every
+  walk, and a long-press is a door nobody can find. A quiet `receipts ›` sits
+  at the end of the scan door's own row, and only once the household has kept
+  a receipt — a door onto an empty page is furniture.
+- 2026-09-17 — **A receipt's date is wall time** (R2). `purchased_at` is
+  stored with the paper's own clock components and a `Z`, not converted: a
+  Sunday 17:42 shop read back on a phone seven hours west would otherwise file
+  into Monday's week. The zone the shop happened in is not a fact this
+  household needs; the date on the paper is.
+- 2026-09-17 — **Bought is read-only, for now** (R2). The frame drew a
+  `change ›` beside the receipt's date. The app has no date control to open,
+  and a receipt's date is the paper's fact rather than an answer somebody
+  gives — so the review prints what was read with the printed words under it,
+  and says which it is. A receipt the reader could not date opens on the day of
+  the scan and says so. The door is cheap to add the first time a real receipt
+  is misread.
+- 2026-09-17 — **The desk's three columns are not built** (R2). The phone
+  review works at the 640 measure on a wide window, and the width would buy one
+  thing: the printed line standing beside the card that claims to read it. It
+  is drawn, it is in the hatch, and it has its own backlog row rather than
+  holding this phase open.
+
 ## Notes / open questions
 
 - The `OLDEST` row names the oldest priced line whenever its month differs
@@ -225,13 +273,14 @@ and can run beside phase one.
 - [x] `ARCHITECTURE.md` standing table: ingredients (price fact), recipes
       (cost reading), planning (the third kind), shopping. *(import waits on
       receipts.)*
-- [x] Backlog: the price row and the meal-out row have retired; the receipt
-      row stays until phase two ships.
-- [ ] Board: hatch frames move into `ingredient-detail`, `recipe-page`,
+- [x] Backlog: the price row, the meal-out row and the receipt row have all
+      retired; one narrower row replaces the last of them — the desk's
+      three-column receipt review, drawn and unbuilt.
+- [x] Board: hatch frames move into `ingredient-detail`, `recipe-page`,
       `week`, `cook-shop`, `import-review`, `recipe-picker-confirm` as
-      built; a new `receipts` view file with its status row. *(the price
-      frames and the four cost frames have moved; the receipt and meal-out
-      frames wait on their phases.)*
+      built; a new `receipts` view file with its status row. *(the one frame
+      still in the hatch is the desk's three-column receipt review, which
+      has a backlog row of its own.)*
 - [x] ADR-0017 (cost is a unit price) written at P2's landing.
 - [ ] `make ci` green on every landing so far; `make test-sim` on one
       simulator, serially, when the owner says go.

@@ -27,6 +27,7 @@ operator statement is owed there.
 
 | What | Plan |
 |------|------|
+| Food cost, phase two — a photographed receipt reads through the recipe import's own pipeline and is confirmed line by line: money first, the store as a chip word over the paper's header, the receipt's own date, and the lines' sum held against the printed subtotal as a flag rather than a refusal. A by-weight line prices itself; one with no printed weight opens on the pack that row was last bought in, and *keep as a measure* is the one tap that mints a word. No alias is learned. Save writes one receipt and every line it kept; the ledger files by the household's week and store, and the week band gains its second figure. Taking a price back on a photographed line clears its price facts and keeps the line. No migrations | [0049](./active/0049-food-cost-receipts-and-meals-out.md) (phase two) |
 
 ## Shipped
 

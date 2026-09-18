@@ -214,8 +214,19 @@ row really has no price, or when nothing carries its amount to the basis — the
 recipe cost's own reasons (`CostLineReason`), in its own words. A meal eaten
 out is passed over entirely: neither a cost to cook nor a gap in one.
 
-There is **no `spent` line**: what a week cost is what its receipts say, and
-the two are never reconciled
+Under it sits the band's **second figure** — `$84.12 spent · 1 receipt ·
+TJ's, Sun` — what the week's receipts actually came to
+(`features/receipts/domain/receipt_ledger.dart`). It is drawn **only when a
+receipt is dated inside the week on screen**, and a week nobody shopped for
+says nothing rather than `$0 spent`, which would read as a free week. It names
+where and when the money went, and it is a door onto the receipts ledger. It is
+drawn on a week that plans nothing too: a shop is a fact about the paper, not
+about the plan.
+
+The two figures are **never reconciled**
 ([ADR-0017](../../../../docs/decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md)).
-The wide Week has no home for the band yet, so the cost line is drawn on the
+The gap between them is the pantry filling or emptying, and no line tries to
+explain it.
+
+The wide Week has no home for the band yet, so both lines are drawn on the
 phone only.

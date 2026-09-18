@@ -140,7 +140,8 @@ something the user watches happen rather than something that happens to them.
 ### Pushed pages stay top-level
 
 `/recipes/new`, `/recipes/:id`, `/recipes/:id/edit`, `/import`, `/books/:id`,
-`/ingredients`, `/ingredients/new`, `/ingredients/:id` and `/account` are
+`/ingredients`, `/ingredients/new`, `/ingredients/:id`, `/receipts`,
+`/receipts/review`, `/receipts/:id` and `/account` are
 **siblings of the tab shell**, not children of a branch. They are pushed on the
 shell Navigator — the one the outer shell owns, holding the tab shell and every
 page over it — so they cover the bar and keep each platform's own push
@@ -337,6 +338,7 @@ So the bar reads, per screen:
 | a new recipe | `#/recipes/new` (`?title=`, `?book=`, `?section=`, `?handback=1`) |
 | a book, the manager, one row, its form | `#/books/<id>`, `#/ingredients`, `#/ingredients/<id>`, `#/ingredients/<id>?edit=1` |
 | import, the household | `#/import`, `#/account` |
+| the receipts: the ledger, a scan in flight, one receipt | `#/receipts`, `#/receipts/review`, `#/receipts/<id>` |
 | the gates | `#/sign-in?from=…`, `#/connecting?from=…` |
 
 Hash URLs, not paths: GitHub Pages cannot rewrite an unknown path back to

@@ -69,6 +69,10 @@ import/
     import_providers.dart        importRepositoryProvider (keepAlive)
   presentation/
     import_view.dart             intake screen
+    photo_doors.dart             the two photo doors, in the words each
+                                 platform can honour — shared with the
+                                 receipt scan (features/receipts)
+    import_stage_rows.dart       the reading checklist, likewise shared
     reconciliation_view.dart     the merged Review recipe screen
     recon_line_card.dart         the review's contents in the shared LineCard
                                  (recipes/presentation/line_card.dart)
@@ -88,6 +92,13 @@ import/
   is sent rather than assumed. The ids are the wire contract; the wording lives
   in `import_stage.dart`, because copy belongs where the screen is. A run that
   fails says so on the row it reached instead of stalling there.
+  **The checklist is one promise, not two.** `features/receipts` narrates
+  `import-receipt` the same way, so the arithmetic (`stageChecklist`, its
+  never-negative durations and its `m:ss`) is shared through the
+  `PipelineStage` interface and the rows through `import_stage_rows.dart`. The
+  receipt pipeline's own ids and wording stay in its own enum: two copies of
+  the arithmetic would be two chances to print a negative duration, and one
+  copy of the wording would put a recipe's words on a receipt.
 - **One screen, not three.** 0014/0017 designed triage → preview → commit. It
   merged during live review into a single always-editable surface: warnings at
   the top, a card per line, the read-only method fold below (rendering the same

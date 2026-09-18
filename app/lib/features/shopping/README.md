@@ -189,6 +189,20 @@ carry none, because the line answers what is left to buy. A row that cannot be
 priced says `no price yet` — but only once something on the trip HAS a price, so
 a household that has entered none is never nagged by forty rows at once.
 
+## The door that ends the trip
+
+A second foot door, beside the top-up one and drawn in herb, **scans the
+receipt** (`ScanReceiptDoor` → `/receipts/review`,
+`features/receipts/README.md`). On the web it says what it can actually do,
+because the photo import is gated there: shoot the receipt on the phone,
+review it anywhere.
+
+The **ledger rides that same row** rather than taking a door of its own — a
+third dashed box would be a third thing to read past on every walk, and a
+long-press would be a door nobody could find — so a quiet `receipts ›` sits at
+the end of it, and **only once the household has kept one**: a door onto an
+empty page is furniture.
+
 The trip figure sums the rows it can price and lets the rows name the rest.
 That is this list's own doctrine, not a softening of invariant 3: it already
 sums an ingredient's honest subtotals and shows the provenance of every part,
