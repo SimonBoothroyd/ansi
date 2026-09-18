@@ -1,6 +1,6 @@
 # Exec plan: Food cost, receipts, and a meal eaten out
 
-- **Status:** active — phases one and three shipped as `v0.19.0`; phase two's client (R2) is on main untagged, beside the `import-receipt` function (R1)
+- **Status:** active — phases one and three shipped as `v0.19.0`, phase two as `v0.20.0`; open: the owner's review, then the feedback pass and the desk's three-column receipt review
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 1 — the first ideas off the backlog
 - **Created:** 2026-09-16
