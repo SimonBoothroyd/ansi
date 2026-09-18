@@ -56,14 +56,14 @@ Phase one — prices and cost:
 
 Phase two — receipts and spend:
 
-- [ ] `import-receipt` edge function (or a receipt mode of `import-recipe`,
+- [x] `import-receipt` edge function (or a receipt mode of `import-recipe`,
       whichever keeps the adapters and the SSE stages shared): the same
       Haiku 4.5 pin, transcribe then structure, native JSON schema; output
       is store as printed, date and time as printed, printed subtotal / tax
       / total, and lines each with printed text, cents, an attached discount,
       printed weight and rate where present, and a kind (`item · not_food ·
       tax · fee`). No vocabulary in the prompt (ADR-0004).
-- [ ] Multi-photo joins **by position**: consecutive segments of one strip,
+- [x] Multi-photo joins **by position**: consecutive segments of one strip,
       the seam the longest run of identical consecutive lines shared by the
       end of one and the start of the next. Never by item identity.
 - [x] The review: store chip over the paper's words, the receipt's own date,
@@ -74,7 +74,12 @@ Phase two — receipts and spend:
       **Not food** moves a line under the fold. Save writes one `receipt`
       and its lines; every matched item line with a pack is a price.
 - [x] **No alias is learned from a receipt.** The server match runs afresh
-      each time; the pack is what carries over.
+      each time; the pack kept as a measure is what carries over. *(The server
+      half landed with R1 and is held structurally, not by prose:
+      `import-receipt/no_alias.test.ts` runs the spine over the real
+      Postgres-backed matcher with a spying executor and asserts every
+      statement the function issues is a `SELECT`. The pack's carry-over is
+      R2's.)*
 - [x] The Receipts ledger, by week (the household's week start) and store,
       spent against planned per week, a month line on top; opened from the
       band's *spent* line and the shop's **scan a receipt** door.
@@ -194,6 +199,46 @@ and can run beside phase one.
   the row truly has no price or nothing carries its amount to the basis, with
   the recipe cost's own reasons. A meal eaten out stays passed over.
 
+- 2026-09-17 — **A second function, not a receipt mode** (R1). The plan left it
+  open. A mode flag would have made one payload type two and one door's tests
+  cover neither, which is how a client ends up decoding a default. What was
+  genuinely shared was moved DOWN instead: `_shared/auth.ts` (one allowlist —
+  a household allowed to photograph a recipe is the same household allowed to
+  photograph its receipt), `_shared/http_edge.ts` (the photo cost caps, the SSE
+  frame, CORS), `_shared/failures.ts` (three shapes, one subject word apiece),
+  and the Haiku pin, imported rather than re-declared so a receipt can never
+  drift onto a different model than a recipe.
+
+- 2026-09-17 — **Transcription returns one string PER PHOTO** (R1). Still ONE
+  vision call: the prompt asks for a `[PHOTO BREAK]` between segments and the
+  server splits on it. A model handed all the photos and asked for one document
+  would have to decide whether a repeated line is an overlap or a second
+  banana — and it would be believed. The join stays ours, positional and
+  unit-tested; a replay fixture holds the photos unjoined for the same reason.
+
+- 2026-09-17 — **The model splits the line; it still never matches** (R1). Each
+  line comes back twice: `printed_text` verbatim, and `name_printed`, the same
+  characters with the money, weight and rate taken off. Only the second reaches
+  the cascade, because `TJ ORG BANANAS 3.49` trigram-compared against the
+  vocabulary is a price being matched. It is not a match and not a guess at our
+  catalogue, and `name_printed` does not appear in the payload at all.
+
+- 2026-09-17 — **An unreadable figure counts as nothing, loudly** (R1). The
+  contract has nowhere to put "unreadable" on a line's `cents`, so such a line
+  lands at 0 with `low_confidence` set and a note naming it — three signals a
+  review stops on. What it never does is quietly contribute a plausible figure
+  to a sum. Money is parsed from digits, never through a float: `parseFloat`
+  makes 3.49 into 348.99999999999994, and money that rounds stops adding up
+  against the printed subtotal.
+
+- 2026-09-17 — **Tax is out of the reconcile; a tax line is still a line**
+  (R1). A subtotal is the figure before tax, so `lines_sum_cents` excludes
+  `kind = 'tax'` — but the line is returned, because the review draws it under
+  the fold and the paper's total has to be checkable against it. A slashed
+  date is read month-first and a two-digit year as 20YY, both because the
+  household shops in the US and a receipt from 1926 is in nobody's drawer; the
+  review's *change ›* door is the answer where a paper means otherwise.
+
 - 2026-09-16 — **One vocabulary for the refusal.** The brainstorm drew a
   day scope line reading `office lunch not counted` beside a denominator of
   `2 meals`. Built, the week says the same thing in the words it already
@@ -284,8 +329,10 @@ and can run beside phase one.
 - [x] ADR-0017 (cost is a unit price) written at P2's landing.
 - [ ] `make ci` green on every landing so far; `make test-sim` on one
       simulator, serially, when the owner says go.
-- [ ] `deploy-supabase` run by hand for R1; sync rules recreated for 0044
-      and 0045. **0046 needs no sync-rule edit** — both receipt rules are
+- [ ] `deploy-supabase` run by hand for R1 — the workflow now deploys
+      `import-receipt` by name beside `import-recipe`, and the two share the
+      `ANTHROPIC_API_KEY` / `IMPORT_ALLOWED_HOUSEHOLDS` secrets, so nothing new
+      is set by hand; sync rules recreated for 0044 and 0045. **0046 needs no sync-rule edit** — both receipt rules are
       `select *`, so the two new columns arrive with the migration — but the
       local container still has to be recreated from the checkout that holds
       it before a device sees them.

@@ -15,9 +15,11 @@
     // the golden fixture, the household allowlist auth.test.ts sets and
     // restores around each case, and the two the keyless replay switch
     // reads (replay.test.ts sets and restores those the same way).
-    "test": "deno test --allow-read --allow-env=UPDATE_GOLDEN,IMPORT_ALLOWED_HOUSEHOLDS,IMPORT_EXTRACT_FIXTURE,ANTHROPIC_API_KEY",
-    // Rewrite the TS→Dart contract fixture after an INTENTIONAL contract
-    // change, then review the diff and update the Dart assertions.
-    "golden": "UPDATE_GOLDEN=1 deno test --allow-read --allow-write --allow-env=UPDATE_GOLDEN import-recipe/golden_payload.test.ts"
+    "test": "deno test --allow-read --allow-env=UPDATE_GOLDEN,IMPORT_ALLOWED_HOUSEHOLDS,IMPORT_EXTRACT_FIXTURE,RECEIPT_EXTRACT_FIXTURE,ANTHROPIC_API_KEY",
+    // Rewrite a TS→Dart contract fixture after an INTENTIONAL contract change,
+    // then review the diff and update the Dart assertions. One task per door,
+    // because the two goldens move for different reasons.
+    "golden": "UPDATE_GOLDEN=1 deno test --allow-read --allow-write --allow-env=UPDATE_GOLDEN import-recipe/golden_payload.test.ts",
+    "golden-receipt": "UPDATE_GOLDEN=1 deno test --allow-read --allow-write --allow-env=UPDATE_GOLDEN import-receipt/golden_payload.test.ts"
   }
 }

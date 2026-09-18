@@ -927,3 +927,143 @@ calibrated in `evals/`, not argued about:
 It is a **calibration tool, not a merge gate** — a benchmark that blocks merges
 gets gamed, and these numbers move whenever a prompt does. Run outputs are not
 committed; the datasets and gold are.
+---
+
+## 12. Receipts — the same pipeline, a different document
+
+A photographed till receipt runs through a **second edge function**,
+[`import-receipt`](../../supabase/functions/import-receipt/README.md), built to
+this document's shape rather than beside it: the same household gate and
+allowlist, the same Haiku 4.5 pin, the same streaming transport and budgets, the
+same SSE stage events, the same failure shapes. A receipt is a smaller and more
+regular document than a cookbook page, and it has one thing a recipe does not —
+a printed subtotal the reading can be checked against.
+
+It is a separate function rather than a mode of `import-recipe` because the two
+produce different contracts and share everything that is genuinely shareable
+(`_shared/auth.ts`, `_shared/http_edge.ts`, `_shared/failures.ts`, the adapters,
+the cascade). A mode flag would have made one payload type two, which is how a
+client ends up decoding a default.
+
+### 12.1 The stages
+
+```
+photos → ① transcribe (vision)  → one transcription PER PHOTO
+       → join by position        → one strip + its seams
+       → ② structure             → what the paper printed
+       → ⑥ match the item lines  → the same cascade as §6
+       → ReceiptPayload
+```
+
+Four stage ids on the wire, in order — `received`, `read`, `written`,
+`matched` — carried by exactly the frames §4.7 describes (`plan`, `stage`,
+`heartbeat`, `result`, `error`). The **wording is the app's**: the board's
+reading checklist says "Photos received", "Photos read", "Writing the receipt
+out…", "Lines matched" — the recipe reader's four rows, the third renamed for
+what it writes.
+
+The budgets are the recipe pipeline's constants, imported rather than
+re-chosen: both receipt calls are strictly smaller than the calls those numbers
+were sized for, so the ladder in `_shared/timeouts.test.ts` covers this function
+without a second set of rungs to keep in step.
+
+### 12.2 The join is positional, and never by identity
+
+The photos are consecutive segments of one strip, top to bottom, overlapping a
+few lines — the camera door says so, in one line of guidance. The seam between
+photo *n* and photo *n+1* is **the longest run of identical consecutive lines
+shared by the end of *n* and the start of *n+1***, compared with case and inner
+whitespace folded away and every kept line kept verbatim. A run of one counts.
+When no run is found the photos are concatenated end to end and a note says so.
+
+**Never by item identity.** A receipt honestly prints the same item twice when
+two were bought, and a joiner that noticed `TJ ORG BANANAS 3.49` twice and kept
+one would delete a banana the household paid for. The only de-duplication the
+join performs is positional, at the seam, of lines the earlier photo already
+contributed — which is also why a seam line's `photo` is the earlier one.
+
+That the model returns **one transcription per photo** rather than a spliced
+strip is what makes this possible: the overlap is the joining instrument, and a
+model asked to splice would have to decide whether a repeated line is an overlap
+or a second banana, and would be believed. It is never asked. The rule is a
+pure, unit-tested function (`_shared/receipt_join.ts`).
+
+### 12.3 The reconcile figure
+
+The server computes, over the lines it returns:
+
+```
+lines_sum_cents = Σ(item.cents − item.discount_cents)
+                + Σ(not_food.cents)
+                + Σ(fee.cents)
+```
+
+Tax is out, because a subtotal is the figure before it. This is returned beside
+`printed.subtotal_cents`, **and nothing else happens**: the server states both
+numbers and stops. The review draws the join card from them, and a disagreement
+is a flag, never a refusal — a receipt is saved either way, because the total is
+the paper's and the paper stands.
+
+A missed seam double-counts its overlap and a wrong one loses lines, so either
+way the two numbers part company. That is the backstop the join rests on.
+
+Money is **integer cents**, parsed server-side from the printed words by code
+with tests (`_shared/receipt_parse.ts`), never through a float: `$3.49`, `3,49`,
+`1,234.56`, `−0.55`, `0.55-` and `(0.55)` all read honestly, and anything that
+cannot be read comes back `null` — which becomes a note and a `low_confidence`
+line, never a zero, because a zero would add up. Tax and fee lines are `kind`
+lines and are never dropped. A discount printed directly under an item folds
+into that item's `discount_cents` (both printed figures survive, per migration
+0044); one the model could not attach becomes its own `fee` line with negative
+cents, so the reconcile still closes.
+
+A by-weight line carries the printed weight, the printed rate and the unit as a
+`units.dart` canonical id (`lb`, `kg`, `oz`, `g`) — the card prices itself from
+the paper and asks for no pack. Everything else carries no weight.
+
+### 12.4 The model never matches, and nothing is learned
+
+ADR-0004 holds unchanged. The model is not shown one ingredient name of the
+household's; it prints what the paper printed. The deterministic cascade of §6
+then runs over each **item** line's printed words — a tax line has no ingredient
+to be about — and because those words are a store's abbreviations it answers
+`suggest` far more often than it does on a recipe line. `auto` is returned only
+above the cascade's existing auto threshold; everything else is a suggestion,
+and the review asks. Expect, and draw, more asking.
+
+The one division the model is asked to make is a line into the words that name
+the thing and the numbers (`name_printed`), so that `TJ ORG BANANAS 3.49` is not
+trigram-compared against the vocabulary with its price still attached. That is
+the same characters with the money taken off, not a match and not a guess at our
+catalogue.
+
+**No alias is learned from a receipt** (plan 0049, owner). §8's learning loop is
+the recipe door's and stays there: a receipt's words are one store's
+abbreviations, confirming one teaches the vocabulary nothing, and a whole-line
+alias scoped to a store was weighed and refused. The match runs afresh every
+time. What carries over between shops is the **pack**, kept on the ingredient
+row by the owner's tap in review.
+
+Because that is a difference between two doors sharing one cascade — the kind a
+later change erases quietly — it is held structurally rather than by this
+paragraph: `import-receipt/no_alias.test.ts` runs the real spine over the real
+Postgres-backed matcher with a spying executor and asserts every statement the
+function issues is a `SELECT`, and guards every file the function owns against
+an alias table name or a write verb.
+
+### 12.5 The contract
+
+`supabase/functions/_shared/receipt_types.ts`, pinned by a committed golden
+payload (`import-receipt/__fixtures__/receipt_payload.golden.json`) and mirrored
+by hand in Dart — the same arrangement, and for the same reason, as
+`ReconciliationPayload` in §4.4. It carries the store and date as printed, the
+date parsed best-effort as local wall time with no zone, the paper's own
+subtotal / tax / total, the reconcile figure, every line in printed order with
+its cents, discount, kind, weight, match, up to three suggestions, its own doubt
+and which photo it came from, the seams, and the notes — "what we could not
+read", in the review's voice.
+
+The fixtures behind all of it are **synthetic and say so in the file**: this
+repo is public and a real receipt carries a card's last four and a loyalty
+number. The owner's own live in a gitignored `__fixtures__/local/`, the same
+pattern the extraction corpus uses under `evals/`.

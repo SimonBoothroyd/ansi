@@ -1,10 +1,14 @@
-// The recipe door's binding of the shared household gate.
+// The receipt door's binding of the shared household gate.
 //
 // The gate itself — the `household_id` claim, the `IMPORT_ALLOWED_HOUSEHOLDS`
 // allowlist, and the 401/403 ladder — lives in `_shared/auth.ts` and is shared
-// with `import-receipt`. All that is local is the two strings that have to name
+// with `import-recipe`. All that is local is the two strings that have to name
 // this door: the log prefix, and the sentence a household outside the allowlist
 // is shown.
+//
+// ONE allowlist for both doors, on purpose: it names the households that may
+// spend the extraction budget, and a household allowed to photograph a recipe
+// is the same household allowed to photograph its receipt.
 
 import {
   type AuthFailure,
@@ -20,8 +24,8 @@ export {
 } from "../_shared/auth.ts";
 
 const VOICE = {
-  fn: "import-recipe",
-  denied: "recipe import is not enabled for this household",
+  fn: "import-receipt",
+  denied: "receipt import is not enabled for this household",
 };
 
 /**

@@ -74,3 +74,10 @@ evals/datasets/extraction/images/
 evals/datasets/extraction/gold/*.json
 evals/datasets/extraction/gold/_INDEX.md
 evals/runs/*/
+
+# The OWNER's real receipts, for the receipt import's replay harness. A receipt
+# carries a card's last four and a loyalty number, and this repo is public, so
+# none of them may be committed. The fixtures that ARE tracked
+# (`supabase/functions/import-receipt/testdata/`) are synthetic and say so in
+# the file; `import-receipt/README.md` says how to add your own.
+supabase/functions/import-receipt/__fixtures__/local/

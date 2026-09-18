@@ -7,7 +7,12 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
 - `migrations/` — Postgres schema, applied by the Supabase CLI in order.
 - `functions/` — Deno edge functions. The **import + match engine** lives here;
   it is the ONLY place fuzzy matching happens (ADR-0004). Matching never runs
-  on-device.
+  on-device. Two doors share it: `import-recipe/` (a link or photographed
+  pages → a recipe) and `import-receipt/` (photographed till receipt → what was
+  paid, line by line). What both need — the household gate, the photo cost caps,
+  the SSE frame shape, the failure wordings, the adapters, the cascade — lives in
+  `_shared/`, so a change to "how big may a photo be" cannot answer differently
+  at the two doors. Both are deployed BY NAME in `deploy-supabase.yml`.
 - `seed/` — two seeds with different owners. The **household vocabulary** is
   an export of the owner's live household (`seed/snapshot.jsonl`) turned into
   one `../seed_vocab.sql` by `seed/scripts/gen_seed.ts` — the direction is
@@ -39,6 +44,21 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
 - **The extraction LLM never sees the vocabulary and never matches** — it only
   emits raw structured lines. Matching is deterministic and testable (see
   `evals/`). Design: `docs/product-specs/import-and-matching.md`.
+- **A receipt teaches the vocabulary nothing** (plan 0049, owner). The recipe
+  door writes a correction back as an alias; the receipt door writes nothing at
+  all and matches afresh every time, because a receipt's words are one store's
+  abbreviations. It is held by `import-receipt/no_alias.test.ts`, not by this
+  line: a SQL spy asserts every statement that function issues is a `SELECT`.
+  What carries over between shops is the PACK, on the ingredient row.
+- **A receipt's photos are joined by POSITION, never by item identity.** The
+  seam is the longest run of identical consecutive lines shared by the end of
+  one photo and the start of the next (`_shared/receipt_join.ts`). A receipt
+  honestly prints the same item twice when two were bought, and a joiner that
+  de-duplicated by name would delete one of them. `import-and-matching.md` §12.
+- **Never commit a real receipt.** This repo is public and a receipt carries a
+  card's last four and a loyalty number. `import-receipt/testdata/` is synthetic
+  and a test asserts it; the owner's own go in the gitignored
+  `import-receipt/__fixtures__/local/`.
 - **The model calls STREAM, and the function says so out loud.** `streamJson`
   (`functions/_shared/adapters/http.ts`) is what production extraction goes
   through: `stream: true`, an idle timer instead of a per-attempt wall clock, no
@@ -103,6 +123,13 @@ part of the deployed function. `import-recipe/replay.test.ts` holds all three.
 somewhere under that directory first and the env var point at the container path.
 Serving the module directly, as above, is the shorter road and is the same
 `serveImport()` entry point the deploy runs.
+
+`import-receipt` replays the same way, under its own variable
+(`RECEIPT_EXTRACT_FIXTURE`) and with the same two locks, and its fixtures are
+committed beside it (`import-receipt/testdata/`, synthetic) rather than under
+`evals/`. It hands the saved photos back UNJOINED, so a replay run exercises the
+real seam-finder instead of skipping it. See
+[`import-receipt/README.md`](functions/import-receipt/README.md).
 
 ## Commands
 

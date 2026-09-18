@@ -1,0 +1,172 @@
+{
+  "store_printed": "TRADER JOE'S #135",
+  "purchased_at_printed": "09/13/26 05:42 PM",
+  "purchased_at": "2026-09-13T17:42:00",
+  "printed": {
+    "subtotal_cents": 2997,
+    "tax_cents": 82,
+    "total_cents": 3079
+  },
+  "lines_sum_cents": 2997,
+  "lines": [
+    {
+      "index": 0,
+      "printed_text": "TJ ORG BANANAS 3.49",
+      "cents": 349,
+      "discount_cents": 0,
+      "kind": "item",
+      "weight": null,
+      "match": null,
+      "suggestions": [],
+      "low_confidence": false,
+      "photo": 0
+    },
+    {
+      "index": 1,
+      "printed_text": "YELLOW ONIONS 1.32 lb @ 1.99/lb 2.63",
+      "cents": 263,
+      "discount_cents": 0,
+      "kind": "item",
+      "weight": {
+        "amount": 1.32,
+        "unit": "lb",
+        "rate_cents": 199
+      },
+      "match": {
+        "ingredient_id": "v-onion",
+        "confidence": 1,
+        "kind": "auto"
+      },
+      "suggestions": [
+        {
+          "ingredient_id": "v-onion",
+          "name": "Yellow onion",
+          "confidence": 1
+        }
+      ],
+      "low_confidence": false,
+      "photo": 0
+    },
+    {
+      "index": 2,
+      "printed_text": "ATLANTIC SALMON 1.10 lb @ 5.49/lb 6.04",
+      "cents": 604,
+      "discount_cents": 55,
+      "kind": "item",
+      "weight": {
+        "amount": 1.1,
+        "unit": "lb",
+        "rate_cents": 549
+      },
+      "match": {
+        "ingredient_id": "v-salmon",
+        "confidence": 1,
+        "kind": "auto"
+      },
+      "suggestions": [
+        {
+          "ingredient_id": "v-salmon",
+          "name": "Salmon fillet",
+          "confidence": 1
+        }
+      ],
+      "low_confidence": false,
+      "photo": 0
+    },
+    {
+      "index": 3,
+      "printed_text": "TJ SRIRACHA 3.99",
+      "cents": 399,
+      "discount_cents": 0,
+      "kind": "item",
+      "weight": null,
+      "match": {
+        "ingredient_id": "v-sriracha",
+        "confidence": 0.75,
+        "kind": "suggest"
+      },
+      "suggestions": [
+        {
+          "ingredient_id": "v-sriracha",
+          "name": "Sriracha",
+          "confidence": 0.75
+        }
+      ],
+      "low_confidence": false,
+      "photo": 1
+    },
+    {
+      "index": 4,
+      "printed_text": "TJ MED CHDR SHRD 3.79",
+      "cents": 379,
+      "discount_cents": 0,
+      "kind": "item",
+      "weight": null,
+      "match": null,
+      "suggestions": [],
+      "low_confidence": false,
+      "photo": 1
+    },
+    {
+      "index": 5,
+      "printed_text": "TJ ORG BANANAS 3.49",
+      "cents": 349,
+      "discount_cents": 0,
+      "kind": "item",
+      "weight": null,
+      "match": null,
+      "suggestions": [],
+      "low_confidence": false,
+      "photo": 1
+    },
+    {
+      "index": 6,
+      "printed_text": "PAPER TOWELS 6.99",
+      "cents": 699,
+      "discount_cents": 0,
+      "kind": "not_food",
+      "weight": null,
+      "match": null,
+      "suggestions": [],
+      "low_confidence": false,
+      "photo": 2
+    },
+    {
+      "index": 7,
+      "printed_text": "BAG FEE 0.10",
+      "cents": 10,
+      "discount_cents": 0,
+      "kind": "not_food",
+      "weight": null,
+      "match": null,
+      "suggestions": [],
+      "low_confidence": false,
+      "photo": 2
+    },
+    {
+      "index": 8,
+      "printed_text": "TAX 0.82",
+      "cents": 82,
+      "discount_cents": 0,
+      "kind": "tax",
+      "weight": null,
+      "match": null,
+      "suggestions": [],
+      "low_confidence": false,
+      "photo": 2
+    }
+  ],
+  "photos_joined": [
+    {
+      "from": 0,
+      "to": 1,
+      "overlap_lines": 2
+    },
+    {
+      "from": 1,
+      "to": 2,
+      "overlap_lines": 2
+    }
+  ],
+  "notes": []
+}
