@@ -1,6 +1,6 @@
 # Exec plan: Food cost, receipts, and a meal eaten out
 
-- **Status:** active — design signed off on the board; phase one next
+- **Status:** active — phases one and three shipped as `v0.19.0`; phase two (receipts) next, after a feedback pass
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 1 — the first ideas off the backlog
 - **Created:** 2026-09-16
