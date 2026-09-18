@@ -16,7 +16,6 @@ import 'dart:async';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../import/domain/import_stage.dart';
 import '../../ingredients/data/ingredient_providers.dart';
@@ -108,14 +107,6 @@ class ReceiptReviewing extends ReceiptScanState {
     printedTaxCents: payload.taxCents,
     printedTotalCents: payload.totalCents,
   );
-
-  /// The basis a line's figures are denominated in — its matched row's, and
-  /// the app's default where the row has not arrived.
-  MacrosBasis basisFor(ReceiptLineDraft draft) {
-    final id = draft.ingredientId;
-    if (id == null) return MacrosBasis.perG;
-    return rows[id]?.macrosBasis ?? MacrosBasis.perG;
-  }
 
   ReceiptReviewing copyWith({
     List<ReceiptLineDraft>? drafts,
