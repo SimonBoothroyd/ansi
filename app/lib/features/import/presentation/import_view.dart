@@ -3,7 +3,6 @@
 /// committing — and, on a committed recipe, routes to its page.
 library;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
@@ -17,8 +16,9 @@ import '../../../shared/ansi_layout.dart';
 import '../../../shared/ansi_modals.dart';
 import '../data/photo_intake.dart';
 import '../domain/import_repository.dart';
-import '../domain/import_stage.dart';
+import 'import_stage_rows.dart';
 import 'import_view_models.dart';
+import 'photo_doors.dart';
 import 'reconciliation_view.dart';
 import 'wide_review_view.dart';
 
@@ -117,12 +117,12 @@ class ImportView extends HookConsumerWidget {
         (ImportLoading(:final rows, :final request), true) => WideReadingBody(
           rows: rows,
           request: request,
-          checklist: _Reading(
+          checklist: StageChecklist(
             rows: rows,
             fromPhotos: request is ImportFromPhotos,
           ),
         ),
-        (ImportLoading(:final rows, :final fromPhotos), _) => _Reading(
+        (ImportLoading(:final rows, :final fromPhotos), _) => StageChecklist(
           rows: rows,
           fromPhotos: fromPhotos,
         ),
@@ -149,112 +149,6 @@ class _Busy extends StatelessWidget {
           const FCircularProgress(),
           const SizedBox(height: 12),
           Text(label, style: ansiMono(size: 12, color: AnsiColors.muted)),
-        ],
-      ),
-    );
-  }
-}
-
-/// The reading screen: the server's stages as a vertical checklist, each row
-/// carrying the time it actually took.
-///
-/// The wait is a minute or more from photos, and a screen that says one frozen
-/// sentence through all of it reads as a hang. What makes this honest rather
-/// than reassuring is that every row is something the server SAID — the list,
-/// the order and the elapsed times all arrive on the wire (import spec §4.7),
-/// so nothing here is a guess about progress.
-class _Reading extends StatelessWidget {
-  const _Reading({required this.rows, required this.fromPhotos});
-
-  final List<StageProgress> rows;
-  final bool fromPhotos;
-
-  @override
-  Widget build(BuildContext context) {
-    // Before the first event there is nothing true to draw a checklist from.
-    if (rows.isEmpty) return const _Busy(label: 'Sending…');
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (final row in rows) _StageRow(row: row, fromPhotos: fromPhotos),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StageRow extends StatelessWidget {
-  const _StageRow({required this.row, required this.fromPhotos});
-
-  final StageProgress row;
-  final bool fromPhotos;
-
-  @override
-  Widget build(BuildContext context) {
-    final done = row.status == StageStatus.done;
-    final active = row.status == StageStatus.active;
-    final ink = done
-        ? AnsiColors.ink
-        : active
-        ? AnsiColors.ink
-        : AnsiColors.muted;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 22,
-            child: Center(
-              child: done
-                  ? const Icon(
-                      FLucideIcons.check,
-                      size: 14,
-                      color: AnsiColors.herb,
-                    )
-                  : active
-                  // Sized by its own variant, never by a box around it: the
-                  // spinner is `Transform.rotate(alignment: center, …)` over a
-                  // glyph, so a box smaller than the glyph clips the box and
-                  // leaves the ink off the pivot — the marker then turns like a
-                  // cam rather than spinning in place.
-                  ? const FCircularProgress(
-                      size: FCircularProgressSizeVariant.xs,
-                    )
-                  : Container(
-                      width: 7,
-                      height: 7,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AnsiColors.line,
-                      ),
-                    ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              row.stage.label(fromPhotos: fromPhotos, status: row.status),
-              style: ansiSans(
-                size: 13,
-                color: ink,
-                weight: active ? FontWeight.w600 : FontWeight.w400,
-              ),
-            ),
-          ),
-          // A pending stage has no honest duration, so it shows none.
-          if (row.elapsed case final elapsed?)
-            Text(
-              formatStageDuration(elapsed),
-              style: ansiMono(
-                size: 12,
-                color: done ? AnsiColors.muted : AnsiColors.herb,
-              ),
-            ),
         ],
       ),
     );
@@ -340,75 +234,6 @@ class _IntakeForm extends HookConsumerWidget {
           const SizedBox(height: 20),
           Text(error!, style: ansiSans(size: 13, color: AnsiColors.gone)),
         ],
-      ],
-    );
-  }
-}
-
-/// The photo doors, in the words each platform can honour.
-///
-/// On a phone there are two, split by where the page comes from: shoot them
-/// now, page after page until the cook says to read it, or pick one or more
-/// from the library. Either way it is pick → crop/rotate each → import the
-/// cropped set. An empty result (nothing picked, camera dismissed with nothing
-/// kept, every page cancelled) starts nothing; the repository downscales each
-/// page before upload.
-///
-/// A browser has no camera door to open and no cropper behind it
-/// (`cropSeam`, photo_intake.dart), so it draws **one** door, named for what
-/// it actually does — choose image files — with a line saying the pages go up
-/// as they are. "Take a photo" there would promise a camera the tab has not
-/// got, and a crop that never happens.
-///
-/// [web] is the platform, injectable so both sets of words are testable on a
-/// VM that is never `kIsWeb`.
-class ImportPhotoDoors extends StatelessWidget {
-  const ImportPhotoDoors({required this.onPick, this.web = kIsWeb, super.key});
-
-  final void Function(PhotoSource source) onPick;
-
-  final bool web;
-
-  @override
-  Widget build(BuildContext context) {
-    if (web) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          FButton(
-            variant: FButtonVariant.outline,
-            prefix: const Icon(FLucideIcons.image),
-            onPress: () => onPick(PhotoSource.library),
-            child: const Text('Choose image files'),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'In a browser the pages go up as they are — cropping and rotating '
-            'is a phone job. Photograph the page there, or choose a file here.',
-            style: ansiSans(size: 12.5, color: AnsiColors.muted, height: 1.4),
-          ),
-        ],
-      );
-    }
-    return Row(
-      children: [
-        Expanded(
-          child: FButton(
-            variant: FButtonVariant.outline,
-            prefix: const Icon(FLucideIcons.camera),
-            onPress: () => onPick(PhotoSource.camera),
-            child: const Text('Take a photo'),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: FButton(
-            variant: FButtonVariant.outline,
-            prefix: const Icon(FLucideIcons.image),
-            onPress: () => onPick(PhotoSource.library),
-            child: const Text('Choose photos'),
-          ),
-        ),
       ],
     );
   }

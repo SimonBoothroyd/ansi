@@ -11,6 +11,7 @@ library;
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -37,6 +38,7 @@ import '../../planning/presentation/week_format.dart';
 import '../../planning/presentation/week_header.dart';
 import '../../planning/presentation/week_in_the_location.dart';
 import '../../planning/presentation/week_view_models.dart';
+import '../../receipts/data/receipt_providers.dart';
 import '../../recipes/domain/effective_lines.dart';
 import '../data/shopping_providers.dart';
 import '../domain/shopping.dart';
@@ -205,6 +207,7 @@ Widget _shoppingList(
       // somebody can fix.
       for (final note in data.optionalLines) OptionalLinesEcho(note: note),
       const _AddItemButton(),
+      const ScanReceiptDoor(),
     ],
   ),
 );
@@ -1161,6 +1164,100 @@ class _AddItemButton extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// The second foot door: the one that ends the trip.
+///
+/// It is drawn in herb beside the top-up door because scanning the receipt is
+/// what closes a shop, and it opens the camera the recipe import already has.
+///
+/// **The ledger rides this row rather than taking a door of its own.** A
+/// third dashed box on the Shop's foot would be a third thing to read past on
+/// every walk, and a long-press would be a door nobody could find. So
+/// `receipts ›` sits at the end of this row, quietly, and **only once the
+/// household has kept one** — a door onto an empty page is furniture.
+///
+/// On the **web** the photo import is gated (there is no camera and no
+/// cropper — `photo_intake.dart`), so the door says what it can actually do,
+/// exactly as the recipe import's photo doors do: a receipt is shot on the
+/// phone and reviewed on whichever screen is nearest.
+class ScanReceiptDoor extends ConsumerWidget {
+  const ScanReceiptDoor({this.web = kIsWeb, super.key});
+
+  /// The platform, injectable so both sets of words are testable on a VM that
+  /// is never `kIsWeb`.
+  final bool web;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final kept = ref.watch(hasAnyReceiptProvider);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => context.pushOnce('/receipts/review'),
+            child: DashedBorderBox(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    FLucideIcons.camera,
+                    size: 12,
+                    color: AnsiColors.herb,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    'scan a receipt',
+                    textAlign: TextAlign.center,
+                    style: ansiMono(
+                      size: 11,
+                      color: AnsiColors.herb,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (web)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                'in a browser there is no camera and no crop step — shoot the '
+                'receipt on the phone, and review it anywhere',
+                style: ansiMono(size: 10.5, color: AnsiColors.muted),
+              ),
+            ),
+          if (kept)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => context.pushOnce('/receipts'),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      'receipts',
+                      style: ansiMono(size: 11, color: AnsiColors.herbDeep),
+                    ),
+                    const SizedBox(width: 3),
+                    const Icon(
+                      FLucideIcons.chevronRight,
+                      size: 12,
+                      color: AnsiColors.herbDeep,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

@@ -34,6 +34,8 @@ import '../../features/ingredients/presentation/ingredient_detail_view.dart';
 import '../../features/ingredients/presentation/ingredient_list_view.dart';
 import '../../features/planning/presentation/week_variant_editor.dart';
 import '../../features/planning/presentation/week_view.dart';
+import '../../features/receipts/presentation/receipt_ledger_view.dart';
+import '../../features/receipts/presentation/receipt_scan_view.dart';
 import '../../features/recipes/presentation/recipe_editor_view.dart';
 import '../../features/recipes/presentation/recipe_view.dart';
 import '../../features/shopping/presentation/shopping_view.dart';
@@ -352,6 +354,33 @@ GoRouter router(Ref ref) {
               initialBookId: state.uri.queryParameters['book'],
               initialSectionId: state.uri.queryParameters['section'],
             ),
+          ),
+          // The receipts: the ledger, one saved receipt, and the scan in
+          // flight. `/receipts/review` is declared BEFORE `/receipts/:id` so
+          // `review` is a route and not an id — the same order
+          // `/recipes/new` takes.
+          //
+          // The scan holds the whole sitting on one route, as `/import`
+          // does: intake, the reading checklist and the review are three
+          // states of one screen, and nothing is written until Save, so
+          // there is no half-saved receipt for a second route to address.
+          // All three keep the measure — a receipt is a column by nature,
+          // and the width buys it nothing.
+          _page(
+            path: '/receipts',
+            name: 'receipts',
+            builder: (state) => const ReceiptLedgerView(),
+          ),
+          _page(
+            path: '/receipts/review',
+            name: 'receipt-scan',
+            builder: (state) => const ReceiptScanView(),
+          ),
+          _page(
+            path: '/receipts/:id',
+            name: 'receipt',
+            builder: (state) =>
+                StoredReceiptView(receiptId: state.pathParameters['id']!),
           ),
           // One book on a page of its own. Pushed like the rest, so it covers
           // the bar and back returns to the Library — and deep-linkable, which

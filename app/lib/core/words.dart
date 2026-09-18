@@ -60,6 +60,23 @@ const kMonthShort = [
   'Dec',
 ];
 
+/// Full month labels, indexed 0=January..11=December — the receipts ledger's
+/// month heading, which has the room to say the word out.
+const kMonthFull = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
 /// A bare day-and-month, e.g. `31 Aug` — the Week's day cards, and the date a
 /// price was paid on.
 String formatDayMonth(DateTime date) =>

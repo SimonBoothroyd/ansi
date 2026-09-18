@@ -257,20 +257,27 @@ class PriceEditor extends HookConsumerWidget {
       // widget throws.
       final container = ProviderScope.containerOf(context, listen: false);
       final host = hostContextOf(context);
+      // A photographed receipt is not this sheet's to tear up: the cents were
+      // paid, the paper still has to add up, and all that goes is the line's
+      // claim to be a price. The confirm says which of the two is about to
+      // happen rather than one sentence covering both.
+      final photo = line!.source == ReceiptSource.photo;
       final ok = await askAnsi(
         host.context,
-        title: 'Delete this price?',
-        body:
-            'It stops counting towards what anything costs. What was paid '
-            'before it stays.',
-        confirm: 'Delete',
+        title: photo ? 'Stop pricing from this line?' : 'Delete this price?',
+        body: photo
+            ? 'The line stays on its receipt and the receipt still adds up. '
+                  'It just stops counting towards what anything costs.'
+            : 'It stops counting towards what anything costs. What was paid '
+                  'before it stays.',
+        confirm: photo ? 'Stop pricing' : 'Delete',
         destructive: true,
       );
       if (!ok) return;
       final gone = await container.writeOk(
         host,
-        'delete that price',
-        () => container.read(priceRepositoryProvider).deletePrice(line!.lineId),
+        photo ? 'stop pricing from that line' : 'delete that price',
+        () => container.read(priceRepositoryProvider).deletePrice(line.lineId),
       );
       if (gone) onSaved();
     }

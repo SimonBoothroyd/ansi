@@ -6,7 +6,7 @@
 library;
 
 import 'package:ansi/features/import/data/photo_intake.dart';
-import 'package:ansi/features/import/presentation/import_view.dart';
+import 'package:ansi/features/import/presentation/photo_doors.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/pump_app.dart';

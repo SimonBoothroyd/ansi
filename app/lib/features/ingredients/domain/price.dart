@@ -219,6 +219,7 @@ class PriceObservation {
     required this.basis,
     required this.store,
     required this.purchasedAt,
+    this.source = ReceiptSource.photo,
     this.discountCents = 0,
     this.packAmount,
     this.packUnit,
@@ -243,6 +244,17 @@ class PriceObservation {
 
   final String store;
   final DateTime purchasedAt;
+
+  /// What kind of paper is behind this price. It is the one thing a reader
+  /// needs to know before offering to take it back: a hand-typed price is a
+  /// whole receipt of its own and goes entirely, while a line of a
+  /// photographed receipt only stops being a price (`deletePrice`).
+  ///
+  /// It defaults to [ReceiptSource.photo] for the reason [ReceiptSource
+  /// .fromDb] reads an unknown value that way: the conservative answer is
+  /// that this app did not type it, and the conservative answer keeps a piece
+  /// of paper standing.
+  final ReceiptSource source;
 
   /// The pack's own word, where the person named one ("bag"). Null for a pack
   /// typed as a plain amount, and null where the measure has since been
@@ -486,6 +498,7 @@ PriceObservation? observationFrom(
     basis: basis,
     store: receipt.store,
     purchasedAt: receipt.purchasedAt,
+    source: receipt.source,
     packAmount: line.packAmount,
     packUnit: line.packUnit,
     packLabel: packLabel,

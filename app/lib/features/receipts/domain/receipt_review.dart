@@ -1,0 +1,471 @@
+/// The receipt review as one map — PURE DART (invariant 2).
+///
+/// Everything the screen says about a scanned receipt is read from here: the
+/// header's count, each card's amber flag, the join card, and what Save is
+/// called. They read **one** map, so the header can never say three while the
+/// button says two.
+///
+/// Three rules shape it, and each is a refusal rather than a guess
+/// (invariant 3):
+///
+/// * **A line is a price only when it says what the cents bought.** A matched
+///   food line with no pack is kept, counted in the receipt's total, and is
+///   simply not a price — the card asks for the pack and holds Save.
+/// * **The join is a flag, never a refusal.** The lines' sum against the
+///   printed subtotal is a fact worth showing; a receipt whose join lost a
+///   line is still a receipt, and its printed total still stands. It is
+///   counted in the header exactly as a line's flag is.
+/// * **Nothing is learned.** A receipt's words are one store's abbreviations,
+///   so confirming a match teaches the vocabulary nothing (exec plan 0049).
+///   What carries over is the **pack**, on the row: a matched line with no
+///   printed weight opens on the pack that row was last bought in.
+library;
+
+import 'package:meta/meta.dart';
+
+import '../../../core/money.dart';
+import '../../../core/result/result.dart';
+import '../../../core/units/macros.dart';
+import '../../../core/units/measure.dart';
+import '../../../core/units/number_format.dart';
+import '../../../core/units/units.dart';
+import '../../../core/words.dart';
+import '../../ingredients/domain/allowed_units.dart';
+import '../../ingredients/domain/ingredient.dart';
+import '../../ingredients/domain/price.dart';
+import 'receipt_payload.dart';
+
+/// Why one line still needs the person.
+enum ReceiptLineIssue {
+  /// Food, and nobody has said what it is.
+  unmatched,
+
+  /// Matched food whose row neither sells by weight here nor has a pack: the
+  /// cents bought something nobody has stated the size of.
+  packMissing,
+}
+
+/// The `⚠` label a card wears, in the order the gate checks them — the same
+/// shape the recipe review's `attentionLabel` has.
+String? receiptAttentionLabel(List<ReceiptLineIssue> issues) {
+  if (issues.contains(ReceiptLineIssue.unmatched)) return 'Match an ingredient';
+  if (issues.contains(ReceiptLineIssue.packMissing)) {
+    return 'Say what the pack is';
+  }
+  return null;
+}
+
+/// One line of the receipt as the review holds it: what the paper printed,
+/// and what the person has said about it.
+///
+/// Immutable — every edit produces a new one, so the screen rebuilds from a
+/// value rather than from a mutation nobody can see.
+@immutable
+class ReceiptLineDraft {
+  const ReceiptLineDraft({
+    required this.index,
+    required this.printedText,
+    required this.cents,
+    required this.kind,
+    required this.printedKind,
+    this.discountCents = 0,
+    this.weight,
+    this.ingredientId,
+    this.ingredientName,
+    this.packBasisAmount,
+    this.packAmount,
+    this.packUnit,
+    this.measureId,
+    this.packLabel,
+    this.keepAsMeasure,
+    this.suggestions = const [],
+    this.lowConfidence = false,
+    this.photo = 0,
+    this.dropped = false,
+  });
+
+  /// The line's position in the joined strip — its identity, because two
+  /// lines of a receipt print identically when two of a thing were bought.
+  final int index;
+
+  final String printedText;
+  final int cents;
+  final int discountCents;
+
+  /// What the line is NOW — a folded line reads [ReceiptKind.notFood].
+  final ReceiptKind kind;
+
+  /// What the paper said it was, so a folded line can be brought back to
+  /// exactly the kind it arrived as rather than to a guess.
+  final ReceiptKind printedKind;
+
+  final ReceiptWeight? weight;
+
+  final String? ingredientId;
+  final String? ingredientName;
+
+  /// What the cents bought, in the ingredient's basis unit. The one figure
+  /// every price is derived from.
+  final double? packBasisAmount;
+
+  /// The pack as it was said — an amount in [packUnit], or a count of
+  /// [measureId]'s measure. See `ingredients/domain/price.dart`.
+  final double? packAmount;
+  final Unit? packUnit;
+  final String? measureId;
+
+  /// The measure's own word, for printing. Never stored: the measure's label
+  /// is the word, and a second copy of it would drift.
+  final String? packLabel;
+
+  /// The word to mint as a measure on this row at Save — the *keep as a
+  /// measure* toggle's answer. Null when the person left it off, which is the
+  /// ordinary case.
+  ///
+  /// **This is the one place a household's tap mints a measure from an
+  /// import.** The pipeline itself mints none, as it never has.
+  final String? keepAsMeasure;
+
+  final List<ReceiptSuggestion> suggestions;
+  final bool lowConfidence;
+  final int photo;
+
+  /// Dropped here: the line stays on screen, greyed, out of every figure and
+  /// out of the count, until Save makes it real — the recipe review's own
+  /// posture.
+  final bool dropped;
+
+  /// What was handed over for this line.
+  int get paidCents => cents - discountCents;
+
+  /// What this line names, for a card's title: the matched row, else the
+  /// paper's own words.
+  String get displayName =>
+      ingredientName ?? (printedText.isEmpty ? 'a line' : printedText);
+
+  /// Whether this line will be written as a price — food, matched, packed
+  /// and paid for. The same four conditions `observationFrom` holds.
+  bool get isPrice =>
+      !dropped &&
+      kind.isFood &&
+      ingredientId != null &&
+      (packBasisAmount ?? 0) > 0 &&
+      paidCents > 0;
+
+  ReceiptLineDraft copyWith({
+    ReceiptKind? kind,
+    String? ingredientId,
+    String? ingredientName,
+    double? packBasisAmount,
+    double? packAmount,
+    Unit? packUnit,
+    String? measureId,
+    String? packLabel,
+    String? keepAsMeasure,
+    bool? dropped,
+    bool clearMatch = false,
+    bool clearPack = false,
+    bool clearKeepAsMeasure = false,
+  }) => ReceiptLineDraft(
+    index: index,
+    printedText: printedText,
+    cents: cents,
+    discountCents: discountCents,
+    kind: kind ?? this.kind,
+    printedKind: printedKind,
+    weight: weight,
+    ingredientId: clearMatch ? null : (ingredientId ?? this.ingredientId),
+    ingredientName: clearMatch ? null : (ingredientName ?? this.ingredientName),
+    packBasisAmount: clearPack || clearMatch
+        ? null
+        : (packBasisAmount ?? this.packBasisAmount),
+    packAmount: clearPack || clearMatch
+        ? null
+        : (packAmount ?? this.packAmount),
+    packUnit: clearPack || clearMatch ? null : (packUnit ?? this.packUnit),
+    measureId: clearPack || clearMatch ? null : (measureId ?? this.measureId),
+    packLabel: clearPack || clearMatch ? null : (packLabel ?? this.packLabel),
+    keepAsMeasure: clearKeepAsMeasure || clearMatch
+        ? null
+        : (keepAsMeasure ?? this.keepAsMeasure),
+    suggestions: suggestions,
+    lowConfidence: lowConfidence,
+    photo: photo,
+    dropped: dropped ?? this.dropped,
+  );
+}
+
+/// The payload's lines as the review first holds them.
+///
+/// An `auto` match starts the line resolved; a `suggest` one starts it
+/// unmatched with its chips offered, because a suggestion is an offer and
+/// never a resolution (ADR-0004). No pack is resolved here — that needs the
+/// vocabulary, and [landPack] does it a line at a time.
+List<ReceiptLineDraft> initialReceiptDrafts(ReceiptPayload payload) => [
+  for (final line in payload.lines)
+    ReceiptLineDraft(
+      index: line.index,
+      printedText: line.printedText,
+      cents: line.cents,
+      discountCents: line.discountCents,
+      kind: line.kind,
+      printedKind: line.kind,
+      weight: line.weight,
+      ingredientId: line.match?.auto ?? false ? line.match!.ingredientId : null,
+      suggestions: line.suggestions,
+      lowConfidence: line.lowConfidence,
+      photo: line.photo,
+    ),
+];
+
+/// [draft] with the pack it can state without asking anybody.
+///
+/// Two sources, in order, and no third:
+///
+/// 1. **The paper's own weight.** `1.32 lb @ $1.99/lb` says what the cents
+///    bought, so the line prices itself — resolved through the row's basis by
+///    the same density gate the price sheet uses ([packInBasis]).
+/// 2. **The pack this row was last bought in** ([last]). A bottle of sriracha
+///    is the same bottle this week; entering it once is what keeps the second
+///    receipt from asking again. The basis figure comes from the stored
+///    observation, never re-derived, so a measure re-weighed since cannot
+///    re-price this shop.
+///
+/// A line that reaches neither keeps no pack and raises *Say what the pack
+/// is*. Nothing is invented at either step.
+ReceiptLineDraft landPack(
+  ReceiptLineDraft draft, {
+  required Ingredient? ingredient,
+  List<Measure> measures = const [],
+  PriceObservation? last,
+}) {
+  if (ingredient == null || !draft.kind.isFood) return draft;
+  final weight = draft.weight;
+  if (weight != null && weight.isPack) {
+    final basis = packInBasis(
+      ingredient,
+      amount: weight.amount,
+      choice: UnitOption(weight.unit!),
+    );
+    if (basis case Ok(:final value)) {
+      return draft.copyWith(
+        packBasisAmount: value,
+        packAmount: weight.amount,
+        packUnit: weight.unit,
+      );
+    }
+    return draft;
+  }
+  if (last == null || !(last.packBasisAmount > 0)) return draft;
+  final label = last.measureId == null
+      ? null
+      : _labelOf(last.measureId!, measures) ?? last.packLabel;
+  return draft.copyWith(
+    packBasisAmount: last.packBasisAmount,
+    packAmount: last.packAmount ?? last.packBasisAmount,
+    packUnit: last.packUnit,
+    measureId: last.measureId,
+    packLabel: label,
+  );
+}
+
+String? _labelOf(String measureId, List<Measure> measures) {
+  for (final m in measures) {
+    if (m.id == measureId) return m.label;
+  }
+  return null;
+}
+
+/// What [draft] still wants. A dropped line reports nothing — it is leaving.
+List<ReceiptLineIssue> receiptLineIssues(ReceiptLineDraft draft) {
+  if (draft.dropped || !draft.kind.isFood) return const [];
+  if (draft.ingredientId == null) return const [ReceiptLineIssue.unmatched];
+  // A line that cost nothing is not a price and never will be — a free sample
+  // is honestly unpriced — so it is not held up for a pack it cannot use.
+  if (draft.paidCents <= 0) return const [];
+  if ((draft.packBasisAmount ?? 0) > 0) return const [];
+  return const [ReceiptLineIssue.packMissing];
+}
+
+/// The whole review as one figure: the flags, the sums and the join.
+///
+/// One value, computed once per rebuild, so the header, the cards, the join
+/// card and Save cannot disagree.
+@immutable
+class ReceiptReviewMap {
+  const ReceiptReviewMap({
+    required this.issuesByIndex,
+    required this.linesCents,
+    required this.foldedCents,
+    required this.foldedCount,
+    required this.taxCents,
+    required this.printedSubtotalCents,
+    required this.printedTotalCents,
+  });
+
+  /// Per line index, what it still wants. A line with nothing outstanding is
+  /// absent, so `length` IS the count the header prints.
+  final Map<int, List<ReceiptLineIssue>> issuesByIndex;
+
+  /// What the kept lines add up to, **tax excluded** — the figure the printed
+  /// subtotal is held against. Non-food lines are in it: they were paid for.
+  final int linesCents;
+
+  /// What the folded (non-food) lines come to, and how many there are — the
+  /// fold's own heading.
+  final int foldedCents;
+  final int foldedCount;
+
+  /// What the paper's tax lines come to.
+  final int taxCents;
+
+  final int? printedSubtotalCents;
+  final int? printedTotalCents;
+
+  /// How many lines still need the person — what Save is gated on.
+  int get outstanding => issuesByIndex.length;
+
+  /// What the header counts: the lines, **and the join card when it does not
+  /// close**. A sum that is a line short is something somebody should look
+  /// at, so it is counted; it is not something Save waits for, because the
+  /// printed total is the paper's and stands either way.
+  int get headerCount => outstanding + (joinCloses ? 0 : 1);
+
+  /// Whether the lines' sum and the printed subtotal agree. True when the
+  /// paper printed no subtotal: there is nothing to disagree with, and an
+  /// unprovable claim is not a flag.
+  bool get joinCloses =>
+      printedSubtotalCents == null || printedSubtotalCents == linesCents;
+
+  /// By how much they differ, or null when they do not.
+  int? get apartCents =>
+      joinCloses ? null : (printedSubtotalCents! - linesCents).abs();
+
+  /// What the receipt is worth: the paper's total where it printed one, else
+  /// the lines plus the tax they did not include.
+  int get totalCents => printedTotalCents ?? (linesCents + taxCents);
+
+  /// Whether Save may open — every kept line answered, and the join is a flag
+  /// rather than a gate.
+  bool get canSave => outstanding == 0;
+}
+
+/// The map for [drafts] against what the paper printed.
+ReceiptReviewMap receiptReviewMap(
+  List<ReceiptLineDraft> drafts, {
+  int? printedSubtotalCents,
+  int? printedTaxCents,
+  int? printedTotalCents,
+}) {
+  final issues = <int, List<ReceiptLineIssue>>{};
+  var lines = 0;
+  var folded = 0;
+  var foldedCount = 0;
+  var tax = 0;
+  for (final draft in drafts) {
+    if (draft.dropped) continue;
+    final wants = receiptLineIssues(draft);
+    if (wants.isNotEmpty) issues[draft.index] = wants;
+    if (draft.kind == ReceiptKind.tax) {
+      tax += draft.paidCents;
+      continue;
+    }
+    lines += draft.paidCents;
+    if (draft.kind == ReceiptKind.notFood) {
+      folded += draft.paidCents;
+      foldedCount++;
+    }
+  }
+  return ReceiptReviewMap(
+    issuesByIndex: issues,
+    linesCents: lines,
+    foldedCents: folded,
+    foldedCount: foldedCount,
+    // The paper's own tax line wins where it printed one: the lines are what
+    // was read, and the printed figure is what was charged.
+    taxCents: printedTaxCents ?? tax,
+    printedSubtotalCents: printedSubtotalCents,
+    printedTotalCents: printedTotalCents,
+  );
+}
+
+/// `The lines add up to $83.30` — the join card's first line.
+String joinSumLine(ReceiptReviewMap map) =>
+    'The lines add up to ${formatMoney(map.linesCents)}';
+
+/// What the join card says underneath — the paper agreeing, or how far apart
+/// they are and what to look for.
+///
+/// It is a **flag, never a refusal**: the receipt saves either way, because
+/// the printed total is the paper's and stands.
+String joinNote(ReceiptReviewMap map) {
+  final printed = map.printedSubtotalCents;
+  if (printed == null) return 'the receipt printed no subtotal';
+  if (map.joinCloses) return 'the receipt says the same';
+  return '${formatMoney(map.apartCents!)} apart · Find the join — a line is '
+      'missing or doubled';
+}
+
+/// `Save receipt · $84.12`, or what is still owed.
+String receiptSaveLabel(ReceiptReviewMap map) => map.canSave
+    ? 'Save receipt · ${formatMoney(map.totalCents)}'
+    : '${map.outstanding} ${plural(map.outstanding, 'line')} need you';
+
+/// `Not food · 2 · $7.09` — the fold's heading, or null when nothing folded.
+String? foldedHeading(ReceiptReviewMap map) => map.foldedCount == 0
+    ? null
+    : 'Not food · ${map.foldedCount} · ${formatMoney(map.foldedCents)}';
+
+/// `Tax · $0.82`, or null when the paper charged none.
+String? taxHeading(ReceiptReviewMap map) =>
+    map.taxCents == 0 ? null : 'Tax · ${formatMoney(map.taxCents)}';
+
+/// `bag (454 g) · 77¢ / 100 g` — what a priced card reads under the name.
+///
+/// The pack in the words it was said in, then the unit price it comes to. A
+/// line whose pack nobody has stated has nothing to say here and returns
+/// null; the card draws its flag instead.
+String? packAndUnitPrice(ReceiptLineDraft draft, {required MacrosBasis basis}) {
+  final pack = draft.packBasisAmount;
+  if (pack == null || !(pack > 0)) return null;
+  final per100 = pricePer100(
+    paidCents: draft.paidCents,
+    packBasisAmount: pack,
+    basis: basis,
+  );
+  final words = packWords(draft, basis: basis);
+  return switch (per100) {
+    Ok(:final value) =>
+      words == null
+          ? formatPricePer100(value)
+          : '$words · ${formatPricePer100(value)}',
+    Err() => words,
+  };
+}
+
+/// `bag (454 g)`, `1.32 lb`, `482 g` — the pack as the person or the paper
+/// said it.
+///
+/// A pack named as one of the row's measures prints the word AND what it
+/// weighs, because the word alone tells a reader nothing about the figure
+/// beside it. A pack typed as a plain amount already is its own reading.
+String? packWords(ReceiptLineDraft draft, {required MacrosBasis basis}) {
+  final label = draft.packLabel;
+  if (label != null) {
+    final weighed = draft.packBasisAmount;
+    return weighed == null
+        ? label
+        : '$label (${formatAmountIn(weighed, basis.baseUnit)})';
+  }
+  final amount = draft.packAmount;
+  if (amount == null) return null;
+  final unit = draft.packUnit;
+  return unit == null ? formatAmount(amount) : formatAmountIn(amount, unit);
+}
+
+/// `−55¢ off` — the deduction printed under an item, said on the same line as
+/// what was paid, because what you paid is the price. Null where there was
+/// none.
+String? discountWords(ReceiptLineDraft draft) => draft.discountCents == 0
+    ? null
+    : '−${formatMoney(draft.discountCents)} off';

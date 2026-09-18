@@ -275,10 +275,22 @@ class SqlitePriceRepository implements PriceRepository {
   Future<void> deletePrice(String lineId) async {
     final stamp = DateTime.now().toUtc().toIso8601String();
     await _db.writeTransaction((tx) async {
-      // Asked BEFORE the line is tombstoned, while it is still one of the
-      // receipt's live lines to count.
-      final alone = await _isOneManualLine(tx, lineId);
-      if (alone) {
+      // Asked BEFORE anything is written, while the line is still one of the
+      // receipt's live ones to count.
+      final manual = await _isManualReceipt(tx, lineId);
+      if (!manual) {
+        // A photographed receipt keeps its line: the cents were paid and the
+        // paper still has to add up. Only the price facts go, so the line
+        // stops pricing anything while still saying what was bought.
+        await tx.execute(
+          'UPDATE receipt_line SET pack_basis_amount = NULL, '
+          'pack_amount = NULL, pack_unit = NULL, measure_id = NULL, '
+          'updated_at = ? WHERE id = ? AND deleted_at IS NULL',
+          [stamp, lineId],
+        );
+        return;
+      }
+      if (await _isOneManualLine(tx, lineId)) {
         await tx.execute(
           'UPDATE receipt SET deleted_at = ?, updated_at = ? '
           'WHERE id = (SELECT receipt_id FROM receipt_line WHERE id = ?)',
@@ -291,6 +303,19 @@ class SqlitePriceRepository implements PriceRepository {
         [stamp, stamp, lineId],
       );
     });
+  }
+
+  /// Whether [lineId] belongs to this app's own hand-typed kind of receipt.
+  static Future<bool> _isManualReceipt(
+    SqliteWriteContext tx,
+    String lineId,
+  ) async {
+    final row = await tx.getOptional(
+      'SELECT r.source AS source FROM receipt_line l '
+      'JOIN receipt r ON r.id = l.receipt_id WHERE l.id = ?',
+      [lineId],
+    );
+    return row != null && row['source'] == 'manual';
   }
 
   /// Whether [lineId] is the only live line of a `manual` receipt — this app's

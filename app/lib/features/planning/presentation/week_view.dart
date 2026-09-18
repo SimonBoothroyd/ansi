@@ -60,6 +60,7 @@ import '../../cook_plan/domain/cook_plan.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
+import '../../receipts/data/receipt_providers.dart';
 import '../domain/planning.dart';
 import 'confirm_meal_sheet.dart';
 import 'copy_last_week.dart';
@@ -317,6 +318,10 @@ class WeekView extends HookConsumerWidget {
                 WeekMacroBand(
                   macros: ref.watch(weekMacrosProvider(lens.value)),
                   cost: ref.watch(weekCostProvider(lens.value)),
+                  // What the week's receipts came to, beside what it plans to
+                  // cook. Never reconciled (ADR-0017).
+                  spent: ref.watch(receiptsForWeekProvider(weekStart)),
+                  shape: shape,
                   scope: scope,
                 ),
               ],

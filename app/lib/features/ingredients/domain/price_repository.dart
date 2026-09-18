@@ -93,11 +93,20 @@ abstract interface class PriceRepository {
     String? measureId,
   });
 
-  /// Soft-deletes the stored price [lineId] — a mistyped price, taken back.
+  /// Takes back the stored price [lineId] — a mistyped price, undone.
   ///
-  /// The line is always tombstoned. Its receipt is tombstoned **with** it only
-  /// when that receipt is a one-line `manual` one, which has nothing left to
-  /// be once its line is gone; a photographed receipt keeps standing, one line
-  /// shorter, because the rest of the paper is still true.
+  /// **What that means depends on what is behind the line**, because the two
+  /// cases are different objects:
+  ///
+  /// - A hand-typed price is a one-line `manual` receipt with no paper behind
+  ///   it, so the line is tombstoned and its receipt goes with it: there is
+  ///   nothing left for it to be.
+  /// - A line of a **photographed** receipt stays. A receipt is a piece of
+  ///   paper and the paper is still true — the cents were paid, the store and
+  ///   the date stand, and the receipt has to go on adding up. So only its
+  ///   **price facts** are cleared: `pack_basis_amount`, `pack_amount`,
+  ///   `pack_unit` and `measure_id` become null and the line stops pricing
+  ///   anything, while `ingredient_id` stays, because what was bought is not
+  ///   in doubt — only what the pack was.
   Future<void> deletePrice(String lineId);
 }

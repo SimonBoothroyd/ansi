@@ -33,15 +33,19 @@
 library;
 
 import 'package:flutter/widgets.dart';
+import 'package:forui/forui.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
+import '../../../core/week_shape.dart';
 import '../../../core/words.dart';
 import '../../../shared/cost_words.dart';
+import '../../../shared/guarded_navigation.dart';
 import '../../../shared/incomplete_macros.dart';
 import '../../ingredients/presentation/macro_line_text.dart';
 import '../../ingredients/presentation/macros_format.dart';
+import '../../receipts/domain/receipt_ledger.dart';
 import '../domain/week_cost.dart';
 import '../domain/week_macros.dart';
 
@@ -466,19 +470,30 @@ class WeekMacroBand extends StatelessWidget {
     required this.macros,
     required this.scope,
     this.cost,
+    this.spent = const [],
+    this.shape = WeekShape.monday,
     super.key,
   });
 
   final MealSetMacros macros;
   final String scope;
 
+  /// The receipts dated inside the week on screen. Empty is the ordinary
+  /// case, and the band then says nothing about spending — `\$0 spent` would
+  /// claim a free week rather than an unshopped one.
+  final List<ReceiptSummary> spent;
+
+  /// The household's week, for the day a receipt's date names.
+  final WeekShape shape;
+
   /// What the same meals cost to cook, at the latest prices (ADR-0017) — one
   /// line under the macros, in the same denominator posture: the meals that
   /// resolved, and the lines that kept the rest out, named by count.
   ///
-  /// It is an ESTIMATE and wears `≈` to say so. There is no `spent` line here:
-  /// what a week cost is what its receipts say, and the two are never
-  /// reconciled — that line arrives with the receipts.
+  /// It is an ESTIMATE and wears `≈` to say so. The `spent` line under it is
+  /// the other figure — what the week's receipts actually came to — and the
+  /// two are deliberately **never reconciled** (ADR-0017): the gap between
+  /// them is the pantry filling or emptying, shown and not explained.
   final PlannedCost? cost;
 
   /// `avg 1 425 kcal/day over the 6 days that counted` — the average states
@@ -543,10 +558,12 @@ class WeekMacroBand extends StatelessWidget {
                         'no total — ${excludedLine(macros)}',
                         style: ansiMono(size: 10.5, color: AnsiColors.muted),
                       ),
-                      // A week whose macros refuse can still have a cost: the
-                      // two readings fail for different reasons, and one
-                      // silence is no reason for two.
+                      // A week whose macros refuse can still have a cost, and
+                      // can still have been shopped for: the readings fail for
+                      // different reasons, and one silence is no reason for
+                      // three.
                       _CostLine(cost: cost),
+                      _SpentLine(spent: spent, shape: shape),
                     ],
                   ),
                 ),
@@ -563,6 +580,7 @@ class WeekMacroBand extends StatelessWidget {
               style: ansiMono(size: 10, color: AnsiColors.muted),
             ),
             _CostLine(cost: cost),
+            _SpentLine(spent: spent, shape: shape),
             if (macros.isPartial)
               Padding(
                 padding: const EdgeInsets.only(top: 3),
@@ -604,6 +622,43 @@ class _CostLine extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Text(line, style: ansiMono(size: 11.5)),
+    );
+  }
+}
+
+/// `\$84.12 spent · 1 receipt · TJ's, Sun` — the band's SECOND figure, and a
+/// door onto the ledger.
+///
+/// Drawn only when a receipt is dated inside the week on screen. It is the
+/// phone's band alone: the wide Week has no home for the band yet (tracker
+/// row), so the spent line waits there with the cost line it sits under.
+class _SpentLine extends StatelessWidget {
+  const _SpentLine({required this.spent, required this.shape});
+
+  final List<ReceiptSummary> spent;
+  final WeekShape shape;
+
+  @override
+  Widget build(BuildContext context) {
+    final line = weekSpentLine(spent, shape);
+    if (line == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => context.pushOnce('/receipts'),
+        child: Row(
+          children: [
+            Expanded(child: Text(line, style: ansiMono(size: 11.5))),
+            const SizedBox(width: 6),
+            const Icon(
+              FLucideIcons.chevronRight,
+              size: 12,
+              color: AnsiColors.muted,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

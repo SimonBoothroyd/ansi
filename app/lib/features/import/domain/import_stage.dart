@@ -15,13 +15,29 @@ library;
 
 import 'package:meta/meta.dart';
 
+/// One stage of a server pipeline that narrates itself, whatever it is
+/// reading.
+///
+/// [ImportStage] is the recipe pipeline's; `features/receipts` has its own for
+/// `import-receipt`, whose ids and wording are its own. The checklist
+/// arithmetic below is shared, because it is the same screen with the same
+/// promise — nothing estimated — and two copies of it would be two chances to
+/// print a negative duration.
+abstract interface class PipelineStage {
+  /// The id the server sends. Never shown.
+  String get id;
+
+  /// What the checklist row reads, in the tense the row is in.
+  String label({required bool fromPhotos, required StageStatus status});
+}
+
 /// One stage of the server pipeline, as named on the wire.
 ///
 /// Each stage carries its wording in **both tenses**: what is happening while
 /// it runs, and what happened once it is done. A row that says "Photos read"
 /// while the pages are still being read is claiming something that has not
 /// occurred yet — the same lie, in miniature, as a progress bar that guesses.
-enum ImportStage {
+enum ImportStage implements PipelineStage {
   /// The request — for photos, however many megabytes of it — is in hand.
   received(
     'received',
@@ -71,6 +87,7 @@ enum ImportStage {
        _urlDone = urlDone ?? done;
 
   /// The id the server sends. Never shown.
+  @override
   final String id;
 
   final String _running;
@@ -82,6 +99,7 @@ enum ImportStage {
   /// running stage says what is happening (and ends in an ellipsis), a
   /// finished one what happened. A pending row borrows the finished wording —
   /// it is the plan, read muted, and there is no third tense worth a word.
+  @override
   String label({required bool fromPhotos, required StageStatus status}) =>
       switch ((status, fromPhotos)) {
         (StageStatus.active, true) => _running,
@@ -120,7 +138,7 @@ class StageProgress {
     required this.elapsed,
   });
 
-  final ImportStage stage;
+  final PipelineStage stage;
   final StageStatus status;
 
   /// How long this stage took (`done`), or has been running (`active`). Null
@@ -153,8 +171,8 @@ class StageProgress {
 /// When every planned stage is done the last row stays `done`: the payload is
 /// already on its way and there is nothing left to tick.
 List<StageProgress> stageChecklist({
-  required List<ImportStage> plan,
-  required Map<ImportStage, Duration> finished,
+  required List<PipelineStage> plan,
+  required Map<PipelineStage, Duration> finished,
   required Duration elapsed,
 }) {
   final rows = <StageProgress>[];
