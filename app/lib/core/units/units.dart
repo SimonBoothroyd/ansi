@@ -155,6 +155,29 @@ final Map<String, Unit> _byId = {for (final u in kAllUnits) u.id: u};
 /// Looks up a [Unit] by its persisted [Unit.id], or `null` if unknown.
 Unit? unitById(String id) => _byId[id];
 
+/// The catalog unit a WRITTEN name denotes — `tbsp`, `Cups `, `fl  oz`, `LB`
+/// — or null when it names none.
+///
+/// Case, surrounding and inner whitespace and the simple `s` plural are the
+/// trivial disguises a typed or printed word wears; anything past them is a
+/// word rather than a unit. One lookup, because two rules read a human's
+/// spelling against the catalogue: a measure label that is really a unit
+/// (`volumeUnitFromLabel`) and a label that already states its own size
+/// (`measureWordStatesSize`).
+Unit? unitFromWrittenName(String name) {
+  final written = name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+  if (written.isEmpty) return null;
+  final singular = written.endsWith('s')
+      ? written.substring(0, written.length - 1)
+      : null;
+  for (final u in kAllUnits) {
+    for (final spelling in [u.id.toLowerCase(), u.label.toLowerCase()]) {
+      if (written == spelling || singular == spelling) return u;
+    }
+  }
+  return null;
+}
+
 // --- Conversion --------------------------------------------------------------
 
 /// Converts [q] into [to], returning an [Err] rather than throwing when the

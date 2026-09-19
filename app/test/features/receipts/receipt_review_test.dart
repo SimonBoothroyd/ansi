@@ -627,6 +627,23 @@ void main() {
       );
     });
 
+    test('a pack whose word already says its size says it once (owner)', () {
+      final draft = item(
+        ingredientId: 'vocab-banana',
+        pack: 411,
+      ).copyWith(packAmount: 1, measureId: 'm-can', packLabel: 'can (14.5 oz)');
+      expect(packWords(draft, basis: MacrosBasis.perG), 'can (14.5 oz)');
+      expect(
+        packAndUnitPrice(draft, basis: MacrosBasis.perG),
+        'can (14.5 oz) · 85¢ / 100 g',
+      );
+      // A word that says nothing about size still earns the weight.
+      expect(
+        packWords(draft.copyWith(packLabel: 'jar'), basis: MacrosBasis.perG),
+        'jar (411 g)',
+      );
+    });
+
     test('a deduction is named on the line it was taken off', () {
       expect(discountWords(item(cents: 604, discountCents: 55)), '−55¢ off');
       expect(discountWords(item()), isNull);

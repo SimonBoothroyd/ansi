@@ -566,12 +566,14 @@ final class MeasureOption extends UnitChoice {
 
   final Measure measure;
 
+  /// The word with what one of it comes to behind it — and the word alone
+  /// where it already says its size ([measureWordWithSize]).
   @override
-  String get label {
-    final basis = measure.basis.baseUnit;
-    return '${measure.label} (${formatAmountIn(measure.amount, basis)} '
-        '${basis.label})';
-  }
+  String get label => measureWordWithSize(
+    measure.label,
+    measure.amount,
+    measure.basis.baseUnit,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -588,19 +590,11 @@ final class MeasureOption extends UnitChoice {
 /// the entry into density instead of merely refusing it.
 ///
 /// Robust to casing, surrounding whitespace, and the simple `s` plural
-/// ("Cups ", "tbsps") — the trivial disguises a typed label wears.
+/// ("Cups ", "tbsps") — the trivial disguises a typed label wears, read by
+/// the catalogue's own [unitFromWrittenName] and then held to volume.
 Unit? volumeUnitFromLabel(String label) {
-  final normalized = label.trim().toLowerCase();
-  final singular = normalized.endsWith('s')
-      ? normalized.substring(0, normalized.length - 1)
-      : null;
-  for (final u in kAllUnits) {
-    if (u.family != UnitFamily.volume) continue;
-    for (final name in [u.id.toLowerCase(), u.label.toLowerCase()]) {
-      if (normalized == name || singular == name) return u;
-    }
-  }
-  return null;
+  final unit = unitFromWrittenName(label);
+  return unit != null && unit.family == UnitFamily.volume ? unit : null;
 }
 
 /// Whether [label] is just the name of a catalog volume unit — see

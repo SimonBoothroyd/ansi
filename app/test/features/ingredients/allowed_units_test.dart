@@ -605,6 +605,14 @@ void main() {
       expect(const UnitOption(kg).label, 'kg');
     });
 
+    test('a measure whose word already says its size says it once (owner)', () {
+      const can = Measure(id: 'm-can', label: 'can (14.5 oz)', amount: 411);
+      expect(const MeasureOption(can).label, 'can (14.5 oz)');
+      // A qualifier is not a size, so that word still carries its weight.
+      const drained = Measure(id: 'm-d', label: 'can (drained)', amount: 227);
+      expect(const MeasureOption(drained).label, 'can (drained) (227 g)');
+    });
+
     test('a measure that merely names a volume unit is never offered', () {
       // Density owns volume conversion (frame-b review, 0011): a "cup"/"tbsp"
       // measure would shadow the honest unit set.

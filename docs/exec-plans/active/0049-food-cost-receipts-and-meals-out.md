@@ -399,6 +399,21 @@ and can run beside phase one.
     line points at the measure the row has, keeping the figure read off the
     paper. If they do not, the sheet refuses, names both weights, and offers
     the house style's own way out — put the size in the word.
+- 2026-09-19 — **A word that already says its size says it once** (owner). A
+  pack named as one of the row's measures prints the word and what one of it
+  comes to, because the word alone says nothing about the figure beside it.
+  The house style, though, puts the shelf size IN the word where a container
+  comes in two sizes — so a seeded `can (14.5 oz)` read `can (14.5 oz)
+  (411 g)`: the same size twice, in two unit systems. Where the word states a
+  size it is now printed alone, and a bare `jar` still reads `jar (340 g)`.
+  - **The test is narrow on purpose**, because being wide costs a reader the
+    figure entirely: a bracketed group that is an amount followed by a
+    catalogue unit. `head, large` brackets nothing and `can (drained)`
+    brackets something that is not a size, so both still take the weight.
+  - **One helper for all three doors** (`core/units/measure.dart`,
+    `measureWordWithSize`): the receipt card's pack, the price ledger's lines
+    and the picker's chosen chip. Three copies of one judgement would answer
+    differently the first time the rule moved.
 - 2026-09-17 — **The desk's three columns are not built** (R2). The phone
   review works at the 640 measure on a wide window, and the width would buy one
   thing: the printed line standing beside the card that claims to read it. It

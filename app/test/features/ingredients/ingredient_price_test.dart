@@ -256,6 +256,29 @@ void main() {
       );
     });
 
+    testWidgets('a pack whose word already says its size says it once '
+        '(owner)', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [bananas]),
+          at: ingredientDetailRoute('banana'),
+          prices: FakePriceRepo(
+            prices: [price(cents: 129, pack: 411, packLabel: 'can (14.5 oz)')],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Not `can (14.5 oz) (411 g)`: the word IS the size, in the unit the
+      // shelf prints it in.
+      expect(
+        find.text(r"31¢ / 100 g · $1.29 for can (14.5 oz) · TJ's · 13 Sep"),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('a row written before the ledger kept the words reads as the '
         'weight it stored', (tester) async {
       filterForuiSemanticsAssertions();

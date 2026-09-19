@@ -234,7 +234,8 @@ String measureFact(Measure measure) {
 ///
 /// The entered pack leads because it is the fact a person recognises — a pound
 /// of butter was a pound, not 454 g. The basis weight rides in brackets behind
-/// a measure's word, which on its own says nothing about size, and it stands
+/// a measure's word, which on its own says nothing about size — and is left
+/// off a word that already states one ([measureWordWithSize]). It stands
 /// alone on a line that kept no entered pack: that is honestly all a row
 /// written before the ledger held the words has.
 String pricePackPhrase(PriceObservation price) {
@@ -250,7 +251,7 @@ String pricePackPhrase(PriceObservation price) {
     final head = count == null || count == 1
         ? label
         : '${formatAmount(count)} $label';
-    return '$head ($weight)';
+    return measureWordWithSize(head, price.packBasisAmount, basis);
   }
   final amount = price.packAmount;
   final unit = price.packUnit;

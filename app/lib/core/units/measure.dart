@@ -27,6 +27,7 @@ import 'package:meta/meta.dart';
 
 import '../result/result.dart';
 import 'macros.dart';
+import 'number_format.dart';
 import 'units.dart';
 
 /// The provenance families a [Measure.source] can carry, for at-a-glance
@@ -107,6 +108,50 @@ class Measure {
   @override
   String toString() => 'Measure($label = $amount ${basis.baseUnit.id})';
 }
+
+// --- A measure's word, printed with what one of it comes to ------------------
+
+/// `jar (340 g)` — [word] with the basis amount behind it, or the word alone
+/// where it already says its size.
+///
+/// A measure's word tells a reader nothing about the figure beside it, so
+/// every door that prints one prints what one of it weighs too: a receipt's
+/// pack, the price ledger's line, a picker's chosen chip. The household's own
+/// style, though, is to put the size IN the word where a container comes in
+/// two of them (`can (14.5 oz)` beside `can (28 oz)`) — and appending to that
+/// says the size twice, in two unit systems: `can (14.5 oz) (411 g)`.
+///
+/// One function rather than three, because the judgement is one judgement and
+/// a door that grew its own copy would answer differently the first time the
+/// rule moved.
+String measureWordWithSize(String word, double basisAmount, Unit basisUnit) =>
+    measureWordStatesSize(word)
+    ? word
+    : '$word (${formatAmountIn(basisAmount, basisUnit)} ${basisUnit.label})';
+
+/// Whether [word] already states the size of what it names: a bracketed group
+/// that reads as an amount followed by a catalog unit — `can (14.5 oz)`,
+/// `bag (1 lb)`, `carton (32 fl oz)`.
+///
+/// Deliberately narrow, because the cost of being wide is a reader left with
+/// no figure at all. `head, large` brackets nothing and `can (drained)`
+/// brackets something that is not a size, so both still take the weight
+/// appended; a bare `jar` always does.
+bool measureWordStatesSize(String word) {
+  for (final bracketed in _bracketed.allMatches(word)) {
+    final inside = _amountThenUnit.firstMatch(bracketed.group(1)!.trim());
+    if (inside == null) continue;
+    if (parseAmount(inside.group(1)!) == null) continue;
+    if (unitFromWrittenName(inside.group(2)!) != null) return true;
+  }
+  return false;
+}
+
+final _bracketed = RegExp(r'\(([^()]*)\)');
+
+/// The amount is everything before the first letter, the unit everything from
+/// it — so `14.5 oz`, `14.5oz` and `½ lb` all split where a reader splits them.
+final _amountThenUnit = RegExp(r'^([^A-Za-z]+)([A-Za-z][A-Za-z ]*)$');
 
 /// Converts [amount] of [measure] into [to], via the measure's stored basis
 /// amount.

@@ -125,6 +125,52 @@ void main() {
     );
   });
 
+  group('a measure word printed with its size (owner)', () {
+    test('a bare word takes the amount behind it', () {
+      expect(measureWordWithSize('jar', 340, g), 'jar (340 g)');
+      expect(measureWordWithSize('clove', 3, g), 'clove (3 g)');
+      expect(measureWordWithSize('can (400 ml)', 400, ml), 'can (400 ml)');
+    });
+
+    test('a word that already says its size says it once', () {
+      expect(measureWordWithSize('can (14.5 oz)', 411, g), 'can (14.5 oz)');
+      expect(measureWordWithSize('bag (1 lb)', 454, g), 'bag (1 lb)');
+      expect(
+        measureWordWithSize('carton (32 fl oz)', 946, ml),
+        'carton (32 fl oz)',
+      );
+      // The count a price puts in front rides along — it is the word being
+      // printed, and it still says its size only once.
+      expect(measureWordWithSize('2 can (14.5 oz)', 822, g), '2 can (14.5 oz)');
+    });
+
+    test('a bracket that is not a size is not one', () {
+      // What a bracket says has to be an amount AND a unit: a qualifier, a
+      // number with no unit, and a word with no number all still need the
+      // weight, or the reader is left with no figure at all.
+      expect(measureWordStatesSize('can (drained)'), isFalse);
+      expect(measureWordStatesSize('head, large'), isFalse);
+      expect(measureWordStatesSize('pack (6)'), isFalse);
+      expect(measureWordStatesSize('bunch (about)'), isFalse);
+      expect(measureWordStatesSize('jar'), isFalse);
+      expect(
+        measureWordWithSize('can (drained)', 411, g),
+        'can (drained) (411 g)',
+      );
+    });
+
+    test('the catalogue’s own spellings, in the disguises a shelf prints '
+        'them in', () {
+      expect(measureWordStatesSize('bag (2 LB)'), isTrue);
+      // A unit the catalogue does not spell is a word: the size is said in
+      // the household's own units or it is said in grams.
+      expect(measureWordStatesSize('tub (16 Ounces)'), isFalse);
+      expect(measureWordStatesSize('bottle (2 cups)'), isTrue);
+      expect(measureWordStatesSize('block (½ lb)'), isTrue);
+      expect(measureWordStatesSize('can (14.5oz)'), isTrue);
+    });
+  });
+
   group('basis-aware measures (ADR-0008)', () {
     // A per-ml ingredient's measure maps to VOLUME: "can (400 ml) = 400 ml".
     const can = Measure(

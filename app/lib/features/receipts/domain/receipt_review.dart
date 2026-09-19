@@ -610,14 +610,16 @@ String? packAndUnitPrice(ReceiptLineDraft draft, {required MacrosBasis basis}) {
 ///
 /// A pack named as one of the row's measures prints the word AND what it
 /// weighs, because the word alone tells a reader nothing about the figure
-/// beside it. A pack typed as a plain amount already is its own reading.
+/// beside it — unless the word already says its size, which is the house
+/// style for two sizes of one container ([measureWordWithSize]). A pack typed
+/// as a plain amount already is its own reading.
 String? packWords(ReceiptLineDraft draft, {required MacrosBasis basis}) {
   final label = draft.packLabel;
   if (label != null) {
     final weighed = draft.packBasisAmount;
     return weighed == null
         ? label
-        : '$label (${_said(weighed, basis.baseUnit)})';
+        : measureWordWithSize(label, weighed, basis.baseUnit);
   }
   final amount = draft.packAmount;
   if (amount == null) return null;
