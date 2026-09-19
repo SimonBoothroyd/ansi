@@ -550,6 +550,47 @@ or any dashboard-config walk. An entry headed **pending** is the exception: it
 names a migration that is merged but **not yet on cloud**, and it is replaced by
 the ordinary entry for the run that pushes it.
 
+### 2026-09-19 — v0.21.0 on cloud: 0047, both functions, and the measures said in the household's own words
+
+- **deploy-supabase 35471848148** (owner-triggered on `c0a38ee`): `db push`
+  applied `0047_receipt_line_name_printed` and both edge functions deployed —
+  then **the sync-stream leg failed**. Nothing about the file: the CLI
+  validated the sync config, scheduled the deploy and the instance came back
+  `Deploy failed. Check instance diagnostics for details`. The same config
+  deployed unchanged on the retry, so this was the instance failing a deploy,
+  not a config to fix. The order of the legs is why it cost nothing: the
+  schema and both functions were already on.
+- **deploy-supabase 35475174213** (owner-triggered on `527d466`, the commit
+  `v0.21.0` names): green end to end — link, `db push` with nothing left to
+  apply, both functions, sync streams deployed. No reseed (the seed did not
+  change). `receipt_line` is already in both stream configs as
+  `select *`, so `name_printed` reaches devices on this deploy.
+- `cloud_verify.sh`: **9 ok · 0 warn · 0 fail** (JWKS ES256, GoTrue, Google
+  only with email/password off, sign-up off, PostgREST, PowerSync liveness,
+  streams 17 tables equal).
+- Nothing to do by hand on the dashboard.
+- **Hand data fixes on the owner's household**, run on his say-so before the
+  tag, after a full backup to `~/Backups/ansi-cloud-2026-09-19/` (`supabase db
+  dump` schema, data and roles, with a manifest checking every one of the 22
+  public tables' row counts against live — all matched):
+  - the packaging labels rewritten into the house style, which carries the
+    shelf size in the word and in the unit the shelf prints — the bare
+    `package` words on Flour Tortilla, Frozen Peas and Spinach, Tempeh's
+    `package (8 oz)` and Cucumber's `bag (1 lb)`, and with them the bare
+    `pack` words his first receipt minted before the copy said what minting
+    one buys;
+  - Frozen Edamame's borrowed USDA `package` for the `bag (12 oz)` he buys;
+  - Silken Tofu's Mori-Nu `block (12.3 oz)` retired for the `block (16 oz)`
+    he buys, which re-weighs the piece off a measured 453.59 g instead of the
+    borrowed 349 g;
+  - four spices nobody measures by the pinch — allspice, cloves, nutmeg,
+    flaky salt — defaulting to `tsp`.
+
+  These are the rows the seed is generated from, so they reach the template on
+  the next reseed and no rollout is owed. A retired measure takes its live
+  lines with it in the same statement — `0041`'s guard refuses a retire that
+  would leave one stranded.
+
 ### 2026-09-14 — v0.17.0's function on cloud: the page comes back with the import
 
 - **deploy-supabase 34914211711** (owner-triggered, before the round-fourteen
