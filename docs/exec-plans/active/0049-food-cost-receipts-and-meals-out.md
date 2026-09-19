@@ -78,7 +78,8 @@ Phase two — receipts and spend:
 - [x] **No alias is learned from a receipt.** The vocabulary is never taught a
       store's abbreviation; what carries over is the household's own answers,
       both filed under the printed name — the pack these words were last bought
-      in, and the match, recalled off this household's own saved receipt lines. Held structurally, not by prose:
+      in, and the match, recalled off this household's own saved receipt lines.
+      Held structurally, not by prose:
       `import-receipt/no_alias.test.ts` runs the spine over the real
       Postgres-backed matcher AND the real recall with a spying executor, and
       asserts every statement the function issues is a `SELECT`.
