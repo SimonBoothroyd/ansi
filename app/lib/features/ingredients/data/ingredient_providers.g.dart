@@ -766,6 +766,114 @@ final class IngredientPricesFamily extends $Family
   String toString() => r'ingredientPricesProvider';
 }
 
+/// The names this household's receipts have carried for one ingredient,
+/// newest first — the ingredient page's `On receipts` fold.
+///
+/// Watched: a receipt saved or re-matched on the other phone changes what this
+/// row has been called, and the fold is where somebody goes to notice.
+
+@ProviderFor(ingredientReceiptNames)
+const ingredientReceiptNamesProvider = IngredientReceiptNamesFamily._();
+
+/// The names this household's receipts have carried for one ingredient,
+/// newest first — the ingredient page's `On receipts` fold.
+///
+/// Watched: a receipt saved or re-matched on the other phone changes what this
+/// row has been called, and the fold is where somebody goes to notice.
+
+final class IngredientReceiptNamesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<ReceiptName>>,
+          List<ReceiptName>,
+          Stream<List<ReceiptName>>
+        >
+    with
+        $FutureModifier<List<ReceiptName>>,
+        $StreamProvider<List<ReceiptName>> {
+  /// The names this household's receipts have carried for one ingredient,
+  /// newest first — the ingredient page's `On receipts` fold.
+  ///
+  /// Watched: a receipt saved or re-matched on the other phone changes what this
+  /// row has been called, and the fold is where somebody goes to notice.
+  const IngredientReceiptNamesProvider._({
+    required IngredientReceiptNamesFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'ingredientReceiptNamesProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$ingredientReceiptNamesHash();
+
+  @override
+  String toString() {
+    return r'ingredientReceiptNamesProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<List<ReceiptName>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<ReceiptName>> create(Ref ref) {
+    final argument = this.argument as String;
+    return ingredientReceiptNames(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is IngredientReceiptNamesProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$ingredientReceiptNamesHash() =>
+    r'00b38a9c1ec16800e259c369c8155af18fcda5db';
+
+/// The names this household's receipts have carried for one ingredient,
+/// newest first — the ingredient page's `On receipts` fold.
+///
+/// Watched: a receipt saved or re-matched on the other phone changes what this
+/// row has been called, and the fold is where somebody goes to notice.
+
+final class IngredientReceiptNamesFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<List<ReceiptName>>, String> {
+  const IngredientReceiptNamesFamily._()
+    : super(
+        retry: null,
+        name: r'ingredientReceiptNamesProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// The names this household's receipts have carried for one ingredient,
+  /// newest first — the ingredient page's `On receipts` fold.
+  ///
+  /// Watched: a receipt saved or re-matched on the other phone changes what this
+  /// row has been called, and the fold is where somebody goes to notice.
+
+  IngredientReceiptNamesProvider call(String ingredientId) =>
+      IngredientReceiptNamesProvider._(argument: ingredientId, from: this);
+
+  @override
+  String toString() => r'ingredientReceiptNamesProvider';
+}
+
 /// The store words this household has used, most recently first — the price
 /// sheet's `at` chip row. There is no store table; this is simply what has
 /// been typed before.

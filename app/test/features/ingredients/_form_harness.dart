@@ -455,6 +455,14 @@ Widget host(
               lookup: lookup,
             ),
           ),
+          // Where the `On receipts` fold's rows land. A stand-in, not the real
+          // review: what the tap has to get right is WHICH receipt, and the
+          // router's own location is where that is stated.
+          GoRoute(
+            path: 'receipts/:id',
+            builder: (_, state) =>
+                FScaffold(child: Text('receipt ${state.pathParameters['id']}')),
+          ),
         ],
       ),
     ],

@@ -105,6 +105,17 @@ Stream<List<IngredientAlias>> ingredientAliases(Ref ref, String id) =>
 Stream<List<PriceObservation>> ingredientPrices(Ref ref, String ingredientId) =>
     ref.watch(priceRepositoryProvider).watchPrices(ingredientId);
 
+/// The names this household's receipts have carried for one ingredient,
+/// newest first — the ingredient page's `On receipts` fold.
+///
+/// Watched: a receipt saved or re-matched on the other phone changes what this
+/// row has been called, and the fold is where somebody goes to notice.
+@riverpod
+Stream<List<ReceiptName>> ingredientReceiptNames(
+  Ref ref,
+  String ingredientId,
+) => ref.watch(priceRepositoryProvider).watchReceiptNames(ingredientId);
+
 /// The store words this household has used, most recently first — the price
 /// sheet's `at` chip row. There is no store table; this is simply what has
 /// been typed before.

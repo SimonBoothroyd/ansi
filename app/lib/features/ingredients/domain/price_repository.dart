@@ -31,6 +31,19 @@ abstract interface class PriceRepository {
   /// readable price is simply absent — never present with a zero.
   Stream<Map<String, PriceObservation>> watchLatestPrices();
 
+  /// Every distinct name this household's receipts have carried for
+  /// [ingredientId], most recently first — what the `On receipts` fold lists.
+  ///
+  /// This is the receipt door's memory read back (`name_printed`, migration
+  /// 0047): a store's own printed words, grouped case-insensitively on the
+  /// same key the server's recall uses, so a mis-transcription stands beside
+  /// the line it is a mis-transcription of and somebody can see it.
+  ///
+  /// Live lines of live receipts only, and a line with **no printed name** is
+  /// not one: a hand-typed price has no paper behind it, so there is nothing
+  /// for the memory to be keyed by and nothing to spot-check.
+  Stream<List<ReceiptName>> watchReceiptNames(String ingredientId);
+
   /// The store words this household has used, most recently first — the price
   /// sheet's chip row.
   ///
@@ -110,3 +123,39 @@ abstract interface class PriceRepository {
   ///   in doubt — only what the pack was.
   Future<void> deletePrice(String lineId);
 }
+
+/// One name this household's receipts have carried for an ingredient — what
+/// the receipt door's memory is filed under.
+///
+/// **It is not an alias.** An `ingredient_alias` is a word this household's
+/// own language holds, and the recipe door, the picker and the search all see
+/// it. This is a store's abbreviation, printed on paper, kept only beside the
+/// answer somebody gave it once — nothing here ever reaches the vocabulary
+/// matcher, and nothing here is learned. Reading these back is how a
+/// mis-transcription (`SHELLER EDAMAME` beside `SHELLED EDAMAME`) is spotted;
+/// correcting the receipt it is printed on is how it is answered, because the
+/// latest answer per name is the one the next receipt recalls.
+typedef ReceiptName = ({
+  /// The name as the MOST RECENT line spells it.
+  ///
+  /// Lines are grouped case-insensitively, so one word in two cases is one
+  /// entry and the newest spelling is the one shown: a printed name is a
+  /// reading of paper, and the latest reading is the one this household last
+  /// stood behind.
+  String namePrinted,
+
+  /// How many live lines carry it, across every live receipt.
+  int lineCount,
+
+  /// The stores that have printed it, most recently first, each named once. A
+  /// receipt whose store nobody named contributes no word, rather than a blank
+  /// one.
+  List<String> stores,
+
+  /// When it was last on a receipt — that receipt's own date, never a scan's.
+  DateTime lastSeen,
+
+  /// The most recent receipt carrying it. `/receipts/:id` is the editable
+  /// review, so this is where a wrong match is answered.
+  String receiptId,
+});
