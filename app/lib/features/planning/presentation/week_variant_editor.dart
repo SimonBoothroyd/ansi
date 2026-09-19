@@ -320,7 +320,9 @@ class _WeekLineRow extends ConsumerWidget {
       final ingredient = Ingredient(
         id: item.ingredientId ?? '',
         canonicalName: item.ingredientName,
-        defaultUnit: item.measure != null ? pieces : item.unit,
+        // A stand-in for a row this sheet is not really about; a line said
+        // in a recipe's own word has no catalog unit to lend it.
+        defaultUnit: item.measure != null ? pieces : (item.unit ?? pieces),
         status: IngredientStatus.stub,
       );
       final measure = item.measure;
@@ -330,7 +332,7 @@ class _WeekLineRow extends ConsumerWidget {
         initialQuantity: item.quantity,
         initialChoice: measure != null
             ? MeasureOption(measure)
-            : UnitOption(item.unit),
+            : UnitOption(item.unit ?? pieces),
         initialOptional: item.optional,
       );
       if (result is! QuantitySaved) return;

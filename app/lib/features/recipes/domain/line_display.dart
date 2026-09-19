@@ -19,6 +19,7 @@
 library;
 
 import '../../../core/units/number_format.dart';
+import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
 import 'recipe.dart';
 
@@ -169,15 +170,45 @@ List<LineUses> groupLineUses(List<LineItem> items) {
 String amountOfLine(LineItem item) {
   final measure = item.measure;
   if (measure != null) {
-    final counted = item.quantity == null ? '' : formatAmount(item.quantity!);
-    return counted.isEmpty ? measure.label : '$counted ${measure.label}';
+    return measuredAmountText(item.quantity, measure.label);
   }
-  final qty = item.quantity == null
-      ? ''
-      : formatAmountIn(item.quantity!, item.unit);
-  if (item.unit.family == UnitFamily.count) {
-    return qty.isEmpty ? item.unit.label : qty;
+  final word = recipeMeasureOfLine(item);
+  if (word != null) return measuredAmountText(item.quantity, word.label);
+  final unit = item.unit;
+  // A component line whose word has gone keeps its number and loses its
+  // denomination — there is nothing honest to put where the unit was.
+  if (unit == null) {
+    final q = item.quantity;
+    return q == null ? '' : formatAmount(q);
   }
-  if (qty.isEmpty) return item.unit.label;
-  return '$qty ${item.unit.label}';
+  final qty = item.quantity == null ? '' : formatAmountIn(item.quantity!, unit);
+  if (unit.family == UnitFamily.count) {
+    return qty.isEmpty ? unit.label : qty;
+  }
+  if (qty.isEmpty) return unit.label;
+  return '$qty ${unit.label}';
+}
+
+/// An amount said in a NAMED word rather than a catalog unit — `2 clove`,
+/// `3 blob`, or the bare word when there is no number yet.
+///
+/// Singular, always: the word is the household's and the app does not know its
+/// grammar. A rule pluraliser would turn somebody's `sourdough` into
+/// `sourdoughs` and their `roux` into `rouxs`, which is a worse sentence than
+/// the singular ever is.
+String measuredAmountText(double? quantity, String label) {
+  final counted = quantity == null ? '' : formatAmount(quantity);
+  return counted.isEmpty ? label : '$counted $label';
+}
+
+/// The target recipe's own word [item] is said in, or null — null both for a
+/// line that names none and for one whose word the target no longer has.
+///
+/// The word lives on the TARGET ([SubRecipeTarget.measures]), never joined
+/// onto the line, which is what makes a re-stated `blob` follow through to
+/// every line already saying it.
+RecipeMeasure? recipeMeasureOfLine(LineItem item) {
+  final id = item.recipeMeasureId;
+  if (id == null) return null;
+  return recipeMeasureById(id, item.subRecipe?.measures ?? const []);
 }

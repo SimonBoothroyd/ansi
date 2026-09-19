@@ -507,7 +507,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
       ingredientId: line.ingredientId ?? stored?.ingredientId ?? '',
       quantity: line.quantity,
       unit: line.unit,
-      rawUnit: line.unit.id,
+      rawUnit: line.unit?.id,
       measure: line.measure,
     );
   }

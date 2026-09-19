@@ -38,13 +38,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
-import '../../../core/units/number_format.dart';
 import '../../../core/words.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_more_trigger.dart';
 import '../../../shared/method_step_text.dart';
 import '../../../shared/was_word_line.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
+import '../domain/line_display.dart';
 import '../domain/method_draft.dart';
 import '../domain/recipe.dart';
 import 'component_quantity_sheet.dart';
@@ -572,19 +572,8 @@ class MethodStepCard extends HookConsumerWidget {
     return names.isEmpty ? 'nothing yet' : names.join(' · ');
   }
 
-  String _lineSummary(LineItem line) {
-    final quantity = line.quantity;
-    final measure = line.measure;
-    final String amount;
-    if (quantity == null) {
-      amount = line.unit.label;
-    } else if (measure != null) {
-      amount = '${formatAmount(quantity)} ${measure.label}';
-    } else {
-      amount = '${formatAmountIn(quantity, line.unit)} ${line.unit.label}';
-    }
-    return '${line.ingredientName} · $amount';
-  }
+  String _lineSummary(LineItem line) =>
+      '${line.ingredientName} · ${amountOfLine(line)}';
 
   /// The no-selection door: pick a line, and its name goes in at the caret as
   /// a chip, cased for where it lands ([chipWord]) — a name stored `Onion`

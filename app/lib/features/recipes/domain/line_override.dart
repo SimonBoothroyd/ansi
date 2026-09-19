@@ -82,6 +82,13 @@ abstract class LineOverride with _$LineOverride {
     Unit? unit,
     String? measureId,
     Measure? measure,
+
+    /// The target recipe's own word a component line is cooked in this week
+    /// (`week_recipe_line_override.recipe_measure_id`). Absolute like every
+    /// other value a `replace` carries: the week says `3 blob`, and the
+    /// recipe re-stating `blob` from 20 to 24 moves this week's share with
+    /// it, because the pointer is at the word rather than at a number.
+    String? recipeMeasureId,
     String? note,
     int? sortOrder,
   }) = _LineOverride;
@@ -147,6 +154,7 @@ List<LineOverride> diffLineOverrides({
           unit: line.unit,
           measureId: line.measureId,
           measure: line.measure,
+          recipeMeasureId: line.recipeMeasureId,
           note: _trimmed(line.note),
           sortOrder: added++,
         ),
@@ -180,6 +188,7 @@ List<LineOverride> diffLineOverrides({
           unit: line.unit,
           measureId: line.measureId,
           measure: line.measure,
+          recipeMeasureId: line.recipeMeasureId,
           note: _trimmed(line.note),
         ),
       );
@@ -213,7 +222,7 @@ List<LineOverride> diffLineOverrides({
 }
 
 /// Whether [edited] states a different thing to cook, or a different amount of
-/// it, than [original] — the five fields a `replace` carries.
+/// it, than [original] — the fields a `replace` carries.
 ///
 /// The `optional` flag is deliberately NOT one of them: it is an exclusion or
 /// an inclusion, never a replacement.
@@ -223,6 +232,7 @@ bool _differs(LineItem original, LineItem edited) =>
     original.quantity != edited.quantity ||
     original.unit != edited.unit ||
     original.measureId != edited.measureId ||
+    original.recipeMeasureId != edited.recipeMeasureId ||
     _trimmed(original.note) != _trimmed(edited.note);
 
 String? _trimmed(String? note) {
@@ -245,6 +255,7 @@ LineItem applyOverride(LineItem line, LineOverride override) => line.copyWith(
   unit: override.unit ?? line.unit,
   measureId: override.measureId,
   measure: override.measure,
+  recipeMeasureId: override.recipeMeasureId,
   note: override.note,
   optional: false,
   // A swap onto a DIFFERENT row is a repair, so the base line's broken-link
@@ -269,6 +280,7 @@ LineItem addedLine(LineOverride override) => LineItem(
   quantity: override.quantity,
   measureId: override.measureId,
   measure: override.measure,
+  recipeMeasureId: override.recipeMeasureId,
   note: override.note,
 );
 

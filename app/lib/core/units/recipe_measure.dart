@@ -23,7 +23,7 @@
 /// - A line naming a measure the recipe no longer has is **unresolved**, not a
 ///   count: `3` of a word nobody can measure is not 3 pieces of the yield, and
 ///   a wrong batch count is worse than a missing one.
-/// - A non-positive (or NaN) [perBatch] says nothing about a share, so it
+/// - A non-positive (or NaN) `per_batch` says nothing about a share, so it
 ///   converts nothing — the same line `measure.dart` draws around a
 ///   non-positive basis amount. The database pins `per_batch > 0`; this is
 ///   what keeps the Dart total against a foreign or in-flight row.

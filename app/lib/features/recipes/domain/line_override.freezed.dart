@@ -27,7 +27,12 @@ mixin _$LineOverride {
 /// not on what they point at, so a sub-recipe swap for one week has no
 /// door. A replace on a component line carries the line's own target back
 /// unchanged.
- String? get subRecipeId; double? get quantity; Unit? get unit; String? get measureId; Measure? get measure; String? get note; int? get sortOrder;
+ String? get subRecipeId; double? get quantity; Unit? get unit; String? get measureId; Measure? get measure;/// The target recipe's own word a component line is cooked in this week
+/// (`week_recipe_line_override.recipe_measure_id`). Absolute like every
+/// other value a `replace` carries: the week says `3 blob`, and the
+/// recipe re-stating `blob` from 20 to 24 moves this week's share with
+/// it, because the pointer is at the word rather than at a number.
+ String? get recipeMeasureId; String? get note; int? get sortOrder;
 /// Create a copy of LineOverride
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -38,16 +43,16 @@ $LineOverrideCopyWith<LineOverride> get copyWith => _$LineOverrideCopyWithImpl<L
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LineOverride&&(identical(other.action, action) || other.action == action)&&(identical(other.id, id) || other.id == id)&&(identical(other.recipeLineItemId, recipeLineItemId) || other.recipeLineItemId == recipeLineItemId)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.subRecipeId, subRecipeId) || other.subRecipeId == subRecipeId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.note, note) || other.note == note)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LineOverride&&(identical(other.action, action) || other.action == action)&&(identical(other.id, id) || other.id == id)&&(identical(other.recipeLineItemId, recipeLineItemId) || other.recipeLineItemId == recipeLineItemId)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.subRecipeId, subRecipeId) || other.subRecipeId == subRecipeId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.recipeMeasureId, recipeMeasureId) || other.recipeMeasureId == recipeMeasureId)&&(identical(other.note, note) || other.note == note)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,action,id,recipeLineItemId,ingredientId,ingredientName,subRecipeId,quantity,unit,measureId,measure,note,sortOrder);
+int get hashCode => Object.hash(runtimeType,action,id,recipeLineItemId,ingredientId,ingredientName,subRecipeId,quantity,unit,measureId,measure,recipeMeasureId,note,sortOrder);
 
 @override
 String toString() {
-  return 'LineOverride(action: $action, id: $id, recipeLineItemId: $recipeLineItemId, ingredientId: $ingredientId, ingredientName: $ingredientName, subRecipeId: $subRecipeId, quantity: $quantity, unit: $unit, measureId: $measureId, measure: $measure, note: $note, sortOrder: $sortOrder)';
+  return 'LineOverride(action: $action, id: $id, recipeLineItemId: $recipeLineItemId, ingredientId: $ingredientId, ingredientName: $ingredientName, subRecipeId: $subRecipeId, quantity: $quantity, unit: $unit, measureId: $measureId, measure: $measure, recipeMeasureId: $recipeMeasureId, note: $note, sortOrder: $sortOrder)';
 }
 
 
@@ -58,7 +63,7 @@ abstract mixin class $LineOverrideCopyWith<$Res>  {
   factory $LineOverrideCopyWith(LineOverride value, $Res Function(LineOverride) _then) = _$LineOverrideCopyWithImpl;
 @useResult
 $Res call({
- LineOverrideAction action, String id, String? recipeLineItemId, String? ingredientId, String ingredientName, String? subRecipeId, double? quantity, Unit? unit, String? measureId, Measure? measure, String? note, int? sortOrder
+ LineOverrideAction action, String id, String? recipeLineItemId, String? ingredientId, String ingredientName, String? subRecipeId, double? quantity, Unit? unit, String? measureId, Measure? measure, String? recipeMeasureId, String? note, int? sortOrder
 });
 
 
@@ -75,7 +80,7 @@ class _$LineOverrideCopyWithImpl<$Res>
 
 /// Create a copy of LineOverride
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? action = null,Object? id = null,Object? recipeLineItemId = freezed,Object? ingredientId = freezed,Object? ingredientName = null,Object? subRecipeId = freezed,Object? quantity = freezed,Object? unit = freezed,Object? measureId = freezed,Object? measure = freezed,Object? note = freezed,Object? sortOrder = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? action = null,Object? id = null,Object? recipeLineItemId = freezed,Object? ingredientId = freezed,Object? ingredientName = null,Object? subRecipeId = freezed,Object? quantity = freezed,Object? unit = freezed,Object? measureId = freezed,Object? measure = freezed,Object? recipeMeasureId = freezed,Object? note = freezed,Object? sortOrder = freezed,}) {
   return _then(_self.copyWith(
 action: null == action ? _self.action : action // ignore: cast_nullable_to_non_nullable
 as LineOverrideAction,id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
@@ -87,7 +92,8 @@ as String?,quantity: freezed == quantity ? _self.quantity : quantity // ignore: 
 as double?,unit: freezed == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
 as Unit?,measureId: freezed == measureId ? _self.measureId : measureId // ignore: cast_nullable_to_non_nullable
 as String?,measure: freezed == measure ? _self.measure : measure // ignore: cast_nullable_to_non_nullable
-as Measure?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
+as Measure?,recipeMeasureId: freezed == recipeMeasureId ? _self.recipeMeasureId : recipeMeasureId // ignore: cast_nullable_to_non_nullable
+as String?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
 as String?,sortOrder: freezed == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
 as int?,
   ));
@@ -174,10 +180,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( LineOverrideAction action,  String id,  String? recipeLineItemId,  String? ingredientId,  String ingredientName,  String? subRecipeId,  double? quantity,  Unit? unit,  String? measureId,  Measure? measure,  String? note,  int? sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( LineOverrideAction action,  String id,  String? recipeLineItemId,  String? ingredientId,  String ingredientName,  String? subRecipeId,  double? quantity,  Unit? unit,  String? measureId,  Measure? measure,  String? recipeMeasureId,  String? note,  int? sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LineOverride() when $default != null:
-return $default(_that.action,_that.id,_that.recipeLineItemId,_that.ingredientId,_that.ingredientName,_that.subRecipeId,_that.quantity,_that.unit,_that.measureId,_that.measure,_that.note,_that.sortOrder);case _:
+return $default(_that.action,_that.id,_that.recipeLineItemId,_that.ingredientId,_that.ingredientName,_that.subRecipeId,_that.quantity,_that.unit,_that.measureId,_that.measure,_that.recipeMeasureId,_that.note,_that.sortOrder);case _:
   return orElse();
 
 }
@@ -195,10 +201,10 @@ return $default(_that.action,_that.id,_that.recipeLineItemId,_that.ingredientId,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( LineOverrideAction action,  String id,  String? recipeLineItemId,  String? ingredientId,  String ingredientName,  String? subRecipeId,  double? quantity,  Unit? unit,  String? measureId,  Measure? measure,  String? note,  int? sortOrder)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( LineOverrideAction action,  String id,  String? recipeLineItemId,  String? ingredientId,  String ingredientName,  String? subRecipeId,  double? quantity,  Unit? unit,  String? measureId,  Measure? measure,  String? recipeMeasureId,  String? note,  int? sortOrder)  $default,) {final _that = this;
 switch (_that) {
 case _LineOverride():
-return $default(_that.action,_that.id,_that.recipeLineItemId,_that.ingredientId,_that.ingredientName,_that.subRecipeId,_that.quantity,_that.unit,_that.measureId,_that.measure,_that.note,_that.sortOrder);case _:
+return $default(_that.action,_that.id,_that.recipeLineItemId,_that.ingredientId,_that.ingredientName,_that.subRecipeId,_that.quantity,_that.unit,_that.measureId,_that.measure,_that.recipeMeasureId,_that.note,_that.sortOrder);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -215,10 +221,10 @@ return $default(_that.action,_that.id,_that.recipeLineItemId,_that.ingredientId,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( LineOverrideAction action,  String id,  String? recipeLineItemId,  String? ingredientId,  String ingredientName,  String? subRecipeId,  double? quantity,  Unit? unit,  String? measureId,  Measure? measure,  String? note,  int? sortOrder)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( LineOverrideAction action,  String id,  String? recipeLineItemId,  String? ingredientId,  String ingredientName,  String? subRecipeId,  double? quantity,  Unit? unit,  String? measureId,  Measure? measure,  String? recipeMeasureId,  String? note,  int? sortOrder)?  $default,) {final _that = this;
 switch (_that) {
 case _LineOverride() when $default != null:
-return $default(_that.action,_that.id,_that.recipeLineItemId,_that.ingredientId,_that.ingredientName,_that.subRecipeId,_that.quantity,_that.unit,_that.measureId,_that.measure,_that.note,_that.sortOrder);case _:
+return $default(_that.action,_that.id,_that.recipeLineItemId,_that.ingredientId,_that.ingredientName,_that.subRecipeId,_that.quantity,_that.unit,_that.measureId,_that.measure,_that.recipeMeasureId,_that.note,_that.sortOrder);case _:
   return null;
 
 }
@@ -230,7 +236,7 @@ return $default(_that.action,_that.id,_that.recipeLineItemId,_that.ingredientId,
 
 
 class _LineOverride extends LineOverride {
-  const _LineOverride({required this.action, this.id = '', this.recipeLineItemId, this.ingredientId, this.ingredientName = '', this.subRecipeId, this.quantity, this.unit, this.measureId, this.measure, this.note, this.sortOrder}): super._();
+  const _LineOverride({required this.action, this.id = '', this.recipeLineItemId, this.ingredientId, this.ingredientName = '', this.subRecipeId, this.quantity, this.unit, this.measureId, this.measure, this.recipeMeasureId, this.note, this.sortOrder}): super._();
   
 
 @override final  LineOverrideAction action;
@@ -256,6 +262,12 @@ class _LineOverride extends LineOverride {
 @override final  Unit? unit;
 @override final  String? measureId;
 @override final  Measure? measure;
+/// The target recipe's own word a component line is cooked in this week
+/// (`week_recipe_line_override.recipe_measure_id`). Absolute like every
+/// other value a `replace` carries: the week says `3 blob`, and the
+/// recipe re-stating `blob` from 20 to 24 moves this week's share with
+/// it, because the pointer is at the word rather than at a number.
+@override final  String? recipeMeasureId;
 @override final  String? note;
 @override final  int? sortOrder;
 
@@ -269,16 +281,16 @@ _$LineOverrideCopyWith<_LineOverride> get copyWith => __$LineOverrideCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LineOverride&&(identical(other.action, action) || other.action == action)&&(identical(other.id, id) || other.id == id)&&(identical(other.recipeLineItemId, recipeLineItemId) || other.recipeLineItemId == recipeLineItemId)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.subRecipeId, subRecipeId) || other.subRecipeId == subRecipeId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.note, note) || other.note == note)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LineOverride&&(identical(other.action, action) || other.action == action)&&(identical(other.id, id) || other.id == id)&&(identical(other.recipeLineItemId, recipeLineItemId) || other.recipeLineItemId == recipeLineItemId)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.subRecipeId, subRecipeId) || other.subRecipeId == subRecipeId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.recipeMeasureId, recipeMeasureId) || other.recipeMeasureId == recipeMeasureId)&&(identical(other.note, note) || other.note == note)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,action,id,recipeLineItemId,ingredientId,ingredientName,subRecipeId,quantity,unit,measureId,measure,note,sortOrder);
+int get hashCode => Object.hash(runtimeType,action,id,recipeLineItemId,ingredientId,ingredientName,subRecipeId,quantity,unit,measureId,measure,recipeMeasureId,note,sortOrder);
 
 @override
 String toString() {
-  return 'LineOverride(action: $action, id: $id, recipeLineItemId: $recipeLineItemId, ingredientId: $ingredientId, ingredientName: $ingredientName, subRecipeId: $subRecipeId, quantity: $quantity, unit: $unit, measureId: $measureId, measure: $measure, note: $note, sortOrder: $sortOrder)';
+  return 'LineOverride(action: $action, id: $id, recipeLineItemId: $recipeLineItemId, ingredientId: $ingredientId, ingredientName: $ingredientName, subRecipeId: $subRecipeId, quantity: $quantity, unit: $unit, measureId: $measureId, measure: $measure, recipeMeasureId: $recipeMeasureId, note: $note, sortOrder: $sortOrder)';
 }
 
 
@@ -289,7 +301,7 @@ abstract mixin class _$LineOverrideCopyWith<$Res> implements $LineOverrideCopyWi
   factory _$LineOverrideCopyWith(_LineOverride value, $Res Function(_LineOverride) _then) = __$LineOverrideCopyWithImpl;
 @override @useResult
 $Res call({
- LineOverrideAction action, String id, String? recipeLineItemId, String? ingredientId, String ingredientName, String? subRecipeId, double? quantity, Unit? unit, String? measureId, Measure? measure, String? note, int? sortOrder
+ LineOverrideAction action, String id, String? recipeLineItemId, String? ingredientId, String ingredientName, String? subRecipeId, double? quantity, Unit? unit, String? measureId, Measure? measure, String? recipeMeasureId, String? note, int? sortOrder
 });
 
 
@@ -306,7 +318,7 @@ class __$LineOverrideCopyWithImpl<$Res>
 
 /// Create a copy of LineOverride
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? action = null,Object? id = null,Object? recipeLineItemId = freezed,Object? ingredientId = freezed,Object? ingredientName = null,Object? subRecipeId = freezed,Object? quantity = freezed,Object? unit = freezed,Object? measureId = freezed,Object? measure = freezed,Object? note = freezed,Object? sortOrder = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? action = null,Object? id = null,Object? recipeLineItemId = freezed,Object? ingredientId = freezed,Object? ingredientName = null,Object? subRecipeId = freezed,Object? quantity = freezed,Object? unit = freezed,Object? measureId = freezed,Object? measure = freezed,Object? recipeMeasureId = freezed,Object? note = freezed,Object? sortOrder = freezed,}) {
   return _then(_LineOverride(
 action: null == action ? _self.action : action // ignore: cast_nullable_to_non_nullable
 as LineOverrideAction,id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
@@ -318,7 +330,8 @@ as String?,quantity: freezed == quantity ? _self.quantity : quantity // ignore: 
 as double?,unit: freezed == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
 as Unit?,measureId: freezed == measureId ? _self.measureId : measureId // ignore: cast_nullable_to_non_nullable
 as String?,measure: freezed == measure ? _self.measure : measure // ignore: cast_nullable_to_non_nullable
-as Measure?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
+as Measure?,recipeMeasureId: freezed == recipeMeasureId ? _self.recipeMeasureId : recipeMeasureId // ignore: cast_nullable_to_non_nullable
+as String?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
 as String?,sortOrder: freezed == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
 as int?,
   ));

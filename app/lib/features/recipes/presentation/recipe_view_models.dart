@@ -407,7 +407,10 @@ class RecipeEditor extends _$RecipeEditor
           // repair the tag asked for: it stops reading as removed the moment
           // the pick lands, not on the next reload.
           ingredientDeleted: false,
-          unit: i.unit.family == ingredient.defaultUnit.family
+          // A re-point onto an ingredient drops any recipe measure with it:
+          // `blob` is a word for a recipe, and this line no longer names one.
+          recipeMeasureId: null,
+          unit: i.unit?.family == ingredient.defaultUnit.family
               ? i.unit
               : ingredient.defaultUnit,
         ),
@@ -427,7 +430,10 @@ class RecipeEditor extends _$RecipeEditor
           measureId: null,
           measure: null,
           ingredientDeleted: false,
-          unit: i.unit.family == UnitFamily.batch ? i.unit : batches,
+          // The new target's words are not this line's old ones, so the
+          // pointer goes and the line falls back to whole batches.
+          recipeMeasureId: null,
+          unit: i.unit?.family == UnitFamily.batch ? i.unit : batches,
         ),
       );
 

@@ -668,12 +668,13 @@ class _LineItemEditor extends ConsumerWidget {
   /// the household deleted never arrives, and the same words would have the
   /// reader waiting on nothing.
   String get _label {
-    if (item.measure == null && item.measureId != null) {
-      final qty = formatQuantityIn(item.quantity, item.unit);
+    final stored = item.unit;
+    if (item.measure == null && item.measureId != null && stored != null) {
+      final qty = formatQuantityIn(item.quantity, stored);
       final why = item.measureDeleted
           ? 'measure deleted'
           : 'measure pending sync';
-      final unit = '${item.unit.label} · $why';
+      final unit = '${stored.label} · $why';
       return qty.isEmpty ? unit : '$qty $unit';
     }
     return amountOfLineItem(item);
@@ -714,7 +715,9 @@ class _LineItemEditor extends ConsumerWidget {
           Ingredient(
             id: item.ingredientId ?? '',
             canonicalName: item.ingredientName,
-            defaultUnit: item.measure != null ? pieces : item.unit,
+            // A stand-in for a row this sheet is not really about; a line
+            // said in a recipe's own word has no catalog unit to lend it.
+            defaultUnit: item.measure != null ? pieces : (item.unit ?? pieces),
             status: IngredientStatus.stub,
           );
       final pending = item.measureId != null && item.measure == null;
@@ -725,7 +728,7 @@ class _LineItemEditor extends ConsumerWidget {
         initialQuantity: item.quantity,
         initialChoice: measure != null
             ? MeasureOption(measure)
-            : UnitOption(item.unit),
+            : UnitOption(item.unit ?? pieces),
         pendingMeasure: pending,
       );
       if (result is! QuantitySaved) return;

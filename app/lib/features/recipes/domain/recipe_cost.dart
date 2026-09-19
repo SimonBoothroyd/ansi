@@ -93,7 +93,8 @@ enum CostLineReason {
   priceOffBasis,
 
   /// A component line whose batch math does not resolve (no yield, a unit in
-  /// no yield's family, no amount, a cycle, a missing target).
+  /// no yield's family, a word the target no longer has, no amount, a cycle, a
+  /// missing target).
   subRecipeUnresolved,
 
   /// A component line whose target has unpriced lines of its own: the share is
@@ -399,9 +400,9 @@ _Walk _summarize({
     }
     // Unweighable by nature, so costless by rule — asked before anything can
     // fail, exactly as the macro walk asks it.
-    if (line.measure == null && line.unit.family == UnitFamily.imprecise) {
+    if (line.measure == null && line.unit?.family == UnitFamily.imprecise) {
       excludedByRule++;
-      note(notCounted, line, CostLineReason.imprecise, unit: line.unit.label);
+      note(notCounted, line, CostLineReason.imprecise, unit: line.unit?.label);
       continue;
     }
     final ingredientId = line.ingredientId;
@@ -523,6 +524,8 @@ _ComponentResult _componentCost({
     quantity: line.quantity,
     unit: line.unit,
     yields: node.yields,
+    recipeMeasureId: line.recipeMeasureId,
+    measures: node.measures,
   );
   if (amount is! ResolvedComponentAmount) return const _ComponentUnresolved();
 

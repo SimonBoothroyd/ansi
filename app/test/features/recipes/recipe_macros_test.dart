@@ -1,5 +1,6 @@
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
+import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
@@ -493,6 +494,7 @@ void main() {
     }) => (
       servingsBase: 4,
       lines: lines.isEmpty ? [_line('x', quantity: 200)] : lines,
+      measures: const <RecipeMeasure>[],
       yields: yields,
     );
 
@@ -594,6 +596,7 @@ void main() {
         'mid': (
           servingsBase: 2,
           lines: [_line('x', quantity: 100), component('aioli', quantity: 0.5)],
+          measures: const <RecipeMeasure>[],
           yields: const [(qty: 1.0, unit: cup)],
         ),
         'aioli': aioli(),
@@ -613,11 +616,13 @@ void main() {
         'a': (
           servingsBase: 1,
           lines: [component('b', quantity: 1, unit: batches)],
+          measures: const <RecipeMeasure>[],
           yields: const [(qty: 1.0, unit: cup)],
         ),
         'b': (
           servingsBase: 1,
           lines: [component('a', quantity: 1, unit: batches)],
+          measures: const <RecipeMeasure>[],
           yields: const [(qty: 1.0, unit: cup)],
         ),
       };
@@ -726,6 +731,7 @@ void main() {
             _line('stub', quantity: 10),
             _line('x', quantity: 1, unit: pinch),
           ],
+          measures: const <RecipeMeasure>[],
           yields: const [(qty: 1.0, unit: cup)],
         ),
       };
@@ -932,6 +938,7 @@ void main() {
             ? (
                 servingsBase: 1,
                 lines: [_line('x', quantity: 100), optional('lime')],
+                measures: const <RecipeMeasure>[],
                 yields: const <YieldDenomination>[],
               )
             : null,
@@ -1026,6 +1033,7 @@ void main() {
             ? (
                 servingsBase: 4,
                 lines: [_line('x', quantity: 200)],
+                measures: const <RecipeMeasure>[],
                 yields: const [(qty: 1.0, unit: cup)],
               )
             : null,
@@ -1174,6 +1182,7 @@ void main() {
                   _line('x', quantity: 200),
                   _line('stock', quantity: 100),
                 ],
+                measures: const <RecipeMeasure>[],
                 yields: const [(qty: 1.0, unit: cup)],
               )
             : null,

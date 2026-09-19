@@ -1,5 +1,6 @@
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
+import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
@@ -403,7 +404,12 @@ void main() {
       required List<LineItem> lines,
       double servings = 2,
       List<YieldDenomination> yields = const [(qty: 2, unit: cup)],
-    }) => (servingsBase: servings, lines: lines, yields: yields);
+    }) => (
+      servingsBase: servings,
+      lines: lines,
+      measures: const <RecipeMeasure>[],
+      yields: yields,
+    );
 
     LineItem component(String id, {double? quantity, Unit unit = cup}) =>
         LineItem(

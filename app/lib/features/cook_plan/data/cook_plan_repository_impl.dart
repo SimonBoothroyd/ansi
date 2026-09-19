@@ -12,6 +12,7 @@ import 'dart:convert';
 
 import 'package:sqlite_async/sqlite_async.dart';
 
+import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
 import '../../../core/week_shape.dart';
 import '../../planning/data/planning_repository_impl.dart' show loadMembers;
@@ -169,6 +170,9 @@ Future<Map<String, ComponentRecipe>> loadComponentGraph(
       subRecipeId: row['sub_recipe_id'] as String,
       quantity: (row['quantity'] as num?)?.toDouble(),
       unit: unit,
+      // Lane C reads `recipe_line_item.recipe_measure_id`; until it does, a
+      // measured line carries no word here and derives nothing from one.
+      recipeMeasureId: null,
       optional: (row['optional'] as int? ?? 0) == 1,
     ));
   }
@@ -186,6 +190,8 @@ Future<Map<String, ComponentRecipe>> loadComponentGraph(
         keepsForDays: r['keeps_for_days'] as int?,
         freezable: (r['freezable'] as int? ?? 0) == 1,
         freezerDays: r['freezer_days'] as int?,
+        // Lane C fills these from `recipe_measure`.
+        measures: const <RecipeMeasure>[],
         yields: yieldDenominations(
           (r['yield_qty'] as num?)?.toDouble(),
           unitById(r['yield_unit'] as String? ?? ''),

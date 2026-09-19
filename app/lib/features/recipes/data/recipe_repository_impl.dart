@@ -13,6 +13,7 @@ import 'package:sqlite_async/sqlite_async.dart';
 
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
+import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
 import '../../ingredients/data/price_repository_impl.dart'
     show loadLatestPrices;
@@ -150,7 +151,12 @@ class SqliteRecipeRepository implements RecipeRepository {
           // called.
           ingredientName:
               r['sub_title'] as String? ?? r['ing_name'] as String? ?? '',
-          unit: unitById(r['unit'] as String) ?? pieces,
+          // A stored `unit` is NULL exactly on a line said in one of the
+          // target recipe's own words, whose `recipe_measure_id` this loader
+          // does not read yet — so such a line still falls back to a bare
+          // count here. Reading the column is lane C's; what matters today is
+          // that a NULL never throws its way out of a row mapper.
+          unit: unitById(r['unit'] as String? ?? '') ?? pieces,
           quantity: (r['quantity'] as num?)?.toDouble(),
           optional: _flag(r['optional']),
           measureId: measureId,
@@ -197,6 +203,9 @@ class SqliteRecipeRepository implements RecipeRepository {
           servingsBase: (r['servings_base'] as num).toDouble(),
           lines: linesByRecipe[r['id']] ?? const <LineItem>[],
           yields: _yieldsOf(r),
+          // Lane C fills these from `recipe_measure`; until that read lands a
+          // measured component line reads as its honest refusal, never a count.
+          measures: const <RecipeMeasure>[],
         ),
     };
 
@@ -427,7 +436,7 @@ class SqliteRecipeRepository implements RecipeRepository {
       ingredientName: subRecipeId != null
           ? r['sub_title'] as String? ?? '(unknown recipe)'
           : r['ingredient_name'] as String? ?? '(unknown ingredient)',
-      unit: unitById(r['unit'] as String) ?? pieces,
+      unit: unitById(r['unit'] as String? ?? '') ?? pieces,
       quantity: (r['quantity'] as num?)?.toDouble(),
       optional: _flag(r['optional']),
       measureId: measureId,
@@ -702,7 +711,9 @@ class SqliteRecipeRepository implements RecipeRepository {
                 ingredientId,
                 subRecipeId,
                 item.quantity,
-                item.unit.id,
+                // NULL on a line said in one of the target's own words — the
+                // column that names the word is lane C's to write.
+                item.unit?.id,
                 measureId,
                 item.note,
                 // Written on every kept line, so a flag flipped in the editor
@@ -727,7 +738,7 @@ class SqliteRecipeRepository implements RecipeRepository {
                 ingredientId,
                 subRecipeId,
                 item.quantity,
-                item.unit.id,
+                item.unit?.id,
                 measureId,
                 item.note,
                 if (item.optional) 1 else 0,
@@ -832,7 +843,7 @@ loadRecipeMacroNodes(SqliteConnection db) async {
         // week's re-summations and the cost walk both print these.
         ingredientName:
             (r['ing_name'] as String?) ?? (r['sub_title'] as String?) ?? '',
-        unit: unitById(r['unit'] as String) ?? pieces,
+        unit: unitById(r['unit'] as String? ?? '') ?? pieces,
         quantity: (r['quantity'] as num?)?.toDouble(),
         // A sub-recipe's own optional lines leave ITS total the same way
         // (the walk runs the same seam at every level).
@@ -871,6 +882,9 @@ loadRecipeMacroNodes(SqliteConnection db) async {
           servingsBase: (r['servings_base'] as num).toDouble(),
           lines: linesByRecipe[r['id']] ?? const <LineItem>[],
           yields: _yieldsOf(r),
+          // Lane C fills these from `recipe_measure`; until that read lands a
+          // measured component line reads as its honest refusal, never a count.
+          measures: const <RecipeMeasure>[],
         ),
     },
     nutrition,

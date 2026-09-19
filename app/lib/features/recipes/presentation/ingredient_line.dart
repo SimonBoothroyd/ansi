@@ -172,7 +172,7 @@ class RecipeIngredientLine extends StatelessWidget {
     // An imprecise line ("a pinch") reads in italic mono — a printed number
     // would misrepresent it (invariant 3).
     final imprecise = uses.uses.every(
-      (u) => u.measure == null && u.unit.family == UnitFamily.imprecise,
+      (u) => u.measure == null && u.unit?.family == UnitFamily.imprecise,
     );
 
     final amountText = Text(
