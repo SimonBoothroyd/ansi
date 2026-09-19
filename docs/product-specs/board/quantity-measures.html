@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Quantity &amp; measures</h1>
-    <p class="view-status">built · matches code 2026-09-12 · <code>features/ingredients</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: same, as a dialog from 640</p>
+    <p class="view-status">built · matches code 2026-09-12 · <code>features/ingredients</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: same, as a dialog from 640 · <span class="prop">proposed</span> a recipe’s own measures on a component’s dock <a href="../../exec-plans/backlog.md">backlog</a></p>
     <p class="view-blurb">One dock everywhere an amount is set: this ingredient’s admitted units as chips over a keypad, and the conversion said out loud above them.</p>
 </header>
 
@@ -170,6 +170,81 @@
                     <div class="ghostbtn" style="margin-top:2px">Set the yield</div>
                 </div>
             </div></div>
+        </div>
+
+        <div class="frame prop">
+            <p class="frame-name"><span class="proposed-tag">proposed</span><b>A component’s amount, in the household’s own word</b> · the same dock, one more kind of chip: the sub-recipe’s <b>measures</b> lead the row, then <i>batch</i>, then the yields’ families. The conversion line still lands in batches, and the ＋ opens the <i>target recipe’s</i> measures</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl"></span><span class="dots"></span></div>
+                <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle"><span class="ichip">↪ Romesco Aioli</span></div>
+                    <div class="mline">makes 1 cup <span class="per">· your recipe</span></div></div></div>
+                <p class="flabel" style="margin-top:14px">Quantity</p>
+                <div class="field"><div class="qty-big"><span class="qn">3</span><span class="care"></span><span class="qu">blob</span></div></div>
+                <div class="dock">
+                    <p class="conv-note" style="margin:0 0 9px"><b>3 blob</b> = 0.15 of a batch · a batch makes 20 blob</p>
+                    <p class="chip-note">the recipe’s own words first, then <code>batch</code>, then the yields’ families — the ingredient row’s order, one level up</p>
+                    <div class="uchips"><span class="uchip on">blob</span><span class="uchip">ladle</span><span class="uchip">batch</span><span class="uchip">cup</span><span class="uchip">tbsp</span><span class="uchip">tsp</span><span class="uchip">ml</span><span class="uchip">pt</span><span class="uchip">qt</span><span class="uchip addm">＋</span></div>
+                    <p class="conv-note" style="margin:0 0 10px">a measure chip carries the <b>bare word</b>. What one comes to is said once, on the line above the row — the ingredient dock’s rule, unchanged. No source dot: a recipe’s measures have one source, and it is you.</p>
+                </div>
+                <p class="flabel" style="margin-top:16px">The same sheet · a recipe that says no yield, but says its word</p>
+                <div class="field"><div class="qty-big"><span class="qn">2</span><span class="care"></span><span class="qu">blob</span></div></div>
+                <div class="dock" style="margin-top:0">
+                    <p class="conv-note" style="margin:0 0 9px"><b>2 blob</b> = 0.1 of a batch · a batch makes 20 blob</p>
+                    <div class="uchips"><span class="uchip on">blob</span><span class="uchip">batch</span><span class="uchip addm">＋</span></div>
+                    <p class="conv-note" style="margin:0">a measure counts what the <b>batch</b> makes, so it needs no yield at all — this is the whole point. The <b>Set the yield</b> door is gone from this state: the amount already resolves.</p>
+                </div>
+            </div></div>
+            <p class="conv-note" style="margin:10px 4px 0"><b>Wide:</b> unchanged — the sheet is already a dialog from 640, and the row is the same row in it.</p>
+        </div>
+
+        <div class="frame prop">
+            <p class="frame-name"><span class="proposed-tag">proposed</span><b>Two more states of the same dock</b> · a batch that makes <i>one</i> of something, and a line whose word has gone</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl"></span><span class="dots"></span></div>
+                <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle"><span class="ichip">↪ Sourdough Loaf</span></div>
+                    <div class="mline">makes 900 g <span class="per">· your recipe</span></div></div></div>
+                <p class="flabel" style="margin-top:14px">Quantity</p>
+                <div class="field"><div class="qty-big"><span class="qn">1</span><span class="care"></span><span class="qu">loaf</span></div></div>
+                <div class="dock">
+                    <p class="conv-note" style="margin:0 0 9px"><b>1 loaf</b> = 1 batch · a batch makes 1 loaf</p>
+                    <p class="chip-note">a batch that makes exactly one of something — the word leads and the sheet opens on it; <code>batch</code> stays, after it</p>
+                    <div class="uchips"><span class="uchip on">loaf</span><span class="uchip">batch</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip addm">＋</span></div>
+                    <p class="conv-note" style="margin:0 0 10px">the two chips say the same batch. Which one leads is <b>read</b>, not stored — the same shape <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> gives an ingredient, with <i>one batch</i> where the piece weight was.</p>
+                </div>
+                <div class="abar" style="border-top:1px solid var(--line);padding-top:12px"><span class="back">✕</span><span class="ttl"></span><span class="dots"></span></div>
+                <div class="dock" style="margin-top:0">
+                    <p class="chip-note">the word this line says is gone — retired on the other recipe, or not synced here yet</p>
+                    <div class="field" style="margin-bottom:8px"><div class="qty-big"><span class="qn">3</span><span class="care"></span><span class="qu" style="color:var(--muted)">—</span></div></div>
+                    <p class="conv-note" style="margin:0 0 9px"><b>3</b> — its measure is gone</p>
+                    <div class="uchips"><span class="uchip">batch</span><span class="uchip">cup</span><span class="uchip">tbsp</span><span class="uchip addm">＋</span></div>
+                    <p class="conv-note" style="margin:0">the number is kept and the line is <b>unresolved</b> — it joins no total, and every surface names it. It is <i>not</i> re-read as a count: 3 of a thing nobody can measure is not 3 pieces of the yield, and a wrong batch count is worse here than a missing one.</p>
+                </div>
+            </div></div>
+            <p class="conv-note" style="margin:10px 4px 0"><b>Wide:</b> unchanged — as above.</p>
+        </div>
+
+        <div class="frame prop">
+            <p class="frame-name"><span class="proposed-tag">proposed</span><b>Manage measures · a recipe</b> · behind the ＋ on a component’s dock, and the same list the recipe editor holds — <b>one sentence, one number</b>: a batch makes N of these</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">‹</span><span class="ttl">Measures · Romesco Aioli</span><span class="dots"></span></div>
+                <div class="field" style="margin-bottom:4px">
+                    <div class="msr-row"><span class="grip">&#8942;&#8942;</span><span class="mlab">blob</span><span class="mg">20 / batch</span></div>
+                    <div class="msr-row"><span class="grip">&#8942;&#8942;</span><span class="mlab">ladle</span><span class="mg">6 / batch</span></div>
+                </div>
+                <div class="field" style="margin-top:12px">
+                    <div class="addm-card" style="margin-bottom:0">
+                        <div class="addm-h">＋ add measure</div>
+                        <div class="addm-fields"><span class="addm-in" style="color:var(--muted)">label — “drizzle”</span><span class="addm-in g">40</span><span class="uchip on">/ batch</span><span class="addm-save">Save</span></div>
+                        <div class="addm-note">a batch makes 40 of these</div>
+                    </div>
+                </div>
+                <p class="conv-note" style="margin-top:14px"><b>One phrasing, not two.</b> Nobody measures a blob with a spoon; what a cook knows is <i>roughly how many this makes</i>. So the amount takes no unit chip — the trailing <span style="font-family:'IBM Plex Mono',monospace">/ batch</span> is a fixed word, not a control — and the row is <b>32 pt</b> end to end like every other amount-and-unit run on the board. The same trade <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a>’s density row made when it deleted its second phrasing.</p>
+                <p class="conv-note" style="margin-top:8px"><b>The row keeps its id</b>, so re-stating <i>blob</i> as 24 follows through to every line already saying it — the whole reason this is not a delete and a re-add. The first measure fronts the chip row; the list <b>drags</b> by the grip.</p>
+                <p class="conv-note" style="margin-top:8px"><b>the bin is refused while anything still says it</b> — <span style="font-family:'IBM Plex Mono',monospace">Can’t delete “blob” yet · 3 lines still say it, in 2 recipes.</span> The door, <b>Show me where</b>, lists them. The ingredient list’s gate, word for word.</p>
+                <p class="conv-note" style="margin-top:8px">no source dots and no legend: an ingredient’s measures arrive from USDA, a borrow or an estimate, and a recipe’s only ever come from the household that wrote the recipe.</p>
+                <p class="rc-note">This host has no Save, so a measure written here is live on the next chip row (<a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a>) — the ingredient manage state’s rule. The recipe editor’s copy of this list defers to the editor’s Save.</p>
+            </div></div>
+            <p class="conv-note" style="margin:10px 4px 0"><b>Wide:</b> unchanged — the manage state is a body swap inside the same dialog.</p>
         </div>
 
         <div class="frame" id="pv2-b2">
