@@ -386,18 +386,32 @@ void main() {
       ),
     );
 
-    final labels = repo
+    // The UPDATE must land AFTER the watch has read the table once, or the
+    // rename is already there when the stream opens, `distinct` sees one
+    // label and the test waits out its own timeout. Waiting on the first
+    // emission says that; a fixed delay only guesses at how long a loaded
+    // machine takes to get there.
+    final labels = <String?>[];
+    final first = Completer<void>();
+    final both = Completer<void>();
+    final sub = repo
         .watchRecipe('r1')
         .map((r) => r?.groups.first.items.first.measure?.label)
         .distinct()
-        .take(2)
-        .toList();
-    await Future<void>.delayed(const Duration(milliseconds: 50));
+        .listen((label) {
+          labels.add(label);
+          if (labels.length == 1) first.complete();
+          if (labels.length == 2 && !both.isCompleted) both.complete();
+        });
+    addTearDown(sub.cancel);
+
+    await first.future;
     await db.execute('UPDATE ingredient_measure SET label = ? WHERE id = ?', [
       'onion, large',
       'm-onion',
     ]);
-    expect(await labels, ['onion, medium', 'onion, large']);
+    await both.future;
+    expect(labels, ['onion, medium', 'onion, large']);
   });
 
   test('watchRecipes lists saved recipes (summaries)', () async {
@@ -532,14 +546,26 @@ void main() {
 
   test('the list re-fires when vocab macros change under it', () async {
     await repo.saveRecipe(_sampleRecipe());
-    final emissions = repo.watchRecipes().take(2).toList();
-    await Future<void>.delayed(const Duration(milliseconds: 50));
+    // Same rule as the rename above: edit only once the watch has fired once,
+    // so the second fire is the thing being tested rather than a race with
+    // the first.
+    var emissions = 0;
+    final first = Completer<void>();
+    final both = Completer<void>();
+    final sub = repo.watchRecipes().listen((_) {
+      emissions++;
+      if (emissions == 1) first.complete();
+      if (emissions == 2 && !both.isCompleted) both.complete();
+    });
+    addTearDown(sub.cancel);
+
+    await first.future;
     await db.execute('UPDATE ingredient SET macros = ? WHERE id = ?', [
       '{"kcal":130,"protein":2.7,"carb":28,"fat":0.3}',
       'ing-rice',
     ]);
-    final results = await emissions;
-    expect(results, hasLength(2)); // the vocab edit re-fired the summaries
+    await both.future;
+    expect(emissions, 2); // the vocab edit re-fired the summaries
   });
 
   test(
