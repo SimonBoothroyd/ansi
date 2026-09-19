@@ -299,9 +299,9 @@ Future<void> _insertRow(
 /// The one UPDATE of a measure row — the re-statement, at both doors.
 ///
 /// The **id is untouched**, which is the whole point of a re-statement: every
-/// line already saying the word follows it. Clearing `deleted_at` revives a word
-/// whose id is being reused, the rule the groups and the lines follow one table
-/// over; on a live row it changes nothing.
+/// line already saying the word follows it. Clearing `deleted_at` revives a
+/// word whose id is being reused, the rule the groups and the lines follow one
+/// table over; on a live row it changes nothing.
 Future<void> _updateRow(
   SqliteWriteContext tx,
   RecipeMeasure measure, {

@@ -503,22 +503,20 @@ class SqliteRecipeRepository implements RecipeRepository {
   Future<List<RecipeUse>> usedIn(String recipeId) async {
     // The count this returns is the count D5's delete refusal speaks — one
     // query, two uses (the refusal and the "Used in · N" tab).
+    // This recipe's own live words — every line below points at THIS recipe,
+    // so one lookup answers all of them, and it is the same merged list every
+    // other loader resolves against rather than a second reading of the table.
+    final measures =
+        (await loadRecipeMeasures(_db))[recipeId] ?? const <RecipeMeasure>[];
     final rows = await _db.getAll(
       'SELECT li.id, li.quantity, li.unit, li.recipe_measure_id, '
       'g.recipe_id, r.title, '
       'target.yield_qty, target.yield_unit, target.yield_qty_2, '
-      'target.yield_unit_2, '
-      // The word the line says, guarded on liveness and selected (never
-      // merely joined) — a retired word leaves these null, which is exactly
-      // the ComponentMeasureMissing the row must print instead of a number.
-      'rm.label AS measure_label, rm.per_batch AS measure_per_batch, '
-      'rm.sort_order AS measure_sort '
+      'target.yield_unit_2 '
       'FROM recipe_line_item li '
       'JOIN ingredient_group g ON g.id = li.group_id AND g.deleted_at IS NULL '
       'JOIN recipe r ON r.id = g.recipe_id AND r.deleted_at IS NULL '
       'JOIN recipe target ON target.id = li.sub_recipe_id '
-      'LEFT JOIN recipe_measure rm '
-      'ON rm.id = li.recipe_measure_id AND rm.deleted_at IS NULL '
       'WHERE li.sub_recipe_id = ? AND li.deleted_at IS NULL '
       'ORDER BY r.title, li.sort_order',
       [recipeId],
@@ -535,7 +533,13 @@ class SqliteRecipeRepository implements RecipeRepository {
           // `batch` would print `3 batch` and derive three whole batches from
           // a line that asked for three blobs.
           unit: unitById(r['unit'] as String? ?? ''),
-          measureLabel: r['measure_label'] as String?,
+          // The word while this recipe still has it; null the moment it is
+          // retired, which is exactly when the row must print the refusal
+          // instead of a number.
+          measureLabel: switch (r['recipe_measure_id'] as String?) {
+            final id? => recipeMeasureById(id, measures)?.label,
+            _ => null,
+          },
           amount: resolveComponentAmount(
             quantity: (r['quantity'] as num?)?.toDouble(),
             unit: unitById(r['unit'] as String? ?? ''),
@@ -546,34 +550,9 @@ class SqliteRecipeRepository implements RecipeRepository {
               unitById(r['yield_unit_2'] as String? ?? ''),
             ),
             recipeMeasureId: r['recipe_measure_id'] as String?,
-            // The one word this line could be said in, rather than the
-            // target's whole list: a row's join answers the only lookup
-            // [resolveComponentAmount] will make, and a retired word makes
-            // the list empty, which is the refusal.
-            measures: _measureOfRow(r, recipeId),
+            measures: measures,
           ),
         ),
-    ];
-  }
-
-  /// The single live measure joined onto a `usedIn` row as `measure_*`, as the
-  /// one-element list [resolveComponentAmount] looks the line's pointer up in.
-  /// Empty when the word has been retired or has not synced here.
-  List<RecipeMeasure> _measureOfRow(Row r, String recipeId) {
-    final id = r['recipe_measure_id'] as String?;
-    final label = r['measure_label'] as String?;
-    final perBatch = (r['measure_per_batch'] as num?)?.toDouble();
-    if (id == null || label == null || perBatch == null) {
-      return const <RecipeMeasure>[];
-    }
-    return [
-      RecipeMeasure(
-        id: id,
-        recipeId: recipeId,
-        label: label,
-        perBatch: perBatch,
-        sortOrder: (r['measure_sort'] as int?) ?? 0,
-      ),
     ];
   }
 
