@@ -1065,7 +1065,8 @@ books, their user-named sections, and the recipes filed under each.
   the book `⋯`'s item, which it always was.
 - **The vocabulary is a shelf, not a menu item.** An Ingredients card closes
   the library with the book anatomy exactly — a name, a count line
-  (`315 ingredients · 18 stubs` on a household fresh off the seed), one
+  (`323 ingredients` on a household fresh off the seed, which carries no
+  stubs; a `· N stubs` half joins the line the moment one exists), one
   control — and a `›` rather than a fold,
   because 300 rows do not belong inside a card. It is not reference data filed
   under a menu: `shopping_list_entry` has carried `ingredient_id` beside
