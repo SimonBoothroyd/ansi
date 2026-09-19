@@ -375,12 +375,6 @@ class _Centered extends StatelessWidget {
 /// exported so a test names it rather than counting buttons.
 const kReadFillItInKey = ValueKey('read-fill-it-in');
 
-/// The Price group's door onto the price sheet, named for the same reason.
-const kReadAddPriceKey = ValueKey('read-add-a-price');
-
-/// The Latest line, which is a tap onto the sheet that entered it.
-const kReadLatestPriceKey = ValueKey('read-latest-price');
-
 /// The page as it OPENS on a row that exists: the same groups in the same
 /// order, each field's value stated instead of offered.
 ///
@@ -594,6 +588,13 @@ class _ReadPosture extends ConsumerWidget {
   }
 }
 
+/// The Price group's door onto the price sheet, exported so a test names it
+/// rather than counting buttons.
+const kAddPriceKey = ValueKey('add-a-price');
+
+/// The Latest line, which is a tap onto the sheet that entered it.
+const kLatestPriceKey = ValueKey('latest-price');
+
 /// **Price** — what this row cost, last time and before that.
 ///
 /// The latest is one line because it is the one a recipe reads; everything
@@ -611,19 +612,66 @@ class _ReadPosture extends ConsumerWidget {
 /// tap opens the same sheet on that line — the way to fix a sum typed wrong, or
 /// to take it back. A price that could only ever be added would make the first
 /// typo permanent, and the ledger's whole claim is that it says what happened.
+///
+/// **Both postures draw this one widget.** Changing what a thing costs is
+/// editing it, so the person who opens the editor looking for the price finds
+/// the same lines and the same door there — and a second copy of them would be
+/// a second account of one ledger, which is the drift the stated facts already
+/// exist to prevent.
 class _PriceGroup extends ConsumerWidget {
-  const _PriceGroup({required this.ingredient});
+  const _PriceGroup({
+    required this.ingredient,
+    this.editing = false,
+    this.creating = false,
+  });
 
+  /// The row as it is STORED. The sheet writes at once, and it derives the
+  /// per-100 figure it writes from this row's basis and density — so a density
+  /// the form is only holding must not reach it, or backing out of the form
+  /// would leave a price derived through a number that never existed.
   final Ingredient ingredient;
+
+  /// Drawn on the editing posture, where a dock holds every other field until
+  /// Save. A price does not wait for it — the sheet writes its own receipt —
+  /// so the group says so, rather than letting the dock's promise cover a
+  /// section it does not own.
+  final bool editing;
+
+  /// The form with no row behind it yet. A price is an event ON a row, so
+  /// there is nothing to hang one on and no door to offer; the group names
+  /// that instead of leaving a hole where a person went looking.
+  final bool creating;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (creating) {
+      return const _Group(
+        title: 'Price',
+        suffix: '— after the first save',
+        children: [
+          _Fact(
+            'A price is an event on a row, and this one does not exist yet.',
+            muted: true,
+          ),
+        ],
+      );
+    }
+
     final async = ref.watch(ingredientPricesProvider(ingredient.id));
     final prices = async.asData?.value ?? const <PriceObservation>[];
+    // What this section does NOT promise, said where the promise would
+    // otherwise be assumed. A slot, so the reading posture keeps the group's
+    // rhythm without it.
+    final aside = editing
+        ? const _Fact(
+            'a price is written as you enter it; Save below is for the fields',
+            muted: true,
+          )
+        : const SizedBox.shrink();
     final door = Padding(
       padding: const EdgeInsets.only(top: 14),
       child: DashedAction(
-        key: kReadAddPriceKey,
+        key: kAddPriceKey,
         icon: FLucideIcons.plus,
         label: 'add a price',
         onTap: () => unawaited(showPriceSheet(context, ingredient: ingredient)),
@@ -653,7 +701,11 @@ class _PriceGroup extends ConsumerWidget {
     }
 
     if (prices.isEmpty) {
-      return _Group(title: 'Price', suffix: '— none yet', children: [door]);
+      return _Group(
+        title: 'Price',
+        suffix: '— none yet',
+        children: [aside, door],
+      );
     }
 
     void fix(PriceObservation price) => unawaited(
@@ -664,9 +716,10 @@ class _PriceGroup extends ConsumerWidget {
     return _Group(
       title: 'Price',
       children: [
+        aside,
         const _Label('LATEST', hint: 'what a recipe reads'),
         AnsiTap(
-          key: kReadLatestPriceKey,
+          key: kLatestPriceKey,
           onTap: () => fix(prices.first),
           // A row of words, not a glyph: it needs no square target grown
           // under it, and growing one would move the group's rhythm.
@@ -1531,6 +1584,16 @@ class _DetailForm extends ConsumerWidget {
                 ),
             ],
           ),
+
+          // The same group the fact sheet reads, in the same place in the
+          // order — because "what does this cost" is a thing a person comes to
+          // the editor to change, and a door that exists only on the page they
+          // did not open is a door they will not find.
+          //
+          // It is handed the STORED row rather than the draft: the sheet
+          // writes at once, and a per-100 figure derived through a density the
+          // form is only holding would outlive a form that was backed out of.
+          _PriceGroup(ingredient: ing, editing: true, creating: creating),
         ],
       ),
     );

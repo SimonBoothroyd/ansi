@@ -929,9 +929,9 @@ a `complete` row can be un-confirmed).
 
 **The ingredient page reads before it edits (design board "Ingredient detail",
 shipped):** `/ingredients/:id` is **one route in two postures**. A row that
-exists opens as a **fact sheet** — the same three groups (Identity, Nutrition,
-Units & measures) with each field's value *stated* rather than offered, the
-status strip, and nothing to commit — and `⋯ ▸ Edit` turns the same page into
+exists opens as a **fact sheet** — the same four groups (Identity, Nutrition,
+Units & measures, Price) with each field's value *stated* rather than offered,
+the status strip, and nothing to commit — and `⋯ ▸ Edit` turns the same page into
 the flesh-out form, which Save, Mark complete and back all put back down onto
 the fact sheet. Every stated line is a stored fact restated in the words the
 field itself uses (the picker row's macro line, the density and piece-weight
@@ -939,6 +939,19 @@ entries' own sentences, the admission chips' labels): the two postures share
 one set of sentences so they cannot tell two stories about one row, and the
 reading posture adds no fact the form does not already hold. Honest numbers
 hold here too — a row with no panel reads **needs macros**, never four zeros.
+
+**Price is one group with two hosts.** Both postures draw the same widget, last
+and in the same place: what the row cost latest, what was paid before it, and
+one `add a price` door — every line a tap onto the sheet that entered it.
+Changing what a thing costs is *editing* it, so the section is on the form as
+well as the fact sheet rather than only on the page somebody may not have
+opened. It is the **one section the form's dock does not hold**: the price
+sheet writes its own one-line receipt the moment Done is tapped, so the form
+carries a line saying exactly that. A price is not held for Save, and backing
+out of the form does not take it back — what it wrote is a receipt, and a
+receipt is not a draft. On `/ingredients/new` there is no row to hang an event
+on, so the group states that and offers no door; a price is never a condition
+of the first Save.
 
 An incomplete row keeps **one** call to action on the fact sheet, `Fill it in`,
 which opens the form. `/ingredients/new` is always the form (there is nothing
