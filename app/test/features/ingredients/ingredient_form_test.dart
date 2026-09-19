@@ -35,6 +35,32 @@ import '_form_harness.dart';
 /// locked while it carries no density, which is the only lock left.
 const _volumeLabels = {'tsp', 'tbsp', 'fl oz', 'cup', 'ml', 'l', 'pt', 'qt'};
 
+/// The measures editor's own button. It reads `Add` on this host — the form's
+/// docked Save is what lands it — and the density sentence above has one too,
+/// so it is scoped to the editor rather than found by its word.
+Future<void> addMeasure(WidgetTester tester) async {
+  await tester.tap(
+    find.descendant(
+      of: find.byType(MeasuresEditor),
+      matching: find.widgetWithText(FButton, 'Add'),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// Whether the keyboard is in the add form's first slot — asked of the
+/// [EditableText] rather than of a node the test supplies, so it is true of
+/// whatever the widget actually focused.
+bool addMeasureLabelHasFocus(WidgetTester tester) => tester
+    .widget<EditableText>(
+      find.descendant(
+        of: find.byKey(const ValueKey('add-measure-label')),
+        matching: find.byType(EditableText),
+      ),
+    )
+    .focusNode
+    .hasFocus;
+
 void main() {
   group('the flesh-out form', () {
     testWidgets('a stub without macros: the CTA is refused with its reason, '
@@ -687,6 +713,124 @@ void main() {
       final asked = repo.savedForms.single.measuresAdded.single;
       expect(asked.label, 'half cheek');
       expect(asked.amount, closeTo(4 * 28.349523125, 1e-9));
+    });
+
+    testWidgets('a measure that lands empties the add form for the next one — '
+        'both slots, the unit, and the keyboard', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [mango]),
+          at: editRoute('mango'),
+          measures: FakeMeasureRepo(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Weighed in something other than the basis, so the reset has a unit to
+      // put back as well as two slots to empty.
+      await pickUnit(tester, measureUnitChip, 'oz');
+      await tester.enterText(measureLabelField, 'half cheek');
+      await tester.enterText(measureAmountField, '4');
+      await tester.pump();
+      await addMeasure(tester);
+
+      expect(
+        find.descendant(
+          of: find.byType(MeasureRow),
+          matching: find.text('half cheek'),
+        ),
+        findsOneWidget,
+      );
+      expect(fieldText(tester, measureLabelField), isEmpty);
+      expect(fieldText(tester, measureAmountField), isEmpty);
+      // Back to the unit this form opens on — the row's own basis.
+      expect(
+        find.descendant(of: measureUnitChip, matching: find.text('g')),
+        findsOneWidget,
+      );
+      expect(
+        addMeasureLabelHasFocus(tester),
+        isTrue,
+        reason: 'the keyboard stays up for the next measure',
+      );
+
+      // And the next one goes straight in, with nothing reopened.
+      await tester.enterText(measureLabelField, 'whole cheek');
+      await tester.enterText(measureAmountField, '180');
+      await tester.pump();
+      await addMeasure(tester);
+
+      final repo = repoOf(tester);
+      await saveForm(tester);
+      final added = repo.savedForms.single.measuresAdded;
+      expect(added.map((m) => m.label), ['half cheek', 'whole cheek']);
+      expect(added.first.amount, closeTo(4 * 28.349523125, 1e-9));
+      // The second was weighed in the basis: the reset put the unit back, so
+      // the ounces the first one used are not still in force.
+      expect(added.last.amount, 180);
+    });
+
+    testWidgets('a REFUSED add keeps what was typed — correcting one word is '
+        'not retyping the line', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [mango]),
+          at: editRoute('mango'),
+          measures: FakeMeasureRepo(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // A volume-named label is the density in disguise (ADR-0008 §2) — the
+      // editor's own refusal, and the one this host can actually reach.
+      await tester.enterText(measureLabelField, 'cup');
+      await tester.enterText(measureAmountField, '150');
+      await tester.pump();
+      await addMeasure(tester);
+
+      expect(find.textContaining('is a unit'), findsOneWidget);
+      expect(find.byType(MeasureRow), findsNothing);
+      expect(fieldText(tester, measureLabelField), 'cup');
+      expect(fieldText(tester, measureAmountField), '150');
+
+      // Correcting the one word it refused is enough to land it.
+      await tester.enterText(measureLabelField, 'cupful');
+      await tester.pump();
+      await addMeasure(tester);
+      expect(
+        find.descendant(
+          of: find.byType(MeasureRow),
+          matching: find.text('cupful'),
+        ),
+        findsOneWidget,
+      );
+      expect(fieldText(tester, measureAmountField), isEmpty);
+    });
+
+    testWidgets('a measure with no amount is refused and the label survives — '
+        'nothing is emptied by a save that did not happen', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [mango]),
+          at: editRoute('mango'),
+          measures: FakeMeasureRepo(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(measureLabelField, 'half cheek');
+      await tester.pump();
+      await addMeasure(tester);
+
+      expect(find.textContaining('must be a positive number'), findsOneWidget);
+      expect(fieldText(tester, measureLabelField), 'half cheek');
+      expect(find.byType(MeasureRow), findsNothing);
     });
 
     testWidgets('a measure a recipe still uses is NOT deleted — the refusal '

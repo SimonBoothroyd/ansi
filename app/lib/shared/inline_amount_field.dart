@@ -27,23 +27,34 @@ const double kInlineControlHeight = 32;
 
 class InlineAmountField extends StatelessWidget {
   const InlineAmountField({
-    required this.onChange,
     required this.onSubmit,
+    this.onChange,
+    this.controller,
     this.initial,
     this.width = 46,
     this.fieldKey,
     this.fractions = false,
     super.key,
-  });
+  }) : assert(
+         controller == null || initial == null,
+         'the controller already carries the text this would seed',
+       );
 
   /// The slot's TEXT, exactly as typed — the parse belongs to the caller.
   ///
   /// A draft that holds numbers as text can tell "blank" from "0" and opens a
   /// stored `60` as `60` rather than as `60.0`; a slot that handed back a
   /// `double` would have thrown both of those away before its host ever saw
-  /// them.
-  final ValueChanged<String> onChange;
+  /// them. Null where the host holds a [controller] and reads it when it
+  /// needs to.
+  final ValueChanged<String>? onChange;
   final VoidCallback onSubmit;
+
+  /// The slot's controller, where the host needs a HANDLE on the text rather
+  /// than a copy of it — a form that has to **empty** its own slot after an
+  /// entry lands, above all. Seeding is then the host's business, and the
+  /// field is never rebuilt to change what it says.
+  final TextEditingController? controller;
 
   /// Seeds the controller once, when this widget is built. Give the widget a
   /// key that moves with the text to re-seed it.
@@ -82,8 +93,9 @@ class InlineAmountField extends StatelessWidget {
           ? TextInputType.text
           : const TextInputType.numberWithOptions(decimal: true),
       control: FTextFieldControl.managed(
+        controller: controller,
         initial: initial == null ? null : TextEditingValue(text: initial!),
-        onChange: (v) => onChange(v.text),
+        onChange: onChange == null ? null : (v) => onChange!(v.text),
       ),
     ),
   );

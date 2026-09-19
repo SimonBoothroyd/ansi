@@ -74,6 +74,10 @@ class _FakeMeasureRepo implements MeasureRepository {
   /// any of them.
   final Map<String, MeasureUsage> usage = {};
 
+  /// Set to make [addMeasure] refuse in the repository's documented way — an
+  /// `ArgumentError` the host turns into a `MeasureRefused`.
+  String? refusal;
+
   @override
   Stream<List<Measure>> watchMeasures(String ingredientId) async* {
     yield [..._measures];
@@ -93,6 +97,7 @@ class _FakeMeasureRepo implements MeasureRepository {
     required String label,
     required double amount,
   }) async {
+    if (refusal case final reason?) throw ArgumentError(reason);
     final m = Measure(id: 'm-added', label: label, amount: amount);
     _measures.add(m);
     _changes.add(null);
@@ -441,6 +446,46 @@ void main() {
       await tester.pumpAndSettle();
       expect(saved!.choice, isA<MeasureOption>());
       expect(saved!.unitPicked, isTrue);
+    });
+
+    testWidgets('a measure the REPOSITORY refuses leaves the words where they '
+        'were typed — the reason is under the field, not instead of it', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      final repo = _FakeMeasureRepo(const [])
+        ..refusal = 'that name is already one of this row’s measures';
+      await tester.pumpWidget(_host(repo: repo, onDone: (_) {}));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(FLucideIcons.plus));
+      await tester.pumpAndSettle();
+
+      final label = find.descendant(
+        of: find.byKey(const ValueKey('add-measure-label')),
+        matching: find.byType(TextField),
+      );
+      final amount = find.descendant(
+        of: find.byKey(const ValueKey('add-measure-amount')),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(label, 'potato, medium');
+      await tester.enterText(amount, '213');
+      await tester.pump();
+      await tester.tap(find.text('Save').first);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('that name is already one of this row’s measures'),
+        findsOneWidget,
+      );
+      // Still in the manage state, with the line intact: a refusal that
+      // emptied the form would make the person retype what it refused.
+      expect(find.text('ADD MEASURE'), findsOneWidget);
+      expect(
+        tester.widget<TextField>(label).controller!.text,
+        'potato, medium',
+      );
+      expect(tester.widget<TextField>(amount).controller!.text, '213');
     });
   });
 
