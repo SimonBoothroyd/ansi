@@ -355,8 +355,8 @@ ReceiptLineDraft landPack(
 /// [sameName]'s pack where it really is the pack THESE words bought THIS row,
 /// else null and the row's latest price answers instead.
 ///
-/// Two refusals, both of them a name that does not stand for what the caller
-/// thinks:
+/// Three refusals, each of them a name that does not stand for what the caller
+/// takes it to stand for:
 ///
 /// * **A line with no printed words** — read by a server older than the column
 ///   — is filed under nothing, so there is nothing of its own to recall.

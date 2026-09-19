@@ -76,9 +76,9 @@ Phase two — receipts and spend:
       **Not food** moves a line under the fold. Save writes one `receipt`
       and its lines; every matched item line with a pack is a price.
 - [x] **No alias is learned from a receipt.** The vocabulary is never taught a
-      store's abbreviation; what carries over is the household's own answers —
-      the pack, on the row, and the match, recalled per printed name off this
-      household's own saved receipt lines. Held structurally, not by prose:
+      store's abbreviation; what carries over is the household's own answers,
+      both filed under the printed name — the pack these words were last bought
+      in, and the match, recalled off this household's own saved receipt lines. Held structurally, not by prose:
       `import-receipt/no_alias.test.ts` runs the spine over the real
       Postgres-backed matcher AND the real recall with a spying executor, and
       asserts every statement the function issues is a `SELECT`.
@@ -454,6 +454,20 @@ and can run beside phase one.
     `measureWordWithSize`): the receipt card's pack, the price ledger's lines
     and the picker's chosen chip. Three copies of one judgement would answer
     differently the first time the rule moved.
+- 2026-09-19 — **The pack carries over by the printed name, not by the row**
+  (owner: `sgtm!`). R2's rule read the pack off the row's latest price at *any*
+  store, and products come in different sizes across shops — a 16 oz bag of
+  quinoa at one, a 12 oz at another — so a household alternating two shops met
+  the wrong pre-fill every other week. The ledger already keeps `name_printed`,
+  which is one store's words for one product and is exactly the key the server's
+  match memory recalls under, so the pack is now filed under it too: the paper's
+  printed weight, then the pack **these words** were last bought in matched to
+  **this** row, then the row's latest price as before. One batched read per
+  receipt (`packsByPrintedName`), latest by the receipt's date and then by the
+  line's own edit; the stored basis figure is carried, never re-derived. Words
+  last bought as another row carry nothing — the household re-pointed them — a
+  line with no printed words skips its own step, and the saved-receipt edit path
+  still lands no pack at all.
 - 2026-09-17 — **The desk's three columns are not built** (R2). The phone
   review works at the 640 measure on a wide window, and the width would buy one
   thing: the printed line standing beside the card that claims to read it. It

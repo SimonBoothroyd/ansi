@@ -34,9 +34,21 @@ alias** — there is no call to the learning path anywhere in this folder, and
 can see. What a second receipt inherits is two things, neither of them a
 vocabulary word:
 
-- **the pack**, on the ingredient row: a matched line with no printed weight
-  opens on the pack that row was last bought in, and a line sold by weight
-  prices itself from the weight the paper printed;
+- **the pack**, filed under the printed name: a line sold by weight prices
+  itself from the weight the paper printed, and one with no printed weight opens
+  on the pack **its own printed words** were last bought in, matched to this
+  same row. One store's words name one product, so `ORG TRICOLOR QUINOA` is
+  that shop's 16 oz bag however big the other shop's is — a household
+  alternating two shops met the wrong size every other week while the pack came
+  off the row alone. Words nobody has bought under before still fall back to the
+  pack the row was last bought in anywhere, and words last bought as a
+  *different* row carry nothing: the household has re-pointed them since. One
+  batched read for the whole receipt (`packsByPrintedName`), latest by the
+  receipt's date and then by the line's own edit, so correcting a kept receipt
+  corrects what the next one opens on. The carried basis figure is the stored
+  one and is **never re-derived** — a measure re-weighed since must not
+  re-price a shop that already happened — and the saved-receipt edit path lands
+  no pack at all, because a stored line's pack is what was said at the time;
 - **the match**, recalled by the server per printed name off this household's
   own saved receipt lines (`_shared/receipt_memory.ts`). The cascade matched 0
   of 29 lines on the first real strip — a whole-string trigram cannot score
@@ -114,8 +126,8 @@ the word rather than at the unit it was typed in. Everywhere else on this
 screen, a word the person did not ask for is not created.
 
 **What minting buys is a WORD, and the door says so.** The pack carries over
-from the row's latest price whether or not a word was minted (`landPack`), so a
-plain `482 g` lands on the next receipt exactly as `bottle (17 oz)` would. What
+whether or not a word was minted (`landPack`), so a plain `482 g` lands on the
+next receipt exactly as `bottle (17 oz)` would. What
 a word buys is one the household can also say on a recipe line, and one the
 Shop can say *buy 3* of — and it costs something, because a word turns up on
 every recipe-line chip row for that ingredient and becomes the Shop's rounding

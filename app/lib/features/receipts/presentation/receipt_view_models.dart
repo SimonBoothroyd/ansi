@@ -605,9 +605,9 @@ class ReceiptScanController extends _$ReceiptScanController {
     }
   }
 
-  /// The pack every arriving line can state without asking, with the rows,
-  /// measures and latest prices read ONCE for the whole receipt rather than
-  /// per line.
+  /// The pack every arriving line can state without asking, with the rows, the
+  /// measures, the packs filed under the printed names and the rows' latest
+  /// prices each read ONCE for the whole receipt rather than per line.
   Future<_LandedPacks> _landPacks(
     List<ReceiptLineDraft> drafts, {
     required IngredientRepository vocabRepo,
