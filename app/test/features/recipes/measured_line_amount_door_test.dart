@@ -73,7 +73,9 @@ const _sliders = Recipe(
   id: '1',
   title: 'Sausage Sliders',
   servingsBase: 4,
-  groups: [IngredientGroup(id: 'g1', items: [_measuredLine])],
+  groups: [
+    IngredientGroup(id: 'g1', items: [_measuredLine]),
+  ],
 );
 
 /// The sheet's own quantity field — scoped to the sheet, because every host
@@ -217,8 +219,7 @@ void main() {
 }
 
 class _Planner extends FakePlanningRepository {
-  _Planner(this.monday)
-    : super(const [Member(id: 'm1', displayName: 'Ada')]);
+  _Planner(this.monday) : super(const [Member(id: 'm1', displayName: 'Ada')]);
 
   final DateTime monday;
 

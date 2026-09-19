@@ -520,16 +520,13 @@ void main() {
         await planSliders();
       }
 
-      test(
-        'derives its session through the target’s own yield',
-        () async {
-          await seedMeasured();
-          final plan = await repo.watchCookPlan(_week).first;
-          final derived = plan.recipes.firstWhere((r) => r.recipeId == 'aioli');
-          expect(derived.sessions.single.batchesToCook, closeTo(3 / 20, 1e-12));
-          expect(plan.gaps, isEmpty);
-        },
-      );
+      test('derives its session through the target’s own yield', () async {
+        await seedMeasured();
+        final plan = await repo.watchCookPlan(_week).first;
+        final derived = plan.recipes.firstWhere((r) => r.recipeId == 'aioli');
+        expect(derived.sessions.single.batchesToCook, closeTo(3 / 20, 1e-12));
+        expect(plan.gaps, isEmpty);
+      });
 
       test('the demand carries the word the line was written in', () async {
         await seedMeasured();

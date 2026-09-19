@@ -214,9 +214,7 @@ void main() {
     });
 
     test('the recipe page carries the recipe’s own words', () async {
-      await seedAioli(
-        words: [blob(), word('ladle', amount: 50, sortOrder: 1)],
-      );
+      await seedAioli(words: [blob(), word('ladle', amount: 50, sortOrder: 1)]);
       final loaded = (await repo.watchRecipe('aioli').first)!;
       expect(loaded.measures.map((m) => m.label), ['blob', 'ladle']);
       expect(loaded.asSubRecipeTarget.measures, hasLength(2));
@@ -513,53 +511,57 @@ void main() {
       expect(await measures.watchRecipeMeasures('aioli').first, [blob()]);
     });
 
-    test('the ＋ door reads the MAKES off the recipe row, not off the form',
-        () async {
-      // The gate ADR-0018 rule 2 pays for out loud, and the reason the yields
-      // are not a parameter: what a batch makes is a fact about the stored
-      // recipe, so a form cannot assert its way past it.
-      await seedAioli();
-      await repo.saveRecipe(
-        (await repo.watchRecipe('aioli').first)!.copyWith(yieldQty: null),
-      );
-      await expectLater(
-        measures.addRecipeMeasure(
-          recipeId: 'aioli',
-          label: 'ladle',
-          amount: 50,
-          unit: g,
-        ),
-        throwsA(
-          isA<RecipeMeasureRefused>().having(
-            (e) => e.code,
-            'code',
-            'recipe_measure/no_yield',
+    test(
+      'the ＋ door reads the MAKES off the recipe row, not off the form',
+      () async {
+        // The gate ADR-0018 rule 2 pays for out loud, and the reason the yields
+        // are not a parameter: what a batch makes is a fact about the stored
+        // recipe, so a form cannot assert its way past it.
+        await seedAioli();
+        await repo.saveRecipe(
+          (await repo.watchRecipe('aioli').first)!.copyWith(yieldQty: null),
+        );
+        await expectLater(
+          measures.addRecipeMeasure(
+            recipeId: 'aioli',
+            label: 'ladle',
+            amount: 50,
+            unit: g,
           ),
-        ),
-      );
-    });
+          throwsA(
+            isA<RecipeMeasureRefused>().having(
+              (e) => e.code,
+              'code',
+              'recipe_measure/no_yield',
+            ),
+          ),
+        );
+      },
+    );
 
-    test('a word the recipe’s MAKES cannot hold is refused at the door',
-        () async {
-      // The aioli makes 300 g and nothing else, and a recipe has no density.
-      await seedAioli();
-      await expectLater(
-        measures.addRecipeMeasure(
-          recipeId: 'aioli',
-          label: 'ladle',
-          amount: 180,
-          unit: ml,
-        ),
-        throwsA(
-          isA<RecipeMeasureRefused>().having(
-            (e) => e.code,
-            'code',
-            'recipe_measure/unit_family',
+    test(
+      'a word the recipe’s MAKES cannot hold is refused at the door',
+      () async {
+        // The aioli makes 300 g and nothing else, and a recipe has no density.
+        await seedAioli();
+        await expectLater(
+          measures.addRecipeMeasure(
+            recipeId: 'aioli',
+            label: 'ladle',
+            amount: 180,
+            unit: ml,
           ),
-        ),
-      );
-      expect(await measures.watchRecipeMeasures('aioli').first, [blob()]);
-    });
+          throwsA(
+            isA<RecipeMeasureRefused>().having(
+              (e) => e.code,
+              'code',
+              'recipe_measure/unit_family',
+            ),
+          ),
+        );
+        expect(await measures.watchRecipeMeasures('aioli').first, [blob()]);
+      },
+    );
 
     test('re-stating keeps the id, so every line already saying the word '
         'follows the new number', () async {
