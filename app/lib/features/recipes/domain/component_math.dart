@@ -235,9 +235,10 @@ ComponentAmount resolveComponentAmount({
   if (quantity == null) return const ComponentAmountMissing();
 
   // A measure is a count per batch, so it is asked FIRST and answers alone.
-  // Asking it first is what keeps the missing-word case honest: the line's
-  // stored unit is a count, and letting it reach the yield path below would
-  // read `3 blob` as three pieces of whatever the batch makes.
+  // Asking it first is what keeps the missing-word case honest: a row that
+  // carries a unit beside the word — foreign data, or a caller rebuilding a
+  // line — must not have that unit read instead, or `3 blob` against a target
+  // that makes 8 piece becomes three eighths of a batch nobody asked for.
   if (recipeMeasureId != null) {
     final measure = recipeMeasureById(recipeMeasureId, measures);
     final batches = measure?.batchesFor(quantity);
