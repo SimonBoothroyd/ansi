@@ -24,11 +24,10 @@
 /// [componentUnitChips] is the units-only half under it.
 library;
 
+import '../../../core/units/measure.dart' show kWholeMeasureTolerance;
 import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/unit_choice.dart';
 import '../../../core/units/units.dart';
-import '../../ingredients/domain/allowed_units.dart'
-    show kWholeMeasureTolerance;
 import 'component_math.dart';
 import 'recipe.dart';
 

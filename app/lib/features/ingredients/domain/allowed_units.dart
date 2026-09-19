@@ -28,6 +28,7 @@ import 'serving_measure.dart';
 // this feature's — a component's dock offers the same row one level up. Every
 // surface that reads the offer reads it from here, so they move without a
 // churn of imports.
+export '../../../core/units/measure.dart' show kWholeMeasureTolerance;
 export '../../../core/units/unit_choice.dart';
 export '../../../core/units/unit_words.dart'
     show isVolumeUnitLabel, unitFromLabel, volumeUnitFromLabel;
@@ -244,10 +245,6 @@ Measure? pieceAsMeasure(Ingredient ingredient) {
     basis: ingredient.macrosBasis,
   );
 }
-
-/// How far a measure's amount may sit from the row's piece weight and still
-/// be read as the same fact: one part in a hundred, either side.
-const kWholeMeasureTolerance = 0.01;
 
 /// The row's **whole measure**: the live measure among [measures] whose amount
 /// is what the row says one piece weighs ([Ingredient.pieceBasisAmount], within

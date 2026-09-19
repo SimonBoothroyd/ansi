@@ -18,11 +18,10 @@
 library;
 
 import '../../../core/result/result.dart';
+import '../../../core/units/measure.dart' show measureLabelAsAuthored;
 import '../../../core/units/number_format.dart';
 import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/unit_words.dart';
-import '../../ingredients/domain/measure_authoring.dart'
-    show measureLabelAsAuthored;
 
 /// One row as a reader hands it in: the measure, and the raw `created_at` text
 /// the database stored. [mergeRecipeMeasures] needs the second to decide which

@@ -2,24 +2,13 @@
 ///
 /// A measure can be authored at two doors: the row's own measures editor, and
 /// *keep as a measure* on a receipt's pack. They are the same act, so the
-/// label is read the same way at both — otherwise ` Can ` and `Can` become two
-/// rows of one word, which the merge-on-read rule then hides one of rather
-/// than fixing.
+/// label is read the same way at both — by [measureLabelAsAuthored], which
+/// lives under the units because a recipe's own words are authored by it too.
 library;
 
 import '../../../core/units/measure.dart';
-import 'allowed_units.dart';
 
-/// [label] as the household wrote it: trimmed, with any run of inner
-/// whitespace read as one space.
-///
-/// **Case is theirs.** Nothing here lower-cases: the measures editor never has,
-/// and a silent case change is the kind of edit that makes a person doubt what
-/// else was changed. The seed's own style — all lower case, singular, a
-/// container word carrying its shelf size (`can (14.5 oz)`) — is a thing the
-/// doors *suggest*, not a thing this function imposes.
-String measureLabelAsAuthored(String label) =>
-    label.trim().replaceAll(RegExp(r'\s+'), ' ');
+export '../../../core/units/measure.dart' show measureLabelAsAuthored;
 
 /// The live measure of this row that already carries [label], ignoring case,
 /// or null.
