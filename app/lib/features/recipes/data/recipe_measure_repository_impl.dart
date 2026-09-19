@@ -87,9 +87,9 @@ Future<Map<String, List<RecipeMeasure>>> loadRecipeMeasures(
 /// **The authoring gate runs on what this Save STATES, against the `makes` this
 /// Save leaves behind.** The yields are read back off the recipe row inside the
 /// transaction — the row has already been written by then — so a `makes` edit
-/// and a word edit arriving in one Save are judged against each other rather
-/// than against what the recipe used to say. That is the data half of
-/// [recipeMeasuresOrphanedBy]: the editor warns about the words an edit
+/// and a word edit arriving in one Save are judged against each other, never
+/// against a yield the Save is in the middle of replacing. That is the data
+/// half of [recipeMeasuresOrphanedBy]: the editor warns about the words an edit
 /// orphans, and this is what makes the warning true.
 ///
 /// A word the list carries through **unchanged is never re-authored**, which is
