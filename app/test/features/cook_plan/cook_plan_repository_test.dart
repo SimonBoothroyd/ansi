@@ -53,15 +53,34 @@ Future<void> _setYield(
   [qty, unit.id, id],
 );
 
+/// Coins one of [recipeId]'s own words — *a batch makes [perBatch] [label]*.
+/// The ONE place this file states what a measure IS, so re-stating the
+/// denomination is an edit here rather than at every call site.
+Future<void> _addMeasure(
+  PowerSyncDatabase db,
+  String recipeId, {
+  String id = 'm-blob',
+  String label = 'blob',
+  double perBatch = 20,
+}) => db.execute(
+  'INSERT INTO recipe_measure (id, household_id, recipe_id, label, per_batch, '
+  'sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?)',
+  [id, 'h', recipeId, label, perBatch, '2026-01-01', '2026-01-01'],
+);
+
 /// Adds a component line ("¼ cup of [subRecipeId]") to [recipeId], creating
 /// its group. Written with plain INSERTs because PowerSync's local tables are
 /// VIEWS — no UPSERT anywhere.
+///
+/// [recipeMeasureId] makes it a MEASURED line — `3 blob` — and the `unit`
+/// column then goes null, which is the stored XOR 0048 pins.
 Future<void> _addComponentLine(
   PowerSyncDatabase db,
   String recipeId,
   String subRecipeId, {
   double? quantity = 0.25,
   Unit unit = cup,
+  String? recipeMeasureId,
   String suffix = '',
   bool optional = false,
 }) async {
@@ -74,15 +93,16 @@ Future<void> _addComponentLine(
   );
   await db.execute(
     'INSERT INTO recipe_line_item (id, household_id, group_id, sub_recipe_id, '
-    'quantity, unit, optional, sort_order, created_at, updated_at) '
-    'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'quantity, unit, recipe_measure_id, optional, sort_order, created_at, '
+    'updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       'li-$recipeId-$subRecipeId$suffix',
       'h',
       groupId,
       subRecipeId,
       quantity,
-      unit.id,
+      if (recipeMeasureId == null) unit.id else null,
+      recipeMeasureId,
       if (optional) 1 else 0,
       0,
       now,
@@ -460,6 +480,120 @@ void main() {
       await _addComponentLine(db, 'sliders', 'aioli');
       expect(await stream.moveNext(), isTrue);
       expect(stream.current.recipes, hasLength(2));
+    });
+
+    /// A line said in one of the target's own words — `3 blob`. No screen on
+    /// this build writes one; the plan must still derive every one it meets.
+    /// The loader used to drop such a line on `if (unit == null) continue`,
+    /// which took a whole sauce out of the plan and the shop in silence.
+    group('a MEASURED component line', () {
+      Future<void> seedMeasured({
+        double? quantity = 3,
+        String? measureId = 'm-blob',
+        Unit? yieldUnit,
+      }) async {
+        await _insertRecipe(db, 'sliders', 'Sausage Sliders', servings: 1);
+        await _insertRecipe(
+          db,
+          'aioli',
+          'Romesco Aioli',
+          servings: 4,
+          keepsForDays: 5,
+        );
+        // A word needs no yield at all — that is the whole point of one — so
+        // the aioli states none unless a test asks for it.
+        if (yieldUnit != null) await _setYield(db, 'aioli', 1, yieldUnit);
+        await _addMeasure(db, 'aioli');
+        await _addComponentLine(
+          db,
+          'sliders',
+          'aioli',
+          quantity: quantity,
+          recipeMeasureId: measureId,
+        );
+        await planSliders();
+      }
+
+      test(
+        'derives its session, without the target stating any yield',
+        () async {
+          await seedMeasured();
+          final plan = await repo.watchCookPlan(_week).first;
+          final derived = plan.recipes.firstWhere((r) => r.recipeId == 'aioli');
+          expect(derived.sessions.single.batchesToCook, closeTo(3 / 20, 1e-12));
+          expect(plan.gaps, isEmpty);
+        },
+      );
+
+      test('the demand carries the word the line was written in', () async {
+        await seedMeasured();
+        final plan = await repo.watchCookPlan(_week).first;
+        final demand = plan.recipes
+            .firstWhere((r) => r.recipeId == 'aioli')
+            .sessions
+            .single
+            .demands
+            .single;
+        expect(demand.measureLabel, 'blob');
+        expect(demand.quantity, 3);
+      });
+
+      test('a retired word is a NAMED gap, never a dropped line and never a '
+          'count of the yield', () async {
+        // The target makes 8 piece: the degradation this design refuses would
+        // read `3 blob` as three of those and hand the plan 0.375 batches.
+        await seedMeasured(yieldUnit: pieces);
+        await db.execute('UPDATE recipe SET yield_qty = 8 WHERE id = ?', [
+          'aioli',
+        ]);
+        await db.execute(
+          'UPDATE recipe_measure SET deleted_at = ? WHERE id = ?',
+          ['2026-09-19T00:00:00Z', 'm-blob'],
+        );
+
+        final plan = await repo.watchCookPlan(_week).first;
+        expect(plan.recipes.any((r) => r.recipeId == 'aioli'), isFalse);
+        final gap = plan.gaps.single;
+        expect(gap.reason, const ComponentMeasureMissing('m-blob'));
+        expect(gap.title, 'Romesco Aioli');
+        final source = gap.demandedBy.single;
+        expect(source.saysAMeasure, isTrue);
+        expect(source.quantity, 3, reason: 'the number is kept');
+        expect(source.measureLabel, isNull, reason: 'the word has gone');
+        expect(plan.unresolvedComponentsByParent, {'sliders': 1});
+      });
+
+      test(
+        're-stating the word re-fires the plan and moves the session',
+        () async {
+          await seedMeasured();
+          final stream = StreamIterator(repo.watchCookPlan(_week));
+          addTearDown(stream.cancel);
+          expect(await stream.moveNext(), isTrue);
+          expect(
+            stream.current.recipes
+                .firstWhere((r) => r.recipeId == 'aioli')
+                .sessions
+                .single
+                .batchesToCook,
+            closeTo(3 / 20, 1e-12),
+          );
+
+          await db.execute(
+            'UPDATE recipe_measure SET per_batch = ? WHERE id = ?',
+            [24, 'm-blob'],
+          );
+          expect(await stream.moveNext(), isTrue);
+          expect(
+            stream.current.recipes
+                .firstWhere((r) => r.recipeId == 'aioli')
+                .sessions
+                .single
+                .batchesToCook,
+            closeTo(3 / 24, 1e-12),
+          );
+        },
+      );
     });
 
     test('a deleted target derives nothing and flags nothing', () async {

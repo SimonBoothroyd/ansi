@@ -107,13 +107,15 @@ class SqliteShoppingRepository implements ShoppingRepository {
   Stream<ShoppingList> watchShoppingList(DateTime weekStart) {
     final key = _weekKey(weekStart);
     // Reference every table the load reads and select a column from each so
-    // all ten become watch triggers (see the library doc). The shopping,
+    // all of them become watch triggers (see the library doc). The shopping,
     // ingredient, measure and member tables aren't tied to the week, so
-    // they're cross-joined (`ON 1=1`) purely to be seen.
+    // they're cross-joined (`ON 1=1`) purely to be seen — and so is
+    // `recipe_measure`, whose words decide how much of a component's batch a
+    // measured line asks for, and therefore how much of it this list buys.
     return _db
         .watch(
           'SELECT wp.id, pe.id, r.keeps_for_days, g.id, li.id, se.id, sc.id, '
-          'i.id, im.id, hm.id, wro.id '
+          'i.id, im.id, hm.id, wro.id, rm.id '
           'FROM week_plan wp '
           'LEFT JOIN plan_entry pe '
           'ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
@@ -128,6 +130,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
           'LEFT JOIN shopping_list_contribution sc ON 1 = 1 '
           'LEFT JOIN ingredient i ON 1 = 1 '
           'LEFT JOIN ingredient_measure im ON 1 = 1 '
+          'LEFT JOIN recipe_measure rm ON 1 = 1 '
           'LEFT JOIN household_member hm ON 1 = 1 '
           'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL LIMIT 1',
           parameters: [key],

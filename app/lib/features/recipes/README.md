@@ -287,6 +287,57 @@ Everything below that resolution seam consumes `batches` and only `batches`,
 which is why the cook plan, the cost walk and the macro walk each needed one
 new case rather than a new path.
 
+## The data layer for a recipe's own words
+
+`data/recipe_measure_repository_impl.dart` is the **only** file that writes
+`recipe_measure`, and the only one whose SQL names it. Four things live there:
+
+- **`loadRecipeMeasures`** — every live recipe's words, keyed by recipe id,
+  duplicates merged. **One query per load for the whole household**, never one
+  per recipe or per line: a measured line is looked up in its TARGET's list, so
+  every loader that builds a `SubRecipeTarget`, a `SubRecipeNode` or a
+  `ComponentRecipe` wants the whole map anyway. The callers are the summaries,
+  the recipe page, `loadRecipeMacroNodes` (the one node loader behind recipe
+  macros, recipe costs and the week's re-summations) and `cook_plan`'s
+  `loadComponentGraph`, which feeds both Cook and the shop's walk.
+- **`writeRecipeMeasures`** — the diff `saveRecipe` runs inside its
+  transaction, **before** the lines, because a word and a line saying it have to
+  land in that order for the server's own guard.
+- **`countRecipeMeasureReferrers`** — the delete gate, over both tables that can
+  carry a pointer (`recipe_line_item`, `week_recipe_line_override`).
+- **`SqliteRecipeMeasureRepository`** — the direct doors.
+
+**Two doors write a word, and the difference is whether the host has a Save**
+(ADR-0011) — the pair the ingredient side has worn since 7.6. The recipe
+editor's MEASURES list, under MAKES, **defers**: it rides `Recipe.measures`
+through `saveRecipe`'s child diff, so a word typed there lands with the recipe.
+The manage-measures page behind the ＋ on a component's dock has no Save, so it
+writes **on tap**, through `RecipeMeasureRepository` — `addRecipeMeasure`,
+`restateRecipeMeasure`, `reorderRecipeMeasures`, `softDeleteRecipeMeasure`. Both
+land the same rows under the same rules, because the rules are
+`authorRecipeMeasure`'s rather than either door's, and a word written at either
+is on the other's next chip row.
+
+**A retirement is refused, not cascaded.** `softDeleteRecipeMeasure` and the
+deferred diff both ask the gate first and throw `RecipeMeasureInUse` — carrying
+the counts `recipeMeasureDeleteRefusalText` prints — while anything still says
+the word. Nothing follows a word out because nothing may: the lines saying it
+would go unresolved for good.
+
+**Two writes are refused before they are written**, and for one reason: the
+server would refuse them on UPLOAD, and a refused upload makes the PowerSync
+connector drop the WHOLE crud transaction — every write queued beside it, in
+silence. `saveRecipe` throws `UndenominatedLineError` for a line denominated in
+neither a unit nor a word; `saveOverrides` throws `WordlessOverrideError` for a
+week's amount that names a word and no number. `LineItem`'s asserts say the same
+thing, but an assert is compiled out of a release build.
+
+**Every watch that reads a word joins `recipe_measure` and selects a column from
+it** — `watchRecipes`, `watchRecipe`, `watchRecipeCosts`, the week variant's
+two, the cook plan's and the shop's — so coining, re-stating or retiring one
+re-fires them. SQLite drops a LEFT JOIN whose columns go unused, and a dropped
+join is a table PowerSync never fires for.
+
 **Deferred (implemented in later steps, not missing by accident):** cook mode,
 method ingredient-chips/timers, Notes tab, photos. See the roadmap +
 `tech-debt-tracker.md`.

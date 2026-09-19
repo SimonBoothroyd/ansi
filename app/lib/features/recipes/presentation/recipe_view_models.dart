@@ -354,17 +354,36 @@ class RecipeEditor extends _$RecipeEditor
   void setLineItemQuantity(String itemId, double? quantity) =>
       _mapItem(itemId, (i) => i.copyWith(quantity: quantity));
 
-  /// Quantifies the line in a plain unit, clearing any measure.
+  /// Quantifies the line in a plain unit, clearing any measure — an
+  /// ingredient's word and the target recipe's alike.
+  ///
+  /// The recipe measure goes because a line says its amount in a unit **or** in
+  /// one of the target's own words, never both. Keeping `blob` beside a unit
+  /// would make a row the database refuses, and a refused upload drops the
+  /// whole crud transaction — so a build that cannot yet *author* a measured
+  /// line must still never corrupt one it reads.
   void setLineItemUnit(String itemId, Unit unit) => _mapItem(
     itemId,
-    (i) => i.copyWith(unit: unit, measureId: null, measure: null),
+    (i) => i.copyWith(
+      unit: unit,
+      measureId: null,
+      measure: null,
+      recipeMeasureId: null,
+    ),
   );
 
   /// Quantifies the line in a named [measure] ("2 × potato, large"). The
   /// stored unit becomes the count fallback (`pieces`) — see [LineItem].
   void setLineItemMeasure(String itemId, Measure measure) => _mapItem(
     itemId,
-    (i) => i.copyWith(unit: pieces, measureId: measure.id, measure: measure),
+    (i) => i.copyWith(
+      unit: pieces,
+      measureId: measure.id,
+      measure: measure,
+      // The same XOR from the other side: an ingredient's word is not a
+      // recipe's, and one line cannot be counted in both.
+      recipeMeasureId: null,
+    ),
   );
 
   /// Sets the line's note — the modifier the recipe page prints after the name

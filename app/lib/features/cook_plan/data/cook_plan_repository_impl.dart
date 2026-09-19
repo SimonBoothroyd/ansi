@@ -19,6 +19,8 @@ import '../../planning/data/planning_repository_impl.dart' show loadMembers;
 import '../../planning/data/week_variant_repository_impl.dart'
     show loadWeekOverrides;
 import '../../planning/domain/planning.dart' show eatersDemand;
+import '../../recipes/data/recipe_measure_repository_impl.dart'
+    show loadRecipeMeasures;
 import '../../recipes/domain/component_math.dart';
 import '../domain/cook_plan.dart';
 import '../domain/cook_plan_repository.dart';
@@ -42,7 +44,8 @@ class SqliteCookPlanRepository implements CookPlanRepository {
     // re-fire the plan exactly as a changed recipe line does.
     return _db
         .watch(
-          'SELECT wp.id, pe.id, r.keeps_for_days, g.id, li.id, hm.id, wro.id '
+          'SELECT wp.id, pe.id, r.keeps_for_days, g.id, li.id, hm.id, '
+          'wro.id, rm.id '
           'FROM week_plan wp '
           'LEFT JOIN plan_entry pe '
           'ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
@@ -51,6 +54,11 @@ class SqliteCookPlanRepository implements CookPlanRepository {
           'LEFT JOIN recipe r ON r.id = pe.recipe_id '
           'LEFT JOIN ingredient_group g ON g.recipe_id = r.id '
           'LEFT JOIN recipe_line_item li ON li.group_id = g.id '
+          // A word coined, re-stated or retired moves what a measured
+          // component line demands — a whole derived session's size, or
+          // whether it opens at all — so the table joins here too. Not tied to
+          // the week, so cross-joined purely to be seen.
+          'LEFT JOIN recipe_measure rm ON 1 = 1 '
           'LEFT JOIN household_member hm ON 1 = 1 '
           'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL LIMIT 1',
           parameters: [key],
@@ -152,7 +160,7 @@ Future<Map<String, ComponentRecipe>> loadComponentGraph(
 ) async {
   final componentRows = await db.getAll(
     'SELECT g.recipe_id, li.id, li.sub_recipe_id, li.quantity, li.unit, '
-    'li.optional '
+    'li.recipe_measure_id, li.optional '
     'FROM recipe_line_item li '
     'JOIN ingredient_group g ON g.id = li.group_id AND g.deleted_at IS NULL '
     'WHERE li.deleted_at IS NULL AND li.sub_recipe_id IS NOT NULL '
@@ -162,21 +170,29 @@ Future<Map<String, ComponentRecipe>> loadComponentGraph(
   for (final row in componentRows) {
     // An unknown persisted unit id is NOT defaulted to anything: a `pieces`
     // fallback would invent the semantics the whole resolver exists to refuse.
-    // The line simply derives nothing (invariant 3).
-    final unit = unitById(row['unit'] as String? ?? '');
-    if (unit == null) continue;
+    final recipeMeasureId = row['recipe_measure_id'] as String?;
+    final unit = recipeMeasureId != null
+        ? null
+        : unitById(row['unit'] as String? ?? '');
+    // Neither a unit nor a word: nothing this line says can be read, so it
+    // derives nothing (invariant 3). A line said in one of the target's own
+    // WORDS is not this case — it flows through with its pointer and resolves
+    // against the target's measures, or surfaces as the named gap
+    // `ComponentMeasureMissing` when the word has gone. Dropping it here is
+    // what once made a measured sauce vanish from the cook plan and the shop
+    // in silence, which is the one outcome this design refuses.
+    if (unit == null && recipeMeasureId == null) continue;
     (componentsByRecipe[row['recipe_id'] as String] ??= []).add((
       id: row['id'] as String,
       subRecipeId: row['sub_recipe_id'] as String,
       quantity: (row['quantity'] as num?)?.toDouble(),
       unit: unit,
-      // `recipe_line_item.recipe_measure_id` is not selected yet, so a
-      // measured line carries no word here and derives nothing from one.
-      recipeMeasureId: null,
+      recipeMeasureId: recipeMeasureId,
       optional: (row['optional'] as int? ?? 0) == 1,
     ));
   }
 
+  final measuresByRecipe = await loadRecipeMeasures(db);
   final recipeRows = await db.getAll(
     'SELECT r.id, r.title, r.servings_base, r.keeps_for_days, r.freezable, '
     'r.freezer_days, r.yield_qty, r.yield_unit, r.yield_qty_2, r.yield_unit_2 '
@@ -190,8 +206,10 @@ Future<Map<String, ComponentRecipe>> loadComponentGraph(
         keepsForDays: r['keeps_for_days'] as int?,
         freezable: (r['freezable'] as int? ?? 0) == 1,
         freezerDays: r['freezer_days'] as int?,
-        // Nothing selects `recipe_measure` yet.
-        measures: const <RecipeMeasure>[],
+        // This recipe's OWN words — a PARENT's line saying one of them
+        // resolves through this list, and a word it has not got is the named
+        // gap both the cook plan and the shop print.
+        measures: measuresByRecipe[r['id']] ?? const <RecipeMeasure>[],
         yields: yieldDenominations(
           (r['yield_qty'] as num?)?.toDouble(),
           unitById(r['yield_unit'] as String? ?? ''),

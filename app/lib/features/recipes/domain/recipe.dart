@@ -157,11 +157,35 @@ abstract class RecipeSummary with _$RecipeSummary {
     Unit? yieldUnit,
     double? yieldQty2,
     Unit? yieldUnit2,
+
+    /// This recipe's own words for one of what its batch makes, `sort_order`
+    /// first and duplicates merged — see [Recipe.measures].
+    ///
+    /// Carried on the summary for the reason the yields are: a picker row that
+    /// hands this recipe on as a component TARGET must hand the words over
+    /// with it, or the line it lands on could not be said in one of them
+    /// without a second read.
+    @Default(<RecipeMeasure>[]) List<RecipeMeasure> measures,
   }) = _RecipeSummary;
 
   /// This recipe's stated yields — see [Recipe.yields].
   List<YieldDenomination> get yields =>
       yieldDenominations(yieldQty, yieldUnit, yieldQty2, yieldUnit2);
+
+  /// This summary as another recipe's component target — what a picker row
+  /// hands the line it was opened for, so the quantity dock opens on the
+  /// yields AND the words without a second read. See
+  /// [Recipe.asSubRecipeTarget], which answers the same question one aggregate
+  /// up.
+  SubRecipeTarget get asSubRecipeTarget => SubRecipeTarget(
+    id: id,
+    title: title,
+    yieldQty: yieldQty,
+    yieldUnit: yieldUnit,
+    yieldQty2: yieldQty2,
+    yieldUnit2: yieldUnit2,
+    measures: measures,
+  );
 }
 
 /// A named group of line-items within a recipe. [name] is null for a recipe

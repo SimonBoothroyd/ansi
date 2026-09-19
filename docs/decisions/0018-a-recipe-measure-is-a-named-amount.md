@@ -161,12 +161,36 @@ number; `piece` is the degradation rule 7 refuses — so the column is null and
 - **A measured line weighs nothing.** `lineAmountInBasis` answers null for it,
   as it must: a share of a batch is not a mass, and the parent's figures come
   from the target's own walk rather than from the line.
-- **An older app build cannot read a measured line.** Three row mappers on
-  `integrate/feedback-round` cast the column with a hard `as String` and throw
-  on a NULL; the cook plan's mapper skips such a line silently, and the "used
-  in" list would print `3 batch`. The mappers are fixed here, but a device on an
-  older build is not — so the first recipe measure must not be written until
-  every device in the household is on a build that carries this.
+- **An older app build cannot read a measured line**, so **the data layer ships
+  a release before the authoring UI.** A build that predates this casts the
+  column with a hard `as String` and throws on a NULL, skips such a line
+  silently in the cook plan and the shop, and prints `3 batch` in the "used in"
+  list. The read seam is therefore landed on its own — every loader, every
+  watch, both write doors and the delete gate, with no screen that can create a
+  measure — so that the first word written anywhere in the household lands on
+  devices that already resolve, cost, macro, cook and shop it correctly.
+- **The write refusal is the repository's, not the form's.** A line denominated
+  in neither a unit nor a word, and a week's amount naming a word with no
+  number, are both refused *before* they are written
+  (`UndenominatedLineError`, `WordlessOverrideError`). The database refuses them
+  too, but it refuses them on UPLOAD — and a rejected upload makes the PowerSync
+  connector drop the whole crud transaction, taking every write queued beside it
+  in silence. A throw in front of a person costs one save; a refusal up there
+  costs the queue. `LineItem`'s own asserts say the same shape and are compiled
+  out of a release build, which is why they are not the guard.
+- **Two doors will author a word, and the difference is whether the host has a
+  Save** (ADR-0011). The recipe editor's MEASURES list defers — it rides
+  `Recipe.measures` through `saveRecipe`'s child diff, so a word typed there
+  lands with the recipe. The manage-measures page behind the component dock's ＋
+  has no Save and writes on tap. Both seams exist in the repository already and
+  both go through `authorRecipeMeasure` and the same delete gate, so neither can
+  hold a different line than the other or walk round the refusal below.
+- **A measured line's amount is not re-denominated from a units-only sheet.**
+  Until the authoring control ships, the component quantity sheet — which always
+  returns a unit — would silently replace the word with one. On this release the
+  sheet opened on a measured line offers that line's own word as its single,
+  preselected denomination, so the number can be edited and the word cannot be
+  lost. Recipe editor and week-variant editor both.
 - **A re-stated word follows every line saying it.** The row keeps its id, so
   `blob` moving from 15 g to 18 g moves every line at once. That is why the
   editor re-states rather than deleting and re-adding, and why the bin is

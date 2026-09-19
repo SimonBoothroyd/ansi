@@ -68,6 +68,17 @@ back to the recipe's own value leaving no row at all.
 - **Copy last week does not carry a variant**, and says which recipes it left
   behind. "Just this week" is the whole promise; a silent drop would be the
   same bug as a silent carry.
+- **A component's amount can be said in the target recipe's own word** — `3
+  blob` (ADR-0018). `week_recipe_line_override.recipe_measure_id` carries it and
+  `unit` is then NULL, the same XOR the recipe line wears, resolved in one place
+  on the way in and one on the way out so the INSERT and the UPDATE cannot
+  disagree. Only a delta about a COMPONENT may carry a word — one about an
+  ingredient has it dropped — and a word with no number is refused before
+  anything is written (`WordlessOverrideError`), because the server refuses it on
+  upload and a refused upload drops the whole crud transaction. Absolute like
+  every other value here: the recipe re-stating `blob` later leaves this week at
+  the count somebody asked for, while what that count *comes to* moves — which is
+  why the week's watches join `recipe_measure`.
 
 ## The entry XOR
 

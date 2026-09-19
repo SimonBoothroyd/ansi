@@ -49,6 +49,7 @@ import '../../../shared/write.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
+import '../domain/component_math.dart';
 import '../domain/method_draft.dart';
 import '../domain/recipe.dart';
 import 'component_format.dart';
@@ -845,7 +846,18 @@ class _ComponentLineEditor extends StatelessWidget {
       item: item,
       recipeId: recipeId,
       notifier: notifier,
-      amount: componentAmountText(item.quantity, item.unit),
+      // The word the line was written in, when the target still has it — the
+      // target's own measures are already on the line, so the row prints `3
+      // blob` rather than a bare `3`. A word that has gone prints the number
+      // alone, which is the honest half of the refusal.
+      amount: componentAmountText(
+        item.quantity,
+        item.unit,
+        measureLabel: switch (item.componentAmount) {
+          ResolvedComponentAmount(:final viaMeasure) => viaMeasure?.label,
+          _ => null,
+        },
+      ),
       dragIndex: dragIndex,
       collapseEpoch: collapseEpoch,
       lit: lit,

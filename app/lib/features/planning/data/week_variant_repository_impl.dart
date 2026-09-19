@@ -60,7 +60,7 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
   /// recipe/group/line tables are in here for the macro summation, which
   /// re-sums a varied recipe off its own lines.
   Stream<void> _weekChanges(String weekKey) => _db.watch(
-    'SELECT wp.id, wro.id, r.id, g.id, li.id, i.id, im.id '
+    'SELECT wp.id, wro.id, r.id, g.id, li.id, i.id, im.id, rm.id '
     'FROM week_plan wp '
     'LEFT JOIN week_recipe_line_override wro '
     'ON wro.week_plan_id = wp.id AND wro.deleted_at IS NULL '
@@ -69,6 +69,10 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
     'LEFT JOIN recipe_line_item li ON li.group_id = g.id '
     'LEFT JOIN ingredient i ON 1 = 1 '
     'LEFT JOIN ingredient_measure im ON 1 = 1 '
+    // A recipe's own words: re-stating `blob` moves what every measured
+    // component line comes to, so a varied recipe's re-summation has to
+    // re-run for it exactly as it does for a changed line.
+    'LEFT JOIN recipe_measure rm ON 1 = 1 '
     'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL LIMIT 1',
     parameters: [weekKey],
   );
@@ -101,7 +105,8 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
 
   /// [_weekChanges]'s tables plus the receipt rows a cost reads.
   Stream<void> _priceChanges(String weekKey) => _db.watch(
-    'SELECT wp.id, wro.id, r.id, g.id, li.id, i.id, im.id, rl.id, rc.id '
+    'SELECT wp.id, wro.id, r.id, g.id, li.id, i.id, im.id, rm.id, '
+    'rl.id, rc.id '
     'FROM week_plan wp '
     'LEFT JOIN week_recipe_line_override wro '
     'ON wro.week_plan_id = wp.id AND wro.deleted_at IS NULL '
@@ -110,6 +115,7 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
     'LEFT JOIN recipe_line_item li ON li.group_id = g.id '
     'LEFT JOIN ingredient i ON 1 = 1 '
     'LEFT JOIN ingredient_measure im ON 1 = 1 '
+    'LEFT JOIN recipe_measure rm ON 1 = 1 '
     'LEFT JOIN receipt_line rl ON 1 = 1 '
     'LEFT JOIN receipt rc ON 1 = 1 '
     'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL LIMIT 1',
@@ -181,6 +187,18 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
     required List<LineOverride> overrides,
   }) async {
     final key = isoDateOf(weekStart);
+    // Refused before anything is written, for the reason `saveRecipe` states:
+    // `week_recipe_line_override_amount_pair` rejects the upload, and a
+    // rejected upload makes the connector drop the WHOLE crud transaction —
+    // so one malformed delta would take every write queued beside it.
+    for (final override in overrides) {
+      if (override.recipeMeasureId != null && override.quantity == null) {
+        throw WordlessOverrideError(
+          overrideId: override.id,
+          recipeMeasureId: override.recipeMeasureId!,
+        );
+      }
+    }
     final now = DateTime.now().toUtc().toIso8601String();
     await _db.writeTransaction((tx) async {
       final weekId = await getOrCreateWeekPlan(
@@ -214,14 +232,24 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
             : byLine[line];
         final id = existing ?? (line == null ? override.id : _uuid.v4());
         kept.add(id);
+        // A word is only sayable about a COMPONENT, and beside it the unit
+        // column goes null: 0048's pair rule, resolved here so the two
+        // statements below cannot read the delta differently. `include` and
+        // `exclude` carry no target at all (0040's `action_shape`), so they
+        // can never carry a word either.
+        final recipeMeasureId = override.subRecipeId == null
+            ? null
+            : override.recipeMeasureId;
+        final unitId = recipeMeasureId != null ? null : override.unit?.id;
         final values = [
           override.action.name,
           line,
           override.ingredientId,
           override.subRecipeId,
           override.quantity,
-          override.unit?.id,
+          unitId,
           override.measureId,
+          recipeMeasureId,
           override.note,
           override.sortOrder,
           now,
@@ -230,34 +258,23 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
           await tx.execute(
             'UPDATE week_recipe_line_override SET action = ?, '
             'recipe_line_item_id = ?, ingredient_id = ?, sub_recipe_id = ?, '
-            'quantity = ?, unit = ?, measure_id = ?, note = ?, '
-            'sort_order = ?, updated_at = ? WHERE id = ?',
+            'quantity = ?, unit = ?, measure_id = ?, recipe_measure_id = ?, '
+            'note = ?, sort_order = ?, updated_at = ? WHERE id = ?',
             [...values, id],
           );
         } else {
           await tx.execute(
             'INSERT INTO week_recipe_line_override (id, household_id, '
             'week_plan_id, recipe_id, action, recipe_line_item_id, '
-            'ingredient_id, sub_recipe_id, quantity, unit, measure_id, note, '
+            'ingredient_id, sub_recipe_id, quantity, unit, measure_id, '
+            'recipe_measure_id, note, '
             'sort_order, created_at, updated_at) '
-            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [
-              id,
-              _householdId,
-              weekId,
-              recipeId,
-              override.action.name,
-              line,
-              override.ingredientId,
-              override.subRecipeId,
-              override.quantity,
-              override.unit?.id,
-              override.measureId,
-              override.note,
-              override.sortOrder,
-              now,
-              now,
-            ],
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            // The same [values] the UPDATE binds, whose last element is the
+            // `updated_at` stamp — so the two statements cannot drift on which
+            // columns a delta carries, which is how `recipe_measure_id` came
+            // to be missing from one of them in the first place.
+            [id, _householdId, weekId, recipeId, ...values, now],
           );
         }
       }
@@ -348,7 +365,7 @@ Future<Map<String, List<LineOverride>>> loadWeekOverrides(
     'SELECT wp.week_start_date, '
     'wro.id, wro.recipe_id, wro.recipe_line_item_id, wro.action, '
     'wro.ingredient_id, wro.sub_recipe_id, wro.quantity, wro.unit, '
-    'wro.note, wro.sort_order, wro.measure_id, '
+    'wro.note, wro.sort_order, wro.measure_id, wro.recipe_measure_id, '
     'ing.canonical_name AS ing_name, ing.macros_basis, '
     'im.label AS m_label, im.basis_amount AS m_amount, '
     'im.sort_order AS m_sort, im.source AS m_source '
@@ -373,6 +390,7 @@ LineOverride _overrideFrom(Row r) {
   final measureId = r['measure_id'] as String?;
   final measureLabel = r['m_label'] as String?;
   final measureAmount = (r['m_amount'] as num?)?.toDouble();
+  final recipeMeasureId = r['recipe_measure_id'] as String?;
   return LineOverride(
     id: r['id'] as String,
     action: _actionOf(r['action'] as String),
@@ -384,9 +402,17 @@ LineOverride _overrideFrom(Row r) {
     subRecipeId: r['sub_recipe_id'] as String?,
     quantity: (r['quantity'] as num?)?.toDouble(),
     // An unknown persisted unit id stays null — never a `pieces` fallback,
-    // which would let a total sum an invented unit (invariant 3).
-    unit: unitById(r['unit'] as String? ?? ''),
+    // which would let a total sum an invented unit (invariant 3). It is null
+    // on purpose beside a word, too: `recipe_measure_id` set means the amount
+    // is said in the target's own word and in no unit at all (0048's pair
+    // rule), and the word is asked first so a row carrying both is read as
+    // the word rather than the unit.
+    unit: recipeMeasureId != null ? null : unitById(r['unit'] as String? ?? ''),
     measureId: measureId,
+    // This week's own word for the amount — absolute like every other value
+    // here: the recipe re-stating `blob` later leaves this week at the count
+    // somebody asked for.
+    recipeMeasureId: recipeMeasureId,
     measure: measureId == null || measureLabel == null || measureAmount == null
         ? null
         : Measure(

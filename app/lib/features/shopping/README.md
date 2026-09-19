@@ -107,6 +107,16 @@ override for that line (`WeekVariantRepository.setLineIncluded`, through
 carrying `· this week, ticked in`. A line the *week* left out is not a door —
 that change is undone where it was made.
 
+**A component said in the target's own word is expanded like any other.** `3
+blob` of a sauce that makes 20 of them is 0.15 batches, and the walk buys 0.15 of
+the sauce's own ingredients — you buy almonds, never aioli. The words ride the
+same `loadComponentGraph` the cook plan reads, so the two derivations cannot
+disagree about how much of a sauce this week needs, and the watch joins
+`recipe_measure` so re-stating a word moves the amounts. A word the target no
+longer has buys **nothing** and takes the `unresolvedComponents` echo naming the
+parent that is short — never a count of the yield, which would buy a confidently
+wrong amount rather than admit a gap (invariant 3).
+
 ## Honest aggregation (invariant 3)
 
 `aggregateQuantities` sums within a unit family by the ratio table, bridges

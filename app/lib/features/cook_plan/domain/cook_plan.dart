@@ -632,10 +632,18 @@ EffectiveLines componentLinesForWeek(
       ingredientName: graph[line.subRecipeId]?.title ?? '',
       unit: line.unit,
       subRecipeId: line.subRecipeId,
+      // The whole target, yields AND words: a line's amount is resolved
+      // against both together, so a target carrying one and not the other is a
+      // reading waiting to go wrong. The yields come back off the pair the
+      // graph holds, which is the shape the four persisted columns state.
       subRecipe: switch (graph[line.subRecipeId]) {
         final target? => SubRecipeTarget(
           id: line.subRecipeId,
           title: target.title,
+          yieldQty: target.yields.firstOrNull?.qty,
+          yieldUnit: target.yields.firstOrNull?.unit,
+          yieldQty2: target.yields.elementAtOrNull(1)?.qty,
+          yieldUnit2: target.yields.elementAtOrNull(1)?.unit,
           measures: target.measures,
         ),
         _ => null,
