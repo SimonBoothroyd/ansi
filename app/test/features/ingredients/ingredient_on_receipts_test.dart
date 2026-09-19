@@ -17,6 +17,7 @@ library;
 import 'package:ansi/features/ingredients/domain/price_repository.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_facts.dart';
+import 'package:ansi/features/ingredients/presentation/ingredient_list_view.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -212,6 +213,57 @@ void main() {
       expect(find.byKey(kAddPriceKey), findsOneWidget);
       expect(find.text('On receipts'), findsNothing);
       expect(find.byKey(kOnReceiptsFoldKey), findsNothing);
+    });
+  });
+
+  /// The fact sheet is ONE column at every width — centred at the page measure
+  /// on a phone and a tablet, and drawn beside the vocabulary at a desk, capped
+  /// at [kFactSheetPaneWidth]. So the fold needs no second arrangement: it is
+  /// the last block of that column wherever the column is. What the width has to
+  /// buy is that the section stays *inside* the sheet's pane rather than
+  /// spanning the window, and that the fold still works where the vocabulary is
+  /// beside it.
+  group('at a desk', () {
+    testWidgets('the fold is the last block of the fact sheet’s own column, '
+        'and it still opens there', (tester) async {
+      filterForuiSemanticsAssertions();
+      tester.view.physicalSize = const Size(1440, 2000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      GoRouter? router;
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [mango, curryLeaves]),
+          at: ingredientDetailRoute('mango'),
+          prices: FakePriceRepo(
+            names: [name('SHELLER EDAMAME'), name('SHELLED EDAMAME')],
+          ),
+          onRouter: (r) => router = r,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Beside the vocabulary, not over it — and the fold is in that pane.
+      final sheet = tester.getRect(find.byType(IngredientDetailView));
+      expect(sheet.width, lessThanOrEqualTo(kFactSheetPaneWidth));
+      final fold = tester.getRect(find.byKey(kOnReceiptsFoldKey));
+      expect(fold.left, greaterThanOrEqualTo(sheet.left));
+      expect(fold.right, lessThanOrEqualTo(sheet.right));
+
+      // Under Price, which is the group it is about: what the row cost, then
+      // what the paper called it.
+      expect(
+        fold.top,
+        greaterThan(tester.getRect(find.byKey(kAddPriceKey)).bottom),
+      );
+
+      await tester.tap(find.byKey(kOnReceiptsFoldKey));
+      await tester.pumpAndSettle();
+      expect(find.text('SHELLER EDAMAME'), findsOneWidget);
+
+      await tester.tap(find.byKey(onReceiptsNameKey('SHELLER EDAMAME')));
+      await tester.pumpAndSettle();
+      expect(router!.state.uri.toString(), '/receipts/r-sep');
     });
   });
 

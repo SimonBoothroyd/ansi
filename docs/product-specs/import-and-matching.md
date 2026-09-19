@@ -1089,6 +1089,14 @@ The review says so on the card — `as you matched it last time` beside the chos
 row's `tap to change` — because a remembered match is the one `auto` that can be
 wrong for a reason a person can see, and changing it *is* the correction.
 
+**And the memory can be read back**, on the ingredient page's folded `On
+receipts` section: every distinct name this household's receipts have carried for
+that row, newest first, each a tap onto the newest receipt carrying it. That is
+what makes a *store's* mis-transcription findable — `SHELLER EDAMAME` beside
+`SHELLED EDAMAME` is two keys with two answers, both recalled, and nothing else
+in the app shows them together. The section is not an alias list and is named so
+that it cannot be read as one.
+
 None of this is an alias. The words stay on the receipt they were printed on,
 the match cascade never sees them, and the vocabulary matcher is not consulted
 about them.

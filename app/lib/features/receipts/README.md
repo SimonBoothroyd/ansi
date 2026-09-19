@@ -53,6 +53,14 @@ correction, and it stops being remembered the moment they do, because it is
 theirs now. `name_printed` is what all of this is filed under: the app writes
 it with the line (migration 0047) and no edit moves it.
 
+**And the memory is visible**, in the ingredient page's folded `On receipts`
+section ([`ingredients/README.md`](../ingredients/README.md)): every distinct
+name this household's receipts have carried for that row, newest first, each a
+tap back onto the newest receipt carrying it. Without it a store's
+mis-transcription — `SHELLER EDAMAME` beside `SHELLED EDAMAME` — is two answers
+under two keys and nothing anywhere shows them side by side. It is not an alias
+list and is deliberately not drawn or named as one.
+
 **One screen for a receipt.** `/receipts/:id` is the review, opened on the
 rows instead of on a scan (`ReceiptScanController.open`). Everything that
 confirmed the receipt corrects it — the store, the date's calendar door, a
