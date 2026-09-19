@@ -252,7 +252,10 @@ LineItem applyOverride(LineItem line, LineOverride override) => line.copyWith(
   subRecipeId: override.subRecipeId,
   subRecipe: override.subRecipeId == null ? null : line.subRecipe,
   quantity: override.quantity,
-  unit: override.unit ?? line.unit,
+  // A `replace` is absolute, and the two denominations are one field between
+  // them: a week that says `3 blob` must not keep the recipe's `¼ cup` beside
+  // the word, and one that says `¼ cup` must not keep the word.
+  unit: override.recipeMeasureId != null ? null : (override.unit ?? line.unit),
   measureId: override.measureId,
   measure: override.measure,
   recipeMeasureId: override.recipeMeasureId,
@@ -274,7 +277,10 @@ LineItem applyOverride(LineItem line, LineOverride override) => line.copyWith(
 LineItem addedLine(LineOverride override) => LineItem(
   id: override.id,
   ingredientName: override.ingredientName,
-  unit: override.unit ?? pieces,
+  // A row naming one of a recipe's own words states no catalog unit; one
+  // naming neither is malformed, and a bare count is a better answer than a
+  // line the model refuses to build.
+  unit: override.recipeMeasureId != null ? null : (override.unit ?? pieces),
   ingredientId: override.ingredientId,
   subRecipeId: override.subRecipeId,
   quantity: override.quantity,

@@ -2,6 +2,7 @@
 /// A share of a batch is either stated or refused — never a guessed `1×`.
 library;
 
+import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:ansi/features/recipes/presentation/component_format.dart';
@@ -128,5 +129,120 @@ void main() {
       deleteRefusalText(recipes: 1, lines: 1),
       'Used in 1 recipe (1 line). Change those lines first.',
     );
+  });
+
+  group("a component said in the recipe's own word", () {
+    const blob = RecipeMeasure(
+      id: 'blob',
+      recipeId: 'aioli',
+      label: 'blob',
+      perBatch: 20,
+    );
+
+    test('a line prints the word, singular, always', () {
+      expect(componentAmountText(3, null, measureLabel: 'blob'), '3 blob');
+      expect(componentAmountText(20, null, measureLabel: 'blob'), '20 blob');
+      expect(componentAmountText(1, null, measureLabel: 'loaf'), '1 loaf');
+      expect(componentAmountText(0.5, null, measureLabel: 'blob'), '½ blob');
+      expect(componentAmountText(null, null, measureLabel: 'blob'), 'blob');
+    });
+
+    test("the Cook demand card: what was said, then what it comes to", () {
+      expect(
+        componentDemandLine(quantity: 3, measureLabel: 'blob', batches: 0.15),
+        '3 blob → 0.15 of a batch',
+      );
+      expect(
+        componentDemandLine(quantity: 1, measureLabel: 'loaf', batches: 1),
+        '1 loaf → 1 batch',
+      );
+    });
+
+    test('a line saying no word gets no arrow from a thing to itself', () {
+      expect(
+        componentDemandLine(quantity: 1, measureLabel: null, batches: 1),
+        isNull,
+      );
+      expect(
+        componentDemandLine(quantity: null, measureLabel: 'blob', batches: 1),
+        isNull,
+      );
+    });
+
+    test('the word reads in a list as the one sentence it is', () {
+      expect(recipeMeasureListText(blob), 'blob · a batch makes 20');
+      expect(recipeMeasureRateText(blob), 'a batch makes 20 blob');
+      expect(
+        recipeMeasureListText(
+          const RecipeMeasure(
+            id: 'l',
+            recipeId: 'r',
+            label: 'loaf',
+            perBatch: 1,
+          ),
+        ),
+        'loaf · a batch makes 1',
+      );
+    });
+
+    test('the dock says the share and the rate that gave it', () {
+      expect(
+        componentConversionLine(
+          quantity: 3,
+          unit: null,
+          yields: const [(qty: 1.0, unit: cup)],
+          recipeMeasureId: 'blob',
+          measures: const [blob],
+        ),
+        '3 blob = 0.15 of a batch · a batch makes 20 blob',
+      );
+    });
+
+    test('and a word that has gone keeps the number, loses the rest', () {
+      expect(
+        componentConversionLine(
+          quantity: 3,
+          unit: null,
+          yields: const [(qty: 8.0, unit: pieces)],
+          recipeMeasureId: 'blob',
+          measures: const [],
+        ),
+        '3 — its measure is gone',
+      );
+      expect(
+        unresolvedComponentText(const ComponentMeasureMissing('blob')),
+        'its measure is gone',
+      );
+    });
+
+    test('the "used in" row reads the word off the resolved amount', () {
+      expect(
+        usedInAmountLine(
+          quantity: 3,
+          unit: null,
+          amount: resolveComponentAmount(
+            quantity: 3,
+            unit: null,
+            yields: const [],
+            recipeMeasureId: 'blob',
+            measures: const [blob],
+          ),
+        ),
+        '3 blob · 0.15 of a batch',
+      );
+    });
+  });
+
+  group('retiring a word', () {
+    test('the refusal is a pure function of the counts', () {
+      expect(
+        recipeMeasureDeleteRefusalText(label: 'blob', lines: 3, recipes: 2),
+        'Can’t delete “blob” yet · 3 lines still say it, in 2 recipes.',
+      );
+      expect(
+        recipeMeasureDeleteRefusalText(label: 'ladle', lines: 1, recipes: 1),
+        'Can’t delete “ladle” yet · 1 line still says it, in 1 recipe.',
+      );
+    });
   });
 }

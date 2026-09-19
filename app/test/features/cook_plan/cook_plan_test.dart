@@ -394,15 +394,34 @@ void main() {
       bool freezable = false,
       int? freezerDays,
       List<ComponentLine> components = const [],
+      List<RecipeMeasure> measures = const [],
     }) => (
       title: 'Romesco Aioli',
       servingsBase: 4,
       keepsForDays: keeps,
       freezable: freezable,
       freezerDays: freezerDays,
-      measures: const <RecipeMeasure>[],
+      measures: measures,
       yields: yields,
       components: components,
+    );
+
+    /// "a batch makes 20 blob" — the household's own word for the aioli.
+    const blob = RecipeMeasure(
+      id: 'blob',
+      recipeId: 'aioli',
+      label: 'blob',
+      perBatch: 20,
+    );
+
+    /// A line saying `3 blob` of the aioli: a quantity, a word, no unit.
+    const threeBlob = (
+      id: 'li-aioli',
+      subRecipeId: 'aioli',
+      quantity: 3.0,
+      unit: null,
+      recipeMeasureId: 'blob',
+      optional: false,
     );
 
     const quarterCup = (
@@ -413,6 +432,75 @@ void main() {
       recipeMeasureId: null,
       optional: false,
     );
+
+    test("a line said in the target's own word derives 0.15 of a batch", () {
+      final plan = buildCookPlan(
+        [
+          _recipe({5: 8}, id: 'sliders', title: 'Sausage Sliders', servings: 8),
+        ],
+        components: {
+          'sliders': sliders(components: const [threeBlob]),
+          // No yield at all — the word answers on its own.
+          'aioli': aioli(yields: const [], measures: const [blob]),
+        },
+      );
+      final session = plan.recipes
+          .firstWhere((r) => r.recipeId == 'aioli')
+          .sessions
+          .single;
+      expect(session.batchesToCook, closeTo(0.15, 1e-12));
+      expect(plan.gaps, isEmpty);
+      // The card can quote the line in the words it was written in.
+      final demand = session.demands.single;
+      expect(demand.measureLabel, 'blob');
+      expect(demand.quantity, 3);
+    });
+
+    test(
+      'a parent cooked twice asks for 0.3 — the LINE moves, not the word',
+      () {
+        final plan = buildCookPlan(
+          [
+            _recipe(
+              {5: 16},
+              id: 'sliders',
+              title: 'Sausage Sliders',
+              servings: 8,
+            ),
+          ],
+          components: {
+            'sliders': sliders(components: const [threeBlob]),
+            'aioli': aioli(yields: const [], measures: const [blob]),
+          },
+        );
+        final session = plan.recipes
+            .firstWhere((r) => r.recipeId == 'aioli')
+            .sessions
+            .single;
+        expect(session.batchesToCook, closeTo(0.3, 1e-12));
+      },
+    );
+
+    test('a word the target has lost is a NAMED gap, never a count', () {
+      final plan = buildCookPlan(
+        [
+          _recipe({5: 8}, id: 'sliders', title: 'Sausage Sliders', servings: 8),
+        ],
+        components: {
+          'sliders': sliders(components: const [threeBlob]),
+          // `makes 8 piece` would read `3 blob` as 0.375 of a batch if the
+          // line ever degraded to a count. It must not.
+          'aioli': aioli(yields: const [(qty: 8.0, unit: pieces)]),
+        },
+      );
+      expect(plan.recipes.where((r) => r.recipeId == 'aioli'), isEmpty);
+      final gap = plan.gaps.single;
+      expect(gap.title, 'Romesco Aioli');
+      expect(gap.reason, const ComponentMeasureMissing('blob'));
+      // The card has no word to quote, so it quotes none.
+      expect(gap.demandedBy.single.measureLabel, isNull);
+      expect(gap.demandedBy.single.saysAMeasure, isTrue);
+    });
 
     test('a planned parent derives a batch-denominated component session', () {
       final plan = buildCookPlan(

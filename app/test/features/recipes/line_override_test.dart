@@ -9,22 +9,34 @@ LineItem _line(
   String? ingredientId,
   String name = 'Onion',
   double? quantity = 2,
-  Unit unit = g,
+  Unit? unit = g,
   bool optional = false,
   String? note,
   String? measureId,
   Measure? measure,
+  String? recipeMeasureId,
 }) => LineItem(
   id: id,
   ingredientId: ingredientId ?? 'ing-$id',
   ingredientName: name,
-  unit: unit,
+  unit: recipeMeasureId == null ? unit : null,
   quantity: quantity,
   optional: optional,
   note: note,
   measureId: measureId,
   measure: measure,
+  recipeMeasureId: recipeMeasureId,
 );
+
+/// A component line said in the target's own word — no catalog unit at all.
+LineItem _measured(String id, {double? quantity = 3, String word = 'blob'}) =>
+    LineItem(
+      id: id,
+      subRecipeId: 'aioli',
+      ingredientName: 'Romesco Aioli',
+      quantity: quantity,
+      recipeMeasureId: word,
+    );
 
 WeekDraftLine _kept(LineItem line) =>
     (line: line, excluded: false, added: false);
@@ -215,6 +227,99 @@ void main() {
         LineOverrideAction.include,
         LineOverrideAction.add,
       ]);
+    });
+  });
+
+  group("the week carries a component's own word too", () {
+    test('a replace stores the word and no unit beside it', () {
+      final base = _measured('a');
+      final edited = _measured('a', quantity: 6);
+      final overrides = diffLineOverrides(base: [base], draft: [_kept(edited)]);
+      final row = overrides.single;
+      expect(row.action, LineOverrideAction.replace);
+      expect(row.recipeMeasureId, 'blob');
+      expect(row.unit, isNull);
+      expect(row.quantity, 6);
+    });
+
+    test('changing only the WORD is a change like any other', () {
+      final overrides = diffLineOverrides(
+        base: [_measured('a')],
+        draft: [_kept(_measured('a', word: 'ladle'))],
+      );
+      expect(overrides.single.recipeMeasureId, 'ladle');
+    });
+
+    test('an unchanged measured line produces no row at all', () {
+      expect(
+        diffLineOverrides(
+          base: [_measured('a')],
+          draft: [_kept(_measured('a'))],
+        ),
+        isEmpty,
+      );
+    });
+
+    test('applying it gives the line back, word and all', () {
+      final line = applyOverride(
+        _measured('a'),
+        const LineOverride(
+          action: LineOverrideAction.replace,
+          recipeLineItemId: 'a',
+          recipeMeasureId: 'blob',
+          quantity: 6,
+        ),
+      );
+      expect(line.recipeMeasureId, 'blob');
+      expect(line.unit, isNull);
+      expect(line.quantity, 6);
+    });
+
+    test('an added line can be one, and reads back as one', () {
+      final added = addedLine(
+        const LineOverride(
+          id: 'ov',
+          action: LineOverrideAction.add,
+          subRecipeId: 'aioli',
+          ingredientName: 'Romesco Aioli',
+          recipeMeasureId: 'blob',
+          quantity: 3,
+        ),
+      );
+      expect(added.recipeMeasureId, 'blob');
+      expect(added.unit, isNull);
+    });
+
+    test('an added line with neither word nor unit still says something', () {
+      // Totality: the row is malformed, and a line the model cannot build is
+      // worse than one that falls back to a bare count.
+      final added = addedLine(
+        const LineOverride(
+          id: 'ov',
+          action: LineOverrideAction.add,
+          ingredientName: 'Onion',
+          quantity: 1,
+        ),
+      );
+      expect(added.unit, pieces);
+      expect(added.recipeMeasureId, isNull);
+    });
+
+    test('the draft round-trips: diff, draft, diff again — same rows', () {
+      final base = [_measured('a'), _line('b')];
+      final overrides = diffLineOverrides(
+        base: base,
+        draft: [_kept(_measured('a', quantity: 6)), _kept(_line('b'))],
+      );
+      final again = diffLineOverrides(
+        base: base,
+        draft: draftLines(base, overrides),
+      );
+      expect(
+        again.map((o) => o.recipeMeasureId),
+        overrides.map((o) => o.recipeMeasureId),
+      );
+      expect(again.map((o) => o.quantity), overrides.map((o) => o.quantity));
     });
   });
 }

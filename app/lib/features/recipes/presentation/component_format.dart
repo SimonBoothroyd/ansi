@@ -49,12 +49,15 @@ String measuredAmountText(double? quantity, String measureLabel) {
 
 /// How a recipe's own word reads in a list — *"blob · a batch makes 20"* (the
 /// editor's MEASURES rows, and the manage state behind a component dock's ＋).
+///
+/// The word is said once: the row has just named it, and *"blob · a batch
+/// makes 20 blob"* is the same word twice in eight words of English.
 String recipeMeasureListText(RecipeMeasure measure) =>
-    '${measure.label} · ${recipeMeasureRateText(measure)}';
+    '${measure.label} · a batch makes ${formatAmount(measure.perBatch)}';
 
-/// The one sentence a recipe measure IS — *"a batch makes 20 blob"*. The add
-/// form says it under the fields as the household types, which is how a
-/// one-number control stays unambiguous without a second phrasing.
+/// The one sentence a recipe measure IS — *"a batch makes 20 blob"*. It names
+/// the word because its readers are places the word is NOT already on screen
+/// beside it: the conversion line over a chip row, a card quoting a line.
 String recipeMeasureRateText(RecipeMeasure measure) =>
     'a batch makes ${formatAmount(measure.perBatch)} ${measure.label}';
 
