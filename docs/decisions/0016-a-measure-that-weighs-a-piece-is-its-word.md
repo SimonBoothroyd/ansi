@@ -74,6 +74,13 @@ measure is renamed.
 
 ## Consequences
 
+- **A row with a single measure opens on that measure, never on `piece`**
+  (owner: *a named measure is almost always better than generic piece*). It
+  needs no rule of its own — the chip order puts a row's own words in front of
+  the whole catalogue, and a surface with nothing stored opens on the first
+  chip offered (`firstOfferedChoice`) — but it is why that ordering is worth
+  holding as one thing: whatever the household called the thing is a better
+  answer than a count the app would then have to weigh.
 - **What still says `piece`.** A row that weighs a piece but names no size —
   Avocado, Chicken thigh, a tin — has no whole measure, and every door still
   says `piece (201 g)`. The word does not leave the app; it stops being

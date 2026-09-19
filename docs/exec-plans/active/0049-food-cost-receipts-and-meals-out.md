@@ -401,6 +401,13 @@ and can run beside phase one.
     line points at the measure the row has, keeping the figure read off the
     paper. If they do not, the sheet refuses, names both weights, and offers
     the house style's own way out — put the size in the word.
+- 2026-09-19 — **The remembered-match tag belongs to the OPEN card** (owner).
+  `as you matched it last time` says where an answer came from, and it is said
+  beside `tap to change`, because changing it IS the correction — so it lives
+  in the card's body and the collapsed row keeps only the name and the figure.
+  A settled row is settled, and the same sentence under twenty-nine of them is
+  a wall rather than an answer. Nothing moved in the code: the tag has only
+  ever been drawn inside the open card.
 - 2026-09-19 — **An aggregate that left something out says `at least`**
   (owner). The week band printed `≈ $71 to cook · 3 lines unpriced`, but a meal
   with one unpriced line is out of that figure WHOLE — so the number was short
