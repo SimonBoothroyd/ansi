@@ -183,11 +183,11 @@ Widget _host({
 
 void main() {
   group(
-    'the sheet opens on the ROW’S DEFAULT UNIT where no measure weighs a '
-    'piece (ADR-0015: a size is not a statement about what a count means)',
+    'the sheet opens on the FIRST CHIP the row offers (owner) — the row’s own '
+    'words lead it, and the default unit is where they run out',
     () {
-      testWidgets('a caller with no choice opens on the default unit, and that '
-          'seed is not a pick', (tester) async {
+      testWidgets('a caller with no choice opens on the row’s first measure, '
+          'and that seed is not a pick', (tester) async {
         filterForuiSemanticsAssertions();
         QuantitySaved? saved;
         await tester.pumpWidget(
@@ -198,40 +198,36 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // The measure is offered beside the units, never instead of them: what
-        // a bare count means is the row's piece weight now.
+        // The selected-choice line says the measure's words and weight…
+        expect(find.text('potato, large (299 g)'), findsOneWidget);
+        // …and the bare count is one tap away, after it.
         expect(
           find.descendant(
             of: find.byType(UnitChipRow),
-            matching: find.text('potato, large'),
+            matching: find.text('piece (213.5 g)'),
           ),
           findsOneWidget,
         );
-        expect(find.text('potato, large (299 g)'), findsNothing);
+
+        await tester.tap(find.text('Done'));
+        await tester.pumpAndSettle();
+        expect(saved!.choice, const MeasureOption(_large));
+        expect(saved!.unitPicked, isFalse);
+      });
+
+      testWidgets('a row with no word of its own opens on the default unit — '
+          'that is simply the first chip then', (tester) async {
+        filterForuiSemanticsAssertions();
+        QuantitySaved? saved;
+        await tester.pumpWidget(
+          _host(repo: _FakeMeasureRepo(const []), onDone: (s) => saved = s),
+        );
+        await tester.pumpAndSettle();
 
         await tester.tap(find.text('Done'));
         await tester.pumpAndSettle();
         expect(saved!.choice, const UnitOption(pieces));
         expect(saved!.unitPicked, isFalse);
-      });
-
-      testWidgets('a sole measure is never taken as the opening choice — one '
-          'measure is not a statement about what a count means', (
-        tester,
-      ) async {
-        filterForuiSemanticsAssertions();
-        QuantitySaved? saved;
-        await tester.pumpWidget(
-          _host(
-            repo: _FakeMeasureRepo(const [_large]),
-            onDone: (s) => saved = s,
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.text('Done'));
-        await tester.pumpAndSettle();
-        expect(saved!.choice, isNot(const MeasureOption(_large)));
       });
 
       testWidgets('a caller’s own choice still wins', (tester) async {
@@ -542,30 +538,69 @@ void main() {
     expect(saved!.unitPicked, isTrue);
   });
 
-  testWidgets('the row’s serving is ONE chip that says what it comes to, and '
-      'is not in the measures list', (tester) async {
-    filterForuiSemanticsAssertions();
+  group('the row’s serving is not on the picker (owner)', () {
     const serving = Measure(
       id: 'm-serving',
       label: 'serving · 1 cup',
       amount: 236.5882365,
     );
-    await tester.pumpWidget(
-      _host(
-        repo: _FakeMeasureRepo(const [_large, serving]),
-        initialChoice: const UnitOption(pieces),
-        onDone: (_) {},
-      ),
-    );
-    await tester.pumpAndSettle();
 
-    // The chip says the size, not the pack's words — "1 serving" is a thing
-    // a week's ingredient slot can genuinely say.
-    expect(find.text('serving (236.59 g)'), findsOneWidget);
-    expect(find.text('serving · 1 cup'), findsNothing);
+    testWidgets('no chip offers it — it is the size a panel is printed per, '
+        'not one anybody cooks in', (tester) async {
+      filterForuiSemanticsAssertions();
+      await tester.pumpWidget(
+        _host(
+          repo: _FakeMeasureRepo(const [_large, serving]),
+          initialChoice: const UnitOption(pieces),
+          onDone: (_) {},
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    // One chip, not two: a row has exactly one serving.
-    expect(find.textContaining('serving'), findsOneWidget);
+      expect(find.textContaining('serving'), findsNothing);
+      // The household's own measure is untouched beside it.
+      expect(
+        find.descendant(
+          of: find.byType(UnitChipRow),
+          matching: find.text('potato, large'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a line already stored on it keeps its chip, flagged, saying '
+        'what one serving comes to — and stays re-selectable', (tester) async {
+      filterForuiSemanticsAssertions();
+      QuantitySaved? saved;
+      await tester.pumpWidget(
+        _host(
+          repo: _FakeMeasureRepo(const [_large, serving]),
+          initialChoice: const MeasureOption(serving),
+          onDone: (s) => saved = s,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The chip says the size rather than the pack's own words, which are
+      // the wrong half beside `g` and `potato, large`.
+      expect(
+        find.descendant(
+          of: find.byType(UnitChipRow),
+          matching: find.text('serving (236.59 g)'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('not in filter'), findsOneWidget);
+
+      // Away and back again — the off-filter chip is never a one-way door.
+      await tester.tap(find.text('piece (213.5 g)'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('serving (236.59 g)'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(saved!.choice, const MeasureOption(serving));
+    });
   });
 
   testWidgets('a measure a recipe still uses is refused here too, and the '

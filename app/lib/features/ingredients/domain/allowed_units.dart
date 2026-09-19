@@ -22,6 +22,7 @@ import '../../../core/units/measure.dart';
 import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import 'ingredient.dart';
+import 'serving_measure.dart';
 
 // --- Kitchen ordering (ADR-0008 §Consequences) -------------------------------
 
@@ -257,17 +258,17 @@ const kWholeMeasureTolerance = 0.01;
 /// saved line meant — ADR-0015's objection, which retired that column — while
 /// two numbers agreeing is a fact that reads the same on every device and in
 /// the server's SQL. Null when the row states no weight (nothing to match
-/// against), when no measure weighs a piece, or when the only candidate merely
-/// names a volume unit (density owns volume, and the chip row never offers
-/// such a measure — see [isVolumeUnitLabel]). Two measures within tolerance
-/// resolve to the lowest [Measure.sortOrder], then label, so every reader
-/// picks the same one.
+/// against), when no measure weighs a piece, or when the only candidate is one
+/// the chip row would not offer anyway: a measure merely naming a volume unit
+/// (density owns volume — [isVolumeUnitLabel]) or the row's serving
+/// ([isServingMeasure]). Two measures within tolerance resolve to the lowest
+/// [Measure.sortOrder], then label, so every reader picks the same one.
 Measure? wholeMeasureOf(Ingredient ingredient, List<Measure> measures) {
   final weight = ingredient.pieceBasisAmount;
   if (weight == null || !(weight > 0)) return null;
   Measure? whole;
   for (final m in measures) {
-    if (isVolumeUnitLabel(m.label)) continue;
+    if (isVolumeUnitLabel(m.label) || isServingMeasure(m)) continue;
     if ((m.amount - weight).abs() > kWholeMeasureTolerance * weight) continue;
     if (whole == null ||
         m.sortOrder < whole.sortOrder ||
@@ -620,17 +621,21 @@ typedef UnitChoiceOffer = ({List<UnitChoice> choices, UnitChoice? offFilter});
 /// the given order (callers pass them `sort_order`-sorted, so the household's
 /// first measure is the next chip), then the default unit and the rest of its
 /// family, then the demoted other mass/volume family ("g of milk" —
-/// reachable, never fronted), then imprecise last. Measures whose label
-/// merely names a volume unit are excluded — see [isVolumeUnitLabel].
+/// reachable, never fronted), then imprecise last.
+///
+/// **Two kinds of measure are never offered.** One whose label merely names a
+/// volume unit, because density owns volume conversion ([isVolumeUnitLabel]);
+/// and the row's **serving** ([isServingMeasure]) — a serving is the size a
+/// nutrition panel is printed per, not a size a household cooks or shops in,
+/// so no door offers it (owner). It stays a measure arithmetically, and it is
+/// edited beside the figures it explains, in the nutrition section.
 ///
 /// **Measures first, because a measure is what this ingredient is.** `clove`
 /// and `can (400 g)` are words for *this* row and exist nowhere else; `g` and
 /// `cup` are the catalog, offered on everything, and a cook reaching for a
 /// clove of garlic should not read past four units the row shares with every
-/// other row to find it. The chip the sheet opens on is the whole measure
-/// where the row has one and the default unit otherwise — being first in the
-/// row and being selected are different things, and `piece (67 g)` stays
-/// offered after `lime, whole` for the cook who means a bare count.
+/// other row to find it. The chip a surface opens on is simply the first of
+/// this offer ([firstOfferedChoice]).
 ///
 /// A measure needs no density gate — its stored weight IS the bridge — and it
 /// applies to any ingredient that has one, count-default included (that's the
@@ -660,7 +665,10 @@ UnitChoiceOffer allowedUnitChoicesFor(
   final choices = <UnitChoice>[
     if (whole != null) MeasureOption(whole),
     for (final m in measures)
-      if (!isVolumeUnitLabel(m.label) && m.id != whole?.id) MeasureOption(m),
+      if (!isVolumeUnitLabel(m.label) &&
+          !isServingMeasure(m) &&
+          m.id != whole?.id)
+        MeasureOption(m),
     for (final u in units)
       if (!demoted(u) && u.family != UnitFamily.imprecise) UnitOption(u),
     for (final u in units)
@@ -673,4 +681,22 @@ UnitChoiceOffer allowedUnitChoicesFor(
       : null;
   if (offFilter != null) choices.add(offFilter);
   return (choices: choices, offFilter: offFilter);
+}
+
+/// The chip a quantity surface opens on when nothing is stored: **the first
+/// one offered** ([allowedUnitChoicesFor]).
+///
+/// The row opens on the chip it leads with, wherever that lands — the row's
+/// whole measure, else its first named word (`jar`, `clove`), else the default
+/// unit, which the catalog half fronts. Selecting something else would open
+/// the row already scrolled past its own first answer, which is the shape the
+/// owner ruled against.
+///
+/// A surface that has a choice to reopen on — a line being edited, a pack in
+/// the words it was last bought in — passes that instead and never asks here.
+UnitChoice firstOfferedChoice(Ingredient ingredient, List<Measure> measures) {
+  final choices = allowedUnitChoicesFor(ingredient, measures).choices;
+  // Totality only: the basis family is always admitted, so the offer is never
+  // actually empty.
+  return choices.isEmpty ? UnitOption(ingredient.defaultUnit) : choices.first;
 }

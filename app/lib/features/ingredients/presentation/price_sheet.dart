@@ -157,18 +157,11 @@ class PriceEditor extends HookConsumerWidget {
       return null;
     }, [measuresAsync]);
 
-    // The chip row opens on the row's WHOLE MEASURE where it has one (the
-    // measure that weighs what a piece weighs is the row's word for one,
-    // ADR-0016) and on its default unit otherwise — the same rule the
+    // The chip row opens on the first chip it offers — the same rule the
     // quantity sheet opens on, because it is the same control. A sheet opened
     // on a stored line opens on the chip that line was entered on instead,
     // seeded above.
-    final whole = wholeMeasureOf(ingredient, measures);
-    final packChoice =
-        choice.value ??
-        (whole == null
-            ? UnitOption(ingredient.defaultUnit)
-            : MeasureOption(whole));
+    final packChoice = choice.value ?? firstOfferedChoice(ingredient, measures);
 
     final stores = <String>[
       ...coined.value,

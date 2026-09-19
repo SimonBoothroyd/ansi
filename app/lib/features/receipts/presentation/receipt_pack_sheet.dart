@@ -104,12 +104,10 @@ class ReceiptPackEditor extends HookConsumerWidget {
     final measures =
         ref.watch(ingredientMeasuresProvider(ingredient.id)).asData?.value ??
         const <Measure>[];
-    final whole = wholeMeasureOf(ingredient, measures);
-    final packChoice =
-        choice.value ??
-        (whole == null
-            ? UnitOption(ingredient.defaultUnit)
-            : MeasureOption(whole));
+    // A line already priced reopens on the pack it was bought in ([choice]);
+    // a fresh one opens on the first chip the row offers, like every other
+    // quantity surface.
+    final packChoice = choice.value ?? firstOfferedChoice(ingredient, measures);
 
     final derived = packAmount.value == null
         ? null

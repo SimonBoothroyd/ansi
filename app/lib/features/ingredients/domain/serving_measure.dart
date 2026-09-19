@@ -42,8 +42,10 @@ String formatServingPhrase(double amount, Unit unit) =>
 /// what it is arithmetically — a named amount in the row's basis — but it is
 /// not a measure the household authored, and it is edited in the nutrition
 /// section beside the figures it is printed per. So every list of *measures*
-/// leaves it out, and the one place it still shows is the chip row, where "1
-/// serving" is a size a week's ingredient slot can genuinely say.
+/// leaves it out, **the unit picker included** (owner): a serving is the size
+/// a panel is printed per, not a size anyone cooks, plans or shops in. A line
+/// already stored on one still draws its chip and stays re-selectable, by the
+/// rule that admits any stored choice off-filter.
 bool isServingMeasure(Measure measure) =>
     measure.label.startsWith(kServingMeasurePrefix);
 
@@ -54,7 +56,9 @@ bool isServingMeasure(Measure measure) =>
 /// The stored label carries the pack's own words (`serving · 1 cup`), which is
 /// what lets the nutrition section print the label's figures back. On a chip
 /// beside `g` and `clove (3 g)` those words are the wrong half: what a person
-/// picking the chip needs is what one serving comes to.
+/// reading the chip needs is what one serving comes to. The picker no longer
+/// offers a serving, so the chip it says this for is the off-filter one a
+/// line already stored on the serving still draws.
 String measureChipLabel(Measure measure) => isServingMeasure(measure)
     ? 'serving (${formatNumber(measure.amount)} '
           '${measure.basis.baseUnit.label})'

@@ -281,12 +281,13 @@ void main() {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final prices = FakePriceRepo(stores: const ["TJ's", 'Whole Foods']);
+      // No measure on the row, so the chip row opens on its basis unit and
+      // the pack below is read in grams.
       await tester.pumpWidget(
         host(
           FakeIngredientRepo(const [bananas]),
           at: ingredientDetailRoute('banana'),
           prices: prices,
-          measures: FakeMeasureRepo(const [bagMeasure]),
         ),
       );
       await tester.pumpAndSettle();
@@ -311,6 +312,33 @@ void main() {
       );
       // The sheet closed onto the page, which now states the price.
       expect(find.byType(PriceEditor), findsNothing);
+    });
+
+    testWidgets('a new price opens on the chip the row leads with, not on its '
+        'default unit (owner)', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final prices = FakePriceRepo(stores: const ["TJ's"]);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [bananas]),
+          at: ingredientDetailRoute('banana'),
+          prices: prices,
+          measures: FakeMeasureRepo(const [bagMeasure]),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await openTheSheet(tester);
+
+      // No chip tapped: the pack is read as ONE bag because that is the chip
+      // the sheet opened on.
+      await enterPrice(tester, paid: '3.49', pack: '1');
+      expect(derivedText(tester), '= 77¢ / 100 g');
+
+      await tester.tap(find.widgetWithText(FButton, 'Done'));
+      await tester.pumpAndSettle();
+      expect(prices.recorded.single.packBasisAmount, 454);
+      expect(prices.recorded.single.measureId, 'm-bag');
     });
 
     testWidgets('a pack named as a measure is stored as its weight, and the '
