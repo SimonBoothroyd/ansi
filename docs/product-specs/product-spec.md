@@ -1077,7 +1077,10 @@ source-tab slot, footer slot):
   divider · a `+` chip) riding the keyboard at the
   sheet's bottom — the stack above the keyboard reads chips → Done →
   keyboard (Done sits between the chips and the keyboard; no native
-  accessory view). The `+` chip opens the manage-measures state (list +
+  accessory view). The default unit is fronted **whatever its family**: a row
+  whose default IS an imprecise word leads with that word, once and ahead of
+  the divider, so a spice said in pinches does not open on grams.
+  The `+` chip opens the manage-measures state (list +
   add form, see above). **A surface with nothing stored opens on the first
   chip** (`firstOfferedChoice`) — the row's whole measure where one weighs a
   piece, else its first word, else the default unit, which is where the row's

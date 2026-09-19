@@ -42,10 +42,10 @@ bridge it, so the form flags it and Save offers `g`/`ml` instead.
 | `pt` | — (default needs a density) | **pt** · tsp · tbsp · fl oz · cup · ml · l · qt |
 | `qt` | — (default needs a density) | **qt** · tsp · tbsp · fl oz · cup · ml · l · pt |
 | `piece` | **piece** · g · kg · oz · lb | **piece** · tsp · tbsp · fl oz · cup · ml · l · pt · qt |
-| `pinch` | g · kg · oz · lb · **pinch** | tsp · tbsp · fl oz · cup · ml · l · pt · qt · **pinch** |
-| `dash` | g · kg · oz · lb · **dash** | tsp · tbsp · fl oz · cup · ml · l · pt · qt · **dash** |
-| `handful` | g · kg · oz · lb · **handful** | tsp · tbsp · fl oz · cup · ml · l · pt · qt · **handful** |
-| `to taste` | g · kg · oz · lb · **to taste** | tsp · tbsp · fl oz · cup · ml · l · pt · qt · **to taste** |
+| `pinch` | **pinch** · g · kg · oz · lb | **pinch** · tsp · tbsp · fl oz · cup · ml · l · pt · qt |
+| `dash` | **dash** · g · kg · oz · lb | **dash** · tsp · tbsp · fl oz · cup · ml · l · pt · qt |
+| `handful` | **handful** · g · kg · oz · lb | **handful** · tsp · tbsp · fl oz · cup · ml · l · pt · qt |
+| `to taste` | **to taste** · g · kg · oz · lb | **to taste** · tsp · tbsp · fl oz · cup · ml · l · pt · qt |
 
 ## 2. With a density stored
 
@@ -70,10 +70,10 @@ stranded in table 1 appears in the second half.
 | `pt` | g · kg · oz · lb + **pt** · tsp · tbsp · fl oz · cup · ml · l · qt | **pt** · tsp · tbsp · fl oz · cup · ml · l · qt + g · kg · oz · lb |
 | `qt` | g · kg · oz · lb + **qt** · tsp · tbsp · fl oz · cup · ml · l · pt | **qt** · tsp · tbsp · fl oz · cup · ml · l · pt + g · kg · oz · lb |
 | `piece` | **piece** · g · kg · oz · lb + tsp · tbsp · fl oz · cup · ml · l · pt · qt | **piece** · tsp · tbsp · fl oz · cup · ml · l · pt · qt + g · kg · oz · lb |
-| `pinch` | g · kg · oz · lb · **pinch** + tsp · tbsp · fl oz · cup · ml · l · pt · qt | tsp · tbsp · fl oz · cup · ml · l · pt · qt · **pinch** + g · kg · oz · lb |
-| `dash` | g · kg · oz · lb · **dash** + tsp · tbsp · fl oz · cup · ml · l · pt · qt | tsp · tbsp · fl oz · cup · ml · l · pt · qt · **dash** + g · kg · oz · lb |
-| `handful` | g · kg · oz · lb · **handful** + tsp · tbsp · fl oz · cup · ml · l · pt · qt | tsp · tbsp · fl oz · cup · ml · l · pt · qt · **handful** + g · kg · oz · lb |
-| `to taste` | g · kg · oz · lb · **to taste** + tsp · tbsp · fl oz · cup · ml · l · pt · qt | tsp · tbsp · fl oz · cup · ml · l · pt · qt · **to taste** + g · kg · oz · lb |
+| `pinch` | **pinch** · g · kg · oz · lb + tsp · tbsp · fl oz · cup · ml · l · pt · qt | **pinch** · tsp · tbsp · fl oz · cup · ml · l · pt · qt + g · kg · oz · lb |
+| `dash` | **dash** · g · kg · oz · lb + tsp · tbsp · fl oz · cup · ml · l · pt · qt | **dash** · tsp · tbsp · fl oz · cup · ml · l · pt · qt + g · kg · oz · lb |
+| `handful` | **handful** · g · kg · oz · lb + tsp · tbsp · fl oz · cup · ml · l · pt · qt | **handful** · tsp · tbsp · fl oz · cup · ml · l · pt · qt + g · kg · oz · lb |
+| `to taste` | **to taste** · g · kg · oz · lb + tsp · tbsp · fl oz · cup · ml · l · pt · qt | **to taste** · tsp · tbsp · fl oz · cup · ml · l · pt · qt + g · kg · oz · lb |
 
 ## 3. Imprecise words, by category
 
@@ -92,11 +92,13 @@ import amount editor admits `to taste` on top of this for any food:
 
 ## How to read it
 
-- **Order is meaning.** The default unit is fronted, then the rest of its
-  family in kitchen order, then `piece` (a count default only, and only
-  while the row has a piece weight), then the demoted other
-  mass/volume family (reachable, never fronted — "g of milk" is doable but
-  strange), then the imprecise words last.
+- **Order is meaning.** The default unit is fronted **whatever its
+  family** — a row said in pinches leads with `pinch` rather than opening
+  on grams — then the rest of that family in kitchen order, then `piece`
+  (a count default only, and only while the row has a piece weight), then
+  the demoted other mass/volume family (reachable, never fronted — "g of
+  milk" is doable but strange), then the imprecise words the row merely
+  admits, last.
 - **The basis family is unconditional, and whole.** A per-100 g row can
   always say every weight, a per-100 ml row every volume — the canonical
   dimension needs no density, and a family is admitted whole or not at

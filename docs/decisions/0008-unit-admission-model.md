@@ -81,8 +81,17 @@ the current 7/291.
   family pre-ticked, density input (either entry style) unlocking the other
   family, measures list, category imprecise toggle. Board frame (d) grows
   accordingly.
-- Chip ordering becomes: default unit → basis-family kitchen sizes →
-  (density-unlocked family, demoted) → measures → imprecise-if-category.
+- Chip ordering becomes: the row's own **measures** → default unit →
+  basis-family kitchen sizes → (density-unlocked family, demoted) →
+  imprecise-if-category. The measures lead because a measure is a word for
+  *this* row alone, where a catalog unit is offered on every row.
+- **The default unit is fronted whatever its family** (owner). A row whose
+  default IS an imprecise word — Ground Allspice, Flaky Salt — leads with that
+  word, behind its own measures and ahead of the basis family, rather than
+  sinking to the imprecise tail and opening on `g`; what a row leads with and
+  what a surface with nothing stored opens on (`firstOfferedChoice`) are one
+  thing, so the second follows the first. The word is offered **once**: the
+  tail after the chip row's divider is the words the row merely admits.
 
 ## Rejected alternatives
 

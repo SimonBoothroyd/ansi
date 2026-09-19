@@ -235,6 +235,41 @@ void main() {
         expect(saved!.unitPicked, isFalse);
       });
 
+      testWidgets('a row said in pinches opens on pinch, not on its basis '
+          'unit (owner)', (tester) async {
+        filterForuiSemanticsAssertions();
+        QuantitySaved? saved;
+        const allspice = Ingredient(
+          id: 'i-allspice',
+          canonicalName: 'Ground Allspice',
+          defaultUnit: pinch,
+          category: 'spices & seasoning',
+          status: IngredientStatus.complete,
+        );
+        await tester.pumpWidget(
+          _host(
+            repo: _FakeMeasureRepo(const []),
+            ingredient: allspice,
+            onDone: (s) => saved = s,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Offered once: the tail behind the divider is the words the row
+        // merely admits, and its own word stands in front of it.
+        expect(
+          find.descendant(
+            of: find.byType(UnitChipRow),
+            matching: find.text('pinch'),
+          ),
+          findsOneWidget,
+        );
+        await tester.tap(find.text('Done'));
+        await tester.pumpAndSettle();
+        expect(saved!.choice, const UnitOption(pinch));
+        expect(saved!.unitPicked, isFalse);
+      });
+
       testWidgets('a caller’s own choice still wins', (tester) async {
         filterForuiSemanticsAssertions();
         QuantitySaved? saved;

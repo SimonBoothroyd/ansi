@@ -392,6 +392,12 @@ DefaultUnitOffer defaultUnitOfferFor(Ingredient ingredient) {
 /// mass/volume family (basis family first when both are demoted), imprecise
 /// last. Stored `allowed_units` is a SET — this is the single place display
 /// order comes from.
+///
+/// **The default unit is fronted whatever its family** (owner), imprecise
+/// included: the few rows that are bought and said in a word — Ground
+/// Allspice, Flaky Salt — would otherwise open on `g`, because the imprecise
+/// tail sits behind every weight. A word fronted this way is still taken
+/// once, so it never reappears among its own family.
 List<Unit> _orderUnits(Iterable<Unit> unitsIn, Ingredient ingredient) {
   final remaining = unitsIn.toSet();
   final d = ingredient.defaultUnit;
@@ -403,6 +409,7 @@ List<Unit> _orderUnits(Iterable<Unit> unitsIn, Ingredient ingredient) {
     if (remaining.remove(u)) out.add(u);
   }
 
+  if (d.family == UnitFamily.imprecise) take(d);
   if (d.family == UnitFamily.mass || d.family == UnitFamily.volume) {
     take(d);
     _kitchenOrder[d.family]!.forEach(take);
@@ -631,6 +638,12 @@ typedef UnitChoiceOffer = ({List<UnitChoice> choices, UnitChoice? offFilter});
 /// other row to find it. The chip a surface opens on is simply the first of
 /// this offer ([firstOfferedChoice]).
 ///
+/// **A row whose default unit is an imprecise word leads with that word**
+/// (owner), behind its own measures and ahead of the catalog: Ground Allspice
+/// is said in pinches, and a row that opens on `g` opens already scrolled
+/// past its own answer. It is offered ONCE — the imprecise tail at the end
+/// skips it — so the divider still separates the words nobody defaulted to.
+///
 /// A measure needs no density gate — its stored weight IS the bridge — and it
 /// applies to any ingredient that has one, count-default included (that's the
 /// whole point: count foods finally reach mass honestly).
@@ -656,6 +669,12 @@ UnitChoiceOffer allowedUnitChoicesFor(
 
   final units = allowedUnitsFor(ingredient);
   final whole = wholeMeasureOf(ingredient, measures);
+  // The row's own word for itself, where that word is an imprecise one: it
+  // leads the catalog rather than sinking to the tail with the words the row
+  // merely admits.
+  final leadWord = defaultFamily == UnitFamily.imprecise
+      ? ingredient.defaultUnit
+      : null;
   final choices = <UnitChoice>[
     if (whole != null) MeasureOption(whole),
     for (final m in measures)
@@ -663,12 +682,13 @@ UnitChoiceOffer allowedUnitChoicesFor(
           !isServingMeasure(m) &&
           m.id != whole?.id)
         MeasureOption(m),
+    if (leadWord != null && units.contains(leadWord)) UnitOption(leadWord),
     for (final u in units)
       if (!demoted(u) && u.family != UnitFamily.imprecise) UnitOption(u),
     for (final u in units)
       if (demoted(u)) UnitOption(u),
     for (final u in units)
-      if (u.family == UnitFamily.imprecise) UnitOption(u),
+      if (u.family == UnitFamily.imprecise && u != leadWord) UnitOption(u),
   ];
   final offFilter = current != null && !choices.contains(current)
       ? current

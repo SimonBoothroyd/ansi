@@ -373,6 +373,12 @@ ingredients/
     words run out, since the catalog half fronts it. A surface that has
     something to reopen on — a line being edited, a pack in the words it was
     last bought in — passes that and never asks.
+  - **The catalog half fronts the default unit whatever its family** (owner).
+    The few rows whose default IS an imprecise word — Ground Allspice, Ground
+    Cloves, Flaky Salt — lead with that word, behind their own measures and
+    ahead of the basis family, so a spice said in pinches does not open on
+    `g`. It is offered **once**: the tail after the chip row's divider is the
+    words the row merely admits, and the divider sits behind the fronted one.
 - **A price is an event, and the figure a screen reads is derived from it.**
   The ledger is `receipt` + `receipt_line` (migration 0044) and a hand-typed
   price is a one-line `manual` receipt, so a typed price and a scanned one are

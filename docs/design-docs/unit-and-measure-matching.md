@@ -434,7 +434,10 @@ The picker itself is honest by construction: `allowedUnitChoicesFor` offers
 only the ingredient's admitted units + its live measures, in chip order
 (**measures first**, in their `sort_order` → the default unit and the rest of
 its family → demoted other-family → imprecise last), excluding
-volume-named measures. **The stored selection is always re-offered** even when
+volume-named measures. **The default unit is fronted whatever its family**, so
+a row said in pinches leads with `pinch` — once, ahead of the chip row's
+divider — rather than opening on grams (owner; ADR-0008 §Consequences).
+**The stored selection is always re-offered** even when
 it falls outside the current filter (`offFilter`, "not in filter"), so an
 existing line never renders an orphaned value.
 

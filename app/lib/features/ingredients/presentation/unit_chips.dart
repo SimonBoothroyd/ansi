@@ -21,11 +21,13 @@ import 'measures_editor.dart' show SourceDot;
 /// The chip row in the order [allowedUnitChoicesFor] hands it: the row's own
 /// measures (source dot + label) · the default unit and the rest of its
 /// family · demoted other-family units · imprecise after a divider · the `+`
-/// manage chip, where the host has a manage state to open. Horizontally
-/// scrollable; docked directly
-/// above the keyboard by the host sheet. On open it scrolls the selected
-/// chip into view — a stored selection can sit deep in a long row and must
-/// not open off-screen.
+/// manage chip, where the host has a manage state to open. A row whose
+/// default unit IS an imprecise word leads the catalog with it, ahead of the
+/// divider and once only.
+///
+/// Horizontally scrollable; docked directly above the keyboard by the host
+/// sheet. On open it scrolls the selected chip into view — a stored selection
+/// can sit deep in a long row and must not open off-screen.
 ///
 /// The row's **serving** is not among the measures the filter offers, but a
 /// line already stored on it arrives as [stored] and is drawn last, flagged
@@ -80,7 +82,8 @@ class _UnitChipRowState extends State<UnitChipRow> {
   @override
   Widget build(BuildContext context) {
     // The full offer comes from the domain filter — already in ADR-0008 chip
-    // order (measures → default set → demoted → imprecise), excluding
+    // order (measures → an imprecise default → default set → demoted →
+    // imprecise), excluding
     // volume-named measures (density owns volume conversion, frame-b review)
     // and ALWAYS admitting the stored selection — a merge-hidden duplicate
     // measure or a no-longer-allowed unit stays reachable, flagged so it can
@@ -95,12 +98,20 @@ class _UnitChipRowState extends State<UnitChipRow> {
         ? offer.choices
         : offer.choices.sublist(0, offer.choices.length - 1);
 
+    // The row's own default word, where that word is an imprecise one, leads
+    // the catalog chips instead of sitting in the tail — so the divider, which
+    // marks where the words the row merely admits begin, goes after it and not
+    // in front of it.
+    final leadWord =
+        widget.ingredient.defaultUnit.family == UnitFamily.imprecise
+        ? widget.ingredient.defaultUnit
+        : null;
     final children = <Widget>[];
     var dividerPlaced = false;
     for (final c in inFilter) {
       final imprecise =
           c is UnitOption && c.unit.family == UnitFamily.imprecise;
-      if (imprecise && !dividerPlaced) {
+      if (imprecise && c.unit != leadWord && !dividerPlaced) {
         dividerPlaced = true;
         children.add(
           Container(

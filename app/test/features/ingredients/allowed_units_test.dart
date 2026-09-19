@@ -122,11 +122,14 @@ void main() {
       expect(egg, isNot(contains(dash)));
     });
 
-    test('an imprecise default keeps its whole tail + the basis family', () {
+    test('an imprecise default leads, then the basis family, then the rest '
+        'of its own tail (owner)', () {
       final units = allowedUnitsFor(
         _ing(pinch, category: 'spices & seasoning'),
       );
-      expect(units, [..._mass, pinch, dash, handful, toTaste]);
+      // The default unit is fronted whatever its family: a row said in
+      // pinches must not open already scrolled past its own word.
+      expect(units, [pinch, ..._mass, dash, handful, toTaste]);
     });
 
     test('a mass default /g with density unlocks the volume family, after the '
@@ -176,7 +179,7 @@ void main() {
       final units = allowedUnitsFor(
         _ing(pinch, density: 1, category: 'spices & seasoning'),
       );
-      expect(units, [..._mass, ..._volume, pinch, dash, handful, toTaste]);
+      expect(units, [pinch, ..._mass, ..._volume, dash, handful, toTaste]);
     });
 
     group('ADR-0014 — all to all: a family is admitted whole', () {
@@ -1194,15 +1197,38 @@ void main() {
       );
     });
 
-    test('it is the first chip and nothing else — an imprecise default is not '
-        'fronted by the chip order, so such a row opens on its basis unit', () {
-      // The order puts every mass/volume unit ahead of the imprecise words,
-      // whatever the default is; `pinch` is still offered, after the divider.
+    test('the row’s own word where that word is an imprecise one (owner)', () {
+      // Ground Allspice is bought and said in pinches. The chip order fronts
+      // the default unit whatever its family, so what the row leads with and
+      // what it opens on stay the same thing.
       final allspice = _ing(pinch, category: 'spices & seasoning');
-      expect(firstOfferedChoice(allspice, const []), const UnitOption(g));
+      expect(firstOfferedChoice(allspice, const []), const UnitOption(pinch));
+      final choices = allowedUnitChoicesFor(allspice, const []).choices;
+      expect(choices.first, const UnitOption(pinch));
       expect(
-        allowedUnitChoicesFor(allspice, const []).choices,
-        contains(const UnitOption(pinch)),
+        choices.where((c) => c == const UnitOption(pinch)),
+        hasLength(1),
+        reason: 'offered once — never again in the tail after the divider',
+      );
+      // The words it merely admits stay where they were, behind the weights.
+      expect(choices.last, const UnitOption(toTaste));
+      expect(
+        choices.indexOf(const UnitOption(dash)),
+        greaterThan(choices.indexOf(const UnitOption(g))),
+      );
+    });
+
+    test('a named measure still leads an imprecise default (owner)', () {
+      const jar = Measure(id: 'm-jar', label: 'jar', amount: 340);
+      final salt = _ing(pinch, category: 'spices & seasoning');
+      expect(
+        firstOfferedChoice(salt, const [jar]),
+        const MeasureOption(jar),
+        reason: 'the row’s own words lead everything',
+      );
+      expect(
+        allowedUnitChoicesFor(salt, const [jar]).choices[1],
+        const UnitOption(pinch),
       );
     });
   });
