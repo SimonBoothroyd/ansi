@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (48 migrations, 22 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (49 migrations, 23 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -124,6 +124,8 @@ introduced in `0003_recipes.sql` · RLS enabled · in the `powersync` publicatio
 | `yield_qty_2` | `numeric` | yes | check (yield_qty_2 is null or yield_qty_2 > 0) *(added in `0017_nested_recipes.sql`)* |
 | `yield_unit_2` | `text` | yes | *(added in `0017_nested_recipes.sql`)* |
 
+Table constraints: `constraint recipe_yield_pair check (num_nonnulls(yield_qty, yield_unit) <> 1)`; `constraint recipe_yield_2_pair check (num_nonnulls(yield_qty_2, yield_unit_2) <> 1)`; `constraint recipe_yield_2_needs_first check (yield_qty_2 is null or yield_qty is not null)`; `constraint recipe_yield_2_other_family check ( yield_unit_2 is null or coalesce(unit_family(yield_unit_2), 'unit:' || yield_unit_2) is distinct from coalesce(unit_family(yield_unit), 'unit:' || yield_unit) )`
+
 ## `ingredient_group`
 
 introduced in `0003_recipes.sql` · RLS enabled · in the `powersync` publication
@@ -150,7 +152,7 @@ introduced in `0003_recipes.sql` · RLS enabled · in the `powersync` publicatio
 | `group_id` | `uuid` | no | not null references ingredient_group(id) on delete cascade |
 | `ingredient_id` | `uuid` | yes | references ingredient(id) *(nullable since `0017_nested_recipes.sql`)* |
 | `quantity` | `numeric` | yes |  |
-| `unit` | `text` | no | not null |
+| `unit` | `text` | yes | *(nullable since `0048_recipe_measure.sql`)* |
 | `note` | `text` | yes |  |
 | `sort_order` | `int` | no | not null default 0 |
 | `created_at` | `timestamptz` | no | not null default now() |
@@ -159,6 +161,9 @@ introduced in `0003_recipes.sql` · RLS enabled · in the `powersync` publicatio
 | `measure_id` | `uuid` | yes | references ingredient_measure(id) *(added in `0009_ingredient_measures.sql`)* |
 | `sub_recipe_id` | `uuid` | yes | references recipe(id) *(added in `0017_nested_recipes.sql`)* |
 | `optional` | `boolean` | no | not null default false *(added in `0025_optional_line.sql`)* |
+| `recipe_measure_id` | `uuid` | yes | references recipe_measure(id) *(added in `0048_recipe_measure.sql`)* |
+
+Table constraints: `constraint line_item_identity_xor check (num_nonnulls(ingredient_id, sub_recipe_id) = 1)`; `constraint line_item_component_has_no_measure check (sub_recipe_id is null or measure_id is null)`; `constraint line_item_recipe_measure_is_a_component check (recipe_measure_id is null or sub_recipe_id is not null)`; `constraint line_item_recipe_measure_needs_amount check (recipe_measure_id is null or quantity is not null)`; `constraint line_item_unit_xor_recipe_measure check (num_nonnulls(unit, recipe_measure_id) = 1)`
 
 ## `book`
 
@@ -230,6 +235,8 @@ introduced in `0005_planning.sql` · RLS enabled · in the `powersync` publicati
 | `label` | `text` | yes | check (label is null or length(btrim(label)) > 0) *(added in `0045_plan_entry_out.sql`)* |
 | `macros` | `jsonb` | yes | *(added in `0045_plan_entry_out.sql`)* |
 
+Table constraints: `constraint plan_entry_amount_is_for_ingredients check ( ingredient_id is not null or num_nonnulls(quantity, unit, measure_id) = 0 )`; `constraint plan_entry_amount_pair check (num_nonnulls(quantity, unit) <> 1)`; `constraint plan_entry_measure_needs_amount check (measure_id is null or quantity is not null)`; `constraint plan_entry_target_xor check (num_nonnulls(recipe_id, ingredient_id, label) = 1)`; `constraint plan_entry_macros_is_for_label check (label is not null or macros is null)`
+
 ## `shopping_list_entry`
 
 introduced in `0006_shopping.sql` · RLS enabled · in the `powersync` publication
@@ -285,6 +292,8 @@ introduced in `0009_ingredient_measures.sql` · RLS enabled · in the `powersync
 | `deleted_at` | `timestamptz` | yes |  |
 | `source` | `text` | yes | *(added in `0010_measure_provenance.sql`)* |
 | `basis_amount` | `numeric` | no | not null *(added in `0012_unit_admission.sql`)* |
+
+Table constraints: `constraint measure_basis_amount_positive check (basis_amount > 0)`
 
 ## `usda_search_token`
 
@@ -349,8 +358,9 @@ introduced in `0040_week_recipe_line_override.sql` · RLS enabled · in the `pow
 | `created_at` | `timestamptz` | no | not null default now() |
 | `updated_at` | `timestamptz` | no | not null default now() |
 | `deleted_at` | `timestamptz` | yes |  |
+| `recipe_measure_id` | `uuid` | yes | references recipe_measure(id) *(added in `0048_recipe_measure.sql`)* |
 
-Table constraints: `constraint week_recipe_line_override_one_per_line unique (week_plan_id, recipe_id, recipe_line_item_id)`; `constraint week_recipe_line_override_action_shape check ( case action when 'include' then recipe_line_item_id is not null and num_nonnulls(ingredient_id, sub_recipe_id, quantity, unit, measure_id, note) = 0 when 'exclude' then recipe_line_item_id is not null and num_nonnulls(ingredient_id, sub_recipe_id, quantity, unit, measure_id, note) = 0 when 'replace' then recipe_line_item_id is not null and num_nonnulls(ingredient_id, sub_recipe_id) = 1 when 'add' then recipe_line_item_id is null and num_nonnulls(ingredient_id, sub_recipe_id) = 1 end )`; `constraint week_recipe_line_override_component_has_no_measure check (sub_recipe_id is null or measure_id is null)`; `constraint week_recipe_line_override_amount_pair check (num_nonnulls(quantity, unit) <> 1)`; `constraint week_recipe_line_override_measure_needs_amount check (measure_id is null or quantity is not null)`
+Table constraints: `constraint week_recipe_line_override_one_per_line unique (week_plan_id, recipe_id, recipe_line_item_id)`; `constraint week_recipe_line_override_action_shape check ( case action when 'include' then recipe_line_item_id is not null and num_nonnulls(ingredient_id, sub_recipe_id, quantity, unit, measure_id, note) = 0 when 'exclude' then recipe_line_item_id is not null and num_nonnulls(ingredient_id, sub_recipe_id, quantity, unit, measure_id, note) = 0 when 'replace' then recipe_line_item_id is not null and num_nonnulls(ingredient_id, sub_recipe_id) = 1 when 'add' then recipe_line_item_id is null and num_nonnulls(ingredient_id, sub_recipe_id) = 1 end )`; `constraint week_recipe_line_override_component_has_no_measure check (sub_recipe_id is null or measure_id is null)`; `constraint week_recipe_line_override_measure_needs_amount check (measure_id is null or quantity is not null)`; `constraint week_recipe_line_override_recipe_measure_is_a_component check (recipe_measure_id is null or sub_recipe_id is not null)`; `constraint week_recipe_line_override_recipe_measure_needs_amount check (recipe_measure_id is null or quantity is not null)`; `constraint week_recipe_line_override_amount_pair check ( case when recipe_measure_id is not null then unit is null else num_nonnulls(quantity, unit) <> 1 end )`
 
 ## `receipt`
 
@@ -394,4 +404,20 @@ introduced in `0044_receipts.sql` · RLS enabled · in the `powersync` publicati
 | `pack_unit` | `text` | yes | *(added in `0046_receipt_line_pack_as_entered.sql`)* |
 | `name_printed` | `text` | yes | *(added in `0047_receipt_line_name_printed.sql`)* |
 
-Table constraints: `constraint receipt_line_only_items_are_priced check ( kind = 'item' or (ingredient_id is null and pack_basis_amount is null and measure_id is null) )`
+Table constraints: `constraint receipt_line_only_items_are_priced check ( kind = 'item' or (ingredient_id is null and pack_basis_amount is null and measure_id is null) )`; `constraint receipt_line_only_items_state_a_pack check ( kind = 'item' or (pack_amount is null and pack_unit is null) )`; `constraint receipt_line_a_pack_unit_needs_an_amount check ( pack_unit is null or pack_amount is not null )`
+
+## `recipe_measure`
+
+introduced in `0048_recipe_measure.sql` · RLS enabled · in the `powersync` publication
+
+| Column | Type | Nullable | Details |
+|---|---|---|---|
+| `id` | `uuid` | no | primary key default gen_random_uuid() |
+| `household_id` | `uuid` | no | not null references household(id) |
+| `recipe_id` | `uuid` | no | not null references recipe(id) on delete cascade |
+| `label` | `text` | no | not null constraint recipe_measure_label_not_blank check (btrim(label) <> '') |
+| `per_batch` | `numeric` | no | not null constraint recipe_measure_per_batch_positive check (per_batch > 0) |
+| `sort_order` | `int` | no | not null default 0 |
+| `created_at` | `timestamptz` | no | not null default now() |
+| `updated_at` | `timestamptz` | no | not null default now() |
+| `deleted_at` | `timestamptz` | yes |  |

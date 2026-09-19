@@ -137,7 +137,14 @@ vocab: named per-ingredient measures with gram weights ("1 potato, medium =
 213 g") — the honest count↔mass bridge for count foods
 (`app/lib/core/units/measure.dart`), referenced by nullable `measure_id` FKs
 on `recipe_line_item` and `shopping_list_contribution`, each row carrying its
-weight's provenance (`source`, 0010). The rows that fill them come from the
+weight's provenance (`source`, 0010). Its recipe-side counterpart is
+`recipe_measure` (migration `0048`): a household word for one of what a
+*recipe* makes — `blob`, `ladle`, `patty` — defined by one number
+(`per_batch`, how many of the word a batch makes), so a component line can say
+`3 blob` of a sauce nobody weighed. It carries no provenance, because a
+recipe's words only ever come from the household that wrote the recipe, and no
+unit, because the word is its own denomination. The rows that fill the
+ingredient measures come from the
 checked-in seeds (`supabase/seed_vocab.sql` — the whole curated household
 vocabulary in one generated file: ingredients with their densities, macros,
 piece weights and explicit `allowed_units`, plus their aliases and measures;
