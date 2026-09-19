@@ -1,0 +1,65 @@
+/// Authoring a measure's WORD — PURE DART (invariant 2).
+///
+/// A measure can be authored at two doors: the row's own measures editor, and
+/// *keep as a measure* on a receipt's pack. They are the same act, so the
+/// label is read the same way at both — otherwise ` Can ` and `Can` become two
+/// rows of one word, which the merge-on-read rule then hides one of rather
+/// than fixing.
+library;
+
+import '../../../core/units/measure.dart';
+import 'allowed_units.dart';
+
+/// [label] as the household wrote it: trimmed, with any run of inner
+/// whitespace read as one space.
+///
+/// **Case is theirs.** Nothing here lower-cases: the measures editor never has,
+/// and a silent case change is the kind of edit that makes a person doubt what
+/// else was changed. The seed's own style — all lower case, singular, a
+/// container word carrying its shelf size (`can (14.5 oz)`) — is a thing the
+/// doors *suggest*, not a thing this function imposes.
+String measureLabelAsAuthored(String label) =>
+    label.trim().replaceAll(RegExp(r'\s+'), ' ');
+
+/// The live measure of this row that already carries [label], ignoring case,
+/// or null.
+///
+/// Case-insensitive on purpose, and looser than the repository's own collision
+/// check: that one refuses exactly what the merge-on-read rule would hide, and
+/// this one refuses what a PERSON would read as the same word. A row offering
+/// both `can (14.5 oz)` and `Can (14.5 oz)` in its chip row is two ways to say
+/// one thing.
+///
+/// [measures] is read in its given order, which is `sort_order`, so two rows
+/// that are already duplicates resolve to the same one on every device.
+Measure? measureAlreadyNamed(String label, List<Measure> measures) {
+  final word = measureLabelAsAuthored(label).toLowerCase();
+  if (word.isEmpty) return null;
+  for (final m in measures) {
+    if (measureLabelAsAuthored(m.label).toLowerCase() == word) return m;
+  }
+  return null;
+}
+
+/// Whether two basis weights are the same fact — the app's one tolerance for
+/// that ([kWholeMeasureTolerance], one part in a hundred), so *the same
+/// measure* means the same thing here as it does where a whole measure is
+/// derived.
+bool isSameMeasureWeight(double a, double b) =>
+    a > 0 && b > 0 && (a - b).abs() <= kWholeMeasureTolerance * b;
+
+/// Why a word cannot be minted: the row already says it, at a weight this
+/// pack is not.
+///
+/// It names both figures and the way out, because the way out is a real one —
+/// the household's own style already distinguishes two sizes of one container
+/// by putting the size in the word (`can (14.5 oz)` beside `can (28 oz)`), and
+/// that is what makes them two measures rather than one argument.
+String measureWordTakenRefusal({
+  required String label,
+  required String said,
+  required String taken,
+}) =>
+    '“$label” is already $taken on this row, and this pack is $said. Two '
+    'sizes of one container are two words — say the size in it, like '
+    '“$label ($said)”.';

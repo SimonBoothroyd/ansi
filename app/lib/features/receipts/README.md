@@ -108,10 +108,36 @@ presentation/
 ## The one place a measure is minted
 
 The import pipeline mints no measure and never has. The **household's own tap**
-does, once: *keep as a measure* on the pack door names `482 g` as *bottle*, and
-Save writes that measure on the row before the line, so the line points at the
-word rather than at the unit it was typed in. Everywhere else on this screen,
-a word the person did not ask for is not created.
+does: *keep as a measure* on the pack door names `482 g` as `bottle (17 oz)`,
+and Save writes that measure on the row before the line, so the line points at
+the word rather than at the unit it was typed in. Everywhere else on this
+screen, a word the person did not ask for is not created.
+
+**What minting buys is a WORD, and the door says so.** The pack carries over
+from the row's latest price whether or not a word was minted (`landPack`), so a
+plain `482 g` lands on the next receipt exactly as `bottle (17 oz)` would. What
+a word buys is one the household can also say on a recipe line, and one the
+Shop can say *buy 3* of — and it costs something, because a word turns up on
+every recipe-line chip row for that ingredient and becomes the Shop's rounding
+unit on a row that had none. So the toggle asks for a word worth having rather
+than promising a pack that was never at stake.
+
+The hint shows the household's own style, taken from the seed it curated: all
+lower case, singular, and **a container word carries its shelf size in the unit
+the shelf prints** — `can (14.5 oz)`, `block (14 oz)`, `bag (1 lb)`,
+`carton (32 oz)`. Two sizes of one container are two measures on the row.
+
+**A word the row already says is not minted twice.** The label is read the same
+way at both authoring doors (`ingredients/domain/measure_authoring.dart` —
+trimmed, inner whitespace collapsed, case left alone, because the measures
+editor has never changed it), and a live measure carrying the same word
+case-insensitively is either *this* measure or an argument:
+
+- the weights agree within the app's one tolerance for the same measure
+  (`kWholeMeasureTolerance`) → nothing is minted and the line points at the
+  measure the row already has, keeping the figure read off the paper;
+- they do not → the sheet refuses and says why, naming both weights and the
+  way out, which is the house style's own answer: put the size in the word.
 
 ## Where the seam is
 

@@ -8,10 +8,22 @@
 /// Done, and the same refusal when the row cannot weigh the pack.
 ///
 /// One thing is here that the price sheet has no use for: **keep as a
-/// measure**. A receipt asks this question once per product, and a household
-/// that answers `482 g` and names it *bottle* has taught its vocabulary a
-/// word it can use in a recipe. It is minted at Save, on the row, by the
-/// person's own tap — the import itself mints nothing, as it never has.
+/// measure**. What it buys is a WORD — one the household can also say on a
+/// recipe line, and one the Shop can say *buy 3* of. It buys nothing about
+/// the next receipt: the pack carries over from this row's latest price
+/// whether or not a word was minted (`landPack`), so a plain `482 g` lands on
+/// the next receipt exactly as `bottle` would.
+///
+/// That matters because the toggle's old justification said the opposite, and
+/// a batch of bare `pack` and `jar` measures was minted on the strength of it
+/// — words that then turn up on recipe-line chips and become the Shop's
+/// rounding unit on rows that had no measure. So the copy names what minting
+/// is for, the hint shows the household's own style (a container word carries
+/// its shelf size: `can (14.5 oz)`), and a word the row already says is not
+/// minted twice.
+///
+/// It is minted at Save, on the row, by the person's own tap — the import
+/// itself mints nothing, as it never has.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -31,6 +43,7 @@ import '../../../shared/ansi_sheet_shell.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
+import '../../ingredients/domain/measure_authoring.dart';
 import '../../ingredients/domain/price.dart';
 import '../../ingredients/presentation/ingredient_facts.dart';
 import '../../ingredients/presentation/unit_chips.dart';
@@ -40,6 +53,9 @@ const kReceiptPackDerivedKey = ValueKey('receipt-pack-derived');
 
 /// The *keep as a measure* toggle.
 const kKeepAsMeasureKey = ValueKey('receipt-keep-as-measure');
+
+/// The line under the word field: what minting buys, or why this word cannot.
+const kKeepAsMeasureNoteKey = ValueKey('receipt-keep-as-measure-note');
 
 /// What the sheet hands back: the pack in both denominations, and the word to
 /// mint where the person asked for one.
@@ -122,23 +138,55 @@ class ReceiptPackEditor extends HookConsumerWidget {
     // A pack already named as one of the row's measures has nothing to mint:
     // the word exists. The toggle is drawn only where there is a word to gain.
     final canKeep = packChoice is UnitOption;
-    final named = word.value.trim();
+    final named = measureLabelAsAuthored(word.value);
+    final basis = packAmount.value == null
+        ? null
+        : packInBasis(
+            ingredient,
+            amount: packAmount.value!,
+            choice: packChoice,
+          );
+    final said = basis is Ok<double> ? basis.value : null;
+    final base = ingredient.macrosBasis.baseUnit;
+    String weighs(double amount) =>
+        '${formatAmountIn(amount, base)} ${base.label}';
+
+    // A word the row already says is not minted a second time. Where the two
+    // weigh the same, this pack IS that measure and the line points at it;
+    // where they do not, the word is taken and the sheet says so rather than
+    // quietly making a second row of it.
+    final taken = !canKeep || !keeping.value
+        ? null
+        : measureAlreadyNamed(named, measures);
+    final takenWord = taken == null ? '' : measureLabelAsAuthored(taken.label);
+    final isThatMeasure =
+        taken != null &&
+        said != null &&
+        isSameMeasureWeight(said, taken.amount);
+    final refusal = taken == null || isThatMeasure
+        ? null
+        : measureWordTakenRefusal(
+            label: takenWord,
+            said: said == null ? 'a different size' : weighs(said),
+            taken: weighs(taken.amount),
+          );
+
     final canDone =
         derived is Ok<PricePer100> &&
+        refusal == null &&
         (!canKeep || !keeping.value || named.isNotEmpty);
 
     void done() {
-      final basis = packInBasis(
-        ingredient,
-        amount: packAmount.value!,
-        choice: packChoice,
-      );
-      if (basis is! Ok<double>) return;
+      if (said == null) return;
       onDone((
-        amount: packAmount.value!,
-        choice: packChoice,
-        basisAmount: basis.value,
-        keepAsMeasure: canKeep && keeping.value && named.isNotEmpty
+        // The pack keeps the FIGURE the person typed either way: what this
+        // shop bought is what they read off the paper, not what the row says
+        // the word weighs today.
+        amount: isThatMeasure ? 1 : packAmount.value!,
+        choice: isThatMeasure ? MeasureOption(taken) : packChoice,
+        basisAmount: said,
+        keepAsMeasure:
+            canKeep && keeping.value && named.isNotEmpty && !isThatMeasure
             ? named
             : null,
       ));
@@ -206,7 +254,7 @@ class ReceiptPackEditor extends HookConsumerWidget {
           if (keeping.value) ...[
             const SizedBox(height: 8),
             FTextField(
-              hint: 'e.g. bottle',
+              hint: 'e.g. can (14.5 oz)',
               control: FTextFieldControl.managed(
                 controller: wordField,
                 onChange: (v) => word.value = v.text,
@@ -214,14 +262,28 @@ class ReceiptPackEditor extends HookConsumerWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'The paper prints no size. Entered once and kept as a word, the '
-              'next receipt lands on it and asks nothing.',
+              refusal ??
+                  'The next receipt lands on this pack either way. Mint a word '
+                      'only for one you would also say on a recipe line, or '
+                      'want the shop to say “buy 3” of — and put the shelf '
+                      'size in it, like “can (14.5 oz)”, because two sizes of '
+                      'one container are two words.',
+              key: kKeepAsMeasureNoteKey,
               style: ansiSans(
                 size: 11.5,
-                color: AnsiColors.muted,
+                color: refusal == null ? AnsiColors.muted : AnsiColors.aging,
                 height: 1.35,
               ),
             ),
+            if (isThatMeasure)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  'this row already says “$takenWord” at this weight — '
+                  'the line will point at it',
+                  style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
+                ),
+              ),
           ],
         ],
 

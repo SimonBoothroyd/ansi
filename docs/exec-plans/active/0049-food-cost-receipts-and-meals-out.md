@@ -368,6 +368,37 @@ and can run beside phase one.
   - **A recall that throws does not cost the receipt.** The photos are read and
     the model is paid for by then; the receipt arrives exactly as the cascade
     alone would have had it, and the failure is logged.
+- 2026-09-19 — **Keeping the pack as a word buys a WORD, and the door was
+  saying otherwise** (owner's own vocabulary, read back). The toggle's
+  justification said that entering the pack once and naming it is what makes
+  "the next receipt land on it and ask nothing". That is false and always was:
+  R2's own ruling is that the PACK carries over, from the row's latest price,
+  whether or not a word was minted — a plain `482 g` lands exactly as `bottle`
+  would (`landPack`). Reading that sentence, the owner minted a batch of bare
+  `pack` and `jar` measures on his first receipt, and those words now turn up
+  on recipe-line chips and become the Shop's rounding unit on rows that had no
+  measure at all.
+  - **The copy now names the real gain**: a word you would also say on a recipe
+    line, or want the shop to say *buy 3* of. And it says the pack carries over
+    either way, so nothing is minted to buy something already free.
+  - **The hint is the household's own style**, audited off the curated seed's
+    306 measures: all lower case, singular, and a container word carrying its
+    shelf size in the unit the shelf prints — `can (14.5 oz)`, `block (14 oz)`,
+    `bag (1 lb)`, `carton (32 oz)`. Two sizes of one container are two
+    measures; a qualifier follows a comma; a store's name lives in `source`,
+    never in the label.
+  - **One rule for a measure's word wherever it is authored**
+    (`ingredients/domain/measure_authoring.dart`): trimmed, an inner run of
+    whitespace read as one space, and **case left alone** — the measures editor
+    has never changed it, and a silent case change is the kind of edit that
+    makes a person doubt the rest. The measures editor's repository now reads
+    labels through the same function.
+  - **A word the row already says is not minted twice.** Same word,
+    case-insensitively: if the weights agree within `kWholeMeasureTolerance`
+    (the app's one tolerance for *the same measure*), nothing is minted and the
+    line points at the measure the row has, keeping the figure read off the
+    paper. If they do not, the sheet refuses, names both weights, and offers
+    the house style's own way out — put the size in the word.
 - 2026-09-17 — **The desk's three columns are not built** (R2). The phone
   review works at the 640 measure on a wide window, and the width would buy one
   thing: the printed line standing beside the card that claims to read it. It
