@@ -57,6 +57,17 @@ query joins `week_recipe_line_override` so ticking a line in re-derives the
 plan. A component the batch math cannot resolve stays a named `ComponentGap` —
 never a `1×` assumption.
 
+**A line said in one of the target's own words flows through this graph with its
+pointer** — `3 blob` of a sauce that makes 20 of them is 0.15 batches, which
+needs no yield at all (ADR-0018). `loadComponentGraph` carries every recipe's
+live words beside its yields (`loadRecipeMeasures`, one query keyed by recipe
+id), and the watch joins `recipe_measure`, so re-stating a word re-derives the
+plan. The loader's `unit == null` branch is measure-aware: it skips a line only
+when it says **neither** a unit nor a word, because a measured line dropped there
+is a whole sauce gone from the plan and the shop in silence. A word the target no
+longer has is a named `ComponentMeasureMissing` gap whose demanding source keeps
+the number and says `saysAMeasure` — never re-read as a count of the yield.
+
 ## Deferred
 
 - **Whole-ingredient scaling** (spec §4) — shown as the raw factor for now.
