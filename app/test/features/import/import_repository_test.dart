@@ -635,6 +635,72 @@ void main() {
       ]);
     });
 
+    test('a phrase that hands the choice to the cook is not learned '
+        'either', () async {
+      // The bug this test is named after. His "Vegan Mac and Cheese with
+      // Silken Tofu Sauce" printed "1 lb your favourite pasta"; the extractor
+      // split the amount off, so the loop was handed "your favourite pasta",
+      // which carries no comma, no *or*, no slash and no bracket and was
+      // learned onto Protein Pasta. The amount already being gone is exactly
+      // why the rule cannot be about the printed line — there is no line here
+      // to compare against.
+      await _seedIngredient(db, 'ing-pasta', 'Protein Pasta');
+      const p = ReconciliationPayload(
+        title: 'Vegan Mac and Cheese',
+        servingsBase: 4,
+        groups: [
+          ReconGroup(
+            lines: [
+              ReconLine(
+                raw: RawLineItem(
+                  ingredientText: 'your favourite pasta',
+                  qty: 1,
+                  unit: 'lb',
+                  rawAmount: '1 lb',
+                ),
+                band: MatchBand.none,
+              ),
+              ReconLine(
+                raw: RawLineItem(ingredientText: 'brown onions', qty: 1),
+                band: MatchBand.none,
+              ),
+            ],
+          ),
+        ],
+      );
+      final recipeId = await repo.commit(
+        buildCommit(
+          p,
+          [
+            initialResolution(0, p.flatLines[0]).resolveToIngredient(
+              'ing-pasta',
+              'Protein Pasta',
+              correction: true,
+            ),
+            initialResolution(
+              1,
+              p.flatLines[1],
+            ).resolveToIngredient('ing-onion', 'Onion', correction: true),
+          ],
+          header: _header(p),
+          issuesByLine: null,
+        ),
+      );
+
+      expect(await aliasOwners(), {
+        'brown onion': 'ing-onion',
+      }, reason: 'the name is kept; the decision is not');
+      // Refusing to LEARN is never refusing to save: the line still commits
+      // against the row he picked, and the review says nothing either way.
+      final lines = await db.getAll(
+        'SELECT li.ingredient_id FROM recipe_line_item li '
+        'JOIN ingredient_group g ON g.id = li.group_id '
+        'WHERE g.recipe_id = ? ORDER BY li.sort_order',
+        [recipeId],
+      );
+      expect(lines.map((r) => r['ingredient_id']), ['ing-pasta', 'ing-onion']);
+    });
+
     test('a taken name does not stop the corrections beside it', () async {
       await _seedIngredient(db, 'ing-extra', 'Extra Firm Tofu');
       await _seedIngredient(db, 'ing-super', 'Super Firm Tofu');
