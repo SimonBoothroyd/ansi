@@ -37,6 +37,9 @@ List<String> _labels(UnitChoiceOffer offer) => [
   for (final c in offer.choices) c.label,
 ];
 
+/// A recipe that coins no word at all.
+const _none = <RecipeMeasure>[];
+
 void main() {
   test('a yield-less recipe offers batch and nothing else', () {
     final offer = componentUnitChips(yields: const []);
@@ -92,8 +95,8 @@ void main() {
     expect(offer.chips.where((u) => u == tbsp), hasLength(1));
   });
 
-  group('componentUnitChoices — the recipe\'s own words lead', () {
-    test('words first, then batch, then the yields\' families', () {
+  group("componentUnitChoices — the recipe's own words lead", () {
+    test("words first, then batch, then the yields' families", () {
       final offer = componentUnitChoices(_target(qty: 1, unit: cup), [
         _m('blob', 20),
         _m('ladle', 6, id: 'm2', sortOrder: 1),
@@ -120,7 +123,7 @@ void main() {
     });
 
     test('no words is exactly the offer this file gave before', () {
-      final offer = componentUnitChoices(_target(qty: 250, unit: g), const []);
+      final offer = componentUnitChoices(_target(qty: 250, unit: g), _none);
       expect(_labels(offer), ['batch', 'g', 'kg']);
     });
 
@@ -136,7 +139,7 @@ void main() {
       const stored = UnitOption(tbsp);
       final offer = componentUnitChoices(
         _target(qty: 250, unit: g),
-        const [],
+        _none,
         current: stored,
       );
       expect(offer.offFilter, stored);
@@ -154,7 +157,7 @@ void main() {
   });
 
   group('wholeMeasureOfRecipe — found, never stored', () {
-    test('the word for one whole batch, within the app\'s one tolerance', () {
+    test("the word for one whole batch, within the app's one tolerance", () {
       expect(wholeMeasureOfRecipe([_m('loaf', 1)])?.label, 'loaf');
       expect(wholeMeasureOfRecipe([_m('loaf', 1.005)])?.label, 'loaf');
       expect(wholeMeasureOfRecipe([_m('loaf', 1.5)]), isNull);
@@ -179,14 +182,14 @@ void main() {
         firstComponentChoice(target, [_m('blob', 20)]),
         RecipeMeasureOption(_m('blob', 20)),
       );
-      expect(firstComponentChoice(target, const []), const UnitOption(batches));
+      expect(firstComponentChoice(target, _none), const UnitOption(batches));
     });
 
     test('a tie resolves by sort_order then label, on every device', () {
       expect(
         wholeMeasureOfRecipe([
           _m('round', 1, id: 'b', sortOrder: 1),
-          _m('loaf', 1, id: 'c', sortOrder: 0),
+          _m('loaf', 1, id: 'c'),
         ])?.label,
         'loaf',
       );

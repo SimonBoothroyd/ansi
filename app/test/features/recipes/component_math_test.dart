@@ -384,12 +384,12 @@ void main() {
 
   group('a word the target no longer has', () {
     test('refuses, and names the pointer the line still stores', () {
+      // No measures handed in at all: the word is gone.
       final r = resolveComponentAmount(
         quantity: 3,
         unit: null,
         yields: _aioli,
         recipeMeasureId: 'blob',
-        measures: const [],
       );
       expect(r, const ComponentMeasureMissing('blob'));
     });
@@ -402,7 +402,6 @@ void main() {
         unit: pieces,
         yields: _eight,
         recipeMeasureId: 'blob',
-        measures: const [],
       );
       expect(r, isA<ComponentMeasureMissing>());
       expect(r, isNot(isA<ResolvedComponentAmount>()));
@@ -417,7 +416,7 @@ void main() {
           recipeMeasureId: 'blob',
           measures: [_m('blob', bad)],
         );
-        expect(r, const ComponentMeasureMissing('blob'), reason: '\$bad');
+        expect(r, const ComponentMeasureMissing('blob'), reason: r'$bad');
       }
     });
 

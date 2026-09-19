@@ -147,7 +147,7 @@ void main() {
       expect(componentAmountText(null, null, measureLabel: 'blob'), 'blob');
     });
 
-    test("the Cook demand card: what was said, then what it comes to", () {
+    test('the Cook demand card: what was said, then what it comes to', () {
       expect(
         componentDemandLine(quantity: 3, measureLabel: 'blob', batches: 0.15),
         '3 blob → 0.15 of a batch',
@@ -204,8 +204,8 @@ void main() {
           quantity: 3,
           unit: null,
           yields: const [(qty: 8.0, unit: pieces)],
+          // No measures handed in at all: the word is gone.
           recipeMeasureId: 'blob',
-          measures: const [],
         ),
         '3 — its measure is gone',
       );

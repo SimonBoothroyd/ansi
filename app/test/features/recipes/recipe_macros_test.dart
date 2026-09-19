@@ -1027,14 +1027,6 @@ void main() {
       quantity: quantity,
     );
 
-    /// "a batch makes 20 blob" — the household's own word for the aioli.
-    const blob = RecipeMeasure(
-      id: 'blob',
-      recipeId: 'aioli',
-      label: 'blob',
-      perBatch: 20,
-    );
-
     test('every line that joined is recorded with what it contributed', () {
       final summary = summarizeRecipeMacros(
         servingsBase: 2,

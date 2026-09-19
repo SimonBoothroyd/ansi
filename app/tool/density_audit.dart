@@ -67,6 +67,9 @@ void main(List<String> args) {
           switch (c) {
             UnitOption(:final unit) => unit.id,
             MeasureOption(:final measure) => 'M:${measure.label}',
+            RecipeMeasureOption(:final measure) => notAWordForAnIngredient(
+              measure,
+            ),
           },
       ],
       'ranked': [for (final c in ranked) c.token],
