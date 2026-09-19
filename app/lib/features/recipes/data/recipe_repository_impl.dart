@@ -152,10 +152,10 @@ class SqliteRecipeRepository implements RecipeRepository {
           ingredientName:
               r['sub_title'] as String? ?? r['ing_name'] as String? ?? '',
           // A stored `unit` is NULL exactly on a line said in one of the
-          // target recipe's own words, whose `recipe_measure_id` this loader
-          // does not read yet — so such a line still falls back to a bare
-          // count here. Reading the column is lane C's; what matters today is
-          // that a NULL never throws its way out of a row mapper.
+          // target recipe's own words. This loader does not select
+          // `recipe_measure_id` yet, so such a line still falls back to a
+          // bare count here; what the fallback guarantees meanwhile is that a
+          // NULL never throws its way out of a row mapper.
           unit: unitById(r['unit'] as String? ?? '') ?? pieces,
           quantity: (r['quantity'] as num?)?.toDouble(),
           optional: _flag(r['optional']),
@@ -203,8 +203,8 @@ class SqliteRecipeRepository implements RecipeRepository {
           servingsBase: (r['servings_base'] as num).toDouble(),
           lines: linesByRecipe[r['id']] ?? const <LineItem>[],
           yields: _yieldsOf(r),
-          // Lane C fills these from `recipe_measure`; until that read lands a
-          // measured component line reads as its honest refusal, never a count.
+          // Nothing selects `recipe_measure` yet, so a parent line naming one
+          // of these words reads as its honest refusal rather than a count.
           measures: const <RecipeMeasure>[],
         ),
     };
@@ -711,8 +711,8 @@ class SqliteRecipeRepository implements RecipeRepository {
                 ingredientId,
                 subRecipeId,
                 item.quantity,
-                // NULL on a line said in one of the target's own words — the
-                // column that names the word is lane C's to write.
+                // NULL on a line said in one of the target's own words; the
+                // column naming the word is not written here yet.
                 item.unit?.id,
                 measureId,
                 item.note,
@@ -882,8 +882,8 @@ loadRecipeMacroNodes(SqliteConnection db) async {
           servingsBase: (r['servings_base'] as num).toDouble(),
           lines: linesByRecipe[r['id']] ?? const <LineItem>[],
           yields: _yieldsOf(r),
-          // Lane C fills these from `recipe_measure`; until that read lands a
-          // measured component line reads as its honest refusal, never a count.
+          // Nothing selects `recipe_measure` yet, so a parent line naming one
+          // of these words reads as its honest refusal rather than a count.
           measures: const <RecipeMeasure>[],
         ),
     },

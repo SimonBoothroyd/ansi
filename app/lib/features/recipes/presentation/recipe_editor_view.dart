@@ -736,8 +736,8 @@ class _LineItemEditor extends ConsumerWidget {
       switch (result.choice) {
         case MeasureOption(:final measure):
           notifier.setLineItemMeasure(item.id, measure);
-        // This door is the INGREDIENT sheet; a component's own words are
-        // picked on the component dock, which lane D builds.
+        // This door is the INGREDIENT sheet, which never offers one; a
+        // component's own words are picked on the component dock.
         case RecipeMeasureOption(:final measure):
           notAWordForAnIngredient(measure);
         case UnitOption(:final unit):
