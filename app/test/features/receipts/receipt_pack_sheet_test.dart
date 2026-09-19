@@ -220,6 +220,11 @@ void main() {
         onDone: (a) => answer = a,
       );
       await tester.pumpAndSettle();
+      // The row leads with its own `bottle` chip now, and a pack already
+      // named as a measure has no word to gain — saying the pack in grams is
+      // what asks for a word at all.
+      await tester.tap(find.text('g').first);
+      await tester.pumpAndSettle();
       await tester.enterText(find.byType(EditableText).first, '482');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(kKeepAsMeasureKey));
@@ -246,6 +251,9 @@ void main() {
       tester,
     ) async {
       await pumpSheet(tester, measures: const [bottle]);
+      await tester.pumpAndSettle();
+      // As above: the row opens on `bottle`, so grams is the way to ask.
+      await tester.tap(find.text('g').first);
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(EditableText).first, '794');
       await tester.pumpAndSettle();
