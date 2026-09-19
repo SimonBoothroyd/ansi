@@ -98,10 +98,20 @@ class WeekVariantDraft extends _$WeekVariantDraft {
     ),
   );
 
+  /// Quantifies this week's line in a plain unit, clearing any measure — an
+  /// ingredient's word and the target recipe's alike. A line says its amount in
+  /// a unit **or** in one of the target's own words, never both, and a row
+  /// carrying both is one the server refuses (which would drop the whole crud
+  /// transaction with it).
   void setUnit(String id, Unit unit) => _mapLine(
     id,
     (e) => (
-      line: e.line.copyWith(unit: unit, measureId: null, measure: null),
+      line: e.line.copyWith(
+        unit: unit,
+        measureId: null,
+        measure: null,
+        recipeMeasureId: null,
+      ),
       excluded: e.excluded,
       added: e.added,
     ),
@@ -114,6 +124,9 @@ class WeekVariantDraft extends _$WeekVariantDraft {
         measureId: measure.id,
         measure: measure,
         unit: pieces,
+        // The same XOR from the other side: an ingredient's word is not a
+        // recipe's.
+        recipeMeasureId: null,
       ),
       excluded: e.excluded,
       added: e.added,

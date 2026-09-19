@@ -11,6 +11,31 @@ import '../../recipes/domain/line_override.dart';
 import '../../recipes/domain/recipe_cost.dart';
 import '../../recipes/domain/recipe_macros.dart';
 
+/// A delta that names one of the target's own words but no number — refused by
+/// `saveOverrides` before it is written.
+///
+/// "blob" alone says nothing: the word IS the denomination, so it only means
+/// something beside a count. The database says the same
+/// (`week_recipe_line_override_recipe_measure_needs_amount`) and would refuse
+/// it on UPLOAD — where a rejected upload makes the PowerSync connector drop
+/// the WHOLE crud transaction, taking every write queued beside it in silence.
+/// So the repository refuses this save instead, where the write door can say
+/// why.
+class WordlessOverrideError implements Exception {
+  const WordlessOverrideError({
+    required this.overrideId,
+    required this.recipeMeasureId,
+  });
+
+  final String overrideId;
+  final String recipeMeasureId;
+
+  @override
+  String toString() =>
+      'this week’s amount names one of the recipe’s own words but no number — '
+      'a word only says something beside a count';
+}
+
 abstract interface class WeekVariantRepository {
   /// Every override on the week beginning [weekStart], keyed by recipe id and
   /// live — what the dish row's "edited for this week" mark, the cook card's

@@ -59,7 +59,7 @@ final class WeekVariantDraftProvider
   }
 }
 
-String _$weekVariantDraftHash() => r'88ed6e614bf3649b79aac6db863a0bab5669de42';
+String _$weekVariantDraftHash() => r'ab916b8f9b4aa9d22fe32c171bbd3da3ed34e5df';
 
 /// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's first
 /// day

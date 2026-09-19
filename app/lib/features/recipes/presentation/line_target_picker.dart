@@ -237,16 +237,10 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
               if (i > 0) Container(height: 1, color: AnsiColors.line),
               _RecipeRow(
                 candidate: c,
-                onPick: () => pick(
-                  SubRecipeTarget(
-                    id: c.recipe.id,
-                    title: c.recipe.title,
-                    yieldQty: c.recipe.yieldQty,
-                    yieldUnit: c.recipe.yieldUnit,
-                    yieldQty2: c.recipe.yieldQty2,
-                    yieldUnit2: c.recipe.yieldUnit2,
-                  ),
-                ),
+                // The summary's own conversion, so the target carries this
+                // recipe's WORDS as well as its yields: a line that lands on
+                // it can be said in one of them without a second read.
+                onPick: () => pick(c.recipe.asSubRecipeTarget),
               ),
             ],
           ],

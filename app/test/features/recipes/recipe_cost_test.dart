@@ -1,5 +1,6 @@
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
+import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
@@ -65,6 +66,18 @@ IngredientPricing? Function(String) _vocab({
         ),
         price: byId.containsKey(id) ? byId[id] : price,
       );
+
+/// "a blob is 15 g" — the household's own word for the aioli.
+RecipeMeasure _blob() => const RecipeMeasure(
+  id: 'blob',
+  recipeId: 'aioli',
+  label: 'blob',
+  amount: 15,
+  unit: g,
+);
+
+/// "makes 300 g" — the aioli weighed, which is what lets its word resolve.
+const _weighed = [(qty: 300.0, unit: g)];
 
 void main() {
   group('the price × the amount, in the basis', () {
@@ -403,17 +416,28 @@ void main() {
       required List<LineItem> lines,
       double servings = 2,
       List<YieldDenomination> yields = const [(qty: 2, unit: cup)],
-    }) => (servingsBase: servings, lines: lines, yields: yields);
+      List<RecipeMeasure> measures = const [],
+    }) => (
+      servingsBase: servings,
+      lines: lines,
+      measures: measures,
+      yields: yields,
+    );
 
-    LineItem component(String id, {double? quantity, Unit unit = cup}) =>
-        LineItem(
-          id: 'li-$id',
-          subRecipeId: id,
-          ingredientName: '',
-          subRecipe: SubRecipeTarget(id: id, title: id),
-          unit: unit,
-          quantity: quantity,
-        );
+    LineItem component(
+      String id, {
+      double? quantity,
+      Unit? unit = cup,
+      String? measureId,
+    }) => LineItem(
+      id: 'li-$id',
+      subRecipeId: id,
+      ingredientName: '',
+      subRecipe: SubRecipeTarget(id: id, title: id),
+      unit: measureId == null ? unit : null,
+      recipeMeasureId: measureId,
+      quantity: quantity,
+    );
 
     test('costs the target whole-recipe × the batches it asks for', () {
       final summary = summarizeRecipeCost(
@@ -450,6 +474,97 @@ void main() {
       // The component is unpriced, so it contributes nothing at all — the 50¢
       // its own priced line reaches is a floor, and a floor is not a cost.
       expect(summary.unpriced.single.reason, CostLineReason.subRecipeUnpriced);
+      expect(summary.pricedCents, 50);
+      expect(summary.lineCosts.containsKey('li-aioli'), isFalse);
+    });
+
+    test("said in the target's own word: 0.15 × its whole cost", () {
+      // A blob is 15 g and the line asks for 3: 45 g of a batch that makes
+      // 300 g, so 0.15 of whatever the whole batch costs.
+      final summary = summarizeRecipeCost(
+        servingsBase: 1,
+        lines: [component('aioli', quantity: 3, measureId: 'blob')],
+        pricingOf: _vocab(price: _price()),
+        // The target costs 100 g × 50¢/100 g = 50¢ whole.
+        subRecipeOf: (_) => node(
+          lines: [_line('x', quantity: 100)],
+          yields: _weighed,
+          measures: [_blob()],
+        ),
+      );
+      expect(summary.totalCents, closeTo(0.15 * 50, 1e-9));
+    });
+
+    test('a `makes` restated to 600 g halves the share, not the word', () {
+      // The point of an absolute amount: 45 g is a smaller part of a bigger
+      // batch, and the blob is still a blob.
+      final summary = summarizeRecipeCost(
+        servingsBase: 1,
+        lines: [component('aioli', quantity: 3, measureId: 'blob')],
+        pricingOf: _vocab(price: _price()),
+        subRecipeOf: (_) => node(
+          lines: [_line('x', quantity: 100)],
+          yields: const [(qty: 600.0, unit: g)],
+          measures: [_blob()],
+        ),
+      );
+      expect(summary.totalCents, closeTo(0.075 * 50, 1e-9));
+    });
+
+    test('a word whose `makes` has gone takes the line out, named', () {
+      final summary = summarizeRecipeCost(
+        servingsBase: 1,
+        lines: [
+          _line('p', quantity: 100),
+          component('aioli', quantity: 3, measureId: 'blob'),
+        ],
+        pricingOf: _vocab(price: _price()),
+        subRecipeOf: (_) => node(
+          lines: [_line('x', quantity: 100)],
+          yields: const [],
+          measures: [_blob()],
+        ),
+      );
+      expect(
+        summary.unpriced.single.reason,
+        CostLineReason.subRecipeUnresolved,
+      );
+      expect(summary.totalCents, isNull);
+    });
+
+    test('a parent cooked twice asks for 6 blob — 0.3 of a batch', () {
+      // Scaling multiplies the LINE, so the doubled recipe is the same walk
+      // over a line that says 6.
+      final summary = summarizeRecipeCost(
+        servingsBase: 1,
+        lines: [component('aioli', quantity: 6, measureId: 'blob')],
+        pricingOf: _vocab(price: _price()),
+        subRecipeOf: (_) => node(
+          lines: [_line('x', quantity: 100)],
+          yields: _weighed,
+          measures: [_blob()],
+        ),
+      );
+      expect(summary.totalCents, closeTo(0.3 * 50, 1e-9));
+    });
+
+    test('a word the target has lost takes the line out, named', () {
+      final summary = summarizeRecipeCost(
+        servingsBase: 1,
+        lines: [
+          _line('p', quantity: 100),
+          component('aioli', quantity: 3, measureId: 'blob'),
+        ],
+        pricingOf: _vocab(price: _price()),
+        subRecipeOf: (_) => node(lines: [_line('x', quantity: 100)]),
+      );
+      expect(
+        summary.unpriced.single.reason,
+        CostLineReason.subRecipeUnresolved,
+      );
+      expect(summary.unpriced.single.name, 'aioli');
+      expect(summary.totalCents, isNull);
+      // The floor is the parent's own priced line and nothing of the target's.
       expect(summary.pricedCents, 50);
       expect(summary.lineCosts.containsKey('li-aioli'), isFalse);
     });

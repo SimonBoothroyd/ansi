@@ -175,6 +175,7 @@ String gapSummaryLine(ComponentGap gap) =>
 String gapReasonShort(UnresolvedComponentAmount reason) => switch (reason) {
   ComponentAmountMissing() => 'no amount on the line',
   ComponentYieldMissing() => 'yield not set',
+  ComponentMeasureMissing() => 'its measure is gone',
   ComponentFamilyMismatch() => 'yield in another family',
   ComponentCycle() => 'used inside itself',
 };
@@ -189,8 +190,12 @@ String gapReasonShort(UnresolvedComponentAmount reason) => switch (reason) {
 /// against the yield cannot be done.
 ///
 /// A numberless line ([ComponentAmountMissing]) has no amount to quote, so the
-/// clause is dropped rather than filled. With more than one demanding parent
-/// each clause names its own, since "the line" would then be ambiguous.
+/// clause is dropped rather than filled — and so does a line whose WORD has
+/// gone ([ComponentMeasureMissing]): the number is kept but the thing it
+/// counted is not, and printing it beside the count-family unit stored under
+/// the word would quote the line as something nobody wrote. With more than one
+/// demanding parent each clause names its own, since "the line" would then be
+/// ambiguous.
 String gapCoversLine(ComponentGap gap, WeekShape shape) {
   final days = (gap.demandedBy.map((d) => d.cookDay).toSet().toList()..sort())
       .map(shape.labelShort)
@@ -198,21 +203,18 @@ String gapCoversLine(ComponentGap gap, WeekShape shape) {
   final parents = gap.demandedBy.map((d) => d.title).toSet().join(' + ');
   final head = 'covers $parents · cook $days';
 
+  String said(ComponentDemandSource d) =>
+      componentAmountText(d.quantity, d.unit, measureLabel: d.measureLabel);
+
   final asks = [
     for (final d in gap.demandedBy)
-      if (d.quantity != null) d,
+      if (d.quantity != null && !(d.saysAMeasure && d.measureLabel == null)) d,
   ];
   if (asks.isEmpty) return head;
   if (gap.demandedBy.length == 1) {
-    final ask = asks.single;
-    return '$head — the line asks for '
-        '${componentAmountText(ask.quantity, ask.unit)}';
+    return '$head — the line asks for ${said(asks.single)}';
   }
-  final clauses = asks
-      .map(
-        (d) => '${d.title} asks for ${componentAmountText(d.quantity, d.unit)}',
-      )
-      .join(' · ');
+  final clauses = asks.map((d) => '${d.title} asks for ${said(d)}').join(' · ');
   return '$head — $clauses';
 }
 
@@ -224,6 +226,8 @@ String gapHeadline(ComponentGap gap) => switch (gap.reason) {
     '${gap.title}’s yield can’t answer this line’s unit',
   ComponentAmountMissing() =>
     'The line doesn’t say how much ${gap.title} it needs',
+  ComponentMeasureMissing() =>
+    'The line says a word ${gap.title} hasn’t got any more',
   ComponentCycle() => '${gap.title} is used inside itself',
 };
 
@@ -242,6 +246,10 @@ String gapBody(ComponentGap gap) => switch (gap.reason) {
   ComponentAmountMissing() =>
     'Set an amount on that line and this session gets a scale. Until then '
         'there is no honest number to put here.',
+  ComponentMeasureMissing() =>
+    'Say that line’s amount again, in a word ${gap.title} still has. The '
+        'number is kept; what it counted is not, and counting it as '
+        'something else would be a batch nobody asked for.',
   ComponentCycle() =>
     'A recipe cannot be built from itself. Change one of the links and the '
         'plan can derive it again.',

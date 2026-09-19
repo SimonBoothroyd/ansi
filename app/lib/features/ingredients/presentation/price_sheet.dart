@@ -147,6 +147,7 @@ class PriceEditor extends HookConsumerWidget {
       packField.text = switch (choice.value) {
         MeasureOption() => formatAmount(amount),
         UnitOption(:final unit) => formatAmountIn(amount, unit),
+        RecipeMeasureOption(:final measure) => notAWordForAnIngredient(measure),
         null => formatAmount(amount),
       };
       // What the line RANG UP as, which is what a person corrects. Its printed

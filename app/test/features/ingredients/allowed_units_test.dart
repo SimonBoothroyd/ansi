@@ -510,6 +510,8 @@ void main() {
           (c) => switch (c) {
             UnitOption(:final unit) => unit.id,
             MeasureOption(:final measure) => measure.label,
+            // An ingredient's offer can never hold a recipe's word.
+            RecipeMeasureOption() => 'unreachable',
           },
         ),
         [

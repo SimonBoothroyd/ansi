@@ -937,6 +937,13 @@
     .uchips.wrapped{flex-wrap:wrap;overflow:visible;row-gap:8px;}
     /* a chip that is no longer admitted at all — drawn once, struck, to show the absence */
     .uchip.struck{color:var(--line);border-style:dashed;text-decoration:line-through;}
+    /* the stored selection, admitted from OUTSIDE the filter (the 7.7 rule): still
+       tappable, marked rather than hidden — a line never renders an orphaned value */
+    .uchip.outside{color:var(--muted);border-style:dotted;}
+    /* the small qualifier a chip wears after its label — "not in filter", or,
+       on a measured component line, "this recipe's word" (the chip is the
+       line's own denomination and there is nothing to change it to) */
+    .uchip .chip-suffix{font-size:9px;opacity:.72;margin-left:4px;}
     .chip-note{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 6px;}
     .amtchip .gm{color:var(--herb-deep);}
 

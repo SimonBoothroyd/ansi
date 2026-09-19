@@ -31,6 +31,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
+import 'line_display.dart';
 import 'recipe.dart';
 
 part 'method_step.freezed.dart';
@@ -281,25 +282,34 @@ String? _chipAmount(
 /// numberless line falls back to its unit label.
 String? _formatLineAmount(LineItem line, double factor) {
   final measure = line.measure;
+  final word = recipeMeasureOfLine(line);
+  final unit = line.unit;
   final qty = line.quantity;
   if (qty == null) {
-    if (line.unit.family == UnitFamily.imprecise) return line.unit.label;
-    return measure?.label;
+    if (unit?.family == UnitFamily.imprecise) return unit?.label;
+    return measure?.label ?? word?.label;
   }
-  final scaled = scale(line.asQuantity!, factor);
+  // A line said in one of the target recipe's own words carries no catalog
+  // unit, so it scales as a bare count of that word: `3 blob` × 2 is `6 blob`,
+  // and the batch it is a share of is untouched.
+  if (word != null) {
+    return measuredAmountText(qty * factor, word.label);
+  }
+  if (unit == null) return formatAmount(qty * factor);
+  final scaled = scale(Quantity(qty, unit), factor);
   if (measure != null) return '${formatAmount(scaled.amount)} ${measure.label}';
-  switch (line.unit.family) {
+  switch (unit.family) {
     case UnitFamily.count:
       return formatAmount(scaled.amount);
     case UnitFamily.imprecise:
-      return line.unit.label;
+      return unit.label;
     case UnitFamily.mass:
     case UnitFamily.volume:
     // A component line's `batch` reads like any other unit here ("0.25
     // batch") — the batch↔yield arithmetic belongs to the cook plan, not to
     // a method chip.
     case UnitFamily.batch:
-      return '${formatAmountIn(scaled.amount, line.unit)} ${line.unit.label}';
+      return '${formatAmountIn(scaled.amount, unit)} ${unit.label}';
   }
 }
 

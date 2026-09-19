@@ -230,6 +230,149 @@ way. Costs ride their own stream (`RecipeRepository.watchRecipeCosts`, and
 `watchVariantRecipeCosts` for a week that varies the recipe) because a cost
 moves when a receipt lands, which the summaries' watch knows nothing about.
 
+## The domain, and what a component line counts
+
+`domain/` is pure Dart end to end (invariant 2). The files that carry a rule
+rather than a shape:
+
+- **`component_math.dart`** — `resolveComponentAmount`, the one answer to *how
+  many batches of the target does this line ask for*. It returns a sealed
+  `ComponentAmount`: resolved, or one of five honest refusals — no amount, no
+  yield, a family the yield cannot answer, **a word the target no longer has**,
+  a cycle. Nothing here ever falls back to "assume one batch", and every
+  surface switches exhaustively, so a new refusal cannot be rendered as `1×` by
+  a stale `else`.
+- **`core/units/recipe_measure.dart`** — a recipe's own word for one of what a
+  batch makes, defined as a named AMOUNT: *a blob is 15 g*, so `3 blob` is 45 g
+  and — through the recipe's own `makes 300 g` — 0.15 of a batch
+  ([ADR-0018](../../../../docs/decisions/0018-a-recipe-measure-is-a-named-amount.md)).
+  It is `measure.dart`'s shape one level up, carrying its own `unit` because a
+  recipe has no basis to lend it one, and it lives beside `measure.dart` for
+  both reasons: it is the same kind of fact, and a component's dock offers both.
+  The amount is absolute, so re-stating `makes` re-states the share — and the
+  price of that is a gate, below.
+- **`recipe_measure_authoring.dart`** — the word, read by the ingredient side's
+  rule verbatim (trim, collapse whitespace, **case untouched**), duplicates
+  merged on read oldest-first, a label that merely names a catalog unit — `cup`,
+  `g`, `batch` — refused against the catalog's own lookup rather than a hand
+  list, and **the `makes` gate**: a word can only be coined while the recipe
+  states a yield in the unit's family, and the refusals name MAKES. Read
+  backwards, that gate is `recipeMeasuresOrphanedBy`, which tells the editor
+  which live words a `makes` edit would leave standing on nothing — a warning,
+  never a refusal.
+- **`component_units.dart`** — what a component's chip row offers, in order:
+  the target's own words first (`wholeMeasureOfRecipe` ahead of them), then
+  `batch`, then the yields' families. A word the recipe can no longer hold is
+  omitted, unless a line stores it, where the 7.7 rule admits it off-filter. The
+  whole-batch word is **found, never stored** — the one whose amount is the
+  recipe's ENTIRE same-family yield within the app's single tolerance — which is
+  ADR-0016's rule with *the whole yield* where the piece weight was.
+- **`line_basis.dart`** — the one conversion the macro and cost walks share, so
+  a line can never weigh one thing for its macros and another for its cost.
+- **`effective_lines.dart`** — the one seam deciding *which* lines a derivation
+  runs over (optional, and this week's overrides).
+
+**A line's amount is said in a catalog unit OR in one of the target's words,
+never both and never neither.** `LineItem.unit` is null exactly when
+`recipeMeasureId` is set, which is the database's
+`num_nonnulls(unit, recipe_measure_id) = 1` stated in Dart, with two asserts
+holding it. There is no companion unit a measured line could honestly carry:
+the line's number counts WORDS, so the measure's own `g` beside it would read as
+`3 g` where the line means 45; `batch` is the right dimension with the wrong
+number; and `piece` is the count degradation ADR-0018 exists to refuse — a word
+that has gone leaves the line **unresolved and named**, with its number kept,
+rather than re-read as a count of whatever the batch is measured in.
+
+Everything below that resolution seam consumes `batches` and only `batches`,
+which is why the cook plan, the cost walk and the macro walk each needed one
+new case rather than a new path.
+
+## The data layer for a recipe's own words
+
+`data/recipe_measure_repository_impl.dart` is the **only** file that writes
+`recipe_measure`, and the only one whose SQL names it. Four things live there:
+
+- **`_columns` / `_rowOf` / `_insertRow` / `_updateRow`** — the four sites that
+  name what a measure IS, which is an `amount` and the `unit` it is said in. A
+  row whose `unit` is not in this build's catalog is **skipped on read**, so a
+  line naming it reads `ComponentMeasureMissing`: the only fallback available
+  would be `pieces`, and that is the confidently wrong batch share ADR-0018 rule
+  7 refuses.
+- **`loadRecipeMeasures`** — every live recipe's words, keyed by recipe id,
+  duplicates merged. **One query per load for the whole household**, never one
+  per recipe or per line: a measured line is looked up in its TARGET's list, so
+  every loader that builds a `SubRecipeTarget`, a `SubRecipeNode` or a
+  `ComponentRecipe` wants the whole map anyway. The callers are the summaries,
+  the recipe page, `loadRecipeMacroNodes` (the one node loader behind recipe
+  macros, recipe costs and the week's re-summations) and `cook_plan`'s
+  `loadComponentGraph`, which feeds both Cook and the shop's walk.
+- **`writeRecipeMeasures`** — the diff `saveRecipe` runs inside its
+  transaction, **before** the lines, because a word and a line saying it have to
+  land in that order for the server's own guard. It runs the authoring gate on
+  what the Save **states** — a new word, or one whose label, amount or unit
+  changed — against the yields read back off the recipe row *inside the same
+  transaction*, so a `makes` edit and a word edit arriving together are judged
+  against each other. A word carried through unchanged is never re-authored:
+  ADR-0018 rule 4 says a `makes` edit that orphans a word **warns**, and a gate
+  that refused the Save would trap the person in the editor instead.
+- **`countRecipeMeasureReferrers`** — the delete gate, over both tables that can
+  carry a pointer (`recipe_line_item`, `week_recipe_line_override`).
+- **`SqliteRecipeMeasureRepository`** — the direct doors.
+
+**No screen on this build authors a word.** The read seam ships a release ahead
+of the authoring UI, because a device on an older build throws on a measured line
+or drops it in silence (ADR-0018) — so every loader, every watch, both write
+seams and the delete gate land first, and the first word written anywhere in the
+household lands on devices that already resolve, cost, macro, cook and shop it.
+
+**Two doors will write a word, and the difference is whether the host has a
+Save** (ADR-0011) — the pair the ingredient side has worn since 7.6. The recipe
+editor's MEASURES list, under MAKES, **defers**: it rides `Recipe.measures`
+through `saveRecipe`'s child diff, so a word typed there lands with the recipe.
+The manage-measures page behind the ＋ on a component's dock has no Save, so it
+writes **on tap**, through `RecipeMeasureRepository` — `addRecipeMeasure`,
+`restateRecipeMeasure`, `reorderRecipeMeasures`, `softDeleteRecipeMeasure`. Both
+seams exist here already, and both land the same rows under the same rules,
+because the rules are `authorRecipeMeasure`'s rather than either door's.
+
+**The `makes` gate is the repository's, not a parameter.** `addRecipeMeasure` and
+`restateRecipeMeasure` read the recipe's stated yields off the row inside their
+own transaction and hand them to `authorRecipeMeasure`: "only when we know what
+the recipe makes" is a fact about the stored recipe, and a form must not be able
+to assert its way past it.
+
+**A measured line's amount is never re-denominated from a units-only sheet.**
+Until the authoring control ships, the component quantity sheet opened on a line
+that carries a `recipe_measure_id` offers that line's own denomination as its
+single, preselected, inert chip and hands back a **null** `unit` — "the number
+changed, the denomination did not". Both doors that reach it obey:
+`_ComponentLineEditor` in the recipe editor, and week mode's amount cell, which
+routes a measured line to this sheet rather than to the INGREDIENT one (whose
+offer cannot express a recipe's word at all, and would open preselected on
+`piece`). A line whose word has been RETIRED is treated the same, for a stronger
+reason: it has no honest denomination at all, so a unit written there would put a
+confident number where the app was correctly saying it did not know.
+
+**A retirement is refused, not cascaded.** `softDeleteRecipeMeasure` and the
+deferred diff both ask the gate first and throw `RecipeMeasureInUse` — carrying
+the counts `recipeMeasureDeleteRefusalText` prints — while anything still says
+the word. Nothing follows a word out because nothing may: the lines saying it
+would go unresolved for good.
+
+**Two writes are refused before they are written**, and for one reason: the
+server would refuse them on UPLOAD, and a refused upload makes the PowerSync
+connector drop the WHOLE crud transaction — every write queued beside it, in
+silence. `saveRecipe` throws `UndenominatedLineError` for a line denominated in
+neither a unit nor a word; `saveOverrides` throws `WordlessOverrideError` for a
+week's amount that names a word and no number. `LineItem`'s asserts say the same
+thing, but an assert is compiled out of a release build.
+
+**Every watch that reads a word joins `recipe_measure` and selects a column from
+it** — `watchRecipes`, `watchRecipe`, `watchRecipeCosts`, the week variant's
+two, the cook plan's and the shop's — so coining, re-stating or retiring one
+re-fires them. SQLite drops a LEFT JOIN whose columns go unused, and a dropped
+join is a table PowerSync never fires for.
+
 **Deferred (implemented in later steps, not missing by accident):** cook mode,
 method ingredient-chips/timers, Notes tab, photos. See the roadmap +
 `tech-debt-tracker.md`.

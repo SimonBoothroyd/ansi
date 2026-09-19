@@ -67,6 +67,25 @@ const schema = Schema([
     Column.integer('sort_order'),
     ..._audit,
   ]),
+  // A household word for one of what a recipe MAKES — "blob", "ladle",
+  // "patty" (0048) — so a component line in another recipe can say "3 blob"
+  // of it. It is a named AMOUNT, exactly like an ingredient_measure: a blob is
+  // 15 g, so `3 blob` is 45 g and the batch share comes from there through the
+  // recipe's own same-family yield. `unit` is a units.dart id (mass, volume or
+  // count); a recipe has no single basis, so each word carries its own. The
+  // amount is absolute, so re-stating `makes` re-states the share and scaling a
+  // parent multiplies the LINE, never this. Duplicate labels are legal and
+  // merge on read, oldest canonical — an offline duplicate must never fail
+  // upload.
+  Table('recipe_measure', [
+    Column.text('household_id'),
+    Column.text('recipe_id'),
+    Column.text('label'),
+    Column.real('amount'),
+    Column.text('unit'),
+    Column.integer('sort_order'),
+    ..._audit,
+  ]),
   Table('recipe_line_item', [
     Column.text('household_id'),
     Column.text('group_id'),
@@ -76,8 +95,18 @@ const schema = Schema([
     // check); a component line never carries a measure_id.
     Column.text('sub_recipe_id'),
     Column.real('quantity'),
+    // A units.dart id, and null exactly when `recipe_measure_id` is set
+    // (0048): a line says its amount in a unit OR in the sub-recipe's own
+    // word, never both and never neither. Every other line has one — the
+    // server's XOR keeps 0003's NOT NULL for all of them.
     Column.text('unit'),
     Column.text('measure_id'), // → ingredient_measure.id (nullable, step 7.6)
+    // → recipe_measure.id (nullable, 0048): the sub-recipe's own word this
+    // component is counted in ("3 blob"). Only a component line carries one,
+    // only beside a quantity, and only a measure of the very recipe
+    // `sub_recipe_id` names. A line whose measure has been tombstoned is
+    // UNRESOLVED — it is never re-read as a count of the yield.
+    Column.text('recipe_measure_id'),
     Column.text('note'),
     Column.integer('sort_order'),
     // 0/1: the recipe says this line may be left out. Excluded from macros and
@@ -141,6 +170,9 @@ const schema = Schema([
     Column.real('quantity'),
     Column.text('unit'),
     Column.text('measure_id'),
+    // → recipe_measure.id (nullable, 0048) — the sub-recipe's own word THIS
+    // WEEK's amount is counted in, under the same rules as the recipe line's.
+    Column.text('recipe_measure_id'),
     Column.text('note'),
     Column.integer('sort_order'),
     ..._audit,

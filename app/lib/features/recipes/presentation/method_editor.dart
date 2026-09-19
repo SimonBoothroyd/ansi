@@ -45,6 +45,7 @@ import '../../../shared/ansi_more_trigger.dart';
 import '../../../shared/method_step_text.dart';
 import '../../../shared/was_word_line.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
+import '../domain/line_display.dart';
 import '../domain/method_draft.dart';
 import '../domain/recipe.dart';
 import 'component_quantity_sheet.dart';
@@ -575,13 +576,20 @@ class MethodStepCard extends HookConsumerWidget {
   String _lineSummary(LineItem line) {
     final quantity = line.quantity;
     final measure = line.measure;
+    final word = recipeMeasureOfLine(line);
+    final unit = line.unit;
     final String amount;
-    if (quantity == null) {
-      amount = line.unit.label;
+    if (word != null) {
+      amount = measuredAmountText(quantity, word.label);
+    } else if (quantity == null) {
+      // A line whose word has gone has nothing to name here at all.
+      amount = unit?.label ?? '';
     } else if (measure != null) {
       amount = '${formatAmount(quantity)} ${measure.label}';
+    } else if (unit == null) {
+      amount = formatAmount(quantity);
     } else {
-      amount = '${formatAmountIn(quantity, line.unit)} ${line.unit.label}';
+      amount = '${formatAmountIn(quantity, unit)} ${unit.label}';
     }
     return '${line.ingredientName} · $amount';
   }

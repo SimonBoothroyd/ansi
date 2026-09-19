@@ -12,6 +12,7 @@ library;
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../../core/units/measure.dart';
+import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
 import 'component_math.dart';
 import 'method_step.dart';
@@ -87,6 +88,15 @@ abstract class Recipe with _$Recipe {
     double? yieldQty2,
     Unit? yieldUnit2,
 
+    /// The household's own words for one of what this batch makes — `blob`,
+    /// `ladle`, `loaf` — in `sort_order`, duplicates already merged.
+    ///
+    /// A THIRD statement about the batch, beside [servingsBase] and the yield
+    /// pair, and independent of both: re-stating `makes` does not re-state a
+    /// measure, and a recipe that says nothing about what it makes can still
+    /// say what the household calls one of them.
+    @Default(<RecipeMeasure>[]) List<RecipeMeasure> measures,
+
     /// The printed cook and total times, in seconds. Two typed facts with no
     /// rule between them — a total below the cook time is what somebody wrote,
     /// not an error to refuse. Null is unset: the page never said, and nothing
@@ -111,6 +121,7 @@ abstract class Recipe with _$Recipe {
     yieldUnit: yieldUnit,
     yieldQty2: yieldQty2,
     yieldUnit2: yieldUnit2,
+    measures: measures,
   );
 }
 
@@ -146,11 +157,35 @@ abstract class RecipeSummary with _$RecipeSummary {
     Unit? yieldUnit,
     double? yieldQty2,
     Unit? yieldUnit2,
+
+    /// This recipe's own words for one of what its batch makes, `sort_order`
+    /// first and duplicates merged — see [Recipe.measures].
+    ///
+    /// Carried on the summary for the reason the yields are: a picker row that
+    /// hands this recipe on as a component TARGET must hand the words over
+    /// with it, or the line it lands on could not be said in one of them
+    /// without a second read.
+    @Default(<RecipeMeasure>[]) List<RecipeMeasure> measures,
   }) = _RecipeSummary;
 
   /// This recipe's stated yields — see [Recipe.yields].
   List<YieldDenomination> get yields =>
       yieldDenominations(yieldQty, yieldUnit, yieldQty2, yieldUnit2);
+
+  /// This summary as another recipe's component target — what a picker row
+  /// hands the line it was opened for, so the quantity dock opens on the
+  /// yields AND the words without a second read. See
+  /// [Recipe.asSubRecipeTarget], which answers the same question one aggregate
+  /// up.
+  SubRecipeTarget get asSubRecipeTarget => SubRecipeTarget(
+    id: id,
+    title: title,
+    yieldQty: yieldQty,
+    yieldUnit: yieldUnit,
+    yieldQty2: yieldQty2,
+    yieldUnit2: yieldUnit2,
+    measures: measures,
+  );
 }
 
 /// A named group of line-items within a recipe. [name] is null for a recipe
@@ -173,7 +208,9 @@ abstract class IngredientGroup with _$IngredientGroup {
 /// both and never neither (the database's `line_item_identity_xor` check). A
 /// component line never carries a [measureId] either: a measure is an
 /// *ingredient* concept ("potato, medium = 213 g" says nothing about a
-/// recipe), and a second DB check pins that.
+/// recipe), and a second DB check pins that. Its own word is
+/// [recipeMeasureId], which only a component line may carry, for the mirror
+/// reason — `blob` is a word for one recipe.
 ///
 /// A line quantified in a named measure ("2 × potato, large", step 7.6)
 /// carries [measureId] (persisted verbatim — kept even while the measure row
@@ -205,16 +242,46 @@ abstract class IngredientGroup with _$IngredientGroup {
 abstract class LineItem with _$LineItem {
   const LineItem._();
 
+  @Assert(
+    'unit != null || recipeMeasureId != null',
+    'a line is denominated in a catalog unit or in a recipe measure',
+  )
+  @Assert(
+    'unit == null || recipeMeasureId == null',
+    'a line is denominated in ONE of the two, never both',
+  )
   const factory LineItem({
     required String id,
     required String ingredientName,
-    required Unit unit,
+
+    /// The catalog unit the [quantity] is said in, or **null** on a component
+    /// line said in one of the target's own words instead
+    /// ([recipeMeasureId]).
+    ///
+    /// Exactly one of the two is set — the database's
+    /// `num_nonnulls(unit, recipe_measure_id) = 1`, asserted here too. There
+    /// is no companion unit a measured line could honestly carry: `batch` is
+    /// the right dimension with the wrong number, and `piece` is the count
+    /// degradation the whole feature refuses.
+    Unit? unit,
     String? ingredientId,
     String? subRecipeId,
     SubRecipeTarget? subRecipe,
     double? quantity,
     String? measureId,
     Measure? measure,
+
+    /// The target recipe's own word this line is said in — `3 blob`
+    /// (`recipe_line_item.recipe_measure_id`). Set only on a component line,
+    /// and only with a [quantity]: a word with no number says nothing.
+    ///
+    /// Persisted verbatim, like [measureId], so a word that has not synced
+    /// yet is never stripped by an unrelated edit. The row it names is read
+    /// off the target ([SubRecipeTarget.measures]) rather than joined onto
+    /// the line, because the word belongs to the recipe being used, not to
+    /// the line using it — which is also what makes a re-stated `blob` follow
+    /// through to every line already saying it.
+    String? recipeMeasureId,
     String? note,
     @Default(false) bool optional,
 
@@ -237,11 +304,22 @@ abstract class LineItem with _$LineItem {
   /// Whether this line is a sub-recipe component rather than an ingredient.
   bool get isComponent => subRecipeId != null;
 
-  /// This line as a [Quantity], or null when it carries no number. A measure
-  /// line reads as its stored count ('piece') — the measure's gram weight is
-  /// applied where totals are summed, not here.
-  Quantity? get asQuantity =>
-      quantity == null ? null : Quantity(quantity!, unit);
+  /// Whether this line's amount is said in one of the TARGET recipe's own
+  /// words rather than in a catalog unit — the one state in which [unit] is
+  /// null.
+  bool get isMeasuredComponent => recipeMeasureId != null;
+
+  /// This line as a [Quantity], or null when it carries no number **or no
+  /// catalog unit**. An ingredient measure line reads as its stored count
+  /// ('piece') — the measure's gram weight is applied where totals are
+  /// summed, not here. A component line said in a recipe measure has no
+  /// quantity in the unit system at all: what it is, is a share of a batch,
+  /// and [componentAmount] is the only thing that can say so.
+  Quantity? get asQuantity {
+    final q = quantity;
+    final u = unit;
+    return q == null || u == null ? null : Quantity(q, u);
+  }
 
   /// How many batches of [subRecipe] this line asks for, or why that cannot
   /// be said (step 8.6 / D2). Non-null only on a component line whose target
@@ -253,13 +331,16 @@ abstract class LineItem with _$LineItem {
       quantity: quantity,
       unit: unit,
       yields: target.yields,
+      recipeMeasureId: recipeMeasureId,
+      measures: target.measures,
     );
   }
 }
 
 /// The recipe a component line points at, joined for display and batch math
 /// (step 8.6). Carries only what a *referencing* surface needs: the title to
-/// render, and the yields that turn "¼ cup" into "¼ of a batch".
+/// render, the yields that turn "¼ cup" into "¼ of a batch", and the target's
+/// own words that turn "3 blob" into the same thing without a yield at all.
 @freezed
 abstract class SubRecipeTarget with _$SubRecipeTarget {
   const SubRecipeTarget._();
@@ -271,6 +352,13 @@ abstract class SubRecipeTarget with _$SubRecipeTarget {
     Unit? yieldUnit,
     double? yieldQty2,
     Unit? yieldUnit2,
+
+    /// The target's live measures, `sort_order` first — the words a line may
+    /// be said in, and the list a line's [LineItem.recipeMeasureId] is looked
+    /// up in. Empty for a recipe that coins none, and for a caller that
+    /// assembled a target without reading them, where a measured line then
+    /// reads as [ComponentMeasureMissing] rather than as anything invented.
+    @Default(<RecipeMeasure>[]) List<RecipeMeasure> measures,
   }) = _SubRecipeTarget;
 
   /// The target's stated yields — see [Recipe.yields].

@@ -7,7 +7,6 @@ import 'package:uuid/uuid.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../domain/allowed_units.dart';
-import '../domain/measure_authoring.dart';
 import '../domain/measure_repository.dart';
 import '../domain/serving_measure.dart';
 

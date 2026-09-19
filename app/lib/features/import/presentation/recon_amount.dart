@@ -255,14 +255,9 @@ Future<void> editComponentAmount(
         .timeout(const Duration(seconds: 5));
     for (final r in recipes) {
       if (r.id != recipeId) continue;
-      target = SubRecipeTarget(
-        id: r.id,
-        title: r.title,
-        yieldQty: r.yieldQty,
-        yieldUnit: r.yieldUnit,
-        yieldQty2: r.yieldQty2,
-        yieldUnit2: r.yieldUnit2,
-      );
+      // The summary's own conversion, so the dock opens on the target's yields
+      // AND its own words in one step.
+      target = r.asSubRecipeTarget;
       break;
     }
   } on Object {
@@ -284,12 +279,18 @@ Future<void> editComponentAmount(
   if (result == null) return;
   // Read AFTER the awaited sheet through the container, never captured before
   // it and never through a possibly-unmounted `ref` (see `editLineAmount`).
+  // An import line is never said in a recipe's own word: the extractor prints
+  // units, and ADR-0018 prefills nothing into the authoring form because there
+  // is nothing to prefill FROM. So no measure is handed to the sheet, and the
+  // sheet always hands a unit back here; `batches` only keeps the expression
+  // total.
+  final picked = result.unit ?? batches;
   container
       .read(importControllerProvider.notifier)
       .updateResolution(
         lineIndex,
         (r) => r
-            .setAmount(quantity: result.quantity, unit: result.unit.id)
+            .setAmount(quantity: result.quantity, unit: picked.id)
             .setOptional(optional: result.optional),
       );
 }

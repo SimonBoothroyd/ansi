@@ -7,6 +7,13 @@
 /// DIFFERENT unit families ("makes 250 g · 16 tbsp"), and a component line's
 /// printed amount is resolved against whichever denomination shares its family:
 ///
+/// - `3 blob` against a recipe whose own measure says *a blob is 15 g* is
+///   `45 g`, and then 0.15 batches against its `makes 300 g` — the SAME yield
+///   path, entered one step earlier. A [RecipeMeasure] is a named amount
+///   (ADR-0018), so the word buys the household a sentence they say out loud,
+///   not a shortcut around the recipe's own figures; and because the word is
+///   read through the yield, everything that can go wrong with it is something
+///   that could already go wrong with `¼ cup`.
 /// - `1 batch` always resolves — the batch denomination needs no yield, and
 ///   `qty` *is* the batch count.
 /// - `¼ cup` against `makes 1 cup` is 0.25 batches; `1 piece` against
@@ -14,7 +21,12 @@
 /// - `2 tbsp` against a recipe whose only yield reads `250 g` is **unresolved**
 ///   — there is no density for a recipe, and the two stated denominations are
 ///   the ONLY bridge one has. It stays unresolved until somebody states the
-///   tbsp side.
+///   tbsp side. A `blob` said in grams meets exactly the same wall against a
+///   volume-only yield, and is refused in exactly the same words.
+/// - a recipe that says what it makes in NO denomination cannot resolve a line
+///   at all, word or unit: `ComponentYieldMissing`. Authoring refuses to coin a
+///   word while that is true, so the case a reader meets is a `makes` edited
+///   away after the fact — an honest gap, never a guess.
 /// - an imprecise line ("a pinch of aioli") never resolves: [convert] refuses
 ///   imprecise units, and inventing a number for one is exactly what
 ///   invariant 3 forbids.
@@ -27,6 +39,7 @@ library;
 import 'package:meta/meta.dart';
 
 import '../../../core/result/result.dart';
+import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
 
 /// One stated denomination of what a batch makes: `1 cup`, `8 piece`, `250 g`.
@@ -65,20 +78,28 @@ sealed class ComponentAmount {
 /// [against] names the yield denomination the conversion went through, so a
 /// card can say *"makes 1 cup, you need ¼"*; it is null for a line already
 /// denominated in `batch`, which needed no yield at all.
+///
+/// [viaMeasure] names the recipe measure the line was said in, so a card can
+/// say *"a blob is 15 g"* without a second lookup. **Both are set for a
+/// measured line**, and that is the shape of the decision: the word says what
+/// `3` comes to and the yield says what that is a share of, so a card quoting
+/// one can print the whole sentence — `3 blob → 45 g → 0.15 of a batch`.
 final class ResolvedComponentAmount extends ComponentAmount {
-  const ResolvedComponentAmount(this.batches, {this.against});
+  const ResolvedComponentAmount(this.batches, {this.against, this.viaMeasure});
 
   final double batches;
   final YieldDenomination? against;
+  final RecipeMeasure? viaMeasure;
 
   @override
   bool operator ==(Object other) =>
       other is ResolvedComponentAmount &&
       other.batches == batches &&
-      other.against == against;
+      other.against == against &&
+      other.viaMeasure == viaMeasure;
 
   @override
-  int get hashCode => Object.hash(batches, against);
+  int get hashCode => Object.hash(batches, against, viaMeasure);
 
   @override
   String toString() => 'ResolvedComponentAmount($batches batches)';
@@ -151,6 +172,40 @@ final class ComponentFamilyMismatch extends UnresolvedComponentAmount {
       '${yieldFamilies.map((f) => f.name).join('/')})';
 }
 
+/// The line is said in one of the target's own words, and the target has not
+/// got that word any more: retired on the other recipe, or not synced to this
+/// device yet. [measureId] is the pointer the line still stores verbatim, so
+/// the line is repairable rather than blanked.
+///
+/// **It never degrades to a count.** The word was the only place the amount
+/// behind it lived, so with the row gone the `3` denominates nothing: the line
+/// stores no unit of its own (`unit` is null exactly when a measure is named),
+/// and re-reading `3 blob` as `3 piece` against a target that *makes 8 piece*
+/// would hand every total downstream 0.375 of a batch — a number nobody
+/// stated, off by whatever the household meant. Three of a thing that cannot
+/// be measured is not three pieces of the yield, and a wrong batch count is
+/// worse here than a missing one (invariant 3).
+///
+/// It is kept apart from [ComponentYieldMissing] and [ComponentFamilyMismatch]
+/// on purpose: those two say the RECIPE stopped saying enough, and are what a
+/// live word falls into when a `makes` is edited away under it. This one says
+/// the word itself has gone, which is a different thing to go and fix.
+final class ComponentMeasureMissing extends UnresolvedComponentAmount {
+  const ComponentMeasureMissing(this.measureId);
+
+  final String measureId;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ComponentMeasureMissing && other.measureId == measureId;
+
+  @override
+  int get hashCode => Object.hash(ComponentMeasureMissing, measureId);
+
+  @override
+  String toString() => 'ComponentMeasureMissing($measureId)';
+}
+
 /// The component graph loops back on itself — B is a component of A and A of
 /// B. The server refuses such a link (migration 0017) and so does
 /// [closesComponentCycle], but two devices racing can still land one, and
@@ -170,8 +225,23 @@ final class ComponentCycle extends UnresolvedComponentAmount {
   String toString() => 'ComponentCycle()';
 }
 
-/// Resolves a component line's ([quantity], [unit]) against the target's
-/// stated [yields] — see the library doc for the rules.
+/// Resolves a component line's ([quantity], [unit]) against the target's own
+/// [measures] and its stated [yields] — see the library doc for the rules.
+///
+/// [recipeMeasureId] is the line's stored pointer at one of the target's
+/// words, and [unit] is null exactly then. When it is set, the word is looked
+/// up in [measures] — the target's LIVE measures — and what it says the count
+/// comes to (`3 blob` → `45 g`) becomes the amount the rest of this function
+/// resolves, in the one loop `¼ cup` has always gone through. A word the list
+/// does not hold is [ComponentMeasureMissing] rather than a fall-through to any
+/// other reading of the number.
+///
+/// **One conversion path, deliberately.** A measured line reaches the yield
+/// loop carrying the measure's own unit, so `ComponentYieldMissing` and
+/// `ComponentFamilyMismatch` fall out of the same code for a word as for a
+/// unit: a recipe that has stopped saying what it makes, or says it only in the
+/// other family, refuses a `blob` in exactly the words it refuses a `tbsp`.
+/// There is no second arm to keep in step.
 ///
 /// The conversion runs through `core/units`' [convert] with **no density**:
 /// there is no density for a recipe, so the two stated denominations are the
@@ -180,38 +250,88 @@ final class ComponentCycle extends UnresolvedComponentAmount {
 /// substance, and guessing one would poison every derived number downstream.
 ComponentAmount resolveComponentAmount({
   required double? quantity,
-  required Unit unit,
+  required Unit? unit,
   required List<YieldDenomination> yields,
+  String? recipeMeasureId,
+  List<RecipeMeasure> measures = const [],
 }) {
   if (quantity == null) return const ComponentAmountMissing();
 
+  // What the line asks for, in a unit: the pair as stored, or — for a line said
+  // in one of the target's words — what the word says that count comes to. The
+  // word is asked FIRST and its unit wins, because a `unit` stored beside a
+  // measure pointer is foreign or in-flight data (the database's XOR forbids
+  // the pair) and reading it would answer a question nobody asked.
+  var said = quantity;
+  var saidIn = unit;
+  RecipeMeasure? measure;
+
+  if (recipeMeasureId != null) {
+    measure = recipeMeasureById(recipeMeasureId, measures);
+    final total = measure?.totalFor(quantity);
+    if (measure == null || total == null) {
+      return ComponentMeasureMissing(recipeMeasureId);
+    }
+    said = total.amount;
+    saidIn = total.unit;
+  }
+
+  // A number with no denomination at all: no unit and no word. The database
+  // cannot store one (`num_nonnulls(unit, recipe_measure_id) = 1`) and the
+  // line model asserts against it, so this is totality rather than a case —
+  // and the honest reading of a bare number is that nothing was said.
+  if (saidIn == null) return const ComponentAmountMissing();
+
   // `batch` is the denomination that needs no yield: the number IS the batch
   // count. This is why a component line can always be made derivable, even
-  // for a recipe nobody has measured.
-  if (unit.family == UnitFamily.batch) {
-    return ResolvedComponentAmount(quantity);
+  // for a recipe nobody has measured. A measure can never arrive here —
+  // `kRecipeMeasureFamilies` refuses a word said in batches, which would be
+  // circular — so a line reaching it is always a unit-said one.
+  if (saidIn.family == UnitFamily.batch) {
+    return ResolvedComponentAmount(said);
   }
 
   if (yields.isEmpty) return const ComponentYieldMissing();
 
   for (final denomination in yields) {
-    if (denomination.unit.family != unit.family) continue;
-    final converted = convert(Quantity(quantity, unit), to: denomination.unit);
+    if (denomination.unit.family != saidIn.family) continue;
+    final converted = convert(Quantity(said, saidIn), to: denomination.unit);
     // Same-family and still refused: an imprecise pair ("a pinch" against a
     // yield of "a pinch"). Honestly unresolvable, not a silent 1×.
     if (converted case Ok(:final value)) {
       return ResolvedComponentAmount(
         value.amount / denomination.qty,
         against: denomination,
+        viaMeasure: measure,
       );
     }
   }
 
   return ComponentFamilyMismatch(
-    lineFamily: unit.family,
+    lineFamily: saidIn.family,
     yieldFamilies: [for (final y in yields) y.unit.family],
   );
 }
+
+/// Whether [measure] can be turned into a share of a batch at all against
+/// [yields] — whether the recipe still says what it makes in the word's own
+/// family, and says it in something the word converts into.
+///
+/// One call of the real resolution rather than a second reading of the rule, so
+/// the chip row's offer, the editor's orphan warning and what a line actually
+/// resolves to can never disagree.
+bool recipeMeasureResolvesAgainst(
+  RecipeMeasure measure,
+  List<YieldDenomination> yields,
+) =>
+    resolveComponentAmount(
+          quantity: 1,
+          unit: null,
+          yields: yields,
+          recipeMeasureId: measure.id,
+          measures: [measure],
+        )
+        is ResolvedComponentAmount;
 
 /// Whether linking `from` → `to` as a component would close a cycle: whether
 /// [to] already reaches [from] over live component links (D5, checked on

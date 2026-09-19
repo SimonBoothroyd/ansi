@@ -488,6 +488,7 @@ class _QuantitySurface extends StatelessWidget {
 String _amountIn(double? quantity, UnitChoice choice) => switch (choice) {
   UnitOption(:final unit) => formatQuantityIn(quantity, unit),
   MeasureOption() => formatQuantity(quantity),
+  RecipeMeasureOption(:final measure) => notAWordForAnIngredient(measure),
 };
 
 /// The honest conversion line: shown only when the unit system can actually
@@ -498,6 +499,8 @@ String? _conversionNote(double? qty, UnitChoice choice, Ingredient ing) {
   if (qty == null || !(qty > 0)) return null;
   final base = ing.macrosBasis.baseUnit;
   switch (choice) {
+    case RecipeMeasureOption(:final measure):
+      notAWordForAnIngredient(measure);
     case MeasureOption(:final measure):
       final inBase = convertMeasure(
         qty,

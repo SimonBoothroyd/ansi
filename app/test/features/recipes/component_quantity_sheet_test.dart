@@ -4,6 +4,7 @@
 library;
 
 import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/presentation/component_quantity_sheet.dart';
@@ -18,6 +19,7 @@ Widget _host({
   required ValueChanged<ComponentQuantity> onDone,
   double? initialQuantity,
   Unit? initialUnit,
+  String? initialMeasureId,
   bool initialOptional = false,
   VoidCallback? onSetYield,
 }) => MaterialApp(
@@ -28,6 +30,7 @@ Widget _host({
         target: target,
         initialQuantity: initialQuantity,
         initialUnit: initialUnit,
+        initialMeasureId: initialMeasureId,
         initialOptional: initialOptional,
         onSetYield: onSetYield,
         onDone: onDone,
@@ -51,6 +54,27 @@ const _butter = SubRecipeTarget(
 );
 
 const _unmeasured = SubRecipeTarget(id: 'aioli', title: 'Romesco Aioli');
+
+/// The aioli, with the household's own word for a ladleful of it: a blob is 50
+/// ml, which against `makes 1 cup` is a fifth of a batch.
+const _blob = RecipeMeasure(
+  id: 'm-blob',
+  recipeId: 'aioli',
+  label: 'blob',
+  amount: 50,
+  unit: ml,
+);
+
+const _aioliWithWord = SubRecipeTarget(
+  id: 'aioli',
+  title: 'Romesco Aioli',
+  yieldQty: 1,
+  yieldUnit: cup,
+  measures: [_blob],
+);
+
+/// The same recipe after the word was retired — the line still points at it.
+const _aioliWordGone = _aioli;
 
 void main() {
   testWidgets('a stated yield opens its family and the line reads in batches', (
@@ -195,6 +219,135 @@ void main() {
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
     expect(saved!.optional, isTrue);
+  });
+
+  group('a MEASURED line is not re-denominated here', () {
+    testWidgets('the word is the only chip, marked, and Done keeps it', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      ComponentQuantity? saved;
+      await tester.pumpWidget(
+        _host(
+          target: _aioliWithWord,
+          initialQuantity: 3,
+          initialMeasureId: 'm-blob',
+          onDone: (q) => saved = q,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The word leads the row and nothing else is on it: every other chip
+      // this sheet can draw is a catalog unit, and one of those written where
+      // `blob` was is the loss this closes.
+      expect(find.text('blob'), findsWidgets);
+      expect(find.text('this recipe’s word'), findsOneWidget);
+      for (final unit in ['batch', 'cup', 'tbsp', 'ml']) {
+        expect(
+          find.text(unit),
+          findsNothing,
+          reason: 'a catalog chip "$unit" would re-denominate the line',
+        );
+      }
+      expect(
+        find.text(ComponentQuantityEditor.kMeasuredLineKeepsItsWord),
+        findsOneWidget,
+      );
+      // 3 blob = 150 ml, and a batch is 1 cup ≈ 236.6 ml.
+      expect(
+        find.textContaining('3 blob = ', findRichText: true),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      // The whole point: null means "the denomination did not change".
+      expect(saved!.unit, isNull);
+      expect(saved!.quantity, 3);
+    });
+
+    testWidgets('the QUANTITY is still fully editable', (tester) async {
+      filterForuiSemanticsAssertions();
+      ComponentQuantity? saved;
+      await tester.pumpWidget(
+        _host(
+          target: _aioliWithWord,
+          initialQuantity: 3,
+          initialMeasureId: 'm-blob',
+          onDone: (q) => saved = q,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).first, '5');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+
+      expect(saved!.quantity, 5);
+      expect(saved!.unit, isNull, reason: 'the number moved, the word did not');
+    });
+
+    testWidgets('a word that has GONE keeps its pointer rather than being '
+        'handed a unit', (tester) async {
+      filterForuiSemanticsAssertions();
+      ComponentQuantity? saved;
+      await tester.pumpWidget(
+        _host(
+          target: _aioliWordGone,
+          initialQuantity: 3,
+          initialMeasureId: 'm-blob',
+          onDone: (q) => saved = q,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('word gone'), findsOneWidget);
+      expect(find.text('nothing to change it to'), findsOneWidget);
+      expect(
+        find.text(ComponentQuantityEditor.kGoneWordKeepsItsPointer),
+        findsOneWidget,
+      );
+      expect(find.text('cup'), findsNothing);
+      // The honest line, not a number: `3 — its measure is gone`.
+      expect(find.text('3 — its measure is gone'), findsOneWidget);
+
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(saved!.unit, isNull);
+      expect(saved!.quantity, 3);
+    });
+
+    testWidgets('a word the recipe can no longer HOLD still prints the word '
+        'beside its refusal', (tester) async {
+      // The step-4 bug, at the sheet: the label is read off the recipe's live
+      // measures, so an alive-but-unresolvable word reads "3 blob —
+      // unresolved — …" rather than a bare "3 — unresolved".
+      filterForuiSemanticsAssertions();
+      await tester.pumpWidget(
+        _host(
+          // Makes a MASS, and the blob is said in ml. No density for a recipe.
+          target: const SubRecipeTarget(
+            id: 'aioli',
+            title: 'Romesco Aioli',
+            yieldQty: 250,
+            yieldUnit: g,
+            measures: [_blob],
+          ),
+          initialQuantity: 3,
+          initialMeasureId: 'm-blob',
+          onDone: (_) {},
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          '3 blob — unresolved — the yield is in mass, this line in volume',
+        ),
+        findsOneWidget,
+      );
+    });
   });
 
   testWidgets('a line that already says optional opens with the switch on', (

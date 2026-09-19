@@ -23,6 +23,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/format.dart';
 import '../../../shared/picker_shell.dart';
+import '../domain/line_display.dart';
 import '../domain/method_draft.dart';
 import '../domain/recipe.dart';
 import 'recipe_chip.dart';
@@ -191,11 +192,16 @@ class _MethodLinePickerSheet extends HookWidget {
 /// The amount a row states — the same shape the editor's own quantity pill
 /// wears, so the two lists read as one recipe.
 String _amountText(LineItem line) {
+  final word = recipeMeasureOfLine(line);
+  if (word != null) return measuredAmountText(line.quantity, word.label);
   final measure = line.measure;
-  final qty = measure == null
-      ? formatQuantityIn(line.quantity, line.unit)
+  final lineUnit = line.unit;
+  final qty = measure == null && lineUnit != null
+      ? formatQuantityIn(line.quantity, lineUnit)
       : formatQuantity(line.quantity);
-  final unit = measure?.label ?? line.unit.label;
+  // A line whose word has gone keeps its number and names no denomination.
+  final unit = measure?.label ?? lineUnit?.label ?? '';
+  if (unit.isEmpty) return qty;
   return qty.isEmpty ? unit : '$qty $unit';
 }
 

@@ -109,6 +109,9 @@ class _EditTopUpSheet extends ConsumerWidget {
             unit: pieces,
             measureId: measure.id,
           ),
+          RecipeMeasureOption(:final measure) => notAWordForAnIngredient(
+            measure,
+          ),
         },
       );
       if (saved && context.mounted) Navigator.of(context).pop();

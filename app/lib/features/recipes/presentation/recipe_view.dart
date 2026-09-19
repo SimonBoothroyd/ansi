@@ -908,6 +908,7 @@ class _UsedInList extends StatelessWidget {
                             quantity: use.quantity,
                             unit: use.unit,
                             amount: use.amount,
+                            measureLabel: use.measureLabel,
                           ),
                           style: ansiMono(size: 10.5, color: AnsiColors.muted),
                         ),

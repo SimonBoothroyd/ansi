@@ -131,10 +131,16 @@ Future<void> _addMealFlow(
           // fallback beside the measure id — the same pair every other
           // measure-quantified row in the app stores.
           MeasureOption() => pieces,
+          RecipeMeasureOption(:final measure) => notAWordForAnIngredient(
+            measure,
+          ),
           UnitOption(:final unit) => unit,
         },
         measure: switch (result.choice) {
           MeasureOption(:final measure) => measure,
+          RecipeMeasureOption(:final measure) => notAWordForAnIngredient(
+            measure,
+          ),
           UnitOption() => null,
         },
       );

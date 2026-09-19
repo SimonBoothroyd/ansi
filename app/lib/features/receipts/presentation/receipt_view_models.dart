@@ -538,11 +538,17 @@ class ReceiptScanController extends _$ReceiptScanController {
             packUnit: switch (choice) {
               UnitOption(:final unit) => unit,
               MeasureOption() => null,
+              RecipeMeasureOption(:final measure) => notAWordForAnIngredient(
+                measure,
+              ),
             },
             measureId: entered.measureId,
             packLabel: switch (choice) {
               MeasureOption(:final measure) => measure.label,
               UnitOption() => null,
+              RecipeMeasureOption(:final measure) => notAWordForAnIngredient(
+                measure,
+              ),
             },
             keepAsMeasure: keepAsMeasure,
           ),

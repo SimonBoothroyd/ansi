@@ -49,6 +49,7 @@ import '../../../shared/write.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
+import '../domain/line_display.dart';
 import '../domain/method_draft.dart';
 import '../domain/recipe.dart';
 import 'component_format.dart';
@@ -668,12 +669,13 @@ class _LineItemEditor extends ConsumerWidget {
   /// the household deleted never arrives, and the same words would have the
   /// reader waiting on nothing.
   String get _label {
-    if (item.measure == null && item.measureId != null) {
-      final qty = formatQuantityIn(item.quantity, item.unit);
+    final stored = item.unit;
+    if (item.measure == null && item.measureId != null && stored != null) {
+      final qty = formatQuantityIn(item.quantity, stored);
       final why = item.measureDeleted
           ? 'measure deleted'
           : 'measure pending sync';
-      final unit = '${item.unit.label} · $why';
+      final unit = '${stored.label} · $why';
       return qty.isEmpty ? unit : '$qty $unit';
     }
     return amountOfLineItem(item);
@@ -714,7 +716,9 @@ class _LineItemEditor extends ConsumerWidget {
           Ingredient(
             id: item.ingredientId ?? '',
             canonicalName: item.ingredientName,
-            defaultUnit: item.measure != null ? pieces : item.unit,
+            // A stand-in for a row this sheet is not really about; a line
+            // said in a recipe's own word has no catalog unit to lend it.
+            defaultUnit: item.measure != null ? pieces : (item.unit ?? pieces),
             status: IngredientStatus.stub,
           );
       final pending = item.measureId != null && item.measure == null;
@@ -725,7 +729,7 @@ class _LineItemEditor extends ConsumerWidget {
         initialQuantity: item.quantity,
         initialChoice: measure != null
             ? MeasureOption(measure)
-            : UnitOption(item.unit),
+            : UnitOption(item.unit ?? pieces),
         pendingMeasure: pending,
       );
       if (result is! QuantitySaved) return;
@@ -733,6 +737,10 @@ class _LineItemEditor extends ConsumerWidget {
       switch (result.choice) {
         case MeasureOption(:final measure):
           notifier.setLineItemMeasure(item.id, measure);
+        // This door is the INGREDIENT sheet, which never offers one; a
+        // component's own words are picked on the component dock.
+        case RecipeMeasureOption(:final measure):
+          notAWordForAnIngredient(measure);
         case UnitOption(:final unit):
           // An unresolved measure id survives an unrelated re-save; only an
           // explicit chip pick clears it (degrade-don't-destroy).
@@ -822,6 +830,11 @@ class _ComponentLineEditor extends StatelessWidget {
             ),
         initialQuantity: item.quantity,
         initialUnit: item.unit,
+        // The pointer the line carries, which is the whole condition: a
+        // units-only offer always returns a unit, and writing one here would
+        // replace `blob` with `g` and lose the only place the line's amount
+        // lived (ADR-0018). The sheet reads the word off the target.
+        initialMeasureId: item.recipeMeasureId,
         initialOptional: item.optional,
         onSetYield: target == null
             ? null
@@ -830,15 +843,29 @@ class _ComponentLineEditor extends StatelessWidget {
       if (result == null) return;
       notifier
         ..setLineItemQuantity(item.id, result.quantity)
-        ..setLineItemUnit(item.id, result.unit)
         ..setLineItemOptional(item.id, optional: result.optional);
+      // Null means the line keeps the word it already says — see
+      // [ComponentQuantity]. Never a fallback unit: that IS the loss.
+      if (result.unit case final picked?) {
+        notifier.setLineItemUnit(item.id, picked);
+      }
     }
 
     return _EditorLine(
       item: item,
       recipeId: recipeId,
       notifier: notifier,
-      amount: componentAmountText(item.quantity, item.unit),
+      // The word the line was written in, read off the target's LIVE measures
+      // rather than off the resolution: a word can be alive and unresolvable at
+      // the same time (a `makes` restated into another family under it), and
+      // that row must still read `3 blob` rather than a bare `3`. Only a word
+      // that has truly gone prints the number alone, which is the honest half
+      // of the refusal.
+      amount: componentAmountText(
+        item.quantity,
+        item.unit,
+        measureLabel: recipeMeasureOfLine(item)?.label,
+      ),
       dragIndex: dragIndex,
       collapseEpoch: collapseEpoch,
       lit: lit,

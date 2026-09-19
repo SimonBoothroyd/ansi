@@ -28,6 +28,7 @@ import 'package:meta/meta.dart';
 import '../result/result.dart';
 import 'macros.dart';
 import 'number_format.dart';
+import 'unit_words.dart';
 import 'units.dart';
 
 /// The provenance families a [Measure.source] can carry, for at-a-glance
@@ -109,6 +110,33 @@ class Measure {
   String toString() => 'Measure($label = $amount ${basis.baseUnit.id})';
 }
 
+/// How far two amounts may sit apart and still be **the same fact**: one part
+/// in a hundred, either side.
+///
+/// The app has exactly one tolerance for that, and both doors that ask the
+/// question use it — an ingredient measure against the row's piece weight
+/// (`wholeMeasureOf`, ADR-0016) and a recipe measure against the whole of what
+/// a batch makes (`wholeMeasureOfRecipe`, ADR-0018). One number, so "the same
+/// measure" means the same thing wherever it is said.
+const kWholeMeasureTolerance = 0.01;
+
+/// [label] as the household wrote it: trimmed, with any run of inner
+/// whitespace read as one space.
+///
+/// **Case is theirs.** Nothing here lower-cases: the measures editor never
+/// has, and a silent case change is the kind of edit that makes a person doubt
+/// what else was changed. The seed's own style — all lower case, singular, a
+/// container word carrying its shelf size (`can (14.5 oz)`) — is a thing the
+/// doors *suggest*, not a thing this function imposes.
+///
+/// Both kinds of word are read by it, at every door either is authored at: a
+/// row's measures editor, *keep as a measure* on a receipt's pack, a recipe's
+/// MEASURES list, the ＋ on a component's dock. Otherwise ` Can ` and `Can`
+/// become two rows of one word, which the merge-on-read rule then hides one of
+/// rather than fixing.
+String measureLabelAsAuthored(String label) =>
+    label.trim().replaceAll(RegExp(r'\s+'), ' ');
+
 // --- A measure's word, printed with what one of it comes to ------------------
 
 /// `jar (340 g)` — [word] with the basis amount behind it, or the word alone
@@ -142,7 +170,7 @@ bool measureWordStatesSize(String word) {
     final inside = _amountThenUnit.firstMatch(bracketed.group(1)!.trim());
     if (inside == null) continue;
     if (parseAmount(inside.group(1)!) == null) continue;
-    if (unitFromWrittenName(inside.group(2)!) != null) return true;
+    if (unitFromLabel(inside.group(2)!) != null) return true;
   }
   return false;
 }

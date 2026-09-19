@@ -1,4 +1,5 @@
 import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
@@ -554,42 +555,44 @@ void main() {
 
 /// A week with the sliders planned for Saturday and a ¼-cup aioli component,
 /// where the aioli states [yields] (empty ⇒ the gap state).
-CookPlan _planWith({required List<YieldDenomination> yields}) =>
-    buildCookPlan(
-      const [
-        PlannedRecipe(
-          recipeId: 'sliders',
-          title: 'Sausage Sliders',
-          servingsBase: 8,
-          meals: [CoveredMeal(dayOfWeek: 5, mealSlot: 'Dinner', portions: 8)],
+CookPlan _planWith({required List<YieldDenomination> yields}) => buildCookPlan(
+  const [
+    PlannedRecipe(
+      recipeId: 'sliders',
+      title: 'Sausage Sliders',
+      servingsBase: 8,
+      meals: [CoveredMeal(dayOfWeek: 5, mealSlot: 'Dinner', portions: 8)],
+    ),
+  ],
+  components: {
+    'sliders': (
+      title: 'Sausage Sliders',
+      servingsBase: 8.0,
+      keepsForDays: null,
+      freezable: false,
+      freezerDays: null,
+      measures: const <RecipeMeasure>[],
+      yields: const <YieldDenomination>[],
+      components: [
+        (
+          id: 'li-aioli',
+          subRecipeId: 'aioli',
+          quantity: 0.25,
+          unit: cup,
+          recipeMeasureId: null,
+          optional: false,
         ),
       ],
-      components: {
-        'sliders': (
-          title: 'Sausage Sliders',
-          servingsBase: 8.0,
-          keepsForDays: null,
-          freezable: false,
-          freezerDays: null,
-          yields: const <YieldDenomination>[],
-          components: [
-            (
-              id: 'li-aioli',
-              subRecipeId: 'aioli',
-              quantity: 0.25,
-              unit: cup,
-              optional: false,
-            ),
-          ],
-        ),
-        'aioli': (
-          title: 'Romesco Aioli',
-          servingsBase: 4.0,
-          keepsForDays: 5,
-          freezable: false,
-          freezerDays: null,
-          yields: yields,
-          components: const <ComponentLine>[],
-        ),
-      },
-    );
+    ),
+    'aioli': (
+      title: 'Romesco Aioli',
+      servingsBase: 4.0,
+      keepsForDays: 5,
+      freezable: false,
+      freezerDays: null,
+      measures: const <RecipeMeasure>[],
+      yields: yields,
+      components: const <ComponentLine>[],
+    ),
+  },
+);

@@ -73,6 +73,19 @@ const _exemptTables = <String, Set<String>>{
     'ingredient_group',
     'recipe',
   },
+  // The recipe-measure repo watches one recipe's own words. The tables below
+  // are the delete gate's alone (`countLinesUsing` — the two tables 0048 says
+  // can carry a pointer, plus the join naming the recipes a refusal sends
+  // somebody to): a one-shot Future read at the moment of the tap. Nothing
+  // watched here reads them, so nothing watched can go stale when one changes —
+  // and the surfaces that depend on a word watch `recipe_measure` themselves,
+  // which is how a re-stated `blob` reaches them.
+  'lib/features/recipes/data/recipe_measure_repository_impl.dart': {
+    'recipe_line_item',
+    'week_recipe_line_override',
+    'ingredient_group',
+    'recipe',
+  },
   // The planner watches a week's meals. It reads the week's line overrides in
   // exactly one place — `copyLastWeek`, counting the variants it is about to
   // leave behind — which is a one-shot Future taken at the moment of the copy.

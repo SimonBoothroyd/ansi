@@ -124,6 +124,22 @@ for path in MIGRATIONS:
                                 (col["detail"] + " " if col["detail"] else "")
                                 + f"*({'nullable' if drop else 'not null'} "
                                   f"since `{path.name}`)*")
+                    continue
+                # A table-level rule can arrive, or be RESTATED, in a later
+                # migration (0048 widens week_recipe_line_override's amount
+                # pair, so a line said in a recipe's own word may carry no
+                # unit). Without these two the doc prints the `create table`
+                # rules forever and misstates the rest — the same quiet lie
+                # the nullability branch above fixes.
+                c = re.match(
+                    r"drop constraint (?:if exists )?(\w+)", clause, re.I)
+                if c:
+                    t["constraints"] = [
+                        k for k in t["constraints"]
+                        if not re.match(rf"constraint {c.group(1)}\b", k, re.I)]
+                    continue
+                if re.match(r"add constraint \w+ ", clause, re.I):
+                    t["constraints"].append(clause[len("add "):])
             continue
         m = re.match(r"alter publication powersync add table (.*)$", stmt, re.I)
         if m:

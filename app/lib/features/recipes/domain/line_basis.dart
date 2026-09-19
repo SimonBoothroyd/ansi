@@ -21,6 +21,7 @@ library;
 import '../../../core/result/result.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
+import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
 import 'component_math.dart';
 import 'recipe.dart';
@@ -58,7 +59,7 @@ Measure? pieceMeasureIn(IngredientBasis row) {
 /// household to add a weight would send them to fix what is not broken.
 bool isBareCount(LineItem line) =>
     line.quantity != null &&
-    line.unit.family == UnitFamily.count &&
+    line.unit?.family == UnitFamily.count &&
     line.measure == null &&
     line.measureId == null;
 
@@ -109,12 +110,16 @@ double? lineAmountInBasis(LineItem line, IngredientBasis row) {
     // measure row syncs in.
     return null;
   }
-  return quantityInBasis(quantity, line.unit, row);
+  final unit = line.unit;
+  // A component line said in the target's own word states no catalog unit at
+  // all: what it is, is a share of a batch, and nothing here can weigh one.
+  if (unit == null) return null;
+  return quantityInBasis(quantity, unit, row);
 }
 
 /// What a summation needs about one sub-recipe it walks into: its own lines
-/// and serving count, plus the yields a component line's amount is resolved
-/// against.
+/// and serving count, plus the two things a component line's amount is
+/// resolved against — the yields, and the recipe's own words.
 ///
 /// The caller supplies these by id; a walk is depth-first with a visited set,
 /// so a cycle raced past both guards renders the parent unresolved instead of
@@ -123,4 +128,9 @@ typedef SubRecipeNode = ({
   double servingsBase,
   List<LineItem> lines,
   List<YieldDenomination> yields,
+
+  /// The node's live [RecipeMeasure]s. A parent line saying one of these words
+  /// resolves through it alone; a word this list has not got leaves the line
+  /// unresolved and named, never re-read as a count.
+  List<RecipeMeasure> measures,
 });

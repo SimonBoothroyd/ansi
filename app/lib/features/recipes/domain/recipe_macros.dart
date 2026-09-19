@@ -480,9 +480,9 @@ RecipeMacroSummary _summarize({
     // test (a pinch of a stub is still just a pinch). Nothing is invented: it
     // contributes zero because zero grams of it were claimed. Nothing is
     // silent either — every one of these is named under the total.
-    if (line.measure == null && line.unit.family == UnitFamily.imprecise) {
+    if (line.measure == null && line.unit?.family == UnitFamily.imprecise) {
       imprecise++;
-      note(line, MacroLineReason.imprecise, unit: line.unit.label);
+      note(line, MacroLineReason.imprecise, unit: line.unit?.label);
       continue;
     }
     final ingredientId = line.ingredientId;
@@ -568,8 +568,8 @@ final class _ComponentMacros extends _ComponentResult {
   final Macros macros;
 }
 
-/// The batch math didn't resolve (no yield, wrong family, no amount, a cycle,
-/// or a target that isn't there).
+/// The batch math didn't resolve (no yield, wrong family, a word the target no
+/// longer has, no amount, a cycle, or a target that isn't there).
 final class _ComponentUnresolved extends _ComponentResult {
   const _ComponentUnresolved();
 }
@@ -601,6 +601,8 @@ _ComponentResult _componentMacros({
     quantity: line.quantity,
     unit: line.unit,
     yields: node.yields,
+    recipeMeasureId: line.recipeMeasureId,
+    measures: node.measures,
   );
   if (amount is! ResolvedComponentAmount) return const _ComponentUnresolved();
 

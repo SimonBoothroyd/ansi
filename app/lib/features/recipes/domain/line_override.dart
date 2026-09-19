@@ -82,6 +82,13 @@ abstract class LineOverride with _$LineOverride {
     Unit? unit,
     String? measureId,
     Measure? measure,
+
+    /// The target recipe's own word a component line is cooked in this week
+    /// (`week_recipe_line_override.recipe_measure_id`). Absolute like every
+    /// other value a `replace` carries: the week says `3 blob`, and the
+    /// recipe re-stating `blob` from 20 to 24 moves this week's share with
+    /// it, because the pointer is at the word rather than at a number.
+    String? recipeMeasureId,
     String? note,
     int? sortOrder,
   }) = _LineOverride;
@@ -147,6 +154,7 @@ List<LineOverride> diffLineOverrides({
           unit: line.unit,
           measureId: line.measureId,
           measure: line.measure,
+          recipeMeasureId: line.recipeMeasureId,
           note: _trimmed(line.note),
           sortOrder: added++,
         ),
@@ -180,6 +188,7 @@ List<LineOverride> diffLineOverrides({
           unit: line.unit,
           measureId: line.measureId,
           measure: line.measure,
+          recipeMeasureId: line.recipeMeasureId,
           note: _trimmed(line.note),
         ),
       );
@@ -213,7 +222,7 @@ List<LineOverride> diffLineOverrides({
 }
 
 /// Whether [edited] states a different thing to cook, or a different amount of
-/// it, than [original] — the five fields a `replace` carries.
+/// it, than [original] — the fields a `replace` carries.
 ///
 /// The `optional` flag is deliberately NOT one of them: it is an exclusion or
 /// an inclusion, never a replacement.
@@ -223,6 +232,7 @@ bool _differs(LineItem original, LineItem edited) =>
     original.quantity != edited.quantity ||
     original.unit != edited.unit ||
     original.measureId != edited.measureId ||
+    original.recipeMeasureId != edited.recipeMeasureId ||
     _trimmed(original.note) != _trimmed(edited.note);
 
 String? _trimmed(String? note) {
@@ -242,9 +252,13 @@ LineItem applyOverride(LineItem line, LineOverride override) => line.copyWith(
   subRecipeId: override.subRecipeId,
   subRecipe: override.subRecipeId == null ? null : line.subRecipe,
   quantity: override.quantity,
-  unit: override.unit ?? line.unit,
+  // A `replace` is absolute, and the two denominations are one field between
+  // them: a week that says `3 blob` must not keep the recipe's `¼ cup` beside
+  // the word, and one that says `¼ cup` must not keep the word.
+  unit: override.recipeMeasureId != null ? null : (override.unit ?? line.unit),
   measureId: override.measureId,
   measure: override.measure,
+  recipeMeasureId: override.recipeMeasureId,
   note: override.note,
   optional: false,
   // A swap onto a DIFFERENT row is a repair, so the base line's broken-link
@@ -263,12 +277,16 @@ LineItem applyOverride(LineItem line, LineOverride override) => line.copyWith(
 LineItem addedLine(LineOverride override) => LineItem(
   id: override.id,
   ingredientName: override.ingredientName,
-  unit: override.unit ?? pieces,
+  // A row naming one of a recipe's own words states no catalog unit; one
+  // naming neither is malformed, and a bare count is a better answer than a
+  // line the model refuses to build.
+  unit: override.recipeMeasureId != null ? null : (override.unit ?? pieces),
   ingredientId: override.ingredientId,
   subRecipeId: override.subRecipeId,
   quantity: override.quantity,
   measureId: override.measureId,
   measure: override.measure,
+  recipeMeasureId: override.recipeMeasureId,
   note: override.note,
 );
 

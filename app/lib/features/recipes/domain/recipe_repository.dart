@@ -31,6 +31,7 @@ class RecipeUse {
     required this.unit,
     required this.amount,
     this.quantity,
+    this.measureLabel,
   });
 
   /// The referencing line's id, so a tap can scroll to it.
@@ -42,7 +43,13 @@ class RecipeUse {
 
   /// What the parent's line asks for, as printed ("¼ cup").
   final double? quantity;
-  final Unit unit;
+
+  /// The line's catalog unit, or null when it is said in one of this recipe's
+  /// own words instead — the same XOR every component line carries.
+  final Unit? unit;
+
+  /// That word, when the line names one and this recipe still has it.
+  final String? measureLabel;
 
   /// That amount as a share of a batch, or why it cannot be said.
   final ComponentAmount amount;
@@ -55,14 +62,49 @@ class RecipeUse {
       other.title == title &&
       other.quantity == quantity &&
       other.unit == unit &&
+      other.measureLabel == measureLabel &&
       other.amount == amount;
 
   @override
-  int get hashCode =>
-      Object.hash(lineId, recipeId, title, quantity, unit, amount);
+  int get hashCode => Object.hash(
+    lineId,
+    recipeId,
+    title,
+    quantity,
+    unit,
+    measureLabel,
+    amount,
+  );
 
   @override
-  String toString() => 'RecipeUse($title, $quantity ${unit.id}, $amount)';
+  String toString() =>
+      'RecipeUse($title, $quantity ${measureLabel ?? unit?.id}, $amount)';
+}
+
+/// A line that says its amount in nothing at all — neither a catalog unit nor
+/// one of the target's own words — refused by `saveRecipe` before it is
+/// written.
+///
+/// The database's `num_nonnulls(unit, recipe_measure_id) = 1` would refuse it
+/// on UPLOAD, and a refused upload makes the PowerSync connector drop the
+/// WHOLE crud transaction: one malformed line would silently take every write
+/// queued beside it. So the repository refuses the save instead, where a
+/// person is standing in front of it and the write door can say why.
+///
+/// [LineItem]'s own asserts state the same shape, but an assert is compiled
+/// out of a release build — this is the check that is there on a phone.
+class UndenominatedLineError implements Exception {
+  const UndenominatedLineError({required this.lineId, required this.name});
+
+  final String lineId;
+
+  /// The line's display name, so the message can name which line it was.
+  final String name;
+
+  @override
+  String toString() =>
+      '“$name” says no amount in anything — a line is denominated in a unit '
+      'or in one of the target recipe’s own words, never in neither';
 }
 
 abstract interface class RecipeRepository {

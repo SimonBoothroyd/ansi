@@ -1,3 +1,4 @@
+import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
@@ -383,6 +384,7 @@ void main() {
       keepsForDays: 3,
       freezable: false,
       freezerDays: null,
+      measures: const <RecipeMeasure>[],
       yields: const <YieldDenomination>[],
       components: components,
     );
@@ -392,14 +394,38 @@ void main() {
       bool freezable = false,
       int? freezerDays,
       List<ComponentLine> components = const [],
+      List<RecipeMeasure> measures = const [],
     }) => (
       title: 'Romesco Aioli',
       servingsBase: 4,
       keepsForDays: keeps,
       freezable: freezable,
       freezerDays: freezerDays,
+      measures: measures,
       yields: yields,
       components: components,
+    );
+
+    /// "a blob is 15 g" — the household's own word for the aioli.
+    const blob = RecipeMeasure(
+      id: 'blob',
+      recipeId: 'aioli',
+      label: 'blob',
+      amount: 15,
+      unit: g,
+    );
+
+    /// "makes 300 g" — the aioli weighed, which is what lets its word resolve.
+    const weighed = [(qty: 300.0, unit: g)];
+
+    /// A line saying `3 blob` of the aioli: a quantity, a word, no unit.
+    const threeBlob = (
+      id: 'li-aioli',
+      subRecipeId: 'aioli',
+      quantity: 3.0,
+      unit: null,
+      recipeMeasureId: 'blob',
+      optional: false,
     );
 
     const quarterCup = (
@@ -407,8 +433,78 @@ void main() {
       subRecipeId: 'aioli',
       quantity: 0.25,
       unit: cup,
+      recipeMeasureId: null,
       optional: false,
     );
+
+    test("a line said in the target's own word derives 0.15 of a batch", () {
+      final plan = buildCookPlan(
+        [
+          _recipe({5: 8}, id: 'sliders', title: 'Sausage Sliders', servings: 8),
+        ],
+        components: {
+          'sliders': sliders(components: const [threeBlob]),
+          // 3 × 15 g = 45 g of a batch that makes 300 g.
+          'aioli': aioli(yields: weighed, measures: const [blob]),
+        },
+      );
+      final session = plan.recipes
+          .firstWhere((r) => r.recipeId == 'aioli')
+          .sessions
+          .single;
+      expect(session.batchesToCook, closeTo(0.15, 1e-12));
+      expect(plan.gaps, isEmpty);
+      // The card can quote the line in the words it was written in.
+      final demand = session.demands.single;
+      expect(demand.measureLabel, 'blob');
+      expect(demand.quantity, 3);
+    });
+
+    test(
+      'a parent cooked twice asks for 0.3 — the LINE moves, not the word',
+      () {
+        final plan = buildCookPlan(
+          [
+            _recipe(
+              {5: 16},
+              id: 'sliders',
+              title: 'Sausage Sliders',
+              servings: 8,
+            ),
+          ],
+          components: {
+            'sliders': sliders(components: const [threeBlob]),
+            'aioli': aioli(yields: weighed, measures: const [blob]),
+          },
+        );
+        final session = plan.recipes
+            .firstWhere((r) => r.recipeId == 'aioli')
+            .sessions
+            .single;
+        expect(session.batchesToCook, closeTo(0.3, 1e-12));
+      },
+    );
+
+    test('a word the target has lost is a NAMED gap, never a count', () {
+      final plan = buildCookPlan(
+        [
+          _recipe({5: 8}, id: 'sliders', title: 'Sausage Sliders', servings: 8),
+        ],
+        components: {
+          'sliders': sliders(components: const [threeBlob]),
+          // `makes 8 piece` would read `3 blob` as 0.375 of a batch if the
+          // line ever degraded to a count. It must not.
+          'aioli': aioli(yields: const [(qty: 8.0, unit: pieces)]),
+        },
+      );
+      expect(plan.recipes.where((r) => r.recipeId == 'aioli'), isEmpty);
+      final gap = plan.gaps.single;
+      expect(gap.title, 'Romesco Aioli');
+      expect(gap.reason, const ComponentMeasureMissing('blob'));
+      // The card has no word to quote, so it quotes none.
+      expect(gap.demandedBy.single.measureLabel, isNull);
+      expect(gap.demandedBy.single.saysAMeasure, isTrue);
+    });
 
     test('a planned parent derives a batch-denominated component session', () {
       final plan = buildCookPlan(
@@ -484,6 +580,7 @@ void main() {
               keepsForDays: null,
               freezable: false,
               freezerDays: null,
+              measures: const <RecipeMeasure>[],
               yields: const <YieldDenomination>[],
               components: const [
                 (
@@ -491,6 +588,7 @@ void main() {
                   subRecipeId: 'aioli',
                   quantity: 1.0,
                   unit: batches,
+                  recipeMeasureId: null,
                   optional: false,
                 ),
               ],
@@ -524,6 +622,7 @@ void main() {
             keepsForDays: null,
             freezable: false,
             freezerDays: null,
+            measures: const <RecipeMeasure>[],
             yields: const <YieldDenomination>[],
             components: const [
               (
@@ -531,6 +630,7 @@ void main() {
                 subRecipeId: 'aioli',
                 quantity: 1.0,
                 unit: batches,
+                recipeMeasureId: null,
                 optional: false,
               ),
             ],
@@ -558,6 +658,7 @@ void main() {
             keepsForDays: null,
             freezable: false,
             freezerDays: null,
+            measures: const <RecipeMeasure>[],
             yields: const <YieldDenomination>[],
             components: const [
               (
@@ -565,6 +666,7 @@ void main() {
                 subRecipeId: 'aioli',
                 quantity: 1.0,
                 unit: batches,
+                recipeMeasureId: null,
                 optional: false,
               ),
             ],
@@ -593,6 +695,7 @@ void main() {
             keepsForDays: null,
             freezable: false,
             freezerDays: null,
+            measures: const <RecipeMeasure>[],
             yields: const <YieldDenomination>[],
             components: const [
               (
@@ -600,6 +703,7 @@ void main() {
                 subRecipeId: 'mid',
                 quantity: 2.0,
                 unit: batches,
+                recipeMeasureId: null,
                 optional: false,
               ),
             ],
@@ -610,6 +714,7 @@ void main() {
             keepsForDays: null,
             freezable: false,
             freezerDays: null,
+            measures: const <RecipeMeasure>[],
             yields: const [(qty: 1.0, unit: cup)],
             components: const [
               (
@@ -617,6 +722,7 @@ void main() {
                 subRecipeId: 'aioli',
                 quantity: 0.5,
                 unit: cup,
+                recipeMeasureId: null,
                 optional: false,
               ),
             ],
@@ -641,43 +747,46 @@ void main() {
         [
           _recipe({0: 4}, id: 'a', title: 'A', servings: 4),
         ],
-        components:
-            {
-              'a': (
-                title: 'A',
-                servingsBase: 4,
-                keepsForDays: null,
-                freezable: false,
-                freezerDays: null,
-                yields: const [(qty: 1.0, unit: cup)],
-                components: const [
-                  (
-                    id: 'li-b',
-                    subRecipeId: 'b',
-                    quantity: 1.0,
-                    unit: batches,
-                    optional: false,
-                  ),
-                ],
+        components: {
+          'a': (
+            title: 'A',
+            servingsBase: 4,
+            keepsForDays: null,
+            freezable: false,
+            freezerDays: null,
+            measures: const <RecipeMeasure>[],
+            yields: const [(qty: 1.0, unit: cup)],
+            components: const [
+              (
+                id: 'li-b',
+                subRecipeId: 'b',
+                quantity: 1.0,
+                unit: batches,
+                recipeMeasureId: null,
+                optional: false,
               ),
-              'b': (
-                title: 'B',
-                servingsBase: 4,
-                keepsForDays: null,
-                freezable: false,
-                freezerDays: null,
-                yields: const [(qty: 1.0, unit: cup)],
-                components: const [
-                  (
-                    id: 'li-a',
-                    subRecipeId: 'a',
-                    quantity: 1.0,
-                    unit: batches,
-                    optional: false,
-                  ),
-                ],
+            ],
+          ),
+          'b': (
+            title: 'B',
+            servingsBase: 4,
+            keepsForDays: null,
+            freezable: false,
+            freezerDays: null,
+            measures: const <RecipeMeasure>[],
+            yields: const [(qty: 1.0, unit: cup)],
+            components: const [
+              (
+                id: 'li-a',
+                subRecipeId: 'a',
+                quantity: 1.0,
+                unit: batches,
+                recipeMeasureId: null,
+                optional: false,
               ),
-            },
+            ],
+          ),
+        },
       );
       final gap = plan.gaps.single;
       expect(gap.recipeId, 'a');
@@ -752,6 +861,7 @@ void main() {
                 subRecipeId: 'aioli',
                 quantity: null,
                 unit: cup,
+                recipeMeasureId: null,
                 optional: false,
               ),
             ],
@@ -778,6 +888,7 @@ void main() {
                 subRecipeId: 'aioli',
                 quantity: 2.0,
                 unit: tbsp,
+                recipeMeasureId: null,
                 optional: false,
               ),
             ],
@@ -808,6 +919,7 @@ void main() {
             keepsForDays: null,
             freezable: false,
             freezerDays: null,
+            measures: const <RecipeMeasure>[],
             yields: const <YieldDenomination>[],
             components: const [quarterCup],
           ),
@@ -893,6 +1005,7 @@ void main() {
         subRecipeId: 'aioli',
         quantity: 0.25,
         unit: cup,
+        recipeMeasureId: null,
         optional: true,
       );
 
@@ -976,6 +1089,7 @@ void main() {
           keepsForDays: 5,
           freezable: false,
           freezerDays: null,
+          measures: const <RecipeMeasure>[],
           yields: const [(qty: 1.0, unit: cup)],
           components: components,
         );
@@ -997,6 +1111,7 @@ void main() {
                       subRecipeId: 'mid',
                       quantity: 1.0,
                       unit: batches,
+                      recipeMeasureId: null,
                       optional: false,
                     ),
                   ],
