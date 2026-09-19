@@ -716,7 +716,7 @@ void main() {
     });
 
     testWidgets('a measure that lands empties the add form for the next one — '
-        'both slots, the unit, and the keyboard', (tester) async {
+        'both slots and the keyboard, and keeps the unit', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
@@ -728,8 +728,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Weighed in something other than the basis, so the reset has a unit to
-      // put back as well as two slots to empty.
+      // A form opened fresh starts on the row's own basis unit…
+      expect(
+        find.descendant(of: measureUnitChip, matching: find.text('g')),
+        findsOneWidget,
+      );
+      // …and this one is weighed in something else, so the reset has a unit
+      // to leave alone as well as two slots to empty.
       await pickUnit(tester, measureUnitChip, 'oz');
       await tester.enterText(measureLabelField, 'half cheek');
       await tester.enterText(measureAmountField, '4');
@@ -745,9 +750,11 @@ void main() {
       );
       expect(fieldText(tester, measureLabelField), isEmpty);
       expect(fieldText(tester, measureAmountField), isEmpty);
-      // Back to the unit this form opens on — the row's own basis.
+      // The unit stays where it was left (owner): three measures usually
+      // come off one scale reading, so it is the one part of the last
+      // measure that is also true of the next.
       expect(
-        find.descendant(of: measureUnitChip, matching: find.text('g')),
+        find.descendant(of: measureUnitChip, matching: find.text('oz')),
         findsOneWidget,
       );
       expect(
@@ -756,9 +763,10 @@ void main() {
         reason: 'the keyboard stays up for the next measure',
       );
 
-      // And the next one goes straight in, with nothing reopened.
+      // And the next one goes straight in, with nothing reopened and nothing
+      // re-picked.
       await tester.enterText(measureLabelField, 'whole cheek');
-      await tester.enterText(measureAmountField, '180');
+      await tester.enterText(measureAmountField, '8');
       await tester.pump();
       await addMeasure(tester);
 
@@ -767,9 +775,9 @@ void main() {
       final added = repo.savedForms.single.measuresAdded;
       expect(added.map((m) => m.label), ['half cheek', 'whole cheek']);
       expect(added.first.amount, closeTo(4 * 28.349523125, 1e-9));
-      // The second was weighed in the basis: the reset put the unit back, so
-      // the ounces the first one used are not still in force.
-      expect(added.last.amount, 180);
+      // The second was weighed on the same scale, and landed in ounces
+      // because nobody said otherwise.
+      expect(added.last.amount, closeTo(8 * 28.349523125, 1e-9));
     });
 
     testWidgets('a REFUSED add keeps what was typed — correcting one word is '

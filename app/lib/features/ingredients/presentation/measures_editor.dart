@@ -161,8 +161,9 @@ class MeasuresEditor extends HookWidget {
     final label = useTextEditingController();
     final amount = useTextEditingController();
     final labelFocus = useFocusNode();
-    // What the form opens on, named once: where the unit starts, and what a
-    // landed measure puts it back to.
+    // What the form opens on: the row's own basis unit, every time the form
+    // is opened fresh. A landed measure does NOT put the unit back to it —
+    // see the reset in `save`.
     final openingUnit = ingredient.macrosBasis.baseUnit;
     final amountUnit = useState<Unit>(openingUnit);
     final error = useState<String?>(null);
@@ -228,14 +229,19 @@ class MeasuresEditor extends HookWidget {
           // The host takes it FIRST, so nothing the reset does can lose a
           // measure that has already landed.
           onAdded(measure);
-          // Then the form goes back to the state it opened in, ready for the
-          // next one: a household names a size, a fragment and a container in
-          // one sitting, and a form still holding the last one asks the
-          // person to clear three controls before the second — or lets them
-          // add "half cheek" twice without noticing.
+          // Then the words and the figure clear, ready for the next one: a
+          // household names a size, a fragment and a container in one
+          // sitting, and a form still holding the last one asks the person to
+          // clear two controls before the second — or lets them add "half
+          // cheek" twice without noticing.
+          //
+          // **The unit stays where they left it** (owner). Three measures
+          // usually come off one scale reading, so the unit is the one part
+          // of the last measure that is also true of the next; putting it
+          // back to the basis unit made the person re-pick ounces for every
+          // row. A fresh open still starts on the row's basis unit.
           label.clear();
           amount.clear();
-          amountUnit.value = openingUnit;
           // And the keyboard goes back to the first slot — but only where
           // this form is still on screen. The quantity sheet's host closes
           // the manage state on an add, and a field that is leaving must not

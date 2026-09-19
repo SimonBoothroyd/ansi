@@ -399,6 +399,13 @@ and can run beside phase one.
     line points at the measure the row has, keeping the figure read off the
     paper. If they do not, the sheet refuses, names both weights, and offers
     the house style's own way out — put the size in the word.
+- 2026-09-19 — **The measure form keeps the unit you weighed in** (owner). A
+  measure that lands empties the form for the next one, and the first pass
+  put the unit back to the row's basis with the words and the figure. Three
+  measures usually come off ONE scale reading, so the unit is the single part
+  of the last measure that is also true of the next: it now stays where it was
+  left, the label and the amount still clear, and the keyboard still goes back
+  to the label. A form opened fresh still starts on the row's basis unit.
 - 2026-09-19 — **A word that already says its size says it once** (owner). A
   pack named as one of the row's measures prints the word and what one of it
   comes to, because the word alone says nothing about the figure beside it.
