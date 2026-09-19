@@ -94,6 +94,36 @@ void main() {
       );
     });
 
+    test('the floor wears the words on both halves', () {
+      const partly = RecipeCostSummary(
+        pricedCents: 660,
+        pricedPerServingCents: 165,
+        lineCosts: {'li-2': CostLine(cents: 660)},
+        unpriced: [
+          (
+            lineId: 'li-1',
+            name: 'Chopped tomatoes',
+            reason: CostLineReason.noPrice,
+            unit: null,
+          ),
+        ],
+      );
+      expect(
+        costFloor(partly),
+        r'at least $1.65 a serving · at least $6.60 the recipe',
+      );
+    });
+
+    test('there is no floor to print without one priced line', () {
+      expect(costFloor(unpriced), isNull);
+      expect(
+        costFloor(
+          const RecipeCostSummary(totalCents: 660, perServingCents: 165),
+        ),
+        isNull,
+      );
+    });
+
     test('nothing unpriced draws no row', () {
       expect(unpricedNames(const RecipeCostSummary()), isNull);
       expect(oldestPriceLine(const RecipeCostSummary()), isNull);

@@ -78,6 +78,65 @@ void main() {
     expect(find.text('UNPRICED'), findsOneWidget);
     expect(find.text('Chopped tomatoes · no price yet'), findsOneWidget);
     expect(find.text('1 line unpriced'), findsOneWidget);
+    // Nothing is priced, so there is no floor to print: `at least $0` would
+    // read as a free recipe rather than as an unknown one.
+    expect(find.textContaining('at least'), findsNothing);
+  });
+
+  testWidgets('some lines priced reads as a floor, never as the cost', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        RecipeCostPanel(
+          summary: RecipeCostSummary(
+            pricedCents: 660,
+            pricedPerServingCents: 165,
+            newestPrice: DateTime.utc(2026, 9, 3),
+            lineCosts: {'li-1': CostLine(cents: 660, price: _price())},
+            unpriced: const [
+              (
+                lineId: 'li-2',
+                name: 'Chopped tomatoes',
+                reason: CostLineReason.noPrice,
+                unit: null,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.text(r'at least $1.65 a serving · at least $6.60 the recipe'),
+      findsOneWidget,
+    );
+    // Still no cells, still waiting, still naming what it is waiting on.
+    expect(find.text('A SERVING'), findsNothing);
+    expect(find.text(r'$6.60'), findsNothing);
+    expect(find.text('1 line unpriced'), findsOneWidget);
+    expect(find.text('Chopped tomatoes · no price yet'), findsOneWidget);
+    expect(find.textContaining('a floor, not the cost'), findsOneWidget);
+  });
+
+  testWidgets('a whole recipe prints its cells and no floor', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        RecipeCostPanel(
+          summary: RecipeCostSummary(
+            totalCents: 1017,
+            perServingCents: 254.25,
+            pricedCents: 1017,
+            pricedPerServingCents: 254.25,
+            newestPrice: DateTime.utc(2026, 9, 3),
+            lineCosts: {'li-1': CostLine(cents: 1017, price: _price())},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text(r'$10.17'), findsOneWidget);
+    expect(find.textContaining('at least'), findsNothing);
   });
 
   testWidgets('the oldest line is named when its month differs', (

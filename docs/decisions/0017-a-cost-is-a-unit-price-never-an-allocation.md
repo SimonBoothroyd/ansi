@@ -1,6 +1,7 @@
 # ADR-0017 — A cost is a unit price, never an allocation
 
-- **Status:** accepted (2026-09-16, Simon — owner-ruled on the 0049 design)
+- **Status:** accepted (2026-09-16, Simon — owner-ruled on the 0049 design);
+  rule 4 amended 2026-09-19 with the floor a partly priced recipe prints
 - **Rests on:** [ADR-0007](./0007-shopping-list-thin-overlay.md) (the app keeps
   no inventory), [ADR-0008](./0008-unit-admission-model.md) and
   [ADR-0009](./0009-density-unlocks-both-families.md) (which amounts may reach
@@ -67,6 +68,24 @@ a receipt to a meal.**
    and the lines it is waiting on are named (invariant 3: a total that quietly
    skipped the tomatoes would understate the recipe by the tomatoes).
 
+   **What the priced lines come to is still said, as a floor.** Where some of
+   a recipe's lines are priced and some are not, the recipe page prints the
+   priced sum under the refusal — `at least $1.65 a serving · at least $6.60
+   the recipe` — with **each figure wearing its own `at least`**, because a
+   bare `$1.65 a serving` beside a floor would be read as what a serving costs,
+   and what a serving costs is exactly what is not known. The cells stay gone,
+   the unpriced lines stay named, and the sentence under the figure says what
+   it is: a floor, not the cost, which the lines named below can only add to.
+
+   A floor is a **separate field** (`pricedCents`, and its per-serving twin),
+   never a partial total: the cost stays null, so the week's figure, the shop's
+   estimate and a parent recipe's component share are unchanged by it, and a
+   component whose target is incomplete is still **unpriced** in its parent
+   rather than contributing a floor. With nothing priced there is no floor
+   worth printing — `at least $0` reads as free rather than as unknown — so
+   that recipe keeps the plain refusal. A floor wears no `≈`: what is uncertain
+   about it is not the arithmetic, it is the lines nobody has priced.
+
 5. **Imprecise and optional lines are out by exactly the macro rule**, through
    the same `effectiveLines` seam, and are named in their own row. A `handful`
    is not unpriced — it is unweighable by nature, and calling it a gap would
@@ -93,7 +112,9 @@ a receipt to a meal.**
   recipe, week and shopping row that reads that row moves with it.
 - **The gap is visible and honest.** A household that has priced ten rows sees
   ten rows priced and the rest named; there is no point at which the app
-  pretends to know more than it does.
+  pretends to know more than it does. A recipe halfway through that work says
+  both halves at once — the floor it has reached, and the lines it is waiting
+  on — so pricing a row is visibly worth something before the last one is done.
 - **A stale price is visible rather than smoothed.** The panel states the month
   its figures come from and names the oldest line when that month differs, so a
   July jar under an otherwise-September recipe is something you can see.
