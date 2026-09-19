@@ -25,6 +25,51 @@ Unit? unitFromWord(String word, {Set<UnitFamily>? families}) {
   return unit;
 }
 
+/// The catalog unit a bare typed [label] names ("tbsp", "Cups ", "ml",
+/// "batch"), or null when it names none.
+///
+/// The *authoring* half of this file: [unitFromWord] reads what a page or a
+/// product label printed, this reads what a person typed into a label field —
+/// so a word that is only a unit's name can be refused before it becomes a
+/// second way to say something the chip row already says.
+///
+/// It asks the catalog itself — [kAllUnits], `batch` included — by the id and
+/// the label the app prints, so a unit is recognised by the word the chip row
+/// actually shows rather than by whichever spellings the table below happens
+/// to list. Robust to casing, surrounding whitespace, and the simple `s`
+/// plural ("Cups ", "tbsps") — the trivial disguises a typed label wears. A
+/// caller that also wants the printed spellings ("grams", "tablespoon") falls
+/// back to [unitFromWord].
+Unit? unitFromLabel(String label) {
+  final normalized = label.trim().toLowerCase();
+  if (normalized.isEmpty) return null;
+  final singular = normalized.endsWith('s')
+      ? normalized.substring(0, normalized.length - 1)
+      : null;
+  for (final u in kAllUnits) {
+    for (final name in [u.id.toLowerCase(), u.label.toLowerCase()]) {
+      if (normalized == name || singular == name) return u;
+    }
+  }
+  return null;
+}
+
+/// The catalog **volume** unit a bare [label] names, or null. Measures must
+/// never duplicate volume units — density owns volume conversion (ADR-0008 §2:
+/// a volume-named weight mapping IS a density) — so the add-measure form uses
+/// the resolved unit to REDIRECT the entry into density instead of merely
+/// refusing it.
+Unit? volumeUnitFromLabel(String label) {
+  final unit = unitFromLabel(label);
+  return unit != null && unit.family == UnitFamily.volume ? unit : null;
+}
+
+/// Whether [label] is just the name of a catalog volume unit — see
+/// [volumeUnitFromLabel]. Keeps the chip row / manage UI from offering (or
+/// authoring) a volume-named measure that slipped in anyway; the seed
+/// pipeline skips FDC volume portions for the same reason.
+bool isVolumeUnitLabel(String label) => volumeUnitFromLabel(label) != null;
+
 /// The kitchen's vocabulary, in the spellings a recipe page and a product
 /// label actually print.
 const _unitWords = <String, Unit>{

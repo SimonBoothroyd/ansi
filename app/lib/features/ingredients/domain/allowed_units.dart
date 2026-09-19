@@ -15,14 +15,22 @@
 /// bridges it exists.
 library;
 
-import 'package:meta/meta.dart';
-
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/number_format.dart';
+import '../../../core/units/unit_choice.dart';
+import '../../../core/units/unit_words.dart';
 import '../../../core/units/units.dart';
 import 'ingredient.dart';
 import 'serving_measure.dart';
+
+// The picker's vocabulary and the unit-word lookup are the unit system's, not
+// this feature's — a component's dock offers the same row one level up. Every
+// surface that reads the offer reads it from here, so they move without a
+// churn of imports.
+export '../../../core/units/unit_choice.dart';
+export '../../../core/units/unit_words.dart'
+    show isVolumeUnitLabel, unitFromLabel, volumeUnitFromLabel;
 
 // --- Kitchen ordering (ADR-0008 §Consequences) -------------------------------
 
@@ -534,86 +542,6 @@ List<UnitAdmission> allowedUnitCandidates(Ingredient ingredient) {
 }
 
 // --- v2: units + the ingredient's live measures (step 7.6) -------------------
-
-/// One entry of a unit picker: either a catalog [Unit] or one of the
-/// ingredient's named [Measure]s ("potato, large (299 g)"). Sealed so a picker
-/// can switch exhaustively.
-@immutable
-sealed class UnitChoice {
-  const UnitChoice();
-
-  /// The dropdown label.
-  String get label;
-}
-
-final class UnitOption extends UnitChoice {
-  const UnitOption(this.unit);
-
-  final Unit unit;
-
-  @override
-  String get label => unit.label;
-
-  @override
-  bool operator ==(Object other) => other is UnitOption && other.unit == unit;
-
-  @override
-  int get hashCode => unit.hashCode;
-}
-
-final class MeasureOption extends UnitChoice {
-  const MeasureOption(this.measure);
-
-  final Measure measure;
-
-  @override
-  String get label {
-    final basis = measure.basis.baseUnit;
-    return '${measure.label} (${formatAmountIn(measure.amount, basis)} '
-        '${basis.label})';
-  }
-
-  @override
-  bool operator ==(Object other) =>
-      other is MeasureOption && other.measure.id == measure.id;
-
-  @override
-  int get hashCode => measure.id.hashCode;
-}
-
-/// The catalog volume unit a bare [label] names ("tbsp", "Cups ", "ml"…), or
-/// null when it names none. Measures must never duplicate volume units —
-/// density owns volume conversion (ADR-0008 §2: a volume-named weight mapping
-/// IS a density) — so the add-measure form uses the resolved unit to REDIRECT
-/// the entry into density instead of merely refusing it.
-///
-/// Robust to casing, surrounding whitespace, and the simple `s` plural
-/// ("Cups ", "tbsps") — the trivial disguises a typed label wears.
-Unit? volumeUnitFromLabel(String label) {
-  final normalized = label.trim().toLowerCase();
-  final singular = normalized.endsWith('s')
-      ? normalized.substring(0, normalized.length - 1)
-      : null;
-  for (final u in kAllUnits) {
-    if (u.family != UnitFamily.volume) continue;
-    for (final name in [u.id.toLowerCase(), u.label.toLowerCase()]) {
-      if (normalized == name || singular == name) return u;
-    }
-  }
-  return null;
-}
-
-/// Whether [label] is just the name of a catalog volume unit — see
-/// [volumeUnitFromLabel]. Keeps the chip row / manage UI from offering (or
-/// authoring) a volume-named measure that slipped in anyway; the seed
-/// pipeline skips FDC volume portions for the same reason.
-bool isVolumeUnitLabel(String label) => volumeUnitFromLabel(label) != null;
-
-/// A unit picker's full offer: the filtered `choices`, plus `offFilter` when
-/// the stored selection had to be admitted from outside the filter (it is
-/// also the last element of `choices`) so the UI can style it subtly
-/// ("not in filter") rather than hide it.
-typedef UnitChoiceOffer = ({List<UnitChoice> choices, UnitChoice? offFilter});
 
 /// [allowedUnitsFor] plus the ingredient's live [measures], as picker choices
 /// in chip order: **the measures lead**, the row's whole measure
