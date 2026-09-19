@@ -385,9 +385,9 @@ and can run beside phase one.
     line, or want the shop to say *buy 3* of. And it says the pack carries over
     either way, so nothing is minted to buy something already free.
   - **The hint is the household's own style**, audited off the curated seed's
-    306 measures: all lower case, singular, and a container word carrying its
+    326 measures: all lower case, singular, and a container word carrying its
     shelf size in the unit the shelf prints — `can (14.5 oz)`, `block (14 oz)`,
-    `bag (1 lb)`, `carton (32 oz)`. Two sizes of one container are two
+    `bag (16 oz)`, `carton (32 oz)`. Two sizes of one container are two
     measures; a qualifier follows a comma; a store's name lives in `source`,
     never in the label.
   - **One rule for a measure's word wherever it is authored**

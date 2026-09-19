@@ -14,7 +14,7 @@
 -- the USDA reference set is a different thing with a different owner
 -- (ADR-0005, seed/scripts/seed_usda.md).
 --
--- 315 ingredients (315 complete, 0 stub), 145 aliases, 306 measures.
+-- 323 ingredients (323 complete, 0 stub), 158 aliases, 326 measures.
 
 begin;
 
@@ -33,12 +33,25 @@ on conflict (id) do update set is_template = true;
 -- 'seed' before they land here — otherwise the row would seed and then
 -- reach no household at all. Every other stamp is the row's real
 -- provenance and is carried verbatim.
--- Re-stamped this run: 0 ingredient sources, 6 alias sources.
+-- Re-stamped this run: 0 ingredient sources, 19 alias sources.
+--   alias: frozen banana → Banana
+--   alias: vegetable stock cube → Bouillon Paste
+--   alias: Tenderstem broccoli → Broccoli
 --   alias: butter beans → Canned Butter Beans
 --   alias: diced fresh tomatoes → Cherry Tomatoes
+--   alias: chilli flakes → Chili Powder
 --   alias: chipotle chile flakes → Chipotle Chili Powder
+--   alias: fresh coriander leaves → Cilantro
+--   alias: cornflour → Cornstarch
+--   alias: lime wedges → Lime
+--   alias: cooking oil spray → Olive Oil
+--   alias: white onion → Onion
+--   alias: chocolate protein powder → Pea Protein Powder
+--   alias: soy yogurt → Plain Oat Yogurt
+--   alias: your favourite pasta → Protein Pasta
 --   alias: dried sage → Ground Sage
 --   alias: fresh mushrooms → White Mushroom
+--   alias: ground white pepper → White Pepper
 --   alias: sweet white sorghum flour → White Sorghum Flour
 
 -- Re-runnable (0020): the template holds ONE live row per match_text,
@@ -57,7 +70,7 @@ with v(canonical_name, category, default_unit, macros_basis, density_g_per_ml, m
   ('Active Dry Yeast'::text, 'baking'::text, 'tsp'::text, 'g'::text, 0.63::numeric, '{"carb":41.22,"fat":7.61,"fiber":26.9,"kcal":325,"protein":40.44}'::jsonb, 'complete'::text, 'usda_fdc:175043'::text, 'Leavening agents, yeast, baker''s, active dry'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'active yeast dry'::text),
   ('Agave'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.39::numeric, '{"carb":76.37,"fat":0.45,"fiber":0.2,"kcal":310,"protein":0.09}'::jsonb, 'complete'::text, 'usda_fdc:170277'::text, 'Sweetener, syrup, agave'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'agave'::text),
   ('All-Purpose Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.5283::numeric, '{"carb":76.31,"fat":0.98,"fiber":2.7,"kcal":364,"protein":10.33}'::jsonb, 'complete'::text, 'usda_fdc:169761'::text, 'Wheat flour, white, all-purpose, unenriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'all purpose flour'::text),
-  ('Ground Allspice'::text, 'spices & seasoning'::text, 'pinch'::text, 'g'::text, 0.4058::numeric, '{"carb":72.12,"fat":8.69,"fiber":21.6,"kcal":263,"protein":6.09}'::jsonb, 'complete'::text, 'usda_fdc:171315'::text, 'Spices, allspice, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'allspice ground'::text),
+  ('Ground Allspice'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.4058::numeric, '{"carb":72.12,"fat":8.69,"fiber":21.6,"kcal":263,"protein":6.09}'::jsonb, 'complete'::text, 'usda_fdc:171315'::text, 'Spices, allspice, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'allspice ground'::text),
   ('Almonds'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.6044::numeric, '{"carb":21.55,"fat":49.93,"fiber":12.5,"kcal":579,"protein":21.15}'::jsonb, 'complete'::text, 'usda_fdc:170567'::text, 'Nuts, almonds'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'almond'::text),
   ('Almond Butter'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0567::numeric, '{"carb":18.82,"fat":55.5,"fiber":10.3,"kcal":614,"protein":20.96}'::jsonb, 'complete'::text, 'usda_fdc:168588'::text, 'Nuts, almond butter, plain, without salt added'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'almond butter'::text),
   ('Almond Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.41::numeric, '{"carb":16.24925,"fat":50.23,"fiber":9.266,"kcal":578,"protein":26.24375}'::jsonb, 'complete'::text, 'usda_fdc:2261420'::text, 'Flour, almond'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'almond flour'::text),
@@ -75,6 +88,7 @@ with v(canonical_name, category, default_unit, macros_basis, density_g_per_ml, m
   ('Baking Soda'::text, 'baking'::text, 'tsp'::text, 'g'::text, 0.9333::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:175040'::text, 'Leavening agents, baking soda'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'baking soda'::text),
   ('Balsamic Vinegar'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0778::numeric, '{"carb":17.03,"fat":0,"fiber":0,"kcal":88,"protein":0.49}'::jsonb, 'complete'::text, 'usda_fdc:172241'::text, 'Vinegar, balsamic'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'balsamic vinegar'::text),
   ('Banana'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.634::numeric, '{"carb":22.84,"fat":0.33,"fiber":2.6,"kcal":89,"protein":1.09}'::jsonb, 'complete'::text, 'usda_fdc:173944'::text, 'Bananas, raw'::text, null::numeric, false, 118::numeric, 'borrowed from banana, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'banana'::text),
+  ('Barbells Hazelnut Protein Bar'::text, 'snacks'::text, 'piece'::text, 'g'::text, null::numeric, '{"carb":49.090909090909086,"fat":18.18181818181818,"fiber":12.727272727272727,"kcal":400,"protein":27.272727272727273}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, 55::numeric, 'manual'::text, '["piece"]'::jsonb, 'barbell hazelnut protein bar'::text),
   ('Basil'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.1014::numeric, '{"carb":2.65,"fat":0.64,"fiber":1.6,"kcal":23,"protein":3.15}'::jsonb, 'complete'::text, 'usda_fdc:172232'::text, 'Basil, fresh'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'basil'::text),
   ('Bay Leaves'::text, 'spices & seasoning'::text, 'piece'::text, 'g'::text, 0.1217::numeric, '{"carb":74.97,"fat":8.36,"fiber":26.3,"kcal":313,"protein":7.61}'::jsonb, 'complete'::text, 'usda_fdc:170917'::text, 'Spices, bay leaf'::text, null::numeric, false, 0.2::numeric, 'borrowed from leaf'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'bay leaf'::text),
   ('Beets'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5748::numeric, '{"carb":9.56,"fat":0.17,"fiber":2.8,"kcal":43,"protein":1.61}'::jsonb, 'complete'::text, 'usda_fdc:169145'::text, 'Beets, raw'::text, null::numeric, false, 82::numeric, 'borrowed from beet'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'beet'::text),
@@ -125,7 +139,7 @@ with v(canonical_name, category, default_unit, macros_basis, density_g_per_ml, m
   ('Cilantro'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.068::numeric, '{"carb":3.67,"fat":0.52,"fiber":2.8,"kcal":23,"protein":2.13}'::jsonb, 'complete'::text, 'usda_fdc:169997'::text, 'Coriander (cilantro) leaves, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'cilantro'::text),
   ('Ground Cinnamon'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.5275::numeric, '{"carb":80.59,"fat":1.24,"fiber":53.1,"kcal":247,"protein":3.99}'::jsonb, 'complete'::text, 'usda_fdc:171320'::text, 'Spices, cinnamon, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'cinnamon ground'::text),
   ('Cinnamon Stick'::text, 'spices & seasoning'::text, 'piece'::text, 'g'::text, null::numeric, '{"carb":80.59,"fat":1.24,"fiber":53.1,"kcal":247,"protein":3.99}'::jsonb, 'complete'::text, 'usda_fdc:171320'::text, 'Spices, cinnamon, ground'::text, null::numeric, true, 2.6::numeric, 'borrowed from stick'::text, '["g","kg","oz","lb","piece"]'::jsonb, 'cinnamon stick'::text),
-  ('Ground Cloves'::text, 'spices & seasoning'::text, 'pinch'::text, 'g'::text, 0.4396::numeric, '{"carb":65.53,"fat":13,"fiber":33.9,"kcal":274,"protein":5.97}'::jsonb, 'complete'::text, 'usda_fdc:171321'::text, 'Spices, cloves, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'clove ground'::text),
+  ('Ground Cloves'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.4396::numeric, '{"carb":65.53,"fat":13,"fiber":33.9,"kcal":274,"protein":5.97}'::jsonb, 'complete'::text, 'usda_fdc:171321'::text, 'Spices, cloves, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'clove ground'::text),
   ('Cocoa Powder'::text, 'baking'::text, 'tbsp'::text, 'g'::text, 0.3635::numeric, '{"carb":57.9,"fat":13.7,"fiber":37,"kcal":228,"protein":19.6}'::jsonb, 'complete'::text, 'usda_fdc:169593'::text, 'Cocoa, dry powder, unsweetened'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'cocoa powder'::text),
   ('Dried Coconut Flakes'::text, 'pantry'::text, 'tbsp'::text, 'ml'::text, 0.33814022701843::numeric, '{"carb":6.7628045403686,"fat":22.542681801228667,"fiber":4.508536360245733,"kcal":247.9694998135153,"protein":2.2542681801228666}'::jsonb, 'complete'::text, 'fdc_density:170577'::text, null::text, null::numeric, false, null::numeric, null::text, '["cup","tsp","tbsp","ml","g","kg","oz","lb"]'::jsonb, 'coconut flake dried'::text),
   ('Canned Coconut Milk'::text, 'pantry'::text, 'piece'::text, 'g'::text, 0.9552::numeric, '{"carb":2.81,"fat":21.33,"fiber":0,"kcal":197,"protein":2.02}'::jsonb, 'complete'::text, 'usda_fdc:170173'::text, 'Nuts, coconut milk, canned (liquid expressed from grated meat and water)'::text, null::numeric, true, 400::numeric, 'borrowed from can (400 ml)'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'coconut milk canned'::text),
@@ -165,7 +179,7 @@ with v(canonical_name, category, default_unit, macros_basis, density_g_per_ml, m
   ('Dried Figs'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.6298::numeric, '{"carb":63.9,"fat":0.92,"fiber":9.8,"kcal":249,"protein":3.3}'::jsonb, 'complete'::text, 'usda_fdc:326905'::text, 'Figs, dried, uncooked'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'fig dried'::text),
   ('Fine Sea Salt'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 1.2342::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:173468'::text, 'Salt, table'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'fine sea salt'::text),
   ('Canned Fire-Roasted Tomatoes'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0356::numeric, '{"carb":3.32,"fat":0.5,"fiber":1.9,"kcal":18,"protein":0.84}'::jsonb, 'complete'::text, 'usda_fdc:333281'::text, 'Tomatoes, canned, red, ripe, diced'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'fire tomato canned roasted'::text),
-  ('Flaky Salt'::text, 'spices & seasoning'::text, 'pinch'::text, 'g'::text, 0.55::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:173468'::text, 'Salt, table'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'flaky salt'::text),
+  ('Flaky Salt'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.55::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'usda_fdc:173468'::text, 'Salt, table'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'flaky salt'::text),
   ('Flaxseed Meal'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.47::numeric, '{"carb":28.88,"fat":42.16,"fiber":27.3,"kcal":534,"protein":18.29}'::jsonb, 'complete'::text, 'usda_fdc:169414'::text, 'Seeds, flaxseed'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'flaxseed meal'::text),
   ('Flour Tortilla'::text, 'grains'::text, 'piece'::text, 'g'::text, null::numeric, '{"carb":49.27,"fat":7.58,"fiber":2.4,"kcal":297,"protein":8.01}'::jsonb, 'complete'::text, 'usda_fdc:167535'::text, 'Tortillas, ready-to-bake or -fry, flour, shelf stable'::text, null::numeric, false, 49::numeric, 'borrowed from tortilla'::text, '["g","kg","oz","lb","piece"]'::jsonb, 'flour tortilla'::text),
   ('Dried French Green Lentils'::text, 'pantry'::text, 'cup'::text, 'g'::text, 0.8115::numeric, '{"carb":63.35,"fat":1.06,"fiber":10.7,"kcal":352,"protein":24.63}'::jsonb, 'complete'::text, 'usda_fdc:172420'::text, 'Lentils, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'french green lentil dried'::text),
@@ -191,6 +205,7 @@ with v(canonical_name, category, default_unit, macros_basis, density_g_per_ml, m
   ('Hot Sauce'::text, 'pantry'::text, 'tsp'::text, 'g'::text, 0.9536::numeric, '{"carb":1.75,"fat":0.37,"fiber":0.3,"kcal":11,"protein":0.51}'::jsonb, 'complete'::text, 'usda_fdc:174527'::text, 'Sauce, ready-to-serve, pepper or hot'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","to_taste"]'::jsonb, 'hot sauce'::text),
   ('Hummus'::text, 'pantry'::text, 'cup'::text, 'g'::text, 1.04::numeric, '{"carb":14.9,"fat":17.1,"fiber":5.4,"kcal":229,"protein":7.35}'::jsonb, 'complete'::text, 'usda_fdc:321358'::text, 'Hummus, commercial'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'hummus'::text),
   ('Iceberg Lettuce'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.3043::numeric, '{"carb":2.97,"fat":0.14,"fiber":1.2,"kcal":14,"protein":0.9}'::jsonb, 'complete'::text, 'usda_fdc:169248'::text, 'Lettuce, iceberg (includes crisphead types), raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'iceberg lettuce'::text),
+  ('Impossible Ground Beef'::text, 'proteins'::text, 'oz'::text, 'g'::text, null::numeric, '{"carb":7.936641438655593,"fat":14.991433828571678,"fiber":4.409245243697551,"kcal":202.82528121008738,"protein":16.755131926050694}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["oz","g","kg","lb"]'::jsonb, 'impossible beef ground'::text),
   ('Instant Yeast'::text, 'baking'::text, 'tsp'::text, 'g'::text, 0.63::numeric, '{"carb":41.22,"fat":7.61,"fiber":26.9,"kcal":325,"protein":40.44}'::jsonb, 'complete'::text, 'usda_fdc:175043'::text, 'Leavening agents, yeast, baker''s, active dry'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'instant yeast'::text),
   ('Italian Herbs'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.2029::numeric, '{"carb":68.92,"fat":4.28,"fiber":42.5,"kcal":265,"protein":9}'::jsonb, 'complete'::text, 'usda_fdc:171328'::text, 'Spices, oregano, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'italian herb'::text),
   ('Jalapeño'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.3804::numeric, '{"carb":6.5,"fat":0.37,"fiber":2.8,"kcal":29,"protein":0.91}'::jsonb, 'complete'::text, 'usda_fdc:168576'::text, 'Peppers, jalapeno, raw'::text, null::numeric, false, 14::numeric, 'borrowed from jalapeno'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'jalapeno'::text),
@@ -229,7 +244,7 @@ with v(canonical_name, category, default_unit, macros_basis, density_g_per_ml, m
   ('Canned Navy Beans'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.72::numeric, '{"carb":20.22,"fat":0.9,"fiber":5.5,"kcal":114,"protein":6.99}'::jsonb, 'complete'::text, 'usda_fdc:174286 — borrowed (pinto, drained solids)'::text, 'Beans, pinto, canned, drained solids'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb, 'navy bean canned'::text),
   ('Nectarine'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6044::numeric, '{"carb":9.18,"fat":0.28,"fiber":1.5,"kcal":39,"protein":1.06}'::jsonb, 'complete'::text, 'usda_fdc:327357'::text, 'Nectarines, raw'::text, null::numeric, false, 129::numeric, 'borrowed from nectarine, whole'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'nectarine'::text),
   ('Nori'::text, 'pantry'::text, 'piece'::text, 'g'::text, null::numeric, '{"carb":40,"fat":0,"fiber":0,"kcal":400,"protein":40}'::jsonb, 'complete'::text, 'label:gimMe Organic Sushi Nori (1 sheet = 2.5 g)'::text, 'gimMe Organic Sushi Nori (1 sheet = 2.5 g)'::text, null::numeric, false, 2.5::numeric, 'borrowed from sheet'::text, '["piece","g","kg","oz","lb"]'::jsonb, 'nori'::text),
-  ('Ground Nutmeg'::text, 'spices & seasoning'::text, 'pinch'::text, 'g'::text, 0.4734::numeric, '{"carb":49.29,"fat":36.31,"fiber":20.8,"kcal":525,"protein":5.84}'::jsonb, 'complete'::text, 'usda_fdc:171326'::text, 'Spices, nutmeg, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'nutmeg ground'::text),
+  ('Ground Nutmeg'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.4734::numeric, '{"carb":49.29,"fat":36.31,"fiber":20.8,"kcal":525,"protein":5.84}'::jsonb, 'complete'::text, 'usda_fdc:171326'::text, 'Spices, nutmeg, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'nutmeg ground'::text),
   ('Nutritional Yeast'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.4::numeric, '{"carb":31.3,"fat":3.1,"fiber":18.8,"kcal":375,"protein":50}'::jsonb, 'complete'::text, 'label:Bragg nutritional yeast'::text, null::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'nutritional yeast'::text),
   ('Oat Milk Lite'::text, 'dairy'::text, 'cup'::text, 'ml'::text, null::numeric, '{"carb":5.917453972822525,"fat":1.0566882094325938,"fiber":0,"kcal":33.814022701843,"protein":0}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["cup","tsp","tbsp","ml"]'::jsonb, 'oat milk lite'::text),
   ('Oat Whipped Cream'::text, 'dairy'::text, 'tbsp'::text, 'ml'::text, 0.202884136211058::numeric, '{"carb":6.7628045403686,"fat":0,"fiber":0,"kcal":33.814022701843,"protein":0}'::jsonb, 'complete'::text, 'off:0099482497453'::text, 'Whole Foods Market Oat-Based Whipped Topping'::text, null::numeric, false, null::numeric, null::text, '["tbsp","tsp","ml","g","kg","oz","lb"]'::jsonb, 'oat whipped cream'::text),
@@ -248,11 +263,13 @@ with v(canonical_name, category, default_unit, macros_basis, density_g_per_ml, m
   ('Paprika'::text, 'spices & seasoning'::text, 'g'::text, 'g'::text, 0.4599::numeric, '{"carb":53.99,"fat":12.89,"fiber":34.9,"kcal":282,"protein":14.14}'::jsonb, 'complete'::text, 'usda_fdc:171329'::text, 'Spices, paprika'::text, 1::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'paprika'::text),
   ('Smoked Paprika'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.4599::numeric, '{"carb":53.99,"fat":12.89,"fiber":34.9,"kcal":282,"protein":14.14}'::jsonb, 'complete'::text, 'usda_fdc:171329'::text, 'Spices, paprika'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'paprika smoked'::text),
   ('Parsley'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.257::numeric, '{"carb":6.33,"fat":0.79,"fiber":3.3,"kcal":36,"protein":2.97}'::jsonb, 'complete'::text, 'usda_fdc:170416'::text, 'Parsley, fresh'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'parsley'::text),
+  ('Dried Parsley'::text, 'spices & seasoning'::text, 'g'::text, 'g'::text, 0.1082::numeric, '{"carb":50.64,"fat":5.48,"fiber":26.7,"kcal":292,"protein":26.63}'::jsonb, 'complete'::text, 'usda_fdc:170930'::text, 'Spices, parsley, dried'::text, 1::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","ml","l","tsp","tbsp","fl_oz","cup","pt","qt"]'::jsonb, 'parsley dried'::text),
   ('Parsnip'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5622::numeric, '{"carb":17.99,"fat":0.3,"fiber":4.9,"kcal":75,"protein":1.2}'::jsonb, 'complete'::text, 'usda_fdc:170417'::text, 'Parsnips, raw'::text, null::numeric, false, 120::numeric, 'borrowed from parsnip, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'parsnip'::text),
   ('Pasta'::text, 'grains'::text, 'lb'::text, 'g'::text, 0.3846::numeric, '{"carb":74.67,"fat":1.51,"fiber":3.2,"kcal":371,"protein":13.04}'::jsonb, 'complete'::text, 'usda_fdc:169736'::text, 'Pasta, dry, enriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml"]'::jsonb, 'pasta'::text),
   ('Cooked Pasta'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.5241::numeric, '{"carb":30.86,"fat":0.93,"fiber":1.8,"kcal":158,"protein":5.8}'::jsonb, 'complete'::text, 'usda_fdc:169737'::text, 'Pasta, cooked, enriched, without added salt'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml"]'::jsonb, 'pasta cooked'::text),
   ('Peas'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.6129::numeric, '{"carb":14.45,"fat":0.4,"fiber":5.7,"kcal":81,"protein":5.42}'::jsonb, 'complete'::text, 'usda_fdc:170419'::text, 'Peas, green, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'pea'::text),
   ('Frozen Peas'::text, 'produce'::text, 'cup'::text, 'g'::text, 0.5664::numeric, '{"carb":13.62,"fat":0.4,"fiber":4.5,"kcal":77,"protein":5.22}'::jsonb, 'complete'::text, 'usda_fdc:170016'::text, 'Peas, green, frozen, unprepared (Includes foods for USDA''s Food Distribution Program)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'pea frozen'::text),
+  ('Pea Protein Powder'::text, 'supplements'::text, 'g'::text, 'g'::text, null::numeric, '{"carb":10,"fat":0,"fiber":0,"kcal":350,"protein":75}'::jsonb, 'complete'::text, 'off:0099482453794'::text, '365 Organic Pea Protein Powder Unflavored'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb"]'::jsonb, 'pea protein powder'::text),
   ('Peach'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6509::numeric, '{"carb":9.54,"fat":0.25,"fiber":1.5,"kcal":39,"protein":0.91}'::jsonb, 'complete'::text, 'usda_fdc:169928'::text, 'Peaches, yellow, raw'::text, null::numeric, false, 150::numeric, 'borrowed from peach, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'peach'::text),
   ('Peanuts'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.6171::numeric, '{"carb":16.13,"fat":49.24,"fiber":8.5,"kcal":567,"protein":25.8}'::jsonb, 'complete'::text, 'usda_fdc:172430'::text, 'Peanuts, all types, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'peanut'::text),
   ('Peanut Butter'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0905::numeric, '{"carb":22.3,"fat":51.1,"fiber":4.8,"kcal":597,"protein":22.5}'::jsonb, 'complete'::text, 'usda_fdc:324860'::text, 'Peanut butter, smooth style, with salt'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'peanut butter'::text),
@@ -266,6 +283,7 @@ with v(canonical_name, category, default_unit, macros_basis, density_g_per_ml, m
   ('Plantain'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6256::numeric, '{"carb":36.66,"fat":0.07,"fiber":2.2,"kcal":152,"protein":1.25}'::jsonb, 'complete'::text, 'usda_fdc:168215 + fdc_density:169130'::text, 'Plantains, green, raw'::text, null::numeric, false, 267::numeric, 'borrowed from plantain'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'plantain'::text),
   ('Poblano Pepper'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5::numeric, '{"carb":4.666666666666666,"fat":0,"fiber":1.6666666666666665,"kcal":20,"protein":0.6666666666666666}'::jsonb, 'complete'::text, 'fao_infoods_v2:Chili, green'::text, null::text, null::numeric, false, 115::numeric, 'manual'::text, '["piece","g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'poblano pepper'::text),
   ('Portobello Mushroom'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.3635::numeric, '{"carb":3.87,"fat":0.35,"fiber":1.3,"kcal":22,"protein":2.11}'::jsonb, 'complete'::text, 'usda_fdc:169255'::text, 'Mushrooms, portabella, raw'::text, null::numeric, false, 84::numeric, 'borrowed from mushroom, whole'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'portobello mushroom'::text),
+  ('Protein Pasta'::text, 'grains'::text, 'oz'::text, 'g'::text, null::numeric, '{"carb":67.02052770420278,"fat":1.7636980974790206,"fiber":8.818490487395103,"kcal":335.10263852101394,"protein":17.636980974790205}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb"]'::jsonb, 'protein pasta'::text),
   ('Pumpkin Seeds'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 0.5453::numeric, '{"carb":10.71,"fat":49.05,"fiber":6,"kcal":559,"protein":30.23}'::jsonb, 'complete'::text, 'usda_fdc:170556'::text, 'Seeds, pumpkin and squash seed kernels, dried'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'pumpkin seed'::text),
   ('Quinoa'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.7185::numeric, '{"carb":64.16,"fat":6.07,"fiber":7,"kcal":368,"protein":14.12}'::jsonb, 'complete'::text, 'usda_fdc:168874'::text, 'Quinoa, uncooked'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'quinoa'::text),
   ('Cooked Quinoa'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.782::numeric, '{"carb":21.3,"fat":1.92,"fiber":2.8,"kcal":120,"protein":4.4}'::jsonb, 'complete'::text, 'usda_fdc:168917'::text, 'Quinoa, cooked'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb, 'quinoa cooked'::text),
@@ -302,7 +320,8 @@ with v(canonical_name, category, default_unit, macros_basis, density_g_per_ml, m
   ('Shallot'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.6763::numeric, '{"carb":16.8,"fat":0.1,"fiber":3.2,"kcal":72,"protein":2.5}'::jsonb, 'complete'::text, 'usda_fdc:170499'::text, 'Shallots, raw'::text, null::numeric, false, 30::numeric, 'borrowed from shallot, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'shallot'::text),
   ('Sherry Vinegar'::text, 'pantry'::text, 'tbsp'::text, 'ml'::text, null::numeric, '{"carb":6.7628045403686,"fat":0,"fiber":0,"kcal":33.814022701843,"protein":0}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["tbsp","tsp","cup","ml"]'::jsonb, 'sherry vinegar'::text),
   ('Shiitake Mushroom'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.3::numeric, '{"carb":6.79,"fat":0.49,"fiber":2.5,"kcal":34,"protein":2.24}'::jsonb, 'complete'::text, 'usda_fdc:169242'::text, 'Mushrooms, shiitake, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb, 'shiitake mushroom'::text),
-  ('Silken Tofu'::text, 'proteins'::text, 'piece'::text, 'g'::text, 1.0482::numeric, '{"carb":2.9,"fat":2.7,"fiber":0.1,"kcal":55,"protein":4.8}'::jsonb, 'complete'::text, 'usda_fdc:174292 + fdc_density:172449'::text, 'MORI-NU, Tofu, silken, soft'::text, null::numeric, false, 349::numeric, 'borrowed from block (12.3 oz)'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'silken tofu'::text),
+  ('Silken Tofu'::text, 'proteins'::text, 'piece'::text, 'g'::text, 1.0482::numeric, '{"carb":2.9,"fat":2.7,"fiber":0.1,"kcal":55,"protein":4.8}'::jsonb, 'complete'::text, 'usda_fdc:174292 + fdc_density:172449'::text, 'MORI-NU, Tofu, silken, soft'::text, null::numeric, false, 453.59237::numeric, 'owner: block (16 oz)'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'silken tofu'::text),
+  ('Skyr Yoghurt'::text, 'dairy'::text, 'g'::text, 'g'::text, null::numeric, '{"carb":11.267605633802814,"fat":3.1690140845070416,"fiber":0.7042253521126759,"kcal":105.63380281690141,"protein":8.45070422535211}'::jsonb, 'complete'::text, 'off:0855823007121'::text, 'Icelandic Provisions Oatmilk Skyr...flavored'::text, null::numeric, true, null::numeric, null::text, '["g","kg","oz","lb"]'::jsonb, 'skyr yoghurt'::text),
   ('Soft Sandwich Bread'::text, 'grains'::text, 'piece'::text, 'g'::text, 0.29::numeric, '{"carb":49.2,"fat":3.59,"fiber":2.3,"kcal":270,"protein":9.43}'::jsonb, 'complete'::text, 'usda_fdc:325871 + fao_infoods_v2:Bread, white, sliced, prepacked'::text, 'Bread, white, commercially prepared'::text, null::numeric, false, 27.3::numeric, 'borrowed from slice'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'soft sandwich bread'::text),
   ('Soy Milk'::text, 'dairy'::text, 'cup'::text, 'g'::text, 1.0271::numeric, '{"carb":3.85,"fat":0.85,"fiber":0.6,"kcal":34,"protein":2.62}'::jsonb, 'complete'::text, 'usda_fdc:173768'::text, 'Soymilk, original and vanilla, light, unsweetened, with added calcium, vitamins A and D'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'soy milk'::text),
   ('Soy Sauce'::text, 'pantry'::text, 'tbsp'::text, 'g'::text, 1.0778::numeric, '{"carb":4.93,"fat":0.57,"fiber":0.8,"kcal":53,"protein":8.14}'::jsonb, 'complete'::text, 'usda_fdc:174277'::text, 'Soy sauce made from soy and wheat (shoyu)'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","to_taste"]'::jsonb, 'soy sauce'::text),
@@ -338,6 +357,7 @@ with v(canonical_name, category, default_unit, macros_basis, density_g_per_ml, m
   ('Canned Tomato Sauce'::text, 'pantry'::text, 'oz'::text, 'g'::text, 1.0356::numeric, '{"carb":5.31,"fat":0.3,"fiber":1.5,"kcal":24,"protein":1.2}'::jsonb, 'complete'::text, 'usda_fdc:170054'::text, 'Tomato products, canned, sauce'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'tomato sauce canned'::text),
   ('Tortilla Chips'::text, 'pantry'::text, 'oz'::text, 'g'::text, 0.1099::numeric, '{"carb":67.38,"fat":22.33,"fiber":4.7,"kcal":497,"protein":6.62}'::jsonb, 'complete'::text, 'usda_fdc:173143 + fdc_density:168116'::text, 'Tortilla chips, yellow, plain, salted'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'tortilla chip'::text),
   ('Tostada Shell'::text, 'grains'::text, 'piece'::text, 'g'::text, null::numeric, '{"carb":64.43,"fat":23.38,"fiber":5.8,"kcal":474,"protein":6.15}'::jsonb, 'complete'::text, 'usda_fdc:167525'::text, 'Tostada shells, corn'::text, null::numeric, false, 12.3::numeric, 'borrowed from shell'::text, '["g","kg","oz","lb","piece"]'::jsonb, 'tostada shell'::text),
+  ('Trader Joe''s Oat Chocolate Bars'::text, 'snacks'::text, 'g'::text, 'g'::text, null::numeric, '{"carb":56,"fat":36,"fiber":0,"kcal":560,"protein":0}'::jsonb, 'complete'::text, 'seed'::text, null::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb"]'::jsonb, 'trader jo oat chocolate bar'::text),
   ('Ground Turmeric'::text, 'spices & seasoning'::text, 'tsp'::text, 'g'::text, 0.6357::numeric, '{"carb":67.14,"fat":3.25,"fiber":22.7,"kcal":312,"protein":9.68}'::jsonb, 'complete'::text, 'usda_fdc:172231'::text, 'Spices, turmeric, ground'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb, 'turmeric ground'::text),
   ('Turnip'::text, 'produce'::text, 'piece'::text, 'g'::text, 0.5495::numeric, '{"carb":6.43,"fat":0.1,"fiber":1.8,"kcal":28,"protein":0.9}'::jsonb, 'complete'::text, 'usda_fdc:170465'::text, 'Turnips, raw'::text, null::numeric, false, 122::numeric, 'borrowed from turnip, medium'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'turnip'::text),
   ('Ume Plum Vinegar'::text, 'pantry'::text, 'tsp'::text, 'ml'::text, null::numeric, '{"carb":0,"fat":0,"fiber":0,"kcal":0,"protein":0}'::jsonb, 'complete'::text, 'off:0024182424195'::text, 'Eden Foods  Inc. Ume Plum Vinegar'::text, null::numeric, false, null::numeric, null::text, '["tsp","tbsp","ml","cup"]'::jsonb, 'ume plum vinegar'::text),
@@ -359,6 +379,7 @@ with v(canonical_name, category, default_unit, macros_basis, density_g_per_ml, m
   ('White Bread'::text, 'grains'::text, 'piece'::text, 'g'::text, 0.29::numeric, '{"carb":49.2,"fat":3.59,"fiber":2.3,"kcal":270,"protein":9.43}'::jsonb, 'complete'::text, 'usda_fdc:325871 + fao_infoods_v2:Bread, white, sliced, prepacked'::text, 'Bread, white, commercially prepared'::text, null::numeric, false, 27.3::numeric, 'borrowed from slice'::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb, 'white bread'::text),
   ('White Jasmine Rice'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.782::numeric, '{"carb":79.95,"fat":0.66,"fiber":1.3,"kcal":365,"protein":7.13}'::jsonb, 'complete'::text, 'usda_fdc:168877'::text, 'Rice, white, long-grain, regular, raw, enriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'white jasmine rice'::text),
   ('White Mushroom'::text, 'produce'::text, 'oz'::text, 'g'::text, 0.2959::numeric, '{"carb":3.26,"fat":0.34,"fiber":1,"kcal":22,"protein":3.09}'::jsonb, 'complete'::text, 'usda_fdc:169251'::text, 'Mushrooms, white, raw'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","cup","ml","handful"]'::jsonb, 'white mushroom'::text),
+  ('White Pepper'::text, 'spices & seasoning'::text, 'g'::text, 'g'::text, 0.4802::numeric, '{"carb":68.61,"fat":2.12,"fiber":26.2,"kcal":296,"protein":10.4}'::jsonb, 'complete'::text, 'usda_fdc:170933'::text, 'Spices, pepper, white'::text, 0.668934::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","ml","l","tsp","tbsp","fl_oz","cup","pt","qt"]'::jsonb, 'white pepper'::text),
   ('White Rice'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.8242::numeric, '{"carb":79.34,"fat":0.58,"fiber":1.4,"kcal":360,"protein":6.61}'::jsonb, 'complete'::text, 'usda_fdc:168879'::text, 'Rice, white, medium-grain, raw, enriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'white rice'::text),
   ('Cooked White Rice'::text, 'grains'::text, 'cup'::text, 'g'::text, 0.7862::numeric, '{"carb":28.59,"fat":0.21,"fiber":0.3,"kcal":130,"protein":2.38}'::jsonb, 'complete'::text, 'usda_fdc:168930'::text, 'Rice, white, medium-grain, cooked, unenriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb, 'white rice cooked'::text),
   ('White Rice Flour'::text, 'baking'::text, 'cup'::text, 'g'::text, 0.67::numeric, '{"carb":79.8,"fat":1.3,"fiber":0.5,"kcal":359,"protein":6.94}'::jsonb, 'complete'::text, 'usda_fdc:790214'::text, 'Flour, rice, white, unenriched'::text, null::numeric, false, null::numeric, null::text, '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb, 'white rice flour'::text),
@@ -440,6 +461,7 @@ from (values
   ('baking soda', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('balsamic vinegar', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('banana', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('barbell hazelnut protein bar', '["piece"]'::jsonb),
   ('basil', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
   ('bay leaf', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('beet', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
@@ -556,6 +578,7 @@ from (values
   ('hot sauce', '["g","kg","oz","lb","tsp","tbsp","cup","ml","to_taste"]'::jsonb),
   ('hummus', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('iceberg lettuce', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('impossible beef ground', '["oz","g","kg","lb"]'::jsonb),
   ('instant yeast', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('italian herb', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
   ('jalapeno', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
@@ -613,11 +636,13 @@ from (values
   ('paprika', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('paprika smoked', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
   ('parsley', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
+  ('parsley dried', '["g","kg","oz","lb","ml","l","tsp","tbsp","fl_oz","cup","pt","qt"]'::jsonb),
   ('parsnip', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('pasta', '["g","kg","oz","lb","cup","ml"]'::jsonb),
   ('pasta cooked', '["g","kg","oz","lb","cup","ml"]'::jsonb),
   ('pea', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
   ('pea frozen', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('pea protein powder', '["g","kg","oz","lb"]'::jsonb),
   ('peach', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('peanut', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('peanut butter', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
@@ -631,6 +656,7 @@ from (values
   ('plantain', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('poblano pepper', '["piece","g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('portobello mushroom', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('protein pasta', '["g","kg","oz","lb"]'::jsonb),
   ('pumpkin seed', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('quinoa', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('quinoa cooked', '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb),
@@ -668,6 +694,7 @@ from (values
   ('sherry vinegar', '["tbsp","tsp","cup","ml"]'::jsonb),
   ('shiitake mushroom', '["g","kg","oz","lb","tsp","tbsp","cup","ml","handful"]'::jsonb),
   ('silken tofu', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
+  ('skyr yoghurt', '["g","kg","oz","lb"]'::jsonb),
   ('soft sandwich bread', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('soy milk', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('soy sauce', '["g","kg","oz","lb","tsp","tbsp","cup","ml","to_taste"]'::jsonb),
@@ -703,6 +730,7 @@ from (values
   ('tomato sauce canned', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('tortilla chip', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('tostada shell', '["g","kg","oz","lb","piece"]'::jsonb),
+  ('trader jo oat chocolate bar', '["g","kg","oz","lb"]'::jsonb),
   ('turmeric ground', '["g","kg","oz","lb","tsp","tbsp","cup","ml","pinch","dash","handful","to_taste"]'::jsonb),
   ('turnip', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('ume plum vinegar', '["tsp","tbsp","ml","cup"]'::jsonb),
@@ -724,6 +752,7 @@ from (values
   ('white bread', '["g","kg","oz","lb","tsp","tbsp","cup","ml","piece"]'::jsonb),
   ('white jasmine rice', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('white mushroom', '["g","kg","oz","lb","cup","ml","handful"]'::jsonb),
+  ('white pepper', '["g","kg","oz","lb","ml","l","tsp","tbsp","fl_oz","cup","pt","qt"]'::jsonb),
   ('white rice', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
   ('white rice cooked', '["g","kg","oz","lb","tbsp","cup","ml"]'::jsonb),
   ('white rice flour', '["g","kg","oz","lb","tsp","tbsp","cup","ml"]'::jsonb),
@@ -749,7 +778,7 @@ begin
   with gone as (
     update ingredient i set deleted_at = now(), updated_at = now()
     where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at is null
-      and i.match_text not in ('active yeast dry', 'agave', 'all purpose flour', 'allspice ground', 'almond', 'almond butter', 'almond flour', 'almond milk', 'apple', 'apple cider vinegar', 'applesauce', 'apricot', 'arugula', 'asparagus', 'avocado', 'avocado oil', 'baked bean canned', 'baking powder', 'baking soda', 'balsamic vinegar', 'banana', 'basil', 'bay leaf', 'beet', 'beyond hot italian style sausage', 'black bean canned', 'black bean dried', 'black eyed pea canned', 'black eyed pea dried', 'black pepper', 'black rice', 'blueberry', 'bouillon paste', 'brazil nut', 'bread flour', 'breaded vegan chicken nugget', 'broccoli', 'brown rice', 'brown rice cooked', 'brown sugar', 'brussel sprout', 'buckwheat', 'buckwheat flour', 'bulgur', 'burger bun', 'butter bean canned', 'butternut squash', 'cabbage', 'cannellini bean canned', 'cannellini bean dried', 'canola oil', 'cantaloupe', 'caper', 'carrot', 'cashew', 'cauliflower', 'cavatappi', 'cayenne pepper', 'celery', 'cherry', 'cherry tomato', 'chia seed', 'chickpea canned', 'chickpea dried', 'chickpea flour', 'chili powder', 'chipotle chili powder', 'chive', 'cilantro', 'cinnamon ground', 'cinnamon stick', 'clove ground', 'cocoa powder', 'coconut flake dried', 'coconut milk canned', 'coconut oil', 'collard green', 'coriander ground', 'corn', 'corn frozen', 'corn oil', 'corn tortilla', 'cornmeal', 'cornstarch', 'cranberry dried', 'cremini mushroom', 'crispy onion', 'cucumber', 'cumin ground', 'currant dried', 'curry powder', 'dark red kidney bean canned', 'date', 'dijon mustard', 'dill', 'dill pickle', 'ditalini', 'earth balance butter', 'edamame', 'edamame frozen', 'eggplant', 'english muffin', 'enoki mushroom', 'extra firm tofu', 'extra virgin olive oil', 'farro', 'fennel', 'fennel seed', 'fig dried', 'fine sea salt', 'fire tomato canned roasted', 'flaky salt', 'flaxseed meal', 'flour tortilla', 'french green lentil dried', 'gala apple', 'garlic', 'garlic powder', 'ginger', 'gold potato', 'golden raisin', 'granny smith apple', 'granulated sugar', 'grapefruit', 'great northern bean canned', 'green bean', 'green bean canned', 'green bell pepper', 'green grape', 'green olive', 'harissa paste', 'hazelnut', 'hemp seed', 'high heat oil', 'hot sauce', 'hummus', 'iceberg lettuce', 'instant yeast', 'italian herb', 'jalapeno', 'kala namak', 'kale', 'ketchup', 'kimchi', 'king oyster mushroom', 'kiwi', 'kombu', 'kosher salt', 'leek', 'lemon', 'lemon juice', 'lemon zest', 'lentil canned', 'lentil cooked', 'lentil dried', 'light red kidney bean canned', 'lime', 'lime juice', 'lion mane mushroom', 'liquid amino', 'liquid smoke', 'maitake mushroom', 'mango', 'maple syrup', 'mild garlic chili crisp', 'mini pretzel', 'mint', 'miso', 'mixed peppercorn', 'multigrain bread', 'mung bean dried', 'napa cabbage', 'navy bean canned', 'nectarine', 'nori', 'nutmeg ground', 'nutritional yeast', 'oat milk lite', 'oat whipped cream', 'okra', 'olive oil', 'onion', 'onion powder', 'orange', 'orange bell pepper', 'orange juice', 'orange zest', 'oregano dried', 'oregano fresh', 'oyster mushroom', 'panko', 'paprika', 'paprika smoked', 'parsley', 'parsnip', 'pasta', 'pasta cooked', 'pea', 'pea frozen', 'peach', 'peanut', 'peanut butter', 'peanut oil', 'pecan', 'pine nut', 'pineapple', 'pinto bean canned', 'pistachio', 'plain oat yogurt', 'plantain', 'poblano pepper', 'portobello mushroom', 'pumpkin seed', 'quinoa', 'quinoa cooked', 'radish', 'raisin', 'raspberry', 'red bell pepper', 'red cabbage', 'red chili fresh', 'red delicious apple', 'red grape', 'red leaf lettuce', 'red onion', 'red pepper flake', 'red potato', 'red rice', 'red wine', 'red wine vinegar', 'rhubarb', 'rice vinegar', 'rolled oat', 'romaine lettuce', 'rosemary', 'russet potato', 'safflower oil', 'sage ground', 'sauerkraut', 'scallion', 'sea salt', 'semolina flour', 'serrano pepper', 'sesame oil toasted', 'sesame seed', 'shallot', 'sherry vinegar', 'shiitake mushroom', 'silken tofu', 'soft sandwich bread', 'soy milk', 'soy sauce', 'spaghetti', 'spelt flour', 'spinach', 'sprouted multigrain bread', 'sriracha', 'star anise', 'steel oat', 'strawberry', 'sugar powdered', 'sunflower oil', 'sunflower seed', 'super firm tofu', 'sweet paprika', 'sweet potato', 'sweetcorn canned', 'table salt', 'tahini', 'tamari', 'tempeh', 'thai basil', 'thyme dried', 'thyme fresh', 'tipo flour', 'tomato', 'tomato canned', 'tomato canned diced', 'tomato canned whole', 'tomato paste', 'tomato puree canned', 'tomato sauce canned', 'tortilla chip', 'tostada shell', 'turmeric ground', 'turnip', 'ume plum vinegar', 'vanilla extract', 'vegan cheddar', 'vegan mayonnaise', 'vegan mozzarella', 'vegan parmesan', 'vegan worcestershire sauce', 'vegetable broth', 'vegetable oil', 'walnut', 'water', 'watermelon', 'wheat bread whole', 'wheat chex cereal', 'wheat flour whole', 'white basmati rice', 'white bread', 'white jasmine rice', 'white mushroom', 'white rice', 'white rice cooked', 'white rice flour', 'white sorghum flour', 'white vinegar', 'wild rice', 'yellow bell pepper', 'yellow mustard', 'yellow squash', 'zucchini')
+      and i.match_text not in ('active yeast dry', 'agave', 'all purpose flour', 'allspice ground', 'almond', 'almond butter', 'almond flour', 'almond milk', 'apple', 'apple cider vinegar', 'applesauce', 'apricot', 'arugula', 'asparagus', 'avocado', 'avocado oil', 'baked bean canned', 'baking powder', 'baking soda', 'balsamic vinegar', 'banana', 'barbell hazelnut protein bar', 'basil', 'bay leaf', 'beet', 'beyond hot italian style sausage', 'black bean canned', 'black bean dried', 'black eyed pea canned', 'black eyed pea dried', 'black pepper', 'black rice', 'blueberry', 'bouillon paste', 'brazil nut', 'bread flour', 'breaded vegan chicken nugget', 'broccoli', 'brown rice', 'brown rice cooked', 'brown sugar', 'brussel sprout', 'buckwheat', 'buckwheat flour', 'bulgur', 'burger bun', 'butter bean canned', 'butternut squash', 'cabbage', 'cannellini bean canned', 'cannellini bean dried', 'canola oil', 'cantaloupe', 'caper', 'carrot', 'cashew', 'cauliflower', 'cavatappi', 'cayenne pepper', 'celery', 'cherry', 'cherry tomato', 'chia seed', 'chickpea canned', 'chickpea dried', 'chickpea flour', 'chili powder', 'chipotle chili powder', 'chive', 'cilantro', 'cinnamon ground', 'cinnamon stick', 'clove ground', 'cocoa powder', 'coconut flake dried', 'coconut milk canned', 'coconut oil', 'collard green', 'coriander ground', 'corn', 'corn frozen', 'corn oil', 'corn tortilla', 'cornmeal', 'cornstarch', 'cranberry dried', 'cremini mushroom', 'crispy onion', 'cucumber', 'cumin ground', 'currant dried', 'curry powder', 'dark red kidney bean canned', 'date', 'dijon mustard', 'dill', 'dill pickle', 'ditalini', 'earth balance butter', 'edamame', 'edamame frozen', 'eggplant', 'english muffin', 'enoki mushroom', 'extra firm tofu', 'extra virgin olive oil', 'farro', 'fennel', 'fennel seed', 'fig dried', 'fine sea salt', 'fire tomato canned roasted', 'flaky salt', 'flaxseed meal', 'flour tortilla', 'french green lentil dried', 'gala apple', 'garlic', 'garlic powder', 'ginger', 'gold potato', 'golden raisin', 'granny smith apple', 'granulated sugar', 'grapefruit', 'great northern bean canned', 'green bean', 'green bean canned', 'green bell pepper', 'green grape', 'green olive', 'harissa paste', 'hazelnut', 'hemp seed', 'high heat oil', 'hot sauce', 'hummus', 'iceberg lettuce', 'impossible beef ground', 'instant yeast', 'italian herb', 'jalapeno', 'kala namak', 'kale', 'ketchup', 'kimchi', 'king oyster mushroom', 'kiwi', 'kombu', 'kosher salt', 'leek', 'lemon', 'lemon juice', 'lemon zest', 'lentil canned', 'lentil cooked', 'lentil dried', 'light red kidney bean canned', 'lime', 'lime juice', 'lion mane mushroom', 'liquid amino', 'liquid smoke', 'maitake mushroom', 'mango', 'maple syrup', 'mild garlic chili crisp', 'mini pretzel', 'mint', 'miso', 'mixed peppercorn', 'multigrain bread', 'mung bean dried', 'napa cabbage', 'navy bean canned', 'nectarine', 'nori', 'nutmeg ground', 'nutritional yeast', 'oat milk lite', 'oat whipped cream', 'okra', 'olive oil', 'onion', 'onion powder', 'orange', 'orange bell pepper', 'orange juice', 'orange zest', 'oregano dried', 'oregano fresh', 'oyster mushroom', 'panko', 'paprika', 'paprika smoked', 'parsley', 'parsley dried', 'parsnip', 'pasta', 'pasta cooked', 'pea', 'pea frozen', 'pea protein powder', 'peach', 'peanut', 'peanut butter', 'peanut oil', 'pecan', 'pine nut', 'pineapple', 'pinto bean canned', 'pistachio', 'plain oat yogurt', 'plantain', 'poblano pepper', 'portobello mushroom', 'protein pasta', 'pumpkin seed', 'quinoa', 'quinoa cooked', 'radish', 'raisin', 'raspberry', 'red bell pepper', 'red cabbage', 'red chili fresh', 'red delicious apple', 'red grape', 'red leaf lettuce', 'red onion', 'red pepper flake', 'red potato', 'red rice', 'red wine', 'red wine vinegar', 'rhubarb', 'rice vinegar', 'rolled oat', 'romaine lettuce', 'rosemary', 'russet potato', 'safflower oil', 'sage ground', 'sauerkraut', 'scallion', 'sea salt', 'semolina flour', 'serrano pepper', 'sesame oil toasted', 'sesame seed', 'shallot', 'sherry vinegar', 'shiitake mushroom', 'silken tofu', 'skyr yoghurt', 'soft sandwich bread', 'soy milk', 'soy sauce', 'spaghetti', 'spelt flour', 'spinach', 'sprouted multigrain bread', 'sriracha', 'star anise', 'steel oat', 'strawberry', 'sugar powdered', 'sunflower oil', 'sunflower seed', 'super firm tofu', 'sweet paprika', 'sweet potato', 'sweetcorn canned', 'table salt', 'tahini', 'tamari', 'tempeh', 'thai basil', 'thyme dried', 'thyme fresh', 'tipo flour', 'tomato', 'tomato canned', 'tomato canned diced', 'tomato canned whole', 'tomato paste', 'tomato puree canned', 'tomato sauce canned', 'tortilla chip', 'tostada shell', 'trader jo oat chocolate bar', 'turmeric ground', 'turnip', 'ume plum vinegar', 'vanilla extract', 'vegan cheddar', 'vegan mayonnaise', 'vegan mozzarella', 'vegan parmesan', 'vegan worcestershire sauce', 'vegetable broth', 'vegetable oil', 'walnut', 'water', 'watermelon', 'wheat bread whole', 'wheat chex cereal', 'wheat flour whole', 'white basmati rice', 'white bread', 'white jasmine rice', 'white mushroom', 'white pepper', 'white rice', 'white rice cooked', 'white rice flour', 'white sorghum flour', 'white vinegar', 'wild rice', 'yellow bell pepper', 'yellow mustard', 'yellow squash', 'zucchini')
     returning i.id
   ), gone_aliases as (
     update ingredient_alias a set deleted_at = now(), updated_at = now()
@@ -773,6 +802,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
   and not exists (select 1 from (values
     ('active yeast dry', 'sachet'),
     ('almond', 'almond'),
+    ('almond butter', 'jar (16 oz)'),
     ('apple', 'apple, medium'),
     ('apple', 'apple, large'),
     ('apple', 'apple, small'),
@@ -790,6 +820,8 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('banana', 'banana, small'),
     ('banana', 'banana, extra small'),
     ('banana', 'banana, extra large'),
+    ('barbell hazelnut protein bar', 'bar'),
+    ('barbell hazelnut protein bar', 'serving · 55 g'),
     ('basil', 'leaf'),
     ('bay leaf', 'leaf'),
     ('beet', 'beet'),
@@ -852,14 +884,14 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('crispy onion', 'serving · 14 g'),
     ('cucumber', 'Persian cucumber'),
     ('cucumber', 'cucumber'),
-    ('cucumber', 'bag (1 lb)'),
+    ('cucumber', 'bag (16 oz)'),
     ('dark red kidney bean canned', 'can (15 oz), drained'),
     ('date', 'date, pitted'),
     ('dijon mustard', 'serving · 1 tsp'),
     ('dill', 'sprig'),
     ('dill pickle', 'spear'),
     ('earth balance butter', 'serving · 14 g'),
-    ('edamame frozen', 'package'),
+    ('edamame frozen', 'bag (12 oz)'),
     ('eggplant', 'eggplant, peeled'),
     ('eggplant', 'eggplant, unpeeled'),
     ('english muffin', 'muffin'),
@@ -870,7 +902,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('fig dried', 'fig, whole'),
     ('fire tomato canned roasted', 'can (14.5 oz)'),
     ('fire tomato canned roasted', 'can (28 oz)'),
-    ('flour tortilla', 'package'),
+    ('flour tortilla', 'pack (484 g)'),
     ('flour tortilla', 'tortilla'),
     ('gala apple', 'apple, medium'),
     ('gala apple', 'apple, large'),
@@ -898,12 +930,15 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('green olive', 'olive'),
     ('harissa paste', 'serving · 2 tbsp'),
     ('hazelnut', 'nut'),
+    ('hemp seed', 'pack (8 oz)'),
     ('iceberg lettuce', 'head, medium'),
     ('iceberg lettuce', 'leaf, medium'),
     ('iceberg lettuce', 'head, large'),
     ('iceberg lettuce', 'leaf, large'),
     ('iceberg lettuce', 'head, small'),
     ('iceberg lettuce', 'leaf, small'),
+    ('impossible beef ground', 'serving · 4 oz'),
+    ('impossible beef ground', 'pack (12 oz)'),
     ('instant yeast', 'sachet'),
     ('jalapeno', 'jalapeno'),
     ('king oyster mushroom', 'mushroom, medium'),
@@ -930,6 +965,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('nectarine', 'nectarine, whole'),
     ('nori', 'sheet'),
     ('nori', 'serving · 2.5 g'),
+    ('nutritional yeast', 'pack (4 oz)'),
     ('oat milk lite', 'serving · 1 cup'),
     ('oat whipped cream', 'serving · 2 tbsp'),
     ('okra', 'pod'),
@@ -950,7 +986,10 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('oyster mushroom', 'mushroom'),
     ('parsley', 'sprig'),
     ('parsnip', 'parsnip, medium'),
-    ('pea frozen', 'package'),
+    ('pea frozen', 'pack (10 oz)'),
+    ('pea frozen', 'pack (16 oz)'),
+    ('pea protein powder', 'scoop'),
+    ('pea protein powder', 'serving · 20 g'),
     ('peach', 'peach, medium'),
     ('peach', 'peach, large'),
     ('peach', 'peach, small'),
@@ -966,6 +1005,8 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('poblano pepper', 'small'),
     ('poblano pepper', 'large'),
     ('portobello mushroom', 'mushroom, whole'),
+    ('protein pasta', 'serving · 2 oz'),
+    ('quinoa', 'pack (16 oz)'),
     ('radish', 'radish, medium'),
     ('radish', 'radish, large'),
     ('radish', 'radish, small'),
@@ -1008,10 +1049,12 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('shallot', 'shallot, medium'),
     ('sherry vinegar', 'serving · 1 tbsp'),
     ('shiitake mushroom', 'mushroom, whole'),
-    ('silken tofu', 'block (12.3 oz)'),
+    ('silken tofu', 'block (16 oz)'),
+    ('skyr yoghurt', 'pot'),
+    ('skyr yoghurt', 'serving · 142 g'),
     ('soft sandwich bread', 'slice'),
     ('spinach', 'bunch'),
-    ('spinach', 'package'),
+    ('spinach', 'pack (10 oz)'),
     ('sprouted multigrain bread', 'slice'),
     ('star anise', 'pod'),
     ('strawberry', 'strawberry, medium'),
@@ -1021,7 +1064,8 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('super firm tofu', 'block (16 oz)'),
     ('super firm tofu', 'serving · 3 oz'),
     ('sweet potato', 'sweet potato'),
-    ('tempeh', 'package (8 oz)'),
+    ('tahini', 'jar (300 g)'),
+    ('tempeh', 'pack (8 oz)'),
     ('thai basil', 'leaf'),
     ('tomato', 'tomato, medium'),
     ('tomato', 'tomato, large'),
@@ -1047,6 +1091,9 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('tomato sauce canned', 'can (15 oz)'),
     ('tomato sauce canned', 'can (8 oz)'),
     ('tostada shell', 'shell'),
+    ('trader jo oat chocolate bar', 'bar'),
+    ('trader jo oat chocolate bar', 'serving · 25 g'),
+    ('trader jo oat chocolate bar', 'box (75 g)'),
     ('turnip', 'turnip, medium'),
     ('turnip', 'turnip, large'),
     ('turnip', 'turnip, small'),
@@ -1055,7 +1102,9 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('vegan cheddar', 'serving · 28 g'),
     ('vegan mayonnaise', 'serving · 1 tbsp'),
     ('vegan mozzarella', 'serving · 1 oz'),
+    ('vegan mozzarella', 'pack (7 oz)'),
     ('vegan parmesan', 'serving · 1 tbsp'),
+    ('vegan parmesan', 'pack (8 oz)'),
     ('vegan worcestershire sauce', 'serving · 1 tsp'),
     ('vegetable broth', 'can (14.5 oz)'),
     ('vegetable broth', 'carton (32 oz)'),
@@ -1090,6 +1139,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('baked bean canned', 'baked bean'),
     ('baking soda', 'bicarbonate soda'),
     ('baking soda', 'sodium bicarbonate'),
+    ('banana', 'banana frozen'),
     ('basil', 'basil leaf fresh'),
     ('bay leaf', 'bay leaf dried'),
     ('beet', 'beetroot'),
@@ -1098,7 +1148,9 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('black pepper', 'black pepper ground'),
     ('blueberry', 'berry'),
     ('blueberry', 'mixed berry'),
+    ('bouillon paste', 'vegetable stock cube'),
     ('breaded vegan chicken nugget', 'breaded vegan chicken strip'),
+    ('broccoli', 'tenderstem broccoli'),
     ('burger bun', 'hamburger bun'),
     ('butter bean canned', 'butter bean'),
     ('cannellini bean canned', 'cannellini bean'),
@@ -1109,10 +1161,12 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('chickpea canned', 'chickpea'),
     ('chickpea flour', 'besan'),
     ('chickpea flour', 'garbanzo bean flour'),
+    ('chili powder', 'chilli flake'),
     ('chipotle chili powder', 'chipotle chile flake'),
     ('chive', 'chive fresh'),
     ('cilantro', 'cilantro leaf tender stem'),
     ('cilantro', 'cilantro fresh'),
+    ('cilantro', 'coriander leaf fresh'),
     ('cinnamon ground', 'cinnamon'),
     ('cocoa powder', 'cocoa powder unsweetened'),
     ('coconut flake dried', 'coconut shred'),
@@ -1120,6 +1174,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('coconut milk canned', 'full fat coconut milk'),
     ('corn frozen', 'corn kernel frozen'),
     ('corn frozen', 'sweetcorn frozen'),
+    ('cornstarch', 'cornflour'),
     ('cucumber', 'japanese cucumber'),
     ('cucumber', 'mini cucumber'),
     ('cucumber', 'persian cucumber'),
@@ -1152,6 +1207,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('lemon juice', 'lemon juice fresh'),
     ('lentil cooked', 'boiled lentil'),
     ('lime', 'juicy lime'),
+    ('lime', 'lime wedge'),
     ('liquid amino', 'bragg liquid amino'),
     ('liquid smoke', 'colgin liquid smoke'),
     ('mango', 'mango ripe'),
@@ -1164,6 +1220,8 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('nori', 'sushi nori'),
     ('oat milk lite', 'minor figure barista oat lite'),
     ('okra', 'okra fresh'),
+    ('olive oil', 'cooking oil spray'),
+    ('onion', 'white onion'),
     ('orange', 'navel orange'),
     ('oregano fresh', 'oregano'),
     ('panko', 'panko bread crumb'),
@@ -1174,13 +1232,16 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('pea', 'garden pea'),
     ('pea', 'green pea'),
     ('pea', 'petit pois'),
+    ('pea protein powder', 'chocolate protein powder'),
     ('peanut', 'peanut toasted'),
     ('pecan', 'pecan half'),
     ('pecan', 'pecan raw'),
     ('pinto bean canned', 'pinto bean'),
     ('pistachio', 'pistachio raw'),
     ('plain oat yogurt', 'skyr plain yogurt'),
+    ('plain oat yogurt', 'soy yogurt'),
     ('plain oat yogurt', 'vegan greek yogurt'),
+    ('protein pasta', 'your favourite pasta'),
     ('red chili fresh', 'bird eye chilli'),
     ('red chili fresh', 'chilli fresh'),
     ('red chili fresh', 'hot chili pepper'),
@@ -1225,6 +1286,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('water', 'warm water'),
     ('wheat chex cereal', 'chex style cereal'),
     ('white mushroom', 'mushroom fresh'),
+    ('white pepper', 'white pepper ground'),
     ('white rice cooked', 'rice cooked'),
     ('white rice cooked', 'steamed rice'),
     ('white sorghum flour', 'sweet white sorghum flour'),
@@ -1246,6 +1308,7 @@ join (values
   ('baked bean canned', 'baked beans', 'baked bean', 'seed'),
   ('baking soda', 'bicarbonate of soda', 'bicarbonate soda', 'seed'),
   ('baking soda', 'sodium bicarbonate', 'sodium bicarbonate', 'seed'),
+  ('banana', 'frozen banana', 'banana frozen', 'seed'),
   ('basil', 'fresh basil leaves', 'basil leaf fresh', 'seed'),
   ('bay leaf', 'dried bay leaves', 'bay leaf dried', 'seed'),
   ('beet', 'beetroot', 'beetroot', 'seed'),
@@ -1254,7 +1317,9 @@ join (values
   ('black pepper', 'ground black pepper', 'black pepper ground', 'seed'),
   ('blueberry', 'desired berries', 'berry', 'seed'),
   ('blueberry', 'mixed berries', 'mixed berry', 'seed'),
+  ('bouillon paste', 'vegetable stock cube', 'vegetable stock cube', 'seed'),
   ('breaded vegan chicken nugget', 'breaded vegan chicken strips', 'breaded vegan chicken strip', 'seed'),
+  ('broccoli', 'Tenderstem broccoli', 'tenderstem broccoli', 'seed'),
   ('burger bun', 'hamburger buns', 'hamburger bun', 'seed'),
   ('butter bean canned', 'butter beans', 'butter bean', 'seed'),
   ('cannellini bean canned', 'cannellini beans', 'cannellini bean', 'seed'),
@@ -1265,10 +1330,12 @@ join (values
   ('chickpea canned', 'chickpeas', 'chickpea', 'seed'),
   ('chickpea flour', 'besan', 'besan', 'seed'),
   ('chickpea flour', 'garbanzo bean flour', 'garbanzo bean flour', 'seed'),
+  ('chili powder', 'chilli flakes', 'chilli flake', 'seed'),
   ('chipotle chili powder', 'chipotle chile flakes', 'chipotle chile flake', 'seed'),
   ('chive', 'fresh chives', 'chive fresh', 'seed'),
   ('cilantro', 'cilantro leaves and tender stems', 'cilantro leaf tender stem', 'seed'),
   ('cilantro', 'fresh cilantro', 'cilantro fresh', 'seed'),
+  ('cilantro', 'fresh coriander leaves', 'coriander leaf fresh', 'seed'),
   ('cinnamon ground', 'cinnamon', 'cinnamon', 'seed'),
   ('cocoa powder', 'unsweetened cocoa powder', 'cocoa powder unsweetened', 'seed'),
   ('coconut flake dried', 'coconut shreds', 'coconut shred', 'manual'),
@@ -1276,6 +1343,7 @@ join (values
   ('coconut milk canned', 'full-fat coconut milk', 'full fat coconut milk', 'seed'),
   ('corn frozen', 'frozen corn kernels', 'corn kernel frozen', 'seed'),
   ('corn frozen', 'frozen sweetcorn', 'sweetcorn frozen', 'seed'),
+  ('cornstarch', 'cornflour', 'cornflour', 'seed'),
   ('cucumber', 'Japanese cucumbers', 'japanese cucumber', 'seed'),
   ('cucumber', 'mini cucumbers', 'mini cucumber', 'seed'),
   ('cucumber', 'Persian cucumbers', 'persian cucumber', 'seed'),
@@ -1308,6 +1376,7 @@ join (values
   ('lemon juice', 'fresh lemon juice', 'lemon juice fresh', 'seed'),
   ('lentil cooked', 'boiled lentils', 'boiled lentil', 'seed'),
   ('lime', 'juicy lime', 'juicy lime', 'seed'),
+  ('lime', 'lime wedges', 'lime wedge', 'seed'),
   ('liquid amino', 'BRAGG liquid aminos', 'bragg liquid amino', 'manual'),
   ('liquid smoke', 'Colgin liquid smoke', 'colgin liquid smoke', 'seed'),
   ('mango', 'ripe mango', 'mango ripe', 'seed'),
@@ -1320,6 +1389,8 @@ join (values
   ('nori', 'sushi nori', 'sushi nori', 'seed'),
   ('oat milk lite', 'minor figures barista oat lite', 'minor figure barista oat lite', 'manual'),
   ('okra', 'fresh okra', 'okra fresh', 'seed'),
+  ('olive oil', 'cooking oil spray', 'cooking oil spray', 'seed'),
+  ('onion', 'white onion', 'white onion', 'seed'),
   ('orange', 'navel oranges', 'navel orange', 'seed'),
   ('oregano fresh', 'chopped oregano', 'oregano', 'seed'),
   ('panko', 'panko bread crumbs', 'panko bread crumb', 'seed'),
@@ -1330,13 +1401,16 @@ join (values
   ('pea', 'garden peas', 'garden pea', 'seed'),
   ('pea', 'green peas', 'green pea', 'seed'),
   ('pea', 'petit pois', 'petit pois', 'seed'),
+  ('pea protein powder', 'chocolate protein powder', 'chocolate protein powder', 'seed'),
   ('peanut', 'toasted peanuts', 'peanut toasted', 'seed'),
   ('pecan', 'pecan halves', 'pecan half', 'seed'),
   ('pecan', 'raw pecans', 'pecan raw', 'seed'),
   ('pinto bean canned', 'pinto beans', 'pinto bean', 'seed'),
   ('pistachio', 'raw pistachios', 'pistachio raw', 'seed'),
   ('plain oat yogurt', 'skyr plain yogurt', 'skyr plain yogurt', 'manual'),
+  ('plain oat yogurt', 'soy yogurt', 'soy yogurt', 'seed'),
   ('plain oat yogurt', 'vegan greek yogurt', 'vegan greek yogurt', 'manual'),
+  ('protein pasta', 'your favourite pasta', 'your favourite pasta', 'seed'),
   ('red chili fresh', 'birds eye chilli', 'bird eye chilli', 'seed'),
   ('red chili fresh', 'fresh chilli', 'chilli fresh', 'seed'),
   ('red chili fresh', 'hot chili pepper', 'hot chili pepper', 'seed'),
@@ -1381,6 +1455,7 @@ join (values
   ('water', 'warm water', 'warm water', 'seed'),
   ('wheat chex cereal', 'chex style cereal', 'chex style cereal', 'seed'),
   ('white mushroom', 'fresh mushrooms', 'mushroom fresh', 'seed'),
+  ('white pepper', 'ground white pepper', 'white pepper ground', 'seed'),
   ('white rice cooked', 'cooked rice', 'rice cooked', 'seed'),
   ('white rice cooked', 'steamed rice', 'steamed rice', 'seed'),
   ('white sorghum flour', 'sweet white sorghum flour', 'sweet white sorghum flour', 'seed'),
@@ -1406,6 +1481,7 @@ from ingredient i
 join (values
   ('active yeast dry', 'sachet', 7::numeric, 0::int, 'seed:typical'::text),
   ('almond', 'almond', 1.2::numeric, 0::int, 'usda_fdc:170567 (1 almond)'::text),
+  ('almond butter', 'jar (16 oz)', 453.59237::numeric, 0::int, 'manual'::text),
   ('apple', 'apple, medium', 182::numeric, 0::int, 'usda_fdc:171688 (1 medium (3" dia))'::text),
   ('apple', 'apple, large', 223::numeric, 1::int, 'usda_fdc:171688 (1 large (3-1/4" dia))'::text),
   ('apple', 'apple, small', 149::numeric, 2::int, 'usda_fdc:171688 (1 small (2-3/4" dia))'::text),
@@ -1423,6 +1499,8 @@ join (values
   ('banana', 'banana, small', 101::numeric, 2::int, 'usda_fdc:173944 (1 small (6" to 6-7/8" long))'::text),
   ('banana', 'banana, extra small', 81::numeric, 3::int, 'usda_fdc:173944 (1 extra small (less than 6" long))'::text),
   ('banana', 'banana, extra large', 152::numeric, 4::int, 'usda_fdc:173944 (1 extra large (9" or longer))'::text),
+  ('barbell hazelnut protein bar', 'bar', 55::numeric, 0::int, 'manual'::text),
+  ('barbell hazelnut protein bar', 'serving · 55 g', 55::numeric, 0::int, 'manual'::text),
   ('basil', 'leaf', 0.5::numeric, 0::int, 'usda_fdc:172232 (5 leaves)'::text),
   ('bay leaf', 'leaf', 0.2::numeric, 0::int, 'seed:typical'::text),
   ('beet', 'beet', 82::numeric, 0::int, 'usda_fdc:169145 (1 beet (2" dia))'::text),
@@ -1485,14 +1563,14 @@ join (values
   ('crispy onion', 'serving · 14 g', 14::numeric, 0::int, 'manual'::text),
   ('cucumber', 'Persian cucumber', 85::numeric, 0::int, 'owner: TJ''s 1 lb bag, 5–6 per bag, 4–6" long'::text),
   ('cucumber', 'cucumber', 301::numeric, 1::int, 'usda_fdc:168409 (1 cucumber (8-1/4"))'::text),
-  ('cucumber', 'bag (1 lb)', 454::numeric, 2::int, 'owner: Trader Joe''s pack'::text),
+  ('cucumber', 'bag (16 oz)', 454::numeric, 2::int, 'owner: Trader Joe''s pack'::text),
   ('dark red kidney bean canned', 'can (15 oz), drained', 266::numeric, 0::int, 'usda_fdc:174285 (1 can drained solids) — relabeled'::text),
   ('date', 'date, pitted', 24::numeric, 0::int, 'usda_fdc:168191 (1 date, pitted)'::text),
   ('dijon mustard', 'serving · 1 tsp', 4.92892159375::numeric, 0::int, 'manual'::text),
   ('dill', 'sprig', 0.2::numeric, 0::int, 'usda_fdc:172233 (5 sprigs)'::text),
   ('dill pickle', 'spear', 40.4::numeric, 0::int, 'usda_fdc:324653 (1.0 spear)'::text),
   ('earth balance butter', 'serving · 14 g', 14::numeric, 0::int, 'manual'::text),
-  ('edamame frozen', 'package', 432::numeric, 0::int, 'usda_fdc:168410 (1 package)'::text),
+  ('edamame frozen', 'bag (12 oz)', 340.1942775::numeric, 1::int, 'manual'::text),
   ('eggplant', 'eggplant, peeled', 458::numeric, 0::int, 'usda_fdc:169228 (1 eggplant, peeled (yield from 1-1/4 lb))'::text),
   ('eggplant', 'eggplant, unpeeled', 548::numeric, 1::int, 'usda_fdc:169228 (1 eggplant, unpeeled (approx 1-1/4 lb))'::text),
   ('english muffin', 'muffin', 57::numeric, 0::int, 'usda_fdc:172761 (1 muffin)'::text),
@@ -1503,7 +1581,7 @@ join (values
   ('fig dried', 'fig, whole', 8.4::numeric, 0::int, 'usda_fdc:326905 (1.0 each)'::text),
   ('fire tomato canned roasted', 'can (14.5 oz)', 411::numeric, 0::int, 'seed:typical'::text),
   ('fire tomato canned roasted', 'can (28 oz)', 794::numeric, 1::int, 'seed:typical'::text),
-  ('flour tortilla', 'package', 484::numeric, 0::int, 'usda_fdc:167535 (1 package)'::text),
+  ('flour tortilla', 'pack (484 g)', 484::numeric, 0::int, 'usda_fdc:167535 (1 package)'::text),
   ('flour tortilla', 'tortilla', 49::numeric, 1::int, 'usda_fdc:167535 (1 tortilla)'::text),
   ('gala apple', 'apple, medium', 172::numeric, 0::int, 'usda_fdc:168204 (1 medium) — borrowed'::text),
   ('gala apple', 'apple, large', 200::numeric, 1::int, 'usda_fdc:168204 (1 large) — borrowed'::text),
@@ -1531,12 +1609,15 @@ join (values
   ('green olive', 'olive', 2.7::numeric, 0::int, 'usda_fdc:169096 (1 olive)'::text),
   ('harissa paste', 'serving · 2 tbsp', 29.5735295625::numeric, 0::int, 'manual'::text),
   ('hazelnut', 'nut', 1.4::numeric, 0::int, 'usda_fdc:170581 (10 nuts)'::text),
+  ('hemp seed', 'pack (8 oz)', 226.796185::numeric, 0::int, 'owner: Trader Joe''s pack'::text),
   ('iceberg lettuce', 'head, medium', 539::numeric, 0::int, 'usda_fdc:169248 (1 head, medium (6" dia))'::text),
   ('iceberg lettuce', 'leaf, medium', 8::numeric, 1::int, 'usda_fdc:169248 (1 leaf, medium)'::text),
   ('iceberg lettuce', 'head, large', 755::numeric, 2::int, 'usda_fdc:169248 (1 head, large)'::text),
   ('iceberg lettuce', 'leaf, large', 15::numeric, 3::int, 'usda_fdc:169248 (1 leaf, large)'::text),
   ('iceberg lettuce', 'head, small', 324::numeric, 4::int, 'usda_fdc:169248 (1 head, small)'::text),
   ('iceberg lettuce', 'leaf, small', 5::numeric, 5::int, 'usda_fdc:169248 (1 leaf, small)'::text),
+  ('impossible beef ground', 'serving · 4 oz', 113.3980925::numeric, 0::int, 'manual'::text),
+  ('impossible beef ground', 'pack (12 oz)', 340.1942775::numeric, 1::int, 'owner: Trader Joe''s pack'::text),
   ('instant yeast', 'sachet', 7::numeric, 0::int, 'seed:typical'::text),
   ('jalapeno', 'jalapeno', 14::numeric, 0::int, 'usda_fdc:168576 (1 pepper)'::text),
   ('king oyster mushroom', 'mushroom, medium', 90::numeric, 0::int, 'seed:typical'::text),
@@ -1563,6 +1644,7 @@ join (values
   ('nectarine', 'nectarine, whole', 129::numeric, 0::int, 'usda_fdc:327357 (1.0 each 2-1/3" dia)'::text),
   ('nori', 'sheet', 2.5::numeric, 0::int, 'seed:typical'::text),
   ('nori', 'serving · 2.5 g', 2.5::numeric, 1::int, 'manual'::text),
+  ('nutritional yeast', 'pack (4 oz)', 113.3980925::numeric, 0::int, 'owner: Trader Joe''s pack'::text),
   ('oat milk lite', 'serving · 1 cup', 236.5882365::numeric, 0::int, 'manual'::text),
   ('oat whipped cream', 'serving · 2 tbsp', 29.5735295625::numeric, 0::int, 'manual'::text),
   ('okra', 'pod', 11.88::numeric, 0::int, 'usda_fdc:169260 (8 pods (3" long))'::text),
@@ -1583,7 +1665,10 @@ join (values
   ('oyster mushroom', 'mushroom', 15::numeric, 0::int, 'usda_fdc:168580 (1 small) — relabeled'::text),
   ('parsley', 'sprig', 1::numeric, 0::int, 'usda_fdc:170416 (10 sprigs)'::text),
   ('parsnip', 'parsnip, medium', 120::numeric, 0::int, 'seed:typical'::text),
-  ('pea frozen', 'package', 284::numeric, 0::int, 'usda_fdc:170016 (1 package)'::text),
+  ('pea frozen', 'pack (10 oz)', 284::numeric, 0::int, 'usda_fdc:170016 (1 package)'::text),
+  ('pea frozen', 'pack (16 oz)', 453.59237::numeric, 1::int, 'owner: Trader Joe''s pack'::text),
+  ('pea protein powder', 'scoop', 20::numeric, 0::int, 'manual'::text),
+  ('pea protein powder', 'serving · 20 g', 20::numeric, 1::int, 'manual'::text),
   ('peach', 'peach, medium', 150::numeric, 0::int, 'usda_fdc:169928 (1 medium (2-2/3" dia))'::text),
   ('peach', 'peach, large', 175::numeric, 1::int, 'usda_fdc:169928 (1 large (2-3/4" dia))'::text),
   ('peach', 'peach, small', 130::numeric, 2::int, 'usda_fdc:169928 (1 small (2-1/2" dia))'::text),
@@ -1599,6 +1684,8 @@ join (values
   ('poblano pepper', 'small', 115::numeric, 1::int, 'manual'::text),
   ('poblano pepper', 'large', 200::numeric, 2::int, 'manual'::text),
   ('portobello mushroom', 'mushroom, whole', 84::numeric, 0::int, 'usda_fdc:169255 (1 piece whole)'::text),
+  ('protein pasta', 'serving · 2 oz', 56.69904625::numeric, 0::int, 'manual'::text),
+  ('quinoa', 'pack (16 oz)', 453.59237::numeric, 0::int, 'owner: Trader Joe''s pack'::text),
   ('radish', 'radish, medium', 4.5::numeric, 0::int, 'usda_fdc:169276 (1 medium (3/4" to 1" dia))'::text),
   ('radish', 'radish, large', 9::numeric, 1::int, 'usda_fdc:169276 (1 large (1" to 1-1/4" dia))'::text),
   ('radish', 'radish, small', 2::numeric, 2::int, 'usda_fdc:169276 (1 small)'::text),
@@ -1641,10 +1728,12 @@ join (values
   ('shallot', 'shallot, medium', 30::numeric, 0::int, 'seed:typical'::text),
   ('sherry vinegar', 'serving · 1 tbsp', 14.78676478125::numeric, 0::int, 'manual'::text),
   ('shiitake mushroom', 'mushroom, whole', 19::numeric, 0::int, 'usda_fdc:169242 (1 piece whole)'::text),
-  ('silken tofu', 'block (12.3 oz)', 349::numeric, 0::int, 'seed:typical'::text),
+  ('silken tofu', 'block (16 oz)', 453.59237::numeric, 1::int, 'owner: Trader Joe''s pack'::text),
+  ('skyr yoghurt', 'pot', 142::numeric, 0::int, 'manual'::text),
+  ('skyr yoghurt', 'serving · 142 g', 142::numeric, 1::int, 'manual'::text),
   ('soft sandwich bread', 'slice', 27.3::numeric, 0::int, 'usda_fdc:325871 (1.0 slice) — borrowed'::text),
   ('spinach', 'bunch', 340::numeric, 0::int, 'usda_fdc:168462 (1 bunch)'::text),
-  ('spinach', 'package', 284::numeric, 1::int, 'usda_fdc:168462 (1 package (10 oz))'::text),
+  ('spinach', 'pack (10 oz)', 284::numeric, 1::int, 'usda_fdc:168462 (1 package (10 oz))'::text),
   ('sprouted multigrain bread', 'slice', 38::numeric, 0::int, 'usda_fdc:171850 (1 slice 1 serving)'::text),
   ('star anise', 'pod', 2::numeric, 0::int, 'seed:typical'::text),
   ('strawberry', 'strawberry, medium', 12::numeric, 0::int, 'usda_fdc:167762 (1 medium (1-1/4" dia))'::text),
@@ -1654,7 +1743,8 @@ join (values
   ('super firm tofu', 'block (16 oz)', 454::numeric, 1::int, 'manual'::text),
   ('super firm tofu', 'serving · 3 oz', 85.048569375::numeric, 2::int, 'manual'::text),
   ('sweet potato', 'sweet potato', 130::numeric, 0::int, 'usda_fdc:168482 (1 sweetpotato, 5" long)'::text),
-  ('tempeh', 'package (8 oz)', 227::numeric, 0::int, 'seed:typical'::text),
+  ('tahini', 'jar (300 g)', 300::numeric, 0::int, 'manual'::text),
+  ('tempeh', 'pack (8 oz)', 227::numeric, 0::int, 'seed:typical'::text),
   ('thai basil', 'leaf', 0.5::numeric, 0::int, 'usda_fdc:172232 (5 leaves) — borrowed'::text),
   ('tomato', 'tomato, medium', 123::numeric, 0::int, 'usda_fdc:170457 (1 medium whole (2-3/5" dia))'::text),
   ('tomato', 'tomato, large', 182::numeric, 1::int, 'usda_fdc:170457 (1 large whole (3" dia))'::text),
@@ -1680,6 +1770,9 @@ join (values
   ('tomato sauce canned', 'can (15 oz)', 425::numeric, 0::int, 'seed:typical'::text),
   ('tomato sauce canned', 'can (8 oz)', 227::numeric, 1::int, 'seed:typical'::text),
   ('tostada shell', 'shell', 12.3::numeric, 0::int, 'usda_fdc:167525 (1 piece)'::text),
+  ('trader jo oat chocolate bar', 'bar', 25::numeric, 0::int, 'manual'::text),
+  ('trader jo oat chocolate bar', 'serving · 25 g', 25::numeric, 0::int, 'manual'::text),
+  ('trader jo oat chocolate bar', 'box (75 g)', 75::numeric, 1::int, 'owner: Trader Joe''s pack'::text),
   ('turnip', 'turnip, medium', 122::numeric, 0::int, 'usda_fdc:170465 (1 medium)'::text),
   ('turnip', 'turnip, large', 183::numeric, 1::int, 'usda_fdc:170465 (1 large)'::text),
   ('turnip', 'turnip, small', 61::numeric, 2::int, 'usda_fdc:170465 (1 small)'::text),
@@ -1688,7 +1781,9 @@ join (values
   ('vegan cheddar', 'serving · 28 g', 28::numeric, 0::int, 'manual'::text),
   ('vegan mayonnaise', 'serving · 1 tbsp', 14.78676478125::numeric, 0::int, 'manual'::text),
   ('vegan mozzarella', 'serving · 1 oz', 28.349523125::numeric, 0::int, 'manual'::text),
+  ('vegan mozzarella', 'pack (7 oz)', 198.446661875::numeric, 1::int, 'owner: Trader Joe''s pack'::text),
   ('vegan parmesan', 'serving · 1 tbsp', 14.78676478125::numeric, 0::int, 'manual'::text),
+  ('vegan parmesan', 'pack (8 oz)', 479.083120125694::numeric, 1::int, 'owner: Trader Joe''s pack'::text),
   ('vegan worcestershire sauce', 'serving · 1 tsp', 4.92892159375::numeric, 0::int, 'manual'::text),
   ('vegetable broth', 'can (14.5 oz)', 390::numeric, 0::int, 'usda_fdc:171583 (1 can) — relabeled'::text),
   ('vegetable broth', 'carton (32 oz)', 926::numeric, 1::int, 'usda_fdc:171583 (1 carton (32 oz)) — relabeled'::text),
@@ -1728,6 +1823,7 @@ from ingredient i
 join (values
   ('active yeast dry', 'sachet', 7::numeric, 0::int, 'seed:typical'::text),
   ('almond', 'almond', 1.2::numeric, 0::int, 'usda_fdc:170567 (1 almond)'::text),
+  ('almond butter', 'jar (16 oz)', 453.59237::numeric, 0::int, 'manual'::text),
   ('apple', 'apple, medium', 182::numeric, 0::int, 'usda_fdc:171688 (1 medium (3" dia))'::text),
   ('apple', 'apple, large', 223::numeric, 1::int, 'usda_fdc:171688 (1 large (3-1/4" dia))'::text),
   ('apple', 'apple, small', 149::numeric, 2::int, 'usda_fdc:171688 (1 small (2-3/4" dia))'::text),
@@ -1745,6 +1841,8 @@ join (values
   ('banana', 'banana, small', 101::numeric, 2::int, 'usda_fdc:173944 (1 small (6" to 6-7/8" long))'::text),
   ('banana', 'banana, extra small', 81::numeric, 3::int, 'usda_fdc:173944 (1 extra small (less than 6" long))'::text),
   ('banana', 'banana, extra large', 152::numeric, 4::int, 'usda_fdc:173944 (1 extra large (9" or longer))'::text),
+  ('barbell hazelnut protein bar', 'bar', 55::numeric, 0::int, 'manual'::text),
+  ('barbell hazelnut protein bar', 'serving · 55 g', 55::numeric, 0::int, 'manual'::text),
   ('basil', 'leaf', 0.5::numeric, 0::int, 'usda_fdc:172232 (5 leaves)'::text),
   ('bay leaf', 'leaf', 0.2::numeric, 0::int, 'seed:typical'::text),
   ('beet', 'beet', 82::numeric, 0::int, 'usda_fdc:169145 (1 beet (2" dia))'::text),
@@ -1807,14 +1905,14 @@ join (values
   ('crispy onion', 'serving · 14 g', 14::numeric, 0::int, 'manual'::text),
   ('cucumber', 'Persian cucumber', 85::numeric, 0::int, 'owner: TJ''s 1 lb bag, 5–6 per bag, 4–6" long'::text),
   ('cucumber', 'cucumber', 301::numeric, 1::int, 'usda_fdc:168409 (1 cucumber (8-1/4"))'::text),
-  ('cucumber', 'bag (1 lb)', 454::numeric, 2::int, 'owner: Trader Joe''s pack'::text),
+  ('cucumber', 'bag (16 oz)', 454::numeric, 2::int, 'owner: Trader Joe''s pack'::text),
   ('dark red kidney bean canned', 'can (15 oz), drained', 266::numeric, 0::int, 'usda_fdc:174285 (1 can drained solids) — relabeled'::text),
   ('date', 'date, pitted', 24::numeric, 0::int, 'usda_fdc:168191 (1 date, pitted)'::text),
   ('dijon mustard', 'serving · 1 tsp', 4.92892159375::numeric, 0::int, 'manual'::text),
   ('dill', 'sprig', 0.2::numeric, 0::int, 'usda_fdc:172233 (5 sprigs)'::text),
   ('dill pickle', 'spear', 40.4::numeric, 0::int, 'usda_fdc:324653 (1.0 spear)'::text),
   ('earth balance butter', 'serving · 14 g', 14::numeric, 0::int, 'manual'::text),
-  ('edamame frozen', 'package', 432::numeric, 0::int, 'usda_fdc:168410 (1 package)'::text),
+  ('edamame frozen', 'bag (12 oz)', 340.1942775::numeric, 1::int, 'manual'::text),
   ('eggplant', 'eggplant, peeled', 458::numeric, 0::int, 'usda_fdc:169228 (1 eggplant, peeled (yield from 1-1/4 lb))'::text),
   ('eggplant', 'eggplant, unpeeled', 548::numeric, 1::int, 'usda_fdc:169228 (1 eggplant, unpeeled (approx 1-1/4 lb))'::text),
   ('english muffin', 'muffin', 57::numeric, 0::int, 'usda_fdc:172761 (1 muffin)'::text),
@@ -1825,7 +1923,7 @@ join (values
   ('fig dried', 'fig, whole', 8.4::numeric, 0::int, 'usda_fdc:326905 (1.0 each)'::text),
   ('fire tomato canned roasted', 'can (14.5 oz)', 411::numeric, 0::int, 'seed:typical'::text),
   ('fire tomato canned roasted', 'can (28 oz)', 794::numeric, 1::int, 'seed:typical'::text),
-  ('flour tortilla', 'package', 484::numeric, 0::int, 'usda_fdc:167535 (1 package)'::text),
+  ('flour tortilla', 'pack (484 g)', 484::numeric, 0::int, 'usda_fdc:167535 (1 package)'::text),
   ('flour tortilla', 'tortilla', 49::numeric, 1::int, 'usda_fdc:167535 (1 tortilla)'::text),
   ('gala apple', 'apple, medium', 172::numeric, 0::int, 'usda_fdc:168204 (1 medium) — borrowed'::text),
   ('gala apple', 'apple, large', 200::numeric, 1::int, 'usda_fdc:168204 (1 large) — borrowed'::text),
@@ -1853,12 +1951,15 @@ join (values
   ('green olive', 'olive', 2.7::numeric, 0::int, 'usda_fdc:169096 (1 olive)'::text),
   ('harissa paste', 'serving · 2 tbsp', 29.5735295625::numeric, 0::int, 'manual'::text),
   ('hazelnut', 'nut', 1.4::numeric, 0::int, 'usda_fdc:170581 (10 nuts)'::text),
+  ('hemp seed', 'pack (8 oz)', 226.796185::numeric, 0::int, 'owner: Trader Joe''s pack'::text),
   ('iceberg lettuce', 'head, medium', 539::numeric, 0::int, 'usda_fdc:169248 (1 head, medium (6" dia))'::text),
   ('iceberg lettuce', 'leaf, medium', 8::numeric, 1::int, 'usda_fdc:169248 (1 leaf, medium)'::text),
   ('iceberg lettuce', 'head, large', 755::numeric, 2::int, 'usda_fdc:169248 (1 head, large)'::text),
   ('iceberg lettuce', 'leaf, large', 15::numeric, 3::int, 'usda_fdc:169248 (1 leaf, large)'::text),
   ('iceberg lettuce', 'head, small', 324::numeric, 4::int, 'usda_fdc:169248 (1 head, small)'::text),
   ('iceberg lettuce', 'leaf, small', 5::numeric, 5::int, 'usda_fdc:169248 (1 leaf, small)'::text),
+  ('impossible beef ground', 'serving · 4 oz', 113.3980925::numeric, 0::int, 'manual'::text),
+  ('impossible beef ground', 'pack (12 oz)', 340.1942775::numeric, 1::int, 'owner: Trader Joe''s pack'::text),
   ('instant yeast', 'sachet', 7::numeric, 0::int, 'seed:typical'::text),
   ('jalapeno', 'jalapeno', 14::numeric, 0::int, 'usda_fdc:168576 (1 pepper)'::text),
   ('king oyster mushroom', 'mushroom, medium', 90::numeric, 0::int, 'seed:typical'::text),
@@ -1885,6 +1986,7 @@ join (values
   ('nectarine', 'nectarine, whole', 129::numeric, 0::int, 'usda_fdc:327357 (1.0 each 2-1/3" dia)'::text),
   ('nori', 'sheet', 2.5::numeric, 0::int, 'seed:typical'::text),
   ('nori', 'serving · 2.5 g', 2.5::numeric, 1::int, 'manual'::text),
+  ('nutritional yeast', 'pack (4 oz)', 113.3980925::numeric, 0::int, 'owner: Trader Joe''s pack'::text),
   ('oat milk lite', 'serving · 1 cup', 236.5882365::numeric, 0::int, 'manual'::text),
   ('oat whipped cream', 'serving · 2 tbsp', 29.5735295625::numeric, 0::int, 'manual'::text),
   ('okra', 'pod', 11.88::numeric, 0::int, 'usda_fdc:169260 (8 pods (3" long))'::text),
@@ -1905,7 +2007,10 @@ join (values
   ('oyster mushroom', 'mushroom', 15::numeric, 0::int, 'usda_fdc:168580 (1 small) — relabeled'::text),
   ('parsley', 'sprig', 1::numeric, 0::int, 'usda_fdc:170416 (10 sprigs)'::text),
   ('parsnip', 'parsnip, medium', 120::numeric, 0::int, 'seed:typical'::text),
-  ('pea frozen', 'package', 284::numeric, 0::int, 'usda_fdc:170016 (1 package)'::text),
+  ('pea frozen', 'pack (10 oz)', 284::numeric, 0::int, 'usda_fdc:170016 (1 package)'::text),
+  ('pea frozen', 'pack (16 oz)', 453.59237::numeric, 1::int, 'owner: Trader Joe''s pack'::text),
+  ('pea protein powder', 'scoop', 20::numeric, 0::int, 'manual'::text),
+  ('pea protein powder', 'serving · 20 g', 20::numeric, 1::int, 'manual'::text),
   ('peach', 'peach, medium', 150::numeric, 0::int, 'usda_fdc:169928 (1 medium (2-2/3" dia))'::text),
   ('peach', 'peach, large', 175::numeric, 1::int, 'usda_fdc:169928 (1 large (2-3/4" dia))'::text),
   ('peach', 'peach, small', 130::numeric, 2::int, 'usda_fdc:169928 (1 small (2-1/2" dia))'::text),
@@ -1921,6 +2026,8 @@ join (values
   ('poblano pepper', 'small', 115::numeric, 1::int, 'manual'::text),
   ('poblano pepper', 'large', 200::numeric, 2::int, 'manual'::text),
   ('portobello mushroom', 'mushroom, whole', 84::numeric, 0::int, 'usda_fdc:169255 (1 piece whole)'::text),
+  ('protein pasta', 'serving · 2 oz', 56.69904625::numeric, 0::int, 'manual'::text),
+  ('quinoa', 'pack (16 oz)', 453.59237::numeric, 0::int, 'owner: Trader Joe''s pack'::text),
   ('radish', 'radish, medium', 4.5::numeric, 0::int, 'usda_fdc:169276 (1 medium (3/4" to 1" dia))'::text),
   ('radish', 'radish, large', 9::numeric, 1::int, 'usda_fdc:169276 (1 large (1" to 1-1/4" dia))'::text),
   ('radish', 'radish, small', 2::numeric, 2::int, 'usda_fdc:169276 (1 small)'::text),
@@ -1963,10 +2070,12 @@ join (values
   ('shallot', 'shallot, medium', 30::numeric, 0::int, 'seed:typical'::text),
   ('sherry vinegar', 'serving · 1 tbsp', 14.78676478125::numeric, 0::int, 'manual'::text),
   ('shiitake mushroom', 'mushroom, whole', 19::numeric, 0::int, 'usda_fdc:169242 (1 piece whole)'::text),
-  ('silken tofu', 'block (12.3 oz)', 349::numeric, 0::int, 'seed:typical'::text),
+  ('silken tofu', 'block (16 oz)', 453.59237::numeric, 1::int, 'owner: Trader Joe''s pack'::text),
+  ('skyr yoghurt', 'pot', 142::numeric, 0::int, 'manual'::text),
+  ('skyr yoghurt', 'serving · 142 g', 142::numeric, 1::int, 'manual'::text),
   ('soft sandwich bread', 'slice', 27.3::numeric, 0::int, 'usda_fdc:325871 (1.0 slice) — borrowed'::text),
   ('spinach', 'bunch', 340::numeric, 0::int, 'usda_fdc:168462 (1 bunch)'::text),
-  ('spinach', 'package', 284::numeric, 1::int, 'usda_fdc:168462 (1 package (10 oz))'::text),
+  ('spinach', 'pack (10 oz)', 284::numeric, 1::int, 'usda_fdc:168462 (1 package (10 oz))'::text),
   ('sprouted multigrain bread', 'slice', 38::numeric, 0::int, 'usda_fdc:171850 (1 slice 1 serving)'::text),
   ('star anise', 'pod', 2::numeric, 0::int, 'seed:typical'::text),
   ('strawberry', 'strawberry, medium', 12::numeric, 0::int, 'usda_fdc:167762 (1 medium (1-1/4" dia))'::text),
@@ -1976,7 +2085,8 @@ join (values
   ('super firm tofu', 'block (16 oz)', 454::numeric, 1::int, 'manual'::text),
   ('super firm tofu', 'serving · 3 oz', 85.048569375::numeric, 2::int, 'manual'::text),
   ('sweet potato', 'sweet potato', 130::numeric, 0::int, 'usda_fdc:168482 (1 sweetpotato, 5" long)'::text),
-  ('tempeh', 'package (8 oz)', 227::numeric, 0::int, 'seed:typical'::text),
+  ('tahini', 'jar (300 g)', 300::numeric, 0::int, 'manual'::text),
+  ('tempeh', 'pack (8 oz)', 227::numeric, 0::int, 'seed:typical'::text),
   ('thai basil', 'leaf', 0.5::numeric, 0::int, 'usda_fdc:172232 (5 leaves) — borrowed'::text),
   ('tomato', 'tomato, medium', 123::numeric, 0::int, 'usda_fdc:170457 (1 medium whole (2-3/5" dia))'::text),
   ('tomato', 'tomato, large', 182::numeric, 1::int, 'usda_fdc:170457 (1 large whole (3" dia))'::text),
@@ -2002,6 +2112,9 @@ join (values
   ('tomato sauce canned', 'can (15 oz)', 425::numeric, 0::int, 'seed:typical'::text),
   ('tomato sauce canned', 'can (8 oz)', 227::numeric, 1::int, 'seed:typical'::text),
   ('tostada shell', 'shell', 12.3::numeric, 0::int, 'usda_fdc:167525 (1 piece)'::text),
+  ('trader jo oat chocolate bar', 'bar', 25::numeric, 0::int, 'manual'::text),
+  ('trader jo oat chocolate bar', 'serving · 25 g', 25::numeric, 0::int, 'manual'::text),
+  ('trader jo oat chocolate bar', 'box (75 g)', 75::numeric, 1::int, 'owner: Trader Joe''s pack'::text),
   ('turnip', 'turnip, medium', 122::numeric, 0::int, 'usda_fdc:170465 (1 medium)'::text),
   ('turnip', 'turnip, large', 183::numeric, 1::int, 'usda_fdc:170465 (1 large)'::text),
   ('turnip', 'turnip, small', 61::numeric, 2::int, 'usda_fdc:170465 (1 small)'::text),
@@ -2010,7 +2123,9 @@ join (values
   ('vegan cheddar', 'serving · 28 g', 28::numeric, 0::int, 'manual'::text),
   ('vegan mayonnaise', 'serving · 1 tbsp', 14.78676478125::numeric, 0::int, 'manual'::text),
   ('vegan mozzarella', 'serving · 1 oz', 28.349523125::numeric, 0::int, 'manual'::text),
+  ('vegan mozzarella', 'pack (7 oz)', 198.446661875::numeric, 1::int, 'owner: Trader Joe''s pack'::text),
   ('vegan parmesan', 'serving · 1 tbsp', 14.78676478125::numeric, 0::int, 'manual'::text),
+  ('vegan parmesan', 'pack (8 oz)', 479.083120125694::numeric, 1::int, 'owner: Trader Joe''s pack'::text),
   ('vegan worcestershire sauce', 'serving · 1 tsp', 4.92892159375::numeric, 0::int, 'manual'::text),
   ('vegetable broth', 'can (14.5 oz)', 390::numeric, 0::int, 'usda_fdc:171583 (1 can) — relabeled'::text),
   ('vegetable broth', 'carton (32 oz)', 926::numeric, 1::int, 'usda_fdc:171583 (1 carton (32 oz)) — relabeled'::text),
@@ -2051,11 +2166,11 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
 -- every such row is listed here with its diff, which is what the old
 -- curation_overrides.jsonl `allowed_units` entries used to be for.
 --
--- 303 of 315 rows differ from the derived rule:
+-- 306 of 323 rows differ from the derived rule:
 --   active yeast dry (Active Dry Yeast, default tsp): -fl_oz -l -pt -qt
 --   agave (Agave, default tbsp): -fl_oz -l -pt -qt
 --   all purpose flour (All-Purpose Flour, default cup): -fl_oz -l -pt -qt
---   allspice ground (Ground Allspice, default pinch): -fl_oz -l -pt -qt
+--   allspice ground (Ground Allspice, default tsp): -fl_oz -l -pt -qt
 --   almond (Almonds, default cup): -fl_oz -l -pt -qt
 --   almond butter (Almond Butter, default tbsp): -fl_oz -l -pt -qt
 --   almond flour (Almond Flour, default cup): -fl_oz -l -pt -qt
@@ -2073,6 +2188,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
 --   baking soda (Baking Soda, default tsp): -fl_oz -l -pt -qt
 --   balsamic vinegar (Balsamic Vinegar, default tbsp): -fl_oz -l -pt -qt
 --   banana (Banana, default piece): -fl_oz -l -pt -qt -handful
+--   barbell hazelnut protein bar (Barbells Hazelnut Protein Bar, default piece): -g -kg -oz -lb
 --   basil (Basil, default cup): -fl_oz -l -pt -qt
 --   bay leaf (Bay Leaves, default piece): -fl_oz -l -pt -qt -pinch -dash -handful -to_taste
 --   beet (Beets, default piece): -fl_oz -l -pt -qt -handful
@@ -2121,7 +2237,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
 --   cilantro (Cilantro, default cup): -fl_oz -l -pt -qt
 --   cinnamon ground (Ground Cinnamon, default tsp): -fl_oz -l -pt -qt
 --   cinnamon stick (Cinnamon Stick, default piece): -pinch -dash -handful -to_taste
---   clove ground (Ground Cloves, default pinch): -fl_oz -l -pt -qt
+--   clove ground (Ground Cloves, default tsp): -fl_oz -l -pt -qt
 --   cocoa powder (Cocoa Powder, default tbsp): -fl_oz -l -pt -qt
 --   coconut flake dried (Dried Coconut Flakes, default tbsp): -fl_oz -l -pt -qt
 --   coconut milk canned (Canned Coconut Milk, default piece): -fl_oz -l -pt -qt
@@ -2159,7 +2275,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
 --   fig dried (Dried Figs, default cup): -fl_oz -l -pt -qt
 --   fine sea salt (Fine Sea Salt, default tsp): -fl_oz -l -pt -qt
 --   fire tomato canned roasted (Canned Fire-Roasted Tomatoes, default oz): -fl_oz -l -pt -qt
---   flaky salt (Flaky Salt, default pinch): -fl_oz -l -pt -qt
+--   flaky salt (Flaky Salt, default tsp): -fl_oz -l -pt -qt
 --   flaxseed meal (Flaxseed Meal, default tbsp): -fl_oz -l -pt -qt
 --   french green lentil dried (Dried French Green Lentils, default cup): -fl_oz -l -pt -qt
 --   gala apple (Gala Apple, default piece): -fl_oz -l -pt -qt -handful
@@ -2218,7 +2334,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
 --   napa cabbage (Napa Cabbage, default piece): -fl_oz -l -pt -qt -handful
 --   navy bean canned (Canned Navy Beans, default oz): -tsp -fl_oz -l -pt -qt
 --   nectarine (Nectarine, default piece): -fl_oz -l -pt -qt -handful
---   nutmeg ground (Ground Nutmeg, default pinch): -fl_oz -l -pt -qt
+--   nutmeg ground (Ground Nutmeg, default tsp): -fl_oz -l -pt -qt
 --   nutritional yeast (Nutritional Yeast, default tbsp): -fl_oz -l -pt -qt
 --   oat milk lite (Oat Milk Lite, default cup): -fl_oz -l -pt -qt
 --   oat whipped cream (Oat Whipped Cream, default tbsp): -fl_oz -cup -l -pt -qt
@@ -2237,6 +2353,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
 --   paprika (Paprika, default g): -fl_oz -l -pt -qt -pinch -dash -handful -to_taste
 --   paprika smoked (Smoked Paprika, default tsp): -fl_oz -l -pt -qt
 --   parsley (Parsley, default cup): -fl_oz -l -pt -qt
+--   parsley dried (Dried Parsley, default g): -pinch -dash -handful -to_taste
 --   parsnip (Parsnip, default piece): -fl_oz -l -pt -qt -handful
 --   pasta (Pasta, default lb): -tsp -tbsp -fl_oz -l -pt -qt
 --   pasta cooked (Cooked Pasta, default cup): -tsp -tbsp -fl_oz -l -pt -qt
@@ -2345,6 +2462,7 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
 --   white bread (White Bread, default piece): -fl_oz -l -pt -qt
 --   white jasmine rice (White Jasmine Rice, default cup): -fl_oz -l -pt -qt
 --   white mushroom (White Mushroom, default oz): -tsp -tbsp -fl_oz -l -pt -qt
+--   white pepper (White Pepper, default g): -pinch -dash -handful -to_taste
 --   white rice (White Rice, default cup): -fl_oz -l -pt -qt
 --   white rice cooked (Cooked White Rice, default cup): -tsp -fl_oz -l -pt -qt
 --   white rice flour (White Rice Flour, default cup): -fl_oz -l -pt -qt
@@ -2439,12 +2557,14 @@ begin
   from (values
     ('active yeast dry'),
     ('almond'),
+    ('almond butter'),
     ('apple'),
     ('apricot'),
     ('asparagus'),
     ('avocado'),
     ('baked bean canned'),
     ('banana'),
+    ('barbell hazelnut protein bar'),
     ('basil'),
     ('bay leaf'),
     ('beet'),
@@ -2507,7 +2627,9 @@ begin
     ('green olive'),
     ('harissa paste'),
     ('hazelnut'),
+    ('hemp seed'),
     ('iceberg lettuce'),
+    ('impossible beef ground'),
     ('instant yeast'),
     ('jalapeno'),
     ('king oyster mushroom'),
@@ -2530,6 +2652,7 @@ begin
     ('navy bean canned'),
     ('nectarine'),
     ('nori'),
+    ('nutritional yeast'),
     ('oat milk lite'),
     ('oat whipped cream'),
     ('okra'),
@@ -2542,6 +2665,7 @@ begin
     ('parsley'),
     ('parsnip'),
     ('pea frozen'),
+    ('pea protein powder'),
     ('peach'),
     ('pineapple'),
     ('pinto bean canned'),
@@ -2550,6 +2674,8 @@ begin
     ('plantain'),
     ('poblano pepper'),
     ('portobello mushroom'),
+    ('protein pasta'),
+    ('quinoa'),
     ('radish'),
     ('raspberry'),
     ('red bell pepper'),
@@ -2570,6 +2696,7 @@ begin
     ('sherry vinegar'),
     ('shiitake mushroom'),
     ('silken tofu'),
+    ('skyr yoghurt'),
     ('soft sandwich bread'),
     ('spinach'),
     ('sprouted multigrain bread'),
@@ -2577,6 +2704,7 @@ begin
     ('strawberry'),
     ('super firm tofu'),
     ('sweet potato'),
+    ('tahini'),
     ('tempeh'),
     ('thai basil'),
     ('tomato'),
@@ -2587,6 +2715,7 @@ begin
     ('tomato puree canned'),
     ('tomato sauce canned'),
     ('tostada shell'),
+    ('trader jo oat chocolate bar'),
     ('turnip'),
     ('ume plum vinegar'),
     ('vegan cheddar'),
