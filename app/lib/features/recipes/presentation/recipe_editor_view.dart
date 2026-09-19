@@ -49,7 +49,6 @@ import '../../../shared/write.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
-import '../domain/component_math.dart';
 import '../domain/line_display.dart';
 import '../domain/method_draft.dart';
 import '../domain/recipe.dart';
