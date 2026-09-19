@@ -38,6 +38,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/units/number_format.dart';
 import '../../../core/words.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_more_trigger.dart';
@@ -572,8 +573,26 @@ class MethodStepCard extends HookConsumerWidget {
     return names.isEmpty ? 'nothing yet' : names.join(' · ');
   }
 
-  String _lineSummary(LineItem line) =>
-      '${line.ingredientName} · ${amountOfLine(line)}';
+  String _lineSummary(LineItem line) {
+    final quantity = line.quantity;
+    final measure = line.measure;
+    final word = recipeMeasureOfLine(line);
+    final unit = line.unit;
+    final String amount;
+    if (word != null) {
+      amount = measuredAmountText(quantity, word.label);
+    } else if (quantity == null) {
+      // A line whose word has gone has nothing to name here at all.
+      amount = unit?.label ?? '';
+    } else if (measure != null) {
+      amount = '${formatAmount(quantity)} ${measure.label}';
+    } else if (unit == null) {
+      amount = formatAmount(quantity);
+    } else {
+      amount = '${formatAmountIn(quantity, unit)} ${unit.label}';
+    }
+    return '${line.ingredientName} · $amount';
+  }
 
   /// The no-selection door: pick a line, and its name goes in at the caret as
   /// a chip, cased for where it lands ([chipWord]) — a name stored `Onion`

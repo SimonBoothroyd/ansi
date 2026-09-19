@@ -21,6 +21,7 @@ import 'package:forui/forui.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_modals.dart';
+import '../../../shared/format.dart';
 import '../../../shared/picker_shell.dart';
 import '../domain/line_display.dart';
 import '../domain/method_draft.dart';
@@ -188,6 +189,22 @@ class _MethodLinePickerSheet extends HookWidget {
   }
 }
 
+/// The amount a row states — the same shape the editor's own quantity pill
+/// wears, so the two lists read as one recipe.
+String _amountText(LineItem line) {
+  final word = recipeMeasureOfLine(line);
+  if (word != null) return measuredAmountText(line.quantity, word.label);
+  final measure = line.measure;
+  final lineUnit = line.unit;
+  final qty = measure == null && lineUnit != null
+      ? formatQuantityIn(line.quantity, lineUnit)
+      : formatQuantity(line.quantity);
+  // A line whose word has gone keeps its number and names no denomination.
+  final unit = measure?.label ?? lineUnit?.label ?? '';
+  if (unit.isEmpty) return qty;
+  return qty.isEmpty ? unit : '$qty $unit';
+}
+
 /// One line of the recipe: its identity (a recipe chip for a component, plain
 /// text for an ingredient — the same grammar the editor's own rows use) and
 /// the amount it stands for.
@@ -225,7 +242,7 @@ class _LineRow extends StatelessWidget {
                     ),
                   const SizedBox(height: 3),
                   Text(
-                    amountOfLine(line),
+                    _amountText(line),
                     style: ansiMono(size: 11, color: AnsiColors.muted),
                   ),
                 ],
