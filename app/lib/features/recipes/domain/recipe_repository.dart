@@ -81,6 +81,32 @@ class RecipeUse {
       'RecipeUse($title, $quantity ${measureLabel ?? unit?.id}, $amount)';
 }
 
+/// A line that says its amount in nothing at all — neither a catalog unit nor
+/// one of the target's own words — refused by `saveRecipe` before it is
+/// written.
+///
+/// The database's `num_nonnulls(unit, recipe_measure_id) = 1` would refuse it
+/// on UPLOAD, and a refused upload makes the PowerSync connector drop the
+/// WHOLE crud transaction: one malformed line would silently take every write
+/// queued beside it. So the repository refuses the save instead, where a
+/// person is standing in front of it and the write door can say why.
+///
+/// [LineItem]'s own asserts state the same shape, but an assert is compiled
+/// out of a release build — this is the check that is there on a phone.
+class UndenominatedLineError implements Exception {
+  const UndenominatedLineError({required this.lineId, required this.name});
+
+  final String lineId;
+
+  /// The line's display name, so the message can name which line it was.
+  final String name;
+
+  @override
+  String toString() =>
+      '“$name” says no amount in anything — a line is denominated in a unit '
+      'or in one of the target recipe’s own words, never in neither';
+}
+
 abstract interface class RecipeRepository {
   /// The recipe list, newest first, reacting to local writes.
   Stream<List<RecipeSummary>> watchRecipes();

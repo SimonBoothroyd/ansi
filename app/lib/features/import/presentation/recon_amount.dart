@@ -255,14 +255,9 @@ Future<void> editComponentAmount(
         .timeout(const Duration(seconds: 5));
     for (final r in recipes) {
       if (r.id != recipeId) continue;
-      target = SubRecipeTarget(
-        id: r.id,
-        title: r.title,
-        yieldQty: r.yieldQty,
-        yieldUnit: r.yieldUnit,
-        yieldQty2: r.yieldQty2,
-        yieldUnit2: r.yieldUnit2,
-      );
+      // The summary's own conversion, so the dock opens on the target's yields
+      // AND its own words in one step.
+      target = r.asSubRecipeTarget;
       break;
     }
   } on Object {
