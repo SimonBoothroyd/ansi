@@ -40,4 +40,35 @@ void main() {
       expect(unitFromWord('ml', families: packs), ml);
     });
   });
+
+  group('unitFromLabel', () {
+    test('reads the word the chip row prints, however it is typed', () {
+      expect(unitFromLabel('tbsp'), tbsp);
+      expect(unitFromLabel('Cups '), cup);
+      expect(unitFromLabel('ML'), ml);
+      expect(unitFromLabel('fl oz'), flOz);
+    });
+
+    test('knows `batch`, which the spelling table does not', () {
+      // The authoring half asks the catalog, so the one unit no page ever
+      // prints is still refused as somebody's word for their own recipe.
+      expect(unitFromWord('batch'), isNull);
+      expect(unitFromLabel('batch'), batches);
+      expect(unitFromLabel('Batch'), batches);
+    });
+
+    test('a household word is not a unit', () {
+      expect(unitFromLabel('blob'), isNull);
+      expect(unitFromLabel('ladle'), isNull);
+      expect(unitFromLabel('can (400 g)'), isNull);
+      expect(unitFromLabel('  '), isNull);
+    });
+
+    test('the volume half is the same lookup, narrowed', () {
+      expect(volumeUnitFromLabel('tbsps'), tbsp);
+      expect(volumeUnitFromLabel('g'), isNull);
+      expect(isVolumeUnitLabel('Cups'), isTrue);
+      expect(isVolumeUnitLabel('clove'), isFalse);
+    });
+  });
 }

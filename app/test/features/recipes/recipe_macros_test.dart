@@ -1,5 +1,6 @@
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
+import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
@@ -477,22 +478,34 @@ void main() {
     LineItem component(
       String subRecipeId, {
       double? quantity = 0.25,
-      Unit unit = cup,
+      Unit? unit = cup,
+      String? measureId,
     }) => LineItem(
       id: 'li-$subRecipeId',
       subRecipeId: subRecipeId,
       ingredientName: subRecipeId,
-      unit: unit,
+      unit: measureId == null ? unit : null,
+      recipeMeasureId: measureId,
       quantity: quantity,
+    );
+
+    /// "a batch makes 20 blob" — the household's own word for the aioli.
+    const blob = RecipeMeasure(
+      id: 'blob',
+      recipeId: 'aioli',
+      label: 'blob',
+      perBatch: 20,
     );
 
     /// The aioli: serves 4, makes 1 cup, one 200 g ingredient line.
     SubRecipeNode aioli({
       List<YieldDenomination> yields = const [(qty: 1.0, unit: cup)],
       List<LineItem> lines = const [],
+      List<RecipeMeasure> measures = const [],
     }) => (
       servingsBase: 4,
       lines: lines.isEmpty ? [_line('x', quantity: 200)] : lines,
+      measures: measures,
       yields: yields,
     );
 
@@ -526,6 +539,56 @@ void main() {
         subRecipeOf: (id) => id == 'aioli' ? aioli(yields: const []) : null,
       );
       expect(summary.perServing!.kcal, 400);
+    });
+
+    test("said in the target's own word: 0.15 × its whole macros", () {
+      // The aioli totals 200 kcal; `3 blob` of a batch that makes 20 is 0.15
+      // of it, over one serving.
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [component('aioli', quantity: 3, measureId: 'blob')],
+        nutritionOf: _vocab(),
+        subRecipeOf: (id) =>
+            id == 'aioli' ? aioli(measures: const [blob]) : null,
+      );
+      expect(summary.perServing!.kcal, closeTo(30, 1e-9));
+    });
+
+    test('the word answers with no yield at all', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [component('aioli', quantity: 3, measureId: 'blob')],
+        nutritionOf: _vocab(),
+        subRecipeOf: (id) => id == 'aioli'
+            ? aioli(yields: const [], measures: const [blob])
+            : null,
+      );
+      expect(summary.perServing!.kcal, closeTo(30, 1e-9));
+    });
+
+    test('a parent cooked twice says 6 blob — 0.3 of a batch', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [component('aioli', quantity: 6, measureId: 'blob')],
+        nutritionOf: _vocab(),
+        subRecipeOf: (id) =>
+            id == 'aioli' ? aioli(measures: const [blob]) : null,
+      );
+      expect(summary.perServing!.kcal, closeTo(60, 1e-9));
+    });
+
+    test('a word the target has lost is unresolved, never a count', () {
+      // The aioli makes 1 cup; nothing here re-reads `3 blob` as anything.
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [component('aioli', quantity: 3, measureId: 'blob')],
+        nutritionOf: _vocab(),
+        subRecipeOf: (id) => id == 'aioli' ? aioli() : null,
+      );
+      expect(summary.incomplete, isTrue);
+      expect(summary.perServing, isNull);
+      expect(summary.subRecipesUnresolved, 1);
+      expect(summary.notes.single.name, 'aioli');
     });
 
     test('no yield ⇒ "1 sub-recipe unresolved", never a 1× assumption', () {
@@ -594,6 +657,7 @@ void main() {
         'mid': (
           servingsBase: 2,
           lines: [_line('x', quantity: 100), component('aioli', quantity: 0.5)],
+          measures: const <RecipeMeasure>[],
           yields: const [(qty: 1.0, unit: cup)],
         ),
         'aioli': aioli(),
@@ -613,11 +677,13 @@ void main() {
         'a': (
           servingsBase: 1,
           lines: [component('b', quantity: 1, unit: batches)],
+          measures: const <RecipeMeasure>[],
           yields: const [(qty: 1.0, unit: cup)],
         ),
         'b': (
           servingsBase: 1,
           lines: [component('a', quantity: 1, unit: batches)],
+          measures: const <RecipeMeasure>[],
           yields: const [(qty: 1.0, unit: cup)],
         ),
       };
@@ -726,6 +792,7 @@ void main() {
             _line('stub', quantity: 10),
             _line('x', quantity: 1, unit: pinch),
           ],
+          measures: const <RecipeMeasure>[],
           yields: const [(qty: 1.0, unit: cup)],
         ),
       };
@@ -932,6 +999,7 @@ void main() {
             ? (
                 servingsBase: 1,
                 lines: [_line('x', quantity: 100), optional('lime')],
+                measures: const <RecipeMeasure>[],
                 yields: const <YieldDenomination>[],
               )
             : null,
@@ -948,12 +1016,14 @@ void main() {
     LineItem component(
       String subRecipeId, {
       double? quantity = 0.25,
-      Unit unit = cup,
+      Unit? unit = cup,
+      String? measureId,
     }) => LineItem(
       id: 'li-$subRecipeId',
       subRecipeId: subRecipeId,
       ingredientName: subRecipeId,
-      unit: unit,
+      unit: measureId == null ? unit : null,
+      recipeMeasureId: measureId,
       quantity: quantity,
     );
 
@@ -1026,6 +1096,7 @@ void main() {
             ? (
                 servingsBase: 4,
                 lines: [_line('x', quantity: 200)],
+                measures: const <RecipeMeasure>[],
                 yields: const [(qty: 1.0, unit: cup)],
               )
             : null,
@@ -1174,6 +1245,7 @@ void main() {
                   _line('x', quantity: 200),
                   _line('stock', quantity: 100),
                 ],
+                measures: const <RecipeMeasure>[],
                 yields: const [(qty: 1.0, unit: cup)],
               )
             : null,

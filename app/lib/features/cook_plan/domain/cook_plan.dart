@@ -42,6 +42,7 @@ import 'dart:math' show max, min;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
 import '../../recipes/domain/component_math.dart';
 import '../../recipes/domain/effective_lines.dart';
@@ -109,6 +110,13 @@ abstract class ComponentDemand with _$ComponentDemand {
     /// session's own scale factor.
     required double batches,
     String? via,
+
+    /// What the demanding line printed, unscaled — the amount and, when it
+    /// was said in one of the target's own words, that word. A card quotes
+    /// the line in the words it was written in (`3 blob → 0.15 of a batch`)
+    /// rather than re-stating it in a unit nobody typed.
+    double? quantity,
+    String? measureLabel,
   }) = _ComponentDemand;
 }
 
@@ -286,8 +294,26 @@ abstract class ComponentDemandSource with _$ComponentDemandSource {
     required String recipeId,
     required String title,
     required int cookDay,
-    required Unit unit,
+
+    /// The demanding line's catalog unit, null when it was said in one of the
+    /// target's own words ([measureLabel]).
+    Unit? unit,
     double? quantity,
+
+    /// The target's own word the demanding line said it in, when the target
+    /// still has that word — so the card quotes `3 blob` rather than the
+    /// count-family unit stored under it.
+    ///
+    /// Null when the line named no word AND when the word is the very thing
+    /// that has gone: a gap card that cannot say what the line asked for
+    /// drops the clause rather than printing the number against a unit the
+    /// line never meant.
+    String? measureLabel,
+
+    /// Whether the line named a word at all. With a null [measureLabel] it is
+    /// what tells "this line says cups" apart from "this line says a word
+    /// nobody here has".
+    @Default(false) bool saysAMeasure,
   }) = _ComponentDemandSource;
 }
 
@@ -552,7 +578,16 @@ typedef ComponentLine = ({
   String id,
   String subRecipeId,
   double? quantity,
-  Unit unit,
+
+  /// The catalog unit, or null when the line is said in one of the target's
+  /// own words instead — exactly one of this and `recipeMeasureId` below is
+  /// set, as the database pins it.
+  Unit? unit,
+
+  /// The target recipe's own word this line is said in, or null. Carried
+  /// through the seam so a demand card can print `3 blob` rather than the
+  /// count-family unit the row stores underneath it.
+  String? recipeMeasureId,
   bool optional,
 });
 
@@ -571,6 +606,10 @@ typedef ComponentRecipe = ({
   bool freezable,
   int? freezerDays,
   List<YieldDenomination> yields,
+
+  /// This recipe's own live words. A PARENT's line saying one of them
+  /// resolves through it; a word this list has not got is a named gap.
+  List<RecipeMeasure> measures,
   List<ComponentLine> components,
 });
 
@@ -597,10 +636,12 @@ EffectiveLines componentLinesForWeek(
         final target? => SubRecipeTarget(
           id: line.subRecipeId,
           title: target.title,
+          measures: target.measures,
         ),
         _ => null,
       },
       quantity: line.quantity,
+      recipeMeasureId: line.recipeMeasureId,
       optional: line.optional,
     ),
 ], overrides: overrides);
@@ -634,6 +675,7 @@ Map<String, ComponentRecipe> componentGraphForWeek(
       freezable: entry.value.freezable,
       freezerDays: entry.value.freezerDays,
       yields: entry.value.yields,
+      measures: entry.value.measures,
       components: [
         for (final line in componentLinesForWeek(
           graph,
@@ -646,6 +688,7 @@ Map<String, ComponentRecipe> componentGraphForWeek(
               subRecipeId: subRecipeId,
               quantity: line.quantity,
               unit: line.unit,
+              recipeMeasureId: line.recipeMeasureId,
               optional: false,
             ),
       ],
@@ -766,6 +809,15 @@ typedef _PlannedRoot = ({String recipeId, String title, int cookDay});
       // the text it stored, with plain-text semantics (D5).
       if (target == null) continue;
 
+      // The word the line says, when the target still has it — carried into
+      // every source and demand so a card quotes the line in the words it was
+      // written in. Null the moment the word has gone, which is exactly the
+      // state a card must not print a number for.
+      final said = switch (line.recipeMeasureId) {
+        final id? => recipeMeasureById(id, target.measures),
+        _ => null,
+      };
+
       void raise(UnresolvedComponentAmount reason) {
         final key = '${line.subRecipeId}/$reason';
         final gap =
@@ -789,6 +841,8 @@ typedef _PlannedRoot = ({String recipeId, String title, int cookDay});
                     cookDay: root.cookDay,
                     quantity: line.quantity,
                     unit: line.unit,
+                    measureLabel: said?.label,
+                    saysAMeasure: line.recipeMeasureId != null,
                   ),
                 ],
               );
@@ -802,6 +856,8 @@ typedef _PlannedRoot = ({String recipeId, String title, int cookDay});
         quantity: line.quantity,
         unit: line.unit,
         yields: target.yields,
+        recipeMeasureId: line.recipeMeasureId,
+        measures: target.measures,
       );
       if (amount is! ResolvedComponentAmount) {
         raise(amount as UnresolvedComponentAmount);
@@ -815,6 +871,8 @@ typedef _PlannedRoot = ({String recipeId, String title, int cookDay});
           cookDay: root.cookDay,
           batches: batches,
           via: via,
+          quantity: line.quantity,
+          measureLabel: said?.label,
         ),
       );
       walk(

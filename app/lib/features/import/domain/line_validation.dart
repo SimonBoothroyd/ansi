@@ -93,6 +93,7 @@ Set<String> acceptableUnitTokens(
       switch (c) {
         UnitOption(:final unit) => unit.id,
         MeasureOption(:final measure) => measure.label,
+        RecipeMeasureOption(:final measure) => notAWordForAnIngredient(measure),
       },
   };
 }
@@ -145,6 +146,7 @@ List<UnitSuggestion> acceptableUnitChips(
           token: measure.label,
           label: measureChipLabel(measure),
         ),
+        RecipeMeasureOption(:final measure) => notAWordForAnIngredient(measure),
       },
   ];
 }

@@ -6,6 +6,7 @@
 library;
 
 import 'package:ansi/core/result/result.dart';
+import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,6 +21,10 @@ const _eight = [(qty: 8.0, unit: pieces)];
 const _butter = [(qty: 250.0, unit: g), (qty: 16.0, unit: tbsp)];
 
 double _batches(ComponentAmount a) => (a as ResolvedComponentAmount).batches;
+
+/// "a batch makes 20 blob" — the household's own word for the aioli.
+RecipeMeasure _m(String label, double perBatch, {String id = 'blob'}) =>
+    RecipeMeasure(id: id, recipeId: 'aioli', label: label, perBatch: perBatch);
 
 void main() {
   group('yieldDenominations', () {
@@ -308,6 +313,145 @@ void main() {
           componentsOf: (id) => edges[id] ?? const [],
         ),
         isFalse,
+      );
+    });
+  });
+
+  group("resolveComponentAmount — the recipe's own word", () {
+    test('`3 blob` of a batch that makes 20 is 0.15 batches', () {
+      final r = resolveComponentAmount(
+        quantity: 3,
+        unit: null,
+        yields: _aioli,
+        recipeMeasureId: 'blob',
+        measures: [_m('blob', 20)],
+      );
+      expect(_batches(r), closeTo(0.15, 1e-12));
+      expect((r as ResolvedComponentAmount).viaMeasure?.label, 'blob');
+      // It went nowhere near the yield.
+      expect(r.against, isNull);
+    });
+
+    test('scaling the parent moves the LINE, never the word', () {
+      final blob = [_m('blob', 20)];
+      ComponentAmount at(double qty) => resolveComponentAmount(
+        quantity: qty,
+        unit: null,
+        yields: _aioli,
+        recipeMeasureId: 'blob',
+        measures: blob,
+      );
+      expect(_batches(at(3)), closeTo(0.15, 1e-12));
+      expect(_batches(at(6)), closeTo(0.3, 1e-12));
+      expect(blob.single.perBatch, 20);
+    });
+
+    test('it needs no yield at all — the whole point of the feature', () {
+      final r = resolveComponentAmount(
+        quantity: 2,
+        unit: null,
+        yields: const [],
+        recipeMeasureId: 'blob',
+        measures: [_m('blob', 20)],
+      );
+      expect(_batches(r), closeTo(0.1, 1e-12));
+    });
+
+    test('a batch that makes one of something is one batch', () {
+      final r = resolveComponentAmount(
+        quantity: 1,
+        unit: null,
+        yields: const [(qty: 900.0, unit: g)],
+        recipeMeasureId: 'loaf',
+        measures: [_m('loaf', 1, id: 'loaf')],
+      );
+      expect(_batches(r), 1);
+    });
+
+    test('nothing is special-cased about the word itself', () {
+      for (final word in ['blob', 'ladle', 'patty', 'batchy', 'piecey']) {
+        final r = resolveComponentAmount(
+          quantity: 5,
+          unit: null,
+          yields: const [],
+          recipeMeasureId: 'w',
+          measures: [_m(word, 10, id: 'w')],
+        );
+        expect(_batches(r), 0.5, reason: word);
+      }
+    });
+  });
+
+  group('a word the target no longer has', () {
+    test('refuses, and names the pointer the line still stores', () {
+      // No measures handed in at all: the word is gone.
+      final r = resolveComponentAmount(
+        quantity: 3,
+        unit: null,
+        yields: _aioli,
+        recipeMeasureId: 'blob',
+      );
+      expect(r, const ComponentMeasureMissing('blob'));
+    });
+
+    test('NEVER degrades to a count against a counted yield', () {
+      // `makes 8 piece` would read `3 blob` as 0.375 of a batch — a number
+      // nobody stated, off by whatever the household meant by a blob.
+      final r = resolveComponentAmount(
+        quantity: 3,
+        unit: pieces,
+        yields: _eight,
+        recipeMeasureId: 'blob',
+      );
+      expect(r, isA<ComponentMeasureMissing>());
+      expect(r, isNot(isA<ResolvedComponentAmount>()));
+    });
+
+    test('a row whose number says nothing reads as gone, not as a divide', () {
+      for (final bad in [0.0, -4.0, double.nan, double.infinity]) {
+        final r = resolveComponentAmount(
+          quantity: 3,
+          unit: null,
+          yields: _aioli,
+          recipeMeasureId: 'blob',
+          measures: [_m('blob', bad)],
+        );
+        expect(r, const ComponentMeasureMissing('blob'), reason: r'$bad');
+      }
+    });
+
+    test('a numberless measured line is missing its amount, not its word', () {
+      final r = resolveComponentAmount(
+        quantity: null,
+        unit: null,
+        yields: _aioli,
+        recipeMeasureId: 'blob',
+        measures: [_m('blob', 20)],
+      );
+      expect(r, const ComponentAmountMissing());
+    });
+
+    test('a number with no denomination at all says nothing', () {
+      // The database cannot store one and the line model asserts against it;
+      // this is totality, and the honest reading of a bare number.
+      expect(
+        resolveComponentAmount(quantity: 3, unit: null, yields: _aioli),
+        const ComponentAmountMissing(),
+      );
+    });
+
+    test('the refusal is value-equal on the pointer it names', () {
+      expect(
+        const ComponentMeasureMissing('a'),
+        const ComponentMeasureMissing('a'),
+      );
+      expect(
+        const ComponentMeasureMissing('a'),
+        isNot(const ComponentMeasureMissing('b')),
+      );
+      expect(
+        const ComponentMeasureMissing('a').hashCode,
+        const ComponentMeasureMissing('a').hashCode,
       );
     });
   });

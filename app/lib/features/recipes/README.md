@@ -230,6 +230,55 @@ way. Costs ride their own stream (`RecipeRepository.watchRecipeCosts`, and
 `watchVariantRecipeCosts` for a week that varies the recipe) because a cost
 moves when a receipt lands, which the summaries' watch knows nothing about.
 
+## The domain, and what a component line counts
+
+`domain/` is pure Dart end to end (invariant 2). The files that carry a rule
+rather than a shape:
+
+- **`component_math.dart`** — `resolveComponentAmount`, the one answer to *how
+  many batches of the target does this line ask for*. It returns a sealed
+  `ComponentAmount`: resolved, or one of five honest refusals — no amount, no
+  yield, a family the yield cannot answer, **a word the target no longer has**,
+  a cycle. Nothing here ever falls back to "assume one batch", and every
+  surface switches exhaustively, so a new refusal cannot be rendered as `1×` by
+  a stale `else`.
+- **`core/units/recipe_measure.dart`** — a recipe's own word for one of what a
+  batch makes, and the single number that defines it: *a batch makes 20 blob*,
+  so `3 blob` is 0.15 batches
+  ([ADR-0018](../../../../docs/decisions/0018-a-recipe-measure-is-a-count-per-batch.md)).
+  It needs no yield, no unit family and no density — which is exactly why a
+  sauce nobody ever measured is sayable at all. It lives under the units,
+  beside `measure.dart`, because it is the same kind of fact one level up and
+  because a component's dock offers both.
+- **`recipe_measure_authoring.dart`** — the word, read by the ingredient side's
+  rule verbatim (trim, collapse whitespace, **case untouched**), duplicates
+  merged on read oldest-first, and one refusal of its own: a label that merely
+  names a catalog unit — `cup`, `g`, `batch` — asks the catalog's own lookup,
+  never a hand list.
+- **`component_units.dart`** — what a component's chip row offers, in order:
+  the target's own words first (`wholeMeasureOfRecipe` ahead of them), then
+  `batch`, then the yields' families. The whole-batch word is **found, never
+  stored** — the one whose `per_batch` is 1 within the app's single tolerance —
+  which is ADR-0016's rule with *one batch* where the piece weight was.
+- **`line_basis.dart`** — the one conversion the macro and cost walks share, so
+  a line can never weigh one thing for its macros and another for its cost.
+- **`effective_lines.dart`** — the one seam deciding *which* lines a derivation
+  runs over (optional, and this week's overrides).
+
+**A line's amount is said in a catalog unit OR in one of the target's words,
+never both and never neither.** `LineItem.unit` is null exactly when
+`recipeMeasureId` is set, which is the database's
+`num_nonnulls(unit, recipe_measure_id) = 1` stated in Dart, with two asserts
+holding it. There is no companion unit a measured line could honestly carry:
+`batch` is the right dimension with the wrong number, and `piece` is the count
+degradation ADR-0018 exists to refuse — a word that has gone leaves the line
+**unresolved and named**, with its number kept, rather than re-read as a count
+of whatever the batch is measured in.
+
+Everything below that resolution seam consumes `batches` and only `batches`,
+which is why the cook plan, the cost walk and the macro walk each needed one
+new case rather than a new path.
+
 **Deferred (implemented in later steps, not missing by accident):** cook mode,
 method ingredient-chips/timers, Notes tab, photos. See the roadmap +
 `tech-debt-tracker.md`.

@@ -50,7 +50,14 @@ mixin _$Recipe {
 /// first, so the pair bridges mass↔volume *for this recipe only*, the way
 /// an `ingredient_measure` bridges count↔mass — two stated facts, no
 /// density.
- double? get yieldQty2; Unit? get yieldUnit2;/// The printed cook and total times, in seconds. Two typed facts with no
+ double? get yieldQty2; Unit? get yieldUnit2;/// The household's own words for one of what this batch makes — `blob`,
+/// `ladle`, `loaf` — in `sort_order`, duplicates already merged.
+///
+/// A THIRD statement about the batch, beside [servingsBase] and the yield
+/// pair, and independent of both: re-stating `makes` does not re-state a
+/// measure, and a recipe that says nothing about what it makes can still
+/// say what the household calls one of them.
+ List<RecipeMeasure> get measures;/// The printed cook and total times, in seconds. Two typed facts with no
 /// rule between them — a total below the cook time is what somebody wrote,
 /// not an error to refuse. Null is unset: the page never said, and nothing
 /// invents one.
@@ -65,16 +72,16 @@ $RecipeCopyWith<Recipe> get copyWith => _$RecipeCopyWithImpl<Recipe>(this as Rec
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Recipe&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&const DeepCollectionEquality().equals(other.groups, groups)&&const DeepCollectionEquality().equals(other.steps, steps)&&const DeepCollectionEquality().equals(other.methodSteps, methodSteps)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays)&&(identical(other.bookId, bookId) || other.bookId == bookId)&&(identical(other.sectionId, sectionId) || other.sectionId == sectionId)&&(identical(other.bookName, bookName) || other.bookName == bookName)&&(identical(other.sectionName, sectionName) || other.sectionName == sectionName)&&(identical(other.macros, macros) || other.macros == macros)&&(identical(other.yieldQty, yieldQty) || other.yieldQty == yieldQty)&&(identical(other.yieldUnit, yieldUnit) || other.yieldUnit == yieldUnit)&&(identical(other.yieldQty2, yieldQty2) || other.yieldQty2 == yieldQty2)&&(identical(other.yieldUnit2, yieldUnit2) || other.yieldUnit2 == yieldUnit2)&&(identical(other.cookTimeSeconds, cookTimeSeconds) || other.cookTimeSeconds == cookTimeSeconds)&&(identical(other.totalTimeSeconds, totalTimeSeconds) || other.totalTimeSeconds == totalTimeSeconds));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Recipe&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&const DeepCollectionEquality().equals(other.groups, groups)&&const DeepCollectionEquality().equals(other.steps, steps)&&const DeepCollectionEquality().equals(other.methodSteps, methodSteps)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays)&&(identical(other.bookId, bookId) || other.bookId == bookId)&&(identical(other.sectionId, sectionId) || other.sectionId == sectionId)&&(identical(other.bookName, bookName) || other.bookName == bookName)&&(identical(other.sectionName, sectionName) || other.sectionName == sectionName)&&(identical(other.macros, macros) || other.macros == macros)&&(identical(other.yieldQty, yieldQty) || other.yieldQty == yieldQty)&&(identical(other.yieldUnit, yieldUnit) || other.yieldUnit == yieldUnit)&&(identical(other.yieldQty2, yieldQty2) || other.yieldQty2 == yieldQty2)&&(identical(other.yieldUnit2, yieldUnit2) || other.yieldUnit2 == yieldUnit2)&&const DeepCollectionEquality().equals(other.measures, measures)&&(identical(other.cookTimeSeconds, cookTimeSeconds) || other.cookTimeSeconds == cookTimeSeconds)&&(identical(other.totalTimeSeconds, totalTimeSeconds) || other.totalTimeSeconds == totalTimeSeconds));
 }
 
 
 @override
-int get hashCode => Object.hashAll([runtimeType,id,title,servingsBase,const DeepCollectionEquality().hash(groups),const DeepCollectionEquality().hash(steps),const DeepCollectionEquality().hash(methodSteps),keepsForDays,freezable,freezerDays,bookId,sectionId,bookName,sectionName,macros,yieldQty,yieldUnit,yieldQty2,yieldUnit2,cookTimeSeconds,totalTimeSeconds]);
+int get hashCode => Object.hashAll([runtimeType,id,title,servingsBase,const DeepCollectionEquality().hash(groups),const DeepCollectionEquality().hash(steps),const DeepCollectionEquality().hash(methodSteps),keepsForDays,freezable,freezerDays,bookId,sectionId,bookName,sectionName,macros,yieldQty,yieldUnit,yieldQty2,yieldUnit2,const DeepCollectionEquality().hash(measures),cookTimeSeconds,totalTimeSeconds]);
 
 @override
 String toString() {
-  return 'Recipe(id: $id, title: $title, servingsBase: $servingsBase, groups: $groups, steps: $steps, methodSteps: $methodSteps, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays, bookId: $bookId, sectionId: $sectionId, bookName: $bookName, sectionName: $sectionName, macros: $macros, yieldQty: $yieldQty, yieldUnit: $yieldUnit, yieldQty2: $yieldQty2, yieldUnit2: $yieldUnit2, cookTimeSeconds: $cookTimeSeconds, totalTimeSeconds: $totalTimeSeconds)';
+  return 'Recipe(id: $id, title: $title, servingsBase: $servingsBase, groups: $groups, steps: $steps, methodSteps: $methodSteps, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays, bookId: $bookId, sectionId: $sectionId, bookName: $bookName, sectionName: $sectionName, macros: $macros, yieldQty: $yieldQty, yieldUnit: $yieldUnit, yieldQty2: $yieldQty2, yieldUnit2: $yieldUnit2, measures: $measures, cookTimeSeconds: $cookTimeSeconds, totalTimeSeconds: $totalTimeSeconds)';
 }
 
 
@@ -85,7 +92,7 @@ abstract mixin class $RecipeCopyWith<$Res>  {
   factory $RecipeCopyWith(Recipe value, $Res Function(Recipe) _then) = _$RecipeCopyWithImpl;
 @useResult
 $Res call({
- String id, String title, double servingsBase, List<IngredientGroup> groups, List<String> steps, List<MethodStep>? methodSteps, int? keepsForDays, bool freezable, int? freezerDays, String? bookId, String? sectionId, String? bookName, String? sectionName, RecipeMacroSummary? macros, double? yieldQty, Unit? yieldUnit, double? yieldQty2, Unit? yieldUnit2, int? cookTimeSeconds, int? totalTimeSeconds
+ String id, String title, double servingsBase, List<IngredientGroup> groups, List<String> steps, List<MethodStep>? methodSteps, int? keepsForDays, bool freezable, int? freezerDays, String? bookId, String? sectionId, String? bookName, String? sectionName, RecipeMacroSummary? macros, double? yieldQty, Unit? yieldUnit, double? yieldQty2, Unit? yieldUnit2, List<RecipeMeasure> measures, int? cookTimeSeconds, int? totalTimeSeconds
 });
 
 
@@ -102,7 +109,7 @@ class _$RecipeCopyWithImpl<$Res>
 
 /// Create a copy of Recipe
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? servingsBase = null,Object? groups = null,Object? steps = null,Object? methodSteps = freezed,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,Object? bookId = freezed,Object? sectionId = freezed,Object? bookName = freezed,Object? sectionName = freezed,Object? macros = freezed,Object? yieldQty = freezed,Object? yieldUnit = freezed,Object? yieldQty2 = freezed,Object? yieldUnit2 = freezed,Object? cookTimeSeconds = freezed,Object? totalTimeSeconds = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? servingsBase = null,Object? groups = null,Object? steps = null,Object? methodSteps = freezed,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,Object? bookId = freezed,Object? sectionId = freezed,Object? bookName = freezed,Object? sectionName = freezed,Object? macros = freezed,Object? yieldQty = freezed,Object? yieldUnit = freezed,Object? yieldQty2 = freezed,Object? yieldUnit2 = freezed,Object? measures = null,Object? cookTimeSeconds = freezed,Object? totalTimeSeconds = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -122,7 +129,8 @@ as RecipeMacroSummary?,yieldQty: freezed == yieldQty ? _self.yieldQty : yieldQty
 as double?,yieldUnit: freezed == yieldUnit ? _self.yieldUnit : yieldUnit // ignore: cast_nullable_to_non_nullable
 as Unit?,yieldQty2: freezed == yieldQty2 ? _self.yieldQty2 : yieldQty2 // ignore: cast_nullable_to_non_nullable
 as double?,yieldUnit2: freezed == yieldUnit2 ? _self.yieldUnit2 : yieldUnit2 // ignore: cast_nullable_to_non_nullable
-as Unit?,cookTimeSeconds: freezed == cookTimeSeconds ? _self.cookTimeSeconds : cookTimeSeconds // ignore: cast_nullable_to_non_nullable
+as Unit?,measures: null == measures ? _self.measures : measures // ignore: cast_nullable_to_non_nullable
+as List<RecipeMeasure>,cookTimeSeconds: freezed == cookTimeSeconds ? _self.cookTimeSeconds : cookTimeSeconds // ignore: cast_nullable_to_non_nullable
 as int?,totalTimeSeconds: freezed == totalTimeSeconds ? _self.totalTimeSeconds : totalTimeSeconds // ignore: cast_nullable_to_non_nullable
 as int?,
   ));
@@ -209,10 +217,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  double servingsBase,  List<IngredientGroup> groups,  List<String> steps,  List<MethodStep>? methodSteps,  int? keepsForDays,  bool freezable,  int? freezerDays,  String? bookId,  String? sectionId,  String? bookName,  String? sectionName,  RecipeMacroSummary? macros,  double? yieldQty,  Unit? yieldUnit,  double? yieldQty2,  Unit? yieldUnit2,  int? cookTimeSeconds,  int? totalTimeSeconds)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  double servingsBase,  List<IngredientGroup> groups,  List<String> steps,  List<MethodStep>? methodSteps,  int? keepsForDays,  bool freezable,  int? freezerDays,  String? bookId,  String? sectionId,  String? bookName,  String? sectionName,  RecipeMacroSummary? macros,  double? yieldQty,  Unit? yieldUnit,  double? yieldQty2,  Unit? yieldUnit2,  List<RecipeMeasure> measures,  int? cookTimeSeconds,  int? totalTimeSeconds)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Recipe() when $default != null:
-return $default(_that.id,_that.title,_that.servingsBase,_that.groups,_that.steps,_that.methodSteps,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.bookId,_that.sectionId,_that.bookName,_that.sectionName,_that.macros,_that.yieldQty,_that.yieldUnit,_that.yieldQty2,_that.yieldUnit2,_that.cookTimeSeconds,_that.totalTimeSeconds);case _:
+return $default(_that.id,_that.title,_that.servingsBase,_that.groups,_that.steps,_that.methodSteps,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.bookId,_that.sectionId,_that.bookName,_that.sectionName,_that.macros,_that.yieldQty,_that.yieldUnit,_that.yieldQty2,_that.yieldUnit2,_that.measures,_that.cookTimeSeconds,_that.totalTimeSeconds);case _:
   return orElse();
 
 }
@@ -230,10 +238,10 @@ return $default(_that.id,_that.title,_that.servingsBase,_that.groups,_that.steps
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  double servingsBase,  List<IngredientGroup> groups,  List<String> steps,  List<MethodStep>? methodSteps,  int? keepsForDays,  bool freezable,  int? freezerDays,  String? bookId,  String? sectionId,  String? bookName,  String? sectionName,  RecipeMacroSummary? macros,  double? yieldQty,  Unit? yieldUnit,  double? yieldQty2,  Unit? yieldUnit2,  int? cookTimeSeconds,  int? totalTimeSeconds)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  double servingsBase,  List<IngredientGroup> groups,  List<String> steps,  List<MethodStep>? methodSteps,  int? keepsForDays,  bool freezable,  int? freezerDays,  String? bookId,  String? sectionId,  String? bookName,  String? sectionName,  RecipeMacroSummary? macros,  double? yieldQty,  Unit? yieldUnit,  double? yieldQty2,  Unit? yieldUnit2,  List<RecipeMeasure> measures,  int? cookTimeSeconds,  int? totalTimeSeconds)  $default,) {final _that = this;
 switch (_that) {
 case _Recipe():
-return $default(_that.id,_that.title,_that.servingsBase,_that.groups,_that.steps,_that.methodSteps,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.bookId,_that.sectionId,_that.bookName,_that.sectionName,_that.macros,_that.yieldQty,_that.yieldUnit,_that.yieldQty2,_that.yieldUnit2,_that.cookTimeSeconds,_that.totalTimeSeconds);case _:
+return $default(_that.id,_that.title,_that.servingsBase,_that.groups,_that.steps,_that.methodSteps,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.bookId,_that.sectionId,_that.bookName,_that.sectionName,_that.macros,_that.yieldQty,_that.yieldUnit,_that.yieldQty2,_that.yieldUnit2,_that.measures,_that.cookTimeSeconds,_that.totalTimeSeconds);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -250,10 +258,10 @@ return $default(_that.id,_that.title,_that.servingsBase,_that.groups,_that.steps
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  double servingsBase,  List<IngredientGroup> groups,  List<String> steps,  List<MethodStep>? methodSteps,  int? keepsForDays,  bool freezable,  int? freezerDays,  String? bookId,  String? sectionId,  String? bookName,  String? sectionName,  RecipeMacroSummary? macros,  double? yieldQty,  Unit? yieldUnit,  double? yieldQty2,  Unit? yieldUnit2,  int? cookTimeSeconds,  int? totalTimeSeconds)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  double servingsBase,  List<IngredientGroup> groups,  List<String> steps,  List<MethodStep>? methodSteps,  int? keepsForDays,  bool freezable,  int? freezerDays,  String? bookId,  String? sectionId,  String? bookName,  String? sectionName,  RecipeMacroSummary? macros,  double? yieldQty,  Unit? yieldUnit,  double? yieldQty2,  Unit? yieldUnit2,  List<RecipeMeasure> measures,  int? cookTimeSeconds,  int? totalTimeSeconds)?  $default,) {final _that = this;
 switch (_that) {
 case _Recipe() when $default != null:
-return $default(_that.id,_that.title,_that.servingsBase,_that.groups,_that.steps,_that.methodSteps,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.bookId,_that.sectionId,_that.bookName,_that.sectionName,_that.macros,_that.yieldQty,_that.yieldUnit,_that.yieldQty2,_that.yieldUnit2,_that.cookTimeSeconds,_that.totalTimeSeconds);case _:
+return $default(_that.id,_that.title,_that.servingsBase,_that.groups,_that.steps,_that.methodSteps,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.bookId,_that.sectionId,_that.bookName,_that.sectionName,_that.macros,_that.yieldQty,_that.yieldUnit,_that.yieldQty2,_that.yieldUnit2,_that.measures,_that.cookTimeSeconds,_that.totalTimeSeconds);case _:
   return null;
 
 }
@@ -265,7 +273,7 @@ return $default(_that.id,_that.title,_that.servingsBase,_that.groups,_that.steps
 
 
 class _Recipe extends Recipe {
-  const _Recipe({required this.id, required this.title, required this.servingsBase, final  List<IngredientGroup> groups = const <IngredientGroup>[], final  List<String> steps = const <String>[], final  List<MethodStep>? methodSteps, this.keepsForDays, this.freezable = false, this.freezerDays, this.bookId, this.sectionId, this.bookName, this.sectionName, this.macros, this.yieldQty, this.yieldUnit, this.yieldQty2, this.yieldUnit2, this.cookTimeSeconds, this.totalTimeSeconds}): _groups = groups,_steps = steps,_methodSteps = methodSteps,super._();
+  const _Recipe({required this.id, required this.title, required this.servingsBase, final  List<IngredientGroup> groups = const <IngredientGroup>[], final  List<String> steps = const <String>[], final  List<MethodStep>? methodSteps, this.keepsForDays, this.freezable = false, this.freezerDays, this.bookId, this.sectionId, this.bookName, this.sectionName, this.macros, this.yieldQty, this.yieldUnit, this.yieldQty2, this.yieldUnit2, final  List<RecipeMeasure> measures = const <RecipeMeasure>[], this.cookTimeSeconds, this.totalTimeSeconds}): _groups = groups,_steps = steps,_methodSteps = methodSteps,_measures = measures,super._();
   
 
 @override final  String id;
@@ -348,6 +356,27 @@ class _Recipe extends Recipe {
 /// density.
 @override final  double? yieldQty2;
 @override final  Unit? yieldUnit2;
+/// The household's own words for one of what this batch makes — `blob`,
+/// `ladle`, `loaf` — in `sort_order`, duplicates already merged.
+///
+/// A THIRD statement about the batch, beside [servingsBase] and the yield
+/// pair, and independent of both: re-stating `makes` does not re-state a
+/// measure, and a recipe that says nothing about what it makes can still
+/// say what the household calls one of them.
+ final  List<RecipeMeasure> _measures;
+/// The household's own words for one of what this batch makes — `blob`,
+/// `ladle`, `loaf` — in `sort_order`, duplicates already merged.
+///
+/// A THIRD statement about the batch, beside [servingsBase] and the yield
+/// pair, and independent of both: re-stating `makes` does not re-state a
+/// measure, and a recipe that says nothing about what it makes can still
+/// say what the household calls one of them.
+@override@JsonKey() List<RecipeMeasure> get measures {
+  if (_measures is EqualUnmodifiableListView) return _measures;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_measures);
+}
+
 /// The printed cook and total times, in seconds. Two typed facts with no
 /// rule between them — a total below the cook time is what somebody wrote,
 /// not an error to refuse. Null is unset: the page never said, and nothing
@@ -365,16 +394,16 @@ _$RecipeCopyWith<_Recipe> get copyWith => __$RecipeCopyWithImpl<_Recipe>(this, _
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Recipe&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&const DeepCollectionEquality().equals(other._groups, _groups)&&const DeepCollectionEquality().equals(other._steps, _steps)&&const DeepCollectionEquality().equals(other._methodSteps, _methodSteps)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays)&&(identical(other.bookId, bookId) || other.bookId == bookId)&&(identical(other.sectionId, sectionId) || other.sectionId == sectionId)&&(identical(other.bookName, bookName) || other.bookName == bookName)&&(identical(other.sectionName, sectionName) || other.sectionName == sectionName)&&(identical(other.macros, macros) || other.macros == macros)&&(identical(other.yieldQty, yieldQty) || other.yieldQty == yieldQty)&&(identical(other.yieldUnit, yieldUnit) || other.yieldUnit == yieldUnit)&&(identical(other.yieldQty2, yieldQty2) || other.yieldQty2 == yieldQty2)&&(identical(other.yieldUnit2, yieldUnit2) || other.yieldUnit2 == yieldUnit2)&&(identical(other.cookTimeSeconds, cookTimeSeconds) || other.cookTimeSeconds == cookTimeSeconds)&&(identical(other.totalTimeSeconds, totalTimeSeconds) || other.totalTimeSeconds == totalTimeSeconds));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Recipe&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&const DeepCollectionEquality().equals(other._groups, _groups)&&const DeepCollectionEquality().equals(other._steps, _steps)&&const DeepCollectionEquality().equals(other._methodSteps, _methodSteps)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays)&&(identical(other.bookId, bookId) || other.bookId == bookId)&&(identical(other.sectionId, sectionId) || other.sectionId == sectionId)&&(identical(other.bookName, bookName) || other.bookName == bookName)&&(identical(other.sectionName, sectionName) || other.sectionName == sectionName)&&(identical(other.macros, macros) || other.macros == macros)&&(identical(other.yieldQty, yieldQty) || other.yieldQty == yieldQty)&&(identical(other.yieldUnit, yieldUnit) || other.yieldUnit == yieldUnit)&&(identical(other.yieldQty2, yieldQty2) || other.yieldQty2 == yieldQty2)&&(identical(other.yieldUnit2, yieldUnit2) || other.yieldUnit2 == yieldUnit2)&&const DeepCollectionEquality().equals(other._measures, _measures)&&(identical(other.cookTimeSeconds, cookTimeSeconds) || other.cookTimeSeconds == cookTimeSeconds)&&(identical(other.totalTimeSeconds, totalTimeSeconds) || other.totalTimeSeconds == totalTimeSeconds));
 }
 
 
 @override
-int get hashCode => Object.hashAll([runtimeType,id,title,servingsBase,const DeepCollectionEquality().hash(_groups),const DeepCollectionEquality().hash(_steps),const DeepCollectionEquality().hash(_methodSteps),keepsForDays,freezable,freezerDays,bookId,sectionId,bookName,sectionName,macros,yieldQty,yieldUnit,yieldQty2,yieldUnit2,cookTimeSeconds,totalTimeSeconds]);
+int get hashCode => Object.hashAll([runtimeType,id,title,servingsBase,const DeepCollectionEquality().hash(_groups),const DeepCollectionEquality().hash(_steps),const DeepCollectionEquality().hash(_methodSteps),keepsForDays,freezable,freezerDays,bookId,sectionId,bookName,sectionName,macros,yieldQty,yieldUnit,yieldQty2,yieldUnit2,const DeepCollectionEquality().hash(_measures),cookTimeSeconds,totalTimeSeconds]);
 
 @override
 String toString() {
-  return 'Recipe(id: $id, title: $title, servingsBase: $servingsBase, groups: $groups, steps: $steps, methodSteps: $methodSteps, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays, bookId: $bookId, sectionId: $sectionId, bookName: $bookName, sectionName: $sectionName, macros: $macros, yieldQty: $yieldQty, yieldUnit: $yieldUnit, yieldQty2: $yieldQty2, yieldUnit2: $yieldUnit2, cookTimeSeconds: $cookTimeSeconds, totalTimeSeconds: $totalTimeSeconds)';
+  return 'Recipe(id: $id, title: $title, servingsBase: $servingsBase, groups: $groups, steps: $steps, methodSteps: $methodSteps, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays, bookId: $bookId, sectionId: $sectionId, bookName: $bookName, sectionName: $sectionName, macros: $macros, yieldQty: $yieldQty, yieldUnit: $yieldUnit, yieldQty2: $yieldQty2, yieldUnit2: $yieldUnit2, measures: $measures, cookTimeSeconds: $cookTimeSeconds, totalTimeSeconds: $totalTimeSeconds)';
 }
 
 
@@ -385,7 +414,7 @@ abstract mixin class _$RecipeCopyWith<$Res> implements $RecipeCopyWith<$Res> {
   factory _$RecipeCopyWith(_Recipe value, $Res Function(_Recipe) _then) = __$RecipeCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String title, double servingsBase, List<IngredientGroup> groups, List<String> steps, List<MethodStep>? methodSteps, int? keepsForDays, bool freezable, int? freezerDays, String? bookId, String? sectionId, String? bookName, String? sectionName, RecipeMacroSummary? macros, double? yieldQty, Unit? yieldUnit, double? yieldQty2, Unit? yieldUnit2, int? cookTimeSeconds, int? totalTimeSeconds
+ String id, String title, double servingsBase, List<IngredientGroup> groups, List<String> steps, List<MethodStep>? methodSteps, int? keepsForDays, bool freezable, int? freezerDays, String? bookId, String? sectionId, String? bookName, String? sectionName, RecipeMacroSummary? macros, double? yieldQty, Unit? yieldUnit, double? yieldQty2, Unit? yieldUnit2, List<RecipeMeasure> measures, int? cookTimeSeconds, int? totalTimeSeconds
 });
 
 
@@ -402,7 +431,7 @@ class __$RecipeCopyWithImpl<$Res>
 
 /// Create a copy of Recipe
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? servingsBase = null,Object? groups = null,Object? steps = null,Object? methodSteps = freezed,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,Object? bookId = freezed,Object? sectionId = freezed,Object? bookName = freezed,Object? sectionName = freezed,Object? macros = freezed,Object? yieldQty = freezed,Object? yieldUnit = freezed,Object? yieldQty2 = freezed,Object? yieldUnit2 = freezed,Object? cookTimeSeconds = freezed,Object? totalTimeSeconds = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? servingsBase = null,Object? groups = null,Object? steps = null,Object? methodSteps = freezed,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,Object? bookId = freezed,Object? sectionId = freezed,Object? bookName = freezed,Object? sectionName = freezed,Object? macros = freezed,Object? yieldQty = freezed,Object? yieldUnit = freezed,Object? yieldQty2 = freezed,Object? yieldUnit2 = freezed,Object? measures = null,Object? cookTimeSeconds = freezed,Object? totalTimeSeconds = freezed,}) {
   return _then(_Recipe(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -422,7 +451,8 @@ as RecipeMacroSummary?,yieldQty: freezed == yieldQty ? _self.yieldQty : yieldQty
 as double?,yieldUnit: freezed == yieldUnit ? _self.yieldUnit : yieldUnit // ignore: cast_nullable_to_non_nullable
 as Unit?,yieldQty2: freezed == yieldQty2 ? _self.yieldQty2 : yieldQty2 // ignore: cast_nullable_to_non_nullable
 as double?,yieldUnit2: freezed == yieldUnit2 ? _self.yieldUnit2 : yieldUnit2 // ignore: cast_nullable_to_non_nullable
-as Unit?,cookTimeSeconds: freezed == cookTimeSeconds ? _self.cookTimeSeconds : cookTimeSeconds // ignore: cast_nullable_to_non_nullable
+as Unit?,measures: null == measures ? _self._measures : measures // ignore: cast_nullable_to_non_nullable
+as List<RecipeMeasure>,cookTimeSeconds: freezed == cookTimeSeconds ? _self.cookTimeSeconds : cookTimeSeconds // ignore: cast_nullable_to_non_nullable
 as int?,totalTimeSeconds: freezed == totalTimeSeconds ? _self.totalTimeSeconds : totalTimeSeconds // ignore: cast_nullable_to_non_nullable
 as int?,
   ));
@@ -1007,7 +1037,26 @@ as List<LineItem>,
 /// @nodoc
 mixin _$LineItem {
 
- String get id; String get ingredientName; Unit get unit; String? get ingredientId; String? get subRecipeId; SubRecipeTarget? get subRecipe; double? get quantity; String? get measureId; Measure? get measure; String? get note; bool get optional;/// Whether [measureId] points at a measure the household has DELETED, as
+ String get id; String get ingredientName;/// The catalog unit the [quantity] is said in, or **null** on a component
+/// line said in one of the target's own words instead
+/// ([recipeMeasureId]).
+///
+/// Exactly one of the two is set — the database's
+/// `num_nonnulls(unit, recipe_measure_id) = 1`, asserted here too. There
+/// is no companion unit a measured line could honestly carry: `batch` is
+/// the right dimension with the wrong number, and `piece` is the count
+/// degradation the whole feature refuses.
+ Unit? get unit; String? get ingredientId; String? get subRecipeId; SubRecipeTarget? get subRecipe; double? get quantity; String? get measureId; Measure? get measure;/// The target recipe's own word this line is said in — `3 blob`
+/// (`recipe_line_item.recipe_measure_id`). Set only on a component line,
+/// and only with a [quantity]: a word with no number says nothing.
+///
+/// Persisted verbatim, like [measureId], so a word that has not synced
+/// yet is never stripped by an unrelated edit. The row it names is read
+/// off the target ([SubRecipeTarget.measures]) rather than joined onto
+/// the line, because the word belongs to the recipe being used, not to
+/// the line using it — which is also what makes a re-stated `blob` follow
+/// through to every line already saying it.
+ String? get recipeMeasureId; String? get note; bool get optional;/// Whether [measureId] points at a measure the household has DELETED, as
 /// opposed to one that simply has not arrived yet. Both leave [measure]
 /// null and the line reading its stored count, and only this tells the
 /// two apart — so a line can say which it is instead of promising a sync
@@ -1029,16 +1078,16 @@ $LineItemCopyWith<LineItem> get copyWith => _$LineItemCopyWithImpl<LineItem>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LineItem&&(identical(other.id, id) || other.id == id)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.subRecipeId, subRecipeId) || other.subRecipeId == subRecipeId)&&(identical(other.subRecipe, subRecipe) || other.subRecipe == subRecipe)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.note, note) || other.note == note)&&(identical(other.optional, optional) || other.optional == optional)&&(identical(other.measureDeleted, measureDeleted) || other.measureDeleted == measureDeleted)&&(identical(other.ingredientDeleted, ingredientDeleted) || other.ingredientDeleted == ingredientDeleted));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LineItem&&(identical(other.id, id) || other.id == id)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.subRecipeId, subRecipeId) || other.subRecipeId == subRecipeId)&&(identical(other.subRecipe, subRecipe) || other.subRecipe == subRecipe)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.recipeMeasureId, recipeMeasureId) || other.recipeMeasureId == recipeMeasureId)&&(identical(other.note, note) || other.note == note)&&(identical(other.optional, optional) || other.optional == optional)&&(identical(other.measureDeleted, measureDeleted) || other.measureDeleted == measureDeleted)&&(identical(other.ingredientDeleted, ingredientDeleted) || other.ingredientDeleted == ingredientDeleted));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,ingredientName,unit,ingredientId,subRecipeId,subRecipe,quantity,measureId,measure,note,optional,measureDeleted,ingredientDeleted);
+int get hashCode => Object.hash(runtimeType,id,ingredientName,unit,ingredientId,subRecipeId,subRecipe,quantity,measureId,measure,recipeMeasureId,note,optional,measureDeleted,ingredientDeleted);
 
 @override
 String toString() {
-  return 'LineItem(id: $id, ingredientName: $ingredientName, unit: $unit, ingredientId: $ingredientId, subRecipeId: $subRecipeId, subRecipe: $subRecipe, quantity: $quantity, measureId: $measureId, measure: $measure, note: $note, optional: $optional, measureDeleted: $measureDeleted, ingredientDeleted: $ingredientDeleted)';
+  return 'LineItem(id: $id, ingredientName: $ingredientName, unit: $unit, ingredientId: $ingredientId, subRecipeId: $subRecipeId, subRecipe: $subRecipe, quantity: $quantity, measureId: $measureId, measure: $measure, recipeMeasureId: $recipeMeasureId, note: $note, optional: $optional, measureDeleted: $measureDeleted, ingredientDeleted: $ingredientDeleted)';
 }
 
 
@@ -1049,7 +1098,7 @@ abstract mixin class $LineItemCopyWith<$Res>  {
   factory $LineItemCopyWith(LineItem value, $Res Function(LineItem) _then) = _$LineItemCopyWithImpl;
 @useResult
 $Res call({
- String id, String ingredientName, Unit unit, String? ingredientId, String? subRecipeId, SubRecipeTarget? subRecipe, double? quantity, String? measureId, Measure? measure, String? note, bool optional, bool measureDeleted, bool ingredientDeleted
+ String id, String ingredientName, Unit? unit, String? ingredientId, String? subRecipeId, SubRecipeTarget? subRecipe, double? quantity, String? measureId, Measure? measure, String? recipeMeasureId, String? note, bool optional, bool measureDeleted, bool ingredientDeleted
 });
 
 
@@ -1066,18 +1115,19 @@ class _$LineItemCopyWithImpl<$Res>
 
 /// Create a copy of LineItem
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? ingredientName = null,Object? unit = null,Object? ingredientId = freezed,Object? subRecipeId = freezed,Object? subRecipe = freezed,Object? quantity = freezed,Object? measureId = freezed,Object? measure = freezed,Object? note = freezed,Object? optional = null,Object? measureDeleted = null,Object? ingredientDeleted = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? ingredientName = null,Object? unit = freezed,Object? ingredientId = freezed,Object? subRecipeId = freezed,Object? subRecipe = freezed,Object? quantity = freezed,Object? measureId = freezed,Object? measure = freezed,Object? recipeMeasureId = freezed,Object? note = freezed,Object? optional = null,Object? measureDeleted = null,Object? ingredientDeleted = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,ingredientName: null == ingredientName ? _self.ingredientName : ingredientName // ignore: cast_nullable_to_non_nullable
-as String,unit: null == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
-as Unit,ingredientId: freezed == ingredientId ? _self.ingredientId : ingredientId // ignore: cast_nullable_to_non_nullable
+as String,unit: freezed == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
+as Unit?,ingredientId: freezed == ingredientId ? _self.ingredientId : ingredientId // ignore: cast_nullable_to_non_nullable
 as String?,subRecipeId: freezed == subRecipeId ? _self.subRecipeId : subRecipeId // ignore: cast_nullable_to_non_nullable
 as String?,subRecipe: freezed == subRecipe ? _self.subRecipe : subRecipe // ignore: cast_nullable_to_non_nullable
 as SubRecipeTarget?,quantity: freezed == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
 as double?,measureId: freezed == measureId ? _self.measureId : measureId // ignore: cast_nullable_to_non_nullable
 as String?,measure: freezed == measure ? _self.measure : measure // ignore: cast_nullable_to_non_nullable
-as Measure?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
+as Measure?,recipeMeasureId: freezed == recipeMeasureId ? _self.recipeMeasureId : recipeMeasureId // ignore: cast_nullable_to_non_nullable
+as String?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
 as String?,optional: null == optional ? _self.optional : optional // ignore: cast_nullable_to_non_nullable
 as bool,measureDeleted: null == measureDeleted ? _self.measureDeleted : measureDeleted // ignore: cast_nullable_to_non_nullable
 as bool,ingredientDeleted: null == ingredientDeleted ? _self.ingredientDeleted : ingredientDeleted // ignore: cast_nullable_to_non_nullable
@@ -1178,10 +1228,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String ingredientName,  Unit unit,  String? ingredientId,  String? subRecipeId,  SubRecipeTarget? subRecipe,  double? quantity,  String? measureId,  Measure? measure,  String? note,  bool optional,  bool measureDeleted,  bool ingredientDeleted)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String ingredientName,  Unit? unit,  String? ingredientId,  String? subRecipeId,  SubRecipeTarget? subRecipe,  double? quantity,  String? measureId,  Measure? measure,  String? recipeMeasureId,  String? note,  bool optional,  bool measureDeleted,  bool ingredientDeleted)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LineItem() when $default != null:
-return $default(_that.id,_that.ingredientName,_that.unit,_that.ingredientId,_that.subRecipeId,_that.subRecipe,_that.quantity,_that.measureId,_that.measure,_that.note,_that.optional,_that.measureDeleted,_that.ingredientDeleted);case _:
+return $default(_that.id,_that.ingredientName,_that.unit,_that.ingredientId,_that.subRecipeId,_that.subRecipe,_that.quantity,_that.measureId,_that.measure,_that.recipeMeasureId,_that.note,_that.optional,_that.measureDeleted,_that.ingredientDeleted);case _:
   return orElse();
 
 }
@@ -1199,10 +1249,10 @@ return $default(_that.id,_that.ingredientName,_that.unit,_that.ingredientId,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String ingredientName,  Unit unit,  String? ingredientId,  String? subRecipeId,  SubRecipeTarget? subRecipe,  double? quantity,  String? measureId,  Measure? measure,  String? note,  bool optional,  bool measureDeleted,  bool ingredientDeleted)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String ingredientName,  Unit? unit,  String? ingredientId,  String? subRecipeId,  SubRecipeTarget? subRecipe,  double? quantity,  String? measureId,  Measure? measure,  String? recipeMeasureId,  String? note,  bool optional,  bool measureDeleted,  bool ingredientDeleted)  $default,) {final _that = this;
 switch (_that) {
 case _LineItem():
-return $default(_that.id,_that.ingredientName,_that.unit,_that.ingredientId,_that.subRecipeId,_that.subRecipe,_that.quantity,_that.measureId,_that.measure,_that.note,_that.optional,_that.measureDeleted,_that.ingredientDeleted);case _:
+return $default(_that.id,_that.ingredientName,_that.unit,_that.ingredientId,_that.subRecipeId,_that.subRecipe,_that.quantity,_that.measureId,_that.measure,_that.recipeMeasureId,_that.note,_that.optional,_that.measureDeleted,_that.ingredientDeleted);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1219,10 +1269,10 @@ return $default(_that.id,_that.ingredientName,_that.unit,_that.ingredientId,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String ingredientName,  Unit unit,  String? ingredientId,  String? subRecipeId,  SubRecipeTarget? subRecipe,  double? quantity,  String? measureId,  Measure? measure,  String? note,  bool optional,  bool measureDeleted,  bool ingredientDeleted)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String ingredientName,  Unit? unit,  String? ingredientId,  String? subRecipeId,  SubRecipeTarget? subRecipe,  double? quantity,  String? measureId,  Measure? measure,  String? recipeMeasureId,  String? note,  bool optional,  bool measureDeleted,  bool ingredientDeleted)?  $default,) {final _that = this;
 switch (_that) {
 case _LineItem() when $default != null:
-return $default(_that.id,_that.ingredientName,_that.unit,_that.ingredientId,_that.subRecipeId,_that.subRecipe,_that.quantity,_that.measureId,_that.measure,_that.note,_that.optional,_that.measureDeleted,_that.ingredientDeleted);case _:
+return $default(_that.id,_that.ingredientName,_that.unit,_that.ingredientId,_that.subRecipeId,_that.subRecipe,_that.quantity,_that.measureId,_that.measure,_that.recipeMeasureId,_that.note,_that.optional,_that.measureDeleted,_that.ingredientDeleted);case _:
   return null;
 
 }
@@ -1234,18 +1284,38 @@ return $default(_that.id,_that.ingredientName,_that.unit,_that.ingredientId,_tha
 
 
 class _LineItem extends LineItem {
-  const _LineItem({required this.id, required this.ingredientName, required this.unit, this.ingredientId, this.subRecipeId, this.subRecipe, this.quantity, this.measureId, this.measure, this.note, this.optional = false, this.measureDeleted = false, this.ingredientDeleted = false}): super._();
+  const _LineItem({required this.id, required this.ingredientName, this.unit, this.ingredientId, this.subRecipeId, this.subRecipe, this.quantity, this.measureId, this.measure, this.recipeMeasureId, this.note, this.optional = false, this.measureDeleted = false, this.ingredientDeleted = false}): assert(unit != null || recipeMeasureId != null, 'a line is denominated in a catalog unit or in a recipe measure'),assert(unit == null || recipeMeasureId == null, 'a line is denominated in ONE of the two, never both'),super._();
   
 
 @override final  String id;
 @override final  String ingredientName;
-@override final  Unit unit;
+/// The catalog unit the [quantity] is said in, or **null** on a component
+/// line said in one of the target's own words instead
+/// ([recipeMeasureId]).
+///
+/// Exactly one of the two is set — the database's
+/// `num_nonnulls(unit, recipe_measure_id) = 1`, asserted here too. There
+/// is no companion unit a measured line could honestly carry: `batch` is
+/// the right dimension with the wrong number, and `piece` is the count
+/// degradation the whole feature refuses.
+@override final  Unit? unit;
 @override final  String? ingredientId;
 @override final  String? subRecipeId;
 @override final  SubRecipeTarget? subRecipe;
 @override final  double? quantity;
 @override final  String? measureId;
 @override final  Measure? measure;
+/// The target recipe's own word this line is said in — `3 blob`
+/// (`recipe_line_item.recipe_measure_id`). Set only on a component line,
+/// and only with a [quantity]: a word with no number says nothing.
+///
+/// Persisted verbatim, like [measureId], so a word that has not synced
+/// yet is never stripped by an unrelated edit. The row it names is read
+/// off the target ([SubRecipeTarget.measures]) rather than joined onto
+/// the line, because the word belongs to the recipe being used, not to
+/// the line using it — which is also what makes a re-stated `blob` follow
+/// through to every line already saying it.
+@override final  String? recipeMeasureId;
 @override final  String? note;
 @override@JsonKey() final  bool optional;
 /// Whether [measureId] points at a measure the household has DELETED, as
@@ -1272,16 +1342,16 @@ _$LineItemCopyWith<_LineItem> get copyWith => __$LineItemCopyWithImpl<_LineItem>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LineItem&&(identical(other.id, id) || other.id == id)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.subRecipeId, subRecipeId) || other.subRecipeId == subRecipeId)&&(identical(other.subRecipe, subRecipe) || other.subRecipe == subRecipe)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.note, note) || other.note == note)&&(identical(other.optional, optional) || other.optional == optional)&&(identical(other.measureDeleted, measureDeleted) || other.measureDeleted == measureDeleted)&&(identical(other.ingredientDeleted, ingredientDeleted) || other.ingredientDeleted == ingredientDeleted));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LineItem&&(identical(other.id, id) || other.id == id)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.subRecipeId, subRecipeId) || other.subRecipeId == subRecipeId)&&(identical(other.subRecipe, subRecipe) || other.subRecipe == subRecipe)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.recipeMeasureId, recipeMeasureId) || other.recipeMeasureId == recipeMeasureId)&&(identical(other.note, note) || other.note == note)&&(identical(other.optional, optional) || other.optional == optional)&&(identical(other.measureDeleted, measureDeleted) || other.measureDeleted == measureDeleted)&&(identical(other.ingredientDeleted, ingredientDeleted) || other.ingredientDeleted == ingredientDeleted));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,ingredientName,unit,ingredientId,subRecipeId,subRecipe,quantity,measureId,measure,note,optional,measureDeleted,ingredientDeleted);
+int get hashCode => Object.hash(runtimeType,id,ingredientName,unit,ingredientId,subRecipeId,subRecipe,quantity,measureId,measure,recipeMeasureId,note,optional,measureDeleted,ingredientDeleted);
 
 @override
 String toString() {
-  return 'LineItem(id: $id, ingredientName: $ingredientName, unit: $unit, ingredientId: $ingredientId, subRecipeId: $subRecipeId, subRecipe: $subRecipe, quantity: $quantity, measureId: $measureId, measure: $measure, note: $note, optional: $optional, measureDeleted: $measureDeleted, ingredientDeleted: $ingredientDeleted)';
+  return 'LineItem(id: $id, ingredientName: $ingredientName, unit: $unit, ingredientId: $ingredientId, subRecipeId: $subRecipeId, subRecipe: $subRecipe, quantity: $quantity, measureId: $measureId, measure: $measure, recipeMeasureId: $recipeMeasureId, note: $note, optional: $optional, measureDeleted: $measureDeleted, ingredientDeleted: $ingredientDeleted)';
 }
 
 
@@ -1292,7 +1362,7 @@ abstract mixin class _$LineItemCopyWith<$Res> implements $LineItemCopyWith<$Res>
   factory _$LineItemCopyWith(_LineItem value, $Res Function(_LineItem) _then) = __$LineItemCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String ingredientName, Unit unit, String? ingredientId, String? subRecipeId, SubRecipeTarget? subRecipe, double? quantity, String? measureId, Measure? measure, String? note, bool optional, bool measureDeleted, bool ingredientDeleted
+ String id, String ingredientName, Unit? unit, String? ingredientId, String? subRecipeId, SubRecipeTarget? subRecipe, double? quantity, String? measureId, Measure? measure, String? recipeMeasureId, String? note, bool optional, bool measureDeleted, bool ingredientDeleted
 });
 
 
@@ -1309,18 +1379,19 @@ class __$LineItemCopyWithImpl<$Res>
 
 /// Create a copy of LineItem
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? ingredientName = null,Object? unit = null,Object? ingredientId = freezed,Object? subRecipeId = freezed,Object? subRecipe = freezed,Object? quantity = freezed,Object? measureId = freezed,Object? measure = freezed,Object? note = freezed,Object? optional = null,Object? measureDeleted = null,Object? ingredientDeleted = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? ingredientName = null,Object? unit = freezed,Object? ingredientId = freezed,Object? subRecipeId = freezed,Object? subRecipe = freezed,Object? quantity = freezed,Object? measureId = freezed,Object? measure = freezed,Object? recipeMeasureId = freezed,Object? note = freezed,Object? optional = null,Object? measureDeleted = null,Object? ingredientDeleted = null,}) {
   return _then(_LineItem(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,ingredientName: null == ingredientName ? _self.ingredientName : ingredientName // ignore: cast_nullable_to_non_nullable
-as String,unit: null == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
-as Unit,ingredientId: freezed == ingredientId ? _self.ingredientId : ingredientId // ignore: cast_nullable_to_non_nullable
+as String,unit: freezed == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
+as Unit?,ingredientId: freezed == ingredientId ? _self.ingredientId : ingredientId // ignore: cast_nullable_to_non_nullable
 as String?,subRecipeId: freezed == subRecipeId ? _self.subRecipeId : subRecipeId // ignore: cast_nullable_to_non_nullable
 as String?,subRecipe: freezed == subRecipe ? _self.subRecipe : subRecipe // ignore: cast_nullable_to_non_nullable
 as SubRecipeTarget?,quantity: freezed == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
 as double?,measureId: freezed == measureId ? _self.measureId : measureId // ignore: cast_nullable_to_non_nullable
 as String?,measure: freezed == measure ? _self.measure : measure // ignore: cast_nullable_to_non_nullable
-as Measure?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
+as Measure?,recipeMeasureId: freezed == recipeMeasureId ? _self.recipeMeasureId : recipeMeasureId // ignore: cast_nullable_to_non_nullable
+as String?,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
 as String?,optional: null == optional ? _self.optional : optional // ignore: cast_nullable_to_non_nullable
 as bool,measureDeleted: null == measureDeleted ? _self.measureDeleted : measureDeleted // ignore: cast_nullable_to_non_nullable
 as bool,ingredientDeleted: null == ingredientDeleted ? _self.ingredientDeleted : ingredientDeleted // ignore: cast_nullable_to_non_nullable
@@ -1346,7 +1417,12 @@ $SubRecipeTargetCopyWith<$Res>? get subRecipe {
 /// @nodoc
 mixin _$SubRecipeTarget {
 
- String get id; String get title; double? get yieldQty; Unit? get yieldUnit; double? get yieldQty2; Unit? get yieldUnit2;
+ String get id; String get title; double? get yieldQty; Unit? get yieldUnit; double? get yieldQty2; Unit? get yieldUnit2;/// The target's live measures, `sort_order` first — the words a line may
+/// be said in, and the list a line's [LineItem.recipeMeasureId] is looked
+/// up in. Empty for a recipe that coins none, and for a caller that
+/// assembled a target without reading them, where a measured line then
+/// reads as [ComponentMeasureMissing] rather than as anything invented.
+ List<RecipeMeasure> get measures;
 /// Create a copy of SubRecipeTarget
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1357,16 +1433,16 @@ $SubRecipeTargetCopyWith<SubRecipeTarget> get copyWith => _$SubRecipeTargetCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SubRecipeTarget&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.yieldQty, yieldQty) || other.yieldQty == yieldQty)&&(identical(other.yieldUnit, yieldUnit) || other.yieldUnit == yieldUnit)&&(identical(other.yieldQty2, yieldQty2) || other.yieldQty2 == yieldQty2)&&(identical(other.yieldUnit2, yieldUnit2) || other.yieldUnit2 == yieldUnit2));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SubRecipeTarget&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.yieldQty, yieldQty) || other.yieldQty == yieldQty)&&(identical(other.yieldUnit, yieldUnit) || other.yieldUnit == yieldUnit)&&(identical(other.yieldQty2, yieldQty2) || other.yieldQty2 == yieldQty2)&&(identical(other.yieldUnit2, yieldUnit2) || other.yieldUnit2 == yieldUnit2)&&const DeepCollectionEquality().equals(other.measures, measures));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,title,yieldQty,yieldUnit,yieldQty2,yieldUnit2);
+int get hashCode => Object.hash(runtimeType,id,title,yieldQty,yieldUnit,yieldQty2,yieldUnit2,const DeepCollectionEquality().hash(measures));
 
 @override
 String toString() {
-  return 'SubRecipeTarget(id: $id, title: $title, yieldQty: $yieldQty, yieldUnit: $yieldUnit, yieldQty2: $yieldQty2, yieldUnit2: $yieldUnit2)';
+  return 'SubRecipeTarget(id: $id, title: $title, yieldQty: $yieldQty, yieldUnit: $yieldUnit, yieldQty2: $yieldQty2, yieldUnit2: $yieldUnit2, measures: $measures)';
 }
 
 
@@ -1377,7 +1453,7 @@ abstract mixin class $SubRecipeTargetCopyWith<$Res>  {
   factory $SubRecipeTargetCopyWith(SubRecipeTarget value, $Res Function(SubRecipeTarget) _then) = _$SubRecipeTargetCopyWithImpl;
 @useResult
 $Res call({
- String id, String title, double? yieldQty, Unit? yieldUnit, double? yieldQty2, Unit? yieldUnit2
+ String id, String title, double? yieldQty, Unit? yieldUnit, double? yieldQty2, Unit? yieldUnit2, List<RecipeMeasure> measures
 });
 
 
@@ -1394,7 +1470,7 @@ class _$SubRecipeTargetCopyWithImpl<$Res>
 
 /// Create a copy of SubRecipeTarget
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? yieldQty = freezed,Object? yieldUnit = freezed,Object? yieldQty2 = freezed,Object? yieldUnit2 = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? yieldQty = freezed,Object? yieldUnit = freezed,Object? yieldQty2 = freezed,Object? yieldUnit2 = freezed,Object? measures = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -1402,7 +1478,8 @@ as String,yieldQty: freezed == yieldQty ? _self.yieldQty : yieldQty // ignore: c
 as double?,yieldUnit: freezed == yieldUnit ? _self.yieldUnit : yieldUnit // ignore: cast_nullable_to_non_nullable
 as Unit?,yieldQty2: freezed == yieldQty2 ? _self.yieldQty2 : yieldQty2 // ignore: cast_nullable_to_non_nullable
 as double?,yieldUnit2: freezed == yieldUnit2 ? _self.yieldUnit2 : yieldUnit2 // ignore: cast_nullable_to_non_nullable
-as Unit?,
+as Unit?,measures: null == measures ? _self.measures : measures // ignore: cast_nullable_to_non_nullable
+as List<RecipeMeasure>,
   ));
 }
 
@@ -1487,10 +1564,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  double? yieldQty,  Unit? yieldUnit,  double? yieldQty2,  Unit? yieldUnit2)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  double? yieldQty,  Unit? yieldUnit,  double? yieldQty2,  Unit? yieldUnit2,  List<RecipeMeasure> measures)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SubRecipeTarget() when $default != null:
-return $default(_that.id,_that.title,_that.yieldQty,_that.yieldUnit,_that.yieldQty2,_that.yieldUnit2);case _:
+return $default(_that.id,_that.title,_that.yieldQty,_that.yieldUnit,_that.yieldQty2,_that.yieldUnit2,_that.measures);case _:
   return orElse();
 
 }
@@ -1508,10 +1585,10 @@ return $default(_that.id,_that.title,_that.yieldQty,_that.yieldUnit,_that.yieldQ
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  double? yieldQty,  Unit? yieldUnit,  double? yieldQty2,  Unit? yieldUnit2)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  double? yieldQty,  Unit? yieldUnit,  double? yieldQty2,  Unit? yieldUnit2,  List<RecipeMeasure> measures)  $default,) {final _that = this;
 switch (_that) {
 case _SubRecipeTarget():
-return $default(_that.id,_that.title,_that.yieldQty,_that.yieldUnit,_that.yieldQty2,_that.yieldUnit2);case _:
+return $default(_that.id,_that.title,_that.yieldQty,_that.yieldUnit,_that.yieldQty2,_that.yieldUnit2,_that.measures);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1528,10 +1605,10 @@ return $default(_that.id,_that.title,_that.yieldQty,_that.yieldUnit,_that.yieldQ
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  double? yieldQty,  Unit? yieldUnit,  double? yieldQty2,  Unit? yieldUnit2)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  double? yieldQty,  Unit? yieldUnit,  double? yieldQty2,  Unit? yieldUnit2,  List<RecipeMeasure> measures)?  $default,) {final _that = this;
 switch (_that) {
 case _SubRecipeTarget() when $default != null:
-return $default(_that.id,_that.title,_that.yieldQty,_that.yieldUnit,_that.yieldQty2,_that.yieldUnit2);case _:
+return $default(_that.id,_that.title,_that.yieldQty,_that.yieldUnit,_that.yieldQty2,_that.yieldUnit2,_that.measures);case _:
   return null;
 
 }
@@ -1543,7 +1620,7 @@ return $default(_that.id,_that.title,_that.yieldQty,_that.yieldUnit,_that.yieldQ
 
 
 class _SubRecipeTarget extends SubRecipeTarget {
-  const _SubRecipeTarget({required this.id, required this.title, this.yieldQty, this.yieldUnit, this.yieldQty2, this.yieldUnit2}): super._();
+  const _SubRecipeTarget({required this.id, required this.title, this.yieldQty, this.yieldUnit, this.yieldQty2, this.yieldUnit2, final  List<RecipeMeasure> measures = const <RecipeMeasure>[]}): _measures = measures,super._();
   
 
 @override final  String id;
@@ -1552,6 +1629,23 @@ class _SubRecipeTarget extends SubRecipeTarget {
 @override final  Unit? yieldUnit;
 @override final  double? yieldQty2;
 @override final  Unit? yieldUnit2;
+/// The target's live measures, `sort_order` first — the words a line may
+/// be said in, and the list a line's [LineItem.recipeMeasureId] is looked
+/// up in. Empty for a recipe that coins none, and for a caller that
+/// assembled a target without reading them, where a measured line then
+/// reads as [ComponentMeasureMissing] rather than as anything invented.
+ final  List<RecipeMeasure> _measures;
+/// The target's live measures, `sort_order` first — the words a line may
+/// be said in, and the list a line's [LineItem.recipeMeasureId] is looked
+/// up in. Empty for a recipe that coins none, and for a caller that
+/// assembled a target without reading them, where a measured line then
+/// reads as [ComponentMeasureMissing] rather than as anything invented.
+@override@JsonKey() List<RecipeMeasure> get measures {
+  if (_measures is EqualUnmodifiableListView) return _measures;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_measures);
+}
+
 
 /// Create a copy of SubRecipeTarget
 /// with the given fields replaced by the non-null parameter values.
@@ -1563,16 +1657,16 @@ _$SubRecipeTargetCopyWith<_SubRecipeTarget> get copyWith => __$SubRecipeTargetCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SubRecipeTarget&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.yieldQty, yieldQty) || other.yieldQty == yieldQty)&&(identical(other.yieldUnit, yieldUnit) || other.yieldUnit == yieldUnit)&&(identical(other.yieldQty2, yieldQty2) || other.yieldQty2 == yieldQty2)&&(identical(other.yieldUnit2, yieldUnit2) || other.yieldUnit2 == yieldUnit2));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SubRecipeTarget&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.yieldQty, yieldQty) || other.yieldQty == yieldQty)&&(identical(other.yieldUnit, yieldUnit) || other.yieldUnit == yieldUnit)&&(identical(other.yieldQty2, yieldQty2) || other.yieldQty2 == yieldQty2)&&(identical(other.yieldUnit2, yieldUnit2) || other.yieldUnit2 == yieldUnit2)&&const DeepCollectionEquality().equals(other._measures, _measures));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,title,yieldQty,yieldUnit,yieldQty2,yieldUnit2);
+int get hashCode => Object.hash(runtimeType,id,title,yieldQty,yieldUnit,yieldQty2,yieldUnit2,const DeepCollectionEquality().hash(_measures));
 
 @override
 String toString() {
-  return 'SubRecipeTarget(id: $id, title: $title, yieldQty: $yieldQty, yieldUnit: $yieldUnit, yieldQty2: $yieldQty2, yieldUnit2: $yieldUnit2)';
+  return 'SubRecipeTarget(id: $id, title: $title, yieldQty: $yieldQty, yieldUnit: $yieldUnit, yieldQty2: $yieldQty2, yieldUnit2: $yieldUnit2, measures: $measures)';
 }
 
 
@@ -1583,7 +1677,7 @@ abstract mixin class _$SubRecipeTargetCopyWith<$Res> implements $SubRecipeTarget
   factory _$SubRecipeTargetCopyWith(_SubRecipeTarget value, $Res Function(_SubRecipeTarget) _then) = __$SubRecipeTargetCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String title, double? yieldQty, Unit? yieldUnit, double? yieldQty2, Unit? yieldUnit2
+ String id, String title, double? yieldQty, Unit? yieldUnit, double? yieldQty2, Unit? yieldUnit2, List<RecipeMeasure> measures
 });
 
 
@@ -1600,7 +1694,7 @@ class __$SubRecipeTargetCopyWithImpl<$Res>
 
 /// Create a copy of SubRecipeTarget
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? yieldQty = freezed,Object? yieldUnit = freezed,Object? yieldQty2 = freezed,Object? yieldUnit2 = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? yieldQty = freezed,Object? yieldUnit = freezed,Object? yieldQty2 = freezed,Object? yieldUnit2 = freezed,Object? measures = null,}) {
   return _then(_SubRecipeTarget(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -1608,7 +1702,8 @@ as String,yieldQty: freezed == yieldQty ? _self.yieldQty : yieldQty // ignore: c
 as double?,yieldUnit: freezed == yieldUnit ? _self.yieldUnit : yieldUnit // ignore: cast_nullable_to_non_nullable
 as Unit?,yieldQty2: freezed == yieldQty2 ? _self.yieldQty2 : yieldQty2 // ignore: cast_nullable_to_non_nullable
 as double?,yieldUnit2: freezed == yieldUnit2 ? _self.yieldUnit2 : yieldUnit2 // ignore: cast_nullable_to_non_nullable
-as Unit?,
+as Unit?,measures: null == measures ? _self._measures : measures // ignore: cast_nullable_to_non_nullable
+as List<RecipeMeasure>,
   ));
 }
 

@@ -708,7 +708,7 @@ final class RecipeEditorProvider
   }
 }
 
-String _$recipeEditorHash() => r'f34a78fa79f691f68d252e15d9dc7d4f56ac64be';
+String _$recipeEditorHash() => r'5eef3fd9bb446daab44bb0dcd1685510701b1dcc';
 
 /// Editable recipe state. `build` loads an existing recipe (edit) or starts a
 /// blank one with a fresh id and a single empty group (create).
