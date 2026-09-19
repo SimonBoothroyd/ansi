@@ -460,6 +460,13 @@ class ReceiptScanController extends _$ReceiptScanController {
     final measureRepo = ref.read(measureRepositoryProvider);
     final priceRepo = ref.read(priceRepositoryProvider);
     final measures = await _measuresFor(row.id, measureRepo);
+    // The answered lines' own printed words, asked for in ONE read: twins each
+    // carry the words their card is titled with, and they all land the pack
+    // filed under them.
+    final byName = await _packsByPrintedName(
+      s.drafts.where((d) => answered.contains(d.index)),
+      priceRepo,
+    );
     final last = await _lastPriceFor(row.id, priceRepo);
     if (!ref.mounted) return;
     final now = state;
@@ -470,7 +477,13 @@ class ReceiptScanController extends _$ReceiptScanController {
       drafts: [
         for (final d in now.drafts)
           if (answered.contains(d.index) && d.ingredientId == row.id)
-            landPack(d, ingredient: row, measures: measures, last: last)
+            landPack(
+              d,
+              ingredient: row,
+              measures: measures,
+              sameName: byName[printedNameKey(d.namePrinted)],
+              last: last,
+            )
           else
             d,
       ],
@@ -608,10 +621,15 @@ class ReceiptScanController extends _$ReceiptScanController {
     if (ids.isEmpty) return _nothingLanded(drafts);
     Map<String, Ingredient> rows;
     Map<String, List<Measure>> measures;
+    Map<String, PackLastBoughtAs> byName;
     Map<String, PriceObservation> latest;
     try {
       rows = await vocabRepo.byIds(ids);
       measures = await measureRepo.measuresByIngredients(ids);
+      byName = await _packsByPrintedName(
+        drafts.where((d) => d.ingredientId != null),
+        priceRepo,
+      );
       latest = await priceRepo.watchLatestPrices().first;
     } on Object {
       // A read that fails leaves every line exactly as the server proposed
@@ -629,6 +647,7 @@ class ReceiptScanController extends _$ReceiptScanController {
               rows.containsKey(id) ? d : d.copyWith(clearMatch: true),
               ingredient: rows[id],
               measures: measures[id] ?? const [],
+              sameName: byName[printedNameKey(d.namePrinted)],
               last: latest[id],
             ).copyWith(ingredientName: rows[id]?.canonicalName)
           else
@@ -650,6 +669,27 @@ class ReceiptScanController extends _$ReceiptScanController {
       return (await repo.measuresByIngredients({id}))[id] ?? const [];
     } on Object {
       return const [];
+    }
+  }
+
+  /// The pack each of [drafts]'s printed names was last bought in — ONE read
+  /// for the whole receipt, however many lines carry words.
+  ///
+  /// A read that fails answers with nothing, and every line falls through to
+  /// the pack its row was last bought in: a carry-over lost, never a wrong one.
+  static Future<Map<String, PackLastBoughtAs>> _packsByPrintedName(
+    Iterable<ReceiptLineDraft> drafts,
+    PriceRepository repo,
+  ) async {
+    final names = {
+      for (final d in drafts)
+        if (d.namePrinted case final printed?) printed,
+    };
+    if (names.isEmpty) return const {};
+    try {
+      return await repo.packsByPrintedName(names);
+    } on Object {
+      return const {};
     }
   }
 

@@ -31,6 +31,28 @@ abstract interface class PriceRepository {
   /// readable price is simply absent — never present with a zero.
   Stream<Map<String, PriceObservation>> watchLatestPrices();
 
+  /// The pack each of [namesPrinted] was last bought in, keyed by
+  /// [printedNameKey] — the receipt review's carry-over, read ONCE for a whole
+  /// receipt.
+  ///
+  /// A printed name is one store's words for one product, so the pack filed
+  /// under it is the size THAT shop sells: a household alternating a 16 oz bag
+  /// of quinoa and a 12 oz one has two names and two answers, where the row's
+  /// latest price has only the later of them. Each entry carries the row the
+  /// pack was bought as ([PackLastBoughtAs]), because the name is the key and
+  /// the match is not — the caller holds what this line is matched to now.
+  ///
+  /// Live lines of live receipts only, latest by the receipt's `purchased_at`
+  /// and then by the line's own `updated_at`, so correcting a saved receipt
+  /// corrects what the next one opens on. A name nobody has bought under is
+  /// absent, and a batch of none is an empty map without a query.
+  ///
+  /// A one-shot read rather than a watch: it answers what a scan should open
+  /// on, which is a question asked once per receipt.
+  Future<Map<String, PackLastBoughtAs>> packsByPrintedName(
+    Set<String> namesPrinted,
+  );
+
   /// The store words this household has used, most recently first — the price
   /// sheet's chip row.
   ///

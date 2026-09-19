@@ -57,18 +57,21 @@ Future<void> _seedLine(
   double? packAmount,
   String? packUnit,
   String? measureId,
+  String? namePrinted,
   String createdAt = '2026-01-01',
+  String? updatedAt,
   String? deletedAt,
 }) => db.execute(
   'INSERT INTO receipt_line (id, household_id, receipt_id, ingredient_id, '
-  'cents, discount_cents, kind, pack_basis_amount, pack_amount, pack_unit, '
-  'measure_id, sort_order, created_at, deleted_at) '
-  'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)',
+  'name_printed, cents, discount_cents, kind, pack_basis_amount, pack_amount, '
+  'pack_unit, measure_id, sort_order, created_at, updated_at, deleted_at) '
+  'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)',
   [
     id,
     'h',
     receiptId,
     ingredientId,
+    namePrinted,
     cents,
     discountCents,
     kind,
@@ -77,6 +80,7 @@ Future<void> _seedLine(
     packUnit,
     measureId,
     createdAt,
+    updatedAt ?? createdAt,
     deletedAt,
   ],
 );
@@ -93,6 +97,211 @@ void main() {
   });
 
   tearDown(() => closeTestDb(db, dir));
+
+  group('packsByPrintedName — the pack a shop’s own words were bought in', () {
+    const quinoa = 'ORG TRICOLOR QUINOA';
+    const wf = 'ORGANIC TRI-COLOR QUINOA';
+
+    /// Both shops' words for one row, each bought in the size that shop sells.
+    Future<void> seedTwoShops() async {
+      await _seedReceipt(
+        db,
+        id: 'r-tj',
+        store: "TJ's",
+        purchasedAt: '2026-08-02T10:00:00Z',
+      );
+      await _seedReceipt(
+        db,
+        id: 'r-wf',
+        store: 'Whole Foods',
+        purchasedAt: '2026-09-13T17:20:00Z',
+      );
+      await _seedLine(
+        db,
+        id: 'l-tj',
+        receiptId: 'r-tj',
+        namePrinted: quinoa,
+        // The helper's default pack is the 454 g bag this shop sells.
+        packAmount: 16,
+        packUnit: 'oz',
+      );
+      await _seedLine(
+        db,
+        id: 'l-wf',
+        receiptId: 'r-wf',
+        namePrinted: wf,
+        packBasisAmount: 340,
+        packAmount: 12,
+        packUnit: 'oz',
+      );
+    }
+
+    test('each shop’s words keep their own size, in one read', () async {
+      await seedTwoShops();
+
+      final packs = await repo.packsByPrintedName({quinoa, wf});
+
+      expect(packs.keys, unorderedEquals([quinoa, wf]));
+      expect(packs[quinoa]!.pack.packBasisAmount, 454);
+      expect(packs[quinoa]!.pack.packAmount, 16);
+      expect(packs[quinoa]!.pack.packUnit, oz);
+      expect(packs[wf]!.pack.packBasisAmount, 340);
+      expect(
+        packs[quinoa]!.ingredientId,
+        'banana',
+        reason: 'the row the words were bought AS rides with the pack',
+      );
+    });
+
+    test('the key is trimmed and case-insensitive, both ways', () async {
+      await _seedReceipt(
+        db,
+        id: 'r1',
+        store: "TJ's",
+        purchasedAt: '2026-09-13T17:20:00Z',
+      );
+      await _seedLine(
+        db,
+        id: 'l1',
+        receiptId: 'r1',
+        namePrinted: '  org tricolor quinoa ',
+      );
+
+      final packs = await repo.packsByPrintedName({' ORG Tricolor Quinoa  '});
+
+      expect(packs.keys, [
+        quinoa,
+      ], reason: 'one spelling of the name, whichever side the case came from');
+    });
+
+    test('the latest shop wins, and a corrected line breaks the tie', () async {
+      await _seedReceipt(
+        db,
+        id: 'r-aug',
+        store: "TJ's",
+        purchasedAt: '2026-08-02T10:00:00Z',
+      );
+      await _seedReceipt(
+        db,
+        id: 'r-sep',
+        store: 'Whole Foods',
+        purchasedAt: '2026-09-13T17:20:00Z',
+      );
+      await _seedLine(db, id: 'l-aug', receiptId: 'r-aug', namePrinted: quinoa);
+      // Two lines on the SAME shop: the one edited last is the answer, which
+      // is how a receipt got wrong is put right.
+      await _seedLine(
+        db,
+        id: 'l-sep-first',
+        receiptId: 'r-sep',
+        namePrinted: quinoa,
+        packBasisAmount: 340,
+        updatedAt: '2026-09-13T18:00:00Z',
+      );
+      await _seedLine(
+        db,
+        id: 'l-sep-fixed',
+        receiptId: 'r-sep',
+        namePrinted: quinoa,
+        packBasisAmount: 907,
+        updatedAt: '2026-09-14T09:00:00Z',
+      );
+
+      final packs = await repo.packsByPrintedName({quinoa});
+
+      expect(packs[quinoa]!.pack.lineId, 'l-sep-fixed');
+      expect(packs[quinoa]!.pack.packBasisAmount, 907);
+    });
+
+    test('a tombstone is no answer — neither line nor receipt', () async {
+      await _seedReceipt(
+        db,
+        id: 'r-gone',
+        store: 'Whole Foods',
+        purchasedAt: '2026-09-13T17:20:00Z',
+        deletedAt: '2026-09-14',
+      );
+      await _seedReceipt(
+        db,
+        id: 'r-live',
+        store: "TJ's",
+        purchasedAt: '2026-09-10T10:00:00Z',
+      );
+      await _seedLine(
+        db,
+        id: 'l-gone',
+        receiptId: 'r-gone',
+        namePrinted: quinoa,
+        packBasisAmount: 340,
+      );
+      await _seedLine(
+        db,
+        id: 'l-dropped',
+        receiptId: 'r-live',
+        namePrinted: quinoa,
+        packBasisAmount: 907,
+        updatedAt: '2026-09-12T10:00:00Z',
+        deletedAt: '2026-09-12',
+      );
+      await _seedLine(
+        db,
+        id: 'l-live',
+        receiptId: 'r-live',
+        namePrinted: quinoa,
+      );
+
+      final packs = await repo.packsByPrintedName({quinoa});
+
+      expect(packs[quinoa]!.pack.lineId, 'l-live');
+    });
+
+    test('a line that states no pack is not a pack to carry', () async {
+      await _seedReceipt(
+        db,
+        id: 'r1',
+        store: "TJ's",
+        purchasedAt: '2026-09-13T17:20:00Z',
+      );
+      await _seedLine(
+        db,
+        id: 'l-no-pack',
+        receiptId: 'r1',
+        namePrinted: quinoa,
+        packBasisAmount: null,
+      );
+      // Read off the paper but never priced: `observationFrom`'s own gate.
+      await _seedLine(
+        db,
+        id: 'l-free',
+        receiptId: 'r1',
+        namePrinted: 'TJ SRIRACHA',
+        cents: 0,
+      );
+
+      final packs = await repo.packsByPrintedName({quinoa, 'TJ SRIRACHA'});
+
+      expect(packs, isEmpty);
+    });
+
+    test('words nobody has bought under are absent, never a zero', () async {
+      await seedTwoShops();
+
+      final packs = await repo.packsByPrintedName({'TJ ORG BANANAS'});
+
+      expect(packs, isEmpty);
+    });
+
+    test('a receipt that named nothing asks nothing', () async {
+      await seedTwoShops();
+
+      expect(await repo.packsByPrintedName(const {}), isEmpty);
+      expect(
+        await repo.packsByPrintedName(const {'', '   '}),
+        isEmpty,
+        reason: 'a name that is only whitespace is not a key',
+      );
+    });
+  });
 
   group('watchPrices', () {
     test('newest first — the latest is what a recipe reads', () async {

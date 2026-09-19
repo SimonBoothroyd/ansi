@@ -8,8 +8,10 @@ library;
 
 import 'dart:async';
 
+import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/domain/allowed_units.dart';
+import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/receipts/data/sample_receipt_payloads.dart';
 import 'package:ansi/features/receipts/domain/receipt_repository.dart';
 import 'package:ansi/features/receipts/domain/receipt_review.dart';
@@ -670,6 +672,157 @@ void main() {
       final save = tester.widget<FButton>(find.byKey(kReceiptSaveKey));
       expect(save.onPress, isNull);
       expect(ledger.saved, isEmpty);
+    });
+  });
+
+  group('the pack opens on the size THIS shop sells', () {
+    // One row bought at two shops in two sizes. The words are each shop's own,
+    // and the row's latest price knows only whichever shop was last — so the
+    // proof is that the TJ's words open on the TJ's bag while the row's latest
+    // price is the Whole Foods one.
+    const tjWords = 'TJ ORG TOFU FIRM';
+    const wfWords = 'ORGANIC TOFU, FIRM';
+
+    PriceObservation pack(double basisAmount, double said, String store) =>
+        PriceObservation(
+          lineId: 'l-$store',
+          receiptId: 'r-$store',
+          cents: 249,
+          packBasisAmount: basisAmount,
+          basis: MacrosBasis.perG,
+          store: store,
+          purchasedAt: DateTime.utc(2026, 9),
+          packAmount: said,
+          packUnit: oz,
+        );
+
+    /// The Whole Foods 12 oz tub as the row's latest price, and both shops'
+    /// words filed with what each of them actually sells.
+    FakePriceRepo twoShops() => FakePriceRepo(
+      prices: [pack(340, 12, 'Whole Foods')],
+      stores: const ["TJ's", 'Whole Foods'],
+      packsByName: {
+        tjWords: (ingredientId: 'vocab-sriracha', pack: pack(454, 16, "TJ's")),
+        wfWords: (
+          ingredientId: 'vocab-sriracha',
+          pack: pack(340, 12, 'Whole Foods'),
+        ),
+        'TJ MED CHDR SHRD': (
+          ingredientId: 'vocab-cheddar',
+          pack: pack(227, 8, "TJ's"),
+        ),
+      },
+    )..ingredientId = 'vocab-sriracha';
+
+    const twoShopsJson =
+        '''
+{
+  "store_printed": "TRADER JOE'S #135",
+  "purchased_at": "2026-09-13T17:42:00",
+  "printed": { "subtotal_cents": 877, "tax_cents": 0, "total_cents": 877 },
+  "lines": [
+    {
+      "index": 0, "printed_text": "TJ ORG TOFU FIRM  2.49",
+      "name_printed": "$tjWords", "cents": 249, "kind": "item",
+      "match": { "ingredient_id": "vocab-sriracha", "confidence": 0.93,
+        "kind": "auto" }
+    },
+    {
+      "index": 1, "printed_text": "TJ ORG TOFU FIRM  2.49",
+      "name_printed": "$tjWords", "cents": 249, "kind": "item",
+      "match": { "ingredient_id": "vocab-sriracha", "confidence": 0.93,
+        "kind": "auto" }
+    },
+    {
+      "index": 2, "printed_text": "TJ MED CHDR SHRD  3.79",
+      "name_printed": "TJ MED CHDR SHRD", "cents": 379, "kind": "item"
+    }
+  ]
+}
+''';
+
+    Future<(ProviderContainer, FakePriceRepo)> openTwoShops(
+      WidgetTester tester,
+    ) async {
+      final prices = twoShops();
+      tallSurface(tester);
+      await tester.pumpWidget(
+        scanHost(
+          overrides: receiptOverrides(json: twoShopsJson, prices: prices),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+      return (container, prices);
+    }
+
+    List<ReceiptLineDraft> draftsOf(ProviderContainer container) =>
+        (container.read(receiptScanControllerProvider) as ReceiptReviewing)
+            .drafts;
+
+    testWidgets('a line arriving matched lands the pack its own words bought', (
+      tester,
+    ) async {
+      final (container, prices) = await openTwoShops(tester);
+
+      final line = draftsOf(container).first;
+      expect(line.packBasisAmount, 454, reason: 'the TJ’s bag, not the WF tub');
+      expect(line.packAmount, 16);
+      expect(find.textContaining('16 oz · '), findsWidgets);
+      expect(find.textContaining('12 oz'), findsNothing);
+      // One read for the whole receipt, and only of the words it matched.
+      expect(prices.asked, hasLength(1));
+      expect(prices.asked.single, {tjWords});
+    });
+
+    testWidgets('twins all land the same pack', (tester) async {
+      final (container, _) = await openTwoShops(tester);
+      expect(draftsOf(container).take(2).map((d) => d.packBasisAmount), [
+        454,
+        454,
+      ]);
+    });
+
+    testWidgets('and so does a line matched by hand, on its own words', (
+      tester,
+    ) async {
+      final (container, prices) = await openTwoShops(tester);
+      await container
+          .read(receiptScanControllerProvider.notifier)
+          .matchLine(2, cheddar);
+      await tester.pumpAndSettle();
+
+      final line = draftsOf(container).last;
+      expect(line.ingredientId, 'vocab-cheddar');
+      expect(line.packBasisAmount, 227, reason: 'the words, not the row');
+      expect(line.packAmount, 8);
+      expect(prices.asked.last, {
+        'TJ MED CHDR SHRD',
+      }, reason: 'the answered line’s own words, asked for once');
+    });
+
+    testWidgets('words this household has not bought under fall back', (
+      tester,
+    ) async {
+      // The same receipt read by a server that printed no name for the thing:
+      // nothing to file a pack under, so the row's latest price answers.
+      final prices = twoShops();
+      tallSurface(tester);
+      await tester.pumpWidget(
+        scanHost(
+          overrides: receiptOverrides(
+            json: twoShopsJson.replaceAll('"name_printed": "$tjWords",', ''),
+            prices: prices,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+
+      expect(draftsOf(container).first.packBasisAmount, 340);
+      expect(draftsOf(container).first.packAmount, 12);
     });
   });
 }

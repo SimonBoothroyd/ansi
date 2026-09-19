@@ -39,10 +39,15 @@ class FakePriceRepo implements PriceRepository {
   FakePriceRepo({
     List<PriceObservation> prices = const [],
     List<String> stores = const [],
+    Map<String, PackLastBoughtAs> packsByName = const {},
     this.basis = MacrosBasis.perG,
     this.throws = false,
   }) : rows = [...prices],
-       storeWords = [...stores];
+       storeWords = [...stores],
+       packs = {
+         for (final entry in packsByName.entries)
+           if (printedNameKey(entry.key) case final key?) key: entry.value,
+       };
 
   /// Newest first, like the real read.
   final List<PriceObservation> rows;
@@ -77,6 +82,28 @@ class FakePriceRepo implements PriceRepository {
 
   Map<String, PriceObservation> get latest =>
       rows.isEmpty ? const {} : {ingredientId: rows.first};
+
+  /// The household's saved lines as the review reads them: the pack filed
+  /// under each printed name, keyed by [printedNameKey] so a test may seed the
+  /// words exactly as a receipt prints them.
+  final Map<String, PackLastBoughtAs> packs;
+
+  /// Every batch this repo was asked for, so a test can hold the "one read for
+  /// the whole receipt" promise rather than trusting it.
+  final asked = <Set<String>>[];
+
+  @override
+  Future<Map<String, PackLastBoughtAs>> packsByPrintedName(
+    Set<String> namesPrinted,
+  ) async {
+    if (throws) throw StateError('no');
+    asked.add(namesPrinted);
+    return {
+      for (final name in namesPrinted)
+        if (printedNameKey(name) case final key?)
+          if (packs[key] case final pack?) key: pack,
+    };
+  }
 
   @override
   Stream<List<String>> watchStores() async* {

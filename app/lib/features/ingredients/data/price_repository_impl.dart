@@ -154,6 +154,60 @@ class SqlitePriceRepository implements PriceRepository {
     return latest;
   }
 
+  /// One query for the whole receipt, however many names it carries: the keys
+  /// ride as placeholders in a single `IN`, and nothing here grows per line.
+  ///
+  /// `UPPER(TRIM(l.name_printed))` is the key spelled in SQL and
+  /// [printedNameKey] is the same key spelled in Dart. The returned map is
+  /// keyed by the **Dart** one, read off the row's own words, so what a caller
+  /// looks up is exactly what it gets; where the two normalisations could
+  /// disagree (SQLite's `UPPER` is ASCII-only) the row simply does not come
+  /// back and the line falls through to the row's latest price, which is a
+  /// carry-over lost and never a wrong one.
+  ///
+  /// `observationFrom` is the gate here as everywhere: a line whose pack
+  /// nobody stated, or that rang up as nothing, is not a pack to carry.
+  @override
+  Future<Map<String, PackLastBoughtAs>> packsByPrintedName(
+    Set<String> namesPrinted,
+  ) async {
+    final keys = {
+      for (final name in namesPrinted)
+        if (printedNameKey(name) case final key?) key,
+    }.toList();
+    if (keys.isEmpty) return const {};
+    final marks = List.filled(keys.length, '?').join(', ');
+    final rows = await _db.getAll(
+      'SELECT l.id, l.receipt_id, l.ingredient_id, l.printed_text, '
+      'l.name_printed, l.cents, l.discount_cents, l.kind, '
+      'l.pack_basis_amount, l.pack_amount, l.pack_unit, l.measure_id, '
+      'l.sort_order, r.store, r.purchased_at, r.source, '
+      'i.macros_basis, m.label AS measure_label '
+      'FROM receipt_line l '
+      'JOIN receipt r ON r.id = l.receipt_id AND r.deleted_at IS NULL '
+      'LEFT JOIN ingredient i ON i.id = l.ingredient_id '
+      'LEFT JOIN ingredient_measure m ON m.id = l.measure_id '
+      'AND m.deleted_at IS NULL '
+      'WHERE l.ingredient_id IS NOT NULL AND l.deleted_at IS NULL '
+      'AND l.pack_basis_amount IS NOT NULL '
+      'AND UPPER(TRIM(l.name_printed)) IN ($marks) '
+      'ORDER BY r.purchased_at DESC, l.updated_at DESC, l.id DESC',
+      keys,
+    );
+    final packs = <String, PackLastBoughtAs>{};
+    for (final r in rows) {
+      final key = printedNameKey(r['name_printed'] as String?);
+      if (key == null || packs.containsKey(key)) continue;
+      final observation = _observationFromRow(r);
+      if (observation == null) continue;
+      packs[key] = (
+        ingredientId: r['ingredient_id'] as String,
+        pack: observation,
+      );
+    }
+    return packs;
+  }
+
   @override
   Stream<List<String>> watchStores() {
     return _db
