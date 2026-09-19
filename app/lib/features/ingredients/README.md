@@ -415,6 +415,18 @@ ingredients/
     is this app's one-line `manual` kind** — a photographed receipt is a piece
     of paper, so its store, its date and its printed subtotal stay as printed
     and the paper is never deleted from here.
+  - **One Price group, two hosts.** The fact sheet and the form draw the same
+    widget, last in the order on both, because changing what a thing costs is
+    editing it — and a door on only one of the two postures is a door somebody
+    goes looking for and does not find. It is the **one section the form's
+    dock does not hold** (ADR-0011 is about the fields): the sheet writes its
+    own receipt on Done, so the form carries a line saying so, and putting the
+    form down without saving leaves the price standing. The sheet is handed the
+    **stored** row, never the draft — it derives the per-100 figure it writes
+    from the basis and the density, and one held in a form that is then backed
+    out of would leave a price derived through a number that never existed.
+    `/ingredients/new` has no row to hang an event on, so the group names that
+    and offers no door; a price never gates the first Save.
 - **A rename rewrites `match_text`** through `normalizeMatchText` in the same
   statement. The server writes `match_text` with the phrase rules; the app must
   write the same ones, or a locally created row carries text the next import's

@@ -15,8 +15,8 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Ingredient detail</h1>
-    <p class="view-status">built · matches code 2026-09-19 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: matches code 2026-09-13 — the same sheet, centred at 640, and drawn <i>beside</i> the vocabulary at <code>/ingredients/:id</code> from 1024 up; the editing posture stays centred at every width; the price sheet is the same sheet, as a dialog from 640</p>
-    <p class="view-blurb"><b>One route, two postures.</b> A row that exists opens as a <b>fact sheet</b> — four groups (Identity, Nutrition, Units &amp; measures, Price) with each field’s value stated instead of offered, no dock, and <code>Edit</code> in the header’s <code>⋯</code> exactly where the recipe page keeps it. <code>Edit</code> turns the first three into <b>the form</b>; Save and back turn it back. <b>Price is read here and entered nowhere else</b>: a price is an event with its own sheet, not a field the form saves. <code>/ingredients/new</code> opens the form directly — there is nothing yet to read — and so does every door that exists to <i>change</i> a field.</p>
+    <p class="view-status">built · matches code 2026-09-19 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: matches code 2026-09-19 — the same sheet, centred at 640, and drawn <i>beside</i> the vocabulary at <code>/ingredients/:id</code> from 1024 up; the editing posture stays centred at every width, so the Price group is one more group in that one column on either posture; the price sheet is the same sheet, as a dialog from 640</p>
+    <p class="view-blurb"><b>One route, two postures.</b> A row that exists opens as a <b>fact sheet</b> — four groups (Identity, Nutrition, Units &amp; measures, Price) with each field’s value stated instead of offered, no dock, and <code>Edit</code> in the header’s <code>⋯</code> exactly where the recipe page keeps it. <code>Edit</code> turns all four into <b>the form</b>; Save and back turn it back. <b>Price is one group drawn by both postures</b> — the same lines, the same door, the same sheet — because changing what a thing costs is editing it, and somebody who opens the editor to fix a price should not have to back out of it to find one. It is the one section the dock does not hold: the sheet writes its own receipt the moment Done is tapped, and the group says so on the form rather than letting <i>nothing is written until Save</i> be read as covering it. <code>/ingredients/new</code> opens the form directly — there is nothing yet to read — and so does every door that exists to <i>change</i> a field.</p>
 </header>
 
 <div class="board">
@@ -96,7 +96,7 @@
 
 
     <div class="frame">
-        <p class="frame-name"><b>Price · read on the row</b> · a fourth group, in the reading posture the page already has: the latest price as the one line a recipe reads, and what was paid before it, kept</p>
+        <p class="frame-name"><b>Price · on the row</b> · a fourth group, drawn the same by both postures: the latest price as the one line a recipe reads, and what was paid before it, kept</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
             <div class="r-hero"><h2 class="r-title">Bananas, organic</h2><p class="conv-note" style="margin:0">also known as bananas</p></div>
@@ -123,17 +123,23 @@
         <p class="conv-note" style="margin:10px 4px 0">Every line is a stored fact restated: cents paid, the pack <b>in the words it was bought in</b>, the store’s name as a chip word, the receipt’s date. A pound reads <span style="font-family:'IBM Plex Mono',monospace">1 lb</span> and a named pack reads <span style="font-family:'IBM Plex Mono',monospace">bag (454 g)</span> — the weight rides behind the word, which on its own says nothing about size. The <b>/100 g</b> is the one derived figure on the page, and it is derived the same way the macro line’s <i>/100 g</i> is — from the basis, never from the words. A price is an event, never a column: nothing writes the derived figure back, so a pack re-weighed or a discount corrected moves every screen at once, and a <i>bag</i> re-weighed next month does not re-price last month’s shop.</p>
         <p class="conv-note" style="margin:6px 4px 0"><b>Every price row is a tap</b> — the <i>Latest</i> line and each row under <i>Before</i> — and it opens the same sheet on that line, filled in as it was entered. That is the way to fix a sum typed wrong and, through the sheet’s <i>Delete</i>, the way to take one back. A ledger that could only be added to would make the first typo permanent.</p>
         <p class="conv-note" style="margin:6px 4px 0"><b>The door is drawn in both states</b>, because a price is an event and there is always another one. A row nobody has priced draws it alone — see the frame beside this one.</p>
+        <p class="conv-note" style="margin:6px 4px 0"><b>And the form draws this same group</b>, last, after <i>Units &amp; measures</i> — the reading posture’s order kept. Not a second door: one widget with two hosts, so the two surfaces cannot end up telling two stories about one ledger. What the form adds is <b>one line</b>, because the dock beneath it promises the opposite of what this section does: <span style="font-family:'IBM Plex Mono',monospace">a price is written as you enter it; Save below is for the fields</span>. A price entered here is landed before the form is put down, and a Cancel that discards every other pending edit leaves it standing — which is the honest reading, since what it wrote is a receipt and a receipt is not a draft.</p>
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>Price · none yet</b> · the same group on a row nobody has priced: the state said beside the heading, one door under it, and no zero</p>
+        <p class="frame-name"><b>Price · the two absences</b> · a row nobody has priced, and a row that does not exist yet — each said beside the heading, and never as a zero</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
             <div class="r-hero"><h2 class="r-title">Black rice</h2></div>
             <div style="margin:22px 20px 0"><p class="grp-h">Price <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400">— none yet</span></p></div>
             <div class="frow"><span class="ghostbtn" style="margin-top:10px;color:var(--herb);border-style:dashed">＋ add a price</span></div>
+
+            <p class="lib-mcap" style="margin-top:26px">and on <span style="font-family:'IBM Plex Mono',monospace">/ingredients/new</span>, where there is no row to hang one on</p>
+            <div style="margin:10px 20px 0"><p class="grp-h">Price <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400">— after the first save</span></p></div>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">A price is an event on a row, and this one does not exist yet.</p>
         </div></div>
         <p class="conv-note" style="margin:10px 4px 0">One door, no zero. <span style="font-family:'IBM Plex Mono',monospace">$0.00</span> would be a claim about the shop rather than an absence, which is the number invariant 3 forbids — so the group says what it does not know, beside its own name, and offers the one way to end it.</p>
+        <p class="conv-note" style="margin:6px 4px 0"><b>A row that does not exist yet gets the sentence and no door.</b> A price is written against a row, and the create form has none — the sheet would have nothing to name on its receipt. The group is still <i>drawn</i>, in the admission chips’ voice: a person who came looking for the price is told when it arrives rather than being left to conclude the feature is not here. It is <b>never a condition of the first Save</b>; the dock goes on waiting for the name, the category and the macros exactly as it did.</p>
     </div>
 
     <div class="frame">
@@ -180,7 +186,7 @@
         <p class="conv-note" style="margin:6px 4px 0"><b>Delete asks first</b>, through the confirm the app already uses for a destructive tap — <i>Delete this price? It stops counting towards what anything costs. What was paid before it stays.</i> It tombstones the line, and the receipt behind it only when that receipt is this app’s own one-line typed kind. <b>A photographed receipt is never deleted from here</b>: a receipt is a piece of paper, so its store, its date and its printed subtotal stay exactly as printed and only the line’s price facts move.</p>
     </div>
     <div class="frame">
-        <p class="frame-name"><b>The form</b> · behind <code>⋯ ▸ Edit</code>, and what <code>/ingredients/new</code> opens straight into — three groups, a status line at the top and a dock at the bottom; the USDA card appears only <i>after</i> a pick</p>
+        <p class="frame-name"><b>The form</b> · behind <code>⋯ ▸ Edit</code>, and what <code>/ingredients/new</code> opens straight into — four groups, a status line at the top and a dock at the bottom; the USDA card appears only <i>after</i> a pick</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl">Black Rice</span><span class="dots">⋯</span></div>
 
@@ -239,11 +245,20 @@
                 <div class="addm-note"><span class="srcdot you"></span>saved as yours — synced &amp; editable</div>
             </div></div>
 
+            <div style="margin:22px 20px 0"><p class="grp-h">Price</p></div>
+            <p class="conv-note" style="margin:6px 20px 0">a price is written as you enter it; Save below is for the fields</p>
+            <p class="flabel" style="margin-bottom:0">Latest</p>
+            <p class="conv-note" style="margin:0 20px 0">what a recipe reads</p>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px"><b>77¢ / 100 g</b> · $3.49 for bag (454 g) · TJ’s · 13 Sep</p>
+            <div class="frow"><span class="ghostbtn" style="margin-top:10px;color:var(--herb);border-style:dashed">＋ add a price</span></div>
+
             <div class="dock">
                 <p class="conv-note" style="margin:0 0 9px">needs macros</p>
                 <span class="btn primary" style="margin:0;opacity:.45">Save</span>
             </div>
         </div></div>
+        <p class="conv-note" style="margin:10px 4px 0"><b>Price closes the form, after <i>Units &amp; measures</i></b> — the fact sheet’s order, kept, so a person who has read the row finds the section where they last saw it. Every line is the tap it is on the fact sheet, and <span style="font-family:'IBM Plex Mono',monospace">＋ add a price</span> opens the same sheet empty.</p>
+        <p class="conv-note" style="margin:6px 4px 0"><b>The one line above it is doing real work.</b> Everything else on this scroll is held until the dock’s Save (<a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a>); this section is not, because the sheet writes a receipt and a receipt is not a draft. Saying so is cheaper than the alternatives — holding a price in the draft would make the ledger a thing a Cancel can un-buy, and staying silent would make the dock’s promise a lie about one group in four.</p>
     </div>
 
     <div class="frame">
