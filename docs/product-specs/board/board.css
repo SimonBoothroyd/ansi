@@ -752,6 +752,12 @@
     .wkhdr .act{font-size:12.5px;font-weight:600;color:var(--herb);flex:none;}
     .wkhdr .act.done{color:var(--ink);}
     .wkhdr .dots{color:var(--muted);font-size:17px;flex:none;}
+    /* the header's one action — Shop's receipts door. The ghost twin opposite
+       is how this DRAWING keeps the week centred; the app needs no such
+       spacer, because a nested header centres its title in the whole width */
+    .wkhdr .hact{width:18px;height:18px;flex:none;display:inline-flex;color:var(--ink);}
+    .wkhdr .hact svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+    .wkhdr .hact.ghost{visibility:hidden;}
 
     /* the week menu, behind the title */
     .wkmenu{margin:0 20px 12px;background:var(--frame);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;}

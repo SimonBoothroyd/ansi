@@ -95,6 +95,7 @@ class ShoppingView extends ConsumerWidget {
               );
             },
           ),
+          suffixes: const [_ReceiptsDoor()],
         ),
         // The status line sits between the header and the scroll, not inside
         // it: mid-aisle, an answer that has scrolled away is no answer. It
@@ -126,6 +127,34 @@ class ShoppingView extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// The ledger's door, in the header beside the week.
+///
+/// The Shop's foot is the end of a list you have to walk to reach, so the one
+/// door that is not about *this* trip stands in the chrome instead, where it
+/// is in the same place at every scroll position and every width. It is the
+/// only thing in the header besides the switcher, and **the switcher stays
+/// centred**: [FHeader.nested] centres its title in the header's whole width
+/// and moves it only when title and action would collide, so a balancing
+/// spacer opposite would buy no centring and cost the title room.
+///
+/// It is still drawn **only once the household has kept a receipt** — a door
+/// onto an empty page is furniture, and the chrome is the one strip on screen
+/// for the whole walk. [ScanReceiptDoor] is what teaches the feature; this is
+/// what gets you back to what it kept.
+class _ReceiptsDoor extends ConsumerWidget {
+  const _ReceiptsDoor();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) =>
+      ref.watch(hasAnyReceiptProvider)
+      ? FHeaderAction(
+          icon: const Icon(FLucideIcons.receipt),
+          semanticsLabel: 'Receipts',
+          onPress: () => context.pushOnce('/receipts'),
+        )
+      : const SizedBox.shrink();
 }
 
 /// `≈ $58 still to buy` at the end of the sync line — what the rest of the
@@ -1174,17 +1203,15 @@ class _AddItemButton extends StatelessWidget {
 /// It is drawn in herb beside the top-up door because scanning the receipt is
 /// what closes a shop, and it opens the camera the recipe import already has.
 ///
-/// **The ledger rides this row rather than taking a door of its own.** A
-/// third dashed box on the Shop's foot would be a third thing to read past on
-/// every walk, and a long-press would be a door nobody could find. So
-/// `receipts ›` sits at the end of this row, quietly, and **only once the
-/// household has kept one** — a door onto an empty page is furniture.
+/// **The ledger is not here.** Its door is the receipt action in the header
+/// ([_ReceiptsDoor]) — one door, where the chrome is, not a second link at the
+/// foot saying the same thing a scroll further down.
 ///
 /// On the **web** the photo import is gated (there is no camera and no
 /// cropper — `photo_intake.dart`), so the door says what it can actually do,
 /// exactly as the recipe import's photo doors do: a receipt is shot on the
 /// phone and reviewed on whichever screen is nearest.
-class ScanReceiptDoor extends ConsumerWidget {
+class ScanReceiptDoor extends StatelessWidget {
   const ScanReceiptDoor({this.web = kIsWeb, super.key});
 
   /// The platform, injectable so both sets of words are testable on a VM that
@@ -1192,8 +1219,7 @@ class ScanReceiptDoor extends ConsumerWidget {
   final bool web;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final kept = ref.watch(hasAnyReceiptProvider);
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
       child: Column(
@@ -1232,29 +1258,6 @@ class ScanReceiptDoor extends ConsumerWidget {
                 'in a browser there is no camera and no crop step — shoot the '
                 'receipt on the phone, and review it anywhere',
                 style: ansiMono(size: 10.5, color: AnsiColors.muted),
-              ),
-            ),
-          if (kept)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => context.pushOnce('/receipts'),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      'receipts',
-                      style: ansiMono(size: 11, color: AnsiColors.herbDeep),
-                    ),
-                    const SizedBox(width: 3),
-                    const Icon(
-                      FLucideIcons.chevronRight,
-                      size: 12,
-                      color: AnsiColors.herbDeep,
-                    ),
-                  ],
-                ),
               ),
             ),
         ],

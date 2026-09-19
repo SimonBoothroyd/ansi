@@ -11,6 +11,7 @@ import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/presentation/week_header.dart';
+import 'package:ansi/features/receipts/data/receipt_providers.dart';
 import 'package:ansi/features/recipes/domain/effective_lines.dart';
 import 'package:ansi/features/shopping/data/shopping_providers.dart';
 import 'package:ansi/features/shopping/domain/shopping.dart';
@@ -21,6 +22,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
@@ -139,6 +141,26 @@ Widget _host(List<Override> overrides, {bool disableAnimations = false}) =>
         ),
       ),
     );
+
+/// The screen under a real router, for the header door — `pushOnce` needs one,
+/// and the ledger it opens has to be somewhere to land.
+Widget _routerHost(List<Override> overrides) => ProviderScope(
+  overrides: overrides,
+  child: MaterialApp.router(
+    theme: ansiHostTheme(),
+    routerConfig: GoRouter(
+      initialLocation: '/shop',
+      routes: [
+        GoRoute(path: '/shop', builder: (_, _) => const ShoppingView()),
+        GoRoute(path: '/receipts', builder: (_, _) => const Text('the ledger')),
+      ],
+    ),
+    builder: (context, child) => FTheme(
+      data: ansiThemeData(),
+      child: FToaster(child: child!),
+    ),
+  ),
+);
 
 /// A desk-width window — the band the provenance pane belongs to. The other
 /// suites run at the default surface, which is a phone's column.
@@ -1292,6 +1314,110 @@ void main() {
 
       expect(repo.tickCalls, 1);
       expect(repo.lastChecked, isTrue);
+    });
+  });
+
+  group('the ledger door', () {
+    ShoppingList aisle() => ShoppingList(
+      groups: [
+        ShoppingGroup(
+          label: 'Produce',
+          items: [
+            ShoppingItem(
+              name: 'Onion',
+              ingredientId: 'onion',
+              entryId: 'e-onion',
+              totals: [Quantity(100, g)],
+            ),
+          ],
+        ),
+      ],
+    );
+
+    List<Override> doorOverrides({required bool kept}) => [
+      shoppingRepositoryProvider.overrideWithValue(_FakeShoppingRepo(aisle())),
+      hasAnyReceiptProvider.overrideWithValue(kept),
+    ];
+
+    /// Where the switcher sits, and where the header it sits in sits.
+    (double switcher, double header) centres(WidgetTester tester) => (
+      tester.getCenter(find.byType(WeekSwitcher)).dx,
+      tester.getCenter(find.byWidgetPredicate((w) => w is FHeader).first).dx,
+    );
+
+    testWidgets('with nothing kept the header holds the week alone', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_routerHost(doorOverrides(kept: false)));
+      await tester.pump();
+
+      expect(
+        find.byIcon(FLucideIcons.receipt),
+        findsNothing,
+        reason: 'a door onto an empty page is furniture',
+      );
+    });
+
+    testWidgets('once a receipt is kept, the header opens the ledger', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_routerHost(doorOverrides(kept: true)));
+      await tester.pump();
+
+      expect(find.byIcon(FLucideIcons.receipt), findsOneWidget);
+      expect(find.bySemanticsLabel('Receipts'), findsOneWidget);
+
+      await tester.tap(find.byIcon(FLucideIcons.receipt));
+      await tester.pumpAndSettle();
+      expect(find.text('the ledger'), findsOneWidget);
+    });
+
+    testWidgets('the switcher stays centred with the action beside it', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_routerHost(doorOverrides(kept: false)));
+      await tester.pump();
+      final (bare, bareHeader) = centres(tester);
+
+      await tester.pumpWidget(_routerHost(doorOverrides(kept: true)));
+      await tester.pump();
+      final (withDoor, withDoorHeader) = centres(tester);
+
+      // The action changes nothing about where the week reads: a nested
+      // header centres its title in the WHOLE width and moves it only when
+      // the two would collide.
+      expect(withDoor, closeTo(bare, 0.5));
+      expect(withDoor, closeTo(withDoorHeader, 0.5));
+      expect(bare, closeTo(bareHeader, 0.5));
+      // …and the action is to the right of it, where a suffix belongs.
+      expect(
+        tester.getCenter(find.byIcon(FLucideIcons.receipt)).dx,
+        greaterThan(withDoor),
+      );
+    });
+
+    testWidgets('at a desk the door is in the same place, still centred', (
+      tester,
+    ) async {
+      deskWidth(tester);
+      await tester.pumpWidget(_routerHost(doorOverrides(kept: true)));
+      await tester.pump();
+
+      expect(find.byIcon(FLucideIcons.receipt), findsOneWidget);
+      final (switcher, header) = centres(tester);
+      expect(switcher, closeTo(header, 0.5));
+    });
+
+    testWidgets('the foot carries the scan and nothing else', (tester) async {
+      await tester.pumpWidget(_routerHost(doorOverrides(kept: true)));
+      await tester.pump();
+
+      expect(find.text('scan a receipt'), findsOneWidget);
+      expect(
+        find.text('receipts'),
+        findsNothing,
+        reason: 'one door, in the chrome — not a second link at the foot',
+      );
     });
   });
 
