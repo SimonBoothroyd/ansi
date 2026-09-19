@@ -21,6 +21,15 @@ import '../domain/recipe_measure_repository.dart';
 
 const _uuid = Uuid();
 
+/// The columns every read of the table asks for, in one place.
+///
+/// The **denomination** — what one of the word comes to — is named here, in
+/// [_rowOf] and in [_insertRow]/[_updateRow], and nowhere else in the app: four
+/// sites, so re-stating what a measure IS is an edit to this file rather than a
+/// sweep through every query, loader and provider that carries one.
+const _columns =
+    'rm.id, rm.recipe_id, rm.label, rm.per_batch, rm.sort_order, rm.created_at';
+
 /// Every live recipe's own words, keyed by recipe id, duplicates merged
 /// (oldest canonical — [mergeRecipeMeasures]) and `sort_order` first.
 ///
@@ -30,15 +39,15 @@ const _uuid = Uuid();
 /// anyway, and a household's words are a handful of rows. A recipe that coins
 /// none is absent from the map, which every caller reads as the empty list.
 ///
-/// A row whose `per_batch` is missing lands as `0`, which
+/// A row whose denomination is missing lands as a measure
 /// [RecipeMeasure.saysAShare] refuses — so it names a word and converts
-/// nothing, rather than dividing by a number nobody stated (invariant 3).
+/// nothing, rather than converting through a number nobody stated
+/// (invariant 3).
 Future<Map<String, List<RecipeMeasure>>> loadRecipeMeasures(
   SqliteConnection db,
 ) async {
   final rows = await db.getAll(
-    'SELECT rm.id, rm.recipe_id, rm.label, rm.per_batch, rm.sort_order, '
-    'rm.created_at FROM recipe_measure rm WHERE rm.deleted_at IS NULL',
+    'SELECT $_columns FROM recipe_measure rm WHERE rm.deleted_at IS NULL',
   );
   final byRecipe = <String, List<RecipeMeasureRow>>{};
   for (final r in rows) {
@@ -96,30 +105,11 @@ Future<void> writeRecipeMeasures(
   }
 
   for (final (index, measure) in measures.indexed) {
+    final positioned = measure.copyWith(recipeId: recipeId, sortOrder: index);
     if (storedIds.contains(measure.id)) {
-      // Clearing deleted_at revives a word whose id is being reused, which is
-      // the same rule the groups and the lines follow one table over.
-      await tx.execute(
-        'UPDATE recipe_measure SET label = ?, per_batch = ?, sort_order = ?, '
-        'updated_at = ?, deleted_at = NULL WHERE id = ?',
-        [measure.label, measure.perBatch, index, now, measure.id],
-      );
+      await _updateRow(tx, positioned, now: now);
     } else {
-      await tx.execute(
-        'INSERT INTO recipe_measure (id, household_id, recipe_id, label, '
-        'per_batch, sort_order, created_at, updated_at) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [
-          measure.id,
-          householdId,
-          recipeId,
-          measure.label,
-          measure.perBatch,
-          index,
-          now,
-          now,
-        ],
-      );
+      await _insertRow(tx, positioned, householdId: householdId, now: now);
     }
   }
 }
@@ -133,16 +123,10 @@ class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
   /// The household stamped on rows this repo writes.
   final String _householdId;
 
-  /// The SELECT is spelled out in full rather than shared with
-  /// [loadRecipeMeasures]: `watch_coverage_test` reads these queries as
-  /// literals to hold the LEFT-JOIN watch trap, and an interpolated fragment is
-  /// invisible to it. The row→measure rule is shared in [_rowOf], which is the
-  /// half that could actually drift.
   @override
   Stream<List<RecipeMeasure>> watchRecipeMeasures(String recipeId) => _db
       .watch(
-        'SELECT rm.id, rm.recipe_id, rm.label, rm.per_batch, rm.sort_order, '
-        'rm.created_at FROM recipe_measure rm '
+        'SELECT $_columns FROM recipe_measure rm '
         'WHERE rm.recipe_id = ? AND rm.deleted_at IS NULL '
         'ORDER BY rm.sort_order, rm.created_at, rm.id',
         parameters: [recipeId],
@@ -183,21 +167,7 @@ class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
           sortOrder: (row['m'] as int) + 1,
         ),
       );
-      await tx.execute(
-        'INSERT INTO recipe_measure (id, household_id, recipe_id, label, '
-        'per_batch, sort_order, created_at, updated_at) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [
-          id,
-          _householdId,
-          recipeId,
-          minted.label,
-          minted.perBatch,
-          minted.sortOrder,
-          now,
-          now,
-        ],
-      );
+      await _insertRow(tx, minted, householdId: _householdId, now: now);
     });
     return minted;
   }
@@ -236,12 +206,8 @@ class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
         ),
       );
       // The id is untouched, which is the point: every line already saying the
-      // word follows the new number without being rewritten.
-      await tx.execute(
-        'UPDATE recipe_measure SET label = ?, per_batch = ?, updated_at = ? '
-        'WHERE id = ?',
-        [restated.label, restated.perBatch, now, measureId],
-      );
+      // word follows the re-statement without being rewritten.
+      await _updateRow(tx, restated, now: now);
     });
   }
 
@@ -297,8 +263,7 @@ class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
     String recipeId,
   ) async {
     final rows = await tx.getAll(
-      'SELECT rm.id, rm.recipe_id, rm.label, rm.per_batch, rm.sort_order, '
-      'rm.created_at FROM recipe_measure rm '
+      'SELECT $_columns FROM recipe_measure rm '
       'WHERE rm.recipe_id = ? AND rm.deleted_at IS NULL '
       'ORDER BY rm.sort_order, rm.created_at, rm.id',
       [recipeId],
@@ -306,6 +271,46 @@ class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
     return mergeRecipeMeasures([for (final r in rows) _rowOf(r, recipeId)]);
   }
 }
+
+/// The one INSERT of a measure row. Every door that mints a word goes through
+/// it, so what a measure IS is stated in one statement rather than in each of
+/// them.
+Future<void> _insertRow(
+  SqliteWriteContext tx,
+  RecipeMeasure measure, {
+  required String householdId,
+  required String now,
+}) => tx.execute(
+  'INSERT INTO recipe_measure (id, household_id, recipe_id, label, '
+  'per_batch, sort_order, created_at, updated_at) '
+  'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+  [
+    measure.id,
+    householdId,
+    measure.recipeId,
+    measure.label,
+    measure.perBatch,
+    measure.sortOrder,
+    now,
+    now,
+  ],
+);
+
+/// The one UPDATE of a measure row — the re-statement, at both doors.
+///
+/// The **id is untouched**, which is the whole point of a re-statement: every
+/// line already saying the word follows it. Clearing `deleted_at` revives a word
+/// whose id is being reused, the rule the groups and the lines follow one table
+/// over; on a live row it changes nothing.
+Future<void> _updateRow(
+  SqliteWriteContext tx,
+  RecipeMeasure measure, {
+  required String now,
+}) => tx.execute(
+  'UPDATE recipe_measure SET label = ?, per_batch = ?, sort_order = ?, '
+  'updated_at = ?, deleted_at = NULL WHERE id = ?',
+  [measure.label, measure.perBatch, measure.sortOrder, now, measure.id],
+);
 
 /// What still says [measureId] — the count both the bin's refusal and the
 /// deferred diff's gate read, so the two refuse on exactly the same answer.

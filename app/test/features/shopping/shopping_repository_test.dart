@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:ansi/core/units/units.dart';
@@ -80,14 +81,33 @@ Future<void> _insertRecipe(
   }
 }
 
+/// Coins one of [recipeId]'s own words — *a batch makes [perBatch] [label]*.
+/// The ONE place this file states what a measure IS, so re-stating the
+/// denomination is an edit here rather than at every call site.
+Future<void> _insertMeasure(
+  PowerSyncDatabase db,
+  String recipeId, {
+  String id = 'm-blob',
+  String label = 'blob',
+  double perBatch = 20,
+}) => db.execute(
+  'INSERT INTO recipe_measure (id, household_id, recipe_id, label, per_batch, '
+  'sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?)',
+  [id, 'h', recipeId, label, perBatch, '2026-01-01', '2026-01-01'],
+);
+
 /// Adds a component line ("¼ cup of [subRecipeId]") to [recipeId] in its own
 /// group — plain INSERTs, because the local tables are VIEWS (no UPSERT).
+///
+/// [recipeMeasureId] makes it a MEASURED line — `3 blob` — and the `unit`
+/// column then goes null, which is the stored XOR 0048 pins.
 Future<void> _insertComponentLine(
   PowerSyncDatabase db,
   String recipeId,
   String subRecipeId, {
   double? quantity = 0.25,
   Unit unit = cup,
+  String? recipeMeasureId,
   bool optional = false,
 }) async {
   final now = DateTime.now().toUtc().toIso8601String();
@@ -99,15 +119,16 @@ Future<void> _insertComponentLine(
   );
   await db.execute(
     'INSERT INTO recipe_line_item (id, household_id, group_id, sub_recipe_id, '
-    'quantity, unit, optional, sort_order, created_at, updated_at) '
-    'VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)',
+    'quantity, unit, recipe_measure_id, optional, sort_order, created_at, '
+    'updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)',
     [
       '$recipeId-cli-$subRecipeId',
       'h',
       groupId,
       subRecipeId,
       quantity,
-      unit.id,
+      if (recipeMeasureId == null) unit.id else null,
+      recipeMeasureId,
       if (optional) 1 else 0,
       now,
       now,
@@ -1129,6 +1150,102 @@ void main() {
       expect(
         (await repo.watchShoppingList(_week).first).unresolvedComponents,
         isEmpty,
+      );
+    });
+
+    /// A component said in the target's own word — `3 blob` of a sauce that
+    /// makes 20 of them. No screen on this build writes one; the shop must
+    /// still buy every one it meets. Dropping such a line, which the graph
+    /// loader used to do on `if (unit == null) continue`, left a whole sauce's
+    /// ingredients off the list in silence.
+    group('a MEASURED component line', () {
+      Future<void> seedMeasured({String? measureId = 'm-blob'}) async {
+        await _insertIngredient(db, 'almonds', 'Almonds', 'pantry', 'g');
+        await _insertRecipe(
+          db,
+          'sliders',
+          'Sausage Sliders',
+          servings: 1,
+          lines: [('flour', 500, g)],
+        );
+        await _insertRecipe(
+          db,
+          'aioli',
+          'Romesco Aioli',
+          servings: 4,
+          keepsForDays: 5,
+          lines: [('almonds', 240, g)],
+        );
+        // The word needs no yield, which is the whole point of one: a sauce
+        // nobody weighed is still sayable, and still shoppable.
+        await _insertMeasure(db, 'aioli');
+        await _insertComponentLine(
+          db,
+          'sliders',
+          'aioli',
+          quantity: 3,
+          recipeMeasureId: measureId,
+        );
+        await planning.addEntry(
+          weekStart: _week,
+          dayOfWeek: 5,
+          mealSlot: 'Dinner',
+          recipeId: 'sliders',
+          eaterIds: ['a'],
+        );
+      }
+
+      test('the walk expands it into the target’s ingredients at the word’s '
+          'share of a batch', () async {
+        await seedMeasured();
+        final list = await repo.watchShoppingList(_week).first;
+        final almonds = list.groups
+            .expand((g) => g.items)
+            .firstWhere((i) => i.ingredientId == 'almonds');
+        // 240 g × 3/20 of a batch.
+        expect(almonds.totals.single.amount, closeTo(240 * 3 / 20, 1e-9));
+        expect(list.unresolvedComponents, isEmpty);
+      });
+
+      test('a retired word buys nothing and the echo names the parent that is '
+          'short', () async {
+        await seedMeasured();
+        await db.execute(
+          'UPDATE recipe_measure SET deleted_at = ? WHERE id = ?',
+          ['2026-09-19T00:00:00Z', 'm-blob'],
+        );
+        final list = await repo.watchShoppingList(_week).first;
+        expect(list.groups.expand((g) => g.items).map((i) => i.ingredientId), [
+          'flour',
+        ]);
+        expect(list.unresolvedComponents, [
+          (recipeId: 'sliders', recipeTitle: 'Sausage Sliders', count: 1),
+        ]);
+      });
+
+      test(
+        're-stating the word re-fires the list and moves the amount',
+        () async {
+          await seedMeasured();
+          final stream = StreamIterator(repo.watchShoppingList(_week));
+          addTearDown(stream.cancel);
+          double almondsIn(ShoppingList list) => list.groups
+              .expand((g) => g.items)
+              .firstWhere((i) => i.ingredientId == 'almonds')
+              .totals
+              .single
+              .amount;
+
+          expect(await stream.moveNext(), isTrue);
+          expect(almondsIn(stream.current), closeTo(240 * 3 / 20, 1e-9));
+
+          await db.execute(
+            'UPDATE recipe_measure SET per_batch = ? WHERE id = ?',
+            [24, 'm-blob'],
+          );
+          expect(await stream.moveNext(), isTrue);
+          expect(almondsIn(stream.current), closeTo(240 * 3 / 24, 1e-9));
+        },
       );
     });
 

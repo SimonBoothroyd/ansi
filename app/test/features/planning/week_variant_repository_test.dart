@@ -3,11 +3,13 @@
 /// way it fails on a phone.
 library;
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/planning/data/week_variant_repository_impl.dart';
+import 'package:ansi/features/planning/domain/week_variant_repository.dart';
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/line_override.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -57,6 +59,20 @@ Future<void> _insertIngredient(
     _now,
     _now,
   ],
+);
+
+/// Coins one of [recipeId]'s own words — *a batch makes [perBatch] [label]*.
+/// The ONE place this file states what a measure IS.
+Future<void> _insertMeasure(
+  PowerSyncDatabase db,
+  String recipeId, {
+  String id = 'm-blob',
+  String label = 'blob',
+  double perBatch = 20,
+}) => db.execute(
+  'INSERT INTO recipe_measure (id, household_id, recipe_id, label, per_batch, '
+  'sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?)',
+  [id, 'h', recipeId, label, perBatch, _now, _now],
 );
 
 Future<void> _insertGroup(PowerSyncDatabase db, String id, String recipeId) =>
@@ -473,5 +489,138 @@ void main() {
         expect(await repo.watchVariantRecipeMacros(_nextWeek).first, isEmpty);
       },
     );
+  });
+
+  /// This week's amount for a component line, said in the target's own word.
+  /// No screen on this build writes one; the week must round-trip every one it
+  /// reads, and refuse the shapes the server would refuse.
+  group("this week's amount, in the recipe's own word", () {
+    setUp(() async {
+      await _insertRecipe(db, 'aioli', 'Romesco Aioli');
+      await _insertMeasure(db, 'aioli');
+      // The line the delta is about: `¼ cup` of the aioli, on r1.
+      await db.execute(
+        'INSERT INTO recipe_line_item (id, household_id, group_id, '
+        'sub_recipe_id, quantity, unit, sort_order, created_at, updated_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        ['l3', 'h', 'g1', 'aioli', 0.25, 'cup', 2, _now, _now],
+      );
+    });
+
+    test('round-trips the pointer with unit NULL, on the INSERT and again on '
+        'the UPDATE', () async {
+      const measured = LineOverride(
+        action: LineOverrideAction.replace,
+        recipeLineItemId: 'l3',
+        subRecipeId: 'aioli',
+        quantity: 3,
+        recipeMeasureId: 'm-blob',
+      );
+      await repo.saveOverrides(_thisWeek, 'r1', overrides: const [measured]);
+
+      var stored = (await repo.loadOverrides(_thisWeek, 'r1')).single;
+      expect(stored.recipeMeasureId, 'm-blob');
+      expect(stored.quantity, 3);
+      expect(stored.unit, isNull, reason: 'the word IS the denomination');
+      var row = await db.get(
+        'SELECT unit, recipe_measure_id FROM week_recipe_line_override '
+        'WHERE deleted_at IS NULL',
+      );
+      expect(row['unit'], isNull);
+      expect(row['recipe_measure_id'], 'm-blob');
+
+      // The same delta saved again takes the UPDATE branch — the one the
+      // column was missing from — and must still carry the word.
+      await repo.saveOverrides(
+        _thisWeek,
+        'r1',
+        overrides: [measured.copyWith(quantity: 5)],
+      );
+      stored = (await repo.loadOverrides(_thisWeek, 'r1')).single;
+      expect(stored.recipeMeasureId, 'm-blob');
+      expect(stored.quantity, 5);
+      row = await db.get(
+        'SELECT unit, recipe_measure_id FROM week_recipe_line_override '
+        'WHERE deleted_at IS NULL',
+      );
+      expect(row['unit'], isNull);
+      expect(row['recipe_measure_id'], 'm-blob');
+    });
+
+    test(
+      'a word with no number is refused before anything is written',
+      () async {
+        await expectLater(
+          repo.saveOverrides(
+            _thisWeek,
+            'r1',
+            overrides: const [
+              LineOverride(
+                id: 'wro-bad',
+                action: LineOverrideAction.replace,
+                recipeLineItemId: 'l3',
+                subRecipeId: 'aioli',
+                recipeMeasureId: 'm-blob',
+              ),
+            ],
+          ),
+          throwsA(isA<WordlessOverrideError>()),
+        );
+        expect(await repo.loadOverrides(_thisWeek, 'r1'), isEmpty);
+      },
+    );
+
+    test(
+      'a word on a delta about an INGREDIENT is dropped, not stored',
+      () async {
+        await repo.saveOverrides(
+          _thisWeek,
+          'r1',
+          overrides: const [
+            LineOverride(
+              action: LineOverrideAction.replace,
+              recipeLineItemId: 'l1',
+              ingredientId: 'i-sausage',
+              quantity: 3,
+              unit: g,
+              recipeMeasureId: 'm-blob',
+            ),
+          ],
+        );
+        final stored = (await repo.loadOverrides(_thisWeek, 'r1')).single;
+        expect(stored.recipeMeasureId, isNull);
+        expect(stored.unit, g, reason: 'the unit is what is honest here');
+      },
+    );
+
+    test('the week watch re-fires when the word is re-stated', () async {
+      await repo.saveOverrides(
+        _thisWeek,
+        'r1',
+        overrides: const [
+          LineOverride(
+            action: LineOverrideAction.replace,
+            recipeLineItemId: 'l3',
+            subRecipeId: 'aioli',
+            quantity: 3,
+            recipeMeasureId: 'm-blob',
+          ),
+        ],
+      );
+      final stream = StreamIterator(repo.watchWeekOverrides(_thisWeek));
+      addTearDown(stream.cancel);
+      expect(await stream.moveNext(), isTrue);
+      expect(stream.current['r1'], hasLength(1));
+
+      await db.execute('UPDATE recipe_measure SET per_batch = ? WHERE id = ?', [
+        24,
+        'm-blob',
+      ]);
+      // The re-statement moves nothing about the STORED delta — an amount here
+      // is absolute — but the stream must fire, because what the delta comes
+      // to has changed for every surface reading it.
+      expect(await stream.moveNext(), isTrue);
+      expect(stream.current['r1']!.single.quantity, 3);
+    });
   });
 }
