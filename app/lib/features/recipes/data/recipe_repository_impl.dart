@@ -490,10 +490,14 @@ class SqliteRecipeRepository implements RecipeRepository {
           recipeId: r['recipe_id'] as String,
           title: r['title'] as String,
           quantity: (r['quantity'] as num?)?.toDouble(),
-          unit: unitById(r['unit'] as String? ?? '') ?? batches,
+          // NULL exactly on a line said in one of this recipe's own words.
+          // It is left null rather than defaulted: reading such a line as
+          // `batch` would print `3 batch` and derive three whole batches from
+          // a line that asked for three blobs.
+          unit: unitById(r['unit'] as String? ?? ''),
           amount: resolveComponentAmount(
             quantity: (r['quantity'] as num?)?.toDouble(),
-            unit: unitById(r['unit'] as String? ?? '') ?? batches,
+            unit: unitById(r['unit'] as String? ?? ''),
             yields: yieldDenominations(
               (r['yield_qty'] as num?)?.toDouble(),
               unitById(r['yield_unit'] as String? ?? ''),

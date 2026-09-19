@@ -31,6 +31,7 @@ class RecipeUse {
     required this.unit,
     required this.amount,
     this.quantity,
+    this.measureLabel,
   });
 
   /// The referencing line's id, so a tap can scroll to it.
@@ -42,7 +43,13 @@ class RecipeUse {
 
   /// What the parent's line asks for, as printed ("¼ cup").
   final double? quantity;
-  final Unit unit;
+
+  /// The line's catalog unit, or null when it is said in one of this recipe's
+  /// own words instead — the same XOR every component line carries.
+  final Unit? unit;
+
+  /// That word, when the line names one and this recipe still has it.
+  final String? measureLabel;
 
   /// That amount as a share of a batch, or why it cannot be said.
   final ComponentAmount amount;
@@ -55,14 +62,23 @@ class RecipeUse {
       other.title == title &&
       other.quantity == quantity &&
       other.unit == unit &&
+      other.measureLabel == measureLabel &&
       other.amount == amount;
 
   @override
-  int get hashCode =>
-      Object.hash(lineId, recipeId, title, quantity, unit, amount);
+  int get hashCode => Object.hash(
+    lineId,
+    recipeId,
+    title,
+    quantity,
+    unit,
+    measureLabel,
+    amount,
+  );
 
   @override
-  String toString() => 'RecipeUse($title, $quantity ${unit.id}, $amount)';
+  String toString() =>
+      'RecipeUse($title, $quantity ${measureLabel ?? unit?.id}, $amount)';
 }
 
 abstract interface class RecipeRepository {
