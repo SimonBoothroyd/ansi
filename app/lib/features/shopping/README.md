@@ -197,11 +197,20 @@ receipt** (`ScanReceiptDoor` → `/receipts/review`,
 because the photo import is gated there: shoot the receipt on the phone,
 review it anywhere.
 
-The **ledger rides that same row** rather than taking a door of its own — a
-third dashed box would be a third thing to read past on every walk, and a
-long-press would be a door nobody could find — so a quiet `receipts ›` sits at
-the end of it, and **only once the household has kept one**: a door onto an
-empty page is furniture.
+The **ledger's door is in the header**, not at the foot: a receipt action in
+the switcher's suffix, opening `/receipts`. The foot is the end of a list you
+have to walk to reach, and the one door that is not about *this* trip belongs
+in the chrome, where it is in the same place at every scroll position and at
+every width — so it is the Shop's door on a phone and at a desk alike, and
+nothing at the foot repeats it. The switcher stays **centred** beside it:
+`FHeader.nested` centres its title in the header's whole width and moves it
+only when title and action would collide, so a balancing spacer opposite would
+buy no centring and cost the title room.
+
+It is drawn **only once the household has kept a receipt**: a door onto an
+empty page is furniture, and the header is the one strip on screen for the
+whole walk. `scan a receipt` is what teaches the feature; the header action is
+what gets you back to what it kept.
 
 The trip figure sums the rows it can price and lets the rows name the rest.
 That is this list's own doctrine, not a softening of invariant 3: it already

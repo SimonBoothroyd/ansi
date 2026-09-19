@@ -1,9 +1,8 @@
 /// The Shop's second foot door — the one that ends the trip.
 ///
-/// Three things are pinned: it opens the scan, the ledger rides the same row
-/// rather than taking a door of its own, and that ledger link appears **only
-/// once the household has kept a receipt** — a door onto an empty page is
-/// furniture.
+/// Two things are pinned: it opens the scan, and it is the only receipts door
+/// at the foot. The ledger's door is the header's receipt action, which
+/// `shopping_screen_test.dart` holds.
 library;
 
 import 'package:ansi/core/theme/ansi_theme.dart';
@@ -60,17 +59,7 @@ void main() {
     expect(find.text('the scan'), findsOneWidget);
   });
 
-  testWidgets('with nothing kept there is no ledger door', (tester) async {
-    await pumpDoor(tester, overrides: receiptOverrides());
-    await tester.pumpAndSettle();
-    expect(
-      find.text('receipts'),
-      findsNothing,
-      reason: 'a door onto an empty page is furniture',
-    );
-  });
-
-  testWidgets('once a receipt is kept, the ledger rides the same row', (
+  testWidgets('the ledger does not ride this row — it has the header', (
     tester,
   ) async {
     await pumpDoor(
@@ -80,11 +69,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-
-    expect(find.text('receipts'), findsOneWidget);
-    await tester.tap(find.text('receipts'));
-    await tester.pumpAndSettle();
-    expect(find.text('the ledger'), findsOneWidget);
+    expect(
+      find.text('receipts'),
+      findsNothing,
+      reason: 'one door, in the chrome — not a second link at the foot',
+    );
   });
 
   testWidgets('in a browser the door says what it can actually do', (
