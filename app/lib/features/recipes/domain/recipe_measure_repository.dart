@@ -2,9 +2,9 @@
 /// PURE DART (invariant 2), the sub-recipe twin of `MeasureRepository`.
 ///
 /// A [RecipeMeasure] is the household's word for one of what ONE recipe makes
-/// ("a batch makes 20 blob", ADR-0018), so another recipe's component line can
-/// say `3 blob` of it. One number defines it and nothing here knows what the
-/// word says.
+/// — a named AMOUNT in a unit ("a blob is 15 g", ADR-0018) — so another
+/// recipe's component line can say `3 blob` of it. A number and a unit define
+/// it and nothing here knows what the word says.
 ///
 /// **Duplicate labels merge on read.** No unique index guards
 /// `(recipe_id, label)` — one would make an offline duplicate fail upload, and
@@ -18,6 +18,7 @@ import 'package:meta/meta.dart';
 
 import '../../../core/result/result.dart';
 import '../../../core/units/recipe_measure.dart';
+import '../../../core/units/units.dart';
 import 'recipe.dart';
 import 'recipe_measure_authoring.dart';
 import 'recipe_repository.dart';
@@ -56,26 +57,35 @@ abstract interface class RecipeMeasureRepository {
   /// Stamped after the recipe's existing words (`sort_order`). Throws
   /// [RecipeMeasureRefused] carrying [authorRecipeMeasure]'s own failure for a
   /// blank label, a label that merely names a catalog unit, a label this
-  /// recipe already says, or a `perBatch` that is not a positive finite
-  /// number — the rules hold at the repository, not only at the form.
+  /// recipe already says, an [amount] that is not a positive finite number, a
+  /// [unit] that cannot measure (`batch`, or an imprecise word), or a unit
+  /// whose family the recipe's `makes` does not state — the rules hold at the
+  /// repository, not only at the form.
+  ///
+  /// **The `makes` is not a parameter.** ADR-0018 rule 2 gates a word on what
+  /// the recipe says a batch makes, which is a fact about the stored recipe;
+  /// the implementation reads it off the row inside its own transaction rather
+  /// than letting a form assert it.
   Future<RecipeMeasure> addRecipeMeasure({
     required String recipeId,
     required String label,
-    required double perBatch,
+    required double amount,
+    required Unit unit,
   });
 
   /// Re-states one live word in place, **keeping its id** — `blob` moving from
-  /// 20 to 24 follows through to every line already saying it, which is the
+  /// 15 g to 18 g follows through to every line already saying it, which is the
   /// whole reason this is not a delete and a re-add.
   ///
-  /// The label and the number are re-stated together because they are one
-  /// sentence ("a batch makes 24 blob"), and the row's editor says both.
+  /// The label, the number and the unit are re-stated together because they are
+  /// one sentence ("a blob is 18 g"), and the row's editor says all three.
   /// Throws [RecipeMeasureRefused] on [addRecipeMeasure]'s rules, and for an
   /// id naming no live word.
   Future<void> restateRecipeMeasure({
     required String measureId,
     required String label,
-    required double perBatch,
+    required double amount,
+    required Unit unit,
   });
 
   /// Re-stamps `sort_order` so one recipe's words read in the order [ids]

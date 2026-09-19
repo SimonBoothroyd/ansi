@@ -61,18 +61,20 @@ Future<void> _insertIngredient(
   ],
 );
 
-/// Coins one of [recipeId]'s own words — *a batch makes [perBatch] [label]*.
-/// The ONE place this file states what a measure IS.
+/// Coins one of [recipeId]'s own words — *a [label] is [amount] [unit]*
+/// (ADR-0018). The ONE place this file states what a measure IS.
 Future<void> _insertMeasure(
   PowerSyncDatabase db,
   String recipeId, {
   String id = 'm-blob',
   String label = 'blob',
-  double perBatch = 20,
+  double amount = 0.05,
+  Unit unit = cup,
 }) => db.execute(
-  'INSERT INTO recipe_measure (id, household_id, recipe_id, label, per_batch, '
-  'sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?)',
-  [id, 'h', recipeId, label, perBatch, _now, _now],
+  'INSERT INTO recipe_measure (id, household_id, recipe_id, label, amount, '
+  'unit, sort_order, created_at, updated_at) '
+  'VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)',
+  [id, 'h', recipeId, label, amount, unit.id, _now, _now],
 );
 
 Future<void> _insertGroup(PowerSyncDatabase db, String id, String recipeId) =>
@@ -612,8 +614,8 @@ void main() {
       expect(await stream.moveNext(), isTrue);
       expect(stream.current['r1'], hasLength(1));
 
-      await db.execute('UPDATE recipe_measure SET per_batch = ? WHERE id = ?', [
-        24,
+      await db.execute('UPDATE recipe_measure SET amount = ? WHERE id = ?', [
+        1 / 24,
         'm-blob',
       ]);
       // The re-statement moves nothing about the STORED delta — an amount here

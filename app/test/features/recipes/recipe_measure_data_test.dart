@@ -28,30 +28,48 @@ import 'package:powersync/powersync.dart';
 
 import '../../helpers/test_db.dart';
 
+/// What the aioli says a batch makes. Every word below is an amount in this
+/// family, because that is the gate: a word is only sayable against a `makes`
+/// it can be held to (ADR-0018 rule 2).
+const _yield = (qty: 300.0, unit: g);
+
 /// Every measure this file uses is built here, so re-stating what a measure IS
 /// (the denomination it carries) is one edit rather than forty. `blob()` is *a
-/// batch makes 20 blob*.
+/// blob is 15 g*, which against `makes 300 g` is a twentieth of a batch.
 RecipeMeasure word(
   String label, {
-  double perBatch = 20,
+  double amount = 15,
+  Unit unit = g,
   String? id,
   int sortOrder = 0,
 }) => RecipeMeasure(
   id: id ?? 'm-$label',
   recipeId: 'aioli',
   label: label,
-  perBatch: perBatch,
+  amount: amount,
+  unit: unit,
   sortOrder: sortOrder,
 );
 
-RecipeMeasure blob({double perBatch = 20}) => word('blob', perBatch: perBatch);
+RecipeMeasure blob({double amount = 15, Unit unit = g}) =>
+    word('blob', amount: amount, unit: unit);
 
-/// What a count of the word comes to in batches — read off the fixture rather
-/// than written as a literal, so an expectation says "a share of the target's
-/// batch" instead of a number that would quietly stop being the right one if
-/// the denomination were re-stated.
-double batchesOf(double count, [RecipeMeasure? measure]) =>
-    (measure ?? blob()).batchesFor(count)!;
+/// What a count of the word comes to in batches — read through the one
+/// resolution every reader uses rather than written as a literal, so an
+/// expectation says "a share of the target's batch" instead of a number that
+/// would quietly stop being the right one if the denomination were re-stated.
+double batchesOf(double count, [RecipeMeasure? measure]) {
+  final m = measure ?? blob();
+  return (resolveComponentAmount(
+            quantity: count,
+            unit: null,
+            yields: const [_yield],
+            recipeMeasureId: m.id,
+            measures: [m],
+          )
+          as ResolvedComponentAmount)
+      .batches;
+}
 
 void main() {
   late PowerSyncDatabase db;
@@ -60,7 +78,7 @@ void main() {
   late SqliteRecipeMeasureRepository measures;
   late SqliteWeekVariantRepository week;
 
-  /// The Romesco Aioli: makes 1 cup, one 240 g line of rice, and the
+  /// The Romesco Aioli: makes 300 g, one 240 g line of rice, and the
   /// household's word for a ladleful of it.
   Future<void> seedAioli({List<RecipeMeasure>? words}) => repo.saveRecipe(
     Recipe(
@@ -68,8 +86,8 @@ void main() {
       title: 'Romesco Aioli',
       servingsBase: 4,
       keepsForDays: 5,
-      yieldQty: 1,
-      yieldUnit: cup,
+      yieldQty: _yield.qty,
+      yieldUnit: _yield.unit,
       measures: words ?? [blob()],
       groups: const [
         IngredientGroup(
@@ -188,12 +206,16 @@ void main() {
       final amount = line.componentAmount! as ResolvedComponentAmount;
       expect(amount.batches, closeTo(batchesOf(3), 1e-12));
       expect(amount.viaMeasure, blob());
-      expect(amount.against, isNull, reason: 'a word goes near no yield');
+      expect(
+        amount.against,
+        _yield,
+        reason: 'one conversion path: a word reaches a batch THROUGH the yield',
+      );
     });
 
     test('the recipe page carries the recipe’s own words', () async {
       await seedAioli(
-        words: [blob(), word('ladle', perBatch: 6, sortOrder: 1)],
+        words: [blob(), word('ladle', amount: 50, sortOrder: 1)],
       );
       final loaded = (await repo.watchRecipe('aioli').first)!;
       expect(loaded.measures.map((m) => m.label), ['blob', 'ladle']);
@@ -216,14 +238,15 @@ void main() {
         // no unique index, deliberately) and hidden behind the older one.
         await db.execute(
           'INSERT INTO recipe_measure (id, household_id, recipe_id, label, '
-          'per_batch, sort_order, created_at, updated_at) '
-          'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          'amount, unit, sort_order, created_at, updated_at) '
+          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [
             'm-blob-2',
             'h',
             'aioli',
             'blob',
-            24,
+            12.5,
+            'g',
             0,
             '2099-01-01T00:00:00Z',
             '2099-01-01T00:00:00Z',
@@ -427,7 +450,8 @@ void main() {
       final minted = await measures.addRecipeMeasure(
         recipeId: 'aioli',
         label: '  ladle ',
-        perBatch: 6,
+        amount: 50,
+        unit: g,
       );
       // Read by the ingredient side's rule exactly: trimmed, inner whitespace
       // collapsed, case untouched.
@@ -442,7 +466,12 @@ void main() {
     test('the ＋ door holds the authoring rules, not just the form', () async {
       await seedAioli();
       await expectLater(
-        measures.addRecipeMeasure(recipeId: 'aioli', label: 'cup', perBatch: 6),
+        measures.addRecipeMeasure(
+          recipeId: 'aioli',
+          label: 'cup',
+          amount: 50,
+          unit: g,
+        ),
         throwsA(
           isA<RecipeMeasureRefused>().having(
             (e) => e.code,
@@ -455,7 +484,8 @@ void main() {
         measures.addRecipeMeasure(
           recipeId: 'aioli',
           label: 'Blob',
-          perBatch: 6,
+          amount: 50,
+          unit: g,
         ),
         throwsA(
           isA<RecipeMeasureRefused>().having(
@@ -469,13 +499,62 @@ void main() {
         measures.addRecipeMeasure(
           recipeId: 'aioli',
           label: 'ladle',
-          perBatch: 0,
+          amount: 0,
+          unit: g,
         ),
         throwsA(
           isA<RecipeMeasureRefused>().having(
             (e) => e.code,
             'code',
-            'recipe_measure/per_batch',
+            'recipe_measure/amount',
+          ),
+        ),
+      );
+      expect(await measures.watchRecipeMeasures('aioli').first, [blob()]);
+    });
+
+    test('the ＋ door reads the MAKES off the recipe row, not off the form',
+        () async {
+      // The gate ADR-0018 rule 2 pays for out loud, and the reason the yields
+      // are not a parameter: what a batch makes is a fact about the stored
+      // recipe, so a form cannot assert its way past it.
+      await seedAioli();
+      await repo.saveRecipe(
+        (await repo.watchRecipe('aioli').first)!.copyWith(yieldQty: null),
+      );
+      await expectLater(
+        measures.addRecipeMeasure(
+          recipeId: 'aioli',
+          label: 'ladle',
+          amount: 50,
+          unit: g,
+        ),
+        throwsA(
+          isA<RecipeMeasureRefused>().having(
+            (e) => e.code,
+            'code',
+            'recipe_measure/no_yield',
+          ),
+        ),
+      );
+    });
+
+    test('a word the recipe’s MAKES cannot hold is refused at the door',
+        () async {
+      // The aioli makes 300 g and nothing else, and a recipe has no density.
+      await seedAioli();
+      await expectLater(
+        measures.addRecipeMeasure(
+          recipeId: 'aioli',
+          label: 'ladle',
+          amount: 180,
+          unit: ml,
+        ),
+        throwsA(
+          isA<RecipeMeasureRefused>().having(
+            (e) => e.code,
+            'code',
+            'recipe_measure/unit_family',
           ),
         ),
       );
@@ -490,7 +569,8 @@ void main() {
       await measures.restateRecipeMeasure(
         measureId: 'm-blob',
         label: 'blob',
-        perBatch: 24,
+        amount: 12.5,
+        unit: g,
       );
 
       final line =
@@ -498,7 +578,7 @@ void main() {
       expect(line.recipeMeasureId, 'm-blob', reason: 'the row kept its id');
       expect(
         (line.componentAmount! as ResolvedComponentAmount).batches,
-        closeTo(batchesOf(3, blob(perBatch: 24)), 1e-12),
+        closeTo(batchesOf(3, blob(amount: 12.5)), 1e-12),
       );
     });
 
@@ -507,7 +587,8 @@ void main() {
       await measures.addRecipeMeasure(
         recipeId: 'aioli',
         label: 'ladle',
-        perBatch: 6,
+        amount: 50,
+        unit: g,
       );
       final ladle = (await measures.watchRecipeMeasures('aioli').first).last;
       await measures.reorderRecipeMeasures('aioli', [ladle.id, 'm-blob']);
@@ -589,12 +670,12 @@ void main() {
         // A word added and one re-stated through the form's Save.
         await repo.saveRecipe(
           (await repo.watchRecipe('aioli').first)!.copyWith(
-            measures: [blob(perBatch: 24), word('ladle', perBatch: 6)],
+            measures: [blob(amount: 12.5), word('ladle', amount: 50)],
           ),
         );
         var loaded = (await repo.watchRecipe('aioli').first)!;
         expect(loaded.measures.map((m) => m.label), ['blob', 'ladle']);
-        expect(loaded.measures.first, blob(perBatch: 24));
+        expect(loaded.measures.first, blob(amount: 12.5));
 
         // A word dropped from the list is tombstoned…
         await repo.saveRecipe(
@@ -616,6 +697,80 @@ void main() {
         expect(after.measures, hasLength(1));
       },
     );
+
+    test('the deferred door judges a new word against the MAKES the same Save '
+        'leaves behind', () async {
+      // A `makes` edit and a word arriving in one Save: the yields the gate
+      // reads are the ones this Save states, not the ones the recipe used to.
+      await seedAioli();
+      final loaded = (await repo.watchRecipe('aioli').first)!;
+      await expectLater(
+        repo.saveRecipe(
+          loaded.copyWith(
+            yieldUnit: cup,
+            yieldQty: 1.25,
+            measures: [...loaded.measures, word('ladle', amount: 50)],
+          ),
+        ),
+        throwsA(
+          isA<RecipeMeasureRefused>().having(
+            (e) => e.code,
+            'code',
+            'recipe_measure/unit_family',
+          ),
+        ),
+      );
+      // …and the other way: the same word lands when the Save says a mass.
+      await repo.saveRecipe(
+        loaded.copyWith(
+          measures: [...loaded.measures, word('ladle', amount: 50)],
+        ),
+      );
+      expect(
+        (await repo.watchRecipe('aioli').first)!.measures.map((m) => m.label),
+        ['blob', 'ladle'],
+      );
+    });
+
+    test('a MAKES edit that orphans a live word warns — it never refuses the '
+        'Save', () async {
+      // ADR-0018 rule 4, in the one place it could be broken. What a batch
+      // makes is the recipe's own fact; a gate that re-authored every word on
+      // every Save would trap a person in the editor instead of letting the
+      // warning do its job.
+      await seedAioli();
+      await repo.saveRecipe(parent());
+      final loaded = (await repo.watchRecipe('aioli').first)!;
+
+      await repo.saveRecipe(loaded.copyWith(yieldUnit: cup, yieldQty: 1.25));
+      final after = (await repo.watchRecipe('aioli').first)!;
+      expect(after.measures, [blob()], reason: 'the word stays, untouched');
+      // Its lines go honestly unresolved, which is the consequence the
+      // warning names — not a refusal, and never a guessed share.
+      final line =
+          (await repo.watchRecipe('sliders').first)!.groups.single.items.single;
+      expect(line.componentAmount, isA<ComponentFamilyMismatch>());
+    });
+
+    test('a word in a unit this build has never heard of is SKIPPED, never '
+        'read as pieces', () async {
+      // How a later build reaches this one: a word coined in a unit that is
+      // not in this catalog, synced down anyway. The fallback the resolution
+      // would otherwise take is `pieces`, which is exactly the confidently
+      // wrong batch share rule 7 refuses.
+      await seedAioli();
+      await repo.saveRecipe(parent());
+      await db.execute('UPDATE recipe_measure SET unit = ? WHERE id = ?', [
+        'furlong',
+        'm-blob',
+      ]);
+
+      expect((await repo.watchRecipe('aioli').first)!.measures, isEmpty);
+      final line =
+          (await repo.watchRecipe('sliders').first)!.groups.single.items.single;
+      expect(line.quantity, 3, reason: 'the number is kept');
+      expect(line.componentAmount, const ComponentMeasureMissing('m-blob'));
+    });
 
     test('a dropped word is revived rather than duplicated when its id comes '
         'back', () async {
@@ -653,12 +808,14 @@ void main() {
         final ladle = await measures.addRecipeMeasure(
           recipeId: 'aioli',
           label: 'ladle',
-          perBatch: 6,
+          amount: 50,
+          unit: g,
         );
         await measures.restateRecipeMeasure(
           measureId: ladle.id,
           label: 'ladle',
-          perBatch: 8,
+          amount: 37.5,
+          unit: g,
         );
         await measures.reorderRecipeMeasures('aioli', [ladle.id, 'm-blob']);
         await measures.softDeleteRecipeMeasure(ladle.id);
@@ -714,8 +871,8 @@ void main() {
     }
 
     Future<void> restate() => db.execute(
-      'UPDATE recipe_measure SET per_batch = ? WHERE id = ?',
-      [24, 'm-blob'],
+      'UPDATE recipe_measure SET amount = ? WHERE id = ?',
+      [12.5, 'm-blob'],
     );
 
     test('watchRecipe — the parent’s page re-resolves the line', () async {
@@ -729,7 +886,7 @@ void main() {
               .batches,
       ];
       expect(batches.first, closeTo(batchesOf(3), 1e-12));
-      expect(batches.last, closeTo(batchesOf(3, blob(perBatch: 24)), 1e-12));
+      expect(batches.last, closeTo(batchesOf(3, blob(amount: 12.5)), 1e-12));
     });
 
     test('watchRecipe — the target’s own page re-lists its words', () async {
@@ -739,7 +896,8 @@ void main() {
         () => measures.addRecipeMeasure(
           recipeId: 'aioli',
           label: 'ladle',
-          perBatch: 6,
+          amount: 50,
+          unit: g,
         ),
       );
       expect(seen.first!.measures, hasLength(1));
@@ -775,7 +933,7 @@ void main() {
         restate,
       );
       expect(seen.first.single, blob());
-      expect(seen.last.single, blob(perBatch: 24));
+      expect(seen.last.single, blob(amount: 12.5));
     });
   });
 }

@@ -58,8 +58,9 @@ plan. A component the batch math cannot resolve stays a named `ComponentGap` —
 never a `1×` assumption.
 
 **A line said in one of the target's own words flows through this graph with its
-pointer** — `3 blob` of a sauce that makes 20 of them is 0.15 batches, which
-needs no yield at all (ADR-0018). `loadComponentGraph` carries every recipe's
+pointer** — a word is a named AMOUNT (`a blob is 15 g`, ADR-0018), so `3 blob` is
+45 g and reaches a batch through the target's own same-family yield, in the code
+that has always converted `¼ cup`. `loadComponentGraph` carries every recipe's
 live words beside its yields (`loadRecipeMeasures`, one query keyed by recipe
 id), and the watch joins `recipe_measure`, so re-stating a word re-derives the
 plan. The loader's `unit == null` branch is measure-aware: it skips a line only

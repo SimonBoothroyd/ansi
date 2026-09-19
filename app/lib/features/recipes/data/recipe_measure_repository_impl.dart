@@ -16,6 +16,8 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/result/result.dart';
 import '../../../core/units/recipe_measure.dart';
+import '../../../core/units/units.dart';
+import '../domain/component_math.dart';
 import '../domain/recipe_measure_authoring.dart';
 import '../domain/recipe_measure_repository.dart';
 
@@ -23,12 +25,14 @@ const _uuid = Uuid();
 
 /// The columns every read of the table asks for, in one place.
 ///
-/// The **denomination** — what one of the word comes to — is named here, in
-/// [_rowOf] and in [_insertRow]/[_updateRow], and nowhere else in the app: four
-/// sites, so re-stating what a measure IS is an edit to this file rather than a
-/// sweep through every query, loader and provider that carries one.
+/// The **denomination** — what one of the word comes to, which is an `amount`
+/// and the `unit` it is said in (ADR-0018) — is named here, in [_rowOf] and in
+/// [_insertRow]/[_updateRow], and nowhere else in the app: four sites, so
+/// re-stating what a measure IS is an edit to this file rather than a sweep
+/// through every query, loader and provider that carries one.
 const _columns =
-    'rm.id, rm.recipe_id, rm.label, rm.per_batch, rm.sort_order, rm.created_at';
+    'rm.id, rm.recipe_id, rm.label, rm.amount, rm.unit, rm.sort_order, '
+    'rm.created_at';
 
 /// Every live recipe's own words, keyed by recipe id, duplicates merged
 /// (oldest canonical — [mergeRecipeMeasures]) and `sort_order` first.
@@ -39,10 +43,11 @@ const _columns =
 /// anyway, and a household's words are a handful of rows. A recipe that coins
 /// none is absent from the map, which every caller reads as the empty list.
 ///
-/// A row whose denomination is missing lands as a measure
-/// [RecipeMeasure.saysAShare] refuses — so it names a word and converts
+/// A row whose amount is missing or non-positive lands as a measure
+/// [RecipeMeasure.saysAnAmount] refuses — so it names a word and converts
 /// nothing, rather than converting through a number nobody stated
-/// (invariant 3).
+/// (invariant 3). A row whose `unit` is not a unit this build knows is
+/// **skipped entirely** ([_rowOf]).
 Future<Map<String, List<RecipeMeasure>>> loadRecipeMeasures(
   SqliteConnection db,
 ) async {
@@ -53,7 +58,9 @@ Future<Map<String, List<RecipeMeasure>>> loadRecipeMeasures(
   for (final r in rows) {
     final recipeId = r['recipe_id'] as String?;
     if (recipeId == null) continue;
-    (byRecipe[recipeId] ??= []).add(_rowOf(r, recipeId));
+    final row = _rowOf(r, recipeId);
+    if (row == null) continue;
+    (byRecipe[recipeId] ??= []).add(row);
   }
   return {
     for (final e in byRecipe.entries) e.key: mergeRecipeMeasures(e.value),
@@ -76,6 +83,22 @@ Future<Map<String, List<RecipeMeasure>>> loadRecipeMeasures(
 /// gate is here rather than only at the bin because a retired word leaves its
 /// lines unresolved for good (ADR-0018 rule 3), and neither door may walk
 /// round that.
+///
+/// **The authoring gate runs on what this Save STATES, against the `makes` this
+/// Save leaves behind.** The yields are read back off the recipe row inside the
+/// transaction — the row has already been written by then — so a `makes` edit
+/// and a word edit arriving in one Save are judged against each other rather
+/// than against what the recipe used to say. That is the data half of
+/// [recipeMeasuresOrphanedBy]: the editor warns about the words an edit
+/// orphans, and this is what makes the warning true.
+///
+/// A word the list carries through **unchanged is never re-authored**, which is
+/// ADR-0018 rule 4 in the one place it could be broken. What a batch makes is
+/// the recipe's own fact and the household may restate it; a gate that refused
+/// every later Save of a recipe whose word the new `makes` orphans would trap
+/// the person inside the editor instead of warning them on the way out. So the
+/// orphaned word stays, its lines read as `ComponentFamilyMismatch`, and only a
+/// word being coined or re-stated has to answer for itself.
 Future<void> writeRecipeMeasures(
   SqliteWriteContext tx, {
   required String recipeId,
@@ -84,10 +107,11 @@ Future<void> writeRecipeMeasures(
   required String now,
 }) async {
   final stored = await tx.getAll(
-    'SELECT id, label, deleted_at FROM recipe_measure WHERE recipe_id = ?',
+    'SELECT id, label, amount, unit, deleted_at FROM recipe_measure '
+    'WHERE recipe_id = ?',
     [recipeId],
   );
-  final storedIds = {for (final r in stored) r['id'] as String};
+  final storedById = {for (final r in stored) r['id'] as String: r};
   final keptIds = {for (final m in measures) m.id};
 
   for (final r in stored) {
@@ -104,14 +128,49 @@ Future<void> writeRecipeMeasures(
     );
   }
 
+  // Read once, lazily: a Save that states no new word asks the recipe row
+  // nothing, and a recipe with no yield can still carry the words it already
+  // has through a Save that leaves them alone.
+  List<YieldDenomination>? yields;
+
   for (final (index, measure) in measures.indexed) {
     final positioned = measure.copyWith(recipeId: recipeId, sortOrder: index);
-    if (storedIds.contains(measure.id)) {
+    final was = storedById[measure.id];
+    if (_restates(positioned, was)) {
+      yields ??= await _yieldsOf(tx, recipeId);
+      _authored(
+        authorRecipeMeasure(
+          id: positioned.id,
+          recipeId: recipeId,
+          label: positioned.label,
+          amount: positioned.amount,
+          unit: positioned.unit,
+          yields: yields,
+          measures: [
+            for (final m in measures)
+              if (m.id != positioned.id) m,
+          ],
+          sortOrder: index,
+        ),
+      );
+    }
+    if (was != null) {
       await _updateRow(tx, positioned, now: now);
     } else {
       await _insertRow(tx, positioned, householdId: householdId, now: now);
     }
   }
+}
+
+/// Whether [measure] says something the stored row [was] did not — a new word,
+/// or one whose denomination or label this Save re-states. Position alone is
+/// not a re-statement: dragging the list re-stamps `sort_order` and states
+/// nothing about what a word IS.
+bool _restates(RecipeMeasure measure, Map<String, Object?>? was) {
+  if (was == null) return true;
+  return measure.label != (was['label'] as String? ?? '') ||
+      measure.amount != ((was['amount'] as num?)?.toDouble() ?? 0) ||
+      measure.unit.id != (was['unit'] as String? ?? '');
 }
 
 class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
@@ -131,16 +190,14 @@ class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
         'ORDER BY rm.sort_order, rm.created_at, rm.id',
         parameters: [recipeId],
       )
-      .map(
-        (rows) =>
-            mergeRecipeMeasures([for (final r in rows) _rowOf(r, recipeId)]),
-      );
+      .map((rows) => mergeRecipeMeasures(_rowsOf(rows, recipeId)));
 
   @override
   Future<RecipeMeasure> addRecipeMeasure({
     required String recipeId,
     required String label,
-    required double perBatch,
+    required double amount,
+    required Unit unit,
   }) async {
     final id = _uuid.v4();
     final now = DateTime.now().toUtc().toIso8601String();
@@ -157,12 +214,18 @@ class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
       // Authored by the domain, not by this file: both doors hold one set of
       // rules, and a word that merely names a catalog unit is refused against
       // the catalog's own lookup rather than a hand list.
+      //
+      // The YIELDS come off the recipe row, here rather than from the caller:
+      // the gate is "only when we know what the recipe makes", which is a fact
+      // about the stored recipe and not something a form may assert.
       minted = _authored(
         authorRecipeMeasure(
           id: id,
           recipeId: recipeId,
           label: label,
-          perBatch: perBatch,
+          amount: amount,
+          unit: unit,
+          yields: await _yieldsOf(tx, recipeId),
           measures: live,
           sortOrder: (row['m'] as int) + 1,
         ),
@@ -176,7 +239,8 @@ class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
   Future<void> restateRecipeMeasure({
     required String measureId,
     required String label,
-    required double perBatch,
+    required double amount,
+    required Unit unit,
   }) async {
     final now = DateTime.now().toUtc().toIso8601String();
     await _db.writeTransaction((tx) async {
@@ -200,7 +264,9 @@ class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
           id: measureId,
           recipeId: recipeId,
           label: label,
-          perBatch: perBatch,
+          amount: amount,
+          unit: unit,
+          yields: await _yieldsOf(tx, recipeId),
           measures: await _liveMeasuresOf(tx, recipeId),
           sortOrder: (row['sort_order'] as int?) ?? 0,
         ),
@@ -268,8 +334,34 @@ class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
       'ORDER BY rm.sort_order, rm.created_at, rm.id',
       [recipeId],
     );
-    return mergeRecipeMeasures([for (final r in rows) _rowOf(r, recipeId)]);
+    return mergeRecipeMeasures(_rowsOf(rows, recipeId));
   }
+}
+
+/// What [recipeId] says a batch makes — the authoring gate's one input, read
+/// off the recipe row rather than taken from a caller.
+///
+/// ADR-0018 rule 2: a word may only be authored against a `makes` it can be
+/// held to. That is a fact about the stored recipe, so both write doors ask the
+/// row for it inside their own transaction. A recipe that has not synced (or
+/// has been retired) states nothing, and `authorRecipeMeasure` refuses on
+/// `recipe_measure/no_yield` — which is the truth about what is known here.
+Future<List<YieldDenomination>> _yieldsOf(
+  SqliteReadContext tx,
+  String recipeId,
+) async {
+  final row = await tx.getOptional(
+    'SELECT yield_qty, yield_unit, yield_qty_2, yield_unit_2 FROM recipe '
+    'WHERE id = ? AND deleted_at IS NULL',
+    [recipeId],
+  );
+  if (row == null) return const [];
+  return yieldDenominations(
+    (row['yield_qty'] as num?)?.toDouble(),
+    unitById(row['yield_unit'] as String? ?? ''),
+    (row['yield_qty_2'] as num?)?.toDouble(),
+    unitById(row['yield_unit_2'] as String? ?? ''),
+  );
 }
 
 /// The one INSERT of a measure row. Every door that mints a word goes through
@@ -282,14 +374,15 @@ Future<void> _insertRow(
   required String now,
 }) => tx.execute(
   'INSERT INTO recipe_measure (id, household_id, recipe_id, label, '
-  'per_batch, sort_order, created_at, updated_at) '
-  'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+  'amount, unit, sort_order, created_at, updated_at) '
+  'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
   [
     measure.id,
     householdId,
     measure.recipeId,
     measure.label,
-    measure.perBatch,
+    measure.amount,
+    measure.unit.id,
     measure.sortOrder,
     now,
     now,
@@ -307,9 +400,16 @@ Future<void> _updateRow(
   RecipeMeasure measure, {
   required String now,
 }) => tx.execute(
-  'UPDATE recipe_measure SET label = ?, per_batch = ?, sort_order = ?, '
+  'UPDATE recipe_measure SET label = ?, amount = ?, unit = ?, sort_order = ?, '
   'updated_at = ?, deleted_at = NULL WHERE id = ?',
-  [measure.label, measure.perBatch, measure.sortOrder, now, measure.id],
+  [
+    measure.label,
+    measure.amount,
+    measure.unit.id,
+    measure.sortOrder,
+    now,
+    measure.id,
+  ],
 );
 
 /// What still says [measureId] — the count both the bin's refusal and the
@@ -365,17 +465,45 @@ Future<void> _refuseWhileSaid(
   throw RecipeMeasureInUse(measureId: measureId, label: label, usage: usage);
 }
 
-/// One stored row as [mergeRecipeMeasures] takes it.
-RecipeMeasureRow _rowOf(Map<String, Object?> r, String recipeId) => (
-  measure: RecipeMeasure(
-    id: r['id']! as String,
-    recipeId: recipeId,
-    label: r['label'] as String? ?? '',
-    perBatch: (r['per_batch'] as num?)?.toDouble() ?? 0,
-    sortOrder: (r['sort_order'] as int?) ?? 0,
-  ),
-  createdAt: r['created_at'],
-);
+/// Every stored row this build can read, as [mergeRecipeMeasures] takes them —
+/// the rows [_rowOf] skips are simply not there.
+List<RecipeMeasureRow> _rowsOf(
+  Iterable<Map<String, Object?>> rows,
+  String recipeId,
+) => [
+  for (final r in rows)
+    if (_rowOf(r, recipeId) case final row?) row,
+];
+
+/// One stored row as [mergeRecipeMeasures] takes it, or **null for a row whose
+/// `unit` is not a unit this build knows**.
+///
+/// A measure is an amount in a unit, so a unit this build cannot look up leaves
+/// the row unable to say the one thing it exists to say. Such a row is dropped
+/// rather than given a stand-in: the fallback would be `pieces`, and `3 blob`
+/// read as 3 pieces of whatever the batch is counted in is exactly the
+/// confidently-wrong batch share ADR-0018 rule 7 refuses. Dropped, the line
+/// naming it reads [ComponentMeasureMissing] — the same honest gap as a word
+/// that has been retired, which is what a word this build cannot read IS.
+///
+/// It happens the way every forward-compatibility question here happens: a
+/// later build coins a word in a unit this one has never heard of, and the row
+/// syncs down anyway.
+RecipeMeasureRow? _rowOf(Map<String, Object?> r, String recipeId) {
+  final unit = unitById(r['unit'] as String? ?? '');
+  if (unit == null) return null;
+  return (
+    measure: RecipeMeasure(
+      id: r['id']! as String,
+      recipeId: recipeId,
+      label: r['label'] as String? ?? '',
+      amount: (r['amount'] as num?)?.toDouble() ?? 0,
+      unit: unit,
+      sortOrder: (r['sort_order'] as int?) ?? 0,
+    ),
+    createdAt: r['created_at'],
+  );
+}
 
 /// The authored measure, or the authoring rule's refusal as a throw — the
 /// repository's posture (see `core/result/result.dart`: repositories throw and

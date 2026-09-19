@@ -53,19 +53,24 @@ Future<void> _setYield(
   [qty, unit.id, id],
 );
 
-/// Coins one of [recipeId]'s own words — *a batch makes [perBatch] [label]*.
-/// The ONE place this file states what a measure IS, so re-stating the
-/// denomination is an edit here rather than at every call site.
+/// Coins one of [recipeId]'s own words — *a [label] is [amount] [unit]*
+/// (ADR-0018). The ONE place this file states what a measure IS, so re-stating
+/// the denomination is an edit here rather than at every call site.
+///
+/// The default is a twentieth of a `makes 1 cup` batch, so `3 blob` is 0.15 of
+/// one — which every expectation below reads as `3 / 20`.
 Future<void> _addMeasure(
   PowerSyncDatabase db,
   String recipeId, {
   String id = 'm-blob',
   String label = 'blob',
-  double perBatch = 20,
+  double amount = 0.05,
+  Unit unit = cup,
 }) => db.execute(
-  'INSERT INTO recipe_measure (id, household_id, recipe_id, label, per_batch, '
-  'sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?)',
-  [id, 'h', recipeId, label, perBatch, '2026-01-01', '2026-01-01'],
+  'INSERT INTO recipe_measure (id, household_id, recipe_id, label, amount, '
+  'unit, sort_order, created_at, updated_at) '
+  'VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)',
+  [id, 'h', recipeId, label, amount, unit.id, '2026-01-01', '2026-01-01'],
 );
 
 /// Adds a component line ("¼ cup of [subRecipeId]") to [recipeId], creating
@@ -500,9 +505,10 @@ void main() {
           servings: 4,
           keepsForDays: 5,
         );
-        // A word needs no yield at all — that is the whole point of one — so
-        // the aioli states none unless a test asks for it.
-        if (yieldUnit != null) await _setYield(db, 'aioli', 1, yieldUnit);
+        // A word is an amount (ADR-0018), so it reaches a batch through the
+        // target's own same-family yield: the aioli always states one, and a
+        // test that wants another family says so.
+        await _setYield(db, 'aioli', 1, yieldUnit ?? cup);
         await _addMeasure(db, 'aioli');
         await _addComponentLine(
           db,
@@ -515,7 +521,7 @@ void main() {
       }
 
       test(
-        'derives its session, without the target stating any yield',
+        'derives its session through the target’s own yield',
         () async {
           await seedMeasured();
           final plan = await repo.watchCookPlan(_week).first;
@@ -580,8 +586,8 @@ void main() {
           );
 
           await db.execute(
-            'UPDATE recipe_measure SET per_batch = ? WHERE id = ?',
-            [24, 'm-blob'],
+            'UPDATE recipe_measure SET amount = ? WHERE id = ?',
+            [1 / 24, 'm-blob'],
           );
           expect(await stream.moveNext(), isTrue);
           expect(

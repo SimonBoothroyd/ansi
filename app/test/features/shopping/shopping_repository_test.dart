@@ -81,19 +81,24 @@ Future<void> _insertRecipe(
   }
 }
 
-/// Coins one of [recipeId]'s own words — *a batch makes [perBatch] [label]*.
-/// The ONE place this file states what a measure IS, so re-stating the
-/// denomination is an edit here rather than at every call site.
+/// Coins one of [recipeId]'s own words — *a [label] is [amount] [unit]*
+/// (ADR-0018). The ONE place this file states what a measure IS, so re-stating
+/// the denomination is an edit here rather than at every call site.
+///
+/// The default is a twentieth of a `makes 1 cup` batch, so `3 blob` is 0.15 of
+/// one — which every expectation below reads as `3 / 20`.
 Future<void> _insertMeasure(
   PowerSyncDatabase db,
   String recipeId, {
   String id = 'm-blob',
   String label = 'blob',
-  double perBatch = 20,
+  double amount = 0.05,
+  Unit unit = cup,
 }) => db.execute(
-  'INSERT INTO recipe_measure (id, household_id, recipe_id, label, per_batch, '
-  'sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?)',
-  [id, 'h', recipeId, label, perBatch, '2026-01-01', '2026-01-01'],
+  'INSERT INTO recipe_measure (id, household_id, recipe_id, label, amount, '
+  'unit, sort_order, created_at, updated_at) '
+  'VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)',
+  [id, 'h', recipeId, label, amount, unit.id, '2026-01-01', '2026-01-01'],
 );
 
 /// Adds a component line ("¼ cup of [subRecipeId]") to [recipeId] in its own
@@ -1153,11 +1158,11 @@ void main() {
       );
     });
 
-    /// A component said in the target's own word — `3 blob` of a sauce that
-    /// makes 20 of them. No screen on this build writes one; the shop must
-    /// still buy every one it meets. Dropping such a line, which the graph
-    /// loader used to do on `if (unit == null) continue`, left a whole sauce's
-    /// ingredients off the list in silence.
+    /// A component said in the target's own word — `3 blob` of a sauce whose
+    /// blob is a twentieth of its batch. No screen on this build writes one;
+    /// the shop must still buy every one it meets. Dropping such a line, which
+    /// the graph loader used to do on `if (unit == null) continue`, left a
+    /// whole sauce's ingredients off the list in silence.
     group('a MEASURED component line', () {
       Future<void> seedMeasured({String? measureId = 'm-blob'}) async {
         await _insertIngredient(db, 'almonds', 'Almonds', 'pantry', 'g');
@@ -1176,8 +1181,9 @@ void main() {
           keepsForDays: 5,
           lines: [('almonds', 240, g)],
         );
-        // The word needs no yield, which is the whole point of one: a sauce
-        // nobody weighed is still sayable, and still shoppable.
+        // A word is an amount (ADR-0018), so it reaches a batch through the
+        // target's own same-family yield.
+        await _setYield(db, 'aioli', 1, cup);
         await _insertMeasure(db, 'aioli');
         await _insertComponentLine(
           db,
@@ -1240,8 +1246,8 @@ void main() {
           expect(almondsIn(stream.current), closeTo(240 * 3 / 20, 1e-9));
 
           await db.execute(
-            'UPDATE recipe_measure SET per_batch = ? WHERE id = ?',
-            [24, 'm-blob'],
+            'UPDATE recipe_measure SET amount = ? WHERE id = ?',
+            [1 / 24, 'm-blob'],
           );
           expect(await stream.moveNext(), isTrue);
           expect(almondsIn(stream.current), closeTo(240 * 3 / 24, 1e-9));
