@@ -187,10 +187,16 @@ number; `piece` is the degradation rule 7 refuses — so the column is null and
   hold a different line than the other or walk round the refusal below.
 - **A measured line's amount is not re-denominated from a units-only sheet.**
   Until the authoring control ships, the component quantity sheet — which always
-  returns a unit — would silently replace the word with one. On this release the
-  sheet opened on a measured line offers that line's own word as its single,
-  preselected denomination, so the number can be edited and the word cannot be
-  lost. Recipe editor and week-variant editor both.
+  returns a unit — would silently replace the word with one, and nothing on this
+  build could put it back. So the sheet opened on a line carrying a
+  `recipe_measure_id` offers that line's own denomination as its single,
+  preselected, inert chip and hands back a **null unit**: the number is editable
+  and the word cannot be lost. A line whose word has been RETIRED is treated the
+  same, for a stronger reason — it has no honest denomination at all, so a unit
+  written there would put a confident number where the app was correctly saying
+  it did not know. Recipe editor and week-variant editor both, and week mode's
+  amount cell routes such a line to this sheet rather than to the INGREDIENT
+  one, whose offer cannot express a recipe's word at all.
 - **A re-stated word follows every line saying it.** The row keeps its id, so
   `blob` moving from 15 g to 18 g moves every line at once. That is why the
   editor re-states rather than deleting and re-adding, and why the bin is
