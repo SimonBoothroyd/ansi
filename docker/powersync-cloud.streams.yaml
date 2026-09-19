@@ -39,6 +39,7 @@ streams:
       - SELECT * FROM recipe            WHERE household_id = auth.parameter('household_id')
       - SELECT * FROM ingredient_group  WHERE household_id = auth.parameter('household_id')
       - SELECT * FROM recipe_line_item  WHERE household_id = auth.parameter('household_id')
+      - SELECT * FROM recipe_measure    WHERE household_id = auth.parameter('household_id')
       - SELECT * FROM week_plan         WHERE household_id = auth.parameter('household_id')
       - SELECT * FROM plan_entry        WHERE household_id = auth.parameter('household_id')
       - SELECT * FROM week_recipe_line_override WHERE household_id = auth.parameter('household_id')

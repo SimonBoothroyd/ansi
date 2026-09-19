@@ -4,7 +4,7 @@ pgTAP tests for RLS policies and constraints. Run with `supabase test db`
 (also run in CI, `.github/workflows/backend.yml`). Each `*.sql` file wraps its
 assertions in `begin … rollback` so runs leave no residue.
 
-- `rls_household_isolation.sql` — data-driven over ALL 16 household-scoped
+- `rls_household_isolation.sql` — data-driven over ALL 17 household-scoped
   tables: a household can't read or write another's rows (select isolation +
   cross-household insert rejection per table); `usda_food` is denied to client
   roles but readable by `service_role`. New table? Add one setup row + one
@@ -63,6 +63,20 @@ assertions in `begin … rollback` so runs leave no residue.
   that a soft-deleted link doesn't count, and that a `sub_recipe_id` can
   never reach another household's recipe (from `authenticated` AND from a
   superuser write, where RLS isn't doing the work).
+- `recipe_measure.sql` — a recipe's own word for one of what it makes (0048):
+  the shape (a label that is a word, a positive `per_batch`) and the
+  deliberate ABSENCE of a unique `(recipe_id, label)` index, so an offline
+  duplicate lands instead of 23505-ing the whole crud transaction; the two
+  pointers on `recipe_line_item` and `week_recipe_line_override`, each sayable
+  only on a component line, only beside a number and never beside a unit —
+  with both rules that demanded a unit still refusing exactly what they always
+  refused for a row without a measure (`recipe_line_item.unit` relaxed to
+  nullable behind an XOR, 0040's pair rule restated with its old form as the
+  `else`); the guard trigger's three refusals
+  (another recipe's word, another household's word, a retired word) and its
+  happy path; that a line whose word has since gone stays editable and keeps
+  its number, because it is unresolved rather than re-read as a count; and the
+  boundary — RLS on, no delete policy, in the `powersync` publication.
 - `shopping_week.sql` — the shopping overlay's week scope (0019 and 0036):
   `shopping_list_entry.week_start_date` exists, is a nullable `date` (the
   column still admits the week-less rows an older client wrote), and carries
