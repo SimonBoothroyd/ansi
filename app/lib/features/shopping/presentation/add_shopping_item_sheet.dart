@@ -178,6 +178,9 @@ class _TopUpBody extends HookConsumerWidget {
             measureId: measure.id,
             weekStart: weekStart,
           ),
+          RecipeMeasureOption(:final measure) => notAWordForAnIngredient(
+            measure,
+          ),
         },
       );
       // This sheet is the root navigator's top route again once the quantity

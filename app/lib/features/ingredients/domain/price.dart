@@ -382,6 +382,7 @@ Result<double> packInBasis(
   // is the truth about it.
   final piece = pieceAsMeasure(ingredient);
   return switch (choice) {
+    RecipeMeasureOption(:final measure) => notAWordForAnIngredient(measure),
     MeasureOption(:final measure) => convertMeasure(
       amount,
       measure,
@@ -439,6 +440,7 @@ typedef PackAsEntered = ({double amount, String? unitId, String? measureId});
 
 PackAsEntered packAsEntered(double amount, UnitChoice choice) =>
     switch (choice) {
+      RecipeMeasureOption(:final measure) => notAWordForAnIngredient(measure),
       MeasureOption(:final measure) => (
         amount: amount,
         unitId: null,

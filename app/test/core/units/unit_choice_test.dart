@@ -1,5 +1,6 @@
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
+import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/unit_choice.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -50,15 +51,55 @@ void main() {
     });
   });
 
+  group('RecipeMeasureOption', () {
+    const blob = RecipeMeasure(
+      id: 'r1',
+      recipeId: 'aioli',
+      label: 'blob',
+      perBatch: 20,
+    );
+
+    test('carries the bare word — what one comes to is said elsewhere', () {
+      expect(const RecipeMeasureOption(blob).label, 'blob');
+    });
+
+    test('identity is the row, so a re-stated word keeps its chip', () {
+      expect(
+        const RecipeMeasureOption(blob),
+        const RecipeMeasureOption(
+          RecipeMeasure(
+            id: 'r1',
+            recipeId: 'aioli',
+            label: 'blob',
+            perBatch: 24,
+          ),
+        ),
+      );
+    });
+
+    test("an ingredient's door refuses one rather than inventing a unit", () {
+      expect(() => notAWordForAnIngredient(blob), throwsStateError);
+    });
+  });
+
   test('a choice is one of the sealed kinds — a switch stays exhaustive', () {
     String kindOf(UnitChoice choice) => switch (choice) {
       UnitOption() => 'unit',
       MeasureOption() => 'measure',
+      RecipeMeasureOption() => 'recipe measure',
     };
     expect(kindOf(const UnitOption(g)), 'unit');
     expect(
       kindOf(const MeasureOption(Measure(id: 'm', label: 'clove', amount: 3))),
       'measure',
+    );
+    expect(
+      kindOf(
+        const RecipeMeasureOption(
+          RecipeMeasure(id: 'r', recipeId: 'a', label: 'blob', perBatch: 20),
+        ),
+      ),
+      'recipe measure',
     );
   });
 }

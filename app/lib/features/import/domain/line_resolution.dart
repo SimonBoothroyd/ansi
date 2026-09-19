@@ -337,6 +337,7 @@ String? sheetChoiceUnit({
   return switch (choice) {
     UnitOption(:final unit) => unit.id,
     MeasureOption(:final measure) => measure.label,
+    RecipeMeasureOption(:final measure) => notAWordForAnIngredient(measure),
   };
 }
 

@@ -280,6 +280,9 @@ class RecipeEditor extends _$RecipeEditor
           // A measure line stores the honest count fallback — see [LineItem].
           unit: switch (choice) {
             MeasureOption() => pieces,
+            RecipeMeasureOption(:final measure) => notAWordForAnIngredient(
+              measure,
+            ),
             UnitOption(:final unit) => unit,
             null => ingredient.defaultUnit,
           },

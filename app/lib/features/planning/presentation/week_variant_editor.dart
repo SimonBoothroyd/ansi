@@ -342,6 +342,8 @@ class _WeekLineRow extends ConsumerWidget {
       switch (result.choice) {
         case MeasureOption(:final measure):
           notifier.setMeasure(item.id, measure);
+        case RecipeMeasureOption(:final measure):
+          notAWordForAnIngredient(measure);
         case UnitOption(:final unit):
           notifier.setUnit(item.id, unit);
       }
