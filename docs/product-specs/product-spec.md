@@ -15,6 +15,12 @@ Shared, offline-capable recipe + meal-planning app for a two-person household. B
 - **Recipe shelf life** — how long a dish keeps; drives batch splitting + freshness
 - **Shopping list generated from the batch cook plan**, auto-aggregated, with per-ingredient provenance
 - AI/deterministic import from webpage + photo, with ingredient matching
+- **Food cost** — a price is an event (cents for a stated pack, at a store, on
+  a date), and a recipe, a week and a trip read what their lines cost at the
+  latest one; an unpriced line is named, never zeroed
+- **Receipts** — the till strip is photographed, confirmed line by line and
+  kept whole, so what was spent reads off the paper itself and every line on
+  one is a price
 
 **Stretch:** web UI · barcode-add ingredient · computed recipe macros in UI · variety/monotony warnings · package-size waste flags
 
@@ -815,6 +821,49 @@ stored ([ADR-0007](../decisions/0007-shopping-list-thin-overlay.md)):
 - **Storage rule:** only what cannot be re-derived is stored (check-off, manual top-ups, free-text items) → nothing to reconcile between devices when the week or a recipe changes. An ingredient entry is displayed only while it has at least one live contribution (derived or manual); when its last one vanishes it drops off the list, its checked row staying inert. (`supabase/migrations/0006_shopping.sql`.)
 - Batching is resolved in the cook plan, so each dish is bought once at its batch size (no double-buying, no manual leftover bookkeeping).
 
+### Price & receipt (what a shop cost)
+
+One ledger, and every money figure in the app is derived from it at read time
+([ADR-0017](../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md)):
+
+- `receipt: id · household_id · store · purchased_at · subtotal_cents ·
+  tax_cents · total_cents · source` ← one shop, or one hand-typed price.
+  `store` is a word, not a row (no store table): whatever the household calls
+  it, offered back as a chip next time. The printed figures are kept as
+  printed and never re-derived. `source` is `manual` (typed on an ingredient
+  page, one line, no photo) or `photo`, so a typed price and a scanned one are
+  **the same fact read the same way** — there is no separate price table.
+- `receipt_line: id · receipt_id · printed_text · name_printed · cents ·
+  discount_cents · kind · ingredient_id · pack_basis_amount · pack_amount ·
+  pack_unit · measure_id` ← one row of the strip, and the app's **price fact**
+  when it is an `item` naming an ingredient and stating a pack. `kind` is
+  `item` · `not_food` · `tax` · `fee`, and only an item line may carry an
+  ingredient or a pack (a constraint, not a convention). `name_printed` is the
+  printed words with the money taken off — what a card is titled with, and
+  what the match memory is keyed by.
+
+**What is load-bearing:**
+- **The pack is kept twice.** `pack_basis_amount` is what the cents bought in
+  the row's basis unit and is the only number a figure is derived from;
+  `pack_amount` + `pack_unit` (a catalog unit id) is what the person *said*,
+  and where they tapped one of the row's own measures instead, `pack_unit` is
+  null, `pack_amount` is the count of it and `measure_id` carries the word.
+  The two must be able to disagree: a household that re-weighs its `bag` is
+  saying what a bag is today, and last month's $3.49 bought last month's bag.
+- **`ingredient_id` is the household's answer, not the vocabulary's.** It is
+  set in review, and the same column is what a later receipt's match memory
+  reads back — a `SELECT` over this household's own lines, per
+  `name_printed`, most recent answer winning. No alias is ever written from a
+  receipt.
+- **Printed figures are the paper's and never move.** Editing a kept receipt
+  rewrites its lines; `printed_text`, the printed totals and the date stay as
+  read. Taking a price back off a photographed line clears only its pack
+  fields — the cents were paid, and the receipt has to go on adding up — while
+  a hand-typed one-liner tombstones line and receipt together.
+- `purchased_at` is stored as **wall time**: the paper's own clock components
+  with a `Z`, never converted, so a Sunday evening shop cannot file into
+  Monday's week on a phone seven hours west.
+
 ---
 
 ## 5. Feature specs
@@ -1199,6 +1248,97 @@ honestly state). An entry nobody is eating is excluded with a reason, never
 divided by zero. The week band is labelled **PLANNED** and says outright that
 it is the sum of what is planned, not a daily target — a week that only plans
 dinners averages a dinner.
+
+**What a thing costs (shipped):** a **price** is an event, not a column. It is
+cents paid for a **stated pack**, at a store, on a date — kept as a line of a
+`receipt`, so a hand-typed price is a one-line receipt of its own and a
+photographed one is the same fact read off paper. Every figure the app prints
+is derived from that at read time: `77¢ / 100 g` is never written back, so a
+pack re-weighed or a discount corrected moves every screen at once. Latest
+wins — no average, no sale flag, no forecast — and the pack is kept **twice**,
+in the words it was bought in (`1 lb`, `bag (454 g)`) and in the row's basis,
+which is the only figure a price is derived from. Money is integer cents; what
+was paid is the printed figure less any discount. The whole doctrine, and the
+inventory question it refuses to answer, is
+[ADR-0017](../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md).
+
+- **A recipe costs its lines** (`Macros | Cost` on the same panel, the line
+  toggle following whichever is up): each line's amount converted to its row's
+  basis through the **same** conversion the macros take, times that row's
+  latest price. Imprecise and optional lines are out by exactly the macro
+  rule, and named. A line with no price, or no honest path from its amount to
+  the basis, is **unpriced**: the recipe has no cost at all, the cells go, and
+  the lines it is waiting on are named — a total that quietly skipped the
+  tomatoes would understate the recipe by the tomatoes.
+  - **A partly priced recipe still says what it has reached**, as a floor:
+    `at least $1.65 a serving · at least $6.60 the recipe`, each figure
+    wearing its own `at least`, under the refusal rather than in place of it.
+    A floor is a separate field, never a partial total, so nothing downstream
+    reads it as a cost.
+- **A week costs what its meals cost**, at the portions as planned and under
+  the same lens as the macro line above it, with a **bare ingredient meal**
+  costed from its own row and a meal **eaten out** passed over — neither a
+  cost to cook nor a gap in one. A meal with an unpriced line drops out
+  whole, so the band says `at least $71 to cook · 3 lines unpriced` whenever
+  anything was left out and `≈ $71 to cook` when the week is whole.
+- **A shop costs what is left to buy:** the trip figure on the sync line,
+  each open row carrying its own under the grams and `no price yet` where
+  there is none. The basket's rows carry none — the line answers what is
+  still ahead — and a walk holding a row nothing can price reads `at least
+  $58 still to buy · 2 rows unpriced`.
+- **`≈` means a summed estimate** and reads to the dollar; a figure read off
+  ONE price prints to the cent with its chain behind it (`$6.58 · $1.10 /
+  100 g · TJ's, Sep`). A floor wears neither: it says `at least` in words.
+- **Prices are entered where the thing is**, on the ingredient page's Price
+  group — see *Price is one group with two hosts* above — and every stored
+  line is a tap back onto the sheet that entered it, to fix or to take back.
+
+**Receipts (shipped):** photograph the till strip and the shop is kept whole.
+Several photos are one receipt, joined **by position** — consecutive segments
+of one strip, never by item identity — and the reading runs through the recipe
+import's own pipeline and stage ladder
+([`import-and-matching.md`](./import-and-matching.md)). The server returns the
+store as printed, the paper's own date, its printed subtotal / tax / total,
+and one line per row with the printed words, the cents, any attached discount
+and a printed weight or rate where there was one.
+
+- **The review is the same screen twice.** A scanned receipt and a kept one
+  (`/receipts/:id`) open the same list of cards, and Save rewrites a kept
+  receipt in place — the printed words and printed totals never move, because
+  they are what the paper says. Money leads each card; the store is a chip
+  word over the paper's header; the date is a door.
+- **The lines' sum is held against the printed subtotal** (or, where none was
+  printed, the total less tax) as a **flag, not a refusal**: a receipt whose
+  join lost a line is still a receipt, and its printed total still stands.
+- **A line is a price only when it says what the cents bought.** A matched
+  food line with no pack is counted in the receipt and is simply not a price
+  — the card asks for the pack. A line sold by weight prices itself from the
+  printed rate; one with no printed weight opens on **the pack that row was
+  last bought in**. *Keep as a measure* mints a word the household can also
+  say on a recipe line — the pack carries over either way.
+- **A figure nobody could read holds Save**, loudly: it is not a free line.
+- **One answer answers every line that is that line again.** Six identical
+  tubs print six identical lines; the match, the pack, *Not food* and *it is
+  food* land on every twin standing exactly where this line stands, and the
+  card says `×6 on this receipt` **before** the doors. A correction to the
+  paper — a re-read figure, a dropped duplicate — never rides along.
+- **The vocabulary learns nothing from a receipt** (ADR-0004 and the owner's
+  ruling): a store's abbreviations are not words the app should surface in
+  every search. What carries between shops is the household's **own
+  answers** — the pack, on the row, and the **match**, recalled per printed
+  name off this household's own saved receipt lines, most recent answer
+  winning. It is exact, never fuzzy, and a remembered match says so on the
+  open card, where changing it is itself the correction. It is not an alias,
+  and it is held structurally: the function's own test asserts every
+  statement it issues is a `SELECT`.
+- **The ledger** (`/receipts`) files kept receipts by the household's week and
+  by store, spent against planned per week with a month line on top. Its door
+  is in the **Shop's header**, beside the week switcher, drawn once the
+  household has kept a receipt; the scan door sits at the foot of the walk.
+- **The week band's second figure** — `$84.12 spent · 1 receipt · TJ's, Sun` —
+  appears only when a receipt is dated inside the week on screen, and is a
+  door onto the ledger. **Planned and spent are never reconciled:** the gap
+  between them is the pantry filling or emptying.
 
 **House rule — a screen never swaps itself out for a data condition (D5b).**
 Chrome (header, switcher, tabs, lens, primary doors) always renders.

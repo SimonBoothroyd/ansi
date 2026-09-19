@@ -5,7 +5,8 @@ choices lives in `../decisions/`; the "what to build next" in
 `../exec-plans/roadmap.md`.
 
 - [`product-spec.md`](./product-spec.md) — the full v1 spec: scope, data model,
-  meal planning, batch cook plan, shopping list, feature specs, build sequence.
+  meal planning, batch cook plan, shopping list, food cost and receipts,
+  feature specs, build sequence.
 - [`import-and-matching.md`](./import-and-matching.md) — the import + ingredient
   matching design: extraction, normalization, the match cascade, reconciliation,
   the stub lifecycle, and the offline/online split. It is the authority on the
