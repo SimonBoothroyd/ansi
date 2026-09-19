@@ -279,10 +279,14 @@ void main() {
       expect(await repo.watchMeasures('coconut').first, isEmpty);
     });
 
-    test('addMeasure stores the trimmed label', () async {
+    test('addMeasure stores the label as the household wrote it', () async {
+      // One rule for a measure's word wherever it is authored
+      // (`measureLabelAsAuthored`): this door and the receipt's *keep as a
+      // measure* must not read ` half  can ` two different ways, or the row
+      // ends up with two spellings of one word and the merge hides one.
       final added = await repo.addMeasure(
         ingredientId: 'coconut',
-        label: '  half can ',
+        label: '  half   can ',
         amount: 200,
       );
       expect(added.label, 'half can');

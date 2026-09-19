@@ -199,6 +199,10 @@ const schema = Schema([
     // whose ingredient was retired out from under it (the server detaches it).
     Column.text('ingredient_id'),
     Column.text('printed_text'), // what the paper said; null when typed
+    // The paper's words for the THING, figures off — what an unmatched card is
+    // titled with, and what the receipt door recalls this household's own past
+    // answers by. Never a vocabulary word, and never learned as one.
+    Column.text('name_printed'),
     Column.integer('cents'), // paid, after the discount; a fee may be negative
     Column.integer('discount_cents'),
     Column.text('kind'), // 'item' | 'not_food' | 'tax' | 'fee'

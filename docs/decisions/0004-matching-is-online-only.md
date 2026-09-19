@@ -24,6 +24,12 @@ Only resolved, human-readable `ingredient` rows sync to the device. On-device
 ## Consequences
 
 - No on-device embedding model; no 8k-row reference set on the phone.
+- The receipt door's **match memory** — the household's own past answers per
+  printed name, recalled from its saved receipt lines — sits inside this
+  decision rather than beside it: the recall is a server-side `SELECT` in the
+  same edge function, the phone does no matching of its own, and the answer is
+  exact rather than fuzzy. It is not an alias and the vocabulary matcher never
+  sees it (`import-and-matching.md` §12.4.1).
 - The match engine is independently testable server-side (see `evals/`).
 - Chip references in steps are stored as **data** (line-item indices), not
   detected at render time — runtime detection would drag matching back onto the

@@ -30,6 +30,7 @@ Future<void> _seedIngredient(
 ReceiptLineWrite line({
   int sortOrder = 0,
   String printed = 'TJ ORG BANANAS  3.49',
+  String? namePrinted = 'TJ ORG BANANAS',
   int cents = 349,
   int discountCents = 0,
   ReceiptLineKind kind = ReceiptLineKind.item,
@@ -39,9 +40,12 @@ ReceiptLineWrite line({
   String? packUnitId = 'lb',
   String? measureId,
   String? mint,
+  String? lineId,
 }) => ReceiptLineWrite(
+  lineId: lineId,
   sortOrder: sortOrder,
   printedText: printed,
+  namePrinted: namePrinted,
   cents: cents,
   discountCents: discountCents,
   kind: kind,
@@ -185,6 +189,65 @@ void main() {
       },
     );
 
+    test('the same word on six lines mints ONE measure', () async {
+      // Six tubs of tofu, each kept as *tub*, is one word the household can
+      // say — not six rows of the same word in the row's picker.
+      final id = await repo.saveReceipt(
+        write([
+          line(
+            printed: 'TJ ORG TOFU FIRM  2.49',
+            cents: 249,
+            packBasis: 396,
+            packAmount: 396,
+            packUnitId: 'g',
+            mint: 'tub',
+          ),
+          line(
+            sortOrder: 1,
+            printed: 'TJ ORG TOFU FIRM  2.49',
+            cents: 249,
+            packBasis: 396,
+            packAmount: 396,
+            packUnitId: 'g',
+            mint: 'tub',
+          ),
+        ]),
+      );
+
+      final measures = await db.getAll(
+        'SELECT id FROM ingredient_measure WHERE ingredient_id = ?',
+        ['banana'],
+      );
+      expect(measures, hasLength(1));
+      final lines = await db.getAll(
+        'SELECT * FROM receipt_line WHERE receipt_id = ? ORDER BY sort_order',
+        [id],
+      );
+      expect(lines, hasLength(2));
+      for (final stored in lines) {
+        expect(stored['measure_id'], measures.single['id']);
+        expect(
+          stored['pack_amount'],
+          1,
+          reason: 'each line is a COUNT of the one word',
+        );
+        expect(stored['pack_unit'], isNull);
+        expect(stored['pack_basis_amount'], 396);
+      }
+    });
+
+    test('two different words on one receipt are two measures', () async {
+      await repo.saveReceipt(
+        write([line(mint: 'tub'), line(sortOrder: 1, mint: 'bag')]),
+      );
+      final labels = await db.getAll(
+        'SELECT label, sort_order FROM ingredient_measure '
+        'ORDER BY sort_order',
+      );
+      expect(labels.map((r) => r['label']), ['tub', 'bag']);
+      expect(labels.map((r) => r['sort_order']), [0, 1]);
+    });
+
     test('a minted measure sits after the ones the row already had', () async {
       await db.execute(
         'INSERT INTO ingredient_measure (id, household_id, ingredient_id, '
@@ -207,6 +270,22 @@ void main() {
       );
     });
 
+    test('the paper’s name for the thing is written with the line', () async {
+      // It is what the receipt door recalls this household's own past answers
+      // by, so a line saved without it is a line the next receipt cannot
+      // learn from.
+      final id = await repo.saveReceipt(write([line()]));
+      final stored = await db.get(
+        'SELECT name_printed FROM receipt_line WHERE receipt_id = ?',
+        [id],
+      );
+      expect(stored['name_printed'], 'TJ ORG BANANAS');
+      expect(
+        (await repo.watchReceipt(id).first)!.lines.single.namePrinted,
+        'TJ ORG BANANAS',
+      );
+    });
+
     test('an empty store and a lineless receipt are both refused', () async {
       expect(
         () => repo.saveReceipt(
@@ -219,6 +298,114 @@ void main() {
         throwsArgumentError,
       );
       expect(() => repo.saveReceipt(write(const [])), throwsArgumentError);
+    });
+  });
+
+  group('a saved receipt, edited', () {
+    test('kept lines update in place, a new one lands, a dropped one '
+        'is tombstoned', () async {
+      final id = await repo.saveReceipt(
+        write([
+          line(),
+          line(sortOrder: 1),
+          line(
+            sortOrder: 2,
+            printed: 'PAPER TOWELS  6.99',
+            cents: 699,
+            kind: ReceiptLineKind.notFood,
+            ingredientId: null,
+            packBasis: null,
+            packAmount: null,
+            packUnitId: null,
+          ),
+        ]),
+      );
+      final before = (await repo.watchReceipt(id).first)!;
+      final [first, second, towels] = before.lines;
+
+      await repo.updateReceipt(
+        id,
+        ReceiptWrite(
+          store: 'Whole Foods',
+          purchasedAt: DateTime(2026, 9, 12, 16, 13),
+          lines: [
+            // The figure was misread: same row, new cents.
+            line(lineId: first.id, cents: 399),
+            // `second` is dropped by not being here.
+            line(
+              lineId: towels.id,
+              sortOrder: 1,
+              printed: 'ignored — the paper’s words never move',
+              cents: 699,
+              kind: ReceiptLineKind.notFood,
+              ingredientId: null,
+              packBasis: null,
+              packAmount: null,
+              packUnitId: null,
+            ),
+            line(sortOrder: 2, printed: '4 @ 0.49', cents: 196),
+          ],
+        ),
+      );
+
+      final after = (await repo.watchReceipt(id).first)!;
+      expect(after.store, 'Whole Foods');
+      expect(after.purchasedAt, DateTime.utc(2026, 9, 12, 16, 13));
+      expect(after.subtotalCents, 2846, reason: 'the printed totals stand');
+      expect(after.lines.map((l) => l.id).take(2), [first.id, towels.id]);
+      expect(after.lines.map((l) => l.cents), [399, 699, 196]);
+      expect(after.lines[1].printedText, 'PAPER TOWELS  6.99');
+      expect(after.lines.map((l) => l.id), isNot(contains(second.id)));
+      final gone = await db.get(
+        'SELECT deleted_at FROM receipt_line WHERE id = ?',
+        [second.id],
+      );
+      expect(gone['deleted_at'], isNotNull, reason: 'a tombstone, not a hole');
+    });
+
+    test('the paper’s words never move, name and all', () async {
+      final id = await repo.saveReceipt(write([line()]));
+      final was = (await repo.watchReceipt(id).first)!.lines.single;
+      await repo.updateReceipt(
+        id,
+        write([
+          line(
+            lineId: was.id,
+            printed: 'ignored',
+            namePrinted: 'ALSO IGNORED',
+            cents: 399,
+          ),
+        ]),
+      );
+      final now = (await repo.watchReceipt(id).first)!.lines.single;
+      expect(now.cents, 399, reason: 'the figure is a person’s to correct');
+      expect(now.printedText, 'TJ ORG BANANAS  3.49');
+      expect(
+        now.namePrinted,
+        'TJ ORG BANANAS',
+        reason: 'a name that moved under an answer would refile it',
+      );
+    });
+
+    test('an edit refuses what a save refuses', () async {
+      final id = await repo.saveReceipt(write([line()]));
+      expect(
+        () => repo.updateReceipt(id, write(const [])),
+        throwsArgumentError,
+      );
+    });
+
+    test('a deleted receipt leaves both reads, lines and all', () async {
+      final id = await repo.saveReceipt(write([line(), line(sortOrder: 1)]));
+      await repo.deleteReceipt(id);
+      expect(await repo.watchReceipt(id).first, isNull);
+      expect(await repo.watchReceipts().first, isEmpty);
+      final live = await db.getAll(
+        'SELECT id FROM receipt_line WHERE receipt_id = ? '
+        'AND deleted_at IS NULL',
+        [id],
+      );
+      expect(live, isEmpty, reason: 'no line is left stating a price');
     });
   });
 

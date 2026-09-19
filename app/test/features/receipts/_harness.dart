@@ -134,6 +134,23 @@ class FakeReceiptRepo implements ReceiptRepository {
     _changes.add(null);
     return 'r-${saved.length}';
   }
+
+  /// What an edit of a saved receipt asked for, by receipt id.
+  final updated = <(String, ReceiptWrite)>[];
+  final deleted = <String>[];
+
+  @override
+  Future<void> updateReceipt(String receiptId, ReceiptWrite write) async {
+    if (throws) throw StateError('no');
+    updated.add((receiptId, write));
+  }
+
+  @override
+  Future<void> deleteReceipt(String receiptId) async {
+    if (throws) throw StateError('no');
+    deleted.add(receiptId);
+    stored.remove(receiptId);
+  }
 }
 
 /// One ledger row, spelled out.
@@ -241,7 +258,7 @@ Widget ledgerHost({required List<Override> overrides}) => ProviderScope(
   ),
 );
 
-/// One saved receipt on its own, for the read-only review.
+/// One saved receipt on its own page — the review, open on the rows.
 Widget storedReceiptHost({
   required List<Override> overrides,
   required String receiptId,

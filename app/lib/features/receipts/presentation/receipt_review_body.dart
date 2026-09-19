@@ -22,13 +22,16 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/words.dart';
 import '../../../shared/ansi_micro_label.dart';
+import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_scroll.dart';
+import '../../../shared/ansi_tap.dart';
 import '../../../shared/unit_chip.dart';
 import '../../account/data/household_providers.dart';
 import '../../books/presentation/text_prompt.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../domain/receipt_payload.dart';
 import '../domain/receipt_review.dart';
+import 'receipt_date_sheet.dart';
 import 'receipt_line_card.dart';
 import 'receipt_view_models.dart';
 
@@ -37,6 +40,12 @@ const kReceiptSaveKey = ValueKey('receipt-save');
 
 /// The join card, likewise.
 const kReceiptJoinKey = ValueKey('receipt-join');
+
+/// *Delete this receipt*, on a saved one.
+const kReceiptDeleteKey = ValueKey('receipt-delete');
+
+/// The Bought line — the date's door.
+const kReceiptBoughtKey = ValueKey('receipt-bought');
 
 class ReceiptReviewBody extends ConsumerWidget {
   const ReceiptReviewBody({required this.state, super.key});
@@ -65,6 +74,14 @@ class ReceiptReviewBody extends ConsumerWidget {
         const AnsiMicroLabel('STORE'),
         const SizedBox(height: 6),
         _StoreChips(state: state),
+        if (state.source == 'manual')
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              'typed by hand, on the ingredient’s page',
+              style: ansiMono(size: 10, color: AnsiColors.muted),
+            ),
+          ),
         if (state.payload.storePrinted case final printed?)
           Padding(
             padding: const EdgeInsets.only(top: 6),
@@ -226,13 +243,13 @@ class _StoreChips extends ConsumerWidget {
   }
 }
 
-/// The receipt's own moment.
+/// The receipt's own moment, and the door to correct it.
 ///
-/// **It is read-only, and the printed words sit under it.** There is no date
-/// control in this app yet, and a receipt's date is the paper's fact rather
-/// than an answer somebody gives — so what is drawn is what was read, with
-/// the header's own line beside it to check against. A receipt the reader
-/// could not date opens on the day of the scan, and says so.
+/// What is drawn is what was read, with the header's own line above to check
+/// it against — and a tap opens the calendar ([showReceiptDateSheet]), because
+/// the date decides which week the receipt files under and a reader that
+/// missed it must not get the last word. A receipt the reader could not date
+/// opens on the day of the scan, and says so until somebody says otherwise.
 class _Bought extends ConsumerWidget {
   const _Bought({required this.state});
 
@@ -246,16 +263,44 @@ class _Bought extends ConsumerWidget {
     final clock =
         '${at.hour.toString().padLeft(2, '0')}:'
         '${at.minute.toString().padLeft(2, '0')}';
+    final moved = state.purchasedAt != state.openedAt;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('$day ${formatDayMonth(at)} · $clock', style: ansiMono(size: 13)),
+        AnsiTap(
+          key: kReceiptBoughtKey,
+          onTap: () async {
+            // Captured BEFORE the await: a `ref` used after the sheet closes
+            // can belong to an unmounted row (Riverpod 3 throws).
+            final container = ProviderScope.containerOf(context, listen: false);
+            final picked = await showReceiptDateSheet(context, current: at);
+            if (picked == null) return;
+            container
+                .read(receiptScanControllerProvider.notifier)
+                .setPurchasedAt(picked);
+          },
+          semanticsLabel: 'Change the date',
+          minTarget: false,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$day ${formatDayMonth(at)} · $clock',
+                style: ansiMono(size: 13),
+              ),
+              const SizedBox(width: 8),
+              const Icon(FLucideIcons.pencil, size: 12, color: AnsiColors.herb),
+            ],
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.only(top: 3),
           child: Text(
-            state.payload.purchasedAt == null
+            moved
+                ? 'the day you said — it files under the week it falls in'
+                : state.payload.purchasedAt == null
                 ? 'the paper printed no date we could read — this is the day '
-                      'it was scanned'
+                      'it was scanned. Tap to say when the shop happened'
                 : 'the receipt’s own date, not the scan’s — it files under '
                       'the week it falls in',
             style: ansiMono(size: 10, color: AnsiColors.muted),
@@ -445,15 +490,19 @@ class _SaveBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final map = state.map;
     final named = state.store.trim().isNotEmpty;
+    // A kept receipt has nothing to save until something has moved.
+    final open = map.canSave && named && (!state.isSaved || state.edited);
     return Column(
       children: [
         FButton(
           key: kReceiptSaveKey,
-          onPress: map.canSave && named
+          onPress: open
               ? () => ref.read(receiptScanControllerProvider.notifier).save()
               : null,
           child: Text(
-            named ? receiptSaveLabel(map) : 'Say which shop this was',
+            !named
+                ? 'Say which shop this was'
+                : receiptSaveLabel(map, saved: state.isSaved),
           ),
         ),
         if (!map.joinCloses)
@@ -470,6 +519,36 @@ class _SaveBar extends ConsumerWidget {
               ),
             ),
           ),
+        if (state.isSaved) ...[
+          const SizedBox(height: 14),
+          AnsiTap(
+            key: kReceiptDeleteKey,
+            onTap: () async {
+              final container = ProviderScope.containerOf(
+                context,
+                listen: false,
+              );
+              final sure = await askAnsi(
+                context,
+                title: 'Delete this receipt?',
+                body:
+                    'It leaves the ledger, and every price it stated stops '
+                    'being one.',
+                confirm: 'Delete',
+                cancel: 'Keep it',
+              );
+              if (!sure) return;
+              await container
+                  .read(receiptScanControllerProvider.notifier)
+                  .delete();
+            },
+            semanticsLabel: 'Delete this receipt',
+            child: Text(
+              'delete this receipt',
+              style: ansiMono(size: 11.5, color: AnsiColors.gone),
+            ),
+          ),
+        ],
       ],
     );
   }

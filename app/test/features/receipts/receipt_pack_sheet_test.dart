@@ -1,15 +1,18 @@
 /// *Say what the pack is* — the one question a recipe line never asks.
 ///
-/// Two things are pinned: the dock **states the derivation itself** rather
+/// Three things are pinned: the dock **states the derivation itself** rather
 /// than a preview of one, so the refusal a row that cannot weigh the pack
-/// produces is the same refusal that keeps Done off; and *keep as a measure*
-/// is offered only where there is a word to gain.
+/// produces is the same refusal that keeps Done off; *keep as a measure* is
+/// offered only where there is a word to gain; and what the toggle SAYS is
+/// true — minting buys a word, not a pack that carries over, because the pack
+/// carries over either way.
 library;
 
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
+import 'package:ansi/features/ingredients/domain/allowed_units.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/receipts/presentation/receipt_pack_sheet.dart';
 import 'package:flutter/widgets.dart';
@@ -33,6 +36,10 @@ const oliveOil = Ingredient(
 );
 
 const bag = Measure(id: 'm-bag', label: 'bag', amount: 454);
+
+/// A row's own word, in the household's style: the container carries its
+/// shelf size, so two sizes of one container are two measures.
+const bottle = Measure(id: 'm-bottle', label: 'bottle (17 oz)', amount: 482);
 
 Future<void> pumpSheet(
   WidgetTester tester, {
@@ -160,6 +167,101 @@ void main() {
       findsNothing,
       reason: 'the household already has the word',
     );
+  });
+
+  group('what keeping the word actually buys', () {
+    testWidgets('the note says it is a word, not a pack that carries over', (
+      tester,
+    ) async {
+      // The pack carries over from this row's latest price whether or not a
+      // word was minted (`landPack`). The old copy claimed the opposite, and
+      // a batch of bare `pack` and `jar` measures was minted on it.
+      await pumpSheet(tester);
+      await tester.enterText(find.byType(EditableText).first, '482');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(kKeepAsMeasureKey));
+      await tester.pumpAndSettle();
+
+      final note = tester.widget<Text>(find.byKey(kKeepAsMeasureNoteKey)).data!;
+      expect(note, contains('lands on this pack either way'));
+      expect(note, contains('say on a recipe line'));
+      expect(note, contains('buy 3'));
+      // The household's own style, shown rather than described.
+      expect(note, contains('can (14.5 oz)'));
+      expect(find.text('e.g. can (14.5 oz)'), findsOneWidget);
+    });
+
+    testWidgets('the word is taken as written, spacing tidied', (tester) async {
+      ReceiptPackAnswer? answer;
+      await pumpSheet(tester, onDone: (a) => answer = a);
+      await tester.enterText(find.byType(EditableText).first, '411');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(kKeepAsMeasureKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byType(EditableText).last,
+        '  can   (14.5 oz) ',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+
+      expect(answer!.keepAsMeasure, 'can (14.5 oz)');
+    });
+
+    testWidgets('a word the row already says at this weight is not minted '
+        'twice', (tester) async {
+      ReceiptPackAnswer? answer;
+      await pumpSheet(
+        tester,
+        measures: const [bottle],
+        onDone: (a) => answer = a,
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(EditableText).first, '482');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(kKeepAsMeasureKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(EditableText).last, 'Bottle (17 oz)');
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('the line will point at it'), findsOneWidget);
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+
+      expect(answer!.keepAsMeasure, isNull, reason: 'the word exists');
+      expect(answer!.choice, isA<MeasureOption>());
+      expect((answer!.choice as MeasureOption).measure.id, 'm-bottle');
+      expect(answer!.amount, 1, reason: 'a COUNT of the word it points at');
+      expect(
+        answer!.basisAmount,
+        482,
+        reason: 'the figure read off the paper, not what the row says today',
+      );
+    });
+
+    testWidgets('the same word at another size is refused, with the way out', (
+      tester,
+    ) async {
+      await pumpSheet(tester, measures: const [bottle]);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(EditableText).first, '794');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(kKeepAsMeasureKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(EditableText).last, 'bottle (17 oz)');
+      await tester.pumpAndSettle();
+
+      final note = tester.widget<Text>(find.byKey(kKeepAsMeasureNoteKey)).data!;
+      expect(note, contains('already 482 g on this row'));
+      expect(note, contains('this pack is 794 g'));
+      expect(note, contains('bottle (17 oz) (794 g)'));
+      expect(
+        doneButton(tester).onPress,
+        isNull,
+        reason: 'a second row of one word is not an answer',
+      );
+    });
   });
 
   testWidgets('a measure chip hands back a COUNT of that measure', (

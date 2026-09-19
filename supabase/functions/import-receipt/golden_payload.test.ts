@@ -90,6 +90,9 @@ async function runPipeline(): Promise<ReceiptPayload> {
   const deps: ReceiptDeps = {
     adapter: replayReceiptAdapter(saved, "tj_three_photos"),
     matchLines: (lines) => matchLines(lines, inMemoryVocabMatcher(VOCAB)),
+    // The golden is the CASCADE's answer. A remembered match is this
+    // household's own, and a fixture has no household to have answered.
+    recallMatches: () => Promise.resolve(new Map()),
   };
   // Three base64 strings: the replay adapter never looks at the bytes, but the
   // request still has to be a real one, cost caps and all.

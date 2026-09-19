@@ -9,9 +9,9 @@
 /// The two figures are never reconciled (ADR-0017). The gap between them is
 /// the pantry filling or emptying, and nothing here tries to explain it.
 ///
-/// A receipt opens **read-only**, with its lines as matched. A price on one
-/// of them is still editable, through the ingredient page's own price sheet —
-/// there is one door for a price, and it is not duplicated here.
+/// A receipt opens **on the review it was confirmed on** — one screen for a
+/// receipt, fresh or kept — so a wrong store, date, match, pack or figure is
+/// put right where it was first said.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -21,8 +21,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/money.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
-import '../../../core/units/macros.dart';
-import '../../../core/units/units.dart';
 import '../../../core/week_shape.dart';
 import '../../../core/words.dart';
 import '../../../shared/ansi_back.dart';
@@ -34,10 +32,8 @@ import '../../account/data/household_providers.dart';
 import '../../planning/presentation/week_view_models.dart';
 import '../data/receipt_providers.dart';
 import '../domain/receipt_ledger.dart';
-import '../domain/receipt_payload.dart';
-import '../domain/receipt_repository.dart';
-import '../domain/receipt_review.dart';
-import 'receipt_line_card.dart';
+import 'receipt_review_body.dart';
+import 'receipt_view_models.dart';
 
 /// The ledger's list root, so the tests name it rather than a title.
 const kReceiptLedgerKey = ValueKey('receipts-ledger');
@@ -231,16 +227,59 @@ class _WeekFoot extends ConsumerWidget {
   }
 }
 
-/// One saved receipt, read back.
-class StoredReceiptView extends ConsumerWidget {
+/// One saved receipt — **the review itself**, open on the rows instead of on
+/// a scan.
+///
+/// There is one screen for a receipt. What confirmed it is what corrects it:
+/// the store, the date, a line's match, its pack, its figure, *Not food*, a
+/// dropped line. The scan controller holds the sitting here exactly as it
+/// does there, so nothing is written until Save, and backing out leaves the
+/// ledger as it was.
+class StoredReceiptView extends ConsumerStatefulWidget {
   const StoredReceiptView({required this.receiptId, super.key});
 
   final String receiptId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final receipt = ref.watch(storedReceiptProvider(receiptId));
-    final shape = ref.watch(weekShapeProvider);
+  ConsumerState<StoredReceiptView> createState() => _StoredReceiptViewState();
+}
+
+class _StoredReceiptViewState extends ConsumerState<StoredReceiptView> {
+  @override
+  void initState() {
+    super.initState();
+    _open();
+  }
+
+  @override
+  void didUpdateWidget(StoredReceiptView old) {
+    super.didUpdateWidget(old);
+    if (old.receiptId != widget.receiptId) _open();
+  }
+
+  /// After the frame: a provider may not be written while the tree builds.
+  void _open() {
+    final id = widget.receiptId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(receiptScanControllerProvider.notifier).open(id);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(receiptScanControllerProvider);
+    // A receipt taken back has no page to stay on.
+    ref.listen(receiptScanControllerProvider, (previous, next) {
+      if (previous is ReceiptSaving && next is ReceiptGone) {
+        ansiBack(context, home: '/receipts');
+      }
+    });
+    final reviewing =
+        state is ReceiptReviewing && state.receiptId == widget.receiptId
+        ? state
+        : null;
+    final count = reviewing?.map.headerCount ?? 0;
     return FScaffold(
       childPad: false,
       header: FHeader.nested(
@@ -251,157 +290,37 @@ class StoredReceiptView extends ConsumerWidget {
             onPress: () => ansiBack(context, home: '/receipts'),
           ),
         ],
-      ),
-      child: receipt.when(
-        loading: () => const Center(child: FCircularProgress()),
-        error: (e, st) => AnsiErrorState(
-          what: 'this receipt',
-          error: e,
-          stackTrace: st,
-          onRetry: () => ref.invalidate(storedReceiptProvider(receiptId)),
-        ),
-        data: (stored) => stored == null
-            ? Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-                child: Text(
-                  'this receipt is gone',
-                  style: ansiMono(size: 11.5, color: AnsiColors.muted),
-                ),
-              )
-            : _StoredBody(stored: stored, shape: shape),
-      ),
-    );
-  }
-}
-
-class _StoredBody extends StatelessWidget {
-  const _StoredBody({required this.stored, required this.shape});
-
-  final StoredReceipt stored;
-  final WeekShape shape;
-
-  @override
-  Widget build(BuildContext context) {
-    final read = [
-      for (final (index, line) in stored.lines.indexed)
-        (
-          draft: storedLineDraft(line, index: index),
-          basis: MacrosBasis.fromDb(line.macrosBasis),
-        ),
-    ];
-    final drafts = [for (final r in read) r.draft];
-    final food = [
-      for (final r in read)
-        if (r.draft.kind.isFood) r,
-    ];
-    final folded = [
-      for (final r in read)
-        if (r.draft.kind == ReceiptKind.notFood) r.draft,
-    ];
-    final map = receiptReviewMap(
-      drafts,
-      printedSubtotalCents: stored.subtotalCents,
-      printedTaxCents: stored.taxCents,
-      printedTotalCents: stored.totalCents,
-    );
-    final day = shape.labelFull(shape.offsetOf(stored.purchasedAt));
-    return ListView(
-      padding: ansiScrollPadding(
-        context,
-        const EdgeInsets.fromLTRB(20, 10, 20, 28),
-      ),
-      children: [
-        Text(stored.store, style: ansiSerif(size: AnsiType.heading)),
-        Padding(
-          padding: const EdgeInsets.only(top: 3),
-          child: Text(
-            '$day ${formatDayMonth(stored.purchasedAt)} · '
-            '${formatMoney(map.totalCents)}'
-            '${stored.source == 'manual' ? ' · typed by hand' : ''}',
-            style: ansiMono(size: 11, color: AnsiColors.muted),
-          ),
-        ),
-        const SizedBox(height: 14),
-        for (final line in food)
-          ReceiptLineCard(
-            key: ValueKey('stored-line-${line.draft.index}'),
-            draft: line.draft,
-            issues: const [],
-            storedBasis: line.basis,
-            readOnly: true,
-          ),
-        if (foldedHeading(map) case final heading?) ...[
-          const SizedBox(height: 12),
-          Text(
-            heading,
-            style: ansiMono(
-              size: 10,
-              color: AnsiColors.muted,
-              letterSpacing: 0.5,
-            ),
-          ),
-          for (final draft in folded)
+        suffixes: [
+          if (count > 0)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 5),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      draft.printedText.isEmpty
-                          ? draft.displayName
-                          : draft.printedText,
-                      style: ansiMono(size: 11, color: AnsiColors.muted),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Text(
-                    formatMoney(draft.paidCents),
-                    style: ansiMono(size: 11, color: AnsiColors.muted),
-                  ),
-                ],
+              padding: const EdgeInsets.only(right: 8),
+              child: Center(
+                child: Text(
+                  '$count to review',
+                  style: ansiMono(size: 11, color: AnsiColors.muted),
+                ),
               ),
             ),
         ],
-        if (taxHeading(map) case final heading?) ...[
-          const SizedBox(height: 10),
-          Text(
-            heading,
-            style: ansiMono(
-              size: 10,
-              color: AnsiColors.muted,
-              letterSpacing: 0.5,
-            ),
+      ),
+      child: switch (state) {
+        _ when reviewing != null => ReceiptReviewBody(state: reviewing),
+        ReceiptGone() => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+          child: Text(
+            'this receipt is gone',
+            style: ansiMono(size: 11.5, color: AnsiColors.muted),
           ),
-        ],
-        const SizedBox(height: 16),
-        Text(
-          'A price on one of these lines is edited on the ingredient’s own '
-          'page — there is one door for a price, and this is not a second '
-          'one.',
-          style: ansiSans(size: 11.5, color: AnsiColors.muted, height: 1.35),
         ),
-      ],
+        ReceiptScanFailed(:final message) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+          child: Text(
+            message,
+            style: ansiSans(size: 13, color: AnsiColors.gone),
+          ),
+        ),
+        _ => const Center(child: FCircularProgress()),
+      },
     );
   }
 }
-
-/// A stored line as the review's own draft, so the ledger draws it with the
-/// card the scan drew it with — one shape for a receipt line, read or
-/// written.
-ReceiptLineDraft storedLineDraft(
-  StoredReceiptLine line, {
-  required int index,
-}) => ReceiptLineDraft(
-  index: index,
-  printedText: line.printedText,
-  cents: line.cents,
-  discountCents: line.discountCents,
-  kind: ReceiptKind.fromWire(line.kind),
-  ingredientId: line.ingredientId,
-  ingredientName: line.ingredientName,
-  packBasisAmount: line.packBasisAmount,
-  packAmount: line.packAmount,
-  packUnit: unitById(line.packUnit ?? ''),
-  measureId: line.measureId,
-  packLabel: line.measureLabel,
-);

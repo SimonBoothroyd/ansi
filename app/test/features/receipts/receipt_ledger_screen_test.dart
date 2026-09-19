@@ -3,8 +3,13 @@ library;
 
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/receipts/domain/receipt_repository.dart';
+import 'package:ansi/features/receipts/presentation/receipt_review_body.dart';
+import 'package:ansi/features/receipts/presentation/receipt_view_models.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:forui/forui.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../helpers/forui_semantics.dart';
 import '_harness.dart';
 
 StoredReceiptLine storedLine({
@@ -12,6 +17,7 @@ StoredReceiptLine storedLine({
   String? ingredientId = 'vocab-banana',
   String? name = 'Bananas, organic',
   String printed = 'TJ ORG BANANAS  3.49',
+  String? namePrinted = 'TJ ORG BANANAS',
   int cents = 349,
   int discountCents = 0,
   String kind = 'item',
@@ -25,6 +31,7 @@ StoredReceiptLine storedLine({
   ingredientId: ingredientId,
   ingredientName: name,
   printedText: printed,
+  namePrinted: namePrinted,
   cents: cents,
   discountCents: discountCents,
   kind: kind,
@@ -34,6 +41,45 @@ StoredReceiptLine storedLine({
   measureId: measureId,
   measureLabel: measureLabel,
   macrosBasis: 'g',
+);
+
+/// A kept TJ's receipt: a bag of bananas, onions by the pound, and paper
+/// towels under the fold.
+StoredReceipt tjs() => (
+  id: 'a',
+  store: "TJ's",
+  purchasedAt: DateTime(2026, 9, 13, 17, 42),
+  source: 'photo',
+  subtotalCents: 1048,
+  taxCents: 82,
+  totalCents: 1130,
+  lines: [
+    storedLine(),
+    storedLine(
+      id: 'l2',
+      printed: 'YELLOW ONIONS  1.32 lb @ 1.99/lb  2.63',
+      cents: 263,
+      ingredientId: 'vocab-onion',
+      name: 'Yellow onion',
+      packBasis: 598.74,
+      packAmount: 1.32,
+      packUnit: 'lb',
+      measureId: null,
+      measureLabel: null,
+    ),
+    storedLine(
+      id: 'l3',
+      printed: 'PAPER TOWELS  6.99',
+      cents: 699,
+      kind: 'not_food',
+      ingredientId: null,
+      name: null,
+      packBasis: null,
+      packAmount: null,
+      measureId: null,
+      measureLabel: null,
+    ),
+  ],
 );
 
 void main() {
@@ -133,47 +179,9 @@ void main() {
   });
 
   group('one receipt, read back', () {
-    testWidgets('the read-only review names the paper and its lines', (
-      tester,
-    ) async {
+    testWidgets('it opens on the review, reading the rows', (tester) async {
       tallSurface(tester);
-      final ledger = FakeReceiptRepo()
-        ..stored['a'] = (
-          id: 'a',
-          store: "TJ's",
-          purchasedAt: DateTime(2026, 9, 13, 17, 42),
-          source: 'photo',
-          subtotalCents: 1048,
-          taxCents: 82,
-          totalCents: 1130,
-          lines: [
-            storedLine(),
-            storedLine(
-              id: 'l2',
-              printed: 'YELLOW ONIONS  1.32 lb @ 1.99/lb  2.63',
-              cents: 263,
-              ingredientId: 'vocab-onion',
-              name: 'Yellow onion',
-              packBasis: 598.74,
-              packAmount: 1.32,
-              packUnit: 'lb',
-              measureId: null,
-              measureLabel: null,
-            ),
-            storedLine(
-              id: 'l3',
-              printed: 'PAPER TOWELS  6.99',
-              cents: 699,
-              kind: 'not_food',
-              ingredientId: null,
-              name: null,
-              packBasis: null,
-              packAmount: null,
-              measureId: null,
-              measureLabel: null,
-            ),
-          ],
-        );
+      final ledger = FakeReceiptRepo()..stored['a'] = tjs();
       await tester.pumpWidget(
         storedReceiptHost(
           overrides: receiptOverrides(ledger: ledger),
@@ -182,8 +190,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // The review's own furniture, on the rows: the store is the picked
+      // chip, the date is a door, and the lines read as they were kept.
       expect(find.text("TJ's"), findsWidgets);
-      expect(find.text(r'Sunday 13 Sep · $11.30'), findsOneWidget);
+      expect(find.text('Sunday 13 Sep · 17:42'), findsOneWidget);
       expect(find.text('Bananas, organic'), findsOneWidget);
       expect(find.textContaining('bag (454 g) · 77¢ / 100 g'), findsOneWidget);
       expect(find.text('Yellow onion'), findsOneWidget);
@@ -193,12 +203,67 @@ void main() {
       expect(
         find.text('Say what the pack is'),
         findsNothing,
-        reason: 'a saved receipt asks nothing',
+        reason: 'a receipt saved whole asks nothing',
       );
-      expect(
-        find.textContaining('edited on the ingredient’s own page'),
-        findsOneWidget,
+      // Nothing has moved, so there is nothing to save.
+      final save = tester.widget<FButton>(find.byKey(kReceiptSaveKey));
+      expect(save.onPress, isNull);
+      expect(find.textContaining('Save changes'), findsOneWidget);
+    });
+
+    testWidgets('an edit rewrites the receipt, line ids and all', (
+      tester,
+    ) async {
+      tallSurface(tester);
+      final ledger = FakeReceiptRepo()..stored['a'] = tjs();
+      await tester.pumpWidget(
+        storedReceiptHost(
+          overrides: receiptOverrides(ledger: ledger),
+          receiptId: 'a',
+        ),
       );
+      await tester.pumpAndSettle();
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(FScaffold).first),
+        listen: false,
+      );
+      container.read(receiptScanControllerProvider.notifier)
+        ..setCents(0, 399)
+        ..drop(2);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(kReceiptSaveKey));
+      await tester.pumpAndSettle();
+
+      expect(ledger.saved, isEmpty, reason: 'no second receipt');
+      final (id, write) = ledger.updated.single;
+      expect(id, 'a');
+      expect(write.store, "TJ's");
+      expect(write.lines.map((l) => l.lineId), ['l1', 'l2']);
+      expect(write.lines.first.cents, 399);
+    });
+
+    testWidgets('a saved receipt can be taken back, after being asked', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      tallSurface(tester);
+      final ledger = FakeReceiptRepo()..stored['a'] = tjs();
+      await tester.pumpWidget(
+        storedReceiptHost(
+          overrides: receiptOverrides(ledger: ledger),
+          receiptId: 'a',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(kReceiptDeleteKey));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete this receipt?'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FButton, 'Delete'));
+      await tester.pumpAndSettle();
+
+      expect(ledger.deleted, ['a']);
     });
 
     testWidgets('a receipt that is gone says so', (tester) async {
@@ -229,8 +294,9 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      expect(find.text('Saturday 5 Sep · 12:00'), findsOneWidget);
       expect(
-        find.text(r'Saturday 5 Sep · $3.49 · typed by hand'),
+        find.text('typed by hand, on the ingredient’s page'),
         findsOneWidget,
       );
     });

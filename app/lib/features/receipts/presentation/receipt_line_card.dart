@@ -17,9 +17,20 @@
 ///   food**, which folds the line under the list where it still counts toward
 ///   the total and never toward a price.
 ///
-/// **The match is the server's, each time.** Confirming one teaches the
-/// vocabulary nothing, so there is no alias-learning path anywhere on this
-/// screen. What carries over is the pack, on the row.
+/// **The vocabulary learns nothing here.** Confirming a match writes no alias
+/// and there is no learning path anywhere on this screen. What carries between
+/// shops is the household's own answers: the pack, on the row, and the match,
+/// which the server recalls per printed name off this household's own saved
+/// receipt lines. A line that arrived on a recalled answer says
+/// `as you matched it last time` beside its chosen row — that one `auto` can
+/// be wrong for a reason a person can see, and changing it IS the correction.
+///
+/// **An answer answers every line that is this line again.** A receipt prints
+/// one item six times when six were bought, so the open card says
+/// `×6 on this receipt` before the doors rather than after them
+/// ([sameLineAgainNote]) — apply-and-tell, so six cards settling at once is
+/// what the person was told would happen. The drop and the PRICE chip are
+/// corrections to the paper and stay on their own line.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -181,6 +192,10 @@ class _Expanded extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(receiptScanControllerProvider.notifier);
     final basis = row?.macrosBasis;
+    final again = switch (ref.watch(receiptScanControllerProvider)) {
+      ReceiptReviewing(:final drafts) => sameLineAgainNote(drafts, draft.index),
+      _ => null,
+    };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -202,6 +217,14 @@ class _Expanded extends ConsumerWidget {
           onCollapse: onCollapse,
         ),
         ReceiptSourceLine(draft: draft),
+        if (again != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              again,
+              style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
+            ),
+          ),
         if (draft.lowConfidence)
           Padding(
             padding: const EdgeInsets.only(top: 6),
@@ -210,10 +233,26 @@ class _Expanded extends ConsumerWidget {
               style: ansiMono(size: 10.5, color: AnsiColors.muted),
             ),
           ),
+        // The figure is a door on EVERY line, not only on one the reader gave
+        // up on: a `$4.99` read as `$4.49` is wrong without being zero, and
+        // the join card can only say that something is — this is where it is
+        // put right. A line with no figure gets the louder door below.
+        if (!issuesInclude(draft, ReceiptLineIssue.amountMissing)) ...[
+          const SizedBox(height: 10),
+          LineCardRow(
+            label: 'PRICE',
+            child: LineCardAmountChip(
+              key: ValueKey('receipt-line-price-${draft.index}'),
+              label: formatMoney(draft.cents),
+              onTap: () => _setCents(context, draft),
+            ),
+          ),
+        ],
         if (row != null) ...[
           const SizedBox(height: 8),
           _ChosenRow(
             name: row!.canonicalName,
+            remembered: draft.remembered,
             onChange: () => _pick(context, draft.index),
           ),
         ],
@@ -298,9 +337,10 @@ class _Expanded extends ConsumerWidget {
         .matchLine(index, picked);
   }
 
-  /// The money door for a figure the reader could not make out. It is a
-  /// prompt rather than a sheet: there is one number to read off the paper,
-  /// and the pack sheet's whole apparatus would be furniture around it.
+  /// The money door — for a figure the reader could not make out, and for
+  /// one it made out wrong. It is a prompt rather than a sheet: there is one
+  /// number to read off the paper, and the pack sheet's whole apparatus would
+  /// be furniture around it.
   Future<void> _setCents(BuildContext context, ReceiptLineDraft draft) async {
     final container = ProviderScope.containerOf(context, listen: false);
     final typed = await promptForText(
@@ -308,6 +348,8 @@ class _Expanded extends ConsumerWidget {
       title: 'What did this line cost?',
       hint: 'e.g. 3.49',
       confirm: 'Use it',
+      // Opens on what was read, so fixing one digit is fixing one digit.
+      initial: draft.cents > 0 ? dollarsTyped(draft.cents) : '',
     );
     final cents = typed == null ? null : parseMoney(typed);
     if (cents == null || cents <= 0) return;
@@ -407,37 +449,61 @@ class _Suggestions extends ConsumerWidget {
 
 /// The matched row, with the way to change it — the recipe review's own
 /// chosen-row line.
+///
+/// A [remembered] row says where the answer came from. It is the one kind of
+/// resolved line that can be wrong for a reason a person can see — the
+/// household said it, about a receipt that may have been read differently —
+/// and it is said HERE, beside `tap to change`, because changing it is the
+/// whole fix: the correction becomes the most recent answer.
 class _ChosenRow extends StatelessWidget {
-  const _ChosenRow({required this.name, required this.onChange});
+  const _ChosenRow({
+    required this.name,
+    required this.onChange,
+    this.remembered = false,
+  });
 
   final String name;
+  final bool remembered;
   final VoidCallback onChange;
 
   @override
   Widget build(BuildContext context) => GestureDetector(
     behavior: HitTestBehavior.opaque,
     onTap: onChange,
-    child: Row(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(FLucideIcons.check, size: 13, color: AnsiColors.herb),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            name,
-            style: ansiSans(size: 13),
-            overflow: TextOverflow.ellipsis,
+        Row(
+          children: [
+            const Icon(FLucideIcons.check, size: 13, color: AnsiColors.herb),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                name,
+                style: ansiSans(size: 13),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Text(
+              'tap to change',
+              style: ansiMono(size: 10.5, color: AnsiColors.muted),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              FLucideIcons.chevronRight,
+              size: 13,
+              color: AnsiColors.muted,
+            ),
+          ],
+        ),
+        if (remembered)
+          Padding(
+            padding: const EdgeInsets.only(left: 19, top: 3),
+            child: Text(
+              'as you matched it last time',
+              style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
+            ),
           ),
-        ),
-        Text(
-          'tap to change',
-          style: ansiMono(size: 10.5, color: AnsiColors.muted),
-        ),
-        const SizedBox(width: 4),
-        const Icon(
-          FLucideIcons.chevronRight,
-          size: 13,
-          color: AnsiColors.muted,
-        ),
       ],
     ),
   );

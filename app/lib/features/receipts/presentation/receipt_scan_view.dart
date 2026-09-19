@@ -53,7 +53,11 @@ class ReceiptScanView extends ConsumerWidget {
       }
     });
 
-    final reviewing = state is ReceiptReviewing ? state : null;
+    // Only a fresh scan is this screen's to review; a saved receipt opening
+    // behind a replaced route is its own page's.
+    final reviewing = state is ReceiptReviewing && !state.isSaved
+        ? state
+        : null;
     return FScaffold(
       childPad: false,
       header: FHeader.nested(
@@ -95,7 +99,11 @@ class ReceiptScanView extends ConsumerWidget {
           rows: rows,
           fromPhotos: true,
         ),
-        final ReceiptReviewing s => ReceiptReviewBody(state: s),
+        final ReceiptReviewing s when !s.isSaved => ReceiptReviewBody(state: s),
+        ReceiptReviewing() => const _Busy(label: 'Done'),
+        // The two states of a SAVED receipt being read back belong to its own
+        // page; the scan only ever passes through them on the way there.
+        ReceiptOpening() || ReceiptGone() => const _Busy(label: 'Done'),
         ReceiptSaving() => const _Busy(label: 'Saving…'),
         ReceiptSaved() => const _Busy(label: 'Done'),
       },

@@ -62,6 +62,19 @@ abstract interface class ReceiptRepository {
   /// Throws [ArgumentError] for an empty store or a receipt with no lines —
   /// the honesty rules hold at the repository, not only at the screen.
   Future<String> saveReceipt(ReceiptWrite write);
+
+  /// Rewrites the saved receipt [receiptId] as [write] says it now stands:
+  /// the store and the date move, a line carrying its
+  /// [ReceiptLineWrite.lineId] is updated in place, a line without one is
+  /// new, and a stored line [write] no longer carries is tombstoned.
+  ///
+  /// The printed totals and every line's printed words are the paper's, and
+  /// are left as the scan wrote them. Refuses what [saveReceipt] refuses.
+  Future<void> updateReceipt(String receiptId, ReceiptWrite write);
+
+  /// Takes the receipt back — it and its lines are tombstoned, so every price
+  /// it stated stops being one.
+  Future<void> deleteReceipt(String receiptId);
 }
 
 /// One ledger row as the query answers it — the receipt's own columns plus
@@ -100,6 +113,7 @@ typedef StoredReceiptLine = ({
   String? ingredientId,
   String? ingredientName,
   String printedText,
+  String? namePrinted,
   int cents,
   int discountCents,
   String kind,

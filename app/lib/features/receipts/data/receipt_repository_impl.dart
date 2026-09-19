@@ -75,7 +75,8 @@ class SqliteReceiptRepository implements ReceiptRepository {
         .watch(
           'SELECT r.id, r.store, r.purchased_at, r.source, '
           'r.subtotal_cents, r.tax_cents, r.total_cents, '
-          'l.id AS line_id, l.ingredient_id, l.printed_text, l.cents, '
+          'l.id AS line_id, l.ingredient_id, l.printed_text, l.name_printed, '
+          'l.cents, '
           'l.discount_cents, l.kind, l.pack_basis_amount, l.pack_amount, '
           'l.pack_unit, l.measure_id, l.sort_order, '
           'i.canonical_name, i.macros_basis, m.label AS measure_label '
@@ -113,6 +114,7 @@ class SqliteReceiptRepository implements ReceiptRepository {
               ingredientId: r['ingredient_id'] as String?,
               ingredientName: r['canonical_name'] as String?,
               printedText: (r['printed_text'] as String?) ?? '',
+              namePrinted: r['name_printed'] as String?,
               cents: (r['cents'] as num?)?.toInt() ?? 0,
               discountCents: (r['discount_cents'] as num?)?.toInt() ?? 0,
               kind: (r['kind'] as String?) ?? 'item',
@@ -129,17 +131,8 @@ class SqliteReceiptRepository implements ReceiptRepository {
 
   @override
   Future<String> saveReceipt(ReceiptWrite write) async {
+    _refuseUnsayable(write);
     final store = write.store.trim();
-    if (store.isEmpty) {
-      throw ArgumentError.value(write.store, 'store', 'must name a store');
-    }
-    if (write.lines.isEmpty) {
-      throw ArgumentError.value(
-        write.lines,
-        'lines',
-        'a receipt with no lines is not a receipt',
-      );
-    }
 
     final receiptId = _uuid.v4();
     final stamp = DateTime.now().toUtc().toIso8601String();
@@ -165,72 +158,190 @@ class SqliteReceiptRepository implements ReceiptRepository {
           stamp,
         ],
       );
+      final mintedWords = <(String, String), String>{};
       for (final line in write.lines) {
-        // The one place an import mints a measure, and only where the
-        // household's own tap asked for it. It happens BEFORE the line, so
-        // the line can point at the word rather than at the unit it was
-        // typed in — which is what makes the next receipt for this row land
-        // on it.
-        var measureId = line.measureId;
-        final mint = line.mintMeasureLabel?.trim();
-        final basis = line.packBasisAmount;
-        if (mint != null &&
-            mint.isNotEmpty &&
-            basis != null &&
-            line.ingredientId != null) {
-          final last = await tx.get(
-            'SELECT COALESCE(MAX(sort_order), -1) AS m FROM ingredient_measure '
-            'WHERE ingredient_id = ? AND deleted_at IS NULL',
-            [line.ingredientId],
-          );
-          measureId = _uuid.v4();
-          await tx.execute(
-            'INSERT INTO ingredient_measure (id, household_id, '
-            'ingredient_id, label, basis_amount, sort_order, source, '
-            'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [
-              measureId,
-              _householdId,
-              line.ingredientId,
-              mint,
-              basis,
-              ((last['m'] as num?)?.toInt() ?? -1) + 1,
-              'manual',
-              stamp,
-              stamp,
-            ],
-          );
-        }
-        // A pack minted as a measure is stored as a COUNT of it, so the word
-        // is the measure's own and never a second copy.
-        final minted = measureId != null && measureId != line.measureId;
+        await _writeLine(tx, receiptId, line, stamp, mintedWords);
+      }
+    });
+    return receiptId;
+  }
+
+  @override
+  Future<void> updateReceipt(String receiptId, ReceiptWrite write) async {
+    _refuseUnsayable(write);
+    final stamp = DateTime.now().toUtc().toIso8601String();
+    await _db.writeTransaction((tx) async {
+      // UPDATE, never an upsert: the local tables are SQLite views. The
+      // printed totals are the paper's and are not this door's to move, so
+      // they are left exactly as the scan wrote them.
+      await tx.execute(
+        'UPDATE receipt SET store = ?, purchased_at = ?, updated_at = ? '
+        'WHERE id = ? AND deleted_at IS NULL',
+        [write.store.trim(), receiptStamp(write.purchasedAt), stamp, receiptId],
+      );
+      final live = await tx.getAll(
+        'SELECT id FROM receipt_line WHERE receipt_id = ? '
+        'AND deleted_at IS NULL',
+        [receiptId],
+      );
+      final kept = {
+        for (final line in write.lines)
+          if (line.lineId != null) line.lineId!,
+      };
+      // A line the edit dropped is tombstoned, never rewritten: the row that
+      // was a price stops being one, and sync carries exactly that.
+      for (final row in live) {
+        final id = row['id'] as String;
+        if (kept.contains(id)) continue;
         await tx.execute(
-          'INSERT INTO receipt_line (id, household_id, receipt_id, '
-          'ingredient_id, printed_text, cents, discount_cents, kind, '
-          'pack_basis_amount, pack_amount, pack_unit, measure_id, '
-          'sort_order, created_at, updated_at) '
-          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'UPDATE receipt_line SET deleted_at = ?, updated_at = ? '
+          'WHERE id = ? AND deleted_at IS NULL',
+          [stamp, stamp, id],
+        );
+      }
+      final mintedWords = <(String, String), String>{};
+      for (final line in write.lines) {
+        await _writeLine(tx, receiptId, line, stamp, mintedWords);
+      }
+    });
+  }
+
+  @override
+  Future<void> deleteReceipt(String receiptId) async {
+    final stamp = DateTime.now().toUtc().toIso8601String();
+    await _db.writeTransaction((tx) async {
+      await tx.execute(
+        'UPDATE receipt_line SET deleted_at = ?, updated_at = ? '
+        'WHERE receipt_id = ? AND deleted_at IS NULL',
+        [stamp, stamp, receiptId],
+      );
+      await tx.execute(
+        'UPDATE receipt SET deleted_at = ?, updated_at = ? '
+        'WHERE id = ? AND deleted_at IS NULL',
+        [stamp, stamp, receiptId],
+      );
+    });
+  }
+
+  static void _refuseUnsayable(ReceiptWrite write) {
+    if (write.store.trim().isEmpty) {
+      throw ArgumentError.value(write.store, 'store', 'must name a store');
+    }
+    if (write.lines.isEmpty) {
+      throw ArgumentError.value(
+        write.lines,
+        'lines',
+        'a receipt with no lines is not a receipt',
+      );
+    }
+  }
+
+  /// Writes one line of [receiptId] — an UPDATE where the line is already a
+  /// row ([ReceiptLineWrite.lineId]), a plain INSERT where it is new. Never
+  /// `ON CONFLICT`: the local tables are SQLite views and a view rejects
+  /// UPSERT.
+  ///
+  /// [mintedWords] is the receipt's own record of the measures this save has
+  /// already minted, keyed by ingredient and word, and it is what keeps six
+  /// identical lines from minting six identical measures. It lives for one
+  /// transaction: a word minted last week is a row, and a row is not this
+  /// door's to reuse.
+  Future<void> _writeLine(
+    SqliteWriteContext tx,
+    String receiptId,
+    ReceiptLineWrite line,
+    String stamp,
+    Map<(String, String), String> mintedWords,
+  ) async {
+    // The one place an import mints a measure, and only where the household's
+    // own tap asked for it. It happens BEFORE the line, so the line can point
+    // at the word rather than at the unit it was typed in — which is what
+    // makes the next receipt for this row land on it.
+    var measureId = line.measureId;
+    final mint = line.mintMeasureLabel?.trim();
+    final basis = line.packBasisAmount;
+    final ingredientId = line.ingredientId;
+    if (mint != null &&
+        mint.isNotEmpty &&
+        basis != null &&
+        ingredientId != null) {
+      // The same word asked for again on the same receipt — six tubs of tofu
+      // each kept as *tub* — is ONE measure: the first line mints it and the
+      // rest point at it, because a row with six identical words in its picker
+      // is six ways to say one thing.
+      measureId = mintedWords[(ingredientId, mint)];
+      if (measureId == null) {
+        final last = await tx.get(
+          'SELECT COALESCE(MAX(sort_order), -1) AS m FROM ingredient_measure '
+          'WHERE ingredient_id = ? AND deleted_at IS NULL',
+          [ingredientId],
+        );
+        measureId = _uuid.v4();
+        mintedWords[(ingredientId, mint)] = measureId;
+        await tx.execute(
+          'INSERT INTO ingredient_measure (id, household_id, '
+          'ingredient_id, label, basis_amount, sort_order, source, '
+          'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [
-            _uuid.v4(),
-            _householdId,
-            receiptId,
-            line.ingredientId,
-            line.printedText,
-            line.cents,
-            line.discountCents,
-            line.kind.dbValue,
-            line.packBasisAmount,
-            if (minted) 1 else line.packAmount,
-            if (minted) null else line.packUnitId,
             measureId,
-            line.sortOrder,
+            _householdId,
+            ingredientId,
+            mint,
+            basis,
+            ((last['m'] as num?)?.toInt() ?? -1) + 1,
+            'manual',
             stamp,
             stamp,
           ],
         );
       }
-    });
-    return receiptId;
+    }
+    // A pack minted as a measure is stored as a COUNT of it, so the word is
+    // the measure's own and never a second copy.
+    final minted = measureId != null && measureId != line.measureId;
+    final said = [
+      line.ingredientId,
+      line.cents,
+      line.discountCents,
+      line.kind.dbValue,
+      line.packBasisAmount,
+      if (minted) 1 else line.packAmount,
+      if (minted) null else line.packUnitId,
+      measureId,
+      line.sortOrder,
+    ];
+    if (line.lineId case final id?) {
+      // `printed_text` and `name_printed` are the PAPER's and no edit moves
+      // them. The name is also what the receipt door recalls past answers by,
+      // and a name that moved under an answer would file it somewhere nobody
+      // asked about.
+      await tx.execute(
+        'UPDATE receipt_line SET ingredient_id = ?, cents = ?, '
+        'discount_cents = ?, kind = ?, pack_basis_amount = ?, '
+        'pack_amount = ?, pack_unit = ?, measure_id = ?, sort_order = ?, '
+        'updated_at = ? WHERE id = ? AND receipt_id = ? '
+        'AND deleted_at IS NULL',
+        [...said, stamp, id, receiptId],
+      );
+      return;
+    }
+    await tx.execute(
+      'INSERT INTO receipt_line (id, household_id, receipt_id, '
+      'printed_text, name_printed, ingredient_id, cents, discount_cents, '
+      'kind, pack_basis_amount, pack_amount, pack_unit, measure_id, '
+      'sort_order, created_at, updated_at) '
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        _uuid.v4(),
+        _householdId,
+        receiptId,
+        line.printedText,
+        line.namePrinted,
+        ...said,
+        stamp,
+        stamp,
+      ],
+    );
   }
 }
 

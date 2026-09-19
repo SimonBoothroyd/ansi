@@ -65,6 +65,39 @@ ReceiptLineDraft item({
 );
 
 void main() {
+  group('a card is titled without the money', () {
+    const printed = r'T BGT PETITE SEASONAL $4.99';
+    ReceiptLineDraft line({String? name, String? matched}) => ReceiptLineDraft(
+      index: 0,
+      printedText: printed,
+      namePrinted: name,
+      ingredientName: matched,
+      cents: 499,
+      kind: ReceiptKind.item,
+    );
+
+    test('the paper’s name for the thing, where the server split one out', () {
+      expect(
+        line(name: 'T BGT PETITE SEASONAL').displayName,
+        'T BGT PETITE SEASONAL',
+      );
+    });
+
+    test('the whole line from a server that sends no name', () {
+      expect(line().displayName, printed);
+    });
+
+    test('the matched row wins, and the edits keep the name', () {
+      final named = line(name: 'T BGT PETITE SEASONAL');
+      expect(line(name: 'x', matched: 'Bouquet').displayName, 'Bouquet');
+      expect(named.withCents(1).namePrinted, 'T BGT PETITE SEASONAL');
+      expect(
+        named.copyWith(dropped: true).namePrinted,
+        'T BGT PETITE SEASONAL',
+      );
+    });
+  });
+
   group('a line says what it still wants', () {
     test('food nobody has named wants a match', () {
       expect(receiptLineIssues(item()), [ReceiptLineIssue.unmatched]);
@@ -211,6 +244,252 @@ void main() {
     });
   });
 
+  group('a line the receipt printed again', () {
+    // Six tubs of tofu print six identical lines, and every one of them wants
+    // the same answer.
+    ReceiptLineDraft tofu({
+      required int index,
+      String printed = 'TJ ORG TOFU FIRM  2.49',
+      int cents = 249,
+      int discountCents = 0,
+      String? ingredientId,
+      double? pack,
+      String? keepAsMeasure,
+      ReceiptKind kind = ReceiptKind.item,
+      ReceiptWeight? weight,
+      bool dropped = false,
+    }) => ReceiptLineDraft(
+      index: index,
+      printedText: printed,
+      cents: cents,
+      discountCents: discountCents,
+      kind: kind,
+      weight: weight,
+      ingredientId: ingredientId,
+      packBasisAmount: pack,
+      keepAsMeasure: keepAsMeasure,
+      dropped: dropped,
+    );
+
+    test(
+      'the twins are the lines one answer answers, and the card says so',
+      () {
+        final drafts = [tofu(index: 0), tofu(index: 1), tofu(index: 2)];
+        expect(linesAnsweredWith(drafts, 1), {0, 1, 2});
+        expect(
+          sameLineAgainNote(drafts, 1),
+          '×3 on this receipt — an answer here answers them all',
+        );
+      },
+    );
+
+    test('a line that stands alone answers for itself, and says nothing', () {
+      final drafts = [tofu(index: 0), tofu(index: 1, printed: 'TJ SRIRACHA')];
+      expect(linesAnsweredWith(drafts, 0), {0});
+      expect(sameLineAgainNote(drafts, 0), isNull);
+      expect(linesAnsweredWith(drafts, 99), {99}, reason: 'no such line');
+    });
+
+    test('a different figure is a different line', () {
+      final drafts = [tofu(index: 0), tofu(index: 1, cents: 299)];
+      expect(linesAnsweredWith(drafts, 0), {0});
+      final discounted = [tofu(index: 0), tofu(index: 1, discountCents: 55)];
+      expect(linesAnsweredWith(discounted, 0), {0});
+    });
+
+    test('a twin answered differently is left exactly as it was', () {
+      // The fence that makes this safe: *standing where it stands now*. Two of
+      // the six were matched to another row, and an answer on the fourth
+      // cannot reach back and overwrite theirs.
+      final drafts = [
+        tofu(index: 0, ingredientId: 'vocab-tofu'),
+        tofu(index: 1, ingredientId: 'vocab-tofu'),
+        tofu(index: 2),
+        tofu(index: 3),
+      ];
+      expect(linesAnsweredWith(drafts, 3), {2, 3});
+      expect(linesAnsweredWith(drafts, 0), {0, 1});
+    });
+
+    test('a pack said one way is not a fact about a pack said another', () {
+      final drafts = [
+        tofu(index: 0, ingredientId: 'vocab-tofu', pack: 396),
+        tofu(index: 1, ingredientId: 'vocab-tofu', pack: 454),
+        tofu(index: 2, ingredientId: 'vocab-tofu', pack: 396),
+      ];
+      expect(linesAnsweredWith(drafts, 0), {0, 2});
+    });
+
+    test('a word kept as a measure on one is not kept on the other', () {
+      final drafts = [
+        tofu(index: 0, ingredientId: 'vocab-tofu', pack: 396),
+        tofu(
+          index: 1,
+          ingredientId: 'vocab-tofu',
+          pack: 396,
+          keepAsMeasure: 'tub',
+        ),
+      ];
+      expect(linesAnsweredWith(drafts, 0), {0});
+    });
+
+    test(
+      'a folded line rides with the other folded lines, never with an item',
+      () {
+        final drafts = [
+          tofu(index: 0, kind: ReceiptKind.notFood),
+          tofu(index: 1, kind: ReceiptKind.notFood),
+          tofu(index: 2),
+        ];
+        expect(linesAnsweredWith(drafts, 0), {0, 1});
+        expect(linesAnsweredWith(drafts, 2), {2});
+      },
+    );
+
+    test('a dropped line is nobody’s twin, in either direction', () {
+      // It is leaving, and a doubled line is dropped precisely BECAUSE the
+      // other one is staying.
+      final drafts = [
+        tofu(index: 0),
+        tofu(index: 1, dropped: true),
+        tofu(index: 2),
+      ];
+      expect(linesAnsweredWith(drafts, 0), {0, 2});
+      expect(linesAnsweredWith(drafts, 1), {1});
+    });
+
+    test('a line sold by weight answers for itself', () {
+      // Its printed weight IS its pack, so a pack said on one is not a fact
+      // about the other, however alike the two read.
+      const weighed = ReceiptWeight(amount: 1.32, unit: lb, rateCents: 199);
+      final drafts = [
+        tofu(index: 0, printed: 'ONIONS 1.32 lb', weight: weighed),
+        tofu(index: 1, printed: 'ONIONS 1.32 lb', weight: weighed),
+      ];
+      expect(linesAnsweredWith(drafts, 0), {0});
+      expect(sameLineAgainNote(drafts, 0), isNull);
+    });
+
+    test('a line the reader read no words off is nobody’s twin', () {
+      final drafts = [tofu(index: 0, printed: ''), tofu(index: 1, printed: '')];
+      expect(linesAnsweredWith(drafts, 0), {0});
+    });
+  });
+
+  group('a match the household has already made', () {
+    ReceiptPayload payloadWith(Map<String, Object?> match) =>
+        ReceiptPayload.fromJson({
+          'lines': [
+            {
+              'index': 0,
+              'printed_text': 'ORG TRICOLOR QUINOA  4.49',
+              'name_printed': 'ORG TRICOLOR QUINOA',
+              'cents': 449,
+              'kind': 'item',
+              'match': match,
+            },
+          ],
+        });
+
+    test('arrives resolved, and says it is the household’s own', () {
+      // The line the cascade could not place: a whole-string trigram cannot
+      // score four of a store's abbreviations against `Quinoa`. Once somebody
+      // has said it, it does not have to.
+      final draft = initialReceiptDrafts(
+        payloadWith(const {
+          'ingredient_id': 'vocab-quinoa',
+          'confidence': 1,
+          'kind': 'auto',
+          'remembered': true,
+        }),
+      ).single;
+      expect(draft.ingredientId, 'vocab-quinoa');
+      expect(draft.remembered, isTrue);
+    });
+
+    test('the cascade’s own auto is not remembered', () {
+      final draft = initialReceiptDrafts(
+        payloadWith(const {
+          'ingredient_id': 'vocab-quinoa',
+          'confidence': 0.91,
+          'kind': 'auto',
+        }),
+      ).single;
+      expect(draft.ingredientId, 'vocab-quinoa');
+      expect(draft.remembered, isFalse);
+    });
+
+    test('a suggestion is an offer whoever made it', () {
+      // `suggest` never starts a line resolved (ADR-0004), so there is nothing
+      // for the note to be about either.
+      final draft = initialReceiptDrafts(
+        payloadWith(const {
+          'ingredient_id': 'vocab-quinoa',
+          'confidence': 0.6,
+          'kind': 'suggest',
+          'remembered': true,
+        }),
+      ).single;
+      expect(draft.ingredientId, isNull);
+      expect(draft.remembered, isFalse);
+    });
+
+    test('a match the person changes is theirs now', () {
+      final draft = item(ingredientId: 'vocab-banana').copyWith();
+      const recalled = ReceiptLineDraft(
+        index: 0,
+        printedText: 'x',
+        cents: 1,
+        kind: ReceiptKind.item,
+        ingredientId: 'vocab-banana',
+        remembered: true,
+      );
+      expect(
+        recalled
+            .copyWith(clearMatch: true)
+            .copyWith(ingredientId: 'vocab-oil')
+            .remembered,
+        isFalse,
+      );
+      // A correction to the PAPER says nothing about where the match came
+      // from, so it survives one.
+      expect(recalled.withCents(299).remembered, isTrue);
+      expect(recalled.copyWith(dropped: true).remembered, isTrue);
+      expect(draft.remembered, isFalse);
+    });
+
+    test('the pack lands on it exactly as on any other auto match', () {
+      // So a remembered line whose row has a remembered pack arrives needing
+      // nothing at all.
+      final landed = landPack(
+        const ReceiptLineDraft(
+          index: 0,
+          printedText: 'ORG TRICOLOR QUINOA  4.49',
+          cents: 449,
+          kind: ReceiptKind.item,
+          ingredientId: 'vocab-banana',
+          remembered: true,
+        ),
+        ingredient: bananas,
+        measures: const [bag],
+        last: PriceObservation(
+          lineId: 'l-old',
+          receiptId: 'r-old',
+          cents: 349,
+          packBasisAmount: 454,
+          basis: MacrosBasis.perG,
+          store: "TJ's",
+          purchasedAt: DateTime(2026, 8),
+          packAmount: 1,
+          measureId: 'm-bag',
+        ),
+      );
+      expect(landed.packBasisAmount, 454);
+      expect(landed.remembered, isTrue);
+      expect(receiptLineIssues(landed), isEmpty);
+    });
+  });
+
   group('the map', () {
     List<ReceiptLineDraft> drafts() => initialReceiptDrafts(sample());
 
@@ -259,7 +538,8 @@ void main() {
       expect(map.apartCents, 349);
       expect(
         joinNote(map),
-        r'$3.49 apart · Find the join — a line is missing or doubled',
+        r'$3.49 apart · Find the join — a line is missing, doubled or '
+        'misread',
       );
       expect(
         map.headerCount,
@@ -268,10 +548,37 @@ void main() {
       );
     });
 
-    test('no printed subtotal is nothing to disagree with', () {
+    test('a paper that printed neither figure is nothing to disagree with', () {
       final map = receiptReviewMap(drafts());
       expect(map.joinCloses, isTrue);
-      expect(joinNote(map), 'the receipt printed no subtotal');
+      expect(joinNote(map), 'the receipt printed no subtotal and no total');
+    });
+
+    test('with no subtotal the lines are held against the total less tax', () {
+      final closes = receiptReviewMap(
+        drafts(),
+        printedTaxCents: 82,
+        printedTotalCents: 2846 + 82,
+      );
+      expect(closes.expectedLinesCents, 2846);
+      expect(closes.joinCloses, isTrue);
+      expect(joinNote(closes), 'the receipt’s total less tax says the same');
+
+      // The strip this was found on: lines at $96.62 under a printed total of
+      // $91.54 with 65¢ of tax, and a green tick beside the sum.
+      final apart = receiptReviewMap(
+        drafts(),
+        printedTaxCents: 65,
+        printedTotalCents: 2846 - 573 + 65,
+      );
+      expect(apart.joinCloses, isFalse);
+      expect(apart.apartCents, 573);
+      expect(apart.headerCount, apart.outstanding + 1);
+      expect(
+        joinNote(apart),
+        r'$5.73 apart from the total less tax ($22.73) · Find the join — a '
+        'line is missing, doubled or misread',
+      );
     });
 
     test('Save is gated on the lines, never on the join', () {

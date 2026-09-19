@@ -114,6 +114,7 @@ class ReceiptLineOut {
     required this.printedText,
     required this.cents,
     required this.kind,
+    this.namePrinted,
     this.discountCents = 0,
     this.weight,
     this.match,
@@ -128,6 +129,7 @@ class ReceiptLineOut {
   }) => ReceiptLineOut(
     index: _cents(json['index']) ?? fallbackIndex,
     printedText: _text(json['printed_text']) ?? '',
+    namePrinted: _text(json['name_printed']),
     cents: _cents(json['cents']) ?? 0,
     discountCents: _cents(json['discount_cents']) ?? 0,
     kind: ReceiptKind.fromWire(_text(json['kind'])),
@@ -152,6 +154,12 @@ class ReceiptLineOut {
   /// What the paper said, verbatim. It is on screen under every card: from a
   /// photograph there is no other way to check what was read.
   final String printedText;
+
+  /// The words that name the thing, with the figures taken off — what an
+  /// unmatched card is titled with, because the money already has its own
+  /// column. Null from a server that does not send it, and the card then
+  /// falls back to [printedText].
+  final String? namePrinted;
 
   /// What the line rang up as, as printed. A [ReceiptKind.fee] may be
   /// negative — a discount the reader could not attach to an item is kept as
@@ -221,12 +229,14 @@ class ReceiptMatch {
     required this.ingredientId,
     this.confidence = 0,
     this.auto = false,
+    this.remembered = false,
   });
 
   factory ReceiptMatch.fromJson(Map<String, Object?> json) => ReceiptMatch(
     ingredientId: _text(json['ingredient_id']) ?? '',
     confidence: _number(json['confidence']) ?? 0,
     auto: _text(json['kind']) == 'auto',
+    remembered: json['remembered'] == true,
   );
 
   final String ingredientId;
@@ -235,6 +245,16 @@ class ReceiptMatch {
   /// True for the `auto` band — the line starts resolved. A `suggest` match
   /// is an offer the person taps, never a resolution (ADR-0004).
   final bool auto;
+
+  /// True where this is the HOUSEHOLD's own past answer for these printed
+  /// words, recalled from its saved receipt lines, rather than the cascade's
+  /// reading of them. It arrives `auto` at confidence 1, because somebody said
+  /// it — and the card says so, because the one `auto` that can be wrong for a
+  /// reason a person can see is worth seeing.
+  ///
+  /// It is not a vocabulary word and never becomes one: a receipt's words are
+  /// one store's abbreviations.
+  final bool remembered;
 }
 
 /// One did-you-mean chip.

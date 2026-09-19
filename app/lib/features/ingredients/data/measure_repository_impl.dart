@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../domain/allowed_units.dart';
+import '../domain/measure_authoring.dart';
 import '../domain/measure_repository.dart';
 import '../domain/serving_measure.dart';
 
@@ -148,7 +149,7 @@ class SqliteMeasureRepository implements MeasureRepository {
     // review): every write path — future import included — must hold the
     // same lines. Volume-named labels would shadow density-owned conversion;
     // a non-positive/NaN amount could never convert honestly (invariant 3).
-    final trimmed = label.trim();
+    final trimmed = measureLabelAsAuthored(label);
     if (trimmed.isEmpty) {
       throw ArgumentError.value(label, 'label', 'must not be empty');
     }
@@ -216,7 +217,7 @@ class SqliteMeasureRepository implements MeasureRepository {
   Future<void> renameMeasure(String measureId, String label) async {
     // The add form's lines, held here rather than in the row's editor, for
     // the reason addMeasure states: every write path must hold the same ones.
-    final trimmed = label.trim();
+    final trimmed = measureLabelAsAuthored(label);
     if (trimmed.isEmpty) {
       throw ArgumentError.value(label, 'label', 'must not be empty');
     }

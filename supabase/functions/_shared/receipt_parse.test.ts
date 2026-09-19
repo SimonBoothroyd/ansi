@@ -83,6 +83,8 @@ Deno.test("money — a discount is stated as the amount taken away", () => {
 Deno.test("date — the forms a till prints", () => {
   assertEquals(parseReceiptDate("09/13/26 05:42 PM"), "2026-09-13T17:42:00");
   assertEquals(parseReceiptDate("9/13/2026"), "2026-09-13T00:00:00");
+  assertEquals(parseReceiptDate("09-12-2026 16:13"), "2026-09-12T16:13:00");
+  assertEquals(parseReceiptDate("9-12-26"), "2026-09-12T00:00:00");
   assertEquals(parseReceiptDate("2026-09-13 11:04"), "2026-09-13T11:04:00");
   assertEquals(parseReceiptDate("2026-09-13T11:04:09"), "2026-09-13T11:04:09");
   assertEquals(parseReceiptDate("SEP 13 2026 5:42PM"), "2026-09-13T17:42:00");

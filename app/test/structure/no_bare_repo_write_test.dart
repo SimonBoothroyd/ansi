@@ -67,6 +67,11 @@ const _allowed = <String, String>{
       'import controller holds one folder over.',
   'lib/features/receipts/presentation/receipt_view_models.dart:saveReceipt':
       'same — ReceiptScanFailed with the reason, under the review screen.',
+  'lib/features/receipts/presentation/receipt_view_models.dart:updateReceipt':
+      'same controller, same catch — ReceiptScanFailed with the reason, which '
+      'the saved receipt’s page renders in place of the review.',
+  'lib/features/receipts/presentation/receipt_view_models.dart:deleteReceipt':
+      'same — ReceiptScanFailed with the reason, on the saved receipt’s page.',
   'lib/features/import/presentation/import_view.dart:startImport':
       'the ImportController method, not the repository: it cannot throw.',
   'lib/features/import/presentation/reconciliation_view.dart:commit':

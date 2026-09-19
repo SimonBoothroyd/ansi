@@ -1021,7 +1021,7 @@ A by-weight line carries the printed weight, the printed rate and the unit as a
 `units.dart` canonical id (`lb`, `kg`, `oz`, `g`) — the card prices itself from
 the paper and asks for no pack. Everything else carries no weight.
 
-### 12.4 The model never matches, and nothing is learned
+### 12.4 The model never matches, and the vocabulary learns nothing
 
 ADR-0004 holds unchanged. The model is not shown one ingredient name of the
 household's; it prints what the paper printed. The deterministic cascade of §6
@@ -1039,17 +1039,62 @@ catalogue.
 
 **No alias is learned from a receipt** (plan 0049, owner). §8's learning loop is
 the recipe door's and stays there: a receipt's words are one store's
-abbreviations, confirming one teaches the vocabulary nothing, and a whole-line
-alias scoped to a store was weighed and refused. The match runs afresh every
-time. What carries over between shops is the **pack**, kept on the ingredient
-row by the owner's tap in review.
+abbreviations, a whole-line alias scoped to a store was weighed and refused, and
+putting `TJ ORG BANANAS` into the household's own language would surface it in
+every recipe import, every picker and every search.
 
 Because that is a difference between two doors sharing one cascade — the kind a
 later change erases quietly — it is held structurally rather than by this
 paragraph: `import-receipt/no_alias.test.ts` runs the real spine over the real
-Postgres-backed matcher with a spying executor and asserts every statement the
-function issues is a `SELECT`, and guards every file the function owns against
-an alias table name or a write verb.
+Postgres-backed matcher AND the real recall below, with a spying executor, and
+asserts every statement the function issues is a `SELECT`; it also guards every
+file the function owns against an alias table name or a write verb.
+
+#### 12.4.1 What the household itself remembers
+
+The cascade alone matched **0 of 29** lines on the first real strip, and not
+because the vocabulary was missing the food: a whole-string trigram cannot score
+`ORG TRICOLOR QUINOA` against `Quinoa` above the suggest floor. No tuning fixes
+that in general — the words are one store's abbreviations, not a language.
+
+So the receipt door **recalls the household's own past answers, per printed
+name** (`_shared/receipt_memory.ts`), and the memory is not a new table: it is
+the saved `receipt_line` rows, which already hold the answer beside the words it
+answers. One batched `SELECT` per receipt, scoped to the household from the
+verified token:
+
+- the key is the trimmed, upper-cased printed name, compared with
+  `upper(l.name_printed)` — **exact**, never fuzzy, and spelled exactly as
+  migration 0047's index is or the index is not used. (The stored value is
+  already trimmed: the app writes what the wire sent, and the wire trims.)
+  Fuzzy matching is the cascade's job and it has a calibrated floor; a second,
+  looser matcher here would resolve lines the cascade honestly refused, and do
+  it wearing `confidence: 1`.
+- **the latest answer wins** (`order by … updated_at desc`), and that is the
+  whole way to take a wrong one back: a saved receipt is editable, so correcting
+  the receipt corrects the memory. There is no second list to also correct.
+- the answer is read **through the ingredient**, so a row the household has
+  since retired is not an answer any more and an older live one is used instead.
+  A line the household folded is remembered as `not_food`.
+- a recalled ingredient arrives as
+  `match: {ingredient_id, confidence: 1, kind: "auto", remembered: true}` and
+  **overrides** the cascade; the cascade's suggestions ride along unchanged,
+  because they are what a person would change it to. A recalled fold arrives
+  `kind: "not_food"`, with *it is food* as the way back.
+- **a recall that throws does not fail the import.** It is an improvement on the
+  cascade, not a dependency of it: the receipt arrives exactly as the cascade
+  alone would have had it, and the error is logged.
+
+The review says so on the card — `as you matched it last time` beside the chosen
+row's `tap to change` — because a remembered match is the one `auto` that can be
+wrong for a reason a person can see, and changing it *is* the correction.
+
+None of this is an alias. The words stay on the receipt they were printed on,
+the match cascade never sees them, and the vocabulary matcher is not consulted
+about them.
+
+What else carries over between shops is the **pack**, kept on the ingredient row
+by the owner's tap in review.
 
 ### 12.5 The contract
 

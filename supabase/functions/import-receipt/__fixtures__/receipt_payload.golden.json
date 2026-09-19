@@ -12,6 +12,7 @@
     {
       "index": 0,
       "printed_text": "TJ ORG BANANAS 3.49",
+      "name_printed": "TJ ORG BANANAS",
       "cents": 349,
       "discount_cents": 0,
       "kind": "item",
@@ -24,6 +25,7 @@
     {
       "index": 1,
       "printed_text": "YELLOW ONIONS 1.32 lb @ 1.99/lb 2.63",
+      "name_printed": "YELLOW ONIONS",
       "cents": 263,
       "discount_cents": 0,
       "kind": "item",
@@ -35,7 +37,8 @@
       "match": {
         "ingredient_id": "v-onion",
         "confidence": 1,
-        "kind": "auto"
+        "kind": "auto",
+        "remembered": false
       },
       "suggestions": [
         {
@@ -50,6 +53,7 @@
     {
       "index": 2,
       "printed_text": "ATLANTIC SALMON 1.10 lb @ 5.49/lb 6.04",
+      "name_printed": "ATLANTIC SALMON",
       "cents": 604,
       "discount_cents": 55,
       "kind": "item",
@@ -61,7 +65,8 @@
       "match": {
         "ingredient_id": "v-salmon",
         "confidence": 1,
-        "kind": "auto"
+        "kind": "auto",
+        "remembered": false
       },
       "suggestions": [
         {
@@ -76,6 +81,7 @@
     {
       "index": 3,
       "printed_text": "TJ SRIRACHA 3.99",
+      "name_printed": "TJ SRIRACHA",
       "cents": 399,
       "discount_cents": 0,
       "kind": "item",
@@ -83,7 +89,8 @@
       "match": {
         "ingredient_id": "v-sriracha",
         "confidence": 0.75,
-        "kind": "suggest"
+        "kind": "suggest",
+        "remembered": false
       },
       "suggestions": [
         {
@@ -98,6 +105,7 @@
     {
       "index": 4,
       "printed_text": "TJ MED CHDR SHRD 3.79",
+      "name_printed": "TJ MED CHDR SHRD",
       "cents": 379,
       "discount_cents": 0,
       "kind": "item",
@@ -110,6 +118,7 @@
     {
       "index": 5,
       "printed_text": "TJ ORG BANANAS 3.49",
+      "name_printed": "TJ ORG BANANAS",
       "cents": 349,
       "discount_cents": 0,
       "kind": "item",
@@ -122,6 +131,7 @@
     {
       "index": 6,
       "printed_text": "PAPER TOWELS 6.99",
+      "name_printed": "PAPER TOWELS",
       "cents": 699,
       "discount_cents": 0,
       "kind": "not_food",
@@ -134,6 +144,7 @@
     {
       "index": 7,
       "printed_text": "BAG FEE 0.10",
+      "name_printed": "BAG FEE",
       "cents": 10,
       "discount_cents": 0,
       "kind": "not_food",
@@ -146,6 +157,7 @@
     {
       "index": 8,
       "printed_text": "TAX 0.82",
+      "name_printed": "TAX",
       "cents": 82,
       "discount_cents": 0,
       "kind": "tax",

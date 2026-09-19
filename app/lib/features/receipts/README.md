@@ -10,32 +10,73 @@ confirmed line by line, and **kept whole** — so what a week cost reads off the
 receipts themselves, and every matched line with a pack is a price.
 
 There is no second price table. A receipt is `receipt` + `receipt_line`
-(migrations 0044/0046), the same two tables a hand-typed price already writes
+(migrations 0044/0046/0047), the same two tables a hand-typed price already writes
 one row each of, so a scanned line and a typed one are the same fact read the
 same way (`features/ingredients/domain/price.dart`).
 
-## The four things that make this honest
+## The six things that make this honest
 
 **Nothing is written until Save.** The whole review is controller state. A scan
 abandoned half way leaves the ledger exactly as it was, and every failure on
 the way is safe to repeat.
 
 **The join is a flag, never a refusal.** The kept lines' sum is held against
-the printed subtotal; when they disagree the card says how far apart and what
+the printed subtotal — or, on a strip that prints none, the total less tax,
+which the card says; when they disagree the card says how far apart and what
 to look for, the header counts it, and Save still opens — the printed total is
 the paper's and it stands. A sum that does not close means a line is missing or
 doubled, which is something to look at rather than something to block on.
 
-**The pack carries over; the words never do.** A receipt's text is one store's
-abbreviations, so confirming a match teaches the vocabulary nothing and **no
-alias is learned here** — there is no call to the learning path anywhere in
-this folder. What a second receipt inherits is the **pack**: a matched line
-with no printed weight opens on the pack that row was last bought in, and a
-line sold by weight prices itself from the weight the paper printed.
+**The household's answers carry over; the vocabulary learns nothing.** A
+receipt's text is one store's abbreviations, so confirming a match writes **no
+alias** — there is no call to the learning path anywhere in this folder, and
+`TJ ORG BANANAS` never becomes a word the recipe door, the picker or the search
+can see. What a second receipt inherits is two things, neither of them a
+vocabulary word:
+
+- **the pack**, on the ingredient row: a matched line with no printed weight
+  opens on the pack that row was last bought in, and a line sold by weight
+  prices itself from the weight the paper printed;
+- **the match**, recalled by the server per printed name off this household's
+  own saved receipt lines (`_shared/receipt_memory.ts`). The cascade matched 0
+  of 29 lines on the first real strip — a whole-string trigram cannot score
+  `ORG TRICOLOR QUINOA` against `Quinoa` — and once somebody has said it, it
+  does not have to. The recall is exact, never fuzzy; the **latest answer
+  wins**, so correcting a saved receipt corrects the memory and there is no
+  second list to maintain; a row retired since is no answer at all; and a
+  recall that fails costs the receipt nothing.
+
+A line that arrived on a recalled answer is `ReceiptLineDraft.remembered` and
+its card says `as you matched it last time` beside `tap to change` — the one
+`auto` that can be wrong for a reason a person can see. Changing it *is* the
+correction, and it stops being remembered the moment they do, because it is
+theirs now. `name_printed` is what all of this is filed under: the app writes
+it with the line (migration 0047) and no edit moves it.
+
+**One screen for a receipt.** `/receipts/:id` is the review, opened on the
+rows instead of on a scan (`ReceiptScanController.open`). Everything that
+confirmed the receipt corrects it — the store, the date's calendar door, a
+line's match, pack, PRICE chip, *Not food*, a drop — and Save rewrites the rows
+in place: kept lines by id, new ones inserted, dropped ones tombstoned. The
+printed totals and each line's printed words are the paper's and never move.
 
 **A zero is never a price.** A figure the reader could not make out arrives as
 `cents: 0` and is *flagged* — it holds Save and drags the join open until
 somebody reads it off the paper — rather than counted as a free line.
+
+**One answer answers the line the receipt printed six times.** Six tubs of
+tofu print six identical lines, and answering each of them separately is six
+times the same work. So an answer — the match, the pack (its word included),
+*Not food*, *it is food* — lands on every line that is that line again: the
+same printed words, the same figure, and **standing exactly where this one
+stands now**, which is what keeps it off a twin somebody already answered
+differently. The open card says `×6 on this receipt — an answer here answers
+them all` **before** the answer, so six cards settling at once is what the
+person was told would happen. A correction to the paper never rides along: a
+drop and a re-read figure are about one occurrence, and a doubled line is
+dropped precisely because its twin is staying. `domain/receipt_review.dart`
+holds the rule; at Save, six lines each keeping the same word as a measure
+mint **one** measure and all point at it.
 
 ## The files
 
@@ -60,16 +101,43 @@ presentation/
   receipt_review_body.dart   the paper's own facts, then the lines
   receipt_line_card.dart     one line, money first
   receipt_pack_sheet.dart    *Say what the pack is*, + *keep as a measure*
-  receipt_ledger_view.dart   `/receipts` and `/receipts/:id`
+  receipt_date_sheet.dart    *When was this shop* — the day moves, the clock stays
+  receipt_ledger_view.dart   `/receipts`, and `/receipts/:id` hosting the review
 ```
 
 ## The one place a measure is minted
 
 The import pipeline mints no measure and never has. The **household's own tap**
-does, once: *keep as a measure* on the pack door names `482 g` as *bottle*, and
-Save writes that measure on the row before the line, so the line points at the
-word rather than at the unit it was typed in. Everywhere else on this screen,
-a word the person did not ask for is not created.
+does: *keep as a measure* on the pack door names `482 g` as `bottle (17 oz)`,
+and Save writes that measure on the row before the line, so the line points at
+the word rather than at the unit it was typed in. Everywhere else on this
+screen, a word the person did not ask for is not created.
+
+**What minting buys is a WORD, and the door says so.** The pack carries over
+from the row's latest price whether or not a word was minted (`landPack`), so a
+plain `482 g` lands on the next receipt exactly as `bottle (17 oz)` would. What
+a word buys is one the household can also say on a recipe line, and one the
+Shop can say *buy 3* of — and it costs something, because a word turns up on
+every recipe-line chip row for that ingredient and becomes the Shop's rounding
+unit on a row that had none. So the toggle asks for a word worth having rather
+than promising a pack that was never at stake.
+
+The hint shows the household's own style, taken from the seed it curated: all
+lower case, singular, and **a container word carries its shelf size in the unit
+the shelf prints** — `can (14.5 oz)`, `block (14 oz)`, `bag (1 lb)`,
+`carton (32 oz)`. Two sizes of one container are two measures on the row.
+
+**A word the row already says is not minted twice.** The label is read the same
+way at both authoring doors (`ingredients/domain/measure_authoring.dart` —
+trimmed, inner whitespace collapsed, case left alone, because the measures
+editor has never changed it), and a live measure carrying the same word
+case-insensitively is either *this* measure or an argument:
+
+- the weights agree within the app's one tolerance for the same measure
+  (`kWholeMeasureTolerance`) → nothing is minted and the line points at the
+  measure the row already has, keeping the figure read off the paper;
+- they do not → the sheet refuses and says why, naming both weights and the
+  way out, which is the house style's own answer: put the size in the word.
 
 ## Where the seam is
 

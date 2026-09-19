@@ -11,6 +11,9 @@
 //     parameterized pg_trgm SQL is scoped to the caller's household in
 //     `WHERE household_id = $1`, so a service-role connection is safe: the
 //     household never comes from the body, only from the verified token.
+//   - the match memory's DB seam — `sqlReceiptMemory` (receipt_memory.ts) over
+//     the same pool and the same fence, one batched SELECT over this
+//     household's own saved receipt lines.
 //   - auth — `auth.ts`, over the shared gate: the `household_id` claim plus the
 //     deploy-time allowlist.
 //   - CORS — a permissive preflight so a browser client can call it too.
@@ -20,15 +23,17 @@
 // that matcher is not wired here and the query is not spent.
 //
 // **Nothing writes.** The only SQL this function issues is the cascade's two
-// SELECTs. There is no alias write, no stub write, no receipt write — the app
-// writes the `receipt` and its lines through PowerSync at Save, from the review
-// (plan 0049). `no_alias.test.ts` holds that structurally.
+// SELECTs and the memory's one. There is no alias write, no stub write, no
+// receipt write — the app writes the `receipt` and its lines through PowerSync
+// at Save, from the review (plan 0049). `no_alias.test.ts` holds that
+// structurally, by spying on every statement the function issues.
 
 import postgres from "postgres";
 import type { ReceiptAdapter } from "../_shared/receipt_types.ts";
 import { ClaudeReceiptAdapter } from "../_shared/adapters/claude_receipt.ts";
 import { matchLines as matchCascade } from "../_shared/match.ts";
 import { type SqlExecutor, sqlVocabMatcher } from "../_shared/match_db.ts";
+import { sqlReceiptMemory } from "../_shared/receipt_memory.ts";
 import { CORS_HEADERS, jsonResponse, withCors } from "../_shared/http_edge.ts";
 import { readCaller } from "./auth.ts";
 import { replayReceiptAdapterFromEnv } from "./replay.ts";
@@ -63,10 +68,12 @@ function buildDeps(householdId: string): ReceiptDeps {
   // it that way.
   const adapter: ReceiptAdapter = replayReceiptAdapterFromEnv() ??
     new ClaudeReceiptAdapter();
-  const matcher = sqlVocabMatcher(executor(), householdId);
+  const exec = executor();
+  const matcher = sqlVocabMatcher(exec, householdId);
   return {
     adapter,
     matchLines: (lines) => matchCascade(lines, matcher),
+    recallMatches: sqlReceiptMemory(exec, householdId),
   };
 }
 

@@ -46,6 +46,17 @@ export interface ReceiptMatch {
    * where a recipe line would usually earn `auto` — expect, and draw, more of it.
    */
   kind: "auto" | "suggest";
+  /**
+   * True where this is the household's OWN past answer for these printed words
+   * rather than the cascade's reading of them (`_shared/receipt_memory.ts`).
+   * It overrides the cascade and arrives `auto` at `confidence: 1`, because it
+   * is not a guess — somebody said it.
+   *
+   * The review says so on the card. A remembered match is the one kind of
+   * `auto` that can be wrong for a reason the person can see and fix, and the
+   * fix is to change it: the correction is itself the most recent answer.
+   */
+  remembered: boolean;
 }
 
 /** One "did you mean" candidate. */
@@ -61,6 +72,13 @@ export interface ReceiptLineOut {
   index: number;
   /** The line verbatim — item name and price as printed. */
   printed_text: string;
+  /**
+   * The words that NAME the thing, with the figures taken off — what the match
+   * cascade was asked about, and what an unmatched card is titled with (the
+   * money is already on the card, in its own column). Empty when the model
+   * split nothing out; the app then falls back to `printed_text`.
+   */
+  name_printed: string;
   /** The printed figure for this line, in cents. Positive; a `fee` may be negative. */
   cents: number;
   /**

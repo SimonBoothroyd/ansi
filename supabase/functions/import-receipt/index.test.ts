@@ -27,6 +27,10 @@ import type {
   ReceiptPayload,
 } from "../_shared/receipt_types.ts";
 import type { MatchedLine, RawLineItem } from "../_shared/types.ts";
+import type {
+  RecallMatchesFn,
+  ReceiptMemory,
+} from "../_shared/receipt_memory.ts";
 import { ProviderTimeoutError } from "../_shared/adapters/http.ts";
 
 // --- Canned readings ---------------------------------------------------------
@@ -108,8 +112,15 @@ const noMatches = (lines: RawLineItem[]): Promise<MatchedLine[]> =>
     lines.map((raw) => ({ raw, band: "none" as const, candidates: [] })),
   );
 
-function deps(opts: FakeOpts = {}, matchLines = noMatches): ReceiptDeps {
-  return { adapter: fakeAdapter(opts), matchLines };
+/** Remembers nothing — a household that has never kept a receipt. */
+const noMemory = (): Promise<ReceiptMemory> => Promise.resolve(new Map());
+
+function deps(
+  opts: FakeOpts = {},
+  matchLines = noMatches,
+  recallMatches: RecallMatchesFn = noMemory,
+): ReceiptDeps {
+  return { adapter: fakeAdapter(opts), matchLines, recallMatches };
 }
 
 const oneImage = () => [new Uint8Array([1, 2, 3])];
@@ -338,4 +349,53 @@ Deno.test("failureFor — the three shapes, in this door's voice", () => {
   assertEquals(unexpected.status, 500);
   // The detail can carry a connection string: it is logged, never returned.
   assertEquals(unexpected.error, "import failed");
+});
+
+// --- The recall is an improvement, never a dependency ------------------------
+
+Deno.test("recall — the spine asks about the ITEM lines' printed names", async () => {
+  const asked: string[][] = [];
+  await importReceipt(
+    { images: oneImage() },
+    deps({}, noMatches, (names) => {
+      asked.push(names);
+      return Promise.resolve(new Map());
+    }),
+  );
+  // Two item lines and a `not_food` bag fee: a fee has no ingredient to be
+  // about, so asking about one would spend a query to be told so.
+  assertEquals(asked, [["TJ ORG BANANAS", "TJ SRIRACHA"]]);
+});
+
+Deno.test("recall — the household's own answer overrides the cascade", async () => {
+  const payload = await importReceipt(
+    { images: oneImage() },
+    deps({}, noMatches, () =>
+      Promise.resolve(
+        new Map([["TJ SRIRACHA", {
+          kind: "item" as const,
+          ingredient_id: "v-sriracha",
+        }]]),
+      )),
+  );
+  const line = payload.lines.find((l) => l.name_printed === "TJ SRIRACHA")!;
+  assertEquals(line.match, {
+    ingredient_id: "v-sriracha",
+    confidence: 1,
+    kind: "auto",
+    remembered: true,
+  });
+});
+
+Deno.test("recall — a lookup that throws does not cost the receipt", async () => {
+  // The photos are read and the model is paid for by the time this runs. A
+  // receipt matched exactly as it would have been last month is a working
+  // receipt; failing the import over it would not be.
+  const payload = await importReceipt(
+    { images: oneImage() },
+    deps({}, noMatches, () => Promise.reject(new Error("pool exhausted"))),
+  );
+  assertEquals(payload.lines.length, 3);
+  assertEquals(payload.lines[0].match, null, "the cascade alone");
+  assertEquals(payload.lines_sum_cents, 349 + 399 + 10);
 });

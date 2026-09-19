@@ -12,13 +12,17 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/domain/allowed_units.dart';
 import 'package:ansi/features/receipts/data/sample_receipt_payloads.dart';
 import 'package:ansi/features/receipts/domain/receipt_repository.dart';
+import 'package:ansi/features/receipts/domain/receipt_review.dart';
+import 'package:ansi/features/receipts/presentation/receipt_date_sheet.dart';
 import 'package:ansi/features/receipts/presentation/receipt_review_body.dart';
 import 'package:ansi/features/receipts/presentation/receipt_view_models.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_price_repository.dart';
+import '../../helpers/forui_semantics.dart';
 import '_harness.dart';
 
 ProviderContainer containerOf(WidgetTester tester) => ProviderScope.containerOf(
@@ -98,7 +102,7 @@ void main() {
       await runTheScan(tester, containerOf(tester));
 
       expect(find.text('Match an ingredient'), findsWidgets);
-      await tester.tap(find.text('TJ MED CHDR SHRD  3.79').first);
+      await tester.tap(find.text('TJ MED CHDR SHRD'));
       await tester.pumpAndSettle();
       expect(find.text('DID YOU MEAN'), findsOneWidget);
       expect(find.text('Cheddar'), findsOneWidget);
@@ -116,7 +120,7 @@ void main() {
       final container = containerOf(tester);
       await runTheScan(tester, container);
 
-      await tester.tap(find.text('TJ MED CHDR SHRD  3.79').first);
+      await tester.tap(find.text('TJ MED CHDR SHRD'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Cheddar'));
       await tester.pumpAndSettle();
@@ -186,7 +190,8 @@ void main() {
 
       expect(
         find.textContaining(
-          r'$3.49 apart · Find the join — a line is missing or doubled',
+          r'$3.49 apart · Find the join — a line is missing, doubled or '
+          'misread',
         ),
         findsOneWidget,
       );
@@ -303,6 +308,76 @@ void main() {
       );
     });
 
+    testWidgets(
+      'Bought is a door: a picked day moves the date, not the clock',
+      (tester) async {
+        final ledger = FakeReceiptRepo();
+        tallSurface(tester);
+        await tester.pumpWidget(
+          scanHost(overrides: receiptOverrides(ledger: ledger)),
+        );
+        await tester.pumpAndSettle();
+        final container = containerOf(tester);
+        await runTheScan(tester, container);
+
+        await tester.tap(find.byKey(kReceiptBoughtKey));
+        await tester.pumpAndSettle();
+        expect(find.text('When was this shop'), findsOneWidget);
+        await tester.tap(
+          find
+              .descendant(
+                of: find.byKey(kReceiptDateCalendarKey),
+                matching: find.text('12'),
+              )
+              .first,
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Saturday 12 Sep · 17:42'), findsOneWidget);
+        expect(find.textContaining('the day you said'), findsOneWidget);
+
+        await answerEveryLine(tester, container);
+        await tester.tap(find.byKey(kReceiptSaveKey));
+        await tester.pumpAndSettle();
+        expect(ledger.saved.single.purchasedAt, DateTime(2026, 9, 12, 17, 42));
+      },
+    );
+
+    testWidgets('a figure read wrong is put right on the line', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallSurface(tester);
+      await tester.pumpWidget(scanHost(overrides: receiptOverrides()));
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+      final before =
+          (container.read(receiptScanControllerProvider) as ReceiptReviewing)
+              .map
+              .linesCents;
+
+      await tester.tap(find.text('TJ MED CHDR SHRD'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('receipt-line-price-4')));
+      await tester.pumpAndSettle();
+      // The prompt opens on what was read.
+      expect(find.text('3.79'), findsOneWidget);
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(FDialog),
+          matching: find.byType(EditableText),
+        ),
+        '3.99',
+      );
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FButton, 'Use it'));
+      await tester.pumpAndSettle();
+
+      final state =
+          container.read(receiptScanControllerProvider) as ReceiptReviewing;
+      expect(state.drafts.firstWhere((d) => d.index == 4).cents, 399);
+      expect(state.map.linesCents, before + 20, reason: 'the join moves too');
+    });
+
     testWidgets('what the reader could not read heads the screen', (
       tester,
     ) async {
@@ -314,6 +389,242 @@ void main() {
       expect(
         find.textContaining('The join between the second and third photo'),
         findsOneWidget,
+      );
+    });
+  });
+
+  group('a line the receipt printed again', () {
+    // The owner's first real strip printed six tofu lines. Two of these four
+    // arrive matched by the cascade and two arrive unanswered, which is what
+    // lets one group be answered without reaching into the other.
+    const twinsJson = '''
+{
+  "store_printed": "TRADER JOE'S #135",
+  "purchased_at": "2026-09-13T17:42:00",
+  "printed": { "subtotal_cents": 996, "tax_cents": 0, "total_cents": 996 },
+  "lines": [
+    {
+      "index": 0, "printed_text": "TJ ORG TOFU FIRM  2.49",
+      "name_printed": "TJ ORG TOFU FIRM", "cents": 249, "kind": "item",
+      "match": { "ingredient_id": "vocab-sriracha", "confidence": 0.93,
+        "kind": "auto" }
+    },
+    {
+      "index": 1, "printed_text": "TJ ORG TOFU FIRM  2.49",
+      "name_printed": "TJ ORG TOFU FIRM", "cents": 249, "kind": "item",
+      "match": { "ingredient_id": "vocab-sriracha", "confidence": 0.93,
+        "kind": "auto" }
+    },
+    {
+      "index": 2, "printed_text": "ORG TRICOLOR QUINOA  2.49",
+      "name_printed": "ORG TRICOLOR QUINOA", "cents": 249, "kind": "item"
+    },
+    {
+      "index": 3, "printed_text": "ORG TRICOLOR QUINOA  2.49",
+      "name_printed": "ORG TRICOLOR QUINOA", "cents": 249, "kind": "item"
+    }
+  ]
+}
+''';
+
+    Future<ProviderContainer> openTwins(WidgetTester tester) async {
+      tallSurface(tester);
+      await tester.pumpWidget(
+        scanHost(overrides: receiptOverrides(json: twinsJson)),
+      );
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+      return container;
+    }
+
+    List<ReceiptLineDraft> draftsOf(ProviderContainer container) =>
+        (container.read(receiptScanControllerProvider) as ReceiptReviewing)
+            .drafts;
+
+    testWidgets('the open card says so before the answer is given', (
+      tester,
+    ) async {
+      final container = await openTwins(tester);
+      expect(draftsOf(container), hasLength(4));
+
+      await tester.tap(find.text('ORG TRICOLOR QUINOA').first);
+      await tester.pumpAndSettle();
+      expect(
+        find.text('×2 on this receipt — an answer here answers them all'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('one match answers every line that is that line again', (
+      tester,
+    ) async {
+      final container = await openTwins(tester);
+      await container
+          .read(receiptScanControllerProvider.notifier)
+          .matchLine(2, bananas);
+      await tester.pumpAndSettle();
+
+      final drafts = draftsOf(container);
+      expect(drafts[2].ingredientId, 'vocab-banana');
+      expect(drafts[3].ingredientId, 'vocab-banana');
+      expect(drafts[3].ingredientName, 'Bananas, organic');
+      // …and never into the pair the cascade had already placed elsewhere.
+      expect(drafts[0].ingredientId, 'vocab-sriracha');
+      expect(drafts[1].ingredientId, 'vocab-sriracha');
+    });
+
+    testWidgets('and so does one pack, word and all', (tester) async {
+      final container = await openTwins(tester);
+      final notifier = container.read(receiptScanControllerProvider.notifier);
+      await notifier.matchLine(2, bananas);
+      await tester.pumpAndSettle();
+      notifier.setPack(
+        2,
+        amount: 396,
+        choice: const UnitOption(g),
+        basisAmount: 396,
+        keepAsMeasure: 'tub',
+      );
+      await tester.pumpAndSettle();
+
+      final drafts = draftsOf(container);
+      expect(drafts[3].packBasisAmount, 396);
+      expect(drafts[3].keepAsMeasure, 'tub');
+      expect(drafts[0].packBasisAmount, isNull, reason: 'a different answer');
+    });
+
+    testWidgets('Not food folds them together, and it is food brings them '
+        'back', (tester) async {
+      final container = await openTwins(tester);
+      final notifier = container.read(receiptScanControllerProvider.notifier)
+        ..fold(2);
+      await tester.pumpAndSettle();
+      expect(find.text(r'Not food · 2 · $4.98'), findsOneWidget);
+
+      notifier.unfold(3);
+      await tester.pumpAndSettle();
+      expect(
+        foldedHeading(
+          (container.read(receiptScanControllerProvider) as ReceiptReviewing)
+              .map,
+        ),
+        isNull,
+      );
+    });
+
+    testWidgets('a correction to the paper is about ONE occurrence', (
+      tester,
+    ) async {
+      // A drop and a re-read figure are not answers: a doubled line is dropped
+      // precisely because its twin is staying, and a misread `2.49` was
+      // misread on the line it was misread on.
+      final container = await openTwins(tester);
+      final notifier = container.read(receiptScanControllerProvider.notifier)
+        ..drop(2);
+      await tester.pumpAndSettle();
+      expect(draftsOf(container).map((d) => d.dropped), [
+        false,
+        false,
+        true,
+        false,
+      ]);
+
+      notifier.setCents(0, 299);
+      await tester.pumpAndSettle();
+      expect(draftsOf(container).map((d) => d.cents), [299, 249, 249, 249]);
+    });
+  });
+
+  group('a match the household has already made', () {
+    // The strip this came off matched 0 of 29: a whole-string trigram cannot
+    // score `ORG TRICOLOR QUINOA` against `Quinoa`. The server now recalls
+    // what this household said last time and the line arrives resolved.
+    const rememberedJson = '''
+{
+  "store_printed": "TRADER JOE'S #135",
+  "purchased_at": "2026-09-13T17:42:00",
+  "printed": { "total_cents": 449 },
+  "lines": [
+    {
+      "index": 0, "printed_text": "ORG TRICOLOR QUINOA  4.49",
+      "name_printed": "ORG TRICOLOR QUINOA", "cents": 449, "kind": "item",
+      "match": { "ingredient_id": "vocab-banana", "confidence": 1,
+        "kind": "auto", "remembered": true },
+      "suggestions": [
+        { "ingredient_id": "vocab-cheddar", "name": "Cheddar",
+          "confidence": 0.41 }
+      ]
+    }
+  ]
+}
+''';
+
+    testWidgets('the card says where the answer came from', (tester) async {
+      tallSurface(tester);
+      await tester.pumpWidget(
+        scanHost(overrides: receiptOverrides(json: rememberedJson)),
+      );
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+
+      expect(find.text('Bananas, organic'), findsOneWidget);
+      await tester.tap(find.text('Bananas, organic'));
+      await tester.pumpAndSettle();
+      expect(find.text('as you matched it last time'), findsOneWidget);
+      expect(find.text('tap to change'), findsOneWidget);
+    });
+
+    testWidgets('changing it makes it the person’s, and the note goes', (
+      tester,
+    ) async {
+      tallSurface(tester);
+      await tester.pumpWidget(
+        scanHost(overrides: receiptOverrides(json: rememberedJson)),
+      );
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+      await tester.tap(find.text('Bananas, organic'));
+      await tester.pumpAndSettle();
+
+      await container
+          .read(receiptScanControllerProvider.notifier)
+          .matchLine(0, cheddar);
+      await tester.pumpAndSettle();
+
+      final draft =
+          (container.read(receiptScanControllerProvider) as ReceiptReviewing)
+              .drafts
+              .single;
+      expect(draft.ingredientId, 'vocab-cheddar');
+      expect(draft.remembered, isFalse);
+      expect(find.text('as you matched it last time'), findsNothing);
+    });
+
+    testWidgets('the paper’s name for the thing rides all the way to Save', (
+      tester,
+    ) async {
+      final ledger = FakeReceiptRepo();
+      tallSurface(tester);
+      await tester.pumpWidget(
+        scanHost(
+          overrides: receiptOverrides(ledger: ledger, json: rememberedJson),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+      await answerEveryLine(tester, container);
+      await tester.tap(find.byKey(kReceiptSaveKey));
+      await tester.pumpAndSettle();
+
+      // It is the key the household's own answers are filed under, so a line
+      // saved without it is a line the next receipt cannot learn from.
+      expect(
+        ledger.saved.single.lines.single.namePrinted,
+        'ORG TRICOLOR QUINOA',
       );
     });
   });

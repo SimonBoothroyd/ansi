@@ -73,13 +73,13 @@ Phase two — receipts and spend:
       pack is** on a matched row with no pack, with *keep as a measure*;
       **Not food** moves a line under the fold. Save writes one `receipt`
       and its lines; every matched item line with a pack is a price.
-- [x] **No alias is learned from a receipt.** The server match runs afresh
-      each time; the pack kept as a measure is what carries over. *(The server
-      half landed with R1 and is held structurally, not by prose:
+- [x] **No alias is learned from a receipt.** The vocabulary is never taught a
+      store's abbreviation; what carries over is the household's own answers —
+      the pack, on the row, and the match, recalled per printed name off this
+      household's own saved receipt lines. Held structurally, not by prose:
       `import-receipt/no_alias.test.ts` runs the spine over the real
-      Postgres-backed matcher with a spying executor and asserts every
-      statement the function issues is a `SELECT`. The pack's carry-over is
-      R2's.)*
+      Postgres-backed matcher AND the real recall with a spying executor, and
+      asserts every statement the function issues is a `SELECT`.
 - [x] The Receipts ledger, by week (the household's week start) and store,
       spent against planned per week, a month line on top; opened from the
       band's *spent* line and the shop's **scan a receipt** door.
@@ -290,6 +290,115 @@ and can run beside phase one.
   and says which it is. A receipt the reader could not date opens on the day of
   the scan and says so. The door is cheap to add the first time a real receipt
   is misread.
+- 2026-09-19 — **The first real receipt was misread, so the doors went in**
+  (owner's phone review of v0.20.0, a 29-line Trader Joe's strip). Three
+  faults and three missing doors, one pass:
+  - `09-12-2026` did not parse — the month-first pattern took `/` and `.` but
+    not the dash TJ's prints. It does now.
+  - The join card ticked green beside `$96.62` under a printed total of
+    `$91.54`, because the strip prints no subtotal and "nothing to disagree
+    with" was read as agreement. With no subtotal the lines are held against
+    **total less tax**, and the card says that is the figure it used.
+  - An unmatched card was titled with the whole printed line, price and all.
+    `name_printed` now rides the wire (additive) and titles the card.
+  - **Bought is a door** (supersedes the entry above): a calendar sheet, the
+    day moves and the clock stays, no day after today.
+  - **PRICE is a chip on every open card**, not only on a line whose figure
+    read as zero.
+  - **One screen for a receipt** (owner: "the edit receipt and import receipt
+    review are basically the same view"). `/receipts/:id` opens the review on
+    the rows; Save rewrites them in place (`updateReceipt` — kept lines by id,
+    new ones inserted, dropped ones tombstoned; the printed totals and printed
+    words never move) and *delete this receipt* sits under it. This retires
+    "a price on a receipt line is edited on the ingredient's page": that was
+    one door for a price when a receipt was read-only, and it is two once a
+    receipt is not. The ingredient page's price sheet still edits the same
+    row from the other side.
+- 2026-09-19 — **An answer answers every line that is that line again**
+  (owner: "lots of duplicate items per receipt, e.g. 6 for tofu; if we fix one
+  entry and all others are identical we should apply the fix to all on the
+  receipt"). Six tubs print six identical lines, and the review asked six
+  times. Now the match, the pack (its word included), *Not food* and *it is
+  food* land on every twin, and the open card says `×6 on this receipt — an
+  answer here answers them all` **before** the doors, not after — six cards
+  settling at once has to be what the person was told would happen.
+  - A twin is the same printed words at the same figure **standing exactly
+    where this line stands now** — same match, same pack. That is the whole
+    fence: a line somebody already answered differently has stopped being this
+    line, so an answer here cannot reach back and overwrite theirs.
+  - **A correction to the paper never rides along.** A drop and a re-read
+    figure are about one occurrence; a doubled line is dropped precisely
+    because its twin is staying.
+  - **A line sold by weight answers for itself.** Its printed weight IS its
+    pack, so a pack said on one is not a fact about the other however alike
+    the two read.
+  - At Save, six lines each keeping the same word as a measure mint **one**
+    measure and all point at it. Six identical words in a row's picker are six
+    ways to say one thing.
+- 2026-09-19 — **The household's own answers are the memory, and the saved
+  receipt lines ARE the list** (owner). His first real strip came back 0-of-29
+  matched. Not for want of vocabulary: a whole-string trigram cannot score
+  `ORG TRICOLOR QUINOA` against `Quinoa` above the 0.55 suggest floor, and no
+  tuning fixes that in general, because the words are one store's
+  abbreviations and not a language. So the receipt door now recalls what this
+  household has already said, per printed name.
+  - **It is not an alias, and the earlier ruling stands.** Teaching the
+    vocabulary `TJ SRIRACHA` would surface a store's shorthand in every recipe
+    import, picker and search. The recall is a SELECT over this household's own
+    `receipt_line` rows; the vocabulary matcher never sees these words;
+    `no_alias.test.ts` now spies the recall's SQL too, and names
+    `_shared/receipt_memory.ts` in its owned list.
+  - **The memory IS the saved lines.** `receipt_line.name_printed` (0047,
+    backfilled by stripping a trailing money figure off `printed_text`) holds
+    the words; the line already holds the answer beside them. No second list to
+    maintain, and nothing to keep in step.
+  - **Answering the owner's follow-up** — verbatim: "we might have multiple
+    receipt lines, we need a way to remove from this probably in case of
+    mistake matching!" The answer is that saved receipts are editable and **the
+    most recently said answer wins** (`order by … updated_at desc`), so
+    correcting the receipt you got wrong corrects the memory. A retire is
+    honoured for free: the answer is read through the ingredient, so a row
+    retired since is no answer and an older live one is used.
+  - **Exact, never fuzzy.** A second, looser matcher here would resolve lines
+    the cascade honestly refused and do it wearing `confidence: 1`.
+  - **A remembered match says so** — `as you matched it last time` beside the
+    chosen row's `tap to change`. It is the one `auto` that can be wrong for a
+    reason a person can see, and changing it is itself the correction; the line
+    stops being remembered the moment they change it, because it is theirs.
+  - **A recall that throws does not cost the receipt.** The photos are read and
+    the model is paid for by then; the receipt arrives exactly as the cascade
+    alone would have had it, and the failure is logged.
+- 2026-09-19 — **Keeping the pack as a word buys a WORD, and the door was
+  saying otherwise** (owner's own vocabulary, read back). The toggle's
+  justification said that entering the pack once and naming it is what makes
+  "the next receipt land on it and ask nothing". That is false and always was:
+  R2's own ruling is that the PACK carries over, from the row's latest price,
+  whether or not a word was minted — a plain `482 g` lands exactly as `bottle`
+  would (`landPack`). Reading that sentence, the owner minted a batch of bare
+  `pack` and `jar` measures on his first receipt, and those words now turn up
+  on recipe-line chips and become the Shop's rounding unit on rows that had no
+  measure at all.
+  - **The copy now names the real gain**: a word you would also say on a recipe
+    line, or want the shop to say *buy 3* of. And it says the pack carries over
+    either way, so nothing is minted to buy something already free.
+  - **The hint is the household's own style**, audited off the curated seed's
+    306 measures: all lower case, singular, and a container word carrying its
+    shelf size in the unit the shelf prints — `can (14.5 oz)`, `block (14 oz)`,
+    `bag (1 lb)`, `carton (32 oz)`. Two sizes of one container are two
+    measures; a qualifier follows a comma; a store's name lives in `source`,
+    never in the label.
+  - **One rule for a measure's word wherever it is authored**
+    (`ingredients/domain/measure_authoring.dart`): trimmed, an inner run of
+    whitespace read as one space, and **case left alone** — the measures editor
+    has never changed it, and a silent case change is the kind of edit that
+    makes a person doubt the rest. The measures editor's repository now reads
+    labels through the same function.
+  - **A word the row already says is not minted twice.** Same word,
+    case-insensitively: if the weights agree within `kWholeMeasureTolerance`
+    (the app's one tolerance for *the same measure*), nothing is minted and the
+    line points at the measure the row has, keeping the figure read off the
+    paper. If they do not, the sheet refuses, names both weights, and offers
+    the house style's own way out — put the size in the word.
 - 2026-09-17 — **The desk's three columns are not built** (R2). The phone
   review works at the 640 measure on a wide window, and the width would buy one
   thing: the printed line standing beside the card that claims to read it. It
@@ -329,6 +438,13 @@ and can run beside phase one.
 - [x] ADR-0017 (cost is a unit price) written at P2's landing.
 - [ ] `make ci` green on every landing so far; `make test-sim` on one
       simulator, serially, when the owner says go.
+- [ ] **0047 + `import-receipt` owed by hand** for the match memory: apply the
+      migration, then deploy the function (`docs/release.md` §4). Both receipt
+      sync rules are `select *`, so `name_printed` arrives with the migration —
+      but the local sync container still has to be recreated from a checkout
+      that holds it before a device sees the column. Nothing new is set by
+      hand: the recall runs on the same `SUPABASE_DB_URL` pool the cascade
+      already uses.
 - [ ] `deploy-supabase` run by hand for R1 — the workflow now deploys
       `import-receipt` by name beside `import-recipe`, and the two share the
       `ANTHROPIC_API_KEY` / `IMPORT_ALLOWED_HOUSEHOLDS` secrets, so nothing new

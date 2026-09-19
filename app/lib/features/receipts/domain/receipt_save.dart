@@ -23,6 +23,8 @@ class ReceiptLineWrite {
     required this.printedText,
     required this.cents,
     required this.kind,
+    this.lineId,
+    this.namePrinted,
     this.discountCents = 0,
     this.ingredientId,
     this.packBasisAmount,
@@ -32,8 +34,18 @@ class ReceiptLineWrite {
     this.mintMeasureLabel,
   });
 
+  /// The stored row this line already is, when a SAVED receipt is being
+  /// edited; null for a line no row holds yet — every line of a fresh scan.
+  final String? lineId;
+
   final int sortOrder;
   final String printedText;
+
+  /// The paper's words for the THING, figures off — what an unmatched card is
+  /// titled with, and what the receipt door recalls this household's own past
+  /// answers by. It is INSERTed with the line and no edit moves it: it is the
+  /// paper's, and it is the key those answers are filed under.
+  final String? namePrinted;
   final int cents;
   final int discountCents;
   final ReceiptLineKind kind;
@@ -99,8 +111,10 @@ ReceiptWrite buildReceiptSave({
     final food = draft.kind.isFood;
     lines.add(
       ReceiptLineWrite(
+        lineId: draft.lineId,
         sortOrder: lines.length,
         printedText: draft.printedText,
+        namePrinted: draft.namePrinted,
         cents: draft.cents,
         discountCents: draft.discountCents,
         kind: _kindOf(draft.kind),
