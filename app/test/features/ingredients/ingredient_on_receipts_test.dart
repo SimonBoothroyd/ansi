@@ -131,9 +131,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('SHELLER EDAMAME'), findsOneWidget);
-      expect(find.text('1 line · TJ\'s · 19 Sep'), findsOneWidget);
+      expect(find.text("1 line · TJ's · 19 Sep"), findsOneWidget);
       expect(find.text('SHELLED EDAMAME'), findsOneWidget);
-      expect(find.text('2 lines · TJ\'s +1 · 2 Aug'), findsOneWidget);
+      expect(find.text("2 lines · TJ's +1 · 2 Aug"), findsOneWidget);
 
       // And the line that says what this list is not.
       expect(find.text(theLine), findsOneWidget);
@@ -219,8 +219,8 @@ void main() {
   /// The fact sheet is ONE column at every width — centred at the page measure
   /// on a phone and a tablet, and drawn beside the vocabulary at a desk, capped
   /// at [kFactSheetPaneWidth]. So the fold needs no second arrangement: it is
-  /// the last block of that column wherever the column is. What the width has to
-  /// buy is that the section stays *inside* the sheet's pane rather than
+  /// the last block of that column wherever the column is. What the width has
+  /// to buy is that the section stays *inside* the sheet's pane rather than
   /// spanning the window, and that the fold still works where the vocabulary is
   /// beside it.
   group('at a desk', () {
