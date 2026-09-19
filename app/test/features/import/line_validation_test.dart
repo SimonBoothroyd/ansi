@@ -212,19 +212,17 @@ void main() {
       expect(tokens.every(acceptable.contains), isTrue);
     });
 
-    test(
-      'a serving measure is offered in the chip voice, stored by its label',
-      () {
-        const serving = Measure(
-          id: 'm-serving',
-          label: 'serving · 3 g',
-          amount: 3,
-        );
-        final chips = acceptableUnitChips(_garlic, const [_clove, serving]);
-        final chip = chips.singleWhere((c) => c.token == 'serving · 3 g');
-        expect(chip.label, 'serving (3 g)');
-      },
-    );
+    test('the row’s serving is not a chip — the review offers exactly what '
+        'the amount sheet offers, and neither offers a serving', () {
+      const serving = Measure(
+        id: 'm-serving',
+        label: 'serving · 3 g',
+        amount: 3,
+      );
+      final chips = acceptableUnitChips(_garlic, const [_clove, serving]);
+      expect(chips.map((c) => c.token), isNot(contains('serving · 3 g')));
+      expect(chips.map((c) => c.token), contains('clove'));
+    });
   });
 
   group('lineIssues', () {

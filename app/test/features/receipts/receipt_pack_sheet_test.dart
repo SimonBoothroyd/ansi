@@ -46,6 +46,7 @@ Future<void> pumpSheet(
   Ingredient row = sriracha,
   int paidCents = 399,
   List<Measure> measures = const [],
+  UnitChoice? choice,
   void Function(ReceiptPackAnswer)? onDone,
 }) {
   // Forui's own sheet chrome trips a framework semantics assertion the moment
@@ -59,6 +60,7 @@ Future<void> pumpSheet(
       child: ReceiptPackEditor(
         ingredient: row,
         paidCents: paidCents,
+        initialChoice: choice,
         onDone: onDone ?? (_) {},
       ),
     ),
@@ -262,6 +264,43 @@ void main() {
         reason: 'a second row of one word is not an answer',
       );
     });
+  });
+
+  testWidgets('a fresh line opens on the chip the row leads with, not on its '
+      'default unit (owner)', (tester) async {
+    ReceiptPackAnswer? answer;
+    await pumpSheet(tester, measures: const [bag], onDone: (a) => answer = a);
+    await tester.pumpAndSettle();
+
+    // No chip tapped: the `1` below is one bag, because that is the chip the
+    // sheet opened on.
+    await tester.enterText(find.byType(EditableText).first, '1');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+
+    expect(answer!.choice, const MeasureOption(bag));
+    expect(answer!.basisAmount, 454);
+  });
+
+  testWidgets('a line already priced reopens on the pack it was bought in, '
+      'whatever the row leads with', (tester) async {
+    ReceiptPackAnswer? answer;
+    await pumpSheet(
+      tester,
+      measures: const [bag],
+      choice: const UnitOption(g),
+      onDone: (a) => answer = a,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(EditableText).first, '482');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+
+    expect(answer!.choice, const UnitOption(g));
+    expect(answer!.basisAmount, 482);
   });
 
   testWidgets('a measure chip hands back a COUNT of that measure', (

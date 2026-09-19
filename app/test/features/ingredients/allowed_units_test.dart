@@ -6,6 +6,7 @@ import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/domain/allowed_units.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
+import 'package:ansi/features/ingredients/domain/serving_measure.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// One row of `allowed_units_vectors.json` — the file the pgTAP mirror reads
@@ -617,6 +618,56 @@ void main() {
       expect(choices.whereType<MeasureOption>().map((c) => c.measure), [large]);
     });
 
+    group('the row’s serving is never offered (owner)', () {
+      const serving = Measure(
+        id: 'm-serving',
+        label: '${kServingMeasurePrefix}1 cup',
+        amount: 236.5882365,
+      );
+
+      test('a serving is the size a panel is printed per, not one a household '
+          'cooks, plans or shops in', () {
+        final choices = allowedUnitChoicesFor(_ing(g), const [
+          serving,
+          large,
+        ]).choices;
+        expect(choices.whereType<MeasureOption>().map((c) => c.measure), [
+          large,
+        ]);
+      });
+
+      test('nor as the whole measure, even where it weighs what a piece '
+          'weighs', () {
+        // Otherwise the exclusion would leak straight back in through the
+        // chip the row leads with (ADR-0016).
+        const servingOfOne = Measure(
+          id: 'm-s',
+          label: '${kServingMeasurePrefix}1 piece',
+          amount: 201,
+        );
+        final avocado = _ing(pieces, piece: 201);
+        expect(wholeMeasureOf(avocado, const [servingOfOne]), isNull);
+        expect(
+          allowedUnitChoicesFor(avocado, const [servingOfOne]).choices.first,
+          const UnitOption(pieces),
+        );
+      });
+
+      test('a line already stored on it is still offered, flagged — degrade, '
+          'never destroy', () {
+        final offer = allowedUnitChoicesFor(_ing(g), const [
+          serving,
+          large,
+        ], current: const MeasureOption(serving));
+        expect(offer.offFilter, const MeasureOption(serving));
+        expect(offer.choices.last, const MeasureOption(serving));
+        expect(
+          offer.choices.sublist(0, offer.choices.length - 1),
+          isNot(contains(const MeasureOption(serving))),
+        );
+      });
+    });
+
     group("the stored selection is always offered (the dropdowns' rule)", () {
       test('a current choice inside the set is neither duplicated nor '
           'flagged', () {
@@ -1072,6 +1123,78 @@ void main() {
       expect(
         allowedUnitChoicesFor(avocado, const [half]).choices.first,
         const MeasureOption(half),
+      );
+    });
+  });
+
+  group('firstOfferedChoice: a surface with nothing stored opens on the chip '
+      'the row leads with (owner)', () {
+    const jar = Measure(id: 'm-jar', label: 'jar', amount: 340);
+    const spoon = Measure(id: 'm-spoon', label: 'heaped spoon', amount: 32);
+
+    test('the row’s own first word, ahead of the whole catalog', () {
+      expect(
+        firstOfferedChoice(_ing(g), const [jar, spoon]),
+        const MeasureOption(jar),
+      );
+    });
+
+    test('the whole measure where the row has one, wherever it sits in '
+        'sort order (ADR-0016)', () {
+      const whole = Measure(
+        id: 'm-whole',
+        label: 'lime, whole',
+        amount: 67,
+        sortOrder: 2,
+      );
+      const half = Measure(
+        id: 'm-half',
+        label: 'lime, half',
+        amount: 33.5,
+        sortOrder: 1,
+      );
+      expect(
+        firstOfferedChoice(_ing(pieces, piece: 67), const [half, whole]),
+        const MeasureOption(whole),
+      );
+    });
+
+    test('the default unit where the row has no word of its own — the catalog '
+        'half fronts it', () {
+      // Flour: a `cup` default on a per-100 g basis, bridged by its density.
+      expect(
+        firstOfferedChoice(_ing(cup, density: 0.6), const []),
+        const UnitOption(cup),
+      );
+      expect(
+        firstOfferedChoice(_ing(pieces, piece: 201), const []),
+        const UnitOption(pieces),
+      );
+    });
+
+    test('never a measure the row would not offer — a serving, or one merely '
+        'naming a volume unit', () {
+      const serving = Measure(
+        id: 'm-serving',
+        label: '${kServingMeasurePrefix}1 cup',
+        amount: 236.5882365,
+      );
+      const cupish = Measure(id: 'm-cup', label: 'cup', amount: 226);
+      expect(
+        firstOfferedChoice(_ing(g), const [serving, cupish]),
+        const UnitOption(g),
+      );
+    });
+
+    test('it is the first chip and nothing else — an imprecise default is not '
+        'fronted by the chip order, so such a row opens on its basis unit', () {
+      // The order puts every mass/volume unit ahead of the imprecise words,
+      // whatever the default is; `pinch` is still offered, after the divider.
+      final allspice = _ing(pinch, category: 'spices & seasoning');
+      expect(firstOfferedChoice(allspice, const []), const UnitOption(g));
+      expect(
+        allowedUnitChoicesFor(allspice, const []).choices,
+        contains(const UnitOption(pinch)),
       );
     });
   });

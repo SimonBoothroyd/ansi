@@ -242,8 +242,10 @@ List<UnitSuggestion> rankedUnitChips(
 /// there; the user picks, and Save stays gated until they do.
 ///
 /// Null when the unit is already fine, when the line printed none, or when the
-/// ingredient has no measure to offer. Volume-labelled measures are skipped for
-/// the same reason the chip row skips them: density owns volume (ADR-0008 §2).
+/// ingredient has no measure to offer. A measure the chip row would not offer
+/// is skipped here for the reason the row skips it — a volume-named one
+/// because density owns volume (ADR-0008 §2), the row's serving because a
+/// serving is not a size anyone cooks in.
 Measure? preselectedMeasure(
   Ingredient ingredient,
   List<Measure> measures, {
@@ -257,7 +259,9 @@ Measure? preselectedMeasure(
   ).contains(unit)) {
     return null;
   }
-  final offered = measures.where((m) => !isVolumeUnitLabel(m.label));
+  final offered = measures.where(
+    (m) => !isVolumeUnitLabel(m.label) && !isServingMeasure(m),
+  );
   return offered.length == 1 ? offered.first : null;
 }
 

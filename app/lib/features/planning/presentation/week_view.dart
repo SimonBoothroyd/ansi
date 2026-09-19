@@ -109,8 +109,9 @@ Future<void> _addMealFlow(
     case PickedRecipe(:final recipe):
       target = RecipeMeal(recipe);
     case PickedIngredientMeal(:final ingredient):
-      // The sheet opens on the row's own default unit — `piece`, weighed by
-      // the row's piece weight, on a counted food (ADR-0015).
+      // The sheet opens on the first chip the row offers — its own word for
+      // one where it has one, else `piece`, weighed by the row's piece weight
+      // on a counted food (ADR-0015).
       final result = await showQuantityUnitSheet(
         // The host outlives the row — see [hostContextOf].
         // ignore: use_build_context_synchronously

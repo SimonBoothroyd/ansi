@@ -137,7 +137,7 @@ else. Three row facts, and what each one lets a line say:
 | **density** | `density_g_per_ml` | `tsp · tbsp · cup · ml · …` — the other mass/volume family, whole | USDA, a pack, a spoon weighed |
 | **piece weight** | `piece_basis_amount` (+ `piece_source`) | `piece` — "2 dragon fruit" | the household; or the seed, borrowed from a curated size |
 | **a measure** | an `ingredient_measure` row | that word — "3 clove", "1 onion, small", "2 can" | a USDA portion, borrowed, typical, or yours |
-| **a serving** | an `ingredient_measure` row under the reserved `serving · ` prefix | `serving (237 ml)` — one chip, and the only place it shows | the pack, entered in the nutrition section |
+| **a serving** | an `ingredient_measure` row under the reserved `serving · ` prefix | nothing — no door offers it; a line already saying one still reads `serving (237 ml)` | the pack, entered in the nutrition section |
 
 `piece_basis_amount` is what **one** of the ingredient weighs, in the row's
 basis unit — the same denomination `basis_amount` uses, so nothing new has to
@@ -162,9 +162,9 @@ The rules, each of them the density rule read for a count:
   ([ADR-0016](../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md)).
   `wholeMeasureOf` finds it by weight — within 1 % of `piece_basis_amount`,
   lowest `sort_order` then label — and nothing stores it. The chip row leads
-  with it, the quantity sheet opens on it when a caller names no choice, and
-  the import review lands a counted line on it; `piece` stays offered after
-  it, and a row that weighs a piece but names no size still says `piece`.
+  with it, so a caller naming no choice opens on it, and the import review
+  lands a counted line on it; `piece` stays offered after it, and a row that
+  weighs a piece but names no size leads with `piece`.
 - **A `piece` default with no weight is a stranded default**, in the same class
   as a `cup` default with no density (D4c). The form flags it with its one-tap
   fix — *piece needs a weight on this row — enter one below, or switch to g* —
@@ -188,11 +188,12 @@ arithmetically exactly a measure — a named amount in the row's basis — which
 is what lets the nutrition section print the label's own figures back
 unrounded. But it is not a word the household authored, and it is edited where
 the figures it is printed per are edited. So every list of *measures* leaves it
-out (`isServingMeasure`), and the one place it still appears is the chip row,
-labelled `serving (237 ml)` rather than with the pack's own words
-(`measureChipLabel`) — because "1 serving" is a size a week's ingredient slot
-can genuinely say, and what the person picking that chip needs to know is what
-it comes to.
+out (`isServingMeasure`), **the unit picker included** (owner): a serving is
+the size a panel is printed per, not a size anybody cooks, plans or shops in.
+A line already saved on one keeps its chip by the rule that admits any stored
+choice off-filter, labelled `serving (237 ml)` rather than with the pack's own
+words (`measureChipLabel`) — beside `g` and `clove (3 g)` those words are the
+wrong half, and what a person reading the chip needs is what it comes to.
 
 A row can honestly carry both: onion's piece weight is 110 g *and* its
 `onion, medium` measure is 110 g. Those are two statements — *an unsized onion

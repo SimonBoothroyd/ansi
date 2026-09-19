@@ -334,10 +334,12 @@ The column list is generated from the migrations —
     `serving · ` prefix (`domain/serving_measure.dart`) is what every list of
     measures filters on, in the read posture and in the editor alike: the
     serving is not a word the household coined, and it is stated in
-    *Nutrition*, beside the figures it is printed per. Its one remaining
-    appearance is the quantity sheet's chip row, labelled by its **size** —
-    `serving (237 ml)`, the way `piece (110 g)` reads — because "1 serving"
-    is an amount a week's ingredient slot can genuinely say.
+    *Nutrition*, beside the figures it is printed per. **The unit picker does
+    not offer it either** — a serving is the size a panel is printed per, not
+    a size anybody cooks, plans or shops in. A line already saved on one keeps
+    its chip, last in the row and flagged *not in filter*, labelled by its
+    **size** — `serving (237 ml)`, the way `piece (110 g)` reads — so it stays
+    re-selectable and is never rewritten.
 - **A density is stated in the density sentence and nowhere else.** That
   sentence takes an amount now — "2 tbsp weighs 32 g", as a pack prints it —
   and reads back the same way, with the stored `g/ml` as the aside. When the
@@ -1063,11 +1065,16 @@ source-tab slot, footer slot):
   sheet's bottom — the stack above the keyboard reads chips → Done →
   keyboard (Done sits between the chips and the keyboard; no native
   accessory view). The `+` chip opens the manage-measures state (list +
-  add form, see above). The stored selection is always offered: an
+  add form, see above). **A surface with nothing stored opens on the first
+  chip** (`firstOfferedChoice`) — the row's whole measure where one weighs a
+  piece, else its first word, else the default unit, which is where the row's
+  own words run out; one that has something to reopen on (a line being
+  edited, a pack in the words it was last bought in) opens on that instead.
+  The stored selection is always offered: an
   off-filter value (a merge-hidden duplicate measure, a no-longer-allowed
-  unit) stays reachable, subtly marked "not in filter"; deleting the
-  selected measure in the manage state resets the choice to the default
-  unit with a visible note (never a silently tombstoned reference).
+  unit, the row's serving) stays reachable, subtly marked "not in filter";
+  deleting the selected measure in the manage state resets the choice to the
+  default unit with a visible note (never a silently tombstoned reference).
 - **Recipe picker** (planning): Recent · Books · Favorites tabs; day-tagged
   "already this week" quick picks; rows carry filing, last-planned recency,
   shelf-life chips, and per-serving macros or the `incomplete` badge with

@@ -26,6 +26,10 @@ import 'measures_editor.dart' show SourceDot;
 /// above the keyboard by the host sheet. On open it scrolls the selected
 /// chip into view — a stored selection can sit deep in a long row and must
 /// not open off-screen.
+///
+/// The row's **serving** is not among the measures the filter offers, but a
+/// line already stored on it arrives as [stored] and is drawn last, flagged
+/// *not in filter*, saying what one serving comes to.
 class UnitChipRow extends StatefulWidget {
   const UnitChipRow({
     required this.ingredient,
@@ -136,7 +140,7 @@ class _UnitChipRowState extends State<UnitChipRow> {
         UnitChip(
           key: widget.selected == offFilter ? _selectedKey : null,
           label: switch (offFilter) {
-            MeasureOption(:final measure) => measure.label,
+            MeasureOption(:final measure) => measureChipLabel(measure),
             UnitOption(:final unit) when unit == pieces => pieceChipLabel(
               widget.ingredient,
             ),
