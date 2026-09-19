@@ -123,6 +123,7 @@
         .macro-inc{margin:0 20px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
         .macro-inc .mi-h{display:flex;align-items:center;gap:8px;}
         .macro-inc .mi-n{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);}
+        .macro-inc .mi-f{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;margin-top:8px;}
         .macro-inc .mi-b{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.35;}
 
         /* method */

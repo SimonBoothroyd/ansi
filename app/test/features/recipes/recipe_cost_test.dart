@@ -208,6 +208,53 @@ void main() {
     });
   });
 
+  group('the floor the priced lines reach', () {
+    test('is stated while the cost itself stays null', () {
+      final summary = summarizeRecipeCost(
+        servingsBase: 2,
+        lines: [_line('x', quantity: 250), _line('y', quantity: 100)],
+        pricingOf: _vocab(byId: {'x': _price(), 'y': null}),
+      );
+      expect(summary.partlyPriced, isTrue);
+      expect(summary.pricedCents, 125);
+      expect(summary.pricedPerServingCents, 62.5);
+      // The whole point: nothing that asks what the recipe COSTS sees it.
+      expect(summary.totalCents, isNull);
+      expect(summary.perServingCents, isNull);
+    });
+
+    test('is not claimed when nothing is priced', () {
+      final summary = summarizeRecipeCost(
+        servingsBase: 2,
+        lines: [_line('x', quantity: 250)],
+        pricingOf: _vocab(byId: {'x': null}),
+      );
+      expect(summary.partlyPriced, isFalse);
+      expect(summary.pricedCents, 0);
+    });
+
+    test('is the cost itself when every line is priced', () {
+      final summary = summarizeRecipeCost(
+        servingsBase: 2,
+        lines: [_line('x', quantity: 250)],
+        pricingOf: _vocab(price: _price()),
+      );
+      expect(summary.partlyPriced, isFalse);
+      expect(summary.pricedCents, summary.totalCents);
+      expect(summary.pricedPerServingCents, summary.perServingCents);
+    });
+
+    test('has no per-serving half when the servings are not set', () {
+      final summary = summarizeRecipeCost(
+        servingsBase: 0,
+        lines: [_line('x', quantity: 250), _line('y', quantity: 100)],
+        pricingOf: _vocab(byId: {'x': _price(), 'y': null}),
+      );
+      expect(summary.pricedCents, 125);
+      expect(summary.pricedPerServingCents, isNull);
+    });
+  });
+
   group('out by the macro rule, and named apart', () {
     test('an imprecise line is not counted and is not unpriced', () {
       final summary = summarizeRecipeCost(
@@ -390,6 +437,21 @@ void main() {
       );
       expect(summary.unpriced.single.reason, CostLineReason.subRecipeUnpriced);
       expect(summary.unpriced.single.name, 'aioli');
+    });
+
+    test("a target's own floor never joins the parent's", () {
+      final summary = summarizeRecipeCost(
+        servingsBase: 1,
+        lines: [_line('p', quantity: 100), component('aioli', quantity: 1)],
+        pricingOf: _vocab(byId: {'p': _price(), 'x': _price(), 'y': null}),
+        subRecipeOf: (_) =>
+            node(lines: [_line('x', quantity: 100), _line('y', quantity: 100)]),
+      );
+      // The component is unpriced, so it contributes nothing at all — the 50¢
+      // its own priced line reaches is a floor, and a floor is not a cost.
+      expect(summary.unpriced.single.reason, CostLineReason.subRecipeUnpriced);
+      expect(summary.pricedCents, 50);
+      expect(summary.lineCosts.containsKey('li-aioli'), isFalse);
     });
 
     test('a target with no yield does not resolve', () {

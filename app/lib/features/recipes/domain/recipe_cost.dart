@@ -33,6 +33,13 @@
 /// all of them are a gap in the total, and a total that quietly skipped them
 /// would understate what a week costs by exactly the things nobody has priced.
 ///
+/// What the priced lines DO come to is still worth knowing, so it is reported
+/// separately, as [RecipeCostSummary.pricedCents]. It is a **floor**, never a
+/// cost: [RecipeCostSummary.totalCents] stays null while anything is unpriced,
+/// so every reading that asks for the cost — the week, the shop, a parent
+/// recipe's component share — is unchanged by it, and a surface that prints
+/// the floor has to say in words that it is one.
+///
 /// **Money and macros never meet.** Nothing in this file knows what a calorie
 /// is, nothing in `recipe_macros.dart` knows what a cent is, and
 /// `test/structure/cost_and_macros_stay_apart_test.dart` holds that line. They
@@ -159,6 +166,8 @@ class RecipeCostSummary {
   const RecipeCostSummary({
     this.totalCents,
     this.perServingCents,
+    this.pricedCents = 0,
+    this.pricedPerServingCents,
     this.lineCosts = const {},
     this.unpriced = const [],
     this.notCounted = const [],
@@ -174,6 +183,23 @@ class RecipeCostSummary {
   /// [totalCents] divided by the recipe's serving count. Scale-invariant, for
   /// the reason the per-serving macros are.
   final double? perServingCents;
+
+  /// What the lines that ARE priced come to, at the stored amounts — always a
+  /// figure, and zero when nothing was priced.
+  ///
+  /// It is a **floor**, not a cost: it equals [totalCents] when the recipe is
+  /// whole, and when it is not it is the part of an unknown figure that is
+  /// known. Only a surface that prints it in those words may print it; nothing
+  /// that asks this summary what the recipe *costs* reads it, which is why
+  /// [totalCents] is null rather than partial and why a component whose target
+  /// is [incomplete] stays unpriced in its parent rather than contributing a
+  /// floor.
+  final double pricedCents;
+
+  /// [pricedCents] over the recipe's serving count, or null when that count is
+  /// not positive — the floor's per-serving twin, and scale-invariant for the
+  /// same reason [perServingCents] is.
+  final double? pricedPerServingCents;
 
   /// What each line contributed, by [LineItem.id], at the STORED amounts. A
   /// line is in exactly one of this and [unpriced]/[notCounted] — never here
@@ -207,11 +233,22 @@ class RecipeCostSummary {
 
   bool get incomplete => totalCents == null;
 
+  /// Some counted lines are priced and some are not — the one state in which
+  /// [pricedCents] says something the cells do not.
+  ///
+  /// False when nothing is priced, where the floor would be a zero standing in
+  /// for an absence, and false when everything is, where [totalCents] states
+  /// the figure exactly.
+  bool get partlyPriced =>
+      incomplete && unpriced.isNotEmpty && lineCosts.isNotEmpty;
+
   @override
   bool operator ==(Object other) =>
       other is RecipeCostSummary &&
       other.totalCents == totalCents &&
       other.perServingCents == perServingCents &&
+      other.pricedCents == pricedCents &&
+      other.pricedPerServingCents == pricedPerServingCents &&
       _sameLines(other.lineCosts, lineCosts) &&
       _sameNotes(other.unpriced, unpriced) &&
       _sameNotes(other.notCounted, notCounted) &&
@@ -241,6 +278,8 @@ class RecipeCostSummary {
   int get hashCode => Object.hash(
     totalCents,
     perServingCents,
+    pricedCents,
+    pricedPerServingCents,
     Object.hashAllUnordered([
       for (final e in lineCosts.entries) Object.hash(e.key, e.value),
     ]),
@@ -425,6 +464,10 @@ _Walk _summarize({
     summary: RecipeCostSummary(
       totalCents: incomplete ? null : total,
       perServingCents: incomplete ? null : total / servingsBase,
+      // The same sum, stated whether or not it is the recipe's: what the
+      // priced lines came to is a fact even when the recipe's cost is not.
+      pricedCents: total,
+      pricedPerServingCents: servingsBase > 0 ? total / servingsBase : null,
       lineCosts: lineCosts,
       unpriced: List.unmodifiable(unpriced),
       notCounted: List.unmodifiable(notCounted),

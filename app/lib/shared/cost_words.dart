@@ -15,6 +15,14 @@
 /// the trip will come to, never a bill. The panel's cells wear neither: its
 /// third cell says `prices from Sep` outright, which is the same caveat said
 /// in words rather than in a glyph.
+///
+/// **A floor is a third thing, and it says so in words too.** When some of a
+/// recipe's lines are priced and some are not, what the priced ones come to is
+/// printed as `at least …` — never as the cost, and never with `≈`, which
+/// would hedge the one part of the figure that is exact and leave the reader
+/// to guess which way the doubt runs. What is uncertain there is not the
+/// arithmetic; it is the lines nobody has priced, and they are named
+/// underneath.
 library;
 
 import '../core/money.dart';
@@ -93,6 +101,27 @@ String? unpricedNames(RecipeCostSummary summary) {
     for (final n in summary.unpriced) '${n.name} · ${costLineNote(n.reason)}',
   ];
   return names.isEmpty ? null : names.join(', ');
+}
+
+/// `at least $1.65 a serving · at least $6.60 the recipe` — what a partly
+/// priced recipe's priced lines already come to.
+///
+/// Null unless [RecipeCostSummary.partlyPriced]: a recipe that is whole prints
+/// its cells, and one with nothing priced has no floor worth printing — `at
+/// least $0` reads as free rather than as unknown.
+///
+/// **Both halves wear the words.** The strip's two cells are `a serving` and
+/// `the recipe`, and this is those cells said in a sentence, so each figure
+/// carries its own `at least`: a bare `$1.65 a serving` beside a floor would be
+/// read as what a serving costs, and what a serving costs is exactly what is
+/// not known yet. The order is the cells' own.
+String? costFloor(RecipeCostSummary summary) {
+  if (!summary.partlyPriced) return null;
+  final perServing = summary.pricedPerServingCents;
+  final recipe =
+      'at least ${formatMoneyRounded(summary.pricedCents)} the recipe';
+  if (perServing == null) return recipe;
+  return 'at least ${formatMoneyRounded(perServing)} a serving · $recipe';
 }
 
 /// `Smoked paprika · Whole Foods, Jul` — the panel's `OLDEST` row, drawn only

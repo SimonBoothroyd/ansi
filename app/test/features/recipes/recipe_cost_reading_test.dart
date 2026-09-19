@@ -176,6 +176,12 @@ void main() {
     // Out by the macro rule, named in its own row and never as a gap.
     expect(find.text('NOT COUNTED'), findsOneWidget);
     expect(find.text('Parsley · handful'), findsOneWidget);
+    // The chicken IS priced, so what it comes to is printed — as a floor, in
+    // the words that say so: 600 g at $1.10 / 100 g, over four servings.
+    expect(
+      find.text(r'at least $1.65 a serving · at least $6.60 the recipe'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('with every line priced, the three cells read', (tester) async {

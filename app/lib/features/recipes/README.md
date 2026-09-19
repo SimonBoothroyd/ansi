@@ -212,6 +212,17 @@ the macro total. `OLDEST` names the one line whose price month differs from the
 newest, so a July jar under a September recipe is visible rather than averaged
 away.
 
+What the priced lines DO come to is printed under that refusal as a **floor** —
+`at least $1.65 a serving · at least $6.60 the recipe`, each figure wearing its
+own `at least` so neither half can be read as the cost — and it is a field of
+its own (`pricedCents`, `pricedPerServingCents`), never a partial `totalCents`.
+That is the whole of the rule: the cost stays null, so the week's figure, the
+shop's estimate and a parent recipe's component share are untouched, and a
+component whose target is incomplete stays unpriced in its parent rather than
+passing a floor upward. A recipe with nothing priced keeps the plain refusal —
+`at least $0` would read as free rather than as unknown — and under
+`Show line figures` every priced line prints its own chain either way.
+
 Money never enters the macro record and macros never enter the cost one; they
 share the walk and nothing else, and
 `test/structure/cost_and_macros_stay_apart_test.dart` is what keeps it that

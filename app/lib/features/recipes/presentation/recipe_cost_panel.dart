@@ -17,6 +17,14 @@
 /// the macro reading does with a stub): a figure that quietly skipped the
 /// tomatoes would understate the recipe by the tomatoes. The cells go, the
 /// refusal says how many lines it is waiting on, and `UNPRICED` names them.
+///
+/// **What the priced lines come to is still printed, as a floor.** Where some
+/// lines are priced and some are not, the refusal carries `at least $1.65 a
+/// serving · at least $6.60 the recipe` under it — the cells' own two labels,
+/// each with its own `at least`, so the figure cannot be read as the recipe's
+/// cost. Nothing else changes: the cells stay gone, the unpriced lines stay
+/// named, and a recipe with nothing priced keeps the plain refusal, because
+/// `at least $0` would read as free rather than as unknown.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -128,44 +136,69 @@ class _Cells extends StatelessWidget {
   }
 }
 
-/// No figure, and why — the macro reading's refusal in the cost vocabulary.
+/// No cost, and why — the macro reading's refusal in the cost vocabulary, with
+/// the floor the priced lines already reach where there is one.
 class _Refusal extends StatelessWidget {
   const _Refusal({required this.summary});
 
   final RecipeCostSummary summary;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const IncompleteBadge(),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                costRefusal(summary),
-                style: ansiMono(size: 11, color: AnsiColors.muted),
+  Widget build(BuildContext context) {
+    final floor = costFloor(summary);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const IncompleteBadge(),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  costRefusal(summary),
+                  style: ansiMono(size: 11, color: AnsiColors.muted),
+                ),
               ),
-            ),
+            ],
+          ),
+          if (floor != null) ...[
+            const SizedBox(height: 8),
+            // A cell's weight, because it is a real figure, and one size down
+            // because the words it needs to stay honest are in it.
+            Text(floor, style: ansiMono(size: 13, weight: FontWeight.w500)),
           ],
-        ),
-        const SizedBox(height: 6),
-        Text(
-          summary.noLines
-              ? 'A cost arrives once this recipe has ingredients.'
-              : summary.nothingCountable
-              ? 'Every line is imprecise or optional, so there is nothing to '
-                    'price — a figure here would be a fabrication.'
-              : 'Left out until every line has a price — a figure short of '
-                    'one of them would not be this recipe.',
-          style: ansiSans(size: 12, color: AnsiColors.muted, height: 1.35),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(height: 6),
+          Text(
+            _why(summary),
+            style: ansiSans(size: 12, color: AnsiColors.muted, height: 1.35),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The sentence under the badge, in the state's own terms.
+  String _why(RecipeCostSummary summary) {
+    if (summary.noLines) {
+      return 'A cost arrives once this recipe has ingredients.';
+    }
+    if (summary.nothingCountable) {
+      return 'Every line is imprecise or optional, so there is nothing to '
+          'price — a figure here would be a fabrication.';
+    }
+    if (summary.partlyPriced) {
+      final month = summary.newestPrice;
+      final from = month == null
+          ? ''
+          : ', at prices from ${formatMonthShort(month)}';
+      return 'What the priced lines come to$from — a floor, not the cost: '
+          'the lines named below can only add to it.';
+    }
+    return 'Left out until every line has a price — a figure short of one of '
+        'them would not be this recipe.';
+  }
 }
 
 /// `UNPRICED`, `OLDEST`, `NOT COUNTED`, `OPTIONAL` — what the figure above is
