@@ -112,7 +112,7 @@ const _aboutTheCook = {
 /// Letter runs, so a word is matched whole and punctuation cannot hide one.
 /// Deliberately blind to digits and diacritics: every word of [_aboutTheCook]
 /// is plain ASCII, and a token like "400g" can only fail to match.
-final _words = RegExp(r'[a-z]+');
+final _words = RegExp('[a-z]+');
 
 /// Whether [candidate] reads as the name of one thing, and so is worth
 /// learning as an alias.
