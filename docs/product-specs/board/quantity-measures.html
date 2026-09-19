@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Quantity &amp; measures</h1>
-    <p class="view-status">built · matches code 2026-09-19 · <code>features/ingredients</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: same, as a dialog from 640 · <span class="prop">proposed</span> a recipe’s own measures on a component’s dock <a href="../../exec-plans/backlog.md">backlog</a></p>
+    <p class="view-status">built · matches code 2026-09-19 · <code>features/ingredients</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: same, as a dialog from 640 · a measured line keeps its word on this build · <span class="prop">proposed</span> authoring a recipe’s own measures on a component’s dock <a href="../../exec-plans/backlog.md">backlog</a></p>
     <p class="view-blurb">One dock everywhere an amount is set: this ingredient’s admitted units as chips over a keypad, and the conversion said out loud above them.</p>
 </header>
 
@@ -170,6 +170,33 @@
                     <div class="ghostbtn" style="margin-top:2px">Set the yield</div>
                 </div>
             </div></div>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>A measured line, on the build that cannot author one</b> · the dock as it stands <i>today</i>: the read seam ships a release ahead of the authoring UI (<a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a>), so a device can meet <code>3 blob</code> and must not be able to lose the word by editing the number</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">✕</span><span class="ttl"></span><span class="dots"></span></div>
+                <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle"><span class="ichip">↪ Romesco Aioli</span></div>
+                    <div class="mline">makes 1 cup <span class="per">· your recipe</span></div></div></div>
+                <p class="flabel" style="margin-top:14px">Quantity</p>
+                <div class="field"><div class="qty-big"><span class="qn">3</span><span class="care"></span><span class="qu">blob</span></div></div>
+                <div class="dock">
+                    <p class="conv-note" style="margin:0 0 9px"><b>3 blob</b> = 0.63 of a batch · a blob is 50 ml</p>
+                    <div class="uchips"><span class="uchip on">blob<span class="chip-suffix">this recipe’s word</span></span></div>
+                    <p class="conv-note" style="margin:8px 0 0">This line is said in the recipe’s own word, so the number is yours to change and the word is that recipe’s — under its MEASURES.</p>
+                </div>
+                <div class="abar" style="border-top:1px solid var(--line);padding-top:12px"><span class="back">✕</span><span class="ttl"></span><span class="dots"></span></div>
+                <div class="dock" style="margin-top:0">
+                    <p class="chip-note">and the same line after its word was retired</p>
+                    <div class="field" style="margin-bottom:8px"><div class="qty-big"><span class="qn">3</span><span class="care"></span><span class="qu" style="color:var(--muted)"></span></div></div>
+                    <p class="conv-note" style="margin:0 0 9px"><b>3</b> — its measure is gone</p>
+                    <div class="uchips"><span class="uchip on">word gone<span class="chip-suffix">nothing to change it to</span></span></div>
+                    <p class="conv-note" style="margin:8px 0 0">The word this line was written in is gone from that recipe, so there is nothing honest to count it in. The number is kept; put the word back under that recipe’s MEASURES.</p>
+                </div>
+            </div></div>
+            <p class="conv-note" style="margin:10px 4px 0"><b>One chip, selected and inert.</b> Every other chip this dock can draw is a catalog unit, and a catalog unit written where <i>blob</i> was is the only place the line’s amount lived — gone, silently, from a tap that meant to change a number. So the sheet keeps the line’s own denomination and hands back <b>no unit at all</b>; the quantity is fully editable, which is the half a cook actually reaches for. The <b>＋</b> is absent because nothing here can author a word yet.</p>
+            <p class="conv-note" style="margin:8px 4px 0">Both doors that reach this cell obey it: the recipe editor’s own line card, and <b>week mode’s</b> amount, which used to open the <i>ingredient</i> sheet — whose offer cannot express a recipe’s word at all, and opened preselected on <code>piece</code>. The frames below replace this one when the authoring UI ships.</p>
+            <p class="conv-note" style="margin:8px 4px 0"><b>Wide:</b> unchanged — the sheet is already a dialog from 640.</p>
         </div>
 
         <div class="frame prop">
