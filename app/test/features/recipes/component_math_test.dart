@@ -22,9 +22,23 @@ const _butter = [(qty: 250.0, unit: g), (qty: 16.0, unit: tbsp)];
 
 double _batches(ComponentAmount a) => (a as ResolvedComponentAmount).batches;
 
-/// "a batch makes 20 blob" — the household's own word for the aioli.
-RecipeMeasure _m(String label, double perBatch, {String id = 'blob'}) =>
-    RecipeMeasure(id: id, recipeId: 'aioli', label: label, perBatch: perBatch);
+/// "makes 300 g" — the aioli, weighed, so its own words have something to be
+/// held against.
+const _weighed = [(qty: 300.0, unit: g)];
+
+/// "a blob is 15 g" — the household's own word for the aioli.
+RecipeMeasure _m(
+  String label,
+  double amount, {
+  Unit unit = g,
+  String id = 'blob',
+}) => RecipeMeasure(
+  id: id,
+  recipeId: 'aioli',
+  label: label,
+  amount: amount,
+  unit: unit,
+);
 
 void main() {
   group('yieldDenominations', () {
@@ -318,52 +332,72 @@ void main() {
   });
 
   group("resolveComponentAmount — the recipe's own word", () {
-    test('`3 blob` of a batch that makes 20 is 0.15 batches', () {
+    test('`3 blob` of a 15 g blob is 45 g, and 0.15 of a 300 g batch', () {
       final r = resolveComponentAmount(
         quantity: 3,
         unit: null,
-        yields: _aioli,
+        yields: _weighed,
         recipeMeasureId: 'blob',
-        measures: [_m('blob', 20)],
+        measures: [_m('blob', 15)],
       );
       expect(_batches(r), closeTo(0.15, 1e-12));
+      // Both halves of the derivation are reported, because a card prints the
+      // whole sentence: 3 blob → 45 g → 0.15 of a batch.
       expect((r as ResolvedComponentAmount).viaMeasure?.label, 'blob');
-      // It went nowhere near the yield.
-      expect(r.against, isNull);
+      expect(r.against, (qty: 300.0, unit: g));
+    });
+
+    test('it converts within its family to reach the yield', () {
+      // A word said in ml against a batch stated in cups: the ordinary
+      // same-family conversion, entered one step earlier.
+      final r = resolveComponentAmount(
+        quantity: 2,
+        unit: null,
+        yields: _aioli, // makes 1 cup
+        recipeMeasureId: 'ladle',
+        measures: [_m('ladle', 59.1470591, unit: ml, id: 'ladle')],
+      );
+      // 2 × 59.147 ml = 118.29 ml, and a cup is 236.588 ml.
+      expect(_batches(r), closeTo(0.5, 1e-9));
     });
 
     test('scaling the parent moves the LINE, never the word', () {
-      final blob = [_m('blob', 20)];
+      final blob = [_m('blob', 15)];
       ComponentAmount at(double qty) => resolveComponentAmount(
         quantity: qty,
         unit: null,
-        yields: _aioli,
+        yields: _weighed,
         recipeMeasureId: 'blob',
         measures: blob,
       );
       expect(_batches(at(3)), closeTo(0.15, 1e-12));
       expect(_batches(at(6)), closeTo(0.3, 1e-12));
-      expect(blob.single.perBatch, 20);
+      expect(blob.single.amount, 15);
     });
 
-    test('it needs no yield at all — the whole point of the feature', () {
-      final r = resolveComponentAmount(
-        quantity: 2,
+    test('re-stating `makes` re-states the share; the word is untouched', () {
+      // The point of an absolute amount: a blob is still 15 g, and 45 g is a
+      // smaller part of a bigger batch.
+      final blob = [_m('blob', 15)];
+      ComponentAmount against(double batchGrams) => resolveComponentAmount(
+        quantity: 3,
         unit: null,
-        yields: const [],
+        yields: [(qty: batchGrams, unit: g)],
         recipeMeasureId: 'blob',
-        measures: [_m('blob', 20)],
+        measures: blob,
       );
-      expect(_batches(r), closeTo(0.1, 1e-12));
+      expect(_batches(against(300)), closeTo(0.15, 1e-12));
+      expect(_batches(against(600)), closeTo(0.075, 1e-12));
+      expect(blob.single.amount, 15);
     });
 
-    test('a batch that makes one of something is one batch', () {
+    test('a word that IS the whole yield is one batch', () {
       final r = resolveComponentAmount(
         quantity: 1,
         unit: null,
         yields: const [(qty: 900.0, unit: g)],
         recipeMeasureId: 'loaf',
-        measures: [_m('loaf', 1, id: 'loaf')],
+        measures: [_m('loaf', 900, id: 'loaf')],
       );
       expect(_batches(r), 1);
     });
@@ -373,12 +407,71 @@ void main() {
         final r = resolveComponentAmount(
           quantity: 5,
           unit: null,
-          yields: const [],
+          yields: _weighed,
           recipeMeasureId: 'w',
-          measures: [_m(word, 10, id: 'w')],
+          measures: [_m(word, 30, id: 'w')],
         );
-        expect(_batches(r), 0.5, reason: word);
+        expect(_batches(r), closeTo(0.5, 1e-12), reason: word);
       }
+    });
+  });
+
+  group('a word the recipe can no longer hold', () {
+    // The honest cost of the owner's ruling: a word is an amount, so it needs a
+    // `makes` in its family. These two are the SAME refusals a unit-said line
+    // has always fallen into — one code path, so they cannot drift apart.
+    test('a `makes` edited away leaves the word unresolved, not guessed', () {
+      final r = resolveComponentAmount(
+        quantity: 3,
+        unit: null,
+        yields: const [],
+        recipeMeasureId: 'blob',
+        measures: [_m('blob', 15)],
+      );
+      expect(r, const ComponentYieldMissing());
+    });
+
+    test('a `makes` in the other family is a family mismatch', () {
+      // No density for a recipe: a 15 g blob says nothing about a cup.
+      final r = resolveComponentAmount(
+        quantity: 3,
+        unit: null,
+        yields: _aioli, // makes 1 cup
+        recipeMeasureId: 'blob',
+        measures: [_m('blob', 15)],
+      );
+      expect(
+        r,
+        const ComponentFamilyMismatch(
+          lineFamily: UnitFamily.mass,
+          yieldFamilies: [UnitFamily.volume],
+        ),
+      );
+    });
+
+    test('a word said in batches can never resolve — it is circular', () {
+      final r = resolveComponentAmount(
+        quantity: 3,
+        unit: null,
+        yields: _weighed,
+        recipeMeasureId: 'blob',
+        measures: [_m('blob', 0.05, unit: batches)],
+      );
+      expect(r, const ComponentMeasureMissing('blob'));
+    });
+
+    test('recipeMeasureResolvesAgainst answers the same question', () {
+      final blob = _m('blob', 15);
+      expect(recipeMeasureResolvesAgainst(blob, _weighed), isTrue);
+      expect(recipeMeasureResolvesAgainst(blob, _aioli), isFalse);
+      expect(recipeMeasureResolvesAgainst(blob, const []), isFalse);
+      // The second denomination is the bridge, so either family stated is
+      // enough.
+      expect(recipeMeasureResolvesAgainst(blob, _butter), isTrue);
+      expect(
+        recipeMeasureResolvesAgainst(_m('ladle', 30, unit: ml), _butter),
+        isTrue,
+      );
     });
   });
 
@@ -388,7 +481,7 @@ void main() {
       final r = resolveComponentAmount(
         quantity: 3,
         unit: null,
-        yields: _aioli,
+        yields: _weighed,
         recipeMeasureId: 'blob',
       );
       expect(r, const ComponentMeasureMissing('blob'));
@@ -396,7 +489,8 @@ void main() {
 
     test('NEVER degrades to a count against a counted yield', () {
       // `makes 8 piece` would read `3 blob` as 0.375 of a batch — a number
-      // nobody stated, off by whatever the household meant by a blob.
+      // nobody stated, off by whatever the household meant by a blob. A unit
+      // stored beside the pointer is foreign data and must not be read.
       final r = resolveComponentAmount(
         quantity: 3,
         unit: pieces,
@@ -407,12 +501,24 @@ void main() {
       expect(r, isNot(isA<ResolvedComponentAmount>()));
     });
 
+    test('nor is a stored unit read INSTEAD of a live word', () {
+      // `3` counts blobs, not pieces: the word's own unit wins.
+      final r = resolveComponentAmount(
+        quantity: 3,
+        unit: pieces,
+        yields: _weighed,
+        recipeMeasureId: 'blob',
+        measures: [_m('blob', 15)],
+      );
+      expect(_batches(r), closeTo(0.15, 1e-12));
+    });
+
     test('a row whose number says nothing reads as gone, not as a divide', () {
       for (final bad in [0.0, -4.0, double.nan, double.infinity]) {
         final r = resolveComponentAmount(
           quantity: 3,
           unit: null,
-          yields: _aioli,
+          yields: _weighed,
           recipeMeasureId: 'blob',
           measures: [_m('blob', bad)],
         );
@@ -424,9 +530,9 @@ void main() {
       final r = resolveComponentAmount(
         quantity: null,
         unit: null,
-        yields: _aioli,
+        yields: _weighed,
         recipeMeasureId: 'blob',
-        measures: [_m('blob', 20)],
+        measures: [_m('blob', 15)],
       );
       expect(r, const ComponentAmountMissing());
     });

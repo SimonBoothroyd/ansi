@@ -136,8 +136,12 @@ void main() {
       id: 'blob',
       recipeId: 'aioli',
       label: 'blob',
-      perBatch: 20,
+      amount: 15,
+      unit: g,
     );
+
+    /// "makes 300 g" — the aioli, weighed, so its words resolve.
+    const weighed = [(qty: 300.0, unit: g)];
 
     test('a line prints the word, singular, always', () {
       expect(componentAmountText(3, null, measureLabel: 'blob'), '3 blob');
@@ -147,41 +151,71 @@ void main() {
       expect(componentAmountText(null, null, measureLabel: 'blob'), 'blob');
     });
 
-    test('the Cook demand card: what was said, then what it comes to', () {
+    test('the Cook demand card shows its middle step', () {
+      // What was said, what that comes to, what that is a share of — the
+      // second is the fact the word carries, and the one a cook checks.
       expect(
-        componentDemandLine(quantity: 3, measureLabel: 'blob', batches: 0.15),
-        '3 blob → 0.15 of a batch',
+        componentDemandLine(quantity: 3, measure: blob, batches: 0.15),
+        '3 blob → 45 g → 0.15 of a batch',
       );
       expect(
-        componentDemandLine(quantity: 1, measureLabel: 'loaf', batches: 1),
-        '1 loaf → 1 batch',
+        componentDemandLine(
+          quantity: 1,
+          measure: const RecipeMeasure(
+            id: 'l',
+            recipeId: 'r',
+            label: 'loaf',
+            amount: 900,
+            unit: g,
+          ),
+          batches: 1,
+        ),
+        '1 loaf → 900 g → 1 batch',
       );
     });
 
     test('a line saying no word gets no arrow from a thing to itself', () {
       expect(
-        componentDemandLine(quantity: 1, measureLabel: null, batches: 1),
+        componentDemandLine(quantity: 1, measure: null, batches: 1),
         isNull,
       );
       expect(
-        componentDemandLine(quantity: null, measureLabel: 'blob', batches: 1),
+        componentDemandLine(quantity: null, measure: blob, batches: 1),
         isNull,
       );
     });
 
-    test('the word reads in a list as the one sentence it is', () {
-      expect(recipeMeasureListText(blob), 'blob · a batch makes 20');
-      expect(recipeMeasureRateText(blob), 'a batch makes 20 blob');
+    test('the word reads in a list as the ingredient side reads one', () {
+      expect(recipeMeasureListText(blob), 'blob · 15 g');
+      expect(recipeMeasureAmountText(blob), '15 g');
+      expect(recipeMeasureChipText(blob), 'blob (15 g)');
+      expect(recipeMeasureRateText(blob), 'a blob is 15 g');
       expect(
         recipeMeasureListText(
           const RecipeMeasure(
             id: 'l',
             recipeId: 'r',
-            label: 'loaf',
-            perBatch: 1,
+            label: 'ladle',
+            amount: 180,
+            unit: ml,
           ),
         ),
-        'loaf · a batch makes 1',
+        'ladle · 180 ml',
+      );
+    });
+
+    test('a word that already states its size does not say it twice', () {
+      expect(
+        recipeMeasureChipText(
+          const RecipeMeasure(
+            id: 'j',
+            recipeId: 'r',
+            label: 'jar (340 g)',
+            amount: 340,
+            unit: g,
+          ),
+        ),
+        'jar (340 g)',
       );
     });
 
@@ -190,11 +224,36 @@ void main() {
         componentConversionLine(
           quantity: 3,
           unit: null,
+          yields: weighed,
+          recipeMeasureId: 'blob',
+          measures: const [blob],
+        ),
+        '3 blob = 0.15 of a batch · a blob is 15 g',
+      );
+    });
+
+    test('and a word the recipe can no longer hold names the gap', () {
+      // A `makes` restated into cups leaves the 15 g blob with nothing to be a
+      // share of — the ordinary family mismatch, said in the ordinary words.
+      expect(
+        componentConversionLine(
+          quantity: 3,
+          unit: null,
           yields: const [(qty: 1.0, unit: cup)],
           recipeMeasureId: 'blob',
           measures: const [blob],
         ),
-        '3 blob = 0.15 of a batch · a batch makes 20 blob',
+        '3 blob — unresolved — the yield is in volume, this line in mass',
+      );
+      expect(
+        componentConversionLine(
+          quantity: 3,
+          unit: null,
+          yields: const [],
+          recipeMeasureId: 'blob',
+          measures: const [blob],
+        ),
+        '3 blob — no yield set',
       );
     });
 
@@ -223,7 +282,7 @@ void main() {
           amount: resolveComponentAmount(
             quantity: 3,
             unit: null,
-            yields: const [],
+            yields: weighed,
             recipeMeasureId: 'blob',
             measures: const [blob],
           ),
@@ -242,6 +301,46 @@ void main() {
       expect(
         recipeMeasureDeleteRefusalText(label: 'ladle', lines: 1, recipes: 1),
         'Can’t delete “ladle” yet · 1 line still says it, in 1 recipe.',
+      );
+    });
+  });
+
+  group('warning before a Save that orphans a word', () {
+    const blob = RecipeMeasure(
+      id: 'b',
+      recipeId: 'aioli',
+      label: 'blob',
+      amount: 15,
+      unit: g,
+    );
+    const ladle = RecipeMeasure(
+      id: 'l',
+      recipeId: 'aioli',
+      label: 'ladle',
+      amount: 180,
+      unit: ml,
+    );
+
+    test('nothing orphaned says nothing, so it is its own condition', () {
+      expect(recipeMeasuresOrphanedWarning(const []), '');
+    });
+
+    test('one word: it names the word, its size, and the way back', () {
+      expect(
+        recipeMeasuresOrphanedWarning(const [blob]),
+        '“blob” (15 g) has nothing left to be a share of after this. Nothing '
+        'is deleted — but every line saying it goes unresolved until MAKES '
+        'says what a batch comes to in the same kind of unit again.',
+      );
+    });
+
+    test('two words agree with the count', () {
+      expect(
+        recipeMeasuresOrphanedWarning(const [blob, ladle]),
+        '“blob” (15 g), “ladle” (180 ml) have nothing left to be a share of '
+        'after this. Nothing is deleted — but every line saying them goes '
+        'unresolved until MAKES says what a batch comes to in the same kind '
+        'of unit again.',
       );
     });
   });

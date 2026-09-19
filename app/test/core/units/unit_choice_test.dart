@@ -81,7 +81,8 @@ void main() {
       id: 'r1',
       recipeId: 'aioli',
       label: 'blob',
-      perBatch: 20,
+      amount: 15,
+      unit: g,
     );
 
     test('carries the bare word — what one comes to is said elsewhere', () {
@@ -96,7 +97,8 @@ void main() {
             id: 'r1',
             recipeId: 'aioli',
             label: 'blob',
-            perBatch: 24,
+            amount: 18,
+            unit: g,
           ),
         ),
       );
@@ -121,7 +123,13 @@ void main() {
     expect(
       kindOf(
         const RecipeMeasureOption(
-          RecipeMeasure(id: 'r', recipeId: 'a', label: 'blob', perBatch: 20),
+          RecipeMeasure(
+            id: 'r',
+            recipeId: 'a',
+            label: 'blob',
+            amount: 15,
+            unit: g,
+          ),
         ),
       ),
       'recipe measure',

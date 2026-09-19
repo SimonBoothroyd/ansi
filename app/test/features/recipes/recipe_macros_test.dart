@@ -489,13 +489,17 @@ void main() {
       quantity: quantity,
     );
 
-    /// "a batch makes 20 blob" — the household's own word for the aioli.
+    /// "a blob is 15 g" — the household's own word for the aioli.
     const blob = RecipeMeasure(
       id: 'blob',
       recipeId: 'aioli',
       label: 'blob',
-      perBatch: 20,
+      amount: 15,
+      unit: g,
     );
+
+    /// "makes 300 g" — the aioli weighed, which is what lets its word resolve.
+    const weighed = [(qty: 300.0, unit: g)];
 
     /// The aioli: serves 4, makes 1 cup, one 200 g ingredient line.
     SubRecipeNode aioli({
@@ -542,19 +546,35 @@ void main() {
     });
 
     test("said in the target's own word: 0.15 × its whole macros", () {
-      // The aioli totals 200 kcal; `3 blob` of a batch that makes 20 is 0.15
-      // of it, over one serving.
+      // The aioli totals 200 kcal; `3 blob` is 45 g of a batch that makes
+      // 300 g, so 0.15 of it, over one serving.
       final summary = summarizeRecipeMacros(
         servingsBase: 1,
         lines: [component('aioli', quantity: 3, measureId: 'blob')],
         nutritionOf: _vocab(),
-        subRecipeOf: (id) =>
-            id == 'aioli' ? aioli(measures: const [blob]) : null,
+        subRecipeOf: (id) => id == 'aioli'
+            ? aioli(yields: weighed, measures: const [blob])
+            : null,
       );
       expect(summary.perServing!.kcal, closeTo(30, 1e-9));
     });
 
-    test('the word answers with no yield at all', () {
+    test('a `makes` restated to 600 g halves the share', () {
+      final summary = summarizeRecipeMacros(
+        servingsBase: 1,
+        lines: [component('aioli', quantity: 3, measureId: 'blob')],
+        nutritionOf: _vocab(),
+        subRecipeOf: (id) => id == 'aioli'
+            ? aioli(
+                yields: const [(qty: 600.0, unit: g)],
+                measures: const [blob],
+              )
+            : null,
+      );
+      expect(summary.perServing!.kcal, closeTo(15, 1e-9));
+    });
+
+    test('a word whose `makes` has gone is unresolved, never guessed', () {
       final summary = summarizeRecipeMacros(
         servingsBase: 1,
         lines: [component('aioli', quantity: 3, measureId: 'blob')],
@@ -563,7 +583,9 @@ void main() {
             ? aioli(yields: const [], measures: const [blob])
             : null,
       );
-      expect(summary.perServing!.kcal, closeTo(30, 1e-9));
+      expect(summary.incomplete, isTrue);
+      expect(summary.perServing, isNull);
+      expect(summary.subRecipesUnresolved, 1);
     });
 
     test('a parent cooked twice says 6 blob — 0.3 of a batch', () {
@@ -571,8 +593,9 @@ void main() {
         servingsBase: 1,
         lines: [component('aioli', quantity: 6, measureId: 'blob')],
         nutritionOf: _vocab(),
-        subRecipeOf: (id) =>
-            id == 'aioli' ? aioli(measures: const [blob]) : null,
+        subRecipeOf: (id) => id == 'aioli'
+            ? aioli(yields: weighed, measures: const [blob])
+            : null,
       );
       expect(summary.perServing!.kcal, closeTo(60, 1e-9));
     });

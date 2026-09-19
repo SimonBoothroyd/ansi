@@ -12,14 +12,16 @@ import 'package:flutter_test/flutter_test.dart';
 
 RecipeMeasure _m(
   String label,
-  double perBatch, {
+  double amount, {
+  Unit unit = g,
   String id = 'm1',
   int sortOrder = 0,
 }) => RecipeMeasure(
   id: id,
   recipeId: 'aioli',
   label: label,
-  perBatch: perBatch,
+  amount: amount,
+  unit: unit,
   sortOrder: sortOrder,
 );
 
@@ -98,8 +100,8 @@ void main() {
   group("componentUnitChoices — the recipe's own words lead", () {
     test("words first, then batch, then the yields' families", () {
       final offer = componentUnitChoices(_target(qty: 1, unit: cup), [
-        _m('blob', 20),
-        _m('ladle', 6, id: 'm2', sortOrder: 1),
+        _m('blob', 15, unit: ml),
+        _m('ladle', 60, unit: ml, id: 'm2', sortOrder: 1),
       ]);
       expect(_labels(offer), [
         'blob',
@@ -115,11 +117,21 @@ void main() {
       expect(offer.offFilter, isNull);
     });
 
-    test('a recipe with no yield at all still says its own words', () {
-      // The whole point: a sauce nobody measured is sayable in the words the
-      // household uses for it.
-      final offer = componentUnitChoices(_target(), [_m('blob', 20)]);
-      expect(_labels(offer), ['blob', 'batch']);
+    test('a word the recipe cannot hold is not offered', () {
+      // The honest cost of the amount rule: a 15 g blob against a recipe that
+      // only says `makes 1 cup` resolves to nothing, so a chip for it would
+      // only ever produce a refusal — and the fix is MAKES, not this row.
+      final offer = componentUnitChoices(_target(qty: 1, unit: cup), [
+        _m('blob', 15),
+        _m('ladle', 60, unit: ml, id: 'm2'),
+      ]);
+      expect(_labels(offer).take(2), ['ladle', 'batch']);
+      expect(_labels(offer), isNot(contains('blob')));
+    });
+
+    test('a recipe with no yield at all can hold no word', () {
+      final offer = componentUnitChoices(_target(), [_m('blob', 15)]);
+      expect(_labels(offer), ['batch']);
     });
 
     test('no words is exactly the offer this file gave before', () {
@@ -128,11 +140,11 @@ void main() {
     });
 
     test('a word whose number says nothing is not offered', () {
-      final offer = componentUnitChoices(_target(), [
+      final offer = componentUnitChoices(_target(qty: 250, unit: g), [
         _m('blob', 0),
-        _m('ladle', 6, id: 'm2'),
+        _m('ladle', 60, id: 'm2'),
       ]);
-      expect(_labels(offer), ['ladle', 'batch']);
+      expect(_labels(offer).take(2), ['ladle', 'batch']);
     });
 
     test('the stored selection is always offered, flagged off-filter', () {
@@ -147,27 +159,65 @@ void main() {
     });
 
     test('a merge-hidden word is admitted the same way', () {
-      final hidden = RecipeMeasureOption(_m('blob', 24, id: 'dupe'));
-      final offer = componentUnitChoices(_target(), [
-        _m('ladle', 6),
+      final hidden = RecipeMeasureOption(_m('blob', 18, id: 'dupe'));
+      final offer = componentUnitChoices(_target(qty: 250, unit: g), [
+        _m('ladle', 60),
       ], current: hidden);
       expect(offer.offFilter, hidden);
-      expect(_labels(offer), ['ladle', 'batch', 'blob']);
+      expect(_labels(offer), ['ladle', 'batch', 'g', 'kg', 'blob']);
+    });
+
+    test('and so is an ORPHANED word, when a line already says it', () {
+      // A `makes` restated from grams into cups takes `blob` out of the offer —
+      // but a line that says `blob` still reads `blob`, off-filter, with the
+      // refusal under it. Never silently a number in some other unit.
+      final blob = RecipeMeasureOption(_m('blob', 15));
+      final offer = componentUnitChoices(_target(qty: 1, unit: cup), [
+        _m('blob', 15),
+      ], current: blob);
+      expect(offer.offFilter, blob);
+      expect(offer.choices.last, blob);
     });
   });
 
   group('wholeMeasureOfRecipe — found, never stored', () {
-    test("the word for one whole batch, within the app's one tolerance", () {
-      expect(wholeMeasureOfRecipe([_m('loaf', 1)])?.label, 'loaf');
-      expect(wholeMeasureOfRecipe([_m('loaf', 1.005)])?.label, 'loaf');
-      expect(wholeMeasureOfRecipe([_m('loaf', 1.5)]), isNull);
-      expect(wholeMeasureOfRecipe(const []), isNull);
+    /// "makes 900 g" — the bread.
+    const bread = [(qty: 900.0, unit: g)];
+
+    test('the word for the WHOLE yield, within the one tolerance', () {
+      expect(wholeMeasureOfRecipe([_m('loaf', 900)], bread)?.label, 'loaf');
+      expect(wholeMeasureOfRecipe([_m('loaf', 904)], bread)?.label, 'loaf');
+      expect(wholeMeasureOfRecipe([_m('loaf', 450)], bread), isNull);
+      expect(wholeMeasureOfRecipe(const [], bread), isNull);
+    });
+
+    test('it converts to get there — 0.9 kg is a 900 g batch', () {
+      expect(
+        wholeMeasureOfRecipe([_m('loaf', 0.9, unit: kg)], bread)?.label,
+        'loaf',
+      );
+    });
+
+    test('a word in a family the recipe does not state is not the whole', () {
+      expect(wholeMeasureOfRecipe([_m('loaf', 900)], const []), isNull);
+      expect(
+        wholeMeasureOfRecipe([_m('loaf', 900)], const [(qty: 1.0, unit: cup)]),
+        isNull,
+      );
+    });
+
+    test('it moves when `makes` does, which is the truth', () {
+      // A batch restated to 1.8 kg makes the loaf half of one, so it stops
+      // leading — the word did not change, what it is a share of did.
+      final loaf = [_m('loaf', 900)];
+      expect(wholeMeasureOfRecipe(loaf, bread)?.label, 'loaf');
+      expect(wholeMeasureOfRecipe(loaf, const [(qty: 1.8, unit: kg)]), isNull);
     });
 
     test('it leads the offer, and batch stays right behind it', () {
       final offer = componentUnitChoices(_target(qty: 900, unit: g), [
-        _m('blob', 20),
-        _m('loaf', 1, id: 'm2', sortOrder: 1),
+        _m('blob', 15),
+        _m('loaf', 900, id: 'm2', sortOrder: 1),
       ]);
       expect(_labels(offer).take(3), ['loaf', 'blob', 'batch']);
     });
@@ -175,29 +225,37 @@ void main() {
     test('and it is what a fresh component amount opens on', () {
       final target = _target(qty: 900, unit: g);
       expect(
-        firstComponentChoice(target, [_m('blob', 20), _m('loaf', 1, id: 'm2')]),
-        RecipeMeasureOption(_m('loaf', 1, id: 'm2')),
+        firstComponentChoice(target, [
+          _m('blob', 15),
+          _m('loaf', 900, id: 'm2'),
+        ]),
+        RecipeMeasureOption(_m('loaf', 900, id: 'm2')),
       );
       expect(
-        firstComponentChoice(target, [_m('blob', 20)]),
-        RecipeMeasureOption(_m('blob', 20)),
+        firstComponentChoice(target, [_m('blob', 15)]),
+        RecipeMeasureOption(_m('blob', 15)),
       );
       expect(firstComponentChoice(target, _none), const UnitOption(batches));
+      // A word the recipe cannot hold is not what a fresh amount opens on.
+      expect(
+        firstComponentChoice(_target(qty: 1, unit: cup), [_m('blob', 15)]),
+        const UnitOption(batches),
+      );
     });
 
     test('a tie resolves by sort_order then label, on every device', () {
       expect(
         wholeMeasureOfRecipe([
-          _m('round', 1, id: 'b', sortOrder: 1),
-          _m('loaf', 1, id: 'c'),
-        ])?.label,
+          _m('round', 900, id: 'b', sortOrder: 1),
+          _m('loaf', 900, id: 'c'),
+        ], bread)?.label,
         'loaf',
       );
       expect(
         wholeMeasureOfRecipe([
-          _m('round', 1, id: 'b'),
-          _m('boule', 1, id: 'c'),
-        ])?.label,
+          _m('round', 900, id: 'b'),
+          _m('boule', 900, id: 'c'),
+        ], bread)?.label,
         'boule',
       );
     });
@@ -205,7 +263,11 @@ void main() {
     test('a word is never singled out by what it says', () {
       // Nothing here knows `loaf` from `patty`: only the number is read.
       for (final word in ['loaf', 'patty', 'glob', 'batchling']) {
-        expect(wholeMeasureOfRecipe([_m(word, 1)])?.label, word, reason: word);
+        expect(
+          wholeMeasureOfRecipe([_m(word, 900)], bread)?.label,
+          word,
+          reason: word,
+        );
       }
     });
   });
