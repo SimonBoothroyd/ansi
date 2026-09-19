@@ -153,9 +153,18 @@ class MeasuresEditor extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = useState('');
-    final amount = useState<double?>(null);
-    final amountUnit = useState<Unit>(ingredient.macrosBasis.baseUnit);
+    // The add form's draft, held as the CONTROLLERS its slots are drawn from
+    // rather than as values beside them. A Forui managed control seeds itself
+    // once, so a form whose only handle is the text it was told about can
+    // read its slots but never put them back — and this form has to put them
+    // back, because a measure landing is the start of the next one.
+    final label = useTextEditingController();
+    final amount = useTextEditingController();
+    final labelFocus = useFocusNode();
+    // What the form opens on, named once: where the unit starts, and what a
+    // landed measure puts it back to.
+    final openingUnit = ingredient.macrosBasis.baseUnit;
+    final amountUnit = useState<Unit>(openingUnit);
     final error = useState<String?>(null);
     // Which row is open for editing, by id — one at a time, because the form
     // it opens into is the add form's own shape and two of them stacked would
@@ -172,8 +181,8 @@ class MeasuresEditor extends HookWidget {
         .toList();
 
     Future<void> save() async {
-      final name = label.value.trim();
-      final weight = amount.value;
+      final name = label.text.trim();
+      final weight = parseAmount(amount.text);
       if (name.isEmpty) {
         error.value = 'give the measure a name';
         return;
@@ -216,7 +225,24 @@ class MeasuresEditor extends HookWidget {
         case MeasureNotAdded():
           return;
         case MeasureAdded(:final measure):
+          // The host takes it FIRST, so nothing the reset does can lose a
+          // measure that has already landed.
           onAdded(measure);
+          // Then the form goes back to the state it opened in, ready for the
+          // next one: a household names a size, a fragment and a container in
+          // one sitting, and a form still holding the last one asks the
+          // person to clear three controls before the second — or lets them
+          // add "half cheek" twice without noticing.
+          label.clear();
+          amount.clear();
+          amountUnit.value = openingUnit;
+          // And the keyboard goes back to the first slot — but only where
+          // this form is still on screen. The quantity sheet's host closes
+          // the manage state on an add, and a field that is leaving must not
+          // take the keyboard with it over the surface behind it.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) labelFocus.requestFocus();
+          });
       }
     }
 
@@ -299,8 +325,9 @@ class MeasuresEditor extends HookWidget {
           unit: amountUnit.value,
           error: error.value,
           autofocus: autofocus,
-          onLabel: (v) => label.value = v,
-          onAmount: (v) => amount.value = parseAmount(v),
+          label: label,
+          labelFocus: labelFocus,
+          amount: amount,
           onUnit: (u) => amountUnit.value = u,
           onSave: save,
           footer: Row(
@@ -414,17 +441,19 @@ class _EditMeasureForm extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = useState(measure.label);
-    final amount = useState<double?>(measure.amount);
     // A stored measure is denominated in the basis, so that is what it opens
     // in; re-weighing it in ounces is a pick away.
     final amountUnit = useState<Unit>(ingredient.macrosBasis.baseUnit);
+    final label = useTextEditingController(text: measure.label);
+    final amount = useTextEditingController(
+      text: formatQuantityIn(measure.amount, amountUnit.value),
+    );
     final error = useState<String?>(null);
     final baseLabel = ingredient.macrosBasis.baseUnit.label;
 
     Future<void> save() async {
-      final name = label.value.trim();
-      final weight = amount.value;
+      final name = label.text.trim();
+      final weight = parseAmount(amount.text);
       if (name.isEmpty) {
         error.value = 'give the measure a name';
         return;
@@ -471,12 +500,10 @@ class _EditMeasureForm extends HookWidget {
       slot: 'edit',
       units: basisConvertibleUnits(ingredient),
       unit: amountUnit.value,
-      initialLabel: measure.label,
-      initialAmount: formatQuantityIn(measure.amount, amountUnit.value),
+      label: label,
+      amount: amount,
       error: error.value,
       autofocus: false,
-      onLabel: (v) => label.value = v,
-      onAmount: (v) => amount.value = parseAmount(v),
       onUnit: (u) => amountUnit.value = u,
       onSave: save,
       footer: GestureDetector(
@@ -508,13 +535,12 @@ class _MeasureForm extends StatelessWidget {
     required this.unit,
     required this.error,
     required this.autofocus,
-    required this.onLabel,
-    required this.onAmount,
+    required this.label,
+    required this.amount,
     required this.onUnit,
     required this.onSave,
     required this.footer,
-    this.initialLabel,
-    this.initialAmount,
+    this.labelFocus,
   });
 
   final IconData icon;
@@ -534,17 +560,23 @@ class _MeasureForm extends StatelessWidget {
   final Unit unit;
   final String? error;
   final bool autofocus;
-  final ValueChanged<String> onLabel;
-  final ValueChanged<String> onAmount;
+
+  /// The two slots, as the controllers the host holds. The host owns the text
+  /// because it is the one that has to **empty** it — a field rebuilt to say
+  /// something new drags its focus, its keyboard and any scroll-into-view it
+  /// had in flight out of the tree with it.
+  final TextEditingController label;
+  final TextEditingController amount;
+
+  /// Focused when the host wants the keyboard back in the first slot.
+  final FocusNode? labelFocus;
+
   final ValueChanged<Unit> onUnit;
   final VoidCallback onSave;
 
   /// The line under the fields when nothing is wrong — the add form's
   /// provenance note, the edit form's way back out.
   final Widget footer;
-
-  final String? initialLabel;
-  final String? initialAmount;
 
   @override
   Widget build(BuildContext context) {
@@ -570,6 +602,7 @@ class _MeasureForm extends StatelessWidget {
               child: FTextField(
                 key: ValueKey('$slot-measure-label'),
                 autofocus: autofocus,
+                focusNode: labelFocus,
                 hint: 'label — “half can”',
                 size: FTextFieldSizeVariant.sm,
                 style: const FTextFieldStyleDelta.delta(
@@ -578,12 +611,7 @@ class _MeasureForm extends StatelessWidget {
                     EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   ),
                 ),
-                control: FTextFieldControl.managed(
-                  initial: initialLabel == null
-                      ? null
-                      : TextEditingValue(text: initialLabel!),
-                  onChange: (v) => onLabel(v.text),
-                ),
+                control: FTextFieldControl.managed(controller: label),
               ),
             ),
             const SizedBox(width: 8),
@@ -591,10 +619,9 @@ class _MeasureForm extends StatelessWidget {
               amountKey: ValueKey('$slot-measure-amount'),
               unitKey: ValueKey('$slot-measure-unit'),
               amountWidth: 40,
-              amount: initialAmount ?? '',
+              controller: amount,
               unit: unit,
               units: units,
-              onAmount: onAmount,
               onUnit: onUnit,
               onSubmit: onSave,
             ),

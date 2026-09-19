@@ -34,11 +34,12 @@ import 'unit_chip.dart';
 
 class AmountAndUnitField extends StatelessWidget {
   const AmountAndUnitField({
-    required this.amount,
     required this.unit,
     required this.units,
-    required this.onAmount,
     required this.onUnit,
+    this.amount,
+    this.onAmount,
+    this.controller,
     this.onSubmit,
     this.amountKey,
     this.unitKey,
@@ -47,8 +48,14 @@ class AmountAndUnitField extends StatelessWidget {
     super.key,
   });
 
-  /// The amount slot's text, as it should be seeded.
-  final String amount;
+  /// The amount slot's text, as it should be seeded. Null where the host
+  /// holds the [controller] — the controller is then the slot's text.
+  final String? amount;
+
+  /// The amount slot's controller, for a host that has to **empty** the slot
+  /// after an entry lands rather than merely read it. See
+  /// [InlineAmountField.controller].
+  final TextEditingController? controller;
 
   final Unit unit;
 
@@ -57,7 +64,7 @@ class AmountAndUnitField extends StatelessWidget {
   /// component only in its sub-recipe's own denominations.
   final List<Unit> units;
 
-  final ValueChanged<String> onAmount;
+  final ValueChanged<String>? onAmount;
   final ValueChanged<Unit> onUnit;
 
   /// What the keyboard's done key does. Null unfocuses.
@@ -84,6 +91,7 @@ class AmountAndUnitField extends StatelessWidget {
         width: amountWidth,
         // Every amount with a unit is a kitchen amount: `2/3` must be typeable.
         fractions: true,
+        controller: controller,
         initial: amount,
         onChange: onAmount,
         onSubmit:
