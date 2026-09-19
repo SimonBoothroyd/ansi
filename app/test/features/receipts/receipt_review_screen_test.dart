@@ -12,6 +12,7 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/domain/allowed_units.dart';
 import 'package:ansi/features/receipts/data/sample_receipt_payloads.dart';
 import 'package:ansi/features/receipts/domain/receipt_repository.dart';
+import 'package:ansi/features/receipts/domain/receipt_review.dart';
 import 'package:ansi/features/receipts/presentation/receipt_date_sheet.dart';
 import 'package:ansi/features/receipts/presentation/receipt_review_body.dart';
 import 'package:ansi/features/receipts/presentation/receipt_view_models.dart';
@@ -389,6 +390,149 @@ void main() {
         find.textContaining('The join between the second and third photo'),
         findsOneWidget,
       );
+    });
+  });
+
+  group('a line the receipt printed again', () {
+    // The owner's first real strip printed six tofu lines. Two of these four
+    // arrive matched by the cascade and two arrive unanswered, which is what
+    // lets one group be answered without reaching into the other.
+    const twinsJson = '''
+{
+  "store_printed": "TRADER JOE'S #135",
+  "purchased_at": "2026-09-13T17:42:00",
+  "printed": { "subtotal_cents": 996, "tax_cents": 0, "total_cents": 996 },
+  "lines": [
+    {
+      "index": 0, "printed_text": "TJ ORG TOFU FIRM  2.49",
+      "name_printed": "TJ ORG TOFU FIRM", "cents": 249, "kind": "item",
+      "match": { "ingredient_id": "vocab-sriracha", "confidence": 0.93,
+        "kind": "auto" }
+    },
+    {
+      "index": 1, "printed_text": "TJ ORG TOFU FIRM  2.49",
+      "name_printed": "TJ ORG TOFU FIRM", "cents": 249, "kind": "item",
+      "match": { "ingredient_id": "vocab-sriracha", "confidence": 0.93,
+        "kind": "auto" }
+    },
+    {
+      "index": 2, "printed_text": "ORG TRICOLOR QUINOA  2.49",
+      "name_printed": "ORG TRICOLOR QUINOA", "cents": 249, "kind": "item"
+    },
+    {
+      "index": 3, "printed_text": "ORG TRICOLOR QUINOA  2.49",
+      "name_printed": "ORG TRICOLOR QUINOA", "cents": 249, "kind": "item"
+    }
+  ]
+}
+''';
+
+    Future<ProviderContainer> openTwins(WidgetTester tester) async {
+      tallSurface(tester);
+      await tester.pumpWidget(
+        scanHost(overrides: receiptOverrides(json: twinsJson)),
+      );
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+      return container;
+    }
+
+    List<ReceiptLineDraft> draftsOf(ProviderContainer container) =>
+        (container.read(receiptScanControllerProvider) as ReceiptReviewing)
+            .drafts;
+
+    testWidgets('the open card says so before the answer is given', (
+      tester,
+    ) async {
+      final container = await openTwins(tester);
+      expect(draftsOf(container), hasLength(4));
+
+      await tester.tap(find.text('ORG TRICOLOR QUINOA').first);
+      await tester.pumpAndSettle();
+      expect(
+        find.text('×2 on this receipt — an answer here answers them all'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('one match answers every line that is that line again', (
+      tester,
+    ) async {
+      final container = await openTwins(tester);
+      await container
+          .read(receiptScanControllerProvider.notifier)
+          .matchLine(2, bananas);
+      await tester.pumpAndSettle();
+
+      final drafts = draftsOf(container);
+      expect(drafts[2].ingredientId, 'vocab-banana');
+      expect(drafts[3].ingredientId, 'vocab-banana');
+      expect(drafts[3].ingredientName, 'Bananas, organic');
+      // …and never into the pair the cascade had already placed elsewhere.
+      expect(drafts[0].ingredientId, 'vocab-sriracha');
+      expect(drafts[1].ingredientId, 'vocab-sriracha');
+    });
+
+    testWidgets('and so does one pack, word and all', (tester) async {
+      final container = await openTwins(tester);
+      final notifier = container.read(receiptScanControllerProvider.notifier);
+      await notifier.matchLine(2, bananas);
+      await tester.pumpAndSettle();
+      notifier.setPack(
+        2,
+        amount: 396,
+        choice: const UnitOption(g),
+        basisAmount: 396,
+        keepAsMeasure: 'tub',
+      );
+      await tester.pumpAndSettle();
+
+      final drafts = draftsOf(container);
+      expect(drafts[3].packBasisAmount, 396);
+      expect(drafts[3].keepAsMeasure, 'tub');
+      expect(drafts[0].packBasisAmount, isNull, reason: 'a different answer');
+    });
+
+    testWidgets('Not food folds them together, and it is food brings them '
+        'back', (tester) async {
+      final container = await openTwins(tester);
+      final notifier = container.read(receiptScanControllerProvider.notifier)
+        ..fold(2);
+      await tester.pumpAndSettle();
+      expect(find.text(r'Not food · 2 · $4.98'), findsOneWidget);
+
+      notifier.unfold(3);
+      await tester.pumpAndSettle();
+      expect(
+        foldedHeading(
+          (container.read(receiptScanControllerProvider) as ReceiptReviewing)
+              .map,
+        ),
+        isNull,
+      );
+    });
+
+    testWidgets('a correction to the paper is about ONE occurrence', (
+      tester,
+    ) async {
+      // A drop and a re-read figure are not answers: a doubled line is dropped
+      // precisely because its twin is staying, and a misread `2.49` was
+      // misread on the line it was misread on.
+      final container = await openTwins(tester);
+      final notifier = container.read(receiptScanControllerProvider.notifier)
+        ..drop(2);
+      await tester.pumpAndSettle();
+      expect(draftsOf(container).map((d) => d.dropped), [
+        false,
+        false,
+        true,
+        false,
+      ]);
+
+      notifier.setCents(0, 299);
+      await tester.pumpAndSettle();
+      expect(draftsOf(container).map((d) => d.cents), [299, 249, 249, 249]);
     });
   });
 

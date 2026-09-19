@@ -20,6 +20,13 @@
 /// **The match is the server's, each time.** Confirming one teaches the
 /// vocabulary nothing, so there is no alias-learning path anywhere on this
 /// screen. What carries over is the pack, on the row.
+///
+/// **An answer answers every line that is this line again.** A receipt prints
+/// one item six times when six were bought, so the open card says
+/// `×6 on this receipt` before the doors rather than after them
+/// ([sameLineAgainNote]) — apply-and-tell, so six cards settling at once is
+/// what the person was told would happen. The drop and the PRICE chip are
+/// corrections to the paper and stay on their own line.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -181,6 +188,10 @@ class _Expanded extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(receiptScanControllerProvider.notifier);
     final basis = row?.macrosBasis;
+    final again = switch (ref.watch(receiptScanControllerProvider)) {
+      ReceiptReviewing(:final drafts) => sameLineAgainNote(drafts, draft.index),
+      _ => null,
+    };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -202,6 +213,14 @@ class _Expanded extends ConsumerWidget {
           onCollapse: onCollapse,
         ),
         ReceiptSourceLine(draft: draft),
+        if (again != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              again,
+              style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
+            ),
+          ),
         if (draft.lowConfidence)
           Padding(
             padding: const EdgeInsets.only(top: 6),

@@ -244,6 +244,138 @@ void main() {
     });
   });
 
+  group('a line the receipt printed again', () {
+    // Six tubs of tofu print six identical lines, and every one of them wants
+    // the same answer.
+    ReceiptLineDraft tofu({
+      required int index,
+      String printed = 'TJ ORG TOFU FIRM  2.49',
+      int cents = 249,
+      int discountCents = 0,
+      String? ingredientId,
+      double? pack,
+      String? keepAsMeasure,
+      ReceiptKind kind = ReceiptKind.item,
+      ReceiptWeight? weight,
+      bool dropped = false,
+    }) => ReceiptLineDraft(
+      index: index,
+      printedText: printed,
+      cents: cents,
+      discountCents: discountCents,
+      kind: kind,
+      weight: weight,
+      ingredientId: ingredientId,
+      packBasisAmount: pack,
+      keepAsMeasure: keepAsMeasure,
+      dropped: dropped,
+    );
+
+    test(
+      'the twins are the lines one answer answers, and the card says so',
+      () {
+        final drafts = [tofu(index: 0), tofu(index: 1), tofu(index: 2)];
+        expect(linesAnsweredWith(drafts, 1), {0, 1, 2});
+        expect(
+          sameLineAgainNote(drafts, 1),
+          '×3 on this receipt — an answer here answers them all',
+        );
+      },
+    );
+
+    test('a line that stands alone answers for itself, and says nothing', () {
+      final drafts = [tofu(index: 0), tofu(index: 1, printed: 'TJ SRIRACHA')];
+      expect(linesAnsweredWith(drafts, 0), {0});
+      expect(sameLineAgainNote(drafts, 0), isNull);
+      expect(linesAnsweredWith(drafts, 99), {99}, reason: 'no such line');
+    });
+
+    test('a different figure is a different line', () {
+      final drafts = [tofu(index: 0), tofu(index: 1, cents: 299)];
+      expect(linesAnsweredWith(drafts, 0), {0});
+      final discounted = [tofu(index: 0), tofu(index: 1, discountCents: 55)];
+      expect(linesAnsweredWith(discounted, 0), {0});
+    });
+
+    test('a twin answered differently is left exactly as it was', () {
+      // The fence that makes this safe: *standing where it stands now*. Two of
+      // the six were matched to another row, and an answer on the fourth
+      // cannot reach back and overwrite theirs.
+      final drafts = [
+        tofu(index: 0, ingredientId: 'vocab-tofu'),
+        tofu(index: 1, ingredientId: 'vocab-tofu'),
+        tofu(index: 2),
+        tofu(index: 3),
+      ];
+      expect(linesAnsweredWith(drafts, 3), {2, 3});
+      expect(linesAnsweredWith(drafts, 0), {0, 1});
+    });
+
+    test('a pack said one way is not a fact about a pack said another', () {
+      final drafts = [
+        tofu(index: 0, ingredientId: 'vocab-tofu', pack: 396),
+        tofu(index: 1, ingredientId: 'vocab-tofu', pack: 454),
+        tofu(index: 2, ingredientId: 'vocab-tofu', pack: 396),
+      ];
+      expect(linesAnsweredWith(drafts, 0), {0, 2});
+    });
+
+    test('a word kept as a measure on one is not kept on the other', () {
+      final drafts = [
+        tofu(index: 0, ingredientId: 'vocab-tofu', pack: 396),
+        tofu(
+          index: 1,
+          ingredientId: 'vocab-tofu',
+          pack: 396,
+          keepAsMeasure: 'tub',
+        ),
+      ];
+      expect(linesAnsweredWith(drafts, 0), {0});
+    });
+
+    test(
+      'a folded line rides with the other folded lines, never with an item',
+      () {
+        final drafts = [
+          tofu(index: 0, kind: ReceiptKind.notFood),
+          tofu(index: 1, kind: ReceiptKind.notFood),
+          tofu(index: 2),
+        ];
+        expect(linesAnsweredWith(drafts, 0), {0, 1});
+        expect(linesAnsweredWith(drafts, 2), {2});
+      },
+    );
+
+    test('a dropped line is nobody’s twin, in either direction', () {
+      // It is leaving, and a doubled line is dropped precisely BECAUSE the
+      // other one is staying.
+      final drafts = [
+        tofu(index: 0),
+        tofu(index: 1, dropped: true),
+        tofu(index: 2),
+      ];
+      expect(linesAnsweredWith(drafts, 0), {0, 2});
+      expect(linesAnsweredWith(drafts, 1), {1});
+    });
+
+    test('a line sold by weight answers for itself', () {
+      // Its printed weight IS its pack, so a pack said on one is not a fact
+      // about the other, however alike the two read.
+      const weighed = ReceiptWeight(amount: 1.32, unit: lb, rateCents: 199);
+      final drafts = [
+        tofu(index: 0, printed: 'ONIONS 1.32 lb', weight: weighed),
+        tofu(index: 1, printed: 'ONIONS 1.32 lb', weight: weighed),
+      ];
+      expect(linesAnsweredWith(drafts, 0), {0});
+      expect(sameLineAgainNote(drafts, 0), isNull);
+    });
+
+    test('a line the reader read no words off is nobody’s twin', () {
+      final drafts = [tofu(index: 0, printed: ''), tofu(index: 1, printed: '')];
+      expect(linesAnsweredWith(drafts, 0), {0});
+    });
+  });
+
   group('the map', () {
     List<ReceiptLineDraft> drafts() => initialReceiptDrafts(sample());
 

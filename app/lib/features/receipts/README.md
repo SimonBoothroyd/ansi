@@ -14,7 +14,7 @@ There is no second price table. A receipt is `receipt` + `receipt_line`
 one row each of, so a scanned line and a typed one are the same fact read the
 same way (`features/ingredients/domain/price.dart`).
 
-## The five things that make this honest
+## The six things that make this honest
 
 **Nothing is written until Save.** The whole review is controller state. A scan
 abandoned half way leaves the ledger exactly as it was, and every failure on
@@ -44,6 +44,20 @@ printed totals and each line's printed words are the paper's and never move.
 **A zero is never a price.** A figure the reader could not make out arrives as
 `cents: 0` and is *flagged* — it holds Save and drags the join open until
 somebody reads it off the paper — rather than counted as a free line.
+
+**One answer answers the line the receipt printed six times.** Six tubs of
+tofu print six identical lines, and answering each of them separately is six
+times the same work. So an answer — the match, the pack (its word included),
+*Not food*, *it is food* — lands on every line that is that line again: the
+same printed words, the same figure, and **standing exactly where this one
+stands now**, which is what keeps it off a twin somebody already answered
+differently. The open card says `×6 on this receipt — an answer here answers
+them all` **before** the answer, so six cards settling at once is what the
+person was told would happen. A correction to the paper never rides along: a
+drop and a re-read figure are about one occurrence, and a doubled line is
+dropped precisely because its twin is staying. `domain/receipt_review.dart`
+holds the rule; at Save, six lines each keeping the same word as a measure
+mint **one** measure and all point at it.
 
 ## The files
 

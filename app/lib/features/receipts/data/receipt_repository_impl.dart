@@ -156,8 +156,9 @@ class SqliteReceiptRepository implements ReceiptRepository {
           stamp,
         ],
       );
+      final mintedWords = <(String, String), String>{};
       for (final line in write.lines) {
-        await _writeLine(tx, receiptId, line, stamp);
+        await _writeLine(tx, receiptId, line, stamp, mintedWords);
       }
     });
     return receiptId;
@@ -196,8 +197,9 @@ class SqliteReceiptRepository implements ReceiptRepository {
           [stamp, stamp, id],
         );
       }
+      final mintedWords = <(String, String), String>{};
       for (final line in write.lines) {
-        await _writeLine(tx, receiptId, line, stamp);
+        await _writeLine(tx, receiptId, line, stamp, mintedWords);
       }
     });
   }
@@ -236,11 +238,18 @@ class SqliteReceiptRepository implements ReceiptRepository {
   /// row ([ReceiptLineWrite.lineId]), a plain INSERT where it is new. Never
   /// `ON CONFLICT`: the local tables are SQLite views and a view rejects
   /// UPSERT.
+  ///
+  /// [mintedWords] is the receipt's own record of the measures this save has
+  /// already minted, keyed by ingredient and word, and it is what keeps six
+  /// identical lines from minting six identical measures. It lives for one
+  /// transaction: a word minted last week is a row, and a row is not this
+  /// door's to reuse.
   Future<void> _writeLine(
     SqliteWriteContext tx,
     String receiptId,
     ReceiptLineWrite line,
     String stamp,
+    Map<(String, String), String> mintedWords,
   ) async {
     // The one place an import mints a measure, and only where the household's
     // own tap asked for it. It happens BEFORE the line, so the line can point
@@ -249,32 +258,41 @@ class SqliteReceiptRepository implements ReceiptRepository {
     var measureId = line.measureId;
     final mint = line.mintMeasureLabel?.trim();
     final basis = line.packBasisAmount;
+    final ingredientId = line.ingredientId;
     if (mint != null &&
         mint.isNotEmpty &&
         basis != null &&
-        line.ingredientId != null) {
-      final last = await tx.get(
-        'SELECT COALESCE(MAX(sort_order), -1) AS m FROM ingredient_measure '
-        'WHERE ingredient_id = ? AND deleted_at IS NULL',
-        [line.ingredientId],
-      );
-      measureId = _uuid.v4();
-      await tx.execute(
-        'INSERT INTO ingredient_measure (id, household_id, '
-        'ingredient_id, label, basis_amount, sort_order, source, '
-        'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [
-          measureId,
-          _householdId,
-          line.ingredientId,
-          mint,
-          basis,
-          ((last['m'] as num?)?.toInt() ?? -1) + 1,
-          'manual',
-          stamp,
-          stamp,
-        ],
-      );
+        ingredientId != null) {
+      // The same word asked for again on the same receipt — six tubs of tofu
+      // each kept as *tub* — is ONE measure: the first line mints it and the
+      // rest point at it, because a row with six identical words in its picker
+      // is six ways to say one thing.
+      measureId = mintedWords[(ingredientId, mint)];
+      if (measureId == null) {
+        final last = await tx.get(
+          'SELECT COALESCE(MAX(sort_order), -1) AS m FROM ingredient_measure '
+          'WHERE ingredient_id = ? AND deleted_at IS NULL',
+          [ingredientId],
+        );
+        measureId = _uuid.v4();
+        mintedWords[(ingredientId, mint)] = measureId;
+        await tx.execute(
+          'INSERT INTO ingredient_measure (id, household_id, '
+          'ingredient_id, label, basis_amount, sort_order, source, '
+          'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            measureId,
+            _householdId,
+            ingredientId,
+            mint,
+            basis,
+            ((last['m'] as num?)?.toInt() ?? -1) + 1,
+            'manual',
+            stamp,
+            stamp,
+          ],
+        );
+      }
     }
     // A pack minted as a measure is stored as a COUNT of it, so the word is
     // the measure's own and never a second copy.

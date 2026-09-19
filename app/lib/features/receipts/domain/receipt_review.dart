@@ -326,6 +326,66 @@ String? _labelOf(String measureId, List<Measure> measures) {
   return null;
 }
 
+/// Whether [other] is [line] again — the same printed words at the same
+/// figure, standing exactly where [line] stands now.
+///
+/// A receipt honestly prints one item six times when six were bought, and
+/// every one of them wants the same answer. Three fences keep that from
+/// becoming an overwrite:
+///
+/// * **Standing where it stands.** A twin somebody has already answered
+///   differently — matched to another row, packed another way — is no longer
+///   the same line, so an answer given here cannot reach it.
+/// * **A dropped line is nobody's twin**, in either direction. It is leaving,
+///   and a doubled line is dropped precisely because the other one is staying.
+/// * **A line sold by weight answers for itself.** Its printed weight IS its
+///   pack, so a pack said on one is not a fact about the other, however alike
+///   the two read.
+bool isSameLineAgain(ReceiptLineDraft line, ReceiptLineDraft other) =>
+    other.index != line.index &&
+    !line.dropped &&
+    !other.dropped &&
+    !(line.weight?.isPack ?? false) &&
+    !(other.weight?.isPack ?? false) &&
+    line.printedText.isNotEmpty &&
+    other.printedText == line.printedText &&
+    other.cents == line.cents &&
+    other.discountCents == line.discountCents &&
+    other.kind == line.kind &&
+    other.ingredientId == line.ingredientId &&
+    other.packBasisAmount == line.packBasisAmount &&
+    other.packAmount == line.packAmount &&
+    other.packUnit == line.packUnit &&
+    other.measureId == line.measureId &&
+    other.keepAsMeasure == line.keepAsMeasure;
+
+/// The index of the line at [index] and of every line that is it again — the
+/// lines one answer answers. Just [index] where the line stands alone.
+///
+/// What rides along is an ANSWER: the match, the pack, *Not food*. What never
+/// does is a correction to the paper — a dropped line or a re-read figure is
+/// about one occurrence, and a doubled line is dropped precisely because its
+/// twin is staying.
+Set<int> linesAnsweredWith(List<ReceiptLineDraft> drafts, int index) {
+  final line = drafts.where((d) => d.index == index).firstOrNull;
+  if (line == null) return {index};
+  return {
+    index,
+    for (final other in drafts)
+      if (isSameLineAgain(line, other)) other.index,
+  };
+}
+
+/// `×6 on this receipt — an answer here answers them all`, or null where the
+/// line stands alone. Said on the open card BEFORE the answer, so six cards
+/// moving at once is what the person was told would happen.
+String? sameLineAgainNote(List<ReceiptLineDraft> drafts, int index) {
+  final count = linesAnsweredWith(drafts, index).length;
+  return count < 2
+      ? null
+      : '×$count on this receipt — an answer here answers them all';
+}
+
 /// What [draft] still wants. A dropped line reports nothing — it is leaving,
 /// and a line that is not food is under the fold, where it counts toward the
 /// trip and toward nothing else.

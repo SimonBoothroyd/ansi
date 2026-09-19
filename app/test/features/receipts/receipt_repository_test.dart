@@ -187,6 +187,65 @@ void main() {
       },
     );
 
+    test('the same word on six lines mints ONE measure', () async {
+      // Six tubs of tofu, each kept as *tub*, is one word the household can
+      // say — not six rows of the same word in the row's picker.
+      final id = await repo.saveReceipt(
+        write([
+          line(
+            printed: 'TJ ORG TOFU FIRM  2.49',
+            cents: 249,
+            packBasis: 396,
+            packAmount: 396,
+            packUnitId: 'g',
+            mint: 'tub',
+          ),
+          line(
+            sortOrder: 1,
+            printed: 'TJ ORG TOFU FIRM  2.49',
+            cents: 249,
+            packBasis: 396,
+            packAmount: 396,
+            packUnitId: 'g',
+            mint: 'tub',
+          ),
+        ]),
+      );
+
+      final measures = await db.getAll(
+        'SELECT id FROM ingredient_measure WHERE ingredient_id = ?',
+        ['banana'],
+      );
+      expect(measures, hasLength(1));
+      final lines = await db.getAll(
+        'SELECT * FROM receipt_line WHERE receipt_id = ? ORDER BY sort_order',
+        [id],
+      );
+      expect(lines, hasLength(2));
+      for (final stored in lines) {
+        expect(stored['measure_id'], measures.single['id']);
+        expect(
+          stored['pack_amount'],
+          1,
+          reason: 'each line is a COUNT of the one word',
+        );
+        expect(stored['pack_unit'], isNull);
+        expect(stored['pack_basis_amount'], 396);
+      }
+    });
+
+    test('two different words on one receipt are two measures', () async {
+      await repo.saveReceipt(
+        write([line(mint: 'tub'), line(sortOrder: 1, mint: 'bag')]),
+      );
+      final labels = await db.getAll(
+        'SELECT label, sort_order FROM ingredient_measure '
+        'ORDER BY sort_order',
+      );
+      expect(labels.map((r) => r['label']), ['tub', 'bag']);
+      expect(labels.map((r) => r['sort_order']), [0, 1]);
+    });
+
     test('a minted measure sits after the ones the row already had', () async {
       await db.execute(
         'INSERT INTO ingredient_measure (id, household_id, ingredient_id, '

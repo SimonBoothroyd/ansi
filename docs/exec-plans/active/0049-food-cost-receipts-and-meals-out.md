@@ -314,6 +314,27 @@ and can run beside phase one.
     one door for a price when a receipt was read-only, and it is two once a
     receipt is not. The ingredient page's price sheet still edits the same
     row from the other side.
+- 2026-09-19 — **An answer answers every line that is that line again**
+  (owner: "lots of duplicate items per receipt, e.g. 6 for tofu; if we fix one
+  entry and all others are identical we should apply the fix to all on the
+  receipt"). Six tubs print six identical lines, and the review asked six
+  times. Now the match, the pack (its word included), *Not food* and *it is
+  food* land on every twin, and the open card says `×6 on this receipt — an
+  answer here answers them all` **before** the doors, not after — six cards
+  settling at once has to be what the person was told would happen.
+  - A twin is the same printed words at the same figure **standing exactly
+    where this line stands now** — same match, same pack. That is the whole
+    fence: a line somebody already answered differently has stopped being this
+    line, so an answer here cannot reach back and overwrite theirs.
+  - **A correction to the paper never rides along.** A drop and a re-read
+    figure are about one occurrence; a doubled line is dropped precisely
+    because its twin is staying.
+  - **A line sold by weight answers for itself.** Its printed weight IS its
+    pack, so a pack said on one is not a fact about the other however alike
+    the two read.
+  - At Save, six lines each keeping the same word as a measure mint **one**
+    measure and all point at it. Six identical words in a row's picker are six
+    ways to say one thing.
 - 2026-09-17 — **The desk's three columns are not built** (R2). The phone
   review works at the 640 measure on a wide window, and the width would buy one
   thing: the printed line standing beside the card that claims to read it. It

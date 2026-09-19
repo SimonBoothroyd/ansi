@@ -414,15 +414,30 @@ class ReceiptScanController extends _$ReceiptScanController {
   void _updateLine(
     int index,
     ReceiptLineDraft Function(ReceiptLineDraft) update,
+  ) => _updateLines({index}, update);
+
+  /// Replaces every draft in [indexes] through [update] — one state, so six
+  /// twins move in one rebuild.
+  void _updateLines(
+    Set<int> indexes,
+    ReceiptLineDraft Function(ReceiptLineDraft) update,
   ) {
     final s = state;
     if (s is! ReceiptReviewing) return;
     state = s.copyWith(
       drafts: [
         for (final d in s.drafts)
-          if (d.index == index) update(d) else d,
+          if (indexes.contains(d.index)) update(d) else d,
       ],
     );
+  }
+
+  /// The line at [index] and every line that is it again, as they stand NOW —
+  /// read before an answer is applied, because the answer is what stops them
+  /// being identical to anything unanswered.
+  Set<int> _answeredWith(int index) {
+    final s = state;
+    return s is ReceiptReviewing ? linesAnsweredWith(s.drafts, index) : {index};
   }
 
   /// Answers *Match an ingredient*: the line takes [row], and then the pack
@@ -434,8 +449,10 @@ class ReceiptScanController extends _$ReceiptScanController {
   Future<void> matchLine(int index, Ingredient row) async {
     final s = state;
     if (s is! ReceiptReviewing) return;
-    _updateLine(
-      index,
+    // One answer for the line and for every line that is it again.
+    final answered = _answeredWith(index);
+    _updateLines(
+      answered,
       (d) => d
           .copyWith(clearMatch: true)
           .copyWith(ingredientId: row.id, ingredientName: row.canonicalName),
@@ -452,7 +469,7 @@ class ReceiptScanController extends _$ReceiptScanController {
       measuresById: {...now.measuresById, row.id: measures},
       drafts: [
         for (final d in now.drafts)
-          if (d.index == index)
+          if (answered.contains(d.index) && d.ingredientId == row.id)
             landPack(d, ingredient: row, measures: measures, last: last)
           else
             d,
@@ -497,8 +514,8 @@ class ReceiptScanController extends _$ReceiptScanController {
     String? keepAsMeasure,
   }) {
     final entered = packAsEntered(amount, choice);
-    _updateLine(
-      index,
+    _updateLines(
+      _answeredWith(index),
       (d) => d
           .copyWith(clearPack: true, clearKeepAsMeasure: true)
           .copyWith(
@@ -520,8 +537,8 @@ class ReceiptScanController extends _$ReceiptScanController {
 
   /// *Not food* — the line folds under the list, keeps its cents, and loses
   /// its claim to be a price. Nothing about the paper changes.
-  void fold(int index) => _updateLine(
-    index,
+  void fold(int index) => _updateLines(
+    _answeredWith(index),
     (d) => d.copyWith(kind: ReceiptKind.notFood, clearMatch: true),
   );
 
@@ -529,8 +546,10 @@ class ReceiptScanController extends _$ReceiptScanController {
   /// paper called it one or a person folded it. There is nothing else it
   /// could come back as: the fold holds exactly the lines that are not food,
   /// and saying one of them is food is the only thing the door means.
-  void unfold(int index) =>
-      _updateLine(index, (d) => d.copyWith(kind: ReceiptKind.item));
+  void unfold(int index) => _updateLines(
+    _answeredWith(index),
+    (d) => d.copyWith(kind: ReceiptKind.item),
+  );
 
   void drop(int index) => _updateLine(index, (d) => d.copyWith(dropped: true));
 
