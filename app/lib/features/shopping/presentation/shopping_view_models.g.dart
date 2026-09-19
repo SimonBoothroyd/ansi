@@ -56,35 +56,38 @@ final class CurrentShoppingListProvider
 String _$currentShoppingListHash() =>
     r'02d26b09cf9d63812a5aedb6bf773d25fbe5cb1e';
 
-/// What the rest of the trip comes to — the figure on the sync line
+/// What the rest of the trip comes to, and how many rows it could not price
+/// — the figure on the sync line and the caveat that rides with it
 /// (ADR-0017).
 ///
 /// The UNTICKED rows only: what is in the basket has been picked up, and the
-/// question the line answers is what is left. Null when not one row can be
-/// priced, because `≈ $0` would read as a free trip rather than an unpriced
-/// one.
+/// question the line answers is what is left. The figure is null when not one
+/// row can be priced, because `≈ $0` would read as a free trip rather than an
+/// unpriced one.
 
 @ProviderFor(shopTripCost)
 const shopTripCostProvider = ShopTripCostProvider._();
 
-/// What the rest of the trip comes to — the figure on the sync line
+/// What the rest of the trip comes to, and how many rows it could not price
+/// — the figure on the sync line and the caveat that rides with it
 /// (ADR-0017).
 ///
 /// The UNTICKED rows only: what is in the basket has been picked up, and the
-/// question the line answers is what is left. Null when not one row can be
-/// priced, because `≈ $0` would read as a free trip rather than an unpriced
-/// one.
+/// question the line answers is what is left. The figure is null when not one
+/// row can be priced, because `≈ $0` would read as a free trip rather than an
+/// unpriced one.
 
 final class ShopTripCostProvider
-    extends $FunctionalProvider<double?, double?, double?>
-    with $Provider<double?> {
-  /// What the rest of the trip comes to — the figure on the sync line
+    extends $FunctionalProvider<TripCost, TripCost, TripCost>
+    with $Provider<TripCost> {
+  /// What the rest of the trip comes to, and how many rows it could not price
+  /// — the figure on the sync line and the caveat that rides with it
   /// (ADR-0017).
   ///
   /// The UNTICKED rows only: what is in the basket has been picked up, and the
-  /// question the line answers is what is left. Null when not one row can be
-  /// priced, because `≈ $0` would read as a free trip rather than an unpriced
-  /// one.
+  /// question the line answers is what is left. The figure is null when not one
+  /// row can be priced, because `≈ $0` would read as a free trip rather than an
+  /// unpriced one.
   const ShopTripCostProvider._()
     : super(
         from: null,
@@ -101,21 +104,21 @@ final class ShopTripCostProvider
 
   @$internal
   @override
-  $ProviderElement<double?> $createElement($ProviderPointer pointer) =>
+  $ProviderElement<TripCost> $createElement($ProviderPointer pointer) =>
       $ProviderElement(pointer);
 
   @override
-  double? create(Ref ref) {
+  TripCost create(Ref ref) {
     return shopTripCost(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(double? value) {
+  Override overrideWithValue(TripCost value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<double?>(value),
+      providerOverride: $SyncValueProvider<TripCost>(value),
     );
   }
 }
 
-String _$shopTripCostHash() => r'7b8c8d60c45164a1de8df973ddff214efa378bb2';
+String _$shopTripCostHash() => r'd70bb11f5c5ff8f4a7b36fc0a6ac9052be9d8b8d';

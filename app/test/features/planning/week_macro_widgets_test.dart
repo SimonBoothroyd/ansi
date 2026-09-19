@@ -123,7 +123,7 @@ void main() {
       demand: 7,
     );
 
-    testWidgets('one line under the macros, with its own qualifier', (
+    testWidgets('a week with an unpriced line reads as a FLOOR (owner)', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -141,10 +141,31 @@ void main() {
         ),
       );
 
-      expect(find.text(r'≈ $71 to cook · 3 lines unpriced'), findsOneWidget);
-      // Phase one shows the plan only — what was SPENT arrives with the
-      // receipts, and the two are never reconciled.
+      // Three meals of seven are out of that figure whole, so it is short by
+      // meals — and says so, without also wearing the `≈` that hedges the
+      // arithmetic.
+      expect(
+        find.text(r'at least $71 to cook · 3 lines unpriced'),
+        findsOneWidget,
+      );
+      // What was SPENT is the band's other figure, and the two are never
+      // reconciled.
       expect(find.textContaining('spent'), findsNothing);
+    });
+
+    testWidgets('a week where every planned line is priced is the estimate '
+        'it always was', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          const WeekMacroBand(
+            macros: macros,
+            scope: 'Everyone',
+            cost: (cents: 7123, counted: 7, considered: 7, unpriced: []),
+          ),
+        ),
+      );
+
+      expect(find.text(r'≈ $71 to cook'), findsOneWidget);
     });
 
     testWidgets('a week nothing can price says nothing about money', (

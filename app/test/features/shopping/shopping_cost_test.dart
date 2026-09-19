@@ -106,17 +106,31 @@ void main() {
   });
 
   group('the trip', () {
-    test('sums the rows it can price and ignores the rest', () {
-      final cents = tripCostCents([
+    test('sums the rows it can price and COUNTS the rest (owner)', () {
+      final trip = tripCostCents([
         _item(),
         _item(name: 'Broccoli', ingredientId: 'i2'),
       ], (id) => id == 'i1' ? _pricing(price: _price()) : _pricing());
-      expect(cents, closeTo(242, 1e-9));
+      expect(trip.cents, closeTo(242, 1e-9));
+      // A row that adds nothing is what makes the figure a floor, so the line
+      // that prints it has to be told there was one.
+      expect(trip.unpriced, 1);
     });
 
     test('nothing priceable is no figure, never a free trip', () {
-      expect(tripCostCents([_item()], (_) => _pricing()), isNull);
-      expect(tripCostCents(const [], (_) => _pricing()), isNull);
+      expect(tripCostCents([_item()], (_) => _pricing()).cents, isNull);
+      final empty = tripCostCents(const [], (_) => _pricing());
+      expect(empty.cents, isNull);
+      expect(empty.unpriced, 0);
+    });
+
+    test('a free-text row is neither priced nor a gap — there is nothing to '
+        'go and fix', () {
+      final trip = tripCostCents([
+        _item(),
+        _item(name: 'Foil', ingredientId: null),
+      ], (_) => _pricing(price: _price()));
+      expect(trip.unpriced, 0);
     });
   });
 

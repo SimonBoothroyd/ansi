@@ -25,17 +25,18 @@ Stream<ShoppingList> currentShoppingList(Ref ref) => ref
     .watch(shoppingRepositoryProvider)
     .watchShoppingList(ref.watch(viewedWeekStartProvider));
 
-/// What the rest of the trip comes to — the figure on the sync line
+/// What the rest of the trip comes to, and how many rows it could not price
+/// — the figure on the sync line and the caveat that rides with it
 /// (ADR-0017).
 ///
 /// The UNTICKED rows only: what is in the basket has been picked up, and the
-/// question the line answers is what is left. Null when not one row can be
-/// priced, because `≈ $0` would read as a free trip rather than an unpriced
-/// one.
+/// question the line answers is what is left. The figure is null when not one
+/// row can be priced, because `≈ $0` would read as a free trip rather than an
+/// unpriced one.
 @riverpod
-double? shopTripCost(Ref ref) {
+TripCost shopTripCost(Ref ref) {
   final list = ref.watch(currentShoppingListProvider).asData?.value;
-  if (list == null) return null;
+  if (list == null) return (cents: null, unpriced: 0);
   final pricing = ref.watch(ingredientPricingProvider);
   return tripCostCents([
     for (final group in list.openGroups) ...group.items,

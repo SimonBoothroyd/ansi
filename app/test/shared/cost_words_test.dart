@@ -164,10 +164,13 @@ void main() {
   });
 
   group('the aggregate lines', () {
-    test('the week band states both halves', () {
+    test('a whole week is an estimate; one with a gap is a floor (owner)', () {
+      // A meal with one unpriced line is out of the sum WHOLE, so the figure
+      // is short by meals rather than rounded — it says so itself, and does
+      // not also wear the `≈` that hedges the arithmetic.
       expect(
         weekCostLine(cents: 7123, unpriced: 3),
-        r'≈ $71 to cook · 3 lines unpriced',
+        r'at least $71 to cook · 3 lines unpriced',
       );
       expect(weekCostLine(cents: 7123), r'≈ $71 to cook');
       expect(weekCostLine(unpriced: 1), '1 line unpriced');
@@ -175,8 +178,19 @@ void main() {
     });
 
     test('the trip estimate says nothing when nothing can be priced', () {
-      expect(tripEstimate(5800), r'≈ $58 still to buy');
-      expect(tripEstimate(null), isNull);
+      expect(tripEstimate((cents: 5800, unpriced: 0)), r'≈ $58 still to buy');
+      expect(tripEstimate((cents: null, unpriced: 3)), isNull);
+    });
+
+    test('a walk with a row nothing can price is a floor too (owner)', () {
+      expect(
+        tripEstimate((cents: 5800, unpriced: 2)),
+        r'at least $58 still to buy · 2 rows unpriced',
+      );
+      expect(
+        tripEstimate((cents: 5800, unpriced: 1)),
+        r'at least $58 still to buy · 1 row unpriced',
+      );
     });
   });
 }

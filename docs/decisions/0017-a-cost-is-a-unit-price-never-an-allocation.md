@@ -1,7 +1,8 @@
 # ADR-0017 — A cost is a unit price, never an allocation
 
 - **Status:** accepted (2026-09-16, Simon — owner-ruled on the 0049 design);
-  rule 4 amended 2026-09-19 with the floor a partly priced recipe prints
+  rule 4 amended 2026-09-19 with the floor a partly priced recipe prints, and
+  rule 8 added the same day for the aggregates that leave a meal or a row out
 - **Rests on:** [ADR-0007](./0007-shopping-list-thin-overlay.md) (the app keeps
   no inventory), [ADR-0008](./0008-unit-admission-model.md) and
   [ADR-0009](./0009-density-unlocks-both-families.md) (which amounts may reach
@@ -103,6 +104,28 @@ a receipt to a meal.**
    it. The recipe panel's cells wear neither: their third cell says
    `prices from Sep` outright, which is the same caveat in words.
 
+8. **A sum that left something out says `at least`, and drops the `≈`.** The
+   week's figure is the meals that resolved, and a meal with one unpriced line
+   is out of it *whole*; the shop's is the rows it could price, and a row it
+   could not adds nothing. Both therefore understate, by meals and by rows
+   rather than by rounding — so both print the floor's own words the moment
+   anything is missing (`at least $71 to cook · 3 lines unpriced`, `at least
+   $58 still to buy · 2 rows unpriced`) and keep the plain `≈` reading for a
+   week or a walk that is whole. The two glyphs never ride together: `≈`
+   hedges the arithmetic, and the arithmetic is the exact part (rule 4's
+   wording, applied to the aggregates).
+
+   Naming the gap beside the number was not enough. The count of unpriced
+   lines has always been there, and a reader still took the figure for what
+   the week costs — which is the owner's ruling: the number has to say what it
+   is, not merely sit next to what is missing.
+
+   **What is summed does not change.** Folding recipes' floors into the week
+   was weighed and refused: the figure would then mix whole meals with parts
+   of meals, and no reader could say which they were looking at. A floor is
+   still a separate field on a recipe, and the week still counts only meals
+   that resolved.
+
 ## Consequences
 
 - **Nothing new is stored.** Every cost in the app is derived at read time from
@@ -124,7 +147,8 @@ a receipt to a meal.**
   inventory ADR-0007 refuses, and each can be reopened as its own ADR.
 - **A week's figure is a sum of the meals that resolved**, with the lines that
   kept the rest out named — the week's existing doctrine for macros, applied to
-  money.
+  money — and it reads as a floor for as long as any of them are unpriced, so
+  pricing the last one is visibly what turns it into the week's cost.
 
 ## Alternatives rejected
 

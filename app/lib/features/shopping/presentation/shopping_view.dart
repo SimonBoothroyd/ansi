@@ -110,7 +110,7 @@ class ShoppingView extends ConsumerWidget {
             // sync words come and go beside it.
             AnsiSyncStatusLine(
               noun: 'tick',
-              trailing: _TripEstimate(cents: ref.watch(shopTripCostProvider)),
+              trailing: _TripEstimate(trip: ref.watch(shopTripCostProvider)),
             ),
             // The width buys ONE thing here: the breakdown a phone opens
             // under a row, held open in a pane beside the walk. The walk
@@ -158,19 +158,20 @@ class _ReceiptsDoor extends ConsumerWidget {
 }
 
 /// `≈ $58 still to buy` at the end of the sync line — what the rest of the
-/// walk comes to at the latest prices (ADR-0017).
+/// walk comes to at the latest prices (ADR-0017), and `at least $58 still to
+/// buy · 2 rows unpriced` where a row on the walk has no price to read.
 ///
 /// Nothing at all when not one open row can be priced: `≈ $0` would read as a
 /// free trip rather than an unpriced one, and the rows themselves each say
 /// which of them has no price.
 class _TripEstimate extends StatelessWidget {
-  const _TripEstimate({required this.cents});
+  const _TripEstimate({required this.trip});
 
-  final double? cents;
+  final TripCost trip;
 
   @override
   Widget build(BuildContext context) {
-    final line = tripEstimate(cents);
+    final line = tripEstimate(trip);
     return line == null
         ? const SizedBox.shrink()
         : Text(line, style: ansiMono(size: 11, color: AnsiColors.muted));
@@ -901,7 +902,7 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
             ),
             // A blank row is a gap only once something on this trip has a
             // price; before that the household simply has not started.
-            anyPriced: ref.watch(shopTripCostProvider) != null,
+            anyPriced: ref.watch(shopTripCostProvider).cents != null,
           );
     final selection = widget.selection;
     final reading =

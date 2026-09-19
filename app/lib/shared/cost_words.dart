@@ -30,6 +30,7 @@ import '../core/result/result.dart';
 import '../core/words.dart';
 import '../features/ingredients/domain/price.dart';
 import '../features/recipes/domain/recipe_cost.dart';
+import '../features/shopping/domain/shopping_cost.dart';
 
 /// `≈ $2.42` — one row's estimate. See the library note.
 String approxMoney(double cents) => '≈ ${formatMoneyRounded(cents)}';
@@ -163,24 +164,66 @@ String costRefusal(RecipeCostSummary summary) {
   return 'servings not set';
 }
 
-/// `≈ $71 to cook · 3 lines unpriced` — the week band's cost line.
+/// `at least $71` — a summed figure with a known gap in it, to the dollar.
+///
+/// The aggregate twin of [costFloor]'s wording, by the same rule: a sum that
+/// skipped something is a floor, so it says so in words and wears no `≈`. The
+/// two together would contradict each other, because `≈` hedges the
+/// arithmetic and the arithmetic is the exact part.
+String atLeastMoneyWhole(double cents) => 'at least ${formatMoneyWhole(cents)}';
+
+/// `≈ $71 to cook · 3 lines unpriced` — the week band's cost line, which
+/// reads `at least $71 to cook · 3 lines unpriced` whenever a meal was left
+/// out.
 ///
 /// [cents] is what the priced meals come to; [unpriced] is how many distinct
 /// lines kept the rest of the week out of that figure. Null when there is
 /// neither — a week that plans nothing says nothing here.
+///
+/// **A meal with one unpriced line drops out whole** (`sumPlannedCost`), so
+/// the moment [unpriced] is anything the figure is missing entire meals
+/// rather than rounding. Naming the gap beside a number is not the same as
+/// saying what the number IS, and it is the number that understates the week
+/// — so it says `at least`. With every planned line priced the line reads
+/// exactly as before: `≈`, because a week at the latest prices is an estimate
+/// and never a bill.
+///
+/// The wording is all that moves. What is summed stays the meals that
+/// resolved: folding recipes' own floors in was weighed and refused, because
+/// the figure would then mix whole meals with parts of meals and no reader
+/// could say which.
 String? weekCostLine({double? cents, int unpriced = 0}) {
+  final figure = cents == null
+      ? null
+      : unpriced > 0
+      ? atLeastMoneyWhole(cents)
+      : approxMoneyWhole(cents);
   final parts = [
-    if (cents != null) '${approxMoneyWhole(cents)} to cook',
+    if (figure != null) '$figure to cook',
     if (unpriced > 0) '$unpriced ${plural(unpriced, 'line')} unpriced',
   ];
   return parts.isEmpty ? null : parts.join(' · ');
 }
 
-/// `≈ $58 still to buy` — the shop's trip estimate, on the sync line.
+/// `≈ $58 still to buy`, and `at least $58 still to buy · 2 rows unpriced`
+/// where the walk holds a row nothing can price — the shop's trip estimate,
+/// on the sync line.
 ///
 /// It counts the UNTICKED rows only: what is in the basket has been picked up,
 /// and the question the line answers is what is left. Null when nothing on the
 /// list can be priced, because `≈ $0` would read as a free trip rather than as
 /// an unpriced one.
-String? tripEstimate(double? cents) =>
-    cents == null ? null : '${approxMoneyWhole(cents)} still to buy';
+///
+/// The week band's rule applied to the shop's own version of the same defect
+/// (owner): an unpriceable row adds nothing to the sum, so the figure
+/// understates the walk. The rows each say `no price yet` under their own
+/// grams, which is where a person goes to fix it; this count is what tells
+/// them the total is waiting on something.
+String? tripEstimate(TripCost trip) {
+  final cents = trip.cents;
+  if (cents == null) return null;
+  final unpriced = trip.unpriced;
+  if (unpriced == 0) return '${approxMoneyWhole(cents)} still to buy';
+  return '${atLeastMoneyWhole(cents)} still to buy · $unpriced '
+      '${plural(unpriced, 'row')} unpriced';
+}

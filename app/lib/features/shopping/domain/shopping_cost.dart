@@ -5,13 +5,16 @@
 /// [quantityInBasis] — the seam the macro and cost summations already share —
 /// times the latest price per unit of that basis (ADR-0017).
 ///
-/// **The trip figure sums what it can, and the rows say what it could not.**
-/// That is the shopping list's own doctrine, not a softening of invariant 3: a
-/// list already sums an ingredient's honest subtotals and shows the provenance
-/// of every part, and a row with no price prints `no price yet` in its own
-/// words, inches from the total. What would be dishonest is a silent zero, and
-/// there is none here — a row that cannot be priced adds nothing and says so,
-/// and a trip nothing on it can price has **no** figure rather than `≈ $0`.
+/// **The trip figure sums what it can, and says so when it left something
+/// out.** A list already sums an ingredient's honest subtotals and shows the
+/// provenance of every part, and a row with no price prints `no price yet` in
+/// its own words, inches from the total. What would be dishonest is a silent
+/// zero, and there is none here — a row that cannot be priced adds nothing and
+/// says so, and a trip nothing on it can price has **no** figure rather than
+/// `≈ $0`. The figure itself carries the caveat too: a trip with an unpriced
+/// row reads `at least …` rather than `≈ …`, because a sum that skipped a row
+/// is a floor and naming the gap nearby is not the same as saying so
+/// (ADR-0017 rule 4, owner).
 ///
 /// **The basket carries none.** The line answers *what is left to buy*, so a
 /// ticked row is out of it; that is the caller's rule, since only the caller
@@ -52,21 +55,37 @@ double? shoppingItemCostCents(ShoppingItem item, IngredientPricing? pricing) {
   return per100.cents * basisAmount / 100;
 }
 
-/// What the unticked part of [items] comes to — the shop's trip estimate.
+/// What a trip comes to, and how many of its rows nothing could price.
 ///
-/// Null when not one row could be priced: a trip with no figure says nothing,
-/// where `≈ $0` would read as a free one.
-double? tripCostCents(
+/// `cents` is null when not one row could be priced: a trip with no figure
+/// says nothing, where `≈ $0` would read as a free one.
+///
+/// `unpriced` is what keeps the figure honest. A row nothing can price adds
+/// nothing to the sum, so a trip carrying one is a **floor** rather than an
+/// estimate, and the words the sync line prints say which of the two it is
+/// (`cost_words.dart`) — the week band's rule, on the shop's own version of
+/// the same gap.
+typedef TripCost = ({double? cents, int unpriced});
+
+/// [TripCost] over the unticked part of [items].
+///
+/// A free-text row counts neither way: it names no vocabulary row, so there
+/// is nothing to price and nothing anybody could go and fix.
+TripCost tripCostCents(
   Iterable<ShoppingItem> items,
   IngredientPricing? Function(String ingredientId) pricingOf,
 ) {
   double? total;
+  var unpriced = 0;
   for (final item in items) {
     final id = item.ingredientId;
     if (id == null) continue;
     final cents = shoppingItemCostCents(item, pricingOf(id));
-    if (cents == null) continue;
+    if (cents == null) {
+      unpriced++;
+      continue;
+    }
     total = (total ?? 0) + cents;
   }
-  return total;
+  return (cents: total, unpriced: unpriced);
 }

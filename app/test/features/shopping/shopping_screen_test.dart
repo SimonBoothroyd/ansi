@@ -1422,7 +1422,13 @@ void main() {
   });
 
   group('what the trip costs', () {
-    ShoppingList costList({bool checked = false}) => ShoppingList(
+    /// Two rows, one of them unpriced — the ordinary walk. `everythingPriced`
+    /// drops the unpriced one, which is the only state in which the trip
+    /// figure is an estimate of the whole walk rather than a floor.
+    ShoppingList costList({
+      bool checked = false,
+      bool everythingPriced = false,
+    }) => ShoppingList(
       groups: [
         ShoppingGroup(
           label: 'Produce',
@@ -1435,13 +1441,14 @@ void main() {
               totals: [Quantity(550, g)],
               pieceTotal: const (count: 5, approx: true),
             ),
-            ShoppingItem(
-              name: 'Charred broccoli',
-              ingredientId: 'i2',
-              entryId: 'e2',
-              totals: [Quantity(350, g)],
-              pieceTotal: const (count: 1, approx: true),
-            ),
+            if (!everythingPriced)
+              ShoppingItem(
+                name: 'Charred broccoli',
+                ingredientId: 'i2',
+                entryId: 'e2',
+                totals: [Quantity(350, g)],
+                pieceTotal: const (count: 1, approx: true),
+              ),
           ],
         ),
       ],
@@ -1475,10 +1482,26 @@ void main() {
       await tester.pumpWidget(_host(costOverrides(costList())));
       await tester.pump();
 
-      expect(find.text(r'≈ $2 still to buy'), findsOneWidget);
+      // The broccoli has no price, so it adds nothing to the figure — and
+      // the figure says as much rather than reading as the whole walk
+      // (owner).
+      expect(
+        find.text(r'at least $2 still to buy · 1 row unpriced'),
+        findsOneWidget,
+      );
       expect(find.text(r'550 g · ≈ $2.42'), findsOneWidget);
       // A row with no price says so rather than leaving a gap.
       expect(find.text('350 g · no price yet'), findsOneWidget);
+    });
+
+    testWidgets('a walk where everything is priced is an estimate, as it '
+        'always was', (tester) async {
+      await tester.pumpWidget(
+        _host(costOverrides(costList(everythingPriced: true))),
+      );
+      await tester.pump();
+
+      expect(find.text(r'≈ $2 still to buy'), findsOneWidget);
     });
 
     testWidgets('a ticked row carries no estimate — it is in the basket', (

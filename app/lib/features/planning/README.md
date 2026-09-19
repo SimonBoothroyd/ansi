@@ -197,12 +197,24 @@ Cook (step 5), and Shop (step 6) — all four tabs are live.
 ## What the week costs to cook
 
 The band at the foot of the week states one cost line under the macros —
-`≈ $71 to cook · 3 lines unpriced` — from `week_cost.dart`, which is
-`sumPlannedMacros`'s money twin: the same entries, the same portions and the
-same lens, so the two lines of the band can never describe two different weeks.
-A recipe with an unpriced line has no cost at all, so its meal cannot join the
-figure; the lines that kept it out are named instead, distinct, because the
-same unpriced ingredient in three recipes is one thing to go and price.
+`≈ $71 to cook` — from `week_cost.dart`, which is `sumPlannedMacros`'s money
+twin: the same entries, the same portions and the same lens, so the two lines
+of the band can never describe two different weeks. A recipe with an unpriced
+line has no cost at all, so its meal cannot join the figure; the lines that
+kept it out are named instead, distinct, because the same unpriced ingredient
+in three recipes is one thing to go and price.
+
+**A week missing a meal says its figure is a floor** (owner): with anything
+unpriced the line reads `at least $71 to cook · 3 lines unpriced`, and it
+wears no `≈`, because a meal drops out WHOLE — the number is short by meals,
+not rounded, and what is uncertain is the lines nobody has priced rather than
+the arithmetic. It is the recipe strip's own voice (`costFloor`,
+[ADR-0017](../../../../docs/decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md)
+rule 4). With every planned line priced it reads exactly as before.
+
+**The wording is all that changes.** Folding the recipes' own floors into the
+week was weighed and refused: the sum would then mix whole meals with parts of
+meals, and no reader could say which figure they were looking at.
 
 A **bare ingredient meal is costed from its own row**, by
 `ingredientPortionCost`: the entry's amount, unit or measure carried to the

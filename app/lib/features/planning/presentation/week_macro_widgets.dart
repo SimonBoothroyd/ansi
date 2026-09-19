@@ -490,7 +490,10 @@ class WeekMacroBand extends StatelessWidget {
   /// line under the macros, in the same denominator posture: the meals that
   /// resolved, and the lines that kept the rest out, named by count.
   ///
-  /// It is an ESTIMATE and wears `≈` to say so. The `spent` line under it is
+  /// It is an ESTIMATE and wears `≈` to say so — until a line is unpriced,
+  /// when it is a **floor** and says `at least` instead: a meal with one
+  /// unpriced line is out of the figure whole, so the number is short by
+  /// meals. The `spent` line under it is
   /// the other figure — what the week's receipts actually came to — and the
   /// two are deliberately **never reconciled** (ADR-0017): the gap between
   /// them is the pantry filling or emptying, shown and not explained.
@@ -615,7 +618,9 @@ class WeekMacroBand extends StatelessWidget {
   }
 }
 
-/// The band's cost line, or nothing — `≈ $71 to cook · 3 lines unpriced`.
+/// The band's cost line, or nothing — `≈ $71 to cook` where the whole week
+/// is priced, and `at least $71 to cook · 3 lines unpriced` once an unpriced
+/// line has taken a meal out of the sum.
 class _CostLine extends StatelessWidget {
   const _CostLine({required this.cost});
 

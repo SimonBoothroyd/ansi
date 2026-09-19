@@ -47,9 +47,11 @@ Phase one — prices and cost:
       posture); Cost reads *a serving · the recipe · prices from <month>*
       with `UNPRICED`, `OLDEST` and `NOT COUNTED` rows. The ⋯ item becomes
       **Show line figures** and prints whichever the panel reads.
-- [x] The week band reads `≈ $71 to cook · 3 lines unpriced` under the macro
-      line; the shop's sync line carries the trip estimate and each row its
-      own under the grams, `no price yet` where there is none. The **wide**
+- [x] The week band reads `≈ $71 to cook` under the macro line (and `at
+      least $71 to cook · 3 lines unpriced` once a meal is missing — the
+      feedback pass's own ruling below); the shop's sync line carries the trip
+      estimate and each row its own under the grams, `no price yet` where
+      there is none. The **wide**
       Week has no home for the band yet (tracker row), so its cost line is
       drawn on the phone only.
 - [x] ADR-0017 written: cost is a unit price, never an allocation.
@@ -399,6 +401,30 @@ and can run beside phase one.
     line points at the measure the row has, keeping the figure read off the
     paper. If they do not, the sheet refuses, names both weights, and offers
     the house style's own way out — put the size in the word.
+- 2026-09-19 — **An aggregate that left something out says `at least`**
+  (owner). The week band printed `≈ $71 to cook · 3 lines unpriced`, but a meal
+  with one unpriced line is out of that figure WHOLE — so the number was short
+  by meals while reading as what the week costs, with the count beside it
+  doing all the work. Naming the gap is not the same as saying what the number
+  is. The band now reads `at least $71 to cook · 3 lines unpriced` whenever
+  anything was left out, in the recipe strip's own voice
+  ([ADR-0017](../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md)
+  rule 4, now rule 8 for the aggregates), and exactly as it did before when
+  every planned line is priced. A floor wears no `≈`: that glyph hedges the
+  arithmetic, and the arithmetic is the exact part.
+  - **What is summed does not change.** Adding the recipes' own floors into
+    the week was considered and rejected: the figure would mix whole meals
+    with parts of meals, and no reader could say which they were looking at.
+  - **The Shop had the identical defect and takes the same wording.** A row
+    nothing can price adds nothing to `tripCostCents`, and the sync line said
+    `≈ $58 still to buy` with no count at all beside it. It now reads
+    `at least $58 still to buy · 2 rows unpriced`, and `≈ $58 still to buy`
+    on a walk that is wholly priced. A free-text row counts neither way: it
+    names no vocabulary row, so there is nothing to price and nothing to fix.
+  - **The wide Week has no cost line to change.** Its foot band draws the
+    macro strip and the average only, so the rule lands on the phone's band;
+    the Shop's sync line is one line above both layouts and changes at every
+    width.
 - 2026-09-19 — **The measure form keeps the unit you weighed in** (owner). A
   measure that lands empties the form for the next one, and the first pass
   put the unit back to the row's basis with the words and the figure. Three
