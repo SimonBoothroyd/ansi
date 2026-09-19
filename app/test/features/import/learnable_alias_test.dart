@@ -181,8 +181,8 @@ void main() {
       // The seed is generated from the owner's own vocabulary, so a phrase the
       // loop should never learn must not be able to ride into every future
       // household's template either. Two legacy rows predate the rule and are
-      // his to prune (`retire_bad_aliases_PROPOSED.sql`); the guard is that the
-      // set can only ever shrink.
+      // the owner's to fix in his own vocabulary, which this file is generated
+      // from; the guard is that the set can only ever shrink.
       const legacy = {'desired berries', 'desired pasta noodles'};
       final seed = File('../supabase/seed_vocab.sql').readAsStringSync();
       final block = seed.substring(

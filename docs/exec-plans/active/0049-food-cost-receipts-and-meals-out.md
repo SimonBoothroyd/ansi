@@ -474,6 +474,17 @@ and can run beside phase one.
   thing: the printed line standing beside the card that claims to read it. It
   is drawn, it is in the hatch, and it has its own backlog row rather than
   holding this phase open.
+- 2026-09-19 — **A learned alias names a thing, not a decision.** The
+  round-nine rule was four punctuation marks, so "your favourite pasta" was
+  learned onto *Protein Pasta*: it is punctuated exactly like a name, and there
+  was never a printed line to test it against — the extractor splits the amount
+  off before the loop sees the words, and the line itself is not persisted. The
+  predicate now also refuses a closed set of words that point at the **cook**
+  rather than the food (second person and possessive, open choice, preference),
+  and two structural guards hold the class: the one door that writes a learned
+  alias must ask, and no alias the seed template carries may fail the question.
+  Swept over the owner's vocabulary the rule gives up two seed rows and one
+  learned row, all his to retire.
 
 ## Notes / open questions
 

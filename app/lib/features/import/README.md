@@ -53,6 +53,8 @@ import/
     line_resolution.dart         one line's decision + buildCommit()
     line_validation.dart         per-line issues + the Save gate
     review_groups.dart           the review's SECTIONS, over flat line indexes
+    learnable_alias.dart         which corrected phrases the loop may learn —
+                                 a name, never a line and never a decision
     preview_recipe.dart          payload → the Recipe the method fold renders
     header_draft.dart            payload → the header draft the form edits (0025)
     yield_prefill.dart           yield_raw → the MAKES prefill (8.6)

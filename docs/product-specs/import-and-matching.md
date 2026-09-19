@@ -744,16 +744,38 @@ or accepts a suggestion), the original raw string is written back as a new
 a few weeks the vocabulary absorbs the household's actual phrasing ("coco milk" →
 Coconut milk, canned) and matching improves with zero ML.
 
-**Only a NAME is learned, never the whole printed line.** A candidate carrying a
-comma, the word *or*, a slash or a bracket is doing more than naming one thing —
-"Olive oil, for frying", "stone-ground mustard or Creole mustard" — and no
-future line will print that sentence again, so the row is dead weight a person
-has to prune by hand. The loop skips those silently, exactly as it skips a taken
-name; the line still commits against the row that was picked. The rule is
-structural, not semantic (`app/lib/features/import/domain/learnable_alias.dart`),
-and it is asked of the *raw* text, because normalization strips the very marks
-that give a line away — "sweet white sorghum flour" is still learned, long or
-not.
+**Only a NAME is learned — never a line, and never a decision.** The candidate
+answers for itself on two counts, because it is the only thing the loop has to
+go on (below). First, a candidate carrying a **comma**, the word ***or***, a
+**slash** or a **bracket** is doing more than naming one thing — "Olive oil, for
+frying", "stone-ground mustard or Creole mustard" — and no future line will
+print that sentence again. Second, a candidate carrying a word that points at
+the **cook** rather than at the food names a *decision* rather than a thing:
+"your favourite pasta", "desired berries", "any plant milk", "pasta of choice".
+The next cook's favourite pasta is a different pasta, so those can no more match
+a future line than a sentence can, and the marks cannot see them — "your
+favourite pasta" is punctuated exactly like "brown onions". A small closed set
+of words answers it, in three groups none of which appears in the name of any
+food: second person and possessive (*your*, *my*, *our*), open choice (*any*,
+*either*, *whatever*, *whichever*, *some*) and preference (*favourite*,
+*choice*, *preferred*, *desired*, *liking*, *taste*, *optional*, *ideally*).
+Either way the loop skips silently, exactly as it skips a taken name; the line
+still commits against the row that was picked.
+
+The rule is structural, not semantic
+(`app/lib/features/import/domain/learnable_alias.dart`), it is asked of the
+*raw* text — normalization strips commas and drops *or* and *desired* as filler,
+erasing half of what gives a phrase away — and beyond those two questions it
+refuses nothing: "sweet white sorghum flour" is still learned, long or not, and
+so is "cooking oil spray", which a shop sells and a page can print again.
+
+**It judges the phrase, not the phrase's relation to the printed line**, because
+there is no line here to judge it against. What reaches the loop is the
+extractor's `ingredient_text`, with the amount already split off it — "1 lb your
+favourite pasta" arrives as "your favourite pasta" — and the printed line is
+never persisted: `source_span` is additive and omitted whenever the words cannot
+be pointed at unambiguously (§4.4). A comparison against the whole line, before
+or after amount stripping, was never available to make.
 
 **An alias is a name, so it lands in the household's one namespace or not at
 all.** Names and aliases share `match_text` (the app's *One namespace* rule —
