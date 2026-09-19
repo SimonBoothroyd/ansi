@@ -26,7 +26,7 @@
 -- `rls_household_isolation.sql`. Run by `supabase test db`.
 
 begin;
-select plan(29);
+select plan(30);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures: one household, a duplicate vocab pair (so the twin leg has a twin
@@ -120,6 +120,12 @@ select has_column('public', 'receipt_line', 'pack_amount',
   'a line keeps the pack as the person stated it');
 select has_column('public', 'receipt_line', 'pack_unit',
   'and the unit they stated it in');
+
+-- The paper's words for the thing, figures off. It is what the receipt door
+-- recalls this household's own past answers by (0047) — never an alias, and
+-- never matched against the vocabulary.
+select has_column('public', 'receipt_line', 'name_printed',
+  'a line keeps the paper''s words for what was bought');
 
 select lives_ok(
   $$ insert into receipt_line (id, household_id, receipt_id, ingredient_id, cents, kind,

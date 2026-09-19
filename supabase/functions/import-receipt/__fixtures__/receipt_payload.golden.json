@@ -37,7 +37,8 @@
       "match": {
         "ingredient_id": "v-onion",
         "confidence": 1,
-        "kind": "auto"
+        "kind": "auto",
+        "remembered": false
       },
       "suggestions": [
         {
@@ -64,7 +65,8 @@
       "match": {
         "ingredient_id": "v-salmon",
         "confidence": 1,
-        "kind": "auto"
+        "kind": "auto",
+        "remembered": false
       },
       "suggestions": [
         {
@@ -87,7 +89,8 @@
       "match": {
         "ingredient_id": "v-sriracha",
         "confidence": 0.75,
-        "kind": "suggest"
+        "kind": "suggest",
+        "remembered": false
       },
       "suggestions": [
         {

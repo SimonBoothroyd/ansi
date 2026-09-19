@@ -44,12 +44,20 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
 - **The extraction LLM never sees the vocabulary and never matches** — it only
   emits raw structured lines. Matching is deterministic and testable (see
   `evals/`). Design: `docs/product-specs/import-and-matching.md`.
-- **A receipt teaches the vocabulary nothing** (plan 0049, owner). The recipe
+- **A receipt teaches the VOCABULARY nothing** (plan 0049, owner). The recipe
   door writes a correction back as an alias; the receipt door writes nothing at
-  all and matches afresh every time, because a receipt's words are one store's
-  abbreviations. It is held by `import-receipt/no_alias.test.ts`, not by this
-  line: a SQL spy asserts every statement that function issues is a `SELECT`.
-  What carries over between shops is the PACK, on the ingredient row.
+  all, because a receipt's words are one store's abbreviations and putting them
+  in the household's own language would surface them in every recipe import,
+  picker and search. It is held by `import-receipt/no_alias.test.ts`, not by
+  this line: a SQL spy asserts every statement that function issues is a
+  `SELECT`, and a source guard names every file the pipeline owns (a new one
+  must be added to its `OWNED` list).
+  What DOES carry between shops is the household's own answers, and neither is
+  a vocabulary word: the PACK, on the ingredient row, and the MATCH, recalled
+  per printed name off this household's own saved `receipt_line` rows
+  (`_shared/receipt_memory.ts`) — one batched SELECT, exact on
+  `upper(name_printed)`, latest `updated_at` wins, so correcting a saved
+  receipt corrects the memory. A recall that throws never fails an import.
 - **A receipt's photos are joined by POSITION, never by item identity.** The
   seam is the longest run of identical consecutive lines shared by the end of
   one photo and the start of the next (`_shared/receipt_join.ts`). A receipt

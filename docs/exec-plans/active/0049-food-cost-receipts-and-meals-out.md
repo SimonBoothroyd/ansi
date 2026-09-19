@@ -73,13 +73,13 @@ Phase two — receipts and spend:
       pack is** on a matched row with no pack, with *keep as a measure*;
       **Not food** moves a line under the fold. Save writes one `receipt`
       and its lines; every matched item line with a pack is a price.
-- [x] **No alias is learned from a receipt.** The server match runs afresh
-      each time; the pack kept as a measure is what carries over. *(The server
-      half landed with R1 and is held structurally, not by prose:
+- [x] **No alias is learned from a receipt.** The vocabulary is never taught a
+      store's abbreviation; what carries over is the household's own answers —
+      the pack, on the row, and the match, recalled per printed name off this
+      household's own saved receipt lines. Held structurally, not by prose:
       `import-receipt/no_alias.test.ts` runs the spine over the real
-      Postgres-backed matcher with a spying executor and asserts every
-      statement the function issues is a `SELECT`. The pack's carry-over is
-      R2's.)*
+      Postgres-backed matcher AND the real recall with a spying executor, and
+      asserts every statement the function issues is a `SELECT`.
 - [x] The Receipts ledger, by week (the household's week start) and store,
       spent against planned per week, a month line on top; opened from the
       band's *spent* line and the shop's **scan a receipt** door.
@@ -335,6 +335,39 @@ and can run beside phase one.
   - At Save, six lines each keeping the same word as a measure mint **one**
     measure and all point at it. Six identical words in a row's picker are six
     ways to say one thing.
+- 2026-09-19 — **The household's own answers are the memory, and the saved
+  receipt lines ARE the list** (owner). His first real strip came back 0-of-29
+  matched. Not for want of vocabulary: a whole-string trigram cannot score
+  `ORG TRICOLOR QUINOA` against `Quinoa` above the 0.55 suggest floor, and no
+  tuning fixes that in general, because the words are one store's
+  abbreviations and not a language. So the receipt door now recalls what this
+  household has already said, per printed name.
+  - **It is not an alias, and the earlier ruling stands.** Teaching the
+    vocabulary `TJ SRIRACHA` would surface a store's shorthand in every recipe
+    import, picker and search. The recall is a SELECT over this household's own
+    `receipt_line` rows; the vocabulary matcher never sees these words;
+    `no_alias.test.ts` now spies the recall's SQL too, and names
+    `_shared/receipt_memory.ts` in its owned list.
+  - **The memory IS the saved lines.** `receipt_line.name_printed` (0047,
+    backfilled by stripping a trailing money figure off `printed_text`) holds
+    the words; the line already holds the answer beside them. No second list to
+    maintain, and nothing to keep in step.
+  - **Answering the owner's follow-up** — verbatim: "we might have multiple
+    receipt lines, we need a way to remove from this probably in case of
+    mistake matching!" The answer is that saved receipts are editable and **the
+    most recently said answer wins** (`order by … updated_at desc`), so
+    correcting the receipt you got wrong corrects the memory. A retire is
+    honoured for free: the answer is read through the ingredient, so a row
+    retired since is no answer and an older live one is used.
+  - **Exact, never fuzzy.** A second, looser matcher here would resolve lines
+    the cascade honestly refused and do it wearing `confidence: 1`.
+  - **A remembered match says so** — `as you matched it last time` beside the
+    chosen row's `tap to change`. It is the one `auto` that can be wrong for a
+    reason a person can see, and changing it is itself the correction; the line
+    stops being remembered the moment they change it, because it is theirs.
+  - **A recall that throws does not cost the receipt.** The photos are read and
+    the model is paid for by then; the receipt arrives exactly as the cascade
+    alone would have had it, and the failure is logged.
 - 2026-09-17 — **The desk's three columns are not built** (R2). The phone
   review works at the 640 measure on a wide window, and the width would buy one
   thing: the printed line standing beside the card that claims to read it. It
@@ -374,6 +407,13 @@ and can run beside phase one.
 - [x] ADR-0017 (cost is a unit price) written at P2's landing.
 - [ ] `make ci` green on every landing so far; `make test-sim` on one
       simulator, serially, when the owner says go.
+- [ ] **0047 + `import-receipt` owed by hand** for the match memory: apply the
+      migration, then deploy the function (`docs/release.md` §4). Both receipt
+      sync rules are `select *`, so `name_printed` arrives with the migration —
+      but the local sync container still has to be recreated from a checkout
+      that holds it before a device sees the column. Nothing new is set by
+      hand: the recall runs on the same `SUPABASE_DB_URL` pool the cascade
+      already uses.
 - [ ] `deploy-supabase` run by hand for R1 — the workflow now deploys
       `import-receipt` by name beside `import-recipe`, and the two share the
       `ANTHROPIC_API_KEY` / `IMPORT_ALLOWED_HOUSEHOLDS` secrets, so nothing new

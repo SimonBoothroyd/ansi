@@ -10,7 +10,7 @@ confirmed line by line, and **kept whole** — so what a week cost reads off the
 receipts themselves, and every matched line with a pack is a price.
 
 There is no second price table. A receipt is `receipt` + `receipt_line`
-(migrations 0044/0046), the same two tables a hand-typed price already writes
+(migrations 0044/0046/0047), the same two tables a hand-typed price already writes
 one row each of, so a scanned line and a typed one are the same fact read the
 same way (`features/ingredients/domain/price.dart`).
 
@@ -27,12 +27,31 @@ to look for, the header counts it, and Save still opens — the printed total is
 the paper's and it stands. A sum that does not close means a line is missing or
 doubled, which is something to look at rather than something to block on.
 
-**The pack carries over; the words never do.** A receipt's text is one store's
-abbreviations, so confirming a match teaches the vocabulary nothing and **no
-alias is learned here** — there is no call to the learning path anywhere in
-this folder. What a second receipt inherits is the **pack**: a matched line
-with no printed weight opens on the pack that row was last bought in, and a
-line sold by weight prices itself from the weight the paper printed.
+**The household's answers carry over; the vocabulary learns nothing.** A
+receipt's text is one store's abbreviations, so confirming a match writes **no
+alias** — there is no call to the learning path anywhere in this folder, and
+`TJ ORG BANANAS` never becomes a word the recipe door, the picker or the search
+can see. What a second receipt inherits is two things, neither of them a
+vocabulary word:
+
+- **the pack**, on the ingredient row: a matched line with no printed weight
+  opens on the pack that row was last bought in, and a line sold by weight
+  prices itself from the weight the paper printed;
+- **the match**, recalled by the server per printed name off this household's
+  own saved receipt lines (`_shared/receipt_memory.ts`). The cascade matched 0
+  of 29 lines on the first real strip — a whole-string trigram cannot score
+  `ORG TRICOLOR QUINOA` against `Quinoa` — and once somebody has said it, it
+  does not have to. The recall is exact, never fuzzy; the **latest answer
+  wins**, so correcting a saved receipt corrects the memory and there is no
+  second list to maintain; a row retired since is no answer at all; and a
+  recall that fails costs the receipt nothing.
+
+A line that arrived on a recalled answer is `ReceiptLineDraft.remembered` and
+its card says `as you matched it last time` beside `tap to change` — the one
+`auto` that can be wrong for a reason a person can see. Changing it *is* the
+correction, and it stops being remembered the moment they do, because it is
+theirs now. `name_printed` is what all of this is filed under: the app writes
+it with the line (migration 0047) and no edit moves it.
 
 **One screen for a receipt.** `/receipts/:id` is the review, opened on the
 rows instead of on a scan (`ReceiptScanController.open`). Everything that

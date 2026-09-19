@@ -324,11 +324,13 @@ Deno.test("matching — auto above the threshold, suggest below, nothing at none
     ingredient_id: "i-1",
     confidence: 1,
     kind: "auto",
+    remembered: false,
   });
   assertEquals(p.lines[1].match, {
     ingredient_id: "i-2",
     confidence: 0.7,
     kind: "suggest",
+    remembered: false,
   });
   assertEquals(p.lines[2].match, null);
   assertEquals(p.lines[1].suggestions.length, 2);
@@ -380,4 +382,159 @@ Deno.test("linesSumCents is the whole arithmetic, and nothing else is", () => {
     ] as any),
     349 + 549 + 699 - 100,
   );
+});
+
+// --- The household's own answers have the last word --------------------------
+//
+// The memory is read off this household's saved receipt lines
+// (`receipt_memory.ts`). Here it is just a Map, which is the point: assembly
+// stays pure, and the rule — what a remembered answer does to a line — is
+// arithmetic with a test.
+
+import type { ReceiptMemory, RememberedAnswer } from "./receipt_memory.ts";
+
+/** One `suggest`-banded match per item line, so the override has something to beat. */
+function suggested(e: ReceiptExtraction, id: string): MatchedLine[] {
+  return itemMatchInputs(e).map((raw: RawLineItem) => ({
+    raw,
+    band: "suggest" as const,
+    candidates: [{
+      ingredient_id: id,
+      canonical_name: "Quinoa, red",
+      score: 0.56,
+    }],
+  }));
+}
+
+const memory = (entries: [string, RememberedAnswer][]): ReceiptMemory =>
+  new Map(entries);
+
+Deno.test("remembered — the household's answer overrides the cascade", () => {
+  // The strip this was found on: a whole-string trigram cannot score
+  // `ORG TRICOLOR QUINOA` against `Quinoa` above the suggest floor. Once
+  // somebody has said it, it does not have to.
+  const e = extraction([
+    line({
+      printed_text: "ORG TRICOLOR QUINOA 4.49",
+      name_printed: "ORG TRICOLOR QUINOA",
+    }),
+  ]);
+  const p = assembleReceipt(
+    e,
+    flatTranscript(e),
+    suggested(e, "v-quinoa-red"),
+    memory([["ORG TRICOLOR QUINOA", {
+      kind: "item",
+      ingredient_id: "v-quinoa",
+    }]]),
+  );
+  assertEquals(p.lines[0].match, {
+    ingredient_id: "v-quinoa",
+    confidence: 1,
+    kind: "auto",
+    remembered: true,
+  });
+  assertEquals(p.lines[0].kind, "item");
+  // The cascade's offers stand: a remembered answer is one the person can
+  // change, and these are what they would change it to.
+  assertEquals(p.lines[0].suggestions.length, 1);
+  assertEquals(p.lines[0].suggestions[0].ingredient_id, "v-quinoa-red");
+});
+
+Deno.test("remembered — the key is the printed name, upper-cased", () => {
+  const e = extraction([line({ name_printed: "tj sriracha" })]);
+  const p = assembleReceipt(
+    e,
+    flatTranscript(e),
+    unmatched(e),
+    memory([["TJ SRIRACHA", { kind: "item", ingredient_id: "v-sriracha" }]]),
+  );
+  assertEquals(p.lines[0].match?.ingredient_id, "v-sriracha");
+});
+
+Deno.test("remembered — a line the household folded arrives folded", () => {
+  const e = extraction([
+    line({
+      printed_text: "PAPER TOWELS 6.99",
+      name_printed: "PAPER TOWELS",
+      amount_printed: "6.99",
+    }),
+  ]);
+  const p = assembleReceipt(
+    e,
+    flatTranscript(e),
+    unmatched(e),
+    memory([["PAPER TOWELS", { kind: "not_food" }]]),
+  );
+  assertEquals(p.lines[0].kind, "not_food");
+  assertEquals(p.lines[0].match, null, "a folded line names no row");
+  // It still counts toward what the trip cost, and toward nothing else.
+  assertEquals(p.lines_sum_cents, 699);
+});
+
+Deno.test("remembered — nothing remembered is the cascade, exactly as before", () => {
+  const e = extraction([line({ name_printed: "TJ SRIRACHA" })]);
+  const bare = assembleReceipt(
+    e,
+    flatTranscript(e),
+    suggested(e, "v-sriracha"),
+  );
+  const empty = assembleReceipt(
+    e,
+    flatTranscript(e),
+    suggested(e, "v-sriracha"),
+    memory([]),
+  );
+  assertEquals(bare, empty);
+  assertEquals(bare.lines[0].match, {
+    ingredient_id: "v-sriracha",
+    confidence: 0.56,
+    kind: "suggest",
+    remembered: false,
+  });
+});
+
+Deno.test("remembered — a line the reader named nothing on recalls nothing", () => {
+  // It would be asking about a string no saved line was ever filed under.
+  const e = extraction([
+    line({ printed_text: "?????? 2.49", name_printed: "  " }),
+  ]);
+  const p = assembleReceipt(
+    e,
+    flatTranscript(e),
+    unmatched(e),
+    memory([["", { kind: "item", ingredient_id: "v-nope" }]]),
+  );
+  assertEquals(p.lines[0].match, null);
+});
+
+Deno.test("remembered — a non-item line is never recalled for", () => {
+  // A tax line has no ingredient to be about (migration 0044's own fence), and
+  // the cursor over `matched` walks the MODEL's item lines, not the recalled
+  // ones.
+  const e = extraction([
+    line({
+      printed_text: "TAX 0.82",
+      name_printed: "TAX",
+      amount_printed: "0.82",
+      kind: "tax",
+    }),
+    line({
+      printed_text: "TJ SRIRACHA 3.99",
+      name_printed: "TJ SRIRACHA",
+      amount_printed: "3.99",
+    }),
+  ]);
+  const p = assembleReceipt(
+    e,
+    flatTranscript(e),
+    unmatched(e),
+    memory([
+      ["TAX", { kind: "item", ingredient_id: "v-nope" }],
+      ["TJ SRIRACHA", { kind: "item", ingredient_id: "v-sriracha" }],
+    ]),
+  );
+  assertEquals(p.lines[0].kind, "tax");
+  assertEquals(p.lines[0].match, null);
+  assertEquals(p.lines[1].match?.ingredient_id, "v-sriracha");
 });

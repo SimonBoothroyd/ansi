@@ -376,6 +376,120 @@ void main() {
     });
   });
 
+  group('a match the household has already made', () {
+    ReceiptPayload payloadWith(Map<String, Object?> match) =>
+        ReceiptPayload.fromJson({
+          'lines': [
+            {
+              'index': 0,
+              'printed_text': 'ORG TRICOLOR QUINOA  4.49',
+              'name_printed': 'ORG TRICOLOR QUINOA',
+              'cents': 449,
+              'kind': 'item',
+              'match': match,
+            },
+          ],
+        });
+
+    test('arrives resolved, and says it is the household’s own', () {
+      // The line the cascade could not place: a whole-string trigram cannot
+      // score four of a store's abbreviations against `Quinoa`. Once somebody
+      // has said it, it does not have to.
+      final draft = initialReceiptDrafts(
+        payloadWith(const {
+          'ingredient_id': 'vocab-quinoa',
+          'confidence': 1,
+          'kind': 'auto',
+          'remembered': true,
+        }),
+      ).single;
+      expect(draft.ingredientId, 'vocab-quinoa');
+      expect(draft.remembered, isTrue);
+    });
+
+    test('the cascade’s own auto is not remembered', () {
+      final draft = initialReceiptDrafts(
+        payloadWith(const {
+          'ingredient_id': 'vocab-quinoa',
+          'confidence': 0.91,
+          'kind': 'auto',
+        }),
+      ).single;
+      expect(draft.ingredientId, 'vocab-quinoa');
+      expect(draft.remembered, isFalse);
+    });
+
+    test('a suggestion is an offer whoever made it', () {
+      // `suggest` never starts a line resolved (ADR-0004), so there is nothing
+      // for the note to be about either.
+      final draft = initialReceiptDrafts(
+        payloadWith(const {
+          'ingredient_id': 'vocab-quinoa',
+          'confidence': 0.6,
+          'kind': 'suggest',
+          'remembered': true,
+        }),
+      ).single;
+      expect(draft.ingredientId, isNull);
+      expect(draft.remembered, isFalse);
+    });
+
+    test('a match the person changes is theirs now', () {
+      final draft = item(ingredientId: 'vocab-banana').copyWith();
+      const recalled = ReceiptLineDraft(
+        index: 0,
+        printedText: 'x',
+        cents: 1,
+        kind: ReceiptKind.item,
+        ingredientId: 'vocab-banana',
+        remembered: true,
+      );
+      expect(
+        recalled
+            .copyWith(clearMatch: true)
+            .copyWith(ingredientId: 'vocab-oil')
+            .remembered,
+        isFalse,
+      );
+      // A correction to the PAPER says nothing about where the match came
+      // from, so it survives one.
+      expect(recalled.withCents(299).remembered, isTrue);
+      expect(recalled.copyWith(dropped: true).remembered, isTrue);
+      expect(draft.remembered, isFalse);
+    });
+
+    test('the pack lands on it exactly as on any other auto match', () {
+      // So a remembered line whose row has a remembered pack arrives needing
+      // nothing at all.
+      final landed = landPack(
+        const ReceiptLineDraft(
+          index: 0,
+          printedText: 'ORG TRICOLOR QUINOA  4.49',
+          cents: 449,
+          kind: ReceiptKind.item,
+          ingredientId: 'vocab-banana',
+          remembered: true,
+        ),
+        ingredient: bananas,
+        measures: const [bag],
+        last: PriceObservation(
+          lineId: 'l-old',
+          receiptId: 'r-old',
+          cents: 349,
+          packBasisAmount: 454,
+          basis: MacrosBasis.perG,
+          store: "TJ's",
+          purchasedAt: DateTime(2026, 8),
+          packAmount: 1,
+          measureId: 'm-bag',
+        ),
+      );
+      expect(landed.packBasisAmount, 454);
+      expect(landed.remembered, isTrue);
+      expect(receiptLineIssues(landed), isEmpty);
+    });
+  });
+
   group('the map', () {
     List<ReceiptLineDraft> drafts() => initialReceiptDrafts(sample());
 

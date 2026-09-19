@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ansi/features/receipts/domain/receipt_payload.dart';
+import 'package:ansi/features/receipts/domain/receipt_review.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// The server's golden payload is the contract's one worked example. If the
@@ -28,5 +29,45 @@ void main() {
       expect(line.namePrinted, isNotNull);
       expect(line.printedText, contains(line.namePrinted));
     }
+    // Every match on the golden is the CASCADE's — a fixture has no household
+    // to have answered — and the flag rides the wire on all of them, so this
+    // side can tell the two apart at all.
+    final matched = payload.lines.where((l) => l.match != null).toList();
+    expect(matched, isNotEmpty);
+    for (final line in matched) {
+      expect(line.match!.remembered, isFalse);
+    }
+    expect(initialReceiptDrafts(payload).every((d) => !d.remembered), isTrue);
+  });
+
+  test('a remembered match decodes as the household’s own answer', () {
+    final line = ReceiptLineOut.fromJson(const {
+      'index': 0,
+      'printed_text': 'ORG TRICOLOR QUINOA  4.49',
+      'name_printed': 'ORG TRICOLOR QUINOA',
+      'cents': 449,
+      'kind': 'item',
+      'match': {
+        'ingredient_id': 'vocab-quinoa',
+        'confidence': 1,
+        'kind': 'auto',
+        'remembered': true,
+      },
+    }, fallbackIndex: 0);
+    expect(line.match!.remembered, isTrue);
+    expect(line.match!.auto, isTrue);
+    expect(line.match!.confidence, 1);
+  });
+
+  test('a server that sends no flag is simply not remembering', () {
+    // Decoding is total and forgiving: an absent field reads as absent, never
+    // as a claim.
+    final line = ReceiptLineOut.fromJson(const {
+      'printed_text': 'TJ SRIRACHA  3.99',
+      'cents': 399,
+      'kind': 'item',
+      'match': {'ingredient_id': 'v', 'confidence': 0.9, 'kind': 'auto'},
+    }, fallbackIndex: 0);
+    expect(line.match!.remembered, isFalse);
   });
 }

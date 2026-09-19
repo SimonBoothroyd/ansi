@@ -113,6 +113,7 @@ typedef StoredReceiptLine = ({
   String? ingredientId,
   String? ingredientName,
   String printedText,
+  String? namePrinted,
   int cents,
   int discountCents,
   String kind,

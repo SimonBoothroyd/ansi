@@ -30,6 +30,7 @@ Future<void> _seedIngredient(
 ReceiptLineWrite line({
   int sortOrder = 0,
   String printed = 'TJ ORG BANANAS  3.49',
+  String? namePrinted = 'TJ ORG BANANAS',
   int cents = 349,
   int discountCents = 0,
   ReceiptLineKind kind = ReceiptLineKind.item,
@@ -44,6 +45,7 @@ ReceiptLineWrite line({
   lineId: lineId,
   sortOrder: sortOrder,
   printedText: printed,
+  namePrinted: namePrinted,
   cents: cents,
   discountCents: discountCents,
   kind: kind,
@@ -268,6 +270,22 @@ void main() {
       );
     });
 
+    test('the paper’s name for the thing is written with the line', () async {
+      // It is what the receipt door recalls this household's own past answers
+      // by, so a line saved without it is a line the next receipt cannot
+      // learn from.
+      final id = await repo.saveReceipt(write([line()]));
+      final stored = await db.get(
+        'SELECT name_printed FROM receipt_line WHERE receipt_id = ?',
+        [id],
+      );
+      expect(stored['name_printed'], 'TJ ORG BANANAS');
+      expect(
+        (await repo.watchReceipt(id).first)!.lines.single.namePrinted,
+        'TJ ORG BANANAS',
+      );
+    });
+
     test('an empty store and a lineless receipt are both refused', () async {
       expect(
         () => repo.saveReceipt(
@@ -343,6 +361,30 @@ void main() {
         [second.id],
       );
       expect(gone['deleted_at'], isNotNull, reason: 'a tombstone, not a hole');
+    });
+
+    test('the paper’s words never move, name and all', () async {
+      final id = await repo.saveReceipt(write([line()]));
+      final was = (await repo.watchReceipt(id).first)!.lines.single;
+      await repo.updateReceipt(
+        id,
+        write([
+          line(
+            lineId: was.id,
+            printed: 'ignored',
+            namePrinted: 'ALSO IGNORED',
+            cents: 399,
+          ),
+        ]),
+      );
+      final now = (await repo.watchReceipt(id).first)!.lines.single;
+      expect(now.cents, 399, reason: 'the figure is a person’s to correct');
+      expect(now.printedText, 'TJ ORG BANANAS  3.49');
+      expect(
+        now.namePrinted,
+        'TJ ORG BANANAS',
+        reason: 'a name that moved under an answer would refile it',
+      );
     });
 
     test('an edit refuses what a save refuses', () async {

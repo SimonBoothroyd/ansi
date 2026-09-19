@@ -8,10 +8,17 @@
 // that is merely absent by accident. It is a difference between two doors that
 // share a cascade, and the kind of difference a later change quietly erases.
 //
+// The door DOES remember the household's own answers per printed name
+// (`_shared/receipt_memory.ts`), and that is not a hole in this guarantee but
+// the reason the guarantee can be kept at all: the memory is a SELECT over
+// this household's own saved receipt lines, so a store's abbreviation stays on
+// the receipt it was printed on and never enters the language the recipe door
+// matches against.
+//
 // Two tests hold it, because either one alone can be walked around:
 //
-//   1. a SQL SPY under the real matcher, through the real spine: whatever the
-//      function actually issues, all of it is a SELECT;
+//   1. a SQL SPY under the real matcher AND the real recall, through the real
+//      spine: whatever the function actually issues, all of it is a SELECT;
 //   2. a SOURCE guard over every file the function owns: no alias table is
 //      named and no write verb appears, so a write cannot be introduced
 //      without this failing and being read.
@@ -20,6 +27,7 @@ import { assert, assertEquals } from "@std/assert";
 import { importReceipt, type ReceiptDeps } from "./index.ts";
 import { matchLines } from "../_shared/match.ts";
 import { sqlVocabMatcher } from "../_shared/match_db.ts";
+import { sqlReceiptMemory } from "../_shared/receipt_memory.ts";
 import type { ReceiptAdapter } from "../_shared/receipt_types.ts";
 
 const HH = "11111111-2222-3333-4444-555555555555";
@@ -75,13 +83,17 @@ Deno.test("no alias — every statement the function issues is a SELECT", async 
   const issued: string[] = [];
   // The REAL Postgres-backed matcher over a spying executor: whatever SQL the
   // cascade would send, we see it, in the shape it would send it.
-  const matcher = sqlVocabMatcher((text: string) => {
+  const spy = (text: string) => {
     issued.push(text);
     return Promise.resolve([]);
-  }, HH);
+  };
+  const matcher = sqlVocabMatcher(spy, HH);
   const deps: ReceiptDeps = {
     adapter,
     matchLines: (lines) => matchLines(lines, matcher),
+    // The REAL recall too: the match memory reads this household's own saved
+    // lines, and "reads" is exactly the thing this test exists to hold.
+    recallMatches: sqlReceiptMemory(spy, HH),
   };
 
   const payload = await importReceipt({ images: [new Uint8Array([1])] }, deps);
@@ -116,6 +128,7 @@ Deno.test("no alias — nothing in this function's own sources can write one", a
     "_shared/receipt_join.ts",
     "_shared/receipt_parse.ts",
     "_shared/receipt_assemble.ts",
+    "_shared/receipt_memory.ts",
     "_shared/prompts/receipt.ts",
     "_shared/adapters/receipt_schema.ts",
     "_shared/adapters/claude_receipt.ts",

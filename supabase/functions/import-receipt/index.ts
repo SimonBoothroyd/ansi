@@ -24,11 +24,19 @@
 //     abbreviations it says `suggest` far more often than it does on a recipe
 //     line. That is the honest answer, and the review is built for it.
 //
-// **Nothing here learns.** No alias is written, and there is no code path from
-// this function to one — a receipt's words are one store's abbreviations, and
-// confirming one teaches the vocabulary nothing (plan 0049, owner). What
-// carries over between shops is the PACK, on the ingredient row, written by the
-// app at Save. `no_alias.test.ts` holds the guarantee structurally.
+// **The vocabulary learns nothing here.** No alias is written, and there is no
+// code path from this function to one — a receipt's words are one store's
+// abbreviations, and putting them in the household's own language would
+// surface them in every recipe import, picker and search (plan 0049, owner).
+// `no_alias.test.ts` holds that structurally.
+//
+// What DOES carry between shops is the household's own answers, and neither of
+// them is a word the vocabulary knows:
+//
+//   * the **pack**, on the ingredient row, written by the app at Save;
+//   * the **match**, recalled per printed name off this household's own saved
+//     receipt lines (`_shared/receipt_memory.ts`) — a SELECT, latest answer
+//     wins, so correcting the receipt corrects the memory.
 //
 // The spine takes its collaborators injected (`ReceiptDeps`), so the whole
 // pipeline is offline-testable with fakes and replayable with a saved answer.
@@ -36,8 +44,13 @@
 import type { MatchedLine, RawLineItem } from "../_shared/types.ts";
 import type {
   ReceiptAdapter,
+  ReceiptExtraction,
   ReceiptPayload,
 } from "../_shared/receipt_types.ts";
+import type {
+  RecallMatchesFn,
+  ReceiptMemory,
+} from "../_shared/receipt_memory.ts";
 import { joinPhotoTranscripts } from "../_shared/receipt_join.ts";
 import {
   assembleReceipt,
@@ -63,6 +76,12 @@ export type MatchLinesFn = (lines: RawLineItem[]) => Promise<MatchedLine[]>;
 export interface ReceiptDeps {
   adapter: ReceiptAdapter;
   matchLines: MatchLinesFn;
+  /**
+   * What this household has already said about these printed names
+   * (`_shared/receipt_memory.ts`) — a SELECT over its own saved receipt lines,
+   * pre-bound to the household exactly as `matchLines` is.
+   */
+  recallMatches: RecallMatchesFn;
 }
 
 /** Request to the pipeline: the photos of one receipt, in order, top to bottom. */
@@ -162,9 +181,38 @@ export async function importReceipt(
       );
     }
     done("matched");
-    return assembleReceipt(extraction, transcript, matched);
+    return assembleReceipt(
+      extraction,
+      transcript,
+      matched,
+      await recall(extraction, deps),
+    );
   } finally {
     deps.adapter.onProgress = previousProgress;
+  }
+}
+
+/**
+ * What the household has already said about these printed names.
+ *
+ * **A recall that fails must not fail the import.** It is an improvement on
+ * the cascade, not a dependency of it: the photos are read, the model is paid
+ * for, and a receipt that arrives matched exactly as it would have been last
+ * month is a working receipt. So it is logged and the assembly goes on with
+ * nothing remembered.
+ */
+async function recall(
+  extraction: ReceiptExtraction,
+  deps: ReceiptDeps,
+): Promise<ReceiptMemory> {
+  const names = extraction.lines
+    .filter((l) => l.kind === "item")
+    .map((l) => l.name_printed);
+  try {
+    return await deps.recallMatches(names);
+  } catch (e) {
+    console.error("import-receipt: could not recall past answers", e);
+    return new Map();
   }
 }
 

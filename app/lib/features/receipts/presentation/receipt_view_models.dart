@@ -675,6 +675,7 @@ ReceiptLineDraft storedLineDraft(
   index: index,
   lineId: line.id,
   printedText: line.printedText,
+  namePrinted: line.namePrinted,
   cents: line.cents,
   discountCents: line.discountCents,
   kind: ReceiptKind.fromWire(line.kind),

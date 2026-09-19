@@ -29,6 +29,8 @@ import type {
 } from "./receipt_types.ts";
 import type { JoinedTranscript } from "./receipt_join.ts";
 import { joinKey } from "./receipt_join.ts";
+import type { ReceiptMemory, RememberedAnswer } from "./receipt_memory.ts";
+import { recallKey } from "./receipt_memory.ts";
 import {
   canonicalWeightUnit,
   parseCents,
@@ -97,6 +99,44 @@ function matchOf(m: MatchedLine | undefined): ReceiptLineOut["match"] {
     ingredient_id: best.ingredient_id,
     confidence: best.score,
     kind: m.band === "auto" ? "auto" : "suggest",
+    remembered: false,
+  };
+}
+
+/**
+ * What the household already said about this line's printed name, where they
+ * have said anything. The key is `name_printed` alone — that is what a saved
+ * line stores, so recalling by anything else would be asking about a string
+ * nothing was ever filed under.
+ */
+function recallFor(
+  memory: ReceiptMemory,
+  line: ExtractedLine,
+): RememberedAnswer | undefined {
+  const name = line.name_printed.trim();
+  return name === "" ? undefined : memory.get(recallKey(name));
+}
+
+/**
+ * The line's answer, with the household's own having the last word.
+ *
+ * A remembered ingredient arrives `auto` at `confidence: 1` and says it is
+ * remembered: it is not the cascade's reading, it is somebody's answer, and a
+ * confidence below 1 would invite a threshold to be applied to a fact.
+ * A remembered fold has no match at all — the line arrives under the fold,
+ * where its way back is *it is food*.
+ */
+function matchFor(
+  recalled: RememberedAnswer | undefined,
+  m: MatchedLine | undefined,
+): ReceiptLineOut["match"] {
+  if (recalled === undefined) return matchOf(m);
+  if (recalled.kind === "not_food") return null;
+  return {
+    ingredient_id: recalled.ingredient_id,
+    confidence: 1,
+    kind: "auto",
+    remembered: true,
   };
 }
 
@@ -177,11 +217,18 @@ export function linesSumCents(lines: ReceiptLineOut[]): number {
  * `matched` is one entry per ITEM line, in the order {@link itemMatchInputs}
  * produced them — the caller is the orchestrator, which checks that length
  * before it gets here.
+ *
+ * `remembered` is what this household has already said about these printed
+ * names, and it has the last word over the cascade. An empty one — the
+ * default — is a receipt assembled by the cascade alone, which is exactly what
+ * a household with no saved receipts gets, and what a failed recall falls back
+ * to.
  */
 export function assembleReceipt(
   extraction: ReceiptExtraction,
   transcript: JoinedTranscript,
   matched: MatchedLine[],
+  remembered: ReceiptMemory = new Map(),
 ): ReceiptPayload {
   // The join's own notes lead: a seam that could not be found is the thing most
   // likely to be behind whatever else looks wrong below it.
@@ -212,16 +259,26 @@ export function assembleReceipt(
         discount_cents = parsed;
       }
     }
+    // `line.kind`, never the recalled one: the cascade was given the item
+    // lines the MODEL found, and this cursor has to walk the same ones.
     const m = line.kind === "item" ? matched[itemIndex++] : undefined;
+    const recalled = line.kind === "item"
+      ? recallFor(remembered, line)
+      : undefined;
     return {
       index,
       printed_text: line.printed_text,
       name_printed: line.name_printed.trim(),
       cents: parsedCents ?? 0,
       discount_cents,
-      kind: line.kind,
+      // A line the household has folded before arrives folded. It still counts
+      // toward what the trip cost, and toward nothing else.
+      kind: recalled?.kind === "not_food" ? "not_food" : line.kind,
       weight: weightOf(line, notes),
-      match: matchOf(m),
+      match: matchFor(recalled, m),
+      // The cascade's offers stand whatever is remembered: a remembered answer
+      // is one the person can change, and these are what they would change it
+      // to.
       suggestions: suggestionsOf(m),
       low_confidence,
       photo: cursor.photoFor(line.printed_text),

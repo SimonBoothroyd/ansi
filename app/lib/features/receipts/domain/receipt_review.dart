@@ -16,10 +16,15 @@
 ///   worth showing; a receipt whose join lost a
 ///   line is still a receipt, and its printed total still stands. It is
 ///   counted in the header exactly as a line's flag is.
-/// * **Nothing is learned.** A receipt's words are one store's abbreviations,
-///   so confirming a match teaches the vocabulary nothing. What carries over
-///   is the **pack**, on the row: a matched line with no printed weight opens
-///   on the pack that row was last bought in.
+/// * **The vocabulary learns nothing.** A receipt's words are one store's
+///   abbreviations, so confirming a match writes no alias and there is no
+///   learning path in this folder. What carries between shops is the
+///   household's own answers, and neither is a vocabulary word: the **pack**,
+///   on the row (a matched line with no printed weight opens on the pack that
+///   row was last bought in), and the **match**, which the server recalls per
+///   printed name off this household's own saved receipt lines. A line that
+///   arrived on a recalled answer is [ReceiptLineDraft.remembered] and the
+///   card says so.
 library;
 
 import 'package:meta/meta.dart';
@@ -91,6 +96,7 @@ class ReceiptLineDraft {
     this.keepAsMeasure,
     this.suggestions = const [],
     this.lowConfidence = false,
+    this.remembered = false,
     this.photo = 0,
     this.dropped = false,
   });
@@ -144,6 +150,16 @@ class ReceiptLineDraft {
 
   final List<ReceiptSuggestion> suggestions;
   final bool lowConfidence;
+
+  /// Whether this line arrived on the household's OWN past answer for its
+  /// printed words rather than on the cascade's reading of them. The card says
+  /// so beside the chosen row, because a remembered match is the one kind of
+  /// resolved line that can be wrong for a reason a person can see — and
+  /// changing it is the fix, since the correction becomes the most recent
+  /// answer. A match the person changes is theirs, so it stops being
+  /// remembered.
+  final bool remembered;
+
   final int photo;
 
   /// Dropped here: the line stays on screen, greyed, out of every figure and
@@ -197,6 +213,7 @@ class ReceiptLineDraft {
     keepAsMeasure: keepAsMeasure,
     suggestions: suggestions,
     lowConfidence: lowConfidence,
+    remembered: remembered,
     photo: photo,
     dropped: dropped,
   );
@@ -240,6 +257,8 @@ class ReceiptLineDraft {
         : (keepAsMeasure ?? this.keepAsMeasure),
     suggestions: suggestions,
     lowConfidence: lowConfidence,
+    // A match the person changes is THEIRS now, whatever it replaced.
+    remembered: remembered && !clearMatch,
     photo: photo,
     dropped: dropped ?? this.dropped,
   );
@@ -264,6 +283,8 @@ List<ReceiptLineDraft> initialReceiptDrafts(ReceiptPayload payload) => [
       ingredientId: line.match?.auto ?? false ? line.match!.ingredientId : null,
       suggestions: line.suggestions,
       lowConfidence: line.lowConfidence,
+      remembered:
+          (line.match?.auto ?? false) && (line.match?.remembered ?? false),
       photo: line.photo,
     ),
 ];

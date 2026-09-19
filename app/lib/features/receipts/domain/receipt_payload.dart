@@ -229,12 +229,14 @@ class ReceiptMatch {
     required this.ingredientId,
     this.confidence = 0,
     this.auto = false,
+    this.remembered = false,
   });
 
   factory ReceiptMatch.fromJson(Map<String, Object?> json) => ReceiptMatch(
     ingredientId: _text(json['ingredient_id']) ?? '',
     confidence: _number(json['confidence']) ?? 0,
     auto: _text(json['kind']) == 'auto',
+    remembered: json['remembered'] == true,
   );
 
   final String ingredientId;
@@ -243,6 +245,16 @@ class ReceiptMatch {
   /// True for the `auto` band — the line starts resolved. A `suggest` match
   /// is an offer the person taps, never a resolution (ADR-0004).
   final bool auto;
+
+  /// True where this is the HOUSEHOLD's own past answer for these printed
+  /// words, recalled from its saved receipt lines, rather than the cascade's
+  /// reading of them. It arrives `auto` at confidence 1, because somebody said
+  /// it — and the card says so, because the one `auto` that can be wrong for a
+  /// reason a person can see is worth seeing.
+  ///
+  /// It is not a vocabulary word and never becomes one: a receipt's words are
+  /// one store's abbreviations.
+  final bool remembered;
 }
 
 /// One did-you-mean chip.

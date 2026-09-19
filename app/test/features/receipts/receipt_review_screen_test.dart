@@ -536,6 +536,99 @@ void main() {
     });
   });
 
+  group('a match the household has already made', () {
+    // The strip this came off matched 0 of 29: a whole-string trigram cannot
+    // score `ORG TRICOLOR QUINOA` against `Quinoa`. The server now recalls
+    // what this household said last time and the line arrives resolved.
+    const rememberedJson = '''
+{
+  "store_printed": "TRADER JOE'S #135",
+  "purchased_at": "2026-09-13T17:42:00",
+  "printed": { "total_cents": 449 },
+  "lines": [
+    {
+      "index": 0, "printed_text": "ORG TRICOLOR QUINOA  4.49",
+      "name_printed": "ORG TRICOLOR QUINOA", "cents": 449, "kind": "item",
+      "match": { "ingredient_id": "vocab-banana", "confidence": 1,
+        "kind": "auto", "remembered": true },
+      "suggestions": [
+        { "ingredient_id": "vocab-cheddar", "name": "Cheddar",
+          "confidence": 0.41 }
+      ]
+    }
+  ]
+}
+''';
+
+    testWidgets('the card says where the answer came from', (tester) async {
+      tallSurface(tester);
+      await tester.pumpWidget(
+        scanHost(overrides: receiptOverrides(json: rememberedJson)),
+      );
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+
+      expect(find.text('Bananas, organic'), findsOneWidget);
+      await tester.tap(find.text('Bananas, organic'));
+      await tester.pumpAndSettle();
+      expect(find.text('as you matched it last time'), findsOneWidget);
+      expect(find.text('tap to change'), findsOneWidget);
+    });
+
+    testWidgets('changing it makes it the person’s, and the note goes', (
+      tester,
+    ) async {
+      tallSurface(tester);
+      await tester.pumpWidget(
+        scanHost(overrides: receiptOverrides(json: rememberedJson)),
+      );
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+      await tester.tap(find.text('Bananas, organic'));
+      await tester.pumpAndSettle();
+
+      await container
+          .read(receiptScanControllerProvider.notifier)
+          .matchLine(0, cheddar);
+      await tester.pumpAndSettle();
+
+      final draft =
+          (container.read(receiptScanControllerProvider) as ReceiptReviewing)
+              .drafts
+              .single;
+      expect(draft.ingredientId, 'vocab-cheddar');
+      expect(draft.remembered, isFalse);
+      expect(find.text('as you matched it last time'), findsNothing);
+    });
+
+    testWidgets('the paper’s name for the thing rides all the way to Save', (
+      tester,
+    ) async {
+      final ledger = FakeReceiptRepo();
+      tallSurface(tester);
+      await tester.pumpWidget(
+        scanHost(
+          overrides: receiptOverrides(ledger: ledger, json: rememberedJson),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+      await answerEveryLine(tester, container);
+      await tester.tap(find.byKey(kReceiptSaveKey));
+      await tester.pumpAndSettle();
+
+      // It is the key the household's own answers are filed under, so a line
+      // saved without it is a line the next receipt cannot learn from.
+      expect(
+        ledger.saved.single.lines.single.namePrinted,
+        'ORG TRICOLOR QUINOA',
+      );
+    });
+  });
+
   group('Save', () {
     testWidgets('writes the receipt and opens the ledger on it', (
       tester,

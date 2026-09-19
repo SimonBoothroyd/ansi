@@ -75,7 +75,8 @@ class SqliteReceiptRepository implements ReceiptRepository {
         .watch(
           'SELECT r.id, r.store, r.purchased_at, r.source, '
           'r.subtotal_cents, r.tax_cents, r.total_cents, '
-          'l.id AS line_id, l.ingredient_id, l.printed_text, l.cents, '
+          'l.id AS line_id, l.ingredient_id, l.printed_text, l.name_printed, '
+          'l.cents, '
           'l.discount_cents, l.kind, l.pack_basis_amount, l.pack_amount, '
           'l.pack_unit, l.measure_id, l.sort_order, '
           'i.canonical_name, i.macros_basis, m.label AS measure_label '
@@ -113,6 +114,7 @@ class SqliteReceiptRepository implements ReceiptRepository {
               ingredientId: r['ingredient_id'] as String?,
               ingredientName: r['canonical_name'] as String?,
               printedText: (r['printed_text'] as String?) ?? '',
+              namePrinted: r['name_printed'] as String?,
               cents: (r['cents'] as num?)?.toInt() ?? 0,
               discountCents: (r['discount_cents'] as num?)?.toInt() ?? 0,
               kind: (r['kind'] as String?) ?? 'item',
@@ -309,7 +311,10 @@ class SqliteReceiptRepository implements ReceiptRepository {
       line.sortOrder,
     ];
     if (line.lineId case final id?) {
-      // `printed_text` is the paper's and no edit moves it.
+      // `printed_text` and `name_printed` are the PAPER's and no edit moves
+      // them. The name is also what the receipt door recalls past answers by,
+      // and a name that moved under an answer would file it somewhere nobody
+      // asked about.
       await tx.execute(
         'UPDATE receipt_line SET ingredient_id = ?, cents = ?, '
         'discount_cents = ?, kind = ?, pack_basis_amount = ?, '
@@ -322,15 +327,16 @@ class SqliteReceiptRepository implements ReceiptRepository {
     }
     await tx.execute(
       'INSERT INTO receipt_line (id, household_id, receipt_id, '
-      'printed_text, ingredient_id, cents, discount_cents, kind, '
-      'pack_basis_amount, pack_amount, pack_unit, measure_id, '
+      'printed_text, name_printed, ingredient_id, cents, discount_cents, '
+      'kind, pack_basis_amount, pack_amount, pack_unit, measure_id, '
       'sort_order, created_at, updated_at) '
-      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         _uuid.v4(),
         _householdId,
         receiptId,
         line.printedText,
+        line.namePrinted,
         ...said,
         stamp,
         stamp,

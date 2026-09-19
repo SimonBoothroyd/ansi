@@ -46,6 +46,17 @@ export interface ReceiptMatch {
    * where a recipe line would usually earn `auto` — expect, and draw, more of it.
    */
   kind: "auto" | "suggest";
+  /**
+   * True where this is the household's OWN past answer for these printed words
+   * rather than the cascade's reading of them (`_shared/receipt_memory.ts`).
+   * It overrides the cascade and arrives `auto` at `confidence: 1`, because it
+   * is not a guess — somebody said it.
+   *
+   * The review says so on the card. A remembered match is the one kind of
+   * `auto` that can be wrong for a reason the person can see and fix, and the
+   * fix is to change it: the correction is itself the most recent answer.
+   */
+  remembered: boolean;
 }
 
 /** One "did you mean" candidate. */
