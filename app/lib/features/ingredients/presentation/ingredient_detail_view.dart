@@ -104,6 +104,7 @@ import '../domain/ingredient_repository.dart';
 import '../domain/name_namespace.dart';
 import '../domain/normalize.dart';
 import '../domain/price.dart';
+import '../domain/price_repository.dart';
 import '../domain/serving_measure.dart';
 import '../domain/usda_probe.dart';
 import 'density_entry.dart';
@@ -582,6 +583,7 @@ class _ReadPosture extends ConsumerWidget {
           ),
 
           _PriceGroup(ingredient: ing),
+          _OnReceiptsGroup(ingredient: ing),
         ],
       ),
     );
@@ -785,6 +787,129 @@ class _EarlierPrices extends StatelessWidget {
         ),
     ],
   );
+}
+
+/// The `On receipts` fold's own tap target, exported so a test names it.
+const kOnReceiptsFoldKey = ValueKey('on-receipts-fold');
+
+/// One listed name's row, keyed by the name itself so a test taps the one it
+/// means rather than the first one drawn.
+ValueKey<String> onReceiptsNameKey(String namePrinted) =>
+    ValueKey('on-receipts-$namePrinted');
+
+/// **On receipts** — every name this row has been matched to on the
+/// household's own till strips, newest first, folded shut.
+///
+/// It exists because the receipt door remembers per printed name, and a
+/// memory nobody can see is a memory nobody can check. A store that
+/// mis-transcribes one shop's line (`SHELLER EDAMAME` against `SHELLED
+/// EDAMAME`) files a second answer under a second key, and both go on being
+/// recalled — visibly wrong here, invisible anywhere else.
+///
+/// **It is not the alias list.** The words at the head of this page are the
+/// household's own language, and the recipe door, the picker and the search all
+/// see them. These are one store's abbreviations, and nothing here ever reaches
+/// the matcher (`domain/price_repository.dart` states the whole distinction).
+/// The heading says `On receipts` rather than anything with *alias* in it for
+/// exactly that reason, and the line under the list says the rest: a wrong
+/// entry is answered on its own receipt, where the latest answer wins.
+///
+/// **Shut by default, and absent entirely on a row no receipt has carried.** A
+/// reader who opened this page for the macros is not owed a section about
+/// paper, and a row nobody has bought already says so one group up, where Price
+/// states it beside its own heading. So there is no "none yet" furniture here —
+/// that absence has a home already.
+class _OnReceiptsGroup extends HookConsumerWidget {
+  const _OnReceiptsGroup({required this.ingredient});
+
+  final Ingredient ingredient;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Called before the empty return, so the hook survives a row whose last
+    // receipt is taken back while the page is open.
+    final open = useState(false);
+    // Decorative emptiness, weighed, the way the alias line at the top of this
+    // page is: a fold that did not load costs the reader nothing they came for,
+    // and the Price group immediately above draws the honest error for this
+    // same seam going down.
+    final names =
+        ref
+            .watch(ingredientReceiptNamesProvider(ingredient.id))
+            .asData
+            ?.value ??
+        const <ReceiptName>[];
+    if (names.isEmpty) return const SizedBox.shrink();
+
+    return _Group(
+      title: 'On receipts',
+      children: [
+        AnsiTap(
+          key: kOnReceiptsFoldKey,
+          onTap: () => open.value = !open.value,
+          semanticsLabel: open.value
+              ? 'Fold the names on receipts'
+              : 'Unfold the names on receipts',
+          color: AnsiColors.muted,
+          padding: const EdgeInsets.only(top: 10, right: 8, bottom: 2),
+          child: Row(
+            children: [
+              // No colour of its own: [AnsiTap] publishes the rest ink through
+              // an [IconTheme] so it can take it back on hover.
+              Icon(
+                open.value
+                    ? FLucideIcons.chevronDown
+                    : FLucideIcons.chevronRight,
+                size: 14,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                onReceiptsFact(names),
+                style: ansiMono(size: 12, color: AnsiColors.muted),
+              ),
+            ],
+          ),
+        ),
+        if (open.value) ...[
+          for (final name in names)
+            AnsiTap(
+              key: onReceiptsNameKey(name.namePrinted),
+              // The saved receipt IS the editable review, so the way to answer
+              // a wrong match is to open the newest receipt that carries the
+              // name and change it there.
+              onTap: () => context.pushOnce('/receipts/${name.receiptId}'),
+              // A row of words, not a glyph — the Price group's earlier rows
+              // take the same shape for the same reason.
+              minTarget: false,
+              padding: const EdgeInsets.only(top: 7),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      name.namePrinted,
+                      style: ansiMono(size: 12),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    receiptNameFact(name),
+                    style: ansiMono(size: 9, color: AnsiColors.muted),
+                  ),
+                ],
+              ),
+            ),
+          const _Fact(
+            'what the receipt door remembers — not words this row is also '
+            'known as; fix one on its own receipt, where the latest answer '
+            'wins',
+            muted: true,
+          ),
+        ] else
+          const SizedBox.shrink(),
+      ],
+    );
+  }
 }
 
 /// The measures as a short list — the editor's own three parts (the source

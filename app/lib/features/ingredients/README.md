@@ -243,8 +243,10 @@ ingredients/
     measure_repository.dart  named per-ingredient measures
     price.dart               the receipt, its lines, PriceObservation, and the
                              per-basis derivation with its density gate
-    price_repository.dart    the price ledger's three reads and its three
-                             writes — record, rewrite, take back
+    price_repository.dart    the price ledger's four reads and its three
+                             writes — record, rewrite, take back — and
+                             ReceiptName, the words a receipt called a row,
+                             which is deliberately not an alias
     apply_draft.dart         the one rule for landing a barcode draft on a form
     serving_measure.dart     the serving a label prints, kept as the row's one
                              `serving · 2 tbsp` measure — its label, and the
@@ -433,6 +435,43 @@ ingredients/
     out of would leave a price derived through a number that never existed.
     `/ingredients/new` has no row to hang an event on, so the group names that
     and offers no door; a price never gates the first Save.
+- **`On receipts` is the receipt door's memory, read back — and it is not the
+  alias list.** The importer recalls this household's own past answers per
+  printed name, latest saved answer winning
+  ([`receipts/README.md`](../receipts/README.md)), and a memory nobody can see
+  is a memory nobody can check: a store that mis-transcribes one shop's line
+  (`SHELLER EDAMAME` beside `SHELLED EDAMAME`) files a second answer under a
+  second key, and both go on being recalled. So the fact sheet ends with every
+  distinct name this row has been matched to on the household's receipts, newest
+  first — the name as printed, how many lines carry it, the shop that printed it
+  last, and the date it was last on paper.
+  - **A name is a tap onto that newest receipt.** The saved receipt IS the
+    editable review, so re-matching it there is how the memory is corrected,
+    and there is no second list to also correct. The muted line under the list
+    says exactly that.
+  - **The heading avoids the word *alias*, and that is load-bearing.** An
+    `ingredient_alias` is a word this household's own language holds — the
+    recipe import, the picker and the search all see it, and this very page
+    shows them at the top under `also known as`. A printed name is one store's
+    abbreviation kept beside one answer, and **nothing here ever reaches the
+    vocabulary matcher**: no alias is written from a receipt, by design
+    ([`import-and-matching.md`](../../../../docs/product-specs/import-and-matching.md)
+    §12.4). The two would be confused precisely because they share a page.
+  - **Folded shut, and absent entirely on a row no receipt has carried.** A
+    reader who opened the page for the macros is owed nothing about paper, and a
+    row nobody has bought already says so one group up, where Price states it
+    beside its own heading — so there is no "none yet" furniture here. Shut, the
+    fold says only `3 names · 5 lines`, which is what tells somebody whether
+    there is anything in here worth opening.
+  - **The read is on the price seam**, which already owns this page's
+    `receipt_line` queries: `watchReceiptNames` groups on
+    `UPPER(TRIM(name_printed))` — the server's own recall key, or the index is
+    not the one being used — displays the **newest** spelling, takes live lines
+    of live receipts only, and treats a line with no printed name as no name at
+    all, because a hand-typed price has no paper behind it.
+  - **Fact sheet only**, unlike Price: changing what a thing costs is editing
+    it, while reading receipts is not, and the tap *leaves the page*, which a
+    form holding an unlanded draft must not offer.
 - **A rename rewrites `match_text`** through `normalizeMatchText` in the same
   statement. The server writes `match_text` with the phrase rules; the app must
   write the same ones, or a locally created row carries text the next import's
@@ -461,11 +500,19 @@ ingredients/
   density round-trips, confirm/unconfirm, delete refusal, aliases — and
   `price_repository_test`, which also pins that the typed price is two rows in
   one transaction and both plain INSERTs, that an edit is a PATCH and never an
-  upsert, and that a delete takes a one-line manual receipt with it and leaves
-  a photographed one standing.
+  upsert, that a delete takes a one-line manual receipt with it and leaves
+  a photographed one standing, and — for `watchReceiptNames` — that one word in
+  two cases folds into one name while a mis-transcription stays its own (which
+  is the whole point of the fold), that a tombstoned line or receipt and a line
+  with no printed name are not names, and that re-matching a line to another row
+  moves the name off this one **without anyone refreshing the page**.
 - Widget: `ingredient_list_test`, `ingredient_form_test`,
   `ingredient_usda_test`, `ingredient_macros_test`, `ingredient_picker_test`,
-  `quantity_unit_sheet_test`, `ingredient_price_test`.
+  `quantity_unit_sheet_test`, `ingredient_price_test`,
+  `ingredient_on_receipts_test` — the fold: absent on a row no receipt has
+  carried, shut on arrival, a name opening *its own* newest receipt, the wording
+  that says this is not the alias list, and the section staying inside the fact
+  sheet's own column at a desk.
 - Layout: `density_entry_test` — the density sentence holding one run at
   402 pt, its leading space, and the fold. It loads the real fonts
   (`test/helpers/fonts.dart`) because the test binding draws every glyph as a

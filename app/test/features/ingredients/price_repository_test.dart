@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/data/price_repository_impl.dart';
 import 'package:ansi/features/ingredients/domain/price.dart';
+import 'package:ansi/features/ingredients/domain/price_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
 
@@ -57,13 +59,14 @@ Future<void> _seedLine(
   double? packAmount,
   String? packUnit,
   String? measureId,
+  String? namePrinted,
   String createdAt = '2026-01-01',
   String? deletedAt,
 }) => db.execute(
   'INSERT INTO receipt_line (id, household_id, receipt_id, ingredient_id, '
   'cents, discount_cents, kind, pack_basis_amount, pack_amount, pack_unit, '
-  'measure_id, sort_order, created_at, deleted_at) '
-  'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)',
+  'measure_id, name_printed, sort_order, created_at, deleted_at) '
+  'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)',
   [
     id,
     'h',
@@ -76,6 +79,7 @@ Future<void> _seedLine(
     packAmount,
     packUnit,
     measureId,
+    namePrinted,
     createdAt,
     deletedAt,
   ],
@@ -724,5 +728,267 @@ void main() {
         'l-aug',
       ]);
     });
+  });
+
+  /// The receipt door's memory read back — the `On receipts` fold.
+  ///
+  /// The load-bearing case is the first one: the household's own
+  /// mis-transcription only becomes visible if two spellings that differ by
+  /// more than case stay TWO entries, while one word in two cases folds into
+  /// one. That is the whole reason the section exists, so it is pinned here
+  /// rather than described anywhere.
+  group('watchReceiptNames', () {
+    setUp(() async {
+      await _seedReceipt(
+        db,
+        id: 'r-aug',
+        store: 'Whole Foods',
+        purchasedAt: '2026-08-02T10:00:00Z',
+      );
+      await _seedReceipt(
+        db,
+        id: 'r-sep',
+        store: "TJ's",
+        purchasedAt: '2026-09-19T17:20:00Z',
+      );
+    });
+
+    test('one word in two cases is one name, spelled as the newest line '
+        'spells it', () async {
+      await _seedLine(
+        db,
+        id: 'l-aug',
+        receiptId: 'r-aug',
+        namePrinted: 'shelled edamame',
+      );
+      await _seedLine(
+        db,
+        id: 'l-sep',
+        receiptId: 'r-sep',
+        namePrinted: 'SHELLED EDAMAME',
+      );
+
+      final names = await repo.watchReceiptNames('banana').first;
+      expect(names.single.namePrinted, 'SHELLED EDAMAME');
+      expect(names.single.lineCount, 2);
+      expect(names.single.stores, [
+        "TJ's",
+        'Whole Foods',
+      ], reason: 'the store that printed it last is named first');
+      expect(names.single.lastSeen, DateTime.utc(2026, 9, 19, 17, 20));
+      expect(
+        names.single.receiptId,
+        'r-sep',
+        reason: 'a correction is made on the newest receipt carrying it',
+      );
+    });
+
+    test(
+      'a mis-transcription stays its own name — that is the point',
+      () async {
+        await _seedLine(
+          db,
+          id: 'l-aug',
+          receiptId: 'r-aug',
+          namePrinted: 'SHELLED EDAMAME',
+        );
+        await _seedLine(
+          db,
+          id: 'l-sep',
+          receiptId: 'r-sep',
+          namePrinted: 'SHELLER EDAMAME',
+        );
+
+        final names = await repo.watchReceiptNames('banana').first;
+        expect(names.map((n) => n.namePrinted), [
+          'SHELLER EDAMAME',
+          'SHELLED EDAMAME',
+        ], reason: 'newest first, so the answer that is live now leads');
+        expect(names.map((n) => n.lineCount), [1, 1]);
+      },
+    );
+
+    test('surrounding whitespace does not make a second name', () async {
+      await _seedLine(
+        db,
+        id: 'l-aug',
+        receiptId: 'r-aug',
+        namePrinted: '  TJ ORG BANANAS ',
+      );
+      await _seedLine(
+        db,
+        id: 'l-sep',
+        receiptId: 'r-sep',
+        namePrinted: 'TJ ORG BANANAS',
+      );
+
+      final names = await repo.watchReceiptNames('banana').first;
+      expect(names.single.namePrinted, 'TJ ORG BANANAS');
+      expect(names.single.lineCount, 2);
+    });
+
+    test('a hand-typed price is not a name — nothing printed it', () async {
+      await _seedLine(db, id: 'l-typed', receiptId: 'r-sep');
+      await _seedLine(
+        db,
+        id: 'l-blank',
+        receiptId: 'r-aug',
+        namePrinted: '   ',
+      );
+
+      expect(await repo.watchReceiptNames('banana').first, isEmpty);
+    });
+
+    test('a tombstoned line is not on the receipt any more', () async {
+      await _seedLine(
+        db,
+        id: 'l-gone',
+        receiptId: 'r-sep',
+        namePrinted: 'SHELLER EDAMAME',
+        deletedAt: '2026-09-19T18:00:00Z',
+      );
+      await _seedLine(
+        db,
+        id: 'l-live',
+        receiptId: 'r-sep',
+        namePrinted: 'SHELLED EDAMAME',
+      );
+
+      final names = await repo.watchReceiptNames('banana').first;
+      expect(names.map((n) => n.namePrinted), ['SHELLED EDAMAME']);
+    });
+
+    test('a receipt taken back takes its names with it', () async {
+      await _seedReceipt(
+        db,
+        id: 'r-gone',
+        store: 'Safeway',
+        purchasedAt: '2026-09-01T10:00:00Z',
+        deletedAt: '2026-09-02T10:00:00Z',
+      );
+      await _seedLine(
+        db,
+        id: 'l-gone',
+        receiptId: 'r-gone',
+        namePrinted: 'SHELLER EDAMAME',
+      );
+      await _seedLine(
+        db,
+        id: 'l-live',
+        receiptId: 'r-sep',
+        namePrinted: 'SHELLED EDAMAME',
+      );
+
+      final names = await repo.watchReceiptNames('banana').first;
+      expect(names.map((n) => n.namePrinted), ['SHELLED EDAMAME']);
+    });
+
+    test('only this row is asked about', () async {
+      await _seedIngredient(db, id: 'quinoa');
+      await _seedLine(
+        db,
+        id: 'l-banana',
+        receiptId: 'r-sep',
+        namePrinted: 'TJ ORG BANANAS',
+      );
+      await _seedLine(
+        db,
+        id: 'l-quinoa',
+        receiptId: 'r-sep',
+        ingredientId: 'quinoa',
+        namePrinted: 'ORG TRICOLOR QUINOA',
+      );
+
+      expect(
+        (await repo.watchReceiptNames('banana').first).map(
+          (n) => n.namePrinted,
+        ),
+        ['TJ ORG BANANAS'],
+      );
+      expect(
+        (await repo.watchReceiptNames('quinoa').first).map(
+          (n) => n.namePrinted,
+        ),
+        ['ORG TRICOLOR QUINOA'],
+      );
+    });
+
+    test(
+      'a receipt nobody named the shop of contributes no store word',
+      () async {
+        await _seedReceipt(
+          db,
+          id: 'r-blank',
+          store: '  ',
+          purchasedAt: '2026-09-20T10:00:00Z',
+        );
+        await _seedLine(
+          db,
+          id: 'l-blank',
+          receiptId: 'r-blank',
+          namePrinted: 'TJ ORG BANANAS',
+        );
+
+        final names = await repo.watchReceiptNames('banana').first;
+        expect(
+          names.single.stores,
+          isEmpty,
+          reason: 'a blank word is not a shop, and it is not printed as one',
+        );
+      },
+    );
+
+    /// **Re-matching a line is what corrects the memory**, so the fold has to
+    /// follow it without anybody refreshing the page. The listen → first
+    /// emission → mutate → second emission walk is the pattern here rather
+    /// than a sleep: a sleep asserts how long something took, which is not the
+    /// claim.
+    test(
+      're-matching a line to another row moves the name off this one',
+      () async {
+        await _seedIngredient(db, id: 'quinoa');
+        await _seedLine(
+          db,
+          id: 'l-sep',
+          receiptId: 'r-sep',
+          namePrinted: 'ORG TRICOLOR QUINOA',
+        );
+
+        final first = Completer<List<ReceiptName>>();
+        final second = Completer<List<ReceiptName>>();
+        final seen = <List<ReceiptName>>[];
+        final sub = repo.watchReceiptNames('banana').listen((names) {
+          seen.add(names);
+          if (!first.isCompleted) {
+            first.complete(names);
+          } else if (!second.isCompleted) {
+            second.complete(names);
+          }
+        });
+        addTearDown(sub.cancel);
+
+        expect((await first.future).map((n) => n.namePrinted), [
+          'ORG TRICOLOR QUINOA',
+        ]);
+
+        await db.execute(
+          'UPDATE receipt_line SET ingredient_id = ? WHERE id = ?',
+          ['quinoa', 'l-sep'],
+        );
+
+        expect(
+          await second.future,
+          isEmpty,
+          reason: 'the answer moved, so the name is no longer filed here',
+        );
+        expect(
+          (await repo.watchReceiptNames('quinoa').first).map(
+            (n) => n.namePrinted,
+          ),
+          ['ORG TRICOLOR QUINOA'],
+          reason: 'it is filed under the row somebody actually meant',
+        );
+      },
+    );
   });
 }

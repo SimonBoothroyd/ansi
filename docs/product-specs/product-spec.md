@@ -1004,6 +1004,29 @@ receipt is not a draft. On `/ingredients/new` there is no row to hang an event
 on, so the group states that and offers no door; a price is never a condition
 of the first Save.
 
+**`On receipts` shows what the receipt door remembers.** The importer recalls
+this household's own past answers per printed name
+([`import-and-matching.md`](./import-and-matching.md) §12.4.1), latest answer
+winning — and a memory nobody can see is a memory nobody can check: a store that
+mis-transcribes one shop's line files a second answer under a second key and both
+go on being recalled. So the fact sheet ends with a **folded** section listing
+every distinct name this row has been matched to on the household's receipts,
+newest first — the name as printed, how many lines carry it, the shop that
+printed it last, and the date it was last on paper. **A name is a tap onto that
+newest receipt**, because the saved receipt is the editable review and
+re-matching it there is how the memory is corrected. Shut, it says only `3 names
+· 5 lines`; on a row no receipt has carried it is **absent entirely**, because
+Price one group up already says that row has never been bought.
+
+It is **not the alias list**, and the heading avoids the word on purpose. The
+words at the head of the page are the household's own language and every picker,
+search and recipe import sees them; a printed name is one store's abbreviation
+that never reaches the matcher (§12.4 — no alias is learned from a receipt). The
+two would be confused precisely because they share a page, so one muted line
+says which this is and where a wrong one is answered. Unlike Price it is on the
+fact sheet alone: reading receipts is not editing the row, and the tap leaves the
+page.
+
 An incomplete row keeps **one** call to action on the fact sheet, `Fill it in`,
 which opens the form. `/ingredients/new` is always the form (there is nothing
 yet to read) and it is the one exit that still leaves the page, popping with

@@ -154,6 +154,79 @@ class SqlitePriceRepository implements PriceRepository {
     return latest;
   }
 
+  /// The names this household's receipts have carried for one ingredient.
+  ///
+  /// The SELECT is spelled out in full for the reason [watchPrices]'s is, and
+  /// both joined tables contribute a selected column, so PowerSync fires this
+  /// watch when a line is re-matched to a different row and when the receipt
+  /// carrying it is renamed, re-dated or taken back.
+  ///
+  /// The grouping key travels as a selected column rather than as a `GROUP BY`:
+  /// the fold below needs the newest row's own spelling, receipt and date,
+  /// which an aggregate would have to win back with a correlated subquery.
+  @override
+  Stream<List<ReceiptName>> watchReceiptNames(String ingredientId) {
+    return _db
+        .watch(
+          'SELECT UPPER(TRIM(l.name_printed)) AS name_key, '
+          'l.name_printed, l.receipt_id, l.created_at, l.id, '
+          'r.store, r.purchased_at '
+          'FROM receipt_line l '
+          'JOIN receipt r ON r.id = l.receipt_id AND r.deleted_at IS NULL '
+          'WHERE l.ingredient_id = ? AND l.deleted_at IS NULL '
+          "AND TRIM(COALESCE(l.name_printed, '')) <> '' "
+          'ORDER BY r.purchased_at DESC, l.created_at DESC, l.id DESC',
+          parameters: [ingredientId],
+        )
+        .map(receiptNamesFrom);
+  }
+
+  /// The ordered rows folded into one entry per name, **newest first**.
+  ///
+  /// The rows arrive newest-first, so a name's FIRST row decides everything a
+  /// reader sees about it — the spelling, the date, and the receipt a
+  /// correction is made on — and every row after it only adds to the count and
+  /// the store words. That also makes insertion order the answer's order, so
+  /// nothing is sorted again afterwards.
+  ///
+  /// The key is `UPPER(TRIM(…))`: the server's recall compares
+  /// `upper(name_printed)` and the stored value is already trimmed, so the trim
+  /// here only covers a row written before the wire did it. Two spellings that
+  /// differ by more than case are two names on purpose — that difference is
+  /// exactly what this list exists to show.
+  static List<ReceiptName> receiptNamesFrom(
+    Iterable<Map<String, dynamic>> rows,
+  ) {
+    final tallies = <String, _NameTally>{};
+    for (final r in rows) {
+      final key = ((r['name_key'] as String?) ?? '').trim();
+      if (key.isEmpty) continue;
+      final tally = tallies.putIfAbsent(
+        key,
+        () => _NameTally(
+          namePrinted: ((r['name_printed'] as String?) ?? '').trim(),
+          lastSeen: _instant(r['purchased_at']),
+          receiptId: r['receipt_id'] as String,
+        ),
+      );
+      tally.lines++;
+      final store = ((r['store'] as String?) ?? '').trim();
+      if (store.isNotEmpty && !tally.stores.contains(store)) {
+        tally.stores.add(store);
+      }
+    }
+    return [
+      for (final tally in tallies.values)
+        (
+          namePrinted: tally.namePrinted,
+          lineCount: tally.lines,
+          stores: tally.stores,
+          lastSeen: tally.lastSeen,
+          receiptId: tally.receiptId,
+        ),
+    ];
+  }
+
   @override
   Stream<List<String>> watchStores() {
     return _db
@@ -370,6 +443,26 @@ class SqlitePriceRepository implements PriceRepository {
     }
     return word;
   }
+}
+
+/// One name while [SqlitePriceRepository.receiptNamesFrom] is still walking the
+/// rows: the newest row's own three facts, which are fixed the moment the name
+/// is first seen, beside the two things every later row adds to.
+///
+/// Mutable, and private, because a record cannot be added to — and the walk is
+/// what decides these, one row at a time.
+class _NameTally {
+  _NameTally({
+    required this.namePrinted,
+    required this.lastSeen,
+    required this.receiptId,
+  });
+
+  final String namePrinted;
+  final DateTime lastSeen;
+  final String receiptId;
+  final List<String> stores = [];
+  int lines = 0;
 }
 
 /// The latest price per ingredient, read once rather than watched — what the

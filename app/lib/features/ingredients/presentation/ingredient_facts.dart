@@ -29,6 +29,7 @@ import '../../../shared/format.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 import '../domain/price.dart';
+import '../domain/price_repository.dart';
 import '../domain/serving_measure.dart';
 import 'macros_format.dart';
 
@@ -289,6 +290,43 @@ String latestPriceFact(PriceObservation price) {
     paid: '$head${formatMoney(price.paidCents)} · ${pricePackPhrase(price)}',
     seen: '${price.store} · ${formatDayMonth(price.purchasedAt)}',
   );
+}
+
+/// What the `On receipts` fold says while it is **shut** — `3 names · 5 lines`.
+///
+/// The counts are the whole of the closed state: they are what tells a reader
+/// whether there is anything in here worth opening, and a row printed under one
+/// name on every shop says so without being opened at all.
+String onReceiptsFact(List<ReceiptName> names) {
+  final lines = names.fold(0, (sum, name) => sum + name.lineCount);
+  return '${names.length} ${plural(names.length, 'name')} · '
+      '$lines ${plural(lines, 'line')}';
+}
+
+/// One printed name's own line — `2 lines · TJ's · 19 Sep`.
+///
+/// Every clause is a count of rows or a word off one, never a judgment: how
+/// many lines carry it, who printed it, and the date of the newest receipt that
+/// did — which is the receipt the row's tap opens, so the words say where the
+/// tap goes.
+///
+/// **Only the newest store is named**, with `+2` for the rest. A name printed
+/// at four shops would otherwise crowd the column its date is ruled to, and the
+/// shop that printed it last is the one a reader is placing it by.
+/// A receipt whose store nobody named contributes nothing, and the clause goes
+/// rather than standing empty.
+String receiptNameFact(ReceiptName name) => [
+  '${name.lineCount} ${plural(name.lineCount, 'line')}',
+  if (storeWordsFact(name.stores) case final where?) where,
+  formatDayMonth(name.lastSeen),
+].join(' · ');
+
+/// The store clause of [receiptNameFact] — `TJ's`, or `TJ's +2` — and null
+/// where no receipt carrying the name names a store at all.
+String? storeWordsFact(List<String> stores) {
+  if (stores.isEmpty) return null;
+  final rest = stores.length - 1;
+  return rest == 0 ? stores.first : '${stores.first} +$rest';
 }
 
 /// What the price sheet says over its fields about the price it is replacing —

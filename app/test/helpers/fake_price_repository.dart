@@ -39,10 +39,12 @@ class FakePriceRepo implements PriceRepository {
   FakePriceRepo({
     List<PriceObservation> prices = const [],
     List<String> stores = const [],
+    List<ReceiptName> names = const [],
     this.basis = MacrosBasis.perG,
     this.throws = false,
   }) : rows = [...prices],
-       storeWords = [...stores];
+       storeWords = [...stores],
+       receiptNames = [...names];
 
   /// Newest first, like the real read.
   final List<PriceObservation> rows;
@@ -83,6 +85,20 @@ class FakePriceRepo implements PriceRepository {
     yield [...storeWords];
     yield* _changes.stream.map((_) => [...storeWords]);
   }
+
+  /// The names the fake's receipts carry, newest first — already folded, the
+  /// way the real read hands them over. The grouping and the ordering are the
+  /// repository's own job and are pinned on the real schema, so the fake holds
+  /// the answer rather than recomputing it.
+  @override
+  Stream<List<ReceiptName>> watchReceiptNames(String ingredientId) async* {
+    yield [...receiptNames];
+    yield* _changes.stream.map((_) => [...receiptNames]);
+  }
+
+  /// What [watchReceiptNames] answers with. Mutable, so a test can put a name
+  /// on a receipt mid-pump and assert the fold followed it.
+  final List<ReceiptName> receiptNames;
 
   @override
   Future<void> recordManualPrice({
