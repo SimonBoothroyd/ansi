@@ -441,8 +441,9 @@ class ReceiptScanController extends _$ReceiptScanController {
   }
 
   /// Answers *Match an ingredient*: the line takes [row], and then the pack
-  /// it can state without asking — the paper's printed weight, or the pack
-  /// this row was last bought in.
+  /// it can state without asking — the paper's printed weight, else the pack
+  /// its own printed words were last bought in as this row, else the pack this
+  /// row was last bought in anywhere.
   ///
   /// The match is applied FIRST and never waits on the reads: it is the
   /// person's act, and a lookup must not be able to lose it.
