@@ -69,16 +69,20 @@ const schema = Schema([
   ]),
   // A household word for one of what a recipe MAKES — "blob", "ladle",
   // "patty" (0048) — so a component line in another recipe can say "3 blob"
-  // of it. One number defines it: `per_batch`, how many of the word one batch
-  // makes, so N of it resolves to N / per_batch batches. It needs no yield, no
-  // unit and no density, and scaling a parent multiplies the LINE, never this.
-  // Duplicate labels are legal and merge on read, oldest canonical — an
-  // offline duplicate must never fail upload.
+  // of it. It is a named AMOUNT, exactly like an ingredient_measure: a blob is
+  // 15 g, so `3 blob` is 45 g and the batch share comes from there through the
+  // recipe's own same-family yield. `unit` is a units.dart id (mass, volume or
+  // count); a recipe has no single basis, so each word carries its own. The
+  // amount is absolute, so re-stating `makes` re-states the share and scaling a
+  // parent multiplies the LINE, never this. Duplicate labels are legal and
+  // merge on read, oldest canonical — an offline duplicate must never fail
+  // upload.
   Table('recipe_measure', [
     Column.text('household_id'),
     Column.text('recipe_id'),
     Column.text('label'),
-    Column.real('per_batch'),
+    Column.real('amount'),
+    Column.text('unit'),
     Column.integer('sort_order'),
     ..._audit,
   ]),

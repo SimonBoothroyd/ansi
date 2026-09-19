@@ -48,9 +48,9 @@ insert into ingredient_group (id, household_id, recipe_id) values
 insert into recipe_line_item (id, household_id, group_id, ingredient_id, unit) values
  ('aaaaaaaa-0000-0000-0000-000000000006','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000005','aaaaaaaa-0000-0000-0000-000000000001','g'),
  ('bbbbbbbb-0000-0000-0000-000000000006','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000005','bbbbbbbb-0000-0000-0000-000000000001','g');
-insert into recipe_measure (id, household_id, recipe_id, label, per_batch) values
- ('aaaaaaaa-0000-0000-0000-000000000014','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000004','loaf',1),
- ('bbbbbbbb-0000-0000-0000-000000000014','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000004','roll',12);
+insert into recipe_measure (id, household_id, recipe_id, label, amount, unit) values
+ ('aaaaaaaa-0000-0000-0000-000000000014','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000004','loaf',900,'g'),
+ ('bbbbbbbb-0000-0000-0000-000000000014','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000004','roll',75,'g');
 insert into week_plan (id, household_id, week_start_date) values
  ('aaaaaaaa-0000-0000-0000-000000000007','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','2026-01-05'),
  ('bbbbbbbb-0000-0000-0000-000000000007','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','2026-01-05');
@@ -142,8 +142,8 @@ insert into iso_case values
          values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000012','bbbbbbbb-0000-0000-0000-000000000001',199,'item') $$,
       'new row violates row-level security policy for table "receipt_line"'),
  (17, 'recipe_measure',
-      $$ insert into recipe_measure (household_id, recipe_id, label, per_batch)
-         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000004','contraband',4) $$,
+      $$ insert into recipe_measure (household_id, recipe_id, label, amount, unit)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000004','contraband',4,'g') $$,
       'new row violates row-level security policy for table "recipe_measure"');
 grant select on iso_case to authenticated;
 

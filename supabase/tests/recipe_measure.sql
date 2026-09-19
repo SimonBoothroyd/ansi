@@ -1,18 +1,22 @@
 -- pgTAP: a recipe's own word for one of what it makes (0048).
 --
 -- What is defended here:
---   * the SHAPE — a label that is a word, a `per_batch` that is a positive
---     number, and deliberately NO unique index on (recipe_id, label): two
---     offline devices coining "blob" must both land, because a 23505 on upload
---     drops the whole crud transaction (0011's doctrine);
+--   * the SHAPE — a label that is a word, an `amount` that is a positive
+--     number, a `unit` that can actually measure something (never `batch`,
+--     never an imprecise word), and deliberately NO unique index on
+--     (recipe_id, label): two offline devices coining "blob" must both land,
+--     because a 23505 on upload drops the whole crud transaction (0011's
+--     doctrine);
 --   * the two POINTERS — `recipe_line_item.recipe_measure_id` and
 --     `week_recipe_line_override.recipe_measure_id` — each sayable only on a
---     component line, only beside a number, and never beside a unit: the word
---     IS the denomination, and `batch` or `piece` stored next to it would be a
---     lie a reader could act on. Both rules that demanded a unit WIDENED by
---     one arm and lost nothing — `recipe_line_item.unit` is still refused as
---     null on a line that names no word, and 0040's both-or-neither pair rule
---     still makes every refusal it made for a row without one;
+--     component line, only beside a number, and never beside a unit: the unit
+--     lives on the MEASURE, the line's number counts words rather than units of
+--     them, and the measure's own `g` or `batch` or `piece` stored next to it
+--     would each be a lie a reader could act on. Both rules that demanded a
+--     unit WIDENED by one arm and lost nothing — `recipe_line_item.unit` is
+--     still refused as null on a line that names no word, and 0040's
+--     both-or-neither pair rule still makes every refusal it made for a row
+--     without one;
 --   * the TRIGGER: the measure must be a live measure of the very recipe the
 --     line's `sub_recipe_id` names, in the same household — and liveness is
 --     required only when the pointer is being set, so a line whose word has
@@ -21,10 +25,16 @@
 --   * the boundary — RLS on, no delete policy (soft deletes), published to
 --     PowerSync, and a member reads only their own household.
 --
+-- What is NOT defended here, because it cannot be: that the unit's family is
+-- one the recipe's `makes` actually states. That rule reads another table and
+-- is the client's (`recipe_measure_authoring.dart`, and the Dart tests beside
+-- it). The fixtures state a yield anyway, so the rows below are rows the app
+-- would really have written.
+--
 -- Run by `supabase test db`.
 
 begin;
-select plan(29);
+select plan(32);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures: two households. House A has a sauce, a bread that uses it, and a
@@ -44,11 +54,13 @@ insert into household_member (household_id, display_name, auth_user_id) values
 insert into ingredient (id, household_id, canonical_name, default_unit, match_text) values
  ('aaaaaaaa-0000-0000-0000-000000000301','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','Almond','g','almond');
 
-insert into recipe (id, household_id, title) values
- ('aaaaaaaa-0000-0000-0000-000000000101','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','Romesco Aioli'),
- ('aaaaaaaa-0000-0000-0000-000000000102','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','Patatas Bravas'),
- ('aaaaaaaa-0000-0000-0000-000000000103','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','Salsa Verde'),
- ('bbbbbbbb-0000-0000-0000-000000000101','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','Their Aioli');
+-- The aioli and the salsa each say what a batch MAKES, because a word can only
+-- be authored against a yield in its own family (the client rule above).
+insert into recipe (id, household_id, title, yield_qty, yield_unit) values
+ ('aaaaaaaa-0000-0000-0000-000000000101','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','Romesco Aioli',300,'g'),
+ ('aaaaaaaa-0000-0000-0000-000000000102','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','Patatas Bravas',null,null),
+ ('aaaaaaaa-0000-0000-0000-000000000103','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','Salsa Verde',240,'ml'),
+ ('bbbbbbbb-0000-0000-0000-000000000101','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','Their Aioli',200,'g');
 
 insert into ingredient_group (id, household_id, recipe_id, name) values
  ('aaaaaaaa-0000-0000-0000-000000000601','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000102','to serve');
@@ -61,8 +73,12 @@ insert into week_plan (id, household_id, week_start_date) values
 -- ---------------------------------------------------------------------------
 
 select has_table('public', 'recipe_measure', 'recipe_measure exists');
-select has_column('public', 'recipe_measure', 'per_batch',
-  'the one number that defines a measure: how many a batch makes');
+select has_column('public', 'recipe_measure', 'amount',
+  'what one of the word comes to — the ingredient side''s basis_amount, one '
+  'level up');
+select has_column('public', 'recipe_measure', 'unit',
+  'and the unit it is said in: a recipe has no single basis, so each word '
+  'carries its own');
 select has_column('public', 'recipe_line_item', 'recipe_measure_id',
   'a component line can be counted in the sub-recipe''s own word');
 select has_column('public', 'week_recipe_line_override', 'recipe_measure_id',
@@ -73,47 +89,74 @@ select has_column('public', 'week_recipe_line_override', 'recipe_measure_id',
 -- ---------------------------------------------------------------------------
 
 select lives_ok(
-  $$ insert into recipe_measure (id, household_id, recipe_id, label, per_batch)
+  $$ insert into recipe_measure
+       (id, household_id, recipe_id, label, amount, unit)
      values ('aaaaaaaa-0000-0000-0000-000000000901',
              'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-             'aaaaaaaa-0000-0000-0000-000000000101','blob',20) $$,
-  'a batch of the aioli makes 20 blob — one sentence, one number'
+             'aaaaaaaa-0000-0000-0000-000000000101','blob',15,'g') $$,
+  'a blob of the aioli is 15 g — a named amount, like an ingredient''s word'
 );
 
 select throws_ok(
-  $$ insert into recipe_measure (household_id, recipe_id, label, per_batch)
+  $$ insert into recipe_measure
+       (household_id, recipe_id, label, amount, unit)
      values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-             'aaaaaaaa-0000-0000-0000-000000000101','ladle',0) $$,
+             'aaaaaaaa-0000-0000-0000-000000000101','ladle',0,'g') $$,
   '23514',
   null,
-  'a batch that makes none of something is not a measure'
+  'a word that comes to nothing is not a measure'
 );
 
 select throws_ok(
-  $$ insert into recipe_measure (household_id, recipe_id, label, per_batch)
+  $$ insert into recipe_measure
+       (household_id, recipe_id, label, amount, unit)
      values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-             'aaaaaaaa-0000-0000-0000-000000000101','   ',12) $$,
+             'aaaaaaaa-0000-0000-0000-000000000101','   ',12,'g') $$,
   '23514',
   null,
   'a word made of spaces is not a word'
 );
 
+select throws_ok(
+  $$ insert into recipe_measure
+       (household_id, recipe_id, label, amount, unit)
+     values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+             'aaaaaaaa-0000-0000-0000-000000000101','blob',0.05,'batch') $$,
+  '23514',
+  null,
+  '"a blob is 0.05 batch" is the fraction nobody thinks in, and it would make '
+  'the word circular'
+);
+
+select throws_ok(
+  $$ insert into recipe_measure
+       (household_id, recipe_id, label, amount, unit)
+     values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+             'aaaaaaaa-0000-0000-0000-000000000101','blob',1,'pinch') $$,
+  '23514',
+  null,
+  'and an imprecise word converts nothing, so it can define nothing'
+);
+
 select lives_ok(
-  $$ insert into recipe_measure (id, household_id, recipe_id, label, per_batch)
+  $$ insert into recipe_measure
+       (id, household_id, recipe_id, label, amount, unit)
      values ('aaaaaaaa-0000-0000-0000-000000000902',
              'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-             'aaaaaaaa-0000-0000-0000-000000000101','blob',24) $$,
+             'aaaaaaaa-0000-0000-0000-000000000101','blob',18,'g') $$,
   'a duplicate label LANDS — no unique index, so an offline dupe never 23505s '
   'the whole crud transaction (0011); duplicates merge on read'
 );
 
 -- The sauce that is cooked at the other end of the fence, and a word of its
--- own, so "another recipe's measure" has something to be.
-insert into recipe_measure (id, household_id, recipe_id, label, per_batch) values
+-- own, so "another recipe's measure" has something to be. Its yield is in ml,
+-- so its word is too.
+insert into recipe_measure
+  (id, household_id, recipe_id, label, amount, unit) values
  ('aaaaaaaa-0000-0000-0000-000000000903','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-  'aaaaaaaa-0000-0000-0000-000000000103','spoonful',8),
+  'aaaaaaaa-0000-0000-0000-000000000103','spoonful',30,'ml'),
  ('bbbbbbbb-0000-0000-0000-000000000901','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-  'bbbbbbbb-0000-0000-0000-000000000101','dollop',10);
+  'bbbbbbbb-0000-0000-0000-000000000101','dollop',20,'g');
 
 -- ---------------------------------------------------------------------------
 -- 3 · Only a component line, and only beside a number.
@@ -128,7 +171,8 @@ select lives_ok(
              'aaaaaaaa-0000-0000-0000-000000000601',
              'aaaaaaaa-0000-0000-0000-000000000101', 3,
              'aaaaaaaa-0000-0000-0000-000000000901') $$,
-  '3 blob of the aioli — the amount resolves with no yield at all'
+  '3 blob of the aioli — 45 g, which the aioli''s own "makes 300 g" turns '
+  'into 0.15 of a batch'
 );
 
 select throws_ok(
@@ -366,9 +410,10 @@ select is(
 );
 
 select throws_ok(
-  $$ insert into recipe_measure (household_id, recipe_id, label, per_batch)
+  $$ insert into recipe_measure
+       (household_id, recipe_id, label, amount, unit)
      values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-             'bbbbbbbb-0000-0000-0000-000000000101','contraband',4) $$,
+             'bbbbbbbb-0000-0000-0000-000000000101','contraband',4,'g') $$,
   '42501',
   null,
   'and cannot coin one in another household'
