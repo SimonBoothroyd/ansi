@@ -14,14 +14,15 @@ There is no second price table. A receipt is `receipt` + `receipt_line`
 one row each of, so a scanned line and a typed one are the same fact read the
 same way (`features/ingredients/domain/price.dart`).
 
-## The four things that make this honest
+## The five things that make this honest
 
 **Nothing is written until Save.** The whole review is controller state. A scan
 abandoned half way leaves the ledger exactly as it was, and every failure on
 the way is safe to repeat.
 
 **The join is a flag, never a refusal.** The kept lines' sum is held against
-the printed subtotal; when they disagree the card says how far apart and what
+the printed subtotal — or, on a strip that prints none, the total less tax,
+which the card says; when they disagree the card says how far apart and what
 to look for, the header counts it, and Save still opens — the printed total is
 the paper's and it stands. A sum that does not close means a line is missing or
 doubled, which is something to look at rather than something to block on.
@@ -32,6 +33,13 @@ alias is learned here** — there is no call to the learning path anywhere in
 this folder. What a second receipt inherits is the **pack**: a matched line
 with no printed weight opens on the pack that row was last bought in, and a
 line sold by weight prices itself from the weight the paper printed.
+
+**One screen for a receipt.** `/receipts/:id` is the review, opened on the
+rows instead of on a scan (`ReceiptScanController.open`). Everything that
+confirmed the receipt corrects it — the store, the date's calendar door, a
+line's match, pack, PRICE chip, *Not food*, a drop — and Save rewrites the rows
+in place: kept lines by id, new ones inserted, dropped ones tombstoned. The
+printed totals and each line's printed words are the paper's and never move.
 
 **A zero is never a price.** A figure the reader could not make out arrives as
 `cents: 0` and is *flagged* — it holds Save and drags the join open until
@@ -60,7 +68,8 @@ presentation/
   receipt_review_body.dart   the paper's own facts, then the lines
   receipt_line_card.dart     one line, money first
   receipt_pack_sheet.dart    *Say what the pack is*, + *keep as a measure*
-  receipt_ledger_view.dart   `/receipts` and `/receipts/:id`
+  receipt_date_sheet.dart    *When was this shop* — the day moves, the clock stays
+  receipt_ledger_view.dart   `/receipts`, and `/receipts/:id` hosting the review
 ```
 
 ## The one place a measure is minted

@@ -12,13 +12,16 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/domain/allowed_units.dart';
 import 'package:ansi/features/receipts/data/sample_receipt_payloads.dart';
 import 'package:ansi/features/receipts/domain/receipt_repository.dart';
+import 'package:ansi/features/receipts/presentation/receipt_date_sheet.dart';
 import 'package:ansi/features/receipts/presentation/receipt_review_body.dart';
 import 'package:ansi/features/receipts/presentation/receipt_view_models.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_price_repository.dart';
+import '../../helpers/forui_semantics.dart';
 import '_harness.dart';
 
 ProviderContainer containerOf(WidgetTester tester) => ProviderScope.containerOf(
@@ -98,7 +101,7 @@ void main() {
       await runTheScan(tester, containerOf(tester));
 
       expect(find.text('Match an ingredient'), findsWidgets);
-      await tester.tap(find.text('TJ MED CHDR SHRD  3.79').first);
+      await tester.tap(find.text('TJ MED CHDR SHRD'));
       await tester.pumpAndSettle();
       expect(find.text('DID YOU MEAN'), findsOneWidget);
       expect(find.text('Cheddar'), findsOneWidget);
@@ -116,7 +119,7 @@ void main() {
       final container = containerOf(tester);
       await runTheScan(tester, container);
 
-      await tester.tap(find.text('TJ MED CHDR SHRD  3.79').first);
+      await tester.tap(find.text('TJ MED CHDR SHRD'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Cheddar'));
       await tester.pumpAndSettle();
@@ -186,7 +189,8 @@ void main() {
 
       expect(
         find.textContaining(
-          r'$3.49 apart · Find the join — a line is missing or doubled',
+          r'$3.49 apart · Find the join — a line is missing, doubled or '
+          'misread',
         ),
         findsOneWidget,
       );
@@ -301,6 +305,76 @@ void main() {
         find.textContaining('the receipt’s own date, not the scan’s'),
         findsOneWidget,
       );
+    });
+
+    testWidgets(
+      'Bought is a door: a picked day moves the date, not the clock',
+      (tester) async {
+        final ledger = FakeReceiptRepo();
+        tallSurface(tester);
+        await tester.pumpWidget(
+          scanHost(overrides: receiptOverrides(ledger: ledger)),
+        );
+        await tester.pumpAndSettle();
+        final container = containerOf(tester);
+        await runTheScan(tester, container);
+
+        await tester.tap(find.byKey(kReceiptBoughtKey));
+        await tester.pumpAndSettle();
+        expect(find.text('When was this shop'), findsOneWidget);
+        await tester.tap(
+          find
+              .descendant(
+                of: find.byKey(kReceiptDateCalendarKey),
+                matching: find.text('12'),
+              )
+              .first,
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Saturday 12 Sep · 17:42'), findsOneWidget);
+        expect(find.textContaining('the day you said'), findsOneWidget);
+
+        await answerEveryLine(tester, container);
+        await tester.tap(find.byKey(kReceiptSaveKey));
+        await tester.pumpAndSettle();
+        expect(ledger.saved.single.purchasedAt, DateTime(2026, 9, 12, 17, 42));
+      },
+    );
+
+    testWidgets('a figure read wrong is put right on the line', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallSurface(tester);
+      await tester.pumpWidget(scanHost(overrides: receiptOverrides()));
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+      final before =
+          (container.read(receiptScanControllerProvider) as ReceiptReviewing)
+              .map
+              .linesCents;
+
+      await tester.tap(find.text('TJ MED CHDR SHRD'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('receipt-line-price-4')));
+      await tester.pumpAndSettle();
+      // The prompt opens on what was read.
+      expect(find.text('3.79'), findsOneWidget);
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(FDialog),
+          matching: find.byType(EditableText),
+        ),
+        '3.99',
+      );
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FButton, 'Use it'));
+      await tester.pumpAndSettle();
+
+      final state =
+          container.read(receiptScanControllerProvider) as ReceiptReviewing;
+      expect(state.drafts.firstWhere((d) => d.index == 4).cents, 399);
+      expect(state.map.linesCents, before + 20, reason: 'the join moves too');
     });
 
     testWidgets('what the reader could not read heads the screen', (

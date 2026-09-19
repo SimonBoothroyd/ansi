@@ -23,6 +23,7 @@ class ReceiptLineWrite {
     required this.printedText,
     required this.cents,
     required this.kind,
+    this.lineId,
     this.discountCents = 0,
     this.ingredientId,
     this.packBasisAmount,
@@ -31,6 +32,10 @@ class ReceiptLineWrite {
     this.measureId,
     this.mintMeasureLabel,
   });
+
+  /// The stored row this line already is, when a SAVED receipt is being
+  /// edited; null for a line no row holds yet — every line of a fresh scan.
+  final String? lineId;
 
   final int sortOrder;
   final String printedText;
@@ -99,6 +104,7 @@ ReceiptWrite buildReceiptSave({
     final food = draft.kind.isFood;
     lines.add(
       ReceiptLineWrite(
+        lineId: draft.lineId,
         sortOrder: lines.length,
         printedText: draft.printedText,
         cents: draft.cents,

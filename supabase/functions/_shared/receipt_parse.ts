@@ -175,9 +175,9 @@ function parseClock(s: string): { h: number; min: number; sec: number } | null {
  * was printed. The week it files under is the household's own week start, read
  * off these wall-clock digits.
  *
- * Reads the US forms a till prints — `09/13/26`, `9/13/2026`, `2026-09-13`,
- * `SEP 13 2026`, `13 SEP 2026` — each with an optional 12- or 24-hour time.
- * A slashed date is READ MONTH-FIRST; the household shops in the US, and a
+ * Reads the US forms a till prints — `09/13/26`, `9/13/2026`, `09-13-2026`,
+ * `2026-09-13`, `SEP 13 2026`, `13 SEP 2026` — each with an optional 12- or
+ * 24-hour time. A slashed or dashed date is READ MONTH-FIRST; the household shops in the US, and a
  * paper that means otherwise is a note away from being corrected by hand in the
  * review, which is the door the board draws beside the date.
  */
@@ -192,7 +192,9 @@ export function parseReceiptDate(
   let d = 0;
 
   const iso = s.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})(?!\d)/);
-  const slashed = s.match(/\b(\d{1,2})[/.](\d{1,2})[/.](\d{2,4})(?!\d)/);
+  // The dash is a till's separator too (Trader Joe's prints `09-12-2026`). The
+  // year-first form is tried before this one, so `2026-09-13` never reads here.
+  const slashed = s.match(/\b(\d{1,2})([/.-])(\d{1,2})\2(\d{2,4})(?!\d)/);
   const monthFirst = s.match(
     /\b([a-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{2,4})\b/i,
   );
@@ -204,8 +206,8 @@ export function parseReceiptDate(
     d = Number(iso[3]);
   } else if (slashed) {
     mo = Number(slashed[1]);
-    d = Number(slashed[2]);
-    y = fullYear(slashed[3]);
+    d = Number(slashed[3]);
+    y = fullYear(slashed[4]);
   } else if (
     monthFirst && MONTHS[monthFirst[1].toLowerCase().slice(0, 4)] !== undefined
   ) {

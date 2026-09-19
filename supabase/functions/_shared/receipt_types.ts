@@ -61,6 +61,13 @@ export interface ReceiptLineOut {
   index: number;
   /** The line verbatim — item name and price as printed. */
   printed_text: string;
+  /**
+   * The words that NAME the thing, with the figures taken off — what the match
+   * cascade was asked about, and what an unmatched card is titled with (the
+   * money is already on the card, in its own column). Empty when the model
+   * split nothing out; the app then falls back to `printed_text`.
+   */
+  name_printed: string;
   /** The printed figure for this line, in cents. Positive; a `fee` may be negative. */
   cents: number;
   /**

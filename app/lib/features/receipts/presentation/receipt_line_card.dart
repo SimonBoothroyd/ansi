@@ -210,6 +210,21 @@ class _Expanded extends ConsumerWidget {
               style: ansiMono(size: 10.5, color: AnsiColors.muted),
             ),
           ),
+        // The figure is a door on EVERY line, not only on one the reader gave
+        // up on: a `$4.99` read as `$4.49` is wrong without being zero, and
+        // the join card can only say that something is — this is where it is
+        // put right. A line with no figure gets the louder door below.
+        if (!issuesInclude(draft, ReceiptLineIssue.amountMissing)) ...[
+          const SizedBox(height: 10),
+          LineCardRow(
+            label: 'PRICE',
+            child: LineCardAmountChip(
+              key: ValueKey('receipt-line-price-${draft.index}'),
+              label: formatMoney(draft.cents),
+              onTap: () => _setCents(context, draft),
+            ),
+          ),
+        ],
         if (row != null) ...[
           const SizedBox(height: 8),
           _ChosenRow(
@@ -298,9 +313,10 @@ class _Expanded extends ConsumerWidget {
         .matchLine(index, picked);
   }
 
-  /// The money door for a figure the reader could not make out. It is a
-  /// prompt rather than a sheet: there is one number to read off the paper,
-  /// and the pack sheet's whole apparatus would be furniture around it.
+  /// The money door — for a figure the reader could not make out, and for
+  /// one it made out wrong. It is a prompt rather than a sheet: there is one
+  /// number to read off the paper, and the pack sheet's whole apparatus would
+  /// be furniture around it.
   Future<void> _setCents(BuildContext context, ReceiptLineDraft draft) async {
     final container = ProviderScope.containerOf(context, listen: false);
     final typed = await promptForText(
@@ -308,6 +324,8 @@ class _Expanded extends ConsumerWidget {
       title: 'What did this line cost?',
       hint: 'e.g. 3.49',
       confirm: 'Use it',
+      // Opens on what was read, so fixing one digit is fixing one digit.
+      initial: draft.cents > 0 ? dollarsTyped(draft.cents) : '',
     );
     final cents = typed == null ? null : parseMoney(typed);
     if (cents == null || cents <= 0) return;

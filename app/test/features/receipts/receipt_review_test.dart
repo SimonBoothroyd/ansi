@@ -65,6 +65,39 @@ ReceiptLineDraft item({
 );
 
 void main() {
+  group('a card is titled without the money', () {
+    const printed = r'T BGT PETITE SEASONAL $4.99';
+    ReceiptLineDraft line({String? name, String? matched}) => ReceiptLineDraft(
+      index: 0,
+      printedText: printed,
+      namePrinted: name,
+      ingredientName: matched,
+      cents: 499,
+      kind: ReceiptKind.item,
+    );
+
+    test('the paper’s name for the thing, where the server split one out', () {
+      expect(
+        line(name: 'T BGT PETITE SEASONAL').displayName,
+        'T BGT PETITE SEASONAL',
+      );
+    });
+
+    test('the whole line from a server that sends no name', () {
+      expect(line().displayName, printed);
+    });
+
+    test('the matched row wins, and the edits keep the name', () {
+      final named = line(name: 'T BGT PETITE SEASONAL');
+      expect(line(name: 'x', matched: 'Bouquet').displayName, 'Bouquet');
+      expect(named.withCents(1).namePrinted, 'T BGT PETITE SEASONAL');
+      expect(
+        named.copyWith(dropped: true).namePrinted,
+        'T BGT PETITE SEASONAL',
+      );
+    });
+  });
+
   group('a line says what it still wants', () {
     test('food nobody has named wants a match', () {
       expect(receiptLineIssues(item()), [ReceiptLineIssue.unmatched]);
@@ -259,7 +292,8 @@ void main() {
       expect(map.apartCents, 349);
       expect(
         joinNote(map),
-        r'$3.49 apart · Find the join — a line is missing or doubled',
+        r'$3.49 apart · Find the join — a line is missing, doubled or '
+        'misread',
       );
       expect(
         map.headerCount,
@@ -268,10 +302,37 @@ void main() {
       );
     });
 
-    test('no printed subtotal is nothing to disagree with', () {
+    test('a paper that printed neither figure is nothing to disagree with', () {
       final map = receiptReviewMap(drafts());
       expect(map.joinCloses, isTrue);
-      expect(joinNote(map), 'the receipt printed no subtotal');
+      expect(joinNote(map), 'the receipt printed no subtotal and no total');
+    });
+
+    test('with no subtotal the lines are held against the total less tax', () {
+      final closes = receiptReviewMap(
+        drafts(),
+        printedTaxCents: 82,
+        printedTotalCents: 2846 + 82,
+      );
+      expect(closes.expectedLinesCents, 2846);
+      expect(closes.joinCloses, isTrue);
+      expect(joinNote(closes), 'the receipt’s total less tax says the same');
+
+      // The strip this was found on: lines at $96.62 under a printed total of
+      // $91.54 with 65¢ of tax, and a green tick beside the sum.
+      final apart = receiptReviewMap(
+        drafts(),
+        printedTaxCents: 65,
+        printedTotalCents: 2846 - 573 + 65,
+      );
+      expect(apart.joinCloses, isFalse);
+      expect(apart.apartCents, 573);
+      expect(apart.headerCount, apart.outstanding + 1);
+      expect(
+        joinNote(apart),
+        r'$5.73 apart from the total less tax ($22.73) · Find the join — a '
+        'line is missing, doubled or misread',
+      );
     });
 
     test('Save is gated on the lines, never on the join', () {

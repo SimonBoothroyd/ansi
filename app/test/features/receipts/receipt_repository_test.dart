@@ -39,7 +39,9 @@ ReceiptLineWrite line({
   String? packUnitId = 'lb',
   String? measureId,
   String? mint,
+  String? lineId,
 }) => ReceiptLineWrite(
+  lineId: lineId,
   sortOrder: sortOrder,
   printedText: printed,
   cents: cents,
@@ -219,6 +221,90 @@ void main() {
         throwsArgumentError,
       );
       expect(() => repo.saveReceipt(write(const [])), throwsArgumentError);
+    });
+  });
+
+  group('a saved receipt, edited', () {
+    test('kept lines update in place, a new one lands, a dropped one '
+        'is tombstoned', () async {
+      final id = await repo.saveReceipt(
+        write([
+          line(),
+          line(sortOrder: 1),
+          line(
+            sortOrder: 2,
+            printed: 'PAPER TOWELS  6.99',
+            cents: 699,
+            kind: ReceiptLineKind.notFood,
+            ingredientId: null,
+            packBasis: null,
+            packAmount: null,
+            packUnitId: null,
+          ),
+        ]),
+      );
+      final before = (await repo.watchReceipt(id).first)!;
+      final [first, second, towels] = before.lines;
+
+      await repo.updateReceipt(
+        id,
+        ReceiptWrite(
+          store: 'Whole Foods',
+          purchasedAt: DateTime(2026, 9, 12, 16, 13),
+          lines: [
+            // The figure was misread: same row, new cents.
+            line(lineId: first.id, cents: 399),
+            // `second` is dropped by not being here.
+            line(
+              lineId: towels.id,
+              sortOrder: 1,
+              printed: 'ignored — the paper’s words never move',
+              cents: 699,
+              kind: ReceiptLineKind.notFood,
+              ingredientId: null,
+              packBasis: null,
+              packAmount: null,
+              packUnitId: null,
+            ),
+            line(sortOrder: 2, printed: '4 @ 0.49', cents: 196),
+          ],
+        ),
+      );
+
+      final after = (await repo.watchReceipt(id).first)!;
+      expect(after.store, 'Whole Foods');
+      expect(after.purchasedAt, DateTime.utc(2026, 9, 12, 16, 13));
+      expect(after.subtotalCents, 2846, reason: 'the printed totals stand');
+      expect(after.lines.map((l) => l.id).take(2), [first.id, towels.id]);
+      expect(after.lines.map((l) => l.cents), [399, 699, 196]);
+      expect(after.lines[1].printedText, 'PAPER TOWELS  6.99');
+      expect(after.lines.map((l) => l.id), isNot(contains(second.id)));
+      final gone = await db.get(
+        'SELECT deleted_at FROM receipt_line WHERE id = ?',
+        [second.id],
+      );
+      expect(gone['deleted_at'], isNotNull, reason: 'a tombstone, not a hole');
+    });
+
+    test('an edit refuses what a save refuses', () async {
+      final id = await repo.saveReceipt(write([line()]));
+      expect(
+        () => repo.updateReceipt(id, write(const [])),
+        throwsArgumentError,
+      );
+    });
+
+    test('a deleted receipt leaves both reads, lines and all', () async {
+      final id = await repo.saveReceipt(write([line(), line(sortOrder: 1)]));
+      await repo.deleteReceipt(id);
+      expect(await repo.watchReceipt(id).first, isNull);
+      expect(await repo.watchReceipts().first, isEmpty);
+      final live = await db.getAll(
+        'SELECT id FROM receipt_line WHERE receipt_id = ? '
+        'AND deleted_at IS NULL',
+        [id],
+      );
+      expect(live, isEmpty, reason: 'no line is left stating a price');
     });
   });
 

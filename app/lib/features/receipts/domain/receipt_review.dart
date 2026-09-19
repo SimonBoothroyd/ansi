@@ -12,7 +12,8 @@
 ///   food line with no pack is kept, counted in the receipt's total, and is
 ///   simply not a price — the card asks for the pack and holds Save.
 /// * **The join is a flag, never a refusal.** The lines' sum against the
-///   printed subtotal is a fact worth showing; a receipt whose join lost a
+///   printed subtotal (or, where none printed, the total less tax) is a fact
+///   worth showing; a receipt whose join lost a
 ///   line is still a receipt, and its printed total still stands. It is
 ///   counted in the header exactly as a line's flag is.
 /// * **Nothing is learned.** A receipt's words are one store's abbreviations,
@@ -76,6 +77,8 @@ class ReceiptLineDraft {
     required this.printedText,
     required this.cents,
     required this.kind,
+    this.lineId,
+    this.namePrinted,
     this.discountCents = 0,
     this.weight,
     this.ingredientId,
@@ -96,7 +99,16 @@ class ReceiptLineDraft {
   /// lines of a receipt print identically when two of a thing were bought.
   final int index;
 
+  /// The stored row behind this line, when the review is open on a SAVED
+  /// receipt — what lets Save update the row rather than write a second one.
+  /// Null on every line of a fresh scan.
+  final String? lineId;
+
   final String printedText;
+
+  /// The paper's words for the thing, figures off. See
+  /// [ReceiptLineOut.namePrinted].
+  final String? namePrinted;
   final int cents;
   final int discountCents;
 
@@ -143,9 +155,13 @@ class ReceiptLineDraft {
   int get paidCents => cents - discountCents;
 
   /// What this line names, for a card's title: the matched row, else the
-  /// paper's own words.
+  /// paper's words for the thing, else the whole printed line. The figures
+  /// stay off the title where they can — the card says the money once, in its
+  /// own column, and the verbatim line is under it either way.
   String get displayName =>
-      ingredientName ?? (printedText.isEmpty ? 'a line' : printedText);
+      ingredientName ??
+      namePrinted ??
+      (printedText.isEmpty ? 'a line' : printedText);
 
   /// Whether this line will be written as a price — food, matched, packed
   /// and paid for. The same four conditions `observationFrom` holds.
@@ -164,7 +180,9 @@ class ReceiptLineDraft {
   /// that way at the call site.
   ReceiptLineDraft withCents(int cents) => ReceiptLineDraft(
     index: index,
+    lineId: lineId,
     printedText: printedText,
+    namePrinted: namePrinted,
     cents: cents,
     discountCents: discountCents,
     kind: kind,
@@ -199,7 +217,9 @@ class ReceiptLineDraft {
     bool clearKeepAsMeasure = false,
   }) => ReceiptLineDraft(
     index: index,
+    lineId: lineId,
     printedText: printedText,
+    namePrinted: namePrinted,
     cents: cents,
     discountCents: discountCents,
     kind: kind ?? this.kind,
@@ -236,6 +256,7 @@ List<ReceiptLineDraft> initialReceiptDrafts(ReceiptPayload payload) => [
     ReceiptLineDraft(
       index: line.index,
       printedText: line.printedText,
+      namePrinted: line.namePrinted,
       cents: line.cents,
       discountCents: line.discountCents,
       kind: line.kind,
@@ -364,15 +385,23 @@ class ReceiptReviewMap {
   /// printed total is the paper's and stands either way.
   int get headerCount => outstanding + (joinCloses ? 0 : 1);
 
-  /// Whether the lines' sum and the printed subtotal agree. True when the
-  /// paper printed no subtotal: there is nothing to disagree with, and an
-  /// unprovable claim is not a flag.
+  /// What the paper says the lines should come to: its subtotal, else its
+  /// total less the tax — a strip with no subtotal line (Trader Joe's prints
+  /// none) still states the figure, one subtraction away. Null only when the
+  /// paper printed neither, and then there is nothing to hold the lines
+  /// against.
+  int? get expectedLinesCents =>
+      printedSubtotalCents ??
+      (printedTotalCents == null ? null : printedTotalCents! - taxCents);
+
+  /// Whether the lines' sum and the paper agree. True when the paper printed
+  /// nothing to disagree with: an unprovable claim is not a flag.
   bool get joinCloses =>
-      printedSubtotalCents == null || printedSubtotalCents == linesCents;
+      expectedLinesCents == null || expectedLinesCents == linesCents;
 
   /// By how much they differ, or null when they do not.
   int? get apartCents =>
-      joinCloses ? null : (printedSubtotalCents! - linesCents).abs();
+      joinCloses ? null : (expectedLinesCents! - linesCents).abs();
 
   /// What the receipt is worth: the paper's total where it printed one, else
   /// the lines plus the tax they did not include.
@@ -432,19 +461,35 @@ String joinSumLine(ReceiptReviewMap map) =>
 /// It is a **flag, never a refusal**: the receipt saves either way, because
 /// the printed total is the paper's and stands.
 String joinNote(ReceiptReviewMap map) {
-  final printed = map.printedSubtotalCents;
-  if (printed == null) return 'the receipt printed no subtotal';
-  if (map.joinCloses) return 'the receipt says the same';
-  return '${formatMoney(map.apartCents!)} apart · Find the join — a line is '
-      'missing or doubled';
+  final expected = map.expectedLinesCents;
+  if (expected == null) return 'the receipt printed no subtotal and no total';
+  // Which of the paper's figures the lines were held against, said only when
+  // it is the derived one — a reader checking the join needs to know the
+  // number is not printed anywhere on the strip.
+  final derived = map.printedSubtotalCents == null;
+  if (map.joinCloses) {
+    return derived
+        ? 'the receipt’s total less tax says the same'
+        : 'the receipt says the same';
+  }
+  final against = derived
+      ? ' from the total less tax (${formatMoney(expected)})'
+      : '';
+  return '${formatMoney(map.apartCents!)} apart$against · Find the join — a '
+      'line is missing, doubled or misread';
 }
 
 /// `Save receipt · $84.12`, or what is still owed.
 /// The `line(s)` is the recipe review's own spelling, deliberately: the two
 /// Save bars answer the same question and a reader moving between them should
 /// not meet two grammars for it.
-String receiptSaveLabel(ReceiptReviewMap map) => map.canSave
-    ? 'Save receipt · ${formatMoney(map.totalCents)}'
+///
+/// [saved] is the review open on a receipt already kept: the same button,
+/// named for what it then does.
+String receiptSaveLabel(ReceiptReviewMap map, {bool saved = false}) =>
+    map.canSave
+    ? '${saved ? 'Save changes' : 'Save receipt'} · '
+          '${formatMoney(map.totalCents)}'
     : '${map.outstanding} line(s) need you';
 
 /// `Not food · 2 · $7.09` — the fold's heading, or null when nothing folded.

@@ -290,6 +290,30 @@ and can run beside phase one.
   and says which it is. A receipt the reader could not date opens on the day of
   the scan and says so. The door is cheap to add the first time a real receipt
   is misread.
+- 2026-09-19 — **The first real receipt was misread, so the doors went in**
+  (owner's phone review of v0.20.0, a 29-line Trader Joe's strip). Three
+  faults and three missing doors, one pass:
+  - `09-12-2026` did not parse — the month-first pattern took `/` and `.` but
+    not the dash TJ's prints. It does now.
+  - The join card ticked green beside `$96.62` under a printed total of
+    `$91.54`, because the strip prints no subtotal and "nothing to disagree
+    with" was read as agreement. With no subtotal the lines are held against
+    **total less tax**, and the card says that is the figure it used.
+  - An unmatched card was titled with the whole printed line, price and all.
+    `name_printed` now rides the wire (additive) and titles the card.
+  - **Bought is a door** (supersedes the entry above): a calendar sheet, the
+    day moves and the clock stays, no day after today.
+  - **PRICE is a chip on every open card**, not only on a line whose figure
+    read as zero.
+  - **One screen for a receipt** (owner: "the edit receipt and import receipt
+    review are basically the same view"). `/receipts/:id` opens the review on
+    the rows; Save rewrites them in place (`updateReceipt` — kept lines by id,
+    new ones inserted, dropped ones tombstoned; the printed totals and printed
+    words never move) and *delete this receipt* sits under it. This retires
+    "a price on a receipt line is edited on the ingredient's page": that was
+    one door for a price when a receipt was read-only, and it is two once a
+    receipt is not. The ingredient page's price sheet still edits the same
+    row from the other side.
 - 2026-09-17 — **The desk's three columns are not built** (R2). The phone
   review works at the 640 measure on a wide window, and the width would buy one
   thing: the printed line standing beside the card that claims to read it. It

@@ -39,7 +39,8 @@ const sampleReceiptJson = '''
   "notes": ["The join between the second and third photo was hard to read."],
   "lines": [
     {
-      "index": 0, "printed_text": "TJ ORG BANANAS  3.49", "cents": 349,
+      "index": 0, "printed_text": "TJ ORG BANANAS  3.49",
+      "name_printed": "TJ ORG BANANAS", "cents": 349,
       "discount_cents": 0, "kind": "item", "weight": null,
       "match": { "ingredient_id": "vocab-banana", "confidence": 0.94,
         "kind": "auto" },
@@ -47,6 +48,7 @@ const sampleReceiptJson = '''
     },
     {
       "index": 1, "printed_text": "YELLOW ONIONS  1.32 lb @ 1.99/lb  2.63",
+      "name_printed": "YELLOW ONIONS",
       "cents": 263, "discount_cents": 0, "kind": "item",
       "weight": { "amount": 1.32, "unit": "lb", "rate_cents": 199 },
       "match": { "ingredient_id": "vocab-onion", "confidence": 0.97,
@@ -55,6 +57,7 @@ const sampleReceiptJson = '''
     },
     {
       "index": 2, "printed_text": "ATLANTIC SALMON  1.10 lb @ 5.49/lb  6.04",
+      "name_printed": "ATLANTIC SALMON",
       "cents": 604, "discount_cents": 55, "kind": "item",
       "weight": { "amount": 1.10, "unit": "lb", "rate_cents": 549 },
       "match": { "ingredient_id": "vocab-salmon", "confidence": 0.91,
@@ -62,14 +65,16 @@ const sampleReceiptJson = '''
       "suggestions": [], "low_confidence": false, "photo": 0
     },
     {
-      "index": 3, "printed_text": "TJ SRIRACHA  3.99", "cents": 399,
+      "index": 3, "printed_text": "TJ SRIRACHA  3.99",
+      "name_printed": "TJ SRIRACHA", "cents": 399,
       "discount_cents": 0, "kind": "item", "weight": null,
       "match": { "ingredient_id": "vocab-sriracha", "confidence": 0.88,
         "kind": "auto" },
       "suggestions": [], "low_confidence": false, "photo": 1
     },
     {
-      "index": 4, "printed_text": "TJ MED CHDR SHRD  3.79", "cents": 379,
+      "index": 4, "printed_text": "TJ MED CHDR SHRD  3.79",
+      "name_printed": "TJ MED CHDR SHRD", "cents": 379,
       "discount_cents": 0, "kind": "item", "weight": null,
       "match": { "ingredient_id": "vocab-cheddar", "confidence": 0.62,
         "kind": "suggest" },
@@ -82,22 +87,26 @@ const sampleReceiptJson = '''
       "low_confidence": false, "photo": 1
     },
     {
-      "index": 5, "printed_text": "2 @ 0.99  1.98", "cents": 198,
+      "index": 5, "printed_text": "2 @ 0.99  1.98",
+      "name_printed": "2 @ 0.99", "cents": 198,
       "discount_cents": 0, "kind": "item", "weight": null,
       "match": null, "suggestions": [], "low_confidence": true, "photo": 1
     },
     {
-      "index": 6, "printed_text": "PAPER TOWELS  6.99", "cents": 699,
+      "index": 6, "printed_text": "PAPER TOWELS  6.99",
+      "name_printed": "PAPER TOWELS", "cents": 699,
       "discount_cents": 0, "kind": "not_food", "weight": null,
       "match": null, "suggestions": [], "low_confidence": false, "photo": 2
     },
     {
-      "index": 7, "printed_text": "BAG FEE  0.10", "cents": 10,
+      "index": 7, "printed_text": "BAG FEE  0.10",
+      "name_printed": "BAG FEE", "cents": 10,
       "discount_cents": 0, "kind": "not_food", "weight": null,
       "match": null, "suggestions": [], "low_confidence": false, "photo": 2
     },
     {
-      "index": 8, "printed_text": "TAX  0.82", "cents": 82,
+      "index": 8, "printed_text": "TAX  0.82",
+      "name_printed": "TAX", "cents": 82,
       "discount_cents": 0, "kind": "tax", "weight": null,
       "match": null, "suggestions": [], "low_confidence": false, "photo": 2
     }

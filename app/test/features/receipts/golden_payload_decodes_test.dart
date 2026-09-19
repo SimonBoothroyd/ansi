@@ -24,6 +24,9 @@ void main() {
     expect(payload.linesSumCents, json['lines_sum_cents']);
     for (final line in payload.lines) {
       expect(line.printedText, isNotEmpty);
+      // The title's words: present, and never carrying the line's figure.
+      expect(line.namePrinted, isNotNull);
+      expect(line.printedText, contains(line.namePrinted));
     }
   });
 }

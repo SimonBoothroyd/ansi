@@ -216,6 +216,7 @@ export function assembleReceipt(
     return {
       index,
       printed_text: line.printed_text,
+      name_printed: line.name_printed.trim(),
       cents: parsedCents ?? 0,
       discount_cents,
       kind: line.kind,

@@ -17,6 +17,7 @@ import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/units/measure.dart';
+import '../../../core/units/units.dart';
 import '../../import/domain/import_stage.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/domain/allowed_units.dart';
@@ -70,10 +71,30 @@ class ReceiptReviewing extends ReceiptScanState {
     required this.drafts,
     required this.store,
     required this.purchasedAt,
+    DateTime? openedAt,
+    this.receiptId,
+    this.source = 'photo',
+    this.edited = false,
     this.rows = const {},
     this.measuresById = const {},
     this.coinedStores = const [],
-  });
+  }) : openedAt = openedAt ?? purchasedAt;
+
+  /// The saved receipt this review is open on, or null for a scan nobody has
+  /// saved yet. It is the ONE difference between the two: the same screen
+  /// confirms a fresh read and corrects a kept one, and Save writes a new
+  /// receipt or rewrites this one accordingly.
+  final String? receiptId;
+
+  /// How the receipt came to be — `photo`, or `manual` for a price typed on
+  /// an ingredient's page.
+  final String source;
+
+  /// Whether anything has been changed since the review opened. A saved
+  /// receipt's Save stays shut until it has.
+  final bool edited;
+
+  bool get isSaved => receiptId != null;
 
   final ReceiptPayload payload;
   final List<ReceiptLineDraft> drafts;
@@ -85,6 +106,11 @@ class ReceiptReviewing extends ReceiptScanState {
   /// The receipt's own moment, as **wall time** — the paper's, never the
   /// scan's.
   final DateTime purchasedAt;
+
+  /// What [purchasedAt] was when the review opened — read off the paper, or
+  /// the day of the scan. It never moves, so the screen can tell a date
+  /// somebody chose from one nobody has looked at.
+  final DateTime openedAt;
 
   /// The matched vocabulary rows, by id — what the cards read a basis and a
   /// density off. A row the device cannot find is simply absent, and its line
@@ -120,10 +146,27 @@ class ReceiptReviewing extends ReceiptScanState {
     drafts: drafts ?? this.drafts,
     store: store ?? this.store,
     purchasedAt: purchasedAt ?? this.purchasedAt,
+    openedAt: openedAt,
+    receiptId: receiptId,
+    source: source,
+    // Rows and measures arriving under a match are part of that edit, so
+    // every copy is one.
+    edited: true,
     rows: rows ?? this.rows,
     measuresById: measuresById ?? this.measuresById,
     coinedStores: coinedStores ?? this.coinedStores,
   );
+}
+
+/// A saved receipt is being read back into the review.
+class ReceiptOpening extends ReceiptScanState {
+  const ReceiptOpening();
+}
+
+/// The saved receipt asked for is not there — deleted here, or on the other
+/// phone.
+class ReceiptGone extends ReceiptScanState {
+  const ReceiptGone();
 }
 
 /// Save is writing through PowerSync.
@@ -246,6 +289,84 @@ class ReceiptScanController extends _$ReceiptScanController {
     } finally {
       _stopStageLadder();
       _reading = false;
+    }
+  }
+
+  /// Opens the review on the SAVED receipt [receiptId] — the same state a
+  /// scan opens, built from the rows instead of from a payload, so a kept
+  /// receipt is corrected on the screen it was confirmed on.
+  ///
+  /// No pack is landed here: a stored line's pack is what was said at the
+  /// time, and re-deriving it from a later shop would re-price this one.
+  Future<void> open(String receiptId) async {
+    final current = state;
+    if (current is ReceiptReviewing && current.receiptId == receiptId) return;
+    final repository = ref.read(receiptRepositoryProvider);
+    final vocabRepo = ref.read(ingredientRepositoryProvider);
+    final measureRepo = ref.read(measureRepositoryProvider);
+    state = const ReceiptOpening();
+    try {
+      final stored = await repository.watchReceipt(receiptId).first;
+      if (!ref.mounted) return;
+      if (stored == null) {
+        state = const ReceiptGone();
+        return;
+      }
+      final drafts = [
+        for (final (index, line) in stored.lines.indexed)
+          storedLineDraft(line, index: index),
+      ];
+      final ids = {
+        for (final d in drafts)
+          if (d.ingredientId != null) d.ingredientId!,
+      };
+      var rows = const <String, Ingredient>{};
+      var measures = const <String, List<Measure>>{};
+      if (ids.isNotEmpty) {
+        try {
+          rows = await vocabRepo.byIds(ids);
+          measures = await measureRepo.measuresByIngredients(ids);
+        } on Object {
+          // The lines still read — name, money and pack are on the join —
+          // and a card simply cannot reopen its pack door until they load.
+        }
+      }
+      if (!ref.mounted) return;
+      state = ReceiptReviewing(
+        payload: ReceiptPayload(
+          lines: const [],
+          purchasedAt: stored.purchasedAt,
+          subtotalCents: stored.subtotalCents,
+          taxCents: stored.taxCents,
+          totalCents: stored.totalCents,
+        ),
+        drafts: drafts,
+        store: stored.store,
+        purchasedAt: stored.purchasedAt,
+        receiptId: stored.id,
+        source: stored.source,
+        rows: rows,
+        measuresById: measures,
+      );
+    } on Object catch (e) {
+      if (!ref.mounted) return;
+      state = ReceiptScanFailed('Could not open this receipt: $e');
+    }
+  }
+
+  /// Takes the open saved receipt back, lines and all.
+  Future<void> delete() async {
+    final s = state;
+    if (s is! ReceiptReviewing || s.receiptId == null) return;
+    final repository = ref.read(receiptRepositoryProvider);
+    state = const ReceiptSaving();
+    try {
+      await repository.deleteReceipt(s.receiptId!);
+      if (!ref.mounted) return;
+      state = const ReceiptGone();
+    } on Object catch (e) {
+      if (!ref.mounted) return;
+      state = ReceiptScanFailed('Could not delete this receipt: $e');
     }
   }
 
@@ -434,6 +555,15 @@ class ReceiptScanController extends _$ReceiptScanController {
     );
     state = const ReceiptSaving();
     try {
+      final saved = s.receiptId;
+      if (saved != null) {
+        await repository.updateReceipt(saved, write);
+        if (!ref.mounted) return;
+        // Reopened from the rows just written, so what is on screen is what
+        // was kept — the new lines now carry their ids — and Save shuts.
+        await open(saved);
+        return;
+      }
       final id = await repository.saveReceipt(write);
       if (!ref.mounted) return;
       state = ReceiptSaved(id);
@@ -516,3 +646,24 @@ class ReceiptScanController extends _$ReceiptScanController {
     }
   }
 }
+
+/// A stored line as the review's own draft — one shape for a receipt line,
+/// fresh off a scan or read back from the ledger.
+ReceiptLineDraft storedLineDraft(
+  StoredReceiptLine line, {
+  required int index,
+}) => ReceiptLineDraft(
+  index: index,
+  lineId: line.id,
+  printedText: line.printedText,
+  cents: line.cents,
+  discountCents: line.discountCents,
+  kind: ReceiptKind.fromWire(line.kind),
+  ingredientId: line.ingredientId,
+  ingredientName: line.ingredientName,
+  packBasisAmount: line.packBasisAmount,
+  packAmount: line.packAmount,
+  packUnit: unitById(line.packUnit ?? ''),
+  measureId: line.measureId,
+  packLabel: line.measureLabel,
+);
