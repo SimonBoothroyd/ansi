@@ -287,6 +287,29 @@ class PriceObservation {
   );
 }
 
+/// The key a receipt line's printed words are filed under — trimmed and
+/// upper-cased, and nothing else.
+///
+/// It is the server's own recall key (`_shared/receipt_memory.ts`) spelled in
+/// Dart, so the two things a printed name carries between shops — the match
+/// and the pack — are recalled under ONE spelling of it rather than two.
+///
+/// Null where there is nothing to file: a line whose words are empty, or one
+/// read by a server older than the column.
+String? printedNameKey(String? namePrinted) {
+  final trimmed = (namePrinted ?? '').trim();
+  return trimmed.isEmpty ? null : trimmed.toUpperCase();
+}
+
+/// The pack one printed name was last bought in, and the vocabulary row it was
+/// bought AS.
+///
+/// The row travels with the pack because a printed name is one store's word for
+/// one product and a household can re-point it: `ORG TRICOLOR QUINOA` bought as
+/// Quinoa last month and matched to something else on this receipt is no carry
+/// over at all, and only a caller holding the line's current match can say so.
+typedef PackLastBoughtAs = ({String ingredientId, PriceObservation pack});
+
 /// A price per 100 of an ingredient's basis unit — `77¢ / 100 g`.
 ///
 /// [cents] is a real number of cents and not an integer: it is derived, not

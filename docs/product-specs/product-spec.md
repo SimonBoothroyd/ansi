@@ -1336,9 +1336,12 @@ and a printed weight or rate where there was one.
 - **A line is a price only when it says what the cents bought.** A matched
   food line with no pack is counted in the receipt and is simply not a price
   — the card asks for the pack. A line sold by weight prices itself from the
-  printed rate; one with no printed weight opens on **the pack that row was
-  last bought in**. *Keep as a measure* mints a word the household can also
-  say on a recipe line — the pack carries over either way.
+  printed rate; one with no printed weight opens on **the pack its own printed
+  words were last bought in** — one store's words name one product, so a 16 oz
+  bag of quinoa at one shop and a 12 oz at another are two answers rather than
+  one — and, for words this household has not bought under before, on the pack
+  that row was last bought in anywhere. *Keep as a measure* mints a word the
+  household can also say on a recipe line — the pack carries over either way.
 - **A figure nobody could read holds Save**, loudly: it is not a free line.
 - **One answer answers every line that is that line again.** Six identical
   tubs print six identical lines; the match, the pack, *Not food* and *it is

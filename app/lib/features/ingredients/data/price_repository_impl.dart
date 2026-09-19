@@ -161,15 +161,15 @@ class SqlitePriceRepository implements PriceRepository {
   /// watch when a line is re-matched to a different row and when the receipt
   /// carrying it is renamed, re-dated or taken back.
   ///
-  /// The grouping key travels as a selected column rather than as a `GROUP BY`:
+  /// No grouping happens here — not a `GROUP BY` and not a key column either:
   /// the fold below needs the newest row's own spelling, receipt and date,
-  /// which an aggregate would have to win back with a correlated subquery.
+  /// which an aggregate would have to win back with a correlated subquery, and
+  /// it files each row under [printedNameKey] off the row's own words.
   @override
   Stream<List<ReceiptName>> watchReceiptNames(String ingredientId) {
     return _db
         .watch(
-          'SELECT UPPER(TRIM(l.name_printed)) AS name_key, '
-          'l.name_printed, l.receipt_id, l.created_at, l.id, '
+          'SELECT l.name_printed, l.receipt_id, l.created_at, l.id, '
           'r.store, r.purchased_at '
           'FROM receipt_line l '
           'JOIN receipt r ON r.id = l.receipt_id AND r.deleted_at IS NULL '
@@ -189,18 +189,17 @@ class SqlitePriceRepository implements PriceRepository {
   /// the store words. That also makes insertion order the answer's order, so
   /// nothing is sorted again afterwards.
   ///
-  /// The key is `UPPER(TRIM(…))`: the server's recall compares
-  /// `upper(name_printed)` and the stored value is already trimmed, so the trim
-  /// here only covers a row written before the wire did it. Two spellings that
-  /// differ by more than case are two names on purpose — that difference is
-  /// exactly what this list exists to show.
+  /// The key is [printedNameKey] — the one spelling of the printed-name key
+  /// this app has, shared with the carry-over read below and with the server's
+  /// own recall. Two spellings that differ by more than case are two names on
+  /// purpose: that difference is exactly what this list exists to show.
   static List<ReceiptName> receiptNamesFrom(
     Iterable<Map<String, dynamic>> rows,
   ) {
     final tallies = <String, _NameTally>{};
     for (final r in rows) {
-      final key = ((r['name_key'] as String?) ?? '').trim();
-      if (key.isEmpty) continue;
+      final key = printedNameKey(r['name_printed'] as String?);
+      if (key == null) continue;
       final tally = tallies.putIfAbsent(
         key,
         () => _NameTally(
@@ -225,6 +224,60 @@ class SqlitePriceRepository implements PriceRepository {
           receiptId: tally.receiptId,
         ),
     ];
+  }
+
+  /// One query for the whole receipt, however many names it carries: the keys
+  /// ride as placeholders in a single `IN`, and nothing here grows per line.
+  ///
+  /// `UPPER(TRIM(l.name_printed))` is the key spelled in SQL and
+  /// [printedNameKey] is the same key spelled in Dart. The returned map is
+  /// keyed by the **Dart** one, read off the row's own words, so what a caller
+  /// looks up is exactly what it gets; where the two normalisations could
+  /// disagree (SQLite's `UPPER` is ASCII-only) the row simply does not come
+  /// back and the line falls through to the row's latest price, which is a
+  /// carry-over lost and never a wrong one.
+  ///
+  /// `observationFrom` is the gate here as everywhere: a line whose pack
+  /// nobody stated, or that rang up as nothing, is not a pack to carry.
+  @override
+  Future<Map<String, PackLastBoughtAs>> packsByPrintedName(
+    Set<String> namesPrinted,
+  ) async {
+    final keys = {
+      for (final name in namesPrinted)
+        if (printedNameKey(name) case final key?) key,
+    }.toList();
+    if (keys.isEmpty) return const {};
+    final marks = List.filled(keys.length, '?').join(', ');
+    final rows = await _db.getAll(
+      'SELECT l.id, l.receipt_id, l.ingredient_id, l.printed_text, '
+      'l.name_printed, l.cents, l.discount_cents, l.kind, '
+      'l.pack_basis_amount, l.pack_amount, l.pack_unit, l.measure_id, '
+      'l.sort_order, r.store, r.purchased_at, r.source, '
+      'i.macros_basis, m.label AS measure_label '
+      'FROM receipt_line l '
+      'JOIN receipt r ON r.id = l.receipt_id AND r.deleted_at IS NULL '
+      'LEFT JOIN ingredient i ON i.id = l.ingredient_id '
+      'LEFT JOIN ingredient_measure m ON m.id = l.measure_id '
+      'AND m.deleted_at IS NULL '
+      'WHERE l.ingredient_id IS NOT NULL AND l.deleted_at IS NULL '
+      'AND l.pack_basis_amount IS NOT NULL '
+      'AND UPPER(TRIM(l.name_printed)) IN ($marks) '
+      'ORDER BY r.purchased_at DESC, l.updated_at DESC, l.id DESC',
+      keys,
+    );
+    final packs = <String, PackLastBoughtAs>{};
+    for (final r in rows) {
+      final key = printedNameKey(r['name_printed'] as String?);
+      if (key == null || packs.containsKey(key)) continue;
+      final observation = _observationFromRow(r);
+      if (observation == null) continue;
+      packs[key] = (
+        ingredientId: r['ingredient_id'] as String,
+        pack: observation,
+      );
+    }
+    return packs;
   }
 
   @override

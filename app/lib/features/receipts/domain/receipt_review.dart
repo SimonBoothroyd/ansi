@@ -19,12 +19,14 @@
 /// * **The vocabulary learns nothing.** A receipt's words are one store's
 ///   abbreviations, so confirming a match writes no alias and there is no
 ///   learning path in this folder. What carries between shops is the
-///   household's own answers, and neither is a vocabulary word: the **pack**,
-///   on the row (a matched line with no printed weight opens on the pack that
-///   row was last bought in), and the **match**, which the server recalls per
-///   printed name off this household's own saved receipt lines. A line that
-///   arrived on a recalled answer is [ReceiptLineDraft.remembered] and the
-///   card says so.
+///   household's own answers, and neither is a vocabulary word: the **pack**
+///   (a matched line with no printed weight opens on the pack its own printed
+///   words were last bought in, else the one the row was last bought in), and
+///   the **match**, which the server recalls per printed name off this
+///   household's own saved receipt lines. Both are filed under the same key —
+///   the printed name — because that is what names one product at one shop. A
+///   line that arrived on a recalled answer is [ReceiptLineDraft.remembered]
+///   and the card says so.
 library;
 
 import 'package:meta/meta.dart';
@@ -291,23 +293,32 @@ List<ReceiptLineDraft> initialReceiptDrafts(ReceiptPayload payload) => [
 
 /// [draft] with the pack it can state without asking anybody.
 ///
-/// Two sources, in order, and no third:
+/// Three sources, in order, and no fourth:
 ///
 /// 1. **The paper's own weight.** `1.32 lb @ $1.99/lb` says what the cents
 ///    bought, so the line prices itself — resolved through the row's basis by
 ///    the same density gate the price sheet uses ([packInBasis]).
-/// 2. **The pack this row was last bought in** ([last]). A bottle of sriracha
+/// 2. **The pack these printed words were last bought in** ([sameName]). One
+///    store's words name one product: `ORG TRICOLOR QUINOA` is the 16 oz bag
+///    from the shop that prints it that way, whatever size the other shop
+///    sells. A household alternating two shops would otherwise open on the
+///    wrong size every other week.
+/// 3. **The pack this row was last bought in** ([last]) — the answer for
+///    words this household has not bought under before. A bottle of sriracha
 ///    is the same bottle this week; entering it once is what keeps the second
-///    receipt from asking again. The basis figure comes from the stored
-///    observation, never re-derived, so a measure re-weighed since cannot
-///    re-price this shop.
+///    receipt from asking again.
 ///
-/// A line that reaches neither keeps no pack and raises *Say what the pack
-/// is*. Nothing is invented at either step.
+/// At either carry-over step the basis figure comes from the stored
+/// observation, **never re-derived**, so a measure re-weighed since cannot
+/// re-price this shop.
+///
+/// A line that reaches none of the three keeps no pack and raises *Say what the
+/// pack is*. Nothing is invented at any step.
 ReceiptLineDraft landPack(
   ReceiptLineDraft draft, {
   required Ingredient? ingredient,
   List<Measure> measures = const [],
+  PackLastBoughtAs? sameName,
   PriceObservation? last,
 }) {
   if (ingredient == null || !draft.kind.isFood) return draft;
@@ -327,17 +338,45 @@ ReceiptLineDraft landPack(
     }
     return draft;
   }
-  if (last == null || !(last.packBasisAmount > 0)) return draft;
-  final label = last.measureId == null
+  final carried = _underTheseWords(draft, ingredient, sameName) ?? last;
+  if (carried == null || !(carried.packBasisAmount > 0)) return draft;
+  final label = carried.measureId == null
       ? null
-      : _labelOf(last.measureId!, measures) ?? last.packLabel;
+      : _labelOf(carried.measureId!, measures) ?? carried.packLabel;
   return draft.copyWith(
-    packBasisAmount: last.packBasisAmount,
-    packAmount: last.packAmount ?? last.packBasisAmount,
-    packUnit: last.packUnit,
-    measureId: last.measureId,
+    packBasisAmount: carried.packBasisAmount,
+    packAmount: carried.packAmount ?? carried.packBasisAmount,
+    packUnit: carried.packUnit,
+    measureId: carried.measureId,
     packLabel: label,
   );
+}
+
+/// [sameName]'s pack where it really is the pack THESE words bought THIS row,
+/// else null and the row's latest price answers instead.
+///
+/// Three refusals, each of them a name that does not stand for what the caller
+/// takes it to stand for:
+///
+/// * **A line with no printed words** — read by a server older than the column
+///   — is filed under nothing, so there is nothing of its own to recall.
+/// * **Words last bought as another row.** The household has re-pointed them
+///   since, and the size of somebody else's pack is not a fact about this one.
+/// * **A pack of nothing**, which no read can build (`observationFrom` is the
+///   gate) and this refuses anyway: a zero here must not swallow the row's own
+///   latest price, which may well be a real pack.
+PriceObservation? _underTheseWords(
+  ReceiptLineDraft draft,
+  Ingredient ingredient,
+  PackLastBoughtAs? sameName,
+) {
+  if (sameName == null || printedNameKey(draft.namePrinted) == null) {
+    return null;
+  }
+  return sameName.ingredientId == ingredient.id &&
+          sameName.pack.packBasisAmount > 0
+      ? sameName.pack
+      : null;
 }
 
 String? _labelOf(String measureId, List<Measure> measures) {

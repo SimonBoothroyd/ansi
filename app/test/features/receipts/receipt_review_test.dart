@@ -52,9 +52,11 @@ ReceiptLineDraft item({
   ReceiptKind kind = ReceiptKind.item,
   ReceiptWeight? weight,
   bool dropped = false,
+  String? namePrinted,
 }) => ReceiptLineDraft(
   index: index,
   printedText: 'TJ ORG BANANAS  3.49',
+  namePrinted: namePrinted,
   cents: cents,
   discountCents: discountCents,
   kind: kind,
@@ -62,6 +64,28 @@ ReceiptLineDraft item({
   ingredientId: ingredientId,
   packBasisAmount: pack,
   dropped: dropped,
+);
+
+/// A pack the household has already bought, as every price read hands it over.
+PriceObservation bought(
+  double basisAmount, {
+  double? amount,
+  Unit? unit,
+  String? measureId,
+  String store = "TJ's",
+  int cents = 349,
+  DateTime? on,
+}) => PriceObservation(
+  lineId: 'l-$basisAmount',
+  receiptId: 'r-$basisAmount',
+  cents: cents,
+  packBasisAmount: basisAmount,
+  basis: MacrosBasis.perG,
+  store: store,
+  purchasedAt: on ?? DateTime(2026, 8),
+  packAmount: amount,
+  packUnit: unit,
+  measureId: measureId,
 );
 
 void main() {
@@ -221,6 +245,100 @@ void main() {
         'bag (454 g) · 88¢ / 100 g',
         reason: 'this receipt’s cents over last month’s pack',
       );
+    });
+
+    group('the words on the paper are the better answer', () {
+      // One store's 16 oz bag and another's 12 oz, on one row. The words name
+      // the product AT A SHOP; the row's latest price names only whichever
+      // shop was last.
+      const quinoa = 'ORG TRICOLOR QUINOA';
+      final theirs = (
+        ingredientId: 'vocab-banana',
+        pack: bought(454, amount: 16, unit: oz),
+      );
+      final lastAnywhere = bought(340, amount: 12, unit: oz, store: 'WF');
+
+      ReceiptLineDraft landed({
+        String? name = quinoa,
+        PackLastBoughtAs? sameName,
+        PriceObservation? last,
+        ReceiptWeight? weight,
+      }) => landPack(
+        item(
+          ingredientId: 'vocab-banana',
+          cents: 449,
+          namePrinted: name,
+          weight: weight,
+        ),
+        ingredient: bananas,
+        sameName: sameName,
+        last: last,
+      );
+
+      test('the pack these words were last bought in beats the row’s', () {
+        final draft = landed(sameName: theirs, last: lastAnywhere);
+        expect(draft.packBasisAmount, 454);
+        expect(draft.packAmount, 16);
+        expect(draft.packUnit, oz);
+      });
+
+      test('the paper’s own printed weight still beats both', () {
+        final draft = landed(
+          sameName: theirs,
+          last: lastAnywhere,
+          weight: const ReceiptWeight(amount: 1, unit: lb, rateCents: 449),
+        );
+        expect(draft.packBasisAmount, closeTo(453.6, 0.1));
+        expect(draft.packUnit, lb, reason: 'the paper said pounds');
+      });
+
+      test('words last bought as another row carry nothing', () {
+        // Re-pointed since: the size of somebody else's pack says nothing
+        // about this one, so the row's own latest price answers.
+        final draft = landed(
+          sameName: (ingredientId: 'vocab-oil', pack: bought(454)),
+          last: lastAnywhere,
+        );
+        expect(draft.packBasisAmount, 340);
+      });
+
+      test('words that state no pack carry nothing, and swallow nothing', () {
+        final draft = landed(
+          sameName: (ingredientId: 'vocab-banana', pack: bought(0)),
+          last: lastAnywhere,
+        );
+        expect(draft.packBasisAmount, 340);
+      });
+
+      test('a line the server printed no words for skips its own step', () {
+        // An older server sends no `name_printed`: there is nothing to file a
+        // pack under, so the row's latest price is the only carry-over left.
+        final draft = landed(name: null, sameName: theirs, last: lastAnywhere);
+        expect(draft.packBasisAmount, 340);
+      });
+
+      test('words nobody has bought under fall through to the row', () {
+        expect(landed(last: lastAnywhere).packBasisAmount, 340);
+      });
+
+      test('neither answers and the line asks, as it always did', () {
+        final draft = landed();
+        expect(draft.packBasisAmount, isNull);
+        expect(receiptLineIssues(draft), [ReceiptLineIssue.packMissing]);
+      });
+
+      test('the carried basis figure is the stored one, never re-derived', () {
+        // A bag re-weighed at 500 g since does not re-price this shop: what
+        // the words bought is what the saved line said it bought.
+        final draft = landed(
+          sameName: (
+            ingredientId: 'vocab-banana',
+            pack: bought(454, amount: 1, measureId: 'm-bag'),
+          ),
+        );
+        expect(draft.packBasisAmount, 454);
+        expect(draft.measureId, 'm-bag');
+      });
     });
 
     test('nothing to go on leaves the line asking, and invents no pack', () {

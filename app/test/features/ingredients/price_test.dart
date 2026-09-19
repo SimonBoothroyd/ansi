@@ -454,6 +454,26 @@ void main() {
     });
   });
 
+  group('the key a line’s printed words are filed under', () {
+    test('trimmed and upper-cased, and nothing else', () {
+      expect(printedNameKey('ORG TRICOLOR QUINOA'), 'ORG TRICOLOR QUINOA');
+      expect(printedNameKey('  tj org bananas '), 'TJ ORG BANANAS');
+      expect(
+        printedNameKey('TJ  ORG   BANANAS'),
+        'TJ  ORG   BANANAS',
+        reason: 'inner spacing is the paper’s, and is not collapsed',
+      );
+    });
+
+    test('words that are not there are filed under nothing', () {
+      // A line from a server older than the column, and one whose words are
+      // all whitespace: neither recalls a pack, and neither is keyed as ''.
+      expect(printedNameKey(null), isNull);
+      expect(printedNameKey(''), isNull);
+      expect(printedNameKey('   '), isNull);
+    });
+  });
+
   group('the stored enumerations', () {
     test('source round-trips, and an unknown one is never “typed here”', () {
       expect(ReceiptSource.fromDb('manual'), ReceiptSource.manual);

@@ -1101,8 +1101,20 @@ None of this is an alias. The words stay on the receipt they were printed on,
 the match cascade never sees them, and the vocabulary matcher is not consulted
 about them.
 
-What else carries over between shops is the **pack**, kept on the ingredient row
-by the owner's tap in review.
+What else carries over between shops is the **pack**, and it is filed under the
+same key the match is. A matched line with no printed weight opens on the pack
+**these printed words** were last bought in, matched to this same row — one
+store's words name one product, so `ORG TRICOLOR QUINOA` is that shop's 16 oz
+bag whatever size the other shop sells, and a household alternating two shops
+would otherwise meet the wrong size every other week. Words this household has
+not bought under before fall back to the pack the row was last bought in
+anywhere, which is where the rule started. Both are one batched read per
+receipt (`packsByPrintedName`), latest by the receipt's own date and then by the
+line's own edit, so correcting a kept receipt corrects what the next one opens
+on; the stored basis figure is carried and never re-derived, because a measure
+re-weighed since must not re-price a shop that has already happened. The
+precedence lives in `landPack` with the printed weight ahead of both, and a line
+whose words were last bought as another row carries nothing at all.
 
 ### 12.5 The contract
 

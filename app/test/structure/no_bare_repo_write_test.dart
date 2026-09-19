@@ -37,6 +37,7 @@ const _readVerbs = {
   'aliases',
   'nameIndex',
   'measuresByIngredients',
+  'packsByPrintedName',
   'usedIn',
   'mostRecentWeekBefore',
   'componentLinkWouldCycle',
