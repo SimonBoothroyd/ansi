@@ -21,6 +21,18 @@ void main() {
     test('says what one comes to, in the basis unit of the row', () {
       expect(const MeasureOption(potato).label, 'potato, large (299 g)');
       expect(
+        const MeasureOption(Measure(id: 'm3', label: 'jar', amount: 340)).label,
+        'jar (340 g)',
+      );
+    });
+
+    test('says the size once — a word that already states it keeps it', () {
+      // The household's own style puts the size IN the word where a container
+      // comes in two of them, and appending would say it twice in two unit
+      // systems (`can (14.5 oz) (411 g)`). The rule is
+      // [measureWordWithSize]'s, and lifting the option out of the ingredient
+      // feature did not leave it behind.
+      expect(
         const MeasureOption(
           Measure(
             id: 'm2',
@@ -29,7 +41,20 @@ void main() {
             basis: MacrosBasis.perMl,
           ),
         ).label,
-        'can (400 ml) (400 ml)',
+        'can (400 ml)',
+      );
+      expect(
+        const MeasureOption(
+          Measure(id: 'm4', label: 'can (14.5 oz)', amount: 411),
+        ).label,
+        'can (14.5 oz)',
+      );
+      // Brackets that are not a size still take the weight.
+      expect(
+        const MeasureOption(
+          Measure(id: 'm5', label: 'can (drained)', amount: 411),
+        ).label,
+        'can (drained) (411 g)',
       );
     });
 
