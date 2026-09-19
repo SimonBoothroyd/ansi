@@ -348,15 +348,31 @@ ingredients/
     ([ADR-0016](../../../../docs/decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md)).
     `wholeMeasureOf` is the one reading — the live measure within 1 % of the
     piece weight, lowest `sort_order` then label — found by weight, never
-    stored. The chip row leads with it, the sheet opens on it when a caller
-    names no choice, and `piece (67 g)` stays offered after it; a row that
-    weighs a piece but names no size still opens on `piece`.
+    stored. The chip row leads with it and `piece (67 g)` stays offered after
+    it; a row that weighs a piece but names no size leads with `piece`. What a
+    caller naming no choice opens on follows from that, and from nothing else
+    — see the chip row's own bullet.
   - **On the form**, `PieceWeightEntry` sits beside `DensityEntry` and is drawn
     only while the default unit is `piece`. It reports intent like every other
     shared editor (ADR-0011); the form's Save lands it with the rest.
   - **In the quantity sheet's manage state** the same editor writes on tap,
     because that host has no Save — so the `piece` chip appears the moment a
     weight is entered.
+- **The chip row is one control, and one filter answers for it.**
+  `allowedUnitChoicesFor` is what every quantity surface draws — the recipe
+  line, the import review, the week's ingredient slot, the price sheet, the
+  receipt's pack door — so a rule about what may be offered is written once.
+  Two measures are never offered: one whose label merely names a volume unit
+  (density owns volume, ADR-0008 §2) and the row's **serving**, which is the
+  size a nutrition panel is printed per rather than one anybody cooks, plans
+  or shops in (owner). Both stay re-selectable where a line already says one,
+  through the off-filter admission every stored choice gets.
+  - **A surface with nothing stored opens on the first chip**
+    (`firstOfferedChoice`): the row's whole measure where it has one, else its
+    first word, else the default unit — which is simply where the row's own
+    words run out, since the catalog half fronts it. A surface that has
+    something to reopen on — a line being edited, a pack in the words it was
+    last bought in — passes that and never asks.
 - **A price is an event, and the figure a screen reads is derived from it.**
   The ledger is `receipt` + `receipt_line` (migration 0044) and a hand-typed
   price is a one-line `manual` receipt, so a typed price and a scanned one are
