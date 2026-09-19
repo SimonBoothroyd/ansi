@@ -64,7 +64,8 @@ assertions in `begin … rollback` so runs leave no residue.
   never reach another household's recipe (from `authenticated` AND from a
   superuser write, where RLS isn't doing the work).
 - `recipe_measure.sql` — a recipe's own word for one of what it makes (0048):
-  the shape (a label that is a word, a positive `per_batch`) and the
+  the shape (a label that is a word, a positive `amount`, a `unit` that can
+  measure something — never `batch`, never an imprecise word) and the
   deliberate ABSENCE of a unique `(recipe_id, label)` index, so an offline
   duplicate lands instead of 23505-ing the whole crud transaction; the two
   pointers on `recipe_line_item` and `week_recipe_line_override`, each sayable

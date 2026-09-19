@@ -243,23 +243,30 @@ rather than a shape:
   surface switches exhaustively, so a new refusal cannot be rendered as `1×` by
   a stale `else`.
 - **`core/units/recipe_measure.dart`** — a recipe's own word for one of what a
-  batch makes, and the single number that defines it: *a batch makes 20 blob*,
-  so `3 blob` is 0.15 batches
-  ([ADR-0018](../../../../docs/decisions/0018-a-recipe-measure-is-a-count-per-batch.md)).
-  It needs no yield, no unit family and no density — which is exactly why a
-  sauce nobody ever measured is sayable at all. It lives under the units,
-  beside `measure.dart`, because it is the same kind of fact one level up and
-  because a component's dock offers both.
+  batch makes, defined as a named AMOUNT: *a blob is 15 g*, so `3 blob` is 45 g
+  and — through the recipe's own `makes 300 g` — 0.15 of a batch
+  ([ADR-0018](../../../../docs/decisions/0018-a-recipe-measure-is-a-named-amount.md)).
+  It is `measure.dart`'s shape one level up, carrying its own `unit` because a
+  recipe has no basis to lend it one, and it lives beside `measure.dart` for
+  both reasons: it is the same kind of fact, and a component's dock offers both.
+  The amount is absolute, so re-stating `makes` re-states the share — and the
+  price of that is a gate, below.
 - **`recipe_measure_authoring.dart`** — the word, read by the ingredient side's
   rule verbatim (trim, collapse whitespace, **case untouched**), duplicates
-  merged on read oldest-first, and one refusal of its own: a label that merely
-  names a catalog unit — `cup`, `g`, `batch` — asks the catalog's own lookup,
-  never a hand list.
+  merged on read oldest-first, a label that merely names a catalog unit — `cup`,
+  `g`, `batch` — refused against the catalog's own lookup rather than a hand
+  list, and **the `makes` gate**: a word can only be coined while the recipe
+  states a yield in the unit's family, and the refusals name MAKES. Read
+  backwards, that gate is `recipeMeasuresOrphanedBy`, which tells the editor
+  which live words a `makes` edit would leave standing on nothing — a warning,
+  never a refusal.
 - **`component_units.dart`** — what a component's chip row offers, in order:
   the target's own words first (`wholeMeasureOfRecipe` ahead of them), then
-  `batch`, then the yields' families. The whole-batch word is **found, never
-  stored** — the one whose `per_batch` is 1 within the app's single tolerance —
-  which is ADR-0016's rule with *one batch* where the piece weight was.
+  `batch`, then the yields' families. A word the recipe can no longer hold is
+  omitted, unless a line stores it, where the 7.7 rule admits it off-filter. The
+  whole-batch word is **found, never stored** — the one whose amount is the
+  recipe's ENTIRE same-family yield within the app's single tolerance — which is
+  ADR-0016's rule with *the whole yield* where the piece weight was.
 - **`line_basis.dart`** — the one conversion the macro and cost walks share, so
   a line can never weigh one thing for its macros and another for its cost.
 - **`effective_lines.dart`** — the one seam deciding *which* lines a derivation
@@ -270,10 +277,11 @@ never both and never neither.** `LineItem.unit` is null exactly when
 `recipeMeasureId` is set, which is the database's
 `num_nonnulls(unit, recipe_measure_id) = 1` stated in Dart, with two asserts
 holding it. There is no companion unit a measured line could honestly carry:
-`batch` is the right dimension with the wrong number, and `piece` is the count
-degradation ADR-0018 exists to refuse — a word that has gone leaves the line
-**unresolved and named**, with its number kept, rather than re-read as a count
-of whatever the batch is measured in.
+the line's number counts WORDS, so the measure's own `g` beside it would read as
+`3 g` where the line means 45; `batch` is the right dimension with the wrong
+number; and `piece` is the count degradation ADR-0018 exists to refuse — a word
+that has gone leaves the line **unresolved and named**, with its number kept,
+rather than re-read as a count of whatever the batch is measured in.
 
 Everything below that resolution seam consumes `batches` and only `batches`,
 which is why the cook plan, the cost walk and the macro walk each needed one

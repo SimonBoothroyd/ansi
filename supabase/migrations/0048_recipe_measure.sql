@@ -13,33 +13,59 @@
 -- known here. The label is whatever they typed.
 --
 -- ---------------------------------------------------------------------------
--- One number, and it is `per_batch`
+-- A named AMOUNT, exactly like an ingredient measure: `blob` = `15 g`
 -- ---------------------------------------------------------------------------
 --
--- A measure states how many of itself a batch makes: *a batch makes 20 blob*.
--- That is the whole definition, and everything falls out of it — `3 blob` of
--- the sauce is 3/20 = 0.15 batches, which is the denomination every derivation
--- already walks in (the cook plan scales batches, the shop sums a batch's
--- lines, macros divide a batch's totals).
+-- A measure states what one of itself comes to, as a number in a unit: *a blob
+-- is 15 g*, *a ladle is 180 ml*, *a patty is 1 piece*. That is the whole
+-- definition, and it is the one the household already knows — an
+-- `ingredient_measure` is `label` + `basis_amount`, and this is the same fact
+-- one level up. The only difference is where the unit comes from: an
+-- ingredient HAS a basis (0012, ADR-0008) and its measures inherit it, while a
+-- recipe has no single basis, so each measure carries its own `unit`.
 --
--- What it deliberately does NOT need:
+-- `3 blob` of the sauce is therefore `45 g`, and a share of a batch is the
+-- ordinary component conversion from there: through the recipe's same-family
+-- yield (`makes 300 g`) it is 0.15 batches, which is the denomination every
+-- derivation already walks in (the cook plan scales batches, the shop sums a
+-- batch's lines, macros divide a batch's totals).
 --
---   * **no yield.** `recipe.yield_qty`/`yield_unit` is what turns `¼ cup` into
---     a batch share, and a recipe nobody measured has none. A measure counts
---     what the batch makes directly, so it resolves where the yield cannot —
---     that is the whole point of the feature, not a convenience.
---   * **no unit**, and so no unit family, no density, no bridge. `blob` is not
---     a volume that happens to lack a number; it is a count of a thing this
---     recipe makes, and the only conversion it can ever be asked for is into
---     batches, which the one number already gives.
+-- **It therefore needs a `makes` in the measure's family, and that is a real
+-- cost, paid honestly.** A word with no yield to hold it against says nothing
+-- about a batch. So:
+--
+--   * **authoring refuses** while the recipe states no yield in the unit's
+--     family, and the sentence sends the person to MAKES. A client rule (a
+--     check here would have to read another table);
+--   * a recipe states up to TWO yield denominations, in different families
+--     (`makes 300 g · 1.25 cup`), and a measure may be said in either — mass
+--     or volume or count, whichever the recipe has actually stated;
+--   * a yield **edited away later** makes every measure standing on it
+--     unresolvable, and that is a refusal, never a guess: such a line falls
+--     into the existing `ComponentYieldMissing` / `ComponentFamilyMismatch`
+--     paths, the same two a unit-said line has always fallen into. The recipe
+--     editor warns before a Save that orphans a live word.
+--
+-- What it deliberately does NOT get:
+--
+--   * **no density.** A `blob` said in grams against a recipe that only states
+--     a volume yield is a family mismatch, exactly as `2 tbsp` of a butter
+--     that only says `250 g` is today. ADR-0008 keeps mass⇄volume to an
+--     INGREDIENT's density; a recipe is not a substance and has none, so the
+--     recipe's optional second yield denomination is the only bridge there is.
 --   * **no `source` column.** An `ingredient_measure` carries provenance
 --     because its amount can arrive from USDA, a borrow or an estimate. A
 --     recipe's measures only ever come from the household that wrote the
 --     recipe, so a column recording that would have exactly one value.
 --
+-- **Re-stating `makes` re-states the share, and that is correct.** `blob` = 15
+-- g is an absolute amount: a batch restated from `300 g` to `600 g` leaves the
+-- blob alone and makes it 0.075 of the bigger batch. That is the whole point of
+-- an amount — the word means the same thing in the kitchen either way.
+--
 -- **Scaling multiplies the LINE, never the measure.** Cooking a parent at ×2
 -- asks for `6 blob`, not for a blob twice the size: the measure is a property
--- of the sub-recipe's own batch and is read the same at every scale.
+-- of the sub-recipe and is read the same at every scale.
 --
 -- ---------------------------------------------------------------------------
 -- No unique index on (recipe_id, label) — 0011's doctrine, restated
@@ -60,12 +86,14 @@
 -- ---------------------------------------------------------------------------
 --
 -- A line saying `3 blob` whose measure has been tombstoned is UNRESOLVED, and
--- stays unresolved. It must never be re-read as `3 piece` of the yield: three
--- of a thing nobody can measure any more is not three of whatever the batch is
--- counted in, and a confidently wrong batch share poisons the cook plan, the
--- shop and the macros in a way a missing one never does (invariant 3 — never
--- invent a value to make the math work). So the app refuses to derive it, the
--- number is kept, and every surface names the refusal.
+-- stays unresolved. The word was the only place the amount behind it lived, so
+-- with the row gone the `3` denominates nothing; it must never be re-read as `3
+-- piece` of the yield, because three of a thing nobody can measure any more is
+-- not three of whatever the batch is counted in, and a confidently wrong batch
+-- share poisons the cook plan, the shop and the macros in a way a missing one
+-- never does (invariant 3 — never invent a value to make the math work). So the
+-- app refuses to derive it, the number is kept, and every surface names the
+-- refusal.
 --
 -- Three consequences, and they belong together:
 --
@@ -96,11 +124,13 @@
 --
 -- The exceptions are the two rules that say a line's amount must name a
 -- UNIT, because a line said in a recipe's own word names none. "5 blob" is a
--- whole fact with nothing missing: the word is its own denomination. There is
--- no honest unit to keep beside it — `batch` is the right dimension carrying
--- the wrong number (5, not 5/20) and `piece` is exactly the count this design
--- refuses to degrade to — so either would be a stored lie waiting for a reader
--- to believe it. Both rules therefore WIDEN by one arm and lose nothing:
+-- whole fact with nothing missing: the measure the line points at carries the
+-- unit, and the line's number counts WORDS, not units of them. There is no
+-- honest unit to keep beside it — the measure's own `g` read against the
+-- line's `5` says 5 g where the line means 75, `batch` is the right dimension
+-- carrying the wrong number and `piece` is exactly the count this design
+-- refuses to degrade to — so any of them would be a stored lie waiting for a
+-- reader to believe it. Both rules therefore WIDEN by one arm and lose nothing:
 --
 --   * `recipe_line_item.unit` drops its NOT NULL (0003) and a new XOR makes it
 --     total again — 0017's own move on this table, one column over;
@@ -127,9 +157,36 @@ create table recipe_measure (
   -- Nothing is hard-coded and nothing parses it.
   label        text not null
     constraint recipe_measure_label_not_blank check (btrim(label) <> ''),
-  -- How many of this measure ONE batch makes. The only number there is.
-  per_batch    numeric not null
-    constraint recipe_measure_per_batch_positive check (per_batch > 0),
+  -- What ONE of this measure comes to, in `unit`: a blob is 15 g. The
+  -- `basis_amount` of 0012, one level up — and positive for the same reason,
+  -- since multiplying by zero or a negative fabricates a share nobody stated.
+  amount       numeric not null
+    constraint recipe_measure_amount_positive check (amount > 0),
+  -- The unit `amount` is said in: a `units.dart` catalog id, the same ids
+  -- `recipe_line_item.unit` and `recipe.yield_unit` hold ('g', 'ml', 'cup',
+  -- 'piece'…). An ingredient measure needs no such column because the
+  -- ingredient's `macros_basis` IS its unit; a recipe has no single basis, so
+  -- each word carries its own.
+  --
+  -- The check says the two things a family rule can say here, and they are the
+  -- two that matter: `batch` is refused, because "a blob is 0.05 batch" is the
+  -- fraction nobody thinks in and would make the word circular; and an
+  -- imprecise word is refused, because `convert` will not carry one and a
+  -- measure that cannot convert says nothing.
+  --
+  -- What is LEFT TO THE CLIENT: that the id is in the catalog at all, and that
+  -- its family is one the recipe's `makes` actually states. Neither is
+  -- expressible here — no column in this schema validates a unit id
+  -- (`recipe_line_item.unit` and `recipe.yield_unit` do not either), the
+  -- `unit_family` mirror (0017) does not know every volume id the catalog
+  -- holds, so a positive family list would refuse `pt` and `qt`; and the yield
+  -- rule reads another table. `recipe_measure_authoring.dart` holds both, with
+  -- the refusal sentence that sends a person to MAKES.
+  unit         text not null
+    constraint recipe_measure_unit_can_measure check (
+      unit <> 'batch'
+      and unit_family(unit) is distinct from 'imprecise'
+    ),
   sort_order   int not null default 0,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
@@ -138,22 +195,35 @@ create table recipe_measure (
 
 comment on table recipe_measure is
   'A household word for one of what a recipe makes — "blob", "ladle", '
-  '"patty" — so a component line in another recipe can say "3 blob" of it. '
-  'One number defines it (per_batch), it needs no yield, no unit and no '
-  'density, and there is deliberately NO unique index on (recipe_id, label): '
-  'two offline devices coining the same word must not 23505 on upload, which '
-  'would drop the whole crud transaction (0011''s doctrine). Duplicates merge '
-  'on read, oldest row canonical.';
+  '"patty" — so a component line in another recipe can say "3 blob" of it. It '
+  'is a named AMOUNT, exactly like an ingredient_measure: amount + unit, a '
+  'blob is 15 g. A share of a batch comes from there through the recipe''s '
+  'same-family yield, so a word may only be authored while the recipe states '
+  'a `makes` in the unit''s family, and a yield edited away later leaves the '
+  'line honestly unresolved rather than guessed. There is deliberately NO '
+  'unique index on (recipe_id, label): two offline devices coining the same '
+  'word must not 23505 on upload, which would drop the whole crud transaction '
+  '(0011''s doctrine). Duplicates merge on read, oldest row canonical.';
 
 comment on column recipe_measure.label is
   'The word itself, as the household typed it. Free text — nothing here knows '
   'or guesses what a "blob" is, and no reader parses it.';
 
-comment on column recipe_measure.per_batch is
-  'How many of this measure ONE batch of the recipe makes ("a batch makes 20 '
-  'blob"). A line saying N of it resolves to N / per_batch batches, which is '
-  'the denomination every derivation already walks in. Scaling a parent '
-  'multiplies the LINE''s quantity, never this number.';
+comment on column recipe_measure.amount is
+  'What ONE of this measure comes to, in `unit`: a blob is 15 g. The '
+  'basis_amount of 0012 one level up. A line saying N of the word is N x this '
+  'much, converted within its family into the recipe''s stated yield and '
+  'divided by it, to reach the batch share every derivation walks in. '
+  'ABSOLUTE: re-stating `makes` from 300 g to 600 g leaves the blob at 15 g '
+  'and correctly halves the share it is. Scaling a parent multiplies the '
+  'LINE''s quantity, never this number.';
+
+comment on column recipe_measure.unit is
+  'A units.dart catalog id, the same ids recipe_line_item.unit holds. Mass, '
+  'volume or count only — `batch` and the imprecise words are refused by '
+  'check; that the id is in the catalog, and that its family is one the '
+  'recipe''s `makes` states, are the client''s (see the column comment in the '
+  'table body and recipe_measure_authoring.dart).';
 
 comment on column recipe_measure.sort_order is
   'The order the household dragged the list into. The first measure fronts '
@@ -199,12 +269,13 @@ alter publication powersync add table recipe_measure;
 -- 2. The two lines that can say one.
 -- ---------------------------------------------------------------------------
 --
--- A recipe measure is only ever sayable on a COMPONENT line — it counts what
--- another recipe's batch makes, and an ingredient has no batch. It only ever
--- means something beside a number: "blob" alone says nothing, the way 0033's
--- `measure_needs_amount` says of an ingredient measure. And it carries no
--- unit, for the reason the header gives: the word IS the denomination, and
--- every candidate unit would be a lie a reader could act on.
+-- A recipe measure is only ever sayable on a COMPONENT line — it is a word for
+-- one of what another recipe's batch makes, and an ingredient has no batch. It
+-- only ever means something beside a number: "blob" alone says nothing, the way
+-- 0033's `measure_needs_amount` says of an ingredient measure. And the LINE
+-- carries no unit, for the reason the header gives: the unit lives on the
+-- measure, the line's number counts words rather than units, and every
+-- candidate unit stored beside it would be a lie a reader could act on.
 
 alter table recipe_line_item
   -- Relaxed exactly as `ingredient_id` was in 0017, and for the same reason:

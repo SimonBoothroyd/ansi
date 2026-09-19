@@ -29,7 +29,7 @@ Immutable records of significant choices and their rationale.
 - [ADR-0015](../decisions/0015-piece-weight-is-a-row-fact.md) — A piece weight is a row fact, exactly as a density is: it unlocks `piece` and retires "Counts as" (supersedes ADR-0010; rules 2 and 4 amended by ADR-0016)
 - [ADR-0016](../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md) — A measure that weighs a piece is the row's word for one: the sheet opens on it, the review lands a count on it, found by weight and never stored (amends ADR-0015 rules 2 and 4)
 - [ADR-0017](../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md) — A cost is a unit price, never an allocation: the latest price per basis unit, a recipe is its lines, planned and spent are never reconciled, an unpriced line is named and takes the figure with it
-- [ADR-0018](../decisions/0018-a-recipe-measure-is-a-count-per-batch.md) — A recipe measure is a count per batch: `a batch makes 20 blob`, so `3 blob` is 0.15 batches — no yield, no unit, no density; a gone word refuses rather than degrading to a count, and the whole-batch word is found, never stored
+- [ADR-0018](../decisions/0018-a-recipe-measure-is-a-named-amount.md) — A recipe measure is a named amount, gated on `makes`: `a blob is 15 g`, so `3 blob` is 45 g and 0.15 of a 300 g batch — the ingredient measure's shape one level up, with its own unit because a recipe has no basis; authoring refuses without a `makes` in the unit's family, no density ever, a gone word refuses rather than degrading to a count, and the whole-batch word (the word that IS the whole yield) is found, never stored
 
 ## Deep design
 

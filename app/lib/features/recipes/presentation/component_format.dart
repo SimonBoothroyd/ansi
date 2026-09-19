@@ -7,6 +7,7 @@
 /// did not resolve — the refusal says which honest refusal it is instead.
 library;
 
+import '../../../core/units/measure.dart' show measureWordWithSize;
 import '../../../core/units/number_format.dart';
 import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
@@ -40,42 +41,68 @@ String componentAmountText(
 }
 
 /// An amount said in a recipe's own word: `"3 blob"`, or the bare word when
-/// there is no number yet. A measure carries no unit, so the figure prints by
-/// the kitchen rule, like every other unitless amount in the app.
+/// there is no number yet. The number counts WORDS rather than units of them —
+/// the unit lives on the measure — so the figure prints by the kitchen rule,
+/// like every other unitless amount in the app.
 String measuredAmountText(double? quantity, String measureLabel) {
   final qty = formatQuantity(quantity);
   return qty.isEmpty ? measureLabel : '$qty $measureLabel';
 }
 
-/// How a recipe's own word reads in a list — *"blob · a batch makes 20"* (the
-/// editor's MEASURES rows, and the manage state behind a component dock's ＋).
+/// How a recipe's own word reads in a list — *"blob · 15 g"* (the editor's
+/// MEASURES rows, and the manage state behind a component dock's ＋).
 ///
-/// The word is said once: the row has just named it, and *"blob · a batch
-/// makes 20 blob"* is the same word twice in eight words of English.
+/// It is the INGREDIENT side's shape, because it is now the same fact: the
+/// word, then what one of it comes to, with nothing between them but the
+/// separator this app uses for *and then*. The word is said once — the row has
+/// just named it.
 String recipeMeasureListText(RecipeMeasure measure) =>
-    '${measure.label} · a batch makes ${formatAmount(measure.perBatch)}';
+    '${measure.label} · ${recipeMeasureAmountText(measure)}';
 
-/// The one sentence a recipe measure IS — *"a batch makes 20 blob"*. It names
-/// the word because its readers are places the word is NOT already on screen
-/// beside it: the conversion line over a chip row, a card quoting a line.
+/// What one of the word comes to — *"15 g"*, *"1.25 cup"*, *"1 piece"*, said
+/// the one way this app says an amount with its unit.
+String recipeMeasureAmountText(RecipeMeasure measure) =>
+    '${formatAmountIn(measure.amount, measure.unit)} ${measure.unit.label}';
+
+/// A picked chip's own label — *"blob (15 g)"*, the ingredient dock's shape
+/// ([measureWordWithSize], which leaves a word that already states its size
+/// alone rather than saying it twice).
+String recipeMeasureChipText(RecipeMeasure measure) =>
+    measureWordWithSize(measure.label, measure.amount, measure.unit);
+
+/// The one sentence a recipe measure IS — *"a blob is 15 g"*. It names the word
+/// because its readers are places the word is NOT already on screen beside it:
+/// the conversion line over a chip row, a card quoting a line.
 String recipeMeasureRateText(RecipeMeasure measure) =>
-    'a batch makes ${formatAmount(measure.perBatch)} ${measure.label}';
+    'a ${measure.label} is ${recipeMeasureAmountText(measure)}';
 
-/// A Cook demand card's amount line — *"3 blob → 0.15 of a batch"*: what the
-/// line said, and what it comes to, in that order, because the reader is
-/// holding the parent recipe and looking for the word they wrote in it.
+/// A Cook demand card's amount line — *"3 blob → 45 g → 0.15 of a batch"*: what
+/// the line said, what that comes to, and what that is a share of, in that
+/// order, because the reader is holding the parent recipe and looking for the
+/// word they wrote in it.
+///
+/// **The middle step is printed, not elided.** It is the fact the word carries,
+/// and the one a cook checks when the share looks wrong — *a blob is what?*
+/// Without it the card asserts an arrow between two numbers with no visible
+/// relationship, which is exactly the kind of derivation this app makes a point
+/// of showing its work for.
 ///
 /// Null when the line says no word of the target's, where the card already
 /// states its batches and an arrow from one denomination to itself says
 /// nothing.
 String? componentDemandLine({
   required double? quantity,
-  required String? measureLabel,
+  required RecipeMeasure? measure,
   required double batches,
 }) {
-  if (measureLabel == null || quantity == null) return null;
-  return '${measuredAmountText(quantity, measureLabel)} → '
-      '${batchShareText(batches)}';
+  if (measure == null || quantity == null) return null;
+  final total = measure.totalFor(quantity);
+  return [
+    measuredAmountText(quantity, measure.label),
+    if (total != null)
+      '${formatAmountIn(total.amount, total.unit)} ${total.unit.label}',
+    batchShareText(batches),
+  ].join(' → ');
 }
 
 /// Why a recipe's word cannot be retired yet — *"Can’t delete “blob” yet · 3
@@ -93,6 +120,31 @@ String recipeMeasureDeleteRefusalText({
     'Can’t delete “$label” yet · $lines ${plural(lines, 'line')} still '
     '${plural(lines, 'says', plural: 'say')} it, in $recipes '
     '${plural(recipes, 'recipe')}.';
+
+/// What the recipe editor says before a Save that takes away the `makes` a live
+/// word stands on — *"“blob” (15 g) won’t say anything after this: nothing here
+/// makes a batch in grams any more. It stays, and every line saying it goes
+/// unresolved until MAKES says a weight again."*
+///
+/// It is a WARNING, not a refusal (`recipeMeasuresOrphanedBy` decides nothing):
+/// what a batch makes is a fact about the recipe and the household may restate
+/// it. The sentence's job is that nobody finds out from a broken line
+/// afterwards, so it names the words, says they survive, and names the way
+/// back.
+///
+/// Empty for an edit that orphans nothing, so a caller can use it as the
+/// condition too.
+String recipeMeasuresOrphanedWarning(List<RecipeMeasure> orphaned) {
+  if (orphaned.isEmpty) return '';
+  final n = orphaned.length;
+  final words = orphaned
+      .map((m) => '“${m.label}” (${recipeMeasureAmountText(m)})')
+      .join(', ');
+  return '$words ${plural(n, 'has', plural: 'have')} nothing left to be a '
+      'share of after this. Nothing is deleted — but every line saying '
+      '${plural(n, 'it', plural: 'them')} goes unresolved until MAKES says '
+      'what a batch comes to in the same kind of unit again.';
+}
 
 /// How many whole runs of the target a resolved amount asks for: `"1 batch"`,
 /// `"2 batches"`, `"0.25 of a batch"` — the board's *"¼ of a batch"*.
@@ -151,9 +203,14 @@ String componentAmountSummary(ComponentAmount amount) => switch (amount) {
 /// denominated in batches says it once ("1 batch"), because the printed amount
 /// IS the share.
 ///
-/// [measureLabel] comes from the resolved amount where there is one, so a row
-/// whose word has gone prints its number and the refusal rather than the
-/// count-family unit stored under the word.
+/// [measureLabel] is the LIVE word the line says, which a caller reading the
+/// target's measures has and this function does not. Pass it whenever the
+/// recipe still holds the word, resolved or not: a word whose `makes` has been
+/// edited away still reads *"3 blob · unresolved — …"*, because the word is
+/// what the household wrote and only the share has gone. The fallback to the
+/// resolved amount's own measure covers the callers that resolve and print in
+/// one breath; a line whose word has truly GONE has no label anywhere, and
+/// prints its number with the refusal.
 String usedInAmountLine({
   required double? quantity,
   required Unit? unit,
@@ -174,13 +231,19 @@ String usedInAmountLine({
 
 /// The quantity sheet's live conversion line (design board frame d):
 /// *"0.25 cup = 0.25 of a batch · makes 1 cup"*, *"3 blob = 0.15 of a batch ·
-/// a batch makes 20 blob"*, or the honest refusal — *"3 — its measure is
-/// gone"*.
+/// a blob is 15 g"*, or the honest refusal — *"3 blob — no yield set"*, *"3 —
+/// its measure is gone"*.
 ///
 /// Null while there is nothing to say — a line with no number yet, or one
-/// already counted in batches, where "1 batch = 1 batch" is noise. A line said
-/// in one of the target's [measures] always has something to say, because the
-/// share is the whole point of the word.
+/// already counted in batches, where "1 batch = 1 batch" is noise.
+///
+/// **The word is read off the recipe's LIVE measures, not off the resolution.**
+/// A measure resolves through the yield, so a word can now be perfectly alive
+/// and still unresolvable — a `makes` restated into another family under it.
+/// The line then reads *"3 blob — unresolved — the yield is in volume, this
+/// line in mass"*: the household's word, and the gap, both said. Only a word
+/// that has actually GONE loses its label, which is the one case where there is
+/// no honest label to print.
 String? componentConversionLine({
   required double? quantity,
   required Unit? unit,
@@ -197,10 +260,9 @@ String? componentConversionLine({
     recipeMeasureId: recipeMeasureId,
     measures: measures,
   );
-  final said = switch (amount) {
-    ResolvedComponentAmount(:final viaMeasure) => viaMeasure,
-    UnresolvedComponentAmount() => null,
-  };
+  final said = recipeMeasureId == null
+      ? null
+      : recipeMeasureById(recipeMeasureId, measures);
   final printed = componentAmountText(
     quantity,
     unit,

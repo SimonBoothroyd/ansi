@@ -406,13 +406,17 @@ void main() {
       components: components,
     );
 
-    /// "a batch makes 20 blob" — the household's own word for the aioli.
+    /// "a blob is 15 g" — the household's own word for the aioli.
     const blob = RecipeMeasure(
       id: 'blob',
       recipeId: 'aioli',
       label: 'blob',
-      perBatch: 20,
+      amount: 15,
+      unit: g,
     );
+
+    /// "makes 300 g" — the aioli weighed, which is what lets its word resolve.
+    const weighed = [(qty: 300.0, unit: g)];
 
     /// A line saying `3 blob` of the aioli: a quantity, a word, no unit.
     const threeBlob = (
@@ -440,8 +444,8 @@ void main() {
         ],
         components: {
           'sliders': sliders(components: const [threeBlob]),
-          // No yield at all — the word answers on its own.
-          'aioli': aioli(yields: const [], measures: const [blob]),
+          // 3 × 15 g = 45 g of a batch that makes 300 g.
+          'aioli': aioli(yields: weighed, measures: const [blob]),
         },
       );
       final session = plan.recipes
@@ -470,7 +474,7 @@ void main() {
           ],
           components: {
             'sliders': sliders(components: const [threeBlob]),
-            'aioli': aioli(yields: const [], measures: const [blob]),
+            'aioli': aioli(yields: weighed, measures: const [blob]),
           },
         );
         final session = plan.recipes

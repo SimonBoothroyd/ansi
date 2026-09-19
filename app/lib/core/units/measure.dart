@@ -115,9 +115,9 @@ class Measure {
 ///
 /// The app has exactly one tolerance for that, and both doors that ask the
 /// question use it — an ingredient measure against the row's piece weight
-/// (`wholeMeasureOf`, ADR-0016) and a recipe measure against one whole batch
-/// (`wholeMeasureOfRecipe`, ADR-0018). One number, so "the same measure"
-/// means the same thing wherever it is said.
+/// (`wholeMeasureOf`, ADR-0016) and a recipe measure against the whole of what
+/// a batch makes (`wholeMeasureOfRecipe`, ADR-0018). One number, so "the same
+/// measure" means the same thing wherever it is said.
 const kWholeMeasureTolerance = 0.01;
 
 /// [label] as the household wrote it: trimmed, with any run of inner

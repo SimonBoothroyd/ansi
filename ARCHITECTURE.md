@@ -139,11 +139,13 @@ vocab: named per-ingredient measures with gram weights ("1 potato, medium =
 on `recipe_line_item` and `shopping_list_contribution`, each row carrying its
 weight's provenance (`source`, 0010). Its recipe-side counterpart is
 `recipe_measure` (migration `0048`): a household word for one of what a
-*recipe* makes — `blob`, `ladle`, `patty` — defined by one number
-(`per_batch`, how many of the word a batch makes), so a component line can say
-`3 blob` of a sauce nobody weighed. It carries no provenance, because a
-recipe's words only ever come from the household that wrote the recipe, and no
-unit, because the word is its own denomination. The rows that fill the
+*recipe* makes — `blob`, `ladle`, `patty` — defined the same way, as an
+`amount` in a `unit` (a blob is 15 g), so a component line can say `3 blob` of
+a sauce and the recipe's own `makes` turns the 45 g into a share of a batch. It
+carries its own unit rather than inheriting a basis, because a recipe has no
+single one; it may only be coined while the recipe states a `makes` in the
+unit's family; and it carries no provenance, because a recipe's words only ever
+come from the household that wrote the recipe. The rows that fill the
 ingredient measures come from the
 checked-in seeds (`supabase/seed_vocab.sql` — the whole curated household
 vocabulary in one generated file: ingredients with their densities, macros,

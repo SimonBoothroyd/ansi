@@ -67,13 +67,17 @@ IngredientPricing? Function(String) _vocab({
         price: byId.containsKey(id) ? byId[id] : price,
       );
 
-/// "a batch makes 20 blob" — the household's own word for the aioli.
+/// "a blob is 15 g" — the household's own word for the aioli.
 RecipeMeasure _blob() => const RecipeMeasure(
   id: 'blob',
   recipeId: 'aioli',
   label: 'blob',
-  perBatch: 20,
+  amount: 15,
+  unit: g,
 );
+
+/// "makes 300 g" — the aioli weighed, which is what lets its word resolve.
+const _weighed = [(qty: 300.0, unit: g)];
 
 void main() {
   group('the price × the amount, in the basis', () {
@@ -475,22 +479,45 @@ void main() {
     });
 
     test("said in the target's own word: 0.15 × its whole cost", () {
-      // A batch makes 20 blob; the line asks for 3 of them.
+      // A blob is 15 g and the line asks for 3: 45 g of a batch that makes
+      // 300 g, so 0.15 of whatever the whole batch costs.
       final summary = summarizeRecipeCost(
         servingsBase: 1,
         lines: [component('aioli', quantity: 3, measureId: 'blob')],
         pricingOf: _vocab(price: _price()),
         // The target costs 100 g × 50¢/100 g = 50¢ whole.
-        subRecipeOf: (_) =>
-            node(lines: [_line('x', quantity: 100)], measures: [_blob()]),
+        subRecipeOf: (_) => node(
+          lines: [_line('x', quantity: 100)],
+          yields: _weighed,
+          measures: [_blob()],
+        ),
       );
       expect(summary.totalCents, closeTo(0.15 * 50, 1e-9));
     });
 
-    test('and the word needs no yield to do it', () {
+    test('a `makes` restated to 600 g halves the share, not the word', () {
+      // The point of an absolute amount: 45 g is a smaller part of a bigger
+      // batch, and the blob is still a blob.
       final summary = summarizeRecipeCost(
         servingsBase: 1,
         lines: [component('aioli', quantity: 3, measureId: 'blob')],
+        pricingOf: _vocab(price: _price()),
+        subRecipeOf: (_) => node(
+          lines: [_line('x', quantity: 100)],
+          yields: const [(qty: 600.0, unit: g)],
+          measures: [_blob()],
+        ),
+      );
+      expect(summary.totalCents, closeTo(0.075 * 50, 1e-9));
+    });
+
+    test('a word whose `makes` has gone takes the line out, named', () {
+      final summary = summarizeRecipeCost(
+        servingsBase: 1,
+        lines: [
+          _line('p', quantity: 100),
+          component('aioli', quantity: 3, measureId: 'blob'),
+        ],
         pricingOf: _vocab(price: _price()),
         subRecipeOf: (_) => node(
           lines: [_line('x', quantity: 100)],
@@ -498,7 +525,11 @@ void main() {
           measures: [_blob()],
         ),
       );
-      expect(summary.totalCents, closeTo(7.5, 1e-9));
+      expect(
+        summary.unpriced.single.reason,
+        CostLineReason.subRecipeUnresolved,
+      );
+      expect(summary.totalCents, isNull);
     });
 
     test('a parent cooked twice asks for 6 blob — 0.3 of a batch', () {
@@ -508,8 +539,11 @@ void main() {
         servingsBase: 1,
         lines: [component('aioli', quantity: 6, measureId: 'blob')],
         pricingOf: _vocab(price: _price()),
-        subRecipeOf: (_) =>
-            node(lines: [_line('x', quantity: 100)], measures: [_blob()]),
+        subRecipeOf: (_) => node(
+          lines: [_line('x', quantity: 100)],
+          yields: _weighed,
+          measures: [_blob()],
+        ),
       );
       expect(summary.totalCents, closeTo(0.3 * 50, 1e-9));
     });

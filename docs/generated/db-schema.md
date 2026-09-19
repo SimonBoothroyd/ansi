@@ -416,7 +416,8 @@ introduced in `0048_recipe_measure.sql` · RLS enabled · in the `powersync` pub
 | `household_id` | `uuid` | no | not null references household(id) |
 | `recipe_id` | `uuid` | no | not null references recipe(id) on delete cascade |
 | `label` | `text` | no | not null constraint recipe_measure_label_not_blank check (btrim(label) <> '') |
-| `per_batch` | `numeric` | no | not null constraint recipe_measure_per_batch_positive check (per_batch > 0) |
+| `amount` | `numeric` | no | not null constraint recipe_measure_amount_positive check (amount > 0) |
+| `unit` | `text` | no | not null constraint recipe_measure_unit_can_measure check ( unit <> 'batch' and unit_family(unit) is distinct from 'imprecise' ) |
 | `sort_order` | `int` | no | not null default 0 |
 | `created_at` | `timestamptz` | no | not null default now() |
 | `updated_at` | `timestamptz` | no | not null default now() |
