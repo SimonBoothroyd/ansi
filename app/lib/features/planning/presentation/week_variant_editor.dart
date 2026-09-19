@@ -47,6 +47,7 @@ import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../../recipes/domain/line_display.dart';
 import '../../recipes/domain/line_override.dart';
 import '../../recipes/domain/recipe.dart';
+import '../../recipes/presentation/component_quantity_sheet.dart';
 import '../../recipes/presentation/ingredient_line.dart';
 import '../../recipes/presentation/line_target_picker.dart';
 import '../domain/planning.dart' show PlanEntry;
@@ -317,6 +318,37 @@ class _WeekLineRow extends ConsumerWidget {
     final muted = struck ? AnsiColors.muted : AnsiColors.ink;
 
     Future<void> editAmount() async {
+      // A line said in one of the target recipe's own words — `3 blob`,
+      // ADR-0018 — has no catalog unit at all, and the sheet below offers
+      // nothing but catalog units: it opens preselected on `piece` and hands
+      // one back, and `setUnit` would then store this week's amount with the
+      // word replaced by a unit. The word is the only place its amount lived,
+      // so that is a silent, irreversible loss — and this build has no
+      // authoring control to put the word back with.
+      //
+      // So a measured line's amount is edited in the COMPONENT sheet, which
+      // keeps the denomination and returns a null `unit` for it. Only the
+      // number and the flag move.
+      if (item.recipeMeasureId != null) {
+        final target =
+            item.subRecipe ??
+            SubRecipeTarget(
+              id: item.subRecipeId ?? '',
+              title: item.ingredientName,
+            );
+        final measured = await showComponentQuantitySheet(
+          context,
+          target: target,
+          initialQuantity: item.quantity,
+          initialMeasureId: item.recipeMeasureId,
+          initialOptional: item.optional,
+        );
+        if (measured == null) return;
+        notifier
+          ..setQuantity(item.id, measured.quantity)
+          ..setOptional(item.id, optional: measured.optional);
+        return;
+      }
       final ingredient = Ingredient(
         id: item.ingredientId ?? '',
         canonicalName: item.ingredientName,

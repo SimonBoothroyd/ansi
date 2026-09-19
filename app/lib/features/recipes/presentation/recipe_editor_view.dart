@@ -50,6 +50,7 @@ import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../domain/component_math.dart';
+import '../domain/line_display.dart';
 import '../domain/method_draft.dart';
 import '../domain/recipe.dart';
 import 'component_format.dart';
@@ -830,6 +831,11 @@ class _ComponentLineEditor extends StatelessWidget {
             ),
         initialQuantity: item.quantity,
         initialUnit: item.unit,
+        // The pointer the line carries, which is the whole condition: a
+        // units-only offer always returns a unit, and writing one here would
+        // replace `blob` with `g` and lose the only place the line's amount
+        // lived (ADR-0018). The sheet reads the word off the target.
+        initialMeasureId: item.recipeMeasureId,
         initialOptional: item.optional,
         onSetYield: target == null
             ? null
@@ -838,25 +844,28 @@ class _ComponentLineEditor extends StatelessWidget {
       if (result == null) return;
       notifier
         ..setLineItemQuantity(item.id, result.quantity)
-        ..setLineItemUnit(item.id, result.unit)
         ..setLineItemOptional(item.id, optional: result.optional);
+      // Null means the line keeps the word it already says — see
+      // [ComponentQuantity]. Never a fallback unit: that IS the loss.
+      if (result.unit case final picked?) {
+        notifier.setLineItemUnit(item.id, picked);
+      }
     }
 
     return _EditorLine(
       item: item,
       recipeId: recipeId,
       notifier: notifier,
-      // The word the line was written in, when the target still has it — the
-      // target's own measures are already on the line, so the row prints `3
-      // blob` rather than a bare `3`. A word that has gone prints the number
-      // alone, which is the honest half of the refusal.
+      // The word the line was written in, read off the target's LIVE measures
+      // rather than off the resolution: a word can be alive and unresolvable at
+      // the same time (a `makes` restated into another family under it), and
+      // that row must still read `3 blob` rather than a bare `3`. Only a word
+      // that has truly gone prints the number alone, which is the honest half
+      // of the refusal.
       amount: componentAmountText(
         item.quantity,
         item.unit,
-        measureLabel: switch (item.componentAmount) {
-          ResolvedComponentAmount(:final viaMeasure) => viaMeasure?.label,
-          _ => null,
-        },
+        measureLabel: recipeMeasureOfLine(item)?.label,
       ),
       dragIndex: dragIndex,
       collapseEpoch: collapseEpoch,
