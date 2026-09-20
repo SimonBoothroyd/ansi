@@ -6,10 +6,10 @@
 /// PowerSync views, read back, and costed and macro'd as the share of a batch
 /// the word says it is.
 ///
-/// It exists because every step of that chain can be right on its own and still
-/// hand the next one the wrong thing — a sheet returning a unit beside the word,
-/// a caller writing the unit and dropping the pointer, a mapper storing both.
-/// The numbers at the end are the only place that shows.
+/// It exists because every step of that chain can be right on its own and
+/// still hand the next one the wrong thing — a sheet returning a unit beside
+/// the word, a caller writing the unit and dropping the pointer, a mapper
+/// storing both. The numbers at the end are the only place that shows.
 library;
 
 import 'dart:io';
