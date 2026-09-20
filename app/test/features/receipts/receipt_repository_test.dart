@@ -387,6 +387,43 @@ void main() {
       );
     });
 
+    test('a line nobody changed is not re-stamped', () async {
+      // Recall reads the NEWEST answer by `updated_at`, so re-saving an old
+      // receipt for its date must not make its stale matches the latest word.
+      final id = await repo.saveReceipt(write([line(), line(sortOrder: 1)]));
+      final [first, second] = (await repo.watchReceipt(id).first)!.lines;
+      final was = await db.getAll(
+        'SELECT id, updated_at FROM receipt_line WHERE receipt_id = ?',
+        [id],
+      );
+      final stamps = {
+        for (final r in was) r['id'] as String: r['updated_at'] as String,
+      };
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+
+      await repo.updateReceipt(
+        id,
+        write([
+          line(lineId: first.id),
+          line(lineId: second.id, sortOrder: 1, cents: 399),
+        ]),
+      );
+
+      final now = await db.getAll(
+        'SELECT id, updated_at FROM receipt_line WHERE receipt_id = ?',
+        [id],
+      );
+      final moved = {
+        for (final r in now) r['id'] as String: r['updated_at'] as String,
+      };
+      expect(moved[first.id], stamps[first.id], reason: 'nothing changed');
+      expect(
+        moved[second.id],
+        isNot(stamps[second.id]),
+        reason: 'the figure moved, so the answer is new',
+      );
+    });
+
     test('an edit refuses what a save refuses', () async {
       final id = await repo.saveReceipt(write([line()]));
       expect(

@@ -315,13 +315,21 @@ class SqliteReceiptRepository implements ReceiptRepository {
       // them. The name is also what the receipt door recalls past answers by,
       // and a name that moved under an answer would file it somewhere nobody
       // asked about.
+      //
+      // The `IS NOT` tail is what makes a re-save of an unchanged line write
+      // nothing at all: recall reads the newest `updated_at`, so re-stamping
+      // a line nobody touched would make an old receipt's stale match the
+      // latest answer — and it would queue an upload op saying nothing.
       await tx.execute(
         'UPDATE receipt_line SET ingredient_id = ?, cents = ?, '
         'discount_cents = ?, kind = ?, pack_basis_amount = ?, '
         'pack_amount = ?, pack_unit = ?, measure_id = ?, sort_order = ?, '
         'updated_at = ? WHERE id = ? AND receipt_id = ? '
-        'AND deleted_at IS NULL',
-        [...said, stamp, id, receiptId],
+        'AND deleted_at IS NULL AND (ingredient_id IS NOT ? OR '
+        'cents IS NOT ? OR discount_cents IS NOT ? OR kind IS NOT ? OR '
+        'pack_basis_amount IS NOT ? OR pack_amount IS NOT ? OR '
+        'pack_unit IS NOT ? OR measure_id IS NOT ? OR sort_order IS NOT ?)',
+        [...said, stamp, id, receiptId, ...said],
       );
       return;
     }
