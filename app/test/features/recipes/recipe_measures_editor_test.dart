@@ -21,7 +21,6 @@ import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_measure_authoring.dart';
 import 'package:ansi/features/recipes/domain/recipe_measure_repository.dart';
 import 'package:ansi/features/recipes/presentation/recipe_measures_editor.dart';
-import 'package:ansi/shared/reorder_grip.dart';
 import 'package:ansi/shared/unit_chip.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -98,12 +97,7 @@ bool _labelHasFocus(WidgetTester tester) => tester
 /// editor hands back goes straight into [words], so a test reads the list the
 /// editor produced rather than a draft two layers away.
 class _Host extends StatefulWidget {
-  const _Host({
-    required this.yields,
-    this.words = const [],
-    this.refuseWith,
-    this.reorders,
-  });
+  const _Host({required this.yields, this.words = const [], this.refuseWith});
 
   final List<YieldDenomination> yields;
   final List<RecipeMeasure> words;
@@ -111,9 +105,6 @@ class _Host extends StatefulWidget {
   /// A host layer that turns the authored word down anyway — the direct door's
   /// repository, which re-reads the world inside its own transaction.
   final String? refuseWith;
-
-  /// Non-null draws the grips and records the order a drag left.
-  final List<List<String>>? reorders;
 
   @override
   State<_Host> createState() => _HostState();
@@ -164,9 +155,6 @@ class _HostState extends State<_Host> {
                 },
                 onDelete: (word) async =>
                     setState(() => words = [...words]..remove(word)),
-                onReorder: widget.reorders == null
-                    ? null
-                    : (ids) async => widget.reorders!.add(ids),
               ),
             ],
           ),
@@ -192,7 +180,7 @@ void main() {
 
       expect(find.text(kRecipeMeasureNoYieldRefusal), findsOneWidget);
       // ONE sentence: the empty-list line would be a second problem to read.
-      expect(find.textContaining('No words yet'), findsNothing);
+      expect(find.textContaining('No measures yet'), findsNothing);
       // And nothing that could only produce a refusal: no slots, no chip, no
       // button.
       expect(_labelField, findsNothing);
@@ -414,56 +402,11 @@ void main() {
         const _Host(yields: _makesMass, words: [_blob]),
       );
 
+      // The word and its number read as one sentence; the bin keeps its name.
+      expect(find.bySemanticsLabel('blob · 15 g'), findsOneWidget);
       await tester.tap(find.bySemanticsLabel('Delete the measure'));
       await tester.pumpAndSettle();
       expect(state.words, isEmpty);
-    });
-
-    testWidgets('the list drags only where the host takes an order — and the '
-        'drag hands back ids, not indexes', (tester) async {
-      final reorders = <List<String>>[];
-      await _pump(
-        tester,
-        _Host(
-          yields: _makesMass,
-          words: const [
-            _blob,
-            RecipeMeasure(
-              id: 'm-loaf',
-              recipeId: 'aioli',
-              label: 'loaf',
-              amount: 300,
-              unit: g,
-            ),
-          ],
-          reorders: reorders,
-        ),
-      );
-
-      expect(find.byType(DragGrip), findsNWidgets(2));
-      // The word and its number read as one sentence; the controls keep their
-      // own names.
-      expect(find.bySemanticsLabel('blob · 15 g'), findsOneWidget);
-      expect(find.bySemanticsLabel('Reorder'), findsNWidgets(2));
-      final grips = find.byType(DragGrip);
-      final from = tester.getCenter(grips.at(1));
-      final to = tester.getCenter(grips.first);
-      final drag = await tester.startGesture(from);
-      await tester.pump(const Duration(milliseconds: 200));
-      for (var y = from.dy; y > to.dy - 40; y -= 8) {
-        await drag.moveTo(Offset(from.dx, y));
-        await tester.pump();
-      }
-      await drag.up();
-      await tester.pumpAndSettle();
-      expect(reorders, [
-        ['m-loaf', 'm-blob'],
-      ]);
-    });
-
-    testWidgets('…and draws no grip at all without one', (tester) async {
-      await _pump(tester, const _Host(yields: _makesMass, words: [_blob]));
-      expect(find.byType(DragGrip), findsNothing);
     });
   });
 
@@ -582,7 +525,7 @@ void main() {
       await tester.pumpAndSettle();
       await saveEditor(tester);
 
-      expect(find.text('Leave that word on nothing?'), findsOneWidget);
+      expect(find.text('Leave that measure on nothing?'), findsOneWidget);
       expect(
         find.textContaining('“blob” (15 g) has nothing left to be a share of'),
         findsOneWidget,
@@ -630,7 +573,7 @@ void main() {
       expect(find.textContaining('nothing to be a share of'), findsOneWidget);
 
       await saveEditor(tester);
-      expect(find.text('Leave that word on nothing?'), findsNothing);
+      expect(find.text('Leave that measure on nothing?'), findsNothing);
       expect(fakes.recipes.saved.single.measures.single, _blob);
     });
 

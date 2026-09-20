@@ -254,11 +254,14 @@ Future<bool> _mayOrphanMeasures(
 ) async {
   final orphaned = notifier.measuresOrphanedBySave();
   if (orphaned.isEmpty) return true;
+  final those = plural(
+    orphaned.length,
+    'that measure',
+    plural: 'those measures',
+  );
   return askAnsi(
     context,
-    title:
-        'Leave ${plural(orphaned.length, 'that word', plural: 'those words')} '
-        'on nothing?',
+    title: 'Leave $those on nothing?',
     body: recipeMeasuresOrphanedWarning(orphaned),
     confirm: 'Save anyway',
     cancel: 'Keep editing',

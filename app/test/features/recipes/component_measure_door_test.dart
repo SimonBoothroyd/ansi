@@ -99,6 +99,7 @@ Future<_Door> _pumpDoor(
   Unit? initialUnit = batches,
   String? initialMeasureId,
   bool mayCoinWords = true,
+  VoidCallback? onSetYield,
 }) async {
   filterForuiSemanticsAssertions();
   tallSurface(tester);
@@ -117,6 +118,7 @@ Future<_Door> _pumpDoor(
         initialUnit: initialUnit,
         initialMeasureId: initialMeasureId,
         mayCoinWords: mayCoinWords,
+        onSetYield: onSetYield,
         onDone: done.add,
       ),
     ),
@@ -126,7 +128,7 @@ Future<_Door> _pumpDoor(
   return (words: repo, done: done);
 }
 
-/// Coins one word behind the ＋, leaving the door open.
+/// Coins one word behind the ＋; a word that lands returns to the amount.
 Future<void> _coin(
   WidgetTester tester, {
   required String label,
@@ -198,9 +200,10 @@ void main() {
     expect(door.words.added.single.label, 'blob');
     expect(door.words.added.single.recipeId, 'aioli');
 
-    await _back(tester);
-    // It is a chip because the sheet WATCHES the target's words, and it is
-    // the selected one because this door was opened mid-sentence.
+    // Back on the amount with no Back tap, as the ingredient dock does. It is
+    // a chip because the sheet WATCHES the target's words, and the selected
+    // one because this door was opened mid-sentence.
+    expect(find.text('Measures'), findsNothing);
     expect(_chip('blob'), findsOneWidget);
     expect(_chipIsSelected(tester, 'blob'), isTrue);
 
@@ -309,24 +312,61 @@ void main() {
     expect(door.done.single.unit, g);
   });
 
-  testWidgets('with no MAKES the door is still open, and it says one sentence '
-      'plus where MAKES is set', (tester) async {
-    await _pumpDoor(tester, target: _unmeasured);
+  testWidgets('with no MAKES the ＋ says one sentence and offers the same door '
+      'to the yield as the amount does', (tester) async {
+    var sent = 0;
+    await _pumpDoor(tester, target: _unmeasured, onSetYield: () => sent++);
 
     await tester.tap(_plus);
     await tester.pumpAndSettle();
 
     expect(find.text(kRecipeMeasureNoYieldRefusal), findsOneWidget);
     expect(_labelField, findsNothing, reason: 'a form here could only refuse');
-    expect(
-      find.text(
-        'MAKES is stated on Romesco Aioli’s own editor — say what a batch '
-        'makes there and this form opens.',
-      ),
-      findsOneWidget,
+    await tester.tap(find.text('Set the yield'));
+    expect(sent, 1);
+  });
+
+  testWidgets('with no MAKES and nowhere to set it there is no ＋ — the page '
+      'could only refuse', (tester) async {
+    await _pumpDoor(tester, target: _unmeasured);
+
+    expect(_plus, findsNothing);
+  });
+
+  testWidgets('a re-statement the repository refuses is printed under the open '
+      'row, and the row stays open', (tester) async {
+    const reason = 'That measure is not one of this recipe’s any more.';
+    final door = await _pumpDoor(
+      tester,
+      words: const [_blob],
+      refuseWith: reason,
+      initialQuantity: 2,
+      initialUnit: null,
+      initialMeasureId: 'm-blob',
     );
-    // One pointer, not a second door: nothing here sets MAKES.
-    expect(find.widgetWithText(FButton, 'Set the yield'), findsNothing);
+
+    await tester.tap(_plus);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(RecipeMeasuresEditor),
+        matching: find.text('blob'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(_editAmountField, '18');
+    await tester.pump();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('edit-recipe-measure-m-blob')),
+        matching: find.widgetWithText(FButton, 'Save'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(reason), findsOneWidget);
+    expect(door.words.restated, isEmpty);
+    expect(tester.widget<TextField>(_editAmountField).controller?.text, '18');
   });
 
   testWidgets('a word re-stated under the sheet follows through to the line '

@@ -40,7 +40,6 @@ import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_tap.dart';
 import '../../../shared/measure_form.dart';
-import '../../../shared/reorder_grip.dart';
 import '../domain/component_math.dart';
 import '../domain/recipe_measure_authoring.dart';
 import 'component_format.dart';
@@ -88,7 +87,6 @@ class RecipeMeasuresEditor extends HookWidget {
     required this.onAdd,
     required this.onRestate,
     required this.onDelete,
-    this.onReorder,
     this.addLabel = 'Save',
     this.autofocus = false,
     super.key,
@@ -125,12 +123,6 @@ class RecipeMeasuresEditor extends HookWidget {
   /// (`mayDeleteRecipeMeasure`), and only the host knows whether the row is a
   /// draft one or a live one.
   final Future<void> Function(RecipeMeasure) onDelete;
-
-  /// The list in the order the drag left it, by id. **Null draws no grip and no
-  /// drag**: `sort_order` is stored and read, but the gesture is a later pass
-  /// (ADR-0018, "out of the first slice") — the order a household types their
-  /// words in is already the order they get.
-  final Future<void> Function(List<String> ids)? onReorder;
 
   /// What the add form's button says. `Save` in a host that commits on tap, and
   /// `Add` where the tap only puts the word in a draft — a button reading Save
@@ -217,15 +209,6 @@ class RecipeMeasuresEditor extends HookWidget {
       }
     }
 
-    Widget row(RecipeMeasure m, int index) => RecipeMeasureRow(
-      key: ValueKey('recipe-measure-${m.id}'),
-      measure: m,
-      resolves: recipeMeasureResolvesAgainst(m, yields),
-      dragIndex: onReorder == null ? null : index,
-      onDelete: onDelete,
-      onTap: () => editing.value = m.id,
-    );
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -236,22 +219,17 @@ class RecipeMeasuresEditor extends HookWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Text(
-                'No words yet — a component line can still say “0.5 batch”.',
+                'No measures yet — a component line can still say “0.5 batch”.',
                 style: ansiMono(size: 12, color: AnsiColors.muted),
               ),
             )
           else
             const SizedBox.shrink()
-        else if (editing.value != null || onReorder == null)
-          // A row open for editing is not a row you can drag, and the plain
-          // column is also what keeps the form out of a scrollable of its own:
-          // a field inside the list scrolling ITSELF into view, in a subtree
-          // Save is about to remove, is an animation pointed at a render object
-          // that has gone.
+        else
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              for (final (i, m) in measures.indexed)
+              for (final m in measures)
                 if (editing.value == m.id)
                   _EditRecipeMeasureForm(
                     key: ValueKey('edit-recipe-measure-${m.id}'),
@@ -268,21 +246,14 @@ class RecipeMeasuresEditor extends HookWidget {
                     },
                   )
                 else
-                  row(m, i),
+                  RecipeMeasureRow(
+                    key: ValueKey('recipe-measure-${m.id}'),
+                    measure: m,
+                    resolves: recipeMeasureResolvesAgainst(m, yields),
+                    onDelete: onDelete,
+                    onTap: () => editing.value = m.id,
+                  ),
             ],
-          )
-        else
-          ReorderableList(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: measures.length,
-            proxyDecorator: liftedRow,
-            onReorderItem: (oldIndex, newIndex) {
-              final ids = [for (final m in measures) m.id];
-              ids.insert(newIndex, ids.removeAt(oldIndex));
-              onReorder!(ids);
-            },
-            itemBuilder: (context, index) => row(measures[index], index),
           ),
         const SizedBox(height: 12),
         if (unit == null)
@@ -338,7 +309,6 @@ class RecipeMeasureRow extends StatelessWidget {
     required this.measure,
     required this.onDelete,
     this.resolves = true,
-    this.dragIndex,
     this.onTap,
     super.key,
   });
@@ -350,10 +320,6 @@ class RecipeMeasureRow extends StatelessWidget {
   /// it, in its own words. Never a refusal: the word is alive, and it is MAKES
   /// that has stopped saying enough.
   final bool resolves;
-
-  /// The row's position in the reorderable list it drags within. Null where the
-  /// list does not reorder.
-  final int? dragIndex;
 
   /// Opens the row for re-stating. Null where the list is read-only.
   final VoidCallback? onTap;
@@ -373,13 +339,11 @@ class RecipeMeasureRow extends StatelessWidget {
           children: [
             Row(
               children: [
-                if (dragIndex case final index?) DragGrip(index: index),
                 // The two spans are a word and its number, read as ONE
                 // sentence — `blob · 15 g`, the way this app says the pair —
                 // because a reader who gets no columns gets no gap between
-                // them either. The grip and the bin stay outside it: they are
-                // controls, and a control merged into a sentence loses its own
-                // name.
+                // them either. The bin stays outside it: a control merged into
+                // a sentence loses its own name.
                 Expanded(
                   child: Semantics(
                     label: recipeMeasureListText(measure),
