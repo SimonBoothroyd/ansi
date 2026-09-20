@@ -74,5 +74,4 @@ the number and says `saysAMeasure` — never re-read as a count of the yield.
 - **Whole-ingredient scaling** (spec §4) — shown as the raw factor for now.
 - **Interactive cook-day adjustment** — display-only; making it movable needs a
   persisted override (the plan is otherwise purely derived).
-- Both are stretch. (The plan syncs since step 7 — it's derived from synced
-  tables — but these two enhancements are still unbuilt.)
+- Both are stretch.

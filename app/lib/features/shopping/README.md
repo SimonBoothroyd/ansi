@@ -159,7 +159,7 @@ its cook contribution vanishes; an ingredient entry with no manual top-up drops
 off the list (its checked row stays inert). Recipe deletion never touches the
 vocab `ingredient` row, so `ingredient_id` never dangles. If the ingredient is
 re-planned, its prior check-off returns with it — a "clear list / new trip"
-action is still unbuilt (a shared-state gesture now that sync is live).
+action is unbuilt.
 
 ## Removing a line
 
@@ -183,7 +183,6 @@ misleading when meals are already planned.
   a density). Aggregation stays honest without it. See the tech-debt tracker.
 - Package-size / whole-unit rounding (stretch, anti-waste — step 11).
 - "Clear list / new shopping trip" — a shared-state gesture, still unbuilt.
-- Syncs since step 7 (the overlay tables are synced, household-scoped).
 
 ## What the trip costs
 

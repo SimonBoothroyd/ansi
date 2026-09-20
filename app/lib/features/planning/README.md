@@ -33,7 +33,7 @@ planning/
                   it replaced entry_sheet, which was a hub behind a mode),
                   meal_fields (the controls both sheets share),
                   household_section (the members' usual portions, a section
-                  of /account — plan 0027 P-D3, moved there by 0028 E6),
+                  of /account),
                   week_widgets (Pill, EaterAvatar, EaterAvatarStack,
                   PortionsChip, CookMarkerLine, OutTag, OutMealLine),
                   week_format,
@@ -83,8 +83,7 @@ back to the recipe's own value leaving no row at all.
 ## The entry XOR
 
 `plan_entry` names a `recipe_id`, an `ingredient_id` **or** a `label`, enforced
-server-side (migrations 0033 and 0045, the shape `recipe_line_item` has worn
-since 0017). Something you simply *eat* is planned as itself rather than dressed
+server-side (migrations 0033 and 0045, the shape `recipe_line_item` wears). Something you simply *eat* is planned as itself rather than dressed
 up as a one-line recipe; something eaten OUT is planned as the words it is,
 rather than as a vocabulary row the household does not own.
 
@@ -155,8 +154,8 @@ Tapping a day's dashed "+ Add a meal" runs `_addMealFlow` in `week_view.dart`:
 
 The picker/confirm rows show the shelf-life chips ("keeps N d · freezable"),
 and the confirm sheet surfaces a **"same batch" hint** when the new meal would
-cook alongside one already on the week — both landed in step 5 (they reuse the
-cook plan's `batchHintFor`/`clusterSessions`). Neither appears on a snack or a
+cook alongside one already on the week (both reuse the cook plan's
+`batchHintFor`/`clusterSessions`). Neither appears on a snack or a
 meal eaten out: they are facts about a cooked dish. `MealSnackCard` prints its
 amount instead, and `MealOutCard` prints `out · not cooked, not bought`.
 
@@ -175,8 +174,7 @@ amount instead, and `MealOutCard` prints `out · not cooked, not bought`.
   indexing the tables in `core/words.dart` directly is a Monday-first
   assumption, and a structural test refuses it.
 - **`plan_entry.eaters`** is a JSON array of `household_member` ids; demand for
-  an entry = Σ of the eaters' `portion_factor` (`demandPortions`, plan 0027
-  P-D1 — `1¾` for a 1 and a ¾ eater, printed as a fraction through
+  an entry = Σ of the eaters' `portion_factor` (`demandPortions` — `1¾` for a 1 and a ¾ eater, printed as a fraction through
   `core/units/portions.dart`, never rounded), unless the whole-number
   `portions` override is set. It's a field (last-write-wins, spec §3), not a
   join table.
@@ -187,12 +185,10 @@ amount instead, and `MealOutCard` prints `out · not cooked, not bought`.
   field of the meal editor** (`setMealSlot`): a row prints it, as the gutter
   label it sits under, so it is changed in place. **The day is not** — a row's
   position is its day — so a meal changes day by remove-and-re-add.
-- **Members** are **synced** from the server (step 7): `ensure_onboarded`
+- **Members** are **synced** from the server: `ensure_onboarded`
   (migration 0007) creates the `household_member` rows at sign-in and they stream
   down; the app reads them, and the one column it writes is `portion_factor`
-  (plan 0027 P-D3: the Household sheet off the Library `⋯`, either member may
-  set either's). (Pre-step-7 they were a local-only, `ensureMembers()`-seeded
-  table.) See [`schema.dart`](../../core/sync/schema.dart).
+  (either member may set either's). See [`schema.dart`](../../core/sync/schema.dart).
 
 ## Navigation
 
@@ -203,7 +199,6 @@ Cook (step 5), and Shop (step 6) — all four tabs are live.
 
 - Recipe photos (picker/confirm thumbnails are placeholders) — needs Storage.
 - Favorites tab in the picker — no favorite flag on `recipe` yet.
-- Syncs since step 7 (`week_plan`/`plan_entry` are synced, household-scoped).
 
 ## What the week costs to cook
 
@@ -215,7 +210,7 @@ line has no cost at all, so its meal cannot join the figure; the lines that
 kept it out are named instead, distinct, because the same unpriced ingredient
 in three recipes is one thing to go and price.
 
-**A week missing a meal says its figure is a floor** (owner): with anything
+**A week missing a meal says its figure is a floor**: with anything
 unpriced the line reads `at least $71 to cook · 3 lines unpriced`, and it
 wears no `≈`, because a meal drops out WHOLE — the number is short by meals,
 not rounded, and what is uncertain is the lines nobody has priced rather than

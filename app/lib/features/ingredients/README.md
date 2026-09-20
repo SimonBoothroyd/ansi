@@ -383,7 +383,7 @@ ingredients/
   Two measures are never offered: one whose label merely names a volume unit
   (density owns volume, ADR-0008 §2) and the row's **serving**, which is the
   size a nutrition panel is printed per rather than one anybody cooks, plans
-  or shops in (owner). Both stay re-selectable where a line already says one,
+  or shops in. Both stay re-selectable where a line already says one,
   through the off-filter admission every stored choice gets.
   - **A surface with nothing stored opens on the first chip**
     (`firstOfferedChoice`): the row's whole measure where it has one, else its
@@ -391,7 +391,7 @@ ingredients/
     words run out, since the catalog half fronts it. A surface that has
     something to reopen on — a line being edited, a pack in the words it was
     last bought in — passes that and never asks.
-  - **The catalog half fronts the default unit whatever its family** (owner).
+  - **The catalog half fronts the default unit whatever its family**.
     The few rows whose default IS an imprecise word — Ground Allspice, Ground
     Cloves, Flaky Salt — lead with that word, behind their own measures and
     ahead of the basis family, so a spice said in pinches does not open on

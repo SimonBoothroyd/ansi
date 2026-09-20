@@ -39,7 +39,7 @@ CommitPayload                         domain/commit_payload.dart
       │
       ▼  SqliteImportRepository.commit — ONE local transaction
 recipe (filed into the default book) · ingredient_group · recipe_line_item
-  · create-new stubs · correction aliases
+  · correction aliases
   · step refs remapped line_index → line_item_id
 ```
 
@@ -187,14 +187,10 @@ import/
   entry surface for quantities app-wide; reconciliation is just another caller,
   seeded from the raw line. A picked measure rides on the line as its **label**
   and is resolved back to an `ingredient_measure.id` at commit.
-- **Stubs are created client-side, in the commit transaction**, keyed by a
-  coalescing key so identical no-match lines share one new ingredient. The USDA
-  enrichment leg is server-side and **now wired**: migrations `0014`/`0015` fire
-  a trigger as the stub arrives (and on a later rename), copying density + macros
-  from `usda_food` onto a bare stub — the row stays `stub` until a human confirms
-  it in the ingredients manager. One gap left: this commit still writes
-  `match_text` with the character-level normalizer rather than the phrase
-  normalizer the ingredients feature ported (tracker).
+- **The commit creates no ingredient.** *Create new* at review runs the
+  ingredient form before the line resolves, so every line arrives with a real
+  id; correction aliases are written with the phrase normalizer
+  (`normalizeMatchText`).
 - **A recipe is OFFERED, never auto-linked** (8.6 / D6, board frame e). The
   server may attach `recipe_candidates` to a line — household recipes whose
   *title* the line seems to name. The card renders them in the existing
@@ -208,7 +204,7 @@ import/
   cook plan rather than here. Unlink (or match an ingredient) puts the line
   back; a line nobody taps commits byte-identically to before the field
   existed, which `line_resolution_test` pins against the gold specimens.
-- **The header is the editor's** (plan 0025 #4, board frame b). The review
+- **The header is the editor's.** The review
   holds a header draft `Recipe` (`domain/header_draft.dart`) from the moment
   the page arrives and renders the recipes feature's `RecipeHeaderForm` over
   it, with `ImportController` as its `RecipeHeaderHost` — title, serves, makes
@@ -266,8 +262,8 @@ backend.
   `yield_prefill_test` (the parser's whole table — the refusals especially).
 - VM: `import_controller_test` (state machine, resolution edits, commit gate).
 - Repo: `import_repository_test` on a **real `PowerSyncDatabase`** — the
-  `line_index` → `line_item_id` remap (a minted index included), stub
-  coalescing, `measure_id` resolution, default-book filing.
+  `line_index` → `line_item_id` remap (a minted index included), no stub
+  minted, `measure_id` resolution, default-book filing.
 - Contract: `golden_payload_contract_test` parses the *server's* committed
   fixture (`supabase/functions/import-recipe/__fixtures__/…golden.json`), so a
   TS-side shape change fails on the Dart side too.
