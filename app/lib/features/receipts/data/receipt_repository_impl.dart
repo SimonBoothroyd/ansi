@@ -4,6 +4,7 @@ library;
 import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../ingredients/domain/price.dart';
 import '../domain/receipt_repository.dart';
 import '../domain/receipt_save.dart';
 
@@ -351,38 +352,4 @@ class SqliteReceiptRepository implements ReceiptRepository {
       ],
     );
   }
-}
-
-/// A stored timestamp as an instant.
-///
-/// `purchased_at` is TEXT and its format differs by writer — this client
-/// writes `…T…Z`, a Postgres-sourced row syncs as `… …Z` — and a value with
-/// no zone marker at all is read as UTC, because `DateTime.tryParse` would
-/// otherwise read it in the device's zone and two phones would date the same
-/// shop differently. An unparseable value falls back to the epoch: it sorts
-/// last, which is where a row nobody can date belongs.
-/// [wall] as the column stores it — the receipt's **wall time**, marked `Z`.
-///
-/// A receipt's moment is the time at the till, and it has to read back as the
-/// same day on every device: converting `17:42` on a phone seven hours west
-/// of UTC would store `00:42` the next morning and file a Sunday shop into
-/// Monday's week. So the wall components are written as they stand, and
-/// [receiptInstant] reads them back unchanged. The zone the shop happened in
-/// is not a fact this household needs; the date on the paper is.
-String receiptStamp(DateTime wall) => DateTime.utc(
-  wall.year,
-  wall.month,
-  wall.day,
-  wall.hour,
-  wall.minute,
-  wall.second,
-).toIso8601String();
-
-DateTime receiptInstant(Object? raw) {
-  final text = (raw as String? ?? '').trim();
-  final parsed = DateTime.tryParse(text);
-  if (parsed == null) return DateTime.utc(1970);
-  return parsed.isUtc
-      ? parsed
-      : DateTime.tryParse('${text}Z') ?? parsed.toUtc();
 }

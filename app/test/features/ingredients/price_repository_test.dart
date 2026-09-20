@@ -579,7 +579,7 @@ void main() {
     });
 
     test('a price typed today is dated today', () async {
-      final before = DateTime.now().toUtc();
+      final today = DateTime.now();
       await repo.recordManualPrice(
         ingredientId: 'banana',
         cents: 349,
@@ -587,13 +587,29 @@ void main() {
         store: "TJ's",
       );
       final prices = await repo.watchPrices('banana').first;
+      final dated = prices.single.purchasedAt;
       expect(
-        prices.single.purchasedAt.isBefore(
-          before.subtract(const Duration(seconds: 1)),
-        ),
-        isFalse,
+        (dated.year, dated.month, dated.day),
+        (today.year, today.month, today.day),
       );
     });
+
+    test(
+      'a typed price keeps its WALL time, so no evening is tomorrow',
+      () async {
+        // 18:30 typed on a phone four hours west of UTC is 22:30 as an instant,
+        // and 21:00 would be the next morning — a price filed into next week.
+        await repo.recordManualPrice(
+          ingredientId: 'banana',
+          cents: 349,
+          packBasisAmount: 454,
+          store: "TJ's",
+          purchasedAt: DateTime(2026, 9, 13, 18, 30),
+        );
+        final receipt = await db.get('SELECT purchased_at FROM receipt');
+        expect(receipt['purchased_at'], '2026-09-13T18:30:00.000Z');
+      },
+    );
 
     test('the store word is trimmed, and an empty one is refused', () async {
       await repo.recordManualPrice(
@@ -750,6 +766,28 @@ void main() {
         expect(receipt['subtotal_cents'], 399);
       },
     );
+
+    test('a corrected price keeps its WALL day too', () async {
+      await repo.recordManualPrice(
+        ingredientId: 'banana',
+        cents: 349,
+        packBasisAmount: 454,
+        store: "TJ's",
+        purchasedAt: DateTime(2026, 9, 13, 18, 30),
+      );
+      final was = (await repo.watchPrices('banana').first).single;
+
+      await repo.updatePrice(
+        lineId: was.lineId,
+        cents: 399,
+        packBasisAmount: 454,
+        store: "TJ's",
+        purchasedAt: DateTime(2026, 9, 13, 18, 30),
+      );
+
+      final receipt = await db.get('SELECT purchased_at FROM receipt');
+      expect(receipt['purchased_at'], '2026-09-13T18:30:00.000Z');
+    });
 
     test('a photographed receipt keeps what the paper printed', () async {
       await _seedReceipt(

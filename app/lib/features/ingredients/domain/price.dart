@@ -126,6 +126,40 @@ class Receipt {
   final int? totalCents;
 }
 
+/// [wall] as `purchased_at` stores it — the **wall time** of the shop or of
+/// the typing, marked `Z`.
+///
+/// A price's moment has to read back as the same day on every device, so the
+/// wall components are written as they stand: converting 18:00 on a phone
+/// four hours west of UTC would store 22:00, and 21:00 would store tomorrow,
+/// filing an evening price into next week. Every price door writes through
+/// this, and [receiptInstant] reads it back unchanged.
+String receiptStamp(DateTime wall) => DateTime.utc(
+  wall.year,
+  wall.month,
+  wall.day,
+  wall.hour,
+  wall.minute,
+  wall.second,
+).toIso8601String();
+
+/// A stored `purchased_at` as an instant.
+///
+/// The column is TEXT and its format differs by writer — this client writes
+/// `…T…Z`, a Postgres-sourced row syncs as `… …Z` — and a value with no zone
+/// marker at all is read as UTC, because `DateTime.tryParse` would otherwise
+/// read it in the device's zone and two phones would date one shop
+/// differently. An unparseable value falls back to the epoch: it sorts last,
+/// which is where a row nobody can date belongs.
+DateTime receiptInstant(Object? raw) {
+  final text = (raw as String? ?? '').trim();
+  final parsed = DateTime.tryParse(text);
+  if (parsed == null) return DateTime.utc(1970);
+  return parsed.isUtc
+      ? parsed
+      : DateTime.tryParse('${text}Z') ?? parsed.toUtc();
+}
+
 /// One line of a receipt.
 ///
 /// A [ReceiptLineKind.item] line that names an ingredient AND states a pack is
