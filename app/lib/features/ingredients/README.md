@@ -429,16 +429,19 @@ ingredients/
     retired — a receipt is history and never blocks a prune) and nothing paid
     all mean *no observation*, so the Price group says `— none yet` beside its
     own heading and offers one door.
-  - **Every stored price is a tap, onto the sheet that entered it.** The Price
-    group's *Latest* line and each row under *Before* reopen `PriceEditor` on
-    that line — paid, pack and store as they were given — and Done writes an
-    UPDATE (`updatePrice`) rather than a second receipt, keeping the day the
-    price was paid on: an edit is a correction, not a second shop. A
-    **Delete** under it soft-deletes the line after the app's shared confirm
-    (`askAnsi`, destructive). The line's receipt moves with it **only when it
-    is this app's one-line `manual` kind** — a photographed receipt is a piece
-    of paper, so its store, its date and its printed subtotal stay as printed
-    and the paper is never deleted from here.
+  - **Every stored price is a tap, onto the one place it is edited.** A price
+    typed here (`source == manual`) reopens `PriceEditor` on that line — paid,
+    pack and store as they were given — and Done writes an UPDATE
+    (`updatePrice`) rather than a second receipt, keeping the day the price was
+    paid on: an edit is a correction, not a second shop. A **Delete** under it
+    soft-deletes the line and the one-line receipt behind it, after the app's
+    shared confirm (`askAnsi`, destructive).
+  - **A photographed line opens its receipt, not the sheet.** The *Latest* line
+    and the *Before* rows push `/receipts/:id` when `source == photo`, exactly
+    as the `On receipts` rows do: the receipt is the editable review, and the
+    line's pack, its store and the paper's own sum are one sitting there. Two
+    editors for one line disagreed — the sheet nulled a scanned pack, leaving
+    the receipt unsaveable, and could not move a scanned line's store at all.
   - **One Price group, two hosts.** The fact sheet and the form draw the same
     widget, last in the order on both, because changing what a thing costs is
     editing it — and a door on only one of the two postures is a door somebody
