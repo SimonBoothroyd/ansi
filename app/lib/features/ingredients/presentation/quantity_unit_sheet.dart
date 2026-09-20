@@ -438,10 +438,20 @@ class _QuantitySurface extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         UnitChipRow(
-          ingredient: ingredient,
-          measures: measures,
+          // The offer comes from the domain filter — already in ADR-0008 chip
+          // order (measures → an imprecise default → default set → demoted →
+          // imprecise), excluding volume-named measures (density owns volume
+          // conversion, frame-b review) and ALWAYS admitting the stored
+          // selection, so a merge-hidden duplicate measure or a
+          // no-longer-allowed unit stays reachable and reads as outside the
+          // honest filter (the retired dropdowns' rule).
+          offer: allowedUnitChoicesFor(
+            ingredient,
+            measures,
+            current: stored ?? choice.value,
+          ),
           selected: choice.value,
-          stored: stored,
+          pieceLabel: pieceChipLabel(ingredient),
           onSelect: (c) {
             choice.value = c;
             unitPicked.value = true;
