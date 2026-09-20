@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Library</h1>
-    <p class="view-status">built · matches code 2026-09-13 · <code>features/books</code> · <a href="../../exec-plans/completed/0028-library-v3.md">plan 0028</a> · <a href="../../exec-plans/completed/0033-library-v2-decisions.md">plan 0033</a> · <a href="../../exec-plans/completed/0037-library-rows.md">plan 0037</a> · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · wide: differs 2026-09-13: the ledger is built as drawn, fully open — the one departure is the search field, which is the app's own bordered field at 300 px rather than an underline</p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/books</code> · <a href="../../exec-plans/completed/0028-library-v3.md">plan 0028</a> · <a href="../../exec-plans/completed/0033-library-v2-decisions.md">plan 0033</a> · <a href="../../exec-plans/completed/0037-library-rows.md">plan 0037</a> · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · wide: differs 2026-09-20: the ledger is built as drawn, fully open — the one departure is the search field, which is the app's own bordered field at 300 px rather than the underline drawn here</p>
     <p class="view-blurb">The app’s home shelf — books, sections, rows; the field is the header, and every control hangs off a row that already existed.</p>
 </header>
 
@@ -81,11 +81,9 @@
                 </div>
                 <span class="go">›</span>
             </div>
-            <p class="conv-note" style="margin-top:14px">the vocabulary is a <b>shelf</b>, and it is <b>no card at all</b> — a rule and a row under the books. A book is a container that <b>folds</b>; the vocabulary is a <b>place you go</b>, so nothing here invites the fold, the <b>⋯</b> or the reorder a book header carries</p>
-            <p class="conv-note">the hairline runs <b>edge to edge</b> while the books are inset — a rule that stopped where a card stops would be drawing a card. It keeps its <b>place</b> (after the books), its <b>count line</b> and its <b>›</b>; the <b>▤</b> stands in for the vocabulary’s own icon, the way every nav glyph on this board stands in for one</p>
-            <p class="conv-note">a recipe row’s second line is <b>serves + per-serving macros</b>, in the muted mono every derived number wears — the title gets the whole first line back. <i>Miso Salmon</i> has a stub in it, so it says <b>serves 2 and nothing else</b>: no dash, no <span style="font-family:'IBM Plex Mono',monospace">incomplete</span> badge, no nag. Honest numbers, or silence</p>
-            <p class="conv-note">no <b>›</b> on a recipe row: the whole row was already the door, and the chevron was competing with <b>⋯</b> for the same corner</p>
-            <p class="conv-note">the <b>👥</b> beside the field is the one control in this header: it <b>opens the account page</b> — the household, this device, sign out. It is a <b>link</b>, so it can never grow a second item</p>
+            <p class="conv-note" style="margin-top:14px">the vocabulary is a <b>shelf, not a card</b>: a hairline edge to edge while the books are inset, the herb micro-label, a count line and a <b>›</b>. Nothing here folds. The <b>▤</b> stands in for its own glyph, the way every nav glyph on this board stands in for one</p>
+            <p class="conv-note">a recipe row’s second line is <b>serves + per-serving macros</b>, in muted mono. <i>Miso Salmon</i> has a stub in it, so it says <b>serves 2 and nothing else</b> — no dash, no <span style="font-family:'IBM Plex Mono',monospace">incomplete</span> badge. Honest numbers, or silence. No <b>›</b>: the whole row is the door</p>
+            <p class="conv-note">the <b>👥</b> beside the field is the one control in this header, and it <b>opens the account page</b>. It is hidden once the chrome is beside the content — the sidebar’s <b>Account</b> is the door there</p>
             <p class="conv-note">an open card is books, sections and recipes. Every control on it hangs off a row that <b>already existed</b></p>
             <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
         </div></div>
@@ -99,10 +97,9 @@
                 <div class="mi"><span class="ic">◍</span><span class="lb">New recipe</span></div>
                 <div class="mi"><span class="ic">⤓</span><span class="lb">Import a recipe</span></div>
             </div>
-            <p class="conv-note" style="margin-top:10px">the same two items, <b>word for word</b> — moved from a header that could not know the answer to a row that does</p>
+            <p class="conv-note" style="margin-top:10px">both items carry <span style="font-family:'IBM Plex Mono',monospace">?book=&amp;section=</span>, so the editor and the import review open already filed</p>
             <p class="lib-mcap">either door → the editor opens filed</p>
             <div class="lib-file3"><span class="bc3">Baking · Slow Sundays</span><span class="ed">change ›</span></div>
-            <p class="conv-note" style="margin-top:10px">a door that carries <b>no</b> filing still lands in <span style="font-family:'IBM Plex Mono',monospace">books.first.id</span> — whichever book sorts first — and says nothing about it. That is what these two stopped doing</p>
             <p class="lib-mcap">and the book's own unfiled shelf</p>
             <div class="lib-foot" style="margin-top:6px"><span class="fi">＋</span><span class="fl"><span class="fs">Unsectioned ▸ ＋ → Baking · Unsectioned</span></span></div>
             <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
@@ -110,7 +107,7 @@
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>A recipe row’s ⋯</b> · Move to… and Favorite; the star reports, it never files</p>
+        <p class="frame-name"><b>A recipe row’s ⋯</b> · Move to… and Favorite — <b>Unfavorite</b> on a starred row; the star on the row reports, it never toggles</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar lib-abar3">
                 <div class="lib-hfield"><span class="mag">⌕</span><span style="color:var(--muted)">Search recipes</span></div>
@@ -186,7 +183,7 @@
         <p class="frame-name"><b>Search · active</b> · the tree gives way to flat rows that say where each one lives</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar lib-abar3">
-                <div class="lib-hfield"><span class="mag">⌕</span><span>chicken<span class="care"></span></span><span style="margin-left:auto;color:var(--muted);font-size:12px">✕</span></div>
+                <div class="lib-hfield"><span class="mag">⌕</span><span>chicken<span class="care"></span></span></div>
                 <span class="id3">👥</span>
             </div>
             <p class="list-h">3 recipes</p>
@@ -217,7 +214,7 @@
         <p class="frame-name"><b>Search · nothing matched</b> · two doors, both minting from the query</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar lib-abar3">
-                <div class="lib-hfield"><span class="mag">⌕</span><span>romes<span class="care"></span></span><span style="margin-left:auto;color:var(--muted);font-size:12px">✕</span></div>
+                <div class="lib-hfield"><span class="mag">⌕</span><span>romes<span class="care"></span></span></div>
                 <span class="id3">👥</span>
             </div>
             <div class="lib-nohit">
@@ -227,13 +224,13 @@
             <div class="addnew" style="margin-top:2px">＋ new recipe called “romes”</div>
             <div class="addnew" style="margin-top:8px">⤓ import a recipe instead</div>
             <p class="conv-note" style="margin-top:14px">the typed query becomes the new recipe’s <b>title</b> — the ingredient picker’s “can’t find it? add a new ingredient” move, which mints from the query rather than dropping you on an empty form</p>
-            <p class="conv-note">a one-word typo lands here too, until the tracker’s single-token fuzzy row is paid. A dead end with two doors is not a dead end</p>
+            <p class="conv-note">the query is echoed <b>as typed</b>, and the import door carries no filing — it opens <code>/import</code> bare</p>
             <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
         </div></div>
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>First run</b> · a synced household arrives with a book, a vocabulary and no recipes<br><span style="color:var(--gone)">differs:</span> the empty shelf’s two doors carry <b>no</b> filing — unlike the section <b>＋</b> above, they open <code>/recipes/new</code> and <code>/import</code> bare, so a recipe made from an empty <i>Baking</i> lands in whichever book sorts first</p>
+        <p class="frame-name"><b>First run</b> · a synced household arrives with a book, a vocabulary and no recipes</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar lib-abar3">
                 <div class="lib-hfield"><span class="mag">⌕</span><span style="color:var(--muted)">Search recipes</span></div>
@@ -250,7 +247,8 @@
                 <div class="lib-doors"><span class="d">＋ new recipe</span><span class="d">⤓ import one</span></div>
                 </div>
             <div class="lib-newbook">＋ new book</div>
-            <p class="conv-note" style="margin-top:12px">the count reads <b>no recipes yet</b>, never <span style="font-family:'IBM Plex Mono',monospace">0 recipes</span> — the stub badge’s rule: a zero that renders looks like a bug</p>
+            <p class="conv-note" style="margin-top:12px">both doors carry the <b>book</b>, as a section’s <b>＋</b> does: a recipe started from an empty shelf files onto that shelf</p>
+            <p class="conv-note">the count reads <b>no recipes yet</b>, never <span style="font-family:'IBM Plex Mono',monospace">0 recipes</span> — a zero that renders looks like a bug</p>
             <p class="conv-note">a new section is made from the book’s <b>⋯</b>; the only dashed row on this screen is <b>＋ new book</b></p>
             <div class="nav"><div class="ni on"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
         </div></div>
@@ -263,7 +261,7 @@
 <div class="board-wide">
 
     <div class="frame wide">
-        <p class="frame-name"><b>wide · the ledger, fully open</b> · one column of books at <b>900</b>, centred, and a <b>34 px A–Z index</b> down the right margin — showing <b>every section and every recipe</b> of every open book. Every fact stated once and set in a column on bare paper: no tile, no dark band, no grid, and no second screen to go to. No household door in the header either — the sidebar’s <b>Account</b> is the one door</p>
+        <p class="frame-name"><b>wide · the ledger, fully open</b> · one column of books at <b>900</b>, centred, and a <b>34 px A–Z index</b> down the right margin — showing <b>every section and every recipe</b> of every open book. There is <b>no header</b> at all here: the field is a 300 px line at the head of the ledger’s own column, and the household door is the sidebar’s <b>Account</b></p>
         <div class="desk">
             <div class="lip"><i></i><i></i><i></i></div>
             <div class="dscreen">
@@ -454,11 +452,11 @@
                 </div>
             </div>
         </div>
-        <p class="wide-cap">A book is a <b>heading row</b>: the fold’s own chevron, the name in Spectral, a <b>dotted leader</b> into the counts column that carries the phone’s own line — <code>11 recipes · 3 sections</code>, or <code>no recipes yet</code> — and the book’s <b>⋯</b> as an inline glyph, the same menu the phone’s herb band hangs and the book page’s header bar wears. The name is a <b>name</b>, not a door: there is nothing behind it left to see. The <b>fold is the phone’s</b>, per book, per device, and it is the one thing that hides anything: <i>Baking</i> is shut here and shows its heading alone, which is why the count line has to read the same open or shut. Open is the default.</p>
-        <p class="wide-cap">An open book lists <b>every section it keeps and every recipe under each</b>, <i>Unsectioned</i> last. A section is one <b>heading line</b> — the phone’s italic label, a leader into the same counts column, what it holds (<code>4 recipes</code>, or <code>no recipes yet</code>), then the <b>＋</b> that files a recipe into it and the section’s <b>⋯</b>; <i>Unsectioned</i> carries the ＋ and no ⋯, exactly as on the card. A recipe is one line, indented from its section, with its second line <b>set into the counts column</b> rather than dropped — <i>Kimchi Fried Rice</i> has a stub in it, so it still says <code>serves 2</code> and nothing else. Three levels, read as three from their indents: no box, no band, no rule but the hairline that closes a book.</p>
-        <p class="wide-cap">Nothing counts the rest, because there is no rest — <b>no remainder row</b>, and no door out to <code>/books/:id</code>. A laptop has the room: <i>“one Library screen showing everything is the better flavour.”</i> It is long and it scrolls, which is what a desk does, and it is one lazy list of lines, so twenty-five books cost only the lines in the window.</p>
+        <p class="wide-cap">A book is a <b>heading row</b>: the fold’s own chevron, the name in Spectral, a <b>dotted leader</b> into the counts column carrying the phone’s own line — <code>11 recipes · 3 sections</code>, or <code>no recipes yet</code> — and the book’s <b>⋯</b> as an inline glyph, the same menu the phone’s herb band hangs. The name is a <b>name</b>, not a door. The <b>fold is the phone’s</b>, per book, per device: <i>Baking</i> is shut here and shows its heading alone, so the count line reads the same open or shut. Open is the default.</p>
+        <p class="wide-cap">An open book lists <b>every section it keeps and every recipe under each</b>, <i>Unsectioned</i> last. A section is one <b>heading line</b> — the phone’s italic label, a leader into the same counts column, what it holds (<code>4 recipes</code>, or <code>no recipes yet</code>), then the <b>＋</b> that files a recipe into it and the section’s <b>⋯</b>; <i>Unsectioned</i> carries the ＋ and no ⋯, as on the card. A recipe is one line, indented from its section, with its second line <b>set into the counts column</b> — <i>Kimchi Fried Rice</i> has a stub in it, so it still says <code>serves 2</code> and nothing else. Three levels, read from their indents: no box, no band, no rule but the hairline that closes a book.</p>
+        <p class="wide-cap">Nothing counts the rest, because there is no rest — <b>no remainder row</b>, and no door out to <code>/books/:id</code>. It is long and it scrolls, and it is one lazy list of lines, so twenty-five books cost only the lines in the window.</p>
         <p class="wide-cap">The <b>A–Z margin</b> is what makes that hold: a letter with a book on the shelf is lit and <b>scrolls the ledger to it</b>, the rest are drawn in the hairline’s ink. It indexes first letters, not order — the books keep the household’s own, which is what <i>Move up</i> and <i>Move down</i> write. <code>#</code> takes a book that starts with a digit.</p>
-        <p class="differs-note">differs: the field is the app’s <b>one search field</b> at 300 px — Forui’s bordered box, not the underline drawn here. An underline would be a second field anatomy for one screen, and the field is shared with the ingredients manager and every picker</p>
+        <p class="differs-note">differs: the field is the app’s <b>one search field</b> at 300 px — Forui’s bordered box, not the underline drawn here. It carries no ✕: the text is cleared by deleting it</p>
     </div>
 
     <div class="frame wide lw-short">

@@ -15,8 +15,8 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe page</h1>
-    <p class="view-status">built · matches code 2026-09-19 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: matches code 2026-09-17 · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a></p>
-    <p class="view-blurb">Two tabs, a scaler, and one per-serving panel closing the ingredients tab — with a total, or with the reason there isn’t one. The <b>⋯</b> menu can also print each line’s own macros under its name. The page is set as reading matter: serif title, sans lines, mono figures, kitchen fractions as glyphs (<b>1½</b>), and one filled shape — the chip row — above the tabs. Opened <b>from a week</b> it draws that week’s lines, and the <code>optional</code> tag is the switch that ticks a line in for it; from the Library the tag is a tag. In the method, a tap on a chip — or on a whole step — <b>rules it off</b> while you cook, for this reading of the page only.</p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: matches code 2026-09-20 · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a></p>
+    <p class="view-blurb">Two tabs, a scaler, and one per-serving panel closing the ingredients tab — read as <b>Macros</b> or as <b>Cost</b>, with a total, or with the reason there isn’t one. The <b>⋯</b> menu can also print each line’s own figures under its name. The page is set as reading matter: serif title, sans lines, mono figures, kitchen fractions as glyphs (<b>1½</b>), and one filled shape — the chip row — above the tabs. Opened <b>from a week</b> it draws that week’s lines, and the <code>optional</code> tag is the switch that ticks a line in for it; from the Library the tag is a tag. In the method, a tap on a chip — or on a whole step — <b>rules it off</b> while you cook, for this reading of the page only.</p>
 </header>
 
 <div class="board">
@@ -43,7 +43,7 @@
                 <div class="grp"><p class="grp-h">to serve</p>
                     <div class="l3"><span class="l3-amt">1 lime, whole</span><span class="l3-body"><span class="l3-id">Lime</span><span class="l3-note">juiced</span></span></div>
                 </div>
-                <p class="conv-note">Two tabs only — Ingredients · Method. Macros close this tab as one <b>per-serving panel</b>, and the line carries none of its own until the <b>⋯</b> toggle asks for them.</p>
+                <p class="conv-note">Two tabs only — Ingredients · Method. One <b>per-serving panel</b> closes this tab, and a line carries no figures of its own until <b>Show line figures</b> in the <b>⋯</b> menu asks for them.</p>
                 <p class="conv-note">The <b>ingredient’s name is a door</b>: tapping it pushes that ingredient’s page, so “what is this, and what does it weigh” is one tap from the line that asked. The door is the <i>name</i> — not the amount, not the note, not the paper beside a short name — and a folded multi-use row has the one door its one name gives it. A line that resolved to no ingredient has no door; it is text.</p>
                 <p class="conv-note">A counted line on a row whose measure weighs a piece says the <b>measure’s own words</b> in the amount column — <b>2 onion, medium</b>, <b>1 lime, whole</b> — beside the name that already said what it is (<a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a>). Chicken thigh stays a bare <b>6</b>: the row weighs a piece but names no size, so there is no measure to say.</p>
             </div></div>
@@ -85,9 +85,10 @@
                     <div class="l3"><span class="l3-amt">2 tbsp</span><span class="l3-body"><span class="l3-id">Olive oil</span></span></div>
                     <div class="l3"><span class="l3-amt">3 tbsp</span><span class="l3-body"><span class="l3-id">Everything Spice (page 34)</span><span class="l3-note">not linked — plain text, exactly as today</span></span></div>
                     <div class="l3"><span class="l3-amt">¼ cup</span><span class="l3-body"><span class="ichip">↪ Romesco Aioli</span></span></div>
-                    <div class="l3"><span class="l3-amt">1</span><span class="l3-body"><span class="ichip">↪ Italian Sausage</span></span></div>
+                    <div class="l3"><span class="l3-amt">2 patty</span><span class="l3-body"><span class="ichip">↪ Italian Sausage</span></span></div>
                 </div>
                 <p class="conv-note">a chip pushes its page, a plain name pushes its ingredient’s — the identity cell is a door either way, and only the unlinked plain text (<b>Everything Spice</b>) is not · the printed cross-reference <b>“(page 34)”</b> is stripped the way parentheticals already are</p>
+                <p class="conv-note">a line said in one of the target’s own measures prints that measure in the amount column — <b>2 patty</b>, off Italian Sausage’s own list under its <i>makes</i> (<a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a>). The measure is printed <b>singular, always</b>, and this page lists no measures of its own: the list is the editor’s</p>
             </div></div>
         </div>
 
@@ -111,7 +112,7 @@
                     <div style="flex:1;min-width:0"><div class="res-nm">Romesco Toasts</div>
                         <span class="res-cat">1 batch</span></div>
                     <span class="ci" style="color:var(--muted);font-size:12px">›</span></div>
-                <p class="conv-note" style="margin-top:8px">the tab exists only while something points here — a recipe used in nothing shows two tabs, as today</p>
+                <p class="conv-note" style="margin-top:8px">the tab exists only while something points here — a recipe used in nothing shows two tabs, as today. A row whose line says one of this recipe’s own measures reads that measure where the unit is, then its share</p>
                 <p class="conv-note"><b>makes 1 cup</b> is edited beside servings in the editor — the same field import prefills from <span style="font-family:'IBM Plex Mono',monospace">yield_raw</span>. A second denomination in another family is optional: Garlic Butter can say <b>makes 250 g · 16 tbsp</b>, and both are pills here</p>
             </div></div>
         </div>
@@ -128,7 +129,7 @@
                     <div class="l3"><span class="l3-amt">400 g</span><span class="l3-body"><span class="l3-id">Chopped tomatoes</span></span></div>
                     <div class="l3"><span class="l3-amt">1 tsp</span><span class="l3-body"><span class="l3-id">Smoked paprika</span></span></div>
                 </div>
-                <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0">per serving</span></div>
+                <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0;text-transform:none">per serving</span></div>
                 <div class="macro tight"><div class="m"><div class="mv">612</div><div class="ml">kcal</div></div><div class="m"><div class="mv">41 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">18 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">39 g</div><div class="ml">fat</div></div><div class="m"><div class="mv">9 g</div><div class="ml">fibre</div></div></div>
             </div></div>
         </div>
@@ -146,7 +147,7 @@
                 <div class="l3 seam"><span class="l3-amt impr">handful</span><span class="l3-body"><span class="l3-id">Parsley</span><span class="l3-note">chopped</span></span></div>
                 <div class="l3 seam"><span class="l3-amt impr">to taste</span><span class="l3-body"><span class="l3-id">Sesame seeds</span></span></div>
             </div>
-            <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0">per serving</span></div>
+            <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0;text-transform:none">per serving</span></div>
             <div class="macro tight"><div class="m"><div class="mv">418</div><div class="ml">kcal</div></div><div class="m"><div class="mv">16 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">54 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">13 g</div><div class="ml">fat</div></div></div>
             <div class="nc-row"><span class="nc-lab">NOT COUNTED</span><span><b>Parsley</b> · handful, <b>Sesame seeds</b> · to taste</span></div>
             <p class="nc-cap">Imprecise and optional lines are left out by rule, not by failure.</p>
@@ -172,12 +173,12 @@
                 <div class="l3 seam"><span class="l3-amt">1 lime</span><span class="l3-body"><span class="l3-id">Lime</span><span class="l3-note">to serve</span><span class="wv-tag" style="margin-left:6px">optional</span></span></div>
                 <div class="l3 seam"><span class="l3-amt">15 g</span><span class="l3-body"><span class="l3-id">Coriander</span><span class="l3-note">leaves</span><span class="wv-tag" style="margin-left:6px">optional</span></span></div>
             </div>
-            <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0">per serving</span></div>
+            <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0;text-transform:none">per serving</span></div>
             <div class="macro tight"><div class="m"><div class="mv">520</div><div class="ml">kcal</div></div><div class="m"><div class="mv">34 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">48 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">19 g</div><div class="ml">fat</div></div></div>
             <div class="nc-row"><span class="nc-lab">OPTIONAL</span><span><b>Lime</b>, <b>Coriander</b></span></div>
             <p class="nc-cap">Imprecise and optional lines are left out by rule, not by failure.</p>
             <p class="conv-note" style="margin-top:10px">the tag wears the <b>sub-recipe chip’s shape</b> — a 6 px box in the herb wash, small mono — after the note, never in the amount column. Two lines of the same grammar should not wear two geometries</p>
-            <p class="conv-note">the tag is also the <b>whole statement</b>: with line macros on, a tagged row prints nothing in its macro slot, because <i>optional</i> twice on one line is once too many</p>
+            <p class="conv-note">the tag is also the <b>whole statement</b>: with line figures on, a tagged row prints nothing in its own slot, because <i>optional</i> twice on one line is once too many</p>
             <p class="conv-note"><b>A line whose ingredient has been retired</b> wears that same tag slot, reading <b>ingredient removed · pick again</b>, with the row's <b>last known name</b> muted beside it — the page's one broken-link voice, shared with <i>linked recipe missing</i>. Here the name stops being a door (a retired row has no page), the panel names the line the way it names a stub, and the fix is the editor's identity picker one posture over. Dropping the line would be the real failure: a recipe silently one line short</p>
         </div></div>
     </div>
@@ -194,7 +195,7 @@
             </div>
             <div class="lib-menu">
                 <div class="mi"><span class="ic">&#9734;</span><span class="lb">Favorite</span></div>
-                <div class="mi"><span class="ic">&Sigma;</span><span class="lb">Show line macros</span></div>
+                <div class="mi"><span class="ic">&Sigma;</span><span class="lb">Show line figures</span></div>
                 <div class="mi"><span class="ic">&#9998;</span><span class="lb">Edit recipe</span></div>
                 <div class="mi"><span class="ic">&#9744;</span><span class="lb">Edit for this week &middot; Tue &amp; Sat only</span></div>
                 <div class="mi danger"><span class="ic">&times;</span><span class="lb">Delete</span></div>
@@ -202,7 +203,7 @@
             <p class="conv-note">the <b>Week's dish row</b> and the <b>Cook card's title</b> both open the page with the week they belong to (<code>?week=&hellip;</code>). Before this the variant had exactly one door &mdash; a row at the foot of the meal editor sheet &mdash; and the two surfaces that actually hold a week dropped it on the way here</p>
             <p class="conv-note">the band is the <b>condition</b> of the second item, not decoration: it says which days a tap would change, so <i>Edit for this week</i> is legible before it is opened. It reads <b>Planned Tue &middot; Sat this week</b>, and gains <b>&middot; edited for this week</b> only once the week varies the recipe</p>
             <p class="conv-note">it is <b>one mono line with a calendar glyph and no fill</b>. A filled band here stacked a third shape between the title and the chips, and the hero is where the page has to look like reading matter rather than a dashboard — the <b>chip row is the only filled thing above the tabs</b></p>
-            <p class="conv-note">arriving from the <b>Library</b> the page is untouched &mdash; no band, and the menu is <b>Favorite &middot; Show line macros &middot; Edit &middot; Delete</b>. The rename to <b>Edit recipe</b> happens only where the two doors stand together, so they read as two: one changes the recipe everywhere, one changes what these days cook</p>
+            <p class="conv-note">arriving from the <b>Library</b> the page is untouched &mdash; no band, and the menu is <b>Favorite &middot; Show line figures &middot; Edit &middot; Delete</b>. The rename to <b>Edit recipe</b> happens only where the two doors stand together, so they read as two: one changes the recipe everywhere, one changes what these days cook</p>
             <p class="conv-note">the week is <b>re-checked against the plan</b>, never trusted: a link left in a back stack after the meal was removed offers neither the band nor the door. Same for a week key that is not a date</p>
         </div></div>
     </div>
@@ -225,31 +226,32 @@
             <div class="grp">
                 <div class="l3"><span class="l3-amt">2 tbsp</span><span class="l3-body"><span class="l3-id">Chilli Oil</span></span></div>
             </div>
-            <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0">per serving</span></div>
+            <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0;text-transform:none">per serving</span></div>
             <div class="macro tight"><div class="m"><div class="mv">566</div><div class="ml">kcal</div></div><div class="m"><div class="mv">35 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">52 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">20 g</div><div class="ml">fat</div></div></div>
             <div class="nc-row"><span class="nc-lab">OPTIONAL</span><span><b>Lime</b></span></div>
-            <p class="nc-cap">Imprecise and optional lines are left out by rule, not by failure.</p>
             <div class="nc-row"><span class="nc-lab in">INCLUDED</span><span><b>Pickled Red Onions</b> &middot; for this week</span></div>
+            <p class="nc-cap">Imprecise and optional lines are left out by rule, not by failure.</p>
             <p class="conv-note"><b>optional has two owners</b>. The recipe says <i>may be skipped</i> &mdash; the author&rsquo;s claim. The week says <i>this time, yes</i> &mdash; the cook&rsquo;s. There is no third &ldquo;usually yes&rdquo;: a household that always wants the lime unticks <b>Optional</b> in the editor, because for them it is not optional</p>
             <p class="conv-note">the tag is the switch, and its shape says so: an <b>empty ring</b> before the word, the way a box somebody may tick is drawn; ticked, the box <b>fills herb</b> with a check and reads <b>included</b>. Same radius, same padding &mdash; the answer changes without the line moving. The badge is 10 pt, so the <b>tap target is padded out to 44 px</b> rather than the badge drawn bigger</p>
             <p class="conv-note">the rest is week mode&rsquo;s grammar, <b>read-only</b>: a replaced line at the week&rsquo;s own amount (<b>500 g</b>, still scaling with the servings control), a line it leaves out <b>struck and muted</b> &mdash; amount and name alike, and neither is a door &mdash; and an added line <b>after the last group</b>, because an override carries no group and no derivation reads one</p>
-            <p class="conv-note">the panel is the <b>week&rsquo;s own re-summation</b>, not the Library&rsquo;s figure, so ticking a line in <b>recounts it</b> as you watch. A third row names what came in &mdash; <b>INCLUDED &middot; names &middot; for this week</b>, its label in herb because it is the one row naming lines the total <i>does</i> cover &mdash; and it stands outside the caption, which is about what stayed out</p>
+            <p class="conv-note">the panel is the <b>week&rsquo;s own re-summation</b>, not the Library&rsquo;s figure, so ticking a line in <b>recounts it</b> as you watch. A third row names what came in &mdash; <b>INCLUDED &middot; names &middot; for this week</b>, its label in herb because it is the one row naming lines the total <i>does</i> cover. The caption below it speaks only for the rows above it</p>
             <p class="conv-note">the band gains <b>&middot; edited for this week</b> on the first include, through the placement watch that was already there. No new route and no new screen</p>
             <p class="conv-note"><b>From the Library the tag is not a switch.</b> A reading posture that writes nothing was drawn and rejected in the same conversation: a control that persists from one door and evaporates from another is a smell, and where there is no week there is no decision to make</p>
         </div></div>
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>Macros per line</b> · the toggle is an item in the page’s own <b>⋯</b> menu, offered from the tab it changes; default <b>off</b></p>
+        <p class="frame-name"><b>Figures per line</b> · the toggle is one item in the page’s own <b>⋯</b> menu, offered from the tab it changes; default <b>off</b></p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
             <div class="lib-menu">
                 <div class="mi"><span class="ic">☆</span><span class="lb">Favorite</span></div>
-                <div class="mi"><span class="ic">Σ</span><span class="lb">Show line macros</span></div>
+                <div class="mi"><span class="ic">Σ</span><span class="lb">Show line figures</span></div>
                 <div class="mi"><span class="ic">✎</span><span class="lb">Edit</span></div>
                 <div class="mi danger"><span class="ic">✕</span><span class="lb">Delete</span></div>
             </div>
-            <p class="conv-note">no second control and no header glyph — the page already has one door for its less-used verbs. It reads <b>Hide line macros</b> once on, and it is absent from the Method tab, which it does not change</p>
+            <p class="conv-note">no second control and no header glyph — the page already has one door for its less-used verbs. It reads <b>Hide line figures</b> once on, and it is absent from the tabs it does not change</p>
+            <p class="conv-note"><b>one item for both readings</b>: the lines print whatever the panel above them is reading — macros under Macros, cost under Cost</p>
             <p class="conv-note">the choice is held for the <b>session</b>, across recipes: a reading posture, not a household fact, so nothing is written or synced</p>
         </div></div>
     </div>
@@ -264,7 +266,7 @@
                 <div class="l3 seam"><span class="l3-amt">400 g</span><span class="l3-body"><span class="l3-id">Chickpea canned</span><span class="l3-macro">476 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 26P 80C 8F &middot; 22 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="fibre"><title>fibre</title><path d="M2 22 16 8"/><path d="M3.47 12.53 5 11l1.53 1.53a3.5 3.5 0 0 1 0 4.94L5 19l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M7.47 8.53 9 7l1.53 1.53a3.5 3.5 0 0 1 0 4.94L9 15l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M11.47 4.53 13 3l1.53 1.53a3.5 3.5 0 0 1 0 4.94L13 11l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M20 2h2v2a4 4 0 0 1-4 4h-2V6a4 4 0 0 1 4-4Z"/><path d="M11.47 17.47 13 19l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L5 19l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M15.47 13.47 17 15l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L9 15l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M19.47 9.47 21 11l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L13 11l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/></svg></span></span></div>
                 <div class="l3 seam"><span class="l3-amt">500 ml</span><span class="l3-body"><span class="l3-id">Stock</span><span class="l3-macro">20 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 1P 4C 0F</span></span></div>
             </div>
-            <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0">per serving</span></div>
+            <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0;text-transform:none">per serving</span></div>
             <div class="macro tight"><div class="m"><div class="mv">168</div><div class="ml">kcal</div></div><div class="m"><div class="mv">8 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">31 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">2 g</div><div class="ml">fat</div></div></div>
             <p class="notcounted"><span class="nk">fibre not counted</span> &middot; <b>2 lines without it:</b> Coconut milk, Stock</p>
             <p class="conv-note">the lines are <b>all in the total</b> &mdash; fibre is not an exclusion and nothing here needs fixing. What is missing is one figure, and the rows that could not supply it are <b>named</b> rather than dropped in silence</p>
@@ -286,9 +288,11 @@
                 <div class="l3 seam"><span class="l3-amt impr">handful</span><span class="l3-body"><span class="l3-id">Parsley</span><span class="l3-note">chopped</span><span class="l3-macro">not counted</span></span></div>
                 <div class="l3 seam"><span class="l3-amt">2 lime</span><span class="l3-body"><span class="l3-id">Lime</span><span class="l3-note">to serve</span><span class="wv-tag" style="margin-left:6px">optional</span></span></div>
             </div>
-            <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0">per serving</span></div>
+            <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0;text-transform:none">per serving</span></div>
             <div class="macro tight"><div class="m"><div class="mv">610</div><div class="ml">kcal</div></div><div class="m"><div class="mv">57 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">17 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">37 g</div><div class="ml">fat</div></div></div>
-            <p class="notcounted"><span class="nk">not counted:</span> <b>Parsley</b> · handful · <b>1 optional line:</b> Lime<br>a pinch has no weight to count, and an optional line is left out by rule — untick <b>Optional</b> on a line to count it.</p>
+            <div class="nc-row"><span class="nc-lab">NOT COUNTED</span><span><b>Parsley</b> · handful</span></div>
+            <div class="nc-row"><span class="nc-lab">OPTIONAL</span><span><b>Lime</b></span></div>
+            <p class="nc-cap">Imprecise and optional lines are left out by rule, not by failure.</p>
             <p class="conv-note">the figures are the summation’s <b>own per-line record</b>, scaled by the same factor the amount beside them went through — nothing is converted a second time, so a line can never read one way here and another inside the total</p>
             <p class="conv-note">a line whose row states <b>fibre</b> appends it here too &mdash; <span style="font-family:'IBM Plex Mono',monospace">476 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 26P 80C 8F &middot; 22 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="fibre"><title>fibre</title><path d="M2 22 16 8"/><path d="M3.47 12.53 5 11l1.53 1.53a3.5 3.5 0 0 1 0 4.94L5 19l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M7.47 8.53 9 7l1.53 1.53a3.5 3.5 0 0 1 0 4.94L9 15l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M11.47 4.53 13 3l1.53 1.53a3.5 3.5 0 0 1 0 4.94L13 11l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M20 2h2v2a4 4 0 0 1-4 4h-2V6a4 4 0 0 1 4-4Z"/><path d="M11.47 17.47 13 19l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L5 19l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M15.47 13.47 17 15l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L9 15l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M19.47 9.47 21 11l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L13 11l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/></svg></span>. None of these rows does, so none of them prints it, and the strip below states no fibre for the same reason</p>
             <p class="conv-note">Where the line is <b>dense</b> the two units that never change are also the two longest, so energy is a <b>flame</b> and fibre a <b>sheaf</b> after their figures. Each glyph carries the word it replaced to a screen reader, and the words stay wherever there is room for them &mdash; the recipe panel&rsquo;s cells, and the form&rsquo;s own field labels. The panel&rsquo;s cells below keep <code>KCAL</code> and <code>FIBRE</code> for exactly that reason.</p>
@@ -325,7 +329,7 @@
                 <div class="l3 marked"><span class="l3-amt">200 g<span class="rowmark"><span class="rd"></span>stub ingredient</span></span><span class="l3-body"><span class="l3-id">Tofu</span></span></div>
                 <div class="l3 seam"><span class="l3-amt">3 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">thinly sliced</span></span></div>
             </div>
-            <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0">per serving</span></div>
+            <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0;text-transform:none">per serving</span></div>
             <div class="macro-inc">
                 <div class="mi-h"><span class="badge-inc">incomplete</span><span class="mi-n">1 stub line · 1 line needs a piece weight</span></div>
                 <div class="mi-b">Left out of the total until every line resolves — a partial number would not be this recipe.</div>
@@ -344,12 +348,12 @@
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
                 <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
-                <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0">per serving</span></div>
+                <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0;text-transform:none">per serving</span></div>
                 <div class="macro-inc">
                     <div class="mi-h"><span class="badge-inc">incomplete</span><span class="mi-n">no ingredients yet</span></div>
                     <div class="mi-b">Macros arrive once this recipe has ingredients.</div>
                 </div>
-                <div class="frow" style="margin:22px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0">per serving</span></div>
+                <div class="frow" style="margin:22px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0;text-transform:none">per serving</span></div>
                 <div class="macro-inc">
                     <div class="mi-h"><span class="badge-inc">incomplete</span><span class="mi-n">nothing weighable yet</span></div>
                     <div class="mi-b">Every line is imprecise, so nothing was weighed &mdash; a total here would be a fabrication, not a number.</div>
@@ -372,24 +376,20 @@
                 <div class="l3"><span class="l3-amt">1 tsp</span><span class="l3-body"><span class="l3-id">Smoked paprika</span></span></div>
                 <div class="l3"><span class="l3-amt impr">handful</span><span class="l3-body"><span class="l3-id">Parsley</span><span class="l3-note">chopped</span></span></div>
             </div>
-            <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt">Macros</span><span class="segopt on">Cost</span></div><span class="macro-lab" style="margin:0;padding:0">per serving</span></div>
+            <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt">Macros</span><span class="segopt on">Cost</span></div><span class="macro-lab" style="margin:0;padding:0;text-transform:none">per serving</span></div>
             <div class="macro tight"><div class="m"><div class="mv">$2.54</div><div class="ml">a serving</div></div><div class="m"><div class="mv">$10.17</div><div class="ml">the recipe</div></div><div class="m"><div class="mv">Sep</div><div class="ml">prices from</div></div></div>
             <div class="nc-row"><span class="nc-lab">OLDEST</span><span><b>Smoked paprika</b> &middot; Whole Foods, Jul</span></div>
             <div class="nc-row"><span class="nc-lab">NOT COUNTED</span><span><b>Parsley</b> &middot; handful</span></div>
-            <p class="nc-cap">Flip to Macros and the strip is exactly what it was: the four or five cells and its own NOT COUNTED row. The pair is a reading posture, held for the session across recipes, like the line toggle.</p>
+            <p class="nc-cap">Imprecise and optional lines are left out by rule, not by failure.</p>
+            <p class="conv-note">flip to Macros and the strip is exactly what it was: the four or five cells and its own rows. The pair is a reading posture, held for the session across recipes, like the line toggle</p>
         </div></div>
-        <p class="conv-note" style="margin:10px 4px 0"><b>Why the panel and not a tab.</b> A Cost tab would have to show the ingredient lines again to mean anything, and the page holds one list. The strip is already the place where the lines are summed; giving it two readings keeps one list, one scaler, one summation &mdash; a cost is the same per-line record as a macro, added up the same way and scaled by the same factor. The <b>&asymp;</b> is not in the cells: the third one says <i>prices from Sep</i> outright, and the OLDEST row names the one line dragging that date back, so a July jar under an otherwise-September recipe is visible rather than averaged away. Imprecise and optional lines leave by exactly the macro rule and are named in their own row &mdash; never as unpriced, which is a different claim. <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a>.</p>
+        <p class="conv-note" style="margin:10px 4px 0"><b>One strip, two readings of the same lines.</b> No <b>&asymp;</b> in the cells: the third says <i>prices from Sep</i> outright, and the OLDEST row names the one line dragging that date back. Imprecise and optional lines leave by exactly the macro rule and are named in their own row &mdash; never as unpriced, which is a different claim. <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a>.</p>
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>Line figures &middot; following the panel</b> &middot; the line toggle stays one item and prints whatever the panel is reading: macros under Macros, cost under Cost. One posture, one menu item, nothing new to learn &mdash; and an unpriced line takes the cells with it, leaving the floor the priced lines already reach</p>
+        <p class="frame-name"><b>Line figures under Cost</b> &middot; the lines print the cost record while the panel is reading Cost &mdash; and an unpriced line takes the cells with it, leaving the floor the priced lines already reach</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
-            <div class="lib-menu" style="margin-bottom:8px">
-                <div class="mi"><span class="ic">&#9734;</span><span class="lb">Favorite</span></div>
-                <div class="mi"><span class="ic">&Sigma;</span><span class="lb">Show line figures</span></div>
-                <div class="mi"><span class="ic">&#10002;</span><span class="lb">Edit</span></div>
-            </div>
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">&ndash;</span><span class="val">8 servings &middot;2&times;</span><span class="step">+</span></div></div>
             <div class="grp">
@@ -400,18 +400,19 @@
                 <div class="l3 seam"><span class="l3-amt">2 tsp</span><span class="l3-body"><span class="l3-id">Smoked paprika</span><span class="l3-macro">8&cent; &middot; $3.99 a jar &middot; Whole Foods, Jul</span></span></div>
                 <div class="l3 seam"><span class="l3-amt impr">handful</span><span class="l3-body"><span class="l3-id">Parsley</span><span class="l3-note">chopped</span><span class="l3-macro">not counted</span></span></div>
             </div>
-            <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt">Macros</span><span class="segopt on">Cost</span></div><span class="macro-lab" style="margin:0;padding:0">per serving</span></div>
+            <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt">Macros</span><span class="segopt on">Cost</span></div><span class="macro-lab" style="margin:0;padding:0;text-transform:none">per serving</span></div>
             <div class="macro-inc">
                 <div class="mi-h"><span class="badge-inc">incomplete</span><span class="mi-n">1 line unpriced</span></div>
                 <div class="mi-f">at least $2.54 a serving &middot; at least $10.17 the recipe</div>
                 <div class="mi-b">What the priced lines come to, at prices from Sep &mdash; a floor, not the cost: the lines named below can only add to it.</div>
             </div>
-            <div class="nc-row"><span class="nc-lab">UNPRICED</span><span><b>Chopped tomatoes</b> &middot; no price yet</span></div>
+            <div class="nc-row"><span class="nc-lab" style="color:var(--aging)">UNPRICED</span><span><b>Chopped tomatoes</b> &middot; no price yet</span></div>
             <div class="nc-row"><span class="nc-lab">OLDEST</span><span><b>Smoked paprika</b> &middot; Whole Foods, Jul</span></div>
             <div class="nc-row"><span class="nc-lab">NOT COUNTED</span><span><b>Parsley</b> &middot; handful</span></div>
-            <p class="conv-note">the menu item reads <b>Show line figures</b> &mdash; one verb for both readings &mdash; and <b>Hide line figures</b> once on. Under Macros the lines print the macro record; under Cost, this. The lines move with the scaler; a serving never does</p>
+            <p class="nc-cap">Imprecise and optional lines are left out by rule, not by failure.</p>
+            <p class="conv-note"><b>UNPRICED</b> wears the marker&rsquo;s amber, because it is the one row here naming something a person can go and fix. The lines move with the scaler; the strip &mdash; a serving and the recipe alike &mdash; never does</p>
         </div></div>
-        <p class="conv-note" style="margin:10px 4px 0"><b>A line&rsquo;s cost prints the whole chain</b> &mdash; what the line comes to as shown, the unit price it was read from, the store and month it was seen &mdash; so a figure that looks wrong is traceable to the receipt line that made it, the way a line&rsquo;s macros are the summation&rsquo;s own record. A named pack reads as that pack (<i>$1.29 a can</i>); a pack typed as a plain amount reads per 100 of the basis. A line the strip left out says why, in the strip&rsquo;s words: <i>no price yet</i> here as <i>not counted</i> there. <b>The cells go when any counted line is unpriced</b> &mdash; a figure that quietly skipped the tomatoes would understate the recipe by the tomatoes &mdash; and the refusal says how many lines it is waiting on. <b>What the priced lines come to is still printed, as a floor:</b> <i>at least $2.54 a serving &middot; at least $10.17 the recipe</i>, each half wearing its own <i>at least</i>, because a bare <i>$2.54 a serving</i> under a floor would be read as what a serving costs &mdash; which is the one thing not known. Price nothing and there is no floor to draw (<i>at least $0</i> reads as free), so that recipe keeps the plain refusal; price everything and the cells say it exactly. <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> rule 4.</p>
+        <p class="conv-note" style="margin:10px 4px 0"><b>A line&rsquo;s cost prints the whole chain</b> &mdash; what the line comes to as shown, the unit price it was read from, the store and month it was seen. A named pack reads as that pack (<i>$1.29 a can</i>); a pack typed as a plain amount reads per 100 of the basis. <b>The floor wears <i>at least</i> on each half</b>, because a bare <i>$2.54 a serving</i> under it would read as what a serving costs. Price nothing and there is no floor to draw, so that recipe keeps the plain refusal; price everything and the cells say it exactly. <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> rule 4.</p>
     </div>
 
 </div>
@@ -464,7 +465,7 @@
                                 <div class="grp"><p class="grp-h">to serve</p>
                                     <div class="l3"><span class="l3-amt">1 lime, whole</span><span class="l3-body"><span class="l3-id">Lime</span><span class="l3-note">juiced</span></span></div>
                                 </div>
-                                <div class="frow" style="margin:16px 0 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0">per serving</span></div>
+                                <div class="frow" style="margin:16px 0 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0;text-transform:none">per serving</span></div>
                                 <div class="macro tight"><div class="m"><div class="mv">612</div><div class="ml">kcal</div></div><div class="m"><div class="mv">41 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">18 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">39 g</div><div class="ml">fat</div></div><div class="m"><div class="mv">9 g</div><div class="ml">fibre</div></div></div>
                             </div>
                             <div>
@@ -483,7 +484,7 @@
                 </div>
             </div>
         </div>
-        <p class="conv-note" style="margin:10px 4px 0">a recipe is a <b>pushed page</b>, so the sidebar is neutral and the page carries its own back · the <b>⋯</b> menu is the page's one door for its less-used verbs here too, <i>Show line macros</i> included — and with it on, each line's own figures sit under its name in the left column, exactly as they do on the phone</p>
+        <p class="conv-note" style="margin:10px 4px 0">a recipe is a <b>pushed page</b>, so the sidebar is neutral and the page carries its own back · the <b>⋯</b> menu is the page's one door for its less-used verbs here too, <i>Show line figures</i> included — and with it on, each line's own figures sit under its name in the left column, exactly as they do on the phone</p>
         <p class="conv-note" style="margin:4px 4px 0">the method column is the <b>phone's line, unwidened</b>: a mono number in its own column, the ingredient a <b>plain herb word</b>, the live amount its <b>pill</b>, and the timer keeping the outlined pill it has because it is a measurement rather than a word in the sentence. A second step re-using the chicken carries <i>no</i> pill, because the amount was already said</p>
         <p class="conv-note" style="margin:4px 4px 0">ticking off is the same gesture here, on the same set: step 1 struck whole, one chip struck inside step 2 · both columns are one page, so a chip ticked in the method stays ticked whatever the window does, and the <b>left column is untouched</b> &mdash; a tick is about the method, not about the line</p>
         <p class="conv-note" style="margin:4px 4px 0">an amount reads the same in both columns: <b>2 onion, medium</b> and <b>1 lime, whole</b> say the measure's own words (<a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a>), the chicken stays a bare <b>6</b> because its row names no size, and the amount cell wraps rather than shove the name out of the column</p>
@@ -517,7 +518,7 @@
                                     <div class="l3 marked"><span class="l3-amt">200 g<span class="rowmark"><span class="rd"></span>stub ingredient</span></span><span class="l3-body"><span class="l3-id">Tofu</span></span></div>
                                     <div class="l3 seam"><span class="l3-amt">3 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">thinly sliced</span></span></div>
                                 </div>
-                                <div class="frow" style="margin:16px 0 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0">per serving</span></div>
+                                <div class="frow" style="margin:16px 0 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0;text-transform:none">per serving</span></div>
                                 <div class="macro-inc">
                                     <div class="mi-h"><span class="badge-inc">incomplete</span><span class="mi-n">1 stub line · 1 line needs a piece weight</span></div>
                                     <div class="mi-b">Left out of the total until every line resolves — a partial number would not be this recipe.</div>
@@ -574,7 +575,7 @@
                                 <span class="wr-dots">⋯</span>
                                 <div class="lib-menu wr-menu">
                                     <div class="mi"><span class="ic">☆</span><span class="lb">Favorite</span></div>
-                                    <div class="mi"><span class="ic">Σ</span><span class="lb">Show line macros</span></div>
+                                    <div class="mi"><span class="ic">Σ</span><span class="lb">Show line figures</span></div>
                                     <div class="mi"><span class="ic">✎</span><span class="lb">Edit recipe</span></div>
                                     <div class="mi"><span class="ic">&#9744;</span><span class="lb">Edit for this week · Tue &amp; Sat only</span></div>
                                     <div class="mi danger"><span class="ic">✕</span><span class="lb">Delete</span></div>
@@ -593,11 +594,11 @@
                                 <div class="grp">
                                     <div class="l3"><span class="l3-amt">2 tbsp</span><span class="l3-body"><span class="l3-id">Chilli Oil</span></span></div>
                                 </div>
-                                <div class="frow" style="margin:16px 0 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0">per serving</span></div>
+                                <div class="frow" style="margin:16px 0 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0;text-transform:none">per serving</span></div>
                                 <div class="macro tight"><div class="m"><div class="mv">566</div><div class="ml">kcal</div></div><div class="m"><div class="mv">35 g</div><div class="ml">protein</div></div><div class="m"><div class="mv">52 g</div><div class="ml">carb</div></div><div class="m"><div class="mv">20 g</div><div class="ml">fat</div></div></div>
                                 <div class="nc-row"><span class="nc-lab">OPTIONAL</span><span><b>Lime</b></span></div>
-                                <p class="nc-cap">Imprecise and optional lines are left out by rule, not by failure.</p>
                                 <div class="nc-row"><span class="nc-lab in">INCLUDED</span><span><b>Pickled Red Onions</b> · for this week</span></div>
+                                <p class="nc-cap">Imprecise and optional lines are left out by rule, not by failure.</p>
                             </div>
                             <div>
                                 <p class="wr-ch">Method</p>
@@ -615,7 +616,7 @@
         <p class="conv-note" style="margin:4px 4px 0">the <b>band</b> sits where it sits on the phone: one mono line with a calendar glyph, between the title and the chip row, and no fill — the chips stay the only filled thing above the columns. It gains <b>· edited for this week</b> once the week varies the recipe</p>
         <p class="conv-note" style="margin:4px 4px 0">the width gives the second door somewhere to hang: the <b>⋯</b> menu opens under itself in the hero, and it is the menu the phone shows from a week — <b>Edit recipe</b> beside <b>Edit for this week · Tue &amp; Sat only</b>, so the two read as two. From the Library the page is untouched: no band, no second item, and the tag is a tag</p>
         <p class="conv-note" style="margin:4px 4px 0">the tag is the <b>switch</b> in this column too — an empty ring to tick, filled herb with a check and the word <b>included</b> once ticked — and the rest of week mode is read-only beside it: the week's own amount, a line it leaves out <b>struck and muted</b>, and an added line after the last group</p>
-        <p class="conv-note" style="margin:4px 4px 0">the panel under the lines is the <b>week's own re-summation</b>, with the <b>OPTIONAL</b> row and its caption, and the <b>INCLUDED</b> row outside that caption because it names lines the total <i>does</i> cover</p>
+        <p class="conv-note" style="margin:4px 4px 0">the panel under the lines is the <b>week's own re-summation</b>, with the <b>OPTIONAL</b> row, the <b>INCLUDED</b> row under it, and the caption last &mdash; which speaks for the exclusions only</p>
         <p class="differs-note">differs: the back control and the rail, as in the first frame.</p>
     </div>
 
@@ -662,7 +663,7 @@
                                 <div class="grp"><p class="grp-h">to serve</p>
                                     <div class="l3 seam"><span class="l3-amt">1 lime, whole</span><span class="l3-body"><span class="l3-id">Lime</span><span class="l3-note">juiced</span><span class="l3-macro">39¢ · 39¢ a lime, whole · TJ’s, Sep</span></span></div>
                                 </div>
-                                <div class="frow" style="margin:16px 0 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt">Macros</span><span class="segopt on">Cost</span></div><span class="macro-lab" style="margin:0;padding:0">per serving</span></div>
+                                <div class="frow" style="margin:16px 0 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt">Macros</span><span class="segopt on">Cost</span></div><span class="macro-lab" style="margin:0;padding:0;text-transform:none">per serving</span></div>
                                 <div class="macro tight" style="margin-left:0;margin-right:0"><div class="m"><div class="mv">$2.64</div><div class="ml">a serving</div></div><div class="m"><div class="mv">$10.56</div><div class="ml">the recipe</div></div><div class="m"><div class="mv">Sep</div><div class="ml">prices from</div></div></div>
                                 <div class="nc-row" style="margin-left:0;margin-right:0"><span class="nc-lab">OLDEST</span><span><b>Smoked paprika</b> · Whole Foods, Jul</span></div>
                             </div>
@@ -680,7 +681,8 @@
                 </div>
             </div>
         </div>
-        <p class="wide-cap"><b>The panel is not a right rail here either.</b> The phone ruled that a total belongs at the end of the lines it sums, at their width, and a cost is a total. The chip pair sits where <i>Per serving</i> sat, the three cells share the 272 column the five macro cells already share, and a line’s figures wrap under its name exactly as its macros do — the column was sized for the longer record. The <b>⋯</b> is the page’s one door for <i>Show line figures</i>, as it is for line macros.</p>
+        <p class="differs-note">differs: the back control and the rail, as in the first frame.</p>
+        <p class="wide-cap"><b>The panel is not a right rail here either:</b> a total sits at the end of the lines it sums, at their width. The chip pair stands over the strip, the three cells share the 272 column the five macro cells share, and a line’s figures wrap under its name exactly as its macros do. The <b>⋯</b> is the page’s one door for <i>Show line figures</i>, whichever reading they are in.</p>
     </div>
 
 </div>

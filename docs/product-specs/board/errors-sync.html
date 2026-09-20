@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Errors &amp; sync health</h1>
-    <p class="view-status">built · matches code 2026-09-04 · <code>shared/</code> · <code>core/sync</code> · <a href="../../design-docs/errors-and-sync-health.md">errors-and-sync-health.md</a> · wide: same — the banner in the measure, the toast capped at 640</p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>shared/</code> · <code>core/sync</code> · <a href="../../design-docs/errors-and-sync-health.md">errors-and-sync-health.md</a> · wide: same — the banner in the measure, the toast capped at 640</p>
     <p class="view-blurb">A toast reports an act · a banner reports a state · the Shop list says where you stand. Nothing ever announces being offline — a queue is the app working.</p>
 </header>
 
@@ -48,7 +48,13 @@
                 <span class="ni"><span class="ic">▤</span>Shop</span>
             </div>
         </div></div>
-        <p class="er-no"><b>Not</b> a toast for: a successful write (the list re-rendering is the confirmation) · being offline · a form's own validation, which the form already shows inline and keeps.</p>
+        <p class="conv-note" style="margin:14px 4px 0">— and the quiet one, for something that threw where nobody asked it to: information, not alarm —</p>
+        <div class="er-toast quiet" style="margin-top:8px">
+            <span class="ti">ⓘ</span>
+            <div class="tb"><div class="tt">Something went wrong.</div><div class="td">Ansi kept going.</div></div>
+            <span class="ta">Copy details</span>
+        </div>
+        <p class="er-no"><b>Not</b> a toast for: a successful write (the list re-rendering is the confirmation) · being offline · a form's own validation, which the form already shows inline and keeps. The one exception is the <b>undo</b> toast, drawn on <a href="./week.html">Week</a> — it exists to carry the undo, not to report a success.</p>
     </div>
 
     <div class="frame">
@@ -73,13 +79,13 @@
             </div>
             <p class="conv-note" style="margin-top:14px">— the second cause, on the same strip —</p>
             <div class="er-banner lost" style="border-top:1px solid #E7C3BA;margin-top:8px">
-                <span class="bi">●</span>
+                <span class="bi">⚠</span>
                 <div class="bb"><div class="bt">One change couldn't be saved to the server.</div>
                     <div class="bd">A recipe edit from 14:02 was refused and won't sync. It's still on this phone.</div></div>
                 <span class="ba">What happened</span>
             </div>
         </div></div>
-        <p class="er-no"><b>Never</b> says “offline”, and <b>never</b> appears for a non-empty queue on its own. A queue is the app working. Frame (d) states it; nothing announces it.</p>
+        <p class="er-no"><b>Never</b> says “offline”, and <b>never</b> appears for a non-empty queue on its own. A queue is the app working. The <b>What happened</b> door opens a sheet listing each refused write — its time, its table, the server's own code — and an <b>I’ve seen this</b> button that clears the banner.</p>
     </div>
 
     <div class="frame">

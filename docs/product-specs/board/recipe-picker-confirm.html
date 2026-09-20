@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe picker &amp; confirm</h1>
-    <p class="view-status">built · matches code 2026-09-17 · <code>features/planning</code> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: same, as a dialog from 640</p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/planning</code> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: same, as a dialog from 640</p>
     <p class="view-blurb">Pick a recipe for a slot, then say who is eating and how much — the two steps between a day’s ＋ and a meal on the week. One door answers three ways: a recipe, an ingredient, or the words of a meal eaten out.</p>
 </header>
 
@@ -26,7 +26,7 @@
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">✕</span><span class="ttl">Add a meal</span><span class="dots"></span></div>
                 <p class="target">to · <b>Wednesday, Dinner</b></p>
-                <div class="field"><div class="search"><span class="mag">⌕</span><span style="color:var(--muted)">Search recipes</span><span class="care"></span></div></div>
+                <div class="field"><div class="search"><span class="mag">⌕</span><span style="color:var(--muted)">Search recipes and ingredients</span><span class="care"></span></div></div>
                 <div class="rseg"><span class="rsegopt on">Recent</span><span class="rsegopt">Books</span><span class="rsegopt">Favorites</span></div>
                 <div class="reuse">
                     <div class="reuse-h">Already this week — cook it in the same batch</div>
@@ -35,7 +35,6 @@
                         <span class="rchip">Beef Ragù <span class="day-t">Tue</span></span>
                     </div>
                 </div>
-                <p class="list-h">Recent</p>
                 <div class="rrow"><div class="rthumb">◍</div>
                     <div class="rmeta"><div class="rn">Weeknight Chicken Curry</div>
                         <div class="rtop"><div class="rbook">Our Cookbook · Weeknight</div><span class="rrec">2w ago</span></div>
@@ -56,7 +55,7 @@
                     <span class="rplus">＋</span></div>
                 <div class="rrow"><div class="rthumb">◍</div>
                     <div class="rmeta"><div class="rn">Roast Chicken &amp; Veg</div>
-                        <div class="rtop"><div class="rbook">Our Cookbook · Slow Sundays</div><span class="rrec">6w ago</span></div>
+                        <div class="rtop"><div class="rbook">Our Cookbook · Slow Sundays</div><span class="rrec">1mo ago</span></div>
                         <div class="rkeep"><span class="kpill keeps"><span class="mini-fresh"></span>keeps 3 d</span></div>
                         <div class="rml">serves 4 · ~610 kcal · 45P <span class="per" style="color:var(--muted)">/serving</span></div></div>
                     <span class="rplus">＋</span></div>
@@ -64,6 +63,7 @@
                 <div class="foot"><span class="foot-lab">Eating: <b>Ada &amp; Jun</b> · shared</span>
                     <span class="eaters"><span class="ep on a">A</span><span class="ep on j">J</span></span></div>
             </div></div>
+            <p class="conv-note" style="margin:10px 4px 0">Type something and an <b>INGREDIENTS</b> band joins the rows underneath, running the same vocabulary search the line picker runs. With the field empty this is the browse surface drawn above, unchanged.</p>
         </div>
 
         <div class="frame" id="pv2-c2">
@@ -74,7 +74,7 @@
                 <p class="target">to · <b>Wednesday</b></p>
                 <div class="picked"><div class="rthumb">◍</div>
                     <div class="pn"><div class="ptitle">Weeknight Chicken Curry</div>
-                        <div class="rkeep"><span class="kpill keeps"><span class="mini-fresh"></span>keeps 4 d</span><span class="kpill frz">freezable</span></div>
+                        <div class="rbook">keeps 4 d · freezable</div>
                         <div class="rml">serves 4 · ~520 kcal · 31P <span class="per" style="color:var(--muted)">/serving</span></div></div></div>
                 <div class="batch-note" style="margin-top:10px">Chicken Curry already cooks <b>Monday</b> and keeps 4 days — Wednesday is inside that window, so this joins Monday’s batch instead of a second cook.</div>
                 <p class="clabel">Slot</p>
