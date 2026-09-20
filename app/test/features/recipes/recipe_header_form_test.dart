@@ -10,6 +10,7 @@
 library;
 
 import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
@@ -200,6 +201,15 @@ void main() {
           ..setServings(6)
           ..setYield(250, g)
           ..setSecondYield(16, tbsp)
+          ..setMeasures(const [
+            RecipeMeasure(
+              id: 'm-blob',
+              recipeId: 'elsewhere',
+              label: 'blob',
+              amount: 15,
+              unit: g,
+            ),
+          ])
           ..setCookTime(35 * 60)
           ..setTotalTime(70 * 60)
           ..setKeepsForDays(4)
@@ -219,6 +229,11 @@ void main() {
         expect(h.freezerDays, 30);
         expect(h.bookId, 'b2');
         expect(h.sectionId, 's1');
+        // A word lands in the draft this host holds, stamped with the recipe it
+        // is now a word for — both hosts defer, and both land it with their own
+        // Save (ADR-0011).
+        expect(h.measures.single.label, 'blob');
+        expect(h.measures.single.recipeId, h.id);
 
         // The shared rules hold on this host too: a book move clears the
         // section, and un-freezing drops the freezer window.

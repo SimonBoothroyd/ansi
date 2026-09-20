@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ansi/core/search/search_query.dart';
+import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/import/data/import_repository_impl.dart';
 import 'package:ansi/features/import/domain/import_repository.dart';
@@ -296,6 +297,59 @@ void main() {
       recipeId,
     ]);
     expect(row['book_id'], 'bk-1');
+  });
+
+  test(
+    'a word the review coined lands with the recipe, re-pointed at it',
+    () async {
+      // The review hosts the same MEASURES list the editor does (ADR-0018) and
+      // prefills nothing into it, so this is a word a person typed there — under
+      // a draft id that is not the recipe the commit is about to create.
+      final c = resolvedCommit();
+      final recipeId = await repo.commit(
+        buildCommit(
+          c.payload,
+          c.resolutions,
+          header: _header(c.payload, yieldQty: 300, yieldUnit: g).copyWith(
+            measures: const [
+              RecipeMeasure(
+                id: 'm-blob',
+                recipeId: 'draft',
+                label: 'blob',
+                amount: 15,
+                unit: g,
+              ),
+            ],
+          ),
+          issuesByLine: null,
+        ),
+      );
+
+      final row = await db.get(
+        'SELECT recipe_id, label, amount, unit, sort_order FROM recipe_measure '
+        'WHERE id = ?',
+        ['m-blob'],
+      );
+      expect(row['recipe_id'], recipeId, reason: 'the draft id never lands');
+      expect(row['label'], 'blob');
+      expect(row['amount'], 15);
+      expect(row['unit'], 'g');
+      expect(row['sort_order'], 0);
+    },
+  );
+
+  test('a word the review never typed writes nothing at all', () async {
+    final c = resolvedCommit();
+    await repo.commit(
+      buildCommit(
+        c.payload,
+        c.resolutions,
+        header: _header(c.payload),
+        issuesByLine: null,
+      ),
+    );
+    final rows = await db.getAll('SELECT id FROM recipe_measure');
+    expect(rows, isEmpty);
   });
 
   test('with no book yet, the commit creates the default one', () async {
