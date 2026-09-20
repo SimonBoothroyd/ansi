@@ -180,7 +180,7 @@ void main() {
 
       expect(find.text(kRecipeMeasureNoYieldRefusal), findsOneWidget);
       // ONE sentence: the empty-list line would be a second problem to read.
-      expect(find.textContaining('No words yet'), findsNothing);
+      expect(find.textContaining('No measures yet'), findsNothing);
       // And nothing that could only produce a refusal: no slots, no chip, no
       // button.
       expect(_labelField, findsNothing);
@@ -525,7 +525,7 @@ void main() {
       await tester.pumpAndSettle();
       await saveEditor(tester);
 
-      expect(find.text('Leave that word on nothing?'), findsOneWidget);
+      expect(find.text('Leave that measure on nothing?'), findsOneWidget);
       expect(
         find.textContaining('“blob” (15 g) has nothing left to be a share of'),
         findsOneWidget,
@@ -573,7 +573,7 @@ void main() {
       expect(find.textContaining('nothing to be a share of'), findsOneWidget);
 
       await saveEditor(tester);
-      expect(find.text('Leave that word on nothing?'), findsNothing);
+      expect(find.text('Leave that measure on nothing?'), findsNothing);
       expect(fakes.recipes.saved.single.measures.single, _blob);
     });
 

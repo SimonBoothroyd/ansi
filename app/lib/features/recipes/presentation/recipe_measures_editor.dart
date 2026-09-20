@@ -219,7 +219,7 @@ class RecipeMeasuresEditor extends HookWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Text(
-                'No words yet — a component line can still say “0.5 batch”.',
+                'No measures yet — a component line can still say “0.5 batch”.',
                 style: ansiMono(size: 12, color: AnsiColors.muted),
               ),
             )
