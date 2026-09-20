@@ -1097,7 +1097,10 @@ verified token:
   the receipt corrects the memory. There is no second list to also correct.
 - the answer is read **through the ingredient**, so a row the household has
   since retired is not an answer any more and an older live one is used instead.
-  A line the household folded is remembered as `not_food`.
+  A line the household folded is remembered as `not_food`. **Recall asks about
+  folded names as well as matched ones**, so a line the model folded that this
+  household has matched before arrives as `kind: item` with the remembered
+  match and no suggestions. Tax and fee lines are never recalled.
 - a recalled ingredient arrives as
   `match: {ingredient_id, confidence: 1, kind: "auto", remembered: true}` and
   **overrides** the cascade; the cascade's suggestions ride along unchanged,

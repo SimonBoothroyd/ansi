@@ -28,6 +28,8 @@ showQuantityUnitSheet   quantity_unit_sheet.dart     every quantity+unit in the 
 showUsdaPickSheet       usda_pick_sheet.dart         the USDA short-list a person picks from
 showPriceSheet          price_sheet.dart             paid · for · at — the one door a price is entered through,
                                                      and, opened on a stored line, edited or deleted
+   └── StoreChipRow / PackField / PriceDerivedLine: price_fields.dart, shared
+       with the receipt pack sheet and the receipt review
 
 scanBarcodeForDraft     barcode/barcode_add.dart     the barcode module's one door
 applyDraft              domain/apply_draft.dart      how a draft lands on the form's fields
