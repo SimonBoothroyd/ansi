@@ -47,6 +47,17 @@ def split_top_level(body):
     if "".join(cur).strip(): parts.append("".join(cur))
     return [p.strip() for p in parts if p.strip()]
 
+def drop_inline_check(detail, name):
+    """`detail` without its `constraint <name> check (...)`, parens balanced."""
+    m = re.search(rf"constraint {name} check \(", detail, re.I)
+    if not m:
+        return detail
+    depth, end = 1, m.end()
+    while depth and end < len(detail):
+        depth += {"(": 1, ")": -1}.get(detail[end], 0)
+        end += 1
+    return (detail[:m.start()] + detail[end:]).strip()
+
 def parse_column(defn, migration=None):
     name, _, rest = defn.partition(" ")
     toks, typ = rest.split(), []
@@ -137,6 +148,10 @@ for path in MIGRATIONS:
                     t["constraints"] = [
                         k for k in t["constraints"]
                         if not re.match(rf"constraint {c.group(1)}\b", k, re.I)]
+                    # A named check written inline on a column goes too.
+                    for col in t["columns"]:
+                        col["detail"] = drop_inline_check(
+                            col["detail"], c.group(1))
                     continue
                 if re.match(r"add constraint \w+ ", clause, re.I):
                     t["constraints"].append(clause[len("add "):])
