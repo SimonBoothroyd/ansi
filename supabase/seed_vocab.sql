@@ -14,7 +14,7 @@
 -- the USDA reference set is a different thing with a different owner
 -- (ADR-0005, seed/scripts/seed_usda.md).
 --
--- 323 ingredients (323 complete, 0 stub), 158 aliases, 326 measures.
+-- 323 ingredients (323 complete, 0 stub), 157 aliases, 326 measures.
 
 begin;
 
@@ -33,7 +33,7 @@ on conflict (id) do update set is_template = true;
 -- 'seed' before they land here — otherwise the row would seed and then
 -- reach no household at all. Every other stamp is the row's real
 -- provenance and is carried verbatim.
--- Re-stamped this run: 0 ingredient sources, 19 alias sources.
+-- Re-stamped this run: 0 ingredient sources, 18 alias sources.
 --   alias: frozen banana → Banana
 --   alias: vegetable stock cube → Bouillon Paste
 --   alias: Tenderstem broccoli → Broccoli
@@ -48,7 +48,6 @@ on conflict (id) do update set is_template = true;
 --   alias: white onion → Onion
 --   alias: chocolate protein powder → Pea Protein Powder
 --   alias: soy yogurt → Plain Oat Yogurt
---   alias: your favourite pasta → Protein Pasta
 --   alias: dried sage → Ground Sage
 --   alias: fresh mushrooms → White Mushroom
 --   alias: ground white pepper → White Pepper
@@ -1241,7 +1240,6 @@ where i.household_id = '00000000-0000-0000-0000-0000000000aa' and i.deleted_at i
     ('plain oat yogurt', 'skyr plain yogurt'),
     ('plain oat yogurt', 'soy yogurt'),
     ('plain oat yogurt', 'vegan greek yogurt'),
-    ('protein pasta', 'your favourite pasta'),
     ('red chili fresh', 'bird eye chilli'),
     ('red chili fresh', 'chilli fresh'),
     ('red chili fresh', 'hot chili pepper'),
@@ -1315,7 +1313,7 @@ join (values
   ('beyond hot italian style sausage', 'Beyond Meat Sausage', 'beyond meat sausage', 'seed'),
   ('black pepper', 'cracked black pepper', 'cracked black pepper', 'seed'),
   ('black pepper', 'ground black pepper', 'black pepper ground', 'seed'),
-  ('blueberry', 'desired berries', 'berry', 'seed'),
+  ('blueberry', 'berries', 'berry', 'seed'),
   ('blueberry', 'mixed berries', 'mixed berry', 'seed'),
   ('bouillon paste', 'vegetable stock cube', 'vegetable stock cube', 'seed'),
   ('breaded vegan chicken nugget', 'breaded vegan chicken strips', 'breaded vegan chicken strip', 'seed'),
@@ -1396,7 +1394,7 @@ join (values
   ('panko', 'panko bread crumbs', 'panko bread crumb', 'seed'),
   ('panko', 'panko breadcrumbs', 'panko breadcrumb', 'seed'),
   ('parsley', 'fresh parsley', 'parsley fresh', 'seed'),
-  ('pasta', 'desired pasta noodles', 'pasta noodle', 'seed'),
+  ('pasta', 'pasta noodles', 'pasta noodle', 'seed'),
   ('pasta cooked', 'cooked spaghetti', 'spaghetti cooked', 'seed'),
   ('pea', 'garden peas', 'garden pea', 'seed'),
   ('pea', 'green peas', 'green pea', 'seed'),
@@ -1410,7 +1408,6 @@ join (values
   ('plain oat yogurt', 'skyr plain yogurt', 'skyr plain yogurt', 'manual'),
   ('plain oat yogurt', 'soy yogurt', 'soy yogurt', 'seed'),
   ('plain oat yogurt', 'vegan greek yogurt', 'vegan greek yogurt', 'manual'),
-  ('protein pasta', 'your favourite pasta', 'your favourite pasta', 'seed'),
   ('red chili fresh', 'birds eye chilli', 'bird eye chilli', 'seed'),
   ('red chili fresh', 'fresh chilli', 'chilli fresh', 'seed'),
   ('red chili fresh', 'hot chili pepper', 'hot chili pepper', 'seed'),

@@ -483,8 +483,13 @@ and can run beside phase one.
   rather than the food (second person and possessive, open choice, preference),
   and two structural guards hold the class: the one door that writes a learned
   alias must ask, and no alias the seed template carries may fail the question.
-  Swept over the owner's vocabulary the rule gives up two seed rows and one
-  learned row, all his to retire.
+- 2026-09-19 — **The seed carries no decision-shaped alias.** The three rows the
+  rule gave up were fixed in the owner's vocabulary — "your favourite pasta"
+  retired, "desired berries" and "desired pasta noodles" renamed to "berries"
+  and "pasta noodles" with their keys (`berry`, `pasta noodle`) untouched — and
+  the seed regenerated from his household at 323 ingredients / 326 measures /
+  157 aliases. The template guard allows nothing now: a fourth such phrase
+  cannot be exported.
 
 ## Notes / open questions
 
