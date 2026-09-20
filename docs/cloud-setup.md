@@ -550,6 +550,43 @@ or any dashboard-config walk. An entry headed **pending** is the exception: it
 names a migration that is merged but **not yet on cloud**, and it is replaced by
 the ordinary entry for the run that pushes it.
 
+### 2026-09-19 (night) — v0.22.0 on cloud: 0048, the recipe measure's stream, and the cleaned shelf promoted
+
+- **deploy-supabase 35480151258** (owner-triggered on `5847385b`, with
+  **`reseed_template` ticked**): green end to end — link, `db push` applying
+  `0048_recipe_measure.sql`, both edge functions (no change found in either),
+  and the sync streams deployed carrying the new `recipe_measure` stream.
+  Readback: `schema_migrations` tops at `0048` (49 applied), `recipe_measure`
+  is present and in the `powersync` publication, which now holds 18 tables.
+- **The reseed printed neither its closing notice nor its readback count**, and
+  the seed is fine — the CLI is what changed. `supabase db query` now prints
+  its "a new version is available" nag *after* the JSON document, so the step's
+  `q` helper parses nothing: the log reads `usda_food rows: unreadable` and
+  `template:  live ingredients (seed/counts.json says 323)` with an empty
+  count, and `seed_vocab`'s own `raise notice` never shows because notices are
+  stderr. Nothing silent could have passed here: the step is `bash -e` and
+  `seed_vocab.sql` raises on its own guards (R1 volume-default ⇒ density, R2
+  the kitchen density band, R3 every counted row weighed, plus a measure with
+  no live row to hang on), so a failed invariant takes the job red. The counts
+  were read back by hand instead, and match `supabase/seed/counts.json`
+  exactly: template **323 live ingredients (323 complete) · 326 measures · 157
+  aliases**, all 323 carrying macros, and `usda_search_stats` at 8,204 docs so
+  the index was rebuilt. No live template measure label begins `package` or
+  states a size in `lb` — the house style survived the promotion. The owner's
+  own household reads the same 326 measures ingredient-for-ingredient and word
+  for word (its raw count of 329 is three measures still hanging on retired
+  rows, which the template correctly does not carry), so the template *is* his
+  shelf and no rollout is owed.
+- `cloud_verify.sh`: **9 ok · 0 warn · 0 fail** (JWKS ES256, GoTrue, Google
+  only with email/password off, sign-up off, PostgREST, PowerSync liveness,
+  streams 18 tables equal).
+- Nothing to do by hand on the dashboard.
+- **`0048` is on cloud before anything can write to it, deliberately.**
+  `v0.22.0` only *reads* a recipe measure; a build older than it crashes on a
+  component line whose `unit` is null, so both phones take `v0.22.0` before the
+  release that opens the authoring door. Until that one ships there is no door,
+  so no such line exists.
+
 ### 2026-09-19 — v0.21.0 on cloud: 0047, both functions, and the measures said in the household's own words
 
 - **deploy-supabase 35471848148** (owner-triggered on `c0a38ee`): `db push`
