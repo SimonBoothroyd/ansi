@@ -518,6 +518,55 @@ class ReceiptScanController extends _$ReceiptScanController {
     );
   }
 
+  /// *add a line* — a line the reader missed, said by hand: matched to [row]
+  /// at [cents], counting one, with the pack [row] was last bought in.
+  ///
+  /// The line is added FIRST and never waits on the reads, exactly as a match
+  /// is: it is the person's act. There is no printed name to recall a pack
+  /// under, so that step is simply not there — the row's own last price is the
+  /// only carry-over, and a line that reaches none asks for its pack like any
+  /// other matched line.
+  Future<void> addLine(Ingredient row, int cents) async {
+    final s = state;
+    if (s is! ReceiptReviewing || cents <= 0) return;
+    final added = handAddedLine(s.drafts, row: row, cents: cents);
+    state = s.copyWith(
+      drafts: [...s.drafts, added],
+      rows: {...s.rows, row.id: row},
+    );
+    final measureRepo = ref.read(measureRepositoryProvider);
+    final priceRepo = ref.read(priceRepositoryProvider);
+    final measures = await _measuresFor(row.id, measureRepo);
+    final last = await _lastPriceFor(row.id, priceRepo);
+    if (!ref.mounted) return;
+    final now = state;
+    if (now is! ReceiptReviewing) return;
+    state = now.copyWith(
+      measuresById: {...now.measuresById, row.id: measures},
+      drafts: [
+        for (final d in now.drafts)
+          if (d.index == added.index)
+            landPack(d, ingredient: row, measures: measures, last: last)
+          else
+            d,
+      ],
+    );
+  }
+
+  /// Takes back a line added by hand in this sitting: no row holds it, so
+  /// there is nothing to tombstone and nothing to leave on screen greyed —
+  /// it simply goes. A line already saved is dropped like any other.
+  void removeLine(int index) {
+    final s = state;
+    if (s is! ReceiptReviewing) return;
+    state = s.copyWith(
+      drafts: [
+        for (final d in s.drafts)
+          if (d.index != index) d,
+      ],
+    );
+  }
+
   /// The vocabulary row behind a did-you-mean chip, read fresh.
   ///
   /// The chip carries the server's id and its word for the row; the match has

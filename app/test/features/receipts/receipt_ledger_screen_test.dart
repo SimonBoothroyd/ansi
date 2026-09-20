@@ -1,7 +1,9 @@
 /// The ledger, and one receipt read back.
 library;
 
+import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/receipts/domain/receipt_repository.dart';
 import 'package:ansi/features/receipts/presentation/receipt_review_body.dart';
 import 'package:ansi/features/receipts/presentation/receipt_view_models.dart';
@@ -9,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../helpers/fake_price_repository.dart';
 import '../../helpers/forui_semantics.dart';
 import '_harness.dart';
 
@@ -248,6 +251,61 @@ void main() {
       expect(write.lines.map((l) => l.lineId), ['l1', 'l2']);
       expect(write.lines.first.cents, 399);
     });
+
+    testWidgets(
+      'a kept receipt takes a line by hand too, and Save inserts it',
+      (tester) async {
+        filterForuiSemanticsAssertions();
+        tallSurface(tester);
+        final ledger = FakeReceiptRepo()..stored['a'] = tjs();
+        await tester.pumpWidget(
+          storedReceiptHost(
+            overrides: receiptOverrides(
+              ledger: ledger,
+              vocab: const SampleVocabRepo(rows: vocabularyWithTomatoes),
+              prices: FakePriceRepo(
+                stores: const ["TJ's"],
+                prices: [
+                  PriceObservation(
+                    lineId: 'l-punnet',
+                    receiptId: 'r-punnet',
+                    cents: 329,
+                    packBasisAmount: 283,
+                    basis: MacrosBasis.perG,
+                    store: "TJ's",
+                    purchasedAt: DateTime.utc(2026, 9),
+                    packAmount: 283,
+                    packUnit: g,
+                  ),
+                ],
+              )..ingredientId = 'vocab-tomato',
+            ),
+            receiptId: 'a',
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('add a line'), findsOneWidget);
+        await addALineByHand(tester);
+        expect(find.text('added by hand'), findsOneWidget);
+
+        await tester.tap(find.byKey(kReceiptSaveKey));
+        await tester.pumpAndSettle();
+
+        final (id, write) = ledger.updated.single;
+        expect(id, 'a');
+        // The kept lines by their ids, and the new one with none — an INSERT
+        // after them.
+        expect(write.lines.map((l) => l.lineId), ['l1', 'l2', 'l3', null]);
+        final added = write.lines.last;
+        expect(added.sortOrder, 3);
+        expect(added.printedText, isEmpty);
+        expect(added.namePrinted, isNull);
+        expect(added.ingredientId, 'vocab-tomato');
+        expect(added.cents, 329);
+        expect(added.packBasisAmount, 283);
+      },
+    );
 
     testWidgets('a saved receipt can be taken back, after being asked', (
       tester,

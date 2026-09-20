@@ -52,6 +52,7 @@ class LineCard extends HookWidget {
     required this.expanded,
     this.dragIndex,
     this.collapseEpoch = 0,
+    this.initiallyOpen = false,
     this.attention = false,
     this.borderAtRest = true,
     this.lit = false,
@@ -70,6 +71,11 @@ class LineCard extends HookWidget {
 
   /// Bumped by the list when a drag starts elsewhere: every open card closes.
   final int collapseEpoch;
+
+  /// Whether the card stands open the first time it is built — a line the
+  /// person just added, which arrives as a form rather than as a row to find.
+  /// It is a starting state and nothing more: closing it closes it for good.
+  final bool initiallyOpen;
 
   /// Whether the line needs the user — the border goes amber and stays amber
   /// while it does. Always false where nothing gates a save.
@@ -90,9 +96,16 @@ class LineCard extends HookWidget {
   Widget build(BuildContext context) {
     // Local to the row: several cards stand open at once, and each survives
     // the host's rebuild on every keystroke somewhere else.
-    final open = useState(false);
+    final open = useState(initiallyOpen);
+    // A drag anywhere in the list bumps the epoch and closes every open card.
+    // The first build is not a change, so a card that opens at birth stays
+    // open.
+    final seen = useRef(collapseEpoch);
     useEffect(() {
-      open.value = false;
+      if (seen.value != collapseEpoch) {
+        seen.value = collapseEpoch;
+        open.value = false;
+      }
       return null;
     }, [collapseEpoch]);
 

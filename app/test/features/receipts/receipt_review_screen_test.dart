@@ -22,6 +22,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:hooks_riverpod/misc.dart' show Override;
 
 import '../../helpers/fake_price_repository.dart';
 import '../../helpers/forui_semantics.dart';
@@ -691,6 +692,223 @@ void main() {
         ledger.saved.single.lines.single.namePrinted,
         'ORG TRICOLOR QUINOA',
       );
+    });
+  });
+
+  group('a line the reader missed', () {
+    // The reader loses a line to a fold in the strip; the join card says so,
+    // and this door is where it is put back.
+    List<Override> withTomatoes({
+      FakeReceiptRepo? ledger,
+      FakePriceRepo? prices,
+    }) => receiptOverrides(
+      ledger: ledger,
+      prices: prices,
+      vocab: const SampleVocabRepo(rows: vocabularyWithTomatoes),
+    );
+
+    /// The 283 g punnet as the row's last price — what a hand-added line lands
+    /// its pack from, since it has no printed words to recall one under.
+    FakePriceRepo punnet() => FakePriceRepo(
+      stores: const ["TJ's"],
+      prices: [
+        PriceObservation(
+          lineId: 'l-punnet',
+          receiptId: 'r-punnet',
+          cents: 329,
+          packBasisAmount: 283,
+          basis: MacrosBasis.perG,
+          store: "TJ's",
+          purchasedAt: DateTime.utc(2026, 9),
+          packAmount: 283,
+          packUnit: g,
+        ),
+      ],
+    )..ingredientId = 'vocab-tomato';
+
+    testWidgets('the door lands the line open, matched and counting one', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      tallSurface(tester);
+      await tester.pumpWidget(scanHost(overrides: withTomatoes()));
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+      final before =
+          (container.read(receiptScanControllerProvider) as ReceiptReviewing)
+              .map;
+      expect(find.text('add a line'), findsOneWidget);
+
+      await addALineByHand(tester);
+
+      final state =
+          container.read(receiptScanControllerProvider) as ReceiptReviewing;
+      final added = state.drafts.last;
+      expect(added.index, 9, reason: 'one past the highest, never a position');
+      expect(added.ingredientId, 'vocab-tomato');
+      expect(added.cents, 329);
+      expect(added.count, 1);
+      expect(added.printedText, isEmpty);
+      expect(added.namePrinted, isNull);
+      expect(added.lineId, isNull);
+      // It arrives OPEN: the pack and the count are the next things to say.
+      expect(find.text('added by hand'), findsOneWidget);
+      expect(find.text('Cherry tomatoes'), findsWidgets);
+      expect(find.text('COUNT'), findsOneWidget);
+      expect(find.text('× 1'), findsOneWidget);
+      // The lines' sum and the join move with it.
+      expect(state.map.linesCents, before.linesCents + 329);
+      expect(state.map.apartCents, 329);
+      expect(find.textContaining(r'$3.29 apart'), findsOneWidget);
+    });
+
+    testWidgets('it asks for a pack like any other matched line, and holds '
+        'Save until it has one', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallSurface(tester);
+      await tester.pumpWidget(scanHost(overrides: withTomatoes()));
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+      await answerEveryLine(tester, container);
+      await addALineByHand(tester);
+
+      // Nothing bought under this row before, so there is no pack to carry.
+      expect(find.text('Say what the pack is'), findsWidgets);
+      expect(
+        tester.widget<FButton>(find.byKey(kReceiptSaveKey)).onPress,
+        isNull,
+      );
+      container
+          .read(receiptScanControllerProvider.notifier)
+          .setPack(
+            9,
+            amount: 283,
+            choice: const UnitOption(g),
+            basisAmount: 283,
+          );
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<FButton>(find.byKey(kReceiptSaveKey)).onPress,
+        isNotNull,
+      );
+    });
+
+    testWidgets('it lands on the pack the row was last bought in, and Save '
+        'writes it as a price with no printed words', (tester) async {
+      filterForuiSemanticsAssertions();
+      final ledger = FakeReceiptRepo();
+      tallSurface(tester);
+      await tester.pumpWidget(
+        scanHost(
+          overrides: withTomatoes(ledger: ledger, prices: punnet()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+      await answerEveryLine(tester, container);
+      await addALineByHand(tester);
+
+      final added =
+          (container.read(receiptScanControllerProvider) as ReceiptReviewing)
+              .drafts
+              .last;
+      expect(added.packBasisAmount, 283);
+      expect(added.isPrice, isTrue);
+
+      await tester.tap(find.byKey(kReceiptSaveKey));
+      await tester.pumpAndSettle();
+
+      final write = ledger.saved.single;
+      final line = write.lines.last;
+      expect(line.lineId, isNull, reason: 'nothing holds it yet');
+      expect(line.sortOrder, write.lines.length - 1, reason: 'after the paper');
+      expect(line.printedText, isEmpty);
+      expect(line.namePrinted, isNull, reason: 'the memory learns nothing');
+      expect(line.ingredientId, 'vocab-tomato');
+      expect(line.packBasisAmount, 283);
+      expect(line.count, 1);
+    });
+
+    testWidgets('backing out of the picker adds nothing', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallSurface(tester);
+      await tester.pumpWidget(scanHost(overrides: withTomatoes()));
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+      final before =
+          (container.read(receiptScanControllerProvider) as ReceiptReviewing)
+              .drafts
+              .length;
+
+      await tester.tap(find.byKey(kReceiptAddLineKey));
+      await tester.pumpAndSettle();
+      expect(find.text('What is this line?'), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel('Close'));
+      await tester.pumpAndSettle();
+
+      expect(
+        (container.read(receiptScanControllerProvider) as ReceiptReviewing)
+            .drafts
+            .length,
+        before,
+      );
+      expect(find.text('added by hand'), findsNothing);
+    });
+
+    testWidgets('backing out of the money adds nothing either', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallSurface(tester);
+      await tester.pumpWidget(scanHost(overrides: withTomatoes()));
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+      final before =
+          (container.read(receiptScanControllerProvider) as ReceiptReviewing)
+              .drafts
+              .length;
+
+      await pickALineByHand(tester);
+      expect(find.text('What did this line cost?'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FButton, 'Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(
+        (container.read(receiptScanControllerProvider) as ReceiptReviewing)
+            .drafts
+            .length,
+        before,
+      );
+      expect(find.text('added by hand'), findsNothing);
+    });
+
+    testWidgets('the trash takes back a line nobody has saved — no tombstone '
+        'to leave behind', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallSurface(tester);
+      await tester.pumpWidget(scanHost(overrides: withTomatoes()));
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+      final before =
+          (container.read(receiptScanControllerProvider) as ReceiptReviewing)
+              .drafts
+              .length;
+      await addALineByHand(tester);
+
+      // The added card is the only open one, so its trash is the only one.
+      await tester.tap(find.bySemanticsLabel('Remove the line'));
+      await tester.pumpAndSettle();
+
+      final state =
+          container.read(receiptScanControllerProvider) as ReceiptReviewing;
+      expect(state.drafts, hasLength(before));
+      expect(state.drafts.any((d) => d.saidByHand), isFalse);
+      expect(find.text('added by hand'), findsNothing);
+      expect(find.textContaining('dropped'), findsNothing);
     });
   });
 

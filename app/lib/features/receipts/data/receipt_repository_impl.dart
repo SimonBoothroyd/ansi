@@ -369,7 +369,10 @@ class SqliteReceiptRepository implements ReceiptRepository {
         _uuid.v4(),
         _householdId,
         receiptId,
-        line.printedText,
+        // A line nobody read off paper — added by hand in the review, or a
+        // typed price — is stored with NO printed words, never with an empty
+        // pair of them: the column means "what the paper said".
+        if (line.printedText.isEmpty) null else line.printedText,
         line.namePrinted,
         ...said,
         stamp,

@@ -14,12 +14,14 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
+import 'package:ansi/features/ingredients/presentation/ingredient_picker.dart';
 import 'package:ansi/features/receipts/data/receipt_providers.dart';
 import 'package:ansi/features/receipts/data/replay_receipt_repository.dart';
 import 'package:ansi/features/receipts/data/sample_receipt_payloads.dart';
 import 'package:ansi/features/receipts/domain/receipt_repository.dart';
 import 'package:ansi/features/receipts/domain/receipt_save.dart';
 import 'package:ansi/features/receipts/presentation/receipt_ledger_view.dart';
+import 'package:ansi/features/receipts/presentation/receipt_review_body.dart';
 import 'package:ansi/features/receipts/presentation/receipt_scan_view.dart';
 import 'package:ansi/features/receipts/presentation/receipt_view_models.dart';
 import 'package:flutter/material.dart';
@@ -78,7 +80,22 @@ const cheddar = Ingredient(
   source: 'seed',
 );
 
+/// A row no line of the sample strip carries — what the *add a line* door
+/// picks. Nothing else on screen says these words, so the picker has to find
+/// it and the card that appears can only be the one just added.
+const cherryTomatoes = Ingredient(
+  id: 'vocab-tomato',
+  canonicalName: 'Cherry tomatoes',
+  defaultUnit: g,
+  status: IngredientStatus.complete,
+  macros: Macros(kcal: 18, protein: 0.9, carb: 3.9, fat: 0.2),
+  source: 'seed',
+);
+
 const sampleVocabulary = [bananas, onion, salmon, sriracha, cheddar];
+
+/// The sample vocabulary and the row the hand-added line is matched to.
+const vocabularyWithTomatoes = [...sampleVocabulary, cherryTomatoes];
 
 /// A vocabulary that answers the lookups the review makes, and nothing else.
 class SampleVocabRepo extends ReadOnlyIngredientRepo {
@@ -99,6 +116,20 @@ class SampleVocabRepo extends ReadOnlyIngredientRepo {
     for (final row in rows)
       if (ids.contains(row.id)) row.id: row,
   };
+
+  /// A plain contains, so the picker — the door *add a line* and *Something
+  /// else* both open — finds a row a test types the name of.
+  @override
+  Future<IngredientMatches> search(String query, {int limit = 30}) async => (
+    rows: [
+      for (final row in rows)
+        if (row.canonicalName.toLowerCase().contains(
+          query.trim().toLowerCase(),
+        ))
+          row,
+    ],
+    guessed: false,
+  );
 }
 
 /// An in-memory [ReceiptRepository] — what Save asked for, which is the
@@ -296,6 +327,47 @@ void tallSurface(WidgetTester tester, {double height = 3000}) {
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
+}
+
+/// Opens the *add a line* door and picks [name] in the picker, stopping on the
+/// money prompt. A suite driving either of these calls
+/// `filterForuiSemanticsAssertions()` first: both doors are Forui modals.
+Future<void> pickALineByHand(
+  WidgetTester tester, {
+  String name = 'Cherry tomatoes',
+}) async {
+  await tester.tap(find.byKey(kReceiptAddLineKey));
+  await tester.pumpAndSettle();
+  await tester.enterText(find.byType(TextField).first, name);
+  await tester.pumpAndSettle();
+  // In the RESULT list: the search field carries the same words, and a finder
+  // by text alone would answer with the field it was typed into.
+  await tester.tap(
+    find.descendant(
+      of: find.byType(IngredientResultList),
+      matching: find.text(name),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// The same door, all the way through: the picker, then the money prompt.
+Future<void> addALineByHand(
+  WidgetTester tester, {
+  String name = 'Cherry tomatoes',
+  String money = '3.29',
+}) async {
+  await pickALineByHand(tester, name: name);
+  await tester.enterText(
+    find.descendant(
+      of: find.byType(FDialog),
+      matching: find.byType(EditableText),
+    ),
+    money,
+  );
+  await tester.pump();
+  await tester.tap(find.widgetWithText(FButton, 'Use it'));
+  await tester.pumpAndSettle();
 }
 
 /// Walks the scan from the intake to the review: the replay repository

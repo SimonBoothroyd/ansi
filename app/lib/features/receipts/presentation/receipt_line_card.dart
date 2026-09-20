@@ -59,6 +59,7 @@ class ReceiptLineCard extends ConsumerWidget {
     required this.draft,
     required this.issues,
     this.row,
+    this.manual = false,
     super.key,
   });
 
@@ -67,6 +68,15 @@ class ReceiptLineCard extends ConsumerWidget {
 
   /// The matched vocabulary row, or null where the line names none.
   final Ingredient? row;
+
+  /// Whether the receipt itself was typed by hand on an ingredient's page.
+  /// Its lines printed nothing either, and the header already says so, so
+  /// `added by hand` would be a second voice saying the same thing.
+  final bool manual;
+
+  /// Whether a person added this line in the review rather than the reader
+  /// reading it off the paper.
+  bool get _byHand => draft.saidByHand && !manual;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -81,10 +91,14 @@ class ReceiptLineCard extends ConsumerWidget {
     final label = receiptAttentionLabel(issues);
     return LineCard(
       attention: label != null,
+      // A line just added arrives as a form: its pack and its count are the
+      // next things to say, and a closed row would hide both.
+      initiallyOpen: _byHand && draft.lineId == null,
       collapsed: (expand) => _Collapsed(
         draft: draft,
         basis: row?.macrosBasis,
         label: label,
+        byHand: _byHand,
         onExpand: expand,
       ),
       expanded: (collapse) => _Expanded(
@@ -92,6 +106,7 @@ class ReceiptLineCard extends ConsumerWidget {
         issues: issues,
         row: row,
         label: label,
+        byHand: _byHand,
         onCollapse: collapse,
       ),
     );
@@ -104,12 +119,14 @@ class _Collapsed extends StatelessWidget {
     required this.draft,
     required this.basis,
     required this.label,
+    required this.byHand,
     required this.onExpand,
   });
 
   final ReceiptLineDraft draft;
   final MacrosBasis? basis;
   final String? label;
+  final bool byHand;
   final VoidCallback onExpand;
 
   @override
@@ -156,7 +173,7 @@ class _Collapsed extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 5),
                     child: ReceiptAttentionTag(label: label!),
                   ),
-                ReceiptSourceLine(draft: draft),
+                ReceiptSourceLine(draft: draft, byHand: byHand),
               ],
             ),
           ),
@@ -176,6 +193,7 @@ class _Expanded extends ConsumerWidget {
     required this.issues,
     required this.row,
     required this.label,
+    required this.byHand,
     required this.onCollapse,
   });
 
@@ -183,6 +201,7 @@ class _Expanded extends ConsumerWidget {
   final List<ReceiptLineIssue> issues;
   final Ingredient? row;
   final String? label;
+  final bool byHand;
   final VoidCallback onCollapse;
 
   @override
@@ -212,10 +231,16 @@ class _Expanded extends ConsumerWidget {
               ),
             ],
           ),
-          onRemove: () => controller.drop(draft.index),
+          // A line added by hand and never saved has no row behind it and no
+          // paper it came off: taking it back is simply taking it off the
+          // list. Every other line is dropped — greyed, undoable, and a
+          // tombstone at Save if a row holds it.
+          onRemove: byHand && draft.lineId == null
+              ? () => controller.removeLine(draft.index)
+              : () => controller.drop(draft.index),
           onCollapse: onCollapse,
         ),
-        ReceiptSourceLine(draft: draft),
+        ReceiptSourceLine(draft: draft, byHand: byHand),
         if (again != null)
           Padding(
             padding: const EdgeInsets.only(top: 6),
@@ -565,18 +590,32 @@ class _ChosenRow extends StatelessWidget {
 
 /// `from receipt:  TJ ORG BANANAS  3.49` — the paper's own words, always
 /// visible. From a photograph there is no other way to check what was read.
+///
+/// Where the paper printed nothing because nobody read this line off it, the
+/// line says `added by hand` in the same muted mono — the same fact in the
+/// same place, so a reader checking a card always knows where it came from.
 class ReceiptSourceLine extends StatelessWidget {
-  const ReceiptSourceLine({required this.draft, super.key});
+  const ReceiptSourceLine({
+    required this.draft,
+    this.byHand = false,
+    super.key,
+  });
 
   final ReceiptLineDraft draft;
 
+  /// Whether a person added this line in the review. See
+  /// [ReceiptLineDraft.saidByHand].
+  final bool byHand;
+
   @override
   Widget build(BuildContext context) {
-    if (draft.printedText.isEmpty) return const SizedBox.shrink();
+    if (draft.printedText.isEmpty && !byHand) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 5),
       child: Text(
-        'from receipt:  ${draft.printedText}',
+        draft.printedText.isEmpty
+            ? 'added by hand'
+            : 'from receipt:  ${draft.printedText}',
         style: ansiMono(size: 10, color: AnsiColors.muted),
       ),
     );

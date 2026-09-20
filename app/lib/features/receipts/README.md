@@ -34,6 +34,16 @@ same two tables a hand-typed price writes one row each of
   totals and printed words never move.
 - **A zero is never a price.** An unreadable figure arrives as `cents: 0` and
   is flagged, holding Save until somebody reads it off the paper.
+- **A line the reader missed has a door.** The foot of the Lines list carries a
+  dashed *add a line*, on a fresh scan and on a kept receipt alike: the
+  ingredient picker, then *What did this line cost?*, and the line lands open,
+  matched, counting one, on the pack the row was last bought in. It carries no
+  printed words (`printed_text` and `name_printed` are written NULL), so the
+  match memory learns nothing from it and two hand-added lines are never twins;
+  the card prints `added by hand` where a scanned one prints the paper's words.
+  It holds Save until it has a pack, like any other matched line, and becomes a
+  price. The trash takes back a line nobody has saved yet — there is no row to
+  tombstone — and drops one that has.
 - **The count rides on the line, never on the pack.** Both of the owner's shops
   print how many on a sub-row UNDER the item (`8 @ $2.99`, `Qty 4  $2.39 ea`);
   that sub-row attaches to the item above it and never becomes a line

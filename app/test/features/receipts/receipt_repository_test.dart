@@ -8,6 +8,7 @@ library;
 
 import 'dart:io';
 
+import 'package:ansi/features/ingredients/data/price_repository_impl.dart';
 import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/receipts/data/receipt_providers.dart';
 import 'package:ansi/features/receipts/data/receipt_repository_impl.dart';
@@ -317,6 +318,39 @@ void main() {
       );
     });
 
+    test(
+      'a line nobody read off paper is stored with NO printed words',
+      () async {
+        final id = await repo.saveReceipt(
+          write([line(), line(sortOrder: 1, printed: '', namePrinted: null)]),
+        );
+
+        final rows = await db.getAll(
+          'SELECT printed_text, name_printed, ingredient_id, cents, count, '
+          'sort_order FROM receipt_line WHERE receipt_id = ? '
+          'ORDER BY sort_order',
+          [id],
+        );
+        // NULL, never an empty pair of words: the column means "what the paper
+        // said", and an empty string would file the match memory under nothing.
+        expect(rows[1]['printed_text'], isNull);
+        expect(rows[1]['name_printed'], isNull);
+        expect(rows[1]['ingredient_id'], 'banana');
+        expect(rows[1]['count'], 1);
+
+        final read = (await repo.watchReceipt(id).first)!;
+        expect(read.lines[1].printedText, isEmpty);
+        expect(read.lines[1].namePrinted, isNull);
+        // And it is a price on the row like any other line that says its pack.
+        final prices = await SqlitePriceRepository(
+          db,
+          householdId: 'h',
+        ).watchPrices('banana').first;
+        expect(prices, hasLength(2));
+        expect(prices.every((p) => p.packBasisAmount == 454), isTrue);
+      },
+    );
+
     test('an empty store and a lineless receipt are both refused', () async {
       expect(
         () => repo.saveReceipt(
@@ -392,6 +426,61 @@ void main() {
         [second.id],
       );
       expect(gone['deleted_at'], isNotNull, reason: 'a tombstone, not a hole');
+    });
+
+    test('a line added by hand lands after the paper’s own, with no printed '
+        'words and a price of its own', () async {
+      final id = await repo.saveReceipt(write([line(), line(sortOrder: 1)]));
+      final before = (await repo.watchReceipt(id).first)!;
+      final [first, second] = before.lines;
+
+      await repo.updateReceipt(
+        id,
+        ReceiptWrite(
+          store: "TJ's",
+          purchasedAt: DateTime(2026, 9, 13, 17, 42),
+          lines: [
+            line(lineId: first.id),
+            line(lineId: second.id, sortOrder: 1),
+            // The hand-added one: no lineId, no printed words, last in order.
+            line(
+              sortOrder: 2,
+              printed: '',
+              namePrinted: null,
+              cents: 329,
+              packBasis: 283,
+              packAmount: 283,
+              packUnitId: 'g',
+            ),
+          ],
+        ),
+      );
+
+      final after = (await repo.watchReceipt(id).first)!;
+      expect(after.lines, hasLength(3), reason: 'inserted, not updated');
+      final added = after.lines.last;
+      expect(added.id, isNot(anyOf(first.id, second.id)));
+      expect(added.printedText, isEmpty);
+      expect(added.namePrinted, isNull);
+      expect(added.cents, 329);
+      final row = await db.get(
+        'SELECT printed_text, name_printed, sort_order FROM receipt_line '
+        'WHERE id = ?',
+        [added.id],
+      );
+      expect(row['printed_text'], isNull);
+      expect(row['name_printed'], isNull);
+      expect(row['sort_order'], 2, reason: 'after the lines it was added to');
+
+      final prices = await SqlitePriceRepository(
+        db,
+        householdId: 'h',
+      ).watchPrices('banana').first;
+      expect(prices.map((p) => p.lineId), contains(added.id));
+      expect(
+        prices.firstWhere((p) => p.lineId == added.id).packBasisAmount,
+        283,
+      );
     });
 
     test('the paper’s words never move, name and all', () async {

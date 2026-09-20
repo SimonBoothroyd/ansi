@@ -504,6 +504,17 @@ and can run beside phase one.
   carries to the next receipt; the count arrives fresh from the paper. A
   by-weight sub-row (`Qty 0.73 lb @ $2.99/lb`) stays a weight — the UNIT
   decides, never the word `Qty`.
+- 2026-09-20 — **A missed line needs a door** (owner, reversing his earlier
+  “the human can fix a missed line another way”). The reader loses a line to a
+  fold in the strip, and the join card says so without offering any way to put
+  it right — re-scanning is the only fix, which bills a read to add one line.
+  The foot of the Lines list now carries a dashed *add a line* on both hosts:
+  the ingredient picker, then the PRICE chip's own money prompt, and the line
+  lands open, matched, counting one, on the pack the row was last bought in. It
+  printed nothing, so it stores NULL printed words — the match memory learns
+  nothing from it and two hand-added lines are never twins — and it is a line
+  like any other from there: in the sum, in the join, holding Save until it has
+  a pack, a price once it does.
 
 ## Notes / open questions
 

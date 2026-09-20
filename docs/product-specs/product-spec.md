@@ -1418,6 +1418,14 @@ and a printed weight or rate where there was one.
   66¢ / 100 g` — and the COUNT chip beside PACK corrects it. It never rides to
   a twin, because a line that rang up four is not a line that rang up one.
 - **A figure nobody could read holds Save**, loudly: it is not a free line.
+- **A line the reader missed is added by hand.** A fold in the strip loses a
+  line, and the join card is what says so; the foot of the Lines list carries a
+  dashed *add a line* on both hosts. The ingredient picker, then *What did this
+  line cost?*, and the line lands open, matched, counting one, on the pack the
+  row was last bought in. It printed nothing, so it stores no printed words, the
+  match memory learns nothing from it, two of them are never twins, and the card
+  reads `added by hand`. From there it is a line like any other: in the lines'
+  sum, in the join, holding Save until it has a pack, and a price once it does.
 - **One answer answers every line that is that line again.** Six identical
   tubs print six identical lines; the match, the pack, *Not food* and *it is
   food* land on every twin standing exactly where this line stands, and the

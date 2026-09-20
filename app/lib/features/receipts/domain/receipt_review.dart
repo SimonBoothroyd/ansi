@@ -183,6 +183,11 @@ class ReceiptLineDraft {
   /// What was handed over for this line.
   int get paidCents => cents - discountCents;
 
+  /// Whether nothing on this line came off the paper — a line the reader
+  /// missed and a person added by hand, in this sitting or an earlier one. The
+  /// card says so where a scanned line prints the paper's own words.
+  bool get saidByHand => printedText.isEmpty && namePrinted == null;
+
   /// What this line names, for a card's title: the matched row, else the
   /// paper's words for the thing, else the whole printed line. The figures
   /// stay off the title where they can — the card says the money once, in its
@@ -305,6 +310,27 @@ List<ReceiptLineDraft> initialReceiptDrafts(ReceiptPayload payload) => [
       photo: line.photo,
     ),
 ];
+
+/// A line the reader missed, said by hand: nothing off the paper, and matched
+/// to the row the person picked at the money they read off it.
+///
+/// Its index is one past the highest in the review, because the index is a
+/// line's identity here and a position would be reused by the next drop. It
+/// carries no printed words, which is also what keeps it out of the twins: two
+/// lines added by hand are two lines, and an answer on one is not an answer on
+/// the other ([isSameLineAgain]).
+ReceiptLineDraft handAddedLine(
+  List<ReceiptLineDraft> drafts, {
+  required Ingredient row,
+  required int cents,
+}) => ReceiptLineDraft(
+  index: drafts.fold(-1, (top, d) => d.index > top ? d.index : top) + 1,
+  printedText: '',
+  cents: cents,
+  kind: ReceiptKind.item,
+  ingredientId: row.id,
+  ingredientName: row.canonicalName,
+);
 
 /// [draft] with the pack it can state without asking anybody.
 ///

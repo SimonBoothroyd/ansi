@@ -904,6 +904,65 @@ void main() {
     });
   });
 
+  group('a line the reader missed, added by hand', () {
+    test('it lands matched, counting one, with nothing off the paper', () {
+      final drafts = initialReceiptDrafts(sample());
+      final added = handAddedLine(drafts, row: bananas, cents: 329);
+      expect(added.ingredientId, 'vocab-banana');
+      expect(added.ingredientName, 'Bananas, organic');
+      expect(added.cents, 329);
+      expect(added.count, 1);
+      expect(added.kind, ReceiptKind.item);
+      expect(added.printedText, isEmpty);
+      expect(added.namePrinted, isNull);
+      expect(added.lineId, isNull, reason: 'no row holds it until Save');
+      expect(added.saidByHand, isTrue);
+      expect(added.displayName, 'Bananas, organic');
+    });
+
+    test('its index is one past the highest, never a position a drop '
+        'would hand back', () {
+      final drafts = initialReceiptDrafts(sample());
+      final kept = [
+        for (final d in drafts)
+          if (d.index != 0) d,
+      ];
+      // The strip read nine lines (0–8). Take one out of the middle and eight
+      // are left, but the next index is still 9 — a position would hand back
+      // an index another line's answers are already filed under.
+      expect(handAddedLine(kept, row: bananas, cents: 329).index, 9);
+      expect(handAddedLine(const [], row: bananas, cents: 329).index, 0);
+    });
+
+    test('two lines added by hand are never the same line again', () {
+      final first = handAddedLine(const [], row: bananas, cents: 329);
+      final second = handAddedLine([first], row: bananas, cents: 329);
+      final drafts = [first, second];
+      expect(isSameLineAgain(first, second), isFalse);
+      expect(isSameLineAgain(second, first), isFalse);
+      expect(linesAnsweredWith(drafts, first.index), {first.index});
+      expect(sameLineAgainNote(drafts, first.index), isNull);
+    });
+
+    test('it counts in the lines, and asks for its pack like any other', () {
+      final drafts = initialReceiptDrafts(sample());
+      final added = handAddedLine(drafts, row: bananas, cents: 329);
+      final map = receiptReviewMap([...drafts, added]);
+      expect(map.linesCents, 2846 + 329);
+      expect(receiptLineIssues(added), [ReceiptLineIssue.packMissing]);
+      expect(map.issuesByIndex[added.index], [ReceiptLineIssue.packMissing]);
+      expect(added.isPrice, isFalse);
+      final packed = landPack(
+        added,
+        ingredient: bananas,
+        last: bought(283, amount: 283, unit: g),
+      );
+      expect(packed.packBasisAmount, 283);
+      expect(packed.isPrice, isTrue);
+      expect(receiptLineIssues(packed), isEmpty);
+    });
+  });
+
   test(
     'a suggest match starts the line unmatched — an offer, not a choice',
     () {

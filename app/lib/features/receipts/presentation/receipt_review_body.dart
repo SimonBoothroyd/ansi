@@ -13,6 +13,8 @@
 /// missing or doubled and somebody should look.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -25,8 +27,12 @@ import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_scroll.dart';
 import '../../../shared/ansi_tap.dart';
+import '../../../shared/dashed_border_box.dart';
+import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
+import '../../books/presentation/text_prompt.dart';
 import '../../ingredients/data/ingredient_providers.dart';
+import '../../ingredients/presentation/ingredient_picker.dart';
 import '../../ingredients/presentation/price_fields.dart';
 import '../domain/receipt_payload.dart';
 import '../domain/receipt_review.dart';
@@ -48,6 +54,9 @@ const kReceiptErrorKey = ValueKey('receipt-error');
 
 /// The Bought line — the date's door.
 const kReceiptBoughtKey = ValueKey('receipt-bought');
+
+/// *add a line* — the door for a line the reader missed.
+const kReceiptAddLineKey = ValueKey('receipt-add-line');
 
 class ReceiptReviewBody extends ConsumerWidget {
   const ReceiptReviewBody({required this.state, super.key});
@@ -119,7 +128,10 @@ class ReceiptReviewBody extends ConsumerWidget {
             draft: draft,
             issues: map.issuesByIndex[draft.index] ?? const [],
             row: state.rows[draft.ingredientId],
+            manual: state.isManual,
           ),
+        const SizedBox(height: 8),
+        const _AddLineDoor(),
 
         if (foldedHeading(map) case final heading?) ...[
           const SizedBox(height: 14),
@@ -393,6 +405,54 @@ class _SectionRule extends StatelessWidget {
       Expanded(child: Container(height: 1, color: AnsiColors.line)),
     ],
   );
+}
+
+/// *add a line* — for the row the reader missed.
+///
+/// The reader loses a line to a fold in the paper or a torn strip, and the join
+/// card is what says so; this is where the line is put back. Two questions,
+/// each on the door the screen already uses for it: the ingredient picker (the
+/// card's *Something else*) and the money prompt (the card's PRICE chip).
+/// Backing out of either adds nothing, so the door itself writes nothing.
+class _AddLineDoor extends StatelessWidget {
+  const _AddLineDoor();
+
+  @override
+  Widget build(BuildContext context) => DashedAction(
+    key: kReceiptAddLineKey,
+    icon: FLucideIcons.plus,
+    label: 'add a line',
+    onTap: () => unawaited(_addLine(context)),
+  );
+
+  /// The picker, then the money, then the line.
+  ///
+  /// The container and the host are captured BEFORE the first await: the
+  /// picker's keyboard shrinks this viewport, so the door itself can be
+  /// unmounted by the time either answer arrives, and the second door is
+  /// opened on the overlay that outlives it.
+  static Future<void> _addLine(BuildContext context) async {
+    final container = ProviderScope.containerOf(context, listen: false);
+    final host = hostContextOf(context);
+    final picked = await showIngredientPicker(
+      context,
+      title: 'What is this line?',
+    );
+    if (picked == null) return;
+    final typed = await promptForText(
+      // The host outlives the row — see [hostContextOf].
+      // ignore: use_build_context_synchronously
+      host.context,
+      title: 'What did this line cost?',
+      hint: 'e.g. 3.49',
+      confirm: 'Use it',
+    );
+    final cents = typed == null ? null : parseMoney(typed);
+    if (cents == null || cents <= 0) return;
+    await container
+        .read(receiptScanControllerProvider.notifier)
+        .addLine(picked, cents);
+  }
 }
 
 class _FoldHeading extends StatelessWidget {
