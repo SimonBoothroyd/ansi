@@ -32,28 +32,6 @@ final _declaration = RegExp(
   multiLine: true,
 );
 
-/// Doors whose CALLER is deliberately not written yet, keyed `<path>:<method>`,
-/// each with the reason and the release that deletes the entry.
-///
-/// This is the one shape the rule above cannot tell from dead code: a data
-/// layer that ships **before** its own screens, on purpose. A build that cannot
-/// read a measured component line crashes on one or drops it silently, so the
-/// seam has to be on every device in the household a release before the
-/// authoring UI exists to write one. The methods are covered by the repository
-/// tests and by nothing in `lib/` until that UI lands.
-///
-/// It is an audit trail, not a place to silence a failure: an entry states who
-/// will call it and when, and the day that door is built the entry goes with
-/// the omission. An entry that outlives its release is the dead code this test
-/// exists to find — by then the method has no future caller either.
-const _callerPending = <String, String>{
-  'lib/features/recipes/domain/recipe_measure_repository.dart:'
-          'reorderRecipeMeasures':
-      'the measures list’s grip. Drawn but not gestured in the first slice '
-      '(ADR-0018, "out of the first slice"), so this one waits on the pass '
-      'that adds the drag.',
-};
-
 void main() {
   test('every declared repository method has a caller in lib/', () {
     final interfaces = Directory('lib/features')
@@ -93,9 +71,7 @@ void main() {
 
     final orphans = [
       for (final entry in declared.entries)
-        if (!callers.contains(entry.key) &&
-            !_callerPending.containsKey('${entry.value}:${entry.key}'))
-          '${entry.value}: ${entry.key}',
+        if (!callers.contains(entry.key)) '${entry.value}: ${entry.key}',
     ]..sort();
 
     expect(
@@ -106,33 +82,6 @@ void main() {
           'belongs to is gone — delete the declaration, the impl, the fakes '
           'and its tests — or its caller was never written:\n'
           '${orphans.join('\n')}',
-    );
-  });
-
-  test('every _callerPending entry is still waiting on its door', () {
-    // The exemption expires by itself: the day the door is built, the entry is
-    // a lie and this fails, which is what keeps the list from becoming the
-    // place orphans go to live.
-    final built = <String>[];
-    for (final key in _callerPending.keys) {
-      final method = key.split(':').last;
-      for (final file in dartFiles(Directory('lib'))) {
-        if (file.path.endsWith('_repository.dart') ||
-            file.path.endsWith('_repository_impl.dart')) {
-          continue;
-        }
-        if (blankNonCode(file.readAsStringSync()).contains('.$method(')) {
-          built.add('$key — now called from ${file.path}');
-          break;
-        }
-      }
-    }
-    expect(
-      built,
-      isEmpty,
-      reason:
-          'a pending door has its caller now — drop its _callerPending entry, '
-          'so the rule holds it like every other method:\n${built.join('\n')}',
     );
   });
 }

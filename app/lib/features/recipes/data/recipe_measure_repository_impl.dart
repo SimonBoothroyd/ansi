@@ -303,24 +303,6 @@ class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
   }
 
   @override
-  Future<void> reorderRecipeMeasures(String recipeId, List<String> ids) async {
-    if (ids.isEmpty) return;
-    final now = DateTime.now().toUtc().toIso8601String();
-    await _db.writeTransaction((tx) async {
-      // Stamped by position rather than swapped in pairs: two devices that
-      // dragged different rows then converge on one list per row's last write,
-      // instead of on a set of half-applied swaps.
-      for (final (index, id) in ids.indexed) {
-        await tx.execute(
-          'UPDATE recipe_measure SET sort_order = ?, updated_at = ? '
-          'WHERE id = ? AND recipe_id = ? AND deleted_at IS NULL',
-          [index, now, id, recipeId],
-        );
-      }
-    });
-  }
-
-  @override
   Future<RecipeMeasureUsage> countLinesUsing(String measureId) =>
       countRecipeMeasureReferrers(_db, measureId);
 
