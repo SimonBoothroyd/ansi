@@ -4,6 +4,7 @@ library;
 import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../ingredients/domain/price.dart';
 import '../domain/receipt_repository.dart';
 import '../domain/receipt_save.dart';
 
@@ -315,13 +316,21 @@ class SqliteReceiptRepository implements ReceiptRepository {
       // them. The name is also what the receipt door recalls past answers by,
       // and a name that moved under an answer would file it somewhere nobody
       // asked about.
+      //
+      // The `IS NOT` tail is what makes a re-save of an unchanged line write
+      // nothing at all: recall reads the newest `updated_at`, so re-stamping
+      // a line nobody touched would make an old receipt's stale match the
+      // latest answer — and it would queue an upload op saying nothing.
       await tx.execute(
         'UPDATE receipt_line SET ingredient_id = ?, cents = ?, '
         'discount_cents = ?, kind = ?, pack_basis_amount = ?, '
         'pack_amount = ?, pack_unit = ?, measure_id = ?, sort_order = ?, '
         'updated_at = ? WHERE id = ? AND receipt_id = ? '
-        'AND deleted_at IS NULL',
-        [...said, stamp, id, receiptId],
+        'AND deleted_at IS NULL AND (ingredient_id IS NOT ? OR '
+        'cents IS NOT ? OR discount_cents IS NOT ? OR kind IS NOT ? OR '
+        'pack_basis_amount IS NOT ? OR pack_amount IS NOT ? OR '
+        'pack_unit IS NOT ? OR measure_id IS NOT ? OR sort_order IS NOT ?)',
+        [...said, stamp, id, receiptId, ...said],
       );
       return;
     }
@@ -343,38 +352,4 @@ class SqliteReceiptRepository implements ReceiptRepository {
       ],
     );
   }
-}
-
-/// A stored timestamp as an instant.
-///
-/// `purchased_at` is TEXT and its format differs by writer — this client
-/// writes `…T…Z`, a Postgres-sourced row syncs as `… …Z` — and a value with
-/// no zone marker at all is read as UTC, because `DateTime.tryParse` would
-/// otherwise read it in the device's zone and two phones would date the same
-/// shop differently. An unparseable value falls back to the epoch: it sorts
-/// last, which is where a row nobody can date belongs.
-/// [wall] as the column stores it — the receipt's **wall time**, marked `Z`.
-///
-/// A receipt's moment is the time at the till, and it has to read back as the
-/// same day on every device: converting `17:42` on a phone seven hours west
-/// of UTC would store `00:42` the next morning and file a Sunday shop into
-/// Monday's week. So the wall components are written as they stand, and
-/// [receiptInstant] reads them back unchanged. The zone the shop happened in
-/// is not a fact this household needs; the date on the paper is.
-String receiptStamp(DateTime wall) => DateTime.utc(
-  wall.year,
-  wall.month,
-  wall.day,
-  wall.hour,
-  wall.minute,
-  wall.second,
-).toIso8601String();
-
-DateTime receiptInstant(Object? raw) {
-  final text = (raw as String? ?? '').trim();
-  final parsed = DateTime.tryParse(text);
-  if (parsed == null) return DateTime.utc(1970);
-  return parsed.isUtc
-      ? parsed
-      : DateTime.tryParse('${text}Z') ?? parsed.toUtc();
 }

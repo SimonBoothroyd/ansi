@@ -55,29 +55,12 @@ class SqlitePriceRepository implements PriceRepository {
         Receipt(
           id: r['receipt_id'] as String,
           store: (r['store'] as String?) ?? '',
-          purchasedAt: _instant(r['purchased_at']),
+          purchasedAt: receiptInstant(r['purchased_at']),
           source: ReceiptSource.fromDb(r['source'] as String?),
         ),
         basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
         packLabel: r['measure_label'] as String?,
       );
-
-  /// A stored timestamp as an instant. `purchased_at` is TEXT and its format
-  /// differs by writer — this client writes `…T…Z`, a Postgres-sourced row
-  /// syncs as `… …Z` — and a value with no zone marker at all is read as UTC,
-  /// because `DateTime.tryParse` would otherwise read it in the device's zone
-  /// and two phones would date the same shop differently.
-  ///
-  /// An unparseable value falls back to the epoch: it sorts last, which is
-  /// where a row nobody can date belongs, and it is never a date this made up.
-  static DateTime _instant(Object? raw) {
-    final text = (raw as String? ?? '').trim();
-    final parsed = DateTime.tryParse(text);
-    if (parsed == null) return DateTime.utc(1970);
-    return parsed.isUtc
-        ? parsed
-        : DateTime.tryParse('${text}Z') ?? parsed.toUtc();
-  }
 
   /// The SELECT is spelled out in full rather than shared as a fragment:
   /// `watch_coverage_test` reads these queries as literals to hold the
@@ -204,7 +187,7 @@ class SqlitePriceRepository implements PriceRepository {
         key,
         () => _NameTally(
           namePrinted: ((r['name_printed'] as String?) ?? '').trim(),
-          lastSeen: _instant(r['purchased_at']),
+          lastSeen: receiptInstant(r['purchased_at']),
           receiptId: r['receipt_id'] as String,
         ),
       );
@@ -308,9 +291,11 @@ class SqlitePriceRepository implements PriceRepository {
 
     final receiptId = _uuid.v4();
     final lineId = _uuid.v4();
-    final now = DateTime.now().toUtc();
-    final stamp = now.toIso8601String();
-    final bought = (purchasedAt ?? now).toUtc().toIso8601String();
+    final stamp = DateTime.now().toUtc().toIso8601String();
+    // The day this was paid on is WALL time, like a scanned receipt's: a real
+    // instant would show an evening price as tomorrow's, and file it into
+    // next week.
+    final bought = receiptStamp(purchasedAt ?? DateTime.now());
 
     await _db.writeTransaction((tx) async {
       // Plain INSERTs, never ON CONFLICT: the local tables are SQLite views
@@ -364,7 +349,7 @@ class SqlitePriceRepository implements PriceRepository {
   }) async {
     final word = _checked(cents, packBasisAmount, store);
     final stamp = DateTime.now().toUtc().toIso8601String();
-    final bought = purchasedAt.toUtc().toIso8601String();
+    final bought = receiptStamp(purchasedAt);
 
     await _db.writeTransaction((tx) async {
       // UPDATE, never an upsert: the local tables are SQLite views, and a view
