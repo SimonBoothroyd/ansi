@@ -178,9 +178,10 @@ number; `piece` is the degradation rule 7 refuses — so the column is null and
   (ADR-0011's pair, one level up from the ingredient side's). The dock is where
   a word is usually coined — the household thinks of `blob` while writing the
   recipe that says it — so that sheet watches the target's live words rather
-  than the snapshot its caller handed over, and back leaves the coined word
-  selected. A word retired there that the open line was counting reconciles the
-  selection to the yield's own unit: Done must never write a tombstone.
+  than the snapshot its caller handed over, and a coined word returns to the
+  amount already selected, as the ingredient dock does. A word retired there
+  that the open line was counting reconciles the selection to the yield's own
+  unit: Done must never write a tombstone.
 - **The write refusal is the repository's, not the form's.** A line denominated
   in neither a unit nor a word, and a week's amount naming a word with no
   number, are both refused *before* they are written

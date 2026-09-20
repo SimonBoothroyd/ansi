@@ -41,8 +41,8 @@
 /// says it, not while editing the sauce. It swaps the body for
 /// [RecipeMeasuresEditor] aimed at the TARGET recipe, which is the one the word
 /// belongs to, and that page has no Save of its own (ADR-0011): every tap
-/// writes through [RecipeMeasureRepository], and the word is live and
-/// selectable the moment it lands. Back returns to the amount with it picked.
+/// writes through [RecipeMeasureRepository], and a coined measure returns to
+/// the amount already picked, as the ingredient dock does.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -115,7 +115,8 @@ SubRecipeTarget targetWithMeasure(SubRecipeTarget target, RecipeMeasure word) {
 /// amount, or null if dismissed.
 ///
 /// [onSetYield] is the deep link the no-yield state offers ("Set the yield").
-/// Null where there is nowhere to send the user (a host with no router).
+/// Null where the host has nowhere to send the user, which also hides the `+`
+/// while the target states no yield: that page could only refuse.
 ///
 /// [initialMeasureId] is `LineItem.recipeMeasureId` — the pointer the line
 /// actually carries. Pass it whenever the line has one: the word itself is
@@ -292,12 +293,14 @@ class ComponentQuantityEditor extends HookConsumerWidget {
           _TargetMeasures(
             target: target,
             measures: measures,
-            // The word is chosen the moment it exists: this door was opened
-            // mid-sentence, and the sentence was "3 blob". Back then returns
-            // to an amount already counting it.
+            onSetYield: onSetYield,
+            // This door was opened mid-sentence, so the new measure is picked
+            // and the sheet returns to the amount, as the ingredient dock does.
             onCoined: (m) {
+              FocusManager.instance.primaryFocus?.unfocus();
               choice.value = RecipeMeasureOption(m);
               retiredNote.value = null;
+              managing.value = false;
             },
             // Retiring the SELECTED word reconciles the choice, for the reason
             // the ingredient sheet's delete does: Done must never write a
@@ -391,7 +394,12 @@ class ComponentQuantityEditor extends HookConsumerWidget {
           // measured, not the recipe being written. A target with no id is a
           // component whose recipe row has not synced here: there is nothing
           // to stamp a word onto, so no chip rather than one that refuses.
-          onManage: mayCoinWords && target.id.isNotEmpty
+          // Nor where the target states no yield and the host has no door to
+          // set one: that page could only refuse.
+          onManage:
+              mayCoinWords &&
+                  target.id.isNotEmpty &&
+                  (yields.isNotEmpty || onSetYield != null)
               ? () {
                   FocusManager.instance.primaryFocus?.unfocus();
                   managing.value = true;
@@ -418,22 +426,7 @@ class ComponentQuantityEditor extends HookConsumerWidget {
         // scaling all work: only the derived numbers wait, one tap away.
         if (yields.isEmpty && onSetYield != null) ...[
           const SizedBox(height: 10),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onSetYield,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                border: Border.all(color: AnsiColors.line),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'Set the yield',
-                textAlign: TextAlign.center,
-                style: ansiMono(size: 12),
-              ),
-            ),
-          ),
+          _SetYieldDoor(onTap: onSetYield!),
         ],
         // The Optional row is the ingredient sheet's, word for word: a
         // sub-recipe may be left out of a total exactly as a garnish may.
@@ -499,32 +492,54 @@ class ComponentQuantityEditor extends HookConsumerWidget {
         : UnitOption(_defaultUnit(target.yields));
   }
 
-  /// What the sheet says about a line whose word has been retired on the target
-  /// recipe, or has not synced here yet — one sentence, in the app's refusal
-  /// voice: name the fact, and name both ways out.
-  /// What the sheet says while a measure is picked and the number is not
-  /// there — one fact, one way out.
+  /// Said while a measure is picked and the number is missing.
   static const kMeasuredLineNeedsANumber =
       'Say how many — a measure counts something.';
 
+  /// Said on a line whose measure was deleted on the target recipe, or has not
+  /// synced here yet.
   static const kGoneWordKeepsItsNumber =
-      'The word this line was written in is gone from that recipe, so there is '
-      'nothing counting it. The number is kept — put the word back under that '
-      'recipe’s MEASURES, or say this line in one of the chips below.';
+      'This line’s measure is gone from that recipe — pick a chip to say it '
+      'again.';
+}
+
+/// The one-tap way to the target's own editor, where MAKES is stated.
+class _SetYieldDoor extends StatelessWidget {
+  const _SetYieldDoor({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        border: Border.all(color: AnsiColors.line),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        'Set the yield',
+        textAlign: TextAlign.center,
+        style: ansiMono(size: 12),
+      ),
+    ),
+  );
 }
 
 /// The manage state: the TARGET recipe's own words, authored in place.
 ///
 /// It is `_MeasureManager` on the ingredient sheet, and it holds the same
 /// posture — **this host has no Save**, so every tap is a write through
-/// [RecipeMeasureRepository] and the word is live at once. What it adds is the
-/// gate's own sentence: with no `makes` stated the editor draws its one
-/// refusal instead of a form, and MAKES is set on the target's own editor,
-/// named here in one muted line rather than built a second time.
+/// [RecipeMeasureRepository] and the word is live at once. With no `makes`
+/// stated the editor draws its one refusal, and this adds the amount face's
+/// door to where MAKES is set.
 class _TargetMeasures extends ConsumerWidget {
   const _TargetMeasures({
     required this.target,
     required this.measures,
+    required this.onSetYield,
     required this.onCoined,
     required this.onRetired,
   });
@@ -532,7 +547,10 @@ class _TargetMeasures extends ConsumerWidget {
   final SubRecipeTarget target;
   final List<RecipeMeasure> measures;
 
-  /// A word landed — the sheet selects it, so back returns to `3 blob`.
+  /// The way to the target's own editor, offered while it states no yield.
+  final VoidCallback? onSetYield;
+
+  /// A measure landed — the sheet picks it and returns to the amount.
   final ValueChanged<RecipeMeasure> onCoined;
 
   /// A word went — the sheet reconciles its selection if that was it.
@@ -623,16 +641,9 @@ class _TargetMeasures extends ConsumerWidget {
           onDelete: retire,
           autofocus: true,
         ),
-        if (yields.isEmpty) ...[
+        if (onSetYield case final setYield? when yields.isEmpty) ...[
           const SizedBox(height: 10),
-          // Where the gate above is lifted. One line, not a door: MAKES is
-          // stated on the target's own editor, and a second place to set it
-          // would be a second answer to one question.
-          Text(
-            'MAKES is stated on ${target.title}’s own editor — say what a '
-            'batch makes there and this form opens.',
-            style: ansiMono(size: 10, color: AnsiColors.muted),
-          ),
+          _SetYieldDoor(onTap: setYield),
         ],
       ],
     );

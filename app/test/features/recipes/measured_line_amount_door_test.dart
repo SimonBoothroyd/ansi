@@ -143,12 +143,6 @@ Future<void> _coin(
   await tester.pumpAndSettle();
 }
 
-/// Back out of the manage state, to the amount.
-Future<void> _backToTheAmount(WidgetTester tester) async {
-  await tester.tap(find.bySemanticsLabel('Back'));
-  await tester.pumpAndSettle();
-}
-
 void main() {
   group('the recipe editor', () {
     testWidgets('the amount cell opens on the word, and Done keeps it', (
@@ -328,7 +322,6 @@ void main() {
       await tester.tap(_plus);
       await tester.pumpAndSettle();
       await _coin(tester, label: 'glug', amount: '30');
-      await _backToTheAmount(tester);
       await tester.enterText(_qtyField(), '3');
       await tester.pumpAndSettle();
       await tester.tap(find.text('Done'));
@@ -505,7 +498,6 @@ void main() {
       await tester.tap(_plus);
       await tester.pumpAndSettle();
       await _coin(tester, label: 'glug', amount: '30');
-      await _backToTheAmount(tester);
       await tester.enterText(_qtyField(), '3');
       await tester.pumpAndSettle();
       await tester.tap(find.text('Done'));

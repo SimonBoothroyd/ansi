@@ -390,7 +390,8 @@ is `RecipeMeasureNotLanded` and has already been said by the write door. Three
 things follow from a door opened mid-sentence — the sheet **watches**
 `recipeMeasuresProvider(target.id)` rather than trusting the snapshot its caller
 passed, so a coined word is a chip on return with nothing reloaded; the word is
-**selected** as it lands, so back reads `3 blob`; and the selection is re-read
+**selected** as it lands and the sheet returns to the amount, as the ingredient
+dock does, so it reads `3 blob`; and the selection is re-read
 from the live row every build, so a re-statement follows through and a
 retirement lights no chip. Retiring the word the open line was counting
 reconciles the choice to the yield's own unit with a note — Done must never

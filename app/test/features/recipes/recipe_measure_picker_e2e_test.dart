@@ -387,7 +387,6 @@ void main() {
     expect(rows.last['amount'], _ladle.grams);
     expect(rows.last['unit'], 'g');
 
-    await tester.tap(find.bySemanticsLabel('Back'));
     await tester.pumpAndSettle();
 
     // Back on the amount, the new word is a chip — nobody reloaded anything —
