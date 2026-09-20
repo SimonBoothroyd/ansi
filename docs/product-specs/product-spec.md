@@ -1402,27 +1402,18 @@ and a printed weight or rate where there was one.
 - **A line is a price only when it says what the cents bought.** A matched
   food line with no pack is counted in the receipt and is simply not a price
   — the card asks for the pack. A line sold by weight prices itself from the
-  printed rate; one with no printed weight opens on **the pack its own printed
-  words were last bought in** — one store's words name one product, so a 16 oz
-  bag of quinoa at one shop and a 12 oz at another are two answers rather than
-  one — and, for words this household has not bought under before, on the pack
-  that row was last bought in anywhere. *Keep as a measure* mints a word the
-  household can also say on a recipe line — the pack carries over either way.
+  printed rate; one with no printed weight opens on the pack its own printed
+  words were last bought in. *Keep as a measure* mints a measure the household
+  can also say on a recipe line — the pack carries over either way.
 - **A figure nobody could read holds Save**, loudly: it is not a free line.
 - **One answer answers every line that is that line again.** Six identical
   tubs print six identical lines; the match, the pack, *Not food* and *it is
   food* land on every twin standing exactly where this line stands, and the
   card says `×6 on this receipt` **before** the doors. A correction to the
   paper — a re-read figure, a dropped duplicate — never rides along.
-- **The vocabulary learns nothing from a receipt** (ADR-0004 and the owner's
-  ruling): a store's abbreviations are not words the app should surface in
-  every search. What carries between shops is the household's **own
-  answers** — the pack, on the row, and the **match**, recalled per printed
-  name off this household's own saved receipt lines, most recent answer
-  winning. It is exact, never fuzzy, and a remembered match says so on the
-  open card, where changing it is itself the correction. It is not an alias,
-  and it is held structurally: the function's own test asserts every
-  statement it issues is a `SELECT`.
+- **The vocabulary learns nothing from a receipt** (ADR-0004); what carries
+  between shops is the household's own answers, the pack and the match —
+  [import-and-matching.md §12.4.1](./import-and-matching.md#1241-what-the-household-itself-remembers).
 - **The ledger** (`/receipts`) files kept receipts by the household's week and
   by store, spent against planned per week with a month line on top. Its door
   is in the **Shop's header**, beside the week switcher, drawn once the

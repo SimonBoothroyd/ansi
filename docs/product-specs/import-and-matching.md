@@ -1074,10 +1074,10 @@ file the function owns against an alias table name or a write verb.
 
 #### 12.4.1 What the household itself remembers
 
-The cascade alone matched **0 of 29** lines on the first real strip, and not
-because the vocabulary was missing the food: a whole-string trigram cannot score
-`ORG TRICOLOR QUINOA` against `Quinoa` above the suggest floor. No tuning fixes
-that in general — the words are one store's abbreviations, not a language.
+The cascade alone rarely matches a till strip, and not because the vocabulary
+is missing the food: a whole-string trigram cannot score `ORG TRICOLOR QUINOA`
+against `Quinoa` above the suggest floor. No tuning fixes that in general — the
+words are one store's abbreviations, not a language.
 
 So the receipt door **recalls the household's own past answers, per printed
 name** (`_shared/receipt_memory.ts`), and the memory is not a new table: it is
@@ -1127,10 +1127,8 @@ What else carries over between shops is the **pack**, and it is filed under the
 same key the match is. A matched line with no printed weight opens on the pack
 **these printed words** were last bought in, matched to this same row — one
 store's words name one product, so `ORG TRICOLOR QUINOA` is that shop's 16 oz
-bag whatever size the other shop sells, and a household alternating two shops
-would otherwise meet the wrong size every other week. Words this household has
-not bought under before fall back to the pack the row was last bought in
-anywhere, which is where the rule started. Both are one batched read per
+bag whatever size the other shop sells. Words this household has not bought
+under before fall back to the pack the row was last bought in anywhere. Both are one batched read per
 receipt (`packsByPrintedName`), latest by the receipt's own date and then by the
 line's own edit, so correcting a kept receipt corrects what the next one opens
 on; the stored basis figure is carried and never re-derived, because a measure
