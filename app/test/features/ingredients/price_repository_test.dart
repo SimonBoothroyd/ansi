@@ -336,43 +336,43 @@ void main() {
       expect(formatPricePer100(prices.last.per100.valueOrNull!), '88¢ / 100 g');
     });
 
-    test('every price reader divides by the count as well as the pack',
-        () async {
-      // The owner's tofu line: eight 1 lb blocks for $23.92. The pack column
-      // says what ONE block is, so a reader that ignored the count would
-      // print $5.27 / 100 g on every screen at once.
-      await _seedReceipt(
-        db,
-        id: 'r-sep',
-        store: "TJ's",
-        purchasedAt: '2026-09-13T17:20:00Z',
-      );
-      await _seedLine(
-        db,
-        id: 'l-tofu',
-        receiptId: 'r-sep',
-        cents: 2392,
-        count: 8,
-        packBasisAmount: 453.59237,
-        namePrinted: 'TOFU SPR FRM HGH PRTN OR',
-      );
+    test(
+      'every price reader divides by the count as well as the pack',
+      () async {
+        // The owner's tofu line: eight 1 lb blocks for $23.92. The pack column
+        // says what ONE block is, so a reader that ignored the count would
+        // print $5.27 / 100 g on every screen at once.
+        await _seedReceipt(
+          db,
+          id: 'r-sep',
+          store: "TJ's",
+          purchasedAt: '2026-09-13T17:20:00Z',
+        );
+        await _seedLine(
+          db,
+          id: 'l-tofu',
+          receiptId: 'r-sep',
+          cents: 2392,
+          count: 8,
+          packBasisAmount: 453.59237,
+          namePrinted: 'TOFU SPR FRM HGH PRTN OR',
+        );
 
-      for (final price in [
-        (await repo.watchPrices('banana').first).single,
-        (await repo.watchLatestPrices().first)['banana']!,
-        (await loadLatestPrices(db))['banana']!,
-        (await repo.packsByPrintedName({'TOFU SPR FRM HGH PRTN OR'}))
-            .values
-            .single
-            .pack,
-      ]) {
-        expect(price.count, 8);
-        expect(formatPricePer100(price.per100.valueOrNull!), '66¢ / 100 g');
-      }
-    });
+        for (final price in [
+          (await repo.watchPrices('banana').first).single,
+          (await repo.watchLatestPrices().first)['banana']!,
+          (await loadLatestPrices(db))['banana']!,
+          (await repo.packsByPrintedName({
+            'TOFU SPR FRM HGH PRTN OR',
+          })).values.single.pack,
+        ]) {
+          expect(price.count, 8);
+          expect(formatPricePer100(price.per100.valueOrNull!), '66¢ / 100 g');
+        }
+      },
+    );
 
-    test('a line written before the column rang up one of the thing',
-        () async {
+    test('a line written before the column rang up one of the thing', () async {
       // Every stored row meant exactly this when it was stored.
       await _seedReceipt(
         db,
