@@ -513,6 +513,7 @@ void main() {
         ),
       );
       expect(gapBody(mismatch), contains('The line is in volume'));
+      expect(gapBody(mismatch), contains('the yield only says weight'));
       expect(gapBody(mismatch), contains('second denomination'));
       expect(gapOffersYieldFix(mismatch), isTrue);
     });

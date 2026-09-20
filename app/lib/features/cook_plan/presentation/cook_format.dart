@@ -192,10 +192,9 @@ String gapReasonShort(UnresolvedComponentAmount reason) => switch (reason) {
 /// A numberless line ([ComponentAmountMissing]) has no amount to quote, so the
 /// clause is dropped rather than filled — and so does a line whose WORD has
 /// gone ([ComponentMeasureMissing]): the number is kept but the thing it
-/// counted is not, and printing it beside the count-family unit stored under
-/// the word would quote the line as something nobody wrote. With more than one
-/// demanding parent each clause names its own, since "the line" would then be
-/// ambiguous.
+/// counted is not, and the row stores no unit to print it beside. With more
+/// than one demanding parent each clause names its own, since "the line" would
+/// then be ambiguous.
 String gapCoversLine(ComponentGap gap, WeekShape shape) {
   final days = (gap.demandedBy.map((d) => d.cookDay).toSet().toList()..sort())
       .map(shape.labelShort)
@@ -227,7 +226,7 @@ String gapHeadline(ComponentGap gap) => switch (gap.reason) {
   ComponentAmountMissing() =>
     'The line doesn’t say how much ${gap.title} it needs',
   ComponentMeasureMissing() =>
-    'The line says a word ${gap.title} hasn’t got any more',
+    'The line says a measure ${gap.title} hasn’t got any more',
   ComponentCycle() => '${gap.title} is used inside itself',
 };
 
@@ -239,17 +238,16 @@ String gapBody(ComponentGap gap) => switch (gap.reason) {
     'Set its yield and this session gets a scale. Until then there is no '
         'honest number to put here.',
   ComponentFamilyMismatch(:final lineFamily, :final yieldFamilies) =>
-    'The line is in ${lineFamily.name} and the yield only says '
-        '${yieldFamilies.map((f) => f.name).toSet().join(' / ')}. State a '
+    'The line is in ${lineFamily.said} and the yield only says '
+        '${yieldFamilies.map((f) => f.said).toSet().join(' / ')}. State a '
         'second denomination in that family — two stated facts, not an '
         'invented bridge.',
   ComponentAmountMissing() =>
     'Set an amount on that line and this session gets a scale. Until then '
         'there is no honest number to put here.',
   ComponentMeasureMissing() =>
-    'Say that line’s amount again, in a word ${gap.title} still has. The '
-        'number is kept; what it counted is not, and counting it as '
-        'something else would be a batch nobody asked for.',
+    'The number is kept; what it counted is not. Say that line’s amount '
+        'again, in a measure ${gap.title} still has.',
   ComponentCycle() =>
     'A recipe cannot be built from itself. Change one of the links and the '
         'plan can derive it again.',

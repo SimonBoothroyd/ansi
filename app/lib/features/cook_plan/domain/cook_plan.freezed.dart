@@ -1458,8 +1458,7 @@ mixin _$ComponentDemandSource {
  String get recipeId; String get title; int get cookDay;/// The demanding line's catalog unit, null when it was said in one of the
 /// target's own words ([measureLabel]).
  Unit? get unit; double? get quantity;/// The target's own word the demanding line said it in, when the target
-/// still has that word — so the card quotes `3 blob` rather than the
-/// count-family unit stored under it.
+/// still has that word — so the card quotes `3 blob`.
 ///
 /// Null when the line named no word AND when the word is the very thing
 /// that has gone: a gap card that cannot say what the line asked for
@@ -1677,8 +1676,7 @@ class _ComponentDemandSource implements ComponentDemandSource {
 @override final  Unit? unit;
 @override final  double? quantity;
 /// The target's own word the demanding line said it in, when the target
-/// still has that word — so the card quotes `3 blob` rather than the
-/// count-family unit stored under it.
+/// still has that word — so the card quotes `3 blob`.
 ///
 /// Null when the line named no word AND when the word is the very thing
 /// that has gone: a gap card that cannot say what the line asked for

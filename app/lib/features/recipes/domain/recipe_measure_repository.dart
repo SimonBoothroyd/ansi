@@ -10,7 +10,7 @@
 /// `(recipe_id, label)` — one would make an offline duplicate fail upload, and
 /// a failed upload drops the whole crud transaction (migration 0011's
 /// doctrine, restated by 0048). Every device converges on the *oldest* live row
-/// per label instead ([mergeRecipeMeasures]); the newer one is hidden, never
+/// per label instead (`mergeByLabel`); the newer one is hidden, never
 /// deleted, so a line already pointing at it still resolves by id.
 library;
 
@@ -33,9 +33,8 @@ import 'recipe_repository.dart';
 ///   of this interface's methods are involved.
 /// - The **manage-measures page behind the ＋ on a component's quantity dock**
 ///   has none, so it writes **on tap** — [addRecipeMeasure],
-///   [restateRecipeMeasure], [reorderRecipeMeasures] and
-///   [softDeleteRecipeMeasure] — and a word written there is live on the next
-///   chip row.
+///   [restateRecipeMeasure] and [softDeleteRecipeMeasure] — and a word written
+///   there is live on the next chip row.
 ///
 /// Both doors land the same rows under the same rules, because the rules are
 /// [authorRecipeMeasure]'s rather than either door's.
@@ -87,12 +86,6 @@ abstract interface class RecipeMeasureRepository {
     required double amount,
     required Unit unit,
   });
-
-  /// Re-stamps `sort_order` so one recipe's words read in the order [ids]
-  /// gives. The first word fronts a component's chip row, which is what the
-  /// order is for. Ids not belonging to [recipeId], or naming no live row, are
-  /// ignored — the caller is a list that may have been re-read under it.
-  Future<void> reorderRecipeMeasures(String recipeId, List<String> ids);
 
   /// What still says this word: how many live rows point at it, and which
   /// recipes they are in — the count the bin's refusal speaks

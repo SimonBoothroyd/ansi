@@ -122,10 +122,6 @@ class FakeRecipeMeasureRepo implements RecipeMeasureRepository {
   }
 
   @override
-  Future<void> reorderRecipeMeasures(String recipeId, List<String> ids) async =>
-      throw UnimplementedError();
-
-  @override
   Future<RecipeMeasureUsage> countLinesUsing(String measureId) async {
     counted.add(measureId);
     return usage[measureId] ?? RecipeMeasureUsage.none;

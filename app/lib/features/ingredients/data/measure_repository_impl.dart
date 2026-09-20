@@ -21,78 +21,29 @@ class SqliteMeasureRepository implements MeasureRepository {
   /// The household stamped on rows this repo writes.
   final String _householdId;
 
-  /// A comparable creation key: the parsed instant re-serialized canonically
-  /// (UTC ISO-8601), falling back to the raw text for unparseable values.
-  /// created_at is TEXT and its format differs by writer — this client
-  /// writes `…T…Z`, Postgres-sourced rows sync as `… …Z` (the space
-  /// separator is the operative difference) — and a bare lexicographic
-  /// compare across formats picks the wrong "oldest" (space sorts before
-  /// 'T'), so the canonical-row choice would disagree between devices.
-  /// Parsing first keeps the merge deterministic across formats. A value
-  /// with no zone marker at all is read as UTC — `DateTime.tryParse` would
-  /// otherwise read it in the device's local zone, and two devices in
-  /// different zones would then disagree about which row is oldest.
-  static String _createdKey(Object? raw) {
-    final s = raw as String? ?? '';
-    final parsed = DateTime.tryParse(s);
-    if (parsed == null) return s;
-    final utc = parsed.isUtc
-        ? parsed
-        : DateTime.tryParse('${s.trim()}Z') ?? parsed.toUtc();
-    return utc.toIso8601String();
-  }
-
   // Both reads below spell their SELECT out in full rather than sharing an
   // interpolated constant: `watch_coverage_test` reads these queries as
   // literals to hold the LEFT-JOIN watch trap, and a `'$fragment WHERE …'`
   // string is invisible to it. The row→list rule is shared in [_merge], which
   // is the half that could actually drift.
 
-  /// One ingredient's rows, deduplicated and ordered — the shared body of
-  /// [watchMeasures] and [measuresByIngredients], so the two can never
-  /// disagree about which duplicate is canonical.
-  ///
-  /// [rows] arrives oldest-first (by parsed instant, see [_createdKey]) so the
-  /// merge keeps the canonical (oldest) row per duplicate label on every
-  /// device — the offline-dupe doctrine (see the interface doc). Display order
-  /// is re-established afterwards.
-  static List<Measure> _merge(Iterable<Map<String, dynamic>> rows) {
-    final ordered =
-        [
-          for (final r in rows)
-            (
-              measure: Measure(
-                id: r['id'] as String,
-                label: r['label'] as String,
-                amount: (r['basis_amount'] as num).toDouble(),
-                basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
-                sortOrder: (r['sort_order'] as int?) ?? 0,
-                source: r['source'] as String?,
-              ),
-              created: _createdKey(r['created_at']),
+  /// One ingredient's rows through [mergeByLabel] — the shared body of
+  /// [watchMeasures] and [measuresByIngredients].
+  static List<Measure> _merge(Iterable<Map<String, dynamic>> rows) =>
+      mergeByLabel([
+        for (final r in rows)
+          (
+            measure: Measure(
+              id: r['id'] as String,
+              label: r['label'] as String,
+              amount: (r['basis_amount'] as num).toDouble(),
+              basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
+              sortOrder: (r['sort_order'] as int?) ?? 0,
+              source: r['source'] as String?,
             ),
-        ]..sort((a, b) {
-          final byCreated = a.created.compareTo(b.created);
-          return byCreated != 0
-              ? byCreated
-              : a.measure.id.compareTo(b.measure.id);
-        });
-
-    final byLabel = <String, ({Measure measure, String created})>{};
-    for (final e in ordered) {
-      byLabel.putIfAbsent(e.measure.label, () => e); // newer dupe hidden
-    }
-    final kept = byLabel.values.toList()
-      ..sort((a, b) {
-        final bySort = a.measure.sortOrder.compareTo(b.measure.sortOrder);
-        if (bySort != 0) return bySort;
-        final byCreated = a.created.compareTo(b.created);
-        return byCreated != 0
-            ? byCreated
-            : a.measure.id.compareTo(b.measure.id);
-      });
-    return [for (final e in kept) e.measure];
-  }
+            createdAt: r['created_at'],
+          ),
+      ]);
 
   @override
   Future<Map<String, List<Measure>>> measuresByIngredients(

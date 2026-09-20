@@ -313,8 +313,7 @@ abstract class ComponentDemandSource with _$ComponentDemandSource {
     double? quantity,
 
     /// The target's own word the demanding line said it in, when the target
-    /// still has that word — so the card quotes `3 blob` rather than the
-    /// count-family unit stored under it.
+    /// still has that word — so the card quotes `3 blob`.
     ///
     /// Null when the line named no word AND when the word is the very thing
     /// that has gone: a gap card that cannot say what the line asked for
@@ -597,8 +596,7 @@ typedef ComponentLine = ({
   Unit? unit,
 
   /// The target recipe's own word this line is said in, or null. Carried
-  /// through the seam so a demand card can print `3 blob` rather than the
-  /// count-family unit the row stores underneath it.
+  /// through the seam so a demand card can print `3 blob`.
   String? recipeMeasureId,
   bool optional,
 });

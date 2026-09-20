@@ -53,10 +53,9 @@ mixin _$Recipe {
  double? get yieldQty2; Unit? get yieldUnit2;/// The household's own words for one of what this batch makes — `blob`,
 /// `ladle`, `loaf` — in `sort_order`, duplicates already merged.
 ///
-/// A THIRD statement about the batch, beside [servingsBase] and the yield
-/// pair, and independent of both: re-stating `makes` does not re-state a
-/// measure, and a recipe that says nothing about what it makes can still
-/// say what the household calls one of them.
+/// Each is an amount in a unit, read against the yield of its family:
+/// re-stating `makes` does not re-state a measure, but a measure whose
+/// family the yields no longer state stops resolving.
  List<RecipeMeasure> get measures;/// The printed cook and total times, in seconds. Two typed facts with no
 /// rule between them — a total below the cook time is what somebody wrote,
 /// not an error to refuse. Null is unset: the page never said, and nothing
@@ -359,18 +358,16 @@ class _Recipe extends Recipe {
 /// The household's own words for one of what this batch makes — `blob`,
 /// `ladle`, `loaf` — in `sort_order`, duplicates already merged.
 ///
-/// A THIRD statement about the batch, beside [servingsBase] and the yield
-/// pair, and independent of both: re-stating `makes` does not re-state a
-/// measure, and a recipe that says nothing about what it makes can still
-/// say what the household calls one of them.
+/// Each is an amount in a unit, read against the yield of its family:
+/// re-stating `makes` does not re-state a measure, but a measure whose
+/// family the yields no longer state stops resolving.
  final  List<RecipeMeasure> _measures;
 /// The household's own words for one of what this batch makes — `blob`,
 /// `ladle`, `loaf` — in `sort_order`, duplicates already merged.
 ///
-/// A THIRD statement about the batch, beside [servingsBase] and the yield
-/// pair, and independent of both: re-stating `makes` does not re-state a
-/// measure, and a recipe that says nothing about what it makes can still
-/// say what the household calls one of them.
+/// Each is an amount in a unit, read against the yield of its family:
+/// re-stating `makes` does not re-state a measure, but a measure whose
+/// family the yields no longer state stops resolving.
 @override@JsonKey() List<RecipeMeasure> get measures {
   if (_measures is EqualUnmodifiableListView) return _measures;
   // ignore: implicit_dynamic_type
@@ -472,7 +469,8 @@ mixin _$RecipeSummary {
 /// picker row can say "makes 1 cup" (or "no yield yet") without loading
 /// the whole recipe. See [Recipe.yieldQty].
  double? get yieldQty; Unit? get yieldUnit; double? get yieldQty2; Unit? get yieldUnit2;/// This recipe's own words for one of what its batch makes, `sort_order`
-/// first and duplicates merged — see [Recipe.measures].
+/// first, with any merge-hidden twins behind them — this summary becomes a
+/// [SubRecipeTarget], which is a list lines are resolved against.
 ///
 /// Carried on the summary for the reason the yields are: a picker row that
 /// hands this recipe on as a component TARGET must hand the words over
@@ -705,7 +703,8 @@ class _RecipeSummary extends RecipeSummary {
 @override final  double? yieldQty2;
 @override final  Unit? yieldUnit2;
 /// This recipe's own words for one of what its batch makes, `sort_order`
-/// first and duplicates merged — see [Recipe.measures].
+/// first, with any merge-hidden twins behind them — this summary becomes a
+/// [SubRecipeTarget], which is a list lines are resolved against.
 ///
 /// Carried on the summary for the reason the yields are: a picker row that
 /// hands this recipe on as a component TARGET must hand the words over
@@ -713,7 +712,8 @@ class _RecipeSummary extends RecipeSummary {
 /// without a second read.
  final  List<RecipeMeasure> _measures;
 /// This recipe's own words for one of what its batch makes, `sort_order`
-/// first and duplicates merged — see [Recipe.measures].
+/// first, with any merge-hidden twins behind them — this summary becomes a
+/// [SubRecipeTarget], which is a list lines are resolved against.
 ///
 /// Carried on the summary for the reason the yields are: a picker row that
 /// hands this recipe on as a component TARGET must hand the words over
@@ -1447,9 +1447,13 @@ $SubRecipeTargetCopyWith<$Res>? get subRecipe {
 /// @nodoc
 mixin _$SubRecipeTarget {
 
- String get id; String get title; double? get yieldQty; Unit? get yieldUnit; double? get yieldQty2; Unit? get yieldUnit2;/// The target's live measures, `sort_order` first — the words a line may
-/// be said in, and the list a line's [LineItem.recipeMeasureId] is looked
-/// up in. Empty for a recipe that coins none, and for a caller that
+ String get id; String get title; double? get yieldQty; Unit? get yieldUnit; double? get yieldQty2; Unit? get yieldUnit2;/// The target's live measures, `sort_order` first — the list a line's
+/// [LineItem.recipeMeasureId] is looked up in, so it carries EVERY live
+/// row, the merge-hidden duplicates behind the rest: a line pointing at a
+/// hidden twin still means what it said. What a chip row may OFFER is the
+/// deduped half (`componentUnitChoices` does it, so no caller has to know
+/// which list it holds). Empty for a recipe that coins none, and for a
+/// caller that
 /// assembled a target without reading them, where a measured line then
 /// reads as [ComponentMeasureMissing] rather than as anything invented.
  List<RecipeMeasure> get measures;
@@ -1659,15 +1663,23 @@ class _SubRecipeTarget extends SubRecipeTarget {
 @override final  Unit? yieldUnit;
 @override final  double? yieldQty2;
 @override final  Unit? yieldUnit2;
-/// The target's live measures, `sort_order` first — the words a line may
-/// be said in, and the list a line's [LineItem.recipeMeasureId] is looked
-/// up in. Empty for a recipe that coins none, and for a caller that
+/// The target's live measures, `sort_order` first — the list a line's
+/// [LineItem.recipeMeasureId] is looked up in, so it carries EVERY live
+/// row, the merge-hidden duplicates behind the rest: a line pointing at a
+/// hidden twin still means what it said. What a chip row may OFFER is the
+/// deduped half (`componentUnitChoices` does it, so no caller has to know
+/// which list it holds). Empty for a recipe that coins none, and for a
+/// caller that
 /// assembled a target without reading them, where a measured line then
 /// reads as [ComponentMeasureMissing] rather than as anything invented.
  final  List<RecipeMeasure> _measures;
-/// The target's live measures, `sort_order` first — the words a line may
-/// be said in, and the list a line's [LineItem.recipeMeasureId] is looked
-/// up in. Empty for a recipe that coins none, and for a caller that
+/// The target's live measures, `sort_order` first — the list a line's
+/// [LineItem.recipeMeasureId] is looked up in, so it carries EVERY live
+/// row, the merge-hidden duplicates behind the rest: a line pointing at a
+/// hidden twin still means what it said. What a chip row may OFFER is the
+/// deduped half (`componentUnitChoices` does it, so no caller has to know
+/// which list it holds). Empty for a recipe that coins none, and for a
+/// caller that
 /// assembled a target without reading them, where a measured line then
 /// reads as [ComponentMeasureMissing] rather than as anything invented.
 @override@JsonKey() List<RecipeMeasure> get measures {

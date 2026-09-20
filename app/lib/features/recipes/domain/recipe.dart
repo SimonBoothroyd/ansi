@@ -91,10 +91,9 @@ abstract class Recipe with _$Recipe {
     /// The household's own words for one of what this batch makes — `blob`,
     /// `ladle`, `loaf` — in `sort_order`, duplicates already merged.
     ///
-    /// A THIRD statement about the batch, beside [servingsBase] and the yield
-    /// pair, and independent of both: re-stating `makes` does not re-state a
-    /// measure, and a recipe that says nothing about what it makes can still
-    /// say what the household calls one of them.
+    /// Each is an amount in a unit, read against the yield of its family:
+    /// re-stating `makes` does not re-state a measure, but a measure whose
+    /// family the yields no longer state stops resolving.
     @Default(<RecipeMeasure>[]) List<RecipeMeasure> measures,
 
     /// The printed cook and total times, in seconds. Two typed facts with no

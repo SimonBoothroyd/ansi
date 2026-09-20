@@ -1,4 +1,5 @@
 import 'package:ansi/core/result/result.dart';
+import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
@@ -102,8 +103,7 @@ void main() {
       expect(refused.failure.code, 'recipe_measure/word_taken');
       expect(
         refused.failure.message,
-        '“blob” is already this recipe’s word, at 15 g. Re-state that one '
-        'and every line saying it follows.',
+        '“blob” is already a measure here, at 15 g. Re-state that one instead.',
       );
     });
 
@@ -164,9 +164,8 @@ void main() {
       expect(refused.failure.code, 'recipe_measure/unit_cannot_measure');
       expect(
         refused.failure.message,
-        '“blob” can’t be a fraction of a batch — that is the arithmetic '
-        'nobody thinks in, and the word is here to reach a batch rather than '
-        'to be one. Say what one comes to as a weight, a volume or a count.',
+        '“blob” can’t be a share of a batch. Say what one “blob” comes to as a '
+        'weight, a volume or a count.',
       );
     });
 
@@ -181,8 +180,8 @@ void main() {
       }
       expect(
         (_author('blob', 1, unit: pinch) as Err).failure.message,
-        '“pinch” is not a size, so it can’t say what one “blob” comes to. '
-        'Say it as a weight, a volume or a count.',
+        '“pinch” is not a size. Say what one “blob” comes to as a weight, a '
+        'volume or a count.',
       );
     });
   });
@@ -215,9 +214,8 @@ void main() {
       expect(refused.failure.code, 'recipe_measure/unit_family');
       expect(
         refused.failure.message,
-        'This recipe makes 300 g, so “ladle” can’t be said in ml — a recipe '
-        'has no density to get from one to the other. Say it in what the batch '
-        'is measured in, or add what a batch makes in ml under MAKES.',
+        'This recipe makes 300 g, and a recipe has no density to say “ladle” '
+        'in ml. Add what a batch makes in ml under MAKES.',
       );
     });
 
@@ -316,18 +314,18 @@ void main() {
     });
   });
 
-  group('recipeMeasureAlreadyNamed', () {
+  group('measureAlreadyNamed', () {
     test('reads what a person would read as the same word', () {
       final blob = _m('blob', 15);
-      expect(recipeMeasureAlreadyNamed(' BLOB ', [blob]), blob);
-      expect(recipeMeasureAlreadyNamed('ladle', [blob]), isNull);
-      expect(recipeMeasureAlreadyNamed('  ', [blob]), isNull);
+      expect(measureAlreadyNamed(' BLOB ', [blob]), blob);
+      expect(measureAlreadyNamed('ladle', [blob]), isNull);
+      expect(measureAlreadyNamed('  ', [blob]), isNull);
     });
   });
 
   group('duplicates merge on read — the ingredient rule, mirrored', () {
     test('the oldest row of a word is canonical, the newer is hidden', () {
-      final merged = mergeRecipeMeasures([
+      final merged = mergeByLabel([
         (
           measure: _m('blob', 18, id: 'late'),
           createdAt: '2026-09-11T10:00:00Z',
@@ -344,7 +342,7 @@ void main() {
     test("two writers' date formats still agree about which is older", () {
       // Postgres syncs `… …Z`, this client writes `…T…Z`; a bare string
       // compare picks the wrong one, because a space sorts before `T`.
-      final merged = mergeRecipeMeasures([
+      final merged = mergeByLabel([
         (
           measure: _m('blob', 18, id: 'late'),
           createdAt: '2026-09-11T09:00:00Z',
@@ -358,7 +356,7 @@ void main() {
     });
 
     test('a zoneless instant is read as UTC, so two devices agree', () {
-      final merged = mergeRecipeMeasures([
+      final merged = mergeByLabel([
         (measure: _m('blob', 18, id: 'late'), createdAt: '2026-09-11 09:00:00'),
         (
           measure: _m('blob', 15, id: 'early'),
@@ -371,7 +369,7 @@ void main() {
     test('the key is the label EXACTLY as stored — case included', () {
       // The authoring path is what stops a person minting the pair; the merge
       // hides only what the database actually let through.
-      final merged = mergeRecipeMeasures([
+      final merged = mergeByLabel([
         (measure: _m('Blob', 18, id: 'b'), createdAt: '2026-09-11T09:00:00Z'),
         (measure: _m('blob', 15, id: 'a'), createdAt: '2026-09-10T09:00:00Z'),
       ]);
@@ -379,7 +377,7 @@ void main() {
     });
 
     test('display order is sort_order, then age, then id', () {
-      final merged = mergeRecipeMeasures([
+      final merged = mergeByLabel([
         (
           measure: _m('ladle', 180, unit: ml, id: 'c', sortOrder: 1),
           createdAt: '2026-09-09T09:00:00Z',
@@ -394,7 +392,7 @@ void main() {
     });
 
     test('an unparseable or absent date still sorts deterministically', () {
-      final merged = mergeRecipeMeasures([
+      final merged = mergeByLabel([
         (measure: _m('blob', 18, id: 'z'), createdAt: null),
         (measure: _m('blob', 15, id: 'a'), createdAt: 'not a date'),
       ]);

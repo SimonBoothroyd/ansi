@@ -36,83 +36,13 @@
 library;
 
 import '../../../core/result/result.dart';
-import '../../../core/units/measure.dart' show measureLabelAsAuthored;
+import '../../../core/units/measure.dart'
+    show measureAlreadyNamed, measureLabelAsAuthored;
 import '../../../core/units/number_format.dart';
 import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/unit_words.dart';
 import '../../../core/units/units.dart';
 import 'component_math.dart';
-
-/// One row as a reader hands it in: the measure, and the raw `created_at` text
-/// the database stored. [mergeRecipeMeasures] needs the second to decide which
-/// of two rows saying one word is the canonical one.
-typedef RecipeMeasureRow = ({RecipeMeasure measure, Object? createdAt});
-
-/// The live measure of this recipe that already carries [label], ignoring
-/// case, or null.
-///
-/// Case-insensitive on purpose, and looser than [mergeRecipeMeasures]: that
-/// one hides exactly what the database let through, and this one refuses what
-/// a PERSON would read as the same word. A recipe offering both `blob` and
-/// `Blob` in its chip row is two ways to say one thing.
-///
-/// [measures] is read in its given order, which is `sort_order`, so two rows
-/// that are already duplicates resolve to the same one on every device.
-RecipeMeasure? recipeMeasureAlreadyNamed(
-  String label,
-  List<RecipeMeasure> measures,
-) {
-  final word = measureLabelAsAuthored(label).toLowerCase();
-  if (word.isEmpty) return null;
-  for (final m in measures) {
-    if (measureLabelAsAuthored(m.label).toLowerCase() == word) return m;
-  }
-  return null;
-}
-
-/// A recipe's rows as every reader sees them: duplicates merged, the oldest of
-/// each word kept, ordered `sort_order` then age then id.
-///
-/// The offline-dupe doctrine, mirrored from the ingredient measures verbatim —
-/// including its case rule. No unique index guards `(recipe_id, label)`,
-/// because two phones offline can both coin `blob` and neither write is wrong;
-/// so the duplicate is **hidden on read** rather than refused on write, and
-/// every device hides the same one. The key is the label EXACTLY as stored:
-/// `Blob` and `blob` are two rows here, and it is [recipeMeasureAlreadyNamed]
-/// on the authoring path — not this — that stops a person minting the pair.
-///
-/// The creation key is the parsed instant re-serialized canonically (UTC
-/// ISO-8601), falling back to the raw text for an unparseable value:
-/// `created_at` is TEXT and its format differs by writer — this client writes
-/// `…T…Z`, Postgres-sourced rows sync as `… …Z` — and a bare lexicographic
-/// compare across formats picks the wrong "oldest" (a space sorts before `T`).
-/// A value with no zone marker at all is read as UTC, or two devices in
-/// different zones would disagree about which row is older.
-List<RecipeMeasure> mergeRecipeMeasures(Iterable<RecipeMeasureRow> rows) {
-  final ordered =
-      [
-        for (final r in rows)
-          (measure: r.measure, created: _createdKey(r.createdAt)),
-      ]..sort((a, b) {
-        final byCreated = a.created.compareTo(b.created);
-        return byCreated != 0
-            ? byCreated
-            : a.measure.id.compareTo(b.measure.id);
-      });
-
-  final byLabel = <String, ({RecipeMeasure measure, String created})>{};
-  for (final e in ordered) {
-    byLabel.putIfAbsent(e.measure.label, () => e); // newer dupe hidden
-  }
-  final kept = byLabel.values.toList()
-    ..sort((a, b) {
-      final bySort = a.measure.sortOrder.compareTo(b.measure.sortOrder);
-      if (bySort != 0) return bySort;
-      final byCreated = a.created.compareTo(b.created);
-      return byCreated != 0 ? byCreated : a.measure.id.compareTo(b.measure.id);
-    });
-  return [for (final e in kept) e.measure];
-}
 
 /// [measures] with each word said ONCE — what a list may offer or display,
 /// from a loaded list that also carries the merge-hidden twins so a line can
@@ -135,16 +65,6 @@ List<RecipeMeasure> offeredRecipeMeasures(
     for (final m in measures)
       if (said.add(m.label)) byLabel[m.label]!,
   ];
-}
-
-String _createdKey(Object? raw) {
-  final s = raw as String? ?? '';
-  final parsed = DateTime.tryParse(s);
-  if (parsed == null) return s;
-  final utc = parsed.isUtc
-      ? parsed
-      : DateTime.tryParse('${s.trim()}Z') ?? parsed.toUtc();
-  return utc.toIso8601String();
 }
 
 /// [label], [amount] and [unit] as a [RecipeMeasure] the recipe can carry, or
@@ -194,10 +114,7 @@ Result<RecipeMeasure> authorRecipeMeasure({
   }
   if (word.isEmpty) {
     return const Err(
-      Failure(
-        'recipe_measure/no_label',
-        'Give it a word — what you call one of these.',
-      ),
+      Failure('recipe_measure/no_label', kRecipeMeasureNoLabelRefusal),
     );
   }
   if ((unitFromLabel(word) ?? unitFromWord(word)) != null) {
@@ -205,7 +122,7 @@ Result<RecipeMeasure> authorRecipeMeasure({
       Failure('recipe_measure/unit_word', recipeMeasureUnitWordRefusal(word)),
     );
   }
-  final taken = recipeMeasureAlreadyNamed(word, measures);
+  final taken = measureAlreadyNamed(word, measures);
   if (taken != null && taken.id != id) {
     return Err(
       Failure(
@@ -311,60 +228,50 @@ List<RecipeMeasure> recipeMeasuresOrphanedBy({
       m,
 ];
 
-/// Why no word can be coined yet: the recipe does not say what a batch makes.
-///
-/// A constant rather than a function, because it is also the sentence the
-/// disabled MEASURES list carries — the same words whether a person has typed
-/// anything or not.
+/// Why no measure can be coined yet — also the sentence the disabled MEASURES
+/// list carries.
 const kRecipeMeasureNoYieldRefusal =
-    'Say what a batch makes first, under MAKES. A word like “blob” is a size, '
-    'and a size is only a share of a batch once the batch has one too.';
+    'A measure is a share of a batch. Say what a batch makes first, under '
+    'MAKES.';
 
-/// Why a word that is a unit's name cannot be minted. It names the way out,
-/// which is a real one: the words a measure exists for are the ones the
-/// catalog has not got.
+/// Why a measure cannot be minted without its name.
+const kRecipeMeasureNoLabelRefusal =
+    'A measure needs a name — what you call one of these.';
+
+/// Why a unit's name cannot be minted as a measure.
 String recipeMeasureUnitWordRefusal(String label) =>
-    '“$label” is already a unit — the chip row says it on every recipe. A '
-    'measure is for the word the units have not got, like “blob” or “ladle”.';
+    '“$label” is already a unit. Call the measure something else, like “blob”.';
 
-/// Why a word cannot be minted twice: the recipe already says it.
-///
-/// The way out is a re-statement rather than a second row, because the row
-/// keeps its id and every line already saying the word follows the number.
+/// Why a name cannot be minted twice. Re-stating keeps the row's id, so every
+/// line already saying it follows the number.
 String recipeMeasureWordTakenRefusal(RecipeMeasure taken) =>
-    '“${taken.label}” is already this recipe’s word, at '
-    '${_said(taken.amount, taken.unit)}. Re-state that one and every line '
-    'saying it follows.';
+    '“${taken.label}” is already a measure here, at '
+    '${_said(taken.amount, taken.unit)}. Re-state that one instead.';
 
 /// Why a measure cannot be minted without its number.
 String recipeMeasureAmountRefusal(String label) =>
     'Say what one “$label” comes to — a number above zero.';
 
-/// Why a word cannot be said in `batch`, or in an imprecise word.
-String recipeMeasureUnitCannotMeasureRefusal(String label, Unit unit) =>
-    unit.family == UnitFamily.batch
-    ? '“$label” can’t be a fraction of a batch — that is the arithmetic nobody '
-          'thinks in, and the word is here to reach a batch rather than to be '
-          'one. Say what one comes to as a weight, a volume or a count.'
-    : '“${unit.label}” is not a size, so it can’t say what one “$label” comes '
-          'to. Say it as a weight, a volume or a count.';
+/// Why a measure cannot be said in `batch`, or in an imprecise word.
+String recipeMeasureUnitCannotMeasureRefusal(String label, Unit unit) {
+  final fact = unit.family == UnitFamily.batch
+      ? '“$label” can’t be a share of a batch'
+      : '“${unit.label}” is not a size';
+  return '$fact. Say what one “$label” comes to as a weight, a volume or a '
+      'count.';
+}
 
-/// Why a word in this unit cannot be read against this recipe: the recipe does
-/// not say what a batch makes in that unit's family, and a recipe has no
-/// density to bridge one family to another (ADR-0008 — that is an ingredient's
-/// fact about a substance, and a recipe is not one).
-///
-/// It names both sides and the way out, because the way out is a real one: the
-/// second MAKES denomination exists exactly for this.
+/// Why a measure in this unit cannot be read against this recipe: no yield is
+/// stated in the unit's family, and a recipe has no density to bridge families
+/// (ADR-0008).
 String recipeMeasureUnitFamilyRefusal(
   String label,
   Unit unit,
   List<YieldDenomination> yields,
 ) =>
     'This recipe makes ${yields.map((y) => _said(y.qty, y.unit)).join(' · ')}, '
-    'so “$label” can’t be said in ${unit.label} — a recipe has no density to '
-    'get from one to the other. Say it in what the batch is measured in, or '
-    'add what a batch makes in ${unit.label} under MAKES.';
+    'and a recipe has no density to say “$label” in ${unit.label}. Add what a '
+    'batch makes in ${unit.label} under MAKES.';
 
 /// `15 g`, `1.25 cup` — an amount and its unit, said the one way the app says
 /// them ([formatAmountIn]).

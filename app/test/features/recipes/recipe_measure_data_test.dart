@@ -584,22 +584,6 @@ void main() {
       );
     });
 
-    test('reorder re-stamps sort_order by position', () async {
-      await seedAioli();
-      await measures.addRecipeMeasure(
-        recipeId: 'aioli',
-        label: 'ladle',
-        amount: 50,
-        unit: g,
-      );
-      final ladle = (await measures.watchRecipeMeasures('aioli').first).last;
-      await measures.reorderRecipeMeasures('aioli', [ladle.id, 'm-blob']);
-      expect(
-        (await measures.watchRecipeMeasures('aioli').first).map((m) => m.label),
-        ['ladle', 'blob'],
-      );
-    });
-
     test('the delete gate counts both tables that can point at a word, and '
         'names the recipes', () async {
       await seedAioli();
@@ -804,37 +788,33 @@ void main() {
       expect((put['data'] as Map)['recipe_id'], 'aioli');
     });
 
-    test(
-      'the ＋ door, the re-statement, the reorder and the bin all queue',
-      () async {
-        await seedAioli();
-        await drainCrudQueue(db);
+    test('the ＋ door, the re-statement and the bin all queue', () async {
+      await seedAioli();
+      await drainCrudQueue(db);
 
-        final ladle = await measures.addRecipeMeasure(
-          recipeId: 'aioli',
-          label: 'ladle',
-          amount: 50,
-          unit: g,
-        );
-        await measures.restateRecipeMeasure(
-          measureId: ladle.id,
-          label: 'ladle',
-          amount: 37.5,
-          unit: g,
-        );
-        await measures.reorderRecipeMeasures('aioli', [ladle.id, 'm-blob']);
-        await measures.softDeleteRecipeMeasure(ladle.id);
+      final ladle = await measures.addRecipeMeasure(
+        recipeId: 'aioli',
+        label: 'ladle',
+        amount: 50,
+        unit: g,
+      );
+      await measures.restateRecipeMeasure(
+        measureId: ladle.id,
+        label: 'ladle',
+        amount: 37.5,
+        unit: g,
+      );
+      await measures.softDeleteRecipeMeasure(ladle.id);
 
-        final ops = await queuedCrudOps(db);
-        expect(
-          ops.where((o) => o['type'] == 'recipe_measure'),
-          hasLength(greaterThanOrEqualTo(4)),
-        );
-        // A soft delete is a PATCH stamping the tombstone, never a DELETE: a
-        // DELETE is what the connector maps to a server-side removal.
-        expect(ops.where((o) => o['op'] == 'DELETE'), isEmpty);
-      },
-    );
+      final ops = await queuedCrudOps(db);
+      expect(
+        ops.where((o) => o['type'] == 'recipe_measure'),
+        hasLength(greaterThanOrEqualTo(3)),
+      );
+      // A soft delete is a PATCH stamping the tombstone, never a DELETE: a
+      // DELETE is what the connector maps to a server-side removal.
+      expect(ops.where((o) => o['op'] == 'DELETE'), isEmpty);
+    });
 
     test('a measured line queues the pointer and a null unit', () async {
       await seedAioli();

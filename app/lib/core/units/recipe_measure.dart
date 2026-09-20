@@ -52,6 +52,7 @@ library;
 
 import 'package:meta/meta.dart';
 
+import 'measure.dart' show LabelledMeasure;
 import 'units.dart';
 
 /// The unit families a recipe's word may be said in: the three that measure
@@ -74,7 +75,7 @@ const kRecipeMeasureFamilies = <UnitFamily>{
 /// (referenced by `recipe_line_item.recipe_measure_id` and
 /// `week_recipe_line_override.recipe_measure_id`).
 @immutable
-class RecipeMeasure {
+class RecipeMeasure implements LabelledMeasure {
   const RecipeMeasure({
     required this.id,
     required this.recipeId,
@@ -84,6 +85,7 @@ class RecipeMeasure {
     this.sortOrder = 0,
   });
 
+  @override
   final String id;
 
   /// The recipe this word belongs to. A measure is a word for ONE recipe the
@@ -94,6 +96,7 @@ class RecipeMeasure {
   /// The household's word, singular, exactly as they typed it: `blob`,
   /// `ladle`, `patty`, `loaf`. Never pluralised for display and never
   /// case-folded — see `recipe_measure_authoring.dart`.
+  @override
   final String label;
 
   /// What ONE of [label] comes to, in [unit]: a blob is 15 g. Must be finite
@@ -106,6 +109,7 @@ class RecipeMeasure {
   /// to lend it one.
   final Unit unit;
 
+  @override
   final int sortOrder;
 
   /// Whether this row can say what one of the word comes to.
