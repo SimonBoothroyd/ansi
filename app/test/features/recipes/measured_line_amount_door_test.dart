@@ -25,6 +25,7 @@ import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/presentation/component_quantity_sheet.dart';
 import 'package:ansi/features/recipes/presentation/line_card.dart';
+import 'package:ansi/features/recipes/presentation/recipe_measures_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -111,6 +112,42 @@ final _plus = find.descendant(
   of: find.byType(ComponentQuantityEditor),
   matching: find.byIcon(FLucideIcons.plus),
 );
+
+/// Coins one word behind the ＋, which is open.
+Future<void> _coin(
+  WidgetTester tester, {
+  required String label,
+  required String amount,
+}) async {
+  await tester.enterText(
+    find.descendant(
+      of: find.byKey(const ValueKey('add-word-measure-label')),
+      matching: find.byType(TextField),
+    ),
+    label,
+  );
+  await tester.enterText(
+    find.descendant(
+      of: find.byKey(const ValueKey('add-word-measure-amount')),
+      matching: find.byType(TextField),
+    ),
+    amount,
+  );
+  await tester.pump();
+  await tester.tap(
+    find.descendant(
+      of: find.byType(RecipeMeasuresEditor),
+      matching: find.widgetWithText(FButton, 'Save'),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// Back out of the manage state, to the amount.
+Future<void> _backToTheAmount(WidgetTester tester) async {
+  await tester.tap(find.bySemanticsLabel('Back'));
+  await tester.pumpAndSettle();
+}
 
 void main() {
   group('the recipe editor', () {
@@ -268,6 +305,44 @@ void main() {
       expect(find.text('blob'), findsWidgets);
       expect(find.text('50 ml'), findsOneWidget);
     });
+
+    testWidgets('a word coined behind that ＋ reaches the ROW — the line reads '
+        '3 glug, not a bare 3', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallSurface(tester);
+      final words = FakeRecipeMeasureRepo(measures: const [_blob]);
+      final repo = FakeRecipeRepo(_sliders(_unitLine));
+      await tester.pumpWidget(
+        hostEditor('1', [
+          recipeRepositoryProvider.overrideWithValue(repo),
+          recipeMeasureRepositoryProvider.overrideWithValue(words),
+        ]),
+      );
+      await tester.pumpAndSettle();
+
+      await openLine(tester, 'Romesco Aioli');
+      await tester.tap(find.byType(LineCardAmountChip));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(_plus);
+      await tester.pumpAndSettle();
+      await tester.tap(_plus);
+      await tester.pumpAndSettle();
+      await _coin(tester, label: 'glug', amount: '30');
+      await _backToTheAmount(tester);
+      await tester.enterText(_qtyField(), '3');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+
+      // The word is newer than the target this row was built from, so the
+      // sheet hands the row itself back rather than only its id.
+      expect(find.text('3 glug'), findsWidgets);
+
+      await saveEditor(tester);
+      final line = repo.saved.single.groups.single.items.single;
+      expect(line.recipeMeasureId, words.added.single.id);
+      expect(line.quantity, 3);
+    });
   });
 
   group('week mode', () {
@@ -400,6 +475,43 @@ void main() {
 
       expect(find.text('Measures'), findsOneWidget);
       expect(find.text('50 ml'), findsOneWidget);
+    });
+
+    testWidgets('and a word coined behind it reaches this week’s row too', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      final variants = FakeWeekVariantRepository();
+      final words = FakeRecipeMeasureRepo(measures: const [_blob]);
+      await tester.pumpWidget(
+        routedHost(
+          initial: '/recipes/1/edit',
+          overrides: [
+            ...overrides(variants, _unitLine),
+            recipeMeasureRepositoryProvider.overrideWithValue(words),
+          ],
+          routes: {
+            '/recipes/1/edit': (_, _) =>
+                const WeekVariantEditorView(recipeId: '1', weekKey: weekKey),
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('¼ cup').first);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(_plus);
+      await tester.pumpAndSettle();
+      await tester.tap(_plus);
+      await tester.pumpAndSettle();
+      await _coin(tester, label: 'glug', amount: '30');
+      await _backToTheAmount(tester);
+      await tester.enterText(_qtyField(), '3');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('3 glug'), findsWidgets);
     });
   });
 }

@@ -15,12 +15,15 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/units/measure.dart';
+import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
 import '../../../core/week_shape.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../recipes/data/recipe_providers.dart';
 import '../../recipes/domain/line_override.dart';
 import '../../recipes/domain/recipe.dart';
+import '../../recipes/presentation/component_quantity_sheet.dart'
+    show targetWithMeasure;
 import '../data/planning_providers.dart';
 
 part 'week_variant_view_models.g.dart';
@@ -121,19 +124,30 @@ class WeekVariantDraft extends _$WeekVariantDraft {
   /// words — `3 blob` (ADR-0018). The unit goes with it, for the same XOR: the
   /// number counts words, and the measure's own unit beside it would read as a
   /// mass where the line means a count of blobs.
-  void setRecipeMeasure(String id, String recipeMeasureId) => _mapLine(
-    id,
-    (e) => (
+  ///
+  /// [word] is the row behind the pointer, where the caller has it: a word
+  /// coined a tap ago is not in the target this line carries, and the row
+  /// prints what it says from there.
+  void setRecipeMeasure(
+    String id,
+    String recipeMeasureId, {
+    RecipeMeasure? word,
+  }) => _mapLine(id, (e) {
+    final target = e.line.subRecipe;
+    return (
       line: e.line.copyWith(
         unit: null,
         measureId: null,
         measure: null,
         recipeMeasureId: recipeMeasureId,
+        subRecipe: target == null || word == null
+            ? target
+            : targetWithMeasure(target, word),
       ),
       excluded: e.excluded,
       added: e.added,
-    ),
-  );
+    );
+  });
 
   void setMeasure(String id, Measure measure) => _mapLine(
     id,

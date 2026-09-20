@@ -352,8 +352,8 @@ class _WeekLineRow extends ConsumerWidget {
           ..setOptional(item.id, optional: measured.optional);
         // Both null is a line whose word has gone and whose reader picked no
         // chip: it keeps the pointer it had rather than a unit nobody stated.
-        if (measured.recipeMeasureId case final word?) {
-          notifier.setRecipeMeasure(item.id, word);
+        if (measured.recipeMeasureId case final id?) {
+          notifier.setRecipeMeasure(item.id, id, word: measured.measure);
         } else if (measured.unit case final picked?) {
           notifier.setUnit(item.id, picked);
         }

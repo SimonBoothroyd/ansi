@@ -26,6 +26,7 @@ import '../domain/recipe_cost.dart';
 import '../domain/recipe_header_edits.dart';
 import '../domain/recipe_measure_authoring.dart';
 import '../domain/recipe_repository.dart';
+import 'component_quantity_sheet.dart' show targetWithMeasure;
 import 'method_editing.dart';
 import 'recipe_header_form.dart';
 
@@ -335,7 +336,8 @@ class RecipeEditor extends _$RecipeEditor
   /// [recipeMeasureId] is one of the TARGET's own words (`3 blob`, ADR-0018),
   /// and it is the line's whole denomination: a unit beside it would count
   /// something nobody said, so it takes the unit's place rather than sitting
-  /// next to it.
+  /// next to it. [recipeMeasure] is that word's row, where the caller has it —
+  /// a word coined a tap ago is not yet in [target] (see [targetWithMeasure]).
   @override
   void addComponentLineItem(
     String groupId,
@@ -343,6 +345,7 @@ class RecipeEditor extends _$RecipeEditor
     double? quantity,
     Unit? unit,
     String? recipeMeasureId,
+    RecipeMeasure? recipeMeasure,
     bool optional = false,
   }) => _mapGroup(
     groupId,
@@ -352,7 +355,9 @@ class RecipeEditor extends _$RecipeEditor
         LineItem(
           id: _uuid.v4(),
           subRecipeId: target.id,
-          subRecipe: target,
+          subRecipe: recipeMeasure == null
+              ? target
+              : targetWithMeasure(target, recipeMeasure),
           ingredientName: target.title,
           quantity: quantity,
           unit: recipeMeasureId != null ? null : (unit ?? batches),
@@ -411,16 +416,26 @@ class RecipeEditor extends _$RecipeEditor
   /// `3 blob` (ADR-0018). The unit goes, because the word IS the denomination:
   /// the line's number counts words, so the measure's own `g` beside it would
   /// read as `3 g` where the line means 45.
-  void setLineItemRecipeMeasure(String itemId, String recipeMeasureId) =>
-      _mapItem(
-        itemId,
-        (i) => i.copyWith(
-          unit: null,
-          measureId: null,
-          measure: null,
-          recipeMeasureId: recipeMeasureId,
-        ),
-      );
+  ///
+  /// [word] is the row behind the pointer, where the caller has it: a word
+  /// coined a tap ago is not in the target this line carries, and the row
+  /// prints from there ([targetWithMeasure]).
+  void setLineItemRecipeMeasure(
+    String itemId,
+    String recipeMeasureId, {
+    RecipeMeasure? word,
+  }) => _mapItem(itemId, (i) {
+    final target = i.subRecipe;
+    return i.copyWith(
+      unit: null,
+      measureId: null,
+      measure: null,
+      recipeMeasureId: recipeMeasureId,
+      subRecipe: target == null || word == null
+          ? target
+          : targetWithMeasure(target, word),
+    );
+  });
 
   /// Quantifies the line in a named [measure] ("2 × potato, large"). The
   /// stored unit becomes the count fallback (`pieces`) — see [LineItem].

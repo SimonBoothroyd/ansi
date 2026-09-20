@@ -19,6 +19,7 @@
 /// rather than the throw ever being reachable.
 library;
 
+import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
@@ -131,12 +132,15 @@ abstract interface class MethodEditing {
   ///
   /// [recipeMeasureId] is one of the target's own words, and it replaces the
   /// unit rather than joining it — a line is denominated once (ADR-0018).
+  /// [recipeMeasure] is that word's row, where the caller has it: one coined a
+  /// tap ago is not yet in [target], and the line's row prints from there.
   void addComponentLineItem(
     String groupId,
     SubRecipeTarget target, {
     double? quantity,
     Unit? unit,
     String? recipeMeasureId,
+    RecipeMeasure? recipeMeasure,
     bool optional,
   });
 }
