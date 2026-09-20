@@ -5,6 +5,7 @@
 // ignore_for_file: scoped_providers_should_specify_dependencies
 library;
 
+import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
@@ -111,6 +112,70 @@ void main() {
     expect(find.text('Romesco Aioli'), findsOneWidget);
     // The ingredient line beside it is untouched.
     expect(find.text('2 tbsp'), findsOneWidget);
+  });
+
+  testWidgets('a line said in the target’s own word prints that word, and a '
+      'word that has gone prints the number alone', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        _FakeRecipeRepo({
+          'sliders': _sliders(
+            component: const LineItem(
+              id: 'i2',
+              subRecipeId: 'aioli',
+              subRecipe: SubRecipeTarget(
+                id: 'aioli',
+                title: 'Romesco Aioli',
+                yieldQty: 1,
+                yieldUnit: cup,
+                measures: [
+                  RecipeMeasure(
+                    id: 'm-blob',
+                    recipeId: 'aioli',
+                    label: 'blob',
+                    amount: 50,
+                    unit: ml,
+                  ),
+                ],
+              ),
+              ingredientName: 'Romesco Aioli',
+              quantity: 3,
+              recipeMeasureId: 'm-blob',
+            ),
+          ),
+          'aioli': _aioliRecipe,
+        }),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The word is read off the target's LIVE measures, never joined onto the
+    // line, which is what makes a re-stated `blob` follow through at once.
+    expect(find.text('3 blob'), findsOneWidget);
+
+    // Retired on the other recipe: the number is kept and there is nothing
+    // honest to put where the word was. It is never re-read as a count.
+    await tester.pumpWidget(
+      _host(
+        _FakeRecipeRepo({
+          'sliders': _sliders(
+            component: const LineItem(
+              id: 'i2',
+              subRecipeId: 'aioli',
+              subRecipe: _aioli,
+              ingredientName: 'Romesco Aioli',
+              quantity: 3,
+              recipeMeasureId: 'm-blob',
+            ),
+          ),
+          'aioli': _aioliRecipe,
+        }),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('3'), findsOneWidget);
+    expect(find.text('3 piece'), findsNothing);
   });
 
   testWidgets('the chip pushes the target recipe', (tester) async {
