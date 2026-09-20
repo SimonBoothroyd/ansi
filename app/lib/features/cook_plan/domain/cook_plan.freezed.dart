@@ -569,11 +569,17 @@ mixin _$ComponentDemand {
 /// batch has to be ready *by*.
  int get cookDay;/// Batches of the sub-recipe, already multiplied through the parent
 /// session's own scale factor.
- double get batches; String? get via;/// What the demanding line printed, unscaled — the amount and, when it
-/// was said in one of the target's own words, that word. A card quotes
-/// the line in the words it was written in (`3 blob → 0.15 of a batch`)
-/// rather than re-stating it in a unit nobody typed.
- double? get quantity; String? get measureLabel;
+ double get batches; String? get via;/// What the demanding line printed, unscaled.
+ double? get quantity;/// The target's own word the demanding line was said in — the WHOLE
+/// measure, not merely its label, because a card says what one of the word
+/// comes to on the way to the batch share (`3 blob → 45 g → 0.15 of a
+/// batch`). That middle step is the fact the word carries, and the one a
+/// cook checks when the share looks wrong.
+///
+/// Null when the line named no word, and null the moment the word has GONE
+/// from the target — which is exactly the state a card must not print a
+/// number for.
+ RecipeMeasure? get measure;
 /// Create a copy of ComponentDemand
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -584,16 +590,16 @@ $ComponentDemandCopyWith<ComponentDemand> get copyWith => _$ComponentDemandCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ComponentDemand&&(identical(other.parentRecipeId, parentRecipeId) || other.parentRecipeId == parentRecipeId)&&(identical(other.parentTitle, parentTitle) || other.parentTitle == parentTitle)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay)&&(identical(other.batches, batches) || other.batches == batches)&&(identical(other.via, via) || other.via == via)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.measureLabel, measureLabel) || other.measureLabel == measureLabel));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ComponentDemand&&(identical(other.parentRecipeId, parentRecipeId) || other.parentRecipeId == parentRecipeId)&&(identical(other.parentTitle, parentTitle) || other.parentTitle == parentTitle)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay)&&(identical(other.batches, batches) || other.batches == batches)&&(identical(other.via, via) || other.via == via)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.measure, measure) || other.measure == measure));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,parentRecipeId,parentTitle,cookDay,batches,via,quantity,measureLabel);
+int get hashCode => Object.hash(runtimeType,parentRecipeId,parentTitle,cookDay,batches,via,quantity,measure);
 
 @override
 String toString() {
-  return 'ComponentDemand(parentRecipeId: $parentRecipeId, parentTitle: $parentTitle, cookDay: $cookDay, batches: $batches, via: $via, quantity: $quantity, measureLabel: $measureLabel)';
+  return 'ComponentDemand(parentRecipeId: $parentRecipeId, parentTitle: $parentTitle, cookDay: $cookDay, batches: $batches, via: $via, quantity: $quantity, measure: $measure)';
 }
 
 
@@ -604,7 +610,7 @@ abstract mixin class $ComponentDemandCopyWith<$Res>  {
   factory $ComponentDemandCopyWith(ComponentDemand value, $Res Function(ComponentDemand) _then) = _$ComponentDemandCopyWithImpl;
 @useResult
 $Res call({
- String parentRecipeId, String parentTitle, int cookDay, double batches, String? via, double? quantity, String? measureLabel
+ String parentRecipeId, String parentTitle, int cookDay, double batches, String? via, double? quantity, RecipeMeasure? measure
 });
 
 
@@ -621,7 +627,7 @@ class _$ComponentDemandCopyWithImpl<$Res>
 
 /// Create a copy of ComponentDemand
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? parentRecipeId = null,Object? parentTitle = null,Object? cookDay = null,Object? batches = null,Object? via = freezed,Object? quantity = freezed,Object? measureLabel = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? parentRecipeId = null,Object? parentTitle = null,Object? cookDay = null,Object? batches = null,Object? via = freezed,Object? quantity = freezed,Object? measure = freezed,}) {
   return _then(_self.copyWith(
 parentRecipeId: null == parentRecipeId ? _self.parentRecipeId : parentRecipeId // ignore: cast_nullable_to_non_nullable
 as String,parentTitle: null == parentTitle ? _self.parentTitle : parentTitle // ignore: cast_nullable_to_non_nullable
@@ -629,8 +635,8 @@ as String,cookDay: null == cookDay ? _self.cookDay : cookDay // ignore: cast_nul
 as int,batches: null == batches ? _self.batches : batches // ignore: cast_nullable_to_non_nullable
 as double,via: freezed == via ? _self.via : via // ignore: cast_nullable_to_non_nullable
 as String?,quantity: freezed == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
-as double?,measureLabel: freezed == measureLabel ? _self.measureLabel : measureLabel // ignore: cast_nullable_to_non_nullable
-as String?,
+as double?,measure: freezed == measure ? _self.measure : measure // ignore: cast_nullable_to_non_nullable
+as RecipeMeasure?,
   ));
 }
 
@@ -715,10 +721,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String parentRecipeId,  String parentTitle,  int cookDay,  double batches,  String? via,  double? quantity,  String? measureLabel)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String parentRecipeId,  String parentTitle,  int cookDay,  double batches,  String? via,  double? quantity,  RecipeMeasure? measure)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ComponentDemand() when $default != null:
-return $default(_that.parentRecipeId,_that.parentTitle,_that.cookDay,_that.batches,_that.via,_that.quantity,_that.measureLabel);case _:
+return $default(_that.parentRecipeId,_that.parentTitle,_that.cookDay,_that.batches,_that.via,_that.quantity,_that.measure);case _:
   return orElse();
 
 }
@@ -736,10 +742,10 @@ return $default(_that.parentRecipeId,_that.parentTitle,_that.cookDay,_that.batch
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String parentRecipeId,  String parentTitle,  int cookDay,  double batches,  String? via,  double? quantity,  String? measureLabel)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String parentRecipeId,  String parentTitle,  int cookDay,  double batches,  String? via,  double? quantity,  RecipeMeasure? measure)  $default,) {final _that = this;
 switch (_that) {
 case _ComponentDemand():
-return $default(_that.parentRecipeId,_that.parentTitle,_that.cookDay,_that.batches,_that.via,_that.quantity,_that.measureLabel);case _:
+return $default(_that.parentRecipeId,_that.parentTitle,_that.cookDay,_that.batches,_that.via,_that.quantity,_that.measure);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -756,10 +762,10 @@ return $default(_that.parentRecipeId,_that.parentTitle,_that.cookDay,_that.batch
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String parentRecipeId,  String parentTitle,  int cookDay,  double batches,  String? via,  double? quantity,  String? measureLabel)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String parentRecipeId,  String parentTitle,  int cookDay,  double batches,  String? via,  double? quantity,  RecipeMeasure? measure)?  $default,) {final _that = this;
 switch (_that) {
 case _ComponentDemand() when $default != null:
-return $default(_that.parentRecipeId,_that.parentTitle,_that.cookDay,_that.batches,_that.via,_that.quantity,_that.measureLabel);case _:
+return $default(_that.parentRecipeId,_that.parentTitle,_that.cookDay,_that.batches,_that.via,_that.quantity,_that.measure);case _:
   return null;
 
 }
@@ -770,8 +776,8 @@ return $default(_that.parentRecipeId,_that.parentTitle,_that.cookDay,_that.batch
 /// @nodoc
 
 
-class _ComponentDemand implements ComponentDemand {
-  const _ComponentDemand({required this.parentRecipeId, required this.parentTitle, required this.cookDay, required this.batches, this.via, this.quantity, this.measureLabel});
+class _ComponentDemand extends ComponentDemand {
+  const _ComponentDemand({required this.parentRecipeId, required this.parentTitle, required this.cookDay, required this.batches, this.via, this.quantity, this.measure}): super._();
   
 
 @override final  String parentRecipeId;
@@ -784,12 +790,18 @@ class _ComponentDemand implements ComponentDemand {
 /// session's own scale factor.
 @override final  double batches;
 @override final  String? via;
-/// What the demanding line printed, unscaled — the amount and, when it
-/// was said in one of the target's own words, that word. A card quotes
-/// the line in the words it was written in (`3 blob → 0.15 of a batch`)
-/// rather than re-stating it in a unit nobody typed.
+/// What the demanding line printed, unscaled.
 @override final  double? quantity;
-@override final  String? measureLabel;
+/// The target's own word the demanding line was said in — the WHOLE
+/// measure, not merely its label, because a card says what one of the word
+/// comes to on the way to the batch share (`3 blob → 45 g → 0.15 of a
+/// batch`). That middle step is the fact the word carries, and the one a
+/// cook checks when the share looks wrong.
+///
+/// Null when the line named no word, and null the moment the word has GONE
+/// from the target — which is exactly the state a card must not print a
+/// number for.
+@override final  RecipeMeasure? measure;
 
 /// Create a copy of ComponentDemand
 /// with the given fields replaced by the non-null parameter values.
@@ -801,16 +813,16 @@ _$ComponentDemandCopyWith<_ComponentDemand> get copyWith => __$ComponentDemandCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ComponentDemand&&(identical(other.parentRecipeId, parentRecipeId) || other.parentRecipeId == parentRecipeId)&&(identical(other.parentTitle, parentTitle) || other.parentTitle == parentTitle)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay)&&(identical(other.batches, batches) || other.batches == batches)&&(identical(other.via, via) || other.via == via)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.measureLabel, measureLabel) || other.measureLabel == measureLabel));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ComponentDemand&&(identical(other.parentRecipeId, parentRecipeId) || other.parentRecipeId == parentRecipeId)&&(identical(other.parentTitle, parentTitle) || other.parentTitle == parentTitle)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay)&&(identical(other.batches, batches) || other.batches == batches)&&(identical(other.via, via) || other.via == via)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.measure, measure) || other.measure == measure));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,parentRecipeId,parentTitle,cookDay,batches,via,quantity,measureLabel);
+int get hashCode => Object.hash(runtimeType,parentRecipeId,parentTitle,cookDay,batches,via,quantity,measure);
 
 @override
 String toString() {
-  return 'ComponentDemand(parentRecipeId: $parentRecipeId, parentTitle: $parentTitle, cookDay: $cookDay, batches: $batches, via: $via, quantity: $quantity, measureLabel: $measureLabel)';
+  return 'ComponentDemand(parentRecipeId: $parentRecipeId, parentTitle: $parentTitle, cookDay: $cookDay, batches: $batches, via: $via, quantity: $quantity, measure: $measure)';
 }
 
 
@@ -821,7 +833,7 @@ abstract mixin class _$ComponentDemandCopyWith<$Res> implements $ComponentDemand
   factory _$ComponentDemandCopyWith(_ComponentDemand value, $Res Function(_ComponentDemand) _then) = __$ComponentDemandCopyWithImpl;
 @override @useResult
 $Res call({
- String parentRecipeId, String parentTitle, int cookDay, double batches, String? via, double? quantity, String? measureLabel
+ String parentRecipeId, String parentTitle, int cookDay, double batches, String? via, double? quantity, RecipeMeasure? measure
 });
 
 
@@ -838,7 +850,7 @@ class __$ComponentDemandCopyWithImpl<$Res>
 
 /// Create a copy of ComponentDemand
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? parentRecipeId = null,Object? parentTitle = null,Object? cookDay = null,Object? batches = null,Object? via = freezed,Object? quantity = freezed,Object? measureLabel = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? parentRecipeId = null,Object? parentTitle = null,Object? cookDay = null,Object? batches = null,Object? via = freezed,Object? quantity = freezed,Object? measure = freezed,}) {
   return _then(_ComponentDemand(
 parentRecipeId: null == parentRecipeId ? _self.parentRecipeId : parentRecipeId // ignore: cast_nullable_to_non_nullable
 as String,parentTitle: null == parentTitle ? _self.parentTitle : parentTitle // ignore: cast_nullable_to_non_nullable
@@ -846,8 +858,8 @@ as String,cookDay: null == cookDay ? _self.cookDay : cookDay // ignore: cast_nul
 as int,batches: null == batches ? _self.batches : batches // ignore: cast_nullable_to_non_nullable
 as double,via: freezed == via ? _self.via : via // ignore: cast_nullable_to_non_nullable
 as String?,quantity: freezed == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
-as double?,measureLabel: freezed == measureLabel ? _self.measureLabel : measureLabel // ignore: cast_nullable_to_non_nullable
-as String?,
+as double?,measure: freezed == measure ? _self.measure : measure // ignore: cast_nullable_to_non_nullable
+as RecipeMeasure?,
   ));
 }
 

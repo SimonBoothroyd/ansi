@@ -117,6 +117,24 @@ class WeekVariantDraft extends _$WeekVariantDraft {
     ),
   );
 
+  /// Quantifies this week's COMPONENT line in one of the target recipe's own
+  /// words — `3 blob` (ADR-0018). The unit goes with it, for the same XOR: the
+  /// number counts words, and the measure's own unit beside it would read as a
+  /// mass where the line means a count of blobs.
+  void setRecipeMeasure(String id, String recipeMeasureId) => _mapLine(
+    id,
+    (e) => (
+      line: e.line.copyWith(
+        unit: null,
+        measureId: null,
+        measure: null,
+        recipeMeasureId: recipeMeasureId,
+      ),
+      excluded: e.excluded,
+      added: e.added,
+    ),
+  );
+
   void setMeasure(String id, Measure measure) => _mapLine(
     id,
     (e) => (

@@ -318,18 +318,15 @@ class _WeekLineRow extends ConsumerWidget {
     final muted = struck ? AnsiColors.muted : AnsiColors.ink;
 
     Future<void> editAmount() async {
-      // A line said in one of the target recipe's own words — `3 blob`,
-      // ADR-0018 — has no catalog unit at all, and the sheet below offers
-      // nothing but catalog units: it opens preselected on `piece` and hands
-      // one back, and `setUnit` would then store this week's amount with the
-      // word replaced by a unit. The word is the only place its amount lived,
-      // so that is a silent, irreversible loss — and this build has no
-      // authoring control to put the word back with.
-      //
-      // So a measured line's amount is edited in the COMPONENT sheet, which
-      // keeps the denomination and returns a null `unit` for it. Only the
-      // number and the flag move.
-      if (item.recipeMeasureId != null) {
+      // **A component line gets the component sheet, measured or not.** The
+      // ingredient sheet's offer cannot express a recipe at all — no `batch`,
+      // no yield families, and no way to say one of the target's own words. It
+      // opens such a line preselected on `piece`, and for a measured line it
+      // hands back a unit written where `blob` was, which is the only place
+      // that line's amount lived (ADR-0018). The component sheet asks the
+      // question the line is actually about, and hands back exactly one
+      // denomination.
+      if (item.subRecipeId != null || item.recipeMeasureId != null) {
         final target =
             item.subRecipe ??
             SubRecipeTarget(
@@ -340,6 +337,7 @@ class _WeekLineRow extends ConsumerWidget {
           context,
           target: target,
           initialQuantity: item.quantity,
+          initialUnit: item.unit,
           initialMeasureId: item.recipeMeasureId,
           initialOptional: item.optional,
         );
@@ -347,6 +345,13 @@ class _WeekLineRow extends ConsumerWidget {
         notifier
           ..setQuantity(item.id, measured.quantity)
           ..setOptional(item.id, optional: measured.optional);
+        // Both null is a line whose word has gone and whose reader picked no
+        // chip: it keeps the pointer it had rather than a unit nobody stated.
+        if (measured.recipeMeasureId case final word?) {
+          notifier.setRecipeMeasure(item.id, word);
+        } else if (measured.unit case final picked?) {
+          notifier.setUnit(item.id, picked);
+        }
         return;
       }
       final ingredient = Ingredient(

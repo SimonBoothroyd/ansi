@@ -107,6 +107,15 @@ void main() {
     test("an ingredient's door refuses one rather than inventing a unit", () {
       expect(() => notAWordForAnIngredient(blob), throwsStateError);
     });
+
+    test("and a recipe's door refuses an ingredient's word the same way", () {
+      expect(
+        () => notAWordForARecipe(
+          const Measure(id: 'm', label: 'clove', amount: 3),
+        ),
+        throwsStateError,
+      );
+    });
   });
 
   test('a choice is one of the sealed kinds — a switch stays exhaustive', () {

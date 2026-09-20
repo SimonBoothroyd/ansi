@@ -300,15 +300,21 @@ class RecipeEditor extends _$RecipeEditor
   );
 
   /// Appends a **component** line pointing at [target] (step 8.6 / D1). It is
-  /// an ordinary line with the other identity: no ingredient id, no measure
-  /// (measures are an ingredient concept), and a `batch` default so a line
+  /// an ordinary line with the other identity: no ingredient id, no ingredient
+  /// measure (those are a vocabulary concept), and a `batch` default so a line
   /// backed out of the quantity sheet still means something honest.
+  ///
+  /// [recipeMeasureId] is one of the TARGET's own words (`3 blob`, ADR-0018),
+  /// and it is the line's whole denomination: a unit beside it would count
+  /// something nobody said, so it takes the unit's place rather than sitting
+  /// next to it.
   @override
   void addComponentLineItem(
     String groupId,
     SubRecipeTarget target, {
     double? quantity,
     Unit? unit,
+    String? recipeMeasureId,
     bool optional = false,
   }) => _mapGroup(
     groupId,
@@ -321,7 +327,8 @@ class RecipeEditor extends _$RecipeEditor
           subRecipe: target,
           ingredientName: target.title,
           quantity: quantity,
-          unit: unit ?? batches,
+          unit: recipeMeasureId != null ? null : (unit ?? batches),
+          recipeMeasureId: recipeMeasureId,
           optional: optional,
         ),
       ],
@@ -371,6 +378,21 @@ class RecipeEditor extends _$RecipeEditor
       recipeMeasureId: null,
     ),
   );
+
+  /// Quantifies a COMPONENT line in one of the target recipe's own words —
+  /// `3 blob` (ADR-0018). The unit goes, because the word IS the denomination:
+  /// the line's number counts words, so the measure's own `g` beside it would
+  /// read as `3 g` where the line means 45.
+  void setLineItemRecipeMeasure(String itemId, String recipeMeasureId) =>
+      _mapItem(
+        itemId,
+        (i) => i.copyWith(
+          unit: null,
+          measureId: null,
+          measure: null,
+          recipeMeasureId: recipeMeasureId,
+        ),
+      );
 
   /// Quantifies the line in a named [measure] ("2 × potato, large"). The
   /// stored unit becomes the count fallback (`pieces`) — see [LineItem].

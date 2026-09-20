@@ -483,6 +483,19 @@ class _Says extends StatelessWidget {
             ).copyWith(height: 1.45),
           ),
         ),
+        // The word a demanding line was written in, showing its work —
+        // `3 blob → 45 g → 0.15 of a batch`. One per demand that said one.
+        for (final word in speech.words)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              word,
+              style: ansiMono(
+                size: 9.5,
+                color: AnsiColors.herbDeep,
+              ).copyWith(height: 1.45),
+            ),
+          ),
         if (nudge != null)
           Padding(
             padding: const EdgeInsets.only(top: 6),

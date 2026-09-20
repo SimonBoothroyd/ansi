@@ -128,11 +128,15 @@ abstract interface class MethodEditing {
   });
 
   /// Appends a sub-recipe component line. Throws [UnsupportedError] at review.
+  ///
+  /// [recipeMeasureId] is one of the target's own words, and it replaces the
+  /// unit rather than joining it — a line is denominated once (ADR-0018).
   void addComponentLineItem(
     String groupId,
     SubRecipeTarget target, {
     double? quantity,
     Unit? unit,
+    String? recipeMeasureId,
     bool optional,
   });
 }

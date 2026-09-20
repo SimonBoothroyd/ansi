@@ -701,6 +701,7 @@ Future<String?> pickOrAddLine(
         target,
         quantity: result?.quantity,
         unit: result?.unit,
+        recipeMeasureId: result?.recipeMeasureId,
         optional: result?.optional ?? false,
       );
   }

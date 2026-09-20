@@ -1,16 +1,14 @@
-/// The one destructive door this reader release has to close.
+/// The amount door on a MEASURED component line — `3 blob` (ADR-0018).
 ///
-/// No screen on this build can AUTHOR a recipe measure — but a device can meet
-/// a measured line (`3 blob`) written by a later build, because the data layer
-/// ships a release ahead of the authoring UI (ADR-0018). The amount cell on
-/// such a line opened the units-only component quantity sheet, which always
-/// returns a unit, so a person tapping the cell to change the NUMBER and
-/// pressing Done would have written `g` where `blob` was — and the word is the
-/// only place the line's amount lived.
+/// Two doors reach that cell and both are here: the recipe editor's own line
+/// card, and week mode's row. The rule they share is that the sheet behind it
+/// is the COMPONENT one, whose offer can say a recipe's own word; the
+/// ingredient sheet's cannot, and opens such a line preselected on `piece`.
 ///
-/// Two doors reach that cell, and both are here: the recipe editor's own line
-/// card, and week mode's row (which reaches for the INGREDIENT sheet, whose
-/// offer cannot express a recipe's word at all).
+/// What each door must hold: the word is what the sheet opens on, the number is
+/// editable without touching it, picking a unit clears it, and — the whole
+/// reason this file exists — no path through either door can write a unit where
+/// the word was without the person having tapped that unit.
 // The pumped ProviderScope IS the root scope of each test's tree.
 // ignore_for_file: scoped_providers_should_specify_dependencies
 library;
@@ -59,7 +57,7 @@ const _aioli = SubRecipeTarget(
   measures: [_blob],
 );
 
-/// The parent, whose one line is the one no screen here can write.
+/// The parent, whose one line is said in the aioli's own word.
 const _measuredLine = LineItem(
   id: 'l1',
   subRecipeId: 'aioli',
@@ -69,12 +67,23 @@ const _measuredLine = LineItem(
   recipeMeasureId: 'm-blob',
 );
 
-const _sliders = Recipe(
+/// The same line before anybody said it in a word — a plain `¼ cup`, which is
+/// still a COMPONENT line and still the component sheet's business.
+const _unitLine = LineItem(
+  id: 'l1',
+  subRecipeId: 'aioli',
+  subRecipe: _aioli,
+  ingredientName: 'Romesco Aioli',
+  quantity: 0.25,
+  unit: cup,
+);
+
+Recipe _sliders(LineItem line) => Recipe(
   id: '1',
   title: 'Sausage Sliders',
   servingsBase: 4,
   groups: [
-    IngredientGroup(id: 'g1', items: [_measuredLine]),
+    IngredientGroup(id: 'g1', items: [line]),
   ],
 );
 
@@ -87,6 +96,13 @@ Finder _qtyField() => find
     )
     .first;
 
+/// A chip in the sheet's row, by its label — `find.text` alone would also match
+/// the sentence beside the number, which says `blob (50 ml)`.
+Finder _chip(String label) => find.descendant(
+  of: find.byType(ComponentQuantityEditor),
+  matching: find.text(label),
+);
+
 void main() {
   group('the recipe editor', () {
     testWidgets('the amount cell opens on the word, and Done keeps it', (
@@ -94,7 +110,7 @@ void main() {
     ) async {
       filterForuiSemanticsAssertions();
       tallSurface(tester);
-      final repo = FakeRecipeRepo(_sliders);
+      final repo = FakeRecipeRepo(_sliders(_measuredLine));
       await tester.pumpWidget(
         hostEditor('1', [recipeRepositoryProvider.overrideWithValue(repo)]),
       );
@@ -108,13 +124,16 @@ void main() {
       await tester.tap(find.byType(LineCardAmountChip));
       await tester.pumpAndSettle();
 
-      // The component sheet, on the word alone.
-      expect(find.text('this recipe’s word'), findsOneWidget);
-      expect(
-        find.text(ComponentQuantityEditor.kMeasuredLineKeepsItsWord),
-        findsOneWidget,
-      );
-      expect(find.text('cup'), findsNothing, reason: 'no unit to replace it');
+      // The word leads the row and is what the sheet opened on; the catalog
+      // chips sit behind it, so the denomination is a choice rather than a
+      // fact the person cannot reach.
+      expect(_chip('blob'), findsOneWidget);
+      expect(_chip('batch'), findsOneWidget);
+      expect(_chip('cup'), findsOneWidget);
+      // What one of the word comes to is said beside the number, the way a
+      // picked ingredient measure says it.
+      expect(find.text('blob (50 ml)'), findsOneWidget);
+      expect(find.textContaining('3 blob = '), findsOneWidget);
 
       await tester.tap(find.text('Done'));
       await tester.pumpAndSettle();
@@ -131,7 +150,7 @@ void main() {
     ) async {
       filterForuiSemanticsAssertions();
       tallSurface(tester);
-      final repo = FakeRecipeRepo(_sliders);
+      final repo = FakeRecipeRepo(_sliders(_measuredLine));
       await tester.pumpWidget(
         hostEditor('1', [recipeRepositoryProvider.overrideWithValue(repo)]),
       );
@@ -151,15 +170,72 @@ void main() {
       expect(line.recipeMeasureId, 'm-blob');
       expect(line.unit, isNull);
     });
+
+    testWidgets('picking a unit clears the word — a line is denominated once', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      tallSurface(tester);
+      final repo = FakeRecipeRepo(_sliders(_measuredLine));
+      await tester.pumpWidget(
+        hostEditor('1', [recipeRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pumpAndSettle();
+
+      await openLine(tester, 'Romesco Aioli');
+      await tester.tap(find.byType(LineCardAmountChip));
+      await tester.pumpAndSettle();
+      await tester.tap(_chip('cup'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      await saveEditor(tester);
+
+      final line = repo.saved.single.groups.single.items.single;
+      expect(line.unit, cup);
+      expect(
+        line.recipeMeasureId,
+        isNull,
+        reason: 'the word and a unit cannot both count one number',
+      );
+    });
+
+    testWidgets('and a units-said component line can be said in the word', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      tallSurface(tester);
+      final repo = FakeRecipeRepo(_sliders(_unitLine));
+      await tester.pumpWidget(
+        hostEditor('1', [recipeRepositoryProvider.overrideWithValue(repo)]),
+      );
+      await tester.pumpAndSettle();
+
+      await openLine(tester, 'Romesco Aioli');
+      await tester.tap(find.byType(LineCardAmountChip));
+      await tester.pumpAndSettle();
+      await tester.tap(_chip('blob'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      await saveEditor(tester);
+
+      final line = repo.saved.single.groups.single.items.single;
+      expect(line.recipeMeasureId, 'm-blob');
+      expect(line.unit, isNull);
+    });
   });
 
   group('week mode', () {
     const weekKey = '2026-09-14';
     final monday = DateTime.utc(2026, 9, 14);
 
-    List<Override> overrides(FakeWeekVariantRepository variants) => [
+    List<Override> overrides(
+      FakeWeekVariantRepository variants,
+      LineItem line,
+    ) => [
       recipeRepositoryProvider.overrideWithValue(
-        FakeRecipeRepository(recipe: _sliders),
+        FakeRecipeRepository(recipe: _sliders(line)),
       ),
       planningRepositoryProvider.overrideWithValue(_Planner(monday)),
       weekVariantRepositoryProvider.overrideWithValue(variants),
@@ -169,15 +245,16 @@ void main() {
       measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
     ];
 
-    testWidgets('this week’s amount for a measured line is said in the word, '
-        'never in a unit', (tester) async {
-      filterForuiSemanticsAssertions();
-      final variants = FakeWeekVariantRepository();
+    Future<GoRouter> openWeekEditor(
+      WidgetTester tester,
+      FakeWeekVariantRepository variants,
+      LineItem line,
+    ) async {
       late GoRouter router;
       await tester.pumpWidget(
         routedHost(
           initial: '/week',
-          overrides: overrides(variants),
+          overrides: overrides(variants, line),
           expose: (r) => router = r,
           routes: {
             '/week': (_, _) => const Text('the week'),
@@ -188,6 +265,14 @@ void main() {
       );
       unawaited(router.push('/recipes/1/edit'));
       await tester.pumpAndSettle();
+      return router;
+    }
+
+    testWidgets('this week’s amount for a measured line is said in the word, '
+        'never in a unit', (tester) async {
+      filterForuiSemanticsAssertions();
+      final variants = FakeWeekVariantRepository();
+      await openWeekEditor(tester, variants, _measuredLine);
 
       // The row's amount cell — `3 blob`, because the week's list reads the
       // word off the target's live measures too.
@@ -197,11 +282,8 @@ void main() {
       // The COMPONENT sheet, not the ingredient one: the ingredient sheet's
       // offer is catalog units and named INGREDIENT measures, and a recipe's
       // own word is neither — it would open preselected on `piece`.
-      expect(
-        find.text(ComponentQuantityEditor.kMeasuredLineKeepsItsWord),
-        findsOneWidget,
-      );
-      expect(find.text('this recipe’s word'), findsOneWidget);
+      expect(find.byType(ComponentQuantityEditor), findsOneWidget);
+      expect(_chip('blob'), findsOneWidget);
 
       await tester.enterText(_qtyField(), '5');
       await tester.pumpAndSettle();
@@ -214,6 +296,34 @@ void main() {
       expect(stored.quantity, 5, reason: 'the number this week asks for');
       expect(stored.recipeMeasureId, 'm-blob');
       expect(stored.unit, isNull, reason: 'the word IS the denomination');
+    });
+
+    testWidgets('an UNMEASURED component line gets the component sheet too — '
+        'and can be said in the word from here', (tester) async {
+      // The mismatch this closes: week mode reached for the INGREDIENT sheet on
+      // a component line that happened to carry a unit, so the one row that
+      // could say `blob` could not be asked about it, and the offer it did get
+      // was about a stub ingredient that does not exist.
+      filterForuiSemanticsAssertions();
+      final variants = FakeWeekVariantRepository();
+      await openWeekEditor(tester, variants, _unitLine);
+
+      await tester.tap(find.text('¼ cup').first);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ComponentQuantityEditor), findsOneWidget);
+      expect(_chip('batch'), findsOneWidget, reason: 'a recipe, not a row');
+
+      await tester.tap(_chip('blob'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      final stored = variants.saved.single.set.single;
+      expect(stored.recipeMeasureId, 'm-blob');
+      expect(stored.unit, isNull);
     });
   });
 }

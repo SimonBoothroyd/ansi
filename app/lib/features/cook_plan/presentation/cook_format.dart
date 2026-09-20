@@ -383,6 +383,7 @@ class SessionSpeech {
     required this.trackScale,
     required this.covers,
     required this.wholeBatchShown,
+    this.words = const [],
     this.nudge,
   });
 
@@ -422,6 +423,20 @@ class SessionSpeech {
       covers: component
           ? componentCoversLine(session, shape, denomination: denomination)
           : coversLine(session, shape),
+      // A demand said in one of this recipe's own words shows its work: the
+      // line as it was written, what one of the word comes to, and the share of
+      // a batch that makes. One line per such demand, because a session can
+      // answer two parents and each wrote its own.
+      words: [
+        for (final d in session.demands)
+          if (componentDemandLine(
+                quantity: d.quantity,
+                measure: d.measure,
+                batches: d.batches,
+              )
+              case final line?)
+            line,
+      ],
       wholeBatchShown: whole,
       nudge: nudge == null
           ? null
@@ -446,6 +461,12 @@ class SessionSpeech {
 
   /// The "covers …" sentence.
   final String covers;
+
+  /// One line per demand said in one of the recipe's own words — *"3 blob → 45
+  /// g → 0.15 of a batch"* ([componentDemandLine]). Empty for a meal session,
+  /// and for every component demand said in a catalog unit, where the card's
+  /// own batch scale already says the whole of it.
+  final List<String> words;
 
   /// Whether the whole-batch view is the one on screen.
   final bool wholeBatchShown;
