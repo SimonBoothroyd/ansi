@@ -52,15 +52,12 @@ import '../domain/receipt_review.dart';
 import 'receipt_pack_sheet.dart';
 import 'receipt_view_models.dart';
 
-/// One review line. [readOnly] is the ledger's posture: a saved receipt is
-/// read back as matched, with no doors and no flags.
+/// One review line.
 class ReceiptLineCard extends ConsumerWidget {
   const ReceiptLineCard({
     required this.draft,
     required this.issues,
     this.row,
-    this.storedBasis,
-    this.readOnly = false,
     super.key,
   });
 
@@ -69,13 +66,6 @@ class ReceiptLineCard extends ConsumerWidget {
 
   /// The matched vocabulary row, or null where the line names none.
   final Ingredient? row;
-
-  /// The basis a STORED line's figures are denominated in, read off the join
-  /// rather than off a row this screen never loads. Null while reviewing,
-  /// where [row] answers instead.
-  final MacrosBasis? storedBasis;
-
-  final bool readOnly;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -92,12 +82,17 @@ class ReceiptLineCard extends ConsumerWidget {
       attention: label != null,
       collapsed: (expand) => _Collapsed(
         draft: draft,
-        basis: row?.macrosBasis ?? storedBasis,
+        basis: row?.macrosBasis,
         label: label,
-        onExpand: readOnly ? null : expand,
+        onExpand: expand,
       ),
-      expanded: (collapse) =>
-          _Expanded(draft: draft, row: row, label: label, onCollapse: collapse),
+      expanded: (collapse) => _Expanded(
+        draft: draft,
+        issues: issues,
+        row: row,
+        label: label,
+        onCollapse: collapse,
+      ),
     );
   }
 }
@@ -108,67 +103,66 @@ class _Collapsed extends StatelessWidget {
     required this.draft,
     required this.basis,
     required this.label,
-    this.onExpand,
+    required this.onExpand,
   });
 
   final ReceiptLineDraft draft;
   final MacrosBasis? basis;
   final String? label;
-  final VoidCallback? onExpand;
+  final VoidCallback onExpand;
 
   @override
   Widget build(BuildContext context) {
     final basis = this.basis;
     final note = basis == null ? null : packAndUnitPrice(draft, basis: basis);
     final discount = discountWords(draft);
-    final body = Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 62,
-          child: Text(formatMoney(draft.paidCents), style: ansiMono(size: 13)),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                draft.displayName,
-                style: ansiSerif(size: AnsiType.row),
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (note != null || discount != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Text(
-                    [
-                      if (discount != null) discount,
-                      if (note != null) note,
-                    ].join(' · '),
-                    style: ansiMono(size: 10.5, color: AnsiColors.muted),
-                  ),
-                ),
-              if (label != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 5),
-                  child: ReceiptAttentionTag(label: label!),
-                ),
-              ReceiptSourceLine(draft: draft),
-            ],
-          ),
-        ),
-        if (onExpand != null) ...[
-          const SizedBox(width: 6),
-          const Icon(FLucideIcons.pencil, size: 12, color: AnsiColors.herb),
-        ],
-      ],
-    );
-    if (onExpand == null) return body;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onExpand,
-      child: body,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 62,
+            child: Text(
+              formatMoney(draft.paidCents),
+              style: ansiMono(size: 13),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  draft.displayName,
+                  style: ansiSerif(size: AnsiType.row),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (note != null || discount != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      [
+                        if (discount != null) discount,
+                        if (note != null) note,
+                      ].join(' · '),
+                      style: ansiMono(size: 10.5, color: AnsiColors.muted),
+                    ),
+                  ),
+                if (label != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 5),
+                    child: ReceiptAttentionTag(label: label!),
+                  ),
+                ReceiptSourceLine(draft: draft),
+              ],
+            ),
+          ),
+          const SizedBox(width: 6),
+          const Icon(FLucideIcons.pencil, size: 12, color: AnsiColors.herb),
+        ],
+      ),
     );
   }
 }
@@ -178,12 +172,14 @@ class _Collapsed extends StatelessWidget {
 class _Expanded extends ConsumerWidget {
   const _Expanded({
     required this.draft,
+    required this.issues,
     required this.row,
     required this.label,
     required this.onCollapse,
   });
 
   final ReceiptLineDraft draft;
+  final List<ReceiptLineIssue> issues;
   final Ingredient? row;
   final String? label;
   final VoidCallback onCollapse;
@@ -192,6 +188,8 @@ class _Expanded extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(receiptScanControllerProvider.notifier);
     final basis = row?.macrosBasis;
+    final amountMissing = issues.contains(ReceiptLineIssue.amountMissing);
+    final unmatched = issues.contains(ReceiptLineIssue.unmatched);
     final again = switch (ref.watch(receiptScanControllerProvider)) {
       ReceiptReviewing(:final drafts) => sameLineAgainNote(drafts, draft.index),
       _ => null,
@@ -237,7 +235,7 @@ class _Expanded extends ConsumerWidget {
         // up on: a `$4.99` read as `$4.49` is wrong without being zero, and
         // the join card can only say that something is — this is where it is
         // put right. A line with no figure gets the louder door below.
-        if (!issuesInclude(draft, ReceiptLineIssue.amountMissing)) ...[
+        if (!amountMissing) ...[
           const SizedBox(height: 10),
           LineCardRow(
             label: 'PRICE',
@@ -248,10 +246,12 @@ class _Expanded extends ConsumerWidget {
             ),
           ),
         ],
-        if (row != null) ...[
+        // A match at a row this device cannot find still names itself, so the
+        // way to re-match it is here.
+        if (draft.ingredientId != null) ...[
           const SizedBox(height: 8),
           _ChosenRow(
-            name: row!.canonicalName,
+            name: row?.canonicalName ?? draft.displayName,
             remembered: draft.remembered,
             onChange: () => _pick(context, draft.index),
           ),
@@ -260,7 +260,7 @@ class _Expanded extends ConsumerWidget {
           const SizedBox(height: 8),
           ReceiptAttentionTag(label: label!),
         ],
-        if (issuesInclude(draft, ReceiptLineIssue.amountMissing)) ...[
+        if (amountMissing) ...[
           const SizedBox(height: 10),
           FButton(
             variant: FButtonVariant.outline,
@@ -269,12 +269,11 @@ class _Expanded extends ConsumerWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'the reader could not make this figure out — read it off the '
-            'paper, or drop the line',
+            'read it off the paper, or drop the line',
             style: ansiMono(size: 10.5, color: AnsiColors.muted),
           ),
         ],
-        if (issuesInclude(draft, ReceiptLineIssue.unmatched)) ...[
+        if (unmatched) ...[
           if (draft.suggestions.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text('DID YOU MEAN', style: ansiLabel()),
@@ -287,12 +286,6 @@ class _Expanded extends ConsumerWidget {
             prefix: const Icon(FLucideIcons.search),
             onPress: () => _pick(context, draft.index),
             child: const Text('Something else'),
-          ),
-          const SizedBox(height: 8),
-          FButton(
-            variant: FButtonVariant.outline,
-            onPress: () => controller.fold(draft.index),
-            child: const Text('Not food'),
           ),
         ] else if (row != null && basis != null) ...[
           const SizedBox(height: 10),
@@ -315,13 +308,13 @@ class _Expanded extends ConsumerWidget {
                 style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
               ),
             ),
-          const SizedBox(height: 8),
-          FButton(
-            variant: FButtonVariant.outline,
-            onPress: () => controller.fold(draft.index),
-            child: const Text('Not food'),
-          ),
         ],
+        const SizedBox(height: 8),
+        FButton(
+          variant: FButtonVariant.outline,
+          onPress: () => controller.fold(draft.index),
+          child: const Text('Not food'),
+        ),
       ],
     );
   }
@@ -368,17 +361,18 @@ class _Expanded extends ConsumerWidget {
     Ingredient row,
   ) async {
     final container = ProviderScope.containerOf(context, listen: false);
-    final measures = switch (container.read(receiptScanControllerProvider)) {
-      ReceiptReviewing(:final measuresById) =>
-        measuresById[row.id] ?? const <Measure>[],
-      _ => const <Measure>[],
-    };
+    final state = container.read(receiptScanControllerProvider);
+    final reviewing = state is ReceiptReviewing ? state : null;
+    final measures = reviewing?.measuresById[row.id] ?? const <Measure>[];
     final answer = await showReceiptPackSheet(
       context,
       ingredient: row,
       paidCents: draft.paidCents,
       amount: draft.packAmount,
       choice: _choiceOf(draft, measures),
+      pendingMeasures: reviewing == null
+          ? const []
+          : _pendingMeasures(reviewing.drafts, draft, row),
     );
     if (answer == null) return;
     container
@@ -391,6 +385,30 @@ class _Expanded extends ConsumerWidget {
           keepAsMeasure: answer.keepAsMeasure,
         );
   }
+}
+
+/// The measures other lines of the receipt will mint for [row] at Save. The
+/// lines this answer reaches are left out, since it replaces theirs.
+List<Measure> _pendingMeasures(
+  List<ReceiptLineDraft> drafts,
+  ReceiptLineDraft draft,
+  Ingredient row,
+) {
+  final answered = linesAnsweredWith(drafts, draft.index);
+  return [
+    for (final d in drafts)
+      if (!d.dropped &&
+          !answered.contains(d.index) &&
+          d.ingredientId == row.id &&
+          d.keepAsMeasure != null &&
+          d.packBasisAmount != null)
+        Measure(
+          id: '',
+          label: d.keepAsMeasure!,
+          amount: d.packBasisAmount!,
+          basis: row.macrosBasis,
+        ),
+  ];
 }
 
 /// The chip the pack was entered on, resolved against the row's measures —
@@ -406,9 +424,6 @@ UnitChoice? _choiceOf(ReceiptLineDraft draft, List<Measure> measures) {
   }
   return null;
 }
-
-bool issuesInclude(ReceiptLineDraft draft, ReceiptLineIssue issue) =>
-    receiptLineIssues(draft).contains(issue);
 
 /// The did-you-mean chips. Tapping one resolves the line to that row — the
 /// person's act, never the cascade's (ADR-0004).
@@ -471,9 +486,10 @@ class _ChosenRow extends StatelessWidget {
   final VoidCallback onChange;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    behavior: HitTestBehavior.opaque,
+  Widget build(BuildContext context) => AnsiTap(
     onTap: onChange,
+    semanticsLabel: 'Change the match',
+    minTarget: false,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

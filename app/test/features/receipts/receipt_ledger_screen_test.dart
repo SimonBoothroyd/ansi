@@ -194,6 +194,11 @@ void main() {
       // chip, the date is a door, and the lines read as they were kept.
       expect(find.text("TJ's"), findsWidgets);
       expect(find.text('Sunday 13 Sep · 17:42'), findsOneWidget);
+      expect(
+        find.textContaining('own date'),
+        findsNothing,
+        reason: 'a kept date was confirmed at Save',
+      );
       expect(find.text('Bananas, organic'), findsOneWidget);
       expect(find.textContaining('bag (454 g) · 77¢ / 100 g'), findsOneWidget);
       expect(find.text('Yellow onion'), findsOneWidget);
@@ -311,7 +316,8 @@ void main() {
           store: 'Whole Foods',
           purchasedAt: DateTime(2026, 9, 5, 12),
           source: 'manual',
-          subtotalCents: 349,
+          // Stale on purpose: nothing was printed, so nothing is joined.
+          subtotalCents: 999,
           taxCents: null,
           totalCents: null,
           lines: [storedLine()],
@@ -328,6 +334,36 @@ void main() {
         find.text('typed by hand, on the ingredient’s page'),
         findsOneWidget,
       );
+      expect(find.text('PRINTED TOTALS'), findsNothing);
+      expect(find.byKey(kReceiptJoinKey), findsNothing);
+      expect(find.text('1 to review'), findsNothing);
+    });
+
+    testWidgets('a line matched at a row that is gone can be re-matched', (
+      tester,
+    ) async {
+      tallSurface(tester);
+      final ledger = FakeReceiptRepo()
+        ..stored['a'] = (
+          id: 'a',
+          store: "TJ's",
+          purchasedAt: DateTime(2026, 9, 13, 17, 42),
+          source: 'photo',
+          subtotalCents: 349,
+          taxCents: null,
+          totalCents: null,
+          lines: [storedLine(ingredientId: 'vocab-gone', name: 'Plantains')],
+        );
+      await tester.pumpWidget(
+        storedReceiptHost(
+          overrides: receiptOverrides(ledger: ledger),
+          receiptId: 'a',
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Plantains'));
+      await tester.pumpAndSettle();
+      expect(find.text('tap to change'), findsOneWidget);
     });
   });
 

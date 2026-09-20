@@ -25,10 +25,9 @@ import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_scroll.dart';
 import '../../../shared/ansi_tap.dart';
-import '../../../shared/unit_chip.dart';
 import '../../account/data/household_providers.dart';
-import '../../books/presentation/text_prompt.dart';
 import '../../ingredients/data/ingredient_providers.dart';
+import '../../ingredients/presentation/price_fields.dart';
 import '../domain/receipt_payload.dart';
 import '../domain/receipt_review.dart';
 import 'receipt_date_sheet.dart';
@@ -77,7 +76,7 @@ class ReceiptReviewBody extends ConsumerWidget {
         const AnsiMicroLabel('STORE'),
         const SizedBox(height: 6),
         _StoreChips(state: state),
-        if (state.source == 'manual')
+        if (state.isManual)
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
@@ -101,13 +100,16 @@ class ReceiptReviewBody extends ConsumerWidget {
         const SizedBox(height: 6),
         _Bought(state: state),
 
-        const SizedBox(height: 16),
-        const AnsiMicroLabel('PRINTED TOTALS'),
-        const SizedBox(height: 6),
-        _PrintedTotals(payload: state.payload),
+        // A hand-typed price has no paper to print totals or to join against.
+        if (!state.isManual) ...[
+          const SizedBox(height: 16),
+          const AnsiMicroLabel('PRINTED TOTALS'),
+          const SizedBox(height: 6),
+          _PrintedTotals(payload: state.payload),
 
-        const SizedBox(height: 12),
-        _JoinCard(map: map),
+          const SizedBox(height: 12),
+          _JoinCard(map: map),
+        ],
 
         const SizedBox(height: 14),
         _SectionRule(label: 'Lines', count: kept.length),
@@ -122,7 +124,11 @@ class ReceiptReviewBody extends ConsumerWidget {
         if (foldedHeading(map) case final heading?) ...[
           const SizedBox(height: 14),
           _FoldHeading(label: heading),
-          for (final draft in folded) _FoldedRow(draft: draft),
+          for (final draft in folded)
+            _FoldedRow(
+              draft: draft,
+              count: linesAnsweredWith(state.drafts, draft.index).length,
+            ),
         ],
         if (taxHeading(map) case final heading?) ...[
           const SizedBox(height: 10),
@@ -182,9 +188,7 @@ class _Notes extends StatelessWidget {
   );
 }
 
-/// The household's words for its shops, with `＋` to name a new one. It is
-/// the price sheet's own chip row: a store is a word, not a row, and there is
-/// one control for picking one.
+/// The household's store words, on the price sheet's own chip row.
 class _StoreChips extends ConsumerWidget {
   const _StoreChips({required this.state});
 
@@ -194,65 +198,27 @@ class _StoreChips extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final remembered =
         ref.watch(priceStoresProvider).asData?.value ?? const <String>[];
-    final stores = <String>[
-      ...state.coinedStores,
-      for (final word in remembered)
-        if (!state.coinedStores.contains(word)) word,
-    ];
-    return SizedBox(
-      height: kUnitChipHeight,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            for (final word in stores)
-              UnitChip(
-                label: word,
-                selected: word == state.store,
-                onTap: () => ref
-                    .read(receiptScanControllerProvider.notifier)
-                    .pickStore(word),
-              ),
-            // A real icon, never a `＋` glyph — the bundled fonts carry no
-            // U+FF0B and it would render as tofu.
-            UnitChip(
-              icon: const Icon(
-                FLucideIcons.plus,
-                size: 13,
-                color: AnsiColors.herb,
-              ),
-              accent: true,
-              onTap: () async {
-                final container = ProviderScope.containerOf(
-                  context,
-                  listen: false,
-                );
-                final typed = await promptForText(
-                  context,
-                  title: 'Where',
-                  hint: 'e.g. Whole Foods',
-                  confirm: 'Use it',
-                );
-                if (typed == null || typed.trim().isEmpty) return;
-                container
-                    .read(receiptScanControllerProvider.notifier)
-                    .pickStore(typed);
-              },
-            ),
-          ],
-        ),
-      ),
+    // Held from the build: the prompt can outlive this row, and a `ref` used
+    // after unmount throws.
+    final container = ProviderScope.containerOf(context, listen: false);
+    void pick(String word) =>
+        container.read(receiptScanControllerProvider.notifier).pickStore(word);
+    return StoreChipRow(
+      stores: [
+        ...state.coinedStores,
+        for (final word in remembered)
+          if (!state.coinedStores.contains(word)) word,
+      ],
+      selected: state.store,
+      onSelect: pick,
+      onCoined: pick,
     );
   }
 }
 
-/// The receipt's own moment, and the door to correct it.
-///
-/// What is drawn is what was read, with the header's own line above to check
-/// it against — and a tap opens the calendar ([showReceiptDateSheet]), because
-/// the date decides which week the receipt files under and a reader that
-/// missed it must not get the last word. A receipt the reader could not date
-/// opens on the day of the scan, and says so until somebody says otherwise.
+/// When the shop happened, and the door to correct it: the date decides which
+/// week the receipt files under. An undated receipt opens on the scan day and
+/// says so.
 class _Bought extends ConsumerWidget {
   const _Bought({required this.state});
 
@@ -266,7 +232,14 @@ class _Bought extends ConsumerWidget {
     final clock =
         '${at.hour.toString().padLeft(2, '0')}:'
         '${at.minute.toString().padLeft(2, '0')}';
-    final moved = state.purchasedAt != state.openedAt;
+    final caption = state.purchasedAt != state.openedAt
+        ? 'the day you said'
+        // A saved receipt's date was confirmed when it was saved.
+        : state.isSaved
+        ? null
+        : state.payload.purchasedAt == null
+        ? 'the paper printed no date — this is the scan day'
+        : 'the receipt’s own date, not the scan’s';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -296,19 +269,14 @@ class _Bought extends ConsumerWidget {
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.only(top: 3),
-          child: Text(
-            moved
-                ? 'the day you said — it files under the week it falls in'
-                : state.payload.purchasedAt == null
-                ? 'the paper printed no date we could read — this is the day '
-                      'it was scanned. Tap to say when the shop happened'
-                : 'the receipt’s own date, not the scan’s — it files under '
-                      'the week it falls in',
-            style: ansiMono(size: 10, color: AnsiColors.muted),
+        if (caption != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 3),
+            child: Text(
+              caption,
+              style: ansiMono(size: 10, color: AnsiColors.muted),
+            ),
           ),
-        ),
       ],
     );
   }
@@ -445,9 +413,12 @@ class _FoldHeading extends StatelessWidget {
 /// A folded line: what it was and what it cost, and the way back. It counts
 /// toward the total and toward no price.
 class _FoldedRow extends ConsumerWidget {
-  const _FoldedRow({required this.draft});
+  const _FoldedRow({required this.draft, required this.count});
 
   final ReceiptLineDraft draft;
+
+  /// How many lines *it is food* answers: this one and its twins.
+  final int count;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Padding(
@@ -456,7 +427,13 @@ class _FoldedRow extends ConsumerWidget {
       children: [
         Expanded(
           child: Text(
-            draft.printedText.isEmpty ? draft.displayName : draft.printedText,
+            [
+              if (draft.printedText.isEmpty)
+                draft.displayName
+              else
+                draft.printedText,
+              if (count > 1) '×$count',
+            ].join(' · '),
             style: ansiMono(size: 11, color: AnsiColors.muted),
             overflow: TextOverflow.ellipsis,
           ),
@@ -467,11 +444,11 @@ class _FoldedRow extends ConsumerWidget {
           style: ansiMono(size: 11, color: AnsiColors.muted),
         ),
         const SizedBox(width: 10),
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
+        AnsiTap(
           onTap: () => ref
               .read(receiptScanControllerProvider.notifier)
               .unfold(draft.index),
+          minTarget: false,
           child: Text(
             'it is food',
             style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
@@ -539,8 +516,7 @@ class _SaveBar extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              'The receipt saves either way — the printed total is the '
-              'paper’s, and it stands.',
+              'The receipt saves either way.',
               textAlign: TextAlign.center,
               style: ansiSans(
                 size: 11.5,
@@ -561,9 +537,7 @@ class _SaveBar extends ConsumerWidget {
               final sure = await askAnsi(
                 context,
                 title: 'Delete this receipt?',
-                body:
-                    'It leaves the ledger, and every price it stated stops '
-                    'being one.',
+                body: 'Its prices go with it.',
                 confirm: 'Delete',
                 cancel: 'Keep it',
               );

@@ -97,6 +97,9 @@ class ReceiptReviewing extends ReceiptScanState {
 
   bool get isSaved => receiptId != null;
 
+  /// A price typed on an ingredient's page: there was no paper.
+  bool get isManual => source == 'manual';
+
   final ReceiptPayload payload;
   final List<ReceiptLineDraft> drafts;
 
@@ -148,12 +151,13 @@ class ReceiptReviewing extends ReceiptScanState {
   );
 
   /// The review's one map — the header count, the flags, the join and Save
-  /// all read this.
+  /// all read this. A hand-typed receipt printed nothing, so its lines are
+  /// held against nothing.
   ReceiptReviewMap get map => receiptReviewMap(
     drafts,
-    printedSubtotalCents: payload.subtotalCents,
-    printedTaxCents: payload.taxCents,
-    printedTotalCents: payload.totalCents,
+    printedSubtotalCents: isManual ? null : payload.subtotalCents,
+    printedTaxCents: isManual ? null : payload.taxCents,
+    printedTotalCents: isManual ? null : payload.totalCents,
   );
 
   ReceiptReviewing copyWith({
