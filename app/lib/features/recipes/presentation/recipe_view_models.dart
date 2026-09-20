@@ -10,18 +10,21 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/text/name_clean.dart';
 import '../../../core/units/measure.dart';
+import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
 import '../../books/data/book_providers.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../data/recipe_providers.dart';
+import '../domain/component_math.dart';
 import '../domain/line_reorder.dart';
 import '../domain/method_draft.dart';
 import '../domain/method_step.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_cost.dart';
 import '../domain/recipe_header_edits.dart';
+import '../domain/recipe_measure_authoring.dart';
 import '../domain/recipe_repository.dart';
 import 'method_editing.dart';
 import 'recipe_header_form.dart';
@@ -155,7 +158,10 @@ class RecipeEditor extends _$RecipeEditor
           .read(recipeRepositoryProvider)
           .watchRecipe(recipeId)
           .first;
-      if (existing != null) return _tokenized(existing);
+      if (existing != null) {
+        _yieldsAsOpened = existing.yields;
+        return _tokenized(existing);
+      }
     }
     // New recipe: filed from the start, so FILE UNDER states a fact rather
     // than asking a question. The shelf you tapped when it is one of the
@@ -195,6 +201,24 @@ class RecipeEditor extends _$RecipeEditor
   /// the child-diff write twice concurrently.
   bool _saving = false;
 
+  /// What the recipe said a batch makes when this editor OPENED — the left-hand
+  /// side of the orphan question, which is about what a Save takes away
+  /// (ADR-0018 rule 4). Empty for a new recipe, which has nothing to take.
+  List<YieldDenomination> _yieldsAsOpened = const [];
+
+  /// The live words this Save would leave standing on nothing: the ones the
+  /// recipe can hold now and could not once it says what the draft says.
+  ///
+  /// Empty is the ordinary answer, so a caller can use it as the condition. It
+  /// **warns, never refuses** — what a batch makes is the recipe's own fact and
+  /// the household may restate it; the words survive, and every line saying one
+  /// reads as unresolved until MAKES says that family again.
+  List<RecipeMeasure> measuresOrphanedBySave() => recipeMeasuresOrphanedBy(
+    measures: _current.measures,
+    from: _yieldsAsOpened,
+    to: _current.yields,
+  );
+
   // --- the header ---------------------------------------------------
   //
   // Every rule — both halves of a yield or neither, the other-family lock,
@@ -216,6 +240,10 @@ class RecipeEditor extends _$RecipeEditor
   @override
   void setSecondYield(double? qty, Unit? unit) =>
       _set(_current.withSecondYield(qty, unit));
+
+  @override
+  void setMeasures(List<RecipeMeasure> measures) =>
+      _set(_current.withMeasures(measures));
 
   @override
   void setCookTime(int? seconds) => _set(_current.withCookTime(seconds));

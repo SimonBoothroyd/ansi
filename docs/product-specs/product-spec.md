@@ -921,8 +921,9 @@ a line starts, never whether it can be changed:
     `cup` is a *density* gap and a refused count is a *piece weight* gap; each
     names the number it wants.
 - **The header is the editor's** (plan 0025 #4, board frames a/b): TITLE ·
-  SERVES · MAKES (both denominations) · TIMES · SHELF LIFE · FILE UNDER are
-  the recipe editor's own `RecipeHeaderForm`, rendered over a header draft
+  SERVES · MAKES (both denominations) · MEASURES · TIMES · SHELF LIFE ·
+  FILE UNDER are the recipe editor's own `RecipeHeaderForm`, rendered over a
+  header draft
   the review holds from the moment the page arrives. Prefilled only where the
   page plainly said it — servings, a plain-amount yield, the printed cook and
   total times — and unset otherwise (shelf life, a section); filed into the
@@ -937,6 +938,36 @@ a line starts, never whether it can be changed:
   and convert back to line indexes at commit; a chip whose lines were all
   dropped demotes to plain prose. The one thing the review cannot do is mint
   a brand-new line, and the picker's add-a-line door says so.
+
+**MEASURES is the recipe's own words, under the MAKES they depend on**
+([ADR-0018](../decisions/0018-a-recipe-measure-is-a-named-amount.md)). A word
+is what the household calls one of what this recipe makes, stated exactly as an
+ingredient's word is — a label and an **amount in a unit**, *a blob is 15 g* —
+so another recipe's component line can say `3 blob` of it and the aioli's own
+`makes 300 g` turns that into 0.15 of a batch. Nothing in the app knows what any
+word says.
+
+- **It can only be set once MAKES is.** With no yield stated the list is drawn
+  with one sentence and no controls — *"Say what a batch makes first, under
+  MAKES. A word like “blob” is a size, and a size is only a share of a batch
+  once the batch has one too."* — because a form there could only refuse. The
+  unit chip offers the families MAKES states and nothing else; a recipe has no
+  density, so the way to say a blob in millilitres is the second MAKES
+  denomination.
+- **The row is the door to re-stating it**, and the row keeps its id, so `blob`
+  moving from 15 g to 18 g follows through to every line already saying it. The
+  bin is refused while anything still says the word — *Can’t delete “blob” yet ·
+  3 lines still say it, in 2 recipes* — with **Show me where** listing them.
+- **Editing MAKES re-evaluates the list as you type**, and a Save that takes
+  away the family a live word stands on **asks first**: *"“blob” (15 g) has
+  nothing left to be a share of after this."* It warns, never refuses — what a
+  batch makes is the recipe's own fact — and nothing is deleted; the lines
+  saying it read as unresolved until MAKES says that family again.
+- **It defers, like every other header fact** ([ADR-0011](../decisions/0011-one-save-one-write.md)):
+  a word typed here rides the draft and lands with the recipe's own Save. The
+  **import review hosts the same list** and prefills nothing into it — an
+  extractor prints units, and a household's word for a blob of their own sauce
+  is in no source page — and a word typed there rides the commit.
 
 **The recipe editor's ingredient line is that same card.** At rest it is the
 row the recipe page prints — `[amount] [name] [note]`, bare on its hairline,

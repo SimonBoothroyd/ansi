@@ -19,6 +19,7 @@ import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/method_draft.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/features/recipes/domain/recipe_measure_authoring.dart';
 import 'package:ansi/features/recipes/presentation/line_card.dart';
 import 'package:ansi/features/recipes/presentation/method_editor.dart';
 import 'package:ansi/features/recipes/presentation/method_span_controller.dart';
@@ -355,11 +356,14 @@ void main() {
         _left(tester, find.text('· optional')),
         greaterThan(_left(tester, find.text('MAKES'))),
       );
-      expect(find.byType(AmountAndUnitField), findsOneWidget);
-      expect(
-        tester.getSize(find.byType(AmountAndUnitField)).height,
-        kInlineControlHeight,
+      // Scoped to the yield row: the MEASURES band under these cells states an
+      // amount with the same control, so the cap now draws two of them.
+      final yieldAmount = find.descendant(
+        of: find.byKey(const ValueKey('yield-1')),
+        matching: find.byType(AmountAndUnitField),
       );
+      expect(yieldAmount, findsOneWidget);
+      expect(tester.getSize(yieldAmount).height, kInlineControlHeight);
 
       expect(tester.takeException(), isNull);
     });
@@ -508,5 +512,50 @@ void main() {
       greaterThan(_top(tester, _row('l2'))),
     );
     expect(_left(tester, find.text('METHOD')), _left(tester, _row('l1')));
+  });
+
+  testWidgets('MEASURES takes the band under the four cells, at the cap’s full '
+      'width — the one section a quarter of the cap cannot hold', (
+    tester,
+  ) async {
+    await _pumpWide(
+      tester,
+      recipe: _everyFact,
+      surface: const Size(1024, 2600),
+    );
+
+    // Under the cells, not beside them, and on the ingredients column's own
+    // axis: it is still the header form, laid across the cap.
+    expect(
+      _top(tester, find.text('MEASURES')),
+      greaterThan(_top(tester, find.text('MAKES'))),
+    );
+    expect(
+      _left(tester, find.text('MEASURES')),
+      _left(tester, find.text('TITLE')),
+    );
+    expect(
+      _top(tester, find.text('MEASURES')),
+      lessThan(_top(tester, find.text('INGREDIENTS'))),
+    );
+    // The shipped form, whole: a label, an amount with its chip, a button.
+    expect(find.text('ADD MEASURE'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('add-word-measure-label')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('add-word-measure-amount')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('add-word-measure-unit')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('…and it carries the gate at this width too', (tester) async {
+    // `importedRecipe` says nothing about what a batch makes.
+    await _pumpWide(tester);
+    expect(find.text(kRecipeMeasureNoYieldRefusal), findsOneWidget);
+    expect(find.text('ADD MEASURE'), findsNothing);
   });
 }

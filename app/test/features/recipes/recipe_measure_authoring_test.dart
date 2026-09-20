@@ -401,4 +401,77 @@ void main() {
       expect(merged.single.id, 'z');
     });
   });
+
+  group('what the authoring form may offer', () {
+    test(
+      'the offer is every unit of a family MAKES states, in catalog order',
+      () {
+        expect(recipeMeasureUnitChoices(_weighed), [g, kg, oz, lb]);
+        expect(recipeMeasureUnitChoices(_both), [
+          g, kg, oz, lb, //
+          ml, l, tsp, tbsp, flOz, cup, pint, quart,
+        ]);
+      },
+    );
+
+    test(
+      '`batch`, an imprecise word and an unstated family are never in it',
+      () {
+        final offered = recipeMeasureUnitChoices(_both);
+        expect(offered, isNot(contains(batches)));
+        expect(offered, isNot(contains(pinch)));
+        expect(
+          offered,
+          isNot(contains(pieces)),
+          reason: 'no count yield stated',
+        );
+      },
+    );
+
+    test('a recipe that says nothing offers nothing — the disabled door', () {
+      expect(recipeMeasureUnitChoices(const []), isEmpty);
+      expect(recipeMeasureOpeningUnit(const []), isNull);
+    });
+
+    test(
+      'a yield in a family no size can be said in offers nothing either',
+      () {
+        const pinched = [(qty: 2.0, unit: pinch)];
+        expect(recipeMeasureUnitChoices(pinched), isEmpty);
+        expect(recipeMeasureOpeningUnit(pinched), isNull);
+      },
+    );
+
+    test('the form opens on the FIRST stated yield’s own unit', () {
+      expect(recipeMeasureOpeningUnit(_both), g);
+      expect(
+        recipeMeasureOpeningUnit(const [
+          (qty: 1.25, unit: cup),
+          (qty: 300.0, unit: g),
+        ]),
+        cup,
+      );
+    });
+
+    test('…and on the head of the offer where that unit cannot say a size', () {
+      // A batch counted in something imprecise, with a weight stated beside it.
+      expect(
+        recipeMeasureOpeningUnit(const [
+          (qty: 2.0, unit: pinch),
+          (qty: 300.0, unit: g),
+        ]),
+        g,
+      );
+    });
+
+    test('every offered unit really authors — the gate read both ways', () {
+      for (final unit in recipeMeasureUnitChoices(_both)) {
+        expect(
+          _author('blob', 15, unit: unit, yields: _both),
+          isA<Ok<RecipeMeasure>>(),
+          reason: unit.id,
+        );
+      }
+    });
+  });
 }

@@ -18,6 +18,7 @@ library;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
 import 'reconciliation_payload.dart';
 
@@ -101,6 +102,14 @@ abstract class CommitPayload with _$CommitPayload {
     /// it before it lands.
     String? bookId,
     String? sectionId,
+
+    /// The recipe's OWN WORDS for one of what it makes, as the review's
+    /// MEASURES list states them (ADR-0018) — nothing is prefilled into it, so
+    /// this is empty unless a human typed a word. Each one is an amount in a
+    /// unit and has already passed `authorRecipeMeasure` against the yields
+    /// above; the repository re-stamps the recipe id it is writing under, which
+    /// is why the draft's placeholder id never reaches the database.
+    @Default(<RecipeMeasure>[]) List<RecipeMeasure> measures,
     @Default(<CommitGroup>[]) List<CommitGroup> groups,
     @Default(<Step>[]) List<Step> steps,
     @Default(<CommitCorrection>[]) List<CommitCorrection> corrections,

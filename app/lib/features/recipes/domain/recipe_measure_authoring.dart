@@ -30,7 +30,9 @@
 ///
 /// The same rule read backwards is [recipeMeasuresOrphanedBy]: which live words
 /// a `makes` edit would leave standing on nothing, so the recipe editor can
-/// warn before the Save rather than let the lines discover it.
+/// warn before the Save rather than let the lines discover it. Read forwards it
+/// is [recipeMeasureUnitChoices]: what the authoring form may offer, so a chip
+/// row can never hold a unit whose only possible answer is a refusal.
 library;
 
 import '../../../core/result/result.dart';
@@ -222,6 +224,43 @@ Result<RecipeMeasure> authorRecipeMeasure({
     );
   }
   return Ok(measure);
+}
+
+/// What a word may be said in against [yields]: every catalog unit of a family
+/// the recipe states, in the catalog's own kitchen order.
+///
+/// The gate read forwards. [authorRecipeMeasure] refuses a unit whose family
+/// the recipe does not state, so an offer assembled any other way would be a
+/// chip row whose only possible answer is a refusal — and there is no density
+/// for a recipe to bridge one family to another (ADR-0008), so the way to say a
+/// blob in millilitres really is the second MAKES denomination.
+///
+/// Empty for a recipe that states no yield, which is the authoring door's
+/// disabled state — and for one whose only yield is in a family no size can be
+/// said in ([kRecipeMeasureFamilies]), which has the same answer for the same
+/// reason.
+List<Unit> recipeMeasureUnitChoices(List<YieldDenomination> yields) {
+  final families = {
+    for (final y in yields)
+      if (kRecipeMeasureFamilies.contains(y.unit.family)) y.unit.family,
+  };
+  return [
+    for (final u in kIngredientUnits)
+      if (families.contains(u.family)) u,
+  ];
+}
+
+/// What the authoring form opens on: the FIRST stated yield's own unit — the
+/// batch is measured in it, so the first word a household coins usually is too.
+///
+/// Falls back to the head of [recipeMeasureUnitChoices] where that yield's own
+/// unit is not a unit a word may be said in, and null where nothing may be said
+/// at all.
+Unit? recipeMeasureOpeningUnit(List<YieldDenomination> yields) {
+  final choices = recipeMeasureUnitChoices(yields);
+  if (choices.isEmpty) return null;
+  final stated = yields.first.unit;
+  return choices.contains(stated) ? stated : choices.first;
 }
 
 /// Which of [measures] a `makes` edit would leave standing on nothing: the

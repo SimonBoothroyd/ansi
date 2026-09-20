@@ -343,5 +343,17 @@ void main() {
         'of unit again.',
       );
     });
+
+    test('the ROW says the same gap in one clause, naming the family MAKES '
+        'has to say again', () {
+      expect(
+        recipeMeasureOrphanedRowNote(blob),
+        'nothing to be a share of · MAKES states no mass yield',
+      );
+      expect(
+        recipeMeasureOrphanedRowNote(ladle),
+        'nothing to be a share of · MAKES states no volume yield',
+      );
+    });
   });
 }

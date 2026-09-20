@@ -28,6 +28,8 @@ import '../../../core/search/search_rank.dart';
 import '../../../core/units/units.dart';
 import '../../ingredients/data/name_holder.dart';
 import '../../ingredients/domain/normalize.dart';
+import '../../recipes/data/recipe_measure_repository_impl.dart'
+    show writeRecipeMeasures;
 import '../domain/commit_payload.dart';
 import '../domain/import_repository.dart';
 import '../domain/learnable_alias.dart';
@@ -263,7 +265,20 @@ class SqliteImportRepository implements ImportRepository {
         ],
       );
 
-      // 2. Groups, then line items in flattened order. Every line carries
+      // 2. The recipe's own words, before the lines — the same order and the
+      // same diff `saveRecipe` runs, through the one file that writes
+      // `recipe_measure` at all. A commit carries them because the review hosts
+      // the same MEASURES list the editor does (ADR-0018), and it re-stamps
+      // this recipe's id over the draft's placeholder.
+      await writeRecipeMeasures(
+        tx,
+        recipeId: recipeId,
+        householdId: _householdId,
+        measures: payload.measures,
+        now: now,
+      );
+
+      // 3. Groups, then line items in flattened order. Every line carries
       // exactly one identity: an ingredient or, for a line the reviewer
       // LINKED, a sub-recipe (0017's XOR).
       var sortInGroup = 0;
@@ -324,7 +339,7 @@ class SqliteImportRepository implements ImportRepository {
         }
       }
 
-      // 3. Correction aliases (source='import_correction') — lane B's loop.
+      // 4. Correction aliases (source='import_correction') — lane B's loop.
       // The alias is written with the SERVER's phrase normalizer
       // (`normalizeMatchText`), not the character-level search normalizer,
       // because the cascade that will one day match on it searches by those

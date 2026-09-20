@@ -3,6 +3,7 @@
 /// header form cannot leave different things behind.
 library;
 
+import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_header_edits.dart';
@@ -84,5 +85,46 @@ void main() {
     expect((moved.bookId, moved.sectionId), ('b2', null));
     expect(moved.withSection('s2').sectionId, 's2');
     expect(moved.withSection(null).sectionId, isNull);
+  });
+
+  group('the recipe’s own words', () {
+    const blob = RecipeMeasure(
+      id: 'm-blob',
+      recipeId: 'somewhere else',
+      label: 'blob',
+      amount: 15,
+      unit: g,
+      sortOrder: 7,
+    );
+    const loaf = RecipeMeasure(
+      id: 'm-loaf',
+      recipeId: 'r',
+      label: 'loaf',
+      amount: 300,
+      unit: g,
+    );
+
+    test('every word is stamped with this recipe and with its position', () {
+      final stated = _blank.withMeasures(const [loaf, blob]).measures;
+      expect(stated.map((m) => m.id), ['m-loaf', 'm-blob']);
+      expect(stated.map((m) => m.recipeId), ['r', 'r']);
+      // The order IS the fact: the first word fronts a component's chip row.
+      expect(stated.map((m) => m.sortOrder), [0, 1]);
+    });
+
+    test('a `makes` edit leaves the words alone — an amount is absolute', () {
+      final recipe = _blank.withYield(300, g).withMeasures(const [blob]);
+      final restated = recipe.withYield(600, g);
+      expect(restated.measures, recipe.measures);
+      // And clearing it does not delete them either: the editor warns, and the
+      // words stay for MAKES to say that family again.
+      expect(restated.withYield(null, null).measures, recipe.measures);
+    });
+
+    test('dropping a word is just a shorter list', () {
+      final one = _blank.withMeasures(const [loaf, blob]);
+      expect(one.withMeasures([one.measures.first]).measures, hasLength(1));
+      expect(one.withMeasures(const []).measures, isEmpty);
+    });
   });
 }
