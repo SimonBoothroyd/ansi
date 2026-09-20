@@ -366,35 +366,46 @@ class RecipeMeasureRow extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // The whole row as one sentence, for a reader who gets no columns:
-            // the two spans below are a word and its number, and that is the
-            // one way this app says them together.
-            Semantics(
-              label: recipeMeasureListText(measure),
-              child: Row(
-                children: [
-                  if (dragIndex case final index?) DragGrip(index: index),
-                  Flexible(
-                    child: Text(
-                      measure.label,
-                      style: ansiSans(size: 14, weight: FontWeight.w500),
-                      overflow: TextOverflow.ellipsis,
+            Row(
+              children: [
+                if (dragIndex case final index?) DragGrip(index: index),
+                // The two spans are a word and its number, read as ONE
+                // sentence — `blob · 15 g`, the way this app says the pair —
+                // because a reader who gets no columns gets no gap between
+                // them either. The grip and the bin stay outside it: they are
+                // controls, and a control merged into a sentence loses its own
+                // name.
+                Expanded(
+                  child: Semantics(
+                    label: recipeMeasureListText(measure),
+                    container: true,
+                    excludeSemantics: true,
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            measure.label,
+                            style: ansiSans(size: 14, weight: FontWeight.w500),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          recipeMeasureAmountText(measure),
+                          style: ansiMono(size: 11, color: AnsiColors.muted),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    recipeMeasureAmountText(measure),
-                    style: ansiMono(size: 11, color: AnsiColors.muted),
-                  ),
-                  const Spacer(),
-                  AnsiTap(
-                    onTap: () => onDelete(measure),
-                    semanticsLabel: 'Delete the measure',
-                    color: AnsiColors.muted,
-                    child: const Icon(FLucideIcons.trash2, size: 15),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                AnsiTap(
+                  onTap: () => onDelete(measure),
+                  semanticsLabel: 'Delete the measure',
+                  color: AnsiColors.muted,
+                  child: const Icon(FLucideIcons.trash2, size: 15),
+                ),
+              ],
             ),
             if (!resolves)
               Padding(
