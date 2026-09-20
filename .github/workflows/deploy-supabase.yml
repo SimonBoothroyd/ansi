@@ -135,21 +135,12 @@ jobs:
       - name: 5 · Reseed the template vocabulary (opt-in)
         if: ${{ inputs.reseed_template }}
         run: |
-          # scripts/db_query_value.sh, not an inline pipe: `supabase db query`
-          # prints a box-drawn table for a human unless JSON is asked for BY
-          # NAME, and the old inline readback never asked. It found no `{`, read
-          # an empty string and exited 0 — so run 35480151258 logged
-          # `usda_food rows: unreadable` and then branched on a value it had
-          # never read. This next line IS that branch, so it is strict: the step
-          # is `bash -e` and dies here, before a single row is touched, rather
-          # than decide whether to seed 8,204 USDA rows on an unread value.
+          # Strict: the step branches on this count, so an unreadable value
+          # stops it here (scripts/db_query_value.sh asks for JSON by name).
           usda="$(scripts/db_query_value.sh 'select count(*) from usda_food')"
           echo "usda_food rows: $usda"
-          # One file now: the template household and its whole curated
-          # vocabulary (ingredients, aliases, measures), generated from
-          # supabase/seed/snapshot.jsonl. It is the PROMOTE-TO-TEMPLATE leg of
-          # the cloud → seed direction: the rows came out of a live household
-          # and this puts them back as the template every new household clones.
+          # The template household and its whole curated vocabulary, generated
+          # from supabase/seed/snapshot.jsonl.
           supabase db query --linked -f supabase/seed_vocab.sql
           if [ "$usda" = "0" ]; then
             supabase db query --linked -f supabase/seed_usda.sql
@@ -163,10 +154,8 @@ jobs:
           # sheet. A sub-second truncate+rebuild is cheaper than reasoning about
           # whether this run needed it. Same order config.toml documents.
           supabase db query --linked -f supabase/seed_usda_index.sql
-          # Tolerant, unlike the branch above: the seed has already landed by
-          # here and nothing decides anything on this number, so a readback that
-          # cannot answer says so (with its reason on stderr) instead of turning
-          # a finished reseed red.
+          # Tolerant: the seed has landed and nothing branches on this number,
+          # so an unreadable one is logged, not fatal.
           tmpl="$(scripts/db_query_value.sh "select count(*) from ingredient where household_id='00000000-0000-0000-0000-0000000000aa' and deleted_at is null" || true)"
           echo "template: ${tmpl:-unreadable — see the diagnosis above} live ingredients (seed/counts.json says $(jq -r .ingredients supabase/seed/counts.json))"
 
@@ -179,7 +168,7 @@ jobs:
             echo "### deploy-supabase finished"
             echo
             echo "Applied to \`$PROJECT_REF\`: **migrations** (\`db push\`), the"
-            echo "**import-recipe** function, and the **PowerSync sync streams**"
+            echo "**import-recipe** and **import-receipt** functions, and the **PowerSync sync streams**"
             echo "(\`docker/powersync-cloud.streams.yaml\` → instance \`$POWERSYNC_INSTANCE_ID\`)."
             echo
             echo "**Not applied — do these by hand if this deploy included"

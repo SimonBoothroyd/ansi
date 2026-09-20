@@ -1,24 +1,12 @@
 #!/usr/bin/env bash
-# Read ONE value back out of the linked Supabase project — and nothing else.
+# Read ONE value back out of the linked Supabase project.
 #
-# `supabase db query` writes for a human by default: a box-drawn table, with
-# the CLI's own chatter before it and, when a newer CLI exists, an update nag
-# printed AFTER the document. The CLI only switches to JSON on its own when it
-# thinks it is talking to a program (`--agent` detection), which is exactly why
-# a readback written and proved in an agent's terminal read nothing in CI:
-# deploy-supabase 35480151258 logged `usda_food rows: unreadable` and an empty
-# template count while the reseed underneath it was perfectly fine.
+# `supabase db query` prints a box-drawn table unless JSON is asked for by
+# name, and may chat before and after the document on either stream. So this
+# asks for JSON, parses stdout alone and decodes only the first document.
 #
-# So this asks for JSON by name rather than hoping for it, keeps stderr out of
-# the parser, silences the nag with the CLI's own switch, and decodes exactly
-# one JSON document starting at the first `{` — anything the CLI prints after
-# the document cannot reach the value. Nothing here matches on the CLI's
-# wording, which is the only reason it survives the next release's prose.
-#
-# One row, one column, or it exits non-zero and says which — a caller must
-# never be able to mistake "could not read" for a number. Callers that only
-# log the value can choose to tolerate that (`|| true`); a caller that BRANCHES
-# on it must not.
+# One row, one column, or it exits non-zero saying why (the CLI's own error
+# included): "could not read" must never pass for a number.
 #
 # Usage: scripts/db_query_value.sh "select count(*) from usda_food"
 # Env:   SUPABASE_BIN  the CLI to run (default `supabase`; the test points this
@@ -28,12 +16,14 @@ set -euo pipefail
 sql=${1:?usage: db_query_value.sh "<sql returning one row, one column>"}
 : "${SUPABASE_BIN:=supabase}"
 
-# SUPABASE_NO_UPDATE_NOTIFIER is the CLI's own switch for the update nag. It is
-# belt to the braces of decoding only the document: if a future CLI ignores it,
-# or renames it, the parse still holds.
+err=$(mktemp)
+trap 'rm -f "$err"' EXIT
+
+# SUPABASE_NO_UPDATE_NOTIFIER is the CLI's own switch for its update nag.
 if ! out=$(SUPABASE_NO_UPDATE_NOTIFIER=1 "$SUPABASE_BIN" db query --linked \
-             --output json "$sql" 2>/dev/null); then
+             --output json "$sql" 2>"$err"); then
   echo "db_query_value: supabase db query failed — $sql" >&2
+  tail -n 5 "$err" >&2
   exit 1
 fi
 
