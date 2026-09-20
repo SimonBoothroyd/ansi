@@ -673,6 +673,76 @@ void main() {
       expect(save.onPress, isNull);
       expect(ledger.saved, isEmpty);
     });
+
+    testWidgets('a Save that fails keeps the review, and says why over Save', (
+      tester,
+    ) async {
+      final ledger = FakeReceiptRepo()..throws = true;
+      tallSurface(tester);
+      await tester.pumpWidget(
+        scanHost(overrides: receiptOverrides(ledger: ledger)),
+      );
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+      await answerEveryLine(tester, container);
+
+      await tester.tap(find.byKey(kReceiptSaveKey));
+      await tester.pumpAndSettle();
+
+      // The read was paid for. A write that fails must not throw it away.
+      expect(
+        container.read(receiptScanControllerProvider),
+        isA<ReceiptReviewing>(),
+      );
+      expect(
+        find.textContaining('Could not save this receipt'),
+        findsOneWidget,
+      );
+      expect(find.text(r'Save receipt · $29.28'), findsOneWidget);
+      expect(
+        tester.widget<FButton>(find.byKey(kReceiptSaveKey)).onPress,
+        isNotNull,
+        reason: 'Save is still there to try again',
+      );
+
+      // An answer clears the message: it was about the write that failed.
+      ledger.throws = false;
+      container.read(receiptScanControllerProvider.notifier).setCents(0, 399);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Could not save this receipt'), findsNothing);
+    });
+
+    testWidgets('every line dropped shuts Save and says so', (tester) async {
+      final ledger = FakeReceiptRepo();
+      tallSurface(tester);
+      await tester.pumpWidget(
+        scanHost(overrides: receiptOverrides(ledger: ledger)),
+      );
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+      final notifier = container.read(receiptScanControllerProvider.notifier);
+      for (final draft
+          in (container.read(receiptScanControllerProvider) as ReceiptReviewing)
+              .drafts) {
+        notifier.drop(draft.index);
+      }
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nothing left to save'), findsOneWidget);
+      expect(
+        tester.widget<FButton>(find.byKey(kReceiptSaveKey)).onPress,
+        isNull,
+      );
+      // And nothing reaches the repository's own refusal by accident.
+      await notifier.save();
+      expect(ledger.saved, isEmpty);
+      expect(
+        container.read(receiptScanControllerProvider),
+        isA<ReceiptReviewing>(),
+      );
+    });
   });
 
   group('the pack opens on the size THIS shop sells', () {

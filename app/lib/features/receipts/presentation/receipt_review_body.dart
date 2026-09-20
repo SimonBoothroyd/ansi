@@ -44,6 +44,9 @@ const kReceiptJoinKey = ValueKey('receipt-join');
 /// *Delete this receipt*, on a saved one.
 const kReceiptDeleteKey = ValueKey('receipt-delete');
 
+/// Why the last write did not happen, over Save.
+const kReceiptErrorKey = ValueKey('receipt-error');
+
 /// The Bought line — the date's door.
 const kReceiptBoughtKey = ValueKey('receipt-bought');
 
@@ -490,21 +493,50 @@ class _SaveBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final map = state.map;
     final named = state.store.trim().isNotEmpty;
+    // Every line dropped writes no receipt at all — the ledger refuses one,
+    // so the button says why rather than meeting that refusal.
+    final empty = state.hasNoKeptLines;
     // A kept receipt has nothing to save until something has moved.
-    final open = map.canSave && named && (!state.isSaved || state.edited);
+    final open =
+        !empty && map.canSave && named && (!state.isSaved || state.edited);
     return Column(
       children: [
+        // Why the last write did not happen. The review is untouched under
+        // it, so this is a line to read and try again, not a state to leave.
+        if (state.error case final message?)
+          Padding(
+            key: kReceiptErrorKey,
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              message,
+              textAlign: TextAlign.center,
+              style: ansiSans(size: 12.5, color: AnsiColors.gone, height: 1.35),
+            ),
+          ),
         FButton(
           key: kReceiptSaveKey,
           onPress: open
               ? () => ref.read(receiptScanControllerProvider.notifier).save()
               : null,
           child: Text(
-            !named
+            empty
+                ? 'Nothing left to save'
+                : !named
                 ? 'Say which shop this was'
                 : receiptSaveLabel(map, saved: state.isSaved),
           ),
         ),
+        if (empty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              state.isSaved
+                  ? 'Every line is dropped. Delete the receipt below.'
+                  : 'Every line is dropped. Bring one back to save.',
+              textAlign: TextAlign.center,
+              style: ansiSans(size: 11.5, color: AnsiColors.muted),
+            ),
+          ),
         if (!map.joinCloses)
           Padding(
             padding: const EdgeInsets.only(top: 8),
