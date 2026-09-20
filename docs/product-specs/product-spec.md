@@ -1164,6 +1164,23 @@ source-tab slot, footer slot):
   unit, the row's serving) stays reachable, subtly marked "not in filter";
   deleting the selected measure in the manage state resets the choice to the
   default unit with a visible note (never a silently tombstoned reference).
+- **The same chip row on a sub-recipe component line**, because it is the same
+  question asked about a recipe rather than a row. It is **one widget**, handed
+  whichever offer the surface's own rule builds; a component's offer is the
+  target recipe's **own words** first (`3 blob` of a sauce — ADR-0018), the
+  whole-batch word ahead of them, then `batch`, then the kitchen sizes of each
+  family the recipe's `makes` states. A word is an amount, so it resolves
+  through that same `makes` and the conversion line still lands in batches —
+  *"3 blob = 0.15 of a batch · a blob is 15 g"*. Exactly one denomination
+  leaves the sheet: picking a word clears the unit and picking a unit clears
+  the word, because the line's number counts one thing. Every door onto a
+  component line opens this sheet, the week variant editor's amount cell
+  included. A word the recipe can no longer hold is offered only where a line
+  already says it, marked; a word that has been **retired** lights no chip at
+  all — the number is kept, the line reads *"3 — its measure is gone"*, and the
+  pointer stays until somebody picks a chip or the word comes back. Cook's
+  component card quotes such a demand in the words it was written in, showing
+  its work: *"3 blob → 45 g → 0.15 of a batch"*.
 - **Recipe picker** (planning): Recent · Books · Favorites tabs; day-tagged
   "already this week" quick picks; rows carry filing, last-planned recency,
   shelf-life chips, and per-serving macros or the `incomplete` badge with

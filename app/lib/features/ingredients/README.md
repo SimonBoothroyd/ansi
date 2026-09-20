@@ -278,7 +278,10 @@ ingredients/
                                 checked against each other on a scanned row
     draft_card.dart             the barcode result card
     quantity_unit_sheet.dart    quantity + unit chips, manage measures
-    unit_chips.dart             UnitChipRow, the unit dock over the keypad
+    unit_chips.dart             UnitChipRow, the unit dock over the keypad —
+                                the app's ONE chip row, handed a prebuilt
+                                UnitChoiceOffer rather than an Ingredient, so a
+                                sub-recipe component's dock wears it too
                                 (the chip itself is shared/unit_chip.dart,
                                 which also holds the pick sheet a sentence's
                                 unit chip opens)
@@ -364,10 +367,19 @@ ingredients/
   - **In the quantity sheet's manage state** the same editor writes on tap,
     because that host has no Save — so the `piece` chip appears the moment a
     weight is entered.
-- **The chip row is one control, and one filter answers for it.**
-  `allowedUnitChoicesFor` is what every quantity surface draws — the recipe
-  line, the import review, the week's ingredient slot, the price sheet, the
-  receipt's pack door — so a rule about what may be offered is written once.
+- **The chip row is one control, and it is handed an offer.** `UnitChipRow`
+  takes a prebuilt `UnitChoiceOffer` and draws it; it knows nothing about
+  ingredients, which is what lets a sub-recipe component's dock wear the same
+  widget fed by `componentUnitChoices` (`recipes/domain/component_units.dart`)
+  — the target recipe's own words, `batch`, and the yields' families. One
+  height, one order, one way of marking a choice the filter admitted from
+  outside itself. The one thing a host must tell it is what a `piece` chip
+  says, because only a row knows what one weighs (ADR-0015).
+- **One filter answers for every INGREDIENT surface.**
+  `allowedUnitChoicesFor` is what every ingredient quantity surface builds its
+  offer from — the recipe line, the import review, the week's ingredient slot,
+  the price sheet, the receipt's pack door — so a rule about what may be
+  offered is written once.
   Two measures are never offered: one whose label merely names a volume unit
   (density owns volume, ADR-0008 §2) and the row's **serving**, which is the
   size a nutrition panel is printed per rather than one anybody cooks, plans

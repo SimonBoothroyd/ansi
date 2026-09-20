@@ -267,6 +267,12 @@ rather than a shape:
   whole-batch word is **found, never stored** — the one whose amount is the
   recipe's ENTIRE same-family yield within the app's single tolerance — which is
   ADR-0016's rule with *the whole yield* where the piece weight was.
+  `componentUnitChoices` returns the same `UnitChoiceOffer` the ingredient
+  filter does, and for the same reason: **there is one chip row in the app**
+  (`ingredients/presentation/unit_chips.dart`), and a surface's job is to build
+  the offer rather than to draw a row of its own. `firstComponentChoice` is
+  where a fresh amount opens while the recipe leads with a word; a recipe that
+  coins none keeps the yield's own unit, which is the line a page prints.
 - **`line_basis.dart`** — the one conversion the macro and cost walks share, so
   a line can never weigh one thing for its macros and another for its cost.
 - **`effective_lines.dart`** — the one seam deciding *which* lines a derivation
@@ -341,17 +347,27 @@ own transaction and hand them to `authorRecipeMeasure`: "only when we know what
 the recipe makes" is a fact about the stored recipe, and a form must not be able
 to assert its way past it.
 
-**A measured line's amount is never re-denominated from a units-only sheet.**
-Until the authoring control ships, the component quantity sheet opened on a line
-that carries a `recipe_measure_id` offers that line's own denomination as its
-single, preselected, inert chip and hands back a **null** `unit` — "the number
-changed, the denomination did not". Both doors that reach it obey:
-`_ComponentLineEditor` in the recipe editor, and week mode's amount cell, which
-routes a measured line to this sheet rather than to the INGREDIENT one (whose
-offer cannot express a recipe's word at all, and would open preselected on
-`piece`). A line whose word has been RETIRED is treated the same, for a stronger
-reason: it has no honest denomination at all, so a unit written there would put a
-confident number where the app was correctly saying it did not know.
+**The word is CHOSEN on the component quantity sheet**
+(`presentation/component_quantity_sheet.dart`), which rides the app's one chip
+row fed by `componentUnitChoices`. It opens on the line's stored word where the
+target still holds it, else its stored unit, else the word the offer leads with,
+else the yield's own unit. It returns `ComponentQuantity`, which carries
+**exactly one** denomination — picking a word clears the unit, picking a unit
+clears the word — so no host can write a line the repository would refuse.
+
+**Every door onto a component line opens it**: `_ComponentLineEditor` and the
+add-a-component flow in the recipe editor, and week mode's amount cell, which
+used to route a component line carrying a unit to the INGREDIENT sheet — whose
+offer has no `batch`, no yield families and no way to say a recipe's word at
+all, and which opens such a line preselected on `piece`. The import review's two
+doors pass the target with its words stripped: a review line stores a unit id
+and has no column for a word, so one picked there could only land as a whole
+batch (ADR-0018 — the review prefills no word, and now offers none either).
+
+**A line whose word has GONE lights no chip.** There is nothing honest to
+preselect, so the row draws the ordinary offer with no selection, the number is
+kept, and the pointer is kept with it until somebody taps a chip — which is the
+repair, the other being to put the word back under the target's MEASURES.
 
 **A retirement is refused, not cascaded.** `softDeleteRecipeMeasure` and the
 deferred diff both ask the gate first and throw `RecipeMeasureInUse` — carrying
