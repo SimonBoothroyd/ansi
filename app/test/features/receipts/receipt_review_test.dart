@@ -718,6 +718,17 @@ void main() {
       expect(receiptSaveLabel(map), r'Save receipt · $32.77');
     });
 
+    test('a receipt with every line dropped is not saveable', () {
+      // Nothing is outstanding because nothing is left, and the repository
+      // refuses a receipt with no lines — an open Save could only throw.
+      final none = [for (final d in drafts()) d.copyWith(dropped: true)];
+      final map = receiptReviewMap(none);
+      expect(map.outstanding, 0);
+      expect(map.keptCount, 0);
+      expect(map.canSave, isFalse);
+      expect(receiptSaveLabel(map), 'Keep at least one line');
+    });
+
     test('Save says how many lines still need you', () {
       final map = receiptReviewMap(drafts());
       // Four food lines: two by weight with no match resolved… all six want

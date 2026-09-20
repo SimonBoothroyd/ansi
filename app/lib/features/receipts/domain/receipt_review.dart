@@ -469,6 +469,7 @@ List<ReceiptLineIssue> receiptLineIssues(ReceiptLineDraft draft) {
 class ReceiptReviewMap {
   const ReceiptReviewMap({
     required this.issuesByIndex,
+    required this.keptCount,
     required this.linesCents,
     required this.foldedCents,
     required this.foldedCount,
@@ -480,6 +481,9 @@ class ReceiptReviewMap {
   /// Per line index, what it still wants. A line with nothing outstanding is
   /// absent, so `length` IS the count the header prints.
   final Map<int, List<ReceiptLineIssue>> issuesByIndex;
+
+  /// How many lines are still being kept — everything the drops left.
+  final int keptCount;
 
   /// What the kept lines add up to, **tax excluded** — the figure the printed
   /// subtotal is held against. Non-food lines are in it: they were paid for.
@@ -528,8 +532,9 @@ class ReceiptReviewMap {
   int get totalCents => printedTotalCents ?? (linesCents + taxCents);
 
   /// Whether Save may open — every kept line answered, and the join is a flag
-  /// rather than a gate.
-  bool get canSave => outstanding == 0;
+  /// rather than a gate. A receipt with nothing left is not one: the
+  /// repository refuses it, so Save stays shut rather than throwing.
+  bool get canSave => outstanding == 0 && keptCount > 0;
 }
 
 /// The map for [drafts] against what the paper printed.
@@ -540,12 +545,14 @@ ReceiptReviewMap receiptReviewMap(
   int? printedTotalCents,
 }) {
   final issues = <int, List<ReceiptLineIssue>>{};
+  var kept = 0;
   var lines = 0;
   var folded = 0;
   var foldedCount = 0;
   var tax = 0;
   for (final draft in drafts) {
     if (draft.dropped) continue;
+    kept++;
     final wants = receiptLineIssues(draft);
     if (wants.isNotEmpty) issues[draft.index] = wants;
     if (draft.kind == ReceiptKind.tax) {
@@ -560,6 +567,7 @@ ReceiptReviewMap receiptReviewMap(
   }
   return ReceiptReviewMap(
     issuesByIndex: issues,
+    keptCount: kept,
     linesCents: lines,
     foldedCents: folded,
     foldedCount: foldedCount,
@@ -606,11 +614,16 @@ String joinNote(ReceiptReviewMap map) {
 ///
 /// [saved] is the review open on a receipt already kept: the same button,
 /// named for what it then does.
-String receiptSaveLabel(ReceiptReviewMap map, {bool saved = false}) =>
-    map.canSave
-    ? '${saved ? 'Save changes' : 'Save receipt'} · '
-          '${formatMoney(map.totalCents)}'
-    : '${map.outstanding} line(s) need you';
+String receiptSaveLabel(ReceiptReviewMap map, {bool saved = false}) {
+  if (map.canSave) {
+    return '${saved ? 'Save changes' : 'Save receipt'} · '
+        '${formatMoney(map.totalCents)}';
+  }
+  // Nothing outstanding and nothing kept is the dropped-every-line receipt:
+  // counting the lines that need you would say zero.
+  if (map.keptCount == 0) return 'Keep at least one line';
+  return '${map.outstanding} line(s) need you';
+}
 
 /// `Not food · 2 · $7.09` — the fold's heading, or null when nothing folded.
 String? foldedHeading(ReceiptReviewMap map) => map.foldedCount == 0
