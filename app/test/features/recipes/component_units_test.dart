@@ -43,58 +43,59 @@ List<String> _labels(UnitChoiceOffer offer) => [
 const _none = <RecipeMeasure>[];
 
 void main() {
-  test('a yield-less recipe offers batch and nothing else', () {
-    final offer = componentUnitChips(yields: const []);
-    expect(offer.chips, [batches]);
-    expect(offer.offFilter, isNull);
-  });
+  group('the units half', () {
+    List<String> units(SubRecipeTarget target) =>
+        _labels(componentUnitChoices(target, _none));
 
-  test('a "makes 1 cup" yield opens its family, kitchen-trimmed', () {
-    // The board's frame-d row — batch | cup tbsp tsp ml — plus the US pair
-    // at the tail (plan 0025 #2).
-    final offer = componentUnitChips(yields: [(qty: 1, unit: cup)]);
-    expect(offer.chips, [batches, cup, tbsp, tsp, ml, pint, quart]);
-    // Label-reading granularity is not kitchen granularity.
-    expect(offer.chips, isNot(contains(flOz)));
-    expect(offer.chips, isNot(contains(l)));
-  });
+    test('a yield-less recipe offers batch and nothing else', () {
+      expect(units(_target()), ['batch']);
+    });
 
-  test('two denominations open both families — the owner amendment', () {
-    final offer = componentUnitChips(
-      yields: [(qty: 250, unit: g), (qty: 16, unit: tbsp)],
+    test('a "makes 1 cup" yield opens its family, kitchen-trimmed', () {
+      final offered = units(_target(qty: 1, unit: cup));
+      expect(offered, ['batch', 'cup', 'tbsp', 'tsp', 'ml', 'pt', 'qt']);
+      // Label-reading granularity is not kitchen granularity.
+      expect(offered, isNot(contains(flOz.label)));
+      expect(offered, isNot(contains(l.label)));
+    });
+
+    test('two denominations open both families', () {
+      expect(units(_target(qty: 250, unit: g, qty2: 16, unit2: tbsp)), [
+        'batch',
+        'g',
+        'kg',
+        'tbsp',
+        'cup',
+        'tsp',
+        'ml',
+        'pt',
+        'qt',
+      ]);
+    });
+
+    test(
+      'a mass-only yield does NOT open volume — no density for a recipe',
+      () {
+        expect(units(_target(qty: 250, unit: g)), ['batch', 'g', 'kg']);
+      },
     );
-    expect(offer.chips, [batches, g, kg, tbsp, cup, tsp, ml, pint, quart]);
-  });
 
-  test('a mass-only yield does NOT open volume — no density for a recipe', () {
-    final offer = componentUnitChips(yields: [(qty: 250, unit: g)]);
-    expect(offer.chips, [batches, g, kg]);
-    expect(offer.chips, isNot(contains(tbsp)));
-  });
+    test('a count yield offers pieces', () {
+      expect(units(_target(qty: 8, unit: pieces)), ['batch', pieces.label]);
+    });
 
-  test('a count yield offers pieces', () {
-    final offer = componentUnitChips(yields: [(qty: 8, unit: pieces)]);
-    expect(offer.chips, [batches, pieces]);
-  });
-
-  test('the stored unit is always admitted, and flagged off-filter', () {
-    // An imported line printed "2 tbsp" of a butter that only says 250 g: the
-    // chip stays, so the sheet never silently rewrites what the page printed.
-    final offer = componentUnitChips(
-      yields: [(qty: 250, unit: g)],
-      stored: tbsp,
-    );
-    expect(offer.chips.last, tbsp);
-    expect(offer.offFilter, tbsp);
-  });
-
-  test('a stored unit the rule already offers is not flagged', () {
-    final offer = componentUnitChips(
-      yields: [(qty: 1, unit: cup)],
-      stored: tbsp,
-    );
-    expect(offer.offFilter, isNull);
-    expect(offer.chips.where((u) => u == tbsp), hasLength(1));
+    test('a stored unit the rule already offers is not flagged', () {
+      final offer = componentUnitChoices(
+        _target(qty: 1, unit: cup),
+        _none,
+        current: const UnitOption(tbsp),
+      );
+      expect(offer.offFilter, isNull);
+      expect(
+        offer.choices.where((c) => c == const UnitOption(tbsp)),
+        hasLength(1),
+      );
+    });
   });
 
   group("componentUnitChoices — the recipe's own words lead", () {

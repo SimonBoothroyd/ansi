@@ -20,8 +20,7 @@
 /// An INGREDIENT measure never appears here: one is a word for a row
 /// ("potato, medium = 213 g" says nothing about a recipe). The target
 /// **recipe's** own measures do, and they lead the offer — see
-/// [componentUnitChoices], which is the shape a chip row actually reads;
-/// [componentUnitChips] is the units-only half under it.
+/// [componentUnitChoices], which is the shape a chip row reads.
 ///
 /// A recipe measure is a named amount in a unit (ADR-0018), so it obeys the
 /// same family rule the units do: a word said in grams is offered only while
@@ -54,21 +53,10 @@ const kComponentKitchenUnits = <UnitFamily, List<Unit>>{
   UnitFamily.count: [pieces],
 };
 
-/// A component sheet's chip offer: the ordered `chips`, plus `offFilter` when
-/// the stored selection had to be admitted from outside the rule above (it is
-/// also the last element of `chips`), so the UI can mark it subtly rather than
-/// hide it — the same shape `UnitChoiceOffer` gives the ingredient sheet.
-typedef ComponentUnitOffer = ({List<Unit> chips, Unit? offFilter});
-
-/// The chips a component line quantified against [yields] may say, with
-/// [stored] (the line's persisted unit) always admitted.
-///
-/// Order: `batch` first, then for each stated yield its own unit followed by
-/// that family's [kComponentKitchenUnits], then the off-filter stored unit.
-ComponentUnitOffer componentUnitChips({
-  required List<YieldDenomination> yields,
-  Unit? stored,
-}) {
+/// The catalog units a line quantified against [yields] may say: `batch`,
+/// then each stated yield's own unit followed by that family's
+/// [kComponentKitchenUnits].
+List<Unit> _unitChips(List<YieldDenomination> yields) {
   final chips = <Unit>[batches];
   for (final denomination in yields) {
     if (!chips.contains(denomination.unit)) chips.add(denomination.unit);
@@ -77,9 +65,7 @@ ComponentUnitOffer componentUnitChips({
       if (!chips.contains(unit)) chips.add(unit);
     }
   }
-  final offFilter = stored != null && !chips.contains(stored) ? stored : null;
-  if (offFilter != null) chips.add(offFilter);
-  return (chips: chips, offFilter: offFilter);
+  return chips;
 }
 
 /// The recipe's **whole-batch measure**: the live measure of [measures] whose
@@ -146,8 +132,7 @@ bool _isAWholeBatch(RecipeMeasure measure, List<YieldDenomination> yields) {
 /// What a component line's chip row offers for [target], in chip order:
 /// **the recipe's own words lead** — the whole-batch one
 /// ([wholeMeasureOfRecipe]) first of all, then the rest in the order they are
-/// given — then `batch`, then the yields' families exactly as
-/// [componentUnitChips] has always ordered them.
+/// given — then `batch`, then the yields' families.
 ///
 /// **The words lead, because a word is what this recipe is.** `blob` and
 /// `ladle` exist on this sauce and nowhere else; `cup` and `g` are the
@@ -198,7 +183,7 @@ UnitChoiceOffer componentUnitChoices(
     keep: current is RecipeMeasureOption ? current.measure.id : null,
   );
   final whole = wholeMeasureOfRecipe(offered, yields);
-  final units = componentUnitChips(yields: yields).chips;
+  final units = _unitChips(yields);
   final choices = <UnitChoice>[
     if (whole != null) RecipeMeasureOption(whole),
     for (final m in offered)
