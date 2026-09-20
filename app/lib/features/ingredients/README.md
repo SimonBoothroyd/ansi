@@ -111,9 +111,13 @@ against the next writer.
 
 The loop asks one thing the form does not have to: **is this a name at all?**
 The form's writer typed one; the loop's arrives as whatever the recipe printed,
-and a candidate carrying a comma, the word *or*, a slash or a bracket names more
-than one thing ("olive oil or cooking oil of choice"). That one is skipped as
-silently as a taken name — see `features/import/domain/learnable_alias.dart`.
+so the phrase answers for itself twice. A candidate carrying a comma, the word
+*or*, a slash or a bracket names more than one thing ("olive oil or cooking oil
+of choice"); a candidate carrying a word that points at the **cook** rather than
+the food — *your*, *any*, *favourite*, *of choice* — names a decision rather
+than a thing ("your favourite pasta"), which the marks cannot see because it is
+punctuated exactly like a name. Either is skipped as silently as a taken name —
+see `features/import/domain/learnable_alias.dart`.
 
 And when the name is *nearly* somebody's, the form offers the near names under
 the pickers' own `DID YOU MEAN` header — `searchRank`'s guarded typo tier over

@@ -1,9 +1,13 @@
 /// Which corrected strings the learning loop is allowed to keep: names a
-/// household would say, never the whole printed line.
+/// household would say — never a line, and never a decision.
 library;
+
+import 'dart:io';
 
 import 'package:ansi/features/import/domain/learnable_alias.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../helpers/source_scan.dart';
 
 void main() {
   test('a plain name is learned, however many words it has', () {
@@ -68,5 +72,150 @@ void main() {
     expect(looksLikeAName('parsley (flat-leaf)'), isFalse);
     expect(looksLikeAName('stock [homemade]'), isFalse);
     expect(looksLikeAName('flour {plain}'), isFalse);
+  });
+
+  test('a phrase that names a DECISION is not a name, however it is '
+      'punctuated', () {
+    // The gap the marks could not see. "your favourite pasta" is punctuated
+    // exactly like "brown onions" and got through on that alone; what is
+    // wrong with it is the words. The next cook's favourite pasta is a
+    // different pasta, so no future line can print these words meaning this
+    // row.
+    for (final line in [
+      // Second person and possessive.
+      'your favourite pasta',
+      'your usual bread',
+      'my go-to hot sauce',
+      'our usual bread',
+      // Open choice.
+      'any plant milk',
+      'either pasta shape',
+      'whatever greens are in the fridge',
+      'whichever noodles you have',
+      'some kind of squash',
+      // Preference.
+      'favourite pasta',
+      'pasta of choice',
+      'preferred sweetener',
+      'desired berries',
+      'desired pasta noodles',
+      'noodles to your liking',
+      'salt to taste',
+      'optional garnish',
+      'ideally cavatappi',
+    ]) {
+      expect(looksLikeAName(line), isFalse, reason: line);
+    }
+  });
+
+  test('…and only whole words, so the set cannot eat a food name', () {
+    // The set is matched word by word: a name is refused because it contains
+    // the word, never because it contains the letters. "sesame" is not
+    // "some", and a page printing a name in title case says "Your" no
+    // differently.
+    for (final name in [
+      'sesame seeds',
+      'anise',
+      'ancho chilli',
+      'tastee cheese',
+      'mineral water',
+      'sourdough',
+      'choy sum',
+      'youngberry',
+    ]) {
+      expect(looksLikeAName(name), isTrue, reason: name);
+    }
+    expect(looksLikeAName('Your Favourite Pasta'), isFalse);
+  });
+
+  test("the owner's own vocabulary is the evidence the rule is not too "
+      'tight', () {
+    // Swept over his 145 seed aliases and his 33 learned ones. The seed gives
+    // up two rows, both the decision shape; every other phrase he has ever
+    // corrected onto a row survives — including the judgement call, "cooking
+    // oil spray", which is a thing a shop sells and a page can print again.
+    for (final name in [
+      'cooking oil spray',
+      'full-fat oat milk',
+      'chipotle chile flakes',
+      'Tenderstem broccoli',
+      'vegetable stock cube',
+      'chocolate protein powder',
+      'ground white pepper',
+      'lime wedges',
+      'fresh coriander leaves',
+      'Creole Spice Blend',
+      'boiling water',
+      'wild garlic',
+      'cornflour',
+    ]) {
+      expect(looksLikeAName(name), isTrue, reason: name);
+    }
+  });
+
+  group('structural', () {
+    test('every learning door in the app asks this question', () {
+      // The predicate is only worth what its callers are. A second write of a
+      // learned alias that forgot to ask would reopen the whole class, so the
+      // sweep names the file that writes one — the ingredient form's alias
+      // chips are a human typing a name on purpose (`source = 'manual'`) and
+      // are not a learning door.
+      final writers = [
+        for (final file in dartFiles(Directory('lib')))
+          // Comments blanked, string literals kept: the source it hunts for IS
+          // a literal, and prose about it must neither trip nor silence this.
+          if (blankComments(
+            file.readAsStringSync(),
+          ).contains("'import_correction'"))
+            file.path,
+      ]..sort();
+      expect(writers, ['lib/features/import/data/import_repository_impl.dart']);
+      expect(
+        blankNonCode(File(writers.single).readAsStringSync()),
+        contains('looksLikeAName('),
+        reason: 'the one learning door must gate its write on the predicate',
+      );
+    });
+
+    test('no alias the seed template carries could be learned today', () {
+      // The seed is generated from the owner's own vocabulary, so a phrase the
+      // loop should never learn must not be able to ride into every future
+      // household's template either — and one already has. Three rows are
+      // named debt, all of them the owner's to fix in the vocabulary this file
+      // is generated from, and the guard is that the set can only ever shrink:
+      //
+      // * "desired berries" and "desired pasta noodles" predate the rule. Their
+      //   `match_text` is `berry` and `pasta noodle`, which are the right keys
+      //   under the wrong words, so the fix is to rename the alias rather than
+      //   retire it — retiring would cost real matching.
+      // * "your favourite pasta" is the row this rule was written for, and it
+      //   reached the template before the rule did. It has no key worth keeping
+      //   (`match_text` is the phrase itself), so it is retired outright, and
+      //   the next regeneration must not carry it.
+      const legacy = {
+        'desired berries',
+        'desired pasta noodles',
+        'your favourite pasta',
+      };
+      final seed = File('../supabase/seed_vocab.sql').readAsStringSync();
+      final block = seed.substring(
+        seed.indexOf('insert into ingredient_alias'),
+      );
+      final aliases = RegExp(
+        r"^  \('(?:[^']|'')*', '((?:[^']|'')*)',",
+        multiLine: true,
+      ).allMatches(block.substring(0, block.indexOf(') as a(')));
+      final texts = [for (final m in aliases) m[1]!.replaceAll("''", "'")];
+      expect(texts, hasLength(greaterThan(100)), reason: 'the block was read');
+      expect(
+        {
+          for (final t in texts)
+            if (!looksLikeAName(t)) t,
+        },
+        // A subset, not an equality: the owner pruning one of these must not
+        // fail the guard, and a NEW one must.
+        everyElement(isIn(legacy)),
+      );
+    });
   });
 }
