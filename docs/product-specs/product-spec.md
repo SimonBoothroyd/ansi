@@ -1415,7 +1415,7 @@ and a printed weight or rate where there was one.
   can also say on a recipe line — the pack carries over either way.
 - **How many is the paper's, and is a door.** A count printed on the sub-row
   under an item rides on that line — `$23.92 · Tofu · 8 × block (16 oz) ·
-  33¢ / 100 g` — and the COUNT chip beside PACK corrects it. It never rides to
+  66¢ / 100 g` — and the COUNT chip beside PACK corrects it. It never rides to
   a twin, because a line that rang up four is not a line that rang up one.
 - **A figure nobody could read holds Save**, loudly: it is not a free line.
 - **One answer answers every line that is that line again.** Six identical
