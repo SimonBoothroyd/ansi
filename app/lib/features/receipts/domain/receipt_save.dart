@@ -25,6 +25,7 @@ class ReceiptLineWrite {
     required this.kind,
     this.lineId,
     this.namePrinted,
+    this.count = 1,
     this.discountCents = 0,
     this.ingredientId,
     this.packBasisAmount,
@@ -47,6 +48,10 @@ class ReceiptLineWrite {
   /// paper's, and it is the key those answers are filed under.
   final String? namePrinted;
   final int cents;
+
+  /// How many of the thing rang up on this line. Only a food line is ever
+  /// counted (0050): the count divides a price, and a bag fee prices nothing.
+  final int count;
   final int discountCents;
   final ReceiptLineKind kind;
   final String? ingredientId;
@@ -99,8 +104,9 @@ class ReceiptWrite {
 ///
 /// A dropped line is absent from the lines, and named in
 /// [ReceiptWrite.droppedLineIds] where a stored row is behind it. A line that
-/// is not food carries **no ingredient and no pack**: a folded line keeping a
-/// stale match would leave a price hanging off a bag fee.
+/// is not food carries **no ingredient, no pack and no count**: a folded line
+/// keeping a stale match would leave a price hanging off a bag fee, and a
+/// count on it would divide nothing.
 ReceiptWrite buildReceiptSave({
   required String store,
   required DateTime purchasedAt,
@@ -120,6 +126,7 @@ ReceiptWrite buildReceiptSave({
         printedText: draft.printedText,
         namePrinted: draft.namePrinted,
         cents: draft.cents,
+        count: food ? draft.count : 1,
         discountCents: draft.discountCents,
         kind: _kindOf(draft.kind),
         ingredientId: food ? draft.ingredientId : null,

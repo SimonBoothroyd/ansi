@@ -133,9 +133,9 @@ Deno.test("golden — the shape it pins is the one worth pinning", async () => {
   assertEquals(p.purchased_at_printed, "09/13/26 05:42 PM");
   assertEquals(p.purchased_at, "2026-09-13T17:42:00");
   assertEquals(p.printed, {
-    subtotal_cents: 2997,
+    subtotal_cents: 3396,
     tax_cents: 82,
-    total_cents: 3079,
+    total_cents: 3478,
   });
 
   // The reconcile CLOSES on this receipt — which is the state the review draws
@@ -179,6 +179,16 @@ Deno.test("golden — the shape it pins is the one worth pinning", async () => {
   assertEquals(salmon.weight, { amount: 1.1, unit: "lb", rate_cents: 549 });
   // The PRIME SAVINGS line does NOT also appear as a line of its own.
   assertEquals(p.lines.filter((l) => l.cents === -55).length, 0);
+
+  // The count sub-row under the sriracha rides ON the item, and is no line of
+  // its own: two bottles at $3.99 rang up as $7.98 once.
+  const sriracha = p.lines.find((l) =>
+    l.printed_text.startsWith("TJ SRIRACHA")
+  )!;
+  assertEquals(sriracha.cents, 798);
+  assertEquals(sriracha.count, 2);
+  assertEquals(sriracha.each_cents, 399);
+  assertEquals(p.lines.filter((l) => l.printed_text === "2 @ 3.99").length, 0);
 
   // THE RULE: bananas were bought twice and are two lines, on two photos.
   const bananas = p.lines.filter((l) => l.printed_text.includes("BANANAS"));

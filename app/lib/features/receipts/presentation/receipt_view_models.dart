@@ -545,6 +545,16 @@ class ReceiptScanController extends _$ReceiptScanController {
   void setCents(int index, int cents) =>
       _updateLine(index, (d) => d.withCents(cents));
 
+  /// The COUNT chip's answer: how many of the thing this line rang up.
+  ///
+  /// It rides on ONE line, like the figure and unlike the match: the count is
+  /// a correction to what the paper said about this occurrence, and a receipt
+  /// that printed the same words twice printed two counts of its own.
+  void setCount(int index, int count) {
+    if (count < 1) return;
+    _updateLine(index, (d) => d.copyWith(count: count));
+  }
+
   /// The *Say what the pack is* door's answer: what the cents bought, in both
   /// denominations, and the word to mint where the person asked for one.
   void setPack(
@@ -755,6 +765,7 @@ ReceiptLineDraft storedLineDraft(
   printedText: line.printedText,
   namePrinted: line.namePrinted,
   cents: line.cents,
+  count: line.count,
   discountCents: line.discountCents,
   kind: ReceiptKind.fromWire(line.kind),
   ingredientId: line.ingredientId,

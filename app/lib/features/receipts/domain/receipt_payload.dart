@@ -15,6 +15,9 @@
 /// * **A by-weight line carries its own pack.** `1.32 lb @ 1.99/lb` says what
 ///   the cents bought, so the review asks nothing — [ReceiptLineOut.weight]
 ///   is the pack, in the unit the paper printed it in.
+/// * **A count rides on the line, never on the pack.** The sub-row under an
+///   item (`8 @ $2.99`) says how MANY; the pack says what one of them comes
+///   in. A price divides by both ([ReceiptLineOut.count]).
 /// * **A `kind` that is not `item` can never be a price.** Paper towels, the
 ///   bag fee and the tax line count toward what the trip cost and toward
 ///   nothing else.
@@ -115,6 +118,8 @@ class ReceiptLineOut {
     required this.cents,
     required this.kind,
     this.namePrinted,
+    this.count = 1,
+    this.eachCents,
     this.discountCents = 0,
     this.weight,
     this.match,
@@ -131,6 +136,10 @@ class ReceiptLineOut {
     printedText: _text(json['printed_text']) ?? '',
     namePrinted: _text(json['name_printed']),
     cents: _cents(json['cents']) ?? 0,
+    // A server that does not send one read a line that rang up once, which is
+    // what every line meant before the column existed.
+    count: _count(json['count']),
+    eachCents: _cents(json['each_cents']),
     discountCents: _cents(json['discount_cents']) ?? 0,
     kind: ReceiptKind.fromWire(_text(json['kind'])),
     weight: json['weight'] == null
@@ -165,6 +174,22 @@ class ReceiptLineOut {
   /// negative — a discount the reader could not attach to an item is kept as
   /// its own line so the receipt still adds up.
   final int cents;
+
+  /// How many of the thing the line rang up — the count printed on the
+  /// sub-row under it (`Qty 4  $2.39 ea`, `8 @ $2.99`). One unless the paper
+  /// said otherwise.
+  ///
+  /// [cents] already includes them all. What the count is for is the PRICE:
+  /// eight blocks of tofu for $23.92 is the price of eight blocks, and
+  /// dividing that by one pack would make each block cost eight times what it
+  /// did. A by-weight line is one of whatever was weighed.
+  final int count;
+
+  /// The per-one figure printed beside the count, in cents. Null where the
+  /// sub-row printed none. Nothing is derived from it — what was paid is
+  /// [paidCents] — and a line where it disagrees with the printed total
+  /// arrives [lowConfidence] with a note.
+  final int? eachCents;
 
   /// The deduction printed under the item, kept beside [cents] rather than
   /// subtracted into it.
@@ -339,6 +364,14 @@ String? _text(Object? value) {
 }
 
 int? _cents(Object? value) => value is num ? value.round() : null;
+
+/// A wire count: a whole number of things, at least one. Anything else — a
+/// missing field, a fraction, a zero — reads as one, because the count is a
+/// DIVISOR and there is no honest way to divide by the rest.
+int _count(Object? value) {
+  final n = _cents(value);
+  return n == null || n < 1 ? 1 : n;
+}
 
 double? _number(Object? value) => value is num ? value.toDouble() : null;
 

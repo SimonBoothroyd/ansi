@@ -34,6 +34,7 @@ ReceiptLineWrite line({
   String printed = 'TJ ORG BANANAS  3.49',
   String? namePrinted = 'TJ ORG BANANAS',
   int cents = 349,
+  int count = 1,
   int discountCents = 0,
   ReceiptLineKind kind = ReceiptLineKind.item,
   String? ingredientId = 'banana',
@@ -49,6 +50,7 @@ ReceiptLineWrite line({
   printedText: printed,
   namePrinted: namePrinted,
   cents: cents,
+  count: count,
   discountCents: discountCents,
   kind: kind,
   ingredientId: ingredientId,
@@ -638,6 +640,54 @@ void main() {
 
     test('an id that names nothing is gone, not an error', () async {
       expect(await repo.watchReceipt('nope').first, isNull);
+    });
+
+    test('a counted line saves and reads back with its count', () async {
+      // The owner's tofu: eight blocks on one line. The pack is what ONE
+      // block is, so the count has to survive the round trip on its own.
+      final id = await repo.saveReceipt(
+        write([line(printed: 'TOFU 23.92', cents: 2392, count: 8)]),
+      );
+      final stored = (await repo.watchReceipt(id).first)!;
+      expect(stored.lines.single.count, 8);
+      expect(stored.lines.single.cents, 2392);
+      expect(stored.lines.single.packBasisAmount, 454);
+
+      // And the count is editable in place, like every other answer.
+      await repo.updateReceipt(
+        id,
+        write([
+          line(
+            lineId: stored.lines.single.id,
+            printed: 'TOFU 23.92',
+            cents: 2392,
+            count: 4,
+          ),
+        ]),
+      );
+      expect((await repo.watchReceipt(id).first)!.lines.single.count, 4);
+    });
+
+    test('a line that is not food is never counted', () async {
+      // 0050's fence: the count divides a price, and a bag fee prices
+      // nothing. The paper still adds up — the cents are the whole figure.
+      final id = await repo.saveReceipt(
+        write([
+          line(
+            printed: 'CARRY OUT BAG CHARGE',
+            cents: 10,
+            count: 2,
+            kind: ReceiptLineKind.fee,
+            ingredientId: null,
+            packBasis: null,
+            packAmount: null,
+            packUnitId: null,
+          ),
+        ]),
+      );
+      final stored = (await repo.watchReceipt(id).first)!;
+      expect(stored.lines.single.count, 1);
+      expect(stored.lines.single.cents, 10);
     });
 
     test('a pack named as a measure reads back with its word', () async {

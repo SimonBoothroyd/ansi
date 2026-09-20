@@ -53,6 +53,7 @@ Future<void> _seedLine(
   required String receiptId,
   String? ingredientId = 'banana',
   int cents = 349,
+  int count = 1,
   int discountCents = 0,
   String kind = 'item',
   double? packBasisAmount = 454,
@@ -65,9 +66,10 @@ Future<void> _seedLine(
   String? deletedAt,
 }) => db.execute(
   'INSERT INTO receipt_line (id, household_id, receipt_id, ingredient_id, '
-  'name_printed, cents, discount_cents, kind, pack_basis_amount, pack_amount, '
-  'pack_unit, measure_id, sort_order, created_at, updated_at, deleted_at) '
-  'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)',
+  'name_printed, cents, count, discount_cents, kind, pack_basis_amount, '
+  'pack_amount, pack_unit, measure_id, sort_order, created_at, updated_at, '
+  'deleted_at) '
+  'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)',
   [
     id,
     'h',
@@ -75,6 +77,7 @@ Future<void> _seedLine(
     ingredientId,
     namePrinted,
     cents,
+    count,
     discountCents,
     kind,
     packBasisAmount,
@@ -331,6 +334,61 @@ void main() {
         '77¢ / 100 g',
       );
       expect(formatPricePer100(prices.last.per100.valueOrNull!), '88¢ / 100 g');
+    });
+
+    test('every price reader divides by the count as well as the pack',
+        () async {
+      // The owner's tofu line: eight 1 lb blocks for $23.92. The pack column
+      // says what ONE block is, so a reader that ignored the count would
+      // print $5.27 / 100 g on every screen at once.
+      await _seedReceipt(
+        db,
+        id: 'r-sep',
+        store: "TJ's",
+        purchasedAt: '2026-09-13T17:20:00Z',
+      );
+      await _seedLine(
+        db,
+        id: 'l-tofu',
+        receiptId: 'r-sep',
+        cents: 2392,
+        count: 8,
+        packBasisAmount: 453.59237,
+        namePrinted: 'TOFU SPR FRM HGH PRTN OR',
+      );
+
+      for (final price in [
+        (await repo.watchPrices('banana').first).single,
+        (await repo.watchLatestPrices().first)['banana']!,
+        (await loadLatestPrices(db))['banana']!,
+        (await repo.packsByPrintedName({'TOFU SPR FRM HGH PRTN OR'}))
+            .values
+            .single
+            .pack,
+      ]) {
+        expect(price.count, 8);
+        expect(formatPricePer100(price.per100.valueOrNull!), '66¢ / 100 g');
+      }
+    });
+
+    test('a line written before the column rang up one of the thing',
+        () async {
+      // Every stored row meant exactly this when it was stored.
+      await _seedReceipt(
+        db,
+        id: 'r-old',
+        store: "TJ's",
+        purchasedAt: '2026-09-13T17:20:00Z',
+      );
+      await db.execute(
+        'INSERT INTO receipt_line (id, household_id, receipt_id, '
+        'ingredient_id, cents, discount_cents, kind, pack_basis_amount, '
+        'sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)',
+        ['l-old', 'h', 'r-old', 'banana', 349, 0, 'item', 454, '2026-01-01'],
+      );
+      final price = (await repo.watchPrices('banana').first).single;
+      expect(price.count, 1);
+      expect(formatPricePer100(price.per100.valueOrNull!), '77¢ / 100 g');
     });
 
     test('the pack keeps the word it was named with', () async {

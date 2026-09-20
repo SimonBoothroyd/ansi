@@ -34,6 +34,16 @@ same two tables a hand-typed price writes one row each of
   totals and printed words never move.
 - **A zero is never a price.** An unreadable figure arrives as `cents: 0` and
   is flagged, holding Save until somebody reads it off the paper.
+- **The count rides on the line, never on the pack.** Both of the owner's shops
+  print how many on a sub-row UNDER the item (`8 @ $2.99`, `Qty 4  $2.39 ea`);
+  that sub-row attaches to the item above it and never becomes a line
+  (`receipt_line.count`, migration 0050). The line's `cents` already include
+  them all, so nothing about what the trip cost moves — what moves is the
+  price, which divides by `count × pack_basis_amount`. The pack is what ONE of
+  them comes in and carries to the next receipt; the count arrives fresh from
+  the paper every time. The card reads `8 × block (16 oz) · 33¢ / 100 g`, and
+  the COUNT chip beside PACK is the door. A by-weight sub-row
+  (`Qty 0.73 lb @ $2.99/lb`) is a WEIGHT, never a count: the unit decides.
 - **Identical lines are answered together.** A match, a pack, *Not food* or
   *it is food* lands on every line with the same printed words and figure that
   still stands where this one stood; the card says how many before the answer.

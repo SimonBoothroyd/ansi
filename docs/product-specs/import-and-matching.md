@@ -1043,6 +1043,41 @@ A by-weight line carries the printed weight, the printed rate and the unit as a
 `units.dart` canonical id (`lb`, `kg`, `oz`, `g`) — the card prices itself from
 the paper and asks for no pack. Everything else carries no weight.
 
+### 12.3a The count sub-row
+
+Both of the household's shops print **how many on a line of its own, under the
+item**:
+
+```
+TOFU SPR FRM HGH PRTN OR   $23.92        ICLNPR MANGO OATMILK SKYR   $9.56 F
+8 @ $2.99                                Qty 4  $2.39 ea
+```
+
+That sub-row **attaches to the item above it and never becomes a line**. The
+line carries `count` (an integer ≥ 1, 1 where the paper printed none) and
+`each_printed`, and `amount_printed` stays the item's own printed total, which
+already includes them all — so nothing about the reconcile moves.
+
+What moves is the **price**: a price observation is
+`paid ÷ (count × pack_basis_amount)`, because the pack is what ONE of them
+comes in. Before this, eight blocks of tofu were priced as one block, eight
+times too dear, on every screen that read the row. The count is stored on the
+line (`receipt_line.count`, migration 0050) and is **never carried to the next
+receipt** — the pack carries, the count arrives fresh from the paper.
+
+Three rules ride with it:
+
+- **The unit is the discriminator, never the word `Qty`.** `Qty 0.73 lb @
+  $2.99/lb` is a WEIGHT, so it fills `weight` and leaves the count at one;
+  counting it too would divide the price twice.
+- **`count × each` against the printed total is a flag, not a rewrite.** More
+  than a penny per thing apart and the line keeps the figure the PAPER printed,
+  arrives `low_confidence`, and a note names it.
+- **A charge with no money on its own line is a `fee` carrying the totals
+  block's figure** — the Whole Foods bag charge prints `CARRY OUT BAG CHARGE` /
+  `Qty 2` and then `Bag Fee: $0.05EA  $0.10`. `Net Sales`, `Sold Items`,
+  `Items in Transaction`, `Balance to pay` and every card line are never lines.
+
 ### 12.4 The model never matches, and the vocabulary learns nothing
 
 ADR-0004 holds unchanged. The model is not shown one ingredient name of the

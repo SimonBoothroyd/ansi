@@ -49,6 +49,7 @@ void main() {
       final price = pricePer100(
         paidCents: 349,
         packBasisAmount: 454,
+        count: 1,
         basis: MacrosBasis.perG,
       );
       expect(price.valueOrNull!.cents, closeTo(76.872, 0.001));
@@ -60,6 +61,7 @@ void main() {
       final price = pricePer100(
         paidCents: 899,
         packBasisAmount: 500,
+        count: 1,
         basis: MacrosBasis.perMl,
       );
       expect(formatPricePer100(price.valueOrNull!), r'$1.80 / 100 ml');
@@ -70,6 +72,7 @@ void main() {
       final price = pricePer100(
         paidCents: 100,
         packBasisAmount: 3,
+        count: 1,
         basis: MacrosBasis.perG,
       );
       expect(price.valueOrNull!.cents, closeTo(3333.333, 0.001));
@@ -80,9 +83,45 @@ void main() {
         final price = pricePer100(
           paidCents: 349,
           packBasisAmount: pack,
+          count: 1,
           basis: MacrosBasis.perG,
         );
         expect(price, isA<Err<PricePer100>>(), reason: 'pack $pack');
+        expect((price as Err<PricePer100>).failure.code, 'price/no_pack');
+      }
+    });
+
+    test('a counted line prices ALL of what the cents bought', () {
+      // The owner's tofu: eight 1 lb blocks for $23.92. The pack is what ONE
+      // block is; the count is how many rang up on the line.
+      final price = pricePer100(
+        paidCents: 2392,
+        packBasisAmount: 453.59237,
+        count: 8,
+        basis: MacrosBasis.perG,
+      );
+      expect(price.valueOrNull!.cents, closeTo(65.918, 0.001));
+      expect(formatPricePer100(price.valueOrNull!), '66¢ / 100 g');
+
+      // Against ONE pack the same line reads eight times too dear — which is
+      // exactly what it did before the count was read.
+      final wrong = pricePer100(
+        paidCents: 2392,
+        packBasisAmount: 453.59237,
+        count: 1,
+        basis: MacrosBasis.perG,
+      );
+      expect(wrong.valueOrNull!.cents, closeTo(527.34, 0.01));
+    });
+
+    test('a count of none is refused, never divided by', () {
+      for (final count in [0, -2]) {
+        final price = pricePer100(
+          paidCents: 349,
+          packBasisAmount: 454,
+          count: count,
+          basis: MacrosBasis.perG,
+        );
         expect((price as Err<PricePer100>).failure.code, 'price/no_pack');
       }
     });
@@ -91,6 +130,7 @@ void main() {
       final price = pricePer100(
         paidCents: 0,
         packBasisAmount: 454,
+        count: 1,
         basis: MacrosBasis.perG,
       );
       expect((price as Err<PricePer100>).failure.code, 'price/nothing_paid');
@@ -273,12 +313,14 @@ void main() {
       String? ingredientId = 'i1',
       double? pack = 454,
       int cents = 349,
+      int count = 1,
       int discount = 0,
     }) => ReceiptLine(
       id: 'l1',
       receiptId: 'r1',
       ingredientId: ingredientId,
       cents: cents,
+      count: count,
       discountCents: discount,
       kind: kind,
       packBasisAmount: pack,
@@ -295,6 +337,18 @@ void main() {
       expect(observation!.store, "TJ's");
       expect(observation.purchasedAt, DateTime.utc(2026, 9, 13));
       expect(observation.packLabel, 'bag');
+    });
+
+    test("the line's count travels with the fact, and prices it", () {
+      final observation = observationFrom(
+        line(cents: 2392, count: 8, pack: 453.59237),
+        _receipt(),
+        basis: MacrosBasis.perG,
+      )!;
+      expect(observation.count, 8);
+      // Every reader of a price goes through `per100`, so no screen can read
+      // this line as one block.
+      expect(observation.per100.valueOrNull!.cents, closeTo(65.918, 0.001));
     });
 
     test('a matched line with no pack is honestly not a price yet', () {

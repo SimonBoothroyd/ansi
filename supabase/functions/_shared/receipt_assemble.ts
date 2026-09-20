@@ -190,6 +190,33 @@ function weightOf(
 }
 
 /**
+ * How many of the thing this line rang up.
+ *
+ * A by-weight line is ONE of whatever was weighed, whatever the sub-row's word
+ * was: `Qty 0.73 lb @ $2.99/lb` says how heavy, not how many, and a weight
+ * that also counted would divide the price twice. The unit is the
+ * discriminator, here as in the prompt.
+ */
+function countOf(line: ExtractedLine, weight: ReceiptWeight | null): number {
+  if (weight !== null) return 1;
+  const n = line.count;
+  return Number.isInteger(n) && n >= 1 ? n : 1;
+}
+
+/**
+ * Whether `count × each` and the printed line total agree, within a penny per
+ * thing — a till rounds each unit price, and four of them may be four pennies
+ * off the figure it printed beside them.
+ *
+ * Disagreeing by more than that is a reading somebody has to look at: the line
+ * keeps the total the PAPER printed (never a figure we multiplied), and says
+ * so out loud.
+ */
+function countAgrees(cents: number, count: number, each: number): boolean {
+  return Math.abs(count * each - cents) <= count;
+}
+
+/**
  * The reconcile figure: what the lines come to, against what the paper said its
  * subtotal was.
  *
@@ -255,6 +282,20 @@ export function assembleReceipt(
         discount_cents = parsed;
       }
     }
+    const weight = weightOf(line, notes);
+    const count = countOf(line, weight);
+    const each_cents = parseCents(line.each_printed);
+    if (
+      parsedCents !== null && each_cents !== null &&
+      !countAgrees(parsedCents, count, each_cents)
+    ) {
+      notes.push(
+        `"${line.printed_text}" rang up ${count} at ` +
+          `${line.each_printed} each, which does not come to its printed ` +
+          `total — the printed total stands; check the count.`,
+      );
+      low_confidence = true;
+    }
     // `line.kind`, never the recalled one: the cascade was given the item
     // lines the MODEL found, and this cursor has to walk the same ones.
     const m = line.kind === "item" ? matched[itemIndex++] : undefined;
@@ -268,10 +309,12 @@ export function assembleReceipt(
       printed_text: line.printed_text,
       name_printed: line.name_printed.trim(),
       cents: parsedCents ?? 0,
+      count,
+      each_cents,
       discount_cents,
       // A folded line still counts toward what the trip cost, and nothing else.
       kind: recalled?.kind ?? line.kind,
-      weight: weightOf(line, notes),
+      weight,
       match: matchFor(recalled, m),
       // The cascade's offers stand whatever is remembered: a remembered answer
       // is one the person can change, and these are what they would change it

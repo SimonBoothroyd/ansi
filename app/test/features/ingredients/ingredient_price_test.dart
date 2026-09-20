@@ -48,6 +48,7 @@ PriceObservation price({
   ReceiptSource source = ReceiptSource.manual,
   String lineId = 'l1',
   int cents = 349,
+  int count = 1,
   int discountCents = 0,
   double pack = 454,
   String store = "TJ's",
@@ -60,6 +61,7 @@ PriceObservation price({
   lineId: lineId,
   receiptId: 'r-$lineId',
   cents: cents,
+  count: count,
   discountCents: discountCents,
   packBasisAmount: pack,
   basis: MacrosBasis.perG,
@@ -174,6 +176,41 @@ void main() {
 
       expect(find.text('LATEST'), findsOneWidget);
       expect(find.text('BEFORE'), findsNothing);
+    });
+
+    testWidgets('a counted receipt line says how many it bought', (
+      tester,
+    ) async {
+      // The owner's tofu: eight blocks for $23.92. The pack is what ONE
+      // block is, so the restated purchase has to say how many or the
+      // figure in front of it reads back wrong.
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [bananas]),
+          at: ingredientDetailRoute('banana'),
+          prices: FakePriceRepo(
+            prices: [
+              price(
+                source: ReceiptSource.photo,
+                cents: 2392,
+                count: 8,
+                packLabel: null,
+                measureId: null,
+                packAmount: 454,
+                packUnit: g,
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(r"66¢ / 100 g · $23.92 for 8 × 454 g · TJ's · 13 Sep"),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a pack typed as a plain amount reads as the amount', (

@@ -16,6 +16,8 @@ function line(p: Partial<ExtractedLine> = {}): ExtractedLine {
     printed_text: "THING 1.00",
     name_printed: "THING",
     amount_printed: "1.00",
+    count: 1,
+    each_printed: null,
     discount_printed: null,
     kind: "item",
     weight: null,
@@ -565,4 +567,108 @@ Deno.test("remembered — a non-item line is never recalled for", () => {
   assertEquals(p.lines[0].kind, "tax");
   assertEquals(p.lines[0].match, null);
   assertEquals(p.lines[1].match?.ingredient_id, "v-sriracha");
+});
+
+// --- The count sub-row -------------------------------------------------------
+
+Deno.test("count — the sub-row's count and each ride on the item above it", () => {
+  const e = extraction([
+    line({
+      printed_text: "TOFU SPR FRM HGH PRTN OR 23.92",
+      name_printed: "TOFU SPR FRM HGH PRTN OR",
+      amount_printed: "23.92",
+      count: 8,
+      each_printed: "2.99",
+    }),
+  ]);
+  const p = assemble(e);
+  assertEquals(p.lines.length, 1, "the sub-row is no line of its own");
+  assertEquals(p.lines[0].cents, 2392, "the printed line total, all eight");
+  assertEquals(p.lines[0].count, 8);
+  assertEquals(p.lines[0].each_cents, 299);
+  assertEquals(p.lines[0].low_confidence, false);
+  assertEquals(p.notes, []);
+});
+
+Deno.test("count — a line with no sub-row is one of the thing", () => {
+  const p = assemble(extraction([line()]));
+  assertEquals(p.lines[0].count, 1);
+  assertEquals(p.lines[0].each_cents, null);
+});
+
+Deno.test("count — each × count against the printed total is a flag, never a rewrite", () => {
+  const e = extraction([
+    line({
+      printed_text: "LIME EACH 1.96",
+      name_printed: "LIME EACH",
+      amount_printed: "1.96",
+      count: 4,
+      each_printed: "0.79",
+    }),
+  ]);
+  const p = assemble(e);
+  assertEquals(p.lines[0].cents, 196, "the paper's figure stands");
+  assertEquals(p.lines[0].count, 4);
+  assertEquals(p.lines[0].low_confidence, true);
+  assertEquals(p.notes.length, 1);
+  assert(p.notes[0].includes("LIME EACH"), "the note names the line");
+});
+
+Deno.test("count — a penny of rounding per thing is not a disagreement", () => {
+  // 3 × 33¢ is 99¢ against a printed dollar: the till rounded each one.
+  const e = extraction([
+    line({
+      printed_text: "A 1.00",
+      amount_printed: "1.00",
+      count: 3,
+      each_printed: "0.33",
+    }),
+  ]);
+  const p = assemble(e);
+  assertEquals(p.lines[0].low_confidence, false);
+  assertEquals(p.notes, []);
+});
+
+Deno.test("count — a weight sub-row is a weight and never a count", () => {
+  // `Qty 0.73 lb @ $2.99/lb` says how heavy, not how many. Counting it too
+  // would divide the price twice.
+  const e = extraction([
+    line({
+      printed_text: "OG RED ONION 2.18",
+      name_printed: "OG RED ONION",
+      amount_printed: "2.18",
+      count: 4,
+      weight: { amount: 0.73, unit_printed: "lb", rate_printed: "2.99" },
+    }),
+  ]);
+  const p = assemble(e);
+  assertEquals(p.lines[0].count, 1);
+  assertEquals(p.lines[0].weight, {
+    amount: 0.73,
+    unit: "lb",
+    rate_cents: 299,
+  });
+});
+
+Deno.test("count — a fee charged in the totals block is one line with its count", () => {
+  // The bag charge prints no money on its own line; the figure is in the
+  // totals block ("Bag Fee: $0.05EA  $0.10"), and it is ONE fee line.
+  const e = extraction([
+    line({ printed_text: "A 3.49", amount_printed: "3.49" }),
+    line({
+      printed_text: "CARRY OUT BAG CHARGE FT",
+      name_printed: "CARRY OUT BAG CHARGE",
+      amount_printed: "0.10",
+      count: 2,
+      each_printed: "0.05",
+      kind: "fee",
+    }),
+  ], { subtotal_printed: "3.59" });
+  const p = assemble(e);
+  assertEquals(p.lines.length, 2);
+  assertEquals(p.lines[1].kind, "fee");
+  assertEquals(p.lines[1].cents, 10);
+  assertEquals(p.lines[1].count, 2);
+  assertEquals(p.lines_sum_cents, 359, "the fee counts toward the trip");
+  assertEquals(p.notes, []);
 });

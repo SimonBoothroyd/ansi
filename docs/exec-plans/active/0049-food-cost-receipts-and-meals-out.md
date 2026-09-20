@@ -492,6 +492,18 @@ and can run beside phase one.
   the seed regenerated from his household at 323 ingredients / 326 measures /
   157 aliases. The template guard allows nothing now: a fourth such phrase
   cannot be exported.
+- 2026-09-20 — **A count sub-row belongs to the line above it, and is not part
+  of the pack** (owner, on his first two real receipts). Both the Whole Foods
+  and the Trader Joe's strip print the count on its OWN line under the item —
+  `8 @ $2.99`, `Qty 4  $2.39 ea` — and the reader turned each one into a junk
+  line while the item above kept the whole figure against ONE pack: eight
+  blocks of tofu priced as one block. The sub-row now attaches (`count`,
+  `each_printed` on the wire; `receipt_line.count`, migration 0050), and the
+  price becomes `paid ÷ (count × pack_basis_amount)` in the one derivation
+  every reader goes through. The pack stays what ONE of them comes in and
+  carries to the next receipt; the count arrives fresh from the paper. A
+  by-weight sub-row (`Qty 0.73 lb @ $2.99/lb`) stays a weight — the UNIT
+  decides, never the word `Qty`.
 
 ## Notes / open questions
 

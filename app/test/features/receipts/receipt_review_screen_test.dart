@@ -398,6 +398,49 @@ void main() {
       expect(state.map.linesCents, before + 20, reason: 'the join moves too');
     });
 
+    testWidgets('how many the line rang up is a door of its own', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      tallSurface(tester);
+      await tester.pumpWidget(scanHost(overrides: receiptOverrides()));
+      await tester.pumpAndSettle();
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+      // The lemons line arrived counted, and flagged because three at 99¢ is
+      // not the $1.98 the paper printed. The COUNT door sits beside the PACK
+      // one, so the line is matched first.
+      await container
+          .read(receiptScanControllerProvider.notifier)
+          .matchLine(5, bananas);
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('from receipt:  TJ ORG LEMONS'));
+      await tester.pumpAndSettle();
+      expect(find.text('COUNT'), findsOneWidget);
+      expect(find.text('× 3'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('receipt-line-count-5')));
+      await tester.pumpAndSettle();
+      expect(find.text('3'), findsWidgets, reason: 'opens on what was read');
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(FDialog),
+          matching: find.byType(EditableText),
+        ),
+        '2',
+      );
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FButton, 'Use it'));
+      await tester.pumpAndSettle();
+
+      final state =
+          container.read(receiptScanControllerProvider) as ReceiptReviewing;
+      final line = state.drafts.firstWhere((d) => d.index == 5);
+      expect(line.count, 2);
+      // The count is not money: what the trip cost has not moved.
+      expect(line.cents, 198);
+    });
+
     testWidgets('what the reader could not read heads the screen', (
       tester,
     ) async {

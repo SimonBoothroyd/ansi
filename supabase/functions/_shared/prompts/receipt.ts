@@ -21,6 +21,11 @@
 // guess at our catalogue: it is the same characters with the money taken off,
 // and it is what keeps `TJ ORG BANANAS 3.49` from being trigram-compared
 // against a vocabulary with `3.49` still stuck to the end of it.
+//
+// The other thing it is asked to do is ATTACH: a count sub-row (`Qty 4 $2.39
+// ea`, `8 @ $2.99`) belongs to the item above it and never becomes a line of
+// its own, because eight blocks of tofu for $23.92 priced as one block is
+// eight times too dear and nothing downstream could tell.
 
 // -----------------------------------------------------------------------------
 // 1. Transcription (vision tier)
@@ -46,6 +51,12 @@ RULES — you are a transcriber, not an editor:
   numbers, the abbreviations and the punctuation exactly as printed —
   "TJ ORG BANANAS 3.49", not "Trader Joe's organic bananas, $3.49". Do not
   expand an abbreviation, do not correct a spelling, do not re-order a column.
+- A SUB-ROW under an item — "Qty 4 $2.39 ea", "8 @ $2.99", "Qty 0.73 lb @
+  $2.99/lb", "Qty 2" — is its own printed line and gets its own output line,
+  directly under the item it belongs to. Never fold it into the item's line
+  and never drop it: it is how the paper says how many, or how heavy.
+- Where a photo BEGINS with such a sub-row, transcribe it: it belongs to the
+  last item of the photo before, and the join puts the two back together.
 - Keep every line the receipt prints: the store's header and address, the date
   and time, item lines, weight and rate lines, discounts, subtotal, tax, total,
   and any fee or deposit. The only thing to leave out is the trailing
@@ -101,6 +112,22 @@ THE LINES — one object per printed line, in printed order, none dropped:
   but figures.
 - amount_printed: this line's own money figure, as printed ("3.49", "$3.49",
   "-0.55"). Keep the sign the paper printed. Never a figure you worked out.
+- count / each_printed — for a COUNT SUB-ROW printed directly under an item:
+  "Qty 4  $2.39 ea", "8 @ $2.99", "Qty 2". The sub-row belongs to the ITEM
+  ABOVE IT and NEVER becomes a line of its own.
+    { "count": 4, "each_printed": "2.39" }
+  count is the whole number of things bought, each_printed is the per-one
+  figure as printed (null when the sub-row printed none — "Qty 2" alone).
+  amount_printed stays the item line's own total, which already includes them
+  all. count is 1 on every line with no count sub-row under it, which is most
+  of them; it is never 0 and never a fraction.
+  A sub-row whose number carries a WEIGHT unit — "Qty 0.73 lb @ $2.99/lb",
+  "1.32 lb @ 1.99/lb" — is a weight, not a count: fill the weight field and
+  leave count at 1. The word "Qty" decides nothing; the UNIT does.
+  Where an item line prints NO money of its own and its sub-row is only a
+  count ("CARRY OUT BAG CHARGE  FT" / "Qty 2"), the charge is in the totals
+  block instead ("Bag Fee: $0.05EA  $0.10"). Give it ONE line, kind "fee",
+  with the totals block's figure as amount_printed and the sub-row's count.
 - kind — what the line IS, decided from its words:
     * "item" — food and drink. The default for anything a kitchen would use.
     * "not_food" — a thing the shop sold that is not food, and a charge that
@@ -124,8 +151,10 @@ THE LINES — one object per printed line, in printed order, none dropped:
     { "amount": 1.32, "unit_printed": "lb", "rate_printed": "1.99" }
   amount is the weight as a number, unit_printed is the unit AS PRINTED, and
   rate_printed is the per-unit price as printed. amount_printed stays the line's
-  own total ("2.63"). null on every line that is not sold by weight —
-  "2 @ 0.99 1.98" is a COUNT, not a weight, so its weight is null.
+  own total ("2.63"). The weight may be printed on the item line itself or on
+  the sub-row under it ("OG RED ONION $2.18 F" / "Qty 0.73 lb @ $2.99/lb") —
+  either way it is this item's weight. null on every line that is not sold by
+  weight — "2 @ 0.99 1.98" is a COUNT, not a weight, so its weight is null.
 - low_confidence: true when YOU doubt this line — it is cut off, faint,
   half-transcribed, or its figures do not look like figures. This is your own
   doubt about the reading, not a judgement about the item.
@@ -134,7 +163,13 @@ WHAT IS NOT A LINE:
 - the store's address, phone number, the cashier, the lane, "[account line]",
   the survey invitation and the advertising after the total;
 - a line that is only a weight and a rate belonging to the item above it — fold
-  it into that item's weight rather than giving it its own object.
+  it into that item's weight rather than giving it its own object;
+- a COUNT SUB-ROW ("Qty 4 $2.39 ea", "8 @ $2.99") — it folds into the item
+  above it as count and each_printed, one printed number in one place;
+- the totals block's own bookkeeping: "Subtotal", "Net Sales", "Sold Items",
+  "Items in Transaction", "Balance to pay", "Change", and every card, auth or
+  approval line. The subtotal, the tax and the total have their own fields;
+  the rest count nothing and are not lines.
 
 NOTES — what you could not read, in plain words a person can act on: a line
 whose price was illegible, a deduction you could not attach, a stretch where
@@ -176,6 +211,8 @@ const lineSchema = {
     "printed_text",
     "name_printed",
     "amount_printed",
+    "count",
+    "each_printed",
     "discount_printed",
     "kind",
     "weight",
@@ -185,6 +222,8 @@ const lineSchema = {
     printed_text: { type: "string" },
     name_printed: { type: "string" },
     amount_printed: { type: "string" },
+    count: { type: "integer", minimum: 1 },
+    each_printed: { type: ["string", "null"] },
     discount_printed: { type: ["string", "null"] },
     kind: { type: "string", enum: ["item", "not_food", "tax", "fee"] },
     weight: weightSchema,

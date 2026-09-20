@@ -86,6 +86,7 @@ class ReceiptLineDraft {
     required this.kind,
     this.lineId,
     this.namePrinted,
+    this.count = 1,
     this.discountCents = 0,
     this.weight,
     this.ingredientId,
@@ -118,6 +119,16 @@ class ReceiptLineDraft {
   /// [ReceiptLineOut.namePrinted].
   final String? namePrinted;
   final int cents;
+
+  /// How many of the thing this line rang up — the count printed on the
+  /// sub-row under it (`8 @ $2.99`), read off the paper and editable on the
+  /// card. One unless the paper said otherwise.
+  ///
+  /// [cents] already includes them all, so nothing the receipt adds up to
+  /// moves with it. What moves is the price: the cents bought
+  /// `count × packBasisAmount`, because the pack is what ONE of them comes in
+  /// and the count is a fact about this shop alone.
+  final int count;
   final int discountCents;
 
   /// What the line is NOW — a folded line reads [ReceiptKind.notFood].
@@ -202,6 +213,7 @@ class ReceiptLineDraft {
     printedText: printedText,
     namePrinted: namePrinted,
     cents: cents,
+    count: count,
     discountCents: discountCents,
     kind: kind,
     weight: weight,
@@ -222,6 +234,7 @@ class ReceiptLineDraft {
 
   ReceiptLineDraft copyWith({
     ReceiptKind? kind,
+    int? count,
     String? ingredientId,
     String? ingredientName,
     double? packBasisAmount,
@@ -240,6 +253,7 @@ class ReceiptLineDraft {
     printedText: printedText,
     namePrinted: namePrinted,
     cents: cents,
+    count: count ?? this.count,
     discountCents: discountCents,
     kind: kind ?? this.kind,
     weight: weight,
@@ -279,6 +293,7 @@ List<ReceiptLineDraft> initialReceiptDrafts(ReceiptPayload payload) => [
       printedText: line.printedText,
       namePrinted: line.namePrinted,
       cents: line.cents,
+      count: line.count,
       discountCents: line.discountCents,
       kind: line.kind,
       weight: line.weight,
@@ -425,6 +440,9 @@ bool isSameLineAgain(ReceiptLineDraft line, ReceiptLineDraft other) =>
     line.printedText.isNotEmpty &&
     other.printedText == line.printedText &&
     other.cents == line.cents &&
+    // A line that rang up four of the thing is not a line that rang up one,
+    // however alike the two print: an answer here would price the other wrong.
+    other.count == line.count &&
     other.discountCents == line.discountCents &&
     other.kind == line.kind &&
     other.ingredientId == line.ingredientId &&
@@ -650,28 +668,40 @@ String? foldedHeading(ReceiptReviewMap map) => map.foldedCount == 0
 String? taxHeading(ReceiptReviewMap map) =>
     map.taxCents == 0 ? null : 'Tax · ${formatMoney(map.taxCents)}';
 
-/// `bag (454 g) · 77¢ / 100 g` — what a priced card reads under the name.
+/// `8 × block (16 oz) · 33¢ / 100 g` — what a priced card reads under the
+/// name.
 ///
-/// The pack in the words it was said in, then the unit price it comes to. A
-/// line whose pack nobody has stated has nothing to say here and returns
-/// null; the card draws its flag instead.
+/// How many, then the pack in the words it was said in, then the unit price
+/// the two come to. A line whose pack nobody has stated has nothing to say
+/// here and returns null; the card draws its flag instead.
 String? packAndUnitPrice(ReceiptLineDraft draft, {required MacrosBasis basis}) {
   final pack = draft.packBasisAmount;
   if (pack == null || !(pack > 0)) return null;
   final per100 = pricePer100(
     paidCents: draft.paidCents,
     packBasisAmount: pack,
+    count: draft.count,
     basis: basis,
   );
   final words = packWords(draft, basis: basis);
+  final said = words == null ? null : '${countPrefix(draft)}$words';
   return switch (per100) {
     Ok(:final value) =>
-      words == null
+      said == null
           ? formatPricePer100(value)
-          : '$words · ${formatPricePer100(value)}',
-    Err() => words,
+          : '$said · ${formatPricePer100(value)}',
+    Err() => said,
   };
 }
+
+/// `8 × ` before the pack, and nothing at all on the ordinary line that rang
+/// up one of the thing. It is [countTimes] — the same spelling the ingredient
+/// page restates a price with, so the two never drift.
+String countPrefix(ReceiptLineDraft draft) => countTimes(draft.count);
+
+/// `× 8` — the COUNT chip's own label, beside the PACK chip on the open card.
+/// It is drawn whatever the count is: the chip is the door to change it.
+String countChipLabel(int count) => '× ${formatAmount(count.toDouble())}';
 
 /// `bag (454 g)`, `1.32 lb`, `482 g` — the pack as the person or the paper
 /// said it.

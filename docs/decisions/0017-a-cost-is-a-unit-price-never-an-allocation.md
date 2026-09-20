@@ -45,8 +45,10 @@ a receipt to a meal.**
 
 1. **The price is the latest one paid, per unit of the row's basis.** A price
    is a `receipt_line` with a stated pack; the figure `77¢ / 100 g` is derived
-   from it at read time and never stored. Latest wins — no average, no sale
-   flag, no forecast (a shop's own decision log entry for 0049).
+   from it at read time and never stored — `paid ÷ (count × pack_basis_amount)`,
+   because a line may ring up several of the pack and the pack is what ONE of
+   them comes in (migration 0050). Latest wins — no average, no sale flag, no
+   forecast (a shop's own decision log entry for 0049).
 
 2. **A recipe costs its lines.** Each line's amount is converted to the
    ingredient's basis unit through **the same conversion the macros use**

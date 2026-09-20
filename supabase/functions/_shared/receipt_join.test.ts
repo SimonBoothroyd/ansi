@@ -141,3 +141,22 @@ Deno.test("join — blank lines are dropped, trailing space never counted", () =
   assertEquals(overlapLength([], ["A"]), 0);
   assertEquals(overlapLength(["A"], []), 0);
 });
+
+Deno.test("join — a count sub-row at the top of a photo stays with its item", () => {
+  // The owner's receipts print the count UNDER the item, so a seam can fall
+  // between them. The join is positional and puts the two back in order — the
+  // structuring call then sees the pair, and never a stray "8 @ $2.99".
+  const t = joinPhotoTranscripts([
+    strip("LIME EACH  $1.96", "TOFU SPR FRM HGH PRTN OR  $23.92"),
+    strip("TOFU SPR FRM HGH PRTN OR  $23.92", "8 @ $2.99", "TAX  $0.11"),
+  ]);
+  assertEquals(t.lines, [
+    "LIME EACH  $1.96",
+    "TOFU SPR FRM HGH PRTN OR  $23.92",
+    "8 @ $2.99",
+    "TAX  $0.11",
+  ]);
+  assertEquals(t.seams, [{ from: 0, to: 1, overlap_lines: 1 }]);
+  // The sub-row follows the item it belongs to, and nothing was split.
+  assertEquals(t.lines[2], "8 @ $2.99");
+});

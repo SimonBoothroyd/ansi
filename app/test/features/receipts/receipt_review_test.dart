@@ -46,6 +46,7 @@ ReceiptPayload sample([String? json]) => ReceiptPayload.fromJson(
 ReceiptLineDraft item({
   int index = 0,
   int cents = 349,
+  int count = 1,
   int discountCents = 0,
   String? ingredientId,
   double? pack,
@@ -58,6 +59,7 @@ ReceiptLineDraft item({
   printedText: 'TJ ORG BANANAS  3.49',
   namePrinted: namePrinted,
   cents: cents,
+  count: count,
   discountCents: discountCents,
   kind: kind,
   weight: weight,
@@ -430,6 +432,7 @@ void main() {
       required int index,
       String printed = 'TJ ORG TOFU FIRM  2.49',
       int cents = 249,
+      int count = 1,
       int discountCents = 0,
       String? ingredientId,
       double? pack,
@@ -441,6 +444,7 @@ void main() {
       index: index,
       printedText: printed,
       cents: cents,
+      count: count,
       discountCents: discountCents,
       kind: kind,
       weight: weight,
@@ -547,6 +551,26 @@ void main() {
       ];
       expect(linesAnsweredWith(drafts, 0), {0});
       expect(sameLineAgainNote(drafts, 0), isNull);
+    });
+
+    test('two lines that rang up different counts are not twins', () {
+      // The same words at the same figure, one of them four times over: a
+      // pack said on one is not a fact about the other, and an answer that
+      // reached across would price one of them wrong.
+      final drafts = [
+        tofu(index: 0, printed: 'LIME EACH  1.96', cents: 196, count: 4),
+        tofu(index: 1, printed: 'LIME EACH  1.96', cents: 196),
+      ];
+      expect(linesAnsweredWith(drafts, 0), {0});
+      expect(linesAnsweredWith(drafts, 1), {1});
+      expect(sameLineAgainNote(drafts, 0), isNull);
+
+      // The same count on both, and they are one answer again.
+      final same = [
+        tofu(index: 0, printed: 'LIME EACH  1.96', cents: 196, count: 4),
+        tofu(index: 1, printed: 'LIME EACH  1.96', cents: 196, count: 4),
+      ];
+      expect(linesAnsweredWith(same, 0), {0, 1});
     });
 
     test('a line the reader read no words off is nobody’s twin', () {
@@ -837,6 +861,36 @@ void main() {
     test('a deduction is named on the line it was taken off', () {
       expect(discountWords(item(cents: 604, discountCents: 55)), '−55¢ off');
       expect(discountWords(item()), isNull);
+    });
+
+    test('a counted line says how many, and prices ALL of them', () {
+      // The owner's tofu: eight 1 lb blocks for $23.92. Against one block it
+      // would read \$5.27 / 100 g — eight times too dear.
+      final draft = item(
+        cents: 2392,
+        count: 8,
+        ingredientId: 'vocab-banana',
+        pack: 453.59237,
+      ).copyWith(packAmount: 1, packUnit: lb);
+      expect(
+        packAndUnitPrice(draft, basis: MacrosBasis.perG),
+        '8 × 1 lb · 66¢ / 100 g',
+      );
+      expect(countChipLabel(draft.count), '× 8');
+    });
+
+    test('a line that rang up once says nothing about how many', () {
+      final draft = item(
+        ingredientId: 'vocab-banana',
+        pack: 454,
+      ).copyWith(packAmount: 1, packUnit: lb);
+      expect(countPrefix(draft), '');
+      expect(
+        packAndUnitPrice(draft, basis: MacrosBasis.perG),
+        '1 lb · 77¢ / 100 g',
+      );
+      // The chip is still drawn — it is the door to change it.
+      expect(countChipLabel(draft.count), '× 1');
     });
 
     test('a line with no pack has no chain to print', () {

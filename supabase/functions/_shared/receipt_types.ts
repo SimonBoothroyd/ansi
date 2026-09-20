@@ -82,6 +82,27 @@ export interface ReceiptLineOut {
   /** The printed figure for this line, in cents. Positive; a `fee` may be negative. */
   cents: number;
   /**
+   * How many of this thing the line rang up — the count printed on the
+   * sub-row UNDER it (`Qty 4 $2.39 ea`, `8 @ $2.99`). One unless the paper
+   * said otherwise, and never less.
+   *
+   * `cents` already includes it: the till printed the line's whole figure.
+   * What the count is for is the PRICE — eight blocks of tofu for $23.92 is
+   * the price of eight blocks, and dividing it by one pack would make each
+   * block cost eight times what it did.
+   */
+  count: number;
+  /**
+   * The per-one figure printed beside the count ("$2.39 ea", "@ $2.99"), in
+   * cents — kept because the paper printed it, and it is what the check
+   * below is run against. Null where the sub-row printed no rate.
+   *
+   * Nothing is derived from it: what was paid is `cents`, and a line whose
+   * `count × each_cents` disagrees with `cents` keeps the printed line total
+   * and arrives `low_confidence` with a note.
+   */
+  each_cents: number | null;
+  /**
    * The deduction printed directly under this item, folded in here and kept
    * BESIDE `cents` rather than subtracted into it (0044): both printed figures
    * survive. Non-negative — a discount is stated as the amount taken away.
@@ -169,6 +190,14 @@ export interface ExtractedLine {
   name_printed: string;
   /** The line's own money figure, as printed ("3.49", "$3.49", "−0.55"). */
   amount_printed: string;
+  /**
+   * How many of the thing the count sub-row under this item said — `Qty 4`,
+   * `8 @ $2.99`. 1 when the paper printed no count, which is most lines.
+   * A by-weight sub-row is a WEIGHT and never this.
+   */
+  count: number;
+  /** The per-one figure printed on that sub-row ("2.39", "$2.99"); null when there is none. */
+  each_printed: string | null;
   /** A deduction printed directly UNDER this item, as printed; null when there is none. */
   discount_printed: string | null;
   kind: ReceiptLineKind;

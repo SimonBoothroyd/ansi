@@ -30,6 +30,8 @@ const WIRE = {
       printed_text: "TJ ORG BANANAS 3.49",
       name_printed: "TJ ORG BANANAS",
       amount_printed: "3.49",
+      count: 1,
+      each_printed: null,
       discount_printed: null,
       kind: "item",
       weight: null,
@@ -39,6 +41,8 @@ const WIRE = {
       printed_text: "YELLOW ONIONS 1.32 lb @ 1.99/lb 2.63",
       name_printed: "YELLOW ONIONS",
       amount_printed: "2.63",
+      count: 1,
+      each_printed: null,
       discount_printed: null,
       kind: "item",
       weight: { amount: 1.32, unit_printed: "lb", rate_printed: "1.99" },
@@ -48,6 +52,8 @@ const WIRE = {
       printed_text: "BAG FEE 0.10",
       name_printed: "BAG FEE",
       amount_printed: "0.10",
+      count: 2,
+      each_printed: "0.05",
       discount_printed: null,
       kind: "not_food",
       weight: null,
@@ -197,4 +203,40 @@ Deno.test("validation — a receipt with no lines is a failure, not an empty rev
   }));
   assertEquals(thin.store_printed, null);
   assertEquals(thin.subtotal_printed, null);
+});
+
+Deno.test("count — read as printed where it is a whole number of things", () => {
+  const r = coerceReceiptExtraction({
+    lines: [{
+      printed_text: "TOFU 23.92",
+      amount_printed: "23.92",
+      count: 8,
+      each_printed: "$2.99",
+    }],
+  });
+  assertEquals(r.lines[0].count, 8);
+  assertEquals(r.lines[0].each_printed, "$2.99");
+  assertEquals(r.lines[0].low_confidence, false);
+});
+
+Deno.test("count — a count nobody can divide by reads as one, and flags the line", () => {
+  // A fraction, a zero, a negative, a figure no till prints, and a word. The
+  // count is a DIVISOR now, so an unusable one must be seen rather than used.
+  for (const bad of [2.5, 0, -3, 1000, "four", null]) {
+    const r = coerceReceiptExtraction({
+      lines: [{ printed_text: "A 1.00", amount_printed: "1.00", count: bad }],
+    });
+    assertEquals(r.lines[0].count, 1, `${bad}`);
+    // An ABSENT count is not a coercion: most lines print none.
+    assertEquals(r.lines[0].low_confidence, bad !== null, `${bad}`);
+  }
+});
+
+Deno.test("count — a missing one is one, quietly", () => {
+  const r = coerceReceiptExtraction({
+    lines: [{ printed_text: "A 1.00", amount_printed: "1.00" }],
+  });
+  assertEquals(r.lines[0].count, 1);
+  assertEquals(r.lines[0].each_printed, null);
+  assertEquals(r.lines[0].low_confidence, false);
 });

@@ -21,6 +21,13 @@
 /// last month's $3.49 bought last month's bag. Re-deriving the basis figure
 /// from the words would silently re-price a shop that has already happened.
 ///
+/// **The count is not part of the pack.** A receipt line that rang up eight
+/// blocks of tofu for $23.92 says how many on a sub-row of its own, and the
+/// pack stays what ONE block is. So what the cents bought is
+/// `count × packBasisAmount` — one derivation, [pricePer100], which takes the
+/// count as a required argument so that no reader can forget it. The pack
+/// carries to the next receipt; the count arrives fresh from the paper.
+///
 /// **The honesty gate is at entry, and it refuses rather than guesses**
 /// (invariant 3). A pack is stored in the row's basis unit — grams on a
 /// per-100 g row, millilitres on a per-100 ml one — so a person who buys
@@ -37,6 +44,7 @@ import '../../../core/money.dart';
 import '../../../core/result/result.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
+import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import 'allowed_units.dart';
 import 'ingredient.dart';
@@ -174,6 +182,7 @@ class ReceiptLine {
     required this.kind,
     this.ingredientId,
     this.printedText,
+    this.count = 1,
     this.discountCents = 0,
     this.packBasisAmount,
     this.packAmount,
@@ -197,6 +206,15 @@ class ReceiptLine {
   /// What the line rang up as, as printed. A [ReceiptLineKind.fee] may be
   /// negative — an unattached discount kept as its own line.
   final int cents;
+
+  /// How many of the thing this line rang up — the count printed on the
+  /// sub-row under it (`8 @ $2.99`), 1 unless the paper said otherwise, and
+  /// only ever more on an [ReceiptLineKind.item] line (migration 0050).
+  ///
+  /// [cents] already includes them all, so nothing about what the trip cost
+  /// changes. What it changes is the PRICE: what the cents bought is
+  /// `count × packBasisAmount`, because the pack is what ONE of them comes in.
+  final int count;
 
   /// The deduction printed under the item, kept beside [cents] rather than
   /// subtracted into it, so both printed figures survive. What was **paid** is
@@ -253,6 +271,7 @@ class PriceObservation {
     required this.basis,
     required this.store,
     required this.purchasedAt,
+    this.count = 1,
     this.source = ReceiptSource.photo,
     this.discountCents = 0,
     this.packAmount,
@@ -268,9 +287,15 @@ class PriceObservation {
   final int cents;
   final int discountCents;
 
-  /// What the cents bought, in [basis]'s own unit. Positive, or the row would
-  /// not be an observation: [observationFrom] refuses to build one otherwise.
+  /// What ONE pack is, in [basis]'s own unit. Positive, or the row would not
+  /// be an observation: [observationFrom] refuses to build one otherwise.
   final double packBasisAmount;
+
+  /// How many packs the cents bought — see [ReceiptLine.count]. It multiplies
+  /// [packBasisAmount] in [per100] and nowhere else, and it is never carried
+  /// to another receipt: the pack carries, the count arrives fresh from the
+  /// paper.
+  final int count;
 
   /// The ingredient's basis at the time this was read — the dimension both
   /// [packBasisAmount] and the derived figure are denominated in.
@@ -317,6 +342,7 @@ class PriceObservation {
   Result<PricePer100> get per100 => pricePer100(
     paidCents: paidCents,
     packBasisAmount: packBasisAmount,
+    count: count,
     basis: basis,
   );
 }
@@ -368,14 +394,22 @@ class PricePer100 {
   String toString() => 'PricePer100($cents¢ /100 ${basis.dbValue})';
 }
 
-/// What [paidCents] for [packBasisAmount] of [basis] comes to per 100 of it.
+/// What [paidCents] for [count] packs of [packBasisAmount] of [basis] comes to
+/// per 100 of it.
+///
+/// **This is THE derivation** — every price in the app is read through it, and
+/// [count] is a required argument for exactly that reason: a receipt line that
+/// rang up eight blocks of tofu for $23.92 is the price of eight blocks, and a
+/// reader that forgot to say so would price each one at eight times what it
+/// cost. A pack is what ONE of them comes in ([packBasisAmount]); how many
+/// were bought is a fact about one shop. A hand-typed price passes 1.
 ///
 /// Two refusals, and no third (invariant 3 — a refusal beats a number nobody
 /// can stand behind):
 ///
-/// - `price/no_pack` when the pack is not a positive finite amount. Dividing
-///   by it would fabricate an infinity, and a pack of nothing would price
-///   everything at once.
+/// - `price/no_pack` when what the cents bought is not a positive finite
+///   amount — a pack of nothing, or a count of none. Dividing by it would
+///   fabricate an infinity, and would price everything at once.
 /// - `price/nothing_paid` when nothing was paid. A zero is not a discovery
 ///   that the food is free — it is a line somebody has not finished — and a
 ///   recipe reading `$0.00` for it would state a cost the receipt never
@@ -383,10 +417,12 @@ class PricePer100 {
 Result<PricePer100> pricePer100({
   required int paidCents,
   required double packBasisAmount,
+  required int count,
   required MacrosBasis basis,
 }) {
+  final bought = packBasisAmount * count;
   // `!(x > 0)` (rather than `x <= 0`) also catches NaN.
-  if (!(packBasisAmount > 0) || !packBasisAmount.isFinite) {
+  if (count < 1 || !(bought > 0) || !bought.isFinite) {
     return const Err(
       Failure('price/no_pack', 'a price needs to say what the cents bought'),
     );
@@ -399,12 +435,21 @@ Result<PricePer100> pricePer100({
       ),
     );
   }
-  return Ok(PricePer100(paidCents * 100 / packBasisAmount, basis));
+  return Ok(PricePer100(paidCents * 100 / bought, basis));
 }
 
 /// `77¢ / 100 g` — the one figure the whole app reads a price as.
 String formatPricePer100(PricePer100 price) =>
     '${formatMoneyRounded(price.cents)} / 100 ${price.basis.dbValue}';
+
+/// `8 × ` in front of a pack the line rang up more than one of, and nothing
+/// at all for the ordinary one — a `1 × ` everywhere would be noise.
+///
+/// It is the house spelling of a count, shared by the receipt card and the
+/// ingredient page, so `$23.92 for 8 × block (16 oz)` reads back to the
+/// figure beside it wherever a price is restated.
+String countTimes(int count) =>
+    count > 1 ? '${formatAmount(count.toDouble())} × ' : '';
 
 /// The pack a person typed — [amount] of [choice] — resolved into
 /// [ingredient]'s basis unit, which is the only denomination a pack is stored
@@ -469,11 +514,15 @@ Result<double> packInBasis(
 /// The two halves are [packInBasis] (the density gate) and [pricePer100] (the
 /// arithmetic), in that order, so the refusal a person sees is the first thing
 /// that was actually wrong.
+///
+/// [count] is how many of that pack the money bought — one, on the hand-typed
+/// price door, and whatever the receipt's sub-row said on a receipt line.
 Result<PricePer100> priceFromEntry(
   Ingredient ingredient, {
   required int paidCents,
   required double packAmount,
   required UnitChoice packChoice,
+  int count = 1,
 }) {
   final pack = packInBasis(ingredient, amount: packAmount, choice: packChoice);
   return switch (pack) {
@@ -481,6 +530,7 @@ Result<PricePer100> priceFromEntry(
     Ok(:final value) => pricePer100(
       paidCents: paidCents,
       packBasisAmount: value,
+      count: count,
       basis: ingredient.macrosBasis,
     ),
   };
@@ -554,6 +604,7 @@ PriceObservation? observationFrom(
     cents: line.cents,
     discountCents: line.discountCents,
     packBasisAmount: pack,
+    count: line.count,
     basis: basis,
     store: receipt.store,
     purchasedAt: receipt.purchasedAt,

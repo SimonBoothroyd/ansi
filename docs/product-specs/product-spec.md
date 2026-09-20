@@ -841,8 +841,9 @@ One ledger, and every money figure in the app is derived from it at read time
   page, one line, no photo) or `photo`, so a typed price and a scanned one are
   **the same fact read the same way** — there is no separate price table.
 - `receipt_line: id · receipt_id · printed_text · name_printed · cents ·
-  discount_cents · kind · ingredient_id · pack_basis_amount · pack_amount ·
-  pack_unit · measure_id` ← one row of the strip, and the app's **price fact**
+  count · discount_cents · kind · ingredient_id · pack_basis_amount ·
+  pack_amount · pack_unit · measure_id` ← one row of the strip, and the app's
+  **price fact**
   when it is an `item` naming an ingredient and stating a pack. `kind` is
   `item` · `not_food` · `tax` · `fee`, and only an item line may carry an
   ingredient or a pack (a constraint, not a convention). `name_printed` is the
@@ -857,6 +858,13 @@ One ledger, and every money figure in the app is derived from it at read time
   null, `pack_amount` is the count of it and `measure_id` carries the word.
   The two must be able to disagree: a household that re-weighs its `bag` is
   saying what a bag is today, and last month's $3.49 bought last month's bag.
+- **The count is not part of the pack.** Both of the household's shops print
+  how many on a sub-row UNDER the item (`8 @ $2.99`), and that sub-row
+  attaches to the line rather than becoming one: `count` (≥ 1, only ever more
+  than one on an item line). `cents` already includes them all, so nothing the
+  receipt adds up to moves — what moves is the price, which divides by
+  `count × pack_basis_amount`. The pack is what ONE of them comes in and
+  carries to the next receipt; the count arrives fresh from the paper.
 - **`ingredient_id` is the household's answer, not the vocabulary's.** It is
   set in review, and the same column is what a later receipt's match memory
   reads back — a `SELECT` over this household's own lines, per
@@ -1405,6 +1413,10 @@ and a printed weight or rate where there was one.
   printed rate; one with no printed weight opens on the pack its own printed
   words were last bought in. *Keep as a measure* mints a measure the household
   can also say on a recipe line — the pack carries over either way.
+- **How many is the paper's, and is a door.** A count printed on the sub-row
+  under an item rides on that line — `$23.92 · Tofu · 8 × block (16 oz) ·
+  33¢ / 100 g` — and the COUNT chip beside PACK corrects it. It never rides to
+  a twin, because a line that rang up four is not a line that rang up one.
 - **A figure nobody could read holds Save**, loudly: it is not a free line.
 - **One answer answers every line that is that line again.** Six identical
   tubs print six identical lines; the match, the pack, *Not food* and *it is

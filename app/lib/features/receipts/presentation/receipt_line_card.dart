@@ -2,11 +2,12 @@
 /// carrying **money where a recipe line carries an amount**.
 ///
 /// Collapsed, a settled line is one sentence with the sum first: `$3.49 ·
-/// Bananas, organic · bag (454 g) · 77¢ / 100 g`. The note under the name is
-/// the pack and what the two come to per basis, which is the whole chain a
-/// reader needs to check the figure. A discount printed under the item is
-/// folded into that sum and shown as a deduction on the same line, because
-/// what you paid is the price.
+/// Bananas, organic · bag (454 g) · 77¢ / 100 g`, and `$23.92 · Tofu · 8 ×
+/// block (16 oz) · 33¢ / 100 g` where the paper's sub-row said how many. The
+/// note under the name is how many, the pack, and what they come to per
+/// basis, which is the whole chain a reader needs to check the figure. A
+/// discount printed under the item is folded into that sum and shown as a
+/// deduction on the same line, because what you paid is the price.
 ///
 /// Two flags a recipe line never raises, each with its own door:
 ///
@@ -300,6 +301,20 @@ class _Expanded extends ConsumerWidget {
               onTap: () => _setPack(context, draft, row!),
             ),
           ),
+          const SizedBox(height: 8),
+          // Beside the pack, because the two answer one question together:
+          // the pack is what ONE of them comes in, and this is how many. The
+          // count is the paper's, so it is a correction like the figure above
+          // and never rides to the line's twins.
+          LineCardRow(
+            label: 'COUNT',
+            child: LineCardAmountChip(
+              key: ValueKey('receipt-line-count-${draft.index}'),
+              label: countChipLabel(draft.count),
+              semanticsLabel: 'How many',
+              onTap: () => _setCount(context, draft),
+            ),
+          ),
           if (draft.keepAsMeasure case final word?)
             Padding(
               padding: const EdgeInsets.only(top: 6),
@@ -355,6 +370,24 @@ class _Expanded extends ConsumerWidget {
         .setCents(draft.index, cents);
   }
 
+  /// The count door — the same small prompt the money door uses, because it
+  /// is the same act: one number read off the paper.
+  Future<void> _setCount(BuildContext context, ReceiptLineDraft draft) async {
+    final container = ProviderScope.containerOf(context, listen: false);
+    final typed = await promptForText(
+      context,
+      title: 'How many of this rang up?',
+      hint: 'e.g. 8',
+      confirm: 'Use it',
+      initial: '${draft.count}',
+    );
+    final count = typed == null ? null : int.tryParse(typed.trim());
+    if (count == null || count < 1) return;
+    container
+        .read(receiptScanControllerProvider.notifier)
+        .setCount(draft.index, count);
+  }
+
   Future<void> _setPack(
     BuildContext context,
     ReceiptLineDraft draft,
@@ -368,6 +401,7 @@ class _Expanded extends ConsumerWidget {
       context,
       ingredient: row,
       paidCents: draft.paidCents,
+      count: draft.count,
       amount: draft.packAmount,
       choice: _choiceOf(draft, measures),
       pendingMeasures: reviewing == null

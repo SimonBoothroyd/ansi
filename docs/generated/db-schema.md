@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (50 migrations, 23 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (51 migrations, 23 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -403,8 +403,9 @@ introduced in `0044_receipts.sql` · RLS enabled · in the `powersync` publicati
 | `pack_amount` | `numeric` | yes | check (pack_amount > 0) *(added in `0046_receipt_line_pack_as_entered.sql`)* |
 | `pack_unit` | `text` | yes | *(added in `0046_receipt_line_pack_as_entered.sql`)* |
 | `name_printed` | `text` | yes | *(added in `0047_receipt_line_name_printed.sql`)* |
+| `count` | `integer` | no | not null default 1 check (count >= 1) *(added in `0050_receipt_line_count.sql`)* |
 
-Table constraints: `constraint receipt_line_only_items_are_priced check ( kind = 'item' or (ingredient_id is null and pack_basis_amount is null and measure_id is null) )`; `constraint receipt_line_only_items_state_a_pack check ( kind = 'item' or (pack_amount is null and pack_unit is null) )`; `constraint receipt_line_a_pack_unit_needs_an_amount check ( pack_unit is null or pack_amount is not null )`
+Table constraints: `constraint receipt_line_only_items_are_priced check ( kind = 'item' or (ingredient_id is null and pack_basis_amount is null and measure_id is null) )`; `constraint receipt_line_only_items_state_a_pack check ( kind = 'item' or (pack_amount is null and pack_unit is null) )`; `constraint receipt_line_a_pack_unit_needs_an_amount check ( pack_unit is null or pack_amount is not null )`; `constraint receipt_line_only_items_are_counted check ( kind = 'item' or count = 1 )`
 
 ## `recipe_measure`
 

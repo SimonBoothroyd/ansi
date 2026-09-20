@@ -42,6 +42,9 @@ class SqlitePriceRepository implements PriceRepository {
           printedText: r['printed_text'] as String?,
           cents: (r['cents'] as num).toInt(),
           discountCents: (r['discount_cents'] as num?)?.toInt() ?? 0,
+          // A row synced before the column reads as one of the thing, which
+          // is what it meant when it was written.
+          count: (r['count'] as num?)?.toInt() ?? 1,
           kind: ReceiptLineKind.fromDb(r['kind'] as String?),
           packBasisAmount: (r['pack_basis_amount'] as num?)?.toDouble(),
           packAmount: (r['pack_amount'] as num?)?.toDouble(),
@@ -76,7 +79,7 @@ class SqlitePriceRepository implements PriceRepository {
     return _db
         .watch(
           'SELECT l.id, l.receipt_id, l.ingredient_id, l.printed_text, '
-          'l.cents, l.discount_cents, l.kind, l.pack_basis_amount, '
+          'l.cents, l.discount_cents, l.count, l.kind, l.pack_basis_amount, '
           'l.pack_amount, l.pack_unit, l.measure_id, l.sort_order, '
           'r.store, r.purchased_at, r.source, '
           'i.macros_basis, m.label AS measure_label '
@@ -106,7 +109,7 @@ class SqlitePriceRepository implements PriceRepository {
     return _db
         .watch(
           'SELECT l.id, l.receipt_id, l.ingredient_id, l.printed_text, '
-          'l.cents, l.discount_cents, l.kind, l.pack_basis_amount, '
+          'l.cents, l.discount_cents, l.count, l.kind, l.pack_basis_amount, '
           'l.pack_amount, l.pack_unit, l.measure_id, l.sort_order, '
           'r.store, r.purchased_at, r.source, '
           'i.macros_basis, m.label AS measure_label '
@@ -234,7 +237,7 @@ class SqlitePriceRepository implements PriceRepository {
     final marks = List.filled(keys.length, '?').join(', ');
     final rows = await _db.getAll(
       'SELECT l.id, l.receipt_id, l.ingredient_id, l.printed_text, '
-      'l.name_printed, l.cents, l.discount_cents, l.kind, '
+      'l.name_printed, l.cents, l.discount_cents, l.count, l.kind, '
       'l.pack_basis_amount, l.pack_amount, l.pack_unit, l.measure_id, '
       'l.sort_order, r.store, r.purchased_at, r.source, '
       'i.macros_basis, m.label AS measure_label '
@@ -312,10 +315,10 @@ class SqlitePriceRepository implements PriceRepository {
       );
       await tx.execute(
         'INSERT INTO receipt_line (id, household_id, receipt_id, '
-        'ingredient_id, cents, discount_cents, kind, pack_basis_amount, '
-        'pack_amount, pack_unit, measure_id, sort_order, created_at, '
-        'updated_at) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'ingredient_id, cents, discount_cents, count, kind, '
+        'pack_basis_amount, pack_amount, pack_unit, measure_id, sort_order, '
+        'created_at, updated_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           lineId,
           _householdId,
@@ -323,6 +326,10 @@ class SqlitePriceRepository implements PriceRepository {
           ingredientId,
           cents,
           0,
+          // A typed price is one pack for the money typed. Written out rather
+          // than left to the column's default: the local table is a view, and
+          // a null here would not survive the upload.
+          1,
           'item',
           packBasisAmount,
           packAmount,
@@ -517,7 +524,7 @@ Future<Map<String, PriceObservation>> loadLatestPrices(
 ) async => SqlitePriceRepository.latestByIngredient(
   await db.getAll(
     'SELECT l.id, l.receipt_id, l.ingredient_id, l.printed_text, '
-    'l.cents, l.discount_cents, l.kind, l.pack_basis_amount, '
+    'l.cents, l.discount_cents, l.count, l.kind, l.pack_basis_amount, '
     'l.pack_amount, l.pack_unit, l.measure_id, l.sort_order, '
     'r.store, r.purchased_at, r.source, '
     'i.macros_basis, m.label AS measure_label '

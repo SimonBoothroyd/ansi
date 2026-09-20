@@ -10,9 +10,12 @@
 --     (`pack_amount` with `pack_unit`, or a count of a measure) beside the
 --     basis figure the price is derived from, and the two are allowed to
 --     disagree;
---   * the FENCE — only a food line can be about an ingredient or carry a
---     pack, in either denomination. A tax line with a pack weight would be a
---     price nobody can read;
+--   * the FENCE — only a food line can be about an ingredient, carry a pack
+--     in either denomination, or be counted. A tax line with a pack weight
+--     would be a price nobody can read;
+--   * the COUNT — how many of the thing the line rang up (0050), defaulting to
+--     one on every row written before it, kept apart from the pack, and part
+--     of the divisor the price is read through;
 --   * the LEDGER — a hand-typed price really is a one-line `manual` receipt,
 --     so the derivation a screen reads is the same arithmetic over a scanned
 --     line and a typed one;
@@ -26,7 +29,7 @@
 -- `rls_household_isolation.sql`. Run by `supabase test db`.
 
 begin;
-select plan(30);
+select plan(36);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures: one household, a duplicate vocab pair (so the twin leg has a twin
@@ -169,6 +172,58 @@ select throws_ok(
              88,'tax',1,'lb') $$,
   '23514', null,
   'a tax line states no pack in any denomination'
+);
+
+-- ---------------------------------------------------------------------------
+-- 1c · How many of the thing rang up (0050).
+-- ---------------------------------------------------------------------------
+--
+-- The count is NOT part of the pack: the pack is what one of them comes in and
+-- carries between shops, and the count arrives fresh from the paper.
+
+select col_not_null('public', 'receipt_line', 'count',
+  'every line says how many of the thing rang up');
+
+select is(
+  (select l.count from receipt_line l
+    where l.id = 'aaaaaaaa-0000-0000-0000-000000000591'),
+  1,
+  'a line written without one rang up one thing'
+);
+
+select lives_ok(
+  $$ insert into receipt_line (id, household_id, receipt_id, ingredient_id, cents, kind,
+                               count, pack_basis_amount, pack_amount, pack_unit)
+     values ('aaaaaaaa-0000-0000-0000-000000000593','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+             'aaaaaaaa-0000-0000-0000-000000000501','aaaaaaaa-0000-0000-0000-000000000401',
+             2392,'item',8,453.59237,1,'lb') $$,
+  'eight blocks on one line, each still one pound'
+);
+
+select throws_ok(
+  $$ insert into receipt_line (household_id, receipt_id, ingredient_id, cents, kind, count)
+     values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000501',
+             'aaaaaaaa-0000-0000-0000-000000000401',349,'item',0) $$,
+  '23514', null,
+  'a line that rang up none of the thing is refused — it would divide by nothing'
+);
+
+select throws_ok(
+  $$ insert into receipt_line (household_id, receipt_id, cents, kind, count)
+     values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000501',
+             10,'fee',2) $$,
+  '23514', null,
+  'only a food line is counted — a fee prices nothing to divide'
+);
+
+-- The derivation the app reads, in SQL: $23.92 for EIGHT one-pound blocks is
+-- 65.9…¢ per 100 g, not the 527¢ the same line priced against one pack.
+select is(
+  (select round((l.cents - l.discount_cents) * 100.0
+                / (l.count * l.pack_basis_amount), 1)
+     from receipt_line l where l.id = 'aaaaaaaa-0000-0000-0000-000000000593'),
+  65.9::numeric,
+  '$23.92 for 8 × 1 lb is 66¢ / 100 g'
 );
 
 -- ---------------------------------------------------------------------------

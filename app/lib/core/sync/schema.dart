@@ -237,6 +237,11 @@ const schema = Schema([
     Column.text('name_printed'),
     Column.integer('cents'), // paid, after the discount; a fee may be negative
     Column.integer('discount_cents'),
+    // How many of the thing this line rang up — the count printed on the
+    // sub-row under it ("8 @ $2.99"). 1 unless the paper said otherwise, and
+    // only ever more on an item line. `cents` already includes them all; the
+    // count is what a price DIVIDES by, beside the pack (0050).
+    Column.integer('count'),
     Column.text('kind'), // 'item' | 'not_food' | 'tax' | 'fee'
     // What the cents bought, in the INGREDIENT's basis unit (g or ml) — the
     // same denomination `ingredient_measure.basis_amount` uses. Null where

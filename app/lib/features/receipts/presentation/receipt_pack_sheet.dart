@@ -48,11 +48,13 @@ typedef ReceiptPackAnswer = ({
 ///
 /// [paidCents] is what the paper said the line cost — it is not editable
 /// here, because a receipt's figures are the receipt's; this sheet asks only
-/// what they bought, and prints what the two come to.
+/// what they bought, and prints what the two come to. [count] is how many of
+/// that pack the line rang up, so the derived line reads the price of ONE.
 Future<ReceiptPackAnswer?> showReceiptPackSheet(
   BuildContext context, {
   required Ingredient ingredient,
   required int paidCents,
+  int count = 1,
   double? amount,
   UnitChoice? choice,
   List<Measure> pendingMeasures = const [],
@@ -62,6 +64,7 @@ Future<ReceiptPackAnswer?> showReceiptPackSheet(
     builder: (sheetContext) => ReceiptPackEditor(
       ingredient: ingredient,
       paidCents: paidCents,
+      count: count,
       initialAmount: amount,
       initialChoice: choice,
       pendingMeasures: pendingMeasures,
@@ -75,6 +78,7 @@ class ReceiptPackEditor extends HookConsumerWidget {
     required this.ingredient,
     required this.paidCents,
     required this.onDone,
+    this.count = 1,
     this.initialAmount,
     this.initialChoice,
     this.pendingMeasures = const [],
@@ -83,6 +87,11 @@ class ReceiptPackEditor extends HookConsumerWidget {
 
   final Ingredient ingredient;
   final int paidCents;
+
+  /// How many of this pack the line rang up — the receipt's own count. The
+  /// derived line divides by it, so the figure on screen is what ONE costs.
+  final int count;
+
   final double? initialAmount;
   final UnitChoice? initialChoice;
 
@@ -118,6 +127,7 @@ class ReceiptPackEditor extends HookConsumerWidget {
             paidCents: paidCents,
             packAmount: packAmount.value!,
             packChoice: packChoice,
+            count: count,
           );
     // A pack already named as one of the row's measures has nothing to mint:
     // the word exists. The toggle is drawn only where there is a word to gain.

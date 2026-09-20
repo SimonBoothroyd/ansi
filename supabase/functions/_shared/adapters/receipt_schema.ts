@@ -38,6 +38,13 @@ export const MAX_RECEIPT_NOTES = 100;
 /** Most lines one receipt may carry. A long TJ's strip is ~40; this is a fence. */
 export const MAX_RECEIPT_LINES = 400;
 
+/**
+ * Most of one thing a line may say was bought. A till prints two digits here;
+ * a three-digit count is a misread rate or a run-together figure, and it reads
+ * as one — with the line flagged, because the count is now a divisor.
+ */
+export const MAX_LINE_COUNT = 99;
+
 const KINDS = new Set<string>(["item", "not_food", "tax", "fee"]);
 
 function cap(s: string, max: number): string {
@@ -79,6 +86,24 @@ function coerceKind(v: unknown): ReceiptLineKind {
   return KINDS.has(s) ? s as ReceiptLineKind : "item";
 }
 
+/**
+ * The count the sub-row said, or 1 — with `coerced` true where a value was
+ * thrown away.
+ *
+ * A count is a DIVISOR now, so an unusable one must not ride through quietly:
+ * a fraction, a zero, a negative and an absurd figure all read as one thing
+ * bought, and the line is flagged so the review checks it against the paper.
+ * An absent count is not a coercion — most lines print none.
+ */
+function coerceCount(v: unknown): { count: number; coerced: boolean } {
+  if (v === null || v === undefined) return { count: 1, coerced: false };
+  const n = numOrNull(v);
+  if (n === null || !Number.isInteger(n) || n < 1 || n > MAX_LINE_COUNT) {
+    return { count: 1, coerced: true };
+  }
+  return { count: n, coerced: false };
+}
+
 function coerceWeight(v: unknown): ExtractedWeight | null {
   if (v === null || v === undefined || typeof v !== "object") return null;
   const w = v as Record<string, unknown>;
@@ -102,17 +127,20 @@ function coerceLine(v: unknown): ExtractedLine | null {
   // A line with neither words nor a figure is not a line. Dropping it is a
   // removal, which is the only thing coercion is allowed to do.
   if (printed_text === "" && amount_printed === "") return null;
+  const { count, coerced } = coerceCount(l.count);
   return {
     printed_text,
     name_printed: str(l.name_printed, RECEIPT_CAPS.name_printed),
     amount_printed,
+    count,
+    each_printed: strOrNull(l.each_printed, RECEIPT_CAPS.amount_printed),
     discount_printed: strOrNull(
       l.discount_printed,
       RECEIPT_CAPS.amount_printed,
     ),
     kind: coerceKind(l.kind),
     weight: coerceWeight(l.weight),
-    low_confidence: l.low_confidence === true,
+    low_confidence: l.low_confidence === true || coerced,
   };
 }
 

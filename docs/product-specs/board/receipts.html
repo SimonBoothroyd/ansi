@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi &middot; the board</a></p>
     <h1 class="view-title">Receipts</h1>
-    <p class="view-status">built &middot; matches code 2026-09-19 &middot; <code>features/receipts</code> &middot; <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> &middot; <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> &middot; <a href="../import-and-matching.md">import &amp; matching</a> &middot; <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> &middot; wide: the scan, the review and the ledger are each one column at the 640 measure; the desk&rsquo;s three-column review was drawn and is not built, and waits in <a href="./not-built.html">the hatch</a></p>
+    <p class="view-status">built &middot; matches code 2026-09-20 &middot; <code>features/receipts</code> &middot; <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> &middot; <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> &middot; <a href="../import-and-matching.md">import &amp; matching</a> &middot; <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> &middot; wide: the scan, the review and the ledger are each one column at the 640 measure; the desk&rsquo;s three-column review was drawn and is not built, and waits in <a href="./not-built.html">the hatch</a></p>
     <p class="view-blurb">A photographed receipt reads through the recipe import&rsquo;s own pipeline, is confirmed line by line, and is kept whole &mdash; so what a week cost reads off the receipts themselves, and every matched line with a pack is a price. The scan door is on <a href="./cook-shop.html">the Shop&rsquo;s foot</a> and this ledger&rsquo;s is the receipt action in <a href="./cook-shop.html">the Shop&rsquo;s header</a>, beside the week; the figure it produces is <a href="./week.html">the band&rsquo;s second line</a>. <b>Nothing is written until Save.</b></p>
 </header>
 
@@ -68,7 +68,7 @@
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>The review &middot; the line cards</b> &middot; the recipe review&rsquo;s cards carrying money instead of an amount: a matched line states what it cost per basis, a line without a pack asks for one, a line without a match asks for that, and what is not food folds under the rest</p>
+        <p class="frame-name"><b>The review &middot; the line cards</b> &middot; the recipe review&rsquo;s cards carrying money instead of an amount: a matched line states what it cost per basis, a counted line says how many and prices them all, a line without a pack asks for one, a line without a match asks for that, and what is not food folds under the rest</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl">Review receipt</span><span class="hdrcount">4 to review</span></div>
             <div class="tsec" style="margin-top:8px"><span class="tl">Lines</span><span class="tc">24</span><span class="rule"></span></div>
@@ -84,6 +84,21 @@
             <div class="lcard">
                 <div class="l3 edit"><span class="l3-amt">$5.49</span><span class="l3-body"><span class="l3-id">Salmon fillet</span><span class="l3-note">1.10 lb · −55¢ off · $1.10 / 100 g</span></span><span class="l3-pen">✎</span></div>
                 <div class="srcline">from receipt:  ATLANTIC SALMON  1.10 lb @ 5.49/lb  6.04<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PRIME SAVINGS  −0.55</div>
+            </div>
+
+            <div class="lcard">
+                <div class="l3 edit"><span class="l3-amt">$23.92</span><span class="l3-body"><span class="l3-id">Tofu, firm</span><span class="l3-note">8 × block (16 oz) · 66¢ / 100 g</span></span><span class="l3-pen">✎</span></div>
+                <div class="srcline">from receipt:  TOFU SPR FRM HGH PRTN OR  $23.92<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;8 @ $2.99</div>
+            </div>
+
+            <div class="lcard">
+                <div class="chead"><span class="cn">TOFU SPR FRM HGH PRTN OR  $23.92</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
+                <div class="srcline">from receipt:  TOFU SPR FRM HGH PRTN OR  $23.92<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;8 @ $2.99</div>
+                <div class="erow"><span class="elab">Price</span><span class="ebody"><span class="amtchip">$23.92 <span class="pen">✎</span></span></span></div>
+                <div class="chosen"><span class="ck">✓</span><span class="cnm">Tofu, firm</span><span class="chint">tap to change</span><span class="ci">›</span></div>
+                <div class="erow"><span class="elab">Pack</span><span class="ebody"><span class="amtchip">block (16 oz) <span class="pen">✎</span></span></span></div>
+                <div class="erow"><span class="elab">Count</span><span class="ebody"><span class="amtchip">× 8 <span class="pen">✎</span></span></span></div>
+                <div class="lockhint">The count is printed on its own line UNDER the item, at both of his shops, and it rides ON this line rather than becoming one. The <b style="color:var(--ink)">pack is what ONE of them comes in</b> and carries to the next receipt; the count arrives fresh from the paper, so it is never carried and never rides to a twin. A sub-row in a weight unit — <i>Qty 0.73 lb @ $2.99/lb</i> — is a weight, not a count.</div>
             </div>
 
             <div class="lcard attn">

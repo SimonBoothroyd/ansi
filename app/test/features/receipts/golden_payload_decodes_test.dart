@@ -38,6 +38,47 @@ void main() {
       expect(line.match!.remembered, isFalse);
     }
     expect(initialReceiptDrafts(payload).every((d) => !d.remembered), isTrue);
+
+    // The count sub-row rode ON its item — and it is NON-DEFAULT in the
+    // golden, which is the whole point of pinning it: a rename or a dropped
+    // field would otherwise decode as a quiet 1 and price the line eight
+    // times too dear.
+    final counted = payload.lines.where((l) => l.count > 1).toList();
+    expect(counted, isNotEmpty, reason: 'the golden pins a real count');
+    for (final line in counted) {
+      expect(line.eachCents, isNotNull);
+      expect(line.count * line.eachCents!, line.cents);
+    }
+    // And it survives into the review's drafts.
+    final drafts = initialReceiptDrafts(payload);
+    expect(
+      drafts.map((d) => d.count).toList(),
+      payload.lines.map((l) => l.count).toList(),
+    );
+  });
+
+  test('a line with no count on the wire rang up one of the thing', () {
+    // Decoding is total and forgiving, and there is only one forgiving answer
+    // for a missing divisor.
+    final line = ReceiptLineOut.fromJson(const {
+      'printed_text': 'TJ SRIRACHA  3.99',
+      'cents': 399,
+      'kind': 'item',
+    }, fallbackIndex: 0);
+    expect(line.count, 1);
+    expect(line.eachCents, isNull);
+  });
+
+  test('a count the wire cannot mean reads as one', () {
+    for (final bad in [0, -3, 0.5]) {
+      final line = ReceiptLineOut.fromJson({
+        'printed_text': 'A 1.00',
+        'cents': 100,
+        'kind': 'item',
+        'count': bad,
+      }, fallbackIndex: 0);
+      expect(line.count, 1, reason: '$bad');
+    }
   });
 
   test('a remembered match decodes as the household’s own answer', () {

@@ -87,8 +87,9 @@ const sampleReceiptJson = '''
       "low_confidence": false, "photo": 1
     },
     {
-      "index": 5, "printed_text": "2 @ 0.99  1.98",
-      "name_printed": "2 @ 0.99", "cents": 198,
+      "index": 5, "printed_text": "TJ ORG LEMONS  1.98",
+      "name_printed": "TJ ORG LEMONS", "cents": 198,
+      "count": 3, "each_cents": 99,
       "discount_cents": 0, "kind": "item", "weight": null,
       "match": null, "suggestions": [], "low_confidence": true, "photo": 1
     },

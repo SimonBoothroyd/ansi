@@ -85,7 +85,8 @@ class SqliteReceiptRepository implements ReceiptRepository {
           'r.subtotal_cents, r.tax_cents, r.total_cents, '
           'l.id AS line_id, l.ingredient_id, l.printed_text, l.name_printed, '
           'l.cents, '
-          'l.discount_cents, l.kind, l.pack_basis_amount, l.pack_amount, '
+          'l.discount_cents, l.count, l.kind, l.pack_basis_amount, '
+          'l.pack_amount, '
           'l.pack_unit, l.measure_id, l.sort_order, '
           'i.canonical_name, m.label AS measure_label '
           'FROM receipt r '
@@ -124,6 +125,8 @@ class SqliteReceiptRepository implements ReceiptRepository {
               printedText: (r['printed_text'] as String?) ?? '',
               namePrinted: r['name_printed'] as String?,
               cents: (r['cents'] as num?)?.toInt() ?? 0,
+              // A row synced before the column rang up one of the thing.
+              count: (r['count'] as num?)?.toInt() ?? 1,
               discountCents: (r['discount_cents'] as num?)?.toInt() ?? 0,
               kind: (r['kind'] as String?) ?? 'item',
               packBasisAmount: (r['pack_basis_amount'] as num?)?.toDouble(),
@@ -313,9 +316,17 @@ class SqliteReceiptRepository implements ReceiptRepository {
     // A pack minted as a measure is stored as a COUNT of it, so the word is
     // the measure's own and never a second copy.
     final minted = measureId != null && measureId != line.measureId;
+    // Only a food line is ever counted (0050), and it is held HERE as well as
+    // in the mapping: a local table is a view with no CHECK behind it, so a
+    // count on a bag fee would pass on the phone and stall the upload queue
+    // against Postgres.
+    final counted = line.kind == ReceiptLineKind.item && line.count >= 1
+        ? line.count
+        : 1;
     final said = [
       line.ingredientId,
       line.cents,
+      counted,
       line.discountCents,
       line.kind.dbValue,
       line.packBasisAmount,
@@ -335,12 +346,13 @@ class SqliteReceiptRepository implements ReceiptRepository {
       // a line nobody touched would make an old receipt's stale match the
       // latest answer — and it would queue an upload op saying nothing.
       await tx.execute(
-        'UPDATE receipt_line SET ingredient_id = ?, cents = ?, '
+        'UPDATE receipt_line SET ingredient_id = ?, cents = ?, count = ?, '
         'discount_cents = ?, kind = ?, pack_basis_amount = ?, '
         'pack_amount = ?, pack_unit = ?, measure_id = ?, sort_order = ?, '
         'updated_at = ? WHERE id = ? AND receipt_id = ? '
         'AND deleted_at IS NULL AND (ingredient_id IS NOT ? OR '
-        'cents IS NOT ? OR discount_cents IS NOT ? OR kind IS NOT ? OR '
+        'cents IS NOT ? OR count IS NOT ? OR discount_cents IS NOT ? OR '
+        'kind IS NOT ? OR '
         'pack_basis_amount IS NOT ? OR pack_amount IS NOT ? OR '
         'pack_unit IS NOT ? OR measure_id IS NOT ? OR sort_order IS NOT ?)',
         [...said, stamp, id, receiptId, ...said],
@@ -349,10 +361,10 @@ class SqliteReceiptRepository implements ReceiptRepository {
     }
     await tx.execute(
       'INSERT INTO receipt_line (id, household_id, receipt_id, '
-      'printed_text, name_printed, ingredient_id, cents, discount_cents, '
-      'kind, pack_basis_amount, pack_amount, pack_unit, measure_id, '
-      'sort_order, created_at, updated_at) '
-      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'printed_text, name_printed, ingredient_id, cents, count, '
+      'discount_cents, kind, pack_basis_amount, pack_amount, pack_unit, '
+      'measure_id, sort_order, created_at, updated_at) '
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         _uuid.v4(),
         _householdId,

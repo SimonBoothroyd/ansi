@@ -233,14 +233,19 @@ String measureFact(Measure measure) {
 /// typed as a pound, `bag (454 g)` for one tapped as the row's own measure,
 /// `454 g` where the amount was typed in the basis unit itself.
 ///
-/// The entered pack leads because it is the fact a person recognises — a pound
-/// of butter was a pound, not 454 g. The basis weight rides in brackets behind
-/// a measure's word, which on its own says nothing about size — and is left
-/// off a word that already states one ([measureWordWithSize]). It stands
+/// How many the line rang up leads where it was more than one (`8 × block
+/// (16 oz)`); the entered pack follows, because it is the fact a person
+/// recognises — a pound of butter was a pound, not 454 g. The basis weight
+/// rides in brackets behind a measure's word, which on its own says nothing
+/// about size — and is left off a word that already states one
+/// ([measureWordWithSize]). It stands
 /// alone on a line that kept no entered pack: that is honestly all a row
 /// written before the ledger held the words has.
 String pricePackPhrase(PriceObservation price) {
   final basis = price.basis.baseUnit;
+  // How many of that pack the line rang up, in front of everything else, so
+  // `$23.92 for 8 × block (16 oz)` reads back to the figure beside it.
+  final times = countTimes(price.count);
   final weight =
       '${formatQuantityIn(price.packBasisAmount, basis)} ${basis.label}';
   final label = price.packLabel;
@@ -252,12 +257,12 @@ String pricePackPhrase(PriceObservation price) {
     final head = count == null || count == 1
         ? label
         : '${formatAmount(count)} $label';
-    return measureWordWithSize(head, price.packBasisAmount, basis);
+    return '$times${measureWordWithSize(head, price.packBasisAmount, basis)}';
   }
   final amount = price.packAmount;
   final unit = price.packUnit;
-  if (amount == null || unit == null) return weight;
-  return '${formatAmountIn(amount, unit)} ${unit.label}';
+  if (amount == null || unit == null) return '$times$weight';
+  return '$times${formatAmountIn(amount, unit)} ${unit.label}';
 }
 
 /// The **latest** price as the group's one line — `77¢ / 100 g · $3.49 for bag
