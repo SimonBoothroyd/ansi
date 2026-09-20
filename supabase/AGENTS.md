@@ -82,6 +82,8 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
   `app/test/features/import/edge_import_failures_test.dart`), and the budgets
   are sized from `evals/runs/`, never from the platform's number.
 - Migrations are immutable once merged; make a new migration to change schema.
+  Keep the header to about fifteen lines, and write `comment on` strings for a
+  reader who has the database and not the source.
 - **A migration meets the previous release's client first.** Before loosening
   a column (dropping `NOT NULL`, widening a check, adding an enum value), say in
   its header what the last shipped build does with such a row; if it throws,
