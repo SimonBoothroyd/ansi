@@ -1,27 +1,10 @@
-// THE GUARANTEE: a receipt teaches the vocabulary nothing.
+// THE GUARANTEE: a receipt teaches the vocabulary nothing. The recipe door
+// writes a correction back as an alias; this door only SELECTs, including the
+// recall of the household's own answers (`_shared/receipt_memory.ts`).
 //
-// Plan 0049's decision log, from the owner: "No alias learning from receipts.
-// A receipt's words are one store's abbreviations, confirming one teaches the
-// vocabulary nothing, and a whole-line alias scoped to a store was weighed and
-// refused." The recipe pipeline does the opposite — a correction at review is
-// written back as an alias (§8, the learning loop) — so this is not a thing
-// that is merely absent by accident. It is a difference between two doors that
-// share a cascade, and the kind of difference a later change quietly erases.
-//
-// The door DOES remember the household's own answers per printed name
-// (`_shared/receipt_memory.ts`), and that is not a hole in this guarantee but
-// the reason the guarantee can be kept at all: the memory is a SELECT over
-// this household's own saved receipt lines, so a store's abbreviation stays on
-// the receipt it was printed on and never enters the language the recipe door
-// matches against.
-//
-// Two tests hold it, because either one alone can be walked around:
-//
-//   1. a SQL SPY under the real matcher AND the real recall, through the real
-//      spine: whatever the function actually issues, all of it is a SELECT;
-//   2. a SOURCE guard over every file the function owns: no alias table is
-//      named and no write verb appears, so a write cannot be introduced
-//      without this failing and being read.
+// Two tests hold it, because either alone can be walked around: a SQL spy
+// under the real matcher and recall asserts every statement is a SELECT, and
+// a source guard over every file the function owns refuses a write verb.
 
 import { assert, assertEquals } from "@std/assert";
 import { importReceipt, type ReceiptDeps } from "./index.ts";

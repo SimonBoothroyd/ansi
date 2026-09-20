@@ -118,13 +118,9 @@ function recallFor(
 }
 
 /**
- * The line's answer, with the household's own having the last word.
- *
- * A remembered ingredient arrives `auto` at `confidence: 1` and says it is
- * remembered: it is not the cascade's reading, it is somebody's answer, and a
- * confidence below 1 would invite a threshold to be applied to a fact.
- * A remembered fold has no match at all — the line arrives under the fold,
- * where its way back is *it is food*.
+ * The line's answer, with the household's own having the last word. A
+ * remembered ingredient is a fact, not a reading, so it arrives `auto` at
+ * `confidence: 1`; a remembered fold has no match.
  */
 function matchFor(
   recalled: RememberedAnswer | undefined,
@@ -262,7 +258,9 @@ export function assembleReceipt(
     // `line.kind`, never the recalled one: the cascade was given the item
     // lines the MODEL found, and this cursor has to walk the same ones.
     const m = line.kind === "item" ? matched[itemIndex++] : undefined;
-    const recalled = line.kind === "item"
+    // Both ways round: a fold the household matched is as much an answer as a
+    // match it folded. Tax and fee lines are never either.
+    const recalled = line.kind === "item" || line.kind === "not_food"
       ? recallFor(remembered, line)
       : undefined;
     return {
@@ -271,9 +269,8 @@ export function assembleReceipt(
       name_printed: line.name_printed.trim(),
       cents: parsedCents ?? 0,
       discount_cents,
-      // A line the household has folded before arrives folded. It still counts
-      // toward what the trip cost, and toward nothing else.
-      kind: recalled?.kind === "not_food" ? "not_food" : line.kind,
+      // A folded line still counts toward what the trip cost, and nothing else.
+      kind: recalled?.kind ?? line.kind,
       weight: weightOf(line, notes),
       match: matchFor(recalled, m),
       // The cascade's offers stand whatever is remembered: a remembered answer

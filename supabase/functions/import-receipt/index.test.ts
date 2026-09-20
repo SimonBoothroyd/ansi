@@ -353,7 +353,7 @@ Deno.test("failureFor — the three shapes, in this door's voice", () => {
 
 // --- The recall is an improvement, never a dependency ------------------------
 
-Deno.test("recall — the spine asks about the ITEM lines' printed names", async () => {
+Deno.test("recall — the spine asks about the item AND folded lines' names", async () => {
   const asked: string[][] = [];
   await importReceipt(
     { images: oneImage() },
@@ -362,9 +362,8 @@ Deno.test("recall — the spine asks about the ITEM lines' printed names", async
       return Promise.resolve(new Map());
     }),
   );
-  // Two item lines and a `not_food` bag fee: a fee has no ingredient to be
-  // about, so asking about one would spend a query to be told so.
-  assertEquals(asked, [["TJ ORG BANANAS", "TJ SRIRACHA"]]);
+  // A fold is an answer the household can take back, so it is asked about too.
+  assertEquals(asked, [["TJ ORG BANANAS", "TJ SRIRACHA", "BAG FEE"]]);
 });
 
 Deno.test("recall — the household's own answer overrides the cascade", async () => {

@@ -1,33 +1,11 @@
 // The receipt door's memory: what this household has already said about a
-// printed name, read off its OWN saved receipt lines.
+// printed name, read off its own saved receipt lines with one SELECT. It is
+// never an alias and writes nothing (`import-receipt/no_alias.test.ts`); the
+// design is `docs/product-specs/import-and-matching.md` §12.
 //
-// A whole-string trigram cannot score `ORG TRICOLOR QUINOA` against `Quinoa`
-// above the suggest floor, and no tuning fixes that in general — the words are
-// one store's abbreviations, not a language. What fixes it is the household:
-// once somebody has said, on one receipt, what that line is, the next receipt
-// does not have to guess.
-//
-// **This is not an alias and must never become one.** The vocabulary is the
-// household's own language; a store's shorthand put into it would surface in
-// every recipe import, every picker and every search. Nothing here is written
-// anywhere — the module is one SELECT — the match cascade never sees these
-// words, and `import-receipt/no_alias.test.ts` holds both facts structurally.
-//
-// Three properties come from the memory BEING the saved lines, and they are
-// the reason it is shaped this way rather than as a second table:
-//
-//   * **Nothing to maintain.** A receipt already records what was said about
-//     it, beside the words it was said about.
-//   * **A mistake is corrected where it was made.** A saved receipt is
-//     editable, and the most recently said answer wins — so correcting an old
-//     receipt corrects the memory, with no second list to also correct.
-//   * **A retired row cannot come back.** The answer is read through the
-//     ingredient, so a match to something the household has since retired is
-//     not an answer any more, and the cascade gets the line instead.
-//
-// The household is the caller's, from the verified token, and never the
-// body's. The connection this runs on is service-role, so RLS does not narrow
-// anything: the `household_id = $1` predicate below is the whole fence.
+// The household is the caller's, from the verified token, never the body's.
+// The connection is service-role, so RLS narrows nothing: the
+// `household_id = $1` predicates below are the whole fence.
 
 import type { SqlExecutor } from "./match_db.ts";
 
@@ -43,33 +21,21 @@ export type ReceiptMemory = ReadonlyMap<string, RememberedAnswer>;
 export type RecallMatchesFn = (names: string[]) => Promise<ReceiptMemory>;
 
 /**
- * How a printed name is compared: trimmed and upper-cased, and NOTHING else.
- *
- * Exact, deliberately. Fuzzy matching is the cascade's job and it has a
- * calibrated floor; a second, looser matcher here would resolve lines the
- * cascade honestly refused and do it with `confidence: 1` on its face.
+ * How a printed name is compared: trimmed and upper-cased, nothing else —
+ * fuzzy matching is the cascade's job. Where JS and Postgres upper-case a
+ * character differently the keys differ and the line is simply not recalled.
  */
 export function recallKey(name: string): string {
   return name.trim().toUpperCase();
 }
 
 /**
- * One query for the whole receipt: every printed name rides as one `text[]`,
- * so nothing about this SQL grows with the line count.
+ * One query for the whole receipt. `distinct on` with `updated_at desc` is
+ * latest-wins, `l.id desc` its tiebreak; the `where` runs before the pick, so
+ * a retired or never-matched line gives way to an older answer that stands.
+ * `upper(l.name_printed)` is spelled as migration 0047's index is.
  *
- * `distinct on (q.name)` with `updated_at desc` is the latest-wins rule, and
- * it is the whole answer to "how do I take a wrong match back": you edit the
- * receipt you got wrong, and its lines become the most recent thing said.
- * `l.id desc` is the tiebreak, so two lines stamped in the same millisecond
- * cannot make the answer depend on the plan.
- *
- * The `where` runs BEFORE that pick, which is what makes it *the latest LIVE
- * answer*: an item line whose row has been retired, or that nobody ever
- * matched, is not an answer at all, and an older line that still stands is
- * used instead.
- *
- * `upper(l.name_printed)` is spelled exactly as migration 0047's index is, or
- * the index is not used.
+ * `supabase/tests/receipts.sql` runs a copy of this text: change both.
  */
 export const RECALL_SQL = `
   select distinct on (q.name)
@@ -95,12 +61,7 @@ interface MemoryRow {
   ingredient_id: string | null;
 }
 
-/**
- * The live recall, bound to one household.
- *
- * Empty in, empty out, without a round trip: a receipt whose reader named
- * nothing has nothing to ask about.
- */
+/** The live recall, bound to one household. Nothing to ask is no round trip. */
 export function sqlReceiptMemory(
   exec: SqlExecutor,
   householdId: string,
@@ -115,9 +76,8 @@ export function sqlReceiptMemory(
         answers.set(row.name, { kind: "not_food" });
         continue;
       }
-      // The `where` above already refuses an item line with no live row; this
-      // is the same refusal said in TS, so a change to one cannot quietly
-      // produce a match to nothing.
+      // The `where` already refuses an item line with no live row; said again
+      // here so a change to the SQL cannot produce a match to nothing.
       if (row.ingredient_id) {
         answers.set(row.name, {
           kind: "item",

@@ -1,12 +1,6 @@
 // The match memory: what it asks the database, and what it makes of the
-// answer.
-//
-// The SQL itself is held here as text rather than run against a Postgres,
-// which is the same bargain `match_db.test.ts` strikes: the two properties
-// that make this correct — the household fence and latest-wins — are visible
-// in the statement, and a change that dropped either would be a change to a
-// string this file reads. `supabase/tests/receipts.sql` holds the column and
-// the shape the statement stands on.
+// answer. The statement itself runs in `supabase/tests/receipt_recall.sql`,
+// which holds a copy; the first test here keeps the copy honest.
 
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { RECALL_SQL, recallKey, sqlReceiptMemory } from "./receipt_memory.ts";
@@ -31,6 +25,13 @@ Deno.test("recallKey — trimmed and upper-cased, and nothing else", () => {
   // has a calibrated floor this lookup would be pretending to.
   assertEquals(recallKey("tj-org bananas"), "TJ-ORG BANANAS");
   assertEquals(recallKey("   "), "");
+});
+
+Deno.test("pgTAP runs this very statement", async () => {
+  const pgtap = await Deno.readTextFile(
+    new URL("../../tests/receipt_recall.sql", import.meta.url),
+  );
+  assertStringIncludes(pgtap, RECALL_SQL.trim());
 });
 
 Deno.test("the statement says latest-wins, and says it deterministically", () => {

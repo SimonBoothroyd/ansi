@@ -63,11 +63,12 @@ assertions in `begin … rollback` so runs leave no residue.
   that a soft-deleted link doesn't count, and that a `sub_recipe_id` can
   never reach another household's recipe (from `authenticated` AND from a
   superuser write, where RLS isn't doing the work).
-- `recipe_measure.sql` — a recipe's own word for one of what it makes (0048):
-  the shape (a label that is a word, a positive `amount`, a `unit` that can
-  measure something — never `batch`, never an imprecise word) and the
-  deliberate ABSENCE of a unique `(recipe_id, label)` index, so an offline
-  duplicate lands instead of 23505-ing the whole crud transaction; the two
+- `recipe_measure.sql` — a recipe's own word for one of what it makes (0048,
+  0049): the shape (a label that is a word, a positive `amount`, a `unit` in a
+  mass, volume or count family — never `batch`, an imprecise word or an
+  unknown id) and the deliberate ABSENCE of a unique `(recipe_id, label)`
+  index, so an offline duplicate lands instead of 23505-ing the whole crud
+  transaction; the two
   pointers on `recipe_line_item` and `week_recipe_line_override`, each sayable
   only on a component line, only beside a number and never beside a unit —
   with both rules that demanded a unit still refusing exactly what they always
@@ -75,9 +76,15 @@ assertions in `begin … rollback` so runs leave no residue.
   nullable behind an XOR, 0040's pair rule restated with its old form as the
   `else`); the guard trigger's three refusals
   (another recipe's word, another household's word, a retired word) and its
-  happy path; that a line whose word has since gone stays editable and keeps
-  its number, because it is unresolved rather than re-read as a count; and the
+  happy path, again as `authenticated`; that a line whose word has since gone
+  stays editable and keeps its number, because it is unresolved rather than re-read as a count; and the
   boundary — RLS on, no delete policy, in the `powersync` publication.
+- `receipt_recall.sql` — the receipt door's recall, run for real: a copy of
+  `RECALL_SQL` (`functions/_shared/receipt_memory.ts`, whose test fails if the
+  two drift) under `PREPARE`, over two households — the latest live answer per
+  printed name, a fold as an answer, tombstoned and never-matched lines
+  ignored, a retired row falling back to the older answer, and nothing heard
+  from the other household.
 - `shopping_week.sql` — the shopping overlay's week scope (0019 and 0036):
   `shopping_list_entry.week_start_date` exists, is a nullable `date` (the
   column still admits the week-less rows an older client wrote), and carries

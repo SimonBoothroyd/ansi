@@ -472,6 +472,34 @@ Deno.test("remembered — a line the household folded arrives folded", () => {
   assertEquals(p.lines_sum_cents, 699);
 });
 
+Deno.test("remembered — a line the reader folded that the household matched arrives as food", () => {
+  const e = extraction([
+    line({
+      printed_text: "KOMBUCHA GT 3.99",
+      name_printed: "KOMBUCHA GT",
+      amount_printed: "3.99",
+      kind: "not_food",
+    }),
+    line({ name_printed: "TJ SRIRACHA" }),
+  ]);
+  const p = assembleReceipt(
+    e,
+    flatTranscript(e),
+    suggested(e, "v-sriracha"),
+    memory([["KOMBUCHA GT", { kind: "item", ingredient_id: "v-kombucha" }]]),
+  );
+  assertEquals(p.lines[0].kind, "item");
+  assertEquals(p.lines[0].match, {
+    ingredient_id: "v-kombucha",
+    confidence: 1,
+    kind: "auto",
+    remembered: true,
+  });
+  assertEquals(p.lines[0].suggestions, [], "the cascade never saw it");
+  // The cursor over `matched` still walks the reader's item lines.
+  assertEquals(p.lines[1].match?.ingredient_id, "v-sriracha");
+});
+
 Deno.test("remembered — nothing remembered is the cascade, exactly as before", () => {
   const e = extraction([line({ name_printed: "TJ SRIRACHA" })]);
   const bare = assembleReceipt(

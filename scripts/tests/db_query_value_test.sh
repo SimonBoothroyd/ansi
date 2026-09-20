@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
 # Fixtures for scripts/db_query_value.sh — the deploy's readback helper.
 #
-# Every case is a stand-in `supabase` that prints a shape the real CLI has been
-# seen to print, so this test never needs a project, a network or the local
-# stack. The shapes are not invented: the box-drawn table is what CI captured
-# in deploy-supabase 35480151258, and the update nag is the CLI's own wording
-# from 2.115.0 — placed both before and AFTER the document, on both streams,
-# because the helper must not care where the CLI chats.
+# Every case is a stand-in `supabase` printing a shape the real CLI has been
+# seen to print, chatter on both streams and both sides of the document, so
+# this never needs a project, a network or the local stack.
 #
 # Run: ./scripts/tests/db_query_value_test.sh   (also `make scripts-test`)
 set -uo pipefail
@@ -107,10 +104,8 @@ expect_value "a value holding a brace, then prose" 'pack (500 g} odd' \
 '"$NAG"
 
 echo "• an unreadable answer is never a value"
-# This is the shape CI actually captured: the CLI's human default, no JSON at
-# all. The old helper turned it into an empty string and exited 0, so the step
-# logged `unreadable` and then branched on a value it had never read.
-expect_failure "the box-drawn table (the 35480151258 shape)" "no JSON document" \
+# The CLI's human default when JSON is not asked for by name.
+expect_failure "the box-drawn table" "no JSON document" \
   '┌──────────┐
 │  count   │
 ├──────────┤
@@ -126,6 +121,8 @@ expect_failure "two columns" "expected one column, got 2" \
   '{"rows":[{"count":1,"other":2}]}'
 expect_failure "the CLI itself failing" "supabase db query failed" \
   '{"rows":[{"count":8204}]}' 'error: failed to connect' 1
+expect_failure "the CLI's own reason is passed on" "error: failed to connect" \
+  '' 'error: failed to connect' 1
 
 echo "• the helper asks for the shape rather than hoping for it"
 bin=$(stand_in "argv" '{"rows":[{"count":1}]}')

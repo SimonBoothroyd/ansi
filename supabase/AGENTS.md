@@ -44,7 +44,7 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
 - **The extraction LLM never sees the vocabulary and never matches** — it only
   emits raw structured lines. Matching is deterministic and testable (see
   `evals/`). Design: `docs/product-specs/import-and-matching.md`.
-- **A receipt teaches the VOCABULARY nothing** (plan 0049, owner). The recipe
+- **A receipt teaches the VOCABULARY nothing** (ADR-0004). The recipe
   door writes a correction back as an alias; the receipt door writes nothing at
   all, because a receipt's words are one store's abbreviations and putting them
   in the household's own language would surface them in every recipe import,
@@ -53,9 +53,10 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
   `SELECT`, and a source guard names every file the pipeline owns (a new one
   must be added to its `OWNED` list).
   What DOES carry between shops is the household's own answers, and neither is
-  a vocabulary word: the PACK, on the ingredient row, and the MATCH, recalled
-  per printed name off this household's own saved `receipt_line` rows
-  (`_shared/receipt_memory.ts`) — one batched SELECT, exact on
+  a vocabulary word: the PACK, on the ingredient row, and the ANSWER (a match,
+  or "not food", either way round), recalled per printed name off this
+  household's own saved `receipt_line` rows (`_shared/receipt_memory.ts`) —
+  one batched SELECT, exact on
   `upper(name_printed)`, latest `updated_at` wins, so correcting a saved
   receipt corrects the memory. A recall that throws never fails an import.
 - **A receipt's photos are joined by POSITION, never by item identity.** The
@@ -81,6 +82,13 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
   `app/test/features/import/edge_import_failures_test.dart`), and the budgets
   are sized from `evals/runs/`, never from the platform's number.
 - Migrations are immutable once merged; make a new migration to change schema.
+  Keep the header to about fifteen lines, and write `comment on` strings for a
+  reader who has the database and not the source.
+- **A migration meets the previous release's client first.** Before loosening
+  a column (dropping `NOT NULL`, widening a check, adding an enum value), say in
+  its header what the last shipped build does with such a row; if it throws,
+  the release notes carry a version floor and the writing door ships a release
+  later.
 - **Never `npx supabase`, and never take the local stack down mid-run.** The
   CLI is the brew-pinned 2.115.0 and the Makefile shells it by path
   (`$(SUPABASE)`); `npx` resolves a newer CLI that starts pulling a postgres

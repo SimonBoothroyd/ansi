@@ -27,7 +27,7 @@
 // **The vocabulary learns nothing here.** No alias is written, and there is no
 // code path from this function to one — a receipt's words are one store's
 // abbreviations, and putting them in the household's own language would
-// surface them in every recipe import, picker and search (plan 0049, owner).
+// surface them in every recipe import, picker and search (ADR-0004).
 // `no_alias.test.ts` holds that structurally.
 //
 // What DOES carry between shops is the household's own answers, and neither of
@@ -193,20 +193,16 @@ export async function importReceipt(
 }
 
 /**
- * What the household has already said about these printed names.
- *
- * **A recall that fails must not fail the import.** It is an improvement on
- * the cascade, not a dependency of it: the photos are read, the model is paid
- * for, and a receipt that arrives matched exactly as it would have been last
- * month is a working receipt. So it is logged and the assembly goes on with
- * nothing remembered.
+ * What the household has already said about these printed names, item and
+ * folded alike. A recall that fails is logged and the receipt goes on with
+ * the cascade alone: it improves the match, the import never depends on it.
  */
 async function recall(
   extraction: ReceiptExtraction,
   deps: ReceiptDeps,
 ): Promise<ReceiptMemory> {
   const names = extraction.lines
-    .filter((l) => l.kind === "item")
+    .filter((l) => l.kind === "item" || l.kind === "not_food")
     .map((l) => l.name_printed);
   try {
     return await deps.recallMatches(names);
