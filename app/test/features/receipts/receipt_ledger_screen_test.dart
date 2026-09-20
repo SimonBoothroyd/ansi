@@ -266,6 +266,35 @@ void main() {
       expect(ledger.deleted, ['a']);
     });
 
+    testWidgets('a Delete that fails leaves the receipt on screen', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      tallSurface(tester);
+      final ledger = FakeReceiptRepo()
+        ..stored['a'] = tjs()
+        ..throws = true;
+      await tester.pumpWidget(
+        storedReceiptHost(
+          overrides: receiptOverrides(ledger: ledger),
+          receiptId: 'a',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(kReceiptDeleteKey));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FButton, 'Delete'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('Could not delete this receipt'),
+        findsOneWidget,
+      );
+      expect(find.text('Bananas, organic'), findsOneWidget);
+      expect(find.byKey(kReceiptDeleteKey), findsOneWidget);
+    });
+
     testWidgets('a receipt that is gone says so', (tester) async {
       await tester.pumpWidget(
         storedReceiptHost(overrides: receiptOverrides(), receiptId: 'nope'),

@@ -78,6 +78,7 @@ class ReceiptReviewing extends ReceiptScanState {
     this.rows = const {},
     this.measuresById = const {},
     this.coinedStores = const [],
+    this.error,
   }) : openedAt = openedAt ?? purchasedAt;
 
   /// The saved receipt this review is open on, or null for a scan nobody has
@@ -125,6 +126,31 @@ class ReceiptReviewing extends ReceiptScanState {
   /// only when Save lands the receipt that used it.
   final List<String> coinedStores;
 
+  /// Why the last Save or Delete did not happen, drawn over Save. A write
+  /// that fails changes nothing else: every answer is still here — a read is
+  /// billed for — and Save is still there to try again. Any edit clears it.
+  final String? error;
+
+  /// Whether Save would write no lines at all. The repository refuses a
+  /// receipt with no lines, so the button says why instead of meeting that.
+  bool get hasNoKeptLines => !drafts.any((d) => !d.dropped);
+
+  /// The review unchanged, with [message] over its Save.
+  ReceiptReviewing withError(String message) => ReceiptReviewing(
+    payload: payload,
+    drafts: drafts,
+    store: store,
+    purchasedAt: purchasedAt,
+    openedAt: openedAt,
+    receiptId: receiptId,
+    source: source,
+    edited: edited,
+    rows: rows,
+    measuresById: measuresById,
+    coinedStores: coinedStores,
+    error: message,
+  );
+
   /// The review's one map — the header count, the flags, the join and Save
   /// all read this.
   ReceiptReviewMap get map => receiptReviewMap(
@@ -152,6 +178,7 @@ class ReceiptReviewing extends ReceiptScanState {
     // Rows and measures arriving under a match are part of that edit, so
     // every copy is one.
     edited: true,
+    // No `error`: it was about the write that failed, and an edit answers it.
     rows: rows ?? this.rows,
     measuresById: measuresById ?? this.measuresById,
     coinedStores: coinedStores ?? this.coinedStores,
@@ -366,7 +393,7 @@ class ReceiptScanController extends _$ReceiptScanController {
       state = const ReceiptGone();
     } on Object catch (e) {
       if (!ref.mounted) return;
-      state = ReceiptScanFailed('Could not delete this receipt: $e');
+      state = s.withError('Could not delete this receipt: $e');
     }
   }
 
@@ -577,12 +604,16 @@ class ReceiptScanController extends _$ReceiptScanController {
       _updateLine(index, (d) => d.copyWith(dropped: false));
 
   /// Writes the receipt and its lines. Refuses quietly while the map says a
-  /// line still needs somebody — the button is already shut, and
-  /// `saveReceipt` re-asserts the store at the seam.
+  /// line still needs somebody, or while every line is dropped — the button is
+  /// already shut, and `saveReceipt` re-asserts the store at the seam.
+  ///
+  /// A write that fails returns to this same review with the reason over
+  /// Save: nothing a person answered, and nothing the read was billed for, is
+  /// thrown away by a failure they can try again.
   Future<void> save() async {
     final s = state;
     if (s is! ReceiptReviewing) return;
-    if (!s.map.canSave || s.store.trim().isEmpty) return;
+    if (!s.map.canSave || s.store.trim().isEmpty || s.hasNoKeptLines) return;
     final repository = ref.read(receiptRepositoryProvider);
     final write = buildReceiptSave(
       store: s.store,
@@ -608,7 +639,7 @@ class ReceiptScanController extends _$ReceiptScanController {
       state = ReceiptSaved(id);
     } on Object catch (e) {
       if (!ref.mounted) return;
-      state = ReceiptScanFailed('Could not save this receipt: $e');
+      state = s.withError('Could not save this receipt: $e');
     }
   }
 

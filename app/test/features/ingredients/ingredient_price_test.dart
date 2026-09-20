@@ -677,49 +677,65 @@ void main() {
       expect(find.byType(PriceEditor), findsOneWidget);
     });
 
-    testWidgets(
-      'a line of a PHOTOGRAPHED receipt stops pricing rather than going',
-      (tester) async {
-        // The paper is still true: the cents were paid, and the receipt has
-        // to go on adding up. All that goes is the line's claim to be a
-        // price, and the confirm says so rather than offering to tear a
-        // receipt up from an ingredient page.
-        filterForuiSemanticsAssertions();
-        tallScreen(tester);
-        final prices = FakePriceRepo(
-          prices: [price(source: ReceiptSource.photo)],
-          stores: const ["TJ's"],
-        );
-        await tester.pumpWidget(
-          host(
-            FakeIngredientRepo(const [bananas]),
-            at: ingredientDetailRoute('banana'),
-            prices: prices,
-            measures: FakeMeasureRepo(const [bagMeasure]),
+    testWidgets('a line of a PHOTOGRAPHED receipt opens that receipt', (
+      tester,
+    ) async {
+      // One line, one editor. A scanned line is corrected on its own
+      // receipt — where the paper still has to add up — and this sheet holds
+      // hand-typed prices only.
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [bananas]),
+          at: ingredientDetailRoute('banana'),
+          prices: FakePriceRepo(
+            prices: [price(source: ReceiptSource.photo)],
+            stores: const ["TJ's"],
           ),
-        );
-        await tester.pumpAndSettle();
-        await tester.tap(find.byKey(kLatestPriceKey));
-        await tester.pumpAndSettle();
+          measures: FakeMeasureRepo(const [bagMeasure]),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.byKey(kPriceDeleteKey));
-        await tester.pumpAndSettle();
-        expect(find.text('Stop pricing from this line?'), findsOneWidget);
-        expect(
-          find.textContaining('The line stays on its receipt'),
-          findsOneWidget,
-        );
+      await tester.tap(find.byKey(kLatestPriceKey));
+      await tester.pumpAndSettle();
 
-        await tester.tap(
-          find.descendant(
-            of: find.byType(FDialog),
-            matching: find.widgetWithText(FButton, 'Stop pricing'),
+      expect(find.text('receipt r-l1'), findsOneWidget);
+      expect(find.byType(PriceEditor), findsNothing);
+    });
+
+    testWidgets('a PHOTOGRAPHED row under Before opens its own receipt', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [bananas]),
+          at: ingredientDetailRoute('banana'),
+          prices: FakePriceRepo(
+            prices: [
+              price(),
+              price(
+                lineId: 'l2',
+                cents: 329,
+                on: DateTime.utc(2026, 8, 23),
+                source: ReceiptSource.photo,
+              ),
+            ],
+            stores: const ["TJ's"],
           ),
-        );
-        await tester.pumpAndSettle();
-        expect(prices.deleted, ['l1']);
-      },
-    );
+          measures: FakeMeasureRepo(const [bagMeasure]),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(r'72¢ / 100 g · $3.29 · bag (454 g)'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('receipt r-l2'), findsOneWidget);
+    });
 
     testWidgets('a confirmed Delete takes the price and closes the sheet', (
       tester,

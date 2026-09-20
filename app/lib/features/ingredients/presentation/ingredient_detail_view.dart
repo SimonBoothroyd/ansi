@@ -611,9 +611,12 @@ const kLatestPriceKey = ValueKey('latest-price');
 /// first price, because a price is an event and there is always another one.
 ///
 /// **Every price here is a tap**, the latest and each one before it, and the
-/// tap opens the same sheet on that line — the way to fix a sum typed wrong, or
-/// to take it back. A price that could only ever be added would make the first
-/// typo permanent, and the ledger's whole claim is that it says what happened.
+/// tap goes to the one place that line is edited: a hand-typed price opens the
+/// sheet that entered it, and a line off a photographed receipt opens that
+/// receipt (`/receipts/:id`, the editable review), where the paper it belongs
+/// to still has to add up. A price that could only ever be added would make the
+/// first typo permanent, and the ledger's whole claim is that it says what
+/// happened.
 ///
 /// **Both postures draw this one widget.** Changing what a thing costs is
 /// editing it, so the person who opens the editor looking for the price finds
@@ -710,9 +713,14 @@ class _PriceGroup extends ConsumerWidget {
       );
     }
 
-    void fix(PriceObservation price) => unawaited(
-      showPriceSheet(context, ingredient: ingredient, editing: price),
-    );
+    // A line off a photographed receipt is corrected on the receipt: that is
+    // the editable review, and the paper it belongs to still has to add up.
+    // The sheet holds the prices this page typed.
+    void fix(PriceObservation price) => price.source == ReceiptSource.photo
+        ? context.pushOnce('/receipts/${price.receiptId}')
+        : unawaited(
+            showPriceSheet(context, ingredient: ingredient, editing: price),
+          );
 
     final earlier = prices.skip(1).toList();
     return _Group(

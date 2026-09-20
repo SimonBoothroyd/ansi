@@ -300,6 +300,10 @@ class _Expanded extends ConsumerWidget {
             label: 'PACK',
             child: LineCardAmountChip(
               label: packWords(draft, basis: basis) ?? '',
+              // This chip asks for the pack. "set amount" would name the
+              // money door standing beside it on the same card.
+              emptyLabel: 'say the pack',
+              semanticsLabel: 'Pack',
               onTap: () => _setPack(context, draft, row!),
             ),
           ),

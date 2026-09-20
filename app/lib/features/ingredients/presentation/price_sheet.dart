@@ -23,14 +23,18 @@
 /// What Save writes is one `manual` receipt with one line — a hand-typed price
 /// and a scanned one are the same fact in the same ledger.
 ///
-/// **The same sheet fixes a price that is already stored.** A tap on the Price
-/// group's *Latest* line or on any row under *Before* opens it **on that
-/// line**: the same three answers, filled in as they were entered — the pound
-/// as a pound, the bag as the bag — and Done writes an UPDATE rather than a new
-/// receipt, so correcting a typo does not leave the mistake behind as history.
-/// A **Delete** sits under it, because the other thing a mistyped price needs
-/// is to stop existing. There is no second door and no second wording: an edit
-/// is the same question asked about a line that has already been answered.
+/// **The same sheet fixes a price it typed.** A tap on the Price group's
+/// *Latest* line or on any row under *Before* opens it **on that line**: the
+/// same three answers, filled in as they were entered — the pound as a pound,
+/// the bag as the bag — and Done writes an UPDATE rather than a new receipt, so
+/// correcting a typo does not leave the mistake behind as history. A **Delete**
+/// sits under it, because the other thing a mistyped price needs is to stop
+/// existing.
+///
+/// **Hand-typed prices only.** A line off a photographed receipt is edited on
+/// that receipt — the pack, the store and the paper's own sum are one sitting
+/// there, and two doors onto one line disagreed: this sheet could null a
+/// scanned pack and could not move a scanned line's store at all.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -251,27 +255,20 @@ class PriceEditor extends HookConsumerWidget {
       // widget throws.
       final container = ProviderScope.containerOf(context, listen: false);
       final host = hostContextOf(context);
-      // A photographed receipt is not this sheet's to tear up: the cents were
-      // paid, the paper still has to add up, and all that goes is the line's
-      // claim to be a price. The confirm says which of the two is about to
-      // happen rather than one sentence covering both.
-      final photo = line!.source == ReceiptSource.photo;
       final ok = await askAnsi(
         host.context,
-        title: photo ? 'Stop pricing from this line?' : 'Delete this price?',
-        body: photo
-            ? 'The line stays on its receipt and the receipt still adds up. '
-                  'It just stops counting towards what anything costs.'
-            : 'It stops counting towards what anything costs. What was paid '
-                  'before it stays.',
-        confirm: photo ? 'Stop pricing' : 'Delete',
+        title: 'Delete this price?',
+        body:
+            'It stops counting towards what anything costs. What was paid '
+            'before it stays.',
+        confirm: 'Delete',
         destructive: true,
       );
       if (!ok) return;
       final gone = await container.writeOk(
         host,
-        photo ? 'stop pricing from that line' : 'delete that price',
-        () => container.read(priceRepositoryProvider).deletePrice(line.lineId),
+        'delete that price',
+        () => container.read(priceRepositoryProvider).deletePrice(line!.lineId),
       );
       if (gone) onSaved();
     }
