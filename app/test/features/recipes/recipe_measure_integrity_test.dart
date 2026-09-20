@@ -9,9 +9,12 @@ library;
 import 'dart:io';
 
 import 'package:ansi/core/units/recipe_measure.dart';
+import 'package:ansi/core/units/unit_choice.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/data/recipe_measure_repository_impl.dart';
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
+import 'package:ansi/features/recipes/domain/component_math.dart';
+import 'package:ansi/features/recipes/domain/component_units.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_measure_repository.dart';
 import 'package:ansi/features/recipes/domain/recipe_repository.dart';
@@ -198,6 +201,65 @@ void main() {
       expect(usage.lines, 0, reason: 'no recipe line says it');
       expect(usage.weeks, 1, reason: 'the retired week does not count');
       expect(usage.any, isTrue);
+    });
+  });
+
+  group('a line resolves by id, against every live row', () {
+    test('a line on the merge-hidden twin keeps ITS word and amount', () async {
+      await seedAioli();
+      await insertHiddenTwin();
+      await repo.saveRecipe(parent(measureId: 'm-blob-2'));
+
+      final line =
+          (await repo.watchRecipe('sliders').first)!.groups.single.items.single;
+      final amount = line.componentAmount;
+      expect(
+        amount,
+        isA<ResolvedComponentAmount>(),
+        reason: 'the hidden row is live, so its line is not a gap',
+      );
+      expect((amount! as ResolvedComponentAmount).viaMeasure?.amount, 12.5);
+      expect((amount as ResolvedComponentAmount).viaMeasure?.label, 'blob');
+    });
+
+    test('and its target recipe still saves, tombstoning nothing', () async {
+      await seedAioli();
+      await insertHiddenTwin();
+      await repo.saveRecipe(parent(measureId: 'm-blob-2'));
+
+      // The editor's list is the MERGED one, so the hidden twin is not in it —
+      // and a Save must not read that absence as "drop this word".
+      final loaded = (await repo.watchRecipe('aioli').first)!;
+      expect(loaded.measures.map((m) => m.id), ['m-blob']);
+      await repo.saveRecipe(loaded.copyWith(title: 'Romesco Aioli II'));
+
+      final rows = await db.getAll(
+        'SELECT id, deleted_at FROM recipe_measure WHERE recipe_id = ? '
+        'ORDER BY id',
+        ['aioli'],
+      );
+      expect(rows.map((r) => r['deleted_at']), [null, null]);
+    });
+
+    test('the chip row still offers the word ONCE', () async {
+      await seedAioli();
+      await insertHiddenTwin();
+      await repo.saveRecipe(parent(measureId: 'm-blob-2'));
+      final sliders = (await repo.watchRecipe('sliders').first)!;
+      final target = sliders.groups.single.items.single.subRecipe!;
+      final hidden = target.measures.firstWhere((m) => m.id == 'm-blob-2');
+
+      final offer = componentUnitChoices(
+        target,
+        target.measures,
+        current: RecipeMeasureOption(hidden),
+      );
+      expect(
+        offer.choices.whereType<RecipeMeasureOption>().map((c) => c.measure.id),
+        ['m-blob-2'],
+        reason: 'one “blob” chip, and it is the one this line says',
+      );
+      expect(offer.offFilter, isNull);
     });
   });
 }

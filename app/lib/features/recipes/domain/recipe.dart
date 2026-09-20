@@ -159,7 +159,8 @@ abstract class RecipeSummary with _$RecipeSummary {
     Unit? yieldUnit2,
 
     /// This recipe's own words for one of what its batch makes, `sort_order`
-    /// first and duplicates merged — see [Recipe.measures].
+    /// first, with any merge-hidden twins behind them — this summary becomes a
+    /// [SubRecipeTarget], which is a list lines are resolved against.
     ///
     /// Carried on the summary for the reason the yields are: a picker row that
     /// hands this recipe on as a component TARGET must hand the words over
@@ -353,9 +354,13 @@ abstract class SubRecipeTarget with _$SubRecipeTarget {
     double? yieldQty2,
     Unit? yieldUnit2,
 
-    /// The target's live measures, `sort_order` first — the words a line may
-    /// be said in, and the list a line's [LineItem.recipeMeasureId] is looked
-    /// up in. Empty for a recipe that coins none, and for a caller that
+    /// The target's live measures, `sort_order` first — the list a line's
+    /// [LineItem.recipeMeasureId] is looked up in, so it carries EVERY live
+    /// row, the merge-hidden duplicates behind the rest: a line pointing at a
+    /// hidden twin still means what it said. What a chip row may OFFER is the
+    /// deduped half (`componentUnitChoices` does it, so no caller has to know
+    /// which list it holds). Empty for a recipe that coins none, and for a
+    /// caller that
     /// assembled a target without reading them, where a measured line then
     /// reads as [ComponentMeasureMissing] rather than as anything invented.
     @Default(<RecipeMeasure>[]) List<RecipeMeasure> measures,

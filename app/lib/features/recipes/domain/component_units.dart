@@ -37,6 +37,7 @@ import '../../../core/units/unit_choice.dart';
 import '../../../core/units/units.dart';
 import 'component_math.dart';
 import 'recipe.dart';
+import 'recipe_measure_authoring.dart';
 
 /// The kitchen workhorses each yield family opens, in chip order (design board
 /// frame d draws `cup · tbsp · tsp · ml` for a `makes 1 cup` yield; the US pair
@@ -155,9 +156,10 @@ bool _isAWholeBatch(RecipeMeasure measure, List<YieldDenomination> yields) {
 /// shares with everything else to find it. It is the ingredient dock's own
 /// rule, one level up.
 ///
-/// [measures] are the target's live ones (callers pass them `sort_order`-
-/// sorted, duplicates already merged). Passing none gives exactly the offer
-/// this file gave before recipes could coin a word.
+/// [measures] are the target's live ones, `sort_order`-sorted, with any
+/// merge-hidden twins behind them — deduped here ([offeredRecipeMeasures]), so
+/// a caller never has to know which list it is holding. Passing none gives
+/// exactly the offer this file gave before recipes could coin a word.
 ///
 /// **A word the recipe can no longer hold is not offered.** A measure resolves
 /// through the yield in its own family, so one said in grams against a recipe
@@ -187,11 +189,19 @@ UnitChoiceOffer componentUnitChoices(
   UnitChoice? current,
 }) {
   final yields = target.yields;
-  final whole = wholeMeasureOfRecipe(measures, yields);
+  // The offer says each word once. The loaded list also carries the twins the
+  // merge hides — they are there so a LINE can be resolved by id — and the
+  // line's own row wins its word here, so an existing selection lights one
+  // chip and it is the row that line means.
+  final offered = offeredRecipeMeasures(
+    measures,
+    keep: current is RecipeMeasureOption ? current.measure.id : null,
+  );
+  final whole = wholeMeasureOfRecipe(offered, yields);
   final units = componentUnitChips(yields: yields).chips;
   final choices = <UnitChoice>[
     if (whole != null) RecipeMeasureOption(whole),
-    for (final m in measures)
+    for (final m in offered)
       if (m.id != whole?.id && recipeMeasureResolvesAgainst(m, yields))
         RecipeMeasureOption(m),
     for (final unit in units) UnitOption(unit),

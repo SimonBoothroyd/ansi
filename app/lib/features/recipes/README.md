@@ -304,8 +304,12 @@ new case rather than a new path.
   line naming it reads `ComponentMeasureMissing`: the only fallback available
   would be `pieces`, and that is the confidently wrong batch share ADR-0018 rule
   7 refuses.
-- **`loadRecipeMeasures`** — every live recipe's words, keyed by recipe id,
-  duplicates merged. **One query per load for the whole household**, never one
+- **`loadRecipeMeasures`** — every live recipe's words, keyed by recipe id: the
+  merged offer first, then the merge-hidden twins, because a line is resolved by
+  id and one pointing at a hidden twin still means what it said. A list that is
+  OFFERED or displayed dedupes again (`offeredRecipeMeasures`, which
+  `componentUnitChoices` calls for every chip row). **One query per load for the
+  whole household**, never one
   per recipe or per line: a measured line is looked up in its TARGET's list, so
   every loader that builds a `SubRecipeTarget`, a `SubRecipeNode` or a
   `ComponentRecipe` wants the whole map anyway. The callers are the summaries,

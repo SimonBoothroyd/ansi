@@ -34,8 +34,16 @@ const _columns =
     'rm.id, rm.recipe_id, rm.label, rm.amount, rm.unit, rm.sort_order, '
     'rm.created_at';
 
-/// Every live recipe's own words, keyed by recipe id, duplicates merged
-/// (oldest canonical — [mergeRecipeMeasures]) and `sort_order` first.
+/// Every live recipe's own words, keyed by recipe id — the OFFER first
+/// (duplicates merged, oldest canonical, `sort_order` first), then the
+/// merge-hidden twins behind it.
+///
+/// **A line is resolved by id, so every live row has to be here.** The merge
+/// hides a duplicate word rather than deleting it, and a line already pointing
+/// at the hidden row still means what it said; a list that dropped it would
+/// read that line as "its measure is gone" on every surface. So the hidden rows
+/// ride along at the tail, where [recipeMeasureById] finds them and
+/// [offeredRecipeMeasures] — which every chip row goes through — does not.
 ///
 /// **One query for the household**, never one per recipe or per line: a
 /// measured component line is looked up in its TARGET's list, so every loader
@@ -62,9 +70,19 @@ Future<Map<String, List<RecipeMeasure>>> loadRecipeMeasures(
     if (row == null) continue;
     (byRecipe[recipeId] ??= []).add(row);
   }
-  return {
-    for (final e in byRecipe.entries) e.key: mergeRecipeMeasures(e.value),
-  };
+  return {for (final e in byRecipe.entries) e.key: _offeredThenHidden(e.value)};
+}
+
+/// [rows] as the loader hands them on: the merged offer, then every live row
+/// the merge hid, so a lookup by id can still reach one.
+List<RecipeMeasure> _offeredThenHidden(List<RecipeMeasureRow> rows) {
+  final merged = mergeRecipeMeasures(rows);
+  final shown = {for (final m in merged) m.id};
+  return [
+    ...merged,
+    for (final r in rows)
+      if (!shown.contains(r.measure.id)) r.measure,
+  ];
 }
 
 /// Makes [recipeId]'s stored words equal [measures] — the DEFERRED door, run
@@ -113,10 +131,17 @@ Future<void> writeRecipeMeasures(
   );
   final storedById = {for (final r in stored) r['id'] as String: r};
   final keptIds = {for (final m in measures) m.id};
+  // The editor's list is the MERGED one, so a merge-hidden twin is absent from
+  // it for a reason that is not "drop this word". Its label is still kept, so
+  // the row is left exactly where it is — otherwise every Save of this recipe
+  // would either tombstone the twin or throw [RecipeMeasureInUse] on the lines
+  // saying it.
+  final keptLabels = {for (final m in measures) m.label};
 
   for (final r in stored) {
     final id = r['id'] as String;
     if (keptIds.contains(id) || r['deleted_at'] != null) continue;
+    if (keptLabels.contains(r['label'] as String? ?? '')) continue;
     await _refuseWhileSaid(
       tx,
       measureId: id,
