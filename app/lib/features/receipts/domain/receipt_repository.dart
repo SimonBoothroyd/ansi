@@ -48,8 +48,8 @@ abstract interface class ReceiptRepository {
   /// without a refresh.
   Stream<List<ReceiptLedgerRow>> watchReceipts();
 
-  /// One receipt and its live lines, for the read-only review a ledger row
-  /// opens. Emits null when the id names nothing — a receipt deleted on the
+  /// One receipt and its live lines, for the review a ledger row opens.
+  /// Emits null when the id names nothing — a receipt deleted on the
   /// other phone is not an error, it is gone.
   Stream<StoredReceipt?> watchReceipt(String receiptId);
 
@@ -96,7 +96,7 @@ typedef ReceiptLedgerRow = ({
   int taxLinesCents,
 });
 
-/// One stored receipt, read back for its read-only review.
+/// One stored receipt, read back for its review.
 typedef StoredReceipt = ({
   String id,
   String store,
