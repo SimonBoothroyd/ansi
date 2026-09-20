@@ -82,6 +82,11 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
   `app/test/features/import/edge_import_failures_test.dart`), and the budgets
   are sized from `evals/runs/`, never from the platform's number.
 - Migrations are immutable once merged; make a new migration to change schema.
+- **A migration meets the previous release's client first.** Before loosening
+  a column (dropping `NOT NULL`, widening a check, adding an enum value), say in
+  its header what the last shipped build does with such a row; if it throws,
+  the release notes carry a version floor and the writing door ships a release
+  later.
 - **Never `npx supabase`, and never take the local stack down mid-run.** The
   CLI is the brew-pinned 2.115.0 and the Makefile shells it by path
   (`$(SUPABASE)`); `npx` resolves a newer CLI that starts pulling a postgres
