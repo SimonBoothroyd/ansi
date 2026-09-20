@@ -1,6 +1,6 @@
 # Exec plan: Food cost, receipts, and a meal eaten out
 
-- **Status:** active — phases one and three shipped as `v0.19.0`, phase two as `v0.20.0`; open: the owner's review, then the feedback pass and the desk's three-column receipt review
+- **Status:** active — phases one and three shipped as `v0.19.0`, phase two as `v0.20.0`, the first feedback pass as `v0.21.0`; open: the desk's three-column receipt review
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 1 — the first ideas off the backlog
 - **Created:** 2026-09-16
@@ -85,7 +85,7 @@ Phase two — receipts and spend:
       asserts every statement the function issues is a `SELECT`.
 - [x] The Receipts ledger, by week (the household's week start) and store,
       spent against planned per week, a month line on top; opened from the
-      band's *spent* line and the shop's **scan a receipt** door.
+      band's *spent* line and the receipt action in the Shop's header.
 - [x] The band shows `spent` only when a receipt is dated inside the week.
 
 Phase three — a meal eaten out:
@@ -281,6 +281,8 @@ and can run beside phase one.
   walk, and a long-press is a door nobody can find. A quiet `receipts ›` sits
   at the end of the scan door's own row, and only once the household has kept
   a receipt — a door onto an empty page is furniture.
+  *Superseded by the feedback pass: the ledger's door is a receipt action in
+  the Shop's header, under the same kept-a-receipt rule.*
 - 2026-09-17 — **A receipt's date is wall time** (R2). `purchased_at` is
   stored with the paper's own clock components and a `Z`, not converted: a
   Sunday 17:42 shop read back on a phone seven hours west would otherwise file
@@ -524,14 +526,15 @@ and can run beside phase one.
 - [x] ADR-0017 (cost is a unit price) written at P2's landing.
 - [ ] `make ci` green on every landing so far; `make test-sim` on one
       simulator, serially, when the owner says go.
-- [ ] **0047 + `import-receipt` owed by hand** for the match memory: apply the
-      migration, then deploy the function (`docs/release.md` §4). Both receipt
+- [x] **0047 + `import-receipt`** for the match memory, on cloud
+      ([ledger](../../cloud-setup.md#last-verified-ledger)): the migration
+      applied, then the function deployed (`docs/release.md` §4). Both receipt
       sync rules are `select *`, so `name_printed` arrives with the migration —
       but the local sync container still has to be recreated from a checkout
       that holds it before a device sees the column. Nothing new is set by
       hand: the recall runs on the same `SUPABASE_DB_URL` pool the cascade
       already uses.
-- [ ] `deploy-supabase` run by hand for R1 — the workflow now deploys
+- [x] `deploy-supabase` run by hand for R1 — the workflow deploys
       `import-receipt` by name beside `import-recipe`, and the two share the
       `ANTHROPIC_API_KEY` / `IMPORT_ALLOWED_HOUSEHOLDS` secrets, so nothing new
       is set by hand; sync rules recreated for 0044 and 0045. **0046 needs no sync-rule edit** — both receipt rules are
