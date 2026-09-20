@@ -364,8 +364,8 @@ Three rules live in the host rather than in the widget, because only a host know
 them:
 
 - **the delete gate** — `mayDeleteRecipeMeasure` asks the repository at the tap
-  (never a list, and never `.future` on the autoDispose `recipeMeasureUsageProvider`)
-  and refuses with `recipeMeasureDeleteRefusalText` plus a **Show me where** door
+  (never a list, and never a one-shot `.future` on an autoDispose provider) and
+  refuses with `recipeMeasureDeleteRefusalText` plus a **Show me where** door
   onto the recipes. A word no Save has written yet has no referrer, so the same
   question answers yes for it without a special case;
 - **the orphan warning** — the editor's Save asks `measuresOrphanedBySave()`,

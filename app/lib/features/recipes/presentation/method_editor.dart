@@ -695,7 +695,11 @@ Future<String?> pickOrAddLine(
         choice: result is QuantitySaved ? result.choice : null,
       );
     case PickedSubRecipe(:final target):
-      final result = await showComponentQuantitySheet(context, target: target);
+      final result = await showComponentQuantitySheet(
+        context,
+        target: target,
+        mayCoinWords: true,
+      );
       notifier.addComponentLineItem(
         groupId,
         target,

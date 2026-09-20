@@ -446,7 +446,8 @@ class ReviewListDoors extends ConsumerWidget {
           // has no column for one of the target's own words, so a `blob`
           // picked here could only land as a whole batch. A word is said on
           // the line once the recipe exists, in the editor, where it is stored
-          // as the pointer it is (ADR-0018).
+          // as the pointer it is (ADR-0018). No ＋ either, for the same
+          // reason: a word coined here would have nowhere to be said.
           target: target.copyWith(measures: const []),
         );
         controller.addLine(

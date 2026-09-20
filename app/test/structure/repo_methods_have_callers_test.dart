@@ -47,23 +47,11 @@ final _declaration = RegExp(
 /// the omission. An entry that outlives its release is the dead code this test
 /// exists to find — by then the method has no future caller either.
 const _callerPending = <String, String>{
-  'lib/features/recipes/domain/recipe_measure_repository.dart:addRecipeMeasure':
-      'the ＋ on a component’s quantity dock, which writes on tap — the '
-      'authoring UI lands the release after this data layer (ADR-0018: the '
-      'first measure must not be written until every device can read one).',
-  'lib/features/recipes/domain/recipe_measure_repository.dart:'
-          'restateRecipeMeasure':
-      'the same page’s row editor — a row is the door to re-stating it. Same '
-      'release as addRecipeMeasure.',
   'lib/features/recipes/domain/recipe_measure_repository.dart:'
           'reorderRecipeMeasures':
-      'the same page’s grip. Drawn but not gestured in the first slice '
+      'the measures list’s grip. Drawn but not gestured in the first slice '
       '(ADR-0018, "out of the first slice"), so this one waits on the pass '
       'that adds the drag.',
-  'lib/features/recipes/domain/recipe_measure_repository.dart:'
-          'softDeleteRecipeMeasure':
-      'the same page’s bin, whose refusal is this method’s throw. Same '
-      'release as addRecipeMeasure.',
 };
 
 void main() {

@@ -340,6 +340,11 @@ class _WeekLineRow extends ConsumerWidget {
           initialUnit: item.unit,
           initialMeasureId: item.recipeMeasureId,
           initialOptional: item.optional,
+          // The week says a line in the target's own word exactly as the
+          // recipe does, so the ＋ is the same door here — and it is shut for
+          // a line whose recipe row has not synced, which has no yields to
+          // gate a word on.
+          mayCoinWords: item.subRecipe != null,
         );
         if (measured == null) return;
         notifier

@@ -275,7 +275,9 @@ Future<void> editComponentAmount(
     target: target,
     initialQuantity: resolution.quantity,
     // The 7.7 stored-selection rule: the line's printed unit is admissible on
-    // this line whatever the sheet would otherwise offer.
+    // this line whatever the sheet would otherwise offer. No ＋: the target
+    // above carries no words, and one coined here would have nowhere on a
+    // review line to be said.
     initialUnit: stored,
     initialOptional: resolution.optional,
   );

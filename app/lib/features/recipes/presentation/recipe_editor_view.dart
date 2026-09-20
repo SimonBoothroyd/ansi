@@ -696,6 +696,9 @@ Future<void> addLineToGroup(
         // ignore: use_build_context_synchronously
         host.context,
         target: target,
+        // A picked recipe is a stored one, so its words can be coined from
+        // the dock — the ＋ writes them onto IT, not onto this recipe.
+        mayCoinWords: true,
         onSetYield: () => host.context.pushOnce('/recipes/${target.id}/edit'),
       );
       notifier.addComponentLineItem(
@@ -911,6 +914,10 @@ class _ComponentLineEditor extends StatelessWidget {
         // what makes a re-stated `blob` follow through everywhere at once.
         initialMeasureId: item.recipeMeasureId,
         initialOptional: item.optional,
+        // Only where the target recipe is really here: a line whose recipe
+        // row has not synced has no yields to gate a word on and nothing to
+        // stamp one onto, so the dock offers no ＋ rather than a refusal.
+        mayCoinWords: target != null,
         onSetYield: target == null
             ? null
             : () => host.context.pushOnce('/recipes/${target.id}/edit'),

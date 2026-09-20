@@ -36,13 +36,3 @@ RecipeMeasureRepository recipeMeasureRepository(Ref ref) =>
 @riverpod
 Stream<List<RecipeMeasure>> recipeMeasures(Ref ref, String recipeId) =>
     ref.watch(recipeMeasureRepositoryProvider).watchRecipeMeasures(recipeId);
-
-/// What still says one word — the count the bin's refusal speaks
-/// (`recipeMeasureDeleteRefusalText`) and the door that lists the recipes.
-///
-/// A one-shot read taken when the bin is offered, like the ingredient
-/// measures' own delete guard: the answer has to be true *now*, not as of the
-/// last time a list was assembled.
-@riverpod
-Future<RecipeMeasureUsage> recipeMeasureUsage(Ref ref, String measureId) =>
-    ref.watch(recipeMeasureRepositoryProvider).countLinesUsing(measureId);
