@@ -21,6 +21,7 @@ import 'package:ansi/features/recipes/domain/recipe_measure_authoring.dart';
 import 'package:ansi/features/recipes/domain/recipe_measure_repository.dart';
 import 'package:ansi/features/recipes/presentation/component_quantity_sheet.dart';
 import 'package:ansi/features/recipes/presentation/recipe_measures_editor.dart';
+import 'package:ansi/shared/ansi_tap.dart';
 import 'package:ansi/shared/unit_chip.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -63,6 +64,10 @@ final _labelField = find.descendant(
 );
 final _amountField = find.descendant(
   of: find.byKey(const ValueKey('add-word-measure-amount')),
+  matching: find.byType(TextField),
+);
+final _editAmountField = find.descendant(
+  of: find.byKey(const ValueKey('edit-word-measure-amount')),
   matching: find.byType(TextField),
 );
 
@@ -143,6 +148,38 @@ Future<void> _coin(
 Future<void> _back(WidgetTester tester) async {
   await tester.tap(find.bySemanticsLabel('Back'));
   await tester.pumpAndSettle();
+}
+
+/// The sheet on its REAL route, which is what the re-statement test needs: the
+/// crash it pins is a scroll inside the open row's own field, and a field only
+/// scrolls where the surface it sits on can.
+Future<FakeRecipeMeasureRepo> _pumpSheet(
+  WidgetTester tester, {
+  List<RecipeMeasure> words = const [_blob],
+}) async {
+  filterForuiSemanticsAssertions();
+  final repo = FakeRecipeMeasureRepo(measures: words);
+  await tester.pumpAnsiApp(
+    FScaffold(
+      child: Builder(
+        builder: (context) => AnsiTap(
+          onTap: () => showComponentQuantitySheet(
+            context,
+            target: _aioli.copyWith(measures: words),
+            initialQuantity: 2,
+            initialMeasureId: words.isEmpty ? null : words.first.id,
+            mayCoinWords: true,
+          ),
+          semanticsLabel: 'open',
+          child: const Text('open'),
+        ),
+      ),
+    ),
+    overrides: [recipeMeasureRepositoryProvider.overrideWithValue(repo)],
+  );
+  await tester.tap(find.text('open'));
+  await tester.pumpAndSettle();
+  return repo;
 }
 
 void main() {
@@ -321,6 +358,40 @@ void main() {
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
     expect(door.done.single.recipeMeasureId, 'm-blob');
+  });
+
+  testWidgets('re-stating a word behind the ＋ saves it — and takes no scroll '
+      'down with the row it closes', (tester) async {
+    final words = await _pumpSheet(tester);
+
+    await tester.tap(_plus);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(RecipeMeasuresEditor),
+        matching: find.text('blob'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // Typing leaves the slot's own caret scroll animating; Save then takes the
+    // whole form out of the tree under it, which is the assertion this pins.
+    await tester.enterText(_editAmountField, '18');
+    await tester.pump();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('edit-recipe-measure-m-blob')),
+        matching: find.widgetWithText(FButton, 'Save'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: 'a scroll over the row Save removed',
+    );
+    expect(words.restated.single.amount, 18);
+    expect(_editAmountField, findsNothing, reason: 'the row closed');
   });
 
   testWidgets('a host that cannot say a word offers no ＋ — the import review, '

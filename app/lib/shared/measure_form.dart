@@ -11,9 +11,17 @@
 /// is the small variant trimmed to it, the amount and its unit are
 /// [AmountAndUnitField], and the button is the `xs` the density sentence ends
 /// with.
+///
+/// **Save stills the slots' own scrollers first.** A field keeps its caret in
+/// view by animating its internal scroll, and Save is the tap that can take the
+/// whole form out of the tree — the measures editor's open row closes on it. A
+/// scroll still running over a subtree that has gone dispatches into it and
+/// trips a framework assertion, so the tap stops both slots before the host
+/// hears about it.
 library;
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 
 import '../core/theme/ansi_theme.dart';
@@ -22,7 +30,7 @@ import '../core/units/units.dart';
 import 'amount_and_unit.dart';
 import 'inline_amount_field.dart';
 
-class MeasureForm extends StatelessWidget {
+class MeasureForm extends HookWidget {
   const MeasureForm({
     required this.icon,
     required this.headline,
@@ -82,6 +90,18 @@ class MeasureForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final labelScroll = useScrollController();
+    final amountScroll = useScrollController();
+
+    // The tap the host may answer by removing this form — see the library
+    // note. Stilling a slot that is not scrolling costs nothing.
+    void save() {
+      for (final scroll in [labelScroll, amountScroll]) {
+        if (scroll.hasClients) scroll.position.jumpTo(scroll.position.pixels);
+      }
+      onSave();
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -105,6 +125,7 @@ class MeasureForm extends StatelessWidget {
                 key: ValueKey('$slot-measure-label'),
                 autofocus: autofocus,
                 focusNode: labelFocus,
+                scrollController: labelScroll,
                 hint: hint,
                 size: FTextFieldSizeVariant.sm,
                 style: const FTextFieldStyleDelta.delta(
@@ -122,10 +143,11 @@ class MeasureForm extends StatelessWidget {
               unitKey: ValueKey('$slot-measure-unit'),
               amountWidth: 40,
               controller: amount,
+              scrollController: amountScroll,
               unit: unit,
               units: units,
               onUnit: onUnit,
-              onSubmit: onSave,
+              onSubmit: save,
             ),
             const SizedBox(width: 8),
             // The density sentence's button, to the point: `sm` floors at
@@ -139,7 +161,7 @@ class MeasureForm extends StatelessWidget {
                   ),
                 ),
               ),
-              onPress: onSave,
+              onPress: save,
               child: Text(saveLabel),
             ),
           ],

@@ -34,6 +34,7 @@ class InlineAmountField extends StatelessWidget {
     this.width = 46,
     this.fieldKey,
     this.fractions = false,
+    this.scrollController,
     super.key,
   }) : assert(
          controller == null || initial == null,
@@ -72,11 +73,17 @@ class InlineAmountField extends StatelessWidget {
   /// off a label, and the decimal pad is the right keyboard for it.
   final bool fractions;
 
+  /// The slot's OWN scroller — the one a field runs to keep the caret in view.
+  /// A host passes one where it has to stop that scroll before the field
+  /// leaves the tree — `shared/measure_form.dart` does.
+  final ScrollController? scrollController;
+
   @override
   Widget build(BuildContext context) => SizedBox(
     width: width,
     child: FTextField(
       key: fieldKey,
+      scrollController: scrollController,
       textAlign: TextAlign.center,
       textInputAction: TextInputAction.done,
       onSubmit: (_) => onSubmit(),
