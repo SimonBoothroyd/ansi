@@ -26,6 +26,7 @@ import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/presentation/component_quantity_sheet.dart';
 import 'package:ansi/features/recipes/presentation/line_card.dart';
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
@@ -34,6 +35,7 @@ import '../../helpers/editor_harness.dart';
 import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/fake_planning_repository.dart';
+import '../../helpers/fake_recipe_measure_repository.dart';
 import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/fake_week_variant_repository.dart';
 import '../../helpers/forui_semantics.dart';
@@ -101,6 +103,13 @@ Finder _qtyField() => find
 Finder _chip(String label) => find.descendant(
   of: find.byType(ComponentQuantityEditor),
   matching: find.text(label),
+);
+
+/// The chip row's manage chip — a real icon, because the bundled fonts carry
+/// no U+FF0B.
+final _plus = find.descendant(
+  of: find.byType(ComponentQuantityEditor),
+  matching: find.byIcon(FLucideIcons.plus),
 );
 
 void main() {
@@ -224,6 +233,41 @@ void main() {
       expect(line.recipeMeasureId, 'm-blob');
       expect(line.unit, isNull);
     });
+
+    testWidgets('the ＋ on that dock opens the TARGET recipe’s own words — '
+        'the sauce being measured, not the recipe being written', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      tallSurface(tester);
+      final words = FakeRecipeMeasureRepo(measures: const [_blob]);
+      await tester.pumpWidget(
+        hostEditor('1', [
+          recipeRepositoryProvider.overrideWithValue(
+            FakeRecipeRepo(_sliders(_measuredLine)),
+          ),
+          recipeMeasureRepositoryProvider.overrideWithValue(words),
+        ]),
+      );
+      await tester.pumpAndSettle();
+
+      await openLine(tester, 'Romesco Aioli');
+      await tester.tap(find.byType(LineCardAmountChip));
+      await tester.pumpAndSettle();
+      // The row scrolls: the manage chip is last, behind every unit the
+      // yield's family opens.
+      await tester.ensureVisible(_plus);
+      await tester.pumpAndSettle();
+      await tester.tap(_plus);
+      await tester.pumpAndSettle();
+
+      // The manage state, headed by the TARGET — this editor is open on
+      // Sausage Sliders, and the word belongs to the aioli.
+      expect(find.text('Measures'), findsOneWidget);
+      expect(find.text('Romesco Aioli'), findsWidgets);
+      expect(find.text('blob'), findsWidgets);
+      expect(find.text('50 ml'), findsOneWidget);
+    });
   });
 
   group('week mode', () {
@@ -324,6 +368,38 @@ void main() {
       final stored = variants.saved.single.set.single;
       expect(stored.recipeMeasureId, 'm-blob');
       expect(stored.unit, isNull);
+    });
+
+    testWidgets('the ＋ is the same door here — the week says a line in the '
+        'target’s own word exactly as the recipe does', (tester) async {
+      filterForuiSemanticsAssertions();
+      final variants = FakeWeekVariantRepository();
+      await tester.pumpWidget(
+        routedHost(
+          initial: '/recipes/1/edit',
+          overrides: [
+            ...overrides(variants, _measuredLine),
+            recipeMeasureRepositoryProvider.overrideWithValue(
+              FakeRecipeMeasureRepo(measures: const [_blob]),
+            ),
+          ],
+          routes: {
+            '/recipes/1/edit': (_, _) =>
+                const WeekVariantEditorView(recipeId: '1', weekKey: weekKey),
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('3 blob').first);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(_plus);
+      await tester.pumpAndSettle();
+      await tester.tap(_plus);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Measures'), findsOneWidget);
+      expect(find.text('50 ml'), findsOneWidget);
     });
   });
 }

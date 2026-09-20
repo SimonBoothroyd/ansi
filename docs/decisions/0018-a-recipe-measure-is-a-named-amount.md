@@ -161,14 +161,26 @@ number; `piece` is the degradation rule 7 refuses — so the column is null and
 - **A measured line weighs nothing.** `lineAmountInBasis` answers null for it,
   as it must: a share of a batch is not a mass, and the parent's figures come
   from the target's own walk rather than from the line.
-- **An older app build cannot read a measured line**, so **the data layer ships
+- **An older app build cannot read a measured line**, so **the data layer shipped
   a release before the authoring UI.** A build that predates this casts the
   column with a hard `as String` and throws on a NULL, skips such a line
   silently in the cook plan and the shop, and prints `3 batch` in the "used in"
-  list. The read seam is therefore landed on its own — every loader, every
-  watch, both write doors and the delete gate, with no screen that can create a
+  list. The read seam therefore landed on its own — every loader, every watch,
+  both write doors and the delete gate, with no screen that could create a
   measure — so that the first word written anywhere in the household lands on
-  devices that already resolve, cost, macro, cook and shop it correctly.
+  devices that already resolve, cost, macro, cook and shop it correctly. **The
+  authoring release must not be tagged until both household phones run the read
+  one.**
+- **Two doors write a word, and only the host differs.** One widget
+  (`RecipeMeasuresEditor`) is hosted by the recipe editor's header form, which
+  defers into the recipe's own Save, and by the `＋` on a component's quantity
+  dock, which has none and writes on tap through `RecipeMeasureRepository`
+  (ADR-0011's pair, one level up from the ingredient side's). The dock is where
+  a word is usually coined — the household thinks of `blob` while writing the
+  recipe that says it — so that sheet watches the target's live words rather
+  than the snapshot its caller handed over, and back leaves the coined word
+  selected. A word retired there that the open line was counting reconciles the
+  selection to the yield's own unit: Done must never write a tombstone.
 - **The write refusal is the repository's, not the form's.** A line denominated
   in neither a unit nor a word, and a week's amount naming a word with no
   number, are both refused *before* they are written

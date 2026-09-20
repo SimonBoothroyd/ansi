@@ -968,6 +968,16 @@ word says.
   **import review hosts the same list** and prefills nothing into it — an
   extractor prints units, and a household's word for a blob of their own sauce
   is in no source page — and a word typed there rides the commit.
+- **The other door is the `＋` on a component's quantity dock**, and it is where
+  a word is usually coined: the household thinks of `blob` while writing the
+  recipe that *says* it, not while editing the sauce. It swaps that sheet's body
+  for this same list, aimed at the **target** recipe, and it has no Save — every
+  tap is a write, the word is live at once, and back returns to the amount with
+  it already picked, so the line reads `3 blob`. The dock watches the target's
+  words, so nothing has to be reloaded for the chip to be there; a word retired
+  there that the line was counting hands the selection back to the yield's own
+  unit with a note. The list is the same widget either way: what changes is
+  whether the host has a Save.
 
 **The recipe editor's ingredient line is that same card.** At rest it is the
 row the recipe page prints — `[amount] [name] [note]`, bare on its hairline,

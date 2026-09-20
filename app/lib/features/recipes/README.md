@@ -376,10 +376,29 @@ them:
   a word throws `RecipeMeasureRefused`, and the editor prints that sentence
   rather than the write door's "Couldn't save the recipe", with the draft intact.
 
+**Its second host is the `＋` on a component's quantity dock**
+(`presentation/component_quantity_sheet.dart`), aimed at the **target** recipe —
+the sauce being measured, not the one being written — because that is the recipe
+the word belongs to. It has no Save, so each callback is a write through
+`RecipeMeasureRepository` wrapped in `ref.write`: a `RecipeMeasureRefused`
+becomes `RecipeMeasureTurnedDown` and prints under the field, any other failure
+is `RecipeMeasureNotLanded` and has already been said by the write door. Three
+things follow from a door opened mid-sentence — the sheet **watches**
+`recipeMeasuresProvider(target.id)` rather than trusting the snapshot its caller
+passed, so a coined word is a chip on return with nothing reloaded; the word is
+**selected** as it lands, so back reads `3 blob`; and the selection is re-read
+from the live row every build, so a re-statement follows through and a
+retirement lights no chip. Retiring the word the open line was counting
+reconciles the choice to the yield's own unit with a note — Done must never
+write a tombstone. The `＋` is drawn for the two recipe-editor doors, the method
+editor's and week mode's, and **not** for the import review's two, which strip
+the target's words for the same reason: a review line has no column for a
+pointer.
+
 **The drag is not built.** `sort_order` is stored, read and re-stamped by
 position on every Save, and the widget draws a grip only where a host passes
-`onReorder` — which no shipped host does yet (ADR-0018, "out of the first
-slice"). The order a household types their words in is the order they get.
+`onReorder` — which no shipped host does (ADR-0018, "out of the first slice").
+The order a household types their words in is the order they get.
 
 **The `makes` gate is the repository's, not a parameter.** `addRecipeMeasure` and
 `restateRecipeMeasure` read the recipe's stated yields off the row inside their

@@ -177,8 +177,6 @@ class ComponentQuantityEditor extends HookConsumerWidget {
     // The chip the sheet opens on. Null is the one line with nothing honest to
     // preselect — a word that has gone — and it is the reason [UnitChipRow]'s
     // selection is nullable at all.
-    final stored = _openingChoice();
-    final choice = useState<UnitChoice?>(stored);
     final quantity = useState<double?>(initialQuantity);
     final optional = useState<bool>(initialOptional);
     final managing = useState(false);
@@ -197,6 +195,13 @@ class ComponentQuantityEditor extends HookConsumerWidget {
         ? ref.watch(recipeMeasuresProvider(target.id)).asData?.value
         : null;
     final measures = watched ?? target.measures;
+
+    // Read against the LIVE words, so the 7.7 admission expires with the row:
+    // a stored pointer whose word has just been retired behind the ＋ stops
+    // being an admissible chip, instead of sitting there marked *not in
+    // filter* where one tap would write the tombstone.
+    final stored = _openingChoice(measures);
+    final choice = useState<UnitChoice?>(stored);
 
     // A word follows its row: the selection is re-read from the live list, so
     // a `blob` re-stated to 18 ml behind the `+` is the one the conversion
@@ -239,7 +244,13 @@ class ComponentQuantityEditor extends HookConsumerWidget {
         title: 'Measures',
         subtitle: target.title,
         dismiss: AnsiSheetDismiss.back,
-        onDismiss: () => managing.value = false,
+        // The keyboard goes with the body: a focused field whose subtree is
+        // about to leave keeps a frame callback pointed at a render object
+        // that no longer exists.
+        onDismiss: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          managing.value = false;
+        },
         children: [
           const SizedBox(height: 14),
           _TargetMeasures(
@@ -345,7 +356,10 @@ class ComponentQuantityEditor extends HookConsumerWidget {
           // component whose recipe row has not synced here: there is nothing
           // to stamp a word onto, so no chip rather than one that refuses.
           onManage: mayCoinWords && target.id.isNotEmpty
-              ? () => managing.value = true
+              ? () {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  managing.value = true;
+                }
               : null,
         ),
         if (retiredNote.value case final note?) ...[
@@ -422,13 +436,13 @@ class ComponentQuantityEditor extends HookConsumerWidget {
   /// recipe can still hold), and otherwise on the yield's own unit, which is
   /// the line a page prints — `¼ cup` of a `makes 1 cup` aioli — and the
   /// denomination this sheet has always opened wordless recipes on.
-  UnitChoice? _openingChoice() {
+  UnitChoice? _openingChoice(List<RecipeMeasure> measures) {
     if (initialMeasureId case final id?) {
-      final word = recipeMeasureById(id, target.measures);
+      final word = recipeMeasureById(id, measures);
       return word == null ? null : RecipeMeasureOption(word);
     }
     if (initialUnit case final unit?) return UnitOption(unit);
-    final first = firstComponentChoice(target, target.measures);
+    final first = firstComponentChoice(target, measures);
     return first is RecipeMeasureOption
         ? first
         : UnitOption(_defaultUnit(target.yields));
