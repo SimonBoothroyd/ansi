@@ -4,11 +4,15 @@ library;
 import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../ingredients/domain/measure_authoring.dart';
 import '../../ingredients/domain/price.dart';
 import '../domain/receipt_repository.dart';
 import '../domain/receipt_save.dart';
 
 const _uuid = Uuid();
+
+/// A measure minted by the save in flight, and the weight it was minted at.
+typedef _Minted = ({String id, double basis});
 
 class SqliteReceiptRepository implements ReceiptRepository {
   const SqliteReceiptRepository(this._db, {required String householdId})
@@ -37,7 +41,9 @@ class SqliteReceiptRepository implements ReceiptRepository {
           'COUNT(l.id) AS line_count, '
           "COUNT(CASE WHEN l.kind = 'not_food' THEN 1 END) AS not_food_count, "
           "COALESCE(SUM(CASE WHEN l.kind <> 'tax' "
-          'THEN l.cents - COALESCE(l.discount_cents, 0) END), 0) AS lines_sum '
+          'THEN l.cents - COALESCE(l.discount_cents, 0) END), 0) AS lines_sum, '
+          "COALESCE(SUM(CASE WHEN l.kind = 'tax' "
+          'THEN l.cents - COALESCE(l.discount_cents, 0) END), 0) AS tax_sum '
           'FROM receipt r '
           'LEFT JOIN receipt_line l ON l.receipt_id = r.id '
           'AND l.deleted_at IS NULL '
@@ -59,6 +65,7 @@ class SqliteReceiptRepository implements ReceiptRepository {
                 lineCount: (r['line_count'] as num?)?.toInt() ?? 0,
                 notFoodCount: (r['not_food_count'] as num?)?.toInt() ?? 0,
                 linesSumCents: (r['lines_sum'] as num?)?.toInt() ?? 0,
+                taxLinesCents: (r['tax_sum'] as num?)?.toInt() ?? 0,
               ),
           ],
         );
@@ -159,7 +166,7 @@ class SqliteReceiptRepository implements ReceiptRepository {
           stamp,
         ],
       );
-      final mintedWords = <(String, String), String>{};
+      final mintedWords = <(String, String), _Minted>{};
       for (final line in write.lines) {
         await _writeLine(tx, receiptId, line, stamp, mintedWords);
       }
@@ -172,35 +179,40 @@ class SqliteReceiptRepository implements ReceiptRepository {
     _refuseUnsayable(write);
     final stamp = DateTime.now().toUtc().toIso8601String();
     await _db.writeTransaction((tx) async {
-      // UPDATE, never an upsert: the local tables are SQLite views. The
-      // printed totals are the paper's and are not this door's to move, so
-      // they are left exactly as the scan wrote them.
-      await tx.execute(
-        'UPDATE receipt SET store = ?, purchased_at = ?, updated_at = ? '
-        'WHERE id = ? AND deleted_at IS NULL',
-        [write.store.trim(), receiptStamp(write.purchasedAt), stamp, receiptId],
-      );
-      final live = await tx.getAll(
-        'SELECT id FROM receipt_line WHERE receipt_id = ? '
-        'AND deleted_at IS NULL',
+      final receipt = await tx.getOptional(
+        'SELECT source FROM receipt WHERE id = ? AND deleted_at IS NULL',
         [receiptId],
       );
-      final kept = {
-        for (final line in write.lines)
-          if (line.lineId != null) line.lineId!,
-      };
-      // A line the edit dropped is tombstoned, never rewritten: the row that
-      // was a price stops being one, and sync carries exactly that.
-      for (final row in live) {
-        final id = row['id'] as String;
-        if (kept.contains(id)) continue;
+      // Deleted on another phone: there is nothing left to edit.
+      if (receipt == null) return;
+      // UPDATE, never an upsert: the local tables are SQLite views. Printed
+      // totals are the paper's and stand; a hand-typed receipt printed none,
+      // so its subtotal follows its lines.
+      final manual =
+          ReceiptSource.fromDb(receipt['source'] as String?) ==
+          ReceiptSource.manual;
+      await tx.execute(
+        'UPDATE receipt SET store = ?, purchased_at = ?, '
+        'subtotal_cents = COALESCE(?, subtotal_cents), updated_at = ? '
+        'WHERE id = ?',
+        [
+          write.store.trim(),
+          receiptStamp(write.purchasedAt),
+          if (manual) _linesCents(write) else null,
+          stamp,
+          receiptId,
+        ],
+      );
+      // Only a line the person dropped is tombstoned: one merely absent from
+      // the write may not have synced to this phone yet.
+      for (final id in write.droppedLineIds) {
         await tx.execute(
           'UPDATE receipt_line SET deleted_at = ?, updated_at = ? '
-          'WHERE id = ? AND deleted_at IS NULL',
-          [stamp, stamp, id],
+          'WHERE id = ? AND receipt_id = ? AND deleted_at IS NULL',
+          [stamp, stamp, id, receiptId],
         );
       }
-      final mintedWords = <(String, String), String>{};
+      final mintedWords = <(String, String), _Minted>{};
       for (final line in write.lines) {
         await _writeLine(tx, receiptId, line, stamp, mintedWords);
       }
@@ -224,6 +236,11 @@ class SqliteReceiptRepository implements ReceiptRepository {
     });
   }
 
+  /// What [write]'s lines come to, tax excluded — the review's own sum.
+  static int _linesCents(ReceiptWrite write) => write.lines
+      .where((l) => l.kind != ReceiptLineKind.tax)
+      .fold(0, (sum, l) => sum + l.cents - l.discountCents);
+
   static void _refuseUnsayable(ReceiptWrite write) {
     if (write.store.trim().isEmpty) {
       throw ArgumentError.value(write.store, 'store', 'must name a store');
@@ -242,22 +259,19 @@ class SqliteReceiptRepository implements ReceiptRepository {
   /// `ON CONFLICT`: the local tables are SQLite views and a view rejects
   /// UPSERT.
   ///
-  /// [mintedWords] is the receipt's own record of the measures this save has
-  /// already minted, keyed by ingredient and word, and it is what keeps six
-  /// identical lines from minting six identical measures. It lives for one
-  /// transaction: a word minted last week is a row, and a row is not this
-  /// door's to reuse.
+  /// [mintedWords] is what this save has already minted, keyed by ingredient
+  /// and word, so six identical lines mint one measure. It lives for one
+  /// transaction.
   Future<void> _writeLine(
     SqliteWriteContext tx,
     String receiptId,
     ReceiptLineWrite line,
     String stamp,
-    Map<(String, String), String> mintedWords,
+    Map<(String, String), _Minted> mintedWords,
   ) async {
     // The one place an import mints a measure, and only where the household's
     // own tap asked for it. It happens BEFORE the line, so the line can point
-    // at the word rather than at the unit it was typed in — which is what
-    // makes the next receipt for this row land on it.
+    // at the word rather than at the unit it was typed in.
     var measureId = line.measureId;
     final mint = line.mintMeasureLabel?.trim();
     final basis = line.packBasisAmount;
@@ -266,19 +280,15 @@ class SqliteReceiptRepository implements ReceiptRepository {
         mint.isNotEmpty &&
         basis != null &&
         ingredientId != null) {
-      // The same word asked for again on the same receipt — six tubs of tofu
-      // each kept as *tub* — is ONE measure: the first line mints it and the
-      // rest point at it, because a row with six identical words in its picker
-      // is six ways to say one thing.
-      measureId = mintedWords[(ingredientId, mint)];
-      if (measureId == null) {
+      final already = mintedWords[(ingredientId, mint)];
+      if (already == null) {
         final last = await tx.get(
           'SELECT COALESCE(MAX(sort_order), -1) AS m FROM ingredient_measure '
           'WHERE ingredient_id = ? AND deleted_at IS NULL',
           [ingredientId],
         );
         measureId = _uuid.v4();
-        mintedWords[(ingredientId, mint)] = measureId;
+        mintedWords[(ingredientId, mint)] = (id: measureId, basis: basis);
         await tx.execute(
           'INSERT INTO ingredient_measure (id, household_id, '
           'ingredient_id, label, basis_amount, sort_order, source, '
@@ -295,7 +305,11 @@ class SqliteReceiptRepository implements ReceiptRepository {
             stamp,
           ],
         );
+      } else if (isSameMeasureWeight(basis, already.basis)) {
+        measureId = already.id;
       }
+      // A second size of the same word stays as typed: one word is one
+      // weight, and the pack sheet is where that is refused out loud.
     }
     // A pack minted as a measure is stored as a COUNT of it, so the word is
     // the measure's own and never a second copy.

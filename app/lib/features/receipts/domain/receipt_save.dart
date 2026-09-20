@@ -71,6 +71,7 @@ class ReceiptWrite {
     required this.store,
     required this.purchasedAt,
     required this.lines,
+    this.droppedLineIds = const [],
     this.subtotalCents,
     this.taxCents,
     this.totalCents,
@@ -88,15 +89,18 @@ class ReceiptWrite {
   final int? totalCents;
 
   final List<ReceiptLineWrite> lines;
+
+  /// The stored lines the person dropped. Named rather than inferred from
+  /// absence, because a line missing from [lines] may only be unsynced.
+  final List<String> droppedLineIds;
 }
 
 /// The review, as rows.
 ///
-/// A dropped line is simply absent — nothing was ever written for it to be
-/// removed from. A line that is not food carries **no ingredient and no
-/// pack**: it counts toward what the trip cost and toward nothing else, and
-/// letting a folded line keep a stale match would leave a price hanging off
-/// a bag fee.
+/// A dropped line is absent from the lines, and named in
+/// [ReceiptWrite.droppedLineIds] where a stored row is behind it. A line that
+/// is not food carries **no ingredient and no pack**: a folded line keeping a
+/// stale match would leave a price hanging off a bag fee.
 ReceiptWrite buildReceiptSave({
   required String store,
   required DateTime purchasedAt,
@@ -139,6 +143,10 @@ ReceiptWrite buildReceiptSave({
     taxCents: taxCents,
     totalCents: totalCents,
     lines: lines,
+    droppedLineIds: [
+      for (final draft in drafts)
+        if (draft.dropped && draft.lineId != null) draft.lineId!,
+    ],
   );
 }
 

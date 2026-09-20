@@ -27,8 +27,10 @@ ReceiptLineDraft draft({
   String? measureId,
   String? keepAsMeasure,
   bool dropped = false,
+  String? lineId,
 }) => ReceiptLineDraft(
   index: index,
+  lineId: lineId,
   printedText: printed,
   cents: cents,
   discountCents: discountCents,
@@ -144,6 +146,15 @@ void main() {
     ]);
     expect(write.lines, hasLength(2));
     expect(write.lines.map((l) => l.sortOrder), [0, 1]);
+  });
+
+  test('a dropped stored line is named; a dropped fresh one is not', () {
+    final write = saveOf([
+      draft(lineId: 'l-0'),
+      draft(index: 1, lineId: 'l-1', dropped: true),
+      draft(index: 2, dropped: true),
+    ]);
+    expect(write.droppedLineIds, ['l-1']);
   });
 
   test('keep as a measure rides only a matched, packed food line', () {

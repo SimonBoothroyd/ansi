@@ -48,8 +48,8 @@ abstract interface class ReceiptRepository {
   /// without a refresh.
   Stream<List<ReceiptLedgerRow>> watchReceipts();
 
-  /// One receipt and its live lines, for the read-only review a ledger row
-  /// opens. Emits null when the id names nothing — a receipt deleted on the
+  /// One receipt and its live lines, for the review a ledger row opens.
+  /// Emits null when the id names nothing — a receipt deleted on the
   /// other phone is not an error, it is gone.
   Stream<StoredReceipt?> watchReceipt(String receiptId);
 
@@ -66,10 +66,12 @@ abstract interface class ReceiptRepository {
   /// Rewrites the saved receipt [receiptId] as [write] says it now stands:
   /// the store and the date move, a line carrying its
   /// [ReceiptLineWrite.lineId] is updated in place, a line without one is
-  /// new, and a stored line [write] no longer carries is tombstoned.
+  /// new, and each of [ReceiptWrite.droppedLineIds] is tombstoned. A receipt
+  /// no longer live is left alone.
   ///
-  /// The printed totals and every line's printed words are the paper's, and
-  /// are left as the scan wrote them. Refuses what [saveReceipt] refuses.
+  /// The printed totals and every line's printed words are the paper's and
+  /// stand; a hand-typed receipt printed none, so its subtotal follows its
+  /// lines. Refuses what [saveReceipt] refuses.
   Future<void> updateReceipt(String receiptId, ReceiptWrite write);
 
   /// Takes the receipt back — it and its lines are tombstoned, so every price
@@ -91,9 +93,10 @@ typedef ReceiptLedgerRow = ({
   int lineCount,
   int notFoodCount,
   int linesSumCents,
+  int taxLinesCents,
 });
 
-/// One stored receipt, read back for its read-only review.
+/// One stored receipt, read back for its review.
 typedef StoredReceipt = ({
   String id,
   String store,
