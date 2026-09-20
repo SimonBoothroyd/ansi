@@ -68,8 +68,8 @@ Future<bool> mayDeleteRecipeMeasure(
     body:
         '$refusal '
         'Change $change '
-        'first — a word that goes leaves every line saying it unresolved for '
-        'good.',
+        'first — a measure that goes leaves every line saying it '
+        'unresolved for good.',
     door: recipes.isEmpty ? null : 'Show me where',
   );
   if (took) {

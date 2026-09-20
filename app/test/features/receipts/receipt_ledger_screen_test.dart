@@ -40,7 +40,6 @@ StoredReceiptLine storedLine({
   packUnit: packUnit,
   measureId: measureId,
   measureLabel: measureLabel,
-  macrosBasis: 'g',
 );
 
 /// A kept TJ's receipt: a bag of bananas, onions by the pound, and paper

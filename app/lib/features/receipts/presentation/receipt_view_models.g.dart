@@ -42,7 +42,7 @@ final class ReceiptScanControllerProvider
 }
 
 String _$receiptScanControllerHash() =>
-    r'29659a955f3dbcdea815634fe81e9835fefc4cf5';
+    r'cbe171bb8e6cd53b5cda1ab961adea29834ff70c';
 
 abstract class _$ReceiptScanController extends $Notifier<ReceiptScanState> {
   ReceiptScanState build();

@@ -87,7 +87,7 @@ class SqliteReceiptRepository implements ReceiptRepository {
           'l.cents, '
           'l.discount_cents, l.kind, l.pack_basis_amount, l.pack_amount, '
           'l.pack_unit, l.measure_id, l.sort_order, '
-          'i.canonical_name, i.macros_basis, m.label AS measure_label '
+          'i.canonical_name, m.label AS measure_label '
           'FROM receipt r '
           'LEFT JOIN receipt_line l ON l.receipt_id = r.id '
           'AND l.deleted_at IS NULL '
@@ -131,7 +131,6 @@ class SqliteReceiptRepository implements ReceiptRepository {
               packUnit: r['pack_unit'] as String?,
               measureId: r['measure_id'] as String?,
               measureLabel: r['measure_label'] as String?,
-              macrosBasis: r['macros_basis'] as String?,
             ),
       ],
     );

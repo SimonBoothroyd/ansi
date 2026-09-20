@@ -195,7 +195,7 @@ void main() {
       expect(find.text('blob'), findsOneWidget);
       expect(find.text('15 g'), findsOneWidget);
       expect(
-        find.text('nothing to be a share of · MAKES states no mass yield'),
+        find.text('nothing to be a share of · MAKES states no weight yield'),
         findsOneWidget,
       );
       expect(find.text(kRecipeMeasureNoYieldRefusal), findsOneWidget);
@@ -265,10 +265,7 @@ void main() {
       await tester.enterText(_amountField, '15');
       await tester.pump();
       await _tapAdd(tester);
-      expect(
-        find.text('Give it a word — what you call one of these.'),
-        findsOneWidget,
-      );
+      expect(find.text(kRecipeMeasureNoLabelRefusal), findsOneWidget);
 
       await tester.enterText(_labelField, 'blob');
       await tester.enterText(_amountField, '');
@@ -501,7 +498,7 @@ void main() {
       );
 
       expect(
-        find.text('nothing to be a share of · MAKES states no mass yield'),
+        find.text('nothing to be a share of · MAKES states no weight yield'),
         findsOneWidget,
       );
       // And the add form follows MAKES rather than the word that is stranded.

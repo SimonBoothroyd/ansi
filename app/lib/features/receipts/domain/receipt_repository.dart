@@ -125,5 +125,4 @@ typedef StoredReceiptLine = ({
   String? packUnit,
   String? measureId,
   String? measureLabel,
-  String? macrosBasis,
 });

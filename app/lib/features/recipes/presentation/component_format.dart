@@ -136,7 +136,7 @@ String recipeMeasureDeleteRefusalText({
 }
 
 /// What a MEASURES row says while the recipe cannot hold the word — *"nothing
-/// to be a share of · MAKES states no mass yield"*.
+/// to be a share of · MAKES states no weight yield"*.
 ///
 /// The per-row half of [recipeMeasuresOrphanedWarning]: the warning is said
 /// once, on the way out of the editor, and this is what the row reads
@@ -146,7 +146,7 @@ String recipeMeasureDeleteRefusalText({
 /// number, and only the share has gone (ADR-0018 rule 3).
 String recipeMeasureOrphanedRowNote(RecipeMeasure measure) =>
     'nothing to be a share of · MAKES states no '
-    '${measure.unit.family.name} yield';
+    '${measure.unit.family.said} yield';
 
 /// What the recipe editor says before a Save that takes away the `makes` a live
 /// word stands on — *"“blob” (15 g) won’t say anything after this: nothing here
@@ -213,8 +213,8 @@ String unresolvedComponentText(UnresolvedComponentAmount reason) =>
       ComponentMeasureMissing() => 'its measure is gone',
       ComponentFamilyMismatch(:final lineFamily, :final yieldFamilies) =>
         'unresolved — the yield is in '
-            '${yieldFamilies.map((f) => f.name).toSet().join(' / ')}, '
-            'this line in ${lineFamily.name}',
+            '${yieldFamilies.map((f) => f.said).toSet().join(' / ')}, '
+            'this line in ${lineFamily.said}',
       ComponentCycle() => 'unresolved — this recipe is used inside itself',
     };
 
@@ -268,7 +268,7 @@ String usedInAmountLine({
 /// A measure resolves through the yield, so a word can now be perfectly alive
 /// and still unresolvable — a `makes` restated into another family under it.
 /// The line then reads *"3 blob — unresolved — the yield is in volume, this
-/// line in mass"*: the household's word, and the gap, both said. Only a word
+/// line in weight"*: the household's word, and the gap, both said. Only a word
 /// that has actually GONE loses its label, which is the one case where there is
 /// no honest label to print.
 String? componentConversionLine({

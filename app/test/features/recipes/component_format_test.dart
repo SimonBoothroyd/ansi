@@ -73,7 +73,7 @@ void main() {
           unit: tbsp,
           yields: [(qty: 250, unit: g)],
         ),
-        '2 tbsp — unresolved — the yield is in mass, this line in volume',
+        '2 tbsp — unresolved — the yield is in weight, this line in volume',
       );
     });
   });
@@ -243,7 +243,7 @@ void main() {
           recipeMeasureId: 'blob',
           measures: const [blob],
         ),
-        '3 blob — unresolved — the yield is in volume, this line in mass',
+        '3 blob — unresolved — the yield is in volume, this line in weight',
       );
       expect(
         componentConversionLine(
@@ -348,7 +348,7 @@ void main() {
         'has to say again', () {
       expect(
         recipeMeasureOrphanedRowNote(blob),
-        'nothing to be a share of · MAKES states no mass yield',
+        'nothing to be a share of · MAKES states no weight yield',
       );
       expect(
         recipeMeasureOrphanedRowNote(ladle),

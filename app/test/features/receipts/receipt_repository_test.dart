@@ -612,7 +612,6 @@ void main() {
         'Bananas, organic',
         reason: 'the join names the row, rather than a copy on the line',
       );
-      expect(stored.lines.first.macrosBasis, 'g');
       expect(stored.lines.map((l) => l.cents), [349, 263]);
     });
 

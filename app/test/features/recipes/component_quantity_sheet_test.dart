@@ -177,7 +177,7 @@ void main() {
     expect(find.text('not in filter'), findsOneWidget);
     expect(
       find.text(
-        '2 tbsp — unresolved — the yield is in mass, this line in '
+        '2 tbsp — unresolved — the yield is in weight, this line in '
         'volume',
       ),
       findsOneWidget,
@@ -473,7 +473,7 @@ void main() {
 
       expect(
         find.text(
-          '3 blob — unresolved — the yield is in mass, this line in volume',
+          '3 blob — unresolved — the yield is in weight, this line in volume',
         ),
         findsOneWidget,
       );
