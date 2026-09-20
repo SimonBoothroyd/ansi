@@ -467,7 +467,14 @@ A recipe is a title filed under a book and a user-defined section, with a
 `servings_base` it scales from, a `favorite` flag, its ingredient groups and
 its steps.
 - **ingredient_group:** `name · line_items[]`
-- **line_item:** `ingredient_id · quantity · unit · optional (0025)`
+- **line_item:** `ingredient_id XOR sub_recipe_id · quantity · unit XOR
+  recipe_measure_id · measure_id · optional (0025)` — a component line is said
+  in a catalog unit or in one of the target recipe's own measures, never both
+  (migration 0048).
+- **recipe_measure:** `recipe_id · label · amount · unit · sort_order` — a
+  recipe's own named amount (*a blob is 15 g*), offered only while the recipe's
+  `makes` states that unit's family
+  ([ADR-0018](../decisions/0018-a-recipe-measure-is-a-named-amount.md)).
 - Scaling = quantity × factor (imprecise units left as-is).
 - **Optional lines (plan 0025, D6a/D6b).** `optional` is a stored fact about
   a line — "lime, to serve (optional)" — not about its amount: the page
@@ -719,7 +726,7 @@ go. There is no re-chip — tokenization happens only inside the import call.
 - `week_recipe_line_override: id · household_id · week_plan_id · recipe_id ·
   recipe_line_item_id (null only when the row ADDS a line) · action (include ·
   exclude · replace · add) · ingredient_id · sub_recipe_id · quantity · unit ·
-  measure_id · note · sort_order` (migration 0040)
+  measure_id · recipe_measure_id (0048) · note · sort_order` (migration 0040)
   - **A recipe cooked differently for ONE week.** The row is a **delta**
     against a recipe line, never a copy of the recipe: a swap, an amount, an
     addition, an exclusion, or an optional line ticked back in. The recipe is
