@@ -93,6 +93,7 @@ typedef ReceiptLedgerRow = ({
   int lineCount,
   int notFoodCount,
   int linesSumCents,
+  int taxLinesCents,
 });
 
 /// One stored receipt, read back for its read-only review.

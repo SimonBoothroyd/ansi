@@ -134,10 +134,8 @@ String _$receiptRepositoryHash() => r'3d02dc4f1309eef88d2eb1b7f7e66b4a21ba64c4';
 /// Every receipt the household has kept, newest first, as the ledger reads
 /// them.
 ///
-/// The row's printed total is what it cost where the paper printed one, and
-/// the sum of its own lines where it did not — a hand-typed price prints
-/// neither a tax nor a total, and reading `$0` for it would be a lie about a
-/// shop that happened.
+/// A row costs the paper's printed total, else its lines plus tax — the
+/// printed tax, else the tax lines — which is the figure the review saved.
 
 @ProviderFor(receiptSummaries)
 const receiptSummariesProvider = ReceiptSummariesProvider._();
@@ -145,10 +143,8 @@ const receiptSummariesProvider = ReceiptSummariesProvider._();
 /// Every receipt the household has kept, newest first, as the ledger reads
 /// them.
 ///
-/// The row's printed total is what it cost where the paper printed one, and
-/// the sum of its own lines where it did not — a hand-typed price prints
-/// neither a tax nor a total, and reading `$0` for it would be a lie about a
-/// shop that happened.
+/// A row costs the paper's printed total, else its lines plus tax — the
+/// printed tax, else the tax lines — which is the figure the review saved.
 
 final class ReceiptSummariesProvider
     extends
@@ -163,10 +159,8 @@ final class ReceiptSummariesProvider
   /// Every receipt the household has kept, newest first, as the ledger reads
   /// them.
   ///
-  /// The row's printed total is what it cost where the paper printed one, and
-  /// the sum of its own lines where it did not — a hand-typed price prints
-  /// neither a tax nor a total, and reading `$0` for it would be a lie about a
-  /// shop that happened.
+  /// A row costs the paper's printed total, else its lines plus tax — the
+  /// printed tax, else the tax lines — which is the figure the review saved.
   const ReceiptSummariesProvider._()
     : super(
         from: null,
@@ -193,91 +187,7 @@ final class ReceiptSummariesProvider
   }
 }
 
-String _$receiptSummariesHash() => r'5b0c42a996eabc34ec71f4e42ef67beb3ecccb84';
-
-/// One stored receipt, for the ledger's read-only review.
-
-@ProviderFor(storedReceipt)
-const storedReceiptProvider = StoredReceiptFamily._();
-
-/// One stored receipt, for the ledger's read-only review.
-
-final class StoredReceiptProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<StoredReceipt?>,
-          StoredReceipt?,
-          Stream<StoredReceipt?>
-        >
-    with $FutureModifier<StoredReceipt?>, $StreamProvider<StoredReceipt?> {
-  /// One stored receipt, for the ledger's read-only review.
-  const StoredReceiptProvider._({
-    required StoredReceiptFamily super.from,
-    required String super.argument,
-  }) : super(
-         retry: null,
-         name: r'storedReceiptProvider',
-         isAutoDispose: true,
-         dependencies: null,
-         $allTransitiveDependencies: null,
-       );
-
-  @override
-  String debugGetCreateSourceHash() => _$storedReceiptHash();
-
-  @override
-  String toString() {
-    return r'storedReceiptProvider'
-        ''
-        '($argument)';
-  }
-
-  @$internal
-  @override
-  $StreamProviderElement<StoredReceipt?> $createElement(
-    $ProviderPointer pointer,
-  ) => $StreamProviderElement(pointer);
-
-  @override
-  Stream<StoredReceipt?> create(Ref ref) {
-    final argument = this.argument as String;
-    return storedReceipt(ref, argument);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is StoredReceiptProvider && other.argument == argument;
-  }
-
-  @override
-  int get hashCode {
-    return argument.hashCode;
-  }
-}
-
-String _$storedReceiptHash() => r'e7cff08d430510207ea85f8cc8a7f7a054ff709e';
-
-/// One stored receipt, for the ledger's read-only review.
-
-final class StoredReceiptFamily extends $Family
-    with $FunctionalFamilyOverride<Stream<StoredReceipt?>, String> {
-  const StoredReceiptFamily._()
-    : super(
-        retry: null,
-        name: r'storedReceiptProvider',
-        dependencies: null,
-        $allTransitiveDependencies: null,
-        isAutoDispose: true,
-      );
-
-  /// One stored receipt, for the ledger's read-only review.
-
-  StoredReceiptProvider call(String receiptId) =>
-      StoredReceiptProvider._(argument: receiptId, from: this);
-
-  @override
-  String toString() => r'storedReceiptProvider';
-}
+String _$receiptSummariesHash() => r'd1b4e0446fa24b543947e37590078cb585891536';
 
 /// The receipts dated inside the week beginning [weekStart] — the band's
 /// second figure, and nothing else.

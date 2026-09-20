@@ -9,9 +9,11 @@ library;
 import 'dart:io';
 
 import 'package:ansi/features/ingredients/domain/price.dart';
+import 'package:ansi/features/receipts/data/receipt_providers.dart';
 import 'package:ansi/features/receipts/data/receipt_repository_impl.dart';
 import 'package:ansi/features/receipts/domain/receipt_save.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:powersync/powersync.dart';
 
 import '../../helpers/test_db.dart';
@@ -542,6 +544,7 @@ void main() {
       expect(row.lineCount, 3);
       expect(row.notFoodCount, 1);
       expect(row.linesSumCents, 349 + 699, reason: 'tax is not in the lines');
+      expect(row.taxLinesCents, 82);
       expect(row.totalCents, 2928);
     });
 
@@ -564,6 +567,37 @@ void main() {
         expect(rows, hasLength(2));
       },
     );
+
+    test('a tax that is only a line is in the ledger’s total too', () async {
+      // The review's Save bar adds it; the ledger must say the same figure.
+      await repo.saveReceipt(
+        ReceiptWrite(
+          store: "TJ's",
+          purchasedAt: DateTime(2026, 9, 13),
+          lines: [
+            line(),
+            line(
+              sortOrder: 1,
+              cents: 82,
+              kind: ReceiptLineKind.tax,
+              ingredientId: null,
+              packBasis: null,
+            ),
+          ],
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [receiptRepositoryProvider.overrideWithValue(repo)],
+      );
+      addTearDown(container.dispose);
+      final sub = container.listen(receiptSummariesProvider, (_, _) {});
+      addTearDown(sub.close);
+      while (!container.read(receiptSummariesProvider).hasValue) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      final ledger = container.read(receiptSummariesProvider).requireValue;
+      expect(ledger.single.totalCents, 349 + 82);
+    });
 
     test('one receipt reads back with its lines and their words', () async {
       final id = await repo.saveReceipt(

@@ -59,10 +59,8 @@ ReceiptRepository receiptRepository(Ref ref) => SqliteReceiptRepository(
 /// Every receipt the household has kept, newest first, as the ledger reads
 /// them.
 ///
-/// The row's printed total is what it cost where the paper printed one, and
-/// the sum of its own lines where it did not — a hand-typed price prints
-/// neither a tax nor a total, and reading `$0` for it would be a lie about a
-/// shop that happened.
+/// A row costs the paper's printed total, else its lines plus tax — the
+/// printed tax, else the tax lines — which is the figure the review saved.
 @riverpod
 Stream<List<ReceiptSummary>> receiptSummaries(Ref ref) => ref
     .watch(receiptRepositoryProvider)
@@ -75,17 +73,14 @@ Stream<List<ReceiptSummary>> receiptSummaries(Ref ref) => ref
             store: r.store,
             purchasedAt: r.purchasedAt,
             source: ReceiptSource.fromDb(r.source),
-            totalCents: r.totalCents ?? (r.linesSumCents + (r.taxCents ?? 0)),
+            totalCents:
+                r.totalCents ??
+                (r.linesSumCents + (r.taxCents ?? r.taxLinesCents)),
             lineCount: r.lineCount,
             notFoodCount: r.notFoodCount,
           ),
       ],
     );
-
-/// One stored receipt, for the ledger's read-only review.
-@riverpod
-Stream<StoredReceipt?> storedReceipt(Ref ref, String receiptId) =>
-    ref.watch(receiptRepositoryProvider).watchReceipt(receiptId);
 
 /// The receipts dated inside the week beginning [weekStart] — the band's
 /// second figure, and nothing else.

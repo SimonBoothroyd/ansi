@@ -41,7 +41,9 @@ class SqliteReceiptRepository implements ReceiptRepository {
           'COUNT(l.id) AS line_count, '
           "COUNT(CASE WHEN l.kind = 'not_food' THEN 1 END) AS not_food_count, "
           "COALESCE(SUM(CASE WHEN l.kind <> 'tax' "
-          'THEN l.cents - COALESCE(l.discount_cents, 0) END), 0) AS lines_sum '
+          'THEN l.cents - COALESCE(l.discount_cents, 0) END), 0) AS lines_sum, '
+          "COALESCE(SUM(CASE WHEN l.kind = 'tax' "
+          'THEN l.cents - COALESCE(l.discount_cents, 0) END), 0) AS tax_sum '
           'FROM receipt r '
           'LEFT JOIN receipt_line l ON l.receipt_id = r.id '
           'AND l.deleted_at IS NULL '
@@ -63,6 +65,7 @@ class SqliteReceiptRepository implements ReceiptRepository {
                 lineCount: (r['line_count'] as num?)?.toInt() ?? 0,
                 notFoodCount: (r['not_food_count'] as num?)?.toInt() ?? 0,
                 linesSumCents: (r['lines_sum'] as num?)?.toInt() ?? 0,
+                taxLinesCents: (r['tax_sum'] as num?)?.toInt() ?? 0,
               ),
           ],
         );

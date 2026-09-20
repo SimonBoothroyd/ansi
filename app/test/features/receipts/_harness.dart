@@ -174,6 +174,7 @@ ReceiptLedgerRow ledgerRow({
   lineCount: lines,
   notFoodCount: notFood,
   linesSumCents: linesSum,
+  taxLinesCents: 0,
 );
 
 List<Override> receiptOverrides({
