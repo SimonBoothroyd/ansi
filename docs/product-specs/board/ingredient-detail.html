@@ -15,8 +15,8 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Ingredient detail</h1>
-    <p class="view-status">built · matches code 2026-09-19 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: matches code 2026-09-19 — the same sheet, centred at 640, and drawn <i>beside</i> the vocabulary at <code>/ingredients/:id</code> from 1024 up; the editing posture stays centred at every width, so the Price group is one more group in that one column on either posture; <code>On receipts</code> is the last block of that same one column wherever it is drawn — inside the sheet’s 720 pane at a desk, never spanning the window — and the fold is what keeps a row bought at six shops from pushing everything else off the pane’s first screen; the price sheet is the same sheet, as a dialog from 640</p>
-    <p class="view-blurb"><b>One route, two postures.</b> A row that exists opens as a <b>fact sheet</b> — four groups (Identity, Nutrition, Units &amp; measures, Price) with each field’s value stated instead of offered, no dock, and <code>Edit</code> in the header’s <code>⋯</code> exactly where the recipe page keeps it. <code>Edit</code> turns all four into <b>the form</b>; Save and back turn it back. <b>Price is one group drawn by both postures</b> — the same lines, the same door, the same sheet — because changing what a thing costs is editing it, and somebody who opens the editor to fix a price should not have to back out of it to find one. It is the one section the dock does not hold: the sheet writes its own receipt the moment Done is tapped, and the group says so on the form rather than letting <i>nothing is written until Save</i> be read as covering it. <code>/ingredients/new</code> opens the form directly — there is nothing yet to read — and so does every door that exists to <i>change</i> a field.</p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: matches code 2026-09-20 — the same one column, centred at 640 and drawn beside the vocabulary in a 720 pane from 1024 up (<a href="./ingredients-manager.html">manager</a>); the price sheet is the same sheet, as a dialog from 640</p>
+    <p class="view-blurb"><b>One route, two postures.</b> A row that exists opens as a <b>fact sheet</b> — four groups (Identity, Nutrition, Units &amp; measures, Price), plus <b>On receipts</b> on a row a receipt has carried, with each field’s value stated instead of offered, no dock, and <code>Edit</code> in the header’s <code>⋯</code> exactly where the recipe page keeps it. <code>Edit</code> turns the four into <b>the form</b>; Save and back turn it back. <b>Price is one group drawn by both postures</b> — the same lines, the same door, the same sheet — because changing what a thing costs is editing it, and somebody who opens the editor to fix a price should not have to back out of it to find one. It is the one section the dock does not hold: the sheet writes its own receipt the moment Done is tapped, and the group says so on the form rather than letting <i>nothing is written until Save</i> be read as covering it. <code>/ingredients/new</code> opens the form directly — there is nothing yet to read — and so does every door that exists to <i>change</i> a field.</p>
 </header>
 
 <div class="board">
@@ -41,7 +41,7 @@
             <div style="margin:22px 20px 0"><p class="grp-h">Nutrition</p></div>
             <p class="conv-note" style="margin:6px 20px 0">usda · Mango, raw</p>
             <p class="flabel">Macros</p>
-            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px">60 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> · 1P 0F 15C · 2 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="fibre"><title>fibre</title><path d="M2 22 16 8"/><path d="M3.47 12.53 5 11l1.53 1.53a3.5 3.5 0 0 1 0 4.94L5 19l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M7.47 8.53 9 7l1.53 1.53a3.5 3.5 0 0 1 0 4.94L9 15l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M11.47 4.53 13 3l1.53 1.53a3.5 3.5 0 0 1 0 4.94L13 11l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M20 2h2v2a4 4 0 0 1-4 4h-2V6a4 4 0 0 1 4-4Z"/><path d="M11.47 17.47 13 19l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L5 19l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M15.47 13.47 17 15l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L9 15l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M19.47 9.47 21 11l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L13 11l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/></svg> /100 g</p>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px">60 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> · 1P 15C 0F · 2 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="fibre"><title>fibre</title><path d="M2 22 16 8"/><path d="M3.47 12.53 5 11l1.53 1.53a3.5 3.5 0 0 1 0 4.94L5 19l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M7.47 8.53 9 7l1.53 1.53a3.5 3.5 0 0 1 0 4.94L9 15l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M11.47 4.53 13 3l1.53 1.53a3.5 3.5 0 0 1 0 4.94L13 11l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M20 2h2v2a4 4 0 0 1-4 4h-2V6a4 4 0 0 1 4-4Z"/><path d="M11.47 17.47 13 19l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L5 19l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M15.47 13.47 17 15l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L9 15l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M19.47 9.47 21 11l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L13 11l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/></svg> /100 g</p>
 
             <div style="margin:22px 20px 0"><p class="grp-h">Units &amp; measures</p></div>
             <p class="flabel">Default unit</p>
@@ -60,7 +60,7 @@
                 <div class="msr-row"><span class="srcdot you"></span><span class="mlab">half · 100 g</span><span class="msrc">yours</span></div>
             </div>
         </div></div>
-        <p class="conv-note" style="margin:10px 4px 0"><b>Every line is a stored fact restated, in the words the field itself uses.</b> The macro line is the picker row’s (<span style="font-family:'IBM Plex Mono',monospace">197 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> · 2P 20F 3C /100 g</span>, with <span style="font-family:'IBM Plex Mono',monospace">· 3 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="fibre"><title>fibre</title><path d="M2 22 16 8"/><path d="M3.47 12.53 5 11l1.53 1.53a3.5 3.5 0 0 1 0 4.94L5 19l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M7.47 8.53 9 7l1.53 1.53a3.5 3.5 0 0 1 0 4.94L9 15l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M11.47 4.53 13 3l1.53 1.53a3.5 3.5 0 0 1 0 4.94L13 11l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M20 2h2v2a4 4 0 0 1-4 4h-2V6a4 4 0 0 1 4-4Z"/><path d="M11.47 17.47 13 19l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L5 19l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M15.47 13.47 17 15l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L9 15l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M19.47 9.47 21 11l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L13 11l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/></svg></span> after the four on a row that states it); the density is the entry’s own headline plus the sentence it was entered as; the piece weight is the entry’s sentence with its number in place; the units are the admission chips’ own labels. Nothing is computed here that the form does not already compute, and nothing is added — no “used in”, no derived figure.</p>
+        <p class="conv-note" style="margin:10px 4px 0"><b>Every line is a stored fact restated, in the words the field itself uses.</b> The macro line is the picker row’s (<span style="font-family:'IBM Plex Mono',monospace">197 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> · 2P 3C 20F /100 g</span>, with <span style="font-family:'IBM Plex Mono',monospace">· 3 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="fibre"><title>fibre</title><path d="M2 22 16 8"/><path d="M3.47 12.53 5 11l1.53 1.53a3.5 3.5 0 0 1 0 4.94L5 19l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M7.47 8.53 9 7l1.53 1.53a3.5 3.5 0 0 1 0 4.94L9 15l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M11.47 4.53 13 3l1.53 1.53a3.5 3.5 0 0 1 0 4.94L13 11l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z"/><path d="M20 2h2v2a4 4 0 0 1-4 4h-2V6a4 4 0 0 1 4-4Z"/><path d="M11.47 17.47 13 19l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L5 19l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M15.47 13.47 17 15l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L9 15l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/><path d="M19.47 9.47 21 11l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L13 11l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z"/></svg></span> after the four on a row that states it); the density is the entry’s own headline plus the sentence it was entered as; the piece weight is the entry’s sentence with its number in place; the units are the admission chips’ own labels. Nothing is computed here that the form does not already compute, and nothing is added — no “used in”, no derived figure.</p>
     </div>
 
     <div class="frame">
@@ -74,16 +74,28 @@
             </div>
             <div style="margin:12px 20px 0"><span class="btn primary" style="margin:0;display:block;text-align:center">Fill it in</span></div>
 
+            <div style="margin:22px 20px 0"><p class="grp-h">Identity</p></div>
+            <p class="flabel">Category</p>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px">produce</p>
+
             <div style="margin:22px 20px 0"><p class="grp-h">Nutrition</p></div>
             <p class="conv-note" style="margin:6px 20px 0">usda · Curry leaves, raw</p>
             <p class="flabel">Macros</p>
             <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">needs macros</p>
 
             <div style="margin:22px 20px 0"><p class="grp-h">Units &amp; measures</p></div>
+            <p class="flabel">Default unit</p>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px">g</p>
+            <p class="flabel" style="margin-bottom:2px">Allowed units</p>
+            <p class="conv-note" style="margin:0 20px 0">what a line may say</p>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px">g · kg · oz · lb · handful</p>
             <p class="flabel">Density</p>
             <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">none yet — unlocks volume⇄weight</p>
             <p class="flabel" style="margin-bottom:2px">Measures</p>
             <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">No measures yet.</p>
+
+            <div style="margin:22px 20px 0"><p class="grp-h">Price <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400">— none yet</span></p></div>
+            <div class="frow"><span class="ghostbtn" style="margin-top:10px;color:var(--herb);border-style:dashed">＋ add a price</span></div>
 
             <p class="lib-mcap" style="margin-top:22px">and the <span style="font-family:'IBM Plex Mono',monospace">⋯</span> on the fact sheet</p>
             <div class="lib-menu" style="margin-top:8px">
@@ -104,6 +116,8 @@
             <div style="margin:22px 20px 0"><p class="grp-h">Units &amp; measures</p></div>
             <p class="flabel">Default unit</p>
             <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px">piece</p>
+            <p class="flabel">Piece weight</p>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px">1 piece weighs 118 g</p>
             <p class="flabel" style="margin-bottom:2px">Measures</p>
             <div class="field" style="margin-bottom:6px">
                 <div class="msr-row"><span class="srcdot you"></span><span class="mlab">bag · 454 g</span><span class="msrc">yours</span></div>
@@ -180,7 +194,7 @@
             <p class="flabel" style="margin-top:10px;margin-bottom:0">For</p>
             <p class="conv-note" style="margin:0 20px 6px">what the money bought</p>
             <div class="frow" style="display:flex;gap:12px;align-items:center"><span style="display:inline-block;min-width:88px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);font-family:'IBM Plex Mono',monospace;font-size:13px">1</span><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--herb-deep)">bag (454 g)</span></div>
-            <div class="frow"><div class="uchips"><span class="uchip on"><span class="srcdot you"></span>bag</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip">handful</span></div></div>
+            <div class="frow"><div class="uchips"><span class="uchip on"><span class="srcdot you"></span>bag</span><span class="uchip">piece (118 g)</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip-sep" style="height:22px;margin:0 2px"></span><span class="uchip" style="color:var(--muted)">handful</span></div></div>
             <p class="flabel" style="margin-top:12px">At</p>
             <div class="frow"><div class="uchips"><span class="uchip on">TJ’s</span><span class="uchip">Whole Foods</span><span class="uchip addm">＋</span></div></div>
             <p class="conv-note" style="margin:16px 20px 0;text-align:center"><b>= 77¢ / 100 g</b></p>
@@ -202,7 +216,7 @@
             <p class="flabel" style="margin-top:10px;margin-bottom:0">For</p>
             <p class="conv-note" style="margin:0 20px 6px">what the money bought</p>
             <div class="frow" style="display:flex;gap:12px;align-items:center"><span style="display:inline-block;min-width:88px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);font-family:'IBM Plex Mono',monospace;font-size:13px">1</span><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--herb-deep)">bag (454 g)</span></div>
-            <div class="frow"><div class="uchips"><span class="uchip on"><span class="srcdot you"></span>bag</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip">handful</span></div></div>
+            <div class="frow"><div class="uchips"><span class="uchip on"><span class="srcdot you"></span>bag</span><span class="uchip">piece (118 g)</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip-sep" style="height:22px;margin:0 2px"></span><span class="uchip" style="color:var(--muted)">handful</span></div></div>
             <p class="flabel" style="margin-top:12px">At</p>
             <div class="frow"><div class="uchips"><span class="uchip on">TJ’s</span><span class="uchip">Whole Foods</span><span class="uchip addm">＋</span></div></div>
             <p class="conv-note" style="margin:16px 20px 0;text-align:center"><b>= 77¢ / 100 g</b></p>
@@ -210,7 +224,7 @@
             <div class="frow" style="margin-top:8px"><span class="btn" style="background:var(--gone);color:#fff;border-color:transparent">Delete</span></div>
         </div></div>
         <p class="conv-note" style="margin:10px 4px 0"><b>The same sheet, not a second one.</b> The line above the fields names the row being rewritten — its sum, its store and its own day — where a new price names the latest one it replaces. The answers open as they were <i>entered</i>: a pound on the <span style="font-family:'IBM Plex Mono',monospace">lb</span> chip, a named pack as <b>1</b> on its own chip, never restated as grams. Done writes an <b>update</b> to that line, so a typo leaves nothing behind as history, and it keeps the day the price was paid on — a correction is not a second shop.</p>
-        <p class="conv-note" style="margin:6px 4px 0"><b>Delete asks first</b>, through the confirm the app already uses for a destructive tap — <i>Delete this price? It stops counting towards what anything costs. What was paid before it stays.</i> It tombstones the line and the one-line typed receipt behind it. <b>A photographed receipt is never touched from here</b>: this sheet only ever opens on a price typed here, and a scanned line is taken back on its own receipt.</p>
+        <p class="conv-note" style="margin:6px 4px 0"><b>Delete asks first</b>, through the confirm the app already uses for a destructive tap — <i>Delete this price? It stops counting towards any cost. Earlier prices stay.</i> It tombstones the line and the one-line typed receipt behind it. <b>A photographed receipt is never touched from here</b>: this sheet only ever opens on a price typed here, and a scanned line is taken back on its own receipt.</p>
     </div>
     <div class="frame">
         <p class="frame-name"><b>The form</b> · behind <code>⋯ ▸ Edit</code>, and what <code>/ingredients/new</code> opens straight into — four groups, a status line at the top and a dock at the bottom; the USDA card appears only <i>after</i> a pick</p>
@@ -224,7 +238,6 @@
             <p class="flabel">Fill it in from</p>
             <div class="frow" style="display:flex;gap:8px">
                 <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Scan a barcode</div>
-                <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Look up in USDA</div>
             </div>
 
             <div style="margin:22px 20px 0"><p class="grp-h">Identity</p></div>
@@ -281,7 +294,10 @@
 
             <div class="dock">
                 <p class="conv-note" style="margin:0 0 9px">needs macros</p>
-                <span class="btn primary" style="margin:0;opacity:.45">Save</span>
+                <div style="display:flex;gap:8px">
+                    <span class="btn ghost" style="margin:0;flex:0 0 88px">Save</span>
+                    <span class="btn primary" style="margin:0;flex:1;opacity:.45">Mark complete</span>
+                </div>
             </div>
         </div></div>
         <p class="conv-note" style="margin:10px 4px 0"><b>Price closes the form, after <i>Units &amp; measures</i></b> — the fact sheet’s order, kept, so a person who has read the row finds the section where they last saw it. Every line is the tap it is on the fact sheet, and <span style="font-family:'IBM Plex Mono',monospace">＋ add a price</span> opens the same sheet empty.</p>
@@ -355,7 +371,7 @@
     <div class="frame">
         <p class="frame-name"><b>Piece weight</b> · one sentence under the default-unit chips, in the density sentence’s shape — drawn only while the default unit is <code>piece</code>, because it is the number that admits it</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">‹</span><span class="ttl">New ingredient</span><span class="dots" style="opacity:.25"></span></div>
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots" style="opacity:.25"></span></div>
             <div class="state" style="margin-top:4px">
                 <div class="sh" style="font-weight:400;font-size:12px;color:var(--muted)"><span class="sdot"></span><span>New — nothing is saved until you tap Save.</span></div>
             </div>
@@ -368,7 +384,7 @@
             <p class="conv-note" style="margin-top:2px">tsp · tbsp · fl oz · cup · ml · l · pt · qt unlock when this row has a density</p>
 
             <p class="flabel" style="margin-bottom:2px">Piece weight</p>
-            <div class="frow"><div class="weigh"><span class="w-l">1 piece weighs</span><span class="w-in">350</span><span class="uchip on">g</span></div></div>
+            <div class="frow"><div class="weigh"><span class="w-l">1 piece weighs</span><span class="w-in">350</span><span class="uchip on">g</span><span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 10px">Add</span></div></div>
 
             <p class="flabel" style="margin-bottom:2px">Allowed units</p>
             <p class="conv-note" style="margin:0 20px 6px">what a line may say</p>
@@ -400,7 +416,7 @@
     <div class="frame">
         <p class="frame-name"><b>Left blank</b> · a stranded <code>piece</code> default, in the words the form already uses for <code>cup</code>; Save is refused</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">‹</span><span class="ttl">New ingredient</span><span class="dots" style="opacity:.25"></span></div>
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots" style="opacity:.25"></span></div>
             <div style="margin:18px 20px 0"><p class="grp-h">Units &amp; measures</p></div>
             <p class="flabel">Default unit</p>
             <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
@@ -410,7 +426,7 @@
             <p class="conv-note" style="margin:-6px 20px 12px"><span style="color:var(--gone)">piece</span> needs a weight on this row — enter one below, or <b style="color:var(--ink);border-bottom:1px solid var(--line)">switch to g</b></p>
 
             <p class="flabel" style="margin-bottom:2px">Piece weight <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--muted)">none yet — what one of these weighs</span></p>
-            <div class="frow"><div class="weigh" style="border-color:var(--gone)"><span class="w-l">1 piece weighs</span><span class="w-in empty">—</span><span class="uchip on">g</span></div></div>
+            <div class="frow"><div class="weigh" style="border-color:var(--gone)"><span class="w-l">1 piece weighs</span><span class="w-in empty">—</span><span class="uchip on">g</span><span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 10px">Add</span></div></div>
 
             <p class="flabel" style="margin-bottom:2px">Allowed units</p>
             <div class="frow"><div class="uchips" style="flex-wrap:wrap;overflow:visible">
@@ -467,7 +483,7 @@
                 <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">weighs</span>
                 <span class="fin" style="width:34px;padding:7px 6px;font-family:'IBM Plex Mono',monospace;text-align:center;color:var(--muted);">&mdash;</span>
                 <span class="uchip on">g</span>
-                <span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 10px">Save</span>
+                <span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 10px">Add</span>
             </div></div>
 
             <p class="lib-mcap" style="margin-top:18px">② the pack’s own line, typed as it reads</p>
@@ -477,7 +493,7 @@
                 <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">weighs</span>
                 <span class="fin" style="width:34px;padding:7px 6px;font-family:'IBM Plex Mono',monospace;text-align:center;">30</span>
                 <span class="uchip on">g</span>
-                <span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 10px">Save</span>
+                <span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 10px">Add</span>
             </div></div>
             <p class="conv-note" style="margin:-4px 20px 0">= 1.08 g/ml</p>
             <p class="conv-note" style="margin:6px 20px 0">A jar prints <b style="color:var(--ink)">“1/4 cup (30 g)”</b>. It is typed as it reads — <i>density is in science, not on some packages</i> — and the g/ml is the <b style="color:var(--ink)">aside</b>. When the macros section above holds a <i>volume</i> serving, this amount and unit are offered from it and the line under them says <b>what to do with what is in the slots</b> rather than where it came from: <span style="font-family:'IBM Plex Mono',monospace">your serving, ready to use — type what that much weighs (the pack’s “(32 g)”)</span>. A mass serving offers nothing new — what a millilitre of it weighs is a separate fact.</p>
@@ -502,7 +518,7 @@
                 <span style="font-family:'IBM Plex Mono',monospace;font-size:13px">weighs</span>
                 <span class="fin" style="width:34px;padding:7px 6px;font-family:'IBM Plex Mono',monospace;text-align:center;">1</span>
                 <span class="uchip on">oz</span>
-                <span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 10px">Save</span>
+                <span class="ghostbtn" style="margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff;padding:6px 10px">Add</span>
             </div></div>
             <p class="conv-note" style="margin:-4px 20px 0">= 0.66 g/ml</p>
             <p class="conv-note" style="margin:6px 20px 0">A label that prints the weight second is not a different sentence: <b style="color:var(--ink)">30 ml weighs 1 oz</b> and <b style="color:var(--ink)">1 oz weighs 30 ml</b> both store the same one number. And because <code>ml</code> and <code>g</code> are both on offer, <b>the old g/ml field is absorbed rather than removed</b> — “1 ml weighs 0.66 g” <i>is</i> 0.66 g/ml, exactly, with no second control and no rounding.</p>
@@ -523,7 +539,7 @@
             <div class="frow" style="margin-top:-6px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--gone)">remove the density</span></div>
             <p class="conv-note" style="margin:2px 20px 0">A stated density <b>reopens as a sentence, not as a blank one</b>: the amount and the unit are the ones this row is read in, and the weight slot holds what that much of it comes to. <b>Which unit</b> is one derivation, shared with the fact sheet so the two never disagree — the row’s own <i>serving</i> when that is a volume (<span style="font-family:'IBM Plex Mono',monospace">2 tbsp</span>), else its <i>default unit</i> when that is a volume, else the <span style="font-family:'IBM Plex Mono',monospace">cup</span> a person can picture. A density chosen in a friendly way comes back in those words; anything else comes back in the row’s own unit and grams.</p>
             <p class="conv-note" style="margin:2px 20px 0">The whole sentence is <b>one run</b> at 402 pt and <b>one height</b>: two compact fields with no field chrome, two unit <b>chips</b> that size to their own word, and a button that takes its own width. Every control on the run is <b>32 pt</b> — a full-height field or a touch-sized button beside them is a row of its own, and three rows is not a sentence. The four spoon chips paid for that width and are gone: the unit chip opens <i>every</i> kitchen unit instead of offering four of them.</p>
-            <p class="conv-note" style="margin:2px 20px 0"><b>The unit is picked the way units are picked everywhere else.</b> Tapping either chip opens a small sheet holding the same offer as the quantity sheet's dock — the units this row can say, as chips, the current one filled in — and the tap that picks one closes it. There is <b>no unit dropdown anywhere</b> in the app, and that includes here.</p>
+            <p class="conv-note" style="margin:2px 20px 0"><b>The unit is picked the way units are picked everywhere else.</b> Tapping either chip opens a small <code>Unit</code> sheet — the kitchen units this side of the sentence can say, as chips in one wrap, the current one filled in — and the tap that picks one closes it. It is the catalog, not the quantity dock's offer: no measure leads it and there is nothing to manage from it. There is <b>no unit dropdown anywhere</b> in the app, and that includes here.</p>
 
             <p class="lib-mcap" style="margin-top:18px">⑦ clearing it — the one write that makes the allowed list shrink</p>
             <div class="frow" style="margin-top:8px"><div class="fin" style="border-color:var(--aging);background:#FDF8EC">
@@ -587,7 +603,7 @@
     <div class="frame">
         <p class="frame-name"><b>Creating one</b> · <code>/ingredients/new</code> is the same form with no row behind it — it writes nothing until Save, saves the row <i>complete</i>, and pops with it</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">‹</span><span class="ttl">New ingredient</span><span class="dots" style="opacity:.25"></span></div>
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots" style="opacity:.25"></span></div>
 
             <div class="state" style="margin-top:4px">
                 <div class="sh" style="font-weight:400;font-size:12px;color:var(--muted)"><span class="sdot"></span><span>New — nothing is saved until you tap Save.</span></div>
@@ -601,7 +617,7 @@
 
             <div style="margin:22px 20px 0"><p class="grp-h">Identity</p></div>
             <p class="flabel">Canonical name</p>
-            <div class="frow"><div class="fin big" style="color:var(--muted)">e.g. Curry leaves, fresh</div></div>
+            <div class="frow"><div class="fin big">&nbsp;</div></div>
 
             <p class="lib-mcap" style="margin-top:20px">and the dock, on a row that is not there yet</p>
             <div class="dock" style="margin-top:8px">
@@ -611,6 +627,7 @@
             <p class="conv-note" style="margin-top:10px"><b>One button, and only when the row is finished.</b> A new ingredient is saved <i>complete</i> or not at all — stubs are what the seed leaves behind for a person to finish, not something this form should be able to mint. Save is dark until the row would pass the same gate <span style="font-family:'IBM Plex Mono',monospace">Mark complete</span> applies to a stored stub, and the line above it names what is still missing.</p>
             <p class="conv-note" style="margin-top:8px">The consequence, said plainly: the import review’s <i>create as a new ingredient</i> and the picker’s create footer both push this form, so neither can resolve a line onto a bare stub any more. The person fills the row in, and the line resolves onto something that counts.</p>
             <p class="conv-note" style="margin-top:8px"><b>No <span style="font-family:'IBM Plex Mono',monospace">⋯</span> at all.</b> There is nothing to delete and nothing to un-confirm on a row that does not exist. And the strip says <i>new</i> rather than calling itself a stub — a stub is a thing a SAVED row is.</p>
+            <p class="conv-note" style="margin-top:8px">The header carries the name the form was <i>opened</i> with — a picker’s query — so a bare <code>/ingredients/new</code> carries none, and the field opens empty rather than on an example.</p>
         </div></div>
     </div>
 
@@ -639,7 +656,10 @@
         <p class="frame-name"><b>Filled from a USDA pick</b> · the card names the food and how much of the typed name it matched — and stays <i>not confirmed</i> until a human says so</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl">Kale</span><span class="dots">⋯</span></div>
-            <div class="state" style="margin-top:10px">
+            <div class="state" style="margin-top:4px">
+                <div class="sh" style="font-weight:400;font-size:12px;color:var(--muted)"><span class="sdot"></span><span>Still a stub — left out of macro totals until confirmed.</span></div>
+            </div>
+            <div class="state" style="margin-top:16px">
                 <div class="sh" style="font-weight:400"><span style="font-size:13px">Filled from USDA · not confirmed</span></div>
                 <div class="sb" style="font-family:'IBM Plex Mono',monospace;font-size:10px">Kale, raw · matches every word of “Kale”</div>
                 <div style="display:flex;gap:8px;margin-top:9px"><span class="ghostbtn" style="margin-top:0">Not this food</span><span class="ghostbtn" style="margin-top:0">Choose another ›</span></div>
@@ -649,9 +669,6 @@
             <div class="frow"><div class="seg"><span class="segopt on">per 100 g</span><span class="segopt">per 100 ml</span><span class="segopt">per serving</span></div></div>
             <div class="frow"><div class="macro-fields"><div class="mi"><div class="miv">35</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">2.9</div><div class="mil">protein</div></div><div class="mi"><div class="miv">4.4</div><div class="mil">carb</div></div><div class="mi"><div class="miv">1.5</div><div class="mil">fat</div></div><div class="mi"><div class="miv">4.1</div><div class="mil">fibre</div></div></div></div>
             <p class="flabel">Density <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--herb-deep)">0.42 g/ml</span> <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--muted)">· change</span></p>
-            <div class="state" style="margin-top:16px">
-                <div class="sh" style="font-weight:400;font-size:12px;color:var(--muted)"><span class="sdot"></span><span>Still a stub — left out of macro totals until confirmed.</span></div>
-            </div>
             <div class="dock">
                 <p class="conv-note" style="margin:0 0 9px">completing it counts it in conversions and macro totals</p>
                 <div style="display:flex;gap:8px">
@@ -740,7 +757,7 @@
             <div class="frow"><div class="seg"><span class="segopt">per 100 g</span><span class="segopt">per 100 ml</span><span class="segopt on">per serving</span></div></div>
             <div class="frow" style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;white-space:nowrap">One serving is</span><span style="display:inline-block;min-width:44px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--paper);text-align:center;font-family:'IBM Plex Mono',monospace;font-size:12.5px">1</span><span class="uchip on">cup</span></div>
             <div class="frow"><div class="macro-fields"><div class="mi"><div class="miv">110</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">1</div><div class="mil">protein</div></div><div class="mi"><div class="miv">17</div><div class="mil">carb</div></div><div class="mi"><div class="miv">5</div><div class="mil">fat</div></div><div class="mi"><div class="miv">&nbsp;</div><div class="mil">fibre</div></div></div></div>
-            <p class="conv-note" style="margin:-6px 20px 0;font-size:10.5px">stored per 100 ml &middot; <b style="color:var(--ink)">46 kcal &middot; 0.4P 2.1F 7.2C</b> &middot; from 1 cup = 236.59 ml</p>
+            <p class="conv-note" style="margin:-6px 20px 0;font-size:10.5px">stored per 100 ml &middot; <b style="color:var(--ink)">46 kcal &middot; 0.4P 7.2C 2.1F</b> &middot; from 1 cup = 236.59 ml</p>
             <p class="conv-note"><b>The offer is every unit a line may say</b> &mdash; <code>g kg oz lb &middot; ml l tsp tbsp fl oz cup pt qt</code>. Twelve chips <i>on the row</i> is three runs at 402 pt, so the row wears the one amount-and-unit control: the unit it currently says as a single chip, and the twelve behind it in the pick sheet. The sentence stays a sentence and a unit is still picked as a chip. The <b>unit&rsquo;s family is the basis</b>: a volume serving lands the row on <b>per 100 ml</b> and converts through the catalog alone &mdash; nothing here asks for a weight, and nothing here states a density.</p>
             <p class="conv-note">The free-text &ldquo;as the pack calls it&rdquo; field is <b>gone</b>. Nothing was ever read out of it but a spoon word, and that word is now the unit itself.</p>
             <p class="conv-note"><b>Reopening the row comes back here.</b> The serving is kept as the row&rsquo;s one measure, so the form reads it back as it opens: the mode is <i>per serving</i>, the row says <span style="font-family:'IBM Plex Mono',monospace">1 cup</span> again, and the four fields hold the label&rsquo;s own figures &mdash; the stored per-100 scaled by the serving, unrounded, which is the same reversal the fact sheet prints. A Save that changes nothing writes the same per-100 back. A row that states no serving opens <i>per 100</i>, exactly as before, and <b>nothing is stored to make this work</b>: no column says which way a row was typed, because the serving measure already does.</p>
@@ -806,7 +823,7 @@
             <div class="abar"><span class="back">&lsaquo;</span><span class="ttl">Peanut Butter</span><span class="dots">&ctdot;</span></div>
             <div class="frow" style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;white-space:nowrap">One serving is</span><span style="display:inline-block;min-width:44px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--paper);text-align:center;font-family:'IBM Plex Mono',monospace;font-size:12.5px">2</span><span class="uchip on">tbsp</span></div>
             <div class="frow"><div class="macro-fields"><div class="mi"><div class="miv">190</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">7</div><div class="mil">protein</div></div><div class="mi"><div class="miv">7</div><div class="mil">carb</div></div><div class="mi"><div class="miv">16</div><div class="mil">fat</div></div><div class="mi"><div class="miv">2</div><div class="mil">fibre</div></div></div></div>
-            <p class="conv-note" style="margin:-6px 20px 0;font-size:10.5px">stored per 100 ml &middot; <b style="color:var(--ink)">642 kcal &middot; 23.7P 54.1F 23.7C &middot; 6.8 fibre</b> &middot; from 2 tbsp = 29.57 ml</p>
+            <p class="conv-note" style="margin:-6px 20px 0;font-size:10.5px">stored per 100 ml &middot; <b style="color:var(--ink)">642 kcal &middot; 23.7P 23.7C 54.1F &middot; 6.8 fibre</b> &middot; from 2 tbsp = 29.57 ml</p>
 
             <div style="margin:22px 20px 0"><p class="grp-h">Units &amp; measures</p></div>
             <p class="flabel">Density <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0;color:var(--muted)">none yet &mdash; unlocks volume&hArr;weight</span></p>
@@ -830,8 +847,8 @@
             <div class="abar"><span class="back">&lsaquo;</span><span class="ttl">Peanut Butter</span><span class="dots">&ctdot;</span></div>
             <div style="margin:22px 20px 0"><p class="grp-h">Nutrition</p></div>
             <p class="flabel" style="margin-bottom:2px">Macros <span style="font-family:'IBM Plex Mono',monospace;text-transform:none;letter-spacing:0">&mdash; as the label reads</span></p>
-            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px">190 kcal &middot; 7P 16F 7C per 2 tbsp</p>
-            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">per 100 ml &middot; 642 kcal &middot; 23.7P 54.1F 23.7C</p>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px">190 kcal &middot; 7P 7C 16F per 2 tbsp</p>
+            <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">per 100 ml &middot; 642 kcal &middot; 23.7P 23.7C 54.1F</p>
             <div style="margin:22px 20px 0"><p class="grp-h">Units &amp; measures</p></div>
             <p class="flabel">Density</p>
             <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px">2 tbsp weighs 32 g</p>
@@ -839,7 +856,7 @@
             <p class="flabel" style="margin-top:14px;margin-bottom:2px">Measures</p>
             <p style="margin:6px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">No measures yet.</p>
             <p class="conv-note"><b>The serving is stored as a measure and is not listed as one.</b> It is arithmetically exactly a measure &mdash; a named amount in the basis &mdash; which is what makes the line above reverse. But it is not a word the household coined, and it is stated in <i>Nutrition</i>, so listing it here said the same thing a third time on one screen. <b>No door offers it</b>, the unit picker included: a serving is the size a panel is <i>printed per</i>, not a size anybody cooks, plans or shops in. A line already saved on one keeps its chip there, flagged <i>not in filter</i> and saying the size (<span style="font-family:'IBM Plex Mono',monospace">serving (29.57 ml)</span>) rather than the pack&rsquo;s own words.</p>
-            <p class="conv-note">A wrong number is now checkable against the jar without a calculator: the jar says 190 per 2 tbsp, the page says 190 per 2 tbsp. Both lines <b>reverse exactly</b> from the stored per-100 &mdash; the serving is a measure on the row, so nothing is re-derived from a rounded figure. A row that states no serving says its macros per 100 &mdash; <span style="font-family:'IBM Plex Mono',monospace">642 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 23.7P 54.1F 23.7C /100 ml</span> &mdash; and its density in its <b>own default unit</b>: this jar is counted in millilitres, so it reads <span style="font-family:'IBM Plex Mono',monospace">1 ml weighs 1.08 g</span>, which <i>is</i> the ratio and so carries no aside repeating it. A row with nothing friendlier than the cup reads <span style="font-family:'IBM Plex Mono',monospace">1 cup weighs 156.15 g &middot; 0.66 g/ml</span>.</p>
+            <p class="conv-note">A wrong number is now checkable against the jar without a calculator: the jar says 190 per 2 tbsp, the page says 190 per 2 tbsp. Both lines <b>reverse exactly</b> from the stored per-100 &mdash; the serving is a measure on the row, so nothing is re-derived from a rounded figure. A row that states no serving says its macros per 100 &mdash; <span style="font-family:'IBM Plex Mono',monospace">642 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 23.7P 23.7C 54.1F /100 ml</span> &mdash; and its density in its <b>own default unit</b>: this jar is counted in millilitres, so it reads <span style="font-family:'IBM Plex Mono',monospace">1 ml weighs 1.08 g</span>, which <i>is</i> the ratio and so carries no aside repeating it. A row with nothing friendlier than the cup reads <span style="font-family:'IBM Plex Mono',monospace">1 cup weighs 156.15 g &middot; 0.66 g/ml</span>.</p>
         </div></div>
     </div>
 
@@ -849,13 +866,13 @@
             <div class="abar"><span class="back">&lsaquo;</span><span class="ttl">Peanut Butter</span><span class="dots">&ctdot;</span></div>
             <div class="state" style="margin-top:10px">
                 <div class="sh" style="font-weight:400"><span style="font-size:13px">Found &middot; Open Food Facts</span></div>
-                <div class="sb" style="font-family:'IBM Plex Mono',monospace;font-size:10px">Peanut Butter &amp; Co &middot; barcode 0851087000250 &middot; ODbL<br>190 kcal &middot; 7P 16F 7C &middot; 2 fibre<br>panel read per serving of 32 g (&ldquo;2 Tbsp (32 g)&rdquo;) &mdash; stored per 100 g</div>
+                <div class="sb" style="font-family:'IBM Plex Mono',monospace;font-size:10px">Peanut Butter &amp; Co &middot; barcode 0851087000250 &middot; ODbL<br>190 kcal &middot; 7P 7C 16F &middot; 2 fibre<br>panel read per serving of 32 g (&ldquo;2 Tbsp (32 g)&rdquo;) &mdash; stored per 100 g</div>
             </div>
             <p class="flabel" style="margin-bottom:2px">Macros</p>
             <div class="frow"><div class="seg"><span class="segopt">per 100 g</span><span class="segopt">per 100 ml</span><span class="segopt on">per serving</span></div></div>
             <div class="frow" style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;white-space:nowrap">One serving is</span><span style="display:inline-block;min-width:44px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--paper);text-align:center;font-family:'IBM Plex Mono',monospace;font-size:12.5px">32</span><span class="uchip on">g</span></div>
             <div class="frow"><div class="macro-fields"><div class="mi"><div class="miv">190</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">7</div><div class="mil">protein</div></div><div class="mi"><div class="miv">7</div><div class="mil">carb</div></div><div class="mi"><div class="miv">16</div><div class="mil">fat</div></div><div class="mi"><div class="miv">2</div><div class="mil">fibre</div></div></div></div>
-            <p class="conv-note" style="margin:-6px 20px 0;font-size:10.5px">stored per 100 g &middot; <b style="color:var(--ink)">594 kcal &middot; 21.9P 50F 21.9C &middot; 6.3 fibre</b></p>
+            <p class="conv-note" style="margin:-6px 20px 0;font-size:10.5px">stored per 100 g &middot; <b style="color:var(--ink)">594 kcal &middot; 21.9P 21.9C 50F &middot; 6.3 fibre</b></p>
             <p class="conv-note">OFF&rsquo;s numeric <code>serving_quantity</code> and its unit prefill the row; a payload with neither leaves the amount blank and Save refuses until it is typed &mdash; the free text is never parsed into a number. Nothing states a density, and the serving is kept as <span style="font-family:'IBM Plex Mono',monospace">serving &middot; 32 g</span>.</p>
         </div></div>
     </div>
@@ -884,7 +901,7 @@
             <div class="frow"><div class="seg"><span class="segopt">per 100 g</span><span class="segopt">per 100 ml</span><span class="segopt on">per serving</span></div></div>
             <div class="frow" style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;white-space:nowrap">One serving is</span><span style="display:inline-block;min-width:44px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--paper);text-align:center;font-family:'IBM Plex Mono',monospace;font-size:12.5px">28</span><span class="uchip on">g</span></div>
             <div class="frow"><div class="macro-fields"><div class="mi"><div class="miv">80</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">0</div><div class="mil">protein</div></div><div class="mi"><div class="miv">6</div><div class="mil">carb</div></div><div class="mi"><div class="miv">7</div><div class="mil">fat</div></div><div class="mi"><div class="miv">0</div><div class="mil">fibre</div></div></div></div>
-            <p class="conv-note" style="margin:-6px 20px 0;font-size:10.5px">stored per 100 g &middot; <b style="color:var(--ink)">286 kcal &middot; 0P 25F 21.4C &middot; 0 fibre</b></p>
+            <p class="conv-note" style="margin:-6px 20px 0;font-size:10.5px">stored per 100 g &middot; <b style="color:var(--ink)">286 kcal &middot; 0P 21.4C 25F &middot; 0 fibre</b></p>
             <p class="conv-note" style="margin:4px 20px 0;font-size:10.5px">the pack prints 80 kcal per 0.25 cup (28 g) &middot; that is 286 per 100 g &mdash; these agree</p>
             <p class="conv-note"><b>Two lines, and they do different work.</b> The first is the derivation &mdash; what Save will store, in the person&rsquo;s sight before they tap it. The second is the <b>check</b>: the figures in the fields against the pack&rsquo;s <i>other</i> column, which is the pack&rsquo;s own arithmetic and not the app&rsquo;s. It says <b>differ</b> as readily as <b>agree</b>, and names the figure that disagreed.</p>
             <p class="conv-note">The serving still lands as the row&rsquo;s one measure. The pack&rsquo;s own words come first and its bracket second, and whichever of the two the basis can actually say is the one carried: <b>0.25 cup</b> on a per-100 <b>g</b> row would need a density Open Food Facts does not hold, so <span style="font-family:'IBM Plex Mono',monospace">serving &middot; 28 g</span> is what lands.</p>
