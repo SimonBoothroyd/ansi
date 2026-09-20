@@ -25,7 +25,7 @@
 // **Nothing writes.** The only SQL this function issues is the cascade's two
 // SELECTs and the memory's one. There is no alias write, no stub write, no
 // receipt write — the app writes the `receipt` and its lines through PowerSync
-// at Save, from the review (plan 0049). `no_alias.test.ts` holds that
+// at Save, from the review. `no_alias.test.ts` holds that
 // structurally, by spying on every statement the function issues.
 
 import postgres from "postgres";
