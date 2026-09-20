@@ -442,7 +442,12 @@ class ReviewListDoors extends ConsumerWidget {
       case PickedSubRecipe(:final target):
         final result = await showComponentQuantitySheet(
           context,
-          target: target,
+          // No words on the review's dock: a review line stores a unit id and
+          // has no column for one of the target's own words, so a `blob`
+          // picked here could only land as a whole batch. A word is said on
+          // the line once the recipe exists, in the editor, where it is stored
+          // as the pointer it is (ADR-0018).
+          target: target.copyWith(measures: const []),
         );
         controller.addLine(
           groupId,

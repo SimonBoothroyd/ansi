@@ -237,9 +237,13 @@ class ReceiptPackEditor extends HookConsumerWidget {
         ),
         const SizedBox(height: 10),
         UnitChipRow(
-          ingredient: ingredient,
-          measures: measures,
+          offer: allowedUnitChoicesFor(
+            ingredient,
+            measures,
+            current: packChoice,
+          ),
           selected: packChoice,
+          pieceLabel: pieceChipLabel(ingredient),
           onSelect: (picked) => choice.value = picked,
         ),
 

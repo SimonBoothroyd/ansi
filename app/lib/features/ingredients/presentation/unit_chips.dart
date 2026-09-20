@@ -2,63 +2,66 @@
 ///
 /// The chip itself is [UnitChip], in `shared/`, because a third surface wears
 /// one outside any row: the amount-and-unit control's sentence. This row is
-/// the part that needs an [Ingredient] and its measures, which is exactly why
-/// it is not the reusable piece.
+/// the part that draws a whole **offer**.
+///
+/// It is handed a prebuilt [UnitChoiceOffer] and draws it; which entries an
+/// offer holds, and in what order, is the domain's answer —
+/// `allowedUnitChoicesFor` for an ingredient, `componentUnitChoices` for a
+/// sub-recipe component line. That is why one widget serves both: a chip row
+/// is a way of saying a list of choices, and the two surfaces disagree about
+/// the list rather than about the saying.
 library;
 
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
 import '../../../core/theme/ansi_tokens.dart';
-import '../../../core/units/measure.dart';
+import '../../../core/units/unit_choice.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/unit_chip.dart';
-import '../domain/allowed_units.dart';
-import '../domain/ingredient.dart';
 import '../domain/serving_measure.dart';
 import 'measures_editor.dart' show SourceDot;
 
-/// The chip row in the order [allowedUnitChoicesFor] hands it: the row's own
-/// measures (source dot + label) · the default unit and the rest of its
-/// family · demoted other-family units · imprecise after a divider · the `+`
-/// manage chip, where the host has a manage state to open. A row whose
-/// default unit IS an imprecise word leads the catalog with it, ahead of the
-/// divider and once only.
+/// The chip row in the order its [offer] hands it, with the imprecise tail set
+/// off by a divider, the off-filter entry marked *not in filter*, and the `+`
+/// manage chip last where the host has a manage state to open.
 ///
 /// Horizontally scrollable; docked directly above the keyboard by the host
 /// sheet. On open it scrolls the selected chip into view — a stored selection
 /// can sit deep in a long row and must not open off-screen.
-///
-/// The row's **serving** is not among the measures the filter offers, but a
-/// line already stored on it arrives as [stored] and is drawn last, flagged
-/// *not in filter*, saying what one serving comes to.
 class UnitChipRow extends StatefulWidget {
   const UnitChipRow({
-    required this.ingredient,
-    required this.measures,
+    required this.offer,
     required this.selected,
     required this.onSelect,
     this.onManage,
-    this.stored,
+    this.pieceLabel,
     super.key,
   });
 
-  final Ingredient ingredient;
-  final List<Measure> measures;
-  final UnitChoice selected;
+  /// The whole offer, including the stored selection the domain filter
+  /// admitted from outside itself (`offFilter`) — a merge-hidden duplicate
+  /// measure, a no-longer-allowed unit, a word whose `makes` has gone. The
+  /// host builds it, because only the host knows which filter it is asking.
+  final UnitChoiceOffer offer;
 
-  /// The stored (initial) choice — always admitted into the row, so an
-  /// off-filter value (a merge-hidden duplicate measure, a no-longer-allowed
-  /// unit) stays re-selectable even after tapping another chip. A user can
-  /// only ever select an offered chip, so the live [selected] is always
-  /// either in the filter or equal to this.
-  final UnitChoice? stored;
+  /// The live selection, or null where the line has no honest denomination to
+  /// preselect: a component line whose recipe measure has been retired keeps
+  /// its pointer with **no** chip lit, so nothing on the row claims to be what
+  /// the line says.
+  final UnitChoice? selected;
   final ValueChanged<UnitChoice> onSelect;
 
   /// Opens the host's manage-measures state, or null where the host has none
   /// — the price sheet, where the pack is a purchase and not a vocabulary
   /// edit. Null draws no `+` chip rather than one that does nothing.
   final VoidCallback? onManage;
+
+  /// What a `piece` chip says on this host — `piece (350 g)` on an ingredient
+  /// row that states what one weighs (`pieceChipLabel`, ADR-0015: a count is
+  /// only a unit there because the row says what one comes to). Null keeps the
+  /// bare word, which is all a recipe's count yield can honestly say.
+  final String? pieceLabel;
 
   @override
   State<UnitChipRow> createState() => _UnitChipRowState();
@@ -79,39 +82,45 @@ class _UnitChipRowState extends State<UnitChipRow> {
     });
   }
 
+  /// A measure chip carries the bare label; its weight shows in the
+  /// selected-choice line, not on every chip. `piece` is the one unit that can
+  /// carry its weight ON the chip (ADR-0015), and only where the host says so.
+  String _label(UnitChoice choice) => switch (choice) {
+    MeasureOption(:final measure) => measureChipLabel(measure),
+    RecipeMeasureOption(:final measure) => measure.label,
+    UnitOption(:final unit) when unit == pieces =>
+      widget.pieceLabel ?? unit.label,
+    UnitOption(:final unit) => unit.label,
+  };
+
+  /// The source dot an INGREDIENT's measure wears — USDA, a borrow, an
+  /// estimate, the household's own. A recipe's words have one source and it is
+  /// the household that wrote the recipe, so they wear none.
+  Widget? _dot(UnitChoice choice) => switch (choice) {
+    MeasureOption(:final measure) => SourceDot(kind: measure.sourceKind),
+    RecipeMeasureOption() || UnitOption() => null,
+  };
+
   @override
   Widget build(BuildContext context) {
-    // The full offer comes from the domain filter — already in ADR-0008 chip
-    // order (measures → an imprecise default → default set → demoted →
-    // imprecise), excluding
-    // volume-named measures (density owns volume conversion, frame-b review)
-    // and ALWAYS admitting the stored selection — a merge-hidden duplicate
-    // measure or a no-longer-allowed unit stays reachable, flagged so it can
-    // read as outside the honest filter (the retired dropdowns' rule).
-    final offer = allowedUnitChoicesFor(
-      widget.ingredient,
-      widget.measures,
-      current: widget.stored ?? widget.selected,
-    );
+    final offer = widget.offer;
     final offFilter = offer.offFilter;
     final inFilter = offFilter == null
         ? offer.choices
         : offer.choices.sublist(0, offer.choices.length - 1);
 
-    // The row's own default word, where that word is an imprecise one, leads
-    // the catalog chips instead of sitting in the tail — so the divider, which
-    // marks where the words the row merely admits begin, goes after it and not
-    // in front of it.
-    final leadWord =
-        widget.ingredient.defaultUnit.family == UnitFamily.imprecise
-        ? widget.ingredient.defaultUnit
-        : null;
     final children = <Widget>[];
+    // The divider marks where the words the offer merely ADMITS begin — the
+    // imprecise tail. A row whose own default unit is an imprecise word leads
+    // the catalog with it (owner), so that leading word is on the near side of
+    // the divider: the tail is the first imprecise chip with a precise one
+    // already behind it.
     var dividerPlaced = false;
+    var seenPreciseUnit = false;
     for (final c in inFilter) {
       final imprecise =
           c is UnitOption && c.unit.family == UnitFamily.imprecise;
-      if (imprecise && c.unit != leadWord && !dividerPlaced) {
+      if (imprecise && seenPreciseUnit && !dividerPlaced) {
         dividerPlaced = true;
         children.add(
           Container(
@@ -122,27 +131,12 @@ class _UnitChipRowState extends State<UnitChipRow> {
           ),
         );
       }
+      if (c is UnitOption && !imprecise) seenPreciseUnit = true;
       children.add(
         UnitChip(
           key: widget.selected == c ? _selectedKey : null,
-          // A measure chip carries the bare label; its weight shows in the
-          // selected-choice line, not on every chip. `piece` is the one unit
-          // that carries its weight ON the chip (ADR-0015): a count is only a
-          // unit here because the row says what one weighs, and the chip
-          // says so rather than leaving "piece" to mean a clove or a bulb.
-          label: switch (c) {
-            MeasureOption(:final measure) => measureChipLabel(measure),
-            RecipeMeasureOption(:final measure) => notAWordForAnIngredient(
-              measure,
-            ),
-            UnitOption(:final unit) when unit == pieces => pieceChipLabel(
-              widget.ingredient,
-            ),
-            UnitOption(:final unit) => unit.label,
-          },
-          dot: c is MeasureOption
-              ? SourceDot(kind: c.measure.sourceKind)
-              : null,
+          label: _label(c),
+          dot: _dot(c),
           imprecise: imprecise,
           selected: widget.selected == c,
           onTap: () => widget.onSelect(c),
@@ -153,26 +147,9 @@ class _UnitChipRowState extends State<UnitChipRow> {
       children.add(
         UnitChip(
           key: widget.selected == offFilter ? _selectedKey : null,
-          label: switch (offFilter) {
-            MeasureOption(:final measure) => measureChipLabel(measure),
-            RecipeMeasureOption(:final measure) => notAWordForAnIngredient(
-              measure,
-            ),
-            UnitOption(:final unit) when unit == pieces => pieceChipLabel(
-              widget.ingredient,
-            ),
-            UnitOption(:final unit) => unit.label,
-          },
+          label: _label(offFilter),
           suffix: 'not in filter',
-          dot: switch (offFilter) {
-            MeasureOption(:final measure) => SourceDot(
-              kind: measure.sourceKind,
-            ),
-            RecipeMeasureOption(:final measure) => notAWordForAnIngredient(
-              measure,
-            ),
-            UnitOption() => null,
-          },
+          dot: _dot(offFilter),
           selected: widget.selected == offFilter,
           onTap: () => widget.onSelect(offFilter),
         ),

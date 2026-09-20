@@ -445,6 +445,12 @@ class _SessionTile extends ConsumerWidget {
             speech.covers,
             style: ansiSans(size: 11, color: AnsiColors.muted),
           ),
+          // The word a demanding line was written in, showing its work —
+          // `3 blob → 45 g → 0.15 of a batch`. One per demand that said one.
+          for (final word in speech.words) ...[
+            const SizedBox(height: 4),
+            Text(word, style: ansiMono(size: 10, color: AnsiColors.herbDeep)),
+          ],
           if (nudge != null) ...[
             const SizedBox(height: 6),
             GestureDetector(

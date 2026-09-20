@@ -109,6 +109,18 @@ Never notAWordForAnIngredient(RecipeMeasure measure) => throw StateError(
   'a recipe measure (“${measure.label}”) is not a word for an ingredient',
 );
 
+/// The mirror: what a surface **about a recipe** does when handed a
+/// [MeasureOption].
+///
+/// `clove` is a word for one row of the vocabulary; it says nothing about a
+/// batch of anything (ADR-0008), which is why `componentUnitChoices` cannot
+/// produce one. Same reasoning as [notAWordForAnIngredient], same refusal to
+/// invent a fallback: every unit available to stand in here would be a number
+/// nobody stated.
+Never notAWordForARecipe(Measure measure) => throw StateError(
+  'an ingredient measure (“${measure.label}”) is not a word for a recipe',
+);
+
 /// A unit picker's full offer: the filtered `choices`, plus `offFilter` when
 /// the stored selection had to be admitted from outside the filter (it is
 /// also the last element of `choices`) so the UI can style it subtly

@@ -97,6 +97,8 @@ abstract class PlannedRecipe with _$PlannedRecipe {
 /// depth one, which is every demand a printed page has yet produced.
 @freezed
 abstract class ComponentDemand with _$ComponentDemand {
+  const ComponentDemand._();
+
   const factory ComponentDemand({
     required String parentRecipeId,
     required String parentTitle,
@@ -111,13 +113,23 @@ abstract class ComponentDemand with _$ComponentDemand {
     required double batches,
     String? via,
 
-    /// What the demanding line printed, unscaled — the amount and, when it
-    /// was said in one of the target's own words, that word. A card quotes
-    /// the line in the words it was written in (`3 blob → 0.15 of a batch`)
-    /// rather than re-stating it in a unit nobody typed.
+    /// What the demanding line printed, unscaled.
     double? quantity,
-    String? measureLabel,
+
+    /// The target's own word the demanding line was said in — the WHOLE
+    /// measure, not merely its label, because a card says what one of the word
+    /// comes to on the way to the batch share (`3 blob → 45 g → 0.15 of a
+    /// batch`). That middle step is the fact the word carries, and the one a
+    /// cook checks when the share looks wrong.
+    ///
+    /// Null when the line named no word, and null the moment the word has GONE
+    /// from the target — which is exactly the state a card must not print a
+    /// number for.
+    RecipeMeasure? measure,
   }) = _ComponentDemand;
+
+  /// The word alone, for the readers that only quote the line back.
+  String? get measureLabel => measure?.label;
 }
 
 /// A derived cook session: one batch to cook on [cookDay], covering [covers]
@@ -880,7 +892,7 @@ typedef _PlannedRoot = ({String recipeId, String title, int cookDay});
           batches: batches,
           via: via,
           quantity: line.quantity,
-          measureLabel: said?.label,
+          measure: said,
         ),
       );
       walk(

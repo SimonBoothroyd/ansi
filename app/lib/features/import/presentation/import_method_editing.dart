@@ -364,13 +364,26 @@ class ImportMethodEditing implements MethodEditing {
     SubRecipeTarget target, {
     double? quantity,
     Unit? unit,
+    String? recipeMeasureId,
     bool optional = false,
-  }) => controller.addLine(
-    groupId,
-    name: target.title,
-    recipeId: target.id,
-    quantity: quantity,
-    unit: (unit ?? batches).id,
-    optional: optional,
-  );
+  }) {
+    // A review line stores its denomination as a unit id and has no column for
+    // a recipe's own word, so one arriving here could only be written as a
+    // batch — three blobs of a sauce stored as three whole batches of it. The
+    // review's doors therefore offer no words, and this says so out loud rather
+    // than rounding one off.
+    if (recipeMeasureId != null) {
+      throw UnsupportedError(
+        'an import review line cannot be said in a recipe’s own word',
+      );
+    }
+    controller.addLine(
+      groupId,
+      name: target.title,
+      recipeId: target.id,
+      quantity: quantity,
+      unit: (unit ?? batches).id,
+      optional: optional,
+    );
+  }
 }

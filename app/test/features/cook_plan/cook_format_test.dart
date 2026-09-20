@@ -1,3 +1,4 @@
+import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
@@ -367,6 +368,42 @@ void main() {
         isNull,
       );
       expect(componentLeftoverNote(session, WeekShape.monday), isNull);
+    });
+
+    test('a demand said in the recipe’s own word shows its work', () {
+      // The card's reader is holding the parent recipe and looking for the word
+      // they wrote in it, so the line reads in that order — and the middle
+      // step, what a blob IS, is printed rather than elided.
+      const said = CookSession(
+        recipeId: 'aioli',
+        recipeTitle: 'Romesco Aioli',
+        servingsBase: 4,
+        cookDay: 5,
+        demands: [
+          ComponentDemand(
+            parentRecipeId: 'sliders',
+            parentTitle: 'Sausage Sliders',
+            cookDay: 5,
+            batches: 0.15,
+            quantity: 3,
+            measure: RecipeMeasure(
+              id: 'm-blob',
+              recipeId: 'aioli',
+              label: 'blob',
+              amount: 15,
+              unit: g,
+            ),
+          ),
+        ],
+      );
+      expect(SessionSpeech.of(said, WeekShape.monday).words, [
+        '3 blob → 45 g → 0.15 of a batch',
+      ]);
+    });
+
+    test('a demand said in a catalog unit adds no such line — the card’s own '
+        'scale already says the whole of it', () {
+      expect(SessionSpeech.of(session, WeekShape.monday).words, isEmpty);
     });
   });
 

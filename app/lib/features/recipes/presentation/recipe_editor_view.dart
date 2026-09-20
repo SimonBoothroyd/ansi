@@ -628,6 +628,7 @@ Future<void> addLineToGroup(
         target,
         quantity: result?.quantity,
         unit: result?.unit,
+        recipeMeasureId: result?.recipeMeasureId,
         optional: result?.optional ?? false,
       );
   }
@@ -830,10 +831,9 @@ class _ComponentLineEditor extends StatelessWidget {
             ),
         initialQuantity: item.quantity,
         initialUnit: item.unit,
-        // The pointer the line carries, which is the whole condition: a
-        // units-only offer always returns a unit, and writing one here would
-        // replace `blob` with `g` and lose the only place the line's amount
-        // lived (ADR-0018). The sheet reads the word off the target.
+        // The pointer the line carries, so the sheet opens on the word rather
+        // than on a unit. The word itself is read off the target, which is
+        // what makes a re-stated `blob` follow through everywhere at once.
         initialMeasureId: item.recipeMeasureId,
         initialOptional: item.optional,
         onSetYield: target == null
@@ -844,9 +844,13 @@ class _ComponentLineEditor extends StatelessWidget {
       notifier
         ..setLineItemQuantity(item.id, result.quantity)
         ..setLineItemOptional(item.id, optional: result.optional);
-      // Null means the line keeps the word it already says — see
-      // [ComponentQuantity]. Never a fallback unit: that IS the loss.
-      if (result.unit case final picked?) {
+      // Exactly one of the two, and each setter clears the other: a line is
+      // denominated once (ADR-0018). Both null is a line whose word has gone
+      // and whose reader picked no chip — it keeps the pointer it had, because
+      // a unit written there would be a number nobody stated.
+      if (result.recipeMeasureId case final word?) {
+        notifier.setLineItemRecipeMeasure(item.id, word);
+      } else if (result.unit case final picked?) {
         notifier.setLineItemUnit(item.id, picked);
       }
     }

@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Cook &amp; Shop</h1>
-    <p class="view-status">built · cook matches code 2026-09-17 · shop matches code 2026-09-19 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: cook matches code 2026-09-13; shop differs 2026-09-19: at ≥ 1024 a row’s breakdown is drawn only in the provenance pane, and the walk keeps the 640 measure beside it — the header, and so the receipts door in it, is one header at every width · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a></p>
+    <p class="view-status">built · cook matches code 2026-09-20 · shop matches code 2026-09-19 ·<code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: cook matches code 2026-09-13; shop differs 2026-09-19: at ≥ 1024 a row’s breakdown is drawn only in the provenance pane, and the walk keeps the 640 measure beside it — the header, and so the receipts door in it, is one header at every width · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a></p>
     <p class="view-blurb">Two tabs derived from the week on screen — sessions grouped by recipe and split by shelf life, then one list summed from them, saying where every line came from.</p>
 </header>
 
@@ -76,6 +76,15 @@
                         <div class="tl"><div class="tl-cook"></div><div class="tl-track"><span class="tl-fresh" style="flex:5"></span><span class="tl-gone" style="flex:2"></span></div><div class="tl-days"><span>Sat</span><span>Wed</span><span>Thu</span></div></div></div>
                     <div class="split-note"><span class="ic">⚑</span><span>A batch makes 1 cup and Saturday needs ¼ — the rest is yours. Nothing here tracks the leftover.</span></div>
                 </div>
+                <p class="flabel" style="margin:16px 20px 6px">The same card, where the demanding line was said in a word</p>
+                <div class="cook">
+                    <div class="cook-title">Romesco Aioli · for Sausage Sliders</div>
+                    <div class="cook-sub">derived from a component line · keeps 5 d</div>
+                    <div class="session"><div class="ses-top"><span class="ses-when">Cook by Sat</span><span class="ses-scale">×0.15 batch</span></div>
+                        <div class="ses-covers">covers Sausage Sliders · cook Sat — makes 300 g, you need 0.15</div>
+                        <div class="ses-covers" style="color:var(--herb-deep)">3 blob → 45 g → 0.15 of a batch</div></div>
+                </div>
+                <p class="conv-note" style="margin:8px 20px 0">One line per demand said in one of this recipe’s <b>own words</b> (<a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a>), quoting the line as it was written. <b>The middle step is printed, not elided</b> — it is the fact the word carries, and the one a cook checks when the share looks wrong. A demand said in a catalog unit adds no such line: the card’s own scale already says the whole of it. <b>Wide:</b> the same line, in the desk row’s says column.</p>
                 <p class="flabel" style="margin:16px 20px 6px">The same card, before the aioli has a yield</p>
                 <div class="cook split">
                     <div class="cook-title">Romesco Aioli · for Sausage Sliders</div>

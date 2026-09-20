@@ -350,9 +350,13 @@ class PriceEditor extends HookConsumerWidget {
         ),
         const SizedBox(height: 10),
         UnitChipRow(
-          ingredient: ingredient,
-          measures: measures,
+          offer: allowedUnitChoicesFor(
+            ingredient,
+            measures,
+            current: packChoice,
+          ),
           selected: packChoice,
+          pieceLabel: pieceChipLabel(ingredient),
           // No manage chip: the pack is a purchase, not a vocabulary edit.
           // Naming a measure belongs to the quantity sheet and the form.
           onSelect: (picked) => choice.value = picked,

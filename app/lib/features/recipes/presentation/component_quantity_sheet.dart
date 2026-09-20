@@ -2,49 +2,39 @@
 /// design board frame d) — the 7.7 sheet's anatomy with batch math on the
 /// chips.
 ///
-/// Same dock, same [UnitChip]s, same live conversion line, same Optional row.
-/// Three things differ, and each is a consequence of a component being a
-/// recipe rather than an ingredient:
+/// Same dock, the same [UnitChipRow], the same live conversion line, the same
+/// Optional row. What differs is the OFFER, and each difference is a
+/// consequence of a component being a recipe rather than an ingredient
+/// ([componentUnitChoices]):
 ///
-/// - the chips are **`batch` ∪ the yields' families**, kitchen-trimmed
-///   ([componentUnitChips]) — `batch` is always sayable, and a family opens
-///   only because the recipe states a yield in it. There is no density for a
-///   recipe, so a family nobody stated is not offered; the fix is the yield's
-///   optional second denomination, not a guess;
+/// - **the target recipe's own words lead it** — `3 blob` of a sauce, a word
+///   the household coined on that recipe and nowhere else (ADR-0018). A word
+///   is an amount in a unit, so it resolves through the recipe's own `makes`
+///   exactly as `¼ cup` does, and the whole-batch word leads even that
+///   ([wholeMeasureOfRecipe]);
+/// - then `batch`, then **the yields' families**, kitchen-trimmed. `batch` is
+///   always sayable, and a family opens only because the recipe states a yield
+///   in it. There is no density for a recipe, so a family nobody stated is not
+///   offered; the fix is the yield's optional second denomination, not a guess;
 /// - the conversion line reads in batches ("0.25 cup = 0.25 of a batch ·
 ///   makes 1 cup"), and a recipe with no yield gets the *not-an-error* state:
 ///   the `batch` chip alone, the honest note, and one tap to go set the yield.
 ///   The link, the page and scaling all work meanwhile — only derived numbers
-///   wait;
-/// - there is **no `+` manage-measures chip**: a measure is an ingredient
-///   concept ("potato, medium = 213 g" says nothing about a recipe), which is
-///   the same reason a component line never carries a `measure_id`.
+///   wait. No words either, because a word is an amount and an amount says
+///   nothing about a batch until the batch has one too.
 ///
-/// The 7.7 **stored-selection rule carries over**: an imported line's printed
-/// unit is an admissible chip even when this sheet would not offer it, marked
-/// as outside the filter and rendered with the honest unresolved line — never
-/// silently rewritten.
+/// The 7.7 **stored-selection rule carries over** to both kinds: an imported
+/// line's printed unit, and a word whose `makes` has been edited out from under
+/// it, are admissible chips even when this sheet would not otherwise offer
+/// them — marked as outside the filter and rendered with the honest unresolved
+/// line, never silently rewritten.
 ///
-/// **A MEASURED line is not re-denominated here.** A line said in one of the
-/// target's own words — `3 blob` (ADR-0018) — has no catalog unit, and this
-/// sheet's whole offer is catalog units: opened on such a line it would hand a
-/// unit back, and the caller would write that unit where the word was. The word
-/// is the only place its amount lived, so that is a silent, irreversible loss.
-///
-/// So while this build has no authoring control (`initialMeasureId` is the seam
-/// for one), the sheet opened on a measured line offers **exactly that word**,
-/// preselected and marked as the recipe's own, and hands back
-/// [ComponentQuantity] with a **null `unit`** — "the number changed, the
-/// denomination did not". The quantity is fully editable, which is the part a
-/// cook actually wants to change; the word is the target recipe's to state, and
-/// the door to it is that recipe's MEASURES list.
-///
-/// A line whose word has been RETIRED is measured too, and gets the same
-/// treatment for a stronger reason: it has no honest denomination to show at
-/// all, so a units-only sheet would not just replace the word, it would put a
-/// confident `3 cup` where the app was correctly saying it did not know. The
-/// chip row says the word has gone; the number stays editable and the pointer
-/// stays put, so the repair is the target recipe's MEASURES, where it belongs.
+/// **A line whose word has GONE selects nothing.** There is no honest
+/// denomination to preselect: the word was the only place its amount lived, and
+/// a chip lit here would claim the line says something it does not. So the row
+/// opens with the offer and no selection, the number is kept, and the pointer
+/// is kept with it until somebody picks a chip — which is the repair, the other
+/// one being to put the word back under the target recipe's MEASURES.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -55,33 +45,33 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/number_format.dart';
 import '../../../core/units/recipe_measure.dart';
+import '../../../core/units/unit_choice.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/format.dart';
-import '../../../shared/unit_chip.dart';
-import '../domain/component_math.dart';
+import '../../ingredients/presentation/unit_chips.dart';
+import '../domain/component_math.dart' show YieldDenomination;
 import '../domain/component_units.dart';
 import '../domain/recipe.dart';
 import 'component_format.dart';
 import 'recipe_chip.dart';
 
-/// What the component sheet resolved to: the amount, the unit it counts, and
-/// whether the line is optional.
+/// What the component sheet resolved to: the amount, the denomination it counts
+/// — **exactly one** of a catalog `unit` and one of the target's own words
+/// (`recipeMeasureId`) — and whether the line is optional.
 ///
-/// `unit` is **null exactly when the line keeps the denomination it arrived
-/// with** — a measured line's own word, which this sheet does not offer to
-/// replace. It is the same nullability `LineItem.unit` carries, and it means
-/// the same thing: the amount is said in one of the target recipe's words
-/// rather than in a catalog unit, so a caller must set the quantity and leave
-/// the denomination alone.
-typedef ComponentQuantity = ({double? quantity, Unit? unit, bool optional});
-
-/// What the chip row says where the word would be, for a line whose word has
-/// been retired. Not a unit and not a guess: the row's job here is to say that
-/// the denomination is missing and inert, and the sentence under it says where
-/// the word is put back.
-const _kGoneWordChip = 'word gone';
+/// It is the nullability `LineItem.unit` carries, for the same reason: a line's
+/// amount is said in a catalog unit **or** in one of the target recipe's words,
+/// never both and never neither (migration 0048). The one case where both are
+/// null is a line whose word has gone and whose reader picked nothing, where
+/// the caller writes neither and the line keeps the pointer it already had.
+typedef ComponentQuantity = ({
+  double? quantity,
+  Unit? unit,
+  String? recipeMeasureId,
+  bool optional,
+});
 
 /// Opens the component quantity sheet for [target]; resolves to the chosen
 /// amount, or null if dismissed.
@@ -139,10 +129,8 @@ class ComponentQuantityEditor extends HookWidget {
   final Unit? initialUnit;
 
   /// The line's `recipe_measure_id`, when it says one of the target's own
-  /// words. Non-null is the whole condition the library doc describes: this
-  /// sheet then keeps the denomination and edits only the number. The word
-  /// itself is read off [target] — never joined onto the line, which is what
-  /// makes a re-stated `blob` follow through everywhere at once.
+  /// words. The word itself is read off [target] — never joined onto the line,
+  /// which is what makes a re-stated `blob` follow through everywhere at once.
   final String? initialMeasureId;
 
   /// Whether the line already says it may be left out.
@@ -154,26 +142,44 @@ class ComponentQuantityEditor extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final yields = target.yields;
-    final measureId = initialMeasureId;
-    // The LIVE word, off the target's own measures, never off the resolution: a
-    // word can be perfectly alive and still unresolvable (a `makes` restated
-    // into another family under it), and that line must read "3 blob —
-    // unresolved — …" rather than a bare "3 — unresolved". Null means it has
-    // gone, which the row says in as many words.
-    final word = measureId == null
-        ? null
-        : recipeMeasureById(measureId, target.measures);
+    final measures = target.measures;
+    // The chip the sheet opens on. Null is the one line with nothing honest to
+    // preselect — a word that has gone — and it is the reason [UnitChipRow]'s
+    // selection is nullable at all.
+    final stored = _openingChoice();
+    final choice = useState<UnitChoice?>(stored);
     final quantity = useState<double?>(initialQuantity);
-    final unit = useState<Unit>(initialUnit ?? _defaultUnit(yields));
     final optional = useState<bool>(initialOptional);
-    final offer = componentUnitChips(yields: yields, stored: initialUnit);
+
+    final picked = choice.value;
+    final word = picked is RecipeMeasureOption ? picked.measure : null;
+    final unit = switch (picked) {
+      UnitOption(:final unit) => unit,
+      RecipeMeasureOption() || null => null,
+      MeasureOption(:final measure) => notAWordForARecipe(measure),
+    };
+    // The pointer the line will carry: the word that is picked, or — while
+    // nothing has been picked at all — the one it arrived with, which is the
+    // gone-word case. Picking any chip replaces it, and picking a unit clears
+    // it: a line is denominated once (the repository refuses the other two
+    // shapes outright).
+    final measureId = word?.id ?? (picked == null ? initialMeasureId : null);
+
+    // The offer, with the opening choice always admitted: a word whose `makes`
+    // has been edited into another family is not in the honest filter, and must
+    // still read as itself, marked, with the refusal under it.
+    final offer = componentUnitChoices(target, measures, current: stored);
 
     final note = componentConversionLine(
       quantity: quantity.value,
-      unit: measureId == null ? unit.value : null,
+      unit: unit,
       yields: yields,
       recipeMeasureId: measureId,
-      measures: target.measures,
+      // The LIVE words, never the resolution's: a word can be perfectly alive
+      // and still unresolvable (a `makes` restated into another family under
+      // it), and that line must read "3 blob — unresolved — …" rather than a
+      // bare "3 — unresolved".
+      measures: measures,
     );
 
     return AnsiSheetShell(
@@ -206,7 +212,12 @@ class ComponentQuantityEditor extends HookWidget {
                 keyboardType: TextInputType.text,
                 control: FTextFieldControl.managed(
                   initial: TextEditingValue(
-                    text: formatQuantityIn(quantity.value, unit.value),
+                    // A number counting WORDS prints by the kitchen rule, like
+                    // every other unitless amount: the unit lives on the
+                    // measure, not on the line.
+                    text: unit == null
+                        ? formatQuantity(quantity.value)
+                        : formatQuantityIn(quantity.value, unit),
                   ),
                   onChange: (v) => quantity.value = parseAmount(v.text),
                 ),
@@ -215,9 +226,14 @@ class ComponentQuantityEditor extends HookWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                // Nothing where the denomination was for a gone word: the
-                // number is all this line honestly says.
-                word?.label ?? (measureId == null ? unit.value.label : ''),
+                // The picked word says what one of it comes to, exactly as a
+                // picked ingredient measure does: the chip row carries the bare
+                // word, the sentence beside the number carries its size.
+                // Nothing at all for a gone word — the number is all this line
+                // honestly says.
+                word != null
+                    ? recipeMeasureChipText(word)
+                    : (unit?.label ?? ''),
                 style: ansiMono(size: 15, color: AnsiColors.herbDeep),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -232,41 +248,17 @@ class ComponentQuantityEditor extends HookWidget {
           style: ansiMono(size: 11, color: AnsiColors.muted),
         ),
         const SizedBox(height: 8),
-        SizedBox(
-          height: kUnitChipHeight,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                // A measured line's row is its own denomination alone:
-                // selected, marked, and inert. Every other chip here is a
-                // catalog unit, and tapping one would write it where the word
-                // was — see the library doc.
-                if (measureId != null)
-                  UnitChip(
-                    label: word?.label ?? _kGoneWordChip,
-                    suffix: word != null
-                        ? 'this recipe’s word'
-                        : 'nothing to change it to',
-                    selected: true,
-                    onTap: () {},
-                  )
-                else
-                  for (final u in offer.chips)
-                    UnitChip(
-                      label: u.label,
-                      suffix: u == offer.offFilter ? 'not in filter' : null,
-                      selected: unit.value == u,
-                      onTap: () => unit.value = u,
-                    ),
-              ],
-            ),
-          ),
+        UnitChipRow(
+          offer: offer,
+          selected: picked,
+          // No `+` chip yet: the door behind it is the TARGET recipe's measures
+          // list, which is its own control and is not built here.
+          onSelect: (c) => choice.value = c,
         ),
-        if (measureId != null) ...[
+        if (measureId != null && word == null) ...[
           const SizedBox(height: 8),
           Text(
-            word != null ? kMeasuredLineKeepsItsWord : kGoneWordKeepsItsPointer,
+            kGoneWordKeepsItsNumber,
             textAlign: TextAlign.center,
             style: ansiMono(size: 11, color: AnsiColors.muted),
           ),
@@ -309,9 +301,8 @@ class ComponentQuantityEditor extends HookWidget {
         FButton(
           onPress: () => onDone((
             quantity: quantity.value,
-            // Null for a measured line: the number changed, the denomination
-            // did not. A unit here would be written where the word was.
-            unit: measureId == null ? unit.value : null,
+            unit: unit,
+            recipeMeasureId: measureId,
             optional: optional.value,
           )),
           child: const Text('Done'),
@@ -320,24 +311,39 @@ class ComponentQuantityEditor extends HookWidget {
     );
   }
 
-  /// Why a measured line's denomination is not on offer — one sentence, in the
-  /// app's refusal voice: name the fact, and name where the fact is changed.
-  static const kMeasuredLineKeepsItsWord =
-      'This line is said in the recipe’s own word, so the number is yours to '
-      'change and the word is that recipe’s — under its MEASURES.';
+  /// Which chip the sheet opens on.
+  ///
+  /// A line being EDITED opens on its own stored denomination — its word where
+  /// the target still holds it, else its unit — and a line whose word has gone
+  /// opens on nothing at all. A FRESH amount opens on the first thing the offer
+  /// leads with while that is one of the recipe's own words
+  /// ([firstComponentChoice]: the whole-batch word, else the first word the
+  /// recipe can still hold), and otherwise on the yield's own unit, which is
+  /// the line a page prints — `¼ cup` of a `makes 1 cup` aioli — and the
+  /// denomination this sheet has always opened wordless recipes on.
+  UnitChoice? _openingChoice() {
+    if (initialMeasureId case final id?) {
+      final word = recipeMeasureById(id, target.measures);
+      return word == null ? null : RecipeMeasureOption(word);
+    }
+    if (initialUnit case final unit?) return UnitOption(unit);
+    final first = firstComponentChoice(target, target.measures);
+    return first is RecipeMeasureOption
+        ? first
+        : UnitOption(_defaultUnit(target.yields));
+  }
 
-  /// The same sentence for a line whose word has been retired. It keeps its
-  /// pointer rather than being handed a unit, because a unit here would be a
-  /// number nobody stated where the app was honestly saying it did not know.
-  static const kGoneWordKeepsItsPointer =
+  /// What the sheet says about a line whose word has been retired on the target
+  /// recipe, or has not synced here yet — one sentence, in the app's refusal
+  /// voice: name the fact, and name both ways out.
+  static const kGoneWordKeepsItsNumber =
       'The word this line was written in is gone from that recipe, so there is '
-      'nothing honest to count it in. The number is kept; put the word back '
-      'under that recipe’s MEASURES.';
+      'nothing counting it. The number is kept — put the word back under that '
+      'recipe’s MEASURES, or say this line in one of the chips below.';
 
-  /// What a fresh component line counts before anyone picks a chip: the
-  /// yield's own unit when the recipe states one ("¼ cup" of a `makes 1 cup`
-  /// aioli is the line a page prints), and `batch` otherwise — the one
-  /// denomination that never needs a yield.
+  /// What a fresh component line counts before anyone picks a chip, on a recipe
+  /// that coins no word: the yield's own unit when it states one, and `batch`
+  /// otherwise — the one denomination that never needs a yield.
   static Unit _defaultUnit(List<YieldDenomination> yields) =>
       yields.isEmpty ? batches : yields.first.unit;
 }

@@ -1,11 +1,12 @@
 /// The component quantity sheet (step 8.6 / D2, board frame d): batch math on
-/// the chips, the honest no-yield state, and the rules the ingredient sheet
-/// does NOT bring with it (no measures chip).
+/// the chips, the target recipe's own words leading the row (ADR-0018), and the
+/// honest no-yield state.
 library;
 
 import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/ingredients/presentation/unit_chips.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/presentation/component_quantity_sheet.dart';
 import 'package:flutter/material.dart';
@@ -65,16 +66,49 @@ const _blob = RecipeMeasure(
   unit: ml,
 );
 
+/// A second word, so the offer's order can be read: the words lead in the order
+/// they are given, behind the whole-batch one where there is one.
+const _ladle = RecipeMeasure(
+  id: 'm-ladle',
+  recipeId: 'aioli',
+  label: 'ladle',
+  amount: 60,
+  unit: ml,
+);
+
 const _aioliWithWord = SubRecipeTarget(
   id: 'aioli',
   title: 'Romesco Aioli',
   yieldQty: 1,
   yieldUnit: cup,
-  measures: [_blob],
+  measures: [_blob, _ladle],
 );
 
 /// The same recipe after the word was retired — the line still points at it.
 const _aioliWordGone = _aioli;
+
+/// A bread whose own word IS the whole batch: a loaf is 900 g and a batch makes
+/// 900 g, so the word leads even `batch` (ADR-0018 rule 8).
+const _loaf = RecipeMeasure(
+  id: 'm-loaf',
+  recipeId: 'bread',
+  label: 'loaf',
+  amount: 900,
+  unit: g,
+);
+
+const _bread = SubRecipeTarget(
+  id: 'bread',
+  title: 'Sourdough Loaf',
+  yieldQty: 900,
+  yieldUnit: g,
+  measures: [_loaf],
+);
+
+/// A chip in the row, by label — `find.text` alone would also match the
+/// sentence beside the number, which says `blob (50 ml)`.
+Finder _chip(String label) =>
+    find.descendant(of: find.byType(UnitChipRow), matching: find.text(label));
 
 void main() {
   testWidgets('a stated yield opens its family and the line reads in batches', (
@@ -95,7 +129,8 @@ void main() {
     for (final label in ['batch', 'cup', 'tbsp', 'tsp', 'ml']) {
       expect(find.text(label), findsWidgets, reason: 'chip "$label" missing');
     }
-    // A measure is an ingredient concept: no manage-measures chip here.
+    // The door behind the `+` is the TARGET recipe's measures list, which is
+    // its own control and is not hosted here yet.
     expect(find.byIcon(FLucideIcons.plus), findsNothing);
   });
 
@@ -221,8 +256,44 @@ void main() {
     expect(saved!.optional, isTrue);
   });
 
-  group('a MEASURED line is not re-denominated here', () {
-    testWidgets('the word is the only chip, marked, and Done keeps it', (
+  group('the recipe’s own words lead the row', () {
+    testWidgets('a fresh amount opens on the whole-batch word, with batch '
+        'right behind it', (tester) async {
+      filterForuiSemanticsAssertions();
+      ComponentQuantity? saved;
+      await tester.pumpWidget(_host(target: _bread, onDone: (q) => saved = q));
+      await tester.pumpAndSettle();
+
+      expect(find.text('loaf (900 g)'), findsOneWidget);
+      expect(_chip('batch'), findsOneWidget);
+
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(saved!.recipeMeasureId, 'm-loaf');
+      expect(saved!.unit, isNull);
+    });
+
+    testWidgets('…and on the first word where none is the whole batch', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      ComponentQuantity? saved;
+      await tester.pumpWidget(
+        _host(target: _aioliWithWord, onDone: (q) => saved = q),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('blob (50 ml)'), findsOneWidget);
+      for (final label in ['blob', 'ladle', 'batch', 'cup', 'ml']) {
+        expect(_chip(label), findsOneWidget, reason: 'chip "$label" missing');
+      }
+
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(saved!.recipeMeasureId, 'm-blob');
+    });
+
+    testWidgets('a line being edited opens on its OWN stored word', (
       tester,
     ) async {
       filterForuiSemanticsAssertions();
@@ -231,42 +302,58 @@ void main() {
         _host(
           target: _aioliWithWord,
           initialQuantity: 3,
-          initialMeasureId: 'm-blob',
+          initialMeasureId: 'm-ladle',
           onDone: (q) => saved = q,
         ),
       );
       await tester.pumpAndSettle();
 
-      // The word leads the row and nothing else is on it: every other chip
-      // this sheet can draw is a catalog unit, and one of those written where
-      // `blob` was is the loss this closes.
-      expect(find.text('blob'), findsWidgets);
-      expect(find.text('this recipe’s word'), findsOneWidget);
-      for (final unit in ['batch', 'cup', 'tbsp', 'ml']) {
-        expect(
-          find.text(unit),
-          findsNothing,
-          reason: 'a catalog chip "$unit" would re-denominate the line',
-        );
-      }
-      expect(
-        find.text(ComponentQuantityEditor.kMeasuredLineKeepsItsWord),
-        findsOneWidget,
-      );
-      // 3 blob = 150 ml, and a batch is 1 cup ≈ 236.6 ml.
-      expect(
-        find.textContaining('3 blob = ', findRichText: true),
-        findsOneWidget,
-      );
+      expect(find.text('ladle (60 ml)'), findsOneWidget);
+      expect(find.textContaining('3 ladle = '), findsOneWidget);
 
       await tester.tap(find.text('Done'));
       await tester.pumpAndSettle();
-      // The whole point: null means "the denomination did not change".
-      expect(saved!.unit, isNull);
+      expect(saved!.recipeMeasureId, 'm-ladle');
+      expect(saved!.unit, isNull, reason: 'the word IS the denomination');
       expect(saved!.quantity, 3);
     });
 
-    testWidgets('the QUANTITY is still fully editable', (tester) async {
+    testWidgets('choosing a word clears the unit, and choosing a unit clears '
+        'the word', (tester) async {
+      filterForuiSemanticsAssertions();
+      ComponentQuantity? saved;
+      await tester.pumpWidget(
+        _host(
+          target: _aioliWithWord,
+          initialQuantity: 0.25,
+          initialUnit: cup,
+          onDone: (q) => saved = q,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(_chip('blob'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(saved!.recipeMeasureId, 'm-blob');
+      expect(saved!.unit, isNull);
+
+      await tester.tap(_chip('tbsp'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(saved!.unit, tbsp);
+      expect(
+        saved!.recipeMeasureId,
+        isNull,
+        reason: 'one number cannot be counted twice',
+      );
+    });
+
+    testWidgets('the QUANTITY is editable without touching the word', (
+      tester,
+    ) async {
       filterForuiSemanticsAssertions();
       ComponentQuantity? saved;
       await tester.pumpWidget(
@@ -285,45 +372,18 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(saved!.quantity, 5);
+      expect(saved!.recipeMeasureId, 'm-blob');
       expect(saved!.unit, isNull, reason: 'the number moved, the word did not');
     });
 
-    testWidgets('a word that has GONE keeps its pointer rather than being '
-        'handed a unit', (tester) async {
+    testWidgets('a word the recipe can no longer HOLD is offered only as the '
+        'stored choice, marked, and still reads as itself', (tester) async {
+      // The word is alive and the share has gone — a `makes` restated into
+      // another family under it. The chip is outside the honest filter (a tap
+      // on it could only produce this refusal, and the fix is MAKES), but the
+      // line that already says it must never render an orphaned value.
       filterForuiSemanticsAssertions();
       ComponentQuantity? saved;
-      await tester.pumpWidget(
-        _host(
-          target: _aioliWordGone,
-          initialQuantity: 3,
-          initialMeasureId: 'm-blob',
-          onDone: (q) => saved = q,
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('word gone'), findsOneWidget);
-      expect(find.text('nothing to change it to'), findsOneWidget);
-      expect(
-        find.text(ComponentQuantityEditor.kGoneWordKeepsItsPointer),
-        findsOneWidget,
-      );
-      expect(find.text('cup'), findsNothing);
-      // The honest line, not a number: `3 — its measure is gone`.
-      expect(find.text('3 — its measure is gone'), findsOneWidget);
-
-      await tester.tap(find.text('Done'));
-      await tester.pumpAndSettle();
-      expect(saved!.unit, isNull);
-      expect(saved!.quantity, 3);
-    });
-
-    testWidgets('a word the recipe can no longer HOLD still prints the word '
-        'beside its refusal', (tester) async {
-      // The step-4 bug, at the sheet: the label is read off the recipe's live
-      // measures, so an alive-but-unresolvable word reads "3 blob —
-      // unresolved — …" rather than a bare "3 — unresolved".
-      filterForuiSemanticsAssertions();
       await tester.pumpWidget(
         _host(
           // Makes a MASS, and the blob is said in ml. No density for a recipe.
@@ -336,7 +396,7 @@ void main() {
           ),
           initialQuantity: 3,
           initialMeasureId: 'm-blob',
-          onDone: (_) {},
+          onDone: (q) => saved = q,
         ),
       );
       await tester.pumpAndSettle();
@@ -347,6 +407,86 @@ void main() {
         ),
         findsOneWidget,
       );
+      expect(_chip('blob'), findsOneWidget);
+      expect(find.text('not in filter'), findsOneWidget);
+
+      // And it is re-selectable after a detour through a unit.
+      await tester.tap(_chip('kg'));
+      await tester.pumpAndSettle();
+      await tester.tap(_chip('blob'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(saved!.recipeMeasureId, 'm-blob');
+      expect(saved!.unit, isNull);
+    });
+
+    testWidgets('a word that has GONE lights no chip and keeps the number', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      ComponentQuantity? saved;
+      await tester.pumpWidget(
+        _host(
+          target: _aioliWordGone,
+          initialQuantity: 3,
+          initialMeasureId: 'm-blob',
+          onDone: (q) => saved = q,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(ComponentQuantityEditor.kGoneWordKeepsItsNumber),
+        findsOneWidget,
+      );
+      // The honest line, not a number: `3 — its measure is gone`.
+      expect(find.text('3 — its measure is gone'), findsOneWidget);
+      // Nothing claims to be what this line says — and the offer is the
+      // ordinary one, because a unit tapped here is a repair, not a loss.
+      expect(_chip('cup'), findsOneWidget);
+      expect(find.text('not in filter'), findsNothing);
+
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(
+        saved!.recipeMeasureId,
+        'm-blob',
+        reason: 'the pointer is kept while nobody has picked anything',
+      );
+      expect(saved!.unit, isNull);
+      expect(saved!.quantity, 3);
+
+      // …and a tap on a chip IS the repair.
+      await tester.tap(_chip('cup'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(saved!.unit, cup);
+      expect(saved!.recipeMeasureId, isNull);
+    });
+
+    testWidgets('a recipe that says no yield coins no words either', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      await tester.pumpWidget(
+        _host(
+          // A word cannot be held to a batch that has no size — and the offer
+          // says so by holding only `batch`.
+          target: const SubRecipeTarget(
+            id: 'aioli',
+            title: 'Romesco Aioli',
+            measures: [_blob],
+          ),
+          initialQuantity: 1,
+          onDone: (_) {},
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(_chip('batch'), findsOneWidget);
+      expect(_chip('blob'), findsNothing);
     });
   });
 
