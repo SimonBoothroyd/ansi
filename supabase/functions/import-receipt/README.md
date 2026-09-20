@@ -39,9 +39,11 @@ Two model calls, and nothing between them that thinks:
   and because those words are a store's abbreviations it answers `suggest` far
   more often than it does on a recipe line. That is honest, and the review is
   built for it.
-- **Nothing learns.** No alias is written from a receipt (plan 0049, owner's
-  ruling). What carries over between shops is the _pack_, on the ingredient row,
-  written by the app at Save. `no_alias.test.ts` holds it two ways: a SQL spy
+- **Nothing learns.** No alias is written from a receipt (ADR-0004). What
+  carries over between shops is the _pack_, on the ingredient row, written by
+  the app at Save, and the household's own answer per printed name — a match or
+  a fold, either way round — recalled off its saved receipt lines
+  (`_shared/receipt_memory.ts`). `no_alias.test.ts` holds it two ways: a SQL spy
   under the real matcher asserts every statement the function issues is a
   `SELECT`, and a source guard over every file the function owns asserts a write
   cannot be introduced without failing that test first.
