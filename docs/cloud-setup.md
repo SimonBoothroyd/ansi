@@ -559,12 +559,17 @@ the ordinary entry for the run that pushes it.
   Readback: `schema_migrations` tops at `0048` (49 applied), `recipe_measure`
   is present and in the `powersync` publication, which now holds 18 tables.
 - **The reseed printed neither its closing notice nor its readback count**, and
-  the seed is fine — the CLI is what changed. `supabase db query` now prints
-  its "a new version is available" nag *after* the JSON document, so the step's
-  `q` helper parses nothing: the log reads `usda_food rows: unreadable` and
-  `template:  live ingredients (seed/counts.json says 323)` with an empty
-  count, and `seed_vocab`'s own `raise notice` never shows because notices are
-  stderr. Nothing silent could have passed here: the step is `bash -e` and
+  the seed is fine — the *readback* was never asking for a shape it could parse.
+  `supabase db query` prints a box-drawn table for a human unless JSON is asked
+  for by name, and the step's inline `q` helper never asked: it looked for a
+  `{`, found none, read an empty string and exited 0. So the log reads
+  `usda_food rows: unreadable` and `template:  live ingredients
+  (seed/counts.json says 323)` with an empty count. This was the first run ever
+  to tick `reseed_template`, so `q` had never once run in CI — and the CLI hands
+  JSON to an *agent* without being asked, which is why it had always looked
+  right in a terminal. `seed_vocab`'s own `raise notice` never shows because
+  notices are stderr. Nothing silent could have passed here: the step is
+  `bash -e` and
   `seed_vocab.sql` raises on its own guards (R1 volume-default ⇒ density, R2
   the kitchen density band, R3 every counted row weighed, plus a measure with
   no live row to hang on), so a failed invariant takes the job red. The counts
@@ -576,7 +581,14 @@ the ordinary entry for the run that pushes it.
   own household reads the same 326 measures ingredient-for-ingredient and word
   for word (its raw count of 329 is three measures still hanging on retired
   rows, which the template correctly does not carry), so the template *is* his
-  shelf and no rollout is owed.
+  shelf and no rollout is owed. The readback is now `scripts/db_query_value.sh`
+  — it asks for `--output json`, silences the update nag with the CLI's own
+  switch, decodes one document from the first `{` so nothing printed after it can
+  reach the parser, and **refuses rather than hand back an empty value**: that
+  value is the `usda_food` branch, and unread it reads as "not 0", so a rebuilt
+  cloud DB would have skipped `seed_usda.sql` and then built the BM25 index over
+  nothing. Fixtures for every shape the CLI has been seen to print run in CI
+  (`make scripts-test`).
 - `cloud_verify.sh`: **9 ok · 0 warn · 0 fail** (JWKS ES256, GoTrue, Google
   only with email/password off, sign-up off, PostgREST, PowerSync liveness,
   streams 18 tables equal).

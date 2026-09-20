@@ -1,10 +1,18 @@
 name: backend
 
+# The readback paths are here and not in docs.yml because what they guard is a
+# backend fact: how the Supabase CLI answers a query. The deploy branches on one
+# of those answers, so a change to the helper or its fixtures has to be able to
+# fail a run — and nothing else triggers on scripts/db_query_value.sh.
 on:
   push:
-    paths: ["supabase/**", ".github/workflows/backend.yml"]
+    paths: ["supabase/**", ".github/workflows/backend.yml",
+            ".github/workflows/deploy-supabase.yml",
+            "scripts/db_query_value.sh", "scripts/tests/**"]
   pull_request:
-    paths: ["supabase/**", ".github/workflows/backend.yml"]
+    paths: ["supabase/**", ".github/workflows/backend.yml",
+            ".github/workflows/deploy-supabase.yml",
+            "scripts/db_query_value.sh", "scripts/tests/**"]
 
 concurrency:
   group: backend-${{ github.ref }}
@@ -33,6 +41,17 @@ jobs:
           deno fmt --check
           deno lint
           deno task test
+
+  # Fixtures only: a stand-in CLI, no project, no network, no Docker. It belongs
+  # in CI because the shape it parses is the CLI's, not ours — the deploy's
+  # readback decides whether to seed, and it must never mistake the CLI's
+  # human-readable table for an answer.
+  cli-readback:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: The deploy's readback helper reads only the document
+        run: ./scripts/tests/db_query_value_test.sh
 
   migrations:
     runs-on: ubuntu-latest

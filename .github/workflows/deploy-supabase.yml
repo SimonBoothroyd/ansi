@@ -135,11 +135,16 @@ jobs:
       - name: 5 · Reseed the template vocabulary (opt-in)
         if: ${{ inputs.reseed_template }}
         run: |
-          # The CLI chats before its JSON ("Initialising login role...", the
-          # update nag), so keep only the document before jq sees it.
-          q() { supabase db query --linked "$1" 2>/dev/null | sed -n '/^{/,$p' | jq -r '.rows[0] | to_entries[0].value'; }
-          usda="$(q 'select count(*) from usda_food')"
-          echo "usda_food rows: ${usda:-unreadable}"
+          # scripts/db_query_value.sh, not an inline pipe: `supabase db query`
+          # prints a box-drawn table for a human unless JSON is asked for BY
+          # NAME, and the old inline readback never asked. It found no `{`, read
+          # an empty string and exited 0 — so run 35480151258 logged
+          # `usda_food rows: unreadable` and then branched on a value it had
+          # never read. This next line IS that branch, so it is strict: the step
+          # is `bash -e` and dies here, before a single row is touched, rather
+          # than decide whether to seed 8,204 USDA rows on an unread value.
+          usda="$(scripts/db_query_value.sh 'select count(*) from usda_food')"
+          echo "usda_food rows: $usda"
           # One file now: the template household and its whole curated
           # vocabulary (ingredients, aliases, measures), generated from
           # supabase/seed/snapshot.jsonl. It is the PROMOTE-TO-TEMPLATE leg of
@@ -158,7 +163,12 @@ jobs:
           # sheet. A sub-second truncate+rebuild is cheaper than reasoning about
           # whether this run needed it. Same order config.toml documents.
           supabase db query --linked -f supabase/seed_usda_index.sql
-          echo "template: $(q "select count(*) from ingredient where household_id='00000000-0000-0000-0000-0000000000aa' and deleted_at is null") live ingredients (seed/counts.json says $(jq -r .ingredients supabase/seed/counts.json))"
+          # Tolerant, unlike the branch above: the seed has already landed by
+          # here and nothing decides anything on this number, so a readback that
+          # cannot answer says so (with its reason on stderr) instead of turning
+          # a finished reseed red.
+          tmpl="$(scripts/db_query_value.sh "select count(*) from ingredient where household_id='00000000-0000-0000-0000-0000000000aa' and deleted_at is null" || true)"
+          echo "template: ${tmpl:-unreadable — see the diagnosis above} live ingredients (seed/counts.json says $(jq -r .ingredients supabase/seed/counts.json))"
 
       # The deploy is only half the story whenever a change also altered the
       # curated vocabulary. Nothing here can safely do that leg, so it ends by

@@ -151,7 +151,7 @@ docs-check: ## Validate the knowledge base (links + required files)
 # Two targets because one of CI's legs needs Docker. `ci` is everything that
 # runs on a laptop in seconds; `ci-full` adds the database legs, which is the
 # only way to run the pgTAP suite at all.
-.PHONY: fns-lint seed-test ci ci-full
+.PHONY: fns-lint seed-test scripts-test ci ci-full
 
 fns-lint: ## Deno fmt + lint on the edge functions and the seed scripts
 	cd $(FNS) && deno fmt --check && deno lint
@@ -160,6 +160,13 @@ fns-lint: ## Deno fmt + lint on the edge functions and the seed scripts
 seed-test: ## Seed-generator tests (collision detection, the miner)
 	cd supabase/seed/scripts && deno task test
 
-ci: format analyze fns-lint test seed-test docs-check ## The fast local subset of CI
+# Fixtures only — a stand-in CLI, never a project, a network or the local stack.
+# These scripts read the Supabase CLI's output back, and the CLI is free to
+# change how it talks to a human between releases; the deploy's readback is the
+# one place where a misread answer decides whether to seed.
+scripts-test: ## Shell-script tests (the deploy's CLI readback helper)
+	./scripts/tests/db_query_value_test.sh
+
+ci: format analyze fns-lint test seed-test scripts-test docs-check ## The fast local subset of CI
 ci-full: ci db-reset ## Everything CI runs, needs Docker (adds migrations + pgTAP)
 	$(SUPABASE) test db
