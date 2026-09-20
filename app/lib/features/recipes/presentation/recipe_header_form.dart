@@ -24,6 +24,7 @@ import '../../../core/text/name_clean.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/number_format.dart';
+import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
 import '../../../core/words.dart';
 import '../../../shared/amount_and_unit.dart';
@@ -39,12 +40,15 @@ import '../../books/presentation/book_view_models.dart';
 import '../../books/presentation/text_prompt.dart';
 import '../domain/method_step.dart';
 import '../domain/recipe.dart';
+import 'recipe_measure_delete.dart';
+import 'recipe_measures_editor.dart';
 
 /// The header's sections, each with the eyebrow it renders under.
 enum RecipeHeaderSection {
   title('TITLE'),
   serves('SERVES'),
   makes('MAKES'),
+  measures('MEASURES'),
   times('TIMES'),
   shelfLife('SHELF LIFE'),
   fileUnder('FILE UNDER');
@@ -55,8 +59,8 @@ enum RecipeHeaderSection {
 }
 
 /// The sections [RecipeHeaderForm] renders, in the drawn order. TIMES sits
-/// after MAKES so the three numbers about the dish read together before the
-/// two facts about keeping it.
+/// after MAKES — and after the MEASURES that depend on it — so the three
+/// numbers about the dish read together before the two facts about keeping it.
 const kRecipeHeaderSections = RecipeHeaderSection.values;
 
 /// What a host of the header form must provide: the draft as it stands, and
@@ -71,6 +75,13 @@ abstract interface class RecipeHeaderHost {
   void setServings(double servings);
   void setYield(double? qty, Unit? unit);
   void setSecondYield(double? qty, Unit? unit);
+
+  /// Seats the recipe's own words — the MEASURES list as the editor left it.
+  /// The rules are `withMeasures`', and whether a word may exist at all is
+  /// `authorRecipeMeasure`'s; a host is only where the list is kept, and both
+  /// keep it in the draft their own Save lands (ADR-0011).
+  void setMeasures(List<RecipeMeasure> measures);
+
   void setCookTime(int? seconds);
   void setTotalTime(int? seconds);
   void setKeepsForDays(int? days);
@@ -199,6 +210,16 @@ class RecipeHeaderForm extends StatelessWidget {
                   style: ansiMono(size: 10, color: AnsiColors.muted),
                 ),
               ),
+          ],
+        ),
+        RecipeHeaderSection.measures => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AnsiMicroLabel(
+              section.label,
+              suffix: '· optional · what you call one of these',
+            ),
+            _MeasuresSection(recipe: recipe, host: host),
           ],
         ),
         RecipeHeaderSection.times => Column(
@@ -367,6 +388,61 @@ class _MakesSection extends HookWidget {
       ],
     );
   }
+}
+
+/// The MEASURES list, under the MAKES it depends on (ADR-0018): the household's
+/// own words for one of what this recipe makes, each an amount in a unit.
+///
+/// **It defers.** A word typed here rides the draft's [Recipe.measures] through
+/// the host's own Save, which is what makes MAKES and the words one edit: a
+/// yield restated in this sitting re-evaluates the whole section on the same
+/// keystroke, so a word the Save would orphan is marked before the Save rather
+/// than discovered by a line afterwards. The editor's Save carries the warning
+/// itself, because only the Save knows what the recipe said when it opened.
+///
+/// The delete gate is the host's half, and it is the same one the repository
+/// holds: a word lines still say cannot go, counted at the tap
+/// ([mayDeleteRecipeMeasure]). A word this draft has not written yet has no
+/// referrer, so that question simply answers yes for it.
+class _MeasuresSection extends ConsumerWidget {
+  const _MeasuresSection({required this.recipe, required this.host});
+
+  final Recipe recipe;
+  final RecipeHeaderHost host;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => RecipeMeasuresEditor(
+    recipeId: recipe.id,
+    yields: recipe.yields,
+    measures: recipe.measures,
+    // The tap only puts the word in the draft — the docked Save lands it.
+    addLabel: 'Add',
+    // Nothing is written here, and the authoring rules have already run inside
+    // the editor against this same draft, so there is nothing left to refuse.
+    onAdd: (word) async {
+      host.setMeasures([...host.header.measures, word]);
+      return RecipeMeasureLanded(word);
+    },
+    // A re-statement keeps the row's id, so it is a replacement in place: every
+    // line already saying the word follows the correction, whether the row is a
+    // stored one or one this sitting typed.
+    onRestate: (word) async {
+      host.setMeasures([
+        for (final m in host.header.measures)
+          if (m.id == word.id) word else m,
+      ]);
+      return RecipeMeasureLanded(word);
+    },
+    // The refusal happens HERE rather than at Save: a draft that quietly kept a
+    // row it said it had removed would be lying about what the Save will do.
+    onDelete: (word) async {
+      if (!await mayDeleteRecipeMeasure(context, ref, word)) return;
+      host.setMeasures([
+        for (final m in host.header.measures)
+          if (m.id != word.id) m,
+      ]);
+    },
+  );
 }
 
 /// One "amount + unit" yield row, with the second slot's remove affordance.

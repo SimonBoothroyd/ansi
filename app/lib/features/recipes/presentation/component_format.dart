@@ -121,6 +121,19 @@ String recipeMeasureDeleteRefusalText({
     '${plural(lines, 'says', plural: 'say')} it, in $recipes '
     '${plural(recipes, 'recipe')}.';
 
+/// What a MEASURES row says while the recipe cannot hold the word — *"nothing
+/// to be a share of · MAKES states no mass yield"*.
+///
+/// The per-row half of [recipeMeasuresOrphanedWarning]: the warning is said
+/// once, on the way out of the editor, and this is what the row reads
+/// afterwards, for as long as the gap is there. It names the word's own family
+/// because that is the thing MAKES has to say again — and it is a fact about
+/// the ROW, not a refusal: the word is alive, every line saying it keeps its
+/// number, and only the share has gone (ADR-0018 rule 3).
+String recipeMeasureOrphanedRowNote(RecipeMeasure measure) =>
+    'nothing to be a share of · MAKES states no '
+    '${measure.unit.family.name} yield';
+
 /// What the recipe editor says before a Save that takes away the `makes` a live
 /// word stands on — *"“blob” (15 g) won’t say anything after this: nothing here
 /// makes a batch in grams any more. It stays, and every line saying it goes

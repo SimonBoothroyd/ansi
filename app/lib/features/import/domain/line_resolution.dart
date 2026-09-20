@@ -660,6 +660,11 @@ CommitPayload buildCommit(
     freezerDays: header.freezerDays,
     bookId: header.bookId,
     sectionId: header.sectionId,
+    // The words ride the draft, like every other header fact: the review has a
+    // Save, so this door defers (ADR-0011). A word that stands on a yield this
+    // commit drops cannot happen here — there is no earlier `makes` to lose,
+    // because nothing is saved yet.
+    measures: header.measures,
     groups: commitGroups,
     // The review screen's own method, when it edited one (seam D4); otherwise
     // the payload's, byte-for-byte.

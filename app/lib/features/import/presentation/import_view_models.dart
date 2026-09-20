@@ -8,6 +8,7 @@ import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/units/measure.dart';
+import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
 import '../../books/data/book_providers.dart';
 import '../../ingredients/data/ingredient_providers.dart';
@@ -633,6 +634,14 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
   @override
   void setSecondYield(double? qty, Unit? unit) =>
       _mapHeader((h) => h.withSecondYield(qty, unit));
+
+  /// The review's MEASURES list, which **prefills nothing**: an extractor
+  /// prints units, and a household's word for a blob of their own sauce is in
+  /// no source page (ADR-0018). A word typed here rides the draft and lands
+  /// with the commit, exactly as the editor's rides `saveRecipe`.
+  @override
+  void setMeasures(List<RecipeMeasure> measures) =>
+      _mapHeader((h) => h.withMeasures(measures));
 
   @override
   void setCookTime(int? seconds) => _mapHeader((h) => h.withCookTime(seconds));

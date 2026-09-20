@@ -33,10 +33,9 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
-import '../../../shared/amount_and_unit.dart';
 import '../../../shared/ansi_tap.dart';
 import '../../../shared/format.dart';
-import '../../../shared/inline_amount_field.dart';
+import '../../../shared/measure_form.dart';
 import '../../../shared/reorder_grip.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
@@ -322,7 +321,7 @@ class MeasuresEditor extends HookWidget {
             itemBuilder: (context, index) => row(listed[index], index),
           ),
         const SizedBox(height: 12),
-        _MeasureForm(
+        MeasureForm(
           icon: FLucideIcons.plus,
           headline: 'ADD MEASURE',
           saveLabel: addLabel,
@@ -499,7 +498,7 @@ class _EditMeasureForm extends HookWidget {
       }
     }
 
-    return _MeasureForm(
+    return MeasureForm(
       icon: FLucideIcons.pencil,
       headline: 'EDIT MEASURE',
       saveLabel: 'Save',
@@ -520,140 +519,6 @@ class _EditMeasureForm extends HookWidget {
           style: ansiMono(size: 10, color: AnsiColors.muted),
         ),
       ),
-    );
-  }
-}
-
-/// The one label-and-amount form both the add and the edit paths draw, so a
-/// measure is stated in the same shape whether it is new or being corrected.
-///
-/// Its three controls sit on one run at [kInlineControlHeight]: the label
-/// field is the small variant trimmed to it, the amount and its unit are
-/// [AmountAndUnitField], and the button is the `xs` the density sentence
-/// ends with.
-class _MeasureForm extends StatelessWidget {
-  const _MeasureForm({
-    required this.icon,
-    required this.headline,
-    required this.saveLabel,
-    required this.slot,
-    required this.units,
-    required this.unit,
-    required this.error,
-    required this.autofocus,
-    required this.label,
-    required this.amount,
-    required this.onUnit,
-    required this.onSave,
-    required this.footer,
-    this.labelFocus,
-  });
-
-  final IconData icon;
-  final String headline;
-  final String saveLabel;
-
-  /// Names this form's own fields (`add` / `edit`), because the two are on
-  /// screen together — the row being edited sits in the list, above the add
-  /// form — and a test has to be able to say which one it means.
-  final String slot;
-
-  /// What the amount may be weighed in — the row's basis family, plus the
-  /// other one while a density bridges it ([basisConvertibleUnits]). It is
-  /// converted into the basis on save: the stored `basis_amount` is unchanged
-  /// by any of this.
-  final List<Unit> units;
-  final Unit unit;
-  final String? error;
-  final bool autofocus;
-
-  /// The two slots, as the controllers the host holds. The host owns the text
-  /// because it is the one that has to **empty** it — a field rebuilt to say
-  /// something new drags its focus, its keyboard and any scroll-into-view it
-  /// had in flight out of the tree with it.
-  final TextEditingController label;
-  final TextEditingController amount;
-
-  /// Focused when the host wants the keyboard back in the first slot.
-  final FocusNode? labelFocus;
-
-  final ValueChanged<Unit> onUnit;
-  final VoidCallback onSave;
-
-  /// The line under the fields when nothing is wrong — the add form's
-  /// provenance note, the edit form's way back out.
-  final Widget footer;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Icon + text, never the raw "＋" glyph (missing from the bundled
-        // fonts — renders as tofu).
-        Row(
-          children: [
-            Icon(icon, size: 12, color: AnsiColors.herb),
-            const SizedBox(width: 5),
-            Text(headline, style: ansiLabel(color: AnsiColors.herb)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              // The small variant, trimmed to the run's height: a full-height
-              // field beside a 32 pt control is what made this row read as
-              // two rows stacked rather than as one line.
-              child: FTextField(
-                key: ValueKey('$slot-measure-label'),
-                autofocus: autofocus,
-                focusNode: labelFocus,
-                hint: 'label — “half can”',
-                size: FTextFieldSizeVariant.sm,
-                style: const FTextFieldStyleDelta.delta(
-                  constraints: BoxConstraints(minHeight: kInlineControlHeight),
-                  contentPadding: EdgeInsetsGeometryDelta.value(
-                    EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  ),
-                ),
-                control: FTextFieldControl.managed(controller: label),
-              ),
-            ),
-            const SizedBox(width: 8),
-            AmountAndUnitField(
-              amountKey: ValueKey('$slot-measure-amount'),
-              unitKey: ValueKey('$slot-measure-unit'),
-              amountWidth: 40,
-              controller: amount,
-              unit: unit,
-              units: units,
-              onUnit: onUnit,
-              onSubmit: onSave,
-            ),
-            const SizedBox(width: 8),
-            // The density sentence's button, to the point: `sm` floors at
-            // 40 pt on a touch platform, which is a row of its own.
-            FButton(
-              size: FButtonSizeVariant.xs,
-              style: const FButtonStyleDelta.delta(
-                contentStyle: FButtonContentStyleDelta.delta(
-                  padding: EdgeInsetsGeometryDelta.value(
-                    EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-                  ),
-                ),
-              ),
-              onPress: onSave,
-              child: Text(saveLabel),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        if (error != null)
-          Text(error!, style: ansiMono(size: 10, color: AnsiColors.gone))
-        else
-          footer,
-      ],
     );
   }
 }

@@ -52,6 +52,7 @@ import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../domain/line_display.dart';
 import '../domain/method_draft.dart';
 import '../domain/recipe.dart';
+import '../domain/recipe_measure_repository.dart';
 import 'component_format.dart';
 import 'component_quantity_sheet.dart';
 import 'ingredient_line.dart';
@@ -144,14 +145,51 @@ class RecipeEditorView extends ConsumerWidget {
             onPress: !async.hasValue
                 ? null
                 : () async {
+                    // Both captured before the warning dialog, so the write
+                    // still lands from handles the header cannot take with it.
+                    final container = ProviderScope.containerOf(
+                      context,
+                      listen: false,
+                    );
+                    final host = hostContextOf(context);
+                    if (!await _mayOrphanMeasures(context, notifier)) return;
                     // Through the write door: unguarded, a throw inside
                     // `save()` shows only as the editor not navigating, which
                     // reads as a laggy button rather than a lost recipe.
-                    final saved = await ref.write(
-                      context,
+                    // The authoring rules' own refusals are caught instead of
+                    // toasted, because each is a sentence about a word rather
+                    // than a write that failed.
+                    String? refused;
+                    final saved = await container.write(
+                      host,
                       'save the recipe',
-                      notifier.save,
+                      () async {
+                        try {
+                          return await notifier.save();
+                        } on RecipeMeasureRefused catch (e) {
+                          refused = e.message;
+                        } on RecipeMeasureInUse catch (e) {
+                          refused = recipeMeasureDeleteRefusalText(
+                            label: e.label,
+                            lines: e.usage.lines,
+                            recipes: e.usage.recipes.length,
+                          );
+                        }
+                        return null;
+                      },
                     );
+                    if (refused case final said?) {
+                      // The draft is untouched: nothing was written, and the
+                      // sentence names the one thing to change.
+                      await refuseAnsi(
+                        // The host outlives the header — see [hostContextOf].
+                        // ignore: use_build_context_synchronously
+                        host.context,
+                        title: 'That Save didn’t land',
+                        body: said,
+                      );
+                      return;
+                    }
                     if (saved == null || !context.mounted) return;
                     // Editing returns you to where you opened the editor;
                     // creating lands you on the thing you made. An existing
@@ -197,6 +235,33 @@ class RecipeEditorView extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Asks before a Save that takes away the `makes` a live word stands on, and
+/// returns whether to go on with it (ADR-0018 rule 4).
+///
+/// It **warns, never refuses**: what a batch makes is the recipe's own fact and
+/// the household may restate it. Nothing is deleted either — the words survive
+/// and every line saying one reads as unresolved until MAKES says that family
+/// again — so the point of the question is only that nobody finds that out from
+/// a broken line afterwards. A word already orphaned when the editor opened is
+/// not re-reported: re-warning about a gap already on screen teaches a person
+/// to dismiss the dialog.
+Future<bool> _mayOrphanMeasures(
+  BuildContext context,
+  RecipeEditor notifier,
+) async {
+  final orphaned = notifier.measuresOrphanedBySave();
+  if (orphaned.isEmpty) return true;
+  return askAnsi(
+    context,
+    title:
+        'Leave ${plural(orphaned.length, 'that word', plural: 'those words')} '
+        'on nothing?',
+    body: recipeMeasuresOrphanedWarning(orphaned),
+    confirm: 'Save anyway',
+    cancel: 'Keep editing',
+  );
 }
 
 /// How wide the ingredients column is drawn at [AnsiLayout.expanded].
@@ -399,14 +464,19 @@ Set<String> _litLines(RecipeEditor notifier, String? stepId) {
   return const {};
 }
 
-/// The wide editor's header: the phone's six sections in the phone's order,
-/// folded onto two rows.
+/// The wide editor's header: the phone's seven sections in the phone's order,
+/// folded onto three rows.
 ///
 /// Row one sits on the columns' own axis — the title over the lines, the filing
 /// over the method — so nothing in the editor is measured against a third grid.
 /// Row two is the four small facts across the cap, each still the shipped
 /// control: a header redrawn as bare lines would state the facts and take away
 /// the steppers and the chip control that set them.
+///
+/// Row three is MEASURES, at the cap's full width. It is the one section that
+/// is a LIST with a form under it — a label, an amount, its chip and a button —
+/// and a quarter of the cap holds none of that. It stays directly under the
+/// MAKES cell it depends on, which is the relationship it is placed for.
 class _WideHeader extends StatelessWidget {
   const _WideHeader({required this.host});
 
@@ -458,6 +528,11 @@ class _WideHeader extends StatelessWidget {
             ),
           ],
         ],
+      ),
+      const SizedBox(height: 18),
+      RecipeHeaderForm(
+        host: host,
+        sections: const [RecipeHeaderSection.measures],
       ),
     ],
   );

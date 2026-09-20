@@ -9,8 +9,10 @@
 /// the result.
 library;
 
+import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
 import 'recipe.dart';
+import 'recipe_measure_authoring.dart';
 
 extension RecipeHeaderEdits on Recipe {
   /// A serving count is never zero (the DB check says so); anything
@@ -74,6 +76,24 @@ extension RecipeHeaderEdits on Recipe {
   /// — a freezable recipe merges however far the meal is.
   Recipe withFreezerDays(int? days) =>
       copyWith(freezerDays: _positiveOrNull(days));
+
+  /// Seats the recipe's own words — the MEASURES list as the editor left it
+  /// (ADR-0018). Every row is stamped with this recipe's id and with its
+  /// POSITION as `sort_order`, because the list's order is the only thing that
+  /// says which word fronts a component's chip row. Nothing else about a word
+  /// is decided here: [authorRecipeMeasure] has already said whether it may
+  /// exist.
+  ///
+  /// A `makes` edit does **not** touch them. A word is an absolute amount, so
+  /// re-stating what a batch makes re-states the share and leaves the word
+  /// alone (ADR-0018 rule 5), and a word the edit orphans is warned about on
+  /// the way out rather than dropped here.
+  Recipe withMeasures(List<RecipeMeasure> measures) => copyWith(
+    measures: [
+      for (final (index, m) in measures.indexed)
+        m.copyWith(recipeId: id, sortOrder: index),
+    ],
+  );
 
   /// Files the recipe into [bookId], clearing the section (a new book has
   /// none in common with the old one).
