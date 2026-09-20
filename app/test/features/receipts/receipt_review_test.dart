@@ -122,6 +122,51 @@ void main() {
     });
   });
 
+  test('a re-read figure changes the cents and nothing else', () {
+    const weight = ReceiptWeight(amount: 1, unit: lb, rateCents: 199);
+    const suggestions = [ReceiptSuggestion(ingredientId: 'v', name: 'V')];
+    const full = ReceiptLineDraft(
+      index: 3,
+      lineId: 'l-3',
+      printedText: 'TJ ORG BANANAS  3.49',
+      namePrinted: 'TJ ORG BANANAS',
+      cents: 349,
+      discountCents: 55,
+      kind: ReceiptKind.item,
+      weight: weight,
+      ingredientId: 'vocab-banana',
+      ingredientName: 'Bananas, organic',
+      packBasisAmount: 454,
+      packAmount: 1,
+      packUnit: lb,
+      measureId: 'm-bag',
+      packLabel: 'bag',
+      keepAsMeasure: 'bunch',
+      suggestions: suggestions,
+      lowConfidence: true,
+      remembered: true,
+      photo: 2,
+      dropped: true,
+    );
+    final d = full.withCents(299);
+    expect(d.cents, 299);
+    expect(
+      [
+        d.index, d.lineId, d.printedText, d.namePrinted, d.discountCents,
+        d.kind, d.weight, d.ingredientId, d.ingredientName,
+        d.packBasisAmount, d.packAmount, d.packUnit, d.measureId,
+        d.packLabel, d.keepAsMeasure, d.suggestions, d.lowConfidence,
+        d.remembered, d.photo, d.dropped, //
+      ],
+      [
+        3, 'l-3', 'TJ ORG BANANAS  3.49', 'TJ ORG BANANAS', 55,
+        ReceiptKind.item, weight, 'vocab-banana', 'Bananas, organic',
+        454, 1, lb, 'm-bag', 'bag', 'bunch', suggestions, true, true, 2,
+        true, //
+      ],
+    );
+  });
+
   group('a line says what it still wants', () {
     test('food nobody has named wants a match', () {
       expect(receiptLineIssues(item()), [ReceiptLineIssue.unmatched]);
@@ -271,6 +316,7 @@ void main() {
           weight: weight,
         ),
         ingredient: bananas,
+        measures: const [bag],
         sameName: sameName,
         last: last,
       );
@@ -338,6 +384,21 @@ void main() {
         );
         expect(draft.packBasisAmount, 454);
         expect(draft.measureId, 'm-bag');
+      });
+
+      test('a measure deleted since carries the figure, not the word', () {
+        final draft = landed(last: bought(200, amount: 1, measureId: 'm-gone'));
+        expect(draft.packBasisAmount, 200);
+        expect(draft.packAmount, 200);
+        expect(draft.packUnit, g);
+        expect(draft.measureId, isNull);
+        expect(packWords(draft, basis: MacrosBasis.perG), '200 g');
+      });
+
+      test('a price that never said its unit carries the basis figure', () {
+        final draft = landed(last: bought(340));
+        expect(draft.packAmount, 340);
+        expect(draft.packUnit, g, reason: 'a null unit reads as a count');
       });
     });
 

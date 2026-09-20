@@ -310,7 +310,9 @@ List<ReceiptLineDraft> initialReceiptDrafts(ReceiptPayload payload) => [
 ///
 /// At either carry-over step the basis figure comes from the stored
 /// observation, **never re-derived**, so a measure re-weighed since cannot
-/// re-price this shop.
+/// re-price this shop. The words carry only while they can still be said: a
+/// measure deleted since, or a pack stored with no unit, carries as the basis
+/// figure in the basis unit.
 ///
 /// A line that reaches none of the three keeps no pack and raises *Say what the
 /// pack is*. Nothing is invented at any step.
@@ -340,14 +342,27 @@ ReceiptLineDraft landPack(
   }
   final carried = _underTheseWords(draft, ingredient, sameName) ?? last;
   if (carried == null || !(carried.packBasisAmount > 0)) return draft;
-  final label = carried.measureId == null
-      ? null
-      : _labelOf(carried.measureId!, measures) ?? carried.packLabel;
+  final measureId = carried.measureId;
+  final label = measureId == null ? null : _labelOf(measureId, measures);
+  final sayable =
+      carried.packAmount != null &&
+      (measureId == null ? carried.packUnit != null : label != null);
+  if (!sayable) {
+    // A unit-less amount would be stored as a count of a measure, so words
+    // that can no longer be said fall back to the basis figure itself.
+    return draft
+        .copyWith(clearPack: true)
+        .copyWith(
+          packBasisAmount: carried.packBasisAmount,
+          packAmount: carried.packBasisAmount,
+          packUnit: ingredient.macrosBasis.baseUnit,
+        );
+  }
   return draft.copyWith(
     packBasisAmount: carried.packBasisAmount,
-    packAmount: carried.packAmount ?? carried.packBasisAmount,
+    packAmount: carried.packAmount,
     packUnit: carried.packUnit,
-    measureId: carried.measureId,
+    measureId: measureId,
     packLabel: label,
   );
 }
