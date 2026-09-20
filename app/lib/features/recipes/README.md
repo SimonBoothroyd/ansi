@@ -434,12 +434,13 @@ the counts `recipeMeasureDeleteRefusalText` prints — while anything still says
 the word. Nothing follows a word out because nothing may: the lines saying it
 would go unresolved for good.
 
-**Two writes are refused before they are written**, and for one reason: the
+**Three writes are refused before they are written**, and for one reason: the
 server would refuse them on UPLOAD, and a refused upload makes the PowerSync
 connector drop the WHOLE crud transaction — every write queued beside it, in
 silence. `saveRecipe` throws `UndenominatedLineError` for a line denominated in
-neither a unit nor a word; `saveOverrides` throws `WordlessOverrideError` for a
-week's amount that names a word and no number. `LineItem`'s asserts say the same
+neither a unit nor a word, and `AmountlessLineError` for one that names a word
+and no number; `saveOverrides` throws `WordlessOverrideError` for a week's
+amount that does the same. `LineItem`'s asserts say the same
 thing, but an assert is compiled out of a release build.
 
 **Every watch that reads a word joins `recipe_measure` and selects a column from

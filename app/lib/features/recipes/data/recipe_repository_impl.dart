@@ -627,6 +627,12 @@ class SqliteRecipeRepository implements RecipeRepository {
             name: item.ingredientName,
           );
         }
+        // The other half of the same rule: a word IS the denomination, so it
+        // says something only beside a count, and the server's
+        // `line_item_recipe_measure_needs_amount` rejects a row without one.
+        if (columns.recipeMeasureId != null && item.quantity == null) {
+          throw AmountlessLineError(lineId: item.id, name: item.ingredientName);
+        }
         columnsByLine[item.id] = columns;
       }
     }
