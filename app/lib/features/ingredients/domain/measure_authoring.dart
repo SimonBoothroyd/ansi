@@ -19,17 +19,12 @@ bool isSameMeasureWeight(double a, double b) =>
     a > 0 && b > 0 && (a - b).abs() <= kWholeMeasureTolerance * b;
 
 /// Why a word cannot be minted: the row already says it, at a weight this
-/// pack is not.
-///
-/// It names both figures and the way out, because the way out is a real one —
-/// the household's own style already distinguishes two sizes of one container
-/// by putting the size in the word (`can (14.5 oz)` beside `can (28 oz)`), and
-/// that is what makes them two measures rather than one argument.
+/// pack is not. The way out is the house style, the size in the word
+/// (`can (14.5 oz)` beside `can (28 oz)`).
 String measureWordTakenRefusal({
   required String label,
   required String said,
   required String taken,
 }) =>
-    '“$label” is already $taken on this row, and this pack is $said. Two '
-    'sizes of one container are two words — say the size in it, like '
-    '“$label ($said)”.';
+    '“$label” is already $taken on this row, and this pack is $said. Put the '
+    'size in the name, like “$label ($said)”.';

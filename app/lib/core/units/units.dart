@@ -35,7 +35,16 @@ import '../result/result.dart';
 ///   *yield*, which is `features/recipes/domain/component_math.dart`'s job,
 ///   not [convert]'s. Keeping it its own family is what makes
 ///   `1 batch == 1 piece` impossible to write by accident.
-enum UnitFamily { mass, volume, count, imprecise, batch }
+enum UnitFamily {
+  mass,
+  volume,
+  count,
+  imprecise,
+  batch;
+
+  /// The family as a person says it: `weight`, never `mass`.
+  String get said => this == mass ? 'weight' : name;
+}
 
 /// A unit of measure. Construct via the catalog constants ([g], [ml], …) or
 /// look one up by id with [unitById]; the private constructor keeps the set

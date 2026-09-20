@@ -103,8 +103,7 @@ void main() {
       expect(refused.failure.code, 'recipe_measure/word_taken');
       expect(
         refused.failure.message,
-        '“blob” is already this recipe’s word, at 15 g. Re-state that one '
-        'and every line saying it follows.',
+        '“blob” is already a measure here, at 15 g. Re-state that one instead.',
       );
     });
 
@@ -165,9 +164,8 @@ void main() {
       expect(refused.failure.code, 'recipe_measure/unit_cannot_measure');
       expect(
         refused.failure.message,
-        '“blob” can’t be a fraction of a batch — that is the arithmetic '
-        'nobody thinks in, and the word is here to reach a batch rather than '
-        'to be one. Say what one comes to as a weight, a volume or a count.',
+        '“blob” can’t be a share of a batch. Say what one “blob” comes to as a '
+        'weight, a volume or a count.',
       );
     });
 
@@ -182,8 +180,8 @@ void main() {
       }
       expect(
         (_author('blob', 1, unit: pinch) as Err).failure.message,
-        '“pinch” is not a size, so it can’t say what one “blob” comes to. '
-        'Say it as a weight, a volume or a count.',
+        '“pinch” is not a size. Say what one “blob” comes to as a weight, a '
+        'volume or a count.',
       );
     });
   });
@@ -216,9 +214,8 @@ void main() {
       expect(refused.failure.code, 'recipe_measure/unit_family');
       expect(
         refused.failure.message,
-        'This recipe makes 300 g, so “ladle” can’t be said in ml — a recipe '
-        'has no density to get from one to the other. Say it in what the batch '
-        'is measured in, or add what a batch makes in ml under MAKES.',
+        'This recipe makes 300 g, and a recipe has no density to say “ladle” '
+        'in ml. Add what a batch makes in ml under MAKES.',
       );
     });
 

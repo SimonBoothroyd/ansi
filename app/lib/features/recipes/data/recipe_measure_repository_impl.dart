@@ -280,7 +280,7 @@ class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
       if (row == null) {
         throw const RecipeMeasureRefused(
           'recipe_measure/gone',
-          'That word is not one of this recipe’s any more.',
+          'That measure was deleted. Add it again to use it.',
         );
       }
       final recipeId = row['recipe_id'] as String;

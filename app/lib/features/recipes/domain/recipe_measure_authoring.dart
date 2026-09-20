@@ -114,10 +114,7 @@ Result<RecipeMeasure> authorRecipeMeasure({
   }
   if (word.isEmpty) {
     return const Err(
-      Failure(
-        'recipe_measure/no_label',
-        'Give it a word — what you call one of these.',
-      ),
+      Failure('recipe_measure/no_label', kRecipeMeasureNoLabelRefusal),
     );
   }
   if ((unitFromLabel(word) ?? unitFromWord(word)) != null) {
@@ -231,60 +228,50 @@ List<RecipeMeasure> recipeMeasuresOrphanedBy({
       m,
 ];
 
-/// Why no word can be coined yet: the recipe does not say what a batch makes.
-///
-/// A constant rather than a function, because it is also the sentence the
-/// disabled MEASURES list carries — the same words whether a person has typed
-/// anything or not.
+/// Why no measure can be coined yet — also the sentence the disabled MEASURES
+/// list carries.
 const kRecipeMeasureNoYieldRefusal =
-    'Say what a batch makes first, under MAKES. A word like “blob” is a size, '
-    'and a size is only a share of a batch once the batch has one too.';
+    'A measure is a share of a batch. Say what a batch makes first, under '
+    'MAKES.';
 
-/// Why a word that is a unit's name cannot be minted. It names the way out,
-/// which is a real one: the words a measure exists for are the ones the
-/// catalog has not got.
+/// Why a measure cannot be minted without its name.
+const kRecipeMeasureNoLabelRefusal =
+    'A measure needs a name — what you call one of these.';
+
+/// Why a unit's name cannot be minted as a measure.
 String recipeMeasureUnitWordRefusal(String label) =>
-    '“$label” is already a unit — the chip row says it on every recipe. A '
-    'measure is for the word the units have not got, like “blob” or “ladle”.';
+    '“$label” is already a unit. Call the measure something else, like “blob”.';
 
-/// Why a word cannot be minted twice: the recipe already says it.
-///
-/// The way out is a re-statement rather than a second row, because the row
-/// keeps its id and every line already saying the word follows the number.
+/// Why a name cannot be minted twice. Re-stating keeps the row's id, so every
+/// line already saying it follows the number.
 String recipeMeasureWordTakenRefusal(RecipeMeasure taken) =>
-    '“${taken.label}” is already this recipe’s word, at '
-    '${_said(taken.amount, taken.unit)}. Re-state that one and every line '
-    'saying it follows.';
+    '“${taken.label}” is already a measure here, at '
+    '${_said(taken.amount, taken.unit)}. Re-state that one instead.';
 
 /// Why a measure cannot be minted without its number.
 String recipeMeasureAmountRefusal(String label) =>
     'Say what one “$label” comes to — a number above zero.';
 
-/// Why a word cannot be said in `batch`, or in an imprecise word.
-String recipeMeasureUnitCannotMeasureRefusal(String label, Unit unit) =>
-    unit.family == UnitFamily.batch
-    ? '“$label” can’t be a fraction of a batch — that is the arithmetic nobody '
-          'thinks in, and the word is here to reach a batch rather than to be '
-          'one. Say what one comes to as a weight, a volume or a count.'
-    : '“${unit.label}” is not a size, so it can’t say what one “$label” comes '
-          'to. Say it as a weight, a volume or a count.';
+/// Why a measure cannot be said in `batch`, or in an imprecise word.
+String recipeMeasureUnitCannotMeasureRefusal(String label, Unit unit) {
+  final fact = unit.family == UnitFamily.batch
+      ? '“$label” can’t be a share of a batch'
+      : '“${unit.label}” is not a size';
+  return '$fact. Say what one “$label” comes to as a weight, a volume or a '
+      'count.';
+}
 
-/// Why a word in this unit cannot be read against this recipe: the recipe does
-/// not say what a batch makes in that unit's family, and a recipe has no
-/// density to bridge one family to another (ADR-0008 — that is an ingredient's
-/// fact about a substance, and a recipe is not one).
-///
-/// It names both sides and the way out, because the way out is a real one: the
-/// second MAKES denomination exists exactly for this.
+/// Why a measure in this unit cannot be read against this recipe: no yield is
+/// stated in the unit's family, and a recipe has no density to bridge families
+/// (ADR-0008).
 String recipeMeasureUnitFamilyRefusal(
   String label,
   Unit unit,
   List<YieldDenomination> yields,
 ) =>
     'This recipe makes ${yields.map((y) => _said(y.qty, y.unit)).join(' · ')}, '
-    'so “$label” can’t be said in ${unit.label} — a recipe has no density to '
-    'get from one to the other. Say it in what the batch is measured in, or '
-    'add what a batch makes in ${unit.label} under MAKES.';
+    'and a recipe has no density to say “$label” in ${unit.label}. Add what a '
+    'batch makes in ${unit.label} under MAKES.';
 
 /// `15 g`, `1.25 cup` — an amount and its unit, said the one way the app says
 /// them ([formatAmountIn]).
