@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Import review</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/import</code> · <code>recipes/presentation/line_card.dart</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/completed/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: matches code 2026-09-13 <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a></p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/import</code> · <code>recipes/presentation/line_card.dart</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/completed/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · wide: matches code 2026-09-20 <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a></p>
     <p class="view-blurb">One form with two doors, then the whole import on one editable screen: the editor’s own header, a card per line, the method as step cards, and a Save gate that counts the same number the header does.</p>
 </header>
 
@@ -92,6 +92,7 @@
             <div class="frow" style="margin-bottom:6px"><div class="srcline" style="margin:0">from source:  SERVES 4 · MAKES ABOUT 1.8 KG</div></div>
             <div class="qtyrow" style="margin:0 20px 6px"><span class="addm-in g">1.8</span><span class="uchip on">kg</span></div>
             <div class="frow"><span class="ghostbtn" style="margin-top:0;color:var(--herb);border-style:dashed">＋ Another denomination</span></div>
+            <p class="conv-note" style="margin:6px 20px 10px">MEASURES sits here too, between MAKES and TIMES — the editor's list, prefilling nothing (next frame).</p>
             <p class="flabel">Times</p>
             <div class="portion" style="margin-bottom:8px"><div class="pl">Cook</div><div class="pstepper"><span class="s">–</span><span class="qv">35 min</span><span class="s">+</span></div></div>
             <div class="portion" style="margin-bottom:12px"><div class="pl">Total</div><div class="pstepper"><span class="s">–</span><span class="qv">50 min</span><span class="s">+</span></div></div>
@@ -103,7 +104,6 @@
             <div class="tsec" style="margin-top:4px"><span class="tl">Ingredients</span><span class="tc">9</span><span class="rule"></span></div>
             <div class="lcard">
                 <div class="l3 edit"><span class="l3-amt">1 avocado</span><span class="l3-body"><span class="l3-id">Avocado</span><span class="l3-note">sliced, to serve</span></span><span class="l3-pen">✎</span></div>
-                <div class="srcline">from source:  1 avocado, sliced, to serve</div>
             </div>
             <div class="lcard attn">
                 <div class="chead"><span class="cn">coriander</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
@@ -120,7 +120,7 @@
             <p class="frame-name"><b>The line cards</b> · bands only where a line starts; the header count, the card flags and the Save gate all read one number</p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount">3 to review</span></div>
-                <p class="conv-note" style="margin:8px 20px 2px">above the cards sits the editor’s own header form — title, serves, makes, <b>measures</b>, times, shelf life, filing (previous frame). The measures list is the recipe editor’s, and it <b>prefills nothing</b>: an extractor prints units, never a household’s word for a blob of their own sauce (<a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a>). A word typed there rides the commit</p>
+                <p class="conv-note" style="margin:8px 20px 2px">above the cards sits the editor’s own header form — title, serves, makes, <b>measures</b>, times, shelf life, filing (previous frame). The measures list is the recipe editor’s, and it <b>prefills nothing</b>: an extractor prints units, never a household’s word for a blob of their own sauce (<a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a>). A word typed there rides the commit; a review line's own <b>component dock offers no ＋</b> and no words, because a word coined there would have nowhere on a review line to be said</p>
                 <div class="srcnotes">
                     <div class="sn-h"><span>⚠</span><span>What we could not read</span></div>
                     <div class="sn">· The photo was hard to read — amounts especially.</div>
@@ -162,6 +162,7 @@
 
                 <div class="savebtn off">3 line(s) need you</div>
                 <p class="conv-note" style="text-align:center;margin-top:8px">header count · card flags · Save all read one map</p>
+                <p class="conv-note" style="text-align:center">a <b>collapsed</b> row repeats the page's words only where its unit is refused — there the amount slot is blank, so those words are all the reader has. Every <b>open</b> card prints its <code>from source:</code> line</p>
                 <p class="conv-note" style="text-align:center"><b>optional</b> leads the flag row of every expanded card and is the one flag that is also a <b>control</b>: the line tag's own geometry — the herb wash when the line is optional, an outline with an empty ring when it is not — and one tap either way. It rides an <b>unmatched</b> line too — a garnish or a cross-reference is exactly the line that goes unmatched, and the fact is the page’s, not the match’s. It opens on whatever the extractor said and reads the line from then on.</p>
                 <p class="conv-note" style="text-align:center">…and when that map cannot be built at all, both say so: the header reads <b>not checked</b> and the button reads <b>Couldn’t check the lines — try again</b> and re-runs the read. A count of 0 over a Save that will not open is a wall with no door.</p>
             </div></div>
@@ -177,7 +178,7 @@
                 <div class="lcard attn">
                     <div class="chead"><span class="cn">butter beans</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
                     <div class="srcline">from source:  2 × 400 g tin butter beans, drained</div>
-                    <div class="lflags"><span class="lflag tog">optional</span><span class="lflag">unit "tin" needs a look</span></div>
+                    <div class="lflags"><span class="lflag tog">optional</span><span class="lflag">unit “tin” needs a look</span></div>
                     <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
                     <div class="chosen"><span class="ck">✓</span><span class="cnm">Butter beans</span><span class="chint">tap to change</span><span class="ci">›</span></div>
                     <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">set amount <span class="pen">✎</span></span></span></div>
@@ -232,7 +233,7 @@
                 <div class="srcline">from source:  2 dragon fruit, cubed</div>
                 <div class="lflags"><span class="lflag tog">optional</span></div>
                 <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
-                <div class="chosen"><span class="ck">✓</span><span class="cnm">Dragon fruit</span><span class="chint">created here · stub</span><span class="ci">›</span></div>
+                <div class="chosen"><span class="ck">✓</span><span class="cnm">Dragon fruit</span><span class="chint">tap to change</span><span class="ci">›</span></div>
                 <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip">set amount <span class="pen">✎</span></span></span></div>
                 <div class="lockhint" style="margin:6px 0 0 72px">Dragon fruit has no piece weight yet — set it on the ingredient, or pick a unit below. <span style="color:var(--herb)">open Dragon fruit ›</span></div>
                 <div class="erow"><span class="elab">Unit</span><span class="ebody"><div class="suggests" style="margin-top:4px"><span class="sug pick">piece</span><span class="sug">g</span><span class="sug">kg</span><span class="sug">oz</span><span class="sug">lb</span></div></span></div>
@@ -254,20 +255,18 @@
 
             <div class="lcard">
                 <div class="l3 edit"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Avocado</span><span class="l3-note">smashed</span></span><span class="l3-pen">✎</span></div>
-                <div class="srcline">from source:  1 ripe avocado, smashed</div>
                 <div class="lockhint">collapsed, clean — the row is <code>piece</code>-default and weighs 201 g a piece but names no size, so <b>1</b> is a bare count worth 201 g and nothing is held up. No amber, no chip to confirm, and no line on the card explaining a pointer. A counted row that does name its whole is the frame below.</div>
             </div>
 
             <div class="lcard">
                 <div class="l3 edit"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Broccoli</span><span class="l3-note">cut into florets</span></span><span class="l3-pen">✎</span></div>
-                <div class="srcline">from source:  1 broccoli, cut into florets</div>
                 <div class="lockhint">the fragment set is no longer a stop: <b>spear</b> (31 g) and <b>crown</b> (150 g) stay measures with their own words, and what a <i>whole</i> one weighs is the row’s piece weight. “Ask me each time” is gone with the pointer that carried it.</div>
             </div>
 
             <div class="lcard attn">
                 <div class="chead"><span class="cn">bunch of cilantro</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
                 <div class="srcline">from source:  1 bunch cilantro, chopped</div>
-                <div class="lflags"><span class="lflag tog">optional</span><span class="lflag">unit "bunch" needs a look</span></div>
+                <div class="lflags"><span class="lflag tog">optional</span><span class="lflag">unit “bunch” needs a look</span></div>
                 <div class="attn-tag"><span>⚠</span><span>Pick a supported unit</span></div>
                 <div class="chosen"><span class="ck">✓</span><span class="cnm">Cilantro</span><span class="chint">tap to change</span><span class="ci">›</span></div>
                 <div class="erow"><span class="elab">Unit</span><span class="ebody"><div class="suggests" style="margin-top:4px"><span class="sug">sprig</span><span class="sug">g</span><span class="sug">cup</span><span class="sug">tbsp</span><span class="sug">handful</span></div></span></div>
@@ -285,7 +284,6 @@
             <div class="abar"><span class="back">‹</span><span class="ttl">Review recipe</span><span class="hdrcount ok">looks good</span></div>
             <div class="lcard" style="margin-top:12px">
                 <div class="l3 edit"><span class="l3-amt">1 lime, whole</span><span class="l3-body"><span class="l3-id">Lime</span><span class="l3-note">juiced, zested</span></span><span class="l3-pen">✎</span></div>
-                <div class="srcline">from source:  juice and zest of 1 lime</div>
                 <div class="lockhint">collapsed, clean — the extraction printed <code>piece</code>, and the review handed the line the row’s whole measure instead, because <i>lime, whole</i> weighs exactly what Lime says a piece weighs. No amber, and the row is the same 67 g either way.</div>
             </div>
             <div class="lcard">
@@ -374,7 +372,8 @@
                 <span style="color:var(--muted);font-size:12px">🗑</span>
             </div>
             <div class="lcard"><div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">3 tbsp</span><span class="l3-body"><span class="l3-id">Extra Virgin Olive Oil</span></span><span class="l3-pen">✎</span></div></div>
-            <div class="lcard"><div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">1 tsp</span><span class="l3-body"><span class="l3-id">Granulated Sugar</span><span class="l3-note">added here — not on the page</span></span><span class="l3-pen">✎</span></div></div>
+            <div class="lcard"><div class="l3 edit drag"><span class="l3-grip">⋮⋮</span><span class="l3-amt">1 tsp</span><span class="l3-body"><span class="l3-id">Granulated Sugar</span></span><span class="l3-pen">✎</span></div>
+                <div class="srcline">added here — not on the page</div></div>
 
             <div style="display:flex;gap:8px;margin:4px 20px 0">
                 <span class="ghostbtn" style="margin-top:0;flex:1">＋ ingredient</span>
