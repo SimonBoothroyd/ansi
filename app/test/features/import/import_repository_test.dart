@@ -303,8 +303,8 @@ void main() {
     'a word the review coined lands with the recipe, re-pointed at it',
     () async {
       // The review hosts the same MEASURES list the editor does (ADR-0018) and
-      // prefills nothing into it, so this is a word a person typed there — under
-      // a draft id that is not the recipe the commit is about to create.
+      // prefills nothing into it, so this is a word a person typed there —
+      // under a draft id that is not the recipe the commit is about to create.
       final c = resolvedCommit();
       final recipeId = await repo.commit(
         buildCommit(

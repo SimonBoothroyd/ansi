@@ -44,9 +44,9 @@ const _blob = RecipeMeasure(
   unit: g,
 );
 
-/// The add form's three slots, keyed rather than found by position: the amount's
-/// unit chip is itself a text field on some platforms, and the label is not the
-/// only field on a hosting screen.
+/// The add form's three slots, keyed rather than found by position: the
+/// amount's unit chip is itself a text field on some platforms, and the label
+/// is not the only field on a hosting screen.
 final _labelField = find.descendant(
   of: find.byKey(const ValueKey('add-word-measure-label')),
   matching: find.byType(TextField),
@@ -94,9 +94,9 @@ bool _labelHasFocus(WidgetTester tester) => tester
     .focusNode
     .hasFocus;
 
-/// A host that holds the list itself, like the direct door will: what the editor
-/// hands back goes straight into [words], so a test reads the list the editor
-/// produced rather than a draft two layers away.
+/// A host that holds the list itself, like the direct door will: what the
+/// editor hands back goes straight into [words], so a test reads the list the
+/// editor produced rather than a draft two layers away.
 class _Host extends StatefulWidget {
   const _Host({
     required this.yields,

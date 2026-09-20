@@ -20,8 +20,8 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
 import 'package:ansi/features/books/domain/book_repository.dart';
-import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/data/recipe_measure_repository_impl.dart';
+import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
@@ -166,7 +166,8 @@ void main() {
     );
   });
 
-  test('a re-statement keeps the row, so the line follows the number', () async {
+  test('a re-statement keeps the row, so every line saying the word follows '
+      'the number', () async {
     final aioli = await editor();
     aioli
       ..setTitle('Romesco Aioli')
