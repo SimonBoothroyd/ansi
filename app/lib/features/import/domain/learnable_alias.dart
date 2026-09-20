@@ -36,7 +36,10 @@
 /// > pasta of your choice
 /// > any plant milk
 ///
-/// Also real rows in the owner's vocabulary. "your favourite pasta" carries no
+/// Phrases this shape can reach a vocabulary, and the seed template is checked
+/// for them: a guard test asks this question of every alias in the generated
+/// file, so none can ride into a future household.
+/// "your favourite pasta" carries no
 /// comma, no *or*, no slash and no bracket, and it got through on that alone:
 /// the marks test how a phrase is PUNCTUATED, and this phrase is punctuated
 /// like a name. What it is not is a name. The recipe deferred the choice to

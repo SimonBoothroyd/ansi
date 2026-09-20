@@ -130,10 +130,11 @@ void main() {
 
   test("the owner's own vocabulary is the evidence the rule is not too "
       'tight', () {
-    // Swept over his 145 seed aliases and his 33 learned ones. The seed gives
-    // up two rows, both the decision shape; every other phrase he has ever
-    // corrected onto a row survives — including the judgement call, "cooking
-    // oil spray", which is a thing a shop sells and a page can print again.
+    // Swept over his whole vocabulary, seed aliases and learned ones alike:
+    // every phrase he has ever corrected onto a row survives the rule —
+    // including the judgement call, "cooking oil spray", which is a thing a
+    // shop sells and a page can print again. Only the decision shape is
+    // refused, and his vocabulary no longer carries any.
     for (final name in [
       'cooking oil spray',
       'full-fat oat milk',
@@ -180,23 +181,12 @@ void main() {
     test('no alias the seed template carries could be learned today', () {
       // The seed is generated from the owner's own vocabulary, so a phrase the
       // loop should never learn must not be able to ride into every future
-      // household's template either — and one already has. Three rows are
-      // named debt, all of them the owner's to fix in the vocabulary this file
-      // is generated from, and the guard is that the set can only ever shrink:
-      //
-      // * "desired berries" and "desired pasta noodles" predate the rule. Their
-      //   `match_text` is `berry` and `pasta noodle`, which are the right keys
-      //   under the wrong words, so the fix is to rename the alias rather than
-      //   retire it — retiring would cost real matching.
-      // * "your favourite pasta" is the row this rule was written for, and it
-      //   reached the template before the rule did. It has no key worth keeping
-      //   (`match_text` is the phrase itself), so it is retired outright, and
-      //   the next regeneration must not carry it.
-      const legacy = {
-        'desired berries',
-        'desired pasta noodles',
-        'your favourite pasta',
-      };
+      // household's template either. There is no allowance: every alias in the
+      // generated file answers the same question a learned one does, and a
+      // regeneration that carried a new decision-shaped phrase fails here
+      // rather than seeding it into every household to come. The fix is always
+      // in the vocabulary this file is generated from — rename the alias when
+      // its key is worth keeping, retire it when it is not.
       final seed = File('../supabase/seed_vocab.sql').readAsStringSync();
       final block = seed.substring(
         seed.indexOf('insert into ingredient_alias'),
@@ -212,9 +202,9 @@ void main() {
           for (final t in texts)
             if (!looksLikeAName(t)) t,
         },
-        // A subset, not an equality: the owner pruning one of these must not
-        // fail the guard, and a NEW one must.
-        everyElement(isIn(legacy)),
+        isEmpty,
+        reason:
+            'rename or retire it in the vocabulary, then re-export the seed',
       );
     });
   });
