@@ -75,8 +75,9 @@ const _exemptTables = <String, Set<String>>{
   },
   // The recipe-measure repo watches one recipe's own words. The tables below
   // are the delete gate's alone (`countLinesUsing` — the two tables 0048 says
-  // can carry a pointer, plus the join naming the recipes a refusal sends
-  // somebody to): a one-shot Future read at the moment of the tap. Nothing
+  // can carry a pointer, plus the joins that keep the count to rows still
+  // reachable and name the recipes a refusal sends somebody to): a one-shot
+  // Future read at the moment of the tap. Nothing
   // watched here reads them, so nothing watched can go stale when one changes —
   // and the surfaces that depend on a word watch `recipe_measure` themselves,
   // which is how a re-stated `blob` reaches them.
@@ -85,6 +86,7 @@ const _exemptTables = <String, Set<String>>{
     'week_recipe_line_override',
     'ingredient_group',
     'recipe',
+    'week_plan',
   },
   // The planner watches a week's meals. It reads the week's line overrides in
   // exactly one place — `copyLastWeek`, counting the variants it is about to

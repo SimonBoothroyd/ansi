@@ -111,15 +111,29 @@ String? componentDemandLine({
 /// A pure function of the counts, in the ingredient list's delete voice: name
 /// what is in the way, because a number a person can go and change is
 /// something they can act on and "failed" is not. [lines] is the referencing
-/// line count, [recipes] the distinct recipes those lines sit in.
+/// line count, [recipes] the distinct recipes those lines sit in, [weeks] the
+/// weeks whose own amount says it — which have no recipe page, so when they are
+/// all that is left the sentence names them instead.
 String recipeMeasureDeleteRefusalText({
   required String label,
   required int lines,
   required int recipes,
-}) =>
-    'Can’t delete “$label” yet · $lines ${plural(lines, 'line')} still '
-    '${plural(lines, 'says', plural: 'say')} it, in $recipes '
-    '${plural(recipes, 'recipe')}.';
+  int weeks = 0,
+}) {
+  if (lines == 0) {
+    return 'Can’t delete “$label” yet · $weeks ${plural(weeks, 'week')} '
+        '${plural(weeks, 'says', plural: 'say')} it in '
+        '${plural(weeks, 'its', plural: 'their')} own amount.';
+  }
+  final said =
+      'Can’t delete “$label” yet · $lines ${plural(lines, 'line')} still '
+      '${plural(lines, 'says', plural: 'say')} it, in $recipes '
+      '${plural(recipes, 'recipe')}.';
+  return weeks == 0
+      ? said
+      : '$said $weeks ${plural(weeks, 'week')} '
+            '${plural(weeks, 'says', plural: 'say')} it too.';
+}
 
 /// What a MEASURES row says while the recipe cannot hold the word — *"nothing
 /// to be a share of · MAKES states no mass yield"*.

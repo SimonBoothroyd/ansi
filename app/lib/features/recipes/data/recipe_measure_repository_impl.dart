@@ -416,25 +416,35 @@ Future<void> _updateRow(
 /// deferred diff's gate read, so the two refuse on exactly the same answer.
 ///
 /// 0048 names exactly two tables that can carry the pointer, and both are
-/// counted: a recipe's component line, and one week's override of one. A
-/// tombstoned row is not a use — it is already gone.
+/// counted: a recipe's component line, and one week's override of one.
+///
+/// **Only what is still live counts, on the whole chain.** A line under a
+/// tombstoned group or recipe, and an override on a retired week, are rows
+/// nothing can reach and nobody can go and change — counting them would refuse
+/// the retirement for ever with no door ("1 line still says it, in 0
+/// recipes"). So the count and the named recipes come off the SAME filter.
 Future<RecipeMeasureUsage> countRecipeMeasureReferrers(
   SqliteReadContext db,
   String measureId,
 ) async {
   final counted = await db.get(
     'SELECT '
-    '(SELECT COUNT(*) FROM recipe_line_item '
-    'WHERE recipe_measure_id = ? AND deleted_at IS NULL) '
-    '+ (SELECT COUNT(*) FROM week_recipe_line_override '
-    'WHERE recipe_measure_id = ? AND deleted_at IS NULL) AS n',
+    '(SELECT COUNT(*) FROM recipe_line_item li '
+    'JOIN ingredient_group gr ON gr.id = li.group_id '
+    'JOIN recipe r ON r.id = gr.recipe_id '
+    'WHERE li.recipe_measure_id = ? AND li.deleted_at IS NULL '
+    'AND gr.deleted_at IS NULL AND r.deleted_at IS NULL) AS lines, '
+    '(SELECT COUNT(*) FROM week_recipe_line_override wro '
+    'JOIN week_plan wp ON wp.id = wro.week_plan_id '
+    'WHERE wro.recipe_measure_id = ? AND wro.deleted_at IS NULL '
+    'AND wp.deleted_at IS NULL) AS weeks',
     [measureId, measureId],
   );
-  final lines = (counted['n'] as num).toInt();
-  if (lines == 0) return RecipeMeasureUsage.none;
-  // Named so the refusal can hand the reader somewhere to go. A line whose
-  // group or recipe is gone still counts above — it is a row that would be
-  // stranded — but there is no page to send anybody to, so it is not named.
+  final lines = (counted['lines'] as num).toInt();
+  final weeks = (counted['weeks'] as num).toInt();
+  if (lines == 0 && weeks == 0) return RecipeMeasureUsage.none;
+  // Named so the refusal can hand the reader somewhere to go — the same live
+  // rows [lines] counted, which is why the two can never disagree.
   final rows = await db.getAll(
     'SELECT DISTINCT r.id AS id, r.title AS title '
     'FROM recipe_line_item li '
@@ -447,6 +457,7 @@ Future<RecipeMeasureUsage> countRecipeMeasureReferrers(
   );
   return RecipeMeasureUsage(
     lines: lines,
+    weeks: weeks,
     recipes: [
       for (final r in rows)
         (id: r['id'] as String, title: (r['title'] as String?) ?? 'Untitled'),

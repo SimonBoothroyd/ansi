@@ -138,4 +138,66 @@ void main() {
       expect(await repo.watchRecipe('sliders').first, isNull);
     });
   });
+
+  group('the delete gate counts only what is still live', () {
+    test('a line in a retired recipe blocks nothing, and the bin goes '
+        'through', () async {
+      await seedAioli();
+      await repo.saveRecipe(parent());
+      // `deleteRecipe` tombstones the recipe row and leaves its lines where
+      // they are, so a count that reads the line alone would refuse for ever
+      // with no page to send anybody to.
+      await repo.deleteRecipe('sliders');
+
+      expect(await measures.countLinesUsing('m-blob'), RecipeMeasureUsage.none);
+      await measures.softDeleteRecipeMeasure('m-blob');
+      expect(await measures.watchRecipeMeasures('aioli').first, isEmpty);
+    });
+
+    test('a retired GROUP takes its lines out of the count too', () async {
+      await seedAioli();
+      await repo.saveRecipe(parent());
+      await db.execute(
+        'UPDATE ingredient_group SET deleted_at = ? WHERE id = ?',
+        ['2026-09-19T00:00:00Z', 'sg'],
+      );
+      expect((await measures.countLinesUsing('m-blob')).any, isFalse);
+    });
+
+    test('a week’s own amount is counted apart, and a retired week is not '
+        'counted at all', () async {
+      await seedAioli();
+      for (final (id, deletedAt) in [('wp', null), ('wp-old', '2026-09-01')]) {
+        await db.execute(
+          'INSERT INTO week_plan (id, household_id, week_start_date, '
+          'deleted_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+          [id, 'h', '2026-09-21', deletedAt, '2026-09-19', '2026-09-19'],
+        );
+        await db.execute(
+          'INSERT INTO week_recipe_line_override (id, household_id, '
+          'week_plan_id, recipe_id, action, sub_recipe_id, quantity, '
+          'recipe_measure_id, sort_order, created_at, updated_at) '
+          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            'wro-$id',
+            'h',
+            id,
+            'sliders',
+            'add',
+            'aioli',
+            5,
+            'm-blob',
+            0,
+            '2026-09-19',
+            '2026-09-19',
+          ],
+        );
+      }
+
+      final usage = await measures.countLinesUsing('m-blob');
+      expect(usage.lines, 0, reason: 'no recipe line says it');
+      expect(usage.weeks, 1, reason: 'the retired week does not count');
+      expect(usage.any, isTrue);
+    });
+  });
 }

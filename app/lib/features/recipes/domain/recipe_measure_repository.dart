@@ -99,7 +99,8 @@ abstract interface class RecipeMeasureRepository {
   /// (`recipeMeasureDeleteRefusalText`) and the door that lists them.
   ///
   /// Both tables that can carry a pointer are counted (0048 names exactly
-  /// two): a recipe's component line, and one week's override of one.
+  /// two), and only while the row is reachable: a line under a live group of a
+  /// live recipe, and an override on a live week.
   Future<RecipeMeasureUsage> countLinesUsing(String measureId);
 
   /// Soft-deletes one word (tombstone, spec §3) — **or refuses**.
@@ -114,35 +115,45 @@ abstract interface class RecipeMeasureRepository {
 /// What a recipe measure is still used by — the answer
 /// [RecipeMeasureRepository.countLinesUsing] gives.
 ///
-/// [lines] counts every live row across the two tables that can name one, so
-/// the refusal speaks for everything that would break; [recipes] names only
-/// the recipes, because those are the ones a person can go and fix.
+/// [lines] counts the live recipe lines — under a live group of a live recipe,
+/// the same set [recipes] names, so the sentence and the door can never
+/// disagree. [weeks] counts one week's own amounts separately, because there is
+/// no page to send anybody to for one.
 @immutable
 class RecipeMeasureUsage {
-  const RecipeMeasureUsage({required this.lines, required this.recipes});
+  const RecipeMeasureUsage({
+    required this.lines,
+    required this.recipes,
+    this.weeks = 0,
+  });
 
   static const none = RecipeMeasureUsage(lines: 0, recipes: []);
 
   final int lines;
 
+  /// Live overrides of live week plans that say this word.
+  final int weeks;
+
   /// Every live recipe with a line saying this word, by title.
   final List<({String id, String title})> recipes;
 
-  bool get any => lines > 0;
+  bool get any => lines > 0 || weeks > 0;
 
   @override
   bool operator ==(Object other) =>
       other is RecipeMeasureUsage &&
       other.lines == lines &&
+      other.weeks == weeks &&
       other.recipes.length == recipes.length &&
       other.recipes.indexed.every((e) => e.$2 == recipes[e.$1]);
 
   @override
-  int get hashCode => Object.hash(lines, Object.hashAll(recipes));
+  int get hashCode => Object.hash(lines, weeks, Object.hashAll(recipes));
 
   @override
   String toString() =>
-      'RecipeMeasureUsage($lines lines, ${recipes.length} recipes)';
+      'RecipeMeasureUsage($lines lines, $weeks weeks, '
+      '${recipes.length} recipes)';
 }
 
 /// A word the household cannot have: the authoring rule that refused it, as
