@@ -113,6 +113,24 @@ void main() {
       expect(find.text('Not food'), findsWidgets);
     });
 
+    testWidgets('the pack door asks for a pack, never for an amount', (
+      tester,
+    ) async {
+      // The money door is a button reading "Set the amount" on the same card.
+      // A pack chip prompting "set amount" beside it names the wrong thing.
+      tallSurface(tester);
+      await tester.pumpWidget(scanHost(overrides: receiptOverrides()));
+      await tester.pumpAndSettle();
+      await runTheScan(tester, containerOf(tester));
+
+      // The matched line with no pack, opened on its doors.
+      await tester.tap(find.text('Sriracha'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('say the pack'), findsOneWidget);
+      expect(find.text('set amount'), findsNothing);
+    });
+
     testWidgets('a did-you-mean chip resolves the line to that row', (
       tester,
     ) async {

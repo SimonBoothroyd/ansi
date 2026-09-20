@@ -291,17 +291,26 @@ class LineCardAmountChip extends StatelessWidget {
   const LineCardAmountChip({
     required this.label,
     required this.onTap,
+    this.emptyLabel = 'set amount',
+    this.semanticsLabel = 'Amount',
     super.key,
   });
 
-  /// What the line's amount reads as. Empty prints the prompt instead — the
+  /// What the line's amount reads as. Empty prints [emptyLabel] instead — the
   /// slot never invents a unit to look filled.
   final String label;
+
+  /// The prompt an empty chip carries, and what a screen reader calls it.
+  /// Both are the amount's by default; a chip that asks for something else —
+  /// a receipt line's PACK — says so in its own words.
+  final String emptyLabel;
+  final String semanticsLabel;
+
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: 'Amount',
+    label: semanticsLabel,
     button: true,
     child: GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -319,7 +328,7 @@ class LineCardAmountChip extends StatelessWidget {
             children: [
               Flexible(
                 child: Text(
-                  label.isEmpty ? 'set amount' : label,
+                  label.isEmpty ? emptyLabel : label,
                   style: ansiMono(size: 12, color: AnsiColors.muted),
                   overflow: TextOverflow.ellipsis,
                 ),
