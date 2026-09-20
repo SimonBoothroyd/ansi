@@ -620,8 +620,9 @@ String receiptSaveLabel(ReceiptReviewMap map, {bool saved = false}) {
         '${formatMoney(map.totalCents)}';
   }
   // Nothing outstanding and nothing kept is the dropped-every-line receipt:
-  // counting the lines that need you would say zero.
-  if (map.keptCount == 0) return 'Keep at least one line';
+  // counting the lines that need you would say zero. The screen says this and
+  // only this; the sentence under Save names the way back.
+  if (map.keptCount == 0) return 'Nothing left to save';
   return '${map.outstanding} line(s) need you';
 }
 

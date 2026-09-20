@@ -173,6 +173,7 @@ class RecipeEditorView extends ConsumerWidget {
                             label: e.label,
                             lines: e.usage.lines,
                             recipes: e.usage.recipes.length,
+                            weeks: e.usage.weeks,
                           );
                         }
                         return null;

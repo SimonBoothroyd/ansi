@@ -7,11 +7,13 @@ import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/presentation/unit_chips.dart';
+import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/presentation/component_quantity_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/forui_semantics.dart';
 
@@ -556,6 +558,69 @@ void main() {
       expect(_chip('batch'), findsOneWidget);
       expect(_chip('blob'), findsNothing);
     });
+  });
+
+  testWidgets('a line written in the merge-hidden twin of a word still reads '
+      'as that word', (tester) async {
+    // Two phones offline both coined `blob`; the merge hides the newer row
+    // rather than deleting it, and this line points at the hidden one. The
+    // watch hands out the merged offer only, so resolving against it alone
+    // would call a live word gone.
+    filterForuiSemanticsAssertions();
+    const twin = RecipeMeasure(
+      id: 'm-blob-2',
+      recipeId: 'aioli',
+      label: 'blob',
+      amount: 50,
+      unit: ml,
+    );
+    ComponentQuantity? saved;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          recipeMeasuresProvider(
+            'aioli',
+          ).overrideWith((ref) => Stream.value(const [_blob])),
+        ],
+        child: MaterialApp(
+          home: FTheme(
+            data: ansiThemeData(),
+            child: FScaffold(
+              child: ComponentQuantityEditor(
+                // The loaded target carries the offer and the hidden twin
+                // behind it, which is what `loadRecipeMeasures` hands out.
+                target: const SubRecipeTarget(
+                  id: 'aioli',
+                  title: 'Romesco Aioli',
+                  yieldQty: 1,
+                  yieldUnit: cup,
+                  measures: [_blob, twin],
+                ),
+                initialQuantity: 3,
+                initialMeasureId: 'm-blob-2',
+                mayCoinWords: true,
+                onDone: (q) => saved = q,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(ComponentQuantityEditor.kGoneWordKeepsItsNumber),
+      findsNothing,
+    );
+    expect(find.textContaining('3 blob = '), findsOneWidget);
+    // One chip for the word, and it is the row this line means.
+    expect(_chip('blob'), findsOneWidget);
+    expect(find.text('not in filter'), findsNothing);
+
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    expect(saved!.recipeMeasureId, 'm-blob-2');
+    expect(saved!.unit, isNull);
   });
 
   testWidgets('a line that already says optional opens with the switch on', (

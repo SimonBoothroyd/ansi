@@ -494,11 +494,11 @@ class _SaveBar extends ConsumerWidget {
     final map = state.map;
     final named = state.store.trim().isNotEmpty;
     // Every line dropped writes no receipt at all — the ledger refuses one,
-    // so the button says why rather than meeting that refusal.
-    final empty = state.hasNoKeptLines;
+    // and `canSave` is where that is decided, so the button reads the map
+    // rather than counting the drafts a second time.
+    final empty = map.keptCount == 0;
     // A kept receipt has nothing to save until something has moved.
-    final open =
-        !empty && map.canSave && named && (!state.isSaved || state.edited);
+    final open = map.canSave && named && (!state.isSaved || state.edited);
     return Column(
       children: [
         // Why the last write did not happen. The review is untouched under
@@ -519,9 +519,7 @@ class _SaveBar extends ConsumerWidget {
               ? () => ref.read(receiptScanControllerProvider.notifier).save()
               : null,
           child: Text(
-            empty
-                ? 'Nothing left to save'
-                : !named
+            !named && !empty
                 ? 'Say which shop this was'
                 : receiptSaveLabel(map, saved: state.isSaved),
           ),

@@ -726,7 +726,7 @@ void main() {
       expect(map.outstanding, 0);
       expect(map.keptCount, 0);
       expect(map.canSave, isFalse);
-      expect(receiptSaveLabel(map), 'Keep at least one line');
+      expect(receiptSaveLabel(map), 'Nothing left to save');
     });
 
     test('Save says how many lines still need you', () {

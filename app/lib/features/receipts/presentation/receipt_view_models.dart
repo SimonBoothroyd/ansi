@@ -131,10 +131,6 @@ class ReceiptReviewing extends ReceiptScanState {
   /// billed for — and Save is still there to try again. Any edit clears it.
   final String? error;
 
-  /// Whether Save would write no lines at all. The repository refuses a
-  /// receipt with no lines, so the button says why instead of meeting that.
-  bool get hasNoKeptLines => !drafts.any((d) => !d.dropped);
-
   /// The review unchanged, with [message] over its Save.
   ReceiptReviewing withError(String message) => ReceiptReviewing(
     payload: payload,
@@ -613,7 +609,7 @@ class ReceiptScanController extends _$ReceiptScanController {
   Future<void> save() async {
     final s = state;
     if (s is! ReceiptReviewing) return;
-    if (!s.map.canSave || s.store.trim().isEmpty || s.hasNoKeptLines) return;
+    if (!s.map.canSave || s.store.trim().isEmpty) return;
     final repository = ref.read(receiptRepositoryProvider);
     final write = buildReceiptSave(
       store: s.store,

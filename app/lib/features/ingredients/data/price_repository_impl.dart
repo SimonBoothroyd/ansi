@@ -393,6 +393,9 @@ class SqlitePriceRepository implements PriceRepository {
         // A photographed receipt keeps its line: the cents were paid and the
         // paper still has to add up. Only the price facts go, so the line
         // stops pricing anything while still saying what was bought.
+        // No door reaches this today — a scanned line is corrected on its own
+        // receipt — and it stays because the rule is the table's, not a
+        // sheet's.
         await tx.execute(
           'UPDATE receipt_line SET pack_basis_amount = NULL, '
           'pack_amount = NULL, pack_unit = NULL, measure_id = NULL, '

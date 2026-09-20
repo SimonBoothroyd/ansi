@@ -219,18 +219,23 @@ class ComponentQuantityEditor extends HookConsumerWidget {
         ? ref.watch(recipeMeasuresProvider(target.id)).asData?.value
         : null;
     final measures = watched ?? target.measures;
+    // The watch hands out the MERGED offer; the loaded target also carries the
+    // twins the merge hides, and a line written in one of those still means
+    // what it said. So the words a pointer is resolved against are the live
+    // ones plus those twins, while the chips stay one per word.
+    final known = _withHiddenTwins(measures, target.measures);
 
     // Read against the LIVE words, so the 7.7 admission expires with the row:
     // a stored pointer whose word has just been retired behind the ＋ stops
     // being an admissible chip, instead of sitting there marked *not in
     // filter* where one tap would write the tombstone.
-    final stored = _openingChoice(measures);
+    final stored = _openingChoice(known);
     final choice = useState<UnitChoice?>(stored);
 
     // A word follows its row: the selection is re-read from the live list, so
     // a `blob` re-stated to 18 ml behind the `+` is the one the conversion
     // line speaks, and one retired out from under this sheet lights no chip.
-    final picked = _seated(choice.value, measures);
+    final picked = _seated(choice.value, known);
     final word = picked is RecipeMeasureOption ? picked.measure : null;
     final unit = switch (picked) {
       UnitOption(:final unit) => unit,
@@ -251,7 +256,10 @@ class ComponentQuantityEditor extends HookConsumerWidget {
     // The offer, with the opening choice always admitted: a word whose `makes`
     // has been edited into another family is not in the honest filter, and must
     // still read as itself, marked, with the refusal under it.
-    final offer = componentUnitChoices(target, measures, current: stored);
+    // The list with the twins, because the offer itself says each word once
+    // and lets the line's own row win it — handing it the merged list instead
+    // would mark a live twin as outside the filter.
+    final offer = componentUnitChoices(target, known, current: stored);
 
     final note = componentConversionLine(
       quantity: quantity.value,
@@ -262,7 +270,7 @@ class ComponentQuantityEditor extends HookConsumerWidget {
       // and still unresolvable (a `makes` restated into another family under
       // it), and that line must read "3 blob — unresolved — …" rather than a
       // bare "3 — unresolved".
-      measures: measures,
+      measures: known,
     );
 
     // The manage state is its own page, so the amount surface below is the
@@ -636,6 +644,28 @@ class _TargetMeasures extends ConsumerWidget {
 /// otherwise — the one denomination that never needs a yield.
 Unit _defaultUnit(List<YieldDenomination> yields) =>
     yields.isEmpty ? batches : yields.first.unit;
+
+/// [live] — the watched, merged offer — plus every word of [loaded] the merge
+/// hid behind one of them.
+///
+/// A line is resolved by id, and the merge hides a duplicate word rather than
+/// deleting it, so a line written in the hidden half of a `blob`/`blob` pair
+/// must still read as `blob` in this sheet. The label is the merge's own key,
+/// so a snapshot word is re-admitted only while a live word still says it: a
+/// word RETIRED behind the ＋ leaves none, and goes on reading as gone.
+List<RecipeMeasure> _withHiddenTwins(
+  List<RecipeMeasure> live,
+  List<RecipeMeasure> loaded,
+) {
+  if (identical(live, loaded)) return live;
+  final shown = {for (final m in live) m.id};
+  final said = {for (final m in live) m.label};
+  return [
+    ...live,
+    for (final m in loaded)
+      if (!shown.contains(m.id) && said.contains(m.label)) m,
+  ];
+}
 
 /// [picked], re-read from [measures] when it is one of the recipe's own words.
 ///
