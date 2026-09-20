@@ -215,9 +215,11 @@ number; `piece` is the degradation rule 7 refuses — so the column is null and
     denominations honestly.
   - **import review prefill.** Covered above: there is nothing to prefill from.
     The form is hosted; it starts empty.
-  - **drag-reorder of the measures list.** `sort_order` is stored and read, and
-    the list is drawn with a grip, but the gesture is a later pass — the order a
-    household types their words in is already the order they get.
+  - **drag-reorder of the measures list.** `sort_order` is stored, read and
+    re-stamped by position on every Save, and the editor draws a grip only for a
+    host that takes an order — which no shipped host does, because a grip that
+    moves nothing is worse than none. The order a household types their words in
+    is already the order they get.
 
 ## Rejected alternatives
 

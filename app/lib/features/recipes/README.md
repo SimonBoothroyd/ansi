@@ -319,21 +319,61 @@ new case rather than a new path.
   carry a pointer (`recipe_line_item`, `week_recipe_line_override`).
 - **`SqliteRecipeMeasureRepository`** — the direct doors.
 
-**No screen on this build authors a word.** The read seam ships a release ahead
-of the authoring UI, because a device on an older build throws on a measured line
-or drops it in silence (ADR-0018) — so every loader, every watch, both write
-seams and the delete gate land first, and the first word written anywhere in the
-household lands on devices that already resolve, cost, macro, cook and shop it.
-
-**Two doors will write a word, and the difference is whether the host has a
-Save** (ADR-0011) — the pair the ingredient side has worn since 7.6. The recipe
-editor's MEASURES list, under MAKES, **defers**: it rides `Recipe.measures`
-through `saveRecipe`'s child diff, so a word typed there lands with the recipe.
-The manage-measures page behind the ＋ on a component's dock has no Save, so it
-writes **on tap**, through `RecipeMeasureRepository` — `addRecipeMeasure`,
+**Two doors write a word, and the difference is whether the host has a Save**
+(ADR-0011) — the pair the ingredient side has worn since 7.6. The recipe editor's
+MEASURES list, under MAKES, **defers**: it rides `Recipe.measures` through
+`saveRecipe`'s child diff, so a word typed there lands with the recipe. The
+manage-measures page behind the ＋ on a component's dock has no Save, so it writes
+**on tap**, through `RecipeMeasureRepository` — `addRecipeMeasure`,
 `restateRecipeMeasure`, `reorderRecipeMeasures`, `softDeleteRecipeMeasure`. Both
-seams exist here already, and both land the same rows under the same rules,
-because the rules are `authorRecipeMeasure`'s rather than either door's.
+land the same rows under the same rules, because the rules are
+`authorRecipeMeasure`'s rather than either door's.
+
+## The authoring UI
+
+`presentation/recipe_measures_editor.dart` is the one list-and-form, and it
+**knows no repository and no host**: it takes the recipe's yields, its words and
+three callbacks (`onAdd`, `onRestate`, `onDelete`, plus an optional `onReorder`),
+runs `authorRecipeMeasure` at the moment of each add or re-statement, and prints
+every refusal under the field with what was typed still there. The add form is
+the shared `MeasureForm` the ingredient side wears — extracted to `shared/`
+rather than forked — so a word and an ingredient's `can (400 g)` are typed into
+the same run at the same control height. A landed word clears both slots, KEEPS
+the unit and puts the keyboard back in the label.
+
+The unit chip offers `recipeMeasureUnitChoices` — every catalog unit of a family
+MAKES states, which is the authoring gate read forwards, so a chip can never
+produce a refusal on its own. With no yield the form is replaced by
+`kRecipeMeasureNoYieldRefusal`, one sentence and no controls; the words the
+recipe already has stay listed, each carrying `recipeMeasureOrphanedRowNote`.
+
+**Its first host is the header form**, where `RecipeHeaderSection.measures` sits
+directly under MAKES in the section list both hosts render — so the import review
+hosts it too, prefilling nothing (there is nothing to prefill from), and its
+commit carries `CommitPayload.measures` through the same `writeRecipeMeasures`.
+The wide editor gives it the band under the four dense cells, at the cap's full
+width: it is the one section that is a list with a form under it.
+
+Three rules live in the host rather than in the widget, because only a host knows
+them:
+
+- **the delete gate** — `mayDeleteRecipeMeasure` asks the repository at the tap
+  (never a list, and never `.future` on the autoDispose `recipeMeasureUsageProvider`)
+  and refuses with `recipeMeasureDeleteRefusalText` plus a **Show me where** door
+  onto the recipes. A word no Save has written yet has no referrer, so the same
+  question answers yes for it without a special case;
+- **the orphan warning** — the editor's Save asks `measuresOrphanedBySave()`,
+  which is `recipeMeasuresOrphanedBy` between the yields the editor OPENED with
+  and the ones the draft now states, and puts `recipeMeasuresOrphanedWarning` in
+  front of the person. It warns, never refuses, and deletes nothing;
+- **the repository's own refusal** — a Save that both edits `makes` and re-states
+  a word throws `RecipeMeasureRefused`, and the editor prints that sentence
+  rather than the write door's "Couldn't save the recipe", with the draft intact.
+
+**The drag is not built.** `sort_order` is stored, read and re-stamped by
+position on every Save, and the widget draws a grip only where a host passes
+`onReorder` — which no shipped host does yet (ADR-0018, "out of the first
+slice"). The order a household types their words in is the order they get.
 
 **The `makes` gate is the repository's, not a parameter.** `addRecipeMeasure` and
 `restateRecipeMeasure` read the recipe's stated yields off the row inside their
@@ -342,10 +382,9 @@ the recipe makes" is a fact about the stored recipe, and a form must not be able
 to assert its way past it.
 
 **A measured line's amount is never re-denominated from a units-only sheet.**
-Until the authoring control ships, the component quantity sheet opened on a line
-that carries a `recipe_measure_id` offers that line's own denomination as its
-single, preselected, inert chip and hands back a **null** `unit` — "the number
-changed, the denomination did not". Both doors that reach it obey:
+The component quantity sheet opened on a line that carries a `recipe_measure_id`
+offers that line's own denomination as its single, preselected, inert chip and
+hands back a **null** `unit` — "the number changed, the denomination did not". Both doors that reach it obey:
 `_ComponentLineEditor` in the recipe editor, and week mode's amount cell, which
 routes a measured line to this sheet rather than to the INGREDIENT one (whose
 offer cannot express a recipe's word at all, and would open preselected on

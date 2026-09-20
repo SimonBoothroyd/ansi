@@ -25,7 +25,6 @@ import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
-import 'package:ansi/features/recipes/domain/recipe_header_edits.dart';
 import 'package:ansi/features/recipes/domain/recipe_measure_authoring.dart';
 import 'package:ansi/features/recipes/domain/recipe_measure_repository.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view_models.dart';
