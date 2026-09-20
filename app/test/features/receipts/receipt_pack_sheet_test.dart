@@ -4,8 +4,8 @@
 /// than a preview of one, so the refusal a row that cannot weigh the pack
 /// produces is the same refusal that keeps Done off; *keep as a measure* is
 /// offered only where there is a word to gain; and what the toggle SAYS is
-/// true — minting buys a word, not a pack that carries over, because the pack
-/// carries over either way.
+/// true — keeping buys a measure, not a pack that carries over, because the
+/// pack carries over either way.
 library;
 
 import 'package:ansi/core/units/macros.dart';
@@ -47,6 +47,7 @@ Future<void> pumpSheet(
   int paidCents = 399,
   List<Measure> measures = const [],
   UnitChoice? choice,
+  List<Measure> pendingMeasures = const [],
   void Function(ReceiptPackAnswer)? onDone,
 }) {
   // Forui's own sheet chrome trips a framework semantics assertion the moment
@@ -61,6 +62,7 @@ Future<void> pumpSheet(
         ingredient: row,
         paidCents: paidCents,
         initialChoice: choice,
+        pendingMeasures: pendingMeasures,
         onDone: onDone ?? (_) {},
       ),
     ),
@@ -176,8 +178,7 @@ void main() {
       tester,
     ) async {
       // The pack carries over from this row's latest price whether or not a
-      // word was minted (`landPack`). The old copy claimed the opposite, and
-      // a batch of bare `pack` and `jar` measures was minted on it.
+      // measure was kept (`landPack`).
       await pumpSheet(tester);
       await tester.enterText(find.byType(EditableText).first, '482');
       await tester.pumpAndSettle();
@@ -185,9 +186,8 @@ void main() {
       await tester.pumpAndSettle();
 
       final note = tester.widget<Text>(find.byKey(kKeepAsMeasureNoteKey)).data!;
-      expect(note, contains('lands on this pack either way'));
-      expect(note, contains('say on a recipe line'));
-      expect(note, contains('buy 3'));
+      expect(note, contains('carries over either way'));
+      expect(note, contains('a recipe or a shopping list'));
       // The household's own style, shown rather than described.
       expect(note, contains('can (14.5 oz)'));
       expect(find.text('e.g. can (14.5 oz)'), findsOneWidget);
@@ -272,6 +272,33 @@ void main() {
         reason: 'a second row of one word is not an answer',
       );
     });
+  });
+
+  testWidgets('a word another line of the receipt keeps at another size is '
+      'refused', (tester) async {
+    ReceiptPackAnswer? answer;
+    await pumpSheet(
+      tester,
+      pendingMeasures: const [Measure(id: '', label: 'bag', amount: 454)],
+      onDone: (a) => answer = a,
+    );
+    await tester.enterText(find.byType(EditableText).first, '907');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(kKeepAsMeasureKey));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(EditableText).last, 'Bag');
+    await tester.pumpAndSettle();
+
+    final note = tester.widget<Text>(find.byKey(kKeepAsMeasureNoteKey)).data!;
+    expect(note, contains('already 454 g'));
+    expect(doneButton(tester).onPress, isNull);
+
+    // The same size is the same measure: the save mints it once.
+    await tester.enterText(find.byType(EditableText).first, '454');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    expect(answer?.keepAsMeasure, 'Bag');
   });
 
   testWidgets('a fresh line opens on the chip the row leads with, not on its '

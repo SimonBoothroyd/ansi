@@ -1,29 +1,9 @@
-/// *Say what the pack is* — the receipt review's one extra question, asked
-/// with the price sheet's own control.
+/// *Say what the pack is*: the receipt review's one extra question, asked
+/// with the price sheet's own *for* field and derived line.
 ///
-/// The paper already said what was paid, so this sheet asks the half it did
-/// not print: what the cents bought. It is the price sheet's **for** field —
-/// an amount, and the row's own chip row leading with its measures
-/// ([UnitChipRow]) — with the same dock stating what the two come to before
-/// Done, and the same refusal when the row cannot weigh the pack.
-///
-/// One thing is here that the price sheet has no use for: **keep as a
-/// measure**. What it buys is a WORD — one the household can also say on a
-/// recipe line, and one the Shop can say *buy 3* of. It buys nothing about
-/// the next receipt: the pack carries over from this row's latest price
-/// whether or not a word was minted (`landPack`), so a plain `482 g` lands on
-/// the next receipt exactly as `bottle` would.
-///
-/// That matters because the toggle's old justification said the opposite, and
-/// a batch of bare `pack` and `jar` measures was minted on the strength of it
-/// — words that then turn up on recipe-line chips and become the Shop's
-/// rounding unit on rows that had no measure. So the copy names what minting
-/// is for, the hint shows the household's own style (a container word carries
-/// its shelf size: `can (14.5 oz)`), and a word the row already says is not
-/// minted twice.
-///
-/// It is minted at Save, on the row, by the person's own tap — the import
-/// itself mints nothing, as it never has.
+/// *Keep as a measure* mints a measure on the row at Save, by the person's own
+/// tap. The pack carries to the next receipt whether or not one is kept, so
+/// the copy says a measure is for recipe lines and the Shop, not for that.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -37,7 +17,6 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/number_format.dart';
-import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../../ingredients/data/ingredient_providers.dart';
@@ -45,8 +24,7 @@ import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/domain/measure_authoring.dart';
 import '../../ingredients/domain/price.dart';
-import '../../ingredients/presentation/ingredient_facts.dart';
-import '../../ingredients/presentation/unit_chips.dart';
+import '../../ingredients/presentation/price_fields.dart';
 
 /// The dock's derived line, so a test names it rather than matching prose.
 const kReceiptPackDerivedKey = ValueKey('receipt-pack-derived');
@@ -77,6 +55,7 @@ Future<ReceiptPackAnswer?> showReceiptPackSheet(
   required int paidCents,
   double? amount,
   UnitChoice? choice,
+  List<Measure> pendingMeasures = const [],
 }) {
   return showAnsiSheet<ReceiptPackAnswer>(
     context: context,
@@ -85,6 +64,7 @@ Future<ReceiptPackAnswer?> showReceiptPackSheet(
       paidCents: paidCents,
       initialAmount: amount,
       initialChoice: choice,
+      pendingMeasures: pendingMeasures,
       onDone: (answer) => Navigator.of(sheetContext).pop(answer),
     ),
   );
@@ -97,6 +77,7 @@ class ReceiptPackEditor extends HookConsumerWidget {
     required this.onDone,
     this.initialAmount,
     this.initialChoice,
+    this.pendingMeasures = const [],
     super.key,
   });
 
@@ -104,6 +85,11 @@ class ReceiptPackEditor extends HookConsumerWidget {
   final int paidCents;
   final double? initialAmount;
   final UnitChoice? initialChoice;
+
+  /// Measures other lines of this receipt will mint for this row at Save, so
+  /// the same word at another size is refused here rather than written.
+  final List<Measure> pendingMeasures;
+
   final ValueChanged<ReceiptPackAnswer> onDone;
 
   @override
@@ -149,24 +135,26 @@ class ReceiptPackEditor extends HookConsumerWidget {
     String weighs(double amount) =>
         '${formatAmountIn(amount, base)} ${base.label}';
 
-    // A word the row already says is not minted a second time. Where the two
-    // weigh the same, this pack IS that measure and the line points at it;
-    // where they do not, the word is taken and the sheet says so rather than
-    // quietly making a second row of it.
-    final taken = !canKeep || !keeping.value
-        ? null
-        : measureAlreadyNamed(named, measures);
+    // A word the row already says at this weight is that measure, and the
+    // line points at it. The same word at another size, on the row or on
+    // another line of this receipt, is refused.
+    final kept = canKeep && keeping.value;
+    final taken = kept ? measureAlreadyNamed(named, measures) : null;
+    final clash =
+        taken ?? (kept ? measureAlreadyNamed(named, pendingMeasures) : null);
     final takenWord = taken == null ? '' : measureLabelAsAuthored(taken.label);
     final isThatMeasure =
         taken != null &&
         said != null &&
         isSameMeasureWeight(said, taken.amount);
-    final refusal = taken == null || isThatMeasure
+    final refusal =
+        clash == null ||
+            (said != null && isSameMeasureWeight(said, clash.amount))
         ? null
         : measureWordTakenRefusal(
-            label: takenWord,
+            label: measureLabelAsAuthored(clash.label),
             said: said == null ? 'a different size' : weighs(said),
-            taken: weighs(taken.amount),
+            taken: weighs(clash.amount),
           );
 
     final canDone =
@@ -208,42 +196,13 @@ class ReceiptPackEditor extends HookConsumerWidget {
         ),
 
         const SizedBox(height: 18),
-        const AnsiMicroLabel('FOR', hint: 'what the money bought'),
-        Row(
-          children: [
-            SizedBox(
-              width: 132,
-              child: FTextField(
-                autofocus: true,
-                hint: 'pack',
-                // A TEXT keyboard: a pack can be said as `1½ lb`, and iOS's
-                // numeric pads carry no `/`.
-                keyboardType: TextInputType.text,
-                control: FTextFieldControl.managed(
-                  controller: packField,
-                  onChange: (v) => packAmount.value = parseAmount(v.text),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                packChoice.label,
-                style: ansiMono(size: 15, color: AnsiColors.herbDeep),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        UnitChipRow(
-          offer: allowedUnitChoicesFor(
-            ingredient,
-            measures,
-            current: packChoice,
-          ),
-          selected: packChoice,
-          pieceLabel: pieceChipLabel(ingredient),
+        PackField(
+          ingredient: ingredient,
+          measures: measures,
+          controller: packField,
+          choice: packChoice,
+          autofocus: true,
+          onAmount: (amount) => packAmount.value = amount,
           onSelect: (picked) => choice.value = picked,
         ),
 
@@ -265,11 +224,9 @@ class ReceiptPackEditor extends HookConsumerWidget {
             const SizedBox(height: 6),
             Text(
               refusal ??
-                  'The next receipt lands on this pack either way. Mint a word '
-                      'only for one you would also say on a recipe line, or '
-                      'want the shop to say “buy 3” of — and put the shelf '
-                      'size in it, like “can (14.5 oz)”, because two sizes of '
-                      'one container are two words.',
+                  'The pack carries over either way. Keep one you would say '
+                      'on a recipe or a shopping list, with its size in it: '
+                      '“can (14.5 oz)”.',
               key: kKeepAsMeasureNoteKey,
               style: ansiSans(
                 size: 11.5,
@@ -290,42 +247,14 @@ class ReceiptPackEditor extends HookConsumerWidget {
         ],
 
         const SizedBox(height: 18),
-        _Derived(derived: derived, ingredient: ingredient),
+        PriceDerivedLine(
+          derived: derived,
+          ingredient: ingredient,
+          textKey: kReceiptPackDerivedKey,
+        ),
         const SizedBox(height: 12),
         FButton(onPress: canDone ? done : null, child: const Text('Done')),
       ],
-    );
-  }
-}
-
-/// The dock's one line — what the paper's cents and the typed pack come to,
-/// or why they come to nothing. It keeps its slot whether or not there is
-/// anything to say, so the button under it does not move as the field fills.
-class _Derived extends StatelessWidget {
-  const _Derived({required this.derived, required this.ingredient});
-
-  final Result<PricePer100>? derived;
-  final Ingredient ingredient;
-
-  @override
-  Widget build(BuildContext context) {
-    final (text, muted) = switch (derived) {
-      null => ('', true),
-      Ok(:final value) => ('= ${formatPricePer100(value)}', false),
-      Err(:final failure) => (priceRefusal(failure, ingredient), true),
-    };
-    return SizedBox(
-      height: 32,
-      child: Center(
-        child: Text(
-          text,
-          key: kReceiptPackDerivedKey,
-          textAlign: TextAlign.center,
-          style: muted
-              ? ansiMono(size: 11, color: AnsiColors.muted)
-              : ansiMono(size: 13, color: AnsiColors.herbDeep),
-        ),
-      ),
     );
   }
 }
