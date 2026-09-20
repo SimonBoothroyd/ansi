@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Navigation &amp; the shell</h1>
-    <p class="view-status">built · matches code 2026-09-13 · <code>core/router</code> · <code>shared/ansi_tab_shell.dart</code> · <a href="../../design-docs/navigation.md">navigation.md</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · wide: differs 2026-09-13: the shell, the rail, the neutral chrome and the dialogs are built as drawn, except that a pushed page's back control is the header chevron it already carries rather than the word <code>‹ Library</code>, and a dialog's barrier stops at the content pane, so the sidebar stays clickable beside it</p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>core/router</code> · <code>shared/ansi_tab_shell.dart</code> · <a href="../../design-docs/navigation.md">navigation.md</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · wide: differs 2026-09-20: the shell, the rail, the neutral chrome and the dialogs are built as drawn, except that a pushed page's back control is the header chevron it already carries rather than the word <code>‹ Library</code>, and a modal's barrier stops at the content pane, so the sidebar stays clickable beside it</p>
     <p class="view-blurb">One bar that never moves, one place a tap can go, and one stated rule for back. The bar is the fixed point in every transition.</p>
 </header>
 
@@ -36,7 +36,7 @@
                 <span class="n">the tick</span><span>selected ⇄ unselected animates over the <b>same 120 ms</b> as the content cross-fade. This is the only motion in a tab switch, and it is under the finger — which is why it is enough.</span>
                 <span class="n">icons</span><span>the shipped Lucide set, unchanged: <span style="font-family:'IBM Plex Mono',monospace">library · calendarDays · cookingPot · shoppingBasket</span>. The glyphs here are board stand-ins — the app never draws a unicode glyph.</span>
                 <span class="n">re-tap</span><span>tapping the tab you are already on sends that branch back to its root — the way out of a pushed page without reaching for back.</span>
-                <span class="n">chrome</span><span>hairline top border, paper ground, bottom safe-area padding. Identical to today — the bar’s <i>looks</i> are not what front 3 was about.</span>
+                <span class="n">chrome</span><span>hairline top border, paper ground, bottom safe-area padding.</span>
             </div>
             <div class="nv-swatch">
                 <span class="nv-tok">selected <b>#21502C</b></span><span class="nv-tok">rest <b>#66736A</b></span><span class="nv-tok">label <b>mono 10 / +0.5</b></span><span class="nv-tok">icon <b>24</b></span><span class="nv-tok">tick <b>120 ms</b></span>
@@ -86,68 +86,65 @@
                     <div class="nv-pane cover" style="left:16%"><span class="ln w45"></span><span class="ln w90"></span><span class="ln"></span></div>
                     <div class="nv-drag"></div><span class="nv-arrowr">›</span>
                 </div>
-                <p class="bn">Drag from the left edge and the recipe follows your finger, the tab underneath showing through — <b>iOS already does this and it keeps working</b>, because a pushed page still sits on a page that can be popped. Android gets the same peek once <span style="font-family:'IBM Plex Mono',monospace">enableOnBackInvokedCallback</span> is set; without it back is a discrete jump with no preview.</p>
+                <p class="bn">Drag from the left edge and the recipe follows your finger, the tab underneath showing through, because a pushed page still sits on a page that can be popped. Android draws the same peek: <span style="font-family:'IBM Plex Mono',monospace">enableOnBackInvokedCallback</span> is set in the manifest, so predictive back previews the page below.</p>
                 <span class="bt">interactive · tracks the finger</span>
             </div>
 
         </div>
-        <p class="conv-note">The <b>pushed page never sees the bar</b> (beat 2), which is the already-locked <span style="font-family:'IBM Plex Mono',monospace">/ingredients</span> rule generalised — <i>“a pushed route, so no bottom nav”</i>, Ingredients manager v1.</p>
+        <p class="conv-note">The <b>pushed page never sees the bar</b> (beat 2): every route above the four tab roots is pushed on the shell navigator, so it covers the bar and keeps the platform’s own transition.</p>
     </div>
 
     <div class="frame nv-wide" style="width:820px">
         <p class="frame-name"><b>What back does, where</b> · every screen state the app can be in; the rule is stated, not inherited from whatever a <code>go</code> left on the stack</p>
         <table class="nv-tbl">
             <thead>
-                <tr><th style="width:22%">You are on…</th><th style="width:26%">Android back<br>(button or edge gesture)</th><th style="width:26%">iOS left-edge swipe</th><th style="width:26%">What changes in v2</th></tr>
+                <tr><th style="width:26%">You are on…</th><th style="width:37%">Android back<br>(button or edge gesture)</th><th style="width:37%">iOS left-edge swipe</th></tr>
             </thead>
             <tbody>
                 <tr>
                     <td class="k">Library tab</td>
-                    <td><span class="ok">leaves the app</span> — correct: this is home</td>
+                    <td><span class="ok">leaves the app</span> — this is home, and the drag previews the launcher</td>
                     <td>nothing (iOS has no gesture at a stack root)</td>
-                    <td>Unchanged in rule. Gains a <b>preview of the launcher</b> during the drag once the manifest flag is set.</td>
                 </tr>
                 <tr>
                     <td class="k">Week · Cook · Shop tab</td>
-                    <td class="bad">leaves the app<span class="was">accidental — nothing was ever stacked behind it</span></td>
+                    <td>→ the <b>Library tab</b>; a second back leaves. Leaving takes <b>two</b> backs from any tab, and exactly two</td>
                     <td>nothing</td>
-                    <td>→ the <b>Library tab</b>; a second back leaves. Leaving takes <b>two</b> backs from any tab, and exactly two.</td>
                 </tr>
                 <tr>
-                    <td class="k">A pushed page<span class="was">recipe · editor · import · ingredients</span></td>
-                    <td><span class="ok">pops to the tab</span></td>
-                    <td><span class="ok">works today</span> — interactive, tracks the finger</td>
-                    <td>Unchanged, and it is the reason pushed pages stay on the root stack. Android’s pop gains the real predictive animation.</td>
+                    <td class="k">A pushed page<span class="was">recipe · editor · import · receipts · book · ingredients · account</span></td>
+                    <td><span class="ok">pops to the page below</span>, with the predictive preview</td>
+                    <td><span class="ok">interactive</span> — tracks the finger</td>
                 </tr>
                 <tr>
-                    <td class="k">A page landed on after a save / import commit / delete</td>
-                    <td class="bad">leaves the app<span class="was">the save ran <span style="font-family:'IBM Plex Mono',monospace">context.go</span>, which flattened the stack</span></td>
-                    <td class="bad">nothing — the gesture is gone on a page that looks exactly like a pushed one</td>
-                    <td><b>Fixed</b>: those three calls become a <b>replace within the stack</b>, so the page below survives and both gestures work. Not a rule question — a bug in three call sites.</td>
+                    <td class="k">A page landed on after a save or an import commit</td>
+                    <td><span class="ok">pops</span> — the save is a <b>replace within the stack</b>, so the page below survives</td>
+                    <td><span class="ok">interactive</span></td>
                 </tr>
                 <tr>
-                    <td class="k">A modal sheet<span class="was">17 sheets — picker, quantity, add item…</span></td>
+                    <td class="k">The Library, landed on after deleting a recipe</td>
+                    <td><span class="ok">leaves the app</span> — the delete <span style="font-family:'IBM Plex Mono',monospace">go</span>es home, which is where back means leave</td>
+                    <td>nothing</td>
+                </tr>
+                <tr>
+                    <td class="k">A modal sheet<span class="was">picker · quantity · add item…</span></td>
                     <td><span class="ok">dismisses the sheet</span></td>
                     <td>n/a — the sheet’s own downward drag dismisses</td>
-                    <td>Sheets must move to the <b>root</b> navigator, or the bar would sit outside their barrier and stay tappable. One shared wrapper, not 17 edits.</td>
                 </tr>
                 <tr>
-                    <td class="k">A dialog<span class="was">7 dialogs — confirm, rename, eaters</span></td>
+                    <td class="k">A dialog<span class="was">confirm · rename · refuse</span></td>
                     <td><span class="ok">dismisses the dialog</span></td>
                     <td>n/a</td>
-                    <td>Same root-navigator wrapper.</td>
                 </tr>
                 <tr>
-                    <td class="k">An open popover menu<span class="was">the Library <span style="font-family:'IBM Plex Mono',monospace">＋</span>, the recipe <span style="font-family:'IBM Plex Mono',monospace">⋯</span></span></td>
-                    <td class="bad">skips the menu and acts on the screen behind it<span class="was">a popover is an overlay, not a route</span></td>
+                    <td class="k">An open popover menu<span class="was">a section’s <span style="font-family:'IBM Plex Mono',monospace">＋</span>, a row’s <span style="font-family:'IBM Plex Mono',monospace">⋯</span></span></td>
+                    <td>acts on the page behind it — a popover is an overlay, not a route. Every item closes the menu itself</td>
                     <td>n/a</td>
-                    <td>The menu closes itself the moment an item is chosen, so there is no state where an open menu can be backed through.</td>
                 </tr>
                 <tr>
                     <td class="k">A cold deep link straight to a recipe</td>
-                    <td>leaves the app — there is genuinely nothing behind it</td>
-                    <td>nothing, correctly</td>
-                    <td>Unchanged. The header’s existing “pop if you can, else go to the Library” fallback is doing real work here and stays.</td>
+                    <td>the page’s own chevron goes to the branch it belongs to; back leaves the app — there is nothing behind it</td>
+                    <td>nothing</td>
                 </tr>
             </tbody>
         </table>
@@ -164,14 +161,18 @@
             <div>│&nbsp;&nbsp;&nbsp;├─ branch 1 · <b class="hi">/week</b></div>
             <div>│&nbsp;&nbsp;&nbsp;├─ branch 2 · <b class="hi">/cook</b></div>
             <div>│&nbsp;&nbsp;&nbsp;└─ branch 3 · <b class="hi">/shop</b></div>
-            <div>├─ <b>/recipes/new</b> ┐</div>
-            <div>├─ <b>/recipes/:id</b> │</div>
-            <div>├─ <b>/recipes/:id/edit</b> ├ <span style="opacity:.8">pushed over the</span></div>
-            <div>├─ <b>/import</b> │ <span style="opacity:.8">shell — cover the bar</span></div>
+            <div>├─ <b>/import</b> ┐</div>
+            <div>├─ <b>/receipts</b> │</div>
+            <div>├─ <b>/receipts/review</b> │</div>
+            <div>├─ <b>/receipts/:id</b> │</div>
+            <div>├─ <b>/books/:id</b> ├ <span style="opacity:.8">pushed over the</span></div>
+            <div>├─ <b>/account</b> │ <span style="opacity:.8">shell — cover the bar</span></div>
             <div>├─ <b>/ingredients</b> │</div>
             <div>├─ <b>/ingredients/new</b> │</div>
             <div>├─ <b>/ingredients/:id</b> │</div>
-            <div>└─ <b>/account</b> ┘</div>
+            <div>├─ <b>/recipes/new</b> │</div>
+            <div>├─ <b>/recipes/:id</b> │</div>
+            <div>└─ <b>/recipes/:id/edit</b> ┘</div>
         </div>
         <p class="conv-note">Keeping the Library at <b>/</b> rather than renaming it <span style="font-family:'IBM Plex Mono',monospace">/library</span> is deliberate: every existing link, every <span style="font-family:'IBM Plex Mono',monospace">?from=</span> in flight and the redirect’s own <span style="font-family:'IBM Plex Mono',monospace">loc == '/'</span> case keep working untouched.</p>
     </div>
@@ -284,7 +285,7 @@
                 </div>
             </div>
         </div>
-        <p class="wide-cap">The same call presents a <b>sheet under 640</b> and a <b>dialog at and above it</b>, through the one door in <code>ansi_modals.dart</code>. The barrier still covers the whole window, sidebar included, because the modal is on the root navigator. The sheet drawn here is the confirm: the day came with the flow, so it is the subtitle rather than a question, and the <b>slot</b> inside the body opens on that day’s next unfilled default.</p>
+        <p class="wide-cap">The same call presents a <b>sheet under 640</b> and a <b>dialog at and above it</b>, through the one door in <code>ansi_modals.dart</code>. The sheet drawn here is the confirm: the day came with the flow, so it is the subtitle rather than a question, and the <b>slot</b> inside the body opens on that day’s next unfilled default.<br><span style="color:var(--gone)">differs:</span> the barrier is drawn over the whole window here. Built, a modal opens on the <b>shell</b> navigator — above the tab shell and every pushed page, but inside the sidebar — so the barrier stops at the content pane and the sidebar stays clickable beside it</p>
 
         <p class="wnv-sub"><b>the tall one</b> · a search-driven picker is a fixed 560 × 640 dialog, not full height</p>
         <div class="desk" style="width:720px">
@@ -305,7 +306,7 @@
                 </div>
             </div>
         </div>
-        <p class="wide-cap">On the phone this one asks for no height cap (<code>mainAxisMaxRatio: null</code>); on wide it stops at 640 and scrolls inside, so a long vocabulary cannot push the search field off the top. A door <i>inside</i> a sheet still opens a whole page over it, because both are routes on the same root navigator: this picker’s “…or write it as a new recipe” row pushes <code>/recipes/new?handback=1</code> and the meal editor’s foot row pushes the per-week editor at <code>/recipes/:id/edit?week=</code> — each one popping back onto the dialog that is still waiting.</p>
+        <p class="wide-cap">On the phone this one asks for no height cap (<code>mainAxisMaxRatio: null</code>); on wide it stops at 640 and scrolls inside, so a long vocabulary cannot push the search field off the top. A door <i>inside</i> a sheet still opens a whole page over it, because both are routes on the same <b>shell</b> navigator: this picker’s “…or write it as a new recipe” row pushes <code>/recipes/new?handback=1</code> and the meal editor’s foot row pushes the per-week editor at <code>/recipes/:id/edit?week=</code> — each one popping back onto the dialog that is still waiting.</p>
     </div>
 
     <div class="frame wide wnv-treef">
@@ -320,16 +321,20 @@
             <div>&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├─ branch 1 · <b class="hi">/week</b></div>
             <div>&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├─ branch 2 · <b class="hi">/cook</b></div>
             <div>&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└─ branch 3 · <b class="hi">/shop</b></div>
-            <div>&nbsp;&nbsp;&nbsp;├─ <b>/recipes/new</b> <span class="neut">neutral rail</span> <span class="qp">?title= ?book= ?section= ?handback=1</span> <span style="opacity:.7">· handback pops it onto the waiting line</span></div>
-            <div>&nbsp;&nbsp;&nbsp;├─ <b>/recipes/:id</b> <span class="neut">neutral rail</span> <span class="qp">?week=</span> <span style="opacity:.7">· the week that plans it, so the page can offer the week door</span></div>
-            <div>&nbsp;&nbsp;&nbsp;├─ <b>/recipes/:id/edit</b> <span class="neut">neutral rail</span> <span class="qp">?week=</span> <span style="opacity:.7">· with it, the per-week editor; without it, the recipe’s own</span></div>
             <div>&nbsp;&nbsp;&nbsp;├─ <b>/import</b> <span class="neut">neutral rail</span> <span class="qp">?book= ?section=</span> <span style="opacity:.7">· the shelf the ＋ was tapped on</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/receipts</b> <span class="neut">neutral rail</span> <span style="opacity:.7">· the ledger; the Shop header’s receipt door opens it</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/receipts/review</b> <span class="neut">neutral rail</span> <span style="opacity:.7">· the scan in flight — declared before <span style="font-family:'IBM Plex Mono',monospace">:id</span> so <span style="font-family:'IBM Plex Mono',monospace">review</span> is a route</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/receipts/:id</b> <span class="neut">neutral rail</span> <span style="opacity:.7">· one kept receipt</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/books/:id</b> <span class="neut">neutral rail</span> <span style="opacity:.7">· nothing links here; a pasted or bookmarked URL does</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/account</b> <span class="neut">neutral rail</span> <span style="opacity:.7">· the footer door opens it</span></div>
             <div>&nbsp;&nbsp;&nbsp;├─ <b>/ingredients</b> <span class="neut">neutral rail</span></div>
             <div>&nbsp;&nbsp;&nbsp;├─ <b>/ingredients/new</b> <span class="neut">neutral rail</span> <span class="qp">?name=</span> <span style="opacity:.7">· the words already typed into a picker</span></div>
             <div>&nbsp;&nbsp;&nbsp;├─ <b>/ingredients/:id</b> <span class="neut">neutral rail</span> <span class="qp">?edit=1</span> <span style="opacity:.7">· the form, not the fact sheet</span></div>
-            <div>&nbsp;&nbsp;&nbsp;└─ <b>/account</b> <span class="neut">neutral rail</span> <span style="opacity:.7">· the footer door opens it</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/recipes/new</b> <span class="neut">neutral rail</span> <span class="qp">?title= ?book= ?section= ?handback=1</span> <span style="opacity:.7">· handback pops it onto the waiting line</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/recipes/:id</b> <span class="neut">neutral rail</span> <span class="qp">?week=</span> <span style="opacity:.7">· the week that plans it, so the page can offer the week door</span></div>
+            <div>&nbsp;&nbsp;&nbsp;└─ <b>/recipes/:id/edit</b> <span class="neut">neutral rail</span> <span class="qp">?week=</span> <span style="opacity:.7">· with it, the per-week editor; without it, the recipe’s own</span></div>
         </div>
-        <p class="wide-cap">The pushed routes stay siblings of the tab shell — on the phone they cover the bar; on wide the outer shell keeps drawing the sidebar beside them, unlit. <b>Eight of them</b>, which is the router’s own list; the queries beside each are what its builder reads.</p>
+        <p class="wide-cap">The pushed routes stay siblings of the tab shell — on the phone they cover the bar; on wide the outer shell keeps drawing the sidebar beside them, unlit. <b>Twelve of them</b>, in the router’s own order; the queries beside each are what its builder reads. <b>/</b>, <b>/week</b>, <b>/cook</b> and <b>/shop</b> take the whole pane; <b>/recipes/:id</b> and <b>/recipes/:id/edit</b> are capped a measure and a half wide; the rest hold the 640 measure.</p>
     </div>
 
 </div>

@@ -15,28 +15,30 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Account</h1>
-    <p class="view-status">built · matches code 2026-09-12 · <code>features/account</code> · <code>features/planning</code> · <a href="../../exec-plans/completed/0028-library-v3.md">plan 0028</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../decisions/0006-sync-auth-and-onboarding.md">ADR-0006</a> · wide: same, centred at 640</p>
-    <p class="view-blurb">A pushed page behind the 👥 in the Library header — the household, this device, the session. It exists because a second setting appeared, which is the trigger it was deferred on.</p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/account</code> · <code>features/planning</code> · <a href="../../exec-plans/completed/0028-library-v3.md">plan 0028</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../decisions/0006-sync-auth-and-onboarding.md">ADR-0006</a> · wide: same, centred at 640</p>
+    <p class="view-blurb">A pushed page — the household, this device, the session. Two doors open it: the 👥 in the Library header on a phone, the sidebar’s <b>Account</b> footer item on wide.</p>
 </header>
 
 <div class="board">
 
     <div class="frame">
-        <p class="frame-name"><b>The page</b> · three sections; a control that navigates has nowhere to put a sixth item, which is the whole difference between this and the menu it replaced</p>
+        <p class="frame-name"><b>The page</b> · three sections — <b>household</b>, <b>this device</b>, <b>session</b> — in that order, and no menu anywhere on it</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl">Account</span><span style="width:14px"></span></div>
 
-            <p class="lib-mcap" style="margin-top:2px">household · who eats here, and how much</p>
+            <p class="lib-mcap" style="margin-top:2px">household</p>
             <p class="clabel" style="margin-top:6px">Usual portion</p>
-            <div class="eater-row"><span class="lab"><b>Ada</b></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--herb-deep)">×1</span></div>
-            <div class="frow" style="margin-top:6px"><div class="seg"><span class="segopt">×½</span><span class="segopt">×¾</span><span class="segopt on">×1</span><span class="segopt">×1¼</span><span class="segopt">×1½</span><span class="segopt">…</span></div></div>
-            <div class="eater-row"><span class="lab"><b>Jun</b></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--herb-deep)">×¾</span></div>
-            <div class="frow" style="margin-top:6px"><div class="seg"><span class="segopt">×½</span><span class="segopt on">×¾</span><span class="segopt">×1</span><span class="segopt">×1¼</span><span class="segopt">×1½</span><span class="segopt">…</span></div></div>
-            <p class="conv-note" style="margin-top:2px">a <b>usual portion</b> belongs to the person, and it is spent wherever a head-count used to be. Every tap <b>writes through</b> — there is no Save, and no sheet to open</p>
+            <div class="eater-row"><span class="av a">A</span><span class="lab"><b>Ada</b></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--herb-deep)">×1</span></div>
+            <div class="frow" style="margin-top:6px;margin-bottom:0;display:flex;gap:6px;font-family:'IBM Plex Mono',monospace"><span class="pchip">×½</span><span class="pchip">×¾</span><span class="pchip on">×1</span><span class="pchip">×1¼</span><span class="pchip">×1½</span><span class="pchip">…</span></div>
+            <div class="eater-row" style="margin-top:14px"><span class="av j">J</span><span class="lab"><b>Jun</b></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--herb-deep)">×¾</span></div>
+            <div class="frow" style="margin-top:6px;margin-bottom:0;display:flex;gap:6px;font-family:'IBM Plex Mono',monospace"><span class="pchip">×½</span><span class="pchip on">×¾</span><span class="pchip">×1</span><span class="pchip">×1¼</span><span class="pchip">×1½</span><span class="pchip">…</span></div>
+            <p class="conv-note" style="margin-top:8px">a meal for both counts as 1¾ portions — the cook plan, the shop and the macro lens all read it that way</p>
+            <p class="conv-note" style="margin-top:8px">a <b>usual portion</b> belongs to the person. Every tap <b>writes through</b> — there is no Save. <b>…</b> opens a <b>−/+</b> stepper in place, in quarter steps, ¼ to 3</p>
 
             <p class="clabel" style="margin-top:18px">Week starts on</p>
-            <div class="frow"><div class="seg"><span class="segopt">Sunday</span><span class="segopt on">Monday</span></div></div>
+            <div class="frow" style="display:flex;gap:6px"><span class="pchip">Sunday</span><span class="pchip on">Monday</span></div>
             <p class="conv-note" style="margin-top:-4px">the week you plan, cook and shop — a <b>Monday</b> shop covers that Monday’s dinner</p>
+            <p class="conv-note">two chips at the height every other chip in the app has, under the roster. The line under them names the day on file</p>
 
             <p class="lib-mcap">this device</p>
             <div class="lib-menu">
@@ -48,74 +50,58 @@
             <div class="lib-menu">
                 <div class="mi"><span class="ic">⇥</span><span class="lb">Sign out</span></div>
             </div>
-            <p class="conv-note" style="margin-top:10px">keeps its confirm — “this removes the synced data from this device”</p>
+            <p class="conv-note" style="margin-top:10px">keeps its confirm — <b>Sign out?</b> “This removes the synced data from this device. It stays in your household and comes back when you sign in again.”</p>
         </div></div>
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>Household</b> · <b>Week starts on</b> · the third standing fact about the household, under the two it already states — the chip row the app uses for every small closed choice</p>
-        <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">‹</span><span class="ttl">Account</span><span style="width:14px"></span></div>
-            <p class="lib-mcap" style="margin-top:2px">household</p>
-            <p class="clabel" style="margin-top:8px">Usual portion</p>
-            <div class="eater-row"><span class="lab"><b>Ada</b></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--herb-deep)">×1</span></div>
-            <div class="frow" style="margin-top:6px"><div class="seg"><span class="segopt">×½</span><span class="segopt">×¾</span><span class="segopt on">×1</span><span class="segopt">×1¼</span><span class="segopt">×1½</span><span class="segopt">…</span></div></div>
-            <div class="eater-row"><span class="lab"><b>Jun</b></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--herb-deep)">×¾</span></div>
-            <div class="frow" style="margin-top:6px"><div class="seg"><span class="segopt">×½</span><span class="segopt on">×¾</span><span class="segopt">×1</span><span class="segopt">×1¼</span><span class="segopt">×1½</span><span class="segopt">…</span></div></div>
-
-            <p class="conv-note">a meal for both counts as <b>1¾ portions</b> — the cook plan, the shop and the macro lens all read it that way</p>
-
-            <p class="clabel" style="margin-top:18px">Week starts on</p>
-            <div class="frow"><div class="seg"><span class="segopt on">Sunday</span><span class="segopt">Monday</span></div></div>
-            <p class="conv-note" style="margin-top:-4px">the week you plan, cook and shop — a <b>Sunday</b> shop covers that Sunday’s dinner</p>
-        </div></div>
-        <p class="conv-note" style="margin:10px 4px 0">It is <b>one control, not a setting screen</b>: two chips at the height every other chip in the app has, in the section that already says who eats here and how much. It sits <b>below</b> the roster because a portion is read far more often than the week’s shape is changed. The note under it names the day on file, so the row says what the setting <i>means</i> for this household rather than what it could be.</p>
-    </div>
-
-    <div class="frame">
-        <p class="frame-name"><b>What the flip says</b> · it moves every week the household has planned, so it asks first — and it is the one control in the app that needs the network</p>
+        <p class="frame-name"><b>What the flip says</b> · it moves every week the household has planned, so it asks first — and it is the one control in the app that needs the network. Four states, drawn stacked; <b>one shows at a time</b></p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl">Account</span><span style="width:14px"></span></div>
             <p class="lib-mcap" style="margin-top:2px">household</p>
             <p class="clabel" style="margin-top:8px">Week starts on</p>
-            <div class="frow"><div class="seg"><span class="segopt">Sunday</span><span class="segopt on">Monday</span></div></div>
+            <div class="frow" style="display:flex;gap:6px"><span class="pchip">Sunday</span><span class="pchip on">Monday</span></div>
 
             <div class="lib-dlg" style="margin-top:18px">
                 <p class="dh">Start the week on Sunday?</p>
                 <p class="db">Every week you have planned moves to match. A Sunday meal joins the week that starts on it, and the rest of the week keeps its days. <b>Nothing is deleted.</b></p>
-                <div class="acts"><span class="b g">Cancel</span><span class="b p">Start on Sunday</span></div>
+                <div class="acts"><span class="b p">Start on Sunday</span><span class="b g">Cancel</span></div>
             </div>
 
             <p class="conv-note" style="margin-top:16px">— while it runs, the chips go inert and the row says it in the mono voice —</p>
-            <div class="frow" style="margin-top:6px"><div class="seg" style="opacity:.45"><span class="segopt">Sunday</span><span class="segopt on">Monday</span></div></div>
+            <div class="frow" style="margin-top:6px;display:flex;gap:6px;opacity:.45"><span class="pchip">Sunday</span><span class="pchip on">Monday</span></div>
             <p class="conv-note" style="margin-top:-4px">moving your weeks…</p>
 
             <p class="conv-note" style="margin-top:16px">— and when it cannot reach the server, the chips are inert and say why —</p>
-            <div class="frow" style="margin-top:6px"><div class="seg" style="opacity:.45"><span class="segopt">Sunday</span><span class="segopt on">Monday</span></div></div>
+            <div class="frow" style="margin-top:6px;display:flex;gap:6px;opacity:.45"><span class="pchip">Sunday</span><span class="pchip on">Monday</span></div>
             <p class="conv-note" style="margin-top:-4px" ><span style="color:var(--gone)">needs a connection · it moves weeks on both phones at once</span></p>
 
             <p class="conv-note" style="margin-top:16px">— and when the server refuses, the tap stays live and the row holds the state —</p>
-            <div class="frow" style="margin-top:6px"><div class="seg"><span class="segopt">Sunday</span><span class="segopt on">Monday</span></div></div>
+            <div class="frow" style="margin-top:6px;display:flex;gap:6px"><span class="pchip">Sunday</span><span class="pchip on">Monday</span></div>
             <p class="conv-note" style="margin-top:-4px"><span style="color:var(--aging)">couldn’t move your weeks — try again</span></p>
         </div></div>
-        <p class="conv-note" style="margin:10px 4px 0">The four states are drawn stacked; <b>one shows at a time</b>. The flip is a single server transaction over every week the household has planned, which is why it is <b>online-only</b> and why it can be run again safely — it moves only the weeks whose day does not already match, so running it twice does nothing and running it after a meal added offline puts that meal back where it belongs. A refusal speaks <b>twice</b>, as every failed write does: the toast reports the act, with Retry, and the amber line holds the state until the next attempt changes it.</p>
+        <p class="conv-note" style="margin:10px 4px 0">A refusal speaks <b>twice</b>: the toast reports the act — <b>Couldn’t move your weeks.</b> with Retry — and the amber line holds the state until the next attempt changes it.</p>
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>Sync health · this device</b> · one quiet line under the household — three states, drawn stacked; only one shows at a time</p>
+        <p class="frame-name"><b>Sync health · this device</b> · one quiet line under the household — four states, drawn stacked; only one shows at a time</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl">Account</span><span style="width:14px"></span></div>
             <p class="lib-mcap" style="margin-top:2px">this device</p>
             <div class="lib-menu">
                 <div class="acc-row"><span class="who" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">Synced · 2 min ago</span></div>
             </div>
-            <p class="conv-note" style="margin-top:12px">— the same row, waiting — and <b>not tappable</b>: a row that does nothing must not look like it does</p>
+            <p class="conv-note" style="margin-top:12px">— the same row, waiting — and <b>not tappable</b>: a row that does nothing must not look like it does. Mid-upload it reads <b>Sending…</b></p>
             <div class="lib-menu" style="margin-top:6px">
                 <div class="acc-row"><span class="who" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">3 changes waiting</span></div>
             </div>
-            <p class="conv-note" style="margin-top:12px">— and stuck, where it becomes tappable, and the shell banner appears over whatever you are doing —</p>
+            <p class="conv-note" style="margin-top:12px">— and stuck, in amber, where it becomes tappable and retries; the shell banner appears over whatever you are doing —</p>
             <div class="lib-menu" style="margin-top:6px">
-                <div class="acc-row"><span class="who" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--gone)">Changes aren’t reaching the other phone · since 14:02</span></div>
+                <div class="acc-row"><span class="who" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--aging)">Changes aren’t reaching the other phone · since 14:02</span></div>
+            </div>
+            <p class="conv-note" style="margin-top:12px">— and refused, the one red one: a tap opens the banner’s own <b>What happened</b> sheet —</p>
+            <div class="lib-menu" style="margin-top:6px">
+                <div class="acc-row"><span class="who" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--gone)">One change couldn’t be saved to the server</span></div>
             </div>
             <p class="conv-note" style="margin-top:14px">the row is <b>one line and only the line</b> — no second detail, no chevron. The words <b>offline</b>, <b>unsynced</b> and <b>pending</b> appear nowhere, and there is no cloud-with-a-slash</p>
         </div></div>
