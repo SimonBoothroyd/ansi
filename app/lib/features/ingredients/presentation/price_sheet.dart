@@ -51,14 +51,13 @@ import '../../../core/units/number_format.dart';
 import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
-import '../../../shared/unit_chip.dart';
 import '../../../shared/write.dart';
-import '../../books/presentation/text_prompt.dart';
 import '../data/ingredient_providers.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 import '../domain/price.dart';
 import 'ingredient_facts.dart';
+import 'price_fields.dart';
 import 'unit_chips.dart';
 
 /// The dock's derived line, so a test names it rather than matching prose.
@@ -192,18 +191,12 @@ class PriceEditor extends HookConsumerWidget {
     final canSave =
         !busy.value && pickedStore != null && derived is Ok<PricePer100>;
 
-    Future<void> nameAStore() async {
-      final word = await promptForText(
-        context,
-        title: 'Where',
-        hint: 'e.g. Whole Foods',
-        confirm: 'Use it',
-      );
+    void nameAStore(String word) {
       // The sheet can be dismissed while the prompt is up; touching hook
       // state then would throw.
-      if (word == null || word.trim().isEmpty || !context.mounted) return;
-      coined.value = [word.trim(), ...coined.value];
-      store.value = word.trim();
+      if (!context.mounted) return;
+      coined.value = [word, ...coined.value];
+      store.value = word;
     }
 
     Future<void> save() async {
@@ -258,9 +251,7 @@ class PriceEditor extends HookConsumerWidget {
       final ok = await askAnsi(
         host.context,
         title: 'Delete this price?',
-        body:
-            'It stops counting towards what anything costs. What was paid '
-            'before it stays.',
+        body: 'It stops counting towards any cost. Earlier prices stay.',
         confirm: 'Delete',
         destructive: true,
       );
@@ -319,57 +310,30 @@ class PriceEditor extends HookConsumerWidget {
         ),
 
         const SizedBox(height: 16),
-        const AnsiMicroLabel('FOR', hint: 'what the money bought'),
-        Row(
-          children: [
-            SizedBox(
-              width: 132,
-              child: FTextField(
-                hint: 'pack',
-                // A TEXT keyboard: a pack can be said as `1½ lb`, and iOS's
-                // numeric pads carry no `/`.
-                keyboardType: TextInputType.text,
-                control: FTextFieldControl.managed(
-                  controller: packField,
-                  onChange: (v) => packAmount.value = parseAmount(v.text),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                packChoice.label,
-                style: ansiMono(size: 15, color: AnsiColors.herbDeep),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        UnitChipRow(
-          offer: allowedUnitChoicesFor(
-            ingredient,
-            measures,
-            current: packChoice,
-          ),
-          selected: packChoice,
-          pieceLabel: pieceChipLabel(ingredient),
-          // No manage chip: the pack is a purchase, not a vocabulary edit.
-          // Naming a measure belongs to the quantity sheet and the form.
+        PackField(
+          ingredient: ingredient,
+          measures: measures,
+          controller: packField,
+          choice: packChoice,
+          onAmount: (amount) => packAmount.value = amount,
           onSelect: (picked) => choice.value = picked,
         ),
 
         const SizedBox(height: 16),
         const AnsiMicroLabel('AT'),
-        _StoreChips(
+        StoreChipRow(
           stores: stores,
           selected: pickedStore,
           onSelect: (word) => store.value = word,
-          onNew: nameAStore,
+          onCoined: nameAStore,
         ),
 
         const SizedBox(height: 18),
-        _Derived(derived: derived, ingredient: ingredient),
+        PriceDerivedLine(
+          derived: derived,
+          ingredient: ingredient,
+          textKey: kPriceDerivedKey,
+        ),
         const SizedBox(height: 12),
         FButton(onPress: canSave ? save : null, child: const Text('Done')),
         // The way out of a price that should not exist, under the way to fix
@@ -386,84 +350,4 @@ class PriceEditor extends HookConsumerWidget {
       ],
     );
   }
-}
-
-/// The dock's one line: what the two fields come to, or why they come to
-/// nothing.
-///
-/// It keeps its slot whether or not there is anything to say, so the button
-/// under it does not move as the fields fill.
-class _Derived extends StatelessWidget {
-  const _Derived({required this.derived, required this.ingredient});
-
-  final Result<PricePer100>? derived;
-  final Ingredient ingredient;
-
-  @override
-  Widget build(BuildContext context) {
-    final (text, muted) = switch (derived) {
-      null => ('', true),
-      Ok(:final value) => ('= ${formatPricePer100(value)}', false),
-      Err(:final failure) => (priceRefusal(failure, ingredient), true),
-    };
-    return SizedBox(
-      height: 32,
-      child: Center(
-        child: Text(
-          text,
-          key: kPriceDerivedKey,
-          textAlign: TextAlign.center,
-          style: muted
-              ? ansiMono(size: 11, color: AnsiColors.muted)
-              : ansiMono(size: 13, color: AnsiColors.herbDeep),
-        ),
-      ),
-    );
-  }
-}
-
-/// The store words this household has used, as chips, with a `＋` that names a
-/// new one. The same pill the units wear — a store is picked, never typed into
-/// a field of its own.
-class _StoreChips extends StatelessWidget {
-  const _StoreChips({
-    required this.stores,
-    required this.selected,
-    required this.onSelect,
-    required this.onNew,
-  });
-
-  final List<String> stores;
-  final String? selected;
-  final ValueChanged<String> onSelect;
-  final Future<void> Function() onNew;
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    height: kUnitChipHeight,
-    child: SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (final word in stores)
-            UnitChip(
-              label: word,
-              selected: word == selected,
-              onTap: () => onSelect(word),
-            ),
-          // A real icon, never a `＋` glyph — the bundled fonts carry no
-          // U+FF0B and it would render as tofu.
-          UnitChip(
-            icon: const Icon(
-              FLucideIcons.plus,
-              size: 13,
-              color: AnsiColors.herb,
-            ),
-            accent: true,
-            onTap: onNew,
-          ),
-        ],
-      ),
-    ),
-  );
 }

@@ -82,7 +82,7 @@ class _Ledger extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
         child: Text(
           'no receipts yet — scan one from the Shop, or type a price on an '
-          'ingredient and it lands here as a one-line receipt',
+          'ingredient',
           style: ansiMono(size: 11.5, color: AnsiColors.muted),
         ),
       );

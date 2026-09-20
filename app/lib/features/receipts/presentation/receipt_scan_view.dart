@@ -12,7 +12,6 @@
 /// repeat, and backing out leaves the ledger as it was.
 library;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
@@ -29,12 +28,10 @@ import '../domain/receipt_repository.dart';
 import 'receipt_review_body.dart';
 import 'receipt_view_models.dart';
 
-/// The one line of guidance the camera door carries, from the design board.
+/// The one line of guidance the camera door carries.
 const kReceiptShootGuidance =
     'Photograph the receipt. A long one goes in two or three shots, top to '
-    'bottom, overlapping a few lines — the overlap is how the parts are '
-    'joined. We read the store, the date and every line, then you confirm '
-    'each match.';
+    'bottom, overlapping a few lines.';
 
 class ReceiptScanView extends ConsumerWidget {
   const ReceiptScanView({super.key});
@@ -129,7 +126,7 @@ class _Busy extends StatelessWidget {
   );
 }
 
-/// The camera, the guidance, and the way the parts become one strip.
+/// The guidance and the photo doors.
 class _Intake extends ConsumerWidget {
   const _Intake({this.error});
 
@@ -150,9 +147,7 @@ class _Intake extends ConsumerWidget {
             title: pagesSoFar == 1
                 ? '1 photo so far'
                 : '$pagesSoFar photos so far',
-            body:
-                'Photograph the next stretch of the receipt, overlapping a '
-                'few lines with the last one — or read what you have.',
+            body: 'Overlap the last photo by a few lines.',
             confirm: 'Another photo',
             cancel: 'Read it',
           );
@@ -171,24 +166,6 @@ class _Intake extends ConsumerWidget {
         ),
         const SizedBox(height: 20),
         ImportPhotoDoors(onPick: shoot),
-        const SizedBox(height: 18),
-        Text(
-          'The parts are one strip. The photos are joined where the end of '
-          'one repeats the start of the next — by position, never by name, '
-          'because a receipt honestly prints the same item twice when two '
-          'were bought. What the join gets wrong, the review catches against '
-          'the printed subtotal.',
-          style: ansiSans(size: 12.5, color: AnsiColors.muted, height: 1.4),
-        ),
-        if (kIsWeb) ...[
-          const SizedBox(height: 12),
-          Text(
-            'In a browser there is no camera and no crop step, so a receipt '
-            'is shot on the phone and reviewed on whichever screen is '
-            'nearest.',
-            style: ansiSans(size: 12.5, color: AnsiColors.muted, height: 1.4),
-          ),
-        ],
         if (error != null) ...[
           const SizedBox(height: 20),
           Text(error!, style: ansiSans(size: 13, color: AnsiColors.gone)),

@@ -521,6 +521,8 @@ void main() {
         ..fold(2);
       await tester.pumpAndSettle();
       expect(find.text(r'Not food · 2 · $4.98'), findsOneWidget);
+      // Said before *it is food* brings both back.
+      expect(find.text('ORG TRICOLOR QUINOA  2.49 · ×2'), findsNWidgets(2));
 
       notifier.unfold(3);
       await tester.pumpAndSettle();
