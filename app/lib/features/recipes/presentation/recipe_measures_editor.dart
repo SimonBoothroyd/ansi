@@ -229,14 +229,19 @@ class RecipeMeasuresEditor extends HookWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Nothing to say about an empty list while the gate below is the whole
+        // section: two sentences where one is the answer reads as two problems.
         if (measures.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Text(
-              'No words yet — a component line can still say “0.5 batch”.',
-              style: ansiMono(size: 12, color: AnsiColors.muted),
-            ),
-          )
+          if (unit != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Text(
+                'No words yet — a component line can still say “0.5 batch”.',
+                style: ansiMono(size: 12, color: AnsiColors.muted),
+              ),
+            )
+          else
+            const SizedBox.shrink()
         else if (editing.value != null || onReorder == null)
           // A row open for editing is not a row you can drag, and the plain
           // column is also what keeps the form out of a scrollable of its own:

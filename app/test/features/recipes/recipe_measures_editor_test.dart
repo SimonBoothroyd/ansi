@@ -191,7 +191,9 @@ void main() {
       await _pump(tester, const _Host(yields: []));
 
       expect(find.text(kRecipeMeasureNoYieldRefusal), findsOneWidget);
-      // Nothing that could only produce a refusal: no slots, no chip, no
+      // ONE sentence: the empty-list line would be a second problem to read.
+      expect(find.textContaining('No words yet'), findsNothing);
+      // And nothing that could only produce a refusal: no slots, no chip, no
       // button.
       expect(_labelField, findsNothing);
       expect(_unitChip, findsNothing);
