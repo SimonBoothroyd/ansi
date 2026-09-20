@@ -439,9 +439,7 @@ ingredients/
   - **A photographed line opens its receipt, not the sheet.** The *Latest* line
     and the *Before* rows push `/receipts/:id` when `source == photo`, exactly
     as the `On receipts` rows do: the receipt is the editable review, and the
-    line's pack, its store and the paper's own sum are one sitting there. Two
-    editors for one line disagreed — the sheet nulled a scanned pack, leaving
-    the receipt unsaveable, and could not move a scanned line's store at all.
+    line's pack, its store and the paper's own sum are one sitting there.
   - **One Price group, two hosts.** The fact sheet and the form draw the same
     widget, last in the order on both, because changing what a thing costs is
     editing it — and a door on only one of the two postures is a door somebody
@@ -455,33 +453,15 @@ ingredients/
     `/ingredients/new` has no row to hang an event on, so the group names that
     and offers no door; a price never gates the first Save.
 - **`On receipts` is the receipt door's memory, read back — and it is not the
-  alias list.** The importer recalls this household's own past answers per
-  printed name, latest saved answer winning
-  ([`receipts/README.md`](../receipts/README.md)), and a memory nobody can see
-  is a memory nobody can check: a store that mis-transcribes one shop's line
-  (`SHELLER EDAMAME` beside `SHELLED EDAMAME`) files a second answer under a
-  second key, and both go on being recalled. So the fact sheet ends with every
-  distinct name this row has been matched to on the household's receipts, newest
-  first — the name as printed, how many lines carry it, the shop that printed it
-  last, and the date it was last on paper.
-  - **A name is a tap onto that newest receipt.** The saved receipt IS the
-    editable review, so re-matching it there is how the memory is corrected,
-    and there is no second list to also correct. The muted line under the list
-    says exactly that.
-  - **The heading avoids the word *alias*, and that is load-bearing.** An
-    `ingredient_alias` is a word this household's own language holds — the
-    recipe import, the picker and the search all see it, and this very page
-    shows them at the top under `also known as`. A printed name is one store's
-    abbreviation kept beside one answer, and **nothing here ever reaches the
-    vocabulary matcher**: no alias is written from a receipt, by design
-    ([`import-and-matching.md`](../../../../docs/product-specs/import-and-matching.md)
-    §12.4). The two would be confused precisely because they share a page.
-  - **Folded shut, and absent entirely on a row no receipt has carried.** A
-    reader who opened the page for the macros is owed nothing about paper, and a
-    row nobody has bought already says so one group up, where Price states it
-    beside its own heading — so there is no "none yet" furniture here. Shut, the
-    fold says only `3 names · 5 lines`, which is what tells somebody whether
-    there is anything in here worth opening.
+  alias list**
+  ([import-and-matching.md §12.4.1](../../../../docs/product-specs/import-and-matching.md#1241-what-the-household-itself-remembers)).
+  The fact sheet ends with every distinct name this row has been matched to on
+  the household's receipts, newest first: the name as printed, how many lines
+  carry it, the shop that printed it last and the date. A name is a tap onto
+  the newest receipt carrying it, where re-matching corrects the memory. The
+  heading never says *alias*, because nothing here reaches the vocabulary
+  matcher. It is folded shut (`3 names · 5 lines`) and absent on a row no
+  receipt has carried.
   - **The read is on the price seam**, which already owns this page's
     `receipt_line` queries: `watchReceiptNames` groups on
     `UPPER(TRIM(name_printed))` — the server's own recall key, or the index is

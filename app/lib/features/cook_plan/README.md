@@ -57,10 +57,10 @@ query joins `week_recipe_line_override` so ticking a line in re-derives the
 plan. A component the batch math cannot resolve stays a named `ComponentGap` —
 never a `1×` assumption.
 
-**A line said in one of the target's own words flows through this graph with its
-pointer** — a word is a named AMOUNT (`a blob is 15 g`, ADR-0018), so `3 blob` is
-45 g and reaches a batch through the target's own same-family yield, in the code
-that has always converted `¼ cup`. `loadComponentGraph` carries every recipe's
+**A line said in one of the target's own measures flows through this graph with
+its pointer**
+([ADR-0018](../../../../docs/decisions/0018-a-recipe-measure-is-a-named-amount.md)).
+`loadComponentGraph` carries every recipe's
 live words beside its yields (`loadRecipeMeasures`, one query keyed by recipe
 id), and the watch joins `recipe_measure`, so re-stating a word re-derives the
 plan. The loader's `unit == null` branch is measure-aware: it skips a line only
