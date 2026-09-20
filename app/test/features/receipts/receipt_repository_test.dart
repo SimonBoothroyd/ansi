@@ -236,6 +236,33 @@ void main() {
       }
     });
 
+    test('a second size of a word minted here stays as typed', () async {
+      final id = await repo.saveReceipt(
+        write([
+          line(packAmount: 454, packUnitId: 'g', mint: 'bag'),
+          line(
+            sortOrder: 1,
+            packBasis: 907,
+            packAmount: 907,
+            packUnitId: 'g',
+            mint: 'bag',
+          ),
+        ]),
+      );
+      final measures = await db.getAll(
+        'SELECT id, basis_amount FROM ingredient_measure',
+      );
+      expect(measures.single['basis_amount'], 454);
+      final big = await db.get(
+        'SELECT measure_id, pack_amount, pack_unit FROM receipt_line '
+        'WHERE receipt_id = ? AND sort_order = 1',
+        [id],
+      );
+      expect(big['measure_id'], isNull, reason: 'a bag is not two weights');
+      expect(big['pack_amount'], 907);
+      expect(big['pack_unit'], 'g');
+    });
+
     test('two different words on one receipt are two measures', () async {
       await repo.saveReceipt(
         write([line(mint: 'tub'), line(sortOrder: 1, mint: 'bag')]),
@@ -331,7 +358,6 @@ void main() {
           lines: [
             // The figure was misread: same row, new cents.
             line(lineId: first.id, cents: 399),
-            // `second` is dropped by not being here.
             line(
               lineId: towels.id,
               sortOrder: 1,
@@ -345,6 +371,7 @@ void main() {
             ),
             line(sortOrder: 2, printed: '4 @ 0.49', cents: 196),
           ],
+          droppedLineIds: [second.id],
         ),
       );
 
@@ -422,6 +449,49 @@ void main() {
         isNot(stamps[second.id]),
         reason: 'the figure moved, so the answer is new',
       );
+    });
+
+    test('a line the edit never saw is left standing', () async {
+      // A second phone can open a receipt before every line has synced.
+      final id = await repo.saveReceipt(write([line(), line(sortOrder: 1)]));
+      final [first, second] = (await repo.watchReceipt(id).first)!.lines;
+
+      await repo.updateReceipt(id, write([line(lineId: first.id)]));
+
+      final after = (await repo.watchReceipt(id).first)!;
+      expect(after.lines.map((l) => l.id), [first.id, second.id]);
+    });
+
+    test('an edit of a receipt deleted elsewhere writes nothing', () async {
+      final id = await repo.saveReceipt(write([line()]));
+      await repo.deleteReceipt(id);
+
+      await repo.updateReceipt(id, write([line(printed: 'NEW  1.00')]));
+
+      final live = await db.getAll(
+        'SELECT id FROM receipt_line WHERE receipt_id = ? '
+        'AND deleted_at IS NULL',
+        [id],
+      );
+      expect(live, isEmpty);
+    });
+
+    test('a hand-typed receipt’s subtotal follows its line', () async {
+      final id = await repo.saveReceipt(write([line()]));
+      await db.execute(
+        "UPDATE receipt SET source = 'manual', subtotal_cents = 349, "
+        'tax_cents = NULL, total_cents = NULL WHERE id = ?',
+        [id],
+      );
+      final [only] = (await repo.watchReceipt(id).first)!.lines;
+
+      await repo.updateReceipt(
+        id,
+        write([line(lineId: only.id, cents: 449, discountCents: 50)]),
+      );
+
+      final after = (await repo.watchReceipt(id).first)!;
+      expect(after.subtotalCents, 399, reason: 'no paper printed the old one');
     });
 
     test('an edit refuses what a save refuses', () async {
