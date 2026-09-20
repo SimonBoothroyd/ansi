@@ -161,16 +161,10 @@ number; `piece` is the degradation rule 7 refuses — so the column is null and
 - **A measured line weighs nothing.** `lineAmountInBasis` answers null for it,
   as it must: a share of a batch is not a mass, and the parent's figures come
   from the target's own walk rather than from the line.
-- **An older app build cannot read a measured line**, so **the data layer shipped
-  a release before the authoring UI.** A build that predates this casts the
-  column with a hard `as String` and throws on a NULL, skips such a line
-  silently in the cook plan and the shop, and prints `3 batch` in the "used in"
-  list. The read seam therefore landed on its own — every loader, every watch,
-  both write doors and the delete gate, with no screen that could create a
-  measure — so that the first word written anywhere in the household lands on
-  devices that already resolve, cost, macro, cook and shop it correctly. **The
-  authoring release must not be tagged until both household phones run the read
-  one.**
+- **An older app build cannot read a measured line** — it casts the column with
+  a hard `as String` and throws on a NULL — so the read seam shipped one release
+  (`v0.22.0`) ahead of the authoring UI, and every phone in a household must run
+  it before anyone coins a measure.
 - **Two doors write a word, and only the host differs.** One widget
   (`RecipeMeasuresEditor`) is hosted by the recipe editor's header form, which
   defers into the recipe's own Save, and by the `＋` on a component's quantity
@@ -191,25 +185,11 @@ number; `piece` is the degradation rule 7 refuses — so the column is null and
   in silence. A throw in front of a person costs one save; a refusal up there
   costs the queue. `LineItem`'s own asserts say the same shape and are compiled
   out of a release build, which is why they are not the guard.
-- **Two doors will author a word, and the difference is whether the host has a
-  Save** (ADR-0011). The recipe editor's MEASURES list defers — it rides
-  `Recipe.measures` through `saveRecipe`'s child diff, so a word typed there
-  lands with the recipe. The manage-measures page behind the component dock's ＋
-  has no Save and writes on tap. Both seams exist in the repository already and
-  both go through `authorRecipeMeasure` and the same delete gate, so neither can
-  hold a different line than the other or walk round the refusal below.
-- **A measured line's amount is not re-denominated from a units-only sheet.**
-  Until the authoring control ships, the component quantity sheet — which always
-  returns a unit — would silently replace the word with one, and nothing on this
-  build could put it back. So the sheet opened on a line carrying a
-  `recipe_measure_id` offers that line's own denomination as its single,
-  preselected, inert chip and hands back a **null unit**: the number is editable
-  and the word cannot be lost. A line whose word has been RETIRED is treated the
-  same, for a stronger reason — it has no honest denomination at all, so a unit
-  written there would put a confident number where the app was correctly saying
-  it did not know. Recipe editor and week-variant editor both, and week mode's
-  amount cell routes such a line to this sheet rather than to the INGREDIENT
-  one, whose offer cannot express a recipe's word at all.
+- **The component sheet keeps a measured line's word.** It opens on the line's
+  own chip among the target's live measures and units; a line whose word has
+  been retired opens with no chip lit and keeps its pointer until one is picked.
+  Week mode's amount cell routes a component line to this sheet rather than to
+  the INGREDIENT one, whose offer cannot express a recipe's word at all.
 - **A re-stated word follows every line saying it.** The row keeps its id, so
   `blob` moving from 15 g to 18 g moves every line at once. That is why the
   editor re-states rather than deleting and re-adding, and why the bin is
@@ -228,11 +208,9 @@ number; `piece` is the degradation rule 7 refuses — so the column is null and
     denominations honestly.
   - **import review prefill.** Covered above: there is nothing to prefill from.
     The form is hosted; it starts empty.
-  - **drag-reorder of the measures list.** `sort_order` is stored, read and
-    re-stamped by position on every Save, and the editor draws a grip only for a
-    host that takes an order — which no shipped host does, because a grip that
-    moves nothing is worse than none. The order a household types their words in
-    is already the order they get.
+  - **drag-reorder of the measures list.** `sort_order` is stored and
+    re-stamped by position on every Save, so the order a household types their
+    measures in is the order they get; nothing reorders them by hand.
 
 ## Rejected alternatives
 

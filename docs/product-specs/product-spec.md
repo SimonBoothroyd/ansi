@@ -467,7 +467,14 @@ A recipe is a title filed under a book and a user-defined section, with a
 `servings_base` it scales from, a `favorite` flag, its ingredient groups and
 its steps.
 - **ingredient_group:** `name · line_items[]`
-- **line_item:** `ingredient_id · quantity · unit · optional (0025)`
+- **line_item:** `ingredient_id XOR sub_recipe_id · quantity · unit XOR
+  recipe_measure_id · measure_id · optional (0025)` — a component line is said
+  in a catalog unit or in one of the target recipe's own measures, never both
+  (migration 0048).
+- **recipe_measure:** `recipe_id · label · amount · unit · sort_order` — a
+  recipe's own named amount (*a blob is 15 g*), offered only while the recipe's
+  `makes` states that unit's family
+  ([ADR-0018](../decisions/0018-a-recipe-measure-is-a-named-amount.md)).
 - Scaling = quantity × factor (imprecise units left as-is).
 - **Optional lines (plan 0025, D6a/D6b).** `optional` is a stored fact about
   a line — "lime, to serve (optional)" — not about its amount: the page
@@ -719,7 +726,7 @@ go. There is no re-chip — tokenization happens only inside the import call.
 - `week_recipe_line_override: id · household_id · week_plan_id · recipe_id ·
   recipe_line_item_id (null only when the row ADDS a line) · action (include ·
   exclude · replace · add) · ingredient_id · sub_recipe_id · quantity · unit ·
-  measure_id · note · sort_order` (migration 0040)
+  measure_id · recipe_measure_id (0048) · note · sort_order` (migration 0040)
   - **A recipe cooked differently for ONE week.** The row is a **delta**
     against a recipe line, never a copy of the recipe: a swap, an amount, an
     addition, an exclusion, or an optional line ticked back in. The recipe is
@@ -1395,27 +1402,18 @@ and a printed weight or rate where there was one.
 - **A line is a price only when it says what the cents bought.** A matched
   food line with no pack is counted in the receipt and is simply not a price
   — the card asks for the pack. A line sold by weight prices itself from the
-  printed rate; one with no printed weight opens on **the pack its own printed
-  words were last bought in** — one store's words name one product, so a 16 oz
-  bag of quinoa at one shop and a 12 oz at another are two answers rather than
-  one — and, for words this household has not bought under before, on the pack
-  that row was last bought in anywhere. *Keep as a measure* mints a word the
-  household can also say on a recipe line — the pack carries over either way.
+  printed rate; one with no printed weight opens on the pack its own printed
+  words were last bought in. *Keep as a measure* mints a measure the household
+  can also say on a recipe line — the pack carries over either way.
 - **A figure nobody could read holds Save**, loudly: it is not a free line.
 - **One answer answers every line that is that line again.** Six identical
   tubs print six identical lines; the match, the pack, *Not food* and *it is
   food* land on every twin standing exactly where this line stands, and the
   card says `×6 on this receipt` **before** the doors. A correction to the
   paper — a re-read figure, a dropped duplicate — never rides along.
-- **The vocabulary learns nothing from a receipt** (ADR-0004 and the owner's
-  ruling): a store's abbreviations are not words the app should surface in
-  every search. What carries between shops is the household's **own
-  answers** — the pack, on the row, and the **match**, recalled per printed
-  name off this household's own saved receipt lines, most recent answer
-  winning. It is exact, never fuzzy, and a remembered match says so on the
-  open card, where changing it is itself the correction. It is not an alias,
-  and it is held structurally: the function's own test asserts every
-  statement it issues is a `SELECT`.
+- **The vocabulary learns nothing from a receipt** (ADR-0004); what carries
+  between shops is the household's own answers, the pack and the match —
+  [import-and-matching.md §12.4.1](./import-and-matching.md#1241-what-the-household-itself-remembers).
 - **The ledger** (`/receipts`) files kept receipts by the household's week and
   by store, spent against planned per week with a month line on top. Its door
   is in the **Shop's header**, beside the week switcher, drawn once the

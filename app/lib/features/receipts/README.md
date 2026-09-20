@@ -1,102 +1,45 @@
 # Feature: receipts
 
-**Roadmap:** Next 1 — phase two of
-[plan 0049](../../../../docs/exec-plans/active/0049-food-cost-receipts-and-meals-out.md).
-Drawn on the board's [Receipts](../../../../docs/product-specs/board/receipts.html)
-view.
-
 A photographed receipt, read through the recipe import's own pipeline,
-confirmed line by line, and **kept whole** — so what a week cost reads off the
-receipts themselves, and every matched line with a pack is a price.
+confirmed line by line, and kept whole — so what a week cost reads off the
+receipts themselves, and every matched line with a pack is a price. Drawn on
+the board's [Receipts](../../../../docs/product-specs/board/receipts.html) view;
+behaviour is specified in
+[import-and-matching.md §12](../../../../docs/product-specs/import-and-matching.md).
 
-There is no second price table. A receipt is `receipt` + `receipt_line`
-(migrations 0044/0046/0047), the same two tables a hand-typed price already writes
-one row each of, so a scanned line and a typed one are the same fact read the
-same way (`features/ingredients/domain/price.dart`).
+There is no second price table. A receipt is `receipt` + `receipt_line`, the
+same two tables a hand-typed price writes one row each of
+(`features/ingredients/domain/price.dart`).
 
-## The six things that make this honest
+## The rules
 
-**Nothing is written until Save.** The whole review is controller state. A scan
-abandoned half way leaves the ledger exactly as it was, and every failure on
-the way is safe to repeat.
-
-**The join is a flag, never a refusal.** The kept lines' sum is held against
-the printed subtotal — or, on a strip that prints none, the total less tax,
-which the card says; when they disagree the card says how far apart and what
-to look for, the header counts it, and Save still opens — the printed total is
-the paper's and it stands. A sum that does not close means a line is missing or
-doubled, which is something to look at rather than something to block on.
-
-**The household's answers carry over; the vocabulary learns nothing.** A
-receipt's text is one store's abbreviations, so confirming a match writes **no
-alias** — there is no call to the learning path anywhere in this folder, and
-`TJ ORG BANANAS` never becomes a word the recipe door, the picker or the search
-can see. What a second receipt inherits is two things, neither of them a
-vocabulary word:
-
-- **the pack**, filed under the printed name: a line sold by weight prices
-  itself from the weight the paper printed, and one with no printed weight opens
-  on the pack **its own printed words** were last bought in, matched to this
-  same row. One store's words name one product, so `ORG TRICOLOR QUINOA` is
-  that shop's 16 oz bag however big the other shop's is — a household
-  alternating two shops met the wrong size every other week while the pack came
-  off the row alone. Words nobody has bought under before still fall back to the
-  pack the row was last bought in anywhere, and words last bought as a
-  *different* row carry nothing: the household has re-pointed them since. One
-  batched read for the whole receipt (`packsByPrintedName`), latest by the
-  receipt's date and then by the line's own edit, so correcting a kept receipt
-  corrects what the next one opens on. The carried basis figure is the stored
-  one and is **never re-derived** — a measure re-weighed since must not
-  re-price a shop that already happened — and the saved-receipt edit path lands
-  no pack at all, because a stored line's pack is what was said at the time;
-- **the match**, recalled by the server per printed name off this household's
-  own saved receipt lines (`_shared/receipt_memory.ts`). The cascade matched 0
-  of 29 lines on the first real strip — a whole-string trigram cannot score
-  `ORG TRICOLOR QUINOA` against `Quinoa` — and once somebody has said it, it
-  does not have to. The recall is exact, never fuzzy; the **latest answer
-  wins**, so correcting a saved receipt corrects the memory and there is no
-  second list to maintain; a row retired since is no answer at all; and a
-  recall that fails costs the receipt nothing.
-
-A line that arrived on a recalled answer is `ReceiptLineDraft.remembered` and
-its card says `as you matched it last time` beside `tap to change` — the one
-`auto` that can be wrong for a reason a person can see. Changing it *is* the
-correction, and it stops being remembered the moment they do, because it is
-theirs now. `name_printed` is what all of this is filed under: the app writes
-it with the line (migration 0047) and no edit moves it.
-
-**And the memory is visible**, in the ingredient page's folded `On receipts`
-section ([`ingredients/README.md`](../ingredients/README.md)): every distinct
-name this household's receipts have carried for that row, newest first, each a
-tap back onto the newest receipt carrying it. Without it a store's
-mis-transcription — `SHELLER EDAMAME` beside `SHELLED EDAMAME` — is two answers
-under two keys and nothing anywhere shows them side by side. It is not an alias
-list and is deliberately not drawn or named as one.
-
-**One screen for a receipt.** `/receipts/:id` is the review, opened on the
-rows instead of on a scan (`ReceiptScanController.open`). Everything that
-confirmed the receipt corrects it — the store, the date's calendar door, a
-line's match, pack, PRICE chip, *Not food*, a drop — and Save rewrites the rows
-in place: kept lines by id, new ones inserted, dropped ones tombstoned. The
-printed totals and each line's printed words are the paper's and never move.
-
-**A zero is never a price.** A figure the reader could not make out arrives as
-`cents: 0` and is *flagged* — it holds Save and drags the join open until
-somebody reads it off the paper — rather than counted as a free line.
-
-**One answer answers the line the receipt printed six times.** Six tubs of
-tofu print six identical lines, and answering each of them separately is six
-times the same work. So an answer — the match, the pack (its word included),
-*Not food*, *it is food* — lands on every line that is that line again: the
-same printed words, the same figure, and **standing exactly where this one
-stands now**, which is what keeps it off a twin somebody already answered
-differently. The open card says `×6 on this receipt — an answer here answers
-them all` **before** the answer, so six cards settling at once is what the
-person was told would happen. A correction to the paper never rides along: a
-drop and a re-read figure are about one occurrence, and a doubled line is
-dropped precisely because its twin is staying. `domain/receipt_review.dart`
-holds the rule; at Save, six lines each keeping the same word as a measure
-mint **one** measure and all point at it.
+- **Nothing is written until Save.** The review is controller state, so an
+  abandoned scan leaves the ledger as it was. Save writes the receipt and every
+  kept line in one transaction.
+- **The join is a flag, never a refusal.** The kept lines' sum is held against
+  the printed subtotal — or, where the strip prints none, the total less tax.
+  A sum that does not close is counted in the header, and Save still opens.
+- **No alias is learned; the household's own answers carry over**
+  ([§12.4.1](../../../../docs/product-specs/import-and-matching.md#1241-what-the-household-itself-remembers)).
+  Locally: the pack pre-fills from one batched read (`packsByPrintedName`), its
+  stored basis figure is never re-derived, and the saved-receipt edit path lands
+  no pack. A line that arrived on the server's recalled match is
+  `ReceiptLineDraft.remembered` until the person changes it. Both are filed
+  under `name_printed`, which the app writes with the line and no edit moves.
+  The ingredient page's `On receipts` section
+  ([`ingredients/README.md`](../ingredients/README.md)) shows those names.
+- **One screen for a receipt.** `/receipts/:id` is the same review, opened on
+  the saved rows (`ReceiptScanController.open`). Save rewrites them in place —
+  kept lines by id, new ones inserted, dropped ones tombstoned — and the printed
+  totals and printed words never move.
+- **A zero is never a price.** An unreadable figure arrives as `cents: 0` and
+  is flagged, holding Save until somebody reads it off the paper.
+- **Identical lines are answered together.** A match, a pack, *Not food* or
+  *it is food* lands on every line with the same printed words and figure that
+  still stands where this one stood; the card says how many before the answer.
+  A drop or a re-read figure is about one occurrence and never rides along
+  (`domain/receipt_review.dart`). At Save, twins keeping the same measure mint
+  one.
 
 ## The files
 
@@ -127,51 +70,27 @@ presentation/
 
 ## The one place a measure is minted
 
-The import pipeline mints no measure and never has. The **household's own tap**
-does: *keep as a measure* on the pack door names `482 g` as `bottle (17 oz)`,
-and Save writes that measure on the row before the line, so the line points at
-the word rather than at the unit it was typed in. Everywhere else on this
-screen, a word the person did not ask for is not created.
+The import pipeline mints no measure; the household's own tap does. *Keep as a
+measure* on the pack door names `482 g` as `bottle (17 oz)`, and Save writes
+that measure on the row before the line that points at it. The pack carries
+over either way (`landPack`); what a measure adds is a chip on the ingredient's
+recipe lines and the Shop's rounding unit, so the toggle is off by default.
 
-**What minting buys is a WORD, and the door says so.** The pack carries over
-whether or not a word was minted (`landPack`), so a plain `482 g` lands on the
-next receipt exactly as `bottle (17 oz)` would. What
-a word buys is one the household can also say on a recipe line, and one the
-Shop can say *buy 3* of — and it costs something, because a word turns up on
-every recipe-line chip row for that ingredient and becomes the Shop's rounding
-unit on a row that had none. So the toggle asks for a word worth having rather
-than promising a pack that was never at stake.
+A measure the row already has is not minted twice. The label is read by the
+shared rule (`ingredients/domain/measure_authoring.dart`), and a live measure
+with the same label, case-insensitively, either agrees within
+`kWholeMeasureTolerance` — the line points at it — or the sheet refuses, naming
+both weights.
 
-The hint shows the household's own style, taken from the seed it curated: all
-lower case, singular, and **a container word carries its shelf size in the unit
-the shelf prints** — `can (14.5 oz)`, `block (14 oz)`, `bag (1 lb)`,
-`carton (32 oz)`. Two sizes of one container are two measures on the row.
+## The seam
 
-**A word the row already says is not minted twice.** The label is read the same
-way at both authoring doors (`ingredients/domain/measure_authoring.dart` —
-trimmed, inner whitespace collapsed, case left alone, because the measures
-editor has never changed it), and a live measure carrying the same word
-case-insensitively is either *this* measure or an argument:
+`ReceiptImportRepository` is an interface so every screen can be driven from a
+replay payload — no network, no billed model call — which is how the review,
+the checklist and the Save gate are widget-tested against the real controller.
 
-- the weights agree within the app's one tolerance for the same measure
-  (`kWholeMeasureTolerance`) → nothing is minted and the line points at the
-  measure the row already has, keeping the figure read off the paper;
-- they do not → the sheet refuses and says why, naming both weights and the
-  way out, which is the house style's own answer: put the size in the word.
+## Not built
 
-## Where the seam is
-
-`ReceiptImportRepository` is a seam rather than a direct call so every screen
-here can be driven from a **replay payload** — no network, no billed model
-call. That is what lets the review's states, the checklist's four rows and the
-Save gate all be widget-tested against the real controller, and what lets the
-owner walk the whole flow before `import-receipt` is deployed.
-
-## What is not built
-
-The desk's **three-column review** — the photos where the recipe review puts
-the page — is drawn in [the board's
-hatch](../../../../docs/product-specs/board/not-built.html) and has its own
-backlog row. On a wide window today the scan, the review and the ledger are the
-phone's column at the 640 measure, which works; what the width would buy is the
-printed line standing beside the card that claims to read it.
+The desk's three-column review is drawn in [the board's
+hatch](../../../../docs/product-specs/board/not-built.html) and has a backlog
+row. On a wide window the scan, the review and the ledger are the phone's
+column at the 640 measure.
