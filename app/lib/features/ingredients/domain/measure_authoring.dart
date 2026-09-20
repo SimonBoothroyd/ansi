@@ -8,27 +8,8 @@ library;
 
 import '../../../core/units/measure.dart';
 
-export '../../../core/units/measure.dart' show measureLabelAsAuthored;
-
-/// The live measure of this row that already carries [label], ignoring case,
-/// or null.
-///
-/// Case-insensitive on purpose, and looser than the repository's own collision
-/// check: that one refuses exactly what the merge-on-read rule would hide, and
-/// this one refuses what a PERSON would read as the same word. A row offering
-/// both `can (14.5 oz)` and `Can (14.5 oz)` in its chip row is two ways to say
-/// one thing.
-///
-/// [measures] is read in its given order, which is `sort_order`, so two rows
-/// that are already duplicates resolve to the same one on every device.
-Measure? measureAlreadyNamed(String label, List<Measure> measures) {
-  final word = measureLabelAsAuthored(label).toLowerCase();
-  if (word.isEmpty) return null;
-  for (final m in measures) {
-    if (measureLabelAsAuthored(m.label).toLowerCase() == word) return m;
-  }
-  return null;
-}
+export '../../../core/units/measure.dart'
+    show measureAlreadyNamed, measureLabelAsAuthored;
 
 /// Whether two basis weights are the same fact — the app's one tolerance for
 /// that ([kWholeMeasureTolerance], one part in a hundred), so *the same

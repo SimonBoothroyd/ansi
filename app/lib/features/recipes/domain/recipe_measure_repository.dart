@@ -10,7 +10,7 @@
 /// `(recipe_id, label)` — one would make an offline duplicate fail upload, and
 /// a failed upload drops the whole crud transaction (migration 0011's
 /// doctrine, restated by 0048). Every device converges on the *oldest* live row
-/// per label instead ([mergeRecipeMeasures]); the newer one is hidden, never
+/// per label instead (`mergeByLabel`); the newer one is hidden, never
 /// deleted, so a line already pointing at it still resolves by id.
 library;
 

@@ -1,4 +1,5 @@
 import 'package:ansi/core/result/result.dart';
+import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
@@ -316,18 +317,18 @@ void main() {
     });
   });
 
-  group('recipeMeasureAlreadyNamed', () {
+  group('measureAlreadyNamed', () {
     test('reads what a person would read as the same word', () {
       final blob = _m('blob', 15);
-      expect(recipeMeasureAlreadyNamed(' BLOB ', [blob]), blob);
-      expect(recipeMeasureAlreadyNamed('ladle', [blob]), isNull);
-      expect(recipeMeasureAlreadyNamed('  ', [blob]), isNull);
+      expect(measureAlreadyNamed(' BLOB ', [blob]), blob);
+      expect(measureAlreadyNamed('ladle', [blob]), isNull);
+      expect(measureAlreadyNamed('  ', [blob]), isNull);
     });
   });
 
   group('duplicates merge on read — the ingredient rule, mirrored', () {
     test('the oldest row of a word is canonical, the newer is hidden', () {
-      final merged = mergeRecipeMeasures([
+      final merged = mergeByLabel([
         (
           measure: _m('blob', 18, id: 'late'),
           createdAt: '2026-09-11T10:00:00Z',
@@ -344,7 +345,7 @@ void main() {
     test("two writers' date formats still agree about which is older", () {
       // Postgres syncs `… …Z`, this client writes `…T…Z`; a bare string
       // compare picks the wrong one, because a space sorts before `T`.
-      final merged = mergeRecipeMeasures([
+      final merged = mergeByLabel([
         (
           measure: _m('blob', 18, id: 'late'),
           createdAt: '2026-09-11T09:00:00Z',
@@ -358,7 +359,7 @@ void main() {
     });
 
     test('a zoneless instant is read as UTC, so two devices agree', () {
-      final merged = mergeRecipeMeasures([
+      final merged = mergeByLabel([
         (measure: _m('blob', 18, id: 'late'), createdAt: '2026-09-11 09:00:00'),
         (
           measure: _m('blob', 15, id: 'early'),
@@ -371,7 +372,7 @@ void main() {
     test('the key is the label EXACTLY as stored — case included', () {
       // The authoring path is what stops a person minting the pair; the merge
       // hides only what the database actually let through.
-      final merged = mergeRecipeMeasures([
+      final merged = mergeByLabel([
         (measure: _m('Blob', 18, id: 'b'), createdAt: '2026-09-11T09:00:00Z'),
         (measure: _m('blob', 15, id: 'a'), createdAt: '2026-09-10T09:00:00Z'),
       ]);
@@ -379,7 +380,7 @@ void main() {
     });
 
     test('display order is sort_order, then age, then id', () {
-      final merged = mergeRecipeMeasures([
+      final merged = mergeByLabel([
         (
           measure: _m('ladle', 180, unit: ml, id: 'c', sortOrder: 1),
           createdAt: '2026-09-09T09:00:00Z',
@@ -394,7 +395,7 @@ void main() {
     });
 
     test('an unparseable or absent date still sorts deterministically', () {
-      final merged = mergeRecipeMeasures([
+      final merged = mergeByLabel([
         (measure: _m('blob', 18, id: 'z'), createdAt: null),
         (measure: _m('blob', 15, id: 'a'), createdAt: 'not a date'),
       ]);

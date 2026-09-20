@@ -31,6 +31,88 @@ import 'number_format.dart';
 import 'unit_words.dart';
 import 'units.dart';
 
+/// What an ingredient's measure and a recipe's share: the columns the
+/// merge-on-read and the duplicate check read.
+abstract interface class LabelledMeasure {
+  String get id;
+  String get label;
+  int get sortOrder;
+}
+
+/// One stored measure with its raw `created_at` text, as [mergeByLabel] takes
+/// it.
+typedef StoredMeasure<T extends LabelledMeasure> = ({
+  T measure,
+  Object? createdAt,
+});
+
+/// [rows] with duplicates merged: the oldest row of each label kept, ordered
+/// `sort_order` then age then id.
+///
+/// No unique index guards a label, because two phones offline can both coin
+/// one word and neither write is wrong; the newer row is hidden on read, and
+/// every device hides the same one. The key is the label exactly as stored —
+/// [measureAlreadyNamed] is what stops a person minting `Blob` beside `blob`.
+List<T> mergeByLabel<T extends LabelledMeasure>(
+  Iterable<StoredMeasure<T>> rows,
+) {
+  final ordered = [
+    for (final r in rows)
+      (measure: r.measure, created: _createdKey(r.createdAt)),
+  ]..sort(_byAge);
+
+  final byLabel = <String, ({T measure, String created})>{};
+  for (final e in ordered) {
+    byLabel.putIfAbsent(e.measure.label, () => e); // newer dupe hidden
+  }
+  final kept = byLabel.values.toList()
+    ..sort((a, b) {
+      final bySort = a.measure.sortOrder.compareTo(b.measure.sortOrder);
+      return bySort != 0 ? bySort : _byAge(a, b);
+    });
+  return [for (final e in kept) e.measure];
+}
+
+int _byAge(
+  ({LabelledMeasure measure, String created}) a,
+  ({LabelledMeasure measure, String created}) b,
+) {
+  final byCreated = a.created.compareTo(b.created);
+  return byCreated != 0 ? byCreated : a.measure.id.compareTo(b.measure.id);
+}
+
+/// `created_at` as a comparable key: the instant in canonical UTC ISO-8601, or
+/// the raw text where it does not parse.
+///
+/// The column is TEXT and writers differ (`…T…Z` here, `… …Z` from Postgres),
+/// so a bare string compare picks the wrong oldest. A value with no zone is
+/// read as UTC, or devices in different zones would disagree.
+String _createdKey(Object? raw) {
+  final s = raw as String? ?? '';
+  final parsed = DateTime.tryParse(s);
+  if (parsed == null) return s;
+  final utc = parsed.isUtc
+      ? parsed
+      : DateTime.tryParse('${s.trim()}Z') ?? parsed.toUtc();
+  return utc.toIso8601String();
+}
+
+/// The first of [measures] already carrying [label], ignoring case, or null.
+///
+/// Looser than [mergeByLabel] on purpose: that hides what the database let
+/// through, this refuses what a person would read as the same word.
+T? measureAlreadyNamed<T extends LabelledMeasure>(
+  String label,
+  Iterable<T> measures,
+) {
+  final word = measureLabelAsAuthored(label).toLowerCase();
+  if (word.isEmpty) return null;
+  for (final m in measures) {
+    if (measureLabelAsAuthored(m.label).toLowerCase() == word) return m;
+  }
+  return null;
+}
+
 /// The provenance families a [Measure.source] can carry, for at-a-glance
 /// display (7.7). [unknown] covers pre-0010 rows and unrecognized strings.
 enum MeasureSourceKind { usdaPortion, borrowed, typical, manual, unknown }
@@ -42,7 +124,7 @@ enum MeasureSourceKind { usdaPortion, borrowed, typical, manual, unknown }
 /// (referenced by `recipe_line_item.measure_id` /
 /// `shopping_list_contribution.measure_id`).
 @immutable
-class Measure {
+class Measure implements LabelledMeasure {
   const Measure({
     required this.id,
     required this.label,
@@ -52,9 +134,11 @@ class Measure {
     this.source,
   });
 
+  @override
   final String id;
 
   /// Human label, e.g. `potato, large`, `can (400 ml)`, `clove`.
+  @override
   final String label;
 
   /// Amount of one of this measure, in the ingredient's basis unit
@@ -68,6 +152,7 @@ class Measure {
   /// the single fact, joined in by every reader so the two can't disagree).
   final MacrosBasis basis;
 
+  @override
   final int sortOrder;
 
   /// Where the amount comes from (step 7.6 provenance, displayed from

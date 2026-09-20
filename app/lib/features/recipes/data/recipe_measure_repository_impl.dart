@@ -15,6 +15,7 @@ import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/result/result.dart';
+import '../../../core/units/measure.dart' show StoredMeasure, mergeByLabel;
 import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
 import '../domain/component_math.dart';
@@ -62,7 +63,7 @@ Future<Map<String, List<RecipeMeasure>>> loadRecipeMeasures(
   final rows = await db.getAll(
     'SELECT $_columns FROM recipe_measure rm WHERE rm.deleted_at IS NULL',
   );
-  final byRecipe = <String, List<RecipeMeasureRow>>{};
+  final byRecipe = <String, List<StoredMeasure<RecipeMeasure>>>{};
   for (final r in rows) {
     final recipeId = r['recipe_id'] as String?;
     if (recipeId == null) continue;
@@ -75,8 +76,10 @@ Future<Map<String, List<RecipeMeasure>>> loadRecipeMeasures(
 
 /// [rows] as the loader hands them on: the merged offer, then every live row
 /// the merge hid, so a lookup by id can still reach one.
-List<RecipeMeasure> _offeredThenHidden(List<RecipeMeasureRow> rows) {
-  final merged = mergeRecipeMeasures(rows);
+List<RecipeMeasure> _offeredThenHidden(
+  List<StoredMeasure<RecipeMeasure>> rows,
+) {
+  final merged = mergeByLabel(rows);
   final shown = {for (final m in merged) m.id};
   return [
     ...merged,
@@ -215,7 +218,7 @@ class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
         'ORDER BY rm.sort_order, rm.created_at, rm.id',
         parameters: [recipeId],
       )
-      .map((rows) => mergeRecipeMeasures(_rowsOf(rows, recipeId)));
+      .map((rows) => mergeByLabel(_rowsOf(rows, recipeId)));
 
   @override
   Future<RecipeMeasure> addRecipeMeasure({
@@ -341,7 +344,7 @@ class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
       'ORDER BY rm.sort_order, rm.created_at, rm.id',
       [recipeId],
     );
-    return mergeRecipeMeasures(_rowsOf(rows, recipeId));
+    return mergeByLabel(_rowsOf(rows, recipeId));
   }
 }
 
@@ -483,9 +486,9 @@ Future<void> _refuseWhileSaid(
   throw RecipeMeasureInUse(measureId: measureId, label: label, usage: usage);
 }
 
-/// Every stored row this build can read, as [mergeRecipeMeasures] takes them —
+/// Every stored row this build can read, as [mergeByLabel] takes them —
 /// the rows [_rowOf] skips are simply not there.
-List<RecipeMeasureRow> _rowsOf(
+List<StoredMeasure<RecipeMeasure>> _rowsOf(
   Iterable<Map<String, Object?>> rows,
   String recipeId,
 ) => [
@@ -493,7 +496,7 @@ List<RecipeMeasureRow> _rowsOf(
     if (_rowOf(r, recipeId) case final row?) row,
 ];
 
-/// One stored row as [mergeRecipeMeasures] takes it, or **null for a row whose
+/// One stored row as [mergeByLabel] takes it, or **null for a row whose
 /// `unit` is not a unit this build knows**.
 ///
 /// A measure is an amount in a unit, so a unit this build cannot look up leaves
@@ -507,7 +510,7 @@ List<RecipeMeasureRow> _rowsOf(
 /// It happens the way every forward-compatibility question here happens: a
 /// later build coins a word in a unit this one has never heard of, and the row
 /// syncs down anyway.
-RecipeMeasureRow? _rowOf(Map<String, Object?> r, String recipeId) {
+StoredMeasure<RecipeMeasure>? _rowOf(Map<String, Object?> r, String recipeId) {
   final unit = unitById(r['unit'] as String? ?? '');
   if (unit == null) return null;
   return (
