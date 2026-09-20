@@ -45,6 +45,7 @@ class AmountAndUnitField extends StatelessWidget {
     this.unitKey,
     this.amountWidth = 46,
     this.seed = 0,
+    this.scrollController,
     super.key,
   });
 
@@ -81,6 +82,10 @@ class AmountAndUnitField extends StatelessWidget {
   /// controller once, so new text needs a new field to seed it into.
   final int seed;
 
+  /// The amount slot's own caret scroller — see
+  /// [InlineAmountField.scrollController].
+  final ScrollController? scrollController;
+
   @override
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
@@ -92,6 +97,7 @@ class AmountAndUnitField extends StatelessWidget {
         // Every amount with a unit is a kitchen amount: `2/3` must be typeable.
         fractions: true,
         controller: controller,
+        scrollController: scrollController,
         initial: amount,
         onChange: onAmount,
         onSubmit:

@@ -707,6 +707,9 @@ Future<void> addLineToGroup(
         quantity: result?.quantity,
         unit: result?.unit,
         recipeMeasureId: result?.recipeMeasureId,
+        // The word itself, because one coined behind the ＋ a tap ago is not
+        // in the target the picker handed over.
+        recipeMeasure: result?.measure,
         optional: result?.optional ?? false,
       );
   }
@@ -930,8 +933,8 @@ class _ComponentLineEditor extends StatelessWidget {
       // denominated once (ADR-0018). Both null is a line whose word has gone
       // and whose reader picked no chip — it keeps the pointer it had, because
       // a unit written there would be a number nobody stated.
-      if (result.recipeMeasureId case final word?) {
-        notifier.setLineItemRecipeMeasure(item.id, word);
+      if (result.recipeMeasureId case final id?) {
+        notifier.setLineItemRecipeMeasure(item.id, id, word: result.measure);
       } else if (result.unit case final picked?) {
         notifier.setLineItemUnit(item.id, picked);
       }

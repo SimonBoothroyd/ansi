@@ -19,6 +19,7 @@
 /// exactly as one added from the list does.
 library;
 
+import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
@@ -365,6 +366,7 @@ class ImportMethodEditing implements MethodEditing {
     double? quantity,
     Unit? unit,
     String? recipeMeasureId,
+    RecipeMeasure? recipeMeasure,
     bool optional = false,
   }) {
     // A review line stores its denomination as a unit id and has no column for

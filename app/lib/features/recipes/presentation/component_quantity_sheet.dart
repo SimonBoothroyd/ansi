@@ -84,8 +84,32 @@ typedef ComponentQuantity = ({
   double? quantity,
   Unit? unit,
   String? recipeMeasureId,
+
+  /// The picked word itself, where one was picked. A word coined behind the ＋
+  /// is minutes newer than the target the host is holding, so the row that
+  /// prints the line has nowhere else to read it from — see
+  /// [targetWithMeasure]. Null for a unit, and for a line whose word has gone.
+  RecipeMeasure? measure,
   bool optional,
 });
+
+/// [target] with [word] among its measures.
+///
+/// A row says `3 blob` by looking the line's pointer up in
+/// [SubRecipeTarget.measures] — the target the caller loaded. A word coined
+/// behind the ＋ is not in that list, so the line it was coined for would read
+/// a bare `3` until the recipe was saved and re-opened. Putting it there is the
+/// whole of the fix; the next load reads the same word from the database.
+SubRecipeTarget targetWithMeasure(SubRecipeTarget target, RecipeMeasure word) {
+  final known = target.measures.any((m) => m.id == word.id);
+  return target.copyWith(
+    measures: [
+      for (final m in target.measures)
+        if (m.id == word.id) word else m,
+      if (!known) word,
+    ],
+  );
+}
 
 /// Opens the component quantity sheet for [target]; resolves to the chosen
 /// amount, or null if dismissed.
@@ -219,6 +243,10 @@ class ComponentQuantityEditor extends HookConsumerWidget {
     // it: a line is denominated once (the repository refuses the other two
     // shapes outright).
     final measureId = word?.id ?? (picked == null ? initialMeasureId : null);
+
+    // A measure counts something, so the line has to say how many.
+    final amountless =
+        measureId != null && (quantity.value == null || quantity.value == 0);
 
     // The offer, with the opening choice always admitted: a word whose `makes`
     // has been edited into another family is not in the honest filter, and must
@@ -412,14 +440,29 @@ class ComponentQuantityEditor extends HookConsumerWidget {
           'left out of macros and the shop list, and named where it left',
           style: ansiMono(size: 11, color: AnsiColors.muted),
         ),
+        if (amountless) ...[
+          const SizedBox(height: 10),
+          Text(
+            kMeasuredLineNeedsANumber,
+            textAlign: TextAlign.center,
+            style: ansiMono(size: 11, color: AnsiColors.muted),
+          ),
+        ],
         const SizedBox(height: 14),
         FButton(
-          onPress: () => onDone((
-            quantity: quantity.value,
-            unit: unit,
-            recipeMeasureId: measureId,
-            optional: optional.value,
-          )),
+          // A line said in a measure with no number is a row the server
+          // refuses — and a refused row drops the whole upload, not just
+          // itself. So the door waits for the number rather than handing one
+          // back that cannot be saved.
+          onPress: amountless
+              ? null
+              : () => onDone((
+                  quantity: quantity.value,
+                  unit: unit,
+                  recipeMeasureId: measureId,
+                  measure: word,
+                  optional: optional.value,
+                )),
           child: const Text('Done'),
         ),
       ],
@@ -451,6 +494,11 @@ class ComponentQuantityEditor extends HookConsumerWidget {
   /// What the sheet says about a line whose word has been retired on the target
   /// recipe, or has not synced here yet — one sentence, in the app's refusal
   /// voice: name the fact, and name both ways out.
+  /// What the sheet says while a measure is picked and the number is not
+  /// there — one fact, one way out.
+  static const kMeasuredLineNeedsANumber =
+      'Say how many — a measure counts something.';
+
   static const kGoneWordKeepsItsNumber =
       'The word this line was written in is gone from that recipe, so there is '
       'nothing counting it. The number is kept — put the word back under that '

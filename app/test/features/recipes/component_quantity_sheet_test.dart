@@ -256,6 +256,68 @@ void main() {
     expect(saved!.optional, isTrue);
   });
 
+  testWidgets('a measure with no number holds Done shut — the row the server '
+      'refuses never leaves this sheet', (tester) async {
+    filterForuiSemanticsAssertions();
+    ComponentQuantity? saved;
+    await tester.pumpWidget(
+      _host(
+        target: _aioliWithWord,
+        initialQuantity: 3,
+        initialMeasureId: 'm-blob',
+        onDone: (q) => saved = q,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    for (final nothing in ['', '0']) {
+      await tester.enterText(find.byType(TextField).first, nothing);
+      await tester.pumpAndSettle();
+      expect(
+        find.text(ComponentQuantityEditor.kMeasuredLineNeedsANumber),
+        findsOneWidget,
+        reason: nothing.isEmpty ? 'blank' : 'zero',
+      );
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(saved, isNull);
+    }
+
+    await tester.enterText(find.byType(TextField).first, '2');
+    await tester.pumpAndSettle();
+    expect(
+      find.text(ComponentQuantityEditor.kMeasuredLineNeedsANumber),
+      findsNothing,
+    );
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    expect(saved!.quantity, 2);
+    expect(saved!.recipeMeasureId, 'm-blob');
+  });
+
+  testWidgets('a line said in a UNIT still needs no number — “cup” is a '
+      'sentence, “blob” is a count', (tester) async {
+    filterForuiSemanticsAssertions();
+    ComponentQuantity? saved;
+    await tester.pumpWidget(
+      _host(
+        target: _aioli,
+        initialQuantity: 0.25,
+        initialUnit: cup,
+        onDone: (q) => saved = q,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, '');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+
+    expect(saved!.quantity, isNull);
+    expect(saved!.unit, cup);
+  });
+
   group('the recipe’s own words lead the row', () {
     testWidgets('a fresh amount opens on the whole-batch word, with batch '
         'right behind it', (tester) async {
@@ -267,6 +329,10 @@ void main() {
       expect(find.text('loaf (900 g)'), findsOneWidget);
       expect(_chip('batch'), findsOneWidget);
 
+      // A measure counts something, so the number comes first — see the
+      // amountless refusal above.
+      await tester.enterText(find.byType(TextField).first, '1');
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Done'));
       await tester.pumpAndSettle();
       expect(saved!.recipeMeasureId, 'm-loaf');
@@ -288,6 +354,8 @@ void main() {
         expect(_chip(label), findsOneWidget, reason: 'chip "$label" missing');
       }
 
+      await tester.enterText(find.byType(TextField).first, '1');
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Done'));
       await tester.pumpAndSettle();
       expect(saved!.recipeMeasureId, 'm-blob');
