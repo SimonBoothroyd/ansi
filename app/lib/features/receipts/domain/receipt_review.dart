@@ -668,7 +668,7 @@ String? foldedHeading(ReceiptReviewMap map) => map.foldedCount == 0
 String? taxHeading(ReceiptReviewMap map) =>
     map.taxCents == 0 ? null : 'Tax · ${formatMoney(map.taxCents)}';
 
-/// `8 × block (16 oz) · 33¢ / 100 g` — what a priced card reads under the
+/// `8 × block (16 oz) · 66¢ / 100 g` — what a priced card reads under the
 /// name.
 ///
 /// How many, then the pack in the words it was said in, then the unit price

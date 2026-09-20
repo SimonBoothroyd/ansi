@@ -3,7 +3,7 @@
 ///
 /// Collapsed, a settled line is one sentence with the sum first: `$3.49 ·
 /// Bananas, organic · bag (454 g) · 77¢ / 100 g`, and `$23.92 · Tofu · 8 ×
-/// block (16 oz) · 33¢ / 100 g` where the paper's sub-row said how many. The
+/// block (16 oz) · 66¢ / 100 g` where the paper's sub-row said how many. The
 /// note under the name is how many, the pack, and what they come to per
 /// basis, which is the whole chain a reader needs to check the figure. A
 /// discount printed under the item is folded into that sum and shown as a
