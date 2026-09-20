@@ -114,6 +114,29 @@ List<RecipeMeasure> mergeRecipeMeasures(Iterable<RecipeMeasureRow> rows) {
   return [for (final e in kept) e.measure];
 }
 
+/// [measures] with each word said ONCE — what a list may offer or display,
+/// from a loaded list that also carries the merge-hidden twins so a line can
+/// still be resolved by id.
+///
+/// The row [keep] names wins its word wherever it appears, so a line already
+/// saying a hidden twin lights one chip rather than two, and it lights the row
+/// whose amount that line actually means. Otherwise the first of each word
+/// wins, which is the canonical one the loader puts first.
+List<RecipeMeasure> offeredRecipeMeasures(
+  List<RecipeMeasure> measures, {
+  String? keep,
+}) {
+  final byLabel = <String, RecipeMeasure>{};
+  for (final m in measures) {
+    if (!byLabel.containsKey(m.label) || m.id == keep) byLabel[m.label] = m;
+  }
+  final said = <String>{};
+  return [
+    for (final m in measures)
+      if (said.add(m.label)) byLabel[m.label]!,
+  ];
+}
+
 String _createdKey(Object? raw) {
   final s = raw as String? ?? '';
   final parsed = DateTime.tryParse(s);

@@ -632,7 +632,10 @@ void main() {
       );
 
       final usage = await measures.countLinesUsing('m-blob');
-      expect(usage.lines, 2);
+      // Counted apart: the lines have a recipe page to send somebody to and
+      // the week's own amount has none, so the refusal says them separately.
+      expect(usage.lines, 1);
+      expect(usage.weeks, 1);
       expect(usage.recipes, [(id: 'sliders', title: 'Sausage Sliders')]);
       expect(usage.any, isTrue);
     });

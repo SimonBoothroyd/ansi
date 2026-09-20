@@ -54,7 +54,12 @@ Future<bool> mayDeleteRecipeMeasure(
     label: measure.label,
     lines: usage.lines,
     recipes: recipes.length,
+    weeks: usage.weeks,
   );
+  // Only a week says it when no live line does, and a week has no page.
+  final change = usage.lines == 0
+      ? 'that amount'
+      : plural(usage.lines, 'that line', plural: 'those lines');
   final took = await refuseAnsi(
     // The host outlives the row — see [hostContextOf].
     // ignore: use_build_context_synchronously
@@ -62,7 +67,7 @@ Future<bool> mayDeleteRecipeMeasure(
     title: 'Still in use',
     body:
         '$refusal '
-        'Change ${plural(usage.lines, 'that line', plural: 'those lines')} '
+        'Change $change '
         'first — a word that goes leaves every line saying it unresolved for '
         'good.',
     door: recipes.isEmpty ? null : 'Show me where',
@@ -72,7 +77,8 @@ Future<bool> mayDeleteRecipeMeasure(
       // The host outlives the row — see [hostContextOf].
       // ignore: use_build_context_synchronously
       context: host.context,
-      builder: (context) => _SaidBy(measure: measure, recipes: recipes),
+      builder: (context) =>
+          _SaidBy(measure: measure, recipes: recipes, weeks: usage.weeks),
     );
   }
   return false;
@@ -80,10 +86,18 @@ Future<bool> mayDeleteRecipeMeasure(
 
 /// The door: every recipe still saying this word, each one a way in.
 class _SaidBy extends StatelessWidget {
-  const _SaidBy({required this.measure, required this.recipes});
+  const _SaidBy({
+    required this.measure,
+    required this.recipes,
+    required this.weeks,
+  });
 
   final RecipeMeasure measure;
   final List<({String id, String title})> recipes;
+
+  /// How many weeks say it in their own amount — the footnote below, which is
+  /// printed only when there are any.
+  final int weeks;
 
   @override
   Widget build(BuildContext context) => AnsiSheetShell(
@@ -118,12 +132,16 @@ class _SaidBy extends StatelessWidget {
             ),
           ),
         ),
-      const SizedBox(height: 10),
-      Text(
-        'one week’s own amount can say it too — that is not a recipe, so there '
-        'is no page to send you to',
-        style: ansiMono(size: 10, color: AnsiColors.muted),
-      ),
+      if (weeks > 0) ...[
+        const SizedBox(height: 10),
+        Text(
+          '${plural(weeks, 'one week', plural: '$weeks weeks')} '
+          '${plural(weeks, 'says', plural: 'say')} it in '
+          '${plural(weeks, 'its', plural: 'their')} own amount — that is not a '
+          'recipe, so there is no page to send you to',
+          style: ansiMono(size: 10, color: AnsiColors.muted),
+        ),
+      ],
     ],
   );
 }

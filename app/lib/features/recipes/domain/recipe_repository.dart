@@ -107,6 +107,29 @@ class UndenominatedLineError implements Exception {
       'or in one of the target recipe’s own words, never in neither';
 }
 
+/// A line that names one of the target's own words but no number — refused by
+/// `saveRecipe` before it is written.
+///
+/// "blob" alone says nothing: the word IS the denomination, so it means
+/// something only beside a count. The database says the same
+/// (`line_item_recipe_measure_needs_amount`) and would refuse it on upload,
+/// taking the whole crud transaction with it — see [UndenominatedLineError],
+/// which is the same cost for the neighbouring hole. The week's own amount has
+/// this refusal already (`WordlessOverrideError`).
+class AmountlessLineError implements Exception {
+  const AmountlessLineError({required this.lineId, required this.name});
+
+  final String lineId;
+
+  /// The line's display name, so the message can name which line it was.
+  final String name;
+
+  @override
+  String toString() =>
+      '“$name” says one of the recipe’s own words but no number — a word only '
+      'says something beside a count';
+}
+
 abstract interface class RecipeRepository {
   /// The recipe list, newest first, reacting to local writes.
   Stream<List<RecipeSummary>> watchRecipes();

@@ -34,8 +34,16 @@ const _columns =
     'rm.id, rm.recipe_id, rm.label, rm.amount, rm.unit, rm.sort_order, '
     'rm.created_at';
 
-/// Every live recipe's own words, keyed by recipe id, duplicates merged
-/// (oldest canonical — [mergeRecipeMeasures]) and `sort_order` first.
+/// Every live recipe's own words, keyed by recipe id — the OFFER first
+/// (duplicates merged, oldest canonical, `sort_order` first), then the
+/// merge-hidden twins behind it.
+///
+/// **A line is resolved by id, so every live row has to be here.** The merge
+/// hides a duplicate word rather than deleting it, and a line already pointing
+/// at the hidden row still means what it said; a list that dropped it would
+/// read that line as "its measure is gone" on every surface. So the hidden rows
+/// ride along at the tail, where [recipeMeasureById] finds them and
+/// [offeredRecipeMeasures] — which every chip row goes through — does not.
 ///
 /// **One query for the household**, never one per recipe or per line: a
 /// measured component line is looked up in its TARGET's list, so every loader
@@ -62,9 +70,19 @@ Future<Map<String, List<RecipeMeasure>>> loadRecipeMeasures(
     if (row == null) continue;
     (byRecipe[recipeId] ??= []).add(row);
   }
-  return {
-    for (final e in byRecipe.entries) e.key: mergeRecipeMeasures(e.value),
-  };
+  return {for (final e in byRecipe.entries) e.key: _offeredThenHidden(e.value)};
+}
+
+/// [rows] as the loader hands them on: the merged offer, then every live row
+/// the merge hid, so a lookup by id can still reach one.
+List<RecipeMeasure> _offeredThenHidden(List<RecipeMeasureRow> rows) {
+  final merged = mergeRecipeMeasures(rows);
+  final shown = {for (final m in merged) m.id};
+  return [
+    ...merged,
+    for (final r in rows)
+      if (!shown.contains(r.measure.id)) r.measure,
+  ];
 }
 
 /// Makes [recipeId]'s stored words equal [measures] — the DEFERRED door, run
@@ -113,10 +131,17 @@ Future<void> writeRecipeMeasures(
   );
   final storedById = {for (final r in stored) r['id'] as String: r};
   final keptIds = {for (final m in measures) m.id};
+  // The editor's list is the MERGED one, so a merge-hidden twin is absent from
+  // it for a reason that is not "drop this word". Its label is still kept, so
+  // the row is left exactly where it is — otherwise every Save of this recipe
+  // would either tombstone the twin or throw [RecipeMeasureInUse] on the lines
+  // saying it.
+  final keptLabels = {for (final m in measures) m.label};
 
   for (final r in stored) {
     final id = r['id'] as String;
     if (keptIds.contains(id) || r['deleted_at'] != null) continue;
+    if (keptLabels.contains(r['label'] as String? ?? '')) continue;
     await _refuseWhileSaid(
       tx,
       measureId: id,
@@ -416,25 +441,35 @@ Future<void> _updateRow(
 /// deferred diff's gate read, so the two refuse on exactly the same answer.
 ///
 /// 0048 names exactly two tables that can carry the pointer, and both are
-/// counted: a recipe's component line, and one week's override of one. A
-/// tombstoned row is not a use — it is already gone.
+/// counted: a recipe's component line, and one week's override of one.
+///
+/// **Only what is still live counts, on the whole chain.** A line under a
+/// tombstoned group or recipe, and an override on a retired week, are rows
+/// nothing can reach and nobody can go and change — counting them would refuse
+/// the retirement for ever with no door ("1 line still says it, in 0
+/// recipes"). So the count and the named recipes come off the SAME filter.
 Future<RecipeMeasureUsage> countRecipeMeasureReferrers(
   SqliteReadContext db,
   String measureId,
 ) async {
   final counted = await db.get(
     'SELECT '
-    '(SELECT COUNT(*) FROM recipe_line_item '
-    'WHERE recipe_measure_id = ? AND deleted_at IS NULL) '
-    '+ (SELECT COUNT(*) FROM week_recipe_line_override '
-    'WHERE recipe_measure_id = ? AND deleted_at IS NULL) AS n',
+    '(SELECT COUNT(*) FROM recipe_line_item li '
+    'JOIN ingredient_group gr ON gr.id = li.group_id '
+    'JOIN recipe r ON r.id = gr.recipe_id '
+    'WHERE li.recipe_measure_id = ? AND li.deleted_at IS NULL '
+    'AND gr.deleted_at IS NULL AND r.deleted_at IS NULL) AS lines, '
+    '(SELECT COUNT(*) FROM week_recipe_line_override wro '
+    'JOIN week_plan wp ON wp.id = wro.week_plan_id '
+    'WHERE wro.recipe_measure_id = ? AND wro.deleted_at IS NULL '
+    'AND wp.deleted_at IS NULL) AS weeks',
     [measureId, measureId],
   );
-  final lines = (counted['n'] as num).toInt();
-  if (lines == 0) return RecipeMeasureUsage.none;
-  // Named so the refusal can hand the reader somewhere to go. A line whose
-  // group or recipe is gone still counts above — it is a row that would be
-  // stranded — but there is no page to send anybody to, so it is not named.
+  final lines = (counted['lines'] as num).toInt();
+  final weeks = (counted['weeks'] as num).toInt();
+  if (lines == 0 && weeks == 0) return RecipeMeasureUsage.none;
+  // Named so the refusal can hand the reader somewhere to go — the same live
+  // rows [lines] counted, which is why the two can never disagree.
   final rows = await db.getAll(
     'SELECT DISTINCT r.id AS id, r.title AS title '
     'FROM recipe_line_item li '
@@ -447,6 +482,7 @@ Future<RecipeMeasureUsage> countRecipeMeasureReferrers(
   );
   return RecipeMeasureUsage(
     lines: lines,
+    weeks: weeks,
     recipes: [
       for (final r in rows)
         (id: r['id'] as String, title: (r['title'] as String?) ?? 'Untitled'),

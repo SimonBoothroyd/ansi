@@ -23,6 +23,7 @@ import '../domain/method_step.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_cost.dart';
 import '../domain/recipe_macros.dart';
+import '../domain/recipe_measure_authoring.dart' show offeredRecipeMeasures;
 import '../domain/recipe_repository.dart';
 import 'recipe_measure_repository_impl.dart'
     show loadRecipeMeasures, writeRecipeMeasures;
@@ -424,9 +425,14 @@ class SqliteRecipeRepository implements RecipeRepository {
       yieldUnit: unitById(r['yield_unit'] as String? ?? ''),
       yieldQty2: (r['yield_qty_2'] as num?)?.toDouble(),
       yieldUnit2: unitById(r['yield_unit_2'] as String? ?? ''),
-      // This recipe's OWN words — the editor's MEASURES list, and what
-      // another recipe's line saying `3 blob` of this one resolves through.
-      measures: measuresByRecipe[id] ?? const <RecipeMeasure>[],
+      // This recipe's OWN words, as the editor's MEASURES list shows them:
+      // each word once. A merge-hidden twin is deliberately absent — a list
+      // offering `blob` twice is what the merge exists to stop — and the Save
+      // that diffs this list knows to leave it standing. Resolution is the
+      // other way round and reads the target's full list.
+      measures: offeredRecipeMeasures(
+        measuresByRecipe[id] ?? const <RecipeMeasure>[],
+      ),
       cookTimeSeconds: r['cook_time_seconds'] as int?,
       totalTimeSeconds: r['total_time_seconds'] as int?,
       macros: summarizeRecipeMacros(
@@ -626,6 +632,12 @@ class SqliteRecipeRepository implements RecipeRepository {
             lineId: item.id,
             name: item.ingredientName,
           );
+        }
+        // The other half of the same rule: a word IS the denomination, so it
+        // says something only beside a count, and the server's
+        // `line_item_recipe_measure_needs_amount` rejects a row without one.
+        if (columns.recipeMeasureId != null && item.quantity == null) {
+          throw AmountlessLineError(lineId: item.id, name: item.ingredientName);
         }
         columnsByLine[item.id] = columns;
       }
