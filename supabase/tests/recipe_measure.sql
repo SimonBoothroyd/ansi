@@ -1,9 +1,9 @@
--- pgTAP: a recipe's own word for one of what it makes (0048).
+-- pgTAP: a recipe's own word for one of what it makes (0048, 0049).
 --
 -- What is defended here:
 --   * the SHAPE — a label that is a word, an `amount` that is a positive
---     number, a `unit` that can actually measure something (never `batch`,
---     never an imprecise word), and deliberately NO unique index on
+--     number, a `unit` in a mass, volume or count family (never `batch`, an
+--     imprecise word or an unknown id), and deliberately NO unique index on
 --     (recipe_id, label): two offline devices coining "blob" must both land,
 --     because a 23505 on upload drops the whole crud transaction (0011's
 --     doctrine);
@@ -34,7 +34,7 @@
 -- Run by `supabase test db`.
 
 begin;
-select plan(32);
+select plan(36);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures: two households. House A has a sauce, a bread that uses it, and a
@@ -136,6 +136,16 @@ select throws_ok(
   '23514',
   null,
   'and an imprecise word converts nothing, so it can define nothing'
+);
+
+select throws_ok(
+  $$ insert into recipe_measure
+       (household_id, recipe_id, label, amount, unit)
+     values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+             'aaaaaaaa-0000-0000-0000-000000000101','blob',1,'blorp') $$,
+  '23514',
+  null,
+  'nor can an id no catalog holds (0049)'
 );
 
 select lives_ok(
@@ -417,6 +427,40 @@ select throws_ok(
   '42501',
   null,
   'and cannot coin one in another household'
+);
+
+-- The guard trigger under the role every upload runs as.
+select lives_ok(
+  $$ insert into recipe_line_item
+       (id, household_id, group_id, sub_recipe_id, quantity,
+        recipe_measure_id)
+     values ('aaaaaaaa-0000-0000-0000-000000000702',
+             'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+             'aaaaaaaa-0000-0000-0000-000000000601',
+             'aaaaaaaa-0000-0000-0000-000000000103', 2,
+             'aaaaaaaa-0000-0000-0000-000000000903') $$,
+  'a member writes a line in their own recipe''s word'
+);
+
+select throws_ok(
+  $$ insert into recipe_line_item
+       (household_id, group_id, sub_recipe_id, quantity, recipe_measure_id)
+     values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+             'aaaaaaaa-0000-0000-0000-000000000601',
+             'aaaaaaaa-0000-0000-0000-000000000103', 2,
+             'bbbbbbbb-0000-0000-0000-000000000901') $$,
+  '23503',
+  null,
+  'another household''s word is invisible to them, and refused'
+);
+
+select throws_ok(
+  $$ update recipe_line_item
+        set sub_recipe_id = 'aaaaaaaa-0000-0000-0000-000000000101'
+      where id = 'aaaaaaaa-0000-0000-0000-000000000702' $$,
+  '23514',
+  null,
+  're-pointing the component alone leaves a word that is not its own'
 );
 
 select * from finish();
