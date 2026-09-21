@@ -1,12 +1,6 @@
-/// The macro keypad — the five-slot sentence a person reads a label into.
-///
-/// It lives apart from the ingredient form because a second door types the
-/// same five figures into it: the confirm sheet of a meal eaten OUT, whose
-/// optional fold asks what the canteen printed per portion. The two doors mean
-/// different things by the numbers — the form stores per 100 of a basis, the
-/// sheet stores what one plate was worth — and that difference belongs to the
-/// hosts. What must not differ is the control: one keypad, one set of widths,
-/// one rule about the fifth slot.
+/// The macro keypad: the five-slot sentence a person reads a label into. Shared
+/// by the ingredient form (per 100 of a basis) and the meal-out confirm sheet
+/// (per portion); what the numbers mean belongs to the host.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -18,34 +12,22 @@ import '../../../shared/inline_amount_field.dart';
 import 'ingredient_view_models.dart';
 import 'macros_format.dart';
 
-/// The macro inputs, as one **sentence**: `[285.7] kcal · [0] protein ·
-/// [21.4] carb · [21.4] fat · [ ] fibre`.
+/// The macro inputs as one sentence: `[285.7] kcal · [0] protein · [21.4] carb
+/// · [21.4] fat · [ ] fibre`. The slots are [InlineAmountField]s with the name
+/// after the number, so the five sit on one or two runs.
 ///
-/// They were five tall boxes with a caption under each, which is a form's
-/// height for a line a person reads off a label in one breath. The slots are
-/// the density sentence's own [InlineAmountField] — stripped chrome, a width
-/// that fits the widest plausible reading — with the name after the number the
-/// way a panel prints it, so the five sit on one or two runs instead of five.
-///
-/// The first four are all-or-none — a partial panel would compute totals out
-/// of numbers nobody supplied (invariant 3). **Fibre is optional**
-/// ([Macros.fiber]): a label that prints it fills the fifth slot, one that
-/// does not leaves it blank and the row is complete regardless.
+/// The first four are all-or-none; fibre is optional ([Macros.fiber]).
 class MacroFields extends StatelessWidget {
   const MacroFields({required this.draft, required this.onChanged, super.key});
 
-  /// Seeds the controllers when this widget is (re)built under a new key —
-  /// so it is the DRAFT, not the row: the form re-keys exactly when it has put
-  /// something new in the draft, whether that came from the row (G1) or from a
-  /// barcode scan.
+  /// Seeds the controllers when this widget is built under a new key. The form
+  /// re-keys whenever it puts something new in the draft, from the row or from
+  /// a scan.
   final MacroDraft draft;
   final ValueChanged<MacroDraft> onChanged;
 
-  /// Wide enough for a kcal reading of four digits and a decimal (`1234.5`,
-  /// `285.7`); the gram slots take three and a decimal (`21.4`, `100`), which
-  /// is the density sentence's own slot width. A slot sized for a number
-  /// somebody types into it rather than for one they leave alone — a field
-  /// scrolls, and a run lost to a width nobody fills is a run lost.
+  /// Wide enough for four digits and a decimal of kcal (`1234.5`); the gram
+  /// slots take three and a decimal (`21.4`, `100`).
   static const _kcalWidth = 60.0;
   static const _gramsWidth = 46.0;
 
@@ -64,9 +46,8 @@ class MacroFields extends StatelessWidget {
           // position breaks the moment a slot moves.
           fieldKey: ValueKey('macro-$label'),
           width: label == 'kcal' ? _kcalWidth : _gramsWidth,
-          // Seeded through the display rule, and only seeded: the draft goes
-          // on holding the full figure, so a field nobody touches saves what
-          // it was given rather than what it was showing.
+          // Seeded through the display rule. The draft keeps the full figure,
+          // so an untouched field saves what it was given.
           initial: macroFieldText(seed, energy: label == 'kcal'),
           onChange: (t) => onChanged(put(t)),
           onSubmit: () {},

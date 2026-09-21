@@ -1,28 +1,12 @@
-/// The piece-weight entry — the count-side twin of `DensityEntry` (ADR-0015).
+/// The piece-weight entry, the count-side twin of `DensityEntry` (ADR-0015).
 ///
-/// A density says what a volume of this weighs and unlocks the volume units;
-/// a **piece weight** says what ONE of this weighs and unlocks `piece`. Both
-/// are one number on the row, both are entered as one sentence — "1 piece
-/// weighs `[__]` `[g]`" — and both fold to a headline once stated, because
-/// each is entered once and read often.
-///
-/// **The weight takes a unit**, because a scale prints one and it is not
-/// always the row's basis: "1 onion weighs 4 oz" is a thing a person can read
-/// off a packet, and making them divide by 28.35 first is the arithmetic this
-/// app exists to do. It is converted into the basis on save — the stored fact
-/// is unchanged — and the picker offers only what this row can actually
-/// convert: its own basis family, plus the other one while a density bridges
-/// them (ADR-0009).
-///
-/// It is drawn only where it means something: a row whose default unit is a
-/// count (owner's ruling — `piece` shows only where the default is `piece`).
-/// A count default with no weight is a stranded default, named by the host's
-/// own flag and refused at Save; this widget is where that flag is cleared.
-///
-/// Like `DensityEntry`, **the host decides when the number lands**: the
-/// flesh-out form holds it in its draft until Save, the quantity sheet's
-/// manage state writes it on tap. The widget validates and reports; it knows
-/// no repository.
+/// A piece weight says what one of this weighs and unlocks `piece`. It is
+/// entered as one sentence, "1 piece weighs `[__]` `[g]`", and folds to a
+/// headline once stated. The weight takes a unit and is converted into the
+/// basis on save; the picker offers the row's basis family, plus the other
+/// while a density bridges them (ADR-0009). Drawn only on a row whose default
+/// unit is a count. The host decides when the number lands: the form holds it
+/// in its draft, the quantity sheet writes on tap.
 library;
 
 import 'package:flutter/widgets.dart';

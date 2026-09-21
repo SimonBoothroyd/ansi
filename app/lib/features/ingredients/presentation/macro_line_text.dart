@@ -1,19 +1,10 @@
-/// The macro line where it is DENSE — `197 🔥 · 2P 3C 20F · 1.5 🌾`.
+/// The macro line where it is dense: `197 🔥 · 2P 3C 20F · 1.5 🌾`.
 ///
-/// A picker row, a recipe line under its name, a day's foot, the week's band:
-/// lines that are already one number after another, where `kcal` and `fibre`
-/// spelled out are the two longest things on them and the only two that never
-/// change. Drawn as a flame and a sheaf of wheat after their figures, they
-/// cost a glyph each and the numbers get the width.
-///
-/// **The words stay where there is room**: [formatMacroLine] itself, which is
-/// what a test, a log and a scan card read; the recipe panel's cells; and the
-/// form's own field labels, where a person is typing into the slot the word
-/// names.
-///
-/// **A glyph is not a unit to a screen reader.** Each icon carries the word
-/// it replaced as its semantic label, so the line is still read out as
-/// "kcal" and "fibre".
+/// On picker rows, recipe lines and the week's band, `kcal` and `fibre` are
+/// drawn as a flame and a sheaf of wheat after their figures. The words stay
+/// where there is room: [formatMacroLine], the recipe panel's cells and the
+/// form's field labels. Each icon carries the word it replaced as its semantic
+/// label.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -31,21 +22,15 @@ const kMacroEnergyIcon = FLucideIcons.flame;
 const kMacroFibreIcon = FLucideIcons.wheat;
 
 /// A unit glyph after its number, sized to the line and painted in the line's
-/// own colour so it sits ON the line rather than beside it.
+/// colour.
 ///
-/// **It is centred on the digits, by construction.** The box sits on the
-/// baseline ([PlaceholderAlignment.aboveBaseline]) and is then dropped, in
-/// paint only, by half of what it overshoots the cap height
-/// ([kMonoCapHeight]) — so the glyph's middle lands on the middle of a
-/// figure's ink, which runs from the baseline to the cap.
-/// [PlaceholderAlignment.middle] cannot do that: it centres on the font's
-/// ascent/descent midpoint, which is higher than the digits and moves with
-/// the line's [TextStyle.height], so one glyph rides at a different altitude
-/// on every surface that draws it.
-///
-/// The box is a whole number of logical pixels because Flutter centres an
-/// [Icon]'s glyph inside a box of its own, and a box that lands between
-/// pixels lets that centring drift by up to half of one.
+/// It is centred on the digits: the box sits on the baseline
+/// ([PlaceholderAlignment.aboveBaseline]) and is dropped, in paint only, by
+/// half of what it overshoots the cap height ([kMonoCapHeight]).
+/// [PlaceholderAlignment.middle] centres on the ascent/descent midpoint
+/// instead, which is higher than the digits and moves with [TextStyle.height].
+/// The box is a whole number of logical pixels so the [Icon]'s own centring
+/// cannot drift by half a pixel.
 InlineSpan macroUnitSpan(
   IconData icon, {
   required String label,
@@ -63,16 +48,10 @@ InlineSpan macroUnitSpan(
   );
 }
 
-/// The spans of `197 🔥 · 2P 3C 20F · 1.5 🌾`, in [style].
-///
-/// The order and the separators are [formatMacroLine]'s exactly — the two
-/// renderings of one line must not drift into two — and so is the rule that
-/// an unstated fibre prints nothing at all rather than a zero (invariant 3).
-///
-/// [kcal] and [grams] are the two number formatters, so a surface that adds
-/// up whole days can pass figures with a thousands separator
-/// (`week_macro_widgets.dart`) and still be THIS line rather than a second
-/// one. They print the figure; they never decide which figures appear.
+/// The spans of `197 🔥 · 2P 3C 20F · 1.5 🌾`, in [style]. Order, separators
+/// and the unstated-fibre rule are [formatMacroLine]'s. [kcal] and [grams] are
+/// the number formatters, so a surface summing whole days can add a thousands
+/// separator (`week_macro_widgets.dart`).
 List<InlineSpan> macroLineSpans(
   Macros m, {
   required TextStyle style,

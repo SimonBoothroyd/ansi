@@ -1,13 +1,9 @@
-/// *Choose another ▸* — the USDA short-list a person picks from.
+/// *Choose another ▸*: the USDA short-list a person picks from.
 ///
-/// `usda_food` never syncs to a device (ADR-0005), so this is not a browser
-/// over the reference set: it is the top few answers to ONE question — the name
-/// in the form's field — ranked by how much of that name each food's
-/// description covers. Candidates with nothing to copy (a name and no numbers)
-/// are left out: picking one could fill nothing.
-///
-/// The sheet only *asks and hands back*. What a pick does to a row belongs to
-/// the form that opened it, so there is one place that decides.
+/// `usda_food` never syncs (ADR-0005), so this is the top few answers to one
+/// question, the name in the form's field, ranked by coverage. Candidates with
+/// nothing to copy are left out. The sheet only asks and hands back; the form
+/// decides what a pick does.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -23,17 +19,10 @@ import '../domain/ingredient.dart';
 import '../domain/normalize.dart';
 import '../domain/usda_probe.dart';
 
-/// Opens the short-list and resolves with the pick, or null when the sheet
-/// was closed without one.
-///
-/// [name] is what to ASK about — the form passes the text in its name field,
-/// not the stored row. A query taken from the field cannot be stale, so
-/// nothing has to be written before you may look something up — which a probe
-/// of the row's stored name would require.
-///
-/// [ingredient] is still needed, but only to TAG: the row's current match is
-/// marked rather than offered again, and a food the household declined is
-/// marked as refused.
+/// Opens the short-list and resolves with the pick, or null when closed without
+/// one. [name] is what to ask about: the text in the form's name field, so a
+/// rename can be searched before saving. [ingredient] is used only to tag the
+/// row's current match and a declined food.
 Future<UsdaCandidate?> showUsdaPickSheet(
   BuildContext context, {
   required Ingredient ingredient,
@@ -61,7 +50,7 @@ class UsdaPickSheet extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final probe = ref.read(usdaProbeProvider);
     final matchText = normalizeMatchText(name);
-    // The probe's default limit IS "the next five" (U-D3).
+    // The probe's default limit is the short-list's five.
     final candidates = useFuture(
       useMemoized(() => probe.search(matchText), [matchText]),
     );
@@ -93,14 +82,10 @@ class UsdaPickSheet extends HookConsumerWidget {
   }
 }
 
-/// The candidate rows: description, category, and whether the row answers
-/// every word of the query — with the
-/// row's own current match tagged rather than offered again, and the food a
-/// person declined tagged so they can see what they said no to.
-///
-/// Public so "what a USDA row looks like" has one answer wherever candidates
-/// are drawn. [selected] is a host's highlighted pick; the sheet has none — a
-/// tap there pops.
+/// The candidate rows: description, category, and whether the row answers every
+/// word of the query. The current match and a declined food are tagged. Public
+/// so every surface draws candidates alike. [selected] is a host's highlighted
+/// pick; the sheet has none.
 class UsdaCandidateList extends StatelessWidget {
   const UsdaCandidateList({
     required this.candidates,
@@ -117,9 +102,9 @@ class UsdaCandidateList extends StatelessWidget {
   /// came back" says for what.
   final String queryName;
 
-  /// The row being re-chosen, if any: its current `usda_fdc:` match reads
-  /// *current* and is not offered; a declined row's refused food reads
-  /// *declined* (matched by label — the decline keeps no id) and is.
+  /// The row being re-chosen, if any. Its current `usda_fdc:` match reads
+  /// *current* and is not offered; a declined food reads *declined* (matched by
+  /// label, since the decline keeps no id) and is.
   final Ingredient? current;
 
   /// The candidate a leg has highlighted, by FDC id.

@@ -1052,8 +1052,8 @@ class _DetailForm extends ConsumerWidget {
           else
             const SizedBox.shrink(),
 
-          // Field order follows the board: name, aliases, category and default
-          // unit, macros, density.
+          // Field order: name, aliases, category and default unit, macros,
+          // density.
           _Group(
             title: 'Identity',
             children: [
@@ -1621,8 +1621,8 @@ class _ScanResult extends StatelessWidget {
                 : 'nothing to fill in — every field it could answer already '
                       'had an answer.',
           ),
-          // The pack size is an OFFER (F2's ruling, kept on the form): a
-          // measure lands only because it was tapped.
+          // The pack size is an offer: a measure lands only because it was
+          // tapped.
           if (pack != null && !packAdded)
             Padding(
               padding: const EdgeInsets.only(top: 6),
@@ -2199,8 +2199,8 @@ class _DidYouMean extends StatelessWidget {
   }
 }
 
-/// The board's `ghostbtn`: a secondary action that reads as available
-/// without competing with the screen's primary CTA.
+/// A secondary action that reads as available without competing with the
+/// screen's primary CTA.
 class _GhostButton extends StatelessWidget {
   const _GhostButton({required this.label, required this.onTap});
 
@@ -2298,8 +2298,8 @@ class _StatusStrip extends StatelessWidget {
 
   final Ingredient ingredient;
 
-  /// A row that does not exist yet (C2). It says so plainly rather than
-  /// calling itself a stub, which is a thing a SAVED row is.
+  /// A row that does not exist yet. It says so rather than calling itself a
+  /// stub, which only a saved row is.
   final bool creating;
 
   @override

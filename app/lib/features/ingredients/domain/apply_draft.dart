@@ -1,16 +1,10 @@
-/// How a barcode draft lands on an ingredient. Pure Dart.
-///
-/// The ingredient form applies every [IngredientDraft] through [applyDraft],
-/// whether or not the row exists yet:
+/// How a barcode draft lands on an ingredient, through [applyDraft]. Pure Dart.
 ///
 /// - A draft fills what is empty and leaves what a human typed alone.
 /// - Provenance becomes `off:<barcode>` unless the row already names its food
-///   ([hasLookupProvenance]). A seed row still holding the seed's numbers is
-///   the exception and stays unattributed. The stamp travels with
-///   [DraftApplication.sourceLabel].
-/// - `status` is untouched; the human confirms the row.
-/// - A pack size is an offer, never a write, and only when it converts into the
-///   row's basis (ADR-0008; a barcode carries no density).
+///   ([hasLookupProvenance]); a seed row still holding the seed's numbers stays
+///   unattributed.
+/// - `status` is untouched, and a pack size is only ever an offer.
 ///
 /// What was skipped is reported by name so the host can say so.
 library;

@@ -15,7 +15,7 @@ import 'name_namespace.dart';
 
 /// What a [IngredientRepository.softDelete] attempt did. Deletion is refused
 /// while a live line points at the row, and the refusal carries the counts the
-/// screen shows. The counted set must match migration 0041's trigger: live
+/// screen shows. The counted set must match the server's delete trigger: live
 /// recipe lines in live groups of live recipes, plus the week's lines.
 sealed class DeleteOutcome {
   const DeleteOutcome();
@@ -39,8 +39,8 @@ final class DeleteRefused extends DeleteOutcome {
   final int lineCount;
 
   /// Live week lines naming the row: a bare-ingredient `plan_entry` or a
-  /// `week_recipe_line_override`. Counted because migration 0041 counts them,
-  /// and a delete the server refused would block the sync queue.
+  /// `week_recipe_line_override`. The server's trigger counts them too, and a
+  /// delete it refused would block the sync queue.
   final int plannedCount;
 }
 
@@ -123,8 +123,8 @@ class PendingAlias {
   final String text;
 }
 
-/// The density, three-valued: untouched, set, or deliberately removed. The
-/// removal is D4b's strip leg and the one place the allowed list shrinks.
+/// The density, three-valued: untouched, set, or deliberately removed. Removal
+/// strips the units it unlocked, the one place the allowed list shrinks.
 sealed class DensityChange {
   const DensityChange();
 }
@@ -280,7 +280,7 @@ abstract interface class IngredientRepository {
   /// stamp ([IngredientEdit.source]).
   Future<Ingredient?> declineUsdaPrefill(String ingredientId);
 
-  // --- The manager's write half (step 8.5) -----------------------------------
+  // --- The manager's write half ---------------------------------------------
 
   /// The whole live vocabulary, ordered by canonical name, as a watched query.
   /// Carries the same `measureCount` the picker rows do.

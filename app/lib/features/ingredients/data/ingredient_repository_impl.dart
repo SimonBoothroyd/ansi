@@ -40,8 +40,7 @@ final _volumeLabelList = [
       ],
 ].map((l) => "'$l'").join(', ');
 
-/// Distinct live labels, excluding volume-unit labels: what the chip row
-/// actually offers after merge-on-read.
+/// Distinct live labels the chip row offers, excluding volume-unit labels.
 final _measureCount =
     '(SELECT COUNT(DISTINCT m.label) FROM ingredient_measure m '
     'WHERE m.ingredient_id = i.id AND m.deleted_at IS NULL '
@@ -112,8 +111,8 @@ class SqliteIngredientRepository implements IngredientRepository {
     final rows = await _db.getAll(
       'SELECT i.*, $_measureCount, $_aliasText FROM ingredient i '
       'WHERE $where '
-      // A stable page, ranked in Dart afterwards. The ORDER BY is
-      // [searchRank]'s own tie-break, so the LIMIT keeps the right rows.
+      // A stable page; the ORDER BY is [searchRank]'s tie-break, so the LIMIT
+      // keeps the right rows.
       'ORDER BY length(i.canonical_name), i.canonical_name '
       'LIMIT ?',
       [...params, limit],
@@ -122,8 +121,7 @@ class SqliteIngredientRepository implements IngredientRepository {
       return (rows: _rank(query, rows, limit: limit), guessed: false);
     }
 
-    // Nothing matched by spelling: score every live row for the typo tier,
-    // which may honestly return nothing.
+    // Nothing matched by spelling: score every live row for the typo tier.
     return _typoSearch(query, limit: limit);
   }
 
@@ -181,8 +179,8 @@ class SqliteIngredientRepository implements IngredientRepository {
     return scored;
   }
 
-  /// One row's searchable surface: its `match_text`, each live alias's
-  /// `match_text`, and the character-normalized raw name.
+  /// One row's searchable surface: its `match_text`, its live aliases', and the
+  /// character-normalized raw name.
   List<String> _surfaces(Row r) => [
     (r['match_text'] as String?) ?? '',
     ...((r['alias_text'] as String?) ?? '').split('\n'),
@@ -191,8 +189,8 @@ class SqliteIngredientRepository implements IngredientRepository {
 
   @override
   Future<List<Ingredient>> recentlyUsed({int limit = 8}) async {
-    // "Used" = referenced by a live recipe line or a manual shopping top-up;
-    // the newest reference wins. Mirrors what a cook actually reaches for.
+    // "Used" means referenced by a live recipe line or a manual shopping
+    // top-up; the newest reference wins.
     final rows = await _db.getAll(
       'SELECT i.*, $_measureCount, MAX(u.used_at) AS last_used '
       'FROM ingredient i '
@@ -235,8 +233,7 @@ class SqliteIngredientRepository implements IngredientRepository {
   @override
   Future<Map<String, Ingredient>> byIds(Set<String> ids) async {
     if (ids.isEmpty) return const {};
-    // Ids are uuids we minted or synced, never user text; they still ride as
-    // bound parameters rather than being interpolated into the SQL.
+    // Ids ride as bound parameters, never interpolated into the SQL.
     final placeholders = List.filled(ids.length, '?').join(', ');
     final rows = await _db.getAll(
       'SELECT i.*, $_measureCount FROM ingredient i '
@@ -295,8 +292,7 @@ class SqliteIngredientRepository implements IngredientRepository {
 
   @override
   Future<Ingredient?> clearDensity(String ingredientId) async {
-    // Read-modify-write for the same reason [setDensity] is: the list written
-    // back is derived from the row as it is read.
+    // Read-modify-write in one transaction, as in [setDensity].
     final now = DateTime.now().toUtc().toIso8601String();
     final updated = await _db.writeTransaction((tx) async {
       final row = await tx.getOptional(
@@ -372,8 +368,7 @@ class SqliteIngredientRepository implements IngredientRepository {
     if (!(amount > 0)) {
       throw ArgumentError.value(amount, 'amount', 'must be a positive number');
     }
-    // Read-modify-write, one transaction, for the reason [setDensity] gives:
-    // the list written back is derived from the row as it is read.
+    // Read-modify-write in one transaction, as in [setDensity].
     final now = DateTime.now().toUtc().toIso8601String();
     final updated = await _db.writeTransaction((tx) async {
       final row = await tx.getOptional(
@@ -383,8 +378,8 @@ class SqliteIngredientRepository implements IngredientRepository {
       );
       if (row == null) return false;
       final current = _toIngredient(row);
-      // What the weight unlocks joins the explicit list in the same write —
-      // `piece`, on a count-default row; nothing on any other (ADR-0015).
+      // The weight unlocks `piece` on a count-default row, in the same write
+      // (ADR-0015).
       final unlocked = {
         ...current.allowedUnits ?? defaultAllowedUnitSet(current),
         ...pieceUnlockedUnits(current),
@@ -439,7 +434,7 @@ class SqliteIngredientRepository implements IngredientRepository {
       {...current.allowedUnits ?? defaultAllowedUnitSet(current)}
         ..removeAll(pieceStrippedUnits(current));
 
-  // --- The manager's write half (step 8.5) -----------------------------------
+  // --- The manager's write half ---------------------------------------------
 
   @override
   Stream<List<Ingredient>> watchVocabulary() => _db
@@ -474,8 +469,8 @@ class SqliteIngredientRepository implements IngredientRepository {
 
   @override
   Future<List<NameEntry>> nameIndex() async {
-    // Names and aliases in ONE result set, in one shape, because they are one
-    // namespace — two queries would invite two rules for reading them.
+    // Names and aliases in one result set and one shape: they are one
+    // namespace.
     final rows = await _db.getAll(
       'SELECT i.id AS ingredient_id, i.canonical_name, '
       'i.canonical_name AS text, i.match_text, 0 AS is_alias '
@@ -602,8 +597,7 @@ class SqliteIngredientRepository implements IngredientRepository {
         }
       }
       if (creating) {
-        // Born a stub whatever arrived: filling a form in never promotes a
-        // row — only `markComplete` does, which is a human tapping the CTA.
+        // Born a stub whatever arrived: only `markComplete` promotes a row.
         await tx.execute(
           'INSERT INTO ingredient (id, household_id, canonical_name, '
           'default_unit, status, match_text, created_at, updated_at) '
@@ -611,8 +605,8 @@ class SqliteIngredientRepository implements IngredientRepository {
           [id, _householdId, name, normalizeMatchText(name), now, now],
         );
       }
-      // The row AS IT STANDS — the status the CTA may flip, and the four facts
-      // the edited flag is decided against (see [_sourceEditedPatch]).
+      // The row as it stands: its status, and the facts [_sourceEditedPatch]
+      // compares against.
       final row = await tx.getOptional(
         'SELECT status, source, macros, macros_basis, density_g_per_ml '
         'FROM ingredient WHERE id = ? AND deleted_at IS NULL',
@@ -704,8 +698,7 @@ class SqliteIngredientRepository implements IngredientRepository {
           break;
       }
 
-      // Removals first, so a label freed in this same save can be re-added in
-      // it without the two rows coexisting even momentarily.
+      // Removals first, so a label freed in this save can be re-added in it.
       for (final id in edit.measuresRemoved) {
         await tx.execute(
           'UPDATE ingredient_measure SET deleted_at = ?, updated_at = ? '
@@ -852,8 +845,7 @@ class SqliteIngredientRepository implements IngredientRepository {
       'AND gr.deleted_at IS NULL AND r.deleted_at IS NULL',
       [ingredientId],
     );
-    // A bare-ingredient meal (0033) and a this-week swap (0040), each only in
-    // a live week.
+    // A bare-ingredient meal and a this-week swap, each only in a live week.
     final planned = await _db.get(
       'SELECT (SELECT COUNT(*) FROM plan_entry pe '
       'JOIN week_plan wp ON wp.id = pe.week_plan_id '

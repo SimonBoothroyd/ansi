@@ -1,31 +1,18 @@
-/// [UsdaProbe] over the `probe_usda` RPC (migrations 0016 + 0027).
+/// [UsdaProbe] over the `probe_usda` RPC.
 ///
-/// The one place in the app that talks to Supabase REST about ingredients.
-/// That is a deliberate exception to "reads come from PowerSync's local
-/// SQLite", and it is the same exception ADR-0005 already forces: `usda_food`
-/// is not synced and never will be, so the only way to ask it anything is to
-/// ask the server. The answer is a short-list of candidates, and a pick is
-/// applied through the ordinary local write path — nothing here bypasses
-/// sync.
-///
-/// **Every failure is an empty list.** No connection, no session, a PostgREST
-/// error, a shape the migration does not promise: all of them mean "nothing
-/// came back", because the 0014/0015 trigger is still there and still
-/// enriches the row when it uploads. Turning a network miss into an exception
-/// here would put an error dialog in front of a user whose only crime was
-/// being on a train (board frame f: a failure comes back to the form with the
-/// reason under it, never as a dialog).
+/// The one place the app talks to Supabase REST about ingredients, because
+/// `usda_food` is never synced (ADR-0005). A pick is applied through the
+/// ordinary local write path. Every failure (no connection, no session, a
+/// PostgREST error, an unexpected shape) is an empty list, never an exception
+/// or a dialog.
 library;
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/usda_probe.dart';
 
-/// How long to wait before deciding the server is not going to answer.
-///
-/// Short on purpose: a creation flow awaits this before opening the form, so
-/// the cost of being offline must be a beat, not a stall. The trigger path
-/// picks up whatever this misses.
+/// How long to wait for the server. Short on purpose, so being offline costs a
+/// beat, not a stall.
 const _probeTimeout = Duration(seconds: 4);
 
 class SupabaseUsdaProbe extends UsdaProbe {
@@ -62,9 +49,8 @@ class SupabaseUsdaProbe extends UsdaProbe {
   }
 }
 
-/// The probe when there is no backend configured — a dev build with no
-/// `--dart-define`s, and every widget test. Answers nothing, which is exactly
-/// what an offline device answers, so no caller needs a second code path.
+/// The probe when no backend is configured (dev builds without
+/// `--dart-define`s, widget tests). Answers nothing, as an offline device does.
 class UnconfiguredUsdaProbe extends UsdaProbe {
   const UnconfiguredUsdaProbe();
 

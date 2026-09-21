@@ -1,20 +1,20 @@
 /// The phrase-level ingredient normalizer. Pure Dart.
 ///
 /// A port of `supabase/functions/_shared/normalize.ts`, which stays
-/// authoritative for the server. The shared vectors in
+/// authoritative. The shared vectors in
 /// `test/features/ingredients/normalize_vectors.json` pin the two together:
 /// change one, change both, and extend the vectors.
 ///
-/// In order, it: 1. lowercases, turns hyphens into word breaks and folds Latin
-/// diacritics; 2. splits trailing comma modifiers off the head; 3. drops
-/// non-identity words: quantities (fused ones like "400g" too), filler,
-/// measures, sizes, prep adverbs and prep verbs; 4. keeps state words that
-/// change identity (fresh, ground, canned) and moves them after the noun,
-/// folding British forms first (tinned → canned); 5. singularizes what remains.
+/// 1. Lowercase, turn hyphens into word breaks, fold Latin diacritics.
+/// 2. Split trailing comma modifiers off the head.
+/// 3. Drop non-identity words: quantities ("400g" too), filler, measures,
+///    sizes, prep adverbs and verbs.
+/// 4. Keep state words that change identity (fresh, ground, canned), moved
+///    after the noun; British forms fold first (tinned → canned).
+/// 5. Singularize what remains.
 ///
 /// Never move a word into a strip set to make one match work: "ground ginger"
-/// is not "fresh ginger". [displayWords] reads the same classes to pick the
-/// words a person should still see.
+/// is not "fresh ginger".
 library;
 
 import '../../../core/search/search_query.dart'

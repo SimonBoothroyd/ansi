@@ -1,15 +1,8 @@
-/// The unit chip row — the dock every quantity surface rides.
-///
-/// The chip itself is [UnitChip], in `shared/`, because a third surface wears
-/// one outside any row: the amount-and-unit control's sentence. This row is
-/// the part that draws a whole **offer**.
-///
-/// It is handed a prebuilt [UnitChoiceOffer] and draws it; which entries an
-/// offer holds, and in what order, is the domain's answer —
-/// `allowedUnitChoicesFor` for an ingredient, `componentUnitChoices` for a
-/// sub-recipe component line. That is why one widget serves both: a chip row
-/// is a way of saying a list of choices, and the two surfaces disagree about
-/// the list rather than about the saying.
+/// The unit chip row that every quantity surface docks above the keyboard. The
+/// chip itself is [UnitChip], in `shared/`. This row draws a prebuilt
+/// [UnitChoiceOffer]; the domain decides its entries and order
+/// (`allowedUnitChoicesFor` for an ingredient, `componentUnitChoices` for a
+/// component line).
 library;
 
 import 'package:flutter/widgets.dart';
@@ -22,13 +15,10 @@ import '../../../shared/unit_chip.dart';
 import '../domain/serving_measure.dart';
 import 'measures_editor.dart' show SourceDot;
 
-/// The chip row in the order its [offer] hands it, with the imprecise tail set
-/// off by a divider, the off-filter entry marked *not in filter*, and the `+`
-/// manage chip last where the host has a manage state to open.
-///
-/// Horizontally scrollable; docked directly above the keyboard by the host
-/// sheet. On open it scrolls the selected chip into view — a stored selection
-/// can sit deep in a long row and must not open off-screen.
+/// The chip row in its [offer]'s order, with the imprecise tail after a
+/// divider, the off-filter entry marked *not in filter*, and the `+` manage
+/// chip last where the host has one. Horizontally scrollable; on open it
+/// scrolls the selected chip into view.
 class UnitChipRow extends StatefulWidget {
   const UnitChipRow({
     required this.offer,
@@ -39,28 +29,22 @@ class UnitChipRow extends StatefulWidget {
     super.key,
   });
 
-  /// The whole offer, including the stored selection the domain filter
-  /// admitted from outside itself (`offFilter`) — a merge-hidden duplicate
-  /// measure, a no-longer-allowed unit, a word whose `makes` has gone. The
-  /// host builds it, because only the host knows which filter it is asking.
+  /// The whole offer, including a stored selection admitted from outside the
+  /// filter (`offFilter`). The host builds it.
   final UnitChoiceOffer offer;
 
-  /// The live selection, or null where the line has no honest denomination to
-  /// preselect: a component line whose recipe measure has been retired keeps
-  /// its pointer with **no** chip lit, so nothing on the row claims to be what
-  /// the line says.
+  /// The live selection, or null when the line has nothing to preselect, e.g. a
+  /// component line whose recipe measure was retired.
   final UnitChoice? selected;
   final ValueChanged<UnitChoice> onSelect;
 
-  /// Opens the host's manage-measures state, or null where the host has none
-  /// — the price sheet, where the pack is a purchase and not a vocabulary
-  /// edit. Null draws no `+` chip rather than one that does nothing.
+  /// Opens the host's manage-measures state. Null draws no `+` chip (the price
+  /// sheet has none).
   final VoidCallback? onManage;
 
-  /// What a `piece` chip says on this host — `piece (350 g)` on an ingredient
-  /// row that states what one weighs (`pieceChipLabel`, ADR-0015: a count is
-  /// only a unit there because the row says what one comes to). Null keeps the
-  /// bare word, which is all a recipe's count yield can honestly say.
+  /// What a `piece` chip says on this host: `piece (350 g)` on an ingredient
+  /// row with a piece weight (`pieceChipLabel`, ADR-0015). Null keeps the bare
+  /// word.
   final String? pieceLabel;
 
   @override
@@ -83,8 +67,8 @@ class _UnitChipRowState extends State<UnitChipRow> {
   }
 
   /// A measure chip carries the bare label; its weight shows in the
-  /// selected-choice line, not on every chip. `piece` is the one unit that can
-  /// carry its weight ON the chip (ADR-0015), and only where the host says so.
+  /// selected-choice line. Only `piece` can carry its weight on the chip
+  /// (ADR-0015), and only where the host says so.
   String _label(UnitChoice choice) => switch (choice) {
     MeasureOption(:final measure) => measureChipLabel(measure),
     RecipeMeasureOption(:final measure) => measure.label,
@@ -93,9 +77,8 @@ class _UnitChipRowState extends State<UnitChipRow> {
     UnitOption(:final unit) => unit.label,
   };
 
-  /// The source dot an INGREDIENT's measure wears — USDA, a borrow, an
-  /// estimate, the household's own. A recipe's words have one source and it is
-  /// the household that wrote the recipe, so they wear none.
+  /// The source dot an ingredient's measure wears. A recipe's own measures wear
+  /// none.
   Widget? _dot(UnitChoice choice) => switch (choice) {
     MeasureOption(:final measure) => SourceDot(kind: measure.sourceKind),
     RecipeMeasureOption() || UnitOption() => null,
@@ -110,11 +93,9 @@ class _UnitChipRowState extends State<UnitChipRow> {
         : offer.choices.sublist(0, offer.choices.length - 1);
 
     final children = <Widget>[];
-    // The divider marks where the words the offer merely ADMITS begin — the
-    // imprecise tail. A row whose own default unit is an imprecise word leads
-    // the catalog with it (owner), so that leading word is on the near side of
-    // the divider: the tail is the first imprecise chip with a precise one
-    // already behind it.
+    // The divider goes before the first imprecise chip that has a precise one
+    // behind it, so a row whose default unit is an imprecise word still leads
+    // with it.
     var dividerPlaced = false;
     var seenPreciseUnit = false;
     for (final c in inFilter) {
@@ -169,9 +150,8 @@ class _UnitChipRowState extends State<UnitChipRow> {
 
     return SizedBox(
       height: kUnitChipHeight,
-      // A single scrollable Row (not a lazy ListView): every chip keeps a
-      // live context, so the open-scroll can ensureVisible the selected one
-      // even when it sits past the fold.
+      // A single scrollable Row, not a lazy ListView: every chip keeps a live
+      // context, so ensureVisible can reach the selected one past the fold.
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(children: children),

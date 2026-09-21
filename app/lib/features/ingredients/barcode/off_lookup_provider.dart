@@ -1,15 +1,9 @@
-/// The Open Food Facts reader, as a provider — the barcode path's one injection
-/// seam.
+/// The Open Food Facts reader as a provider: the barcode path's injection seam.
 ///
-/// `scanBarcodeForDraft` takes an [OffLookup] parameter, which is how the
-/// *widget* tests reach in. That hook does not reach the **integration**
-/// harness: there the scan is opened from the ingredient form, deep inside a
-/// real navigation stack that nothing outside can pass a parameter through. So
-/// the default arrives by provider instead, and `make test-sim` overrides it —
-/// one `ProviderScope` override, every other collaborator real.
-///
-/// Production call sites pass no lookup and get a real keyless client aimed at
-/// Open Food Facts.
+/// Widget tests pass an [OffLookup] to `scanBarcodeForDraft`, but the
+/// integration harness opens the scan deep inside a real navigation stack, so
+/// there the default arrives by provider and `make test-sim` overrides it.
+/// Production gets a real keyless client.
 library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -18,13 +12,9 @@ import 'off_lookup.dart';
 
 part 'off_lookup_provider.g.dart';
 
-/// The app's Open Food Facts client.
-///
-/// `keepAlive` because it wraps one long-lived `http.Client`: rebuilding it
-/// per sheet would open and drop a connection pool on every scan. It is closed
-/// with the container rather than with any one surface, which is also why the
-/// scan sheet must not close what it did not make — see `BarcodeScanSheet`'s
-/// ownership rule.
+/// The app's Open Food Facts client. `keepAlive` because it wraps one
+/// long-lived `http.Client`. It is closed with the container, so the scan sheet
+/// must not close a lookup it did not make.
 @Riverpod(keepAlive: true)
 OffLookup offLookup(Ref ref) {
   final lookup = OffLookup();

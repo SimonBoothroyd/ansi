@@ -169,8 +169,8 @@ Widget _defaultCameraPane(BuildContext context, ValueChanged<String> onCode) =>
     ? const CameraOffNotice(permissionDenied: false)
     : _MobileScannerPane(onCode: onCode);
 
-/// The plugin's preview, with permission refusal rendered as a designed state
-/// rather than a crash (board frame: "camera is off").
+/// The plugin's preview, with a permission refusal rendered as a designed state
+/// rather than a crash.
 class _MobileScannerPane extends StatefulWidget {
   const _MobileScannerPane({required this.onCode});
 
@@ -359,8 +359,7 @@ Future<void> _openSettings() async {
   }
 }
 
-/// The lookup's honest failure states (board frame "When it doesn't work").
-/// Every one of them offers a way on.
+/// The lookup's failure states. Each offers a way on.
 class BarcodeFailurePanel extends StatelessWidget {
   const BarcodeFailurePanel({
     required this.failure,

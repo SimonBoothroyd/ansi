@@ -1,16 +1,11 @@
 /// The one surface for editing a quantity and unit: recipe lines, the shopping
 /// add sheet, the edit-top-up sheet.
 ///
-/// The everyday state shows the ingredient card, the quantity input, the chip
-/// row, the live conversion line and Done. The `+` chip opens the
-/// manage-measures state. The sheet bottom-pads itself by `viewInsets` instead
-/// of mounting a keyboard-accessory view.
-///
-/// A caller that names no choice opens on the first chip offered
-/// (`firstOfferedChoice`, ADR-0016); the measures land a frame later, so the
-/// seed moves once and never after a tap. Deleting the selected measure resets
-/// the choice to the default unit with a note, so Done never writes a
-/// tombstoned `measure_id`.
+/// It shows the ingredient card, the quantity input, the chip row, the live
+/// conversion line and Done; the `+` chip opens the manage-measures state. A
+/// caller that names no choice opens on the first chip offered
+/// (`firstOfferedChoice`, ADR-0016). Deleting the selected measure resets the
+/// choice to the default unit, so Done never writes a tombstoned `measure_id`.
 library;
 
 import 'package:flutter/widgets.dart';

@@ -115,13 +115,9 @@ String? densityAsideFact(Ingredient ingredient, {Measure? serving}) {
   return '${formatDensity(density)} g/ml';
 }
 
-/// Which amount and unit this row's density is said in. The fact sheet and the
-/// density entry both read it, so a number entered as "1 tsp weighs 5 g" reads
-/// back and reopens that way.
-///
-/// In order: 1. the row's serving, when it is a volume; 2. its default unit,
-/// when that is a volume; 3. [kDensityReadingUnit].
-///
+/// Which amount and unit this row's density is said in, read by both the fact
+/// sheet and the density entry: the row's serving when it is a volume, else its
+/// default unit when that is a volume, else [kDensityReadingUnit].
 /// `fromServing` says whether the first leg won; the fact sheet then moves the
 /// `g/ml` into an aside.
 ({double amount, Unit unit, bool fromServing}) densityReading(

@@ -21,8 +21,7 @@ import 'ingredient_facts.dart';
 import 'unit_chips.dart';
 
 /// The household's store words as chips, with a plus that names a new one.
-///
-/// [onCoined] receives the trimmed word. It can fire after this widget is
+/// [onCoined] receives the trimmed word and can fire after this widget is
 /// unmounted, so a host must not touch a disposed `ref` or hook inside it.
 class StoreChipRow extends StatelessWidget {
   const StoreChipRow({

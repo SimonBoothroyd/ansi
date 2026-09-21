@@ -1,15 +1,6 @@
-/// The one muted line under the macro fields that says a panel argues with
-/// itself.
-///
-/// It sits in the derivation's slot and wears its clothes — same size, same
-/// muted mono — because it is the same kind of remark: something the app
-/// noticed about the figures on screen, said before Save rather than
-/// discovered in a week's totals afterwards. **It blocks nothing.** The
-/// refusal voice belongs to the dock, and a panel a person read off a pack is
-/// theirs whatever the arithmetic thinks of it.
-///
-/// The rule itself is [macrosDoubt], in `core/units` — this file is only how
-/// a person hears it.
+/// The muted line under the macro fields that says a panel disagrees with
+/// itself. It sits in the derivation's slot and blocks nothing. The rule is
+/// [macrosDoubt], in `core/units`.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -23,10 +14,9 @@ import 'macros_format.dart';
 class MacrosDoubtLine extends StatelessWidget {
   const MacrosDoubtLine({required this.stored, super.key});
 
-  /// What Save would STORE, per 100 of the basis — the figures the doubt is
-  /// about. Null while the panel is blank, half-typed, or waiting on a
-  /// serving amount, and the line then says nothing: there is no arithmetic
-  /// to doubt yet.
+  /// What Save would store, per 100 of the basis. Null while the panel is
+  /// blank, half-typed or waiting on a serving amount; the line then says
+  /// nothing.
   final Macros? stored;
 
   @override

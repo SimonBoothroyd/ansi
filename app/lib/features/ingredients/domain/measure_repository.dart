@@ -1,13 +1,11 @@
 /// Read/write access to an ingredient's named measures ("potato, large = 299
 /// g"). Pure Dart.
 ///
-/// Measures are per-household vocab rows, synced and watched like ingredients.
-///
 /// Duplicate labels merge on read. No unique index guards `(ingredient_id,
-/// label)`, because an offline duplicate would fail upload and drop the whole
-/// crud transaction. Every device converges on the oldest live row per label
-/// (`created_at`, then `id`); newer duplicates are hidden, never deleted, so a
-/// line referencing one still resolves.
+/// label)`, because an offline duplicate would fail upload. Every device
+/// converges on the oldest live row per label (`created_at`, then `id`); newer
+/// duplicates are hidden, never deleted, so a line referencing one still
+/// resolves.
 library;
 
 import 'package:meta/meta.dart';
@@ -72,8 +70,8 @@ abstract interface class MeasureRepository {
   /// count in the shop, so a delete is refused while this is not zero.
   Future<MeasureUsage> countLinesUsing(String measureId);
 
-  /// Soft-deletes one measure (tombstone, spec §3). A line item referencing
-  /// it degrades to its honest stored count — never an invented amount.
+  /// Soft-deletes one measure (a tombstone). A line item referencing it
+  /// degrades to its stored count, never an invented amount.
   Future<void> softDeleteMeasure(String measureId);
 }
 

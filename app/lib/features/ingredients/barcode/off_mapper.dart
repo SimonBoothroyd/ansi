@@ -128,15 +128,15 @@ DraftServing? _printedServing(Map<String, Object?> p, MacrosBasis basis) {
 
 /// Which 100 the panel is per: grams or millilitres. Strongest evidence first:
 ///
-/// 1. `nutrition_data_per` naming ml, however spelt. 2. The net quantity on the
-/// pack ("1,5 l", "1 kg"). 3. The mass or volume printed in parentheses beside
-/// the serving (`1 Cup (237 mL)`). 4. `serving_quantity_unit`. Weaker: OFF
-/// derives it from free text, and a US "1 cup (62 g)" of dry macaroni comes
-/// back as `ml`. 5. OFF's category taxonomy (`en:beverages`). Last: the drinks
-/// branch also holds beans and powders.
+/// 1. `nutrition_data_per` naming ml, however spelt.
+/// 2. The net quantity on the pack ("1,5 l", "1 kg").
+/// 3. The mass or volume printed in parentheses beside the serving.
+/// 4. `serving_quantity_unit`. Weaker: OFF derives it from free text, and a US
+///    "1 cup (62 g)" of dry macaroni comes back as `ml`.
+/// 5. OFF's category taxonomy (`en:beverages`), which also holds powders.
 ///
-/// A `nutrition_data_per` of `100g` is not evidence; it is OFF's form default,
-/// so it is treated as unstated.
+/// A `nutrition_data_per` of `100g` is OFF's form default, so it is treated as
+/// unstated.
 MacrosBasis _basisFor(Map<String, Object?> p) {
   if (_perKey(p)?.endsWith('ml') ?? false) return MacrosBasis.perMl;
 

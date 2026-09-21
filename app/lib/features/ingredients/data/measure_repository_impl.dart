@@ -21,11 +21,9 @@ class SqliteMeasureRepository implements MeasureRepository {
   /// The household stamped on rows this repo writes.
   final String _householdId;
 
-  // Both reads below spell their SELECT out in full rather than sharing an
-  // interpolated constant: `watch_coverage_test` reads these queries as
-  // literals to hold the LEFT-JOIN watch trap, and a `'$fragment WHERE …'`
-  // string is invisible to it. The row→list rule is shared in [_merge], which
-  // is the half that could actually drift.
+  // Both reads spell their SELECT out in full: `watch_coverage_test` reads
+  // these queries as literals and cannot see an interpolated fragment. The
+  // row→list rule is shared in [_merge].
 
   /// One ingredient's rows through [mergeByLabel] — the shared body of
   /// [watchMeasures] and [measuresByIngredients].
@@ -69,11 +67,10 @@ class SqliteMeasureRepository implements MeasureRepository {
     return {for (final e in byIngredient.entries) e.key: _merge(e.value)};
   }
 
-  /// The ingredient join supplies the basis its amounts are denominated in
-  /// (macros_basis is the single stored fact — ADR-0008); LEFT, so a measure
-  /// whose vocab row hasn't synced yet still lists (basis falls back per-g),
-  /// and with a SELECTed column so the watch re-fires on ingredient edits too
-  /// (the LEFT-JOIN watch trap).
+  /// The ingredient join supplies the basis the amounts are in (ADR-0008).
+  /// LEFT, so a measure whose vocab row has not synced still lists (basis falls
+  /// back to per-g), and with a selected column so the watch fires on
+  /// ingredient edits (SQLite drops an unselected LEFT JOIN).
   @override
   Stream<List<Measure>> watchMeasures(String ingredientId) {
     return _db
@@ -95,10 +92,9 @@ class SqliteMeasureRepository implements MeasureRepository {
     required String label,
     required double amount,
   }) async {
-    // Validated at the repository, not just the sheet's form (post-7.7
-    // review): every write path — future import included — must hold the
-    // same lines. Volume-named labels would shadow density-owned conversion;
-    // a non-positive/NaN amount could never convert honestly (invariant 3).
+    // Validated here so every write path holds the same rules: a volume-named
+    // label would shadow density, and a non-positive or NaN amount cannot
+    // convert.
     final trimmed = measureLabelAsAuthored(label);
     if (trimmed.isEmpty) {
       throw ArgumentError.value(label, 'label', 'must not be empty');
@@ -119,17 +115,15 @@ class SqliteMeasureRepository implements MeasureRepository {
     late final int sortOrder;
     late final MacrosBasis basis;
     await _db.writeTransaction((tx) async {
-      // The basis the amount is denominated in is the ingredient's single
-      // stored fact (ADR-0008) — read it so the returned Measure labels
-      // itself honestly ("200 ml" of a per-ml ingredient).
+      // The amount's basis is the ingredient's (ADR-0008); read it so the
+      // returned Measure labels itself correctly.
       final ing = await tx.getOptional(
         'SELECT macros_basis FROM ingredient WHERE id = ?',
         [ingredientId],
       );
       basis = MacrosBasis.fromDb(ing?['macros_basis'] as String?);
-      // After the existing measures. A plain INSERT, never ON CONFLICT
-      // (view-backed local tables reject UPSERT), and no label collision
-      // check — a duplicate merges on read instead of failing anywhere.
+      // After the existing measures. A plain INSERT: view-backed local tables
+      // reject UPSERT. No label-collision check; duplicates merge on read.
       final row = await tx.get(
         'SELECT COALESCE(MAX(sort_order), -1) AS m FROM ingredient_measure '
         'WHERE ingredient_id = ? AND deleted_at IS NULL',
@@ -207,9 +201,8 @@ class SqliteMeasureRepository implements MeasureRepository {
           'renames the serving — it is stated in the nutrition section',
         );
       }
-      // Exactly the key the merge deduplicates on, so this refuses the
-      // renames that would otherwise hide a row rather than every rename a
-      // stricter comparison would dislike.
+      // The same key the merge deduplicates on, so this refuses exactly the
+      // renames that would hide a row.
       final clash = await tx.getOptional(
         'SELECT id FROM ingredient_measure WHERE ingredient_id = ? '
         'AND deleted_at IS NULL AND label = ? AND id <> ?',
@@ -248,9 +241,8 @@ class SqliteMeasureRepository implements MeasureRepository {
     if (ids.isEmpty) return;
     final now = DateTime.now().toUtc().toIso8601String();
     await _db.writeTransaction((tx) async {
-      // Stamped by position rather than swapped in pairs: two devices that
-      // dragged different rows then converge on one list per row's last
-      // write, instead of on a set of half-applied swaps.
+      // Stamped by position rather than swapped in pairs, so two devices' drags
+      // converge per row on the last write.
       for (final (index, id) in ids.indexed) {
         await tx.execute(
           'UPDATE ingredient_measure SET sort_order = ?, updated_at = ? '
@@ -263,9 +255,8 @@ class SqliteMeasureRepository implements MeasureRepository {
 
   @override
   Future<MeasureUsage> countLinesUsing(String measureId) async {
-    // All three tables that can carry a `measure_id`, live rows only: a
-    // recipe's line, a shopping contribution, and a planned ingredient meal.
-    // A tombstoned row is not a use — it is already gone.
+    // The three tables that can carry a `measure_id`, live rows only: recipe
+    // lines, shopping contributions, planned ingredient meals.
     final counted = await _db.get(
       'SELECT '
       '(SELECT COUNT(*) FROM recipe_line_item '
@@ -278,9 +269,8 @@ class SqliteMeasureRepository implements MeasureRepository {
     );
     final lines = (counted['n'] as num).toInt();
     if (lines == 0) return MeasureUsage.none;
-    // Named so the refusal can hand the reader somewhere to go. A line whose
-    // group or recipe is gone still counts above — it is a row that would
-    // degrade — but there is no page to send anybody to, so it is not named.
+    // Named so the refusal can point somewhere. A line whose group or recipe is
+    // gone is counted above but has no page to name.
     final rows = await _db.getAll(
       'SELECT DISTINCT r.id AS id, r.title AS title '
       'FROM recipe_line_item li '
@@ -309,10 +299,8 @@ class SqliteMeasureRepository implements MeasureRepository {
         'WHERE id = ?',
         [now, now, measureId],
       );
-      // Nothing else follows a measure out (ADR-0015): the piece weight is a
-      // NUMBER on the ingredient row, copied from a curated size at seed time
-      // and owned by the household after that, so deleting the size it was
-      // borrowed from leaves the row's own fact exactly as stated.
+      // Nothing else follows a measure out (ADR-0015): a piece weight borrowed
+      // from it is a number on the ingredient row and stays.
     });
   }
 }

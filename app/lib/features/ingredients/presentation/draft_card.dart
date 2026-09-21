@@ -71,10 +71,8 @@ class DraftCard extends StatelessWidget {
               style: ansiMono(size: 10, color: AnsiColors.muted),
             ),
           ] else if (serving != null) ...[
-            // A per-serving panel: the four as printed, and what OFF knows
-            // about the serving. The per-100 reading is the host's to derive —
-            // in front of the person, from a serving amount they can see and
-            // change.
+            // A per-serving panel: the four figures as printed, and what OFF
+            // knows about the serving. The host derives the per-100 reading.
             Text(formatMacroLine(serving.printed), style: ansiMono(size: 12)),
             const SizedBox(height: 2),
             Text(
@@ -83,7 +81,7 @@ class DraftCard extends StatelessWidget {
             ),
           ] else
             // Blank, with the reason. Never zeros: an absent panel is a fact
-            // about Open Food Facts, not a nutrition figure (D1).
+            // about Open Food Facts, not a nutrition figure.
             Text(
               draft.macrosGap.message ??
                   'No macros came with this product — fill them in on the '

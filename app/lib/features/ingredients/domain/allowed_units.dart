@@ -238,8 +238,8 @@ bool unitSayableAsDefault(Ingredient ingredient, Unit unit) {
   return unit.family == basisFamily || ingredient.densityGPerMl != null;
 }
 
-/// The unit the one-tap D4c fix switches a stranded default to: the basis
-/// family's natural unit (`g` for a per-100 g row, `ml` for per-100 ml).
+/// The unit the one-tap fix switches a stranded default to: the basis family's
+/// natural unit (`g` for a per-100 g row, `ml` for per-100 ml).
 Unit basisDefaultUnitFix(Ingredient ingredient) =>
     ingredient.macrosBasis.baseUnit;
 
@@ -335,8 +335,7 @@ List<Unit> allowedUnitsFor(Ingredient ingredient) {
   return _orderUnits(set, ingredient);
 }
 
-/// One chip of the flesh-out form's admission editor (board `pv2-d2`, step
-/// 7.8 — the section that never got built until 8.5).
+/// One chip of the ingredient form's admission editor.
 typedef UnitAdmission = ({Unit unit, bool selected, bool locked});
 
 /// The admission editor's chips, in chip order: every catalog mass/volume unit
@@ -376,7 +375,7 @@ List<UnitAdmission> allowedUnitCandidates(Ingredient ingredient) {
   ];
 }
 
-// --- v2: units + the ingredient's live measures (step 7.6) -------------------
+// --- Units plus the ingredient's live measures -------------------------------
 
 /// [allowedUnitsFor] plus the row's live [measures] as picker choices. Measures
 /// lead: the whole measure ([wholeMeasureOf]) first, then the rest in the given

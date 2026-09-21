@@ -1,15 +1,10 @@
 /// The price sheet (*paid* … *for* … *at*): the one place a price is typed.
 ///
-/// The pack is an amount in a unit the row can already say, picked from the
-/// quantity sheet's chip row ([UnitChipRow]). The dock shows the derived figure
-/// (`= 77¢ / 100 g`) before Done, or the refusal (`priceRefusal`) when the pack
-/// cannot be weighed. The store is a word: chips are what the household typed
-/// before, and `＋` names a new one. Save writes one `manual` receipt with one
-/// line.
-///
-/// Opened on a stored line, the sheet fills in the answers as entered, Done
-/// writes an UPDATE, and a Delete sits under it. Hand-typed prices only; a line
-/// off a photographed receipt is edited on that receipt.
+/// The pack is picked from the quantity sheet's chip row ([UnitChipRow]); the
+/// dock shows the derived figure (`= 77¢ / 100 g`) or the refusal
+/// (`priceRefusal`); the store is a word from the household's chips. Save
+/// writes one `manual` receipt with one line. Opened on a stored line, Done
+/// writes an UPDATE and a Delete sits under it. Hand-typed prices only.
 library;
 
 import 'package:flutter/widgets.dart';

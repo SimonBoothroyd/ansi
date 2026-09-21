@@ -1,15 +1,9 @@
-/// The one gate both delete paths pass through: **a measure a recipe still
-/// uses cannot be deleted.**
+/// The gate both delete paths pass through: a measure still in use cannot be
+/// deleted.
 ///
-/// The FKs carry no `on delete` and the delete is a tombstone, so nothing in
-/// the schema stops a measure going out from under the lines that name it —
-/// and what those lines do afterwards is worse than an error. The macro engine
-/// drops an unresolvable measure from the totals; the shop degrades it to a
-/// bare count. Both silently, in a recipe nobody was looking at.
-///
-/// So the delete asks first, and the refusal has a door, exactly as deleting a
-/// book that still holds recipes does: "it holds 42 recipes" is something a
-/// person can act on, "failed" is not.
+/// The delete is a tombstone with no FK guard, and orphaned lines silently drop
+/// out of macro totals and degrade to a bare count in the shop. So the delete
+/// asks first, and the refusal links to the recipes that use it.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -26,11 +20,9 @@ import '../../../shared/guarded_navigation.dart';
 import '../../../shared/write.dart';
 import '../data/ingredient_providers.dart';
 
-/// Whether [measure] may be deleted — and, when it may not, the refusal that
-/// says why and the door to the recipes still saying it.
-///
-/// The count is read from the REPOSITORY at the moment of the tap, never from
-/// a cached list: the row a sheet is looking at can be minutes old.
+/// Whether [measure] may be deleted; when not, shows the refusal and the door
+/// to the recipes using it. The count is read from the repository at the tap,
+/// never from a cached list.
 Future<bool> mayDeleteMeasure(
   BuildContext context,
   WidgetRef ref,

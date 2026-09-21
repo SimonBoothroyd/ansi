@@ -56,8 +56,8 @@ class DensityEntry extends HookWidget {
   /// once, the form's host holds it in its draft. Returns whether it landed.
   final Future<bool> Function(double gPerMl) onSave;
 
-  /// The mirror write (D4b): the number goes and the cross-family units it
-  /// was the only reason to admit lock again. Same rule — the host lands it.
+  /// The mirror write: the number goes and the cross-family units it unlocked
+  /// lock again. The host lands it.
   final Future<bool> Function() onRemove;
 
   /// What the inline button says; the host chooses it to match what the tap
@@ -100,8 +100,8 @@ class DensityEntry extends HookWidget {
     // default; an American label prints ounces and now says so.
     final weightUnit = useState<Unit>(g);
     final error = useState<String?>(null);
-    // Deleting a density also strips what it unlocked (D4b), so the affordance
-    // asks once rather than acting on a stray tap.
+    // Deleting a density also strips what it unlocked, so the affordance asks
+    // once rather than acting on a stray tap.
     final confirmingRemoval = useState(false);
     // A row with a density opens folded; one without opens on the sentence.
     // Seeded once: the fold is a starting state, not a mirror of whether a
@@ -176,8 +176,7 @@ class DensityEntry extends HookWidget {
       // folds the next time it is drawn.
     }
 
-    // D4b's strip leg from the user's side: the number goes, and the units it
-    // was the only reason to admit go with it, in one write.
+    // The number goes, and the units it unlocked go with it, in one write.
     Future<void> remove() async {
       final landed = await onRemove();
       if (!context.mounted || !landed) return;
