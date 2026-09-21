@@ -8,36 +8,24 @@ part of 'import_view_models.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// The import session controller.
-///
-/// It is `autoDispose` (the default), so the user can back out of `/import`
-/// while an extraction or a commit is still in flight — and in Riverpod 3
-/// writing `state` on a disposed notifier THROWS (in release too). Every
-/// post-await assignment here, the `catch` blocks included, is therefore
-/// guarded by [Ref.mounted]. Guards rather than `keepAlive`: an abandoned
-/// import should be collected, not kept warm for a flow the user left.
+/// The import session controller. It is `autoDispose`, so the user can leave
+/// mid-flight, and Riverpod 3 throws on writing `state` to a disposed notifier:
+/// every post-await assignment, `catch` blocks included, is guarded by
+/// [Ref.mounted].
 
 @ProviderFor(ImportController)
 const importControllerProvider = ImportControllerProvider._();
 
-/// The import session controller.
-///
-/// It is `autoDispose` (the default), so the user can back out of `/import`
-/// while an extraction or a commit is still in flight — and in Riverpod 3
-/// writing `state` on a disposed notifier THROWS (in release too). Every
-/// post-await assignment here, the `catch` blocks included, is therefore
-/// guarded by [Ref.mounted]. Guards rather than `keepAlive`: an abandoned
-/// import should be collected, not kept warm for a flow the user left.
+/// The import session controller. It is `autoDispose`, so the user can leave
+/// mid-flight, and Riverpod 3 throws on writing `state` to a disposed notifier:
+/// every post-await assignment, `catch` blocks included, is guarded by
+/// [Ref.mounted].
 final class ImportControllerProvider
     extends $NotifierProvider<ImportController, ImportState> {
-  /// The import session controller.
-  ///
-  /// It is `autoDispose` (the default), so the user can back out of `/import`
-  /// while an extraction or a commit is still in flight — and in Riverpod 3
-  /// writing `state` on a disposed notifier THROWS (in release too). Every
-  /// post-await assignment here, the `catch` blocks included, is therefore
-  /// guarded by [Ref.mounted]. Guards rather than `keepAlive`: an abandoned
-  /// import should be collected, not kept warm for a flow the user left.
+  /// The import session controller. It is `autoDispose`, so the user can leave
+  /// mid-flight, and Riverpod 3 throws on writing `state` to a disposed notifier:
+  /// every post-await assignment, `catch` blocks included, is guarded by
+  /// [Ref.mounted].
   const ImportControllerProvider._()
     : super(
         from: null,
@@ -67,14 +55,10 @@ final class ImportControllerProvider
 
 String _$importControllerHash() => r'098019f86eca506798208394d24e4b6d6d7b33c4';
 
-/// The import session controller.
-///
-/// It is `autoDispose` (the default), so the user can back out of `/import`
-/// while an extraction or a commit is still in flight — and in Riverpod 3
-/// writing `state` on a disposed notifier THROWS (in release too). Every
-/// post-await assignment here, the `catch` blocks included, is therefore
-/// guarded by [Ref.mounted]. Guards rather than `keepAlive`: an abandoned
-/// import should be collected, not kept warm for a flow the user left.
+/// The import session controller. It is `autoDispose`, so the user can leave
+/// mid-flight, and Riverpod 3 throws on writing `state` to a disposed notifier:
+/// every post-await assignment, `catch` blocks included, is guarded by
+/// [Ref.mounted].
 
 abstract class _$ImportController extends $Notifier<ImportState> {
   ImportState build();
@@ -95,26 +79,20 @@ abstract class _$ImportController extends $Notifier<ImportState> {
   }
 }
 
-/// The narrow slice of the controller [importValidation] actually depends on
-/// (see [ImportReconciling.validationKey]). Watching THIS rather than the whole
-/// state is what keeps a note keystroke or a servings tap from re-running a
-/// vocab query per line.
+/// The slice of the controller [importValidation] depends on (see
+/// [ImportReconciling.validationKey]), so a note keystroke does not re-run it.
 
 @ProviderFor(importValidationKey)
 const importValidationKeyProvider = ImportValidationKeyProvider._();
 
-/// The narrow slice of the controller [importValidation] actually depends on
-/// (see [ImportReconciling.validationKey]). Watching THIS rather than the whole
-/// state is what keeps a note keystroke or a servings tap from re-running a
-/// vocab query per line.
+/// The slice of the controller [importValidation] depends on (see
+/// [ImportReconciling.validationKey]), so a note keystroke does not re-run it.
 
 final class ImportValidationKeyProvider
     extends $FunctionalProvider<String, String, String>
     with $Provider<String> {
-  /// The narrow slice of the controller [importValidation] actually depends on
-  /// (see [ImportReconciling.validationKey]). Watching THIS rather than the whole
-  /// state is what keeps a note keystroke or a servings tap from re-running a
-  /// vocab query per line.
+  /// The slice of the controller [importValidation] depends on (see
+  /// [ImportReconciling.validationKey]), so a note keystroke does not re-run it.
   const ImportValidationKeyProvider._()
     : super(
         from: null,
@@ -151,66 +129,34 @@ final class ImportValidationKeyProvider
 String _$importValidationKeyHash() =>
     r'04873386dafd09f83ea6a2cb9387c725d2432e7d';
 
-/// Per-line validity for the current reconciliation, keyed by flat line index —
-/// resolves each matched line's ingredient + measures and checks its unit
-/// against the ingredient's allowed set (ADR-0008), offering that ingredient's
-/// valid units as inline suggestion chips. The review screen reads it for the
-/// per-line needs-attention flag, the unit chips, AND the Save gate. Empty
-/// until reconciling.
+/// Per-line validity for the current reconciliation, keyed by flat line index:
+/// checks each matched line's unit against its ingredient's allowed set
+/// (ADR-0008) and offers valid units as chips. Drives the per-line flag, the
+/// unit chips and the Save gate.
 ///
-/// It is also the one place a match meets THIS DEVICE's vocabulary, so it is
-/// where [againstLiveVocabulary] rules: a line matched to a row that has been
-/// retired since the server answered reads as UNMATCHED — needs a pick, and
-/// holds Save exactly as an unmatched line does. Before that it read as done
-/// (no ingredient, so no unit to fault) and committed the dead id.
+/// [againstLiveVocabulary] runs here, so a line matched to a since-retired row
+/// reads as unmatched. Depends only on [importValidationKey]; read it with
+/// `AsyncValue.value`, which keeps the last data across a refresh.
 ///
-/// It is deliberately NOT recomputed on every controller change: it depends on
-/// [importValidationKey], so editing a note or the servings leaves the cached
-/// map alone. Views must read it with `AsyncValue.value` (which keeps the last
-/// data across a refresh), never a data-only view that goes null mid-recompute.
-///
-/// The whole import's vocab and the whole import's measures are each fetched in
-/// ONE repository query — never N round-trips down the line list, and never
-/// through the per-ingredient measure STREAM providers. Those are autoDispose,
-/// PowerSync's `watch` does not emit synchronously, and an element disposed
-/// before its first emission completes `.future` with a [StateError] — which
-/// this loader caught and turned into "no measures", so "1 clove" of a garlic
-/// row that carries a `clove` measure validated against an empty list and was
-/// flagged "Pick a supported unit". A plain read has no element to lose.
-/// Nothing is swallowed now either: a query that genuinely fails surfaces as
-/// the provider's error rather than as a screen full of wrongly-flagged lines.
+/// Vocab and measures are each one plain repository query. Never use the
+/// per-ingredient autoDispose stream providers' `.future` here: an element
+/// disposed before its first emission completes with a [StateError].
 
 @ProviderFor(importValidation)
 const importValidationProvider = ImportValidationProvider._();
 
-/// Per-line validity for the current reconciliation, keyed by flat line index —
-/// resolves each matched line's ingredient + measures and checks its unit
-/// against the ingredient's allowed set (ADR-0008), offering that ingredient's
-/// valid units as inline suggestion chips. The review screen reads it for the
-/// per-line needs-attention flag, the unit chips, AND the Save gate. Empty
-/// until reconciling.
+/// Per-line validity for the current reconciliation, keyed by flat line index:
+/// checks each matched line's unit against its ingredient's allowed set
+/// (ADR-0008) and offers valid units as chips. Drives the per-line flag, the
+/// unit chips and the Save gate.
 ///
-/// It is also the one place a match meets THIS DEVICE's vocabulary, so it is
-/// where [againstLiveVocabulary] rules: a line matched to a row that has been
-/// retired since the server answered reads as UNMATCHED — needs a pick, and
-/// holds Save exactly as an unmatched line does. Before that it read as done
-/// (no ingredient, so no unit to fault) and committed the dead id.
+/// [againstLiveVocabulary] runs here, so a line matched to a since-retired row
+/// reads as unmatched. Depends only on [importValidationKey]; read it with
+/// `AsyncValue.value`, which keeps the last data across a refresh.
 ///
-/// It is deliberately NOT recomputed on every controller change: it depends on
-/// [importValidationKey], so editing a note or the servings leaves the cached
-/// map alone. Views must read it with `AsyncValue.value` (which keeps the last
-/// data across a refresh), never a data-only view that goes null mid-recompute.
-///
-/// The whole import's vocab and the whole import's measures are each fetched in
-/// ONE repository query — never N round-trips down the line list, and never
-/// through the per-ingredient measure STREAM providers. Those are autoDispose,
-/// PowerSync's `watch` does not emit synchronously, and an element disposed
-/// before its first emission completes `.future` with a [StateError] — which
-/// this loader caught and turned into "no measures", so "1 clove" of a garlic
-/// row that carries a `clove` measure validated against an empty list and was
-/// flagged "Pick a supported unit". A plain read has no element to lose.
-/// Nothing is swallowed now either: a query that genuinely fails surfaces as
-/// the provider's error rather than as a screen full of wrongly-flagged lines.
+/// Vocab and measures are each one plain repository query. Never use the
+/// per-ingredient autoDispose stream providers' `.future` here: an element
+/// disposed before its first emission completes with a [StateError].
 
 final class ImportValidationProvider
     extends
@@ -222,34 +168,18 @@ final class ImportValidationProvider
     with
         $FutureModifier<Map<int, LineValidation>>,
         $FutureProvider<Map<int, LineValidation>> {
-  /// Per-line validity for the current reconciliation, keyed by flat line index —
-  /// resolves each matched line's ingredient + measures and checks its unit
-  /// against the ingredient's allowed set (ADR-0008), offering that ingredient's
-  /// valid units as inline suggestion chips. The review screen reads it for the
-  /// per-line needs-attention flag, the unit chips, AND the Save gate. Empty
-  /// until reconciling.
+  /// Per-line validity for the current reconciliation, keyed by flat line index:
+  /// checks each matched line's unit against its ingredient's allowed set
+  /// (ADR-0008) and offers valid units as chips. Drives the per-line flag, the
+  /// unit chips and the Save gate.
   ///
-  /// It is also the one place a match meets THIS DEVICE's vocabulary, so it is
-  /// where [againstLiveVocabulary] rules: a line matched to a row that has been
-  /// retired since the server answered reads as UNMATCHED — needs a pick, and
-  /// holds Save exactly as an unmatched line does. Before that it read as done
-  /// (no ingredient, so no unit to fault) and committed the dead id.
+  /// [againstLiveVocabulary] runs here, so a line matched to a since-retired row
+  /// reads as unmatched. Depends only on [importValidationKey]; read it with
+  /// `AsyncValue.value`, which keeps the last data across a refresh.
   ///
-  /// It is deliberately NOT recomputed on every controller change: it depends on
-  /// [importValidationKey], so editing a note or the servings leaves the cached
-  /// map alone. Views must read it with `AsyncValue.value` (which keeps the last
-  /// data across a refresh), never a data-only view that goes null mid-recompute.
-  ///
-  /// The whole import's vocab and the whole import's measures are each fetched in
-  /// ONE repository query — never N round-trips down the line list, and never
-  /// through the per-ingredient measure STREAM providers. Those are autoDispose,
-  /// PowerSync's `watch` does not emit synchronously, and an element disposed
-  /// before its first emission completes `.future` with a [StateError] — which
-  /// this loader caught and turned into "no measures", so "1 clove" of a garlic
-  /// row that carries a `clove` measure validated against an empty list and was
-  /// flagged "Pick a supported unit". A plain read has no element to lose.
-  /// Nothing is swallowed now either: a query that genuinely fails surfaces as
-  /// the provider's error rather than as a screen full of wrongly-flagged lines.
+  /// Vocab and measures are each one plain repository query. Never use the
+  /// per-ingredient autoDispose stream providers' `.future` here: an element
+  /// disposed before its first emission completes with a [StateError].
   const ImportValidationProvider._()
     : super(
         from: null,
@@ -278,29 +208,23 @@ final class ImportValidationProvider
 
 String _$importValidationHash() => r'4e7e1a384b47bdad0fe7b09dc4ba1b0eaa5e5f5e';
 
-/// The ONE "how many lines still want you" count — the header's "N to review"
-/// and the Save button's "N line(s) need you" are the same number, read from
-/// the same place — two rules would let the header stop decrementing while the
-/// button kept counting. Until the first validation lands it falls back to the
-/// structural unresolved count, so the header is never blank or wrong-by-zero.
+/// The one count of lines still needing attention, shared by the header and the
+/// Save button. Falls back to the structural unresolved count until the first
+/// validation lands.
 
 @ProviderFor(importOutstandingLines)
 const importOutstandingLinesProvider = ImportOutstandingLinesProvider._();
 
-/// The ONE "how many lines still want you" count — the header's "N to review"
-/// and the Save button's "N line(s) need you" are the same number, read from
-/// the same place — two rules would let the header stop decrementing while the
-/// button kept counting. Until the first validation lands it falls back to the
-/// structural unresolved count, so the header is never blank or wrong-by-zero.
+/// The one count of lines still needing attention, shared by the header and the
+/// Save button. Falls back to the structural unresolved count until the first
+/// validation lands.
 
 final class ImportOutstandingLinesProvider
     extends $FunctionalProvider<int, int, int>
     with $Provider<int> {
-  /// The ONE "how many lines still want you" count — the header's "N to review"
-  /// and the Save button's "N line(s) need you" are the same number, read from
-  /// the same place — two rules would let the header stop decrementing while the
-  /// button kept counting. Until the first validation lands it falls back to the
-  /// structural unresolved count, so the header is never blank or wrong-by-zero.
+  /// The one count of lines still needing attention, shared by the header and the
+  /// Save button. Falls back to the structural unresolved count until the first
+  /// validation lands.
   const ImportOutstandingLinesProvider._()
     : super(
         from: null,

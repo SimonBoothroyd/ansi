@@ -57,37 +57,22 @@ String _$currentShoppingListHash() =>
     r'02d26b09cf9d63812a5aedb6bf773d25fbe5cb1e';
 
 /// What the rest of the trip comes to, and how many rows it could not price
-/// — the figure on the sync line and the caveat that rides with it
-/// (ADR-0017).
-///
-/// The UNTICKED rows only: what is in the basket has been picked up, and the
-/// question the line answers is what is left. The figure is null when not one
-/// row can be priced, because `≈ $0` would read as a free trip rather than an
-/// unpriced one.
+/// (ADR-0017). Unticked rows only. The figure is null when no row can be
+/// priced.
 
 @ProviderFor(shopTripCost)
 const shopTripCostProvider = ShopTripCostProvider._();
 
 /// What the rest of the trip comes to, and how many rows it could not price
-/// — the figure on the sync line and the caveat that rides with it
-/// (ADR-0017).
-///
-/// The UNTICKED rows only: what is in the basket has been picked up, and the
-/// question the line answers is what is left. The figure is null when not one
-/// row can be priced, because `≈ $0` would read as a free trip rather than an
-/// unpriced one.
+/// (ADR-0017). Unticked rows only. The figure is null when no row can be
+/// priced.
 
 final class ShopTripCostProvider
     extends $FunctionalProvider<TripCost, TripCost, TripCost>
     with $Provider<TripCost> {
   /// What the rest of the trip comes to, and how many rows it could not price
-  /// — the figure on the sync line and the caveat that rides with it
-  /// (ADR-0017).
-  ///
-  /// The UNTICKED rows only: what is in the basket has been picked up, and the
-  /// question the line answers is what is left. The figure is null when not one
-  /// row can be priced, because `≈ $0` would read as a free trip rather than an
-  /// unpriced one.
+  /// (ADR-0017). Unticked rows only. The figure is null when no row can be
+  /// priced.
   const ShopTripCostProvider._()
     : super(
         from: null,

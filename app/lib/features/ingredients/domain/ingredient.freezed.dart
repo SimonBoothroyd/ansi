@@ -14,55 +14,33 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Ingredient {
 
- String get id; String get canonicalName; Unit get defaultUnit; IngredientStatus get status; String? get category; double? get densityGPerMl; Macros? get macros; MacrosBasis get macrosBasis;/// The explicit per-ingredient allowed-unit list (ADR-0008, migration
-/// 0012) — parsed from the row's `allowed_units` jsonb, unknown ids
-/// dropped. Null for a legacy/unsynced row: the pickers then fall back
-/// to deriving the same ADR defaults (`defaultAllowedUnitSet`).
- List<Unit>? get allowedUnits;/// What ONE of this ingredient weighs, in the row's basis unit — the
-/// **piece weight** (ADR-0015, migration 0039). A row fact exactly as the
-/// density is: density says what a volume of this weighs and unlocks the
-/// volume units; this says what a piece weighs and unlocks `piece`.
-///
-/// Null means the row has no such fact, and `piece` is then not sayable
-/// on it. A piece-default row with a null here is a stranded default (the
-/// D4c shape), named on the form and refused at Save — a count nobody
-/// weighed is the one honest state this replaces ("needs a weight").
- double? get pieceBasisAmount;/// Where [pieceBasisAmount] came from: `manual` for a typed one,
-/// `borrowed from <label>` where the seed copied a curated size ("onion,
-/// medium" → 110 g), `seed:typical` for a hand-curated number. Shown, never
-/// interpreted. Null when there is no weight, or the row predates it.
- String? get pieceSource;/// Distinct live measure labels this ingredient carries — the picker
-/// row's "N measures" capability hint (7.7). Populated by list reads;
-/// 0 where a caller didn't ask for it.
- int get measureCount;/// The row's provenance stamp (`seed`, `manual`, `import_stub`,
-/// `usda_fdc:<fdc_id>` for a USDA pick, `off:<barcode>` for a scan, or
-/// [usdaDeclinedSource] for a person's "not this food"). Shown, never
-/// interpreted as truth: it says where the numbers came from, and a
-/// machine-supplied one still waits for a human confirm. Null on a row read
-/// by a caller that didn't select it.
- String? get source;/// The food the row was filled from, **named** — `usda_food.description`
-/// for a pick, the pack's brand and product name for a scan — written
-/// beside [source] so every surface can say WHICH food filled the row,
-/// offline. It is what the ids in [source] are for a reader: the stamp is a
-/// key, this is the answer. Survives a decline, so the form can name the
-/// food that was refused. Null on rows filled before the column existed and
-/// on rows nothing filled, and null is a real answer — a surface then says
-/// nothing rather than inventing a name.
- String? get sourceLabel;/// How much of the query the matched food's description covered, 0..1 —
-/// the idf-weighted coverage `probe_usda` returns, not a graded confidence.
-/// Stored so `UsdaMatchFit` reads the same offline as it did online. Shown,
-/// never acted on. A USDA fact only: a scan matches nothing, so a barcode
-/// row carries a [sourceLabel] and no score. Cleared by a decline.
- double? get sourceScore;/// Whether a human has overridden the numbers the lookup filled in
-/// (migration 0034) — **macros, macros basis or density**,
-/// on a row whose [source] is a lookup stamp.
-///
-/// It exists because [source] is patch-shaped and survives a form save, so
-/// without it a row goes on naming a USDA food whose figures are no longer
-/// on it. The fence is what keeps it honest: it means *the numbers are no
-/// longer the source's*, so a rename, a unit toggle, a measure or an alias
-/// must never set it — none of those contradicts the source. A fresh pick
-/// clears it, because the numbers are the new food's.
+ String get id; String get canonicalName; Unit get defaultUnit; IngredientStatus get status; String? get category; double? get densityGPerMl; Macros? get macros; MacrosBasis get macrosBasis;/// The explicit allowed-unit list (ADR-0008), parsed from the row's
+/// `allowed_units` jsonb with unknown ids dropped. Null for a legacy or
+/// unsynced row; pickers then derive `defaultAllowedUnitSet`.
+ List<Unit>? get allowedUnits;/// What one of this ingredient weighs, in the row's basis unit (ADR-0015).
+/// It unlocks `piece` as density unlocks the volume units. Null means
+/// `piece` is not sayable; a piece-default row with a null is named on the
+/// form and refused at Save.
+ double? get pieceBasisAmount;/// Where [pieceBasisAmount] came from: `manual`, `borrowed from <label>`
+/// for a seeded copy of a curated size, or `seed:typical`. Shown, never
+/// interpreted. Null when there is no weight.
+ String? get pieceSource;/// Distinct live measure labels, for the picker row's "N measures" hint.
+/// Populated by list reads; 0 otherwise.
+ int get measureCount;/// The row's provenance stamp: `seed`, `manual`, `import_stub`,
+/// `usda_fdc:<fdc_id>`, `off:<barcode>`, or [usdaDeclinedSource]. Shown,
+/// never treated as truth; a machine-supplied one still waits for a human
+/// confirm. Null when the caller did not select it.
+ String? get source;/// The food the row was filled from, named: `usda_food.description` for a
+/// pick, the pack's brand and product for a scan. Lets every surface say
+/// which food filled the row, offline. Survives a decline. Null when
+/// nothing filled the row; surfaces then say nothing.
+ String? get sourceLabel;/// How much of the query the matched USDA description covered, 0..1 (the
+/// idf-weighted coverage `probe_usda` returns). Stored so `UsdaMatchFit`
+/// reads the same offline. Shown, never acted on. Null on a barcode row;
+/// cleared by a decline.
+ double? get sourceScore;/// Whether a human has overridden the macros, macros basis or density a
+/// lookup filled in, on a row whose [source] is a lookup stamp. Renames,
+/// unit toggles, measures and aliases never set it. A fresh pick clears it.
  bool get sourceEdited;
 /// Create a copy of Ingredient
 /// with the given fields replaced by the non-null parameter values.
@@ -281,15 +259,13 @@ class _Ingredient implements Ingredient {
 @override final  double? densityGPerMl;
 @override final  Macros? macros;
 @override@JsonKey() final  MacrosBasis macrosBasis;
-/// The explicit per-ingredient allowed-unit list (ADR-0008, migration
-/// 0012) — parsed from the row's `allowed_units` jsonb, unknown ids
-/// dropped. Null for a legacy/unsynced row: the pickers then fall back
-/// to deriving the same ADR defaults (`defaultAllowedUnitSet`).
+/// The explicit allowed-unit list (ADR-0008), parsed from the row's
+/// `allowed_units` jsonb with unknown ids dropped. Null for a legacy or
+/// unsynced row; pickers then derive `defaultAllowedUnitSet`.
  final  List<Unit>? _allowedUnits;
-/// The explicit per-ingredient allowed-unit list (ADR-0008, migration
-/// 0012) — parsed from the row's `allowed_units` jsonb, unknown ids
-/// dropped. Null for a legacy/unsynced row: the pickers then fall back
-/// to deriving the same ADR defaults (`defaultAllowedUnitSet`).
+/// The explicit allowed-unit list (ADR-0008), parsed from the row's
+/// `allowed_units` jsonb with unknown ids dropped. Null for a legacy or
+/// unsynced row; pickers then derive `defaultAllowedUnitSet`.
 @override List<Unit>? get allowedUnits {
   final value = _allowedUnits;
   if (value == null) return null;
@@ -298,57 +274,36 @@ class _Ingredient implements Ingredient {
   return EqualUnmodifiableListView(value);
 }
 
-/// What ONE of this ingredient weighs, in the row's basis unit — the
-/// **piece weight** (ADR-0015, migration 0039). A row fact exactly as the
-/// density is: density says what a volume of this weighs and unlocks the
-/// volume units; this says what a piece weighs and unlocks `piece`.
-///
-/// Null means the row has no such fact, and `piece` is then not sayable
-/// on it. A piece-default row with a null here is a stranded default (the
-/// D4c shape), named on the form and refused at Save — a count nobody
-/// weighed is the one honest state this replaces ("needs a weight").
+/// What one of this ingredient weighs, in the row's basis unit (ADR-0015).
+/// It unlocks `piece` as density unlocks the volume units. Null means
+/// `piece` is not sayable; a piece-default row with a null is named on the
+/// form and refused at Save.
 @override final  double? pieceBasisAmount;
-/// Where [pieceBasisAmount] came from: `manual` for a typed one,
-/// `borrowed from <label>` where the seed copied a curated size ("onion,
-/// medium" → 110 g), `seed:typical` for a hand-curated number. Shown, never
-/// interpreted. Null when there is no weight, or the row predates it.
+/// Where [pieceBasisAmount] came from: `manual`, `borrowed from <label>`
+/// for a seeded copy of a curated size, or `seed:typical`. Shown, never
+/// interpreted. Null when there is no weight.
 @override final  String? pieceSource;
-/// Distinct live measure labels this ingredient carries — the picker
-/// row's "N measures" capability hint (7.7). Populated by list reads;
-/// 0 where a caller didn't ask for it.
+/// Distinct live measure labels, for the picker row's "N measures" hint.
+/// Populated by list reads; 0 otherwise.
 @override@JsonKey() final  int measureCount;
-/// The row's provenance stamp (`seed`, `manual`, `import_stub`,
-/// `usda_fdc:<fdc_id>` for a USDA pick, `off:<barcode>` for a scan, or
-/// [usdaDeclinedSource] for a person's "not this food"). Shown, never
-/// interpreted as truth: it says where the numbers came from, and a
-/// machine-supplied one still waits for a human confirm. Null on a row read
-/// by a caller that didn't select it.
+/// The row's provenance stamp: `seed`, `manual`, `import_stub`,
+/// `usda_fdc:<fdc_id>`, `off:<barcode>`, or [usdaDeclinedSource]. Shown,
+/// never treated as truth; a machine-supplied one still waits for a human
+/// confirm. Null when the caller did not select it.
 @override final  String? source;
-/// The food the row was filled from, **named** — `usda_food.description`
-/// for a pick, the pack's brand and product name for a scan — written
-/// beside [source] so every surface can say WHICH food filled the row,
-/// offline. It is what the ids in [source] are for a reader: the stamp is a
-/// key, this is the answer. Survives a decline, so the form can name the
-/// food that was refused. Null on rows filled before the column existed and
-/// on rows nothing filled, and null is a real answer — a surface then says
-/// nothing rather than inventing a name.
+/// The food the row was filled from, named: `usda_food.description` for a
+/// pick, the pack's brand and product for a scan. Lets every surface say
+/// which food filled the row, offline. Survives a decline. Null when
+/// nothing filled the row; surfaces then say nothing.
 @override final  String? sourceLabel;
-/// How much of the query the matched food's description covered, 0..1 —
-/// the idf-weighted coverage `probe_usda` returns, not a graded confidence.
-/// Stored so `UsdaMatchFit` reads the same offline as it did online. Shown,
-/// never acted on. A USDA fact only: a scan matches nothing, so a barcode
-/// row carries a [sourceLabel] and no score. Cleared by a decline.
+/// How much of the query the matched USDA description covered, 0..1 (the
+/// idf-weighted coverage `probe_usda` returns). Stored so `UsdaMatchFit`
+/// reads the same offline. Shown, never acted on. Null on a barcode row;
+/// cleared by a decline.
 @override final  double? sourceScore;
-/// Whether a human has overridden the numbers the lookup filled in
-/// (migration 0034) — **macros, macros basis or density**,
-/// on a row whose [source] is a lookup stamp.
-///
-/// It exists because [source] is patch-shaped and survives a form save, so
-/// without it a row goes on naming a USDA food whose figures are no longer
-/// on it. The fence is what keeps it honest: it means *the numbers are no
-/// longer the source's*, so a rename, a unit toggle, a measure or an alias
-/// must never set it — none of those contradicts the source. A fresh pick
-/// clears it, because the numbers are the new food's.
+/// Whether a human has overridden the macros, macros basis or density a
+/// lookup filled in, on a row whose [source] is a lookup stamp. Renames,
+/// unit toggles, measures and aliases never set it. A fresh pick clears it.
 @override@JsonKey() final  bool sourceEdited;
 
 /// Create a copy of Ingredient

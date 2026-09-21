@@ -146,29 +146,23 @@ final class PriceRepositoryProvider
 
 String _$priceRepositoryHash() => r'eaaa255eaff7a96d4f1a63473bad4b33aa8989b4';
 
-/// The D7b USDA probe. Talks to Supabase REST rather than the local SQLite —
-/// the one ingredient read that must, because `usda_food` never syncs to a
-/// device (ADR-0005). Falls back to a probe that always answers "nothing"
-/// where no backend is configured, which is the same answer an offline device
-/// gets, so nothing downstream needs a second code path.
+/// The USDA probe. Talks to Supabase REST, because `usda_food` never syncs to a
+/// device (ADR-0005). With no backend configured it falls back to a probe that
+/// always answers "nothing", which is also what an offline device gets.
 
 @ProviderFor(usdaProbe)
 const usdaProbeProvider = UsdaProbeProvider._();
 
-/// The D7b USDA probe. Talks to Supabase REST rather than the local SQLite —
-/// the one ingredient read that must, because `usda_food` never syncs to a
-/// device (ADR-0005). Falls back to a probe that always answers "nothing"
-/// where no backend is configured, which is the same answer an offline device
-/// gets, so nothing downstream needs a second code path.
+/// The USDA probe. Talks to Supabase REST, because `usda_food` never syncs to a
+/// device (ADR-0005). With no backend configured it falls back to a probe that
+/// always answers "nothing", which is also what an offline device gets.
 
 final class UsdaProbeProvider
     extends $FunctionalProvider<UsdaProbe, UsdaProbe, UsdaProbe>
     with $Provider<UsdaProbe> {
-  /// The D7b USDA probe. Talks to Supabase REST rather than the local SQLite —
-  /// the one ingredient read that must, because `usda_food` never syncs to a
-  /// device (ADR-0005). Falls back to a probe that always answers "nothing"
-  /// where no backend is configured, which is the same answer an offline device
-  /// gets, so nothing downstream needs a second code path.
+  /// The USDA probe. Talks to Supabase REST, because `usda_food` never syncs to a
+  /// device (ADR-0005). With no backend configured it falls back to a probe that
+  /// always answers "nothing", which is also what an offline device gets.
   const UsdaProbeProvider._()
     : super(
         from: null,
@@ -294,18 +288,14 @@ final class IngredientMeasuresFamily extends $Family
   String toString() => r'ingredientMeasuresProvider';
 }
 
-/// One live vocab row by id, or null — resolves an ingredient known only by
-/// reference (the edit-top-up sheet's unit filter) and keeps the form on the
-/// row it is editing. Watched: a save re-renders it, and so does another
-/// device's edit, without anyone invalidating it by hand.
+/// One live vocab row by id, or null. Watched, so a save or another device's
+/// edit re-renders it.
 
 @ProviderFor(ingredientById)
 const ingredientByIdProvider = IngredientByIdFamily._();
 
-/// One live vocab row by id, or null — resolves an ingredient known only by
-/// reference (the edit-top-up sheet's unit filter) and keeps the form on the
-/// row it is editing. Watched: a save re-renders it, and so does another
-/// device's edit, without anyone invalidating it by hand.
+/// One live vocab row by id, or null. Watched, so a save or another device's
+/// edit re-renders it.
 
 final class IngredientByIdProvider
     extends
@@ -315,10 +305,8 @@ final class IngredientByIdProvider
           Stream<Ingredient?>
         >
     with $FutureModifier<Ingredient?>, $StreamProvider<Ingredient?> {
-  /// One live vocab row by id, or null — resolves an ingredient known only by
-  /// reference (the edit-top-up sheet's unit filter) and keeps the form on the
-  /// row it is editing. Watched: a save re-renders it, and so does another
-  /// device's edit, without anyone invalidating it by hand.
+  /// One live vocab row by id, or null. Watched, so a save or another device's
+  /// edit re-renders it.
   const IngredientByIdProvider._({
     required IngredientByIdFamily super.from,
     required String super.argument,
@@ -365,10 +353,8 @@ final class IngredientByIdProvider
 
 String _$ingredientByIdHash() => r'0223ffcdca1d5872f58038ca2ea9f7bfcc83fdaa';
 
-/// One live vocab row by id, or null — resolves an ingredient known only by
-/// reference (the edit-top-up sheet's unit filter) and keeps the form on the
-/// row it is editing. Watched: a save re-renders it, and so does another
-/// device's edit, without anyone invalidating it by hand.
+/// One live vocab row by id, or null. Watched, so a save or another device's
+/// edit re-renders it.
 
 final class IngredientByIdFamily extends $Family
     with $FunctionalFamilyOverride<Stream<Ingredient?>, String> {
@@ -381,10 +367,8 @@ final class IngredientByIdFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// One live vocab row by id, or null — resolves an ingredient known only by
-  /// reference (the edit-top-up sheet's unit filter) and keeps the form on the
-  /// row it is editing. Watched: a save re-renders it, and so does another
-  /// device's edit, without anyone invalidating it by hand.
+  /// One live vocab row by id, or null. Watched, so a save or another device's
+  /// edit re-renders it.
 
   IngredientByIdProvider call(String id) =>
       IngredientByIdProvider._(argument: id, from: this);
@@ -393,14 +377,14 @@ final class IngredientByIdFamily extends $Family
   String toString() => r'ingredientByIdProvider';
 }
 
-/// The whole live vocabulary, canonical-name ordered — the manager list
-/// (step 8.5). Watched, so a sync or another screen's edit re-renders it.
+/// The whole live vocabulary, ordered by canonical name, for the manager list.
+/// Watched, so a sync or another screen's edit re-renders it.
 
 @ProviderFor(vocabulary)
 const vocabularyProvider = VocabularyProvider._();
 
-/// The whole live vocabulary, canonical-name ordered — the manager list
-/// (step 8.5). Watched, so a sync or another screen's edit re-renders it.
+/// The whole live vocabulary, ordered by canonical name, for the manager list.
+/// Watched, so a sync or another screen's edit re-renders it.
 
 final class VocabularyProvider
     extends
@@ -410,8 +394,8 @@ final class VocabularyProvider
           Stream<List<Ingredient>>
         >
     with $FutureModifier<List<Ingredient>>, $StreamProvider<List<Ingredient>> {
-  /// The whole live vocabulary, canonical-name ordered — the manager list
-  /// (step 8.5). Watched, so a sync or another screen's edit re-renders it.
+  /// The whole live vocabulary, ordered by canonical name, for the manager list.
+  /// Watched, so a sync or another screen's edit re-renders it.
   const VocabularyProvider._()
     : super(
         from: null,
@@ -440,23 +424,17 @@ final class VocabularyProvider
 
 String _$vocabularyHash() => r'046e543cc9d9714ff1e38d324815ec14206b688f';
 
-/// How many rows still read `stub` — the second half of the Ingredients
-/// shelf's count line, so the fleshing-out queue is discoverable without
-/// hunting for it (D8).
+/// How many rows still read `stub`, for the Ingredients shelf's count line.
 
 @ProviderFor(stubCount)
 const stubCountProvider = StubCountProvider._();
 
-/// How many rows still read `stub` — the second half of the Ingredients
-/// shelf's count line, so the fleshing-out queue is discoverable without
-/// hunting for it (D8).
+/// How many rows still read `stub`, for the Ingredients shelf's count line.
 
 final class StubCountProvider
     extends $FunctionalProvider<AsyncValue<int>, int, Stream<int>>
     with $FutureModifier<int>, $StreamProvider<int> {
-  /// How many rows still read `stub` — the second half of the Ingredients
-  /// shelf's count line, so the fleshing-out queue is discoverable without
-  /// hunting for it (D8).
+  /// How many rows still read `stub`, for the Ingredients shelf's count line.
   const StubCountProvider._()
     : super(
         from: null,
@@ -484,23 +462,17 @@ final class StubCountProvider
 
 String _$stubCountHash() => r'3bd615a3ce89b74c3fee12845369124dd30463ca';
 
-/// How many rows the vocabulary holds, for the Library's Ingredients shelf —
-/// the shelf says outright what is on it, which a badge or a dot could only
-/// gesture at.
+/// How many rows the vocabulary holds, for the Library's Ingredients shelf.
 
 @ProviderFor(vocabularyCount)
 const vocabularyCountProvider = VocabularyCountProvider._();
 
-/// How many rows the vocabulary holds, for the Library's Ingredients shelf —
-/// the shelf says outright what is on it, which a badge or a dot could only
-/// gesture at.
+/// How many rows the vocabulary holds, for the Library's Ingredients shelf.
 
 final class VocabularyCountProvider
     extends $FunctionalProvider<AsyncValue<int>, int, Stream<int>>
     with $FutureModifier<int>, $StreamProvider<int> {
-  /// How many rows the vocabulary holds, for the Library's Ingredients shelf —
-  /// the shelf says outright what is on it, which a badge or a dot could only
-  /// gesture at.
+  /// How many rows the vocabulary holds, for the Library's Ingredients shelf.
   const VocabularyCountProvider._()
     : super(
         from: null,
@@ -528,16 +500,14 @@ final class VocabularyCountProvider
 
 String _$vocabularyCountHash() => r'e23a92e9cfd96bf3bb6db3cfb7208b89b79955fd';
 
-/// The household's distinct live categories — the flesh-out form's category
-/// dropdown (F3). Watched: a category coined on one row is offered on the
-/// next without a refresh.
+/// The household's distinct live categories, for the form's category dropdown.
+/// Watched.
 
 @ProviderFor(ingredientCategories)
 const ingredientCategoriesProvider = IngredientCategoriesProvider._();
 
-/// The household's distinct live categories — the flesh-out form's category
-/// dropdown (F3). Watched: a category coined on one row is offered on the
-/// next without a refresh.
+/// The household's distinct live categories, for the form's category dropdown.
+/// Watched.
 
 final class IngredientCategoriesProvider
     extends
@@ -547,9 +517,8 @@ final class IngredientCategoriesProvider
           Stream<List<String>>
         >
     with $FutureModifier<List<String>>, $StreamProvider<List<String>> {
-  /// The household's distinct live categories — the flesh-out form's category
-  /// dropdown (F3). Watched: a category coined on one row is offered on the
-  /// next without a refresh.
+  /// The household's distinct live categories, for the form's category dropdown.
+  /// Watched.
   const IngredientCategoriesProvider._()
     : super(
         from: null,
@@ -670,16 +639,14 @@ final class IngredientAliasesFamily extends $Family
   String toString() => r'ingredientAliasesProvider';
 }
 
-/// Every price the household has paid for one ingredient, newest first — the
-/// Price group's *Latest* line and its *Before* rows, and the figure a recipe
-/// reads. Watched: a shop synced from the other phone lands on the page.
+/// Every price the household has paid for one ingredient, newest first.
+/// Watched.
 
 @ProviderFor(ingredientPrices)
 const ingredientPricesProvider = IngredientPricesFamily._();
 
-/// Every price the household has paid for one ingredient, newest first — the
-/// Price group's *Latest* line and its *Before* rows, and the figure a recipe
-/// reads. Watched: a shop synced from the other phone lands on the page.
+/// Every price the household has paid for one ingredient, newest first.
+/// Watched.
 
 final class IngredientPricesProvider
     extends
@@ -691,9 +658,8 @@ final class IngredientPricesProvider
     with
         $FutureModifier<List<PriceObservation>>,
         $StreamProvider<List<PriceObservation>> {
-  /// Every price the household has paid for one ingredient, newest first — the
-  /// Price group's *Latest* line and its *Before* rows, and the figure a recipe
-  /// reads. Watched: a shop synced from the other phone lands on the page.
+  /// Every price the household has paid for one ingredient, newest first.
+  /// Watched.
   const IngredientPricesProvider._({
     required IngredientPricesFamily super.from,
     required String super.argument,
@@ -740,9 +706,8 @@ final class IngredientPricesProvider
 
 String _$ingredientPricesHash() => r'94ea033d5fbbbe670774964ae6de0efc21d092f4';
 
-/// Every price the household has paid for one ingredient, newest first — the
-/// Price group's *Latest* line and its *Before* rows, and the figure a recipe
-/// reads. Watched: a shop synced from the other phone lands on the page.
+/// Every price the household has paid for one ingredient, newest first.
+/// Watched.
 
 final class IngredientPricesFamily extends $Family
     with $FunctionalFamilyOverride<Stream<List<PriceObservation>>, String> {
@@ -755,9 +720,8 @@ final class IngredientPricesFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Every price the household has paid for one ingredient, newest first — the
-  /// Price group's *Latest* line and its *Before* rows, and the figure a recipe
-  /// reads. Watched: a shop synced from the other phone lands on the page.
+  /// Every price the household has paid for one ingredient, newest first.
+  /// Watched.
 
   IngredientPricesProvider call(String ingredientId) =>
       IngredientPricesProvider._(argument: ingredientId, from: this);
@@ -766,20 +730,14 @@ final class IngredientPricesFamily extends $Family
   String toString() => r'ingredientPricesProvider';
 }
 
-/// The names this household's receipts have carried for one ingredient,
-/// newest first — the ingredient page's `On receipts` fold.
-///
-/// Watched: a receipt saved or re-matched on the other phone changes what this
-/// row has been called, and the fold is where somebody goes to notice.
+/// The names this household's receipts have printed for one ingredient, newest
+/// first, for the `On receipts` fold. Watched.
 
 @ProviderFor(ingredientReceiptNames)
 const ingredientReceiptNamesProvider = IngredientReceiptNamesFamily._();
 
-/// The names this household's receipts have carried for one ingredient,
-/// newest first — the ingredient page's `On receipts` fold.
-///
-/// Watched: a receipt saved or re-matched on the other phone changes what this
-/// row has been called, and the fold is where somebody goes to notice.
+/// The names this household's receipts have printed for one ingredient, newest
+/// first, for the `On receipts` fold. Watched.
 
 final class IngredientReceiptNamesProvider
     extends
@@ -791,11 +749,8 @@ final class IngredientReceiptNamesProvider
     with
         $FutureModifier<List<ReceiptName>>,
         $StreamProvider<List<ReceiptName>> {
-  /// The names this household's receipts have carried for one ingredient,
-  /// newest first — the ingredient page's `On receipts` fold.
-  ///
-  /// Watched: a receipt saved or re-matched on the other phone changes what this
-  /// row has been called, and the fold is where somebody goes to notice.
+  /// The names this household's receipts have printed for one ingredient, newest
+  /// first, for the `On receipts` fold. Watched.
   const IngredientReceiptNamesProvider._({
     required IngredientReceiptNamesFamily super.from,
     required String super.argument,
@@ -844,11 +799,8 @@ final class IngredientReceiptNamesProvider
 String _$ingredientReceiptNamesHash() =>
     r'00b38a9c1ec16800e259c369c8155af18fcda5db';
 
-/// The names this household's receipts have carried for one ingredient,
-/// newest first — the ingredient page's `On receipts` fold.
-///
-/// Watched: a receipt saved or re-matched on the other phone changes what this
-/// row has been called, and the fold is where somebody goes to notice.
+/// The names this household's receipts have printed for one ingredient, newest
+/// first, for the `On receipts` fold. Watched.
 
 final class IngredientReceiptNamesFamily extends $Family
     with $FunctionalFamilyOverride<Stream<List<ReceiptName>>, String> {
@@ -861,11 +813,8 @@ final class IngredientReceiptNamesFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// The names this household's receipts have carried for one ingredient,
-  /// newest first — the ingredient page's `On receipts` fold.
-  ///
-  /// Watched: a receipt saved or re-matched on the other phone changes what this
-  /// row has been called, and the fold is where somebody goes to notice.
+  /// The names this household's receipts have printed for one ingredient, newest
+  /// first, for the `On receipts` fold. Watched.
 
   IngredientReceiptNamesProvider call(String ingredientId) =>
       IngredientReceiptNamesProvider._(argument: ingredientId, from: this);
@@ -874,16 +823,14 @@ final class IngredientReceiptNamesFamily extends $Family
   String toString() => r'ingredientReceiptNamesProvider';
 }
 
-/// The store words this household has used, most recently first — the price
-/// sheet's `at` chip row. There is no store table; this is simply what has
-/// been typed before.
+/// The store words this household has used, most recently first, for the price
+/// sheet's chip row.
 
 @ProviderFor(priceStores)
 const priceStoresProvider = PriceStoresProvider._();
 
-/// The store words this household has used, most recently first — the price
-/// sheet's `at` chip row. There is no store table; this is simply what has
-/// been typed before.
+/// The store words this household has used, most recently first, for the price
+/// sheet's chip row.
 
 final class PriceStoresProvider
     extends
@@ -893,9 +840,8 @@ final class PriceStoresProvider
           Stream<List<String>>
         >
     with $FutureModifier<List<String>>, $StreamProvider<List<String>> {
-  /// The store words this household has used, most recently first — the price
-  /// sheet's `at` chip row. There is no store table; this is simply what has
-  /// been typed before.
+  /// The store words this household has used, most recently first, for the price
+  /// sheet's chip row.
   const PriceStoresProvider._()
     : super(
         from: null,
@@ -973,24 +919,18 @@ final class LatestPricesProvider
 
 String _$latestPricesHash() => r'7255ce50a4f7032725a7fee5d576ee3d5de08d57';
 
-/// What every vocabulary row costs and how its amounts convert — the lookup a
-/// surface holding amounts rather than recipe lines makes (the Shop).
-///
-/// It is assembled from two live reads the app already has, rather than from a
-/// third query: the vocabulary states the dimension facts, the ledger states
-/// the price. A row the vocabulary has not synced is simply absent, and the
-/// row that asked about it is honestly unpriceable.
+/// What every vocabulary row costs and how its amounts convert, for a surface
+/// holding amounts rather than recipe lines (the Shop). Assembled from the
+/// vocabulary and latest-price watches; a row the vocabulary has not synced is
+/// absent.
 
 @ProviderFor(ingredientPricing)
 const ingredientPricingProvider = IngredientPricingProvider._();
 
-/// What every vocabulary row costs and how its amounts convert — the lookup a
-/// surface holding amounts rather than recipe lines makes (the Shop).
-///
-/// It is assembled from two live reads the app already has, rather than from a
-/// third query: the vocabulary states the dimension facts, the ledger states
-/// the price. A row the vocabulary has not synced is simply absent, and the
-/// row that asked about it is honestly unpriceable.
+/// What every vocabulary row costs and how its amounts convert, for a surface
+/// holding amounts rather than recipe lines (the Shop). Assembled from the
+/// vocabulary and latest-price watches; a row the vocabulary has not synced is
+/// absent.
 
 final class IngredientPricingProvider
     extends
@@ -1000,13 +940,10 @@ final class IngredientPricingProvider
           Map<String, IngredientPricing>
         >
     with $Provider<Map<String, IngredientPricing>> {
-  /// What every vocabulary row costs and how its amounts convert — the lookup a
-  /// surface holding amounts rather than recipe lines makes (the Shop).
-  ///
-  /// It is assembled from two live reads the app already has, rather than from a
-  /// third query: the vocabulary states the dimension facts, the ledger states
-  /// the price. A row the vocabulary has not synced is simply absent, and the
-  /// row that asked about it is honestly unpriceable.
+  /// What every vocabulary row costs and how its amounts convert, for a surface
+  /// holding amounts rather than recipe lines (the Shop). Assembled from the
+  /// vocabulary and latest-price watches; a row the vocabulary has not synced is
+  /// absent.
   const IngredientPricingProvider._()
     : super(
         from: null,

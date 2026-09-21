@@ -19,17 +19,13 @@ mixin _$ShoppingContribution {
  String get label;/// Null for a bare non-food item (renders as a dash).
  double? get quantity; Unit? get unit;/// The measure the quantity is counted in ("2 × potato, large"), when the
 /// contribution was quantified in one; [unit] is null then.
- Measure? get measure;/// The persisted `measure_id` of a manual contribution, verbatim — kept
-/// even while [measure] is unresolved (row not yet synced / soft-deleted)
-/// so the edit sheet's re-save never wipes the FK for every device
-/// (mirrors the recipe line's [measureId]). Null for cook lines (derived,
-/// never re-saved here).
- String? get measureId;/// The day (0=Mon..6=Sun) a DERIVED contribution belongs to — a session's
-/// cook day, or a planned snack's own day — which orders the breakdown.
-/// Null for a manual top-up, which belongs to no day.
- int? get cookDay;/// The persisted `shopping_list_contribution` id — set only for a `manual`
-/// contribution (a cook one is derived, so it has none). Lets the UI edit
-/// or remove this specific top-up.
+ Measure? get measure;/// The stored `measure_id` of a manual contribution, kept even while
+/// [measure] is unresolved so a re-save never wipes the FK. Null for
+/// derived lines.
+ String? get measureId;/// The day (0 = first day of the household week) a derived contribution
+/// belongs to, which orders the breakdown. Null for a manual top-up.
+ int? get cookDay;/// The `shopping_list_contribution` id; set only for a `manual`
+/// contribution.
  String? get contributionId;
 /// Create a copy of ShoppingContribution
 /// with the given fields replaced by the non-null parameter values.
@@ -242,19 +238,15 @@ class _ShoppingContribution implements ShoppingContribution {
 /// The measure the quantity is counted in ("2 × potato, large"), when the
 /// contribution was quantified in one; [unit] is null then.
 @override final  Measure? measure;
-/// The persisted `measure_id` of a manual contribution, verbatim — kept
-/// even while [measure] is unresolved (row not yet synced / soft-deleted)
-/// so the edit sheet's re-save never wipes the FK for every device
-/// (mirrors the recipe line's [measureId]). Null for cook lines (derived,
-/// never re-saved here).
+/// The stored `measure_id` of a manual contribution, kept even while
+/// [measure] is unresolved so a re-save never wipes the FK. Null for
+/// derived lines.
 @override final  String? measureId;
-/// The day (0=Mon..6=Sun) a DERIVED contribution belongs to — a session's
-/// cook day, or a planned snack's own day — which orders the breakdown.
-/// Null for a manual top-up, which belongs to no day.
+/// The day (0 = first day of the household week) a derived contribution
+/// belongs to, which orders the breakdown. Null for a manual top-up.
 @override final  int? cookDay;
-/// The persisted `shopping_list_contribution` id — set only for a `manual`
-/// contribution (a cook one is derived, so it has none). Lets the UI edit
-/// or remove this specific top-up.
+/// The `shopping_list_contribution` id; set only for a `manual`
+/// contribution.
 @override final  String? contributionId;
 
 /// Create a copy of ShoppingContribution
@@ -324,37 +316,20 @@ as String?,
 /// @nodoc
 mixin _$ShoppingItem {
 
- String get name;/// The persisted entry id, if this line has one (a checked or topped-up
-/// ingredient, or a free-text item). Null for a purely-derived ingredient
-/// the user hasn't touched yet — check-off lazily creates the entry.
+ String get name;/// The persisted entry id, or null for a derived ingredient not yet
+/// touched; check-off creates the entry lazily.
  String? get entryId;/// Null for a free-text (non-food) item.
- String? get ingredientId; bool get checked; List<Quantity> get totals; List<ShoppingContribution> get contributions;/// The item's total counted in ONE measure — "1 can (400 g), drained" —
-/// set only when every quantified contribution asked for that same
-/// measure. You buy the can, so the row says cans; [totals] still carries
-/// the canonical mass/volume the cans weigh, which the row shows beside
-/// it. Null the moment a plain mass/volume line or a second measure joins
-/// the sum — neither has a single countable answer, so the family sum is
-/// the only honest total.
- MeasureAmount? get measureTotal;/// The item's total as a count of PIECES — "2½ piece" — on a row whose
-/// default unit is `piece` and that states what one weighs (ADR-0015),
-/// once everything asked for has folded into ONE basis-family total: the
-/// `piece` lines through the piece weight, the measures through theirs,
-/// the plain mass/volume lines as they are. A lime asked for as `1 lime,
-/// whole` here and `1½ piece` there is 2½ limes, not `67 g + 1½ piece`.
-/// `approx` is false when every contribution was a `piece` line or a
-/// measure that is a whole number of pieces (`lime, whole` = 67 g on a 67
-/// g piece), true when a plain mass/volume line joined or a measure did
-/// not divide evenly (`onion, small` = 70 g on a 110 g piece). [totals]
-/// still carries the mass the count weighs. Null on every other row, and
-/// null when [measureTotal] is set — a row asked for in one named measure
-/// is counted in that measure, which is the more specific thing to buy.
- PieceTotal? get pieceTotal;/// An honest round-up hint ("2.25 → buy 3") for a measure-bearing count
-/// ingredient — a HINT beside the total, never a replaced total
-/// (invariant 3). Null when the item doesn't qualify (see
-/// [wholeUnitHintFor]), and null whenever [measureTotal] or [pieceTotal]
-/// is set: a row already counted in its measure or its pieces needs no
-/// second way to say the same thing (each count carries its own
-/// round-up under it).
+ String? get ingredientId; bool get checked; List<Quantity> get totals; List<ShoppingContribution> get contributions;/// The total counted in one measure ("1 can (400 g), drained"), set only
+/// when every quantified contribution asked for that same measure. [totals]
+/// still carries what it weighs.
+ MeasureAmount? get measureTotal;/// The total as a count of pieces, on a `piece`-default row that states a
+/// piece weight (ADR-0015), once everything folded into one basis-family
+/// total. `approx` is true when a plain mass/volume line joined or a
+/// measure is not a whole number of pieces. Null when [measureTotal] is
+/// set.
+ PieceTotal? get pieceTotal;/// A round-up hint ("2.25 → buy 3") beside the total, never replacing it
+/// (invariant 3). Null when the item does not qualify ([wholeUnitHintFor])
+/// or when [measureTotal] or [pieceTotal] is set.
  WholeUnitHint? get wholeUnitHint;
 /// Create a copy of ShoppingItem
 /// with the given fields replaced by the non-null parameter values.
@@ -559,9 +534,8 @@ class _ShoppingItem extends ShoppingItem {
   
 
 @override final  String name;
-/// The persisted entry id, if this line has one (a checked or topped-up
-/// ingredient, or a free-text item). Null for a purely-derived ingredient
-/// the user hasn't touched yet — check-off lazily creates the entry.
+/// The persisted entry id, or null for a derived ingredient not yet
+/// touched; check-off creates the entry lazily.
 @override final  String? entryId;
 /// Null for a free-text (non-food) item.
 @override final  String? ingredientId;
@@ -580,35 +554,19 @@ class _ShoppingItem extends ShoppingItem {
   return EqualUnmodifiableListView(_contributions);
 }
 
-/// The item's total counted in ONE measure — "1 can (400 g), drained" —
-/// set only when every quantified contribution asked for that same
-/// measure. You buy the can, so the row says cans; [totals] still carries
-/// the canonical mass/volume the cans weigh, which the row shows beside
-/// it. Null the moment a plain mass/volume line or a second measure joins
-/// the sum — neither has a single countable answer, so the family sum is
-/// the only honest total.
+/// The total counted in one measure ("1 can (400 g), drained"), set only
+/// when every quantified contribution asked for that same measure. [totals]
+/// still carries what it weighs.
 @override final  MeasureAmount? measureTotal;
-/// The item's total as a count of PIECES — "2½ piece" — on a row whose
-/// default unit is `piece` and that states what one weighs (ADR-0015),
-/// once everything asked for has folded into ONE basis-family total: the
-/// `piece` lines through the piece weight, the measures through theirs,
-/// the plain mass/volume lines as they are. A lime asked for as `1 lime,
-/// whole` here and `1½ piece` there is 2½ limes, not `67 g + 1½ piece`.
-/// `approx` is false when every contribution was a `piece` line or a
-/// measure that is a whole number of pieces (`lime, whole` = 67 g on a 67
-/// g piece), true when a plain mass/volume line joined or a measure did
-/// not divide evenly (`onion, small` = 70 g on a 110 g piece). [totals]
-/// still carries the mass the count weighs. Null on every other row, and
-/// null when [measureTotal] is set — a row asked for in one named measure
-/// is counted in that measure, which is the more specific thing to buy.
+/// The total as a count of pieces, on a `piece`-default row that states a
+/// piece weight (ADR-0015), once everything folded into one basis-family
+/// total. `approx` is true when a plain mass/volume line joined or a
+/// measure is not a whole number of pieces. Null when [measureTotal] is
+/// set.
 @override final  PieceTotal? pieceTotal;
-/// An honest round-up hint ("2.25 → buy 3") for a measure-bearing count
-/// ingredient — a HINT beside the total, never a replaced total
-/// (invariant 3). Null when the item doesn't qualify (see
-/// [wholeUnitHintFor]), and null whenever [measureTotal] or [pieceTotal]
-/// is set: a row already counted in its measure or its pieces needs no
-/// second way to say the same thing (each count carries its own
-/// round-up under it).
+/// A round-up hint ("2.25 → buy 3") beside the total, never replacing it
+/// (invariant 3). Null when the item does not qualify ([wholeUnitHintFor])
+/// or when [measureTotal] or [pieceTotal] is set.
 @override final  WholeUnitHint? wholeUnitHint;
 
 /// Create a copy of ShoppingItem

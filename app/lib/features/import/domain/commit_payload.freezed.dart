@@ -16,15 +16,12 @@ mixin _$CommitLine {
 
 /// The flattened line index — its position in the commit's line order and
 /// the value step tokens ref before the remap.
- int get lineIndex; String? get ingredientId;/// The household recipe this line was LINKED to at review (8.6 / D6). When
-/// it is set the line is a COMPONENT line and [ingredientId] is null; the
-/// repository writes no `measure_id` for it either (measures are an
-/// ingredient concept, and migration 0017 pins both rules).
- String? get subRecipeId; double? get quantity; String? get unit; String? get note;/// The recipe says this line may be left out — seeded from the extractor's
-/// raw flag, toggled at review, written to `recipe_line_item.optional`.
-/// It rides a COMPONENT line exactly as it rides an ingredient one: "aioli
-/// (optional)" is a thing a recipe says, and the seam that drops the line
-/// names the sub-recipe's title where it left.
+ int get lineIndex; String? get ingredientId;/// The household recipe this line was linked to at review. When set, the
+/// line is a component line: [ingredientId] is null and no `measure_id` is
+/// written.
+ String? get subRecipeId; double? get quantity; String? get unit; String? get note;/// The recipe says this line may be left out: seeded from the extractor's
+/// flag, toggled at review, written to `recipe_line_item.optional`. Applies
+/// to component lines too.
  bool get optional;
 /// Create a copy of CommitLine
 /// with the given fields replaced by the non-null parameter values.
@@ -230,19 +227,16 @@ class _CommitLine implements CommitLine {
 /// the value step tokens ref before the remap.
 @override final  int lineIndex;
 @override final  String? ingredientId;
-/// The household recipe this line was LINKED to at review (8.6 / D6). When
-/// it is set the line is a COMPONENT line and [ingredientId] is null; the
-/// repository writes no `measure_id` for it either (measures are an
-/// ingredient concept, and migration 0017 pins both rules).
+/// The household recipe this line was linked to at review. When set, the
+/// line is a component line: [ingredientId] is null and no `measure_id` is
+/// written.
 @override final  String? subRecipeId;
 @override final  double? quantity;
 @override final  String? unit;
 @override final  String? note;
-/// The recipe says this line may be left out — seeded from the extractor's
-/// raw flag, toggled at review, written to `recipe_line_item.optional`.
-/// It rides a COMPONENT line exactly as it rides an ingredient one: "aioli
-/// (optional)" is a thing a recipe says, and the seam that drops the line
-/// names the sub-recipe's title where it left.
+/// The recipe says this line may be left out: seeded from the extractor's
+/// flag, toggled at review, written to `recipe_line_item.optional`. Applies
+/// to component lines too.
 @override@JsonKey() final  bool optional;
 
 /// Create a copy of CommitLine
@@ -837,24 +831,18 @@ as String,
 /// @nodoc
 mixin _$CommitPayload {
 
- String get title; double get servingsBase; String? get servingsRaw;/// What one batch MAKES, as the review's header states it (8.6 / D2 · D9,
-/// board frame h) — prefilled from `yield_raw` only when that was a plain
-/// amount + unit, and otherwise whatever the human typed, or nothing. Both
-/// halves or neither: a half-stated yield is half a fact. The SECOND
-/// denomination is the editor's affordance, now at review too: the same
-/// header form, so the same two slots.
+ String get title; double get servingsBase; String? get servingsRaw;/// What one batch makes, as the review's header states it: prefilled from
+/// `yield_raw` only when that was a plain amount and unit, else whatever
+/// the human typed. Both halves or neither. A second denomination has the
+/// same two slots.
  double? get yieldQty; Unit? get yieldUnit; double? get yieldQty2; Unit? get yieldUnit2; int? get cookTimeSeconds; int? get totalTimeSeconds;/// Shelf life, as the header's SHELF LIFE section states it — unset
 /// unless a human set it, because no page prints it.
- int? get keepsForDays; bool get freezable; int? get freezerDays;/// Where the recipe is FILED. Null files into the household's default
-/// book at write, exactly where commit has always put an import; the
-/// review's draft names that book from the start so FILE UNDER can move
-/// it before it lands.
- String? get bookId; String? get sectionId;/// The recipe's OWN WORDS for one of what it makes, as the review's
-/// MEASURES list states them (ADR-0018) — nothing is prefilled into it, so
-/// this is empty unless a human typed a word. Each one is an amount in a
-/// unit and has already passed `authorRecipeMeasure` against the yields
-/// above; the repository re-stamps the recipe id it is writing under, which
-/// is why the draft's placeholder id never reaches the database.
+ int? get keepsForDays; bool get freezable; int? get freezerDays;/// Where the recipe is filed. Null files into the household's default book
+/// at write.
+ String? get bookId; String? get sectionId;/// The recipe's own measures, as the review's MEASURES list states them
+/// (ADR-0018). Never prefilled. Each has passed `authorRecipeMeasure`
+/// against the yields above; the repository re-stamps the recipe id over
+/// the draft's placeholder.
  List<RecipeMeasure> get measures; List<CommitGroup> get groups; List<Step> get steps; List<CommitCorrection> get corrections;
 /// Create a copy of CommitPayload
 /// with the given fields replaced by the non-null parameter values.
@@ -1070,12 +1058,10 @@ class _CommitPayload implements CommitPayload {
 @override final  String title;
 @override final  double servingsBase;
 @override final  String? servingsRaw;
-/// What one batch MAKES, as the review's header states it (8.6 / D2 · D9,
-/// board frame h) — prefilled from `yield_raw` only when that was a plain
-/// amount + unit, and otherwise whatever the human typed, or nothing. Both
-/// halves or neither: a half-stated yield is half a fact. The SECOND
-/// denomination is the editor's affordance, now at review too: the same
-/// header form, so the same two slots.
+/// What one batch makes, as the review's header states it: prefilled from
+/// `yield_raw` only when that was a plain amount and unit, else whatever
+/// the human typed. Both halves or neither. A second denomination has the
+/// same two slots.
 @override final  double? yieldQty;
 @override final  Unit? yieldUnit;
 @override final  double? yieldQty2;
@@ -1087,25 +1073,19 @@ class _CommitPayload implements CommitPayload {
 @override final  int? keepsForDays;
 @override@JsonKey() final  bool freezable;
 @override final  int? freezerDays;
-/// Where the recipe is FILED. Null files into the household's default
-/// book at write, exactly where commit has always put an import; the
-/// review's draft names that book from the start so FILE UNDER can move
-/// it before it lands.
+/// Where the recipe is filed. Null files into the household's default book
+/// at write.
 @override final  String? bookId;
 @override final  String? sectionId;
-/// The recipe's OWN WORDS for one of what it makes, as the review's
-/// MEASURES list states them (ADR-0018) — nothing is prefilled into it, so
-/// this is empty unless a human typed a word. Each one is an amount in a
-/// unit and has already passed `authorRecipeMeasure` against the yields
-/// above; the repository re-stamps the recipe id it is writing under, which
-/// is why the draft's placeholder id never reaches the database.
+/// The recipe's own measures, as the review's MEASURES list states them
+/// (ADR-0018). Never prefilled. Each has passed `authorRecipeMeasure`
+/// against the yields above; the repository re-stamps the recipe id over
+/// the draft's placeholder.
  final  List<RecipeMeasure> _measures;
-/// The recipe's OWN WORDS for one of what it makes, as the review's
-/// MEASURES list states them (ADR-0018) — nothing is prefilled into it, so
-/// this is empty unless a human typed a word. Each one is an amount in a
-/// unit and has already passed `authorRecipeMeasure` against the yields
-/// above; the repository re-stamps the recipe id it is writing under, which
-/// is why the draft's placeholder id never reaches the database.
+/// The recipe's own measures, as the review's MEASURES list states them
+/// (ADR-0018). Never prefilled. Each has passed `authorRecipeMeasure`
+/// against the yields above; the repository re-stamps the recipe id over
+/// the draft's placeholder.
 @override@JsonKey() List<RecipeMeasure> get measures {
   if (_measures is EqualUnmodifiableListView) return _measures;
   // ignore: implicit_dynamic_type

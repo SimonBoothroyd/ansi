@@ -8,24 +8,16 @@ part of 'receipt_providers.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// The reader behind the scan door.
-///
-/// With Supabase configured it is the real `import-receipt` edge function.
-/// Unconfigured it FAILS LOUDLY rather than falling through to the replay
-/// payload, which would have a misconfigured build answer "read this receipt"
-/// with somebody else's groceries. Tests and a walkthrough build reach
-/// `ReplayReceiptRepository` by naming it, never by accident.
+/// The reader behind the scan door: the `import-receipt` edge function when
+/// Supabase is configured. Unconfigured, it fails loudly rather than serving
+/// the replay payload. Tests reach `ReplayReceiptRepository` by naming it.
 
 @ProviderFor(receiptImportRepository)
 const receiptImportRepositoryProvider = ReceiptImportRepositoryProvider._();
 
-/// The reader behind the scan door.
-///
-/// With Supabase configured it is the real `import-receipt` edge function.
-/// Unconfigured it FAILS LOUDLY rather than falling through to the replay
-/// payload, which would have a misconfigured build answer "read this receipt"
-/// with somebody else's groceries. Tests and a walkthrough build reach
-/// `ReplayReceiptRepository` by naming it, never by accident.
+/// The reader behind the scan door: the `import-receipt` edge function when
+/// Supabase is configured. Unconfigured, it fails loudly rather than serving
+/// the replay payload. Tests reach `ReplayReceiptRepository` by naming it.
 
 final class ReceiptImportRepositoryProvider
     extends
@@ -35,13 +27,9 @@ final class ReceiptImportRepositoryProvider
           ReceiptImportRepository
         >
     with $Provider<ReceiptImportRepository> {
-  /// The reader behind the scan door.
-  ///
-  /// With Supabase configured it is the real `import-receipt` edge function.
-  /// Unconfigured it FAILS LOUDLY rather than falling through to the replay
-  /// payload, which would have a misconfigured build answer "read this receipt"
-  /// with somebody else's groceries. Tests and a walkthrough build reach
-  /// `ReplayReceiptRepository` by naming it, never by accident.
+  /// The reader behind the scan door: the `import-receipt` edge function when
+  /// Supabase is configured. Unconfigured, it fails loudly rather than serving
+  /// the replay payload. Tests reach `ReplayReceiptRepository` by naming it.
   const ReceiptImportRepositoryProvider._()
     : super(
         from: null,
@@ -131,20 +119,14 @@ final class ReceiptRepositoryProvider
 
 String _$receiptRepositoryHash() => r'3d02dc4f1309eef88d2eb1b7f7e66b4a21ba64c4';
 
-/// Every receipt the household has kept, newest first, as the ledger reads
-/// them.
-///
-/// A row costs the paper's printed total, else its lines plus tax — the
-/// printed tax, else the tax lines — which is the figure the review saved.
+/// Every receipt the household has kept, newest first. A row costs the printed
+/// total, else its lines plus tax (the printed tax, else the tax lines).
 
 @ProviderFor(receiptSummaries)
 const receiptSummariesProvider = ReceiptSummariesProvider._();
 
-/// Every receipt the household has kept, newest first, as the ledger reads
-/// them.
-///
-/// A row costs the paper's printed total, else its lines plus tax — the
-/// printed tax, else the tax lines — which is the figure the review saved.
+/// Every receipt the household has kept, newest first. A row costs the printed
+/// total, else its lines plus tax (the printed tax, else the tax lines).
 
 final class ReceiptSummariesProvider
     extends
@@ -156,11 +138,8 @@ final class ReceiptSummariesProvider
     with
         $FutureModifier<List<ReceiptSummary>>,
         $StreamProvider<List<ReceiptSummary>> {
-  /// Every receipt the household has kept, newest first, as the ledger reads
-  /// them.
-  ///
-  /// A row costs the paper's printed total, else its lines plus tax — the
-  /// printed tax, else the tax lines — which is the figure the review saved.
+  /// Every receipt the household has kept, newest first. A row costs the printed
+  /// total, else its lines plus tax (the printed tax, else the tax lines).
   const ReceiptSummariesProvider._()
     : super(
         from: null,
@@ -286,22 +265,19 @@ final class ReceiptsForWeekFamily extends $Family
   String toString() => r'receiptsForWeekProvider';
 }
 
-/// Whether the household has kept any receipt at all — what decides whether
-/// the Shop offers the ledger a door, because a door onto an empty page is
-/// furniture.
+/// Whether the household has kept any receipt, which decides whether the Shop
+/// shows the ledger door.
 
 @ProviderFor(hasAnyReceipt)
 const hasAnyReceiptProvider = HasAnyReceiptProvider._();
 
-/// Whether the household has kept any receipt at all — what decides whether
-/// the Shop offers the ledger a door, because a door onto an empty page is
-/// furniture.
+/// Whether the household has kept any receipt, which decides whether the Shop
+/// shows the ledger door.
 
 final class HasAnyReceiptProvider extends $FunctionalProvider<bool, bool, bool>
     with $Provider<bool> {
-  /// Whether the household has kept any receipt at all — what decides whether
-  /// the Shop offers the ledger a door, because a door onto an empty page is
-  /// furniture.
+  /// Whether the household has kept any receipt, which decides whether the Shop
+  /// shows the ledger door.
   const HasAnyReceiptProvider._()
     : super(
         from: null,

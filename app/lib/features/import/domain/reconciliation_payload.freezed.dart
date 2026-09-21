@@ -284,9 +284,8 @@ mixin _$RawLineItem {
  String get ingredientText;/// A single value; null when the source printed a range (see [qtyLow]).
  double? get qty; double? get qtyLow; double? get qtyHigh;/// Normalized toward the unit vocab; else the printed word (when
 /// [unitMappable] is false).
- String? get unit; bool get unitMappable;/// A per-use note ("juiced", "zested", "to serve") — never part of the
-/// ingredient identity we match on. Renamed from `prep` (server contract
-/// rename): the slot also carries usage notes, not only prep transforms.
+ String? get unit; bool get unitMappable;/// A per-use note ("juiced", "zested", "to serve"); never part of the
+/// identity we match on.
  String? get notes;/// The full printed amount, verbatim — never lost (e.g. "2½ x 400g cans").
  String get rawAmount; bool get optional; double get confidence;
 /// Create a copy of RawLineItem
@@ -503,9 +502,8 @@ class _RawLineItem implements RawLineItem {
 /// [unitMappable] is false).
 @override final  String? unit;
 @override@JsonKey() final  bool unitMappable;
-/// A per-use note ("juiced", "zested", "to serve") — never part of the
-/// ingredient identity we match on. Renamed from `prep` (server contract
-/// rename): the slot also carries usage notes, not only prep transforms.
+/// A per-use note ("juiced", "zested", "to serve"); never part of the
+/// identity we match on.
 @override final  String? notes;
 /// The full printed amount, verbatim — never lost (e.g. "2½ x 400g cans").
 @override@JsonKey() final  String rawAmount;
@@ -2380,14 +2378,10 @@ as List<StepToken>,
 /// @nodoc
 mixin _$ReconLine {
 
- RawLineItem get raw; MatchBand get band; List<MatchCandidate> get candidates;/// The D6 recipe offers. The server OMITS the field entirely when there
-/// are none — and when no recipe-title matcher is wired at all — so an
-/// absent field must decode to exactly what it decoded before this
-/// existed: the empty list, no chip, and a byte-identical commit.
- List<RecipeCandidate> get recipeCandidates;/// Where this line sits in [ReconciliationPayload.sourceText], when the
-/// extractor knows. Omitted by the server otherwise, exactly as
-/// [recipeCandidates] is, so a payload without it decodes to the same
-/// bytes it always did.
+ RawLineItem get raw; MatchBand get band; List<MatchCandidate> get candidates;/// The recipe offers. The server omits the field when there are none, which
+/// decodes to the empty list.
+ List<RecipeCandidate> get recipeCandidates;/// Where this line sits in [ReconciliationPayload.sourceText]. Omitted by
+/// the server when unknown.
  SourceSpan? get sourceSpan;
 /// Create a copy of ReconLine
 /// with the given fields replaced by the non-null parameter values.
@@ -2619,25 +2613,19 @@ class _ReconLine implements ReconLine {
   return EqualUnmodifiableListView(_candidates);
 }
 
-/// The D6 recipe offers. The server OMITS the field entirely when there
-/// are none — and when no recipe-title matcher is wired at all — so an
-/// absent field must decode to exactly what it decoded before this
-/// existed: the empty list, no chip, and a byte-identical commit.
+/// The recipe offers. The server omits the field when there are none, which
+/// decodes to the empty list.
  final  List<RecipeCandidate> _recipeCandidates;
-/// The D6 recipe offers. The server OMITS the field entirely when there
-/// are none — and when no recipe-title matcher is wired at all — so an
-/// absent field must decode to exactly what it decoded before this
-/// existed: the empty list, no chip, and a byte-identical commit.
+/// The recipe offers. The server omits the field when there are none, which
+/// decodes to the empty list.
 @override@JsonKey() List<RecipeCandidate> get recipeCandidates {
   if (_recipeCandidates is EqualUnmodifiableListView) return _recipeCandidates;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_recipeCandidates);
 }
 
-/// Where this line sits in [ReconciliationPayload.sourceText], when the
-/// extractor knows. Omitted by the server otherwise, exactly as
-/// [recipeCandidates] is, so a payload without it decodes to the same
-/// bytes it always did.
+/// Where this line sits in [ReconciliationPayload.sourceText]. Omitted by
+/// the server when unknown.
 @override final  SourceSpan? sourceSpan;
 
 /// Create a copy of ReconLine
@@ -3001,14 +2989,9 @@ as List<ReconLine>,
 /// @nodoc
 mixin _$ReconciliationPayload {
 
- String get title; int? get servingsBase; String? get servingsRaw; String? get yieldRaw;@TimeFieldConverter() TimeRange? get totalTimeSeconds;@TimeFieldConverter() TimeRange? get cookTimeSeconds; bool get truncated; ImportImageQuality get imageQuality; List<String> get parseWarnings; List<ReconGroup> get groups; List<Step> get steps;/// The text the server actually read this recipe out of — a **link**
-/// import's fetched page, bounded server-side. Null for a
-/// photo import, where the pages are images the phone already holds, and
-/// null from any server that does not send it.
-///
-/// It is the source column's copy on a desk. Bounded because a page's
-/// text is unbounded and this rides the same response as the recipe: the
-/// cap is the server's, stated in `import-recipe/index.ts`.
+ String get title; int? get servingsBase; String? get servingsRaw; String? get yieldRaw;@TimeFieldConverter() TimeRange? get totalTimeSeconds;@TimeFieldConverter() TimeRange? get cookTimeSeconds; bool get truncated; ImportImageQuality get imageQuality; List<String> get parseWarnings; List<ReconGroup> get groups; List<Step> get steps;/// The text the server read this recipe from: a link import's fetched page,
+/// capped server-side (`import-recipe/index.ts`). Null for a photo import.
+/// Feeds the wide review's source column.
  String? get sourceText;
 /// Create a copy of ReconciliationPayload
 /// with the given fields replaced by the non-null parameter values.
@@ -3270,14 +3253,9 @@ class _ReconciliationPayload implements ReconciliationPayload {
   return EqualUnmodifiableListView(_steps);
 }
 
-/// The text the server actually read this recipe out of — a **link**
-/// import's fetched page, bounded server-side. Null for a
-/// photo import, where the pages are images the phone already holds, and
-/// null from any server that does not send it.
-///
-/// It is the source column's copy on a desk. Bounded because a page's
-/// text is unbounded and this rides the same response as the recipe: the
-/// cap is the server's, stated in `import-recipe/index.ts`.
+/// The text the server read this recipe from: a link import's fetched page,
+/// capped server-side (`import-recipe/index.ts`). Null for a photo import.
+/// Feeds the wide review's source column.
 @override final  String? sourceText;
 
 /// Create a copy of ReconciliationPayload

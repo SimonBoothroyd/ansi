@@ -283,59 +283,37 @@ as String,
 /// @nodoc
 mixin _$IngredientFormDraft {
 
- Ingredient get row; bool get creating; String get name; String get category; Unit get defaultUnit; MacrosBasis get basis; Set<Unit> get allowed; MacroDraft get macros;/// What the row last handed the macro draft. "Untouched" is defined against
-/// this rather than against blankness, so a row that arrives with numbers
-/// is as re-seedable as an empty one.
+ Ingredient get row; bool get creating; String get name; String get category; Unit get defaultUnit; MacrosBasis get basis; Set<Unit> get allowed; MacroDraft get macros;/// What the row last seeded the macro draft with; "untouched" is measured
+/// against this, not against blankness.
  MacroDraft get seededMacros;/// Bumped on every re-seed, and used as the macro fields' key: `initial`
 /// seeds a controller once, so new text needs a new field to seed it into.
- int get macroSeed;/// Bumped whenever the name moved by something other than typing — a scan,
-/// or a tidy. The name field pushes the new text into the controller it
-/// already has rather than being replaced around a fresh one, because
-/// replacing a *focused* field is what a Save tapped straight from the
-/// keyboard would do.
- int get nameSeed; int get servingSeed;/// The macros section's per-serving mode: the four fields then hold the
-/// label's figures AS PRINTED and the serving row says what they describe,
+ int get macroSeed;/// Bumped when the name moved by something other than typing, so the name
+/// field pushes the text into its existing controller instead of being
+/// re-keyed.
+ int get nameSeed; int get servingSeed;/// Per-serving mode: the four fields hold the label's figures as printed,
 /// and what is stored is still per 100 of the basis.
- bool get perServing;/// The serving the row's label prints — typed in per-serving mode, or
-/// carried by a scan whose per-100 panel named one. Independent of
-/// [perServing]: a per-100 label that says "80 kcal per 28 g" states a
-/// serving without the row ever being entered in it, and Save keeps it as
-/// the row's one `serving` measure either way.
+ bool get perServing;/// The serving the label prints, typed or scanned. Independent of
+/// [perServing]; Save keeps it as the row's one `serving` measure either
+/// way.
  ServingDraft get serving;/// The per-100 figures the fields held before per-serving mode cleared
-/// them, so leaving the mode without typing anything puts the row back
-/// exactly as it was found. On a scan of a label that printed BOTH
-/// columns it is the pack's own per-100 column, which is the same fact
-/// said by the same pack.
+/// them, or a scanned pack's own per-100 column.
  MacroDraft? get per100Macros; DensityChange get density;/// The piece weight as the form holds it — the count-side twin of
 /// [density], and drafted the same way (ADR-0015).
- PieceWeightChange get pieceWeight; List<Measure> get measuresAdded; Set<String> get measuresRemoved; List<IngredientAlias> get aliasesAdded; Set<String> get aliasesRemoved;/// A provenance the scan or the USDA pick stamped and the next Save writes
-/// — held with the macros it explains rather than written on its own, so
-/// backing out of the form leaves the row exactly as it was found.
+ PieceWeightChange get pieceWeight; List<Measure> get measuresAdded; Set<String> get measuresRemoved; List<IngredientAlias> get aliasesAdded; Set<String> get aliasesRemoved;/// A provenance stamp the scan or USDA pick set, written by the next Save.
  String? get pendingSource; String? get pendingSourceLabel; double? get pendingSourceScore;/// The last barcode scan: the draft the card shows, what [applyDraft]
 /// decided about it, and whether its pack offer was taken.
  IngredientDraft? get scanned; DraftApplication? get scanApplied; bool get packAdded;/// Set when the measures editor refused a volume-named label and handed
 /// back the resolved spoon — the density entry pre-picks it.
- Unit? get redirectedSpoon;/// The name as it was typed, when [IngredientForm.tidyName] replaced a
-/// WORD in it — what the `was “…”` line under the field prints, and what
-/// *keep the old word* puts back. Null when nothing was suggested.
- String? get nameWas;/// The live row this name would land on top of — the household's names and
-/// aliases are one namespace, and a second **Sauerkraut** makes every
-/// exact match after it a coin toss. Set when the name field is left (and
-/// again if the write itself refuses), cleared by the next keystroke.
- NameEntry? get nameCollision;/// Rows whose name or alias this one was very nearly spelled — at most
-/// three, offered under the pickers' `DID YOU MEAN` band and never acted
-/// on unattended. Empty whenever something WAS spelled right, which is the
-/// same band rule the pickers hold.
- List<NameEntry> get nameNearMatches;/// A typed name the person chose to KEEP. While [name] is exactly this,
-/// the tidy recases and respaces but suggests nothing: a suggestion once
-/// refused must not be offered again on the next leave. Cleared by the
-/// next edit, and carried forward when the tidy's own recasing moves it.
- String? get namePinned;/// Whether a person has typed in the name field during this sitting.
-///
-/// Save tidies only what somebody wrote. A stored name is not rewritten by
-/// a Save that was about the macros — the row's own name is a thing a
-/// human already chose, and a save of something else is no occasion to
-/// take it away.
+ Unit? get redirectedSpoon;/// The name as typed, when [IngredientForm.tidyName] replaced a word in it;
+/// the `was “…”` line prints it. Null when nothing was suggested.
+ String? get nameWas;/// The live row that already holds this name or alias. Set when the name
+/// field is left or the write refuses; cleared by the next keystroke.
+ NameEntry? get nameCollision;/// Up to three rows this name nearly spells, for the `DID YOU MEAN` band.
+/// Empty whenever something matched exactly.
+ List<NameEntry> get nameNearMatches;/// A typed name the person chose to keep. While [name] equals it the tidy
+/// recases but suggests nothing; cleared by the next edit.
+ String? get namePinned;/// Whether the name field was typed in during this sitting. Save tidies
+/// only a name somebody wrote.
  bool get nameEdited;/// The form's one feedback line.
  String? get message;/// True while a write is in flight — every door greys rather than
 /// accepting a tap it will drop.
@@ -621,35 +599,26 @@ class _IngredientFormDraft extends IngredientFormDraft {
 }
 
 @override final  MacroDraft macros;
-/// What the row last handed the macro draft. "Untouched" is defined against
-/// this rather than against blankness, so a row that arrives with numbers
-/// is as re-seedable as an empty one.
+/// What the row last seeded the macro draft with; "untouched" is measured
+/// against this, not against blankness.
 @override final  MacroDraft seededMacros;
 /// Bumped on every re-seed, and used as the macro fields' key: `initial`
 /// seeds a controller once, so new text needs a new field to seed it into.
 @override@JsonKey() final  int macroSeed;
-/// Bumped whenever the name moved by something other than typing — a scan,
-/// or a tidy. The name field pushes the new text into the controller it
-/// already has rather than being replaced around a fresh one, because
-/// replacing a *focused* field is what a Save tapped straight from the
-/// keyboard would do.
+/// Bumped when the name moved by something other than typing, so the name
+/// field pushes the text into its existing controller instead of being
+/// re-keyed.
 @override@JsonKey() final  int nameSeed;
 @override@JsonKey() final  int servingSeed;
-/// The macros section's per-serving mode: the four fields then hold the
-/// label's figures AS PRINTED and the serving row says what they describe,
+/// Per-serving mode: the four fields hold the label's figures as printed,
 /// and what is stored is still per 100 of the basis.
 @override@JsonKey() final  bool perServing;
-/// The serving the row's label prints — typed in per-serving mode, or
-/// carried by a scan whose per-100 panel named one. Independent of
-/// [perServing]: a per-100 label that says "80 kcal per 28 g" states a
-/// serving without the row ever being entered in it, and Save keeps it as
-/// the row's one `serving` measure either way.
+/// The serving the label prints, typed or scanned. Independent of
+/// [perServing]; Save keeps it as the row's one `serving` measure either
+/// way.
 @override@JsonKey() final  ServingDraft serving;
 /// The per-100 figures the fields held before per-serving mode cleared
-/// them, so leaving the mode without typing anything puts the row back
-/// exactly as it was found. On a scan of a label that printed BOTH
-/// columns it is the pack's own per-100 column, which is the same fact
-/// said by the same pack.
+/// them, or a scanned pack's own per-100 column.
 @override final  MacroDraft? per100Macros;
 @override@JsonKey() final  DensityChange density;
 /// The piece weight as the form holds it — the count-side twin of
@@ -683,9 +652,7 @@ class _IngredientFormDraft extends IngredientFormDraft {
   return EqualUnmodifiableSetView(_aliasesRemoved);
 }
 
-/// A provenance the scan or the USDA pick stamped and the next Save writes
-/// — held with the macros it explains rather than written on its own, so
-/// backing out of the form leaves the row exactly as it was found.
+/// A provenance stamp the scan or USDA pick set, written by the next Save.
 @override final  String? pendingSource;
 @override final  String? pendingSourceLabel;
 @override final  double? pendingSourceScore;
@@ -697,41 +664,28 @@ class _IngredientFormDraft extends IngredientFormDraft {
 /// Set when the measures editor refused a volume-named label and handed
 /// back the resolved spoon — the density entry pre-picks it.
 @override final  Unit? redirectedSpoon;
-/// The name as it was typed, when [IngredientForm.tidyName] replaced a
-/// WORD in it — what the `was “…”` line under the field prints, and what
-/// *keep the old word* puts back. Null when nothing was suggested.
+/// The name as typed, when [IngredientForm.tidyName] replaced a word in it;
+/// the `was “…”` line prints it. Null when nothing was suggested.
 @override final  String? nameWas;
-/// The live row this name would land on top of — the household's names and
-/// aliases are one namespace, and a second **Sauerkraut** makes every
-/// exact match after it a coin toss. Set when the name field is left (and
-/// again if the write itself refuses), cleared by the next keystroke.
+/// The live row that already holds this name or alias. Set when the name
+/// field is left or the write refuses; cleared by the next keystroke.
 @override final  NameEntry? nameCollision;
-/// Rows whose name or alias this one was very nearly spelled — at most
-/// three, offered under the pickers' `DID YOU MEAN` band and never acted
-/// on unattended. Empty whenever something WAS spelled right, which is the
-/// same band rule the pickers hold.
+/// Up to three rows this name nearly spells, for the `DID YOU MEAN` band.
+/// Empty whenever something matched exactly.
  final  List<NameEntry> _nameNearMatches;
-/// Rows whose name or alias this one was very nearly spelled — at most
-/// three, offered under the pickers' `DID YOU MEAN` band and never acted
-/// on unattended. Empty whenever something WAS spelled right, which is the
-/// same band rule the pickers hold.
+/// Up to three rows this name nearly spells, for the `DID YOU MEAN` band.
+/// Empty whenever something matched exactly.
 @override@JsonKey() List<NameEntry> get nameNearMatches {
   if (_nameNearMatches is EqualUnmodifiableListView) return _nameNearMatches;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_nameNearMatches);
 }
 
-/// A typed name the person chose to KEEP. While [name] is exactly this,
-/// the tidy recases and respaces but suggests nothing: a suggestion once
-/// refused must not be offered again on the next leave. Cleared by the
-/// next edit, and carried forward when the tidy's own recasing moves it.
+/// A typed name the person chose to keep. While [name] equals it the tidy
+/// recases but suggests nothing; cleared by the next edit.
 @override final  String? namePinned;
-/// Whether a person has typed in the name field during this sitting.
-///
-/// Save tidies only what somebody wrote. A stored name is not rewritten by
-/// a Save that was about the macros — the row's own name is a thing a
-/// human already chose, and a save of something else is no occasion to
-/// take it away.
+/// Whether the name field was typed in during this sitting. Save tidies
+/// only a name somebody wrote.
 @override@JsonKey() final  bool nameEdited;
 /// The form's one feedback line.
 @override final  String? message;
