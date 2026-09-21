@@ -8,29 +8,20 @@ part of 'crash_sink.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Where the zone handler and `guardedWrite` speak.
-///
-/// Overridden in `bootstrap.dart` with a [ToastCrashSink] anchored under the
-/// app's toaster. The default is [NoopCrashSink], which is also what a test
-/// wanting silence gets for free.
+/// Where the zone handler and `guardedWrite` report. [NoopCrashSink] by
+/// default; `bootstrap.dart` overrides it with a [ToastCrashSink].
 
 @ProviderFor(crashSink)
 const crashSinkProvider = CrashSinkProvider._();
 
-/// Where the zone handler and `guardedWrite` speak.
-///
-/// Overridden in `bootstrap.dart` with a [ToastCrashSink] anchored under the
-/// app's toaster. The default is [NoopCrashSink], which is also what a test
-/// wanting silence gets for free.
+/// Where the zone handler and `guardedWrite` report. [NoopCrashSink] by
+/// default; `bootstrap.dart` overrides it with a [ToastCrashSink].
 
 final class CrashSinkProvider
     extends $FunctionalProvider<CrashSink, CrashSink, CrashSink>
     with $Provider<CrashSink> {
-  /// Where the zone handler and `guardedWrite` speak.
-  ///
-  /// Overridden in `bootstrap.dart` with a [ToastCrashSink] anchored under the
-  /// app's toaster. The default is [NoopCrashSink], which is also what a test
-  /// wanting silence gets for free.
+  /// Where the zone handler and `guardedWrite` report. [NoopCrashSink] by
+  /// default; `bootstrap.dart` overrides it with a [ToastCrashSink].
   const CrashSinkProvider._()
     : super(
         from: null,

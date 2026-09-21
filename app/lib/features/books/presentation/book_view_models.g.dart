@@ -51,30 +51,24 @@ final class LibraryProvider
 
 String _$libraryHash() => r'2a768802cf982e8a3792ba5998b6333229780a8f';
 
-/// Which books are folded shut on this device (D3).
+/// Which books are folded shut on this device.
 ///
-/// Keep-alive, and not optional: the toggle lands after a frame, and every
-/// Library mutation beside it lands after an async dialog — a short-lived
-/// notifier would be disposed before its callback ran. Hydrated once from the
-/// store; each toggle writes through so the fold survives a relaunch.
+/// Keep-alive, because toggles land after an async gap. Hydrated once from
+/// the store; each toggle writes through.
 
 @ProviderFor(FoldedBooks)
 const foldedBooksProvider = FoldedBooksProvider._();
 
-/// Which books are folded shut on this device (D3).
+/// Which books are folded shut on this device.
 ///
-/// Keep-alive, and not optional: the toggle lands after a frame, and every
-/// Library mutation beside it lands after an async dialog — a short-lived
-/// notifier would be disposed before its callback ran. Hydrated once from the
-/// store; each toggle writes through so the fold survives a relaunch.
+/// Keep-alive, because toggles land after an async gap. Hydrated once from
+/// the store; each toggle writes through.
 final class FoldedBooksProvider
     extends $AsyncNotifierProvider<FoldedBooks, Set<String>> {
-  /// Which books are folded shut on this device (D3).
+  /// Which books are folded shut on this device.
   ///
-  /// Keep-alive, and not optional: the toggle lands after a frame, and every
-  /// Library mutation beside it lands after an async dialog — a short-lived
-  /// notifier would be disposed before its callback ran. Hydrated once from the
-  /// store; each toggle writes through so the fold survives a relaunch.
+  /// Keep-alive, because toggles land after an async gap. Hydrated once from
+  /// the store; each toggle writes through.
   const FoldedBooksProvider._()
     : super(
         from: null,
@@ -96,12 +90,10 @@ final class FoldedBooksProvider
 
 String _$foldedBooksHash() => r'0a6bfed411a8dfd032dfef64eb4b3a1726934163';
 
-/// Which books are folded shut on this device (D3).
+/// Which books are folded shut on this device.
 ///
-/// Keep-alive, and not optional: the toggle lands after a frame, and every
-/// Library mutation beside it lands after an async dialog — a short-lived
-/// notifier would be disposed before its callback ran. Hydrated once from the
-/// store; each toggle writes through so the fold survives a relaunch.
+/// Keep-alive, because toggles land after an async gap. Hydrated once from
+/// the store; each toggle writes through.
 
 abstract class _$FoldedBooks extends $AsyncNotifier<Set<String>> {
   FutureOr<Set<String>> build();

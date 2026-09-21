@@ -8,27 +8,18 @@ part of 'dropped_write.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Every write this device has lost, oldest first.
-///
-/// Keep-alive: a drop is terminal, so it must outlive the screen that happened
-/// to be open when it landed. Restored from disk on first read, so a relaunch
-/// does not quietly forgive it.
+/// Every write this device has lost, oldest first. Keep-alive and restored
+/// from disk, so neither a closed screen nor a relaunch forgets a drop.
 
 @ProviderFor(DroppedWrites)
 const droppedWritesProvider = DroppedWritesProvider._();
 
-/// Every write this device has lost, oldest first.
-///
-/// Keep-alive: a drop is terminal, so it must outlive the screen that happened
-/// to be open when it landed. Restored from disk on first read, so a relaunch
-/// does not quietly forgive it.
+/// Every write this device has lost, oldest first. Keep-alive and restored
+/// from disk, so neither a closed screen nor a relaunch forgets a drop.
 final class DroppedWritesProvider
     extends $NotifierProvider<DroppedWrites, List<DroppedWrite>> {
-  /// Every write this device has lost, oldest first.
-  ///
-  /// Keep-alive: a drop is terminal, so it must outlive the screen that happened
-  /// to be open when it landed. Restored from disk on first read, so a relaunch
-  /// does not quietly forgive it.
+  /// Every write this device has lost, oldest first. Keep-alive and restored
+  /// from disk, so neither a closed screen nor a relaunch forgets a drop.
   const DroppedWritesProvider._()
     : super(
         from: null,
@@ -58,11 +49,8 @@ final class DroppedWritesProvider
 
 String _$droppedWritesHash() => r'83cb910933d2ac208bc9daa0fbe7b8135b6102e8';
 
-/// Every write this device has lost, oldest first.
-///
-/// Keep-alive: a drop is terminal, so it must outlive the screen that happened
-/// to be open when it landed. Restored from disk on first read, so a relaunch
-/// does not quietly forgive it.
+/// Every write this device has lost, oldest first. Keep-alive and restored
+/// from disk, so neither a closed screen nor a relaunch forgets a drop.
 
 abstract class _$DroppedWrites extends $Notifier<List<DroppedWrite>> {
   List<DroppedWrite> build();

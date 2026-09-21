@@ -57,20 +57,20 @@ final class HouseholdRepositoryProvider
 String _$householdRepositoryHash() =>
     r'78786ca51b6473541db5aad9eae4e2aabf16f2d5';
 
-/// The `set_household_week_start` RPC (migration 0043) as a function, so the
-/// widget that offers the flip can be tested without a Supabase client.
+/// The `set_household_week_start` RPC as a function, so the widget that
+/// offers the flip can be tested without a Supabase client.
 
 @ProviderFor(flipWeekStart)
 const flipWeekStartProvider = FlipWeekStartProvider._();
 
-/// The `set_household_week_start` RPC (migration 0043) as a function, so the
-/// widget that offers the flip can be tested without a Supabase client.
+/// The `set_household_week_start` RPC as a function, so the widget that
+/// offers the flip can be tested without a Supabase client.
 
 final class FlipWeekStartProvider
     extends $FunctionalProvider<FlipWeekStart, FlipWeekStart, FlipWeekStart>
     with $Provider<FlipWeekStart> {
-  /// The `set_household_week_start` RPC (migration 0043) as a function, so the
-  /// widget that offers the flip can be tested without a Supabase client.
+  /// The `set_household_week_start` RPC as a function, so the widget that
+  /// offers the flip can be tested without a Supabase client.
   const FlipWeekStartProvider._()
     : super(
         from: null,
@@ -140,32 +140,20 @@ final class WeekShapeStreamProvider
 
 String _$weekShapeStreamHash() => r'56784cfaf9e44624687be6c0311b04c55ba699a6';
 
-/// The household's week shape, as a plain value.
-///
-/// Monday until the row arrives — and equally for a device that cannot reach
-/// its own database yet. That is not a swallowed error: the shape has exactly
-/// one honest default, the surfaces that read it have no loading state, and a
-/// database that never opens has a louder failure than a Monday-first grid.
+/// The household's week shape, as a plain value. Monday until the row
+/// arrives, or while the database cannot be reached.
 
 @ProviderFor(weekShape)
 const weekShapeProvider = WeekShapeProvider._();
 
-/// The household's week shape, as a plain value.
-///
-/// Monday until the row arrives — and equally for a device that cannot reach
-/// its own database yet. That is not a swallowed error: the shape has exactly
-/// one honest default, the surfaces that read it have no loading state, and a
-/// database that never opens has a louder failure than a Monday-first grid.
+/// The household's week shape, as a plain value. Monday until the row
+/// arrives, or while the database cannot be reached.
 
 final class WeekShapeProvider
     extends $FunctionalProvider<WeekShape, WeekShape, WeekShape>
     with $Provider<WeekShape> {
-  /// The household's week shape, as a plain value.
-  ///
-  /// Monday until the row arrives — and equally for a device that cannot reach
-  /// its own database yet. That is not a swallowed error: the shape has exactly
-  /// one honest default, the surfaces that read it have no loading state, and a
-  /// database that never opens has a louder failure than a Monday-first grid.
+  /// The household's week shape, as a plain value. Monday until the row
+  /// arrives, or while the database cannot be reached.
   const WeekShapeProvider._()
     : super(
         from: null,

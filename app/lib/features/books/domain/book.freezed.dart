@@ -14,10 +14,9 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Book {
 
- String get id; String get name;/// Ordered, user-named sections. Empty sections are kept (they still show
-/// as a labelled, recipe-less row).
- List<BookSection> get sections;/// Recipes in this book with no `section_id` (or a deleted section).
-/// Rendered under an "Unsectioned" label; not a real database row.
+ String get id; String get name;/// Ordered, user-named sections. Empty sections are kept.
+ List<BookSection> get sections;/// Recipes in this book with no `section_id` (or a deleted section). Not
+/// a database row.
  List<RecipeSummary> get unsectioned;
 /// Create a copy of Book
 /// with the given fields replaced by the non-null parameter values.
@@ -218,22 +217,20 @@ class _Book implements Book {
 
 @override final  String id;
 @override final  String name;
-/// Ordered, user-named sections. Empty sections are kept (they still show
-/// as a labelled, recipe-less row).
+/// Ordered, user-named sections. Empty sections are kept.
  final  List<BookSection> _sections;
-/// Ordered, user-named sections. Empty sections are kept (they still show
-/// as a labelled, recipe-less row).
+/// Ordered, user-named sections. Empty sections are kept.
 @override@JsonKey() List<BookSection> get sections {
   if (_sections is EqualUnmodifiableListView) return _sections;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_sections);
 }
 
-/// Recipes in this book with no `section_id` (or a deleted section).
-/// Rendered under an "Unsectioned" label; not a real database row.
+/// Recipes in this book with no `section_id` (or a deleted section). Not
+/// a database row.
  final  List<RecipeSummary> _unsectioned;
-/// Recipes in this book with no `section_id` (or a deleted section).
-/// Rendered under an "Unsectioned" label; not a real database row.
+/// Recipes in this book with no `section_id` (or a deleted section). Not
+/// a database row.
 @override@JsonKey() List<RecipeSummary> get unsectioned {
   if (_unsectioned is EqualUnmodifiableListView) return _unsectioned;
   // ignore: implicit_dynamic_type

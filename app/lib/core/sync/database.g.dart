@@ -8,14 +8,14 @@ part of 'database.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// The open [PowerSyncDatabase]. Has no default — `bootstrap.dart` overrides it
-/// with the result of [openAnsiDatabase]. Repo tests don't use it.
+/// The open [PowerSyncDatabase]. No default: `bootstrap.dart` overrides it
+/// with the result of [openAnsiDatabase].
 
 @ProviderFor(powerSyncDatabase)
 const powerSyncDatabaseProvider = PowerSyncDatabaseProvider._();
 
-/// The open [PowerSyncDatabase]. Has no default — `bootstrap.dart` overrides it
-/// with the result of [openAnsiDatabase]. Repo tests don't use it.
+/// The open [PowerSyncDatabase]. No default: `bootstrap.dart` overrides it
+/// with the result of [openAnsiDatabase].
 
 final class PowerSyncDatabaseProvider
     extends
@@ -25,8 +25,8 @@ final class PowerSyncDatabaseProvider
           PowerSyncDatabase
         >
     with $Provider<PowerSyncDatabase> {
-  /// The open [PowerSyncDatabase]. Has no default — `bootstrap.dart` overrides it
-  /// with the result of [openAnsiDatabase]. Repo tests don't use it.
+  /// The open [PowerSyncDatabase]. No default: `bootstrap.dart` overrides it
+  /// with the result of [openAnsiDatabase].
   const PowerSyncDatabaseProvider._()
     : super(
         from: null,
@@ -63,20 +63,14 @@ final class PowerSyncDatabaseProvider
 
 String _$powerSyncDatabaseHash() => r'24475f6f71280bedc6987b1d44f3b31c45f6688d';
 
-/// The open database, as the common [SqliteConnection] type so repositories and
-/// their tests depend on the query surface, not on PowerSync specifically.
-///
-/// Derives from [powerSyncDatabase] in the app; a test overrides *this*
-/// provider directly with an in-memory connection.
+/// The open database as a [SqliteConnection], so repositories and their tests
+/// depend on the query surface only. A test overrides this provider directly.
 
 @ProviderFor(database)
 const databaseProvider = DatabaseProvider._();
 
-/// The open database, as the common [SqliteConnection] type so repositories and
-/// their tests depend on the query surface, not on PowerSync specifically.
-///
-/// Derives from [powerSyncDatabase] in the app; a test overrides *this*
-/// provider directly with an in-memory connection.
+/// The open database as a [SqliteConnection], so repositories and their tests
+/// depend on the query surface only. A test overrides this provider directly.
 
 final class DatabaseProvider
     extends
@@ -86,11 +80,8 @@ final class DatabaseProvider
           SqliteConnection
         >
     with $Provider<SqliteConnection> {
-  /// The open database, as the common [SqliteConnection] type so repositories and
-  /// their tests depend on the query surface, not on PowerSync specifically.
-  ///
-  /// Derives from [powerSyncDatabase] in the app; a test overrides *this*
-  /// provider directly with an in-memory connection.
+  /// The open database as a [SqliteConnection], so repositories and their tests
+  /// depend on the query surface only. A test overrides this provider directly.
   const DatabaseProvider._()
     : super(
         from: null,

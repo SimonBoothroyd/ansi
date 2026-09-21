@@ -50,16 +50,14 @@ final class SupabaseClientProvider
 
 String _$supabaseClientHash() => r'3db2a4c212c7f24cea9810e376225aa1a6cab012';
 
-/// Calls the idempotent `ensure_onboarded` RPC (migration 0007) and returns
-/// the household id. A provider so [SessionController] tests can fake the
-/// network boundary.
+/// Calls the idempotent `ensure_onboarded` RPC and returns the household id.
+/// A provider so tests can fake the network boundary.
 
 @ProviderFor(ensureOnboarded)
 const ensureOnboardedProvider = EnsureOnboardedProvider._();
 
-/// Calls the idempotent `ensure_onboarded` RPC (migration 0007) and returns
-/// the household id. A provider so [SessionController] tests can fake the
-/// network boundary.
+/// Calls the idempotent `ensure_onboarded` RPC and returns the household id.
+/// A provider so tests can fake the network boundary.
 
 final class EnsureOnboardedProvider
     extends
@@ -69,9 +67,8 @@ final class EnsureOnboardedProvider
           Future<String> Function()
         >
     with $Provider<Future<String> Function()> {
-  /// Calls the idempotent `ensure_onboarded` RPC (migration 0007) and returns
-  /// the household id. A provider so [SessionController] tests can fake the
-  /// network boundary.
+  /// Calls the idempotent `ensure_onboarded` RPC and returns the household id.
+  /// A provider so tests can fake the network boundary.
   const EnsureOnboardedProvider._()
     : super(
         from: null,
