@@ -30,26 +30,11 @@ import 'package:forui/forui.dart';
 import '../../helpers/editor_harness.dart';
 import '../../helpers/fake_recipe_measure_repository.dart';
 import '../../helpers/forui_semantics.dart';
+import '../../helpers/measure_fixtures.dart';
 import '../../helpers/pump_app.dart';
-
-/// The aioli: it says what a batch makes, so a word can be held to it.
-const _aioli = SubRecipeTarget(
-  id: 'aioli',
-  title: 'Romesco Aioli',
-  yieldQty: 300,
-  yieldUnit: g,
-);
 
 /// The same sauce with no MAKES — the gate's own state.
 const _unmeasured = SubRecipeTarget(id: 'aioli', title: 'Romesco Aioli');
-
-const _blob = RecipeMeasure(
-  id: 'm-blob',
-  recipeId: 'aioli',
-  label: 'blob',
-  amount: 15,
-  unit: g,
-);
 
 /// The manage chip: a real icon, not a glyph — the bundled fonts carry no
 /// U+FF0B, so the row draws [FLucideIcons.plus].
@@ -86,7 +71,7 @@ typedef _Door = ({FakeRecipeMeasureRepo words, List<ComponentQuantity> done});
 
 Future<_Door> _pumpDoor(
   WidgetTester tester, {
-  SubRecipeTarget target = _aioli,
+  SubRecipeTarget target = aioliTarget,
   List<RecipeMeasure> words = const [],
 
   /// What the HOST handed over, where that differs from the live store — the
@@ -157,7 +142,7 @@ Future<void> _back(WidgetTester tester) async {
 /// scrolls where the surface it sits on can.
 Future<FakeRecipeMeasureRepo> _pumpSheet(
   WidgetTester tester, {
-  List<RecipeMeasure> words = const [_blob],
+  List<RecipeMeasure> words = const [blobWord],
 }) async {
   filterForuiSemanticsAssertions();
   final repo = FakeRecipeMeasureRepo(measures: words);
@@ -167,7 +152,7 @@ Future<FakeRecipeMeasureRepo> _pumpSheet(
         builder: (context) => AnsiTap(
           onTap: () => showComponentQuantitySheet(
             context,
-            target: _aioli.copyWith(measures: words),
+            target: aioliTarget.copyWith(measures: words),
             initialQuantity: 2,
             initialMeasureId: words.isEmpty ? null : words.first.id,
             mayCoinWords: true,
@@ -258,7 +243,7 @@ void main() {
       'does not go', (tester) async {
     final door = await _pumpDoor(
       tester,
-      words: const [_blob],
+      words: const [blobWord],
       usage: const {
         'm-blob': RecipeMeasureUsage(
           lines: 3,
@@ -289,7 +274,7 @@ void main() {
       'selection, so Done cannot write a tombstone', (tester) async {
     final door = await _pumpDoor(
       tester,
-      words: const [_blob],
+      words: const [blobWord],
       initialQuantity: 2,
       initialUnit: null,
       initialMeasureId: 'm-blob',
@@ -338,7 +323,7 @@ void main() {
     const reason = 'That measure is not one of this recipe’s any more.';
     final door = await _pumpDoor(
       tester,
-      words: const [_blob],
+      words: const [blobWord],
       refuseWith: reason,
       initialQuantity: 2,
       initialUnit: null,
@@ -373,7 +358,7 @@ void main() {
       'that says it — the row is watched, not copied', (tester) async {
     final door = await _pumpDoor(
       tester,
-      words: const [_blob],
+      words: const [blobWord],
       initialQuantity: 2,
       initialUnit: null,
       initialMeasureId: 'm-blob',
@@ -438,7 +423,7 @@ void main() {
       'whose line has no column for one', (tester) async {
     await _pumpDoor(
       tester,
-      words: const [_blob],
+      words: const [blobWord],
       // The review's two doors hand the sheet a target with its words
       // stripped, and this one must not go behind their backs for them.
       snapshot: const [],

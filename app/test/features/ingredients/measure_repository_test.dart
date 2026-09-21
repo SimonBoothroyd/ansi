@@ -320,17 +320,16 @@ void main() {
   });
 
   test('the watch re-fires when a measure is added', () async {
-    final emissions = repo.watchMeasures('potato').take(2).toList();
-    // First emission: empty. Then the insert must re-fire the stream.
-    await Future<void>.delayed(const Duration(milliseconds: 50));
-    await _seedMeasure(
-      db,
-      id: 'm1',
-      ingredientId: 'potato',
-      label: 'potato, large',
-      amount: 299,
+    final results = await twoEmissions(
+      repo.watchMeasures('potato'),
+      () => _seedMeasure(
+        db,
+        id: 'm1',
+        ingredientId: 'potato',
+        label: 'potato, large',
+        amount: 299,
+      ),
     );
-    final results = await emissions;
     expect(results.first, isEmpty);
     expect(results.last.single.label, 'potato, large');
   });

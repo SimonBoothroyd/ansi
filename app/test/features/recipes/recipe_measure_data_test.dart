@@ -1,14 +1,8 @@
-/// The data layer for a recipe's own words — `3 blob` of a sauce, end to end
-/// over the real PowerSync views (ADR-0018, migration 0048).
-///
-/// This build cannot AUTHOR a measured line: no screen on it writes one. It
-/// must still read every one it meets, because the seam ships a release ahead
-/// of the authoring UI — a device that cannot read a measured line throws on it
-/// or drops it in silence, and the shape of that silence is what these tests
-/// exist to keep out.
+/// The data layer for a recipe's own words — `3 blob` of a sauce — over the
+/// real PowerSync views (ADR-0018): every measured line a device meets must
+/// read, resolve and re-fire, never throw or vanish.
 library;
 
-import 'dart:async';
 import 'dart:io';
 
 import 'package:ansi/core/units/recipe_measure.dart';
@@ -26,50 +20,19 @@ import 'package:ansi/features/recipes/domain/recipe_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
 
+import '../../helpers/measure_fixtures.dart';
 import '../../helpers/test_db.dart';
 
-/// What the aioli says a batch makes. Every word below is an amount in this
-/// family, because that is the gate: a word is only sayable against a `makes`
-/// it can be held to (ADR-0018 rule 2).
-const _yield = (qty: 300.0, unit: g);
-
-/// Every measure this file uses is built here, so re-stating what a measure IS
-/// (the denomination it carries) is one edit rather than forty. `blob()` is *a
-/// blob is 15 g*, which against `makes 300 g` is a twentieth of a batch.
-RecipeMeasure word(
-  String label, {
-  double amount = 15,
-  Unit unit = g,
-  String? id,
-  int sortOrder = 0,
-}) => RecipeMeasure(
-  id: id ?? 'm-$label',
-  recipeId: 'aioli',
-  label: label,
-  amount: amount,
-  unit: unit,
-  sortOrder: sortOrder,
-);
-
-RecipeMeasure blob({double amount = 15, Unit unit = g}) =>
-    word('blob', amount: amount, unit: unit);
-
-/// What a count of the word comes to in batches — read through the one
-/// resolution every reader uses rather than written as a literal, so an
-/// expectation says "a share of the target's batch" instead of a number that
-/// would quietly stop being the right one if the denomination were re-stated.
-double batchesOf(double count, [RecipeMeasure? measure]) {
-  final m = measure ?? blob();
-  return (resolveComponentAmount(
-            quantity: count,
-            unit: null,
-            yields: const [_yield],
-            recipeMeasureId: m.id,
-            measures: [m],
-          )
-          as ResolvedComponentAmount)
-      .batches;
-}
+/// A second word beside the blob.
+RecipeMeasure word(String label, {double amount = 15, int sortOrder = 0}) =>
+    RecipeMeasure(
+      id: 'm-$label',
+      recipeId: 'aioli',
+      label: label,
+      amount: amount,
+      unit: g,
+      sortOrder: sortOrder,
+    );
 
 void main() {
   late PowerSyncDatabase db;
@@ -78,94 +41,21 @@ void main() {
   late SqliteRecipeMeasureRepository measures;
   late SqliteWeekVariantRepository week;
 
-  /// The Romesco Aioli: makes 300 g, one 240 g line of rice, and the
-  /// household's word for a ladleful of it.
-  Future<void> seedAioli({List<RecipeMeasure>? words}) => repo.saveRecipe(
-    Recipe(
-      id: 'aioli',
-      title: 'Romesco Aioli',
-      servingsBase: 4,
-      keepsForDays: 5,
-      yieldQty: _yield.qty,
-      yieldUnit: _yield.unit,
-      measures: words ?? [blob()],
-      groups: const [
-        IngredientGroup(
-          id: 'ag',
-          items: [
-            LineItem(
-              id: 'ai1',
-              ingredientId: 'ing-rice',
-              ingredientName: 'Rice',
-              unit: g,
-              quantity: 240,
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
+  Future<void> seedAioli({List<RecipeMeasure>? words}) =>
+      repo.saveRecipe(aioliRecipe(words: words ?? [blob()]));
 
-  /// A parent whose only line asks for [quantity] of the aioli's word — the
-  /// line no screen on this build can write.
   Recipe parent({
     double? quantity = 3,
     String? measureId = 'm-blob',
     double servings = 8,
-  }) => Recipe(
-    id: 'sliders',
-    title: 'Sausage Sliders',
-    servingsBase: servings,
-    groups: [
-      IngredientGroup(
-        id: 'sg',
-        items: [
-          LineItem(
-            id: 'si1',
-            subRecipeId: 'aioli',
-            ingredientName: 'Romesco Aioli',
-            quantity: quantity,
-            recipeMeasureId: measureId,
-          ),
-        ],
-      ),
-    ],
-  );
+  }) => sliders(quantity: quantity, measureId: measureId, servings: servings);
 
   setUp(() async {
     (db, dir) = await openTestDb();
     repo = SqliteRecipeRepository(db, householdId: 'h');
     measures = SqliteRecipeMeasureRepository(db, householdId: 'h');
     week = SqliteWeekVariantRepository(db, householdId: 'h');
-    // Rice carries per-100 g macros and a price, so a parent's figures have
-    // something real to be a share OF.
-    await db.execute(
-      'INSERT INTO ingredient (id, household_id, canonical_name, '
-      'default_unit, status, source, match_text, macros, macros_basis) '
-      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [
-        'ing-rice',
-        'h',
-        'Rice',
-        'g',
-        'complete',
-        'seed',
-        'rice',
-        '{"kcal":360,"protein":7,"carb":80,"fat":1}',
-        'per_g',
-      ],
-    );
-    await db.execute(
-      'INSERT INTO receipt (id, household_id, store, purchased_at, source, '
-      'created_at) VALUES (?, ?, ?, ?, ?, ?)',
-      ['rc1', 'h', "TJ's", '2026-09-03', 'photo', '2026-09-03'],
-    );
-    await db.execute(
-      'INSERT INTO receipt_line (id, household_id, receipt_id, ingredient_id, '
-      'cents, discount_cents, kind, pack_basis_amount, sort_order, created_at) '
-      'VALUES (?, ?, ?, ?, ?, 0, ?, ?, 0, ?)',
-      ['rl1', 'h', 'rc1', 'ing-rice', 500, 'item', 1000.0, '2026-09-03'],
-    );
+    await seedPricedRice(db);
   });
 
   tearDown(() => closeTestDb(db, dir));
@@ -208,7 +98,7 @@ void main() {
       expect(amount.viaMeasure, blob());
       expect(
         amount.against,
-        _yield,
+        aioliYield,
         reason: 'one conversion path: a word reaches a batch THROUGH the yield',
       );
     });
@@ -832,29 +722,6 @@ void main() {
   });
 
   group('the watches re-fire when a word moves', () {
-    /// Subscribes, waits for the FIRST emission, then runs [mutate] and waits
-    /// for the second. Never a sleep-then-mutate: on a loaded machine the edit
-    /// lands before the stream's first read and the second emission can never
-    /// come.
-    Future<List<T>> twoEmissions<T>(
-      Stream<T> stream,
-      Future<void> Function() mutate,
-    ) async {
-      final seen = <T>[];
-      final first = Completer<void>();
-      final both = Completer<void>();
-      final sub = stream.listen((value) {
-        seen.add(value);
-        if (seen.length == 1) first.complete();
-        if (seen.length == 2 && !both.isCompleted) both.complete();
-      });
-      addTearDown(sub.cancel);
-      await first.future;
-      await mutate();
-      await both.future;
-      return seen;
-    }
-
     Future<void> restate() => db.execute(
       'UPDATE recipe_measure SET amount = ? WHERE id = ?',
       [12.5, 'm-blob'],

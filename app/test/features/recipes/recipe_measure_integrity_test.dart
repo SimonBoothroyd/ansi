@@ -1,16 +1,11 @@
-/// What keeps a recipe's own words HONEST when the rows around them go: a line
-/// that says a word but no number, a word whose only referrers are tombstones,
-/// and a line pointing at the twin the merge hides.
-///
-/// Over the real PowerSync views, because each one is a question about stored
-/// rows — which tombstones a count may see, and which row an id resolves to.
+/// What keeps a recipe's own words honest when the rows around them go: a word
+/// with no number, a word whose only referrers are tombstones, and a line
+/// pointing at the twin the merge hides. Over the real PowerSync views.
 library;
 
 import 'dart:io';
 
-import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/unit_choice.dart';
-import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/data/recipe_measure_repository_impl.dart';
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
@@ -21,20 +16,8 @@ import 'package:ansi/features/recipes/domain/recipe_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
 
+import '../../helpers/measure_fixtures.dart';
 import '../../helpers/test_db.dart';
-
-/// What the aioli says a batch makes — every word below is a mass, because a
-/// word is only sayable against a `makes` it can be held to.
-const _yield = (qty: 300.0, unit: g);
-
-RecipeMeasure _blob({String id = 'm-blob', double amount = 15}) =>
-    RecipeMeasure(
-      id: id,
-      recipeId: 'aioli',
-      label: 'blob',
-      amount: amount,
-      unit: g,
-    );
 
 void main() {
   late PowerSyncDatabase db;
@@ -42,52 +25,10 @@ void main() {
   late SqliteRecipeRepository repo;
   late SqliteRecipeMeasureRepository measures;
 
-  /// The Romesco Aioli: makes 300 g, and the household's word for a blob of it.
-  Future<void> seedAioli() => repo.saveRecipe(
-    Recipe(
-      id: 'aioli',
-      title: 'Romesco Aioli',
-      servingsBase: 4,
-      yieldQty: _yield.qty,
-      yieldUnit: _yield.unit,
-      measures: [_blob()],
-      groups: const [
-        IngredientGroup(
-          id: 'ag',
-          items: [
-            LineItem(
-              id: 'ai1',
-              ingredientId: 'ing-rice',
-              ingredientName: 'Rice',
-              unit: g,
-              quantity: 240,
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
+  Future<void> seedAioli() => repo.saveRecipe(aioliRecipe());
 
-  /// A parent whose only line asks for [quantity] of the aioli's word.
-  Recipe parent({double? quantity = 3, String measureId = 'm-blob'}) => Recipe(
-    id: 'sliders',
-    title: 'Sausage Sliders',
-    servingsBase: 8,
-    groups: [
-      IngredientGroup(
-        id: 'sg',
-        items: [
-          LineItem(
-            id: 'si1',
-            subRecipeId: 'aioli',
-            ingredientName: 'Romesco Aioli',
-            quantity: quantity,
-            recipeMeasureId: measureId,
-          ),
-        ],
-      ),
-    ],
-  );
+  Recipe parent({double? quantity = 3, String measureId = 'm-blob'}) =>
+      sliders(quantity: quantity, measureId: measureId);
 
   /// The other phone's second `blob`, arriving later and hidden behind the
   /// older row by the merge.

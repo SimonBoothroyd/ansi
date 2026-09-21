@@ -1,22 +1,18 @@
 /// A real [PowerSyncDatabase] for repository tests, on the host VM.
 ///
-/// Repositories talk to PowerSync's *local* tables, which are SQLite VIEWS over
-/// `ps_data__*` with INSTEAD OF triggers. A view rejects `INSERT … ON CONFLICT`
-/// outright — a statement a hand-rolled `CREATE TABLE` test database accepts
-/// happily, which is how the step-2 UPSERT bug shipped green. Opening the real
-/// schema here means a repo test fails for the same reason the phone does, and
-/// it can't drift from `schema.dart` either.
-///
-/// On-device the PowerSync SQLite core extension is linked in by
-/// `powersync_flutter_libs`; on the host it must be dlopen'd from a downloaded
-/// binary — `make powersync-core` (run by `make test-app`) puts it in `app/`.
+/// PowerSync's local tables are views with INSTEAD OF triggers, which reject
+/// statements (`INSERT … ON CONFLICT`) a hand-rolled test table accepts, so
+/// repo tests open the app's real schema. On the host the core extension is
+/// dlopen'd from the binary `make powersync-core` puts in `app/`.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 
 import 'package:ansi/core/sync/schema.dart';
+import 'package:flutter_test/flutter_test.dart' show addTearDown;
 import 'package:powersync/powersync.dart';
 import 'package:sqlite3/open.dart';
 import 'package:sqlite3/sqlite3.dart' show SqliteExtension, sqlite3;
@@ -122,4 +118,26 @@ Future<List<Map<String, dynamic>>> queuedCrudOps(PowerSyncDatabase db) async {
     for (final r in rows)
       jsonDecode(r['data'] as String) as Map<String, dynamic>,
   ];
+}
+
+/// Listens to [stream], waits for its first emission, runs [mutate], waits for
+/// the second, and returns both. A sleep-then-mutate can land the edit before
+/// the watch's first read, and then the second emission never comes.
+Future<List<T>> twoEmissions<T>(
+  Stream<T> stream,
+  Future<void> Function() mutate,
+) async {
+  final seen = <T>[];
+  final first = Completer<void>();
+  final both = Completer<void>();
+  final sub = stream.listen((value) {
+    seen.add(value);
+    if (seen.length == 1) first.complete();
+    if (seen.length == 2) both.complete();
+  });
+  addTearDown(sub.cancel);
+  await first.future;
+  await mutate();
+  await both.future;
+  return seen.sublist(0, 2);
 }

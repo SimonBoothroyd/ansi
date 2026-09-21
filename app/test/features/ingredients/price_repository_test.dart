@@ -1,10 +1,8 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/data/price_repository_impl.dart';
 import 'package:ansi/features/ingredients/domain/price.dart';
-import 'package:ansi/features/ingredients/domain/price_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
 
@@ -1241,11 +1239,7 @@ void main() {
       },
     );
 
-    /// **Re-matching a line is what corrects the memory**, so the fold has to
-    /// follow it without anybody refreshing the page. The listen → first
-    /// emission → mutate → second emission walk is the pattern here rather
-    /// than a sleep: a sleep asserts how long something took, which is not the
-    /// claim.
+    /// Re-matching a line is what corrects the memory, so the watch follows it.
     test(
       're-matching a line to another row moves the name off this one',
       () async {
@@ -1257,30 +1251,16 @@ void main() {
           namePrinted: 'ORG TRICOLOR QUINOA',
         );
 
-        final first = Completer<List<ReceiptName>>();
-        final second = Completer<List<ReceiptName>>();
-        final seen = <List<ReceiptName>>[];
-        final sub = repo.watchReceiptNames('banana').listen((names) {
-          seen.add(names);
-          if (!first.isCompleted) {
-            first.complete(names);
-          } else if (!second.isCompleted) {
-            second.complete(names);
-          }
-        });
-        addTearDown(sub.cancel);
-
-        expect((await first.future).map((n) => n.namePrinted), [
-          'ORG TRICOLOR QUINOA',
-        ]);
-
-        await db.execute(
-          'UPDATE receipt_line SET ingredient_id = ? WHERE id = ?',
-          ['quinoa', 'l-sep'],
+        final seen = await twoEmissions(
+          repo.watchReceiptNames('banana'),
+          () => db.execute(
+            'UPDATE receipt_line SET ingredient_id = ? WHERE id = ?',
+            ['quinoa', 'l-sep'],
+          ),
         );
-
+        expect(seen.first.map((n) => n.namePrinted), ['ORG TRICOLOR QUINOA']);
         expect(
-          await second.future,
+          seen.last,
           isEmpty,
           reason: 'the answer moved, so the name is no longer filed here',
         );

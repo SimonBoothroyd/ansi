@@ -30,18 +30,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../helpers/editor_harness.dart';
 import '../../helpers/fake_recipe_measure_repository.dart';
 import '../../helpers/forui_semantics.dart';
+import '../../helpers/measure_fixtures.dart';
 
 /// What the aioli makes: a weight. Every word below is said in that family
 /// unless the test is about the refusal for one that is not.
 const _makesMass = [(qty: 300.0, unit: g)];
-
-const _blob = RecipeMeasure(
-  id: 'm-blob',
-  recipeId: 'aioli',
-  label: 'blob',
-  amount: 15,
-  unit: g,
-);
 
 /// The add form's three slots, keyed rather than found by position: the
 /// amount's unit chip is itself a text field on some platforms, and the label
@@ -190,7 +183,7 @@ void main() {
 
     testWidgets('the words the recipe already has are still listed when MAKES '
         'has gone, each saying what is missing', (tester) async {
-      await _pump(tester, const _Host(yields: [], words: [_blob]));
+      await _pump(tester, const _Host(yields: [], words: [blobWord]));
 
       expect(find.text('blob'), findsOneWidget);
       expect(find.text('15 g'), findsOneWidget);
@@ -276,14 +269,17 @@ void main() {
 
     testWidgets('the recipe’s own word cannot be minted twice — the refusal '
         'points at the re-statement', (tester) async {
-      await _pump(tester, const _Host(yields: _makesMass, words: [_blob]));
+      await _pump(tester, const _Host(yields: _makesMass, words: [blobWord]));
 
       await tester.enterText(_labelField, 'Blob');
       await tester.enterText(_amountField, '18');
       await tester.pump();
       await _tapAdd(tester);
 
-      expect(find.text(recipeMeasureWordTakenRefusal(_blob)), findsOneWidget);
+      expect(
+        find.text(recipeMeasureWordTakenRefusal(blobWord)),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a unit whose family MAKES does not state is refused, and the '
@@ -339,7 +335,7 @@ void main() {
       (tester) async {
         final state = await _pump(
           tester,
-          const _Host(yields: _makesMass, words: [_blob]),
+          const _Host(yields: _makesMass, words: [blobWord]),
         );
 
         await tester.tap(find.text('blob'));
@@ -396,7 +392,7 @@ void main() {
     testWidgets('the bin hands the word to the host', (tester) async {
       final state = await _pump(
         tester,
-        const _Host(yields: _makesMass, words: [_blob]),
+        const _Host(yields: _makesMass, words: [blobWord]),
       );
 
       // The word and its number read as one sentence; the bin keeps its name.
@@ -484,7 +480,7 @@ void main() {
 
     testWidgets('MAKES edited in the same draft re-evaluates the section on '
         'the same keystroke', (tester) async {
-      await pump(tester, aioli(measures: const [_blob]));
+      await pump(tester, aioli(measures: const [blobWord]));
       expect(find.textContaining('nothing to be a share of'), findsNothing);
 
       // The one yield, restated into the other family under a live word.
@@ -510,7 +506,7 @@ void main() {
 
     testWidgets('a Save that takes the yield away from a live word warns '
         'first, and proceeds on confirm — nothing is deleted', (tester) async {
-      final fakes = await pump(tester, aioli(measures: const [_blob]));
+      final fakes = await pump(tester, aioli(measures: const [blobWord]));
 
       await tester.enterText(
         find.descendant(
@@ -533,12 +529,12 @@ void main() {
       await tester.pumpAndSettle();
 
       // It warns, never refuses: the word survives the Save it warned about.
-      expect(fakes.recipes.saved.single.measures.single, _blob);
+      expect(fakes.recipes.saved.single.measures.single, blobWord);
       expect(fakes.recipes.saved.single.yieldQty, isNull);
     });
 
     testWidgets('…and Keep editing writes nothing at all', (tester) async {
-      final fakes = await pump(tester, aioli(measures: const [_blob]));
+      final fakes = await pump(tester, aioli(measures: const [blobWord]));
 
       await tester.enterText(
         find.descendant(
@@ -565,20 +561,20 @@ void main() {
       // The word says grams; the recipe has only ever said a volume.
       final fakes = await pump(
         tester,
-        aioli(yieldQty: 1, yieldUnit: cup, measures: const [_blob]),
+        aioli(yieldQty: 1, yieldUnit: cup, measures: const [blobWord]),
       );
       expect(find.textContaining('nothing to be a share of'), findsOneWidget);
 
       await saveEditor(tester);
       expect(find.text('Leave that measure on nothing?'), findsNothing);
-      expect(fakes.recipes.saved.single.measures.single, _blob);
+      expect(fakes.recipes.saved.single.measures.single, blobWord);
     });
 
     testWidgets('the bin is refused while lines still say the word, and the '
         'door lists the recipes', (tester) async {
       final fakes = await pump(
         tester,
-        aioli(measures: const [_blob]),
+        aioli(measures: const [blobWord]),
         usage: const {
           'm-blob': RecipeMeasureUsage(
             lines: 3,
@@ -631,7 +627,7 @@ void main() {
 
     testWidgets('a stored word the draft drops is soft-deleted by the Save, '
         'not by the tap', (tester) async {
-      final fakes = await pump(tester, aioli(measures: const [_blob]));
+      final fakes = await pump(tester, aioli(measures: const [blobWord]));
 
       await tester.tap(find.bySemanticsLabel('Delete the measure'));
       await tester.pumpAndSettle();
@@ -648,7 +644,7 @@ void main() {
         'draft is still there', (tester) async {
       filterForuiSemanticsAssertions();
       tallSurface(tester);
-      final recipes = _RefusingRepo(aioli(measures: const [_blob]));
+      final recipes = _RefusingRepo(aioli(measures: const [blobWord]));
       await tester.pumpWidget(
         hostEditor('1', [
           recipeRepositoryProvider.overrideWithValue(recipes),
