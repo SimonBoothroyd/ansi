@@ -954,18 +954,15 @@ committed; the datasets and gold are.
 ## 12. Receipts — the same pipeline, a different document
 
 A photographed till receipt runs through a **second edge function**,
-[`import-receipt`](../../supabase/functions/import-receipt/README.md), built to
-this document's shape rather than beside it: the same household gate and
-allowlist, the same Haiku 4.5 pin, the same streaming transport and budgets, the
-same SSE stage events, the same failure shapes. A receipt is a smaller and more
-regular document than a cookbook page, and it has one thing a recipe does not —
-a printed subtotal the reading can be checked against.
+[`import-receipt`](../../supabase/functions/import-receipt/README.md): the same
+household gate and allowlist, Haiku 4.5 pin, streaming transport, budgets, SSE
+stage events and failure shapes as `import-recipe`. A receipt is smaller and
+more regular than a cookbook page, and it has a printed subtotal the reading
+can be checked against.
 
-It is a separate function rather than a mode of `import-recipe` because the two
-produce different contracts and share everything that is genuinely shareable
-(`_shared/auth.ts`, `_shared/http_edge.ts`, `_shared/failures.ts`, the adapters,
-the cascade). A mode flag would have made one payload type two, which is how a
-client ends up decoding a default.
+It is a separate function, not a mode of `import-recipe`, because the two
+produce different contracts; everything shareable is shared (`_shared/auth.ts`,
+`_shared/http_edge.ts`, `_shared/failures.ts`, the adapters, the cascade).
 
 ### 12.1 The stages
 
@@ -1045,8 +1042,7 @@ the paper and asks for no pack. Everything else carries no weight.
 
 ### 12.3a The count sub-row
 
-Both of the household's shops print **how many on a line of its own, under the
-item**:
+Some shops print **how many on a line of its own, under the item**:
 
 ```
 TOFU SPR FRM HGH PRTN OR   $23.92        ICLNPR MANGO OATMILK SKYR   $9.56 F
@@ -1055,17 +1051,14 @@ TOFU SPR FRM HGH PRTN OR   $23.92        ICLNPR MANGO OATMILK SKYR   $9.56 F
 
 That sub-row **attaches to the item above it and never becomes a line**. The
 line carries `count` (an integer ≥ 1, 1 where the paper printed none) and
-`each_printed`, and `amount_printed` stays the item's own printed total, which
-already includes them all — so nothing about the reconcile moves.
+`each_printed`; `amount_printed` stays the item's own printed total, which
+already includes them all, so the reconcile does not move.
 
 What moves is the **price**: a price observation is
 `paid ÷ (count × pack_basis_amount)`, because the pack is what ONE of them
-comes in. Before this, eight blocks of tofu were priced as one block, eight
-times too dear, on every screen that read the row. The count is stored on the
-line (`receipt_line.count`, migration 0050) and is **never carried to the next
-receipt** — the pack carries, the count arrives fresh from the paper.
-
-Three rules ride with it:
+comes in. The count is stored on the line (`receipt_line.count`, migration
+0050) and is **never carried to the next receipt** — the pack carries, the
+count arrives fresh from the paper.
 
 - **The unit is the discriminator, never the word `Qty`.** `Qty 0.73 lb @
   $2.99/lb` is a WEIGHT, so it fills `weight` and leaves the count at one;
@@ -1074,105 +1067,82 @@ Three rules ride with it:
   than a penny per thing apart and the line keeps the figure the PAPER printed,
   arrives `low_confidence`, and a note names it.
 - **A charge with no money on its own line is a `fee` carrying the totals
-  block's figure** — the Whole Foods bag charge prints `CARRY OUT BAG CHARGE` /
-  `Qty 2` and then `Bag Fee: $0.05EA  $0.10`. `Net Sales`, `Sold Items`,
-  `Items in Transaction`, `Balance to pay` and every card line are never lines.
+  block's figure** (`CARRY OUT BAG CHARGE` / `Qty 2`, then `Bag Fee: $0.05EA
+  $0.10`). `Net Sales`, `Sold Items`, `Items in Transaction`, `Balance to pay`
+  and every card line are never lines.
 
 ### 12.4 The model never matches, and the vocabulary learns nothing
 
-ADR-0004 holds unchanged. The model is not shown one ingredient name of the
-household's; it prints what the paper printed. The deterministic cascade of §6
-then runs over each **item** line's printed words — a tax line has no ingredient
-to be about — and because those words are a store's abbreviations it answers
-`suggest` far more often than it does on a recipe line. `auto` is returned only
-above the cascade's existing auto threshold; everything else is a suggestion,
-and the review asks. Expect, and draw, more asking.
+[ADR-0004](../decisions/0004-matching-is-online-only.md) holds unchanged. The
+model is shown none of the household's ingredient names; it prints what the
+paper printed. The cascade of §6 then runs over each **item** line's printed
+words, and because those are a store's abbreviations it answers `suggest` far
+more often than on a recipe line. `auto` is returned only above the cascade's
+existing threshold; everything else is a suggestion, and the review asks.
 
-The one division the model is asked to make is a line into the words that name
-the thing and the numbers (`name_printed`), so that `TJ ORG BANANAS 3.49` is not
-trigram-compared against the vocabulary with its price still attached. That is
-the same characters with the money taken off, not a match and not a guess at our
-catalogue.
+The one division the model makes is a line into the words that name the thing
+and the numbers (`name_printed`), so `TJ ORG BANANAS 3.49` is not
+trigram-compared with its price attached.
 
-**No alias is learned from a receipt** (plan 0049, owner). §8's learning loop is
-the recipe door's and stays there: a receipt's words are one store's
-abbreviations, a whole-line alias scoped to a store was weighed and refused, and
-putting `TJ ORG BANANAS` into the household's own language would surface it in
-every recipe import, every picker and every search.
-
-Because that is a difference between two doors sharing one cascade — the kind a
-later change erases quietly — it is held structurally rather than by this
-paragraph: `import-receipt/no_alias.test.ts` runs the real spine over the real
-Postgres-backed matcher AND the real recall below, with a spying executor, and
-asserts every statement the function issues is a `SELECT`; it also guards every
-file the function owns against an alias table name or a write verb.
+**No alias is learned from a receipt.** §8's learning loop is the recipe door's:
+a receipt's words are one store's abbreviations, and `TJ ORG BANANAS` in the
+household's vocabulary would surface in every recipe import, picker and search.
+This is held by a test, not by this paragraph: `import-receipt/no_alias.test.ts`
+runs the real spine over the real Postgres-backed matcher and the real recall
+below with a spying executor, asserts every statement the function issues is a
+`SELECT`, and guards every file the function owns against an alias table name
+or a write verb.
 
 #### 12.4.1 What the household itself remembers
 
-The cascade alone rarely matches a till strip, and not because the vocabulary
-is missing the food: a whole-string trigram cannot score `ORG TRICOLOR QUINOA`
-against `Quinoa` above the suggest floor. No tuning fixes that in general — the
-words are one store's abbreviations, not a language.
+The cascade alone rarely matches a till strip: a whole-string trigram cannot
+score `ORG TRICOLOR QUINOA` against `Quinoa` above the suggest floor, and the
+words are one store's abbreviations, not a language to tune for.
 
 So the receipt door **recalls the household's own past answers, per printed
-name** (`_shared/receipt_memory.ts`), and the memory is not a new table: it is
-the saved `receipt_line` rows, which already hold the answer beside the words it
-answers. One batched `SELECT` per receipt, scoped to the household from the
-verified token:
+name** (`_shared/receipt_memory.ts`). The memory is not a new table: it is the
+saved `receipt_line` rows. One batched `SELECT` per receipt, scoped to the
+household from the verified token:
 
-- the key is the trimmed, upper-cased printed name, compared with
-  `upper(l.name_printed)` — **exact**, never fuzzy, and spelled exactly as
-  migration 0047's index is or the index is not used. (The stored value is
-  already trimmed: the app writes what the wire sent, and the wire trims.)
-  Fuzzy matching is the cascade's job and it has a calibrated floor; a second,
-  looser matcher here would resolve lines the cascade honestly refused, and do
-  it wearing `confidence: 1`.
-- **the latest answer wins** (`order by … updated_at desc`), and that is the
-  whole way to take a wrong one back: a saved receipt is editable, so correcting
-  the receipt corrects the memory. There is no second list to also correct.
-- the answer is read **through the ingredient**, so a row the household has
-  since retired is not an answer any more and an older live one is used instead.
-  A line the household folded is remembered as `not_food`. **Recall asks about
-  folded names as well as matched ones**, so a line the model folded that this
-  household has matched before arrives as `kind: item` with the remembered
-  match and no suggestions. Tax and fee lines are never recalled.
-- a recalled ingredient arrives as
+- The key is the trimmed, upper-cased printed name, compared with
+  `upper(l.name_printed)` — **exact**, never fuzzy, and spelled as migration
+  0047's index is so the index is used. Fuzzy matching is the cascade's job;
+  a looser matcher here would resolve lines the cascade refused, wearing
+  `confidence: 1`.
+- **The latest answer wins** (`order by … updated_at desc`). A saved receipt is
+  editable, so correcting the receipt corrects the memory.
+- The answer is read **through the ingredient**: a retired row is no answer,
+  and an older live one is used instead. A folded line is remembered as
+  `not_food`. **Recall asks about folded names as well as matched ones**, so a
+  line the model folded that the household has matched before arrives as
+  `kind: item` with the remembered match and no suggestions. Tax and fee lines
+  are never recalled.
+- A recalled ingredient arrives as
   `match: {ingredient_id, confidence: 1, kind: "auto", remembered: true}` and
-  **overrides** the cascade; the cascade's suggestions ride along unchanged,
-  because they are what a person would change it to. A recalled fold arrives
-  `kind: "not_food"`, with *it is food* as the way back.
-- **a recall that throws does not fail the import.** It is an improvement on the
-  cascade, not a dependency of it: the receipt arrives exactly as the cascade
-  alone would have had it, and the error is logged.
+  **overrides** the cascade; the cascade's suggestions ride along unchanged.
+  A recalled fold arrives `kind: "not_food"`, with *it is food* as the way back.
+- **A recall that throws does not fail the import.** The receipt arrives as the
+  cascade alone would have had it, and the error is logged.
 
-The review says so on the card — `as you matched it last time` beside the chosen
-row's `tap to change` — because a remembered match is the one `auto` that can be
-wrong for a reason a person can see, and changing it *is* the correction.
+The review says `as you matched it last time` beside the chosen row's `tap to
+change`; changing it *is* the correction.
 
-**And the memory can be read back**, on the ingredient page's folded `On
-receipts` section: every distinct name this household's receipts have carried for
-that row, newest first, each a tap onto the newest receipt carrying it. That is
-what makes a *store's* mis-transcription findable — `SHELLER EDAMAME` beside
-`SHELLED EDAMAME` is two keys with two answers, both recalled, and nothing else
-in the app shows them together. The section is not an alias list and is named so
-that it cannot be read as one.
+**The memory can be read back** on the ingredient page's folded `On receipts`
+section: every distinct name the household's receipts have carried for that
+row, newest first, each a tap onto the newest receipt carrying it. That makes a
+mis-transcription findable — `SHELLER EDAMAME` beside `SHELLED EDAMAME` is two
+keys with two answers. The section is not an alias list: the words stay on the
+receipt, and the match cascade never sees them.
 
-None of this is an alias. The words stay on the receipt they were printed on,
-the match cascade never sees them, and the vocabulary matcher is not consulted
-about them.
-
-What else carries over between shops is the **pack**, and it is filed under the
-same key the match is. A matched line with no printed weight opens on the pack
-**these printed words** were last bought in, matched to this same row — one
-store's words name one product, so `ORG TRICOLOR QUINOA` is that shop's 16 oz
-bag whatever size the other shop sells. Words this household has not bought
-under before fall back to the pack the row was last bought in anywhere. Both are one batched read per
-receipt (`packsByPrintedName`), latest by the receipt's own date and then by the
-line's own edit, so correcting a kept receipt corrects what the next one opens
-on; the stored basis figure is carried and never re-derived, because a measure
-re-weighed since must not re-price a shop that has already happened. The
-precedence lives in `landPack` with the printed weight ahead of both, and a line
-whose words were last bought as another row carries nothing at all.
+The **pack** carries over under the same key. A matched line with no printed
+weight opens on the pack **these printed words** were last bought in, matched
+to this same row; words not bought under before fall back to the pack the row
+was last bought in anywhere. Both are one batched read per receipt
+(`packsByPrintedName`), latest by the receipt's date and then by the line's own
+edit. The stored basis figure is carried and never re-derived, so a measure
+re-weighed since does not re-price a past shop. The precedence lives in
+`landPack`, with the printed weight ahead of both; a line whose words were last
+bought as another row carries nothing.
 
 ### 12.5 The contract
 
