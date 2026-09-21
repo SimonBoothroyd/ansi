@@ -16,6 +16,7 @@ import type {
   ReceiptLineKind,
 } from "../receipt_types.ts";
 import { ExtractionParseError } from "./schema.ts";
+import { repairedName } from "../receipt_parse.ts";
 
 /**
  * Length caps, in the shape `schema.ts` uses. A receipt's strings are short —
@@ -130,7 +131,14 @@ function coerceLine(v: unknown): ExtractedLine | null {
   const { count, coerced } = coerceCount(l.count);
   return {
     printed_text,
-    name_printed: str(l.name_printed, RECEIPT_CAPS.name_printed),
+    // A name the model cut short is restored from the line it came off.
+    name_printed: cap(
+      repairedName(
+        str(l.name_printed, RECEIPT_CAPS.name_printed),
+        printed_text,
+      ),
+      RECEIPT_CAPS.name_printed,
+    ),
     amount_printed,
     count,
     each_printed: strOrNull(l.each_printed, RECEIPT_CAPS.amount_printed),
