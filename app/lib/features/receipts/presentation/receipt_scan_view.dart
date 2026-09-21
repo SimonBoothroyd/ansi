@@ -1,15 +1,8 @@
 /// The scan route (`/receipts/review`): one screen switching on the
-/// [ReceiptScanController] — intake → reading → review → saved.
-///
-/// It is the recipe import's own shape, and deliberately so: the camera, the
-/// crop, the *another page* question and the reading checklist are already
-/// built, tested and understood, and a receipt asks the same things of them.
-/// What the screen adds is one line of guidance, because a receipt is longer
-/// than a page and how it is photographed decides whether it can be joined at
-/// all.
-///
-/// **Nothing is written until Save**, so every failure here is safe to
-/// repeat, and backing out leaves the ledger as it was.
+/// [ReceiptScanController] (intake → reading → review → saved). It reuses the
+/// recipe import's camera, crop, another-page question and reading checklist,
+/// and adds a line of guidance on photographing a long receipt. Nothing is
+/// written until Save.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -40,10 +33,9 @@ class ReceiptScanView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(receiptScanControllerProvider);
 
-    // A saved receipt lands on its page in the ledger, replacing the (now
-    // spent) scan so back does not return to it. A replacement rather than
-    // `go`: `go` would flatten the stack, and back from the receipt would
-    // leave the app instead of returning to the Shop.
+    // A saved receipt replaces the scan with its ledger page. A replacement
+    // rather than `go`, which would flatten the stack so that back leaves the
+    // app.
     ref.listen(receiptScanControllerProvider, (_, next) {
       if (next is ReceiptSaved) {
         context.pushReplacement('/receipts/${next.receiptId}');

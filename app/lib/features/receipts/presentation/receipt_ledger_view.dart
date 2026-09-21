@@ -1,17 +1,9 @@
 /// The receipts ledger (`/receipts`) and one saved receipt (`/receipts/:id`).
 ///
-/// **The week is the unit, because the shop is.** Receipts file under the
-/// week their own date falls in — the household's week start, so a Sunday
-/// shop sits inside the week it feeds — and each week closes with the pair
-/// the band shows: what was spent, beside what the same week plans to cook.
-/// A month line on top sums the receipts by store.
-///
-/// The two figures are never reconciled (ADR-0017). The gap between them is
-/// the pantry filling or emptying, and nothing here tries to explain it.
-///
-/// A receipt opens **on the review it was confirmed on** — one screen for a
-/// receipt, fresh or kept — so a wrong store, date, match, pack or figure is
-/// put right where it was first said.
+/// Receipts file under the household week their date falls in. Each week shows
+/// what was spent beside what it plans to cook, never reconciled (ADR-0017),
+/// and a month line sums the receipts by store. A saved receipt opens on the
+/// same review a scan does.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -184,12 +176,9 @@ class _ReceiptRow extends StatelessWidget {
   );
 }
 
-/// The week's own pair — spent, beside what that week plans to cook.
-///
-/// The planned figure is only ever shown for the week the app is currently
-/// costing: costing an arbitrary past week would mean re-deriving a plan at
-/// today's prices and calling it that week's, which is a figure nobody could
-/// stand behind (ADR-0017).
+/// The week's pair: spent, beside what that week plans to cook. The planned
+/// figure shows only for the week the app is currently costing; a past week
+/// would be re-costed at today's prices (ADR-0017).
 class _WeekFoot extends ConsumerWidget {
   const _WeekFoot({required this.week});
 
@@ -227,14 +216,8 @@ class _WeekFoot extends ConsumerWidget {
   }
 }
 
-/// One saved receipt — **the review itself**, open on the rows instead of on
-/// a scan.
-///
-/// There is one screen for a receipt. What confirmed it is what corrects it:
-/// the store, the date, a line's match, its pack, its figure, *Not food*, a
-/// dropped line. The scan controller holds the sitting here exactly as it
-/// does there, so nothing is written until Save, and backing out leaves the
-/// ledger as it was.
+/// One saved receipt: the review itself, opened on the stored rows. The scan
+/// controller holds the sitting, so nothing is written until Save.
 class StoredReceiptView extends ConsumerStatefulWidget {
   const StoredReceiptView({required this.receiptId, super.key});
 

@@ -18,13 +18,9 @@ import 'remote_receipt_repository.dart';
 
 part 'receipt_providers.g.dart';
 
-/// The reader behind the scan door.
-///
-/// With Supabase configured it is the real `import-receipt` edge function.
-/// Unconfigured it FAILS LOUDLY rather than falling through to the replay
-/// payload, which would have a misconfigured build answer "read this receipt"
-/// with somebody else's groceries. Tests and a walkthrough build reach
-/// `ReplayReceiptRepository` by naming it, never by accident.
+/// The reader behind the scan door: the `import-receipt` edge function when
+/// Supabase is configured. Unconfigured, it fails loudly rather than serving
+/// the replay payload. Tests reach `ReplayReceiptRepository` by naming it.
 @Riverpod(keepAlive: true)
 ReceiptImportRepository receiptImportRepository(Ref ref) {
   if (!Env.isConfigured) return const _UnconfiguredReceiptReader();
@@ -56,11 +52,8 @@ ReceiptRepository receiptRepository(Ref ref) => SqliteReceiptRepository(
   householdId: ref.watch(currentHouseholdIdProvider),
 );
 
-/// Every receipt the household has kept, newest first, as the ledger reads
-/// them.
-///
-/// A row costs the paper's printed total, else its lines plus tax — the
-/// printed tax, else the tax lines — which is the figure the review saved.
+/// Every receipt the household has kept, newest first. A row costs the printed
+/// total, else its lines plus tax (the printed tax, else the tax lines).
 @riverpod
 Stream<List<ReceiptSummary>> receiptSummaries(Ref ref) => ref
     .watch(receiptRepositoryProvider)
@@ -91,9 +84,8 @@ List<ReceiptSummary> receiptsForWeek(Ref ref, DateTime weekStart) {
   return receiptsInWeek(all, weekStart, ref.watch(weekShapeProvider));
 }
 
-/// Whether the household has kept any receipt at all — what decides whether
-/// the Shop offers the ledger a door, because a door onto an empty page is
-/// furniture.
+/// Whether the household has kept any receipt, which decides whether the Shop
+/// shows the ledger door.
 @riverpod
 bool hasAnyReceipt(Ref ref) =>
     (ref.watch(receiptSummariesProvider).asData?.value ?? const []).isNotEmpty;

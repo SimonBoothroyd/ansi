@@ -1,20 +1,10 @@
-/// [ReceiptImportRepository] that replays a fixed payload instead of calling
-/// a server.
+/// [ReceiptImportRepository] that replays a fixed payload instead of calling a
+/// server, so widget tests and a walkthrough build can drive the real
+/// controller with no network.
 ///
-/// It exists so every screen in this feature is testable and walkable without
-/// `import-receipt`: a widget test drives the real controller through it, and
-/// a build pointed at it walks the whole flow — camera, checklist, review,
-/// Save — with no network and no billed model call.
-///
-/// It narrates the same four stages, because the reading screen's honesty is
-/// that it draws what the server SAID: a replay that skipped straight to the
-/// payload would leave the checklist untested. `pace` is how long each stage
-/// takes; zero makes a test instant and a real duration makes the walk look
-/// like the thing it stands in for.
-///
-/// **Never a production fallback.** The app's scan door is the real function,
-/// and an unconfigured build refuses rather than serving somebody else's
-/// groceries (`receipt_providers.dart`).
+/// It narrates the same four stages so the checklist is exercised too; `pace`
+/// is how long each takes (zero in tests). Never a production fallback
+/// (`receipt_providers.dart`).
 library;
 
 import 'dart:async';

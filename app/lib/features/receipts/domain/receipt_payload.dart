@@ -1,18 +1,11 @@
 /// What `import-receipt` answers with: the Dart mirror of the frozen wire
 /// contract. Pure Dart.
 ///
-/// The server reads the paper and proposes; it decides nothing (ADR-0004).
-/// Before reading the fields:
-///
-/// - A discount rides beside the line's cents; what was paid is
-///   [ReceiptLineOut.paidCents].
-/// - A by-weight line carries its own pack in [ReceiptLineOut.weight].
-/// - The count (`8 @ $2.99`) rides on the line, never on the pack
-///   ([ReceiptLineOut.count]).
-/// - A `kind` that is not `item` can never be a price.
-///
-/// Decoding is forgiving: unknown fields are ignored and a missing one reads as
-/// absent, never zero. A payload that cannot be read at all throws.
+/// The server proposes and decides nothing (ADR-0004). A discount rides beside
+/// the line's cents, a by-weight line carries its own pack, the count rides on
+/// the line and never the pack, and a `kind` other than `item` is never a
+/// price. Decoding ignores unknown fields and reads a missing one as absent,
+/// never zero.
 library;
 
 import 'package:meta/meta.dart';

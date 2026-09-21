@@ -1,17 +1,12 @@
-/// One line of a receipt as a card: the recipe review's component, carrying
-/// money where a recipe line carries an amount.
+/// One line of a receipt as a card, sum first: `$23.92 · Tofu · 8 × block (16
+/// oz) · 66¢ / 100 g`.
 ///
-/// Collapsed, a settled line reads sum first: `$23.92 · Tofu · 8 × block (16
-/// oz) · 66¢ / 100 g`. A printed discount is folded into the sum and shown as a
-/// deduction. Two flags have their own doors: "say what the pack is"
-/// ([showReceiptPackSheet]) and "match an ingredient" (did-you-mean chips, the
-/// picker, and Not food, which folds the line under the list).
-///
-/// Confirming a match writes no alias. What carries between shops is the pack
-/// on the row and the match the server recalls per printed name; a recalled
-/// match says `as you matched it last time`. An answer applies to every
-/// identical line on the receipt, and the open card says so first
-/// ([sameLineAgainNote]); the drop and the price chip stay per line.
+/// Two flags have their own doors: "say what the pack is"
+/// ([showReceiptPackSheet]) and "match an ingredient" (chips, the picker, or
+/// Not food). Confirming a match writes no alias; a match the server recalled
+/// says `as you matched it last time`. An answer applies to every identical
+/// line on the receipt ([sameLineAgainNote]); the drop and the price chip stay
+/// per line.
 library;
 
 import 'package:flutter/widgets.dart';

@@ -1,14 +1,9 @@
-/// The receipts ledger, filed — PURE DART (invariant 2).
+/// The receipts ledger, filed by week. Pure Dart.
 ///
-/// **The week is the unit, because the shop is.** A receipt files under the
-/// week its own date falls in, read through the household's week shape, so a
-/// Sunday shop sits inside the week it feeds. Each week closes with the pair
-/// the band shows — spent against planned — and a month line on top sums the
-/// receipts by store.
-///
-/// Nothing here reconciles the two figures, and nothing tries to (ADR-0017):
-/// the gap between what a week plans to cook and what its shop cost is the
-/// pantry filling or emptying, and it is shown rather than explained.
+/// A receipt files under the week its own date falls in, read through the
+/// household's week shape. Each week shows spent against planned, and a month
+/// line sums the receipts by store. The two figures are shown, never reconciled
+/// (ADR-0017).
 library;
 
 import 'package:meta/meta.dart';
@@ -99,11 +94,8 @@ class ReceiptMonth {
   final List<({String store, int cents})> byStore;
 }
 
-/// [receipts] filed by the household's week, newest week first.
-///
-/// The receipt's own `purchased_at` decides the week — never the scan's date,
-/// which is why a receipt photographed on Tuesday for Sunday's shop lands in
-/// Sunday's week.
+/// [receipts] filed by the household's week, newest week first. The receipt's
+/// `purchased_at` decides the week, never the scan's date.
 List<ReceiptWeek> fileByWeek(List<ReceiptSummary> receipts, WeekShape shape) {
   final byWeek = <DateTime, List<ReceiptSummary>>{};
   for (final receipt in receipts) {
@@ -165,15 +157,9 @@ List<ReceiptSummary> receiptsInWeek(
     if (shape.weekStartOf(r.purchasedAt) == weekStart) r,
 ];
 
-/// `$84.12 spent · 1 receipt · TJ's, Sun` — the band's second figure.
-///
-/// Null when no receipt is dated inside the week: a week with no shop on it
-/// says nothing here rather than `$0 spent`, which would claim a free week.
-///
-/// The trailing clause names **where and when** the money went, because that
-/// is what a person checking the figure against their memory needs: one
-/// store and its day, or the count of stores when the week held more than
-/// one.
+/// `$84.12 spent · 1 receipt · TJ's, Sun`: the band's second figure. Null when
+/// no receipt is dated inside the week, rather than `$0 spent`. The trailing
+/// clause names one store and its day, or the count of stores.
 String? weekSpentLine(List<ReceiptSummary> inWeek, WeekShape shape) {
   if (inWeek.isEmpty) return null;
   var total = 0;

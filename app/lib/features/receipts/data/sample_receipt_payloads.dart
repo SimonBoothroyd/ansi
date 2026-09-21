@@ -1,27 +1,15 @@
 /// A fixed receipt payload, so every screen in this feature can be driven
 /// without a server.
 ///
-/// It is a TJ's strip shot in three photos, and it carries on purpose every
-/// shape the review has to draw: a plain matched line with no pack, two lines
-/// sold **by weight** (which price themselves), a **discount** printed under
-/// one of them, a line the cascade only **suggested** rather than resolved, a
-/// line the join left **nameless**, two **not-food** lines and the paper's own
-/// **tax** line.
+/// A strip shot in three photos that carries every shape the review draws: a
+/// matched line with no pack, two by-weight lines, a discount, a suggested
+/// match, a nameless line, two not-food lines and a tax line.
+/// [sampleReceiptJoinApartJson] changes one printed figure so the lines fall
+/// $3.49 short of the subtotal.
 ///
-/// [sampleReceiptJoinApartJson] is the same strip with one printed figure
-/// changed, so the join card's ⚠ state is a fixture rather than a mock: the
-/// paper says $3.49 more than the lines add up to, which is exactly what a
-/// dropped line looks like.
-///
-/// It lives in `lib/` rather than `test/` because the **replay** repository
-/// serves it (`replay_receipt_repository.dart`) — that is what lets the owner
-/// walk the whole flow on a device while `import-receipt` is still being
-/// built, and what lets a widget test drive the real controller.
-///
-/// It is never a production fallback: the app's scan door runs the real edge
-/// function, and an unconfigured build refuses rather than serving this. The
-/// `ingredient_id`s are placeholders; a test seeds the vocabulary that makes
-/// them resolve.
+/// It lives in `lib/` because `replay_receipt_repository.dart` serves it. Never
+/// a production fallback. The `ingredient_id`s are placeholders; tests seed a
+/// matching vocabulary.
 library;
 
 /// The strip, with the printed subtotal agreeing with the lines.

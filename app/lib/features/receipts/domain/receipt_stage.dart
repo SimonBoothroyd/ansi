@@ -1,24 +1,16 @@
-/// The stages the scan screen shows while `import-receipt` is running — PURE
-/// DART (invariant 2).
+/// The stages the scan screen shows while `import-receipt` runs. Pure Dart.
 ///
-/// Four rows, the same four a photographed recipe walks, with the third
-/// renamed for what it writes: the photos arrive, the vision tier reads them
-/// into one joined strip, the model writes the receipt out, and the lines are
-/// matched against the household's vocabulary. The ids are the wire contract
-/// (`supabase/functions/import-receipt/index.ts`); the wording is here,
-/// because copy belongs where the screen is.
-///
-/// Everything else about the checklist — the tenses, the clocks, the frozen
-/// elapsed times, the `m:ss` — is `import/domain/import_stage.dart`'s and is
-/// shared rather than copied ([PipelineStage]).
+/// Four rows: the photos arrive, the vision tier reads them into one strip, the
+/// model writes the receipt, and the lines are matched. The ids are the wire
+/// contract (`supabase/functions/import-receipt/index.ts`); the wording lives
+/// here. The checklist arithmetic is shared from
+/// `import/domain/import_stage.dart` ([PipelineStage]).
 library;
 
 import '../../import/domain/import_stage.dart';
 
-/// One stage of the receipt pipeline.
-///
-/// A receipt only ever arrives as photos, so there is no second wording to
-/// hold: `fromPhotos` is answered the same way whichever way it is asked.
+/// One stage of the receipt pipeline. A receipt only arrives as photos, so
+/// `fromPhotos` does not change the wording.
 enum ReceiptStage implements PipelineStage {
   /// The photos are in hand — however many megabytes of them.
   received(

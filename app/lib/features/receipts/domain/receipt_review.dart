@@ -277,10 +277,9 @@ ReceiptLineDraft handAddedLine(
 
 /// [draft] with the pack it can state without asking, from the first of:
 ///
-/// 1. The paper's own weight (`1.32 lb @ $1.99/lb`), resolved through the row's
-/// basis by [packInBasis]. 2. The pack these printed words were last bought in
-/// ([sameName]): one store's words name one product. 3. The pack this row was
-/// last bought in ([last]).
+/// 1. The paper's own weight (`1.32 lb @ $1.99/lb`), through [packInBasis].
+/// 2. The pack these printed words were last bought in ([sameName]).
+/// 3. The pack this row was last bought in ([last]).
 ///
 /// A carried pack takes its basis figure from the stored observation, never
 /// re-derived, so a measure re-weighed since cannot re-price this shop. If its

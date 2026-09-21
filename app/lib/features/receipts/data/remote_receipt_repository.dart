@@ -1,16 +1,9 @@
-/// [ReceiptImportRepository] over the real `import-receipt` edge function.
+/// [ReceiptImportRepository] over the `import-receipt` edge function.
 ///
-/// It is the recipe import's own client, pointed at a different function: the
-/// same auth (the signed-in user's token, whose `household_id` claim scopes
-/// matching), the same `text/event-stream` stage narration, the same
-/// downscale-before-upload, and the same timeout ladder — which is one ladder
-/// and not two, because the pipeline behind both is the same two model calls
-/// over the same platform (`import/data/remote_import_repository.dart`
-/// documents the arithmetic in full).
-///
-/// What differs is only what comes back, and the four sentences a failure
-/// carries: a person who photographed a receipt should not be told the
-/// service could not read a *recipe*.
+/// The recipe import's client pointed at a different function: same auth, stage
+/// stream, downscale and timeout ladder (see
+/// `import/data/remote_import_repository.dart`). Only the payload and the
+/// failure sentences differ.
 library;
 
 import 'dart:async';
@@ -26,9 +19,8 @@ import '../domain/receipt_payload.dart';
 import '../domain/receipt_repository.dart';
 import '../domain/receipt_stage.dart';
 
-/// What a person is told when the read outlives the whole ladder. It names
-/// the one remedy that actually shortens the wait, and says the scan is safe
-/// to repeat — nothing is written until Save.
+/// What a person is told when the read outlives the timeout ladder. Says the
+/// scan is safe to repeat: nothing is written until Save.
 String receiptTimeoutMessage() =>
     'still reading that receipt after ${edgeInvokeTimeout.inMinutes} minutes '
     '— nothing was saved, so it is safe to try again (fewer photos at a time '
@@ -48,13 +40,9 @@ String receiptUnreadableMessage() =>
     'was saved, so it is safe to try again';
 
 /// Consumes the function's stage stream and returns the payload its `result`
-/// event carries.
-///
-/// Separate from the HTTP call for the reason the recipe client's reader is:
-/// this is the half with the rules in it, and it takes a plain byte stream so
-/// those rules are testable without a socket. [silence] is the SILENCE rung —
-/// a deadline on the GAP between events, restarted by every one of them,
-/// never on the read's length.
+/// event carries. Takes a plain byte stream so it can be tested without a
+/// socket. [silence] is a deadline on the gap between events, restarted by each
+/// one.
 Future<ReceiptPayload> readReceiptStream(
   Stream<List<int>> bytes, {
   void Function(ReceiptProgress)? onProgress,
@@ -225,11 +213,9 @@ class EdgeReceiptRepository implements ReceiptImportRepository {
     return '$head: ${said.length > 200 ? '${said.substring(0, 200)}…' : said}';
   }
 
-  /// The pages, downscaled and base64-encoded — the recipe import's own two
-  /// platform facts, for the same two reasons: [XFile] reads both a phone's
-  /// path and a browser's blob URL, and `compute` is a background isolate
-  /// where there are isolates and a plain call in a tab, where `Isolate.run`
-  /// throws.
+  /// The pages, downscaled and base64-encoded. [XFile] reads both a phone's
+  /// path and a browser's blob URL, and `compute` is a plain call in a browser,
+  /// where `Isolate.run` throws.
   Future<Map<String, Object?>> _bodyFor(ReceiptPhotos photos) async {
     final images = <String>[];
     for (final path in photos.imagePaths) {

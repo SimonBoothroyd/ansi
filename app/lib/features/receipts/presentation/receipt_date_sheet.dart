@@ -1,14 +1,6 @@
-/// *When was this shop* — the receipt's date, as a door.
-///
-/// A receipt's date is the paper's fact, and most of the time the reader gets
-/// it. This is for the rest: a strip whose date could not be read (the review
-/// then opens on the day of the scan, which is a guess and says so), and a
-/// read that was simply wrong. The date decides which **week** the receipt
-/// files under, so a wrong one is a wrong ledger.
-///
-/// **The day, not the minute.** Nothing reads a receipt's clock — the ledger
-/// files by day — so the door moves the day and keeps whatever time the
-/// receipt already had, the paper's where it printed one.
+/// *When was this shop*: corrects the receipt's date, which decides the week it
+/// files under. An unread date opens on the scan day and says so. The sheet
+/// moves the day and keeps the time the receipt already had.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -21,10 +13,7 @@ import '../../../shared/ansi_sheet_shell.dart';
 const kReceiptDateCalendarKey = ValueKey('receipt-date-calendar');
 
 /// Opens the calendar on [current]; resolves to the picked wall time, or null
-/// when the sheet was dismissed.
-///
-/// A shop cannot have happened tomorrow, so the days after [today] are not
-/// selectable.
+/// when dismissed. Days after [today] are not selectable.
 Future<DateTime?> showReceiptDateSheet(
   BuildContext context, {
   required DateTime current,

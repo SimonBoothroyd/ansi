@@ -1,9 +1,6 @@
-/// *Say what the pack is*: the receipt review's one extra question, asked
-/// with the price sheet's own *for* field and derived line.
-///
-/// *Keep as a measure* mints a measure on the row at Save, by the person's own
-/// tap. The pack carries to the next receipt whether or not one is kept, so
-/// the copy says a measure is for recipe lines and the Shop, not for that.
+/// *Say what the pack is*: the receipt review's one extra question, asked with
+/// the price sheet's *for* field and derived line. *Keep as a measure* mints a
+/// measure on the row at Save. The pack carries to the next receipt either way.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -44,12 +41,9 @@ typedef ReceiptPackAnswer = ({
   String? keepAsMeasure,
 });
 
-/// Opens the pack door for one line of a receipt.
-///
-/// [paidCents] is what the paper said the line cost — it is not editable
-/// here, because a receipt's figures are the receipt's; this sheet asks only
-/// what they bought, and prints what the two come to. [count] is how many of
-/// that pack the line rang up, so the derived line reads the price of ONE.
+/// Opens the pack sheet for one receipt line. [paidCents] is what the paper
+/// said and is not editable here. [count] is how many of the pack the line rang
+/// up, so the derived line reads the price of one.
 Future<ReceiptPackAnswer?> showReceiptPackSheet(
   BuildContext context, {
   required Ingredient ingredient,
@@ -115,9 +109,8 @@ class ReceiptPackEditor extends HookConsumerWidget {
     final measures =
         ref.watch(ingredientMeasuresProvider(ingredient.id)).asData?.value ??
         const <Measure>[];
-    // A line already priced reopens on the pack it was bought in ([choice]);
-    // a fresh one opens on the first chip the row offers, like every other
-    // quantity surface.
+    // A priced line reopens on the pack it was bought in ([choice]); a fresh
+    // one opens on the first chip offered.
     final packChoice = choice.value ?? firstOfferedChoice(ingredient, measures);
 
     final derived = packAmount.value == null
@@ -145,9 +138,8 @@ class ReceiptPackEditor extends HookConsumerWidget {
     String weighs(double amount) =>
         '${formatAmountIn(amount, base)} ${base.label}';
 
-    // A word the row already says at this weight is that measure, and the
-    // line points at it. The same word at another size, on the row or on
-    // another line of this receipt, is refused.
+    // A word the row already says at this weight is that measure. The same word
+    // at another size, on the row or elsewhere on this receipt, is refused.
     final kept = canKeep && keeping.value;
     final taken = kept ? measureAlreadyNamed(named, measures) : null;
     final clash =
@@ -175,9 +167,8 @@ class ReceiptPackEditor extends HookConsumerWidget {
     void done() {
       if (said == null) return;
       onDone((
-        // The pack keeps the FIGURE the person typed either way: what this
-        // shop bought is what they read off the paper, not what the row says
-        // the word weighs today.
+        // The pack keeps the figure the person typed, not what the row says the
+        // word weighs today.
         amount: isThatMeasure ? 1 : packAmount.value!,
         choice: isThatMeasure ? MeasureOption(taken) : packChoice,
         basisAmount: said,

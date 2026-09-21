@@ -42,8 +42,7 @@ sealed class ReceiptScanState {
   const ReceiptScanState();
 }
 
-/// Nothing started — the intake screen, with its one line of guidance and the
-/// photo doors.
+/// Nothing started: the intake screen.
 class ReceiptIdle extends ReceiptScanState {
   const ReceiptIdle();
 }
@@ -56,8 +55,8 @@ class ReceiptReading extends ReceiptScanState {
   final List<StageProgress> rows;
 }
 
-/// The payload is back and the person is confirming it. Immutable — every
-/// edit produces a new instance, so the screen rebuilds from a value.
+/// The payload is back and the person is confirming it. Immutable; every edit
+/// produces a new instance.
 class ReceiptReviewing extends ReceiptScanState {
   const ReceiptReviewing({
     required this.payload,
@@ -94,12 +93,11 @@ class ReceiptReviewing extends ReceiptScanState {
   final ReceiptPayload payload;
   final List<ReceiptLineDraft> drafts;
 
-  /// The household's word for the shop, picked from the chips. Empty until
-  /// one is picked, which is what holds Save closed at the seam.
+  /// The household's word for the shop, picked from the chips. Empty until one
+  /// is picked, which holds Save shut.
   final String store;
 
-  /// The receipt's own moment, as **wall time** — the paper's, never the
-  /// scan's.
+  /// The receipt's own moment, as wall time: the paper's, never the scan's.
   final DateTime purchasedAt;
 
   /// What [purchasedAt] was when the review opened. It never moves, so the
@@ -175,8 +173,7 @@ class ReceiptOpening extends ReceiptScanState {
   const ReceiptOpening();
 }
 
-/// The saved receipt asked for is not there — deleted here, or on the other
-/// phone.
+/// The saved receipt asked for is gone (deleted here or on another device).
 class ReceiptGone extends ReceiptScanState {
   const ReceiptGone();
 }
@@ -206,8 +203,8 @@ class ReceiptScanController extends _$ReceiptScanController {
     return const ReceiptIdle();
   }
 
-  /// True while a read is in flight. Reading is a billed model call, so a
-  /// double-tapped door must not fire two of them.
+  /// True while a read is in flight. A read is a billed model call, so a double
+  /// tap must not fire two.
   bool _reading = false;
 
   Timer? _stageTimer;
@@ -240,8 +237,8 @@ class ReceiptScanController extends _$ReceiptScanController {
         _plan = stages;
       case ReceiptStageDone(:final stage, :final elapsed):
         _finished[stage] = elapsed;
-        // The server's clock is the authority on how far in we are; a local
-        // one left behind it would start the running row negative.
+        // The server's clock decides how far in we are; a local one behind it
+        // would start the running row negative.
         if (elapsed > _elapsed) _elapsed = elapsed;
     }
     _publishStages();
@@ -332,8 +329,8 @@ class ReceiptScanController extends _$ReceiptScanController {
           rows = await vocabRepo.byIds(ids);
           measures = await measureRepo.measuresByIngredients(ids);
         } on Object {
-          // The lines still read — name, money and pack are on the join —
-          // and a card simply cannot reopen its pack door until they load.
+          // The lines still read; a card cannot reopen its pack sheet until the
+          // measures load.
         }
       }
       if (!ref.mounted) return;
@@ -421,8 +418,7 @@ class ReceiptScanController extends _$ReceiptScanController {
     ReceiptLineDraft Function(ReceiptLineDraft) update,
   ) => _updateLines({index}, update);
 
-  /// Replaces every draft in [indexes] through [update] — one state, so six
-  /// twins move in one rebuild.
+  /// Replaces every draft in [indexes] through [update] in one state change.
   void _updateLines(
     Set<int> indexes,
     ReceiptLineDraft Function(ReceiptLineDraft) update,
@@ -560,8 +556,8 @@ class ReceiptScanController extends _$ReceiptScanController {
     _updateLine(index, (d) => d.copyWith(count: count));
   }
 
-  /// The *Say what the pack is* door's answer: what the cents bought, in both
-  /// denominations, and the word to mint where the person asked for one.
+  /// Sets the line's pack: what the cents bought, in both denominations, and
+  /// the word to mint if asked.
   void setPack(
     int index, {
     required double amount,
@@ -597,8 +593,8 @@ class ReceiptScanController extends _$ReceiptScanController {
     );
   }
 
-  /// *Not food* — the line folds under the list, keeps its cents, and loses
-  /// its claim to be a price. Nothing about the paper changes.
+  /// *Not food*: the line folds under the list, keeps its cents, and stops
+  /// being a price.
   void fold(int index) => _updateLines(
     _answeredWith(index),
     (d) => d.copyWith(kind: ReceiptKind.notFood, clearMatch: true),
@@ -637,8 +633,8 @@ class ReceiptScanController extends _$ReceiptScanController {
       if (saved != null) {
         await repository.updateReceipt(saved, write);
         if (!ref.mounted) return;
-        // Reopened from the rows just written, so what is on screen is what
-        // was kept — the new lines now carry their ids — and Save shuts.
+        // Reopened from the rows just written, so new lines carry their ids and
+        // Save shuts.
         await open(saved);
         return;
       }
@@ -687,8 +683,7 @@ class ReceiptScanController extends _$ReceiptScanController {
         for (final d in drafts)
           if (d.ingredientId case final id?)
             landPack(
-              // A match at a row this device cannot find reads as unmatched:
-              // a tombstone has no name to print and nothing honest to price.
+              // A match at a row this device cannot find reads as unmatched.
               rows.containsKey(id) ? d : d.copyWith(clearMatch: true),
               ingredient: rows[id],
               measures: measures[id] ?? const [],
@@ -749,8 +744,7 @@ class ReceiptScanController extends _$ReceiptScanController {
   }
 }
 
-/// A stored line as the review's own draft — one shape for a receipt line,
-/// fresh off a scan or read back from the ledger.
+/// A stored line as the review's draft, the same shape a scanned line takes.
 ReceiptLineDraft storedLineDraft(
   StoredReceiptLine line, {
   required int index,

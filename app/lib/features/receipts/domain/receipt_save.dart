@@ -1,12 +1,6 @@
-/// What Save writes — PURE DART (invariant 2).
-///
-/// One `receipt` and every line it kept, in one transaction. The mapping is a
-/// pure function so the rules can be read and tested without a database: what
-/// counts as a line, what a non-food line may carry, and where a measure gets
-/// minted.
-///
-/// **Nothing is written until Save**, exactly as the recipe review promises,
-/// so a scan abandoned half way leaves nothing behind.
+/// What Save writes: one `receipt` and every line it kept, in one transaction.
+/// Pure Dart. The mapping is a pure function so its rules can be tested without
+/// a database. Nothing is written until Save.
 library;
 
 import 'package:meta/meta.dart';
@@ -42,15 +36,14 @@ class ReceiptLineWrite {
   final int sortOrder;
   final String printedText;
 
-  /// The paper's words for the THING, figures off — what an unmatched card is
-  /// titled with, and what the receipt door recalls this household's own past
-  /// answers by. It is INSERTed with the line and no edit moves it: it is the
-  /// paper's, and it is the key those answers are filed under.
+  /// The paper's words for the thing, figures removed: the unmatched card's
+  /// title and the recall key for past answers. Inserted with the line; no edit
+  /// moves it.
   final String? namePrinted;
   final int cents;
 
-  /// How many of the thing rang up on this line. Only a food line is ever
-  /// counted (0050): the count divides a price, and a bag fee prices nothing.
+  /// How many of the thing rang up on this line. Only a food line is counted:
+  /// the count divides a price, and a bag fee prices nothing.
   final int count;
   final int discountCents;
   final ReceiptLineKind kind;
@@ -60,12 +53,9 @@ class ReceiptLineWrite {
   final String? packUnitId;
   final String? measureId;
 
-  /// A word to mint on [ingredientId] as a measure weighing
-  /// [packBasisAmount], before this line is written — the *keep as a measure*
-  /// toggle. The line then points at the new measure instead of at a unit,
-  /// which is what makes the next receipt for this row land on the word.
-  ///
-  /// Null on every other line, which is nearly all of them.
+  /// A word to mint on [ingredientId] as a measure weighing [packBasisAmount]
+  /// before this line is written (the *keep as a measure* toggle). The line
+  /// then points at the new measure. Null on every other line.
   final String? mintMeasureLabel;
 }
 
@@ -100,13 +90,9 @@ class ReceiptWrite {
   final List<String> droppedLineIds;
 }
 
-/// The review, as rows.
-///
-/// A dropped line is absent from the lines, and named in
-/// [ReceiptWrite.droppedLineIds] where a stored row is behind it. A line that
-/// is not food carries **no ingredient, no pack and no count**: a folded line
-/// keeping a stale match would leave a price hanging off a bag fee, and a
-/// count on it would divide nothing.
+/// The review, as rows. A dropped line is absent from the lines and named in
+/// [ReceiptWrite.droppedLineIds] when a stored row is behind it. A non-food
+/// line carries no ingredient, no pack and no count.
 ReceiptWrite buildReceiptSave({
   required String store,
   required DateTime purchasedAt,
@@ -157,9 +143,8 @@ ReceiptWrite buildReceiptSave({
   );
 }
 
-/// The wire kind as the column stores it. They are the same four words; the
-/// two enums stay apart because one is a payload's vocabulary and the other
-/// is the ledger's.
+/// The wire kind as the column stores it. Same four words; one enum is the
+/// payload's, the other the ledger's.
 ReceiptLineKind _kindOf(ReceiptKind kind) => switch (kind) {
   ReceiptKind.item => ReceiptLineKind.item,
   ReceiptKind.notFood => ReceiptLineKind.notFood,
