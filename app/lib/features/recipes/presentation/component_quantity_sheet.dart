@@ -1,48 +1,11 @@
-/// The quantity + unit-chip sheet for a **component** line (step 8.6 / D2,
-/// design board frame d) — the 7.7 sheet's anatomy with batch math on the
-/// chips.
+/// The quantity and unit-chip sheet for a component line. See ADR-0018.
 ///
-/// Same dock, the same [UnitChipRow], the same live conversion line, the same
-/// Optional row. What differs is the OFFER, and each difference is a
-/// consequence of a component being a recipe rather than an ingredient
-/// ([componentUnitChoices]):
-///
-/// - **the target recipe's own words lead it** — `3 blob` of a sauce, a word
-///   the household coined on that recipe and nowhere else (ADR-0018). A word
-///   is an amount in a unit, so it resolves through the recipe's own `makes`
-///   exactly as `¼ cup` does, and the whole-batch word leads even that
-///   ([wholeMeasureOfRecipe]);
-/// - then `batch`, then **the yields' families**, kitchen-trimmed. `batch` is
-///   always sayable, and a family opens only because the recipe states a yield
-///   in it. There is no density for a recipe, so a family nobody stated is not
-///   offered; the fix is the yield's optional second denomination, not a guess;
-/// - the conversion line reads in batches ("0.25 cup = 0.25 of a batch ·
-///   makes 1 cup"), and a recipe with no yield gets the *not-an-error* state:
-///   the `batch` chip alone, the honest note, and one tap to go set the yield.
-///   The link, the page and scaling all work meanwhile — only derived numbers
-///   wait. No words either, because a word is an amount and an amount says
-///   nothing about a batch until the batch has one too.
-///
-/// The 7.7 **stored-selection rule carries over** to both kinds: an imported
-/// line's printed unit, and a word whose `makes` has been edited out from under
-/// it, are admissible chips even when this sheet would not otherwise offer
-/// them — marked as outside the filter and rendered with the honest unresolved
-/// line, never silently rewritten.
-///
-/// **A line whose word has GONE selects nothing.** There is no honest
-/// denomination to preselect: the word was the only place its amount lived, and
-/// a chip lit here would claim the line says something it does not. So the row
-/// opens with the offer and no selection, the number is kept, and the pointer
-/// is kept with it until somebody picks a chip — which is the repair, the other
-/// one being to put the word back under the target recipe's MEASURES.
-///
-/// **The `+` chip is the second repair, and the door a word is usually coined
-/// through** — the household thinks of `blob` while writing the recipe that
-/// says it, not while editing the sauce. It swaps the body for
-/// [RecipeMeasuresEditor] aimed at the TARGET recipe, which is the one the word
-/// belongs to, and that page has no Save of its own (ADR-0011): every tap
-/// writes through [RecipeMeasureRepository], and a coined measure returns to
-/// the amount already picked, as the ingredient dock does.
+/// The offer is [componentUnitChoices]; a recipe with no yield offers `batch`,
+/// a note and a link to set the yield. A stored unit or word outside the offer
+/// is still shown, marked. A line whose word has gone opens unselected and
+/// keeps its number and pointer. The `+` chip swaps the body for
+/// [RecipeMeasuresEditor], which writes through [RecipeMeasureRepository] on
+/// tap (ADR-0011).
 library;
 
 import 'package:flutter/widgets.dart';
@@ -71,35 +34,23 @@ import 'recipe_chip.dart';
 import 'recipe_measure_delete.dart';
 import 'recipe_measures_editor.dart';
 
-/// What the component sheet resolved to: the amount, the denomination it counts
-/// — **exactly one** of a catalog `unit` and one of the target's own words
-/// (`recipeMeasureId`) — and whether the line is optional.
-///
-/// It is the nullability `LineItem.unit` carries, for the same reason: a line's
-/// amount is said in a catalog unit **or** in one of the target recipe's words,
-/// never both and never neither (migration 0048). The one case where both are
-/// null is a line whose word has gone and whose reader picked nothing, where
-/// the caller writes neither and the line keeps the pointer it already had.
+/// What the component sheet resolved to: the amount, exactly one of a catalog
+/// `unit` and a target word (`recipeMeasureId`), and whether the line is
+/// optional. Both are null only for a line whose word has gone and nothing was
+/// picked; the caller then writes neither.
 typedef ComponentQuantity = ({
   double? quantity,
   Unit? unit,
   String? recipeMeasureId,
 
-  /// The picked word itself, where one was picked. A word coined behind the ＋
-  /// is minutes newer than the target the host is holding, so the row that
-  /// prints the line has nowhere else to read it from — see
-  /// [targetWithMeasure]. Null for a unit, and for a line whose word has gone.
+  /// The picked word itself, where one was picked. A word just coined behind
+  /// the ＋ is not yet in the host's target; see [targetWithMeasure].
   RecipeMeasure? measure,
   bool optional,
 });
 
-/// [target] with [word] among its measures.
-///
-/// A row says `3 blob` by looking the line's pointer up in
-/// [SubRecipeTarget.measures] — the target the caller loaded. A word coined
-/// behind the ＋ is not in that list, so the line it was coined for would read
-/// a bare `3` until the recipe was saved and re-opened. Putting it there is the
-/// whole of the fix; the next load reads the same word from the database.
+/// [target] with [word] among its measures, so a line said in a word coined
+/// behind the ＋ prints before the next load.
 SubRecipeTarget targetWithMeasure(SubRecipeTarget target, RecipeMeasure word) {
   final known = target.measures.any((m) => m.id == word.id);
   return target.copyWith(
@@ -114,15 +65,10 @@ SubRecipeTarget targetWithMeasure(SubRecipeTarget target, RecipeMeasure word) {
 /// Opens the component quantity sheet for [target]; resolves to the chosen
 /// amount, or null if dismissed.
 ///
-/// [onSetYield] is the deep link the no-yield state offers ("Set the yield").
-/// Null where the host has nowhere to send the user, which also hides the `+`
-/// while the target states no yield: that page could only refuse.
-///
-/// [initialMeasureId] is `LineItem.recipeMeasureId` — the pointer the line
-/// actually carries. Pass it whenever the line has one: the word itself is
-/// looked up on [target], because that is where it lives.
-///
-/// [mayCoinWords] draws the `+` — see [ComponentQuantityEditor.mayCoinWords].
+/// [onSetYield] is the no-yield state's "Set the yield" link; null also hides
+/// the `+` while the target states no yield. [initialMeasureId] is
+/// `LineItem.recipeMeasureId`; the word is looked up on [target].
+/// [mayCoinWords] draws the `+`; see [ComponentQuantityEditor.mayCoinWords].
 Future<ComponentQuantity?> showComponentQuantitySheet(
   BuildContext context, {
   required SubRecipeTarget target,
@@ -169,28 +115,21 @@ class ComponentQuantityEditor extends HookConsumerWidget {
   final SubRecipeTarget target;
   final double? initialQuantity;
 
-  /// The line's stored unit — always an admissible chip (the 7.7 rule).
+  /// The line's stored unit — always an admissible chip.
   final Unit? initialUnit;
 
-  /// The line's `recipe_measure_id`, when it says one of the target's own
-  /// words. The word itself is read off [target] — never joined onto the line,
-  /// which is what makes a re-stated `blob` follow through everywhere at once.
+  /// The line's `recipe_measure_id`, when it says one of the target's words.
+  /// The word itself is read off [target].
   final String? initialMeasureId;
 
   /// Whether the line already says it may be left out.
   final bool initialOptional;
 
-  /// Whether this host can say a line in one of the target's own words — and
-  /// so whether the chip row wears the `+` that coins one, and whether the
-  /// sheet watches the target's live words at all.
+  /// Whether this host can say a line in one of the target's words: whether the
+  /// chip row has the `+` and the sheet watches the target's live words.
   ///
-  /// True wherever the line is a stored component line: both recipe-editor
-  /// doors, the method editor's, and week mode's. **False in the import
-  /// review**, whose two doors hand over a target with its words stripped: a
-  /// review line stores a unit id and has no column for a pointer, so a word
-  /// coined or picked there could only land as a whole batch (ADR-0018). A
-  /// host with no words also has no vocabulary to manage, which is the same
-  /// answer the price sheet gives the ingredient row.
+  /// False in the import review, where a line has no column for a measure
+  /// pointer (ADR-0018).
   final bool mayCoinWords;
 
   final ValueChanged<ComponentQuantity> onDone;
@@ -199,43 +138,33 @@ class ComponentQuantityEditor extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final yields = target.yields;
-    // The chip the sheet opens on. Null is the one line with nothing honest to
-    // preselect — a word that has gone — and it is the reason [UnitChipRow]'s
-    // selection is nullable at all.
+    // The chip the sheet opens on. Null only for a line whose word has gone.
     final quantity = useState<double?>(initialQuantity);
     final optional = useState<bool>(initialOptional);
     final managing = useState(false);
     // Set when the manage state retired the selected word and the choice was
-    // reconciled to the wordless denomination — the ingredient sheet's
-    // deleted-note, for the same reason: Done must never write a tombstone.
+    // reconciled: Done must never write a tombstoned pointer.
     final retiredNote = useState<String?>(null);
 
-    // **The target's LIVE words, not the caller's snapshot.** `target.measures`
-    // was read when the host built its row, and a word coined behind the `+`
-    // one tap ago has to reach this chip row without anybody reloading the
-    // screen underneath. The snapshot stays the answer until the watch has
-    // one — an errored or still-loading stream must not blank a row that was
-    // drawing chips a frame ago, and an empty list IS an answer.
+    // The target's live words, so a word coined behind the `+` reaches this
+    // chip row. The caller's snapshot stands until the watch has a value; an
+    // empty list is a value.
     final watched = mayCoinWords && target.id.isNotEmpty
         ? ref.watch(recipeMeasuresProvider(target.id)).asData?.value
         : null;
     final measures = watched ?? target.measures;
-    // The watch hands out the MERGED offer; the loaded target also carries the
-    // twins the merge hides, and a line written in one of those still means
-    // what it said. So the words a pointer is resolved against are the live
-    // ones plus those twins, while the chips stay one per word.
+    // The watch hands out the merged offer, but a line may point at a
+    // merge-hidden twin, so pointers resolve against the live words plus those
+    // twins.
     final known = _withHiddenTwins(measures, target.measures);
 
-    // Read against the LIVE words, so the 7.7 admission expires with the row:
-    // a stored pointer whose word has just been retired behind the ＋ stops
-    // being an admissible chip, instead of sitting there marked *not in
-    // filter* where one tap would write the tombstone.
+    // Read against the live words, so a stored pointer whose word was just
+    // retired stops being an admissible chip.
     final stored = _openingChoice(known);
     final choice = useState<UnitChoice?>(stored);
 
-    // A word follows its row: the selection is re-read from the live list, so
-    // a `blob` re-stated to 18 ml behind the `+` is the one the conversion
-    // line speaks, and one retired out from under this sheet lights no chip.
+    // The selection is re-read from the live list, so a re-stated word is
+    // current and a retired one lights no chip.
     final picked = _seated(choice.value, known);
     final word = picked is RecipeMeasureOption ? picked.measure : null;
     final unit = switch (picked) {
@@ -243,23 +172,16 @@ class ComponentQuantityEditor extends HookConsumerWidget {
       RecipeMeasureOption() || null => null,
       MeasureOption(:final measure) => notAWordForARecipe(measure),
     };
-    // The pointer the line will carry: the word that is picked, or — while
-    // nothing has been picked at all — the one it arrived with, which is the
-    // gone-word case. Picking any chip replaces it, and picking a unit clears
-    // it: a line is denominated once (the repository refuses the other two
-    // shapes outright).
+    // The pointer the line will carry: the picked word, or the one it arrived
+    // with while nothing is picked. Picking a unit clears it.
     final measureId = word?.id ?? (picked == null ? initialMeasureId : null);
 
     // A measure counts something, so the line has to say how many.
     final amountless =
         measureId != null && (quantity.value == null || quantity.value == 0);
 
-    // The offer, with the opening choice always admitted: a word whose `makes`
-    // has been edited into another family is not in the honest filter, and must
-    // still read as itself, marked, with the refusal under it.
-    // The list with the twins, because the offer itself says each word once
-    // and lets the line's own row win it — handing it the merged list instead
-    // would mark a live twin as outside the filter.
+    // The offer, with the opening choice always admitted. It gets the list with
+    // twins so a live twin is not marked as outside the filter.
     final offer = componentUnitChoices(target, known, current: stored);
 
     final note = componentConversionLine(
@@ -267,10 +189,8 @@ class ComponentQuantityEditor extends HookConsumerWidget {
       unit: unit,
       yields: yields,
       recipeMeasureId: measureId,
-      // The LIVE words, never the resolution's: a word can be perfectly alive
-      // and still unresolvable (a `makes` restated into another family under
-      // it), and that line must read "3 blob — unresolved — …" rather than a
-      // bare "3 — unresolved".
+      // The live words, not the resolution's: a live but unresolvable word must
+      // still read "3 blob — unresolved".
       measures: known,
     );
 
@@ -281,9 +201,8 @@ class ComponentQuantityEditor extends HookConsumerWidget {
         title: 'Measures',
         subtitle: target.title,
         dismiss: AnsiSheetDismiss.back,
-        // The keyboard goes with the body: a focused field whose subtree is
-        // about to leave keeps a frame callback pointed at a render object
-        // that no longer exists.
+        // Drop the keyboard with the body: a focused field in a departing
+        // subtree keeps a frame callback on a dead render object.
         onDismiss: () {
           FocusManager.instance.primaryFocus?.unfocus();
           managing.value = false;
@@ -302,9 +221,8 @@ class ComponentQuantityEditor extends HookConsumerWidget {
               retiredNote.value = null;
               managing.value = false;
             },
-            // Retiring the SELECTED word reconciles the choice, for the reason
-            // the ingredient sheet's delete does: Done must never write a
-            // tombstoned pointer. The note is the pending-note pattern.
+            // Retiring the selected word reconciles the choice, so Done never
+            // writes a tombstoned pointer.
             onRetired: (m) {
               if (choice.value case RecipeMeasureOption(
                 measure: final sel,
@@ -344,15 +262,13 @@ class ComponentQuantityEditor extends HookConsumerWidget {
               child: FTextField(
                 autofocus: true,
                 hint: 'qty',
-                // A TEXT keyboard, not the decimal pad: iOS's numeric pads
-                // carry no `/`, so `1/2` could not be typed on one — and a
-                // fraction is how a recipe says this number.
+                // A text keyboard: iOS's numeric pads have no `/`, so `1/2`
+                // could not be typed.
                 keyboardType: TextInputType.text,
                 control: FTextFieldControl.managed(
                   initial: TextEditingValue(
-                    // A number counting WORDS prints by the kitchen rule, like
-                    // every other unitless amount: the unit lives on the
-                    // measure, not on the line.
+                    // A number counting words prints by the kitchen rule, like
+                    // every unitless amount.
                     text: unit == null
                         ? formatQuantity(quantity.value)
                         : formatQuantityIn(quantity.value, unit),
@@ -364,11 +280,8 @@ class ComponentQuantityEditor extends HookConsumerWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                // The picked word says what one of it comes to, exactly as a
-                // picked ingredient measure does: the chip row carries the bare
-                // word, the sentence beside the number carries its size.
-                // Nothing at all for a gone word — the number is all this line
-                // honestly says.
+                // The picked word says what one of it comes to; nothing for a
+                // gone word.
                 word != null
                     ? recipeMeasureChipText(word)
                     : (unit?.label ?? ''),
@@ -390,12 +303,9 @@ class ComponentQuantityEditor extends HookConsumerWidget {
           offer: offer,
           selected: picked,
           onSelect: (c) => choice.value = c,
-          // The `+` opens the TARGET recipe's own words — the sauce being
-          // measured, not the recipe being written. A target with no id is a
-          // component whose recipe row has not synced here: there is nothing
-          // to stamp a word onto, so no chip rather than one that refuses.
-          // Nor where the target states no yield and the host has no door to
-          // set one: that page could only refuse.
+          // The `+` opens the target recipe's words. No chip when the target
+          // has no id (its row has not synced), or when it states no yield and
+          // the host has no door to set one.
           onManage:
               mayCoinWords &&
                   target.id.isNotEmpty &&
@@ -451,10 +361,8 @@ class ComponentQuantityEditor extends HookConsumerWidget {
         ],
         const SizedBox(height: 14),
         FButton(
-          // A line said in a measure with no number is a row the server
-          // refuses — and a refused row drops the whole upload, not just
-          // itself. So the door waits for the number rather than handing one
-          // back that cannot be saved.
+          // A measured line with no number is refused by the server, and a
+          // refused row drops the whole upload, so Done waits for the number.
           onPress: amountless
               ? null
               : () => onDone((
@@ -472,14 +380,10 @@ class ComponentQuantityEditor extends HookConsumerWidget {
 
   /// Which chip the sheet opens on.
   ///
-  /// A line being EDITED opens on its own stored denomination — its word where
-  /// the target still holds it, else its unit — and a line whose word has gone
-  /// opens on nothing at all. A FRESH amount opens on the first thing the offer
-  /// leads with while that is one of the recipe's own words
-  /// ([firstComponentChoice]: the whole-batch word, else the first word the
-  /// recipe can still hold), and otherwise on the yield's own unit, which is
-  /// the line a page prints — `¼ cup` of a `makes 1 cup` aioli — and the
-  /// denomination this sheet has always opened wordless recipes on.
+  /// An edited line opens on its stored word (where the target still holds it)
+  /// or unit; a line whose word has gone opens on nothing. A fresh amount opens
+  /// on [firstComponentChoice] when that is one of the recipe's words,
+  /// otherwise on the yield's own unit.
   UnitChoice? _openingChoice(List<RecipeMeasure> measures) {
     if (initialMeasureId case final id?) {
       final word = recipeMeasureById(id, measures);
@@ -528,13 +432,9 @@ class _SetYieldDoor extends StatelessWidget {
   );
 }
 
-/// The manage state: the TARGET recipe's own words, authored in place.
-///
-/// It is `_MeasureManager` on the ingredient sheet, and it holds the same
-/// posture — **this host has no Save**, so every tap is a write through
-/// [RecipeMeasureRepository] and the word is live at once. With no `makes`
-/// stated the editor draws its one refusal, and this adds the amount face's
-/// door to where MAKES is set.
+/// The manage state: the target recipe's own words, authored in place. No Save:
+/// every tap writes through [RecipeMeasureRepository]. With no `makes` stated
+/// it adds the door to where MAKES is set.
 class _TargetMeasures extends ConsumerWidget {
   const _TargetMeasures({
     required this.target,
@@ -560,10 +460,9 @@ class _TargetMeasures extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final yields = target.yields;
 
-    // The bin, behind the gate: a word lines still say cannot go, and the
-    // refusal is a sentence with a door rather than a failed write. The
-    // container and the host are captured BEFORE the gate's dialog, because
-    // this row can be gone by the time it answers.
+    // A word that lines still say cannot be retired. The container and host are
+    // captured before the gate's dialog, because this row can be gone by the
+    // time it answers.
     Future<void> retire(RecipeMeasure m) async {
       final container = ProviderScope.containerOf(context, listen: false);
       final host = hostContextOf(context);
@@ -587,12 +486,9 @@ class _TargetMeasures extends ConsumerWidget {
           // never the recipe being written.
           yields: yields,
           measures: measures,
-          // Each write is wrapped where it is made rather than behind a
-          // helper: the structural scan reads the call site, and so does a
-          // person. The three endings are the editor's own — the repository's
-          // refusal is the authoring contract and belongs under the field, a
-          // write that threw for any other reason has already been said by the
-          // write door, and anything else landed.
+          // Each write is wrapped at its call site, where the structural scan
+          // reads it. The repository's refusal is shown under the field; other
+          // throws are reported by the write door.
           onAdd: (m) async {
             final outcome = await ref.write(
               context,
@@ -650,20 +546,14 @@ class _TargetMeasures extends ConsumerWidget {
   }
 }
 
-/// What a fresh component line counts before anyone picks a chip, on a recipe
-/// that coins no word: the yield's own unit when it states one, and `batch`
-/// otherwise — the one denomination that never needs a yield.
+/// What a fresh component line counts on a recipe with no words: the yield's
+/// own unit, else `batch`.
 Unit _defaultUnit(List<YieldDenomination> yields) =>
     yields.isEmpty ? batches : yields.first.unit;
 
-/// [live] — the watched, merged offer — plus every word of [loaded] the merge
-/// hid behind one of them.
-///
-/// A line is resolved by id, and the merge hides a duplicate word rather than
-/// deleting it, so a line written in the hidden half of a `blob`/`blob` pair
-/// must still read as `blob` in this sheet. The label is the merge's own key,
-/// so a snapshot word is re-admitted only while a live word still says it: a
-/// word RETIRED behind the ＋ leaves none, and goes on reading as gone.
+/// [live] (the watched, merged offer) plus every word of [loaded] the merge hid
+/// behind one of them. Re-admitted by label, so a word retired behind the ＋
+/// stays gone.
 List<RecipeMeasure> _withHiddenTwins(
   List<RecipeMeasure> live,
   List<RecipeMeasure> loaded,
@@ -678,12 +568,9 @@ List<RecipeMeasure> _withHiddenTwins(
   ];
 }
 
-/// [picked], re-read from [measures] when it is one of the recipe's own words.
-///
-/// A word is a row, and the row is what the conversion line and Done speak —
-/// so a selection held across a re-statement must follow the number rather
-/// than keep the copy it was picked from. A word that is no longer in the list
-/// selects nothing, which is the sheet's honest gone-word state.
+/// [picked], re-read from [measures] when it is one of the recipe's words, so a
+/// selection follows a re-statement. A word no longer in the list selects
+/// nothing.
 UnitChoice? _seated(UnitChoice? picked, List<RecipeMeasure> measures) {
   if (picked is! RecipeMeasureOption) return picked;
   final live = recipeMeasureById(picked.measure.id, measures);

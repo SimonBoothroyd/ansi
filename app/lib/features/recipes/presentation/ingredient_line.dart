@@ -1,57 +1,11 @@
-/// The v3 three-part ingredient line (LOCKED design): a fixed-width amount
-/// column, the ingredient identity with its notes as a muted-italic modifier,
-/// and — in an editable context — a pinned-right edit pencil.
+/// The three-part ingredient line: a fixed-width amount column, the identity
+/// with its note as a muted-italic modifier, and an edit pencil where editable.
+/// Shared by the recipe page and the import preview.
 ///
-/// The amount column is a FIXED width so the identity left-aligns on every row
-/// regardless of amount length; a long (or joined multi-use) amount wraps
-/// within its own column, and the notes wrap in the identity column. A
-/// multi-use identity joins each use's amount with " + " and its notes in
-/// parallel — never summed (invariant 3). Shared by the recipe page and the
-/// import preview so the preview reads exactly as the saved recipe will.
-///
-/// **A component line is an ordinary line** (step 8.6 / D1, design board frame
-/// a): same amount column, same note modifier — only the identity cell
-/// changes, to a [RecipeChip] that pushes the target's page. A component whose
-/// target is missing (a sync race, D5) degrades to the plain text it stored,
-/// muted, and says so; nothing derived, nothing invented.
-///
-/// **An ingredient's name is the same kind of door**, opt-in through
-/// [RecipeIngredientLine.onOpenIngredient]: on the recipe page it opens that
-/// ingredient's own page, the way a component's chip opens its recipe. It is
-/// a callback rather than a baked-in push because the import preview draws
-/// the same line for rows that name nothing the household owns yet.
-///
-/// **A line whose ingredient has been RETIRED keeps its last known name** and
-/// carries the `ingredient removed · pick again` tag, muted like a dangling
-/// component: the one thing a reader must not have to guess is which line
-/// broke. The name stops being a door there — a retired row has no page left
-/// — and the fix lives one posture over, in the editor, where the identity
-/// cell is a picker.
-///
-/// **An optional line carries a tag after the note** (board frame e2) in the
-/// sub-recipe chip's shape, because it is the same kind of claim — a fact
-/// about the line that changes what a total covers. It sits in the identity
-/// column, never the amount column: "1 lime" is still what the recipe says.
-/// The tag is also the whole statement: a tagged row prints nothing in its
-/// macro slot, because *optional* twice on one line is once too many.
-///
-/// **Where a week owns the page, that tag is a switch**
-/// ([RecipeIngredientLine.onToggleOptional]): `optional` with an empty ring
-/// becomes `included` with a check, and the week stores the answer. Optional
-/// has two owners — the recipe says *may be skipped*, the week says *this
-/// time, yes* — and only a surface that holds a week can answer the second.
-/// Without the callback the tag is what it has always been: a fact, and
-/// nothing to tap.
-///
-/// **A line the week leaves out reads struck and muted**
-/// ([RecipeIngredientLine.struck]), amount and name alike — the grammar week
-/// mode draws, here read-only.
-///
-/// **[RecipeIngredientLine.macroLine] is opt-in**, because the import preview
-/// shares this widget and has no summation behind it: the recipe page passes
-/// the line's own figures when its per-line toggle is on, or the reason there
-/// are none, and everything else passes neither. The caller decides which of
-/// the two it is — this file never computes a number.
+/// A multi-use identity joins each use's amount with " + ", never summed. A
+/// component line's identity is a [RecipeChip]; a missing target or a retired
+/// ingredient reads as its stored text, muted and tagged. Tags, week state and
+/// macro figures are all passed in: this file computes no number.
 library;
 
 import 'package:flutter/gestures.dart';
@@ -68,12 +22,8 @@ import '../domain/line_display.dart';
 import '../domain/recipe.dart';
 import 'recipe_chip.dart';
 
-/// The amount column's width (design board `.l3` grid): wide enough for
-/// "400 g" or "2 tin", narrow enough that a long joined amount wraps.
-///
-/// The one number every three-part line aligns on — the recipe page here, the
-/// import review's collapsed row, and the recipe editor's line. They are one
-/// layout, so they share the measurement rather than each holding an 84.
+/// The amount column's width, shared by the recipe page, the import review's
+/// collapsed row and the editor's line so identities align.
 const double kLineAmountWidth = 84;
 
 class RecipeIngredientLine extends StatelessWidget {
@@ -94,72 +44,50 @@ class RecipeIngredientLine extends StatelessWidget {
 
   final LineUses uses;
 
-  /// Whether this week leaves the row out: the amount and the name are struck
-  /// and muted, as week mode draws them. False everywhere no week is in play.
+  /// Whether this week leaves the row out: amount and name struck and muted.
   final bool struck;
 
-  /// Whether this week has ticked the row's optional line(s) IN — the tag then
-  /// reads `included` rather than `optional`.
+  /// Whether this week has ticked the row's optional line(s) in; the tag then
+  /// reads `included`.
   final bool included;
 
-  /// Ticks the row's optional line(s) in for this week, or back out; the
-  /// argument is what the row is to BECOME. Set only where a week owns the
-  /// page, which is the only place the question exists: from the Library the
-  /// tag states a fact and writes nothing.
+  /// Ticks the row's optional line(s) in or out for this week; the argument is
+  /// the new state. Set only where a week owns the page.
   final ValueChanged<bool>? onToggleOptional;
 
-  /// This row's own macros, at the amount the row is showing — `142 🔥 ·
-  /// 3P 11F 8C`. Null when the page's per-line toggle is off, and null on
-  /// every surface that has no summary to read.
-  ///
-  /// It sits under the identity, not under the amount: it is a fact about the
-  /// ingredient at this amount, and the amount column belongs to what the
-  /// recipe says. [macroMarker] is the amount column's, and the two never say
-  /// the same thing twice — the caller passes null here when the marker is
-  /// already printing the reason.
-  ///
-  /// It is a dense line, so energy is a glyph rather than the word
-  /// ([MacroLineText]).
+  /// This row's macros at the amount shown (`142 🔥 · 3P 11F 8C`), drawn under
+  /// the identity. Null when the per-line toggle is off, when [macroMarker]
+  /// already prints the reason, or when the surface has no summary.
   final Macros? macroLine;
 
-  /// The line's slot when there are no figures for it: the reason the total
-  /// left this row out, in the macro panel's own words. Never set beside
-  /// [macroLine] — a row has figures or it has a reason.
+  /// Why the total left this row out, in the macro panel's words. Never set
+  /// beside [macroLine].
   final String? macroLineNote;
 
-  /// Why this row is left out of the macro total, in the shared per-line
-  /// words (seam **D5**) — `needs a piece weight`, `stub ingredient`. Null
-  /// when the row is in the total, or when the caller has no summary to read.
-  ///
-  /// It renders as a small amber dot plus the reason at the end of the amount
-  /// column, in **the same amber the import review card uses**, because it is
-  /// the same claim: *this line is why a number is missing.*
+  /// Why this row is out of the macro total (`needs a piece weight`, `stub
+  /// ingredient`), drawn as an amber dot and the reason under the amount. Null
+  /// when the row is counted or there is no summary.
   final String? macroMarker;
 
   /// Opens the fix the marker implies. When set, the marker is a door.
   final VoidCallback? onFixMacro;
 
-  /// When set, the row shows a pinned-right edit pencil and the amount column
-  /// is tappable — the editable preview's tap-to-edit-amount gesture. Null on
-  /// the read-only recipe page.
+  /// When set, the row shows an edit pencil and the amount column is tappable.
+  /// Null on the read-only recipe page.
   final VoidCallback? onEditAmount;
 
-  /// The muted mono the macro slot is drawn in, whichever of its two things
-  /// it is holding — one style, so the figures and the reason read as the
-  /// same aside under the name.
+  /// The muted mono of the macro slot, for figures and reason alike.
   static final _lineStyle = ansiMono(
     size: 10,
     color: AnsiColors.muted,
   ).copyWith(height: 1.3);
 
-  /// Pushes a component row's target recipe (step 8.6). Null where navigating
-  /// away would be wrong — the import review preview, where the recipe does
-  /// not exist yet.
+  /// Pushes a component row's target recipe. Null in the import preview, where
+  /// the recipe does not exist yet.
   final ValueChanged<String>? onOpenSubRecipe;
 
-  /// Pushes an ingredient row's own page, given the row's resolved
-  /// [LineUses.ingredientId]. Null where the row has nowhere to go: the
-  /// import review preview, and any row that resolved to no ingredient.
+  /// Pushes an ingredient row's page, given [LineUses.ingredientId]. Null in
+  /// the import preview and for a row that resolved to no ingredient.
   final ValueChanged<String>? onOpenIngredient;
 
   @override
@@ -169,8 +97,7 @@ class RecipeIngredientLine extends StatelessWidget {
         .where((a) => a.isNotEmpty)
         .join(' + ');
     final notes = uses.notes.join(' + ');
-    // An imprecise line ("a pinch") reads in italic mono — a printed number
-    // would misrepresent it (invariant 3).
+    // An imprecise line ("a pinch") reads in italic mono, not as a number.
     final imprecise = uses.uses.every(
       (u) => u.measure == null && u.unit?.family == UnitFamily.imprecise,
     );
@@ -253,10 +180,8 @@ class RecipeIngredientLine extends StatelessWidget {
   }
 }
 
-/// The in-place marker (seam **D5**): an amber dot and the reason, under the
-/// amount. Marked in place because on a long recipe the panel is below the
-/// fold, and reading a name there and then hunting for the row is the failure
-/// this replaces.
+/// An amber dot and the reason, under the amount — marked in place because the
+/// macro panel may be below the fold.
 class _MacroMarker extends StatelessWidget {
   const _MacroMarker({required this.label, this.onTap});
 
@@ -301,13 +226,12 @@ class _MacroMarker extends StatelessWidget {
   }
 }
 
-/// The identity cell: an ingredient's name, or a component's recipe chip —
-/// with the notes as the same muted-italic modifier either way.
+/// The identity cell: an ingredient's name or a component's recipe chip, with
+/// the note after it.
 ///
-/// Stateful only to own the name span's tap recognizer. The door is the NAME
-/// span rather than the cell: the cell is stretched to the full width of the
-/// row, so a cell-wide gesture would answer for the blank paper beside a short
-/// name — and for the note, which is a fact about the line, not the identity.
+/// Stateful only to own the name span's tap recognizer. The tap target is the
+/// name span, not the cell: the cell spans the row's width, so a cell-wide
+/// gesture would answer for blank space and the note.
 class _Identity extends StatefulWidget {
   const _Identity({
     required this.uses,
@@ -350,17 +274,13 @@ class _IdentityState extends State<_Identity> {
       size: 16,
       color: AnsiColors.muted,
     ).copyWith(fontStyle: FontStyle.italic);
-    // A folded multi-use row is tagged if ANY use is optional: the tag says
-    // a line here is left out of the totals, and one is. A row this week
-    // ticked in wears the same tag, lit — the week cleared the flag, and the
-    // answer it gave is what the tag is now saying.
+    // A folded multi-use row is tagged if any use is optional, or if this week
+    // ticked it in.
     final optional = uses.uses.any((u) => u.optional) || widget.included;
-    // Every use of a folded row shares one identity, so they agree about
-    // this — `any` only saves the reader wondering which.
+    // Every use of a folded row shares one identity.
     final removed = uses.uses.any((u) => u.ingredientDeleted);
 
-    // A component whose target resolved: the chip IS the identity, with the
-    // note beside it exactly as an ingredient's would be.
+    // A resolved component: the chip is the identity.
     if (uses.isComponent && target != null) {
       final id = target.id;
       return Wrap(
@@ -382,14 +302,11 @@ class _IdentityState extends State<_Identity> {
       );
     }
 
-    // A dangling link (D5) reads as the plain text it stored, muted, and says
-    // why there is no chip. An ingredient row is the first branch's `else`.
+    // A dangling component reads as its stored text, muted.
     final dangling = uses.isComponent;
     final ingredientId = uses.ingredientId;
     final openIngredient = widget.onOpenIngredient;
-    // A retired row has no page left to open — its own screens read the live
-    // vocab — so the name stops being a door and the tag says what to do
-    // instead. A door onto "not found" is worse than no door.
+    // A retired ingredient has no page to open, so its name is not a door.
     final nameIsDoor =
         ingredientId != null && openIngredient != null && !removed;
     _openIngredient.onTap = nameIsDoor
@@ -401,10 +318,8 @@ class _IdentityState extends State<_Identity> {
         children: [
           TextSpan(
             text: uses.ingredientName,
-            // Muted for every broken or absent link — a missing component
-            // target, a retired ingredient and a line this week leaves out
-            // are the same news about the same cell — and struck only for
-            // the last, which is the one a week can put back.
+            // Muted for a missing target, a retired ingredient or a line this
+            // week leaves out; struck only for the last.
             style:
                 (dangling || removed || widget.struck
                         ? ansiSans(size: 16, color: AnsiColors.muted)
@@ -430,17 +345,10 @@ class _IdentityState extends State<_Identity> {
   }
 }
 
-/// The note as a run of spans after the name — **the** note grammar, for every
-/// surface that prints one: the recipe page, the editor's row, the import
-/// review's row, the week's.
-///
-/// `Garlic · peeled and crushed` — a middle dot in the hairline, then the note
-/// in muted italic at the name's own size, because it is the name's modifier
-/// rather than a second fact about the line. It lives in one function so the
-/// three screens cannot drift into three grammars, which is exactly what they
-/// had done; `test/structure/one_note_grammar_test.dart` holds that.
-///
-/// Empty when the line carries no note.
+/// The note as spans after the name, for every surface that prints one: `Garlic
+/// · peeled and crushed` — a hairline middle dot, then the note in muted italic
+/// at the name's size. Empty without a note. Held by
+/// `test/structure/one_note_grammar_test.dart`.
 List<InlineSpan> noteSpans(String? note, {double size = 15}) {
   final text = note?.trim();
   if (text == null || text.isEmpty) return const [];
@@ -459,10 +367,8 @@ List<InlineSpan> noteSpans(String? note, {double size = 15}) {
   ];
 }
 
-/// The `optional` tag as a run of spans, so every three-part line — the page's,
-/// the editor's, the week's — hangs it off the end of the identity in one
-/// voice rather than each surface inventing its own placement. Empty when the
-/// line is not optional.
+/// The `optional` tag as spans after the identity. Empty when the line is not
+/// optional.
 List<InlineSpan> optionalSpans({
   required bool optional,
   bool included = false,
@@ -479,30 +385,22 @@ List<InlineSpan> optionalSpans({
       ]
     : const [];
 
-/// The `optional` tag: the sub-recipe chip's shape — a 6 px box in the herb
-/// wash, muted mono — because it is the same kind of mark on the same kind of
-/// line, and a second pill geometry beside [RecipeChip] read as a second
-/// vocabulary. Public so the page test can find it by type.
+/// The `optional` tag, in the sub-recipe chip's shape. Public so the page test
+/// can find it by type.
 ///
-/// **With [onToggle] it is the switch**, and the shape says so: an empty ring
-/// before the word, the way a box a person may tick is drawn. Ticked, the box
-/// fills — herb, paper text, a check where the ring was — and the word becomes
-/// `included`. Same radius, same padding, so the answer changes without the
-/// line moving.
+/// With [onToggle] it is a switch: an empty ring before the word; ticked, it
+/// fills herb with a check and reads `included`, at the same size.
 class OptionalTag extends StatelessWidget {
   const OptionalTag({this.included = false, this.onToggle, super.key});
 
-  /// Whether the week has ticked this line in. Drawn filled, and the word is
-  /// `included`.
+  /// Whether the week has ticked this line in.
   final bool included;
 
-  /// Ticks the line in or back out; the argument is what it is to BECOME.
-  /// Null everywhere the tag only states a fact.
+  /// Ticks the line in or out; the argument is the new state. Null where the
+  /// tag only states a fact.
   final ValueChanged<bool>? onToggle;
 
-  /// The tap target's height where the tag is a switch. A 10 pt badge is a
-  /// small thing to hit, so the target is padded out to a comfortable one
-  /// rather than the badge drawn bigger — week mode's own idiom.
+  /// The tap target's height where the tag is a switch.
   static const double switchHitHeight = 44;
 
   @override
@@ -562,10 +460,8 @@ class OptionalTag extends StatelessWidget {
   }
 }
 
-/// The unticked box: an empty ring before the word, so the tag reads as a
-/// question rather than a label before anybody has touched it. Shared with the
-/// card's own `optional` toggle, which asks the recipe's version of the same
-/// question.
+/// The unticked box: an empty ring before the word. Shared with the line card's
+/// `optional` toggle.
 class OptionalRing extends StatelessWidget {
   const OptionalRing({super.key});
 
@@ -580,10 +476,8 @@ class OptionalRing extends StatelessWidget {
   );
 }
 
-/// The retired-ingredient tag, as a run of spans — the same placement
-/// [optionalSpans] uses, so the page's line, the editor's and the week's hang
-/// it off the end of the identity in one voice. Empty when the line's
-/// ingredient is still live.
+/// The retired-ingredient tag as spans after the identity. Empty when the
+/// ingredient is live.
 List<InlineSpan> removedIngredientSpans({required bool removed}) => removed
     ? const [
         WidgetSpan(
@@ -596,15 +490,9 @@ List<InlineSpan> removedIngredientSpans({required bool removed}) => removed
       ]
     : const [];
 
-/// `ingredient removed · pick again` — what a line wears when the vocab row it
-/// names has been retired ([LineItem.ingredientDeleted]).
-///
-/// [OptionalTag]'s exact look, because it is the same kind of claim: a fact
-/// about the line that changes what a total covers. The words carry the fix
-/// with them — the editor's identity cell is a picker, so "pick again" is a
-/// thing the reader can go and do rather than a diagnosis. The name beside it
-/// is the row's LAST KNOWN one: a blank cell would hide which line broke, and
-/// dropping the line would hide that anything did.
+/// `ingredient removed · pick again` — the tag on a line whose vocab row was
+/// retired ([LineItem.ingredientDeleted]), in [OptionalTag]'s look. The name
+/// beside it is the row's last known one.
 class RemovedIngredientTag extends StatelessWidget {
   const RemovedIngredientTag({super.key});
 
@@ -626,7 +514,5 @@ class RemovedIngredientTag extends StatelessWidget {
   }
 }
 
-/// One use's amount string — [amountOfLine], which is where the words live so
-/// that the week's variant and the shopping list can quote a line's amount in
-/// exactly the voice the recipe page prints it in.
+/// One use's amount string ([amountOfLine]).
 String amountOfLineItem(LineItem item) => amountOfLine(item);

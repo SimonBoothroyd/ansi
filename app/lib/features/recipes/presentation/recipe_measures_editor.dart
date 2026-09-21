@@ -1,30 +1,12 @@
-/// The MEASURES editor — a recipe's own words for one of what its batch makes,
-/// and the form that coins one (design board, the recipe editor's MEASURES
-/// frame and the quantity dock's manage state).
+/// The recipe MEASURES editor: a recipe's own words for an amount of what its
+/// batch makes, and the form that coins one. The same shape and [MeasureForm]
+/// as `ingredients/presentation/measures_editor.dart`.
 ///
-/// It is `ingredients/presentation/measures_editor.dart` one level up, and
-/// deliberately the same shape: the household is stating the same kind of fact
-/// — a word, and what one of it comes to — so the row reads the same, the add
-/// form is the same [MeasureForm] run at one control height, and the keyboard
-/// behaves the same (a landed word clears the slots, KEEPS the unit and goes
-/// back to the label; a refused one keeps everything typed and says why under
-/// the field).
-///
-/// **It knows no repository and no host.** Two doors author a word and the
-/// difference is whether the host has a Save (ADR-0011): the recipe editor's
-/// header form defers into `Recipe.measures`, and the ＋ on a component's
-/// quantity dock writes on tap. Both hand this widget the same three callbacks
-/// and get the same validation, because the rules are
-/// [authorRecipeMeasure]'s rather than either door's — so nothing here may
-/// assume it lives inside a form with a Save, or inside a page without one.
-///
-/// **The gate is drawn, not hidden.** A word is an amount, and an amount says
-/// nothing about a batch until the batch has one too, so with no yield stated
-/// the add form is replaced by the domain's own sentence
-/// ([kRecipeMeasureNoYieldRefusal]) — one sentence, no controls that could only
-/// produce a refusal. The words the recipe already has are still listed, each
-/// one honest about the gap, because they exist and hiding them would be the
-/// lie.
+/// It knows no repository and no host. The recipe editor defers words into
+/// `Recipe.measures`; the component quantity dock's ＋ writes on tap (ADR-0011).
+/// Both pass the same callbacks, and [authorRecipeMeasure] validates for both.
+/// With no yield stated the add form is replaced by
+/// [kRecipeMeasureNoYieldRefusal]; existing words are still listed.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -46,28 +28,23 @@ import 'component_format.dart';
 
 const _uuid = Uuid();
 
-/// What the host did when the editor asked it to land a word.
-///
-/// A value rather than an exception, because the two failures belong on two
-/// different surfaces: a **refusal** is the authoring contract and belongs
-/// inline under the field, while a write that did not happen has already been
-/// reported by the host's own write door and must not be said twice.
+/// What the host did when asked to land a word. A value, not an exception: a
+/// refusal shows inline under the field, while a failed write has already been
+/// reported by the host's write door.
 sealed class RecipeMeasureOutcome {
   const RecipeMeasureOutcome();
 }
 
-/// It landed — in the draft for a host with a Save, in the database for one
-/// without. Either way the editor may treat [measure] as real.
+/// It landed: in the draft for a host with a Save, in the database otherwise.
 class RecipeMeasureLanded extends RecipeMeasureOutcome {
   const RecipeMeasureLanded(this.measure);
 
   final RecipeMeasure measure;
 }
 
-/// The host's own layer refused it, in words meant for the person: shown under
-/// the field, not in a toast. The direct door's repository re-reads the
-/// recipe's yields and words inside its transaction, so it can still refuse
-/// what this form let through — a form's copy of the world is minutes old.
+/// The host refused it, in words shown under the field. A direct door re-reads
+/// the recipe's yields and words in its transaction, so it can refuse what the
+/// form let through.
 class RecipeMeasureTurnedDown extends RecipeMeasureOutcome {
   const RecipeMeasureTurnedDown(this.reason);
 
@@ -92,66 +69,47 @@ class RecipeMeasuresEditor extends HookWidget {
     super.key,
   });
 
-  /// The recipe these words belong to — stamped on every one this form mints,
-  /// because a word is a word for ONE recipe.
+  /// The recipe these words belong to, stamped on every one this form mints.
   final String recipeId;
 
-  /// What the recipe says a batch makes, **as the host holds it right now**. It
-  /// is the gate: passed from a draft it re-evaluates the whole section on the
-  /// same keystroke that edits MAKES, which is the point of the section sitting
-  /// under it.
+  /// What the recipe says a batch makes, as the host holds it now. It gates the
+  /// add form and re-evaluates as MAKES is edited.
   final List<YieldDenomination> yields;
 
-  /// The recipe's words, in list order — the draft's for a deferred host, the
-  /// watched rows for a direct one.
+  /// The recipe's words, in list order.
   final List<RecipeMeasure> measures;
 
-  /// A word was authored and may be landed. Called only with a measure
-  /// [authorRecipeMeasure] has already passed against [yields] and [measures],
-  /// so a host that has nothing else to check can land it unconditionally; the
-  /// id is a fresh one, which a direct door is free to ignore in favour of the
-  /// row it writes.
+  /// Lands a new word. Called only with a measure [authorRecipeMeasure] has
+  /// passed against [yields] and [measures]; its id is fresh, and a direct door
+  /// may replace it with the written row's.
   final Future<RecipeMeasureOutcome> Function(RecipeMeasure) onAdd;
 
-  /// An existing word was re-stated — a new label, a new number, a new unit, or
-  /// any two. **It keeps its id**, which is the whole reason this is not a
-  /// delete and a re-add: every line already saying the word follows the
-  /// correction.
+  /// Re-states an existing word (label, number or unit). It keeps its id, so
+  /// every line saying the word follows the correction.
   final Future<RecipeMeasureOutcome> Function(RecipeMeasure) onRestate;
 
-  /// The bin. The host owns the delete gate — a word lines still say cannot go
-  /// (`mayDeleteRecipeMeasure`), and only the host knows whether the row is a
-  /// draft one or a live one.
+  /// The bin. The host owns the delete gate (`mayDeleteRecipeMeasure`).
   final Future<void> Function(RecipeMeasure) onDelete;
 
-  /// What the add form's button says. `Save` in a host that commits on tap, and
-  /// `Add` where the tap only puts the word in a draft — a button reading Save
-  /// that saves nothing would give the form's own docked Save a rival.
+  /// The add button's label: `Save` where the tap commits, `Add` where it only
+  /// drafts.
   final String addLabel;
 
-  /// Whether the label slot takes the keyboard on open. True for a door that
-  /// opened to ask this one question; false inside a screen somebody is
-  /// scrolling.
+  /// Whether the label slot takes the keyboard on open.
   final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
-    // The add form's draft, held as the CONTROLLERS its slots are drawn from
-    // rather than as values beside them: a word landing is the start of the
-    // next one, so this form has to be able to empty its own slots.
+    // Held as controllers so the form can clear its own slots after a word
+    // lands.
     final label = useTextEditingController();
     final amount = useTextEditingController();
     final labelFocus = useFocusNode();
-    // What the person picked, and null while they have not. The distinction is
-    // load-bearing: an unpicked slot FOLLOWS what MAKES says, so setting a
-    // yield after opening the form seats the right unit, while a deliberate
-    // pick is never silently re-aimed by a later MAKES edit — it stands, and
-    // the Save says in the domain's own words why it cannot be held.
+    // The picked unit, or null while unpicked. An unpicked slot follows what
+    // MAKES says; a deliberate pick is never re-aimed by a later MAKES edit.
     final picked = useState<Unit?>(null);
     final error = useState<String?>(null);
-    // Which row is open for editing, by id — one at a time, because the form it
-    // opens into is the add form's own shape and two of them stacked would read
-    // as two drafts of the same list.
+    // The row open for editing, by id; one at a time.
     final editing = useState<String?>(null);
 
     final opening = recipeMeasureOpeningUnit(yields);
@@ -171,9 +129,8 @@ class RecipeMeasuresEditor extends HookWidget {
         measures: measures,
         sortOrder: measures.length,
       )) {
-        // The refusal is the authoring rule's own sentence, under the field
-        // that caused it, and everything typed stays where it is: the fix for
-        // every one of them is an edit to what is already on screen.
+        // The authoring refusal shows under the field, and everything typed
+        // stays.
         case Err(:final failure):
           error.value = failure.message;
           return;
@@ -182,27 +139,21 @@ class RecipeMeasuresEditor extends HookWidget {
       }
       error.value = null;
       final outcome = await onAdd(word);
-      // The host can be dismissed while the write is in flight — touching its
-      // state after that throws.
+      // The host can be dismissed while the write is in flight.
       if (!context.mounted) return;
       switch (outcome) {
         case RecipeMeasureTurnedDown(:final reason):
           error.value = reason;
-        // The host's own guard has already said so; saying it twice is worse
-        // than saying it once.
+        // The host's write door has already reported it.
         case RecipeMeasureNotLanded():
           return;
         case RecipeMeasureLanded():
-          // The words and the figure clear, ready for the next one — a
-          // household names a blob, a ladle and a loaf in one sitting. **The
-          // unit stays where they left it**: those three usually come off one
-          // scale, so it is the one part of the last word that is also true of
-          // the next.
+          // The label and figure clear for the next word; the unit stays, since
+          // consecutive words usually share one.
           label.clear();
           amount.clear();
-          // And the keyboard goes back to the first slot, but only where this
-          // form is still on screen: a field that is leaving must not take the
-          // keyboard with it over the surface behind it.
+          // Refocus the first slot, but only while this form is still on
+          // screen.
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (context.mounted) labelFocus.requestFocus();
           });
@@ -212,8 +163,7 @@ class RecipeMeasuresEditor extends HookWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Nothing to say about an empty list while the gate below is the whole
-        // section: two sentences where one is the answer reads as two problems.
+        // An empty list says nothing while the no-yield gate below is showing.
         if (measures.isEmpty)
           if (unit != null)
             Padding(
@@ -238,9 +188,8 @@ class RecipeMeasuresEditor extends HookWidget {
                     measures: measures,
                     onRestate: onRestate,
                     onDone: () {
-                      // The keyboard goes with the form: a focused field whose
-                      // row is about to leave the tree keeps a frame callback
-                      // pointed at a render object that no longer exists.
+                      // Unfocus first: a focused field leaving the tree keeps a
+                      // frame callback on a dead render object.
                       FocusManager.instance.primaryFocus?.unfocus();
                       editing.value = null;
                     },
@@ -257,8 +206,7 @@ class RecipeMeasuresEditor extends HookWidget {
           ),
         const SizedBox(height: 12),
         if (unit == null)
-          // The honest cost of the ruling, paid at the door and naming the fix
-          // (ADR-0018): no form, because a form here could only refuse.
+          // No form without a yield: it could only refuse (ADR-0018).
           Text(
             kRecipeMeasureNoYieldRefusal,
             style: ansiMono(size: 11, color: AnsiColors.muted),
@@ -270,9 +218,8 @@ class RecipeMeasuresEditor extends HookWidget {
             saveLabel: addLabel,
             slot: 'add-word',
             hint: 'label — “blob”',
-            // The person's own pick is always offered back, even where MAKES
-            // has stopped stating its family: a chip that silently re-aimed
-            // itself would change the sentence they typed.
+            // The person's own pick is always offered back, even when MAKES no
+            // longer states its family.
             units: [...choices, if (!choices.contains(unit)) unit],
             unit: unit,
             error: error.value,
@@ -293,17 +240,9 @@ class RecipeMeasuresEditor extends HookWidget {
   }
 }
 
-/// One word as a line in the editor — and the door to re-stating it.
-///
-/// The row itself is the tap target, for the ingredient list's reason: a word
-/// and its number are both things a household gets wrong the first time (a
-/// `blob` that turns out to be 18 g), and the only fix without this is
-/// delete-and-re-add, which mints a new id and strands every line already
-/// pointing at the old one.
-///
-/// No source dot and no legend: an ingredient's measures arrive from USDA, a
-/// borrow or an estimate, and a recipe's only ever come from the household that
-/// wrote the recipe.
+/// One word as a row. The row is the tap target for re-stating it, because
+/// delete-and-re-add would mint a new id and strand every line pointing at the
+/// old one.
 class RecipeMeasureRow extends StatelessWidget {
   const RecipeMeasureRow({
     required this.measure,
@@ -316,9 +255,8 @@ class RecipeMeasureRow extends StatelessWidget {
   final RecipeMeasure measure;
   final Future<void> Function(RecipeMeasure) onDelete;
 
-  /// Whether the recipe can still hold this word — false draws the gap under
-  /// it, in its own words. Never a refusal: the word is alive, and it is MAKES
-  /// that has stopped saying enough.
+  /// Whether the recipe's MAKES still supports this word; false draws the gap
+  /// under it.
   final bool resolves;
 
   /// Opens the row for re-stating. Null where the list is read-only.
@@ -339,11 +277,8 @@ class RecipeMeasureRow extends StatelessWidget {
           children: [
             Row(
               children: [
-                // The two spans are a word and its number, read as ONE
-                // sentence — `blob · 15 g`, the way this app says the pair —
-                // because a reader who gets no columns gets no gap between
-                // them either. The bin stays outside it: a control merged into
-                // a sentence loses its own name.
+                // The word and its number read as one sentence (`blob · 15 g`);
+                // the bin stays outside it.
                 Expanded(
                   child: Semantics(
                     label: recipeMeasureListText(measure),
@@ -391,12 +326,8 @@ class RecipeMeasureRow extends StatelessWidget {
   }
 }
 
-/// The add form's shape, seeded from an existing row: the word, what one of it
-/// comes to in the unit it was stated in, Save — and a way back out that
-/// changes nothing.
-///
-/// It holds its own draft rather than borrowing the add form's, so opening a
-/// row for editing never eats a half-typed new word.
+/// The add form's shape seeded from an existing row, with Save and a cancel. It
+/// holds its own draft, so editing a row never eats a half-typed new word.
 class _EditRecipeMeasureForm extends HookWidget {
   const _EditRecipeMeasureForm({
     required this.measure,
@@ -415,8 +346,7 @@ class _EditRecipeMeasureForm extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    // A stored word opens in the unit it was stated in — re-stating it in
-    // another family the recipe makes is a pick away.
+    // Opens in the unit the word was stated in.
     final picked = useState<Unit>(measure.unit);
     final label = useTextEditingController(text: measure.label);
     final amount = useTextEditingController(
@@ -428,8 +358,8 @@ class _EditRecipeMeasureForm extends HookWidget {
     Future<void> save() async {
       final RecipeMeasure restated;
       switch (authorRecipeMeasure(
-        // The id is the row's, which is what makes this a re-statement: every
-        // line already saying the word follows the number.
+        // The row's id, so this is a re-statement and lines saying the word
+        // follow.
         id: measure.id,
         recipeId: measure.recipeId,
         label: label.text,

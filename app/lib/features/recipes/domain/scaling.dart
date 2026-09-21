@@ -1,10 +1,6 @@
-/// Recipe scaling — a pure view concern.
-///
-/// PURE DART (invariant 2). Scaling never mutates the stored recipe: the UI
-/// calls [scaleGroups] with a target serving count and renders the result,
-/// while the persisted [Recipe.servingsBase] and quantities stay as written.
-/// Imprecise units ("a pinch") are left untouched — invariant 3, never invent a
-/// number — which `core/units`' [scale] already guarantees.
+/// Recipe scaling. Pure Dart. Scaling never mutates the stored recipe: the UI
+/// renders [scaleGroups]' result. Imprecise units ("a pinch") are left
+/// untouched, as `core/units`' [scale] guarantees.
 library;
 
 import '../../../core/units/units.dart';
@@ -14,8 +10,8 @@ import 'recipe.dart';
 double scaleFactorFor(Recipe recipe, double targetServings) =>
     targetServings / recipe.servingsBase;
 
-/// [item] with its quantity multiplied by [factor]. A line with no number, or
-/// an imprecise unit, is returned unchanged.
+/// [item] with its quantity multiplied by [factor]. A line with no number or an
+/// imprecise unit is returned unchanged.
 LineItem scaleLineItem(LineItem item, double factor) {
   final q = item.asQuantity;
   if (q == null) return item;
@@ -23,8 +19,8 @@ LineItem scaleLineItem(LineItem item, double factor) {
   return item.copyWith(quantity: scaled.amount);
 }
 
-/// [recipe]'s groups with every line-item scaled to [targetServings]. Group and
-/// item order is preserved; the recipe itself is not modified.
+/// [recipe]'s groups with every line item scaled to [targetServings], order
+/// preserved.
 List<IngredientGroup> scaleGroups(Recipe recipe, double targetServings) {
   final factor = scaleFactorFor(recipe, targetServings);
   return [

@@ -1,9 +1,8 @@
-/// [RecipeRepository] over the local PowerSync SQLite (offline in step 2).
+/// [RecipeRepository] over the local PowerSync SQLite.
 ///
-/// Reads assemble the recipe/group/line-item rows into the domain aggregate and
-/// react to local writes via `watch`. Writes go through `saveRecipe`, which
-/// diffs a recipe's children against the stored tree (see the interface doc)
-/// inside a transaction. Deletes are soft (tombstone), per spec §3.
+/// Reads assemble recipe, group and line-item rows into the aggregate and react
+/// to local writes via `watch`. `saveRecipe` diffs a recipe's children against
+/// the stored tree in a transaction. Deletes are soft.
 library;
 
 import 'dart:convert';
@@ -39,13 +38,10 @@ class SqliteRecipeRepository implements RecipeRepository {
 
   @override
   Stream<List<RecipeSummary>> watchRecipes() {
-    // The summaries carry computed per-serving macros (step 7.7), so the
-    // watch must fire on any change to the tables the load below reads —
-    // groups, line items, the vocab (macros/basis/density/status) and the
-    // measures. Each LEFT JOIN contributes a *selected* column: SQLite omits
-    // a join whose columns go unused, and an omitted join is an undetected
-    // table (the stale-breadcrumb class). Rows are ignored; each fire
-    // re-loads.
+    // The summaries carry computed macros, so the watch must fire on every
+    // table the load reads. Each LEFT JOIN selects a column: SQLite omits a
+    // join whose columns go unused, and an omitted join is an unwatched table.
+    // Rows are ignored; each fire re-loads.
     return _db
         .watch(
           'SELECT r.id, g.id, li.id, ing.id, im.id, sub.title, rm.id '
@@ -55,29 +51,21 @@ class SqliteRecipeRepository implements RecipeRepository {
           'LEFT JOIN ingredient ing ON ing.id = li.ingredient_id '
           'LEFT JOIN ingredient_measure im ON im.id = li.measure_id '
           'LEFT JOIN recipe sub ON sub.id = li.sub_recipe_id '
-          // A component line said in one of its target's own words resolves
-          // through that word, so coining, re-stating or retiring one moves
-          // a summary's macros exactly as a yield edit does.
+          // A component line said in one of its target's words resolves through
+          // that word, so a measure change moves a summary's macros.
           'LEFT JOIN recipe_measure rm ON rm.recipe_id = sub.id '
           'WHERE r.deleted_at IS NULL',
         )
         .asyncMap((_) => _loadSummaries());
   }
 
-  /// Every recipe's cost, keyed by id — one stream for the panel, the week's
-  /// band and anything else that asks what a recipe is worth.
-  ///
-  /// It is a SEPARATE read from [watchRecipes] on purpose. A cost moves when a
-  /// receipt lands, which the summaries' watch knows nothing about, and a
-  /// macro summary must never carry money (ADR-0017 / the structural test), so
-  /// the two facts ride two streams and a surface reads whichever it is
-  /// showing.
+  /// Every recipe's cost, keyed by id. A separate read from [watchRecipes]: a
+  /// cost moves when a receipt lands, and a macro summary never carries money
+  /// (ADR-0017).
   @override
   Stream<Map<String, RecipeCostSummary>> watchRecipeCosts() {
-    // Every table the load reads, each contributing a selected column: the
-    // recipes and their lines, the vocab the conversion needs, the measures,
-    // and the receipt rows the prices come off. A LEFT JOIN nothing selects
-    // from is dropped by SQLite and never becomes a trigger.
+    // Every table the load reads, each with a selected column: an unselected
+    // LEFT JOIN is dropped by SQLite and never triggers the watch.
     return _db
         .watch(
           'SELECT r.id, g.id, li.id, ing.id, im.id, sub.title, rm.id, '
@@ -118,10 +106,9 @@ class SqliteRecipeRepository implements RecipeRepository {
       'yield_unit_2 FROM recipe '
       'WHERE deleted_at IS NULL ORDER BY created_at DESC',
     );
-    // Every live line item with its ingredient's nutrition and (when
-    // resolved) its measure, in one pass across all recipes. A component line
-    // (step 8.6) joins its target for the title and the yields the batch math
-    // reads instead.
+    // Every live line item with its ingredient's nutrition and measure, in one
+    // pass across all recipes. A component line joins its target for the title
+    // and yields instead.
     final measuresByRecipe = await loadRecipeMeasures(_db);
     final lineRows = await _db.getAll(
       'SELECT g.recipe_id, li.id, li.ingredient_id, li.sub_recipe_id, '
@@ -157,10 +144,8 @@ class SqliteRecipeRepository implements RecipeRepository {
           ingredientId: r['ingredient_id'] as String?,
           subRecipeId: r['sub_recipe_id'] as String?,
           subRecipe: _toSubRecipeTarget(r, measuresByRecipe),
-          // The NAME matters here as well as on the page: a macro summary
-          // now names the lines it is waiting on (seam D5), and the picker
-          // row and the recipe page must not disagree about what a line is
-          // called.
+          // The name is carried because a macro summary names the lines it is
+          // waiting on.
           ingredientName:
               r['sub_title'] as String? ?? r['ing_name'] as String? ?? '',
           unit: _lineUnit(r),
@@ -185,9 +170,9 @@ class SqliteRecipeRepository implements RecipeRepository {
                 ),
         ),
       );
-      // A tombstoned/unknown ingredient never lands here (LEFT JOIN nulls its
-      // status), so the lookup below treats its lines as stubs. A component
-      // line has no ingredient at all and is summed through its target.
+      // A tombstoned or unknown ingredient has a null status from the LEFT
+      // JOIN, so its lines read as stubs. A component line is summed through
+      // its target.
       final ingredientId = r['ingredient_id'] as String?;
       if (ingredientId != null && r['status'] != null) {
         nutritionByIngredient[ingredientId] = (
@@ -204,7 +189,7 @@ class SqliteRecipeRepository implements RecipeRepository {
     }
 
     // Every recipe as a possible component TARGET, so the macro summation can
-    // walk into one (step 8.6 / D8) without a second pass over the database.
+    // walk into one without a second pass over the database.
     final nodes = <String, SubRecipeNode>{
       for (final r in recipeRows)
         r['id'] as String: (
@@ -229,9 +214,8 @@ class SqliteRecipeRepository implements RecipeRepository {
           yieldUnit: unitById(r['yield_unit'] as String? ?? ''),
           yieldQty2: (r['yield_qty_2'] as num?)?.toDouble(),
           yieldUnit2: unitById(r['yield_unit_2'] as String? ?? ''),
-          // Carried so a picker row that hands this summary on as a component
-          // TARGET hands over the words with it — the reason
-          // [RecipeSummary.asSubRecipeTarget] can exist at all.
+          // Carried so [RecipeSummary.asSubRecipeTarget] can hand the measures
+          // on.
           measures: measuresByRecipe[r['id']] ?? const <RecipeMeasure>[],
           macros: summarizeRecipeMacros(
             servingsBase: (r['servings_base'] as num).toDouble(),
@@ -244,9 +228,7 @@ class SqliteRecipeRepository implements RecipeRepository {
   }
 
   /// The component target joined onto a line row as `sub_title` /
-  /// `sub_yield_*` (step 8.6), or null when the line is an ingredient line —
-  /// or when its target row is missing (a dangling link degrades to plain
-  /// text and derives nothing, D5).
+  /// `sub_yield_*`, or null for an ingredient line or a missing target row.
   SubRecipeTarget? _toSubRecipeTarget(
     Row r,
     Map<String, List<RecipeMeasure>> measuresByRecipe,
@@ -261,24 +243,19 @@ class SqliteRecipeRepository implements RecipeRepository {
       yieldUnit: unitById(r['sub_yield_unit'] as String? ?? ''),
       yieldQty2: (r['sub_yield_qty_2'] as num?)?.toDouble(),
       yieldUnit2: unitById(r['sub_yield_unit_2'] as String? ?? ''),
-      // The target's OWN words, read off the batched map rather than joined
-      // onto the line: a word belongs to the recipe being used, and one
-      // query for every recipe beats one per line.
+      // The target's own measures come from the batched map: one query for
+      // every recipe rather than one per line.
       measures: measuresByRecipe[id] ?? const <RecipeMeasure>[],
     );
   }
 
   @override
   Stream<Recipe?> watchRecipe(String id) {
-    // The triggers for this stream are the watched query's source tables, so
-    // every table [_loadRecipe] reads must be one — including ingredient
-    // (line-item names AND the nutrition behind the macro panel, so a vocab
-    // row gaining macros/density re-fires the page) and book/section (the
-    // breadcrumb). Each joined table
-    // must also contribute a *selected* column: SQLite omits a LEFT JOIN whose
-    // columns go unused, and an omitted join is an undetected table (the
-    // stale-breadcrumb class). The rows themselves are ignored; each fire
-    // re-assembles the recipe.
+    // Every table [_loadRecipe] reads must be a source of this watched query,
+    // including ingredient (names and nutrition) and book/section (the
+    // breadcrumb). Each joined table must also select a column: SQLite omits a
+    // LEFT JOIN whose columns go unused, and the table then never triggers.
+    // Rows are ignored; each fire re-assembles the recipe.
     return _db
         .watch(
           'SELECT r.id, g.id, li.id, ing.canonical_name, im.label, b.name, '
@@ -288,17 +265,11 @@ class SqliteRecipeRepository implements RecipeRepository {
           'LEFT JOIN recipe_line_item li ON li.group_id = g.id '
           'LEFT JOIN ingredient ing ON ing.id = li.ingredient_id '
           'LEFT JOIN ingredient_measure im ON im.id = li.measure_id '
-          // A component line's target (step 8.6): its title is on the line and
-          // its yields drive the batch math, so a rename or a yield edit on
-          // the TARGET must re-fire this page. Selecting a column keeps the
-          // join alive: SQLite drops a LEFT JOIN with no selected column, and
-          // PowerSync then never registers that table as a trigger.
+          // A component line's target: a rename or yield edit on it must
+          // re-fire this page. A column is selected to keep the join alive.
           'LEFT JOIN recipe sub ON sub.id = li.sub_recipe_id '
-          // Both sides of the word: the ones THIS recipe coins (the page's
-          // own list, and what another recipe's line may say) and the ones
-          // its component targets coin, which is what a measured line here
-          // resolves through. Coining, re-stating or retiring either must
-          // re-assemble the page.
+          // The measures this recipe coins and the ones its component targets
+          // coin; a change to either must re-assemble the page.
           'LEFT JOIN recipe_measure rm '
           'ON rm.recipe_id = r.id OR rm.recipe_id = sub.id '
           'LEFT JOIN book b ON b.id = r.book_id '
@@ -330,8 +301,8 @@ class SqliteRecipeRepository implements RecipeRepository {
       [id],
     );
     final itemRows = await _db.getAll(
-      // The nutrition columns feed the recipe page's macro panel (step 9) —
-      // the same summation the picker rows use, so the two agree.
+      // The nutrition columns feed the recipe page's macro panel, through the
+      // same summation the picker rows use.
       'SELECT li.*, ing.canonical_name AS ingredient_name, '
       'ing.macros_basis AS ingredient_basis, ing.macros AS ingredient_macros, '
       'ing.density_g_per_ml AS ingredient_density, '
@@ -340,15 +311,12 @@ class SqliteRecipeRepository implements RecipeRepository {
       'ing.deleted_at AS ingredient_deleted_at, '
       'im.label AS measure_label, im.basis_amount AS measure_amount, '
       'im.sort_order AS measure_sort, im.source AS measure_source, '
-      // The same measure WITHOUT the liveness guard, so an unresolved
-      // measure_id can say which kind it is: a tombstone the household made,
-      // or a row that has not synced down yet. A column of its own is
-      // selected, not just joined — an unselected LEFT JOIN is optimized away
-      // and `watch` then never re-fires on that table.
+      // The same measure without the liveness guard, so an unresolved
+      // measure_id can be told apart as deleted or not yet synced. A column is
+      // selected so the join stays watched.
       'imx.deleted_at AS measure_deleted_at, '
-      // The component target (step 8.6 / D1): title for the identity cell,
-      // yields for the batch math. Its own words arrive batched, not joined
-      // here — one query for every recipe, keyed by id.
+      // The component target: title and yields. Its measures arrive batched,
+      // not joined here.
       'sub.title AS sub_title, sub.yield_qty AS sub_yield_qty, '
       'sub.yield_unit AS sub_yield_unit, sub.yield_qty_2 AS sub_yield_qty_2, '
       'sub.yield_unit_2 AS sub_yield_unit_2 '
@@ -374,8 +342,7 @@ class SqliteRecipeRepository implements RecipeRepository {
       lines.add(line);
       (itemsByGroup[row['group_id'] as String] ??= []).add(line);
       // A tombstoned or unknown ingredient contributes no nutrition, so its
-      // lines read as stubs and the panel says so — matching what the picker
-      // rows do for the same recipe (its LEFT JOIN nulls the status instead).
+      // lines read as stubs, matching the picker rows.
       final rowIngredientId = row['ingredient_id'] as String?;
       if (rowIngredientId != null &&
           row['ingredient_status'] != null &&
@@ -394,9 +361,7 @@ class SqliteRecipeRepository implements RecipeRepository {
       }
     }
 
-    // Only a recipe that actually HAS a component line pays for the macro
-    // walk's extra read (step 8.6 / D8) — every other recipe page loads
-    // exactly what it always did.
+    // Only a recipe with a component line pays for the macro walk's extra read.
     final (subNodes, subNutrition) = lines.any((l) => l.isComponent)
         ? await _loadSubRecipeNodes()
         : (
@@ -425,11 +390,9 @@ class SqliteRecipeRepository implements RecipeRepository {
       yieldUnit: unitById(r['yield_unit'] as String? ?? ''),
       yieldQty2: (r['yield_qty_2'] as num?)?.toDouble(),
       yieldUnit2: unitById(r['yield_unit_2'] as String? ?? ''),
-      // This recipe's OWN words, as the editor's MEASURES list shows them:
-      // each word once. A merge-hidden twin is deliberately absent — a list
-      // offering `blob` twice is what the merge exists to stop — and the Save
-      // that diffs this list knows to leave it standing. Resolution is the
-      // other way round and reads the target's full list.
+      // This recipe's own measures as the editor lists them: each word once,
+      // merge-hidden twins absent. Resolution reads the target's full list
+      // instead.
       measures: offeredRecipeMeasures(
         measuresByRecipe[id] ?? const <RecipeMeasure>[],
       ),
@@ -467,9 +430,8 @@ class SqliteRecipeRepository implements RecipeRepository {
       ingredientId: r['ingredient_id'] as String?,
       subRecipeId: subRecipeId,
       subRecipe: _toSubRecipeTarget(r, measuresByRecipe),
-      // A component line's identity is its TARGET's title; a dangling link
-      // (target row missing) keeps the same honest "unknown" shape an
-      // unresolved ingredient gets, and derives nothing (D5).
+      // A component line's name is its target's title; a missing target reads
+      // as unknown and derives nothing.
       ingredientName: subRecipeId != null
           ? r['sub_title'] as String? ?? '(unknown recipe)'
           : r['ingredient_name'] as String? ?? '(unknown ingredient)',
@@ -481,9 +443,8 @@ class SqliteRecipeRepository implements RecipeRepository {
       // Null on every query that does not ask (the flag is a display fact,
       // and the surfaces that print it all read this one).
       measureDeleted: r['measure_deleted_at'] != null,
-      // The vocab row is joined WITHOUT the liveness guard precisely so a
-      // retired ingredient still hands over its last known name; this is the
-      // flag that stops that name reading as if the row were fine.
+      // The vocab row is joined without the liveness guard so a retired
+      // ingredient keeps its last name; this flag marks it as retired.
       ingredientDeleted: r['ingredient_deleted_at'] != null,
       measure:
           measureId == null || measureLabel == null || measureAmount == null
@@ -507,11 +468,9 @@ class SqliteRecipeRepository implements RecipeRepository {
 
   @override
   Future<List<RecipeUse>> usedIn(String recipeId) async {
-    // The count this returns is the count D5's delete refusal speaks — one
-    // query, two uses (the refusal and the "Used in · N" tab).
-    // This recipe's own live words — every line below points at THIS recipe,
-    // so one lookup answers all of them, and it is the same merged list every
-    // other loader resolves against rather than a second reading of the table.
+    // The count returned is also the count the delete refusal speaks. Every
+    // line below points at this recipe, so one merged measure lookup answers
+    // all of them.
     final measures =
         (await loadRecipeMeasures(_db))[recipeId] ?? const <RecipeMeasure>[];
     final rows = await _db.getAll(
@@ -534,14 +493,10 @@ class SqliteRecipeRepository implements RecipeRepository {
           recipeId: r['recipe_id'] as String,
           title: r['title'] as String,
           quantity: (r['quantity'] as num?)?.toDouble(),
-          // NULL exactly on a line said in one of this recipe's own words.
-          // It is left null rather than defaulted: reading such a line as
-          // `batch` would print `3 batch` and derive three whole batches from
-          // a line that asked for three blobs.
+          // Null exactly on a line said in one of this recipe's own words.
+          // Never defaulted: `batch` would turn three blobs into three batches.
           unit: unitById(r['unit'] as String? ?? ''),
-          // The word while this recipe still has it; null the moment it is
-          // retired, which is exactly when the row must print the refusal
-          // instead of a number.
+          // The word while this recipe still has it; null once retired.
           measureLabel: switch (r['recipe_measure_id'] as String?) {
             final id? => recipeMeasureById(id, measures)?.label,
             _ => null,
@@ -586,10 +541,8 @@ class SqliteRecipeRepository implements RecipeRepository {
     );
   }
 
-  /// Reads the `steps` jsonb, which holds one of two shapes and never both at
-  /// once: an array of plain-text strings (the editor) or an array of tokenized
-  /// step objects (import, step 8). A string element ⇒ plain text; an object
-  /// with `tokens` ⇒ tokenized.
+  /// Reads the `steps` jsonb: an array of plain-text strings, or an array of
+  /// tokenized step objects (objects with `tokens`), never both.
   (List<String>, List<MethodStep>?) _parseSteps(String? raw) {
     final decoded = jsonDecode(raw ?? '[]');
     if (decoded is! List || decoded.isEmpty) return (const [], null);
@@ -603,12 +556,9 @@ class SqliteRecipeRepository implements RecipeRepository {
     );
   }
 
-  /// What the `steps` jsonb is written as. The column holds ONE of the two
-  /// shapes [_parseSteps] reads, and a recipe carries whichever
-  /// one it was loaded with: an imported recipe's [Recipe.methodSteps] is the
-  /// tokenized shape and its plain [Recipe.steps] is empty, so serializing the
-  /// plain list unconditionally would erase the imported method on the first
-  /// save. The tokenized shape therefore wins whenever it is present.
+  /// What the `steps` jsonb is written as. The tokenized shape wins whenever
+  /// present: an imported recipe's plain [Recipe.steps] is empty, so writing it
+  /// would erase the method.
   Object _stepsJson(Recipe recipe) {
     final tokenized = recipe.methodSteps;
     if (tokenized == null) return recipe.steps;
@@ -617,12 +567,9 @@ class SqliteRecipeRepository implements RecipeRepository {
 
   @override
   Future<void> saveRecipe(Recipe recipe) async {
-    // Refused BEFORE anything is written, because of what the server does
-    // with it: `num_nonnulls(unit, recipe_measure_id) = 1` rejects the upload,
-    // and a rejected upload makes the PowerSync connector drop the WHOLE crud
-    // transaction — so one undenominated line would take every queued write
-    // beside it, on this device and in silence. A throw here costs this save;
-    // a refusal up there costs the queue.
+    // Refused before anything is written: the server rejects a line that fails
+    // `num_nonnulls(unit, recipe_measure_id) = 1`, and a rejected upload makes
+    // the connector drop the whole crud transaction.
     final columnsByLine = <String, _LineColumns>{};
     for (final group in recipe.groups) {
       for (final item in group.items) {
@@ -633,8 +580,7 @@ class SqliteRecipeRepository implements RecipeRepository {
             name: item.ingredientName,
           );
         }
-        // The other half of the same rule: a word IS the denomination, so it
-        // says something only beside a count, and the server's
+        // A word needs a count beside it; the server's
         // `line_item_recipe_measure_needs_amount` rejects a row without one.
         if (columns.recipeMeasureId != null && item.quantity == null) {
           throw AmountlessLineError(lineId: item.id, name: item.ingredientName);
@@ -646,9 +592,9 @@ class SqliteRecipeRepository implements RecipeRepository {
     final steps = jsonEncode(_stepsJson(recipe));
     final freezable = recipe.freezable ? 1 : 0;
     await _db.writeTransaction((tx) async {
-      // PowerSync's local tables are SQLite VIEWS with INSTEAD OF triggers,
-      // which do NOT support `INSERT ... ON CONFLICT` (UPSERT). Branch on
-      // existence and issue a plain INSERT or UPDATE instead.
+      // PowerSync's local tables are views with INSTEAD OF triggers, which
+      // reject `INSERT ... ON CONFLICT`. Branch on existence and issue a plain
+      // INSERT or UPDATE.
       final exists = await tx.getOptional('SELECT 1 FROM recipe WHERE id = ?', [
         recipe.id,
       ]);
@@ -708,16 +654,12 @@ class SqliteRecipeRepository implements RecipeRepository {
         );
       }
 
-      // The recipe's own words, diffed like every other child — and written
-      // BEFORE the lines, so a word and a line saying it land in that order in
-      // one crud transaction, which is the order the server's own guard
-      // insists on (a line may only point at a measure that already exists and
-      // is live).
+      // The recipe's measures, diffed like every other child and written before
+      // the lines: the server requires a line's measure to already exist and be
+      // live.
       //
-      // This is the DEFERRED door: the recipe editor's MEASURES list rides the
-      // form's Save, so a word typed there lands with the recipe (ADR-0011).
-      // The component dock's ＋ writes on tap instead — that door is
-      // [RecipeMeasureRepository], and neither knows about the other.
+      // This door rides the form's Save (ADR-0011). The component dock's ＋
+      // writes on tap through [RecipeMeasureRepository].
       await writeRecipeMeasures(
         tx,
         recipeId: recipe.id,
@@ -726,12 +668,10 @@ class SqliteRecipeRepository implements RecipeRepository {
         now: now,
       );
 
-      // Diff the children against the stored tree instead of delete +
-      // re-insert: PowerSync queues ops literally (a DELETE then a PUT of the
-      // same id, no consolidation), and the connector maps DELETE to a
-      // server-side tombstone — so replacing kept ids would soft-delete them
-      // on the server and every other device. Kept ids become UPDATEs, new
-      // ids INSERTs, and dropped ids soft-deletes.
+      // Diff the children rather than delete + re-insert: PowerSync queues ops
+      // literally and the connector maps DELETE to a server tombstone, so
+      // replacing kept ids would soft-delete them everywhere. Kept ids become
+      // UPDATEs, new ids INSERTs, dropped ids soft-deletes.
       final oldGroupRows = await tx.getAll(
         'SELECT id, deleted_at FROM ingredient_group WHERE recipe_id = ?',
         [recipe.id],
@@ -808,9 +748,7 @@ class SqliteRecipeRepository implements RecipeRepository {
                 columns.measureId,
                 columns.recipeMeasureId,
                 item.note,
-                // Written on every kept line, so a flag flipped in the editor
-                // is a change like any other field — a component line carries
-                // it exactly as an ingredient line does.
+                // Written on every kept line, ingredient and component alike.
                 if (item.optional) 1 else 0,
                 li,
                 now,
@@ -888,38 +826,23 @@ List<YieldDenomination> _yieldsOf(Row r) => yieldDenominations(
 /// yet learned the column) reads as false — the column's own default.
 bool _flag(Object? v) => v == 1 || v == true;
 
-/// The catalog unit a line row is denominated in — **null exactly when the row
-/// names one of the target's own words** (`recipe_measure_id`), which is the
-/// half of the stored XOR a reader has to honour.
+/// The catalog unit a line row is denominated in, or null when the row names a
+/// recipe measure (`recipe_measure_id`).
 ///
-/// The word is asked first, so a row carrying both columns (foreign data, or a
-/// writer that has not learned the XOR) reads as the word rather than as the
-/// unit: `3 blob` must never be re-read as `3 piece` against a target that
-/// makes 8 piece. A wordless row keeps the old `pieces` fallback, so an
-/// unknown persisted unit id still never throws its way out of a mapper — and
-/// so the pair is total, which is what [LineItem]'s own assert insists on.
-///
-/// The row must carry `recipe_measure_id` and `unit`; every line SELECT in
-/// this file asks for both.
+/// The word is asked first, so a row carrying both columns reads as the word. A
+/// wordless row with an unknown unit id falls back to `pieces` rather than
+/// throwing. The row must carry both `recipe_measure_id` and `unit`.
 Unit? _lineUnit(Row r) => r['recipe_measure_id'] != null
     ? null
     : unitById(r['unit'] as String? ?? '') ?? pieces;
 
-/// What one line's identity and denomination columns are actually written as.
+/// What one line's identity and denomination columns are written as, resolved
+/// in one place against the three stored XORs.
 ///
-/// Three stored XORs meet on this row and none of them is the caller's to get
-/// wrong, so they are resolved in ONE place that the refusal and both
-/// statements read: a component line stores its target and no ingredient and
-/// no *ingredient* measure (`line_item_identity_xor`,
-/// `line_item_component_has_no_measure`), and a line said in one of the
-/// target's own words stores that word and **no unit**
-/// (`line_item_unit_xor_recipe_measure`) — the word is the denomination, and
-/// `batch` beside it would be the right dimension carrying the wrong number.
-///
-/// The word is dropped from a line that is not a component at all, because the
-/// server drops it too (`line_item_recipe_measure_is_a_component`); such a line
-/// then denominates in nothing, which [UndenominatedLineError] refuses rather
-/// than sending up for the server to reject the whole transaction over.
+/// A component line stores its target and no ingredient or ingredient measure;
+/// a line said in one of the target's words stores the word and no unit. The
+/// word is dropped from a non-component line, as the server does; a line left
+/// with no denomination is refused by [UndenominatedLineError].
 typedef _LineColumns = ({
   String? ingredientId,
   String? subRecipeId,
@@ -941,14 +864,11 @@ _LineColumns _lineColumnsOf(LineItem item) {
 }
 
 /// Every live recipe as a macro-walk node ([SubRecipeNode]) plus the vocab
-/// nutrition its lines need (step 8.6 / D8).
+/// nutrition its lines need.
 ///
-/// Read whole: the walk can descend through a component of a component, and a
-/// household's recipes fit comfortably in one pass — one query beats one per
-/// edge. The recipe page reads it only when it actually has a component line;
-/// the WEEK reads it whole, because a week's macro lens must re-sum every
-/// planned recipe over that week's own effective lines rather than borrow the
-/// Library's figure.
+/// Read whole, since the walk can descend through a component of a component.
+/// The recipe page reads it only when it has a component line; the week always
+/// does, to re-sum each planned recipe over its effective lines.
 Future<(Map<String, SubRecipeNode>, Map<String, IngredientNutrition>)>
 loadRecipeMacroNodes(SqliteConnection db) async {
   final recipeRows = await db.getAll(
@@ -1030,9 +950,7 @@ loadRecipeMacroNodes(SqliteConnection db) async {
           servingsBase: (r['servings_base'] as num).toDouble(),
           lines: linesByRecipe[r['id']] ?? const <LineItem>[],
           yields: _yieldsOf(r),
-          // The node's own words: a PARENT line saying one of them resolves
-          // through this list, and a word it has not got is the named gap the
-          // macro and cost walks both print (never a count of the yield).
+          // The node's own measures, which a parent's line resolves through.
           measures: measuresByRecipe[r['id']] ?? const <RecipeMeasure>[],
         ),
     },
@@ -1040,14 +958,12 @@ loadRecipeMacroNodes(SqliteConnection db) async {
   );
 }
 
-/// The cost walk's ingredient lookup, built from the two maps the loads
-/// already have: the vocab's dimension facts, and the latest price per row.
+/// The cost walk's ingredient lookup, from the vocab's dimension facts and the
+/// latest price per row.
 ///
-/// An ingredient the vocab does not know resolves to null — the line is then
-/// [CostLineReason.noPathToBasis], because an unknown row states no basis to
-/// convert into. A known row with no price resolves WITH a null price, which
-/// is the different and more useful answer: [CostLineReason.noPrice], whose
-/// fix is the price sheet.
+/// An unknown ingredient resolves to null ([CostLineReason.noPathToBasis]); a
+/// known row with no price resolves with a null price
+/// ([CostLineReason.noPrice]).
 IngredientPricing? Function(String) pricingResolver(
   Map<String, IngredientNutrition> nutrition,
   Map<String, PriceObservation> prices,

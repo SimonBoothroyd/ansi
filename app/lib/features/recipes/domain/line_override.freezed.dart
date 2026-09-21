@@ -14,24 +14,18 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$LineOverride {
 
- LineOverrideAction get action;/// The row's id. Empty on an override [diffLineOverrides] has just
-/// computed for a RECIPE line: which row it lands on is the repository's
-/// business, since a line may already have one standing. An `add` carries
-/// its own id from the moment it is drafted — the drafted line and the row
-/// that stores it are the same thing.
+ LineOverrideAction get action;/// The row's id. Empty on an override [diffLineOverrides] computed for a
+/// recipe line; the repository decides which row it lands on. An `add`
+/// carries its id from the moment it is drafted.
  String get id;/// The recipe line this is about; null exactly on [LineOverrideAction.add]
 /// (the server's `week_recipe_line_override_action_shape`).
- String? get recipeLineItemId; String? get ingredientId;/// Denormalised for display, exactly as `plan_entry.recipe_title` is: the
-/// week's lines are read without a join back to the vocabulary.
- String get ingredientName;/// Ships as a column only in v1: the week rules on WHICH lines it cooks,
-/// not on what they point at, so a sub-recipe swap for one week has no
-/// door. A replace on a component line carries the line's own target back
-/// unchanged.
- String? get subRecipeId; double? get quantity; Unit? get unit; String? get measureId; Measure? get measure;/// The target recipe's own word a component line is cooked in this week
-/// (`week_recipe_line_override.recipe_measure_id`). Absolute like every
-/// other value a `replace` carries: the week says `3 blob`, and the
-/// recipe re-stating `blob` from 20 to 24 moves this week's share with
-/// it, because the pointer is at the word rather than at a number.
+ String? get recipeLineItemId; String? get ingredientId;/// Denormalised for display, so the week's lines need no join to the
+/// vocabulary.
+ String get ingredientName;/// Carried through unchanged: a week cannot swap a sub-recipe, so a replace
+/// on a component line keeps the line's own target.
+ String? get subRecipeId; double? get quantity; Unit? get unit; String? get measureId; Measure? get measure;/// The target recipe's measure a component line is cooked in this week. A
+/// pointer at the word, so re-weighing the word moves this week's share
+/// with it.
  String? get recipeMeasureId; String? get note; int? get sortOrder;
 /// Create a copy of LineOverride
 /// with the given fields replaced by the non-null parameter values.
@@ -240,33 +234,27 @@ class _LineOverride extends LineOverride {
   
 
 @override final  LineOverrideAction action;
-/// The row's id. Empty on an override [diffLineOverrides] has just
-/// computed for a RECIPE line: which row it lands on is the repository's
-/// business, since a line may already have one standing. An `add` carries
-/// its own id from the moment it is drafted — the drafted line and the row
-/// that stores it are the same thing.
+/// The row's id. Empty on an override [diffLineOverrides] computed for a
+/// recipe line; the repository decides which row it lands on. An `add`
+/// carries its id from the moment it is drafted.
 @override@JsonKey() final  String id;
 /// The recipe line this is about; null exactly on [LineOverrideAction.add]
 /// (the server's `week_recipe_line_override_action_shape`).
 @override final  String? recipeLineItemId;
 @override final  String? ingredientId;
-/// Denormalised for display, exactly as `plan_entry.recipe_title` is: the
-/// week's lines are read without a join back to the vocabulary.
+/// Denormalised for display, so the week's lines need no join to the
+/// vocabulary.
 @override@JsonKey() final  String ingredientName;
-/// Ships as a column only in v1: the week rules on WHICH lines it cooks,
-/// not on what they point at, so a sub-recipe swap for one week has no
-/// door. A replace on a component line carries the line's own target back
-/// unchanged.
+/// Carried through unchanged: a week cannot swap a sub-recipe, so a replace
+/// on a component line keeps the line's own target.
 @override final  String? subRecipeId;
 @override final  double? quantity;
 @override final  Unit? unit;
 @override final  String? measureId;
 @override final  Measure? measure;
-/// The target recipe's own word a component line is cooked in this week
-/// (`week_recipe_line_override.recipe_measure_id`). Absolute like every
-/// other value a `replace` carries: the week says `3 blob`, and the
-/// recipe re-stating `blob` from 20 to 24 moves this week's share with
-/// it, because the pointer is at the word rather than at a number.
+/// The target recipe's measure a component line is cooked in this week. A
+/// pointer at the word, so re-weighing the word moves this week's share
+/// with it.
 @override final  String? recipeMeasureId;
 @override final  String? note;
 @override final  int? sortOrder;

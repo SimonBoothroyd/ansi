@@ -26,13 +26,8 @@ RecipeMeasureRepository recipeMeasureRepository(Ref ref) =>
       householdId: ref.watch(currentHouseholdIdProvider),
     );
 
-/// The live words of one recipe, `sort_order` first — what a component's chip
-/// row offers ahead of `batch` and what the recipe editor's MEASURES list
-/// draws.
-///
-/// Watched rather than read once, for the reason an ingredient's measures are:
-/// a word coined at the other door — or on the other phone — reaches this chip
-/// row without anybody invalidating anything.
+/// The live measures of one recipe, `sort_order` first. Watched, so a word
+/// coined at the other door or on another phone reaches the chip row.
 @riverpod
 Stream<List<RecipeMeasure>> recipeMeasures(Ref ref, String recipeId) =>
     ref.watch(recipeMeasureRepositoryProvider).watchRecipeMeasures(recipeId);

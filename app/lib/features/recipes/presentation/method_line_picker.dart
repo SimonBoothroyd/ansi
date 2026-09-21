@@ -1,17 +1,7 @@
-/// The chip's line picker (0022 D2, design board frame b) — *"a chip can only
-/// point at a line this recipe already has."*
-///
-/// It is the shipped [PickerShell], but the corpus is **this recipe's own
-/// lines**, not the household vocabulary: the common case is referring to
-/// something already listed, and eight thousand vocabulary rows would bury it.
-/// Search is [prematchLines] — a fixed word-prefix over a few dozen rows,
-/// deterministic and on-device, which is not matching in any sense ADR-0004
-/// cares about.
-///
-/// The footer is the point. **Writing the method and building the ingredient
-/// list are one act**: you reach for a thing you have not listed yet, and it
-/// gets listed — through the shipped `showLineTargetPicker` → quantity-sheet
-/// chain, with the chip landing in the same breath. Nothing new is matched.
+/// The chip's line picker: [PickerShell] over this recipe's own lines, not the
+/// vocabulary. Search is [prematchLines], a fixed word-prefix over a few dozen
+/// rows (not matching in ADR-0004's sense). The footer adds a new line through
+/// `showLineTargetPicker` and the quantity sheet, and the chip points at it.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -45,12 +35,9 @@ final class AddRecipeLine extends MethodLinePick {
   const AddRecipeLine();
 }
 
-/// Opens the picker over [lines], seeded with [query] (the selected words, so
-/// a single match arrives already found).
-/// [canAddLine] false disables the footer's add-a-line door and says why
-/// (seam D4's scope cut): the import review offers THIS import's lines only,
-/// because a brand-new line would need a flat index `buildCommit` does not
-/// walk. Disabled rather than hidden — a door that vanishes teaches nothing.
+/// Opens the picker over [lines], seeded with [query] (the selected words).
+/// [canAddLine] false disables the footer's add-a-line door and shows why; the
+/// import review offers only its own lines.
 Future<MethodLinePick?> showMethodLinePicker(
   BuildContext context, {
   required List<LineItem> lines,
@@ -91,8 +78,7 @@ class _MethodLinePickerSheet extends HookWidget {
   Widget build(BuildContext context) {
     final query = useState(initialQuery);
     final q = query.value.trim();
-    // An empty query offers the whole (short) list rather than nothing: the
-    // recipe's own lines are a few dozen rows, not a catalogue.
+    // An empty query offers the whole short list.
     final matched = q.isEmpty ? lines : prematchLines(lines, q);
     final shown = matched.isEmpty ? lines : matched;
 
@@ -101,9 +87,7 @@ class _MethodLinePickerSheet extends HookWidget {
       subtitle: 'A chip can only point at a line this recipe already has.',
       searchHint: 'Search this recipe’s lines',
       onQueryChanged: (v) => query.value = v,
-      // Exactly one match is the two-tap case: the selection already found
-      // the line, so the sheet offers it by name instead of making the user
-      // hunt for the row it just highlighted.
+      // A single match is offered by name above the list.
       aboveList: matched.length == 1 && q.isNotEmpty
           ? Padding(
               padding: const EdgeInsets.only(top: 10),
@@ -189,8 +173,7 @@ class _MethodLinePickerSheet extends HookWidget {
   }
 }
 
-/// The amount a row states — the same shape the editor's own quantity pill
-/// wears, so the two lists read as one recipe.
+/// The amount a row states, in the shape of the editor's quantity pill.
 String _amountText(LineItem line) {
   final word = recipeMeasureOfLine(line);
   if (word != null) return measuredAmountText(line.quantity, word.label);
@@ -206,8 +189,7 @@ String _amountText(LineItem line) {
 }
 
 /// One line of the recipe: its identity (a recipe chip for a component, plain
-/// text for an ingredient — the same grammar the editor's own rows use) and
-/// the amount it stands for.
+/// text for an ingredient) and its amount.
 class _LineRow extends StatelessWidget {
   const _LineRow({
     required this.line,

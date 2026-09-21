@@ -1,28 +1,14 @@
-/// The editor's shape for a tokenized method — PURE DART (invariant 2).
+/// The editor's shape for a tokenized method. Pure Dart.
 ///
-/// A [MethodStep] is a token stream; the editor needs a **sentence**. The two
-/// are the same thing seen from either end, because a [MethodRef]'s `label`
-/// already IS the word standing at that position: the stream
-/// `text("Halve the ") · ref(label:"fennel bulb") · text(" lengthwise…")`
-/// flattens to exactly the sentence a human would type, with one range marked.
+/// A [MethodStep] is a token stream; the editor's document is the sentence it
+/// flattens to plus a side table of `(start, end, refs | timer)` spans
+/// ([MethodDraftStep]), so the text field behaves normally. [toDraft] and
+/// [toTokens] are inverses with one exception: a blank-labelled ref
+/// materialises as its line's name (or, for a collective, the run of its
+/// constituents) and re-emits that label.
 ///
-/// So the editor's document is a plain [String] plus a side table of
-/// `(start, end, refs | timer)` — [MethodDraftStep] — and caret, selection,
-/// IME, autocorrect and backspace all behave normally because nothing exotic
-/// lives in the text. [toDraft] and [toTokens] are inverses (see the ONE
-/// deliberate exception below), pinned by a byte-equality round-trip over the
-/// sausage-sliders gold.
-///
-/// **The one lossy conversion.** A ref whose `label` is blank has no characters
-/// of its own. A single-ref one materialises as its line's name; a
-/// blank-labelled COLLECTIVE (the chip that IS its constituents) materialises
-/// as the run the fold already renders, "kale, avocado, garlic". Both then
-/// round-trip stably, but the re-emitted token carries the materialised label
-/// rather than the blank one. Named and pinned by a test.
-///
-/// Nothing here matches text against anything (ADR-0004): a chip arrives from
-/// the extractor or from a deliberate pick, and the only string this file
-/// parses is one the user explicitly selected ([parseSelectedDuration]).
+/// Nothing here matches prose against anything (ADR-0004); the only string
+/// parsed is one the user selected ([parseSelectedDuration]).
 library;
 
 import 'package:meta/meta.dart';
@@ -144,12 +130,9 @@ bool _sameRefs(List<String> a, List<String> b) {
   return true;
 }
 
-/// One step as the editor holds it: the sentence a human sees, plus the ranges
-/// that are chips (sorted, non-overlapping, inside [text]).
-///
-/// [id] is the editor's own handle on the step — minted on load, carried
-/// through reorder, and what every card widget is keyed by. It is **not**
-/// persisted; see [stableStepKey] for why.
+/// One step as the editor holds it: the sentence plus the chip ranges (sorted,
+/// non-overlapping, inside [text]). [id] is an editor-session handle, never
+/// persisted; see [stableStepKey].
 @immutable
 class MethodDraftStep {
   const MethodDraftStep({
@@ -188,11 +171,8 @@ class MethodDraftStep {
 
 // --- tokens ⇄ (text, spans) --------------------------------------------------
 
-/// Flattens [step] into the sentence it reads as, with one span per chip.
-///
-/// [lineById] is consulted **only** to materialise a blank label (the lossy
-/// conversion named in the library doc); a labelled chip never looks a line up,
-/// so opening the editor re-matches, re-fetches and re-tokenizes nothing.
+/// Flattens [step] into its sentence, with one span per chip. [lineById] is
+/// consulted only to materialise a blank label.
 MethodDraftStep toDraft(
   MethodStep step, {
   required String id,
@@ -225,9 +205,7 @@ MethodDraftStep toDraft(
         :final portion,
       ):
         final word = label.isEmpty ? _materialise(refs, lineById) : label;
-        // A blank label whose lines all resolve to nothing has no characters
-        // to occupy and no name to show; it is dropped rather than given an
-        // invented word.
+        // A blank label whose lines resolve to nothing is dropped.
         if (word.isEmpty) continue;
         buffer.write(word);
         spans.add(
@@ -288,11 +266,8 @@ MethodStep toTokens(MethodDraftStep draft) {
   return MethodStep(tokens: tokens);
 }
 
-/// The index of the span [offset] falls **strictly inside**, or null.
-///
-/// Strictly, so that a tap at either edge of a chip places an ordinary caret
-/// beside it rather than opening a sheet — the boundaries are where a user
-/// goes to type around a chip.
+/// The index of the span [offset] falls strictly inside, or null. Strictly, so
+/// a tap at a chip's edge places an ordinary caret beside it.
 int? spanAt(MethodDraftStep draft, int offset) {
   for (var i = 0; i < draft.spans.length; i++) {
     final span = draft.spans[i];
@@ -301,15 +276,11 @@ int? spanAt(MethodDraftStep draft, int offset) {
   return null;
 }
 
-/// The index of the span that **ends** at [offset], or null.
+/// The index of the span that ends at [offset], or null.
 ///
-/// The companion to [spanAt] for the one caret that is ambiguous. iOS does not
-/// leave the caret where the finger landed: a tap snaps it to the edge of the
-/// word it fell in — the word's END, unless the tap was on its first
-/// character. A tap on a short chip therefore arrives as a caret at
-/// `span.end`, which [spanAt] rightly calls "beside the chip". Only the
-/// caret's affinity tells the two apart, so only a caller that has it (the
-/// step card's tap) should ask this.
+/// iOS snaps a tap's caret to the end of the word it fell in, so a tap on a
+/// short chip arrives at `span.end`. Only the caret's affinity tells that apart
+/// from "beside the chip", so only a caller that has it should ask this.
 int? spanEndingAt(MethodDraftStep draft, int offset) {
   for (var i = 0; i < draft.spans.length; i++) {
     if (draft.spans[i].end == offset) return i;
@@ -319,18 +290,11 @@ int? spanEndingAt(MethodDraftStep draft, int offset) {
 
 // --- editing rules -----------------------------------------------------------
 
-/// Re-anchors [draft]'s spans after the text became [newText].
+/// Re-anchors [draft]'s spans after the text became [newText], diffing by
+/// common prefix and suffix.
 ///
-/// The diff is the cheap one — the common prefix and common suffix of the two
-/// strings — which is exact for a keystroke and good enough for a paste, and
-/// is a pure function of two strings.
-///
-/// - an edit entirely **before** a span shifts it;
-/// - an edit entirely **after** it leaves it alone;
-/// - an edit that touches a span's **interior**, or deletes across its
-///   boundary, **demotes** it: the span goes, the text stays. That is the only
-///   honest reading of "I retyped this word", and it means no state exists
-///   where a chip covers characters the user did not mean.
+/// An edit before a span shifts it; an edit after leaves it; an edit that
+/// touches its interior or crosses its boundary demotes it to plain text.
 MethodDraftStep applyEdit(MethodDraftStep draft, String newText) {
   final old = draft.text;
   if (old == newText) return draft;
@@ -415,9 +379,9 @@ MethodDraftStep removeSpan(MethodDraftStep draft, int index) {
   );
 }
 
-/// Replaces the span at [index] with [span], re-anchored over [word] written
-/// in its place. The one door for renaming a chip's word, re-pointing its
-/// refs, flipping its amount rule, and re-timing a timer.
+/// Replaces the span at [index] with [span], re-anchored over [word] written in
+/// its place. The one door for renaming, re-pointing, re-ruling and re-timing a
+/// chip.
 MethodDraftStep respan(
   MethodDraftStep draft,
   int index, {
@@ -447,16 +411,12 @@ MethodDraftStep respan(
 String spanWord(MethodDraftStep draft, int index) =>
     draft.text.substring(draft.spans[index].start, draft.spans[index].end);
 
-/// The D9 rule for a chip the user is **creating**: the first time a step
-/// calls for something the chip shows the amount; after that it just names it.
+/// The amount rule for a chip the user is creating: the first mention in method
+/// order shows the amount, later ones only name it.
 ///
-/// "Earlier" is method order — every span in every preceding step, plus the
-/// spans of [stepId] that end at or before [offset].
-///
-/// It is **never** applied to an imported chip. §4.6 records the positional
-/// heuristic as brittle for imports (recipes reorder, and a first mention is
-/// often the incidental one), so the extractor's own classification stands and
-/// the chip sheet's switch is the only thing that overrides it.
+/// "Earlier" is every span in preceding steps plus the spans of [stepId] ending
+/// at or before [offset]. Never applied to an imported chip, whose extractor
+/// classification stands.
 ChipAmountRule amountRuleFor(
   List<MethodDraftStep> steps, {
   required String lineId,
@@ -476,39 +436,18 @@ ChipAmountRule amountRuleFor(
   return ChipAmountRule.showAmount;
 }
 
-/// [name] written the way a chip at this position should read it.
+/// [name] cased the way a chip at this position should read.
 ///
-/// A chip's word is data about the pointee, so it is rewritten when the line's
-/// identity changes — but the *sentence* around it is authored, and an
-/// ingredient stored as `Onion` dropped into "add the …" reads as a typo. The
-/// shape of the word that stood there is the best evidence of what the
-/// sentence wanted, so [previousWord]'s case decides:
+/// [previousWord]'s case decides: lowercase lowers every Title-Cased word of
+/// [name] (`Olive Oil` reads `olive oil`); a leading capital capitalises only
+/// the first letter; ALL CAPS of more than one letter uppercases the whole; no
+/// letters leaves [name] as stored. A word with a capital after its first
+/// letter stands as written (`BBQ Sauce` reads `BBQ sauce`), and hyphenated
+/// parts are judged separately.
 ///
-/// - it started lowercase → every Title-Cased word of [name] is lowercased,
-///   so the stored `Olive Oil` reads `olive oil` and never `olive Oil`;
-/// - it started with a capital → [name]'s first letter is capitalised and no
-///   other word is touched, because the rest of a stored name already is;
-/// - it was ALL CAPS and more than one letter → [name] is uppercased whole;
-/// - it held no letter at all → [name] is left exactly as stored.
-///
-/// A word is only lowercased when its shape is Title Case — an initial and
-/// nothing but lowercase after it. A capital anywhere later is a shape
-/// somebody meant, and the word stands whole: `BBQ Sauce` reads `BBQ sauce`,
-/// and `pH Buffer` reads `pH buffer`. A plain leading capital is **not** that
-/// evidence, because the ingredient vocabulary stores every name Title Case —
-/// `Aged Parmesan` is a catalogue entry, not a proper noun, and reads
-/// `aged parmesan` mid-sentence. A hyphenated word counts one part at a time,
-/// the split `cleanName` makes, so `Stir-Fry Sauce` reads `stir-fry sauce`.
-///
-/// A chip being **made** has no word of its own yet, so with no [previousWord]
-/// the position decides: [textBefore] is the step's prose up to the insertion
-/// point, and a chip opening the step is capitalised while one anywhere else
-/// is lowercased. It is the step, not the sentence — prose after a full stop
-/// mid-step still counts as "anywhere else", which is the cheap reading and
-/// the one a user can predict.
-///
-/// Case is all this changes: pluralising a swapped-in name is a different
-/// question and is not answered here.
+/// With no [previousWord], a chip opening the step ([textBefore] empty) is
+/// capitalised and any other is lowercased. Only case changes; nothing is
+/// pluralised.
 String chipWord(String name, {String? previousWord, String textBefore = ''}) {
   if (name.isEmpty) return name;
   final letters = [
@@ -532,13 +471,9 @@ String _lowerName(String name) => name
     .map((word) => word.split('-').map(_lowerTitleCased).join('-'))
     .join(' ');
 
-/// [s] lowercased on its first *letter*, but only when every later letter is
-/// already lowercase; otherwise [s] exactly as it stands.
-///
-/// A letter is anything whose upper and lower cases differ — the same test
-/// `cleanName` makes, which keeps digits, glyphs and CJK out of it without a
-/// table. A letter whose lowercase is a different length is left as typed:
-/// shrinking a word is not recasing it.
+/// [s] with its first letter lowercased, only when every later letter is
+/// already lowercase. A letter is any character whose cases differ; one whose
+/// lowercase has a different length is left as typed.
 String _lowerTitleCased(String s) {
   final runes = s.runes.toList();
   var initial = -1;
@@ -570,18 +505,11 @@ typedef ChipRelabel = ({String stepId, int spanIndex, String oldWord});
 /// the name the chips carried, the name they carry now, and which steps moved.
 typedef Substitution = ({String oldName, String newName, Set<String> stepIds});
 
-/// Every chip pointing at [lineId] takes [label] as its word, in the case the
-/// word it replaces was written in ([chipWord]) — the stored `Onion` reads as
-/// `onion` inside "add the …" and as `Onion` where a sentence starts.
+/// Every chip pointing at [lineId] takes [label] as its word, cased by
+/// [chipWord], so a chip never names something the recipe does not contain.
 ///
-/// The invariant it upholds: **a chip never names something the recipe does
-/// not contain.** A chip is a pointer with a display label; prose is authored,
-/// but a *label* is data about the pointee, so when the pointee's identity
-/// changes the printed word is retired — visibly, and revertibly.
-///
-/// It rewrites nothing else: the text around each chip is byte-identical, and
-/// the returned [ChipRelabel]s carry each changed chip's previous word, so one
-/// tap can put it back.
+/// The surrounding text is unchanged, and each returned [ChipRelabel] carries
+/// the previous word so it can be put back.
 ({List<MethodDraftStep> steps, List<ChipRelabel> relabels}) relabelRefs(
   List<MethodDraftStep> steps, {
   required String lineId,
@@ -613,13 +541,9 @@ List<int> stepsMentioning(List<MethodDraftStep> steps, String lineId) => [
     if (step.spans.any((s) => s is RefSpan && s.refs.contains(lineId))) i,
 ];
 
-/// Refs to lines the recipe no longer has become plain words.
-///
-/// Run on every save, so the property **a saved method never refs a line the
-/// recipe does not have** holds however the editor got there. A collective
-/// that loses one member keeps the rest; one that loses all of them keeps its
-/// word as text. Adjacent text tokens are merged, which is what a chip
-/// demoting between two prose runs leaves behind.
+/// Refs to lines the recipe no longer has become plain words. Run on every
+/// save. A collective keeps its surviving members, or its word as text when
+/// none survive; adjacent text tokens are merged.
 List<MethodStep> pruneDanglingRefs(
   List<MethodStep> steps,
   Set<String> keptLineIds,
@@ -662,8 +586,8 @@ List<MethodToken> _mergeText(List<MethodToken> tokens) {
   return out;
 }
 
-/// D5: each step's own prose, byte-identical to what its card was showing —
-/// converting to plain text changes no sentence, only the links.
+/// Each step's own prose, byte-identical to what its card shows: converting to
+/// plain text changes no sentence, only the links.
 List<String> flattenMethod(
   List<MethodStep> steps, {
   Map<String, LineItem> lineById = const {},
@@ -672,12 +596,12 @@ List<String> flattenMethod(
 ];
 
 /// One text token per line — how a legacy plain-text method (or a method typed
-/// from scratch) enters the tokenized world (D8: one method shape).
+/// from scratch) becomes tokens; there is one method shape.
 List<MethodStep> methodFromPlainSteps(List<String> steps) => [
   for (final s in steps) MethodStep(tokens: [MethodToken.text(s: s)]),
 ];
 
-// --- step list operations (D7) -----------------------------------------------
+// --- step list operations ----------------------------------------------------
 
 List<MethodDraftStep> addStep(
   List<MethodDraftStep> steps, {
@@ -703,14 +627,11 @@ List<MethodDraftStep> moveStep(List<MethodDraftStep> steps, String id, int by) {
 
 // --- the two pure lookups the sheets need ------------------------------------
 
-/// The seconds a **deliberately selected** run of text says, or null.
+/// The seconds a deliberately selected run of text says, or null.
 ///
-/// This is not render-time matching (ADR-0004). Nothing scans prose on its
-/// own: this runs once, at edit time, on a string the user pointed at and
-/// asked us to read, and its output is shown in a stepper for confirmation
-/// before a single token is written. A failure returns null and opens the
-/// stepper **empty** rather than guessing — "until golden", "overnight" and
-/// "a while" are times, and none of them is a number.
+/// Runs once at edit time on a user selection (not render-time matching,
+/// ADR-0004), and the result is confirmed in a stepper. An unparseable time
+/// returns null rather than a guess.
 (int low, int high)? parseSelectedDuration(String selection) {
   final s = selection
       .toLowerCase()
@@ -761,20 +682,11 @@ int _seconds(String amount, String unit) {
   return (value * multiplier).round();
 }
 
-/// The lines of THIS recipe a selection already points at — word-prefix over
-/// at most a few dozen rows, so *"olive oil"* selected in a step arrives at
-/// the picker with the olive-oil line already found.
+/// The lines of this recipe a selection already points at: every query token
+/// must word-prefix some word of the line's name, in any order.
 ///
-/// Deterministic and local (ADR-0004): it never leaves the recipe, never
-/// touches the household vocabulary, and never guesses. Every query token must
-/// be the prefix of some word in the line's name — order-free, so "oil olive"
-/// finds it too, and "oli" finds nothing but what starts that way.
-///
-/// It is deliberately NOT the line picker's own matcher: that one is a shared
-/// search rule with its own lane, and this is a fixed word-prefix over ≤30
-/// rows that must not drift when the shared *ranking* changes. It does share
-/// the *tokenizer*, because "jalapeno" and "jalapeño" are one word everywhere
-/// else in the app and there is no reason for them to be two here.
+/// Local to the recipe (ADR-0004). Deliberately not the line picker's matcher,
+/// so it cannot drift with the shared ranking; it shares only the tokenizer.
 List<LineItem> prematchLines(List<LineItem> lines, String query) {
   final tokens = searchTokens(query);
   if (tokens.isEmpty) return const [];
@@ -784,27 +696,19 @@ List<LineItem> prematchLines(List<LineItem> lines, String query) {
   ];
 }
 
-/// Every token word-prefixes some word, in the token's own spelling or its
-/// singular — the shared tokenizer's rule, so an accent typed or not typed
-/// ("jalapeno" for *Jalapeño Peppers*) and a plural ("tomatoes" for *Tomato*)
-/// fold here exactly as they do in every other search box. Only the
-/// *tokenizing* is shared: the ranking above is still this file's own.
+/// Every token word-prefixes some word, in its own spelling or its singular, by
+/// the shared tokenizer's folding (accents, plurals).
 bool _matchesAll(List<String> words, List<String> tokens) => tokens.every(
   (token) => matchTextForms(
     token,
   ).any((form) => words.any((word) => word.startsWith(form))),
 );
 
-/// A key for a step that survives a rebuild, a sync or a resume — what cook
-/// mode needs to keep saying "you are on step 4" (D8).
+/// A key for a step that survives a rebuild, a sync or a reorder: a hash of the
+/// step's prose.
 ///
-/// **It is derived, not stored.** [MethodStep] has no `id` field and does not
-/// get one: the `steps` jsonb is the frozen §4.6 contract, and adding a field
-/// would put a new key into every row the import commit writes. So the key is
-/// a hash of the step's own prose, which is stable across a reorder (the
-/// sentence moves with its step) and across a rebuild.
-///
-/// The corner cut, tracked: two steps with byte-identical prose collide.
+/// Derived because the `steps` jsonb contract has no `id` field. Two steps with
+/// identical prose collide.
 String stableStepKey(MethodStep step) {
   // FNV-1a, 32-bit — a hash, not a digest; no dependency, and stable across
   // platforms because it is defined on code units.

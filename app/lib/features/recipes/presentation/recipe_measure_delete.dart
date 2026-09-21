@@ -1,17 +1,10 @@
-/// The one gate every path that retires a recipe's own word passes through:
-/// **a word lines still say cannot go.**
+/// The gate every path that retires a recipe measure passes through: a word
+/// lines still say cannot go.
 ///
-/// It is `ingredients/presentation/measure_delete.dart` one level up, and it
-/// holds for a sharper reason. Nothing follows a word out because nothing may
-/// (ADR-0018 rule 3): a line saying a retired word keeps its number, resolves
-/// to nothing and joins no total — for good, since the word was the only place
-/// its amount lived. So the retirement is refused rather than cascaded, and the
-/// refusal has a door: "3 lines still say it, in 2 recipes" is something a
-/// person can act on, and "failed" is not.
-///
-/// The repository refuses it too — its own bin and the recipe form's deferred
-/// diff both throw while anything still points at the row — and this is that
-/// same answer in front of the person, before anything is attempted.
+/// A line saying a retired word would stay unresolved for good (ADR-0018 rule
+/// 3), so the retirement is refused, not cascaded, and the refusal names the
+/// lines and offers a door to their recipes. The repository refuses too; this
+/// asks first, in front of the person.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -29,21 +22,17 @@ import '../../../shared/write.dart';
 import '../data/recipe_providers.dart';
 import 'component_format.dart';
 
-/// Whether [measure] may be retired — and, when it may not, the refusal that
-/// says why and the door to the recipes still saying it.
-///
-/// The count is read from the REPOSITORY at the moment of the tap, never off a
-/// list: the rows a form is looking at can be minutes old, and a word the other
-/// phone just used is exactly the case this exists for. A word no Save has
-/// written yet has no referrer, so the same question answers "yes" for a draft
-/// row without a special case.
+/// Whether [measure] may be retired; when not, shows the refusal and the door
+/// to the recipes still saying it. The count is read from the repository at the
+/// tap, since a form's rows can be stale. A draft row no Save has written has
+/// no referrers.
 Future<bool> mayDeleteRecipeMeasure(
   BuildContext context,
   WidgetRef ref,
   RecipeMeasure measure,
 ) async {
-  // Read before the first await: the row that opened this can be unmounted by
-  // the time the dialog answers.
+  // Read before the first await: the row that opened this can unmount before
+  // the dialog answers.
   final repo = ref.read(recipeMeasureRepositoryProvider);
   final host = hostContextOf(context);
   final usage = await repo.countLinesUsing(measure.id);
@@ -95,8 +84,8 @@ class _SaidBy extends StatelessWidget {
   final RecipeMeasure measure;
   final List<({String id, String title})> recipes;
 
-  /// How many weeks say it in their own amount — the footnote below, which is
-  /// printed only when there are any.
+  /// How many weeks say it in their own amount; printed as a footnote when
+  /// non-zero.
   final int weeks;
 
   @override

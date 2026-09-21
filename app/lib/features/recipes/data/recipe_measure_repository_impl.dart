@@ -1,14 +1,8 @@
-/// [RecipeMeasureRepository] over the local PowerSync SQLite, and the one file
-/// that writes `recipe_measure` at all.
+/// [RecipeMeasureRepository] over the local PowerSync SQLite, and the only file
+/// that reads or writes `recipe_measure`.
 ///
-/// Every statement against the table lives here — the batched read every other
-/// loader goes through ([loadRecipeMeasures]), the deferred diff the recipe
-/// form's Save runs ([writeRecipeMeasures]), the direct doors of the interface,
-/// and the reference count that gates a retirement. One file owns the table, so
-/// the two write doors cannot drift apart on the rules or on the SQL.
-///
-/// Local tables are SQLite VIEWS with INSTEAD OF triggers, so every write is a
-/// plain INSERT or UPDATE — never `ON CONFLICT`, which a view rejects outright.
+/// Local tables are SQLite views with INSTEAD OF triggers, so every write is a
+/// plain INSERT or UPDATE, never `ON CONFLICT`.
 library;
 
 import 'package:sqlite_async/sqlite_async.dart';
@@ -24,39 +18,19 @@ import '../domain/recipe_measure_repository.dart';
 
 const _uuid = Uuid();
 
-/// The columns every read of the table asks for, in one place.
-///
-/// The **denomination** — what one of the word comes to, which is an `amount`
-/// and the `unit` it is said in (ADR-0018) — is named here, in [_rowOf] and in
-/// [_insertRow]/[_updateRow], and nowhere else in the app: four sites, so
-/// re-stating what a measure IS is an edit to this file rather than a sweep
-/// through every query, loader and provider that carries one.
+/// The columns every read asks for. A measure's denomination (`amount` +
+/// `unit`, ADR-0018) is named only here, in [_rowOf] and in
+/// [_insertRow]/[_updateRow].
 const _columns =
     'rm.id, rm.recipe_id, rm.label, rm.amount, rm.unit, rm.sort_order, '
     'rm.created_at';
 
-/// Every live recipe's own words, keyed by recipe id — the OFFER first
-/// (duplicates merged, oldest canonical, `sort_order` first), then the
-/// merge-hidden twins behind it.
-///
-/// **A line is resolved by id, so every live row has to be here.** The merge
-/// hides a duplicate word rather than deleting it, and a line already pointing
-/// at the hidden row still means what it said; a list that dropped it would
-/// read that line as "its measure is gone" on every surface. So the hidden rows
-/// ride along at the tail, where [recipeMeasureById] finds them and
-/// [offeredRecipeMeasures] — which every chip row goes through — does not.
-///
-/// **One query for the household**, never one per recipe or per line: a
-/// measured component line is looked up in its TARGET's list, so every loader
-/// that builds a target, a node or a component graph wants the whole map
-/// anyway, and a household's words are a handful of rows. A recipe that coins
-/// none is absent from the map, which every caller reads as the empty list.
-///
-/// A row whose amount is missing or non-positive lands as a measure
-/// [RecipeMeasure.saysAnAmount] refuses — so it names a word and converts
-/// nothing, rather than converting through a number nobody stated
-/// (invariant 3). A row whose `unit` is not a unit this build knows is
-/// **skipped entirely** ([_rowOf]).
+/// Every live recipe's measures by recipe id: the merged offer first, then the
+/// merge-hidden duplicates, which a line may still point at
+/// ([recipeMeasureById] finds them; [offeredRecipeMeasures] does not). One
+/// query for the household. A non-positive amount loads as a measure
+/// [RecipeMeasure.saysAnAmount] refuses; an unknown `unit` is skipped
+/// ([_rowOf]).
 Future<Map<String, List<RecipeMeasure>>> loadRecipeMeasures(
   SqliteConnection db,
 ) async {
@@ -74,8 +48,7 @@ Future<Map<String, List<RecipeMeasure>>> loadRecipeMeasures(
   return {for (final e in byRecipe.entries) e.key: _offeredThenHidden(e.value)};
 }
 
-/// [rows] as the loader hands them on: the merged offer, then every live row
-/// the merge hid, so a lookup by id can still reach one.
+/// [rows] as the merged offer, then every live row the merge hid.
 List<RecipeMeasure> _offeredThenHidden(
   List<StoredMeasure<RecipeMeasure>> rows,
 ) {
@@ -88,38 +61,14 @@ List<RecipeMeasure> _offeredThenHidden(
   ];
 }
 
-/// Makes [recipeId]'s stored words equal [measures] — the DEFERRED door, run
-/// inside `saveRecipe`'s transaction so a word typed in the editor lands with
-/// the recipe (ADR-0011).
+/// Makes [recipeId]'s stored measures equal [measures], inside `saveRecipe`'s
+/// transaction (ADR-0011).
 ///
-/// Diffed rather than replaced, for `saveRecipe`'s own reason: PowerSync queues
-/// ops literally, so a DELETE of a kept id would tombstone it server-side for
-/// every other device — and here it would also strand every line already
-/// saying the word. Kept ids UPDATE (and un-tombstone), new ids INSERT, and
-/// `sort_order` is the list's own order, so dragging the list is a re-stamp
-/// like any other field.
-///
-/// A word the list has DROPPED is soft-deleted — unless something still says
-/// it, which throws [RecipeMeasureInUse] and rolls the whole save back. The
-/// gate is here rather than only at the bin because a retired word leaves its
-/// lines unresolved for good (ADR-0018 rule 3), and neither door may walk
-/// round that.
-///
-/// **The authoring gate runs on what this Save STATES, against the `makes` this
-/// Save leaves behind.** The yields are read back off the recipe row inside the
-/// transaction — the row has already been written by then — so a `makes` edit
-/// and a word edit arriving in one Save are judged against each other, never
-/// against a yield the Save is in the middle of replacing. That is the data
-/// half of [recipeMeasuresOrphanedBy]: the editor warns about the words an edit
-/// orphans, and this is what makes the warning true.
-///
-/// A word the list carries through **unchanged is never re-authored**, which is
-/// ADR-0018 rule 4 in the one place it could be broken. What a batch makes is
-/// the recipe's own fact and the household may restate it; a gate that refused
-/// every later Save of a recipe whose word the new `makes` orphans would trap
-/// the person inside the editor instead of warning them on the way out. So the
-/// orphaned word stays, its lines read as `ComponentFamilyMismatch`, and only a
-/// word being coined or re-stated has to answer for itself.
+/// Diffed, not replaced: PowerSync queues ops literally, so deleting a kept id
+/// would tombstone it everywhere. A dropped word that is still said throws
+/// [RecipeMeasureInUse] and rolls the save back. New and re-stated words are
+/// authored against the yields read back inside the transaction; an unchanged
+/// word is never re-authored (ADR-0018 rules 3–4).
 Future<void> writeRecipeMeasures(
   SqliteWriteContext tx, {
   required String recipeId,
@@ -134,11 +83,8 @@ Future<void> writeRecipeMeasures(
   );
   final storedById = {for (final r in stored) r['id'] as String: r};
   final keptIds = {for (final m in measures) m.id};
-  // The editor's list is the MERGED one, so a merge-hidden twin is absent from
-  // it for a reason that is not "drop this word". Its label is still kept, so
-  // the row is left exactly where it is — otherwise every Save of this recipe
-  // would either tombstone the twin or throw [RecipeMeasureInUse] on the lines
-  // saying it.
+  // The editor's list is the merged one, so a merge-hidden duplicate is absent
+  // without being dropped. Its label is still kept, so its row is left alone.
   final keptLabels = {for (final m in measures) m.label};
 
   for (final r in stored) {
@@ -156,9 +102,7 @@ Future<void> writeRecipeMeasures(
     );
   }
 
-  // Read once, lazily: a Save that states no new word asks the recipe row
-  // nothing, and a recipe with no yield can still carry the words it already
-  // has through a Save that leaves them alone.
+  // Read lazily: a Save that states no new word needs no yields.
   List<YieldDenomination>? yields;
 
   for (final (index, measure) in measures.indexed) {
@@ -190,10 +134,8 @@ Future<void> writeRecipeMeasures(
   }
 }
 
-/// Whether [measure] says something the stored row [was] did not — a new word,
-/// or one whose denomination or label this Save re-states. Position alone is
-/// not a re-statement: dragging the list re-stamps `sort_order` and states
-/// nothing about what a word IS.
+/// Whether [measure] is a new word, or re-states the denomination or label of
+/// the stored row [was]. A `sort_order` change alone is not a re-statement.
 bool _restates(RecipeMeasure measure, Map<String, Object?>? was) {
   if (was == null) return true;
   return measure.label != (was['label'] as String? ?? '') ||
@@ -231,21 +173,15 @@ class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
     final now = DateTime.now().toUtc().toIso8601String();
     late final RecipeMeasure minted;
     await _db.writeTransaction((tx) async {
-      // The recipe's live words, read inside the transaction: the duplicate
-      // rule is about what is there NOW, and the form's copy may be stale.
+      // Read inside the transaction: the form's copy may be stale.
       final live = await _liveMeasuresOf(tx, recipeId);
       final row = await tx.get(
         'SELECT COALESCE(MAX(sort_order), -1) AS m FROM recipe_measure '
         'WHERE recipe_id = ? AND deleted_at IS NULL',
         [recipeId],
       );
-      // Authored by the domain, not by this file: both doors hold one set of
-      // rules, and a word that merely names a catalog unit is refused against
-      // the catalog's own lookup rather than a hand list.
-      //
-      // The YIELDS come off the recipe row, here rather than from the caller:
-      // the gate is "only when we know what the recipe makes", which is a fact
-      // about the stored recipe and not something a form may assert.
+      // The domain authors the word; the yields come off the stored recipe row,
+      // not from the caller.
       minted = _authored(
         authorRecipeMeasure(
           id: id,
@@ -284,9 +220,8 @@ class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
         );
       }
       final recipeId = row['recipe_id'] as String;
-      // `authorRecipeMeasure` never counts a row as its own duplicate (it
-      // compares ids), so re-stating the number without touching the word is
-      // not a collision with itself.
+      // `authorRecipeMeasure` compares ids, so a row is never its own
+      // duplicate.
       final restated = _authored(
         authorRecipeMeasure(
           id: measureId,
@@ -299,8 +234,8 @@ class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
           sortOrder: (row['sort_order'] as int?) ?? 0,
         ),
       );
-      // The id is untouched, which is the point: every line already saying the
-      // word follows the re-statement without being rewritten.
+      // The id is untouched, so every line saying the word follows the
+      // re-statement.
       await _updateRow(tx, restated, now: now);
     });
   }
@@ -328,9 +263,8 @@ class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
         'UPDATE recipe_measure SET deleted_at = ?, updated_at = ? WHERE id = ?',
         [now, now, measureId],
       );
-      // Nothing else follows a word out, because nothing may: a line saying it
-      // keeps its number and reads as unresolved, which is why this delete is
-      // gated rather than cascaded (ADR-0018 rule 3).
+      // Gated, not cascaded: a line saying a retired word would read as
+      // unresolved (ADR-0018 rule 3).
     });
   }
 
@@ -348,14 +282,10 @@ class SqliteRecipeMeasureRepository implements RecipeMeasureRepository {
   }
 }
 
-/// What [recipeId] says a batch makes — the authoring gate's one input, read
-/// off the recipe row rather than taken from a caller.
-///
-/// ADR-0018 rule 2: a word may only be authored against a `makes` it can be
-/// held to. That is a fact about the stored recipe, so both write doors ask the
-/// row for it inside their own transaction. A recipe that has not synced (or
-/// has been retired) states nothing, and `authorRecipeMeasure` refuses on
-/// `recipe_measure/no_yield` — which is the truth about what is known here.
+/// What [recipeId] says a batch makes, read off the recipe row inside the
+/// caller's transaction (ADR-0018 rule 2). An unsynced or retired recipe states
+/// nothing, and `authorRecipeMeasure` then refuses with
+/// `recipe_measure/no_yield`.
 Future<List<YieldDenomination>> _yieldsOf(
   SqliteReadContext tx,
   String recipeId,
@@ -374,9 +304,7 @@ Future<List<YieldDenomination>> _yieldsOf(
   );
 }
 
-/// The one INSERT of a measure row. Every door that mints a word goes through
-/// it, so what a measure IS is stated in one statement rather than in each of
-/// them.
+/// The one INSERT of a measure row.
 Future<void> _insertRow(
   SqliteWriteContext tx,
   RecipeMeasure measure, {
@@ -399,12 +327,8 @@ Future<void> _insertRow(
   ],
 );
 
-/// The one UPDATE of a measure row — the re-statement, at both doors.
-///
-/// The **id is untouched**, which is the whole point of a re-statement: every
-/// line already saying the word follows it. Clearing `deleted_at` revives a
-/// word whose id is being reused, the rule the groups and the lines follow one
-/// table over; on a live row it changes nothing.
+/// The one UPDATE of a measure row. The id is untouched, so lines saying the
+/// word follow it. Clearing `deleted_at` revives a word whose id is reused.
 Future<void> _updateRow(
   SqliteWriteContext tx,
   RecipeMeasure measure, {
@@ -422,17 +346,13 @@ Future<void> _updateRow(
   ],
 );
 
-/// What still says [measureId] — the count both the bin's refusal and the
-/// deferred diff's gate read, so the two refuse on exactly the same answer.
+/// What still says [measureId]: recipe component lines and week overrides, the
+/// two tables that can carry the pointer. Both the bin's refusal and the
+/// deferred diff's gate read it.
 ///
-/// 0048 names exactly two tables that can carry the pointer, and both are
-/// counted: a recipe's component line, and one week's override of one.
-///
-/// **Only what is still live counts, on the whole chain.** A line under a
-/// tombstoned group or recipe, and an override on a retired week, are rows
-/// nothing can reach and nobody can go and change — counting them would refuse
-/// the retirement for ever with no door ("1 line still says it, in 0
-/// recipes"). So the count and the named recipes come off the SAME filter.
+/// Only rows live along their whole chain count. A line under a tombstoned
+/// group or recipe, or an override on a retired week, cannot be reached to fix,
+/// and counting it would block the retirement for ever.
 Future<RecipeMeasureUsage> countRecipeMeasureReferrers(
   SqliteReadContext db,
   String measureId,
@@ -453,8 +373,7 @@ Future<RecipeMeasureUsage> countRecipeMeasureReferrers(
   final lines = (counted['lines'] as num).toInt();
   final weeks = (counted['weeks'] as num).toInt();
   if (lines == 0 && weeks == 0) return RecipeMeasureUsage.none;
-  // Named so the refusal can hand the reader somewhere to go — the same live
-  // rows [lines] counted, which is why the two can never disagree.
+  // The recipes to name in the refusal, off the same live filter as [lines].
   final rows = await db.getAll(
     'SELECT DISTINCT r.id AS id, r.title AS title '
     'FROM recipe_line_item li '
@@ -486,8 +405,7 @@ Future<void> _refuseWhileSaid(
   throw RecipeMeasureInUse(measureId: measureId, label: label, usage: usage);
 }
 
-/// Every stored row this build can read, as [mergeByLabel] takes them —
-/// the rows [_rowOf] skips are simply not there.
+/// Every stored row this build can read, as [mergeByLabel] takes them.
 List<StoredMeasure<RecipeMeasure>> _rowsOf(
   Iterable<Map<String, Object?>> rows,
   String recipeId,
@@ -496,20 +414,10 @@ List<StoredMeasure<RecipeMeasure>> _rowsOf(
     if (_rowOf(r, recipeId) case final row?) row,
 ];
 
-/// One stored row as [mergeByLabel] takes it, or **null for a row whose
-/// `unit` is not a unit this build knows**.
-///
-/// A measure is an amount in a unit, so a unit this build cannot look up leaves
-/// the row unable to say the one thing it exists to say. Such a row is dropped
-/// rather than given a stand-in: the fallback would be `pieces`, and `3 blob`
-/// read as 3 pieces of whatever the batch is counted in is exactly the
-/// confidently-wrong batch share ADR-0018 rule 7 refuses. Dropped, the line
-/// naming it reads [ComponentMeasureMissing] — the same honest gap as a word
-/// that has been retired, which is what a word this build cannot read IS.
-///
-/// It happens the way every forward-compatibility question here happens: a
-/// later build coins a word in a unit this one has never heard of, and the row
-/// syncs down anyway.
+/// One stored row as [mergeByLabel] takes it, or null for a row whose `unit`
+/// this build does not know (a later build coined it). Dropped rather than
+/// given a `pieces` stand-in, which would produce a wrong batch share (ADR-0018
+/// rule 7); the line naming it reads [ComponentMeasureMissing].
 StoredMeasure<RecipeMeasure>? _rowOf(Map<String, Object?> r, String recipeId) {
   final unit = unitById(r['unit'] as String? ?? '');
   if (unit == null) return null;
@@ -526,9 +434,8 @@ StoredMeasure<RecipeMeasure>? _rowOf(Map<String, Object?> r, String recipeId) {
   );
 }
 
-/// The authored measure, or the authoring rule's refusal as a throw — the
-/// repository's posture (see `core/result/result.dart`: repositories throw and
-/// the write door turns a throw into a message with a reason).
+/// The authored measure, or the authoring refusal as a throw (repositories
+/// throw; see `core/result/result.dart`).
 RecipeMeasure _authored(Result<RecipeMeasure> result) => switch (result) {
   Ok(:final value) => value,
   Err(:final failure) => throw RecipeMeasureRefused(

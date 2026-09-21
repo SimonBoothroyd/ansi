@@ -1,13 +1,10 @@
-/// The recipe persistence contract — PURE DART (invariant 2). The data layer
-/// implements it over PowerSync's local SQLite; ViewModels depend only on this.
+/// The recipe persistence contract. Pure Dart.
 ///
-/// Writes take a whole [Recipe] aggregate: `saveRecipe` upserts the recipe and
-/// *diffs* its groups/line-items against what is stored — kept ids update, new
-/// ids insert, dropped ids soft-delete. The diff (not delete + re-insert)
-/// matters under sync: PowerSync queues ops literally, and a DELETE of a kept
-/// id would tombstone it server-side for every other device. The editor holds
-/// the full tree, so callers still pass the whole aggregate and generate ids
-/// for new recipes/groups/items before saving.
+/// `saveRecipe` takes a whole [Recipe] and diffs its groups and line items
+/// against what is stored: kept ids update, new ids insert, dropped ids
+/// soft-delete. PowerSync queues ops literally, so deleting a kept id would
+/// tombstone it for every device. Callers generate ids for new recipes, groups
+/// and items before saving.
 library;
 
 import 'package:meta/meta.dart';
@@ -18,10 +15,8 @@ import 'recipe.dart';
 import 'recipe_cost.dart';
 
 /// One back-link to a recipe that lists this one as a component — a row of the
-/// "Used in · N" tab (step 8.6 / D9): *target · amount · share of a batch*.
-///
-/// [amount] is the resolved share ([ResolvedComponentAmount]) or the honest
-/// reason it cannot be stated; the tab renders that, never a guessed `1×`.
+/// "Used in · N" tab. [amount] is the resolved share or the reason it cannot be
+/// stated.
 @immutable
 class RecipeUse {
   const RecipeUse({
@@ -45,7 +40,7 @@ class RecipeUse {
   final double? quantity;
 
   /// The line's catalog unit, or null when it is said in one of this recipe's
-  /// own words instead — the same XOR every component line carries.
+  /// measures.
   final Unit? unit;
 
   /// That word, when the line names one and this recipe still has it.
@@ -81,18 +76,11 @@ class RecipeUse {
       'RecipeUse($title, $quantity ${measureLabel ?? unit?.id}, $amount)';
 }
 
-/// A line that says its amount in nothing at all — neither a catalog unit nor
-/// one of the target's own words — refused by `saveRecipe` before it is
-/// written.
-///
-/// The database's `num_nonnulls(unit, recipe_measure_id) = 1` would refuse it
-/// on UPLOAD, and a refused upload makes the PowerSync connector drop the
-/// WHOLE crud transaction: one malformed line would silently take every write
-/// queued beside it. So the repository refuses the save instead, where a
-/// person is standing in front of it and the write door can say why.
-///
-/// [LineItem]'s own asserts state the same shape, but an assert is compiled
-/// out of a release build — this is the check that is there on a phone.
+/// A line with neither a catalog unit nor a recipe measure, refused by
+/// `saveRecipe` before it is written. The server would reject it on upload, and
+/// a rejected upload makes the PowerSync connector drop the whole crud
+/// transaction. [LineItem]'s asserts are compiled out of release builds; this
+/// check is not.
 class UndenominatedLineError implements Exception {
   const UndenominatedLineError({required this.lineId, required this.name});
 
@@ -107,15 +95,9 @@ class UndenominatedLineError implements Exception {
       'or in one of the target recipe’s own words, never in neither';
 }
 
-/// A line that names one of the target's own words but no number — refused by
-/// `saveRecipe` before it is written.
-///
-/// "blob" alone says nothing: the word IS the denomination, so it means
-/// something only beside a count. The database says the same
-/// (`line_item_recipe_measure_needs_amount`) and would refuse it on upload,
-/// taking the whole crud transaction with it — see [UndenominatedLineError],
-/// which is the same cost for the neighbouring hole. The week's own amount has
-/// this refusal already (`WordlessOverrideError`).
+/// A line naming one of the target's measures but no number, refused by
+/// `saveRecipe` for the reason [UndenominatedLineError] is (the server's
+/// `line_item_recipe_measure_needs_amount`).
 class AmountlessLineError implements Exception {
   const AmountlessLineError({required this.lineId, required this.name});
 
@@ -134,13 +116,12 @@ abstract interface class RecipeRepository {
   /// The recipe list, newest first, reacting to local writes.
   Stream<List<RecipeSummary>> watchRecipes();
 
-  /// A single recipe with its groups and line-items assembled, or null if it
-  /// doesn't exist (or is soft-deleted). Reacts to local writes.
+  /// One recipe with its groups and line items, or null if it does not exist or
+  /// is soft-deleted. Live.
   Stream<Recipe?> watchRecipe(String id);
 
-  /// Every recipe's cost, keyed by recipe id (ADR-0017) — a SEPARATE read from
-  /// [watchRecipes], because a cost moves when a receipt lands and because a
-  /// macro summary never carries money.
+  /// Every recipe's cost, keyed by recipe id (ADR-0017). Separate from
+  /// [watchRecipes]: a cost moves when a receipt lands.
   Stream<Map<String, RecipeCostSummary>> watchRecipeCosts();
 
   /// Insert (new id) or replace (existing id) the whole aggregate.
@@ -153,25 +134,19 @@ abstract interface class RecipeRepository {
   // ignore: avoid_positional_boolean_parameters — a set-flag pair reads fine.
   Future<void> setFavorite(String id, bool favorite);
 
-  /// Re-files one recipe (0028 E8) — the Library's "Move to…".
-  ///
-  /// A narrow write, like [setFavorite] and unlike [saveRecipe]: re-shelving
-  /// is a LIBRARY act, and routing it through a whole-recipe save would make
-  /// moving a recipe an edit of every field it holds — including fields the
-  /// mover never loaded. [sectionId] null files it unsectioned, which is what
-  /// crossing a book boundary always means: a section belongs to the book it
-  /// was named in.
+  /// Re-files one recipe (the Library's "Move to…"). A narrow write like
+  /// [setFavorite], so moving never rewrites fields the mover did not load. A
+  /// null [sectionId] files it unsectioned.
   Future<void> setFiling(String id, String bookId, String? sectionId);
 
   /// The live recipes that list [recipeId] as a component, one row per
-  /// referencing LINE (step 8.6 / D9). Its length is the count the "Used in ·
-  /// N" tab shows *and* the count the delete refusal speaks — one query, two
-  /// uses.
+  /// referencing line. Its length is the "Used in · N" count and the delete
+  /// refusal's.
   Future<List<RecipeUse>> usedIn(String recipeId);
 
   /// Whether making [subRecipeId] a component of [recipeId] would close a
-  /// cycle (step 8.6 / D5) — checked on device at link time over synced rows,
-  /// mirroring migration 0017's trigger. Linking a recipe to itself counts.
+  /// cycle, checked over synced rows; mirrors the server's trigger. A self-link
+  /// counts.
   Future<bool> componentLinkWouldCycle({
     required String recipeId,
     required String subRecipeId,

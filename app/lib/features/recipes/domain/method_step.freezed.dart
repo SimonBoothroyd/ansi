@@ -570,9 +570,7 @@ class MethodRef implements MethodToken {
 }
 
  final  String label;
-/// Whether this chip shows its line's amount. The JSON key stays
-/// `mention` (§4.6's frozen contract); only the Dart name is plain
-/// language.
+/// Whether this chip shows its line's amount. The JSON key is `mention`.
 @JsonKey(name: 'mention') final  ChipAmountRule amountRule;
  final  StepPortion? portion;
 

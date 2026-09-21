@@ -1,55 +1,12 @@
-/// Recipe cost summation — PURE DART (invariant 2), and the macro summation's
-/// twin. It feeds the recipe panel's Cost reading, the per-line figures under
-/// it, the week's band and the shop's rows.
+/// Recipe cost summation. Pure Dart. See ADR-0017.
 ///
-/// **A cost is a unit price, never an allocation** (ADR-0017). A line costs
-/// the amount it asks for, in the ingredient's basis unit, times the latest
-/// price the household paid per unit of that basis. Nothing is assigned from a
-/// receipt to a meal, because that would need an inventory and ADR-0007
-/// deliberately keeps none.
-///
-/// It is the SAME walk as `summarizeRecipeMacros`, line for line, and that is
-/// the point — the two readings of the panel have to agree about which lines
-/// they are reading:
-///
-/// - the grams come from [lineAmountInBasis], the one conversion both share,
-///   so a line can never weigh one thing for its macros and another for its
-///   cost;
-/// - an **imprecise** line (`to taste`, `pinch`, `handful`) and an
-///   **optional** line are excluded BY RULE, by exactly the macro rule and
-///   through the same [effectiveLines] seam, and are NAMED in
-///   [RecipeCostSummary.notCounted] — never in [RecipeCostSummary.unpriced],
-///   which is a different claim about a different kind of
-///   gap;
-/// - a **sub-recipe component** contributes its target's whole-recipe cost ×
-///   the batches it asks for, and only when both halves are honest;
-/// - a recipe with no lines, or one whose every line is excluded by rule, has
-///   no cost at all — `$0.00` there would be a fabrication (invariant 3).
-///
-/// What is new is the refusal, and it has one shape: a line the app cannot
-/// price is **unpriced**, named, and takes the recipe's figure with it. A line
-/// with no price yet, a line whose amount never reached the basis (a volume
-/// line on a gram row with no density), a component that does not resolve —
-/// all of them are a gap in the total, and a total that quietly skipped them
-/// would understate what a week costs by exactly the things nobody has priced.
-///
-/// What the priced lines DO come to is still worth knowing, so it is reported
-/// separately, as [RecipeCostSummary.pricedCents]. It is a **floor**, never a
-/// cost: [RecipeCostSummary.totalCents] stays null while anything is unpriced,
-/// so every reading that asks for the cost — the week, the shop, a parent
-/// recipe's component share — is unchanged by it, and a surface that prints
-/// the floor has to say in words that it is one.
-///
-/// **Money and macros never meet.** Nothing in this file knows what a calorie
-/// is, nothing in `recipe_macros.dart` knows what a cent is, and
-/// `test/structure/cost_and_macros_stay_apart_test.dart` holds that line. They
-/// share the walk, not the figures.
-///
-/// Like the macro summation, [RecipeCostSummary.lineCosts] is at the recipe's
-/// STORED amounts — a surface showing a scaled list multiplies by its own
-/// factor, exactly as it scales the amount printed beside them — while
-/// [RecipeCostSummary.perServingCents] is scale-invariant, because scaling
-/// moves the lines and the servings together.
+/// A line costs its amount in the ingredient's basis unit ([lineAmountInBasis])
+/// times the latest price per unit of that basis. The walk mirrors
+/// `summarizeRecipeMacros`, with imprecise and optional lines excluded through
+/// [effectiveLines]. An unpriced line is named and makes
+/// [RecipeCostSummary.totalCents] null; [RecipeCostSummary.pricedCents] is then
+/// a floor. Money and macros share no code
+/// (`test/structure/cost_and_macros_stay_apart_test.dart`).
 library;
 
 import 'package:meta/meta.dart';
@@ -62,59 +19,43 @@ import 'effective_lines.dart';
 import 'line_basis.dart';
 import 'recipe.dart';
 
-/// What the cost summation needs to know about one vocab ingredient: the
-/// dimension its amounts live in, and the latest price paid for it.
-///
-/// `price` is null for a row nobody has priced — which is an honest state, not
-/// a zero — and the line it belongs to becomes [CostLineReason.noPrice].
+/// One vocab ingredient's basis facts and latest price. A null `price` means
+/// nobody has priced the row ([CostLineReason.noPrice]).
 typedef IngredientPricing = ({IngredientBasis row, PriceObservation? price});
 
-/// Why one line carries no cost.
-///
-/// The first four are gaps that take the recipe's figure with them
-/// ([RecipeCostSummary.unpriced]); the last two are exclusions BY RULE, shared
-/// with the macro summation, and named apart
+/// Why one line carries no cost. The first four are gaps
+/// ([RecipeCostSummary.unpriced]); the last two are exclusions by rule
 /// ([RecipeCostSummary.notCounted]).
 enum CostLineReason {
   /// Nothing has ever been paid for this row — the price sheet is the fix.
   noPrice,
 
-  /// The line's amount never reached the row's basis unit: a cross-basis line
-  /// on a row with no density, a bare count on a row with no piece weight, a
-  /// line with no amount at all, a measure this device has not synced, or an
-  /// ingredient that is a stub, unknown or retired. The price exists (or does
-  /// not); what is missing is the path from the line to it.
+  /// The line's amount cannot reach the row's basis unit: no density, no piece
+  /// weight, no amount, an unsynced measure, or a stub, unknown or retired
+  /// ingredient.
   noPathToBasis,
 
-  /// The price was recorded against a different basis than the row states
-  /// today — a per-100 g price on a row that has since become per-100 ml.
-  /// Re-denominating it would need a density nobody stated for that pack, so
-  /// the line waits for a fresh price rather than guessing.
+  /// The price was recorded against a different basis than the row states now.
+  /// Re-denominating would need an unstated density, so the line waits for a
+  /// fresh price.
   priceOffBasis,
 
-  /// A component line whose batch math does not resolve (no yield, a unit in
-  /// no yield's family, a word the target no longer has, no amount, a cycle, a
-  /// missing target).
+  /// A component line whose batch math does not resolve (no yield, a unit in no
+  /// yield's family, a missing word, no amount, a cycle, a missing target).
   subRecipeUnresolved,
 
-  /// A component line whose target has unpriced lines of its own: the share is
-  /// knowable, what it is worth is not.
+  /// A component line whose target has unpriced lines of its own.
   subRecipeUnpriced,
 
-  /// `to taste`, `pinch`, `dash`, `handful` — unweighable by nature, so
-  /// costless by rule rather than by failure. Named in
-  /// [RecipeCostSummary.notCounted].
+  /// `to taste`, `pinch`, `dash`, `handful` — unweighable, so costless by rule.
   imprecise,
 
-  /// The recipe marks the line optional and this reading leaves it out, by the
-  /// [effectiveLines] seam the macro summation shares. Named in
-  /// [RecipeCostSummary.notCounted].
+  /// An optional line this reading leaves out, via [effectiveLines].
   optional,
 }
 
-/// One line with no cost, named — the cost twin of a macro note. `unit` is the
-/// line's own printed imprecise word ("handful"), carried for
-/// [CostLineReason.imprecise] and null otherwise.
+/// One line with no cost, named. `unit` is the printed imprecise word
+/// ("handful") for [CostLineReason.imprecise], null otherwise.
 typedef CostLineNote = ({
   String? lineId,
   String name,
@@ -122,11 +63,8 @@ typedef CostLineNote = ({
   String? unit,
 });
 
-/// What one line costs, and the price that says so.
-///
-/// [cents] is a real number of cents rather than an integer because it is
-/// derived, not paid: rounding it per line would put a rounding inside every
-/// sum above it. It is rounded once, at the edge, where it is printed.
+/// What one line costs, and the price behind it. [cents] is fractional because
+/// it is derived; it is rounded once, where printed.
 @immutable
 class CostLine {
   const CostLine({required this.cents, this.price});
@@ -134,10 +72,8 @@ class CostLine {
   /// What this line comes to at the recipe's STORED amount.
   final double cents;
 
-  /// The observation the figure was read from — the pack, the store and the
-  /// month, so a figure that looks wrong is traceable to the receipt line that
-  /// made it. Null for a component line, whose cost is a recipe's rather than
-  /// a pack's.
+  /// The observation the figure was read from (pack, store, month). Null for a
+  /// component line.
   final PriceObservation? price;
 
   @override
@@ -156,12 +92,9 @@ class CostLine {
 /// The oldest priced line in a recipe, named — the panel's `OLDEST` row.
 typedef OldestPrice = ({String name, PriceObservation price});
 
-/// The honest cost of a recipe.
-///
-/// [totalCents] is set only when EVERY counted line carries a price (and there
-/// is at least one counted line, and the serving count is positive);
-/// otherwise the summary is [incomplete], the cells go, and [unpriced] names
-/// what it is waiting on.
+/// A recipe's cost. [totalCents] is set only when every counted line is priced,
+/// at least one line counts and the serving count is positive; otherwise the
+/// summary is [incomplete] and [unpriced] names the gaps.
 @immutable
 class RecipeCostSummary {
   const RecipeCostSummary({
@@ -181,65 +114,47 @@ class RecipeCostSummary {
   /// What the recipe costs at its stored servings, or null — see [incomplete].
   final double? totalCents;
 
-  /// [totalCents] divided by the recipe's serving count. Scale-invariant, for
-  /// the reason the per-serving macros are.
+  /// [totalCents] divided by the serving count. Scale-invariant.
   final double? perServingCents;
 
-  /// What the lines that ARE priced come to, at the stored amounts — always a
-  /// figure, and zero when nothing was priced.
-  ///
-  /// It is a **floor**, not a cost: it equals [totalCents] when the recipe is
-  /// whole, and when it is not it is the part of an unknown figure that is
-  /// known. Only a surface that prints it in those words may print it; nothing
-  /// that asks this summary what the recipe *costs* reads it, which is why
-  /// [totalCents] is null rather than partial and why a component whose target
-  /// is [incomplete] stays unpriced in its parent rather than contributing a
-  /// floor.
+  /// What the priced lines come to at the stored amounts; zero when none are. A
+  /// floor, not a cost: a surface printing it must say so, and nothing asking
+  /// what the recipe costs reads it.
   final double pricedCents;
 
-  /// [pricedCents] over the recipe's serving count, or null when that count is
-  /// not positive — the floor's per-serving twin, and scale-invariant for the
-  /// same reason [perServingCents] is.
+  /// [pricedCents] over the serving count, or null when that count is not
+  /// positive.
   final double? pricedPerServingCents;
 
-  /// What each line contributed, by [LineItem.id], at the STORED amounts. A
-  /// line is in exactly one of this and [unpriced]/[notCounted] — never here
-  /// as a zero.
+  /// Each line's contribution by [LineItem.id], at the stored amounts. A line
+  /// is either here or in [unpriced]/[notCounted], never here as a zero.
   final Map<String, CostLine> lineCosts;
 
-  /// Every line the app cannot price, named, in line order. Non-empty means
-  /// [incomplete]: an unpriced line takes the recipe's figure with it.
+  /// Every line the app cannot price, in line order. Non-empty means
+  /// [incomplete].
   final List<CostLineNote> unpriced;
 
-  /// Every line excluded BY RULE — imprecise, or optional — named in line
-  /// order. It never makes the summary [incomplete]; the one guard is
-  /// [nothingCountable].
+  /// Every line excluded by rule (imprecise or optional), in line order. It
+  /// never makes the summary [incomplete]; see [nothingCountable].
   final List<CostLineNote> notCounted;
 
-  /// The most recent priced line's date — the panel's `prices from` cell, and
-  /// the answer to "how current is this figure".
+  /// The most recent priced line's date — the panel's `prices from` cell.
   final DateTime? newestPrice;
 
-  /// The oldest priced line, set ONLY when its month differs from
-  /// [newestPrice]'s: a July jar under an otherwise-September recipe is named
-  /// rather than averaged away. Null when every price is of one month.
+  /// The oldest priced line, set only when its month differs from
+  /// [newestPrice]'s.
   final OldestPrice? oldest;
 
   /// The recipe has no line items yet.
   final bool noLines;
 
-  /// Every line was excluded by rule, so nothing was costed — the twin of the
-  /// macro summation's `nothingWeighable` guard.
+  /// Every line was excluded by rule, so nothing was costed.
   final bool nothingCountable;
 
   bool get incomplete => totalCents == null;
 
-  /// Some counted lines are priced and some are not — the one state in which
-  /// [pricedCents] says something the cells do not.
-  ///
-  /// False when nothing is priced, where the floor would be a zero standing in
-  /// for an absence, and false when everything is, where [totalCents] states
-  /// the figure exactly.
+  /// Some counted lines are priced and some are not — the one state where
+  /// [pricedCents] is worth printing.
   bool get partlyPriced =>
       incomplete && unpriced.isNotEmpty && lineCosts.isNotEmpty;
 
@@ -303,16 +218,11 @@ class RecipeCostSummary {
       : 'RecipeCostSummary($totalCents¢, $perServingCents¢/serving)';
 }
 
-/// Sums [lines] into a [RecipeCostSummary]. [pricingOf] resolves a line's
-/// ingredient id to its basis facts and latest price, or null when the row is
-/// unknown locally — which reads as [CostLineReason.noPathToBasis], because an
-/// unknown row states no basis to convert into.
-///
-/// [subRecipeOf] resolves a component line's target; leaving it null means
-/// components cannot be walked and every component line is unresolved.
-///
-/// [servingsBase] at or below zero yields an incomplete summary rather than an
-/// Infinity per-serving figure.
+/// Sums [lines] into a [RecipeCostSummary]. [pricingOf] resolves an ingredient
+/// id to its basis facts and latest price; null (unknown row) reads as
+/// [CostLineReason.noPathToBasis]. [subRecipeOf] resolves a component's target;
+/// when null every component line is unresolved. A [servingsBase] at or below
+/// zero yields an incomplete summary.
 RecipeCostSummary summarizeRecipeCost({
   required double servingsBase,
   required Iterable<LineItem> lines,
@@ -329,9 +239,8 @@ RecipeCostSummary summarizeRecipeCost({
 /// One priced line, with the name the panel would print for it.
 typedef _Seen = ({String name, PriceObservation price});
 
-/// The walk's whole answer: the summary, and every observation that went into
-/// it — including those a component contributed, which is how a parent's
-/// `prices from` cell sees through a nested recipe rather than stopping at it.
+/// The summary, plus every observation that went into it, including a
+/// component's, so a parent's `prices from` sees through nested recipes.
 typedef _Walk = ({RecipeCostSummary summary, List<_Seen> seen});
 
 _Walk _summarize({
@@ -347,8 +256,8 @@ _Walk _summarize({
   final unpriced = <CostLineNote>[];
   final notCounted = <CostLineNote>[];
   final lineCosts = <String, CostLine>{};
-  // Every observation that went into the total, so the panel's `prices from`
-  // cell and its `OLDEST` row are read off the same set the figure is.
+  // Every observation behind the total; `prices from` and `OLDEST` read this
+  // set.
   final seen = <_Seen>[];
 
   String nameOf(LineItem line) => line.subRecipe?.title ?? line.ingredientName;
@@ -365,8 +274,7 @@ _Walk _summarize({
     unit: unit,
   ));
 
-  // The same seam, asked first, for the same reason the macro walk asks it
-  // first: an optional line is named ONCE, as optional, and never also as
+  // Asked first, so an optional line is named once, as optional, never also as
   // unpriced.
   final dropped = {for (final d in effectiveLines(lines).dropped) d.line};
 
@@ -398,8 +306,7 @@ _Walk _summarize({
       }
       continue;
     }
-    // Unweighable by nature, so costless by rule — asked before anything can
-    // fail, exactly as the macro walk asks it.
+    // Imprecise is costless by rule, checked before anything can fail.
     if (line.measure == null && line.unit?.family == UnitFamily.imprecise) {
       excludedByRule++;
       note(notCounted, line, CostLineReason.imprecise, unit: line.unit?.label);
@@ -425,8 +332,7 @@ _Walk _summarize({
       note(unpriced, line, CostLineReason.priceOffBasis);
       continue;
     }
-    // The derivation's own refusals (a pack of nothing, nothing paid) are the
-    // price fact's, not a second opinion about them.
+    // The price's own refusals (empty pack, nothing paid) pass through.
     final per100 = price.per100;
     if (per100 is! Ok<PricePer100>) {
       note(unpriced, line, CostLineReason.noPrice);
@@ -465,8 +371,7 @@ _Walk _summarize({
     summary: RecipeCostSummary(
       totalCents: incomplete ? null : total,
       perServingCents: incomplete ? null : total / servingsBase,
-      // The same sum, stated whether or not it is the recipe's: what the
-      // priced lines came to is a fact even when the recipe's cost is not.
+      // Stated whether or not the recipe's total is.
       pricedCents: total,
       pricedPerServingCents: servingsBase > 0 ? total / servingsBase : null,
       lineCosts: lineCosts,
@@ -492,8 +397,8 @@ final class _ComponentCost extends _ComponentResult {
   const _ComponentCost(this.cents, this.prices);
   final double cents;
 
-  /// The target's own priced lines, so the parent's `prices from` cell and
-  /// `OLDEST` row see through a component rather than stopping at it.
+  /// The target's own priced lines, so the parent's `prices from` and `OLDEST`
+  /// see through the component.
   final List<_Seen> prices;
 }
 
@@ -538,8 +443,7 @@ _ComponentResult _componentCost({
   );
   final cost = walked.summary.totalCents;
   if (cost == null) return const _ComponentUnpriced();
-  // The nested lines' own names travel with their prices: the `OLDEST` row is
-  // about the PRICE, and the thing that carries a July price is the line
-  // inside the component, not the component line that asked for it.
+  // Nested lines keep their own names: `OLDEST` names the line that carries the
+  // price, not the component line.
   return _ComponentCost(cost * amount.batches, walked.seen);
 }

@@ -1,26 +1,13 @@
-/// Tokenized method steps + the chip **fold** — PURE DART (invariant 2).
+/// Tokenized method steps and the chip fold. Pure Dart.
 ///
-/// An imported recipe stores its method as token streams in `recipe.steps`
-/// (jsonb): plain [MethodText] spans, [MethodRef] chips (referencing line items
-/// by id), and [MethodTimer]s. Rendering walks the tokens through [foldMethod]
-/// — there is **no render-time text matching** (that would be the on-device
-/// matching ADR-0004 forbids). This is the stored twin of the payload's
-/// `StepToken` (import/domain), where refs are still by line index; commit
-/// remaps those indices to the `line_item_id`s referenced here.
+/// A method is stored in `recipe.steps` (jsonb) as token streams: [MethodText],
+/// [MethodRef] chips referencing line items by id, and [MethodTimer]s.
+/// [foldMethod] renders them; there is no render-time text matching (ADR-0004).
 ///
-/// A chip's number is derived **live** from its line item, never stored (0014):
-///
-/// - a step-named [StepPortion] wins (its number is transcribed from the prose);
-/// - else the line's scaled quantity shows on the **first** mention
-///   (`amountRule == ChipAmountRule.showAmount`);
-/// - else the chip is quantity-less;
-/// - a **collective** chip (more than one ref) never shows a number.
-///
-/// A collective chip also carries its [MethodChipSpan.constituents] — the
-/// display names of the lines it stands for — so "onion mixture" can render as
-/// `onion mixture (onion, celery, green bell pepper)` rather than hiding what
-/// went into it. A collective with no label of its own is nothing BUT its
-/// constituents, and renders as the bare run.
+/// A chip's number is derived live from its line: a step-named [StepPortion]
+/// wins; else the line's scaled quantity shows when `amountRule ==
+/// ChipAmountRule.showAmount`; else none. A collective chip (more than one ref)
+/// shows no number and carries its [MethodChipSpan.constituents].
 library;
 
 // The library doc above spells out the fold rules as prose; a few of its
@@ -37,19 +24,10 @@ import 'recipe.dart';
 part 'method_step.freezed.dart';
 part 'method_step.g.dart';
 
-/// Whether a chip carries its line's amount — the plain-language name for what
-/// §4.6 calls `mention` (0022 D9). The rule, said the way the UI says it: *the
-/// first time a step calls for something the chip shows the amount; after that
-/// it just names it.*
-///
-/// The **wire format is untouched** — every value keeps its `@JsonValue`, so
-/// the `steps` jsonb and the import payload read and write exactly what they
-/// did before the rename.
-///
-/// [partial] (the JSON `"fraction"`) behaves identically to [hideAmount] in
-/// [foldMethod]: such a ref almost always carries a [StepPortion], which wins
-/// over the line quantity anyway. The name says "a part of the line" rather
-/// than implying a third rendering that does not exist.
+/// Whether a chip shows its line's amount: the first mention in a step shows
+/// it, later ones only name the line. The JSON values are the wire contract's
+/// and must not change. [partial] (JSON `"fraction"`) folds like [hideAmount];
+/// such a ref usually carries a [StepPortion].
 enum ChipAmountRule {
   @JsonValue('new')
   showAmount,
@@ -59,8 +37,8 @@ enum ChipAmountRule {
   partial,
 }
 
-/// A sub-amount named in a step for one chip. A number (transcribed from the
-/// prose) or a relative [qualifier] — never both, never invented.
+/// A sub-amount a step names for one chip: a number from the prose or a
+/// relative [qualifier], never both.
 @freezed
 abstract class StepPortion with _$StepPortion {
   const factory StepPortion({
@@ -80,15 +58,13 @@ abstract class StepPortion with _$StepPortion {
 sealed class MethodToken with _$MethodToken {
   const factory MethodToken.text({required String s}) = MethodText;
 
-  /// A chip. [refs] holds the referenced `line_item_id`s — a set (more than
-  /// one) is a collective chip that shows no number.
+  /// A chip. [refs] holds the referenced `line_item_id`s; more than one is a
+  /// collective chip with no number.
   const factory MethodToken.ref({
     required List<String> refs,
     required String label,
 
-    /// Whether this chip shows its line's amount. The JSON key stays
-    /// `mention` (§4.6's frozen contract); only the Dart name is plain
-    /// language.
+    /// Whether this chip shows its line's amount. The JSON key is `mention`.
     @JsonKey(name: 'mention')
     @Default(ChipAmountRule.showAmount)
     ChipAmountRule amountRule,
@@ -116,8 +92,7 @@ abstract class MethodStep with _$MethodStep {
 
 // --- The fold ----------------------------------------------------------------
 
-/// A rendered piece of a folded step. Views map these to widgets; formatting is
-/// already done here so the fold stays the single testable source of truth.
+/// A rendered piece of a folded step, already formatted.
 sealed class MethodSpan {
   const MethodSpan();
 }
@@ -130,18 +105,10 @@ class MethodTextSpan extends MethodSpan {
 
 /// An ingredient chip. [amount] is null for a quantity-less or collective chip.
 ///
-/// [constituents] is non-empty only for a COLLECTIVE chip (more than one ref):
-/// it holds, in ref order, the display name of every line the chip stands for
-/// that still resolves. Refs the payload dropped or demoted resolve to nothing
-/// and are simply absent — a dangling chip would be a lie.
-///
-/// How a view draws them follows from [label]:
-///
-/// - a **named** collective ("onion mixture") draws the label chip, then the
-///   constituents as a parenthesised run of smaller chips;
-/// - a **blank-labelled** one ([label] empty) has no label to hang them off, so
-///   the constituents ARE the chip run: one full-size chip per name, no
-///   parentheses, and any step-named [amount] on the first of them (**J1**).
+/// [constituents] is non-empty only for a collective chip: the display names,
+/// in ref order, of the lines that still resolve. A named collective draws its
+/// label then the constituents in parentheses; a blank-labelled one draws the
+/// constituents as the chip run, with any [amount] on the first.
 class MethodChipSpan extends MethodSpan {
   const MethodChipSpan({
     required this.label,
@@ -153,14 +120,9 @@ class MethodChipSpan extends MethodSpan {
   final String? amount;
   final List<String> constituents;
 
-  /// The line ids the chip resolved to, in ref order — parallel to
-  /// [constituents] on a collective, one entry on a single-ref chip, and empty
-  /// where the payload dropped the line.
-  ///
-  /// A view needs it to answer a question the names cannot: whether the line
-  /// behind a chip is one *this week* leaves out. A ref that resolves to
-  /// nothing is absent here exactly as it is absent from [constituents], so the
-  /// two lists index together.
+  /// The line ids the chip resolved to, in ref order, parallel to
+  /// [constituents]. Lets a view tell whether a chip's line is left out this
+  /// week.
   final List<String> lineIds;
 }
 
@@ -170,8 +132,8 @@ class MethodTimerSpan extends MethodSpan {
   final String text;
 }
 
-/// Folds one [step] into render-ready spans, deriving each chip's number live
-/// from [lineById] (scaled by [factor]) per the rules in the library doc.
+/// Folds one [step] into render-ready spans, deriving each chip's number from
+/// [lineById] scaled by [factor].
 List<MethodSpan> foldMethod(
   MethodStep step, {
   required Map<String, LineItem> lineById,
@@ -203,18 +165,11 @@ List<MethodSpan> foldMethod(
   return spans;
 }
 
-/// The ingredient a chip names. The token's own [label] is the surface text
-/// the extractor chose and always wins — but it can arrive blank, and a chip
-/// with no label renders as a bare number ("Add the chopped 1, 0.5, 0.25"),
-/// which is the worst thing this fold can produce. A blank label on a SINGLE
-/// ref therefore falls back to that line item's ingredient name.
-///
-/// A blank label on a COLLECTIVE stays blank and lets [_constituents] carry the
-/// names: joining them here made one chip label out of seven ingredients, and a
-/// chip is one atomic box to the line breaker, so it ran clean off a phone
-/// screen instead of wrapping.
-///
-/// Still an id lookup, never render-time text matching (ADR-0004).
+/// A chip's label. The token's own [label] wins; a blank label on a single ref
+/// falls back to the line's ingredient name, so a chip never renders as a bare
+/// number. A blank collective stays blank and [_constituents] carries the
+/// names: one joined label would be an unbreakable box wider than a phone. An
+/// id lookup, never text matching (ADR-0004).
 String _chipLabel(
   String label,
   List<String> refs,
@@ -226,18 +181,15 @@ String _chipLabel(
   return _resolvedNames(refs, lineById).join(', ');
 }
 
-/// The lines a collective chip stands for, in ref order — parenthesised after
-/// the label when it has one, and the whole chip run when it hasn't (**J1**).
-///
-/// Empty for a single ref: there is nothing to unpack.
+/// The lines a collective chip stands for, in ref order. Empty for a single
+/// ref.
 List<String> _constituents(List<String> refs, Map<String, LineItem> lineById) {
   if (refs.length < 2) return const [];
   return _resolvedNames(refs, lineById);
 }
 
-/// The ingredient display names [refs] resolve to, in ref order. A ref the
-/// payload dropped (or demoted to a line that never landed) resolves to
-/// nothing and is skipped rather than named.
+/// The ingredient display names [refs] resolve to, in ref order, skipping any
+/// that do not resolve.
 List<String> _resolvedNames(List<String> refs, Map<String, LineItem> lineById) {
   final names = <String>[];
   for (final ref in refs) {
@@ -247,8 +199,7 @@ List<String> _resolvedNames(List<String> refs, Map<String, LineItem> lineById) {
   return names;
 }
 
-/// The refs of [_resolvedNames], in the same order — the id half of the same
-/// filter, so a view can index the names and the lines together.
+/// The refs [_resolvedNames] kept, in the same order.
 List<String> _resolvedRefs(List<String> refs, Map<String, LineItem> lineById) {
   final resolved = <String>[];
   for (final ref in refs) {
@@ -277,9 +228,9 @@ String? _chipAmount(
   return _formatLineAmount(line, factor);
 }
 
-/// The line's scaled amount as the chip shows it: a count reads as a bare
-/// number, an imprecise unit as its word, everything else as "num unit". A
-/// numberless line falls back to its unit label.
+/// The line's scaled amount as a chip shows it: a count as a bare number, an
+/// imprecise unit as its word, otherwise "num unit". A numberless line shows
+/// its unit label.
 String? _formatLineAmount(LineItem line, double factor) {
   final measure = line.measure;
   final word = recipeMeasureOfLine(line);
@@ -289,9 +240,7 @@ String? _formatLineAmount(LineItem line, double factor) {
     if (unit?.family == UnitFamily.imprecise) return unit?.label;
     return measure?.label ?? word?.label;
   }
-  // A line said in one of the target recipe's own words carries no catalog
-  // unit, so it scales as a bare count of that word: `3 blob` × 2 is `6 blob`,
-  // and the batch it is a share of is untouched.
+  // A line in one of the target recipe's words scales as a count of that word.
   if (word != null) {
     return measuredAmountText(qty * factor, word.label);
   }
@@ -305,9 +254,8 @@ String? _formatLineAmount(LineItem line, double factor) {
       return unit.label;
     case UnitFamily.mass:
     case UnitFamily.volume:
-    // A component line's `batch` reads like any other unit here ("0.25
-    // batch") — the batch↔yield arithmetic belongs to the cook plan, not to
-    // a method chip.
+    // `batch` reads like any other unit here; batch↔yield math belongs to the
+    // cook plan.
     case UnitFamily.batch:
       return '${formatAmountIn(scaled.amount, unit)} ${unit.label}';
   }
@@ -324,21 +272,19 @@ String? _formatPortion(StepPortion portion, double factor) {
     final high = formatAmount(portion.qtyHigh! * factor);
     return '$low–$high$suffix';
   }
-  // A relative word ("half", "for garnish") renders as written — never a made-
-  // up number.
+  // A relative word ("half", "for garnish") renders as written.
   return portion.qualifier;
 }
 
-/// Formats a timer span. Whole minutes read as "6 min" / "6–8 min"; an
-/// hour or more reads as "2 h 30 min". A sub-minute time keeps its seconds.
+/// A timer span: "6 min", "6–8 min", "2 h 30 min"; a sub-minute time keeps its
+/// seconds.
 String formatTimerRange(int lowSeconds, int highSeconds) {
   if (lowSeconds == highSeconds) return formatDuration(lowSeconds);
   return '${_formatDurationValue(lowSeconds)}–${formatDuration(highSeconds)}';
 }
 
-/// Formats one duration in the timer's voice — "35 min", "1 h 10 min",
-/// "2 h" — the same words the recipe page's cook/total chips and the header
-/// form's TIMES steppers print, so a time reads the same wherever it lands.
+/// One duration: "35 min", "1 h 10 min", "2 h". Shared with the recipe page's
+/// time chips and the header form's steppers.
 String formatDuration(int seconds) {
   if (seconds < 60) return '$seconds s';
   final minutes = seconds ~/ 60;
@@ -352,8 +298,7 @@ String formatDuration(int seconds) {
   return remMinutes == 0 ? '$hours h' : '$hours h $remMinutes min';
 }
 
-/// The value half of a range endpoint — the unit label rides on the high end
-/// only ("6–8 min"), so the low end drops "min" when both share it.
+/// A range endpoint's value; the low end drops "min" when both ends share it.
 String _formatDurationValue(int seconds) {
   if (seconds < 60 || seconds % 60 != 0) return formatDuration(seconds);
   final minutes = seconds ~/ 60;

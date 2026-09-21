@@ -1,16 +1,9 @@
-/// The recipe header — one form, two hosts (board frames a and b).
+/// The recipe header form, rendered by both the recipe editor and the import
+/// review over their own draft through [RecipeHeaderHost].
 ///
-/// TITLE · SERVES · MAKES · TIMES · SHELF LIFE · FILE UNDER, in that order,
-/// declared once in [kRecipeHeaderSections] and iterated here. The recipe
-/// editor and the import review both render this widget over their own
-/// draft through [RecipeHeaderHost]; a structural test asserts that both hosts
-/// show every section, so the next one added cannot silently miss the review
-/// — which is how the review came to lack shelf life in the first place.
-///
-/// What is import-specific is drawn *around* the form, never inside a copy of
-/// it: [RecipeHeaderNotes] is the slot for the review's per-section honesty
-/// ("not printed — set it" beside SERVES, "from source: …" under MAKES). The
-/// editor supplies none.
+/// Sections are declared once in [kRecipeHeaderSections]; a structural test
+/// asserts both hosts show every one. Import-specific annotations go around the
+/// form through [RecipeHeaderNotes].
 library;
 
 import 'dart:async';
@@ -58,15 +51,12 @@ enum RecipeHeaderSection {
   final String label;
 }
 
-/// The sections [RecipeHeaderForm] renders, in the drawn order. TIMES sits
-/// after MAKES — and after the MEASURES that depend on it — so the three
-/// numbers about the dish read together before the two facts about keeping it.
+/// The sections [RecipeHeaderForm] renders, in drawn order. TIMES follows MAKES
+/// and the MEASURES that depend on it.
 const kRecipeHeaderSections = RecipeHeaderSection.values;
 
-/// What a host of the header form must provide: the draft as it stands, and
-/// one setter per fact. The rules behind each setter (both halves of a yield
-/// or neither, no freezer window on a dish that does not freeze…) live in
-/// `RecipeHeaderEdits`, so a host is only where the result is kept.
+/// What a host of the header form provides: the draft, and one setter per fact.
+/// The rules behind each setter live in `RecipeHeaderEdits`.
 abstract interface class RecipeHeaderHost {
   /// The draft the form renders — re-read on every build.
   Recipe get header;
@@ -76,10 +66,9 @@ abstract interface class RecipeHeaderHost {
   void setYield(double? qty, Unit? unit);
   void setSecondYield(double? qty, Unit? unit);
 
-  /// Seats the recipe's own words — the MEASURES list as the editor left it.
-  /// The rules are `withMeasures`', and whether a word may exist at all is
-  /// `authorRecipeMeasure`'s; a host is only where the list is kept, and both
-  /// keep it in the draft their own Save lands (ADR-0011).
+  /// Seats the recipe's MEASURES list. The rules are `withMeasures` and
+  /// `authorRecipeMeasure`; the host keeps the list in the draft its Save lands
+  /// (ADR-0011).
   void setMeasures(List<RecipeMeasure> measures);
 
   void setCookTime(int? seconds);
@@ -93,9 +82,8 @@ abstract interface class RecipeHeaderHost {
   void setSection(String? sectionId);
 }
 
-/// Per-section annotations a host draws around the shared form (frame b) — a
-/// slot, not a fork. The review fills these with what only it knows: whether
-/// the page printed a serving count, and what it said about the yield.
+/// Per-section annotations a host draws around the shared form. The review uses
+/// them to say what the page did or did not print.
 class RecipeHeaderNotes {
   const RecipeHeaderNotes({
     this.besideServes,
@@ -127,27 +115,15 @@ class RecipeHeaderForm extends StatelessWidget {
   final RecipeHeaderHost host;
   final RecipeHeaderNotes notes;
 
-  /// Whether the TIMES rows carry their one-line captions ("hands-on and on
-  /// the heat" / "start to plate"). Drawn on the editor only (frame a); the
-  /// review is dense enough already (frame b).
+  /// Whether the TIMES rows carry their one-line captions. Editor only.
   final bool timeCaptions;
 
-  /// Which of [kRecipeHeaderSections] this instance draws, in order.
-  ///
-  /// All six on a phone, where the header is one column. The wide editor folds
-  /// the same six onto two rows — the title over the lines, the filing over
-  /// the method, then the four small facts across the cap — by asking for them
-  /// a cell at a time. It is the same form either way: a cell is a slice of
-  /// the section list, never a second control.
+  /// Which of [kRecipeHeaderSections] this instance draws, in order. All on a
+  /// phone; the wide editor asks for them a cell at a time.
   final List<RecipeHeaderSection> sections;
 
-  /// The wide header's four cells: a quarter of the cap is not a column, so
-  /// each fact states itself with the row's own short word and the compact
-  /// stepper, and the paragraphs that explain a control to a first-time
-  /// reader are left to the phone's one-column form.
-  ///
-  /// The word sits beside its control where the cell holds both and on the line
-  /// above it where it does not — see [_DenseRow]. Never inside the word.
+  /// The wide header's compact cells: a short word beside (or above, see
+  /// [_DenseRow]) a compact control, without the explanatory paragraphs.
   final bool dense;
 
   @override
@@ -287,15 +263,11 @@ class RecipeHeaderForm extends StatelessWidget {
       };
 }
 
-/// The MAKES numbers block (step 8.6 / D2 · D9, design board frame h): what
-/// one batch yields, in up to TWO denominations.
+/// The MAKES block: what one batch yields, in up to two denominations.
 ///
-/// Serves and makes are two independent facts — serves is how the recipe
-/// portions, makes is how much comes out — and neither derives from the other.
-/// The second denomination's selector offers only the OTHER families: two ways
-/// of saying one batch ("makes 250 g · 16 tbsp"), never two numbers in one
-/// family. It can only be added once the first is stated, which is what the
-/// migration's CHECK says too — a save must not be able to bounce off it.
+/// Independent of serves. The second denomination offers only the other unit
+/// families and can be added only once the first is stated, matching the
+/// database CHECK.
 class _MakesSection extends HookWidget {
   const _MakesSection({
     required this.recipe,
@@ -306,14 +278,11 @@ class _MakesSection extends HookWidget {
   final Recipe recipe;
   final RecipeHeaderHost host;
 
-  /// See [RecipeHeaderForm.dense] — a quarter of the wide cap holds the two
-  /// yield rows and the door between them, and not the paragraph that explains
-  /// the second slot's offer.
+  /// See [RecipeHeaderForm.dense].
   final bool dense;
 
-  /// The units a yield may be stated in: everything an ingredient line can say
-  /// except the imprecise words — "makes a pinch" is not a yield, and `batch`
-  /// is what a yield is measured *against*, never in.
+  /// The units a yield may be stated in: every ingredient-line unit except the
+  /// imprecise ones. `batch` is excluded too.
   static final List<Unit> _units = [
     for (final u in kIngredientUnits)
       if (u.family != UnitFamily.imprecise) u,
@@ -390,20 +359,12 @@ class _MakesSection extends HookWidget {
   }
 }
 
-/// The MEASURES list, under the MAKES it depends on (ADR-0018): the household's
-/// own words for one of what this recipe makes, each an amount in a unit.
+/// The MEASURES list, under the MAKES it depends on (ADR-0018).
 ///
-/// **It defers.** A word typed here rides the draft's [Recipe.measures] through
-/// the host's own Save, which is what makes MAKES and the words one edit: a
-/// yield restated in this sitting re-evaluates the whole section on the same
-/// keystroke, so a word the Save would orphan is marked before the Save rather
-/// than discovered by a line afterwards. The editor's Save carries the warning
-/// itself, because only the Save knows what the recipe said when it opened.
-///
-/// The delete gate is the host's half, and it is the same one the repository
-/// holds: a word lines still say cannot go, counted at the tap
-/// ([mayDeleteRecipeMeasure]). A word this draft has not written yet has no
-/// referrer, so that question simply answers yes for it.
+/// A word typed here rides the draft's [Recipe.measures] through the host's
+/// Save, so a yield restated in the same sitting re-evaluates the words
+/// immediately. The delete gate is the host's ([mayDeleteRecipeMeasure]): a
+/// word lines still say cannot go.
 class _MeasuresSection extends ConsumerWidget {
   const _MeasuresSection({required this.recipe, required this.host});
 
@@ -423,9 +384,8 @@ class _MeasuresSection extends ConsumerWidget {
       host.setMeasures([...host.header.measures, word]);
       return RecipeMeasureLanded(word);
     },
-    // A re-statement keeps the row's id, so it is a replacement in place: every
-    // line already saying the word follows the correction, whether the row is a
-    // stored one or one this sitting typed.
+    // A re-statement keeps the row's id, so lines already saying the word
+    // follow it.
     onRestate: (word) async {
       host.setMeasures([
         for (final m in host.header.measures)
@@ -445,13 +405,9 @@ class _MeasuresSection extends ConsumerWidget {
   );
 }
 
-/// One "amount + unit" yield row, with the second slot's remove affordance.
-///
-/// The pair is [AmountAndUnitField] — the same control the density, the piece
-/// weight, a measure's amount and the serving use, so a number with a unit is
-/// stated the same way wherever it is stated. The remove glyph is sized to
-/// the control rather than to Forui's touch default: the row is a sentence,
-/// and a 44 pt button beside a 32 pt control sets its height on its own.
+/// One "amount + unit" yield row ([AmountAndUnitField]), with the second slot's
+/// remove affordance. The remove glyph is sized to the control, not Forui's
+/// touch default, so it does not set the row's height.
 class _YieldRow extends StatelessWidget {
   const _YieldRow({
     required this.quantity,
@@ -505,16 +461,9 @@ class _YieldRow extends StatelessWidget {
   }
 }
 
-/// The recipe's title, tidied when the field is left.
-///
-/// [cleanName] trims it, collapses its spaces and Title Cases it — no word
-/// ever changes, only its case, which is why there is nothing to tell and no
-/// revert line here. The editor's Save is the backstop for a field that was
-/// never left.
-///
-/// The host owns the text and the controller follows it: the tidied title is
-/// pushed into the controller the field already has, rather than the field
-/// being replaced around a fresh one.
+/// The recipe's title, tidied by [cleanName] (trim, collapse spaces, Title
+/// Case) when the field is left; the editor's Save is the backstop. The tidied
+/// text is pushed into the field's existing controller.
 class _TitleField extends HookWidget {
   const _TitleField({required this.host});
 
@@ -535,9 +484,8 @@ class _TitleField extends HookWidget {
       child: FTextField(
         key: const ValueKey('recipe-title'),
         hint: 'e.g. Weeknight Chicken Curry',
-        // The field a recipe is named in, in the voice the name is read in
-        // everywhere else. Forui's own field is the interface sans, so a title
-        // changed its face between the editor and the page that shows it.
+        // The title is set in the face it is read in elsewhere; Forui's default
+        // field is the interface sans.
         style: FTextFieldStyleDelta.delta(
           contentTextStyle: FVariantsDelta.delta([
             FVariantOperation.all(voice),
@@ -575,9 +523,9 @@ class _ServesStepper extends StatelessWidget {
   }
 }
 
-/// The shelf-life inputs that make a recipe batchable (step 5): how long it
-/// keeps in the fridge (drives cook-plan clustering), whether it freezes, and
-/// the freezer window. Fridge days unset ⇒ the cook plan never splits it.
+/// The shelf-life inputs: fridge days (drives cook-plan clustering), whether it
+/// freezes, and the freezer window. Unset fridge days means the cook plan never
+/// splits the recipe.
 class _ShelfLifeSection extends StatelessWidget {
   const _ShelfLifeSection({required this.recipe, required this.host});
 
@@ -627,12 +575,8 @@ class _ShelfLifeSection extends StatelessWidget {
   }
 }
 
-/// The wide header's SHELF LIFE cell: the same two facts, each with the row's
-/// own short word beside the control.
-///
-/// The paragraph that says what fridge days drive is not here — it explains a
-/// control to somebody meeting it, and a quarter of the cap is where somebody
-/// who already knows changes a number. The phone's form still carries it.
+/// The wide header's SHELF LIFE cell: the same two facts without the
+/// explanatory paragraph.
 class _DenseShelfLife extends StatelessWidget {
   const _DenseShelfLife({required this.recipe, required this.host});
 
@@ -669,25 +613,17 @@ class _DenseShelfLife extends StatelessWidget {
   );
 }
 
-/// Every word a wide header cell puts beside a control.
-///
-/// The label column is measured over the whole family rather than over the
-/// row's own word, so the two-fact cells start their controls on one axis — and
-/// so a word added here widens the column instead of breaking inside itself.
+/// Every word a wide header cell puts beside a control. The label column is
+/// measured over all of them so controls align across cells.
 const _kDenseWords = ['cook', 'total', 'fridge', 'freezes', 'freezer'];
 
-/// The measured label column, per text scale. Measuring is cheap but the header
-/// rebuilds on every keystroke in the title field, and the answer only ever
-/// changes when the reader's type size does.
+/// The measured label column, cached per text scale because the header rebuilds
+/// on every title keystroke.
 final _denseWordColumns = <TextScaler, double>{};
 
-/// How wide a dense cell's label column is: the widest of [_kDenseWords] at
-/// [ansiLabel], at the reader's own text scale.
-///
-/// Measured, never guessed. A column guessed at 40 px held COOK and broke
-/// TOTAL, FRIDGE, FREEZES and FREEZER inside themselves at every expanded
-/// width — the bug this replaces — and a guess would break again the first
-/// time the type scale, the tracking or the word list moved.
+/// A dense cell's label column width: the widest of [_kDenseWords] at
+/// [ansiLabel] and the reader's text scale. Measured, because a fixed width
+/// breaks words when the type scale or word list moves.
 double _denseWordColumn(BuildContext context) {
   final scaler = MediaQuery.textScalerOf(context);
   return _denseWordColumns.putIfAbsent(scaler, () {
@@ -707,17 +643,9 @@ double _denseWordColumn(BuildContext context) {
   });
 }
 
-/// One fact in a wide header cell: the word, then the control that sets it —
-/// beside it where a quarter of the cap holds both, on the line under it where
-/// it does not.
-///
-/// A [Wrap] rather than a [Row] because the word is the part that must not
-/// give: it is drawn at its measured width and never breaks inside itself, so
-/// when the pair is wider than the cell the *control* moves down a line. That
-/// is the fold from 1024 to 1063, where the rail's 64 px leave the cell 216
-/// and the pair wants 220. The four cells stay on one row at every expanded
-/// width either way, and the stepper keeps its buttons at their touch size,
-/// which is the trade the broken word was silently making instead.
+/// One fact in a wide header cell: the word, then its control. A [Wrap], so
+/// when the pair is wider than the cell the control moves down a line and the
+/// word never breaks.
 class _DenseRow extends StatelessWidget {
   const _DenseRow({required this.word, required this.control});
 
@@ -746,11 +674,8 @@ class _DenseRow extends StatelessWidget {
   );
 }
 
-/// One fact in a wide header cell: the word, then the compact stepper.
-///
-/// The same [AnsiStepperRow] the phone's row uses, in its small size — a
-/// quarter of the cap does not hold a sentence, two 44 pt buttons and a
-/// hundred-pixel reading.
+/// One fact in a wide header cell: the word, then [AnsiStepperRow] in its small
+/// size.
 class _MiniStepperRow extends StatelessWidget {
   const _MiniStepperRow({
     required this.word,
@@ -796,10 +721,9 @@ class _MiniStepperRow extends StatelessWidget {
   }
 }
 
-/// A label with a nullable stepper over an integer fact — days for the
-/// shelf-life rows, seconds stepped a minute at a time for TIMES. Stepping
-/// below one [step] clears the value (rendered as [unsetText]); stepping up
-/// from unset starts at one [step].
+/// A label with a nullable stepper over an integer fact (days, or seconds
+/// stepped a minute at a time). Stepping below one [step] clears the value
+/// ([unsetText]); stepping up from unset starts at one [step].
 class _StepperRow extends StatelessWidget {
   const _StepperRow({
     required this.label,
@@ -853,18 +777,8 @@ class _StepperRow extends StatelessWidget {
   }
 }
 
-/// Where the recipe is filed, as ONE LINE that opens the picker.
-///
-/// The door that opened this screen usually knows the answer already — a
-/// section's `＋` carries `?book=&section=` — so the line states a fact rather
-/// than asking a question. It stays a control, because two creation doors have
-/// no shelf to inherit (the Week picker's `＋ new recipe`, and the no-hits
-/// state, where a live query has replaced the tree) and because this same form
-/// renders for every EXISTING recipe, where it is the filing you came to
-/// change.
-///
-/// The words are the recipe page's own eyebrow — `BOOK · SECTION` in herb
-/// caps — so the editor states filing exactly as the reader already saw it.
+/// Where the recipe is filed, as one line that opens the picker. Worded like
+/// the recipe page's `BOOK · SECTION` eyebrow.
 class _FilingLine extends ConsumerWidget {
   const _FilingLine({required this.recipe, required this.host});
 
@@ -873,8 +787,8 @@ class _FilingLine extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // The same weighed emptiness the picker had (D6): with no books there is
-    // nothing to file into, and `ensureDefaultBook` means that cannot persist.
+    // With no books there is nothing to file into, and `ensureDefaultBook`
+    // means that cannot persist.
     final books = ref.watch(libraryProvider).asData?.value ?? const [];
     if (books.isEmpty) return const SizedBox.shrink();
 
@@ -942,9 +856,8 @@ Future<void> _showFilingSheet(
   ),
 );
 
-/// Picks the book + section the recipe is filed under. Book choices come from
-/// the Library; the section list follows the chosen book, plus an "Unsectioned"
-/// option (value `''`) and a "+" that creates a new section inline.
+/// Picks the book and section. The section list follows the chosen book, plus
+/// "Unsectioned" (value `''`) and a "+" that creates a section inline.
 class _FilingPicker extends ConsumerWidget {
   const _FilingPicker({required this.recipe, required this.host});
 
@@ -955,9 +868,8 @@ class _FilingPicker extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Decorative emptiness, weighed (D6): with no books the filing picker
-    // shows nothing to file into, which is exactly what a household with no
-    // books sees — and `ensureDefaultBook` means that state cannot persist.
+    // No books shows nothing to file into; `ensureDefaultBook` keeps that state
+    // from persisting.
     final books = ref.watch(libraryProvider).asData?.value ?? const [];
     if (books.isEmpty) return const SizedBox.shrink();
 
@@ -1013,9 +925,9 @@ class _FilingPicker extends ConsumerWidget {
             FButton.icon(
               variant: FButtonVariant.secondary,
               onPress: () async {
-                // The prompt's keyboard shrinks the editor's list, so this
-                // row can be unmounted by the time Add is tapped: the write
-                // goes through handles that outlive it (`hostContextOf`).
+                // The prompt's keyboard can unmount this row before Add is
+                // tapped, so the write goes through handles that outlive it
+                // (`hostContextOf`).
                 final container = ProviderScope.containerOf(
                   context,
                   listen: false,

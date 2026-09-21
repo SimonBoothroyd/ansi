@@ -1,17 +1,10 @@
-/// Read/write access to a recipe's own words for one of what its batch makes —
-/// PURE DART (invariant 2), the sub-recipe twin of `MeasureRepository`.
+/// Read/write access to a recipe's own measures ("a blob is 15 g", ADR-0018).
+/// Pure Dart.
 ///
-/// A [RecipeMeasure] is the household's word for one of what ONE recipe makes
-/// — a named AMOUNT in a unit ("a blob is 15 g", ADR-0018) — so another
-/// recipe's component line can say `3 blob` of it. A number and a unit define
-/// it and nothing here knows what the word says.
-///
-/// **Duplicate labels merge on read.** No unique index guards
-/// `(recipe_id, label)` — one would make an offline duplicate fail upload, and
-/// a failed upload drops the whole crud transaction (migration 0011's
-/// doctrine, restated by 0048). Every device converges on the *oldest* live row
-/// per label instead (`mergeByLabel`); the newer one is hidden, never
-/// deleted, so a line already pointing at it still resolves by id.
+/// Duplicate labels merge on read. A unique index on `(recipe_id, label)` would
+/// make an offline duplicate fail upload and drop the whole crud transaction,
+/// so devices converge on the oldest live row per label (`mergeByLabel`) and
+/// hide the newer one, which still resolves by id.
 library;
 
 import 'package:meta/meta.dart';
@@ -23,48 +16,19 @@ import 'recipe.dart';
 import 'recipe_measure_authoring.dart';
 import 'recipe_repository.dart';
 
-/// **Two doors write a measure, and they write it differently** — the same pair
-/// the ingredient side has worn since 7.6, and what separates them is whether
-/// the host has a Save (ADR-0011).
-///
-/// - The **recipe editor's MEASURES list**, under MAKES, has one, so it
-///   **defers**: the list rides [Recipe.measures] through
-///   [RecipeRepository.saveRecipe], which diffs it like any other child. None
-///   of this interface's methods are involved.
-/// - The **manage-measures page behind the ＋ on a component's quantity dock**
-///   has none, so it writes **on tap** — [addRecipeMeasure],
-///   [restateRecipeMeasure] and [softDeleteRecipeMeasure] — and a word written
-///   there is live on the next chip row.
-///
-/// Both doors land the same rows under the same rules, because the rules are
-/// [authorRecipeMeasure]'s rather than either door's.
-///
-/// **Nothing follows a measure out, because nothing may.** A line whose word
-/// has been retired is unresolved and stays unresolved — never re-read as a
-/// count of the yield (ADR-0018 rule 3). So a delete asks [countLinesUsing]
-/// first and is REFUSED while anything still says the word, at the repository
-/// rather than only at the bin: the refusal *is* the design, and a second door
-/// must not be able to walk round it.
+/// The on-tap door for measures (ADR-0011). The recipe editor's MEASURES list
+/// defers instead, riding [Recipe.measures] through
+/// [RecipeRepository.saveRecipe]. Both are held to [authorRecipeMeasure]. A
+/// delete is refused while anything says the word ([countLinesUsing]; ADR-0018
+/// rule 3).
 abstract interface class RecipeMeasureRepository {
-  /// The live words of [recipeId], `sort_order` first, duplicates merged — so
-  /// the first is the one that fronts a component's chip row.
+  /// The live words of [recipeId], `sort_order` first, duplicates merged.
   Stream<List<RecipeMeasure>> watchRecipeMeasures(String recipeId);
 
-  /// Coins one word for [recipeId] and returns it for immediate selection —
-  /// the ＋ door, which writes on tap.
-  ///
-  /// Stamped after the recipe's existing words (`sort_order`). Throws
-  /// [RecipeMeasureRefused] carrying [authorRecipeMeasure]'s own failure for a
-  /// blank label, a label that merely names a catalog unit, a label this
-  /// recipe already says, an [amount] that is not a positive finite number, a
-  /// [unit] that cannot measure (`batch`, or an imprecise word), or a unit
-  /// whose family the recipe's `makes` does not state — the rules hold at the
-  /// repository, not only at the form.
-  ///
-  /// **The `makes` is not a parameter.** ADR-0018 rule 2 gates a word on what
-  /// the recipe says a batch makes, which is a fact about the stored recipe;
-  /// the implementation reads it off the row inside its own transaction rather
-  /// than letting a form assert it.
+  /// Coins one word for [recipeId], stamped after its existing words, and
+  /// returns it. Throws [RecipeMeasureRefused] with [authorRecipeMeasure]'s
+  /// failure. The recipe's `makes` is read off the stored row inside the
+  /// transaction, not passed in (ADR-0018 rule 2).
   Future<RecipeMeasure> addRecipeMeasure({
     required String recipeId,
     required String label,
@@ -72,14 +36,9 @@ abstract interface class RecipeMeasureRepository {
     required Unit unit,
   });
 
-  /// Re-states one live word in place, **keeping its id** — `blob` moving from
-  /// 15 g to 18 g follows through to every line already saying it, which is the
-  /// whole reason this is not a delete and a re-add.
-  ///
-  /// The label, the number and the unit are re-stated together because they are
-  /// one sentence ("a blob is 18 g"), and the row's editor says all three.
-  /// Throws [RecipeMeasureRefused] on [addRecipeMeasure]'s rules, and for an
-  /// id naming no live word.
+  /// Re-states one live word's label, number and unit in place, keeping its id
+  /// so every line saying it follows. Throws [RecipeMeasureRefused] on
+  /// [addRecipeMeasure]'s rules, and for an id naming no live word.
   Future<void> restateRecipeMeasure({
     required String measureId,
     required String label,
@@ -87,31 +46,18 @@ abstract interface class RecipeMeasureRepository {
     required Unit unit,
   });
 
-  /// What still says this word: how many live rows point at it, and which
-  /// recipes they are in — the count the bin's refusal speaks
-  /// (`recipeMeasureDeleteRefusalText`) and the door that lists them.
-  ///
-  /// Both tables that can carry a pointer are counted (0048 names exactly
-  /// two), and only while the row is reachable: a line under a live group of a
-  /// live recipe, and an override on a live week.
+  /// What still says this word: live recipe lines (under a live group of a live
+  /// recipe), the recipes they are in, and overrides on live weeks.
   Future<RecipeMeasureUsage> countLinesUsing(String measureId);
 
-  /// Soft-deletes one word (tombstone, spec §3) — **or refuses**.
-  ///
-  /// Throws [RecipeMeasureInUse], carrying [countLinesUsing]'s counts, while
-  /// anything still points at it. A retired word does not degrade: the lines
-  /// saying it would go unresolved and join no total, so the app refuses the
-  /// retirement instead of quietly breaking them.
+  /// Soft-deletes one word, or throws [RecipeMeasureInUse] with
+  /// [countLinesUsing]'s counts while anything still points at it.
   Future<void> softDeleteRecipeMeasure(String measureId);
 }
 
-/// What a recipe measure is still used by — the answer
-/// [RecipeMeasureRepository.countLinesUsing] gives.
-///
-/// [lines] counts the live recipe lines — under a live group of a live recipe,
-/// the same set [recipes] names, so the sentence and the door can never
-/// disagree. [weeks] counts one week's own amounts separately, because there is
-/// no page to send anybody to for one.
+/// What a recipe measure is still used by. [lines] counts the live recipe
+/// lines, in the recipes [recipes] names. [weeks] counts week overrides
+/// separately, since they have no page to open.
 @immutable
 class RecipeMeasureUsage {
   const RecipeMeasureUsage({
@@ -149,17 +95,13 @@ class RecipeMeasureUsage {
       '${recipes.length} recipes)';
 }
 
-/// A word the household cannot have: the authoring rule that refused it, as
-/// [authorRecipeMeasure] stated it.
-///
-/// A repository throws rather than returning a [Result] (see
-/// `core/result/result.dart`): the write door turns a throw into a message
-/// with a reason, and [message] is already the sentence a form prints.
+/// An authoring refusal, as [authorRecipeMeasure] stated it. Repositories throw
+/// rather than return a [Result] (see `core/result/result.dart`); [message] is
+/// the sentence a form prints.
 class RecipeMeasureRefused implements Exception {
   const RecipeMeasureRefused(this.code, this.message);
 
-  /// `recipe_measure/<reason>` — the code [authorRecipeMeasure] gave, so a
-  /// caller can branch without matching on prose.
+  /// `recipe_measure/<reason>`, so a caller can branch without matching prose.
   final String code;
   final String message;
 
@@ -167,11 +109,9 @@ class RecipeMeasureRefused implements Exception {
   String toString() => message;
 }
 
-/// Why a word could not be retired: lines still say it.
-///
-/// Carries the counts rather than a sentence, because the sentence is the
-/// presentation layer's (`recipeMeasureDeleteRefusalText`) and this file is
-/// pure Dart. [label] is the word as stored, so the refusal can quote it.
+/// Why a word could not be retired: lines still say it. Carries counts, not a
+/// sentence (`recipeMeasureDeleteRefusalText` phrases it). [label] is the word
+/// as stored.
 class RecipeMeasureInUse implements Exception {
   const RecipeMeasureInUse({
     required this.measureId,

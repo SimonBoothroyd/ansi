@@ -103,24 +103,14 @@ final class RecipeMeasureRepositoryProvider
 String _$recipeMeasureRepositoryHash() =>
     r'50e6ab1fa9246f9063c085196de241bc80f4c05a';
 
-/// The live words of one recipe, `sort_order` first — what a component's chip
-/// row offers ahead of `batch` and what the recipe editor's MEASURES list
-/// draws.
-///
-/// Watched rather than read once, for the reason an ingredient's measures are:
-/// a word coined at the other door — or on the other phone — reaches this chip
-/// row without anybody invalidating anything.
+/// The live measures of one recipe, `sort_order` first. Watched, so a word
+/// coined at the other door or on another phone reaches the chip row.
 
 @ProviderFor(recipeMeasures)
 const recipeMeasuresProvider = RecipeMeasuresFamily._();
 
-/// The live words of one recipe, `sort_order` first — what a component's chip
-/// row offers ahead of `batch` and what the recipe editor's MEASURES list
-/// draws.
-///
-/// Watched rather than read once, for the reason an ingredient's measures are:
-/// a word coined at the other door — or on the other phone — reaches this chip
-/// row without anybody invalidating anything.
+/// The live measures of one recipe, `sort_order` first. Watched, so a word
+/// coined at the other door or on another phone reaches the chip row.
 
 final class RecipeMeasuresProvider
     extends
@@ -132,13 +122,8 @@ final class RecipeMeasuresProvider
     with
         $FutureModifier<List<RecipeMeasure>>,
         $StreamProvider<List<RecipeMeasure>> {
-  /// The live words of one recipe, `sort_order` first — what a component's chip
-  /// row offers ahead of `batch` and what the recipe editor's MEASURES list
-  /// draws.
-  ///
-  /// Watched rather than read once, for the reason an ingredient's measures are:
-  /// a word coined at the other door — or on the other phone — reaches this chip
-  /// row without anybody invalidating anything.
+  /// The live measures of one recipe, `sort_order` first. Watched, so a word
+  /// coined at the other door or on another phone reaches the chip row.
   const RecipeMeasuresProvider._({
     required RecipeMeasuresFamily super.from,
     required String super.argument,
@@ -185,13 +170,8 @@ final class RecipeMeasuresProvider
 
 String _$recipeMeasuresHash() => r'a991eebcd371421e23928768b9994a11c21e2ef6';
 
-/// The live words of one recipe, `sort_order` first — what a component's chip
-/// row offers ahead of `batch` and what the recipe editor's MEASURES list
-/// draws.
-///
-/// Watched rather than read once, for the reason an ingredient's measures are:
-/// a word coined at the other door — or on the other phone — reaches this chip
-/// row without anybody invalidating anything.
+/// The live measures of one recipe, `sort_order` first. Watched, so a word
+/// coined at the other door or on another phone reaches the chip row.
 
 final class RecipeMeasuresFamily extends $Family
     with $FunctionalFamilyOverride<Stream<List<RecipeMeasure>>, String> {
@@ -204,13 +184,8 @@ final class RecipeMeasuresFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// The live words of one recipe, `sort_order` first — what a component's chip
-  /// row offers ahead of `batch` and what the recipe editor's MEASURES list
-  /// draws.
-  ///
-  /// Watched rather than read once, for the reason an ingredient's measures are:
-  /// a word coined at the other door — or on the other phone — reaches this chip
-  /// row without anybody invalidating anything.
+  /// The live measures of one recipe, `sort_order` first. Watched, so a word
+  /// coined at the other door or on another phone reaches the chip row.
 
   RecipeMeasuresProvider call(String recipeId) =>
       RecipeMeasuresProvider._(argument: recipeId, from: this);

@@ -132,20 +132,14 @@ final class RecipeByIdFamily extends $Family
   String toString() => r'recipeByIdProvider';
 }
 
-/// The recipes that list [id] as a component — the "Used in · N" tab's rows
-/// (step 8.6 / D9), and the same count D5's delete refusal speaks.
-///
-/// It re-reads whenever the recipe itself changes, which is what a link
-/// written on this device (or synced in from the other one) moves.
+/// The recipes that list [id] as a component: the "Used in · N" rows and the
+/// count the delete refusal speaks. Re-reads whenever the recipe changes.
 
 @ProviderFor(recipeUsedIn)
 const recipeUsedInProvider = RecipeUsedInFamily._();
 
-/// The recipes that list [id] as a component — the "Used in · N" tab's rows
-/// (step 8.6 / D9), and the same count D5's delete refusal speaks.
-///
-/// It re-reads whenever the recipe itself changes, which is what a link
-/// written on this device (or synced in from the other one) moves.
+/// The recipes that list [id] as a component: the "Used in · N" rows and the
+/// count the delete refusal speaks. Re-reads whenever the recipe changes.
 
 final class RecipeUsedInProvider
     extends
@@ -155,11 +149,8 @@ final class RecipeUsedInProvider
           FutureOr<List<RecipeUse>>
         >
     with $FutureModifier<List<RecipeUse>>, $FutureProvider<List<RecipeUse>> {
-  /// The recipes that list [id] as a component — the "Used in · N" tab's rows
-  /// (step 8.6 / D9), and the same count D5's delete refusal speaks.
-  ///
-  /// It re-reads whenever the recipe itself changes, which is what a link
-  /// written on this device (or synced in from the other one) moves.
+  /// The recipes that list [id] as a component: the "Used in · N" rows and the
+  /// count the delete refusal speaks. Re-reads whenever the recipe changes.
   const RecipeUsedInProvider._({
     required RecipeUsedInFamily super.from,
     required String super.argument,
@@ -206,11 +197,8 @@ final class RecipeUsedInProvider
 
 String _$recipeUsedInHash() => r'3e015b6121d06751810194bbdf33fffb54d48d5c';
 
-/// The recipes that list [id] as a component — the "Used in · N" tab's rows
-/// (step 8.6 / D9), and the same count D5's delete refusal speaks.
-///
-/// It re-reads whenever the recipe itself changes, which is what a link
-/// written on this device (or synced in from the other one) moves.
+/// The recipes that list [id] as a component: the "Used in · N" rows and the
+/// count the delete refusal speaks. Re-reads whenever the recipe changes.
 
 final class RecipeUsedInFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<List<RecipeUse>>, String> {
@@ -223,11 +211,8 @@ final class RecipeUsedInFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// The recipes that list [id] as a component — the "Used in · N" tab's rows
-  /// (step 8.6 / D9), and the same count D5's delete refusal speaks.
-  ///
-  /// It re-reads whenever the recipe itself changes, which is what a link
-  /// written on this device (or synced in from the other one) moves.
+  /// The recipes that list [id] as a component: the "Used in · N" rows and the
+  /// count the delete refusal speaks. Re-reads whenever the recipe changes.
 
   RecipeUsedInProvider call(String id) =>
       RecipeUsedInProvider._(argument: id, from: this);
@@ -236,20 +221,16 @@ final class RecipeUsedInFamily extends $Family
   String toString() => r'recipeUsedInProvider';
 }
 
-/// Every recipe's cost, keyed by recipe id (ADR-0017) — the Cost reading of
-/// the recipe panel, and what the week's band sums.
-///
-/// A second stream beside [recipeList] rather than a field on it: a cost moves
-/// when a receipt lands, and money never rides on a macro summary.
+/// Every recipe's cost, keyed by recipe id (ADR-0017). A separate stream from
+/// [recipeList]: a cost moves when a receipt lands, and money stays apart from
+/// macros.
 
 @ProviderFor(recipeCosts)
 const recipeCostsProvider = RecipeCostsProvider._();
 
-/// Every recipe's cost, keyed by recipe id (ADR-0017) — the Cost reading of
-/// the recipe panel, and what the week's band sums.
-///
-/// A second stream beside [recipeList] rather than a field on it: a cost moves
-/// when a receipt lands, and money never rides on a macro summary.
+/// Every recipe's cost, keyed by recipe id (ADR-0017). A separate stream from
+/// [recipeList]: a cost moves when a receipt lands, and money stays apart from
+/// macros.
 
 final class RecipeCostsProvider
     extends
@@ -261,11 +242,9 @@ final class RecipeCostsProvider
     with
         $FutureModifier<Map<String, RecipeCostSummary>>,
         $StreamProvider<Map<String, RecipeCostSummary>> {
-  /// Every recipe's cost, keyed by recipe id (ADR-0017) — the Cost reading of
-  /// the recipe panel, and what the week's band sums.
-  ///
-  /// A second stream beside [recipeList] rather than a field on it: a cost moves
-  /// when a receipt lands, and money never rides on a macro summary.
+  /// Every recipe's cost, keyed by recipe id (ADR-0017). A separate stream from
+  /// [recipeList]: a cost moves when a receipt lands, and money stays apart from
+  /// macros.
   const RecipeCostsProvider._()
     : super(
         from: null,
@@ -295,47 +274,29 @@ final class RecipeCostsProvider
 String _$recipeCostsHash() => r'baa798871d2fb3bbb25f9d42fb7eeede913f75be';
 
 /// Whether the recipe page prints each ingredient line's own figures under its
-/// name, beneath the panel's total.
+/// name.
 ///
-/// A **reading posture**, not a household fact: it changes what one person is
-/// looking at right now, so it is neither written to the recipe nor synced.
-/// Keep-alive rather than per-page so the choice survives moving between
-/// recipes — a reader comparing two recipes' lines should not have to switch it
-/// back on — and it resets with the app, which is as long as a posture lasts.
-///
-/// WHICH figures it prints is [CostReading]'s answer, not this one: there is
-/// one toggle and one menu item, and the lines print whatever the panel above
-/// them is reading.
+/// A reading posture, neither stored nor synced: keep-alive so it survives
+/// moving between recipes, reset with the app. Which figures print is
+/// [CostReading]'s answer.
 
 @ProviderFor(ShowLineFigures)
 const showLineFiguresProvider = ShowLineFiguresProvider._();
 
 /// Whether the recipe page prints each ingredient line's own figures under its
-/// name, beneath the panel's total.
+/// name.
 ///
-/// A **reading posture**, not a household fact: it changes what one person is
-/// looking at right now, so it is neither written to the recipe nor synced.
-/// Keep-alive rather than per-page so the choice survives moving between
-/// recipes — a reader comparing two recipes' lines should not have to switch it
-/// back on — and it resets with the app, which is as long as a posture lasts.
-///
-/// WHICH figures it prints is [CostReading]'s answer, not this one: there is
-/// one toggle and one menu item, and the lines print whatever the panel above
-/// them is reading.
+/// A reading posture, neither stored nor synced: keep-alive so it survives
+/// moving between recipes, reset with the app. Which figures print is
+/// [CostReading]'s answer.
 final class ShowLineFiguresProvider
     extends $NotifierProvider<ShowLineFigures, bool> {
   /// Whether the recipe page prints each ingredient line's own figures under its
-  /// name, beneath the panel's total.
+  /// name.
   ///
-  /// A **reading posture**, not a household fact: it changes what one person is
-  /// looking at right now, so it is neither written to the recipe nor synced.
-  /// Keep-alive rather than per-page so the choice survives moving between
-  /// recipes — a reader comparing two recipes' lines should not have to switch it
-  /// back on — and it resets with the app, which is as long as a posture lasts.
-  ///
-  /// WHICH figures it prints is [CostReading]'s answer, not this one: there is
-  /// one toggle and one menu item, and the lines print whatever the panel above
-  /// them is reading.
+  /// A reading posture, neither stored nor synced: keep-alive so it survives
+  /// moving between recipes, reset with the app. Which figures print is
+  /// [CostReading]'s answer.
   const ShowLineFiguresProvider._()
     : super(
         from: null,
@@ -366,17 +327,11 @@ final class ShowLineFiguresProvider
 String _$showLineFiguresHash() => r'f7f887cb0f269c979a96df0440b4c04f126da289';
 
 /// Whether the recipe page prints each ingredient line's own figures under its
-/// name, beneath the panel's total.
+/// name.
 ///
-/// A **reading posture**, not a household fact: it changes what one person is
-/// looking at right now, so it is neither written to the recipe nor synced.
-/// Keep-alive rather than per-page so the choice survives moving between
-/// recipes — a reader comparing two recipes' lines should not have to switch it
-/// back on — and it resets with the app, which is as long as a posture lasts.
-///
-/// WHICH figures it prints is [CostReading]'s answer, not this one: there is
-/// one toggle and one menu item, and the lines print whatever the panel above
-/// them is reading.
+/// A reading posture, neither stored nor synced: keep-alive so it survives
+/// moving between recipes, reset with the app. Which figures print is
+/// [CostReading]'s answer.
 
 abstract class _$ShowLineFigures extends $Notifier<bool> {
   bool build();
@@ -397,32 +352,17 @@ abstract class _$ShowLineFigures extends $Notifier<bool> {
   }
 }
 
-/// Whether the recipe panel reads COST rather than macros — the `Macros |
-/// Cost` chip pair that closes the Ingredients tab.
-///
-/// The same kind of posture as [ShowLineFigures] and held the same way: for the
-/// session, across recipes, written nowhere and synced to nobody. Somebody
-/// pricing a week's cooking stays in Cost while they move between recipes; the
-/// app forgets it when it restarts, which is as long as a posture lasts.
+/// Whether the recipe panel reads cost rather than macros. A session posture
+/// held like [ShowLineFigures].
 
 @ProviderFor(CostReading)
 const costReadingProvider = CostReadingProvider._();
 
-/// Whether the recipe panel reads COST rather than macros — the `Macros |
-/// Cost` chip pair that closes the Ingredients tab.
-///
-/// The same kind of posture as [ShowLineFigures] and held the same way: for the
-/// session, across recipes, written nowhere and synced to nobody. Somebody
-/// pricing a week's cooking stays in Cost while they move between recipes; the
-/// app forgets it when it restarts, which is as long as a posture lasts.
+/// Whether the recipe panel reads cost rather than macros. A session posture
+/// held like [ShowLineFigures].
 final class CostReadingProvider extends $NotifierProvider<CostReading, bool> {
-  /// Whether the recipe panel reads COST rather than macros — the `Macros |
-  /// Cost` chip pair that closes the Ingredients tab.
-  ///
-  /// The same kind of posture as [ShowLineFigures] and held the same way: for the
-  /// session, across recipes, written nowhere and synced to nobody. Somebody
-  /// pricing a week's cooking stays in Cost while they move between recipes; the
-  /// app forgets it when it restarts, which is as long as a posture lasts.
+  /// Whether the recipe panel reads cost rather than macros. A session posture
+  /// held like [ShowLineFigures].
   const CostReadingProvider._()
     : super(
         from: null,
@@ -452,13 +392,8 @@ final class CostReadingProvider extends $NotifierProvider<CostReading, bool> {
 
 String _$costReadingHash() => r'b4536d0397187cc64cd4adcf839c42c40ad72e9d';
 
-/// Whether the recipe panel reads COST rather than macros — the `Macros |
-/// Cost` chip pair that closes the Ingredients tab.
-///
-/// The same kind of posture as [ShowLineFigures] and held the same way: for the
-/// session, across recipes, written nowhere and synced to nobody. Somebody
-/// pricing a week's cooking stays in Cost while they move between recipes; the
-/// app forgets it when it restarts, which is as long as a posture lasts.
+/// Whether the recipe panel reads cost rather than macros. A session posture
+/// held like [ShowLineFigures].
 
 abstract class _$CostReading extends $Notifier<bool> {
   bool build();
@@ -479,20 +414,18 @@ abstract class _$CostReading extends $Notifier<bool> {
   }
 }
 
-/// Resolves the vocab [Ingredient] behind an editor line item, so its unit
-/// dropdown can be filtered by [allowedUnitsFor]. The repository only exposes
-/// search (ADR-0004), so this searches by the denormalised name and matches on
-/// id; null when the vocab row can't be resolved (the dropdown then falls back
-/// to the full catalog).
+/// Resolves the vocab [Ingredient] behind an editor line item so its units can
+/// be filtered by [allowedUnitsFor]. The repository only exposes search
+/// (ADR-0004), so this searches by name and matches on id; null when
+/// unresolved.
 
 @ProviderFor(lineItemIngredient)
 const lineItemIngredientProvider = LineItemIngredientFamily._();
 
-/// Resolves the vocab [Ingredient] behind an editor line item, so its unit
-/// dropdown can be filtered by [allowedUnitsFor]. The repository only exposes
-/// search (ADR-0004), so this searches by the denormalised name and matches on
-/// id; null when the vocab row can't be resolved (the dropdown then falls back
-/// to the full catalog).
+/// Resolves the vocab [Ingredient] behind an editor line item so its units can
+/// be filtered by [allowedUnitsFor]. The repository only exposes search
+/// (ADR-0004), so this searches by name and matches on id; null when
+/// unresolved.
 
 final class LineItemIngredientProvider
     extends
@@ -502,11 +435,10 @@ final class LineItemIngredientProvider
           FutureOr<Ingredient?>
         >
     with $FutureModifier<Ingredient?>, $FutureProvider<Ingredient?> {
-  /// Resolves the vocab [Ingredient] behind an editor line item, so its unit
-  /// dropdown can be filtered by [allowedUnitsFor]. The repository only exposes
-  /// search (ADR-0004), so this searches by the denormalised name and matches on
-  /// id; null when the vocab row can't be resolved (the dropdown then falls back
-  /// to the full catalog).
+  /// Resolves the vocab [Ingredient] behind an editor line item so its units can
+  /// be filtered by [allowedUnitsFor]. The repository only exposes search
+  /// (ADR-0004), so this searches by name and matches on id; null when
+  /// unresolved.
   const LineItemIngredientProvider._({
     required LineItemIngredientFamily super.from,
     required ({String ingredientId, String name}) super.argument,
@@ -558,11 +490,10 @@ final class LineItemIngredientProvider
 String _$lineItemIngredientHash() =>
     r'4c3b527f76234a712182d22f5efadac9b0845b4d';
 
-/// Resolves the vocab [Ingredient] behind an editor line item, so its unit
-/// dropdown can be filtered by [allowedUnitsFor]. The repository only exposes
-/// search (ADR-0004), so this searches by the denormalised name and matches on
-/// id; null when the vocab row can't be resolved (the dropdown then falls back
-/// to the full catalog).
+/// Resolves the vocab [Ingredient] behind an editor line item so its units can
+/// be filtered by [allowedUnitsFor]. The repository only exposes search
+/// (ADR-0004), so this searches by name and matches on id; null when
+/// unresolved.
 
 final class LineItemIngredientFamily extends $Family
     with
@@ -579,11 +510,10 @@ final class LineItemIngredientFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Resolves the vocab [Ingredient] behind an editor line item, so its unit
-  /// dropdown can be filtered by [allowedUnitsFor]. The repository only exposes
-  /// search (ADR-0004), so this searches by the denormalised name and matches on
-  /// id; null when the vocab row can't be resolved (the dropdown then falls back
-  /// to the full catalog).
+  /// Resolves the vocab [Ingredient] behind an editor line item so its units can
+  /// be filtered by [allowedUnitsFor]. The repository only exposes search
+  /// (ADR-0004), so this searches by name and matches on id; null when
+  /// unresolved.
 
   LineItemIngredientProvider call({
     required String ingredientId,
@@ -597,75 +527,33 @@ final class LineItemIngredientFamily extends $Family
   String toString() => r'lineItemIngredientProvider';
 }
 
-/// Editable recipe state. `build` loads an existing recipe (edit) or starts a
-/// blank one with a fresh id and a single empty group (create).
+/// Editable recipe state. `build` loads an existing recipe or starts a blank
+/// one with a fresh id and one empty group.
 ///
-/// [RecipeEditor.build]'s [initialTitle] seeds a NEW draft's title — what
-/// `/recipes/new?title=…` carries from the Library's "nothing matches" state,
-/// so a search for a recipe you were about to write becomes that recipe rather
-/// than an empty form. It is part of the family key, so arriving with a
-/// different title is a different draft.
-///
-/// [initialBookId] and [initialSectionId] are the same idea for the FILING
-/// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
-/// over, so the recipe lands on the shelf you tapped instead of in whichever
-/// book `ensureDefaultBook` returns. They key the family too — the same
-/// blank form filed into two different sections is two drafts.
-///
-/// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
-/// every member of that interface was already here, written for the step cards.
-/// The import review's adapter implements the same surface, so the cards can
-/// host on either screen without two of them existing. The same holds for
-/// [RecipeHeaderHost]: the header form renders over this notifier here and over
-/// the import controller at review.
+/// [initialTitle], [initialBookId] and [initialSectionId] seed a new draft from
+/// the route (`/recipes/new?title=…&book=…&section=…`) and are part of the
+/// family key. Implements [MethodEditing] and [RecipeHeaderHost], the surfaces
+/// the step cards and header form also host on at import review.
 
 @ProviderFor(RecipeEditor)
 const recipeEditorProvider = RecipeEditorFamily._();
 
-/// Editable recipe state. `build` loads an existing recipe (edit) or starts a
-/// blank one with a fresh id and a single empty group (create).
+/// Editable recipe state. `build` loads an existing recipe or starts a blank
+/// one with a fresh id and one empty group.
 ///
-/// [RecipeEditor.build]'s [initialTitle] seeds a NEW draft's title — what
-/// `/recipes/new?title=…` carries from the Library's "nothing matches" state,
-/// so a search for a recipe you were about to write becomes that recipe rather
-/// than an empty form. It is part of the family key, so arriving with a
-/// different title is a different draft.
-///
-/// [initialBookId] and [initialSectionId] are the same idea for the FILING
-/// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
-/// over, so the recipe lands on the shelf you tapped instead of in whichever
-/// book `ensureDefaultBook` returns. They key the family too — the same
-/// blank form filed into two different sections is two drafts.
-///
-/// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
-/// every member of that interface was already here, written for the step cards.
-/// The import review's adapter implements the same surface, so the cards can
-/// host on either screen without two of them existing. The same holds for
-/// [RecipeHeaderHost]: the header form renders over this notifier here and over
-/// the import controller at review.
+/// [initialTitle], [initialBookId] and [initialSectionId] seed a new draft from
+/// the route (`/recipes/new?title=…&book=…&section=…`) and are part of the
+/// family key. Implements [MethodEditing] and [RecipeHeaderHost], the surfaces
+/// the step cards and header form also host on at import review.
 final class RecipeEditorProvider
     extends $AsyncNotifierProvider<RecipeEditor, Recipe> {
-  /// Editable recipe state. `build` loads an existing recipe (edit) or starts a
-  /// blank one with a fresh id and a single empty group (create).
+  /// Editable recipe state. `build` loads an existing recipe or starts a blank
+  /// one with a fresh id and one empty group.
   ///
-  /// [RecipeEditor.build]'s [initialTitle] seeds a NEW draft's title — what
-  /// `/recipes/new?title=…` carries from the Library's "nothing matches" state,
-  /// so a search for a recipe you were about to write becomes that recipe rather
-  /// than an empty form. It is part of the family key, so arriving with a
-  /// different title is a different draft.
-  ///
-  /// [initialBookId] and [initialSectionId] are the same idea for the FILING
-  /// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
-  /// over, so the recipe lands on the shelf you tapped instead of in whichever
-  /// book `ensureDefaultBook` returns. They key the family too — the same
-  /// blank form filed into two different sections is two drafts.
-  ///
-  /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
-  /// every member of that interface was already here, written for the step cards.
-  /// The import review's adapter implements the same surface, so the cards can
-  /// host on either screen without two of them existing. The same holds for
-  /// [RecipeHeaderHost]: the header form renders over this notifier here and over
-  /// the import controller at review.
+  /// [initialTitle], [initialBookId] and [initialSectionId] seed a new draft from
+  /// the route (`/recipes/new?title=…&book=…&section=…`) and are part of the
+  /// family key. Implements [MethodEditing] and [RecipeHeaderHost], the surfaces
+  /// the step cards and header form also host on at import review.
   const RecipeEditorProvider._({
     required RecipeEditorFamily super.from,
     required (
@@ -710,27 +598,13 @@ final class RecipeEditorProvider
 
 String _$recipeEditorHash() => r'e0df9b0f1aa1eec78eff2ba484eaba8969b92ef7';
 
-/// Editable recipe state. `build` loads an existing recipe (edit) or starts a
-/// blank one with a fresh id and a single empty group (create).
+/// Editable recipe state. `build` loads an existing recipe or starts a blank
+/// one with a fresh id and one empty group.
 ///
-/// [RecipeEditor.build]'s [initialTitle] seeds a NEW draft's title — what
-/// `/recipes/new?title=…` carries from the Library's "nothing matches" state,
-/// so a search for a recipe you were about to write becomes that recipe rather
-/// than an empty form. It is part of the family key, so arriving with a
-/// different title is a different draft.
-///
-/// [initialBookId] and [initialSectionId] are the same idea for the FILING
-/// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
-/// over, so the recipe lands on the shelf you tapped instead of in whichever
-/// book `ensureDefaultBook` returns. They key the family too — the same
-/// blank form filed into two different sections is two drafts.
-///
-/// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
-/// every member of that interface was already here, written for the step cards.
-/// The import review's adapter implements the same surface, so the cards can
-/// host on either screen without two of them existing. The same holds for
-/// [RecipeHeaderHost]: the header form renders over this notifier here and over
-/// the import controller at review.
+/// [initialTitle], [initialBookId] and [initialSectionId] seed a new draft from
+/// the route (`/recipes/new?title=…&book=…&section=…`) and are part of the
+/// family key. Implements [MethodEditing] and [RecipeHeaderHost], the surfaces
+/// the step cards and header form also host on at import review.
 
 final class RecipeEditorFamily extends $Family
     with
@@ -755,27 +629,13 @@ final class RecipeEditorFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Editable recipe state. `build` loads an existing recipe (edit) or starts a
-  /// blank one with a fresh id and a single empty group (create).
+  /// Editable recipe state. `build` loads an existing recipe or starts a blank
+  /// one with a fresh id and one empty group.
   ///
-  /// [RecipeEditor.build]'s [initialTitle] seeds a NEW draft's title — what
-  /// `/recipes/new?title=…` carries from the Library's "nothing matches" state,
-  /// so a search for a recipe you were about to write becomes that recipe rather
-  /// than an empty form. It is part of the family key, so arriving with a
-  /// different title is a different draft.
-  ///
-  /// [initialBookId] and [initialSectionId] are the same idea for the FILING
-  /// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
-  /// over, so the recipe lands on the shelf you tapped instead of in whichever
-  /// book `ensureDefaultBook` returns. They key the family too — the same
-  /// blank form filed into two different sections is two drafts.
-  ///
-  /// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
-  /// every member of that interface was already here, written for the step cards.
-  /// The import review's adapter implements the same surface, so the cards can
-  /// host on either screen without two of them existing. The same holds for
-  /// [RecipeHeaderHost]: the header form renders over this notifier here and over
-  /// the import controller at review.
+  /// [initialTitle], [initialBookId] and [initialSectionId] seed a new draft from
+  /// the route (`/recipes/new?title=…&book=…&section=…`) and are part of the
+  /// family key. Implements [MethodEditing] and [RecipeHeaderHost], the surfaces
+  /// the step cards and header form also host on at import review.
 
   RecipeEditorProvider call(
     String? recipeId, {
@@ -796,27 +656,13 @@ final class RecipeEditorFamily extends $Family
   String toString() => r'recipeEditorProvider';
 }
 
-/// Editable recipe state. `build` loads an existing recipe (edit) or starts a
-/// blank one with a fresh id and a single empty group (create).
+/// Editable recipe state. `build` loads an existing recipe or starts a blank
+/// one with a fresh id and one empty group.
 ///
-/// [RecipeEditor.build]'s [initialTitle] seeds a NEW draft's title — what
-/// `/recipes/new?title=…` carries from the Library's "nothing matches" state,
-/// so a search for a recipe you were about to write becomes that recipe rather
-/// than an empty form. It is part of the family key, so arriving with a
-/// different title is a different draft.
-///
-/// [initialBookId] and [initialSectionId] are the same idea for the FILING
-/// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
-/// over, so the recipe lands on the shelf you tapped instead of in whichever
-/// book `ensureDefaultBook` returns. They key the family too — the same
-/// blank form filed into two different sections is two drafts.
-///
-/// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
-/// every member of that interface was already here, written for the step cards.
-/// The import review's adapter implements the same surface, so the cards can
-/// host on either screen without two of them existing. The same holds for
-/// [RecipeHeaderHost]: the header form renders over this notifier here and over
-/// the import controller at review.
+/// [initialTitle], [initialBookId] and [initialSectionId] seed a new draft from
+/// the route (`/recipes/new?title=…&book=…&section=…`) and are part of the
+/// family key. Implements [MethodEditing] and [RecipeHeaderHost], the surfaces
+/// the step cards and header form also host on at import review.
 
 abstract class _$RecipeEditor extends $AsyncNotifier<Recipe> {
   late final _$args =

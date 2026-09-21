@@ -1,30 +1,12 @@
-/// The panel's COST reading, and the chip pair that flips between the two.
+/// The panel's cost reading, and the chip pair that flips between macros and
+/// cost.
 ///
-/// **Why the panel and not a tab** (design board). A Cost tab would have to
-/// show the ingredient lines again to mean anything, and the page holds one
-/// list. The strip is already where the lines are summed; giving it two
-/// readings keeps one list, one scaler and one summation — a cost is the same
-/// per-line record as a macro, added up the same way and scaled by the same
-/// factor.
-///
-/// **Three cells, or none.** `$2.54 / a serving`, `$10.17 / the recipe`,
-/// `Sep / prices from`. The third cell is the caveat said in words: a price is
-/// the latest one seen, and the strip states when that was. The `OLDEST` row
-/// under it names the one line dragging that date back, so a July jar under an
-/// otherwise-September recipe is visible rather than averaged away.
-///
-/// **An unpriced line takes the cells with it** (invariant 3, and exactly what
-/// the macro reading does with a stub): a figure that quietly skipped the
-/// tomatoes would understate the recipe by the tomatoes. The cells go, the
-/// refusal says how many lines it is waiting on, and `UNPRICED` names them.
-///
-/// **What the priced lines come to is still printed, as a floor.** Where some
-/// lines are priced and some are not, the refusal carries `at least $1.65 a
-/// serving · at least $6.60 the recipe` under it — the cells' own two labels,
-/// each with its own `at least`, so the figure cannot be read as the recipe's
-/// cost. Nothing else changes: the cells stay gone, the unpriced lines stay
-/// named, and a recipe with nothing priced keeps the plain refusal, because
-/// `at least $0` would read as free rather than as unknown.
+/// Three cells: `$2.54 / a serving`, `$10.17 / the recipe`, `Sep / prices
+/// from`. An `OLDEST` row names the one line with an older price. An unpriced
+/// line removes the cells: the refusal counts the lines and `UNPRICED` names
+/// them. Where some lines are priced, the refusal adds `at least $1.65 a
+/// serving · at least $6.60 the recipe` as a floor; with nothing priced it
+/// stays plain.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -39,12 +21,7 @@ import '../../../shared/incomplete_macros.dart';
 import '../domain/recipe_cost.dart';
 import 'recipe_macro_panel.dart';
 
-/// The `Macros | Cost` pair with `per serving` beside it — what stands over
-/// the strip once the panel has two readings.
-///
-/// The app's chip row for a small closed choice, the control the Account
-/// page's *Week starts on* uses. Two chips, not a dropdown: there are two
-/// answers and both fit on the row.
+/// The `Macros | Cost` chip pair with `per serving` beside it.
 class FiguresToggle extends StatelessWidget {
   const FiguresToggle({required this.cost, required this.onChanged, super.key});
 
@@ -67,22 +44,19 @@ class FiguresToggle extends StatelessWidget {
         const SizedBox(width: 6),
         AnsiChip(label: 'Cost', selected: cost, onTap: () => onChanged(true)),
         const SizedBox(width: 10),
-        // The label the micro-label over the macro strip was: both readings
-        // are per serving, and saying so once beside the pair is the same
-        // claim with one fewer line.
+        // Both readings are per serving, said once beside the pair.
         Text('per serving', style: ansiLabel()),
       ],
     ),
   );
 }
 
-/// The cost strip: the cells when every counted line is priced, the refusal
-/// when one is not, and the named rows under either.
+/// The cost strip: cells when every counted line is priced, the refusal
+/// otherwise, and the named rows under either.
 class RecipeCostPanel extends StatelessWidget {
   const RecipeCostPanel({required this.summary, this.header, super.key});
 
-  /// The recipe's honest cost. Null while the costs have not loaded — the
-  /// panel then draws nothing rather than guessing.
+  /// The recipe's cost. Null while costs load; the panel then draws nothing.
   final RecipeCostSummary? summary;
 
   /// What stands over the strip; see [RecipeMacroPanel.header].
@@ -123,8 +97,7 @@ class _Cells extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Non-null by construction: the cells are only built for a complete
-    // summary.
+    // Non-null: cells are only built for a complete summary.
     final month = summary.newestPrice;
     return PanelCells(
       cells: [
@@ -136,8 +109,7 @@ class _Cells extends StatelessWidget {
   }
 }
 
-/// No cost, and why — the macro reading's refusal in the cost vocabulary, with
-/// the floor the priced lines already reach where there is one.
+/// No cost and why, with the floor the priced lines reach where there is one.
 class _Refusal extends StatelessWidget {
   const _Refusal({required this.summary});
 
@@ -165,8 +137,7 @@ class _Refusal extends StatelessWidget {
           ),
           if (floor != null) ...[
             const SizedBox(height: 8),
-            // A cell's weight, because it is a real figure, and one size down
-            // because the words it needs to stay honest are in it.
+            // A cell's weight, one size down to fit its `at least` wording.
             Text(floor, style: ansiMono(size: 13, weight: FontWeight.w500)),
           ],
           const SizedBox(height: 6),
@@ -201,8 +172,7 @@ class _Refusal extends StatelessWidget {
   }
 }
 
-/// `UNPRICED`, `OLDEST`, `NOT COUNTED`, `OPTIONAL` — what the figure above is
-/// waiting on, what is dragging its date back, and what it leaves out by rule.
+/// `UNPRICED`, `OLDEST`, `NOT COUNTED`, `OPTIONAL` rows.
 class _Named extends StatelessWidget {
   const _Named({required this.summary});
 
@@ -229,9 +199,8 @@ class _Named extends StatelessWidget {
             PanelNoteRow(
               label: 'UNPRICED',
               names: unpriced,
-              // The one row here that names a DEFECT — something a person can
-              // go and fix — so it wears the same amber the macro reading's
-              // markers do rather than the muted the rules wear.
+              // The one row naming something fixable, so it wears the markers'
+              // amber.
               labelColor: AnsiColors.aging,
             ),
           if (oldest != null) PanelNoteRow(label: 'OLDEST', names: oldest),

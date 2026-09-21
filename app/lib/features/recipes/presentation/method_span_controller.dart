@@ -1,17 +1,11 @@
-/// The step card's text controller — it paints the chips (0022 D1).
+/// The step card's text controller, which paints the chips.
 ///
-/// A chip is a **styled range over real text**, not a widget in the field. The
-/// draft's span table says which characters are chips; `buildTextSpan` gives
-/// those runs the herb skin (an ingredient) or the outlined mono skin (a
-/// timer), and everything else stays ordinary prose. Caret, selection, IME,
-/// autocorrect and backspace therefore behave exactly as in any text field,
-/// because nothing exotic lives in `value.text`.
-///
-/// **Not [WidgetSpan].** Flutter renders inline widgets inside an editable only
-/// when each span owns exactly one U+FFFC character; a mismatch is a framework
-/// assertion, the placeholder leaks into every string read back, and backspace
-/// across a span differs by platform. The real pills live in the card's
-/// "Reads as" preview, which is the shipped `MethodStepText`.
+/// A chip is a styled range over real text, not a widget: the draft's span
+/// table says which characters are chips and `buildTextSpan` skins them, so
+/// caret, selection, IME and backspace behave as in any field. Not
+/// [WidgetSpan]: an editable renders inline widgets only when each span owns
+/// exactly one U+FFFC, the placeholder leaks into strings read back, and
+/// backspace across a span differs by platform.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -26,37 +20,25 @@ class MethodSpanController extends TextEditingController {
 
   MethodDraftStep _draft;
 
-  /// Whether the chip the caret is inside wears a ring — the wide editor's
-  /// other half of the lit lines, so the pair reads from either end. Off on
-  /// the phone, where the line it points at is a scroll away and a ring would
-  /// only mark the word under your own finger.
-  ///
-  /// Not final: the band can change under a mounted card (a window resized),
-  /// and re-making the controller for that would drop the caret.
+  /// Whether the chip under the caret wears a ring (the wide editor). Not
+  /// final: the layout can change under a mounted card, and re-making the
+  /// controller would drop the caret.
   bool ringsCaretChip;
 
   MethodDraftStep get draft => _draft;
 
-  /// True while [sync] is pushing text INTO the field — the host must ignore
-  /// the `onChange` it hears in that window.
+  /// True while [sync] is pushing text into the field; the host must ignore the
+  /// `onChange` it hears then.
   ///
-  /// Forui registers a managed field's `onChange` as **a plain controller
-  /// listener**, so the assignment in [sync] comes straight back to the host
-  /// as `editStep(id, text)` — an edit nobody typed. `applyEdit` then diffs
-  /// that text against the draft it can see and drops every span overlapping
-  /// the changed range, so the sanctioned rename path would destroy what it
-  /// renames: the chip goes and its word is left sitting as prose. The loop
-  /// is closed here, at the one place that knows it wrote the text itself,
-  /// rather than in `applyEdit` — whose rule is right: typing over a chip's
-  /// own characters in the sentence really does end it.
+  /// Forui registers `onChange` as a plain controller listener, so [sync]'s
+  /// assignment comes back to the host as an edit nobody typed, and `applyEdit`
+  /// would drop every span that edit overlaps, including a chip being renamed.
   bool get isSyncing => _syncing;
   bool _syncing = false;
 
-  /// Re-seats the controller on [next].
-  ///
-  /// A no-op when nothing moved — the notifier rebuilds the whole form on
-  /// every keystroke, and Forui registers its `onChange` as a plain listener,
-  /// so an unconditional [notifyListeners] here would round-trip forever.
+  /// Re-seats the controller on [next]. A no-op when nothing moved: the form
+  /// rebuilds on every keystroke, and an unconditional [notifyListeners] would
+  /// loop through Forui's `onChange`.
   void sync(MethodDraftStep next) {
     if (next == _draft) return;
     final textChanged = next.text != _draft.text;
@@ -68,8 +50,8 @@ class MethodSpanController extends TextEditingController {
         notifyListeners();
         return;
       }
-      // Something outside the field rewrote the text (a sheet, a relabel). Put
-      // the caret where the edit left off rather than at the start.
+      // Text rewritten from outside the field: keep the caret where the edit
+      // left off.
       final offset = _carryCaret(next.text);
       value = TextEditingValue(
         text: next.text,
@@ -94,9 +76,8 @@ class MethodSpanController extends TextEditingController {
     // ignore: always_put_required_named_parameters_first
     required bool withComposing,
   }) {
-    // Mid-keystroke the field's text is ahead of the draft for one frame;
-    // painting stale ranges over new characters would flicker a chip onto the
-    // wrong word, so fall back to plain prose until sync catches up.
+    // Mid-keystroke the text is a frame ahead of the draft; paint plain prose
+    // until sync catches up rather than stale ranges.
     if (text != _draft.text || _draft.spans.isEmpty) {
       return TextSpan(text: text, style: style);
     }
@@ -125,10 +106,8 @@ class MethodSpanController extends TextEditingController {
     return TextSpan(style: style, children: children);
   }
 
-  /// The span the caret is sitting in, by the card's own rule: a caret at a
-  /// chip's closing edge belongs to the chip when the affinity is upstream.
-  /// Null while a selection is open — a drag across a sentence is not a caret
-  /// inside one word.
+  /// The span the caret sits in. A caret at a chip's closing edge belongs to
+  /// the chip when the affinity is upstream. Null while a selection is open.
   int? _caretSpan() {
     final selection = this.selection;
     if (!selection.isValid || !selection.isCollapsed) return null;
@@ -140,30 +119,23 @@ class MethodSpanController extends TextEditingController {
   }
 }
 
-/// The herb skin an ingredient chip wears inside the field — the same herb
-/// pair `MethodChip` paints as a pill on the recipe page.
+/// An ingredient chip's skin inside the field, in `MethodChip`'s herb pair.
 const chipTextStyle = TextStyle(
   backgroundColor: AnsiColors.herbSoft,
   color: AnsiColors.herbDeep,
   fontWeight: FontWeight.w600,
 );
 
-/// The ring the chip under the caret wears in the wide editor, over whichever
-/// skin it already has.
-///
-/// The board draws it as an inset herb rule with a hairline round the run. A
-/// text run carries one background paint, so the rule is what is drawn and the
-/// hairline is not — an underline in the herb the chip is already made of,
-/// which is the half that reads at a glance anyway.
+/// The ring on the chip under the caret: a herb underline over its skin. A text
+/// run carries one background paint, so no outline is drawn.
 TextStyle ringedChipStyle(TextStyle skin) => skin.copyWith(
   decoration: TextDecoration.underline,
   decorationColor: AnsiColors.herb,
   decorationThickness: 1.5,
 );
 
-/// The timer skin: the paper pill's OUTLINE, drawn as a stroked text
-/// background because a [TextStyle] carries one [Paint] and the outline is
-/// what distinguishes a timer from an ingredient at a glance.
+/// The timer skin: an outline drawn as a stroked text background, since a
+/// [TextStyle] carries one [Paint].
 final timerTextStyle = ansiMonoInherit(size: 14).copyWith(
   color: AnsiColors.ink,
   background: Paint()

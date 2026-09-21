@@ -1,17 +1,9 @@
-/// The timer sheet (0022 D4, design board frame d) — a timer is data that
-/// happens to read as words.
+/// The timer sheet. Timers come only from the extractor, from this sheet, or
+/// from text the user selected and asked to have read; typed prose is never
+/// pattern-matched into one (ADR-0004).
 ///
-/// The only door. **Nothing sniffs your prose:** typing "roast for 25 minutes"
-/// produces no timer, because pattern-matching prose into structured data at
-/// edit time is render-time matching wearing a hat (ADR-0004), and it would
-/// surprise the author more often than it helped. Timers come from the
-/// extractor, from this sheet's steppers, or from a run of text the user
-/// deliberately selected and asked us to read.
-///
-/// Steppers, not a free-text field: "1h30", "an hour or so" and "overnight"
-/// all fail a parser silently, and a wrong countdown is worse than none. The
-/// sheet also never rounds a ragged value away — [formatTimerRange] keeps
-/// "6 min 30 s" on purpose, and so does this.
+/// Steppers rather than free text, because a parser fails "an hour or so"
+/// silently. Ragged values are kept: [formatTimerRange] prints "6 min 30 s".
 library;
 
 import 'package:flutter/widgets.dart';
@@ -43,9 +35,8 @@ final class TimerRemoved extends TimerSheetResult {
   const TimerRemoved();
 }
 
-/// Opens the timer sheet, seeded with [lowSeconds]/[highSeconds] when editing
-/// an existing timer (or with what a selection parsed to). [removable] draws
-/// *Remove timer*, which only an existing timer has.
+/// Opens the timer sheet, seeded with [lowSeconds]/[highSeconds] when editing a
+/// timer or reading a selection. [removable] draws *Remove timer*.
 Future<TimerSheetResult?> showMethodTimerSheet(
   BuildContext context, {
   int? lowSeconds,
@@ -79,8 +70,8 @@ class _TimerSheet extends HookWidget {
   final int? highSeconds;
   final bool removable;
 
-  /// The sentence either side of where the timer lands, so "Goes in as" can
-  /// show the real line rather than a bare duration.
+  /// The sentence either side of the timer, so "Goes in as" shows the real
+  /// line.
   final String prosePrefix;
   final String proseSuffix;
   final ValueChanged<TimerSheetResult> onDone;
@@ -173,9 +164,8 @@ class _TimerSheet extends HookWidget {
   }
 }
 
-/// Minutes and seconds, each on its own stepper. Seconds move in 15s notches
-/// (and wrap nothing) so a ragged "6 min 30 s" is reachable without a keyboard
-/// and nothing is ever rounded away.
+/// Minutes and seconds, each on its own stepper. Seconds move in 15 s notches
+/// without wrapping.
 class _DurationStepper extends StatelessWidget {
   const _DurationStepper({required this.seconds, required this.onChanged});
 

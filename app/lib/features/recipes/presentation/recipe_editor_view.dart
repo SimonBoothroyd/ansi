@@ -1,29 +1,14 @@
-/// The recipe editor — create (`recipeId == null`) or edit an existing recipe.
+/// The recipe editor: create (`recipeId == null`) or edit a recipe.
 ///
-/// Fields are uncontrolled (`initial` + `onChange`) and every repeating child
-/// is keyed by its stable domain id, so the notifier rebuilding the tree on
-/// each edit never resets a controller or moves the caret.
+/// Fields are uncontrolled (`initial` + `onChange`) and repeating children are
+/// keyed by stable domain id, so a rebuild never resets a controller or moves
+/// the caret. The ingredients are one flat reorderable list in which a heading
+/// row starts each group; a moved line keeps its id, which keeps its method
+/// chips pointing at it.
 ///
-/// The ingredient list is **one flat reorderable list**: a heading row starts
-/// each group and the line rows after it belong to it, so dragging a line
-/// under another heading files it there. Reordering a line and moving it
-/// between groups are the same gesture, and a moved line keeps its id — which
-/// is what keeps every method chip pointing at it.
-///
-/// **At [AnsiLayout.expanded] the same form is two columns** under one header:
-/// the lines left in the row grammar they already have, the method right as
-/// the same step cards, capped and centred like the recipe page — the page and
-/// the editor are the same recipe, so they measure the same. Nothing is
-/// re-drawn for the width: the rows, the chips, the cards, the step cards and
-/// all five doors are the phone's, laid out beside each other instead of under
-/// each other, and the list is still ONE reorderable list.
-///
-/// What the width buys is a single relationship: while a step has focus, every
-/// line its chips point at wears the Shop pane's selected-row wash and the chip
-/// the caret is inside is ringed, so a chip is written, read back and repaired
-/// without scrolling between the two. It follows **focus**, never the pointer —
-/// a hover-only link is a target that is not drawn — it is view state that is
-/// never stored, and a resting editor lights nothing.
+/// At [AnsiLayout.expanded] the same form is two columns. While a step has
+/// focus, the lines its chips point at are lit; this follows focus, never the
+/// pointer, and is never stored.
 library;
 
 import 'dart:async';
@@ -63,17 +48,13 @@ import 'recipe_chip.dart';
 import 'recipe_header_form.dart';
 import 'recipe_view_models.dart';
 
-/// The query parameter that asks a NEW recipe's editor to hand the recipe
-/// back instead of landing on its page. One name, one place, so the route the
-/// picker writes and the route the router reads agree.
+/// The query parameter that asks a new recipe's editor to hand the recipe back
+/// instead of landing on its page.
 const kHandBackQueryParam = 'handback';
 
-/// The pushed route for a sub-recipe that does not exist yet — what a line
-/// target picker opens when the thing the line wants has not been written.
-///
-/// [title] prefills the field with the words already typed into the picker's
-/// search, and the editor pops with the saved recipe as a [SubRecipeTarget]
-/// (or null if the person backed out) so the line waiting on it can be made.
+/// The pushed route for a sub-recipe that does not exist yet. [title] prefills
+/// the field; the editor pops with the saved recipe as a [SubRecipeTarget], or
+/// null if backed out.
 String newSubRecipeRoute({String title = ''}) {
   final name = title.trim();
   final seed = name.isEmpty ? '' : 'title=${Uri.encodeQueryComponent(name)}&';
@@ -92,19 +73,17 @@ class RecipeEditorView extends ConsumerWidget {
 
   final String? recipeId;
 
-  /// Seeds a NEW recipe's title (`/recipes/new?title=…`) — the query the
-  /// Library's "nothing matches" state was searched for. Ignored when
-  /// [recipeId] is set: an existing recipe already has a title.
+  /// Seeds a new recipe's title (`/recipes/new?title=…`). Ignored when
+  /// [recipeId] is set.
   final String? initialTitle;
 
-  /// The shelf the door that opened this knew about (0028 E3) — a section's
+  /// The shelf the door that opened this knew about — a section's
   /// `＋` carries both; every other door carries neither.
   final String? initialBookId;
   final String? initialSectionId;
 
-  /// Whether Save should POP with the recipe as a [SubRecipeTarget] rather
-  /// than land on its page — true only for the picker door
-  /// ([newSubRecipeRoute]), where a line is being held open for it.
+  /// Whether Save pops with the recipe as a [SubRecipeTarget] rather than
+  /// landing on its page. True only for [newSubRecipeRoute].
   final bool handsBackTarget;
 
   @override
@@ -125,10 +104,8 @@ class RecipeEditorView extends ConsumerWidget {
           recipeId == null ? 'New recipe' : 'Edit recipe',
           style: ansiHeaderTitle(),
         ),
-        // Editing an existing recipe is a page over that recipe, so with
-        // nothing under it — a pasted `/recipes/9/edit` — back belongs on the
-        // recipe. A new recipe has no page of its own yet, so it belongs on
-        // the Library.
+        // With nothing beneath (a pasted link), back goes to the recipe when
+        // editing and to the Library when creating.
         prefixes: [
           FHeaderAction.back(
             onPress: () => ansiBack(
@@ -153,12 +130,9 @@ class RecipeEditorView extends ConsumerWidget {
                     );
                     final host = hostContextOf(context);
                     if (!await _mayOrphanMeasures(context, notifier)) return;
-                    // Through the write door: unguarded, a throw inside
-                    // `save()` shows only as the editor not navigating, which
-                    // reads as a laggy button rather than a lost recipe.
-                    // The authoring rules' own refusals are caught instead of
-                    // toasted, because each is a sentence about a word rather
-                    // than a write that failed.
+                    // Through the write door, so a throw inside `save()` is
+                    // reported. The authoring rules' refusals are caught and
+                    // shown as sentences rather than toasted.
                     String? refused;
                     final saved = await container.write(
                       host,
@@ -192,23 +166,14 @@ class RecipeEditorView extends ConsumerWidget {
                       return;
                     }
                     if (saved == null || !context.mounted) return;
-                    // Editing returns you to where you opened the editor;
-                    // creating lands you on the thing you made. An existing
-                    // recipe's page is already beneath the editor as a watched
-                    // query, so a pop shows the save — replacing would stack a
-                    // second copy of that page and cost a second back. A new
-                    // recipe has only its opener beneath, so the editor is
-                    // replaced (not `go`ne to: that would flatten the stack,
-                    // back would leave the app and the iOS edge swipe would
-                    // vanish on a page that looks exactly like a pushed one).
-                    // …unless a picker pushed this to make a sub-recipe: that
-                    // line is still open under the editor, and landing on the
-                    // new recipe's page would abandon it.
+                    // Editing pops to the recipe page already beneath (a
+                    // watched query shows the save). Creating replaces the
+                    // editor with the new page; `go` would flatten the stack. A
+                    // picker-pushed editor pops with the target instead,
+                    // because its line is still open underneath.
                     if (recipeId != null) {
                       // Through the back helper, not a bare pop: an editor
-                      // opened by a pasted link has nothing under it, and a
-                      // Save that then threw left the recipe written and the
-                      // person still in the form.
+                      // opened by a pasted link has nothing under it.
                       ansiBack(context, home: '/recipes/$recipeId');
                     } else if (handsBackTarget) {
                       ansiBack(
@@ -238,16 +203,12 @@ class RecipeEditorView extends ConsumerWidget {
   }
 }
 
-/// Asks before a Save that takes away the `makes` a live word stands on, and
-/// returns whether to go on with it (ADR-0018 rule 4).
+/// Asks before a Save that takes away the `makes` a live word stands on,
+/// returning whether to go on (ADR-0018 rule 4).
 ///
-/// It **warns, never refuses**: what a batch makes is the recipe's own fact and
-/// the household may restate it. Nothing is deleted either — the words survive
-/// and every line saying one reads as unresolved until MAKES says that family
-/// again — so the point of the question is only that nobody finds that out from
-/// a broken line afterwards. A word already orphaned when the editor opened is
-/// not re-reported: re-warning about a gap already on screen teaches a person
-/// to dismiss the dialog.
+/// Warns, never refuses, and deletes nothing: lines saying the word read as
+/// unresolved until MAKES states that family again. Words already orphaned when
+/// the editor opened are not re-reported.
 Future<bool> _mayOrphanMeasures(
   BuildContext context,
   RecipeEditor notifier,
@@ -268,11 +229,8 @@ Future<bool> _mayOrphanMeasures(
   );
 }
 
-/// How wide the ingredients column is drawn at [AnsiLayout.expanded].
-///
-/// Fixed, and the one number the width does not give back: an 84 px amount, a
-/// grip, a name and a note is what that row is, so at 1024 the 92 px the cap
-/// loses all come out of the method column instead.
+/// The ingredients column's fixed width at [AnsiLayout.expanded]; the method
+/// column absorbs any change in window width.
 const double kEditorLinesColumn = 420;
 
 /// The seam between the two columns — the recipe page's own.
@@ -287,9 +245,8 @@ class _EditorForm extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final wide = AnsiLayout.of(context) == AnsiLayout.expanded;
-    // Bumped when a drag starts: every open line card closes, so what crosses
-    // the list is a row like every other row rather than forms of wildly
-    // different heights.
+    // Bumped when a drag starts, closing every open line card so rows cross the
+    // list at one height.
     final collapseEpoch = useState(0);
     // Which step has the caret. View state, never stored, and read only at
     // expanded — on a phone the lines it would light are a scroll away.
@@ -307,10 +264,8 @@ class _EditorForm extends HookWidget {
         ? _litLines(notifier, focusedStep.value)
         : const <String>{};
 
-    // ONE flat list per recipe: a heading row starts each group, and every
-    // line row after it belongs to it. A line dropped under another heading is
-    // filed under that heading, so reordering a line and moving it to another
-    // group are one gesture rather than two features.
+    // One flat list: a heading row starts each group and the line rows after it
+    // belong to it.
     final rows = <Widget>[];
     var lineCount = 0;
     for (final group in recipe.groups) {
@@ -355,10 +310,8 @@ class _EditorForm extends HookWidget {
     );
 
     return CustomScrollView(
-      // Once you start dragging the list you have finished typing, and a field
-      // left focused off the top of the screen asks to be scrolled back to on
-      // every keyboard metrics change — enough to throw the page to the title
-      // while a line further down is being corrected.
+      // A field left focused off-screen is scrolled back to on every keyboard
+      // metrics change, so a drag dismisses the keyboard.
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       slivers: wide
           ? [
@@ -380,9 +333,8 @@ class _EditorForm extends HookWidget {
                   ansiPageGutter,
                   40,
                 ),
-                // One scroll, two columns — the recipe page's own shape, drawn
-                // as slivers so the lines stay ONE reorderable list and a long
-                // method's cards are still built lazily.
+                // One scroll, two columns, as slivers so the lines stay one
+                // reorderable list and step cards build lazily.
                 sliver: SliverCrossAxisGroup(
                   slivers: [
                     SliverConstrainedCrossAxis(
@@ -419,9 +371,8 @@ class _EditorForm extends HookWidget {
           : [
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                // The header is the one the import review renders too: the
-                // notifier is its host, so a section added there lands here
-                // without a second copy.
+                // The same header the import review renders, hosted by the
+                // notifier.
                 sliver: SliverList.list(
                   children: [RecipeHeaderForm(host: notifier)],
                 ),
@@ -432,9 +383,7 @@ class _EditorForm extends HookWidget {
               ),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
-                // A list rather than one box: the slivers stay lazy, so a long
-                // method's step cards are not all built to show the top of the
-                // page.
+                // A list rather than one box, so step cards build lazily.
                 sliver: SliverList.list(
                   children: [doors, const SizedBox(height: 28), method],
                 ),
@@ -450,12 +399,8 @@ String _linesAndGroups(int lines, int groups) {
   return groups > 1 ? '$counted · $groups groups' : counted;
 }
 
-/// The lines the step with the caret points at.
-///
-/// Read off the draft rather than remembered, so a chip added, re-pointed or
-/// removed while the step is being written changes what is lit on the same
-/// keystroke. A step id the draft no longer has — the step was deleted while it
-/// held focus — lights nothing.
+/// The lines the focused step's chips point at, read off the draft on every
+/// build. A step id the draft no longer has lights nothing.
 Set<String> _litLines(RecipeEditor notifier, String? stepId) {
   if (stepId == null) return const {};
   for (final step in notifier.methodDraft()) {
@@ -468,19 +413,10 @@ Set<String> _litLines(RecipeEditor notifier, String? stepId) {
   return const {};
 }
 
-/// The wide editor's header: the phone's seven sections in the phone's order,
-/// folded onto three rows.
-///
-/// Row one sits on the columns' own axis — the title over the lines, the filing
-/// over the method — so nothing in the editor is measured against a third grid.
-/// Row two is the four small facts across the cap, each still the shipped
-/// control: a header redrawn as bare lines would state the facts and take away
-/// the steppers and the chip control that set them.
-///
-/// Row three is MEASURES, at the cap's full width. It is the one section that
-/// is a LIST with a form under it — a label, an amount, its chip and a button —
-/// and a quarter of the cap holds none of that. It stays directly under the
-/// MAKES cell it depends on, which is the relationship it is placed for.
+/// The wide editor's header: the phone's sections in the phone's order on three
+/// rows. Title and filing sit on the columns' axis, the four small facts share
+/// row two, and MEASURES takes the full width directly under the MAKES cell it
+/// depends on.
 class _WideHeader extends StatelessWidget {
   const _WideHeader({required this.host});
 
@@ -542,14 +478,9 @@ class _WideHeader extends StatelessWidget {
   );
 }
 
-/// The list's own two doors, tight under the last line — the review screen's
-/// pair, in the editor's words. A line added lands in the LAST group, which is
-/// what makes *Add group* then *Add ingredient* read as one gesture; the drag
-/// then puts it wherever it belongs.
-///
-/// The same two doors in the wide editor, [stacked]: side by side they want
-/// 544 and the ingredients column is 420, and a column that holds an amount, a
-/// grip, a name and a note is not the thing to narrow for a pair of buttons.
+/// The list's two doors, under the last line. An added line lands in the last
+/// group. [stacked] in the wide editor, where the column is too narrow for the
+/// pair side by side.
 class _ListDoors extends StatelessWidget {
   const _ListDoors({
     required this.recipe,
@@ -602,12 +533,9 @@ class _ListDoors extends StatelessWidget {
   }
 }
 
-/// One group's heading row: the name as an editable field, and the bin.
-///
-/// It is a row of the same flat list the lines are in — which is what lets a
-/// line be dropped under it. The heading itself does not drag: reordering
-/// *groups* is a separate question, and a line moving between them is what was
-/// asked for.
+/// One group's heading row: the name as an editable field, and the bin. A row
+/// of the same flat list as the lines, which is what lets a line be dropped
+/// under it. Headings do not drag.
 class _GroupHeading extends StatelessWidget {
   const _GroupHeading({
     required this.group,
@@ -653,11 +581,9 @@ class _GroupHeading extends StatelessWidget {
   }
 }
 
-/// The 7.7 two-step chain, with one more door at the first step (D7): the
-/// picker (board frame c) → the quantity sheet (frame b for an ingredient,
-/// frame d for a component) → the line lands fully quantified. Backing out of
-/// the quantity sheet still adds the line in its default unit — the amount
-/// cell re-opens the sheet.
+/// The add-line chain: the target picker, then the quantity sheet, then the
+/// line lands quantified. Backing out of the quantity sheet still adds the line
+/// in its default unit.
 Future<void> addLineToGroup(
   BuildContext context, {
   required IngredientGroup group,
@@ -665,12 +591,9 @@ Future<void> addLineToGroup(
   required RecipeEditor notifier,
 }) async {
   final name = group.name;
-  // The picker's search brings the keyboard, which shrinks the editor's list
-  // under it: the door can be unmounted by the time a row is tapped. The
-  // second sheet opens from a context that outlives it (`hostContextOf`), and
-  // [notifier] is the editor's own, kept alive by the page watching it — so
-  // the line is added whatever became of the door. Never a `context.mounted`
-  // bail here: it would drop the pick.
+  // The picker's keyboard can unmount the door before a row is tapped, so the
+  // second sheet opens from `hostContextOf` and [notifier] is the page's own.
+  // Never bail on `context.mounted` here: it would drop the pick.
   final host = hostContextOf(context);
   final picked = await showLineTargetPicker(
     context,
@@ -746,14 +669,9 @@ class _LineItemEditor extends ConsumerWidget {
   /// Whether the step being written points at this line. See [LineCard.lit].
   final bool lit;
 
-  /// The amount cell's label. Every line prints what the recipe page prints;
-  /// only an unresolved measure id adds anything, and what it adds is the
-  /// honest count fallback with a note saying why the measure is not there.
-  ///
-  /// **Two reasons, two words.** A measure whose row has not synced down yet
-  /// arrives on its own, and "pending sync" is a promise the app keeps; one
-  /// the household deleted never arrives, and the same words would have the
-  /// reader waiting on nothing.
+  /// The amount cell's label: what the recipe page prints. An unresolved
+  /// measure id falls back to the count with a note, "pending sync" for a row
+  /// not yet synced and a different word for one the household deleted.
   String get _label {
     final stored = item.unit;
     if (item.measure == null && item.measureId != null && stored != null) {
@@ -769,9 +687,8 @@ class _LineItemEditor extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // A component line (step 8.6 / D1) has no ingredient to look up: its
-    // identity is the recipe chip, and its amount is edited against the
-    // target's yields, not an ingredient's units.
+    // A component line has no ingredient: its amount is edited against the
+    // target's yields.
     if (item.isComponent) {
       return _ComponentLineEditor(
         item: item,
@@ -794,9 +711,8 @@ class _LineItemEditor extends ConsumerWidget {
         ?.value;
 
     Future<void> editQuantity() async {
-      // An unresolved vocab row still gets a working sheet: a stub-shaped
-      // stand-in scoped to the stored unit's family (no macros, no density —
-      // nothing is invented for it).
+      // An unresolved vocab row gets a stub stand-in scoped to the stored
+      // unit's family, with no macros or density.
       final sheetIngredient =
           ingredient ??
           Ingredient(
@@ -873,14 +789,10 @@ class _LineItemEditor extends ConsumerWidget {
   }
 }
 
-/// A component line in the editor (step 8.6 / D1, board frame a's identity
-/// cell on an editor row): the recipe chip where the ingredient name sits, and
-/// the same amount cell — opening the batch-math sheet instead of the
-/// ingredient one.
-///
-/// A component whose target has not synced (or was deleted) keeps its stored
-/// text and says so; the amount stays editable in batches, which needs no
-/// target at all.
+/// A component line in the editor: the recipe chip where the ingredient name
+/// sits, and an amount cell that opens the batch-math sheet. A target that has
+/// not synced or was deleted keeps its stored text; the amount stays editable
+/// in batches.
 class _ComponentLineEditor extends StatelessWidget {
   const _ComponentLineEditor({
     required this.item,
@@ -916,14 +828,12 @@ class _ComponentLineEditor extends StatelessWidget {
             ),
         initialQuantity: item.quantity,
         initialUnit: item.unit,
-        // The pointer the line carries, so the sheet opens on the word rather
-        // than on a unit. The word itself is read off the target, which is
-        // what makes a re-stated `blob` follow through everywhere at once.
+        // The line's pointer, so the sheet opens on the word. The word itself
+        // is read off the target.
         initialMeasureId: item.recipeMeasureId,
         initialOptional: item.optional,
-        // Only where the target recipe is really here: a line whose recipe
-        // row has not synced has no yields to gate a word on and nothing to
-        // stamp one onto, so the dock offers no ＋ rather than a refusal.
+        // No ＋ when the target row has not synced: there are no yields to gate
+        // a word on.
         mayCoinWords: target != null,
         onSetYield: target == null
             ? null
@@ -933,10 +843,9 @@ class _ComponentLineEditor extends StatelessWidget {
       notifier
         ..setLineItemQuantity(item.id, result.quantity)
         ..setLineItemOptional(item.id, optional: result.optional);
-      // Exactly one of the two, and each setter clears the other: a line is
-      // denominated once (ADR-0018). Both null is a line whose word has gone
-      // and whose reader picked no chip — it keeps the pointer it had, because
-      // a unit written there would be a number nobody stated.
+      // Exactly one of the two, and each setter clears the other (ADR-0018).
+      // Both null is a line whose word has gone and no chip was picked; it
+      // keeps its pointer.
       if (result.recipeMeasureId case final id?) {
         notifier.setLineItemRecipeMeasure(item.id, id, word: result.measure);
       } else if (result.unit case final picked?) {
@@ -948,12 +857,8 @@ class _ComponentLineEditor extends StatelessWidget {
       item: item,
       recipeId: recipeId,
       notifier: notifier,
-      // The word the line was written in, read off the target's LIVE measures
-      // rather than off the resolution: a word can be alive and unresolvable at
-      // the same time (a `makes` restated into another family under it), and
-      // that row must still read `3 blob` rather than a bare `3`. Only a word
-      // that has truly gone prints the number alone, which is the honest half
-      // of the refusal.
+      // Read off the target's live measures, not the resolution: a word can be
+      // alive yet unresolvable, and that row must still read `3 blob`.
       amount: componentAmountText(
         item.quantity,
         item.unit,
@@ -1012,15 +917,9 @@ class _ComponentLineEditor extends StatelessWidget {
   }
 }
 
-/// The editor's ingredient line: the review's expanding card, in the editor's
-/// words ([LineCard]).
-///
-/// At rest it is the ONE row layout the app prints everywhere — the amount,
-/// the name, the note on a single line, the amount in its own fixed column so
-/// every identity left-aligns — bare on the recipe page's hairline, with the
-/// grip beside it. Tapping anywhere on it opens the card, which holds every
-/// fact the line can carry: the identity behind `change ›`, whether it may be
-/// left out, the amount, and — for the first time — the note.
+/// The editor's ingredient line as an expanding [LineCard]. At rest it is the
+/// app's one row layout plus a grip; tapping opens the card holding the
+/// identity (`change ›`), the optional flag, the amount and the note.
 class _EditorLine extends StatelessWidget {
   const _EditorLine({
     required this.item,
@@ -1127,9 +1026,8 @@ class _CollapsedLine extends StatelessWidget {
   );
 }
 
-/// The line, open. Everything the line can say about itself, in the card's
-/// slots — and the two controls that can break a method chip, `change ›` and
-/// the bin, standing under the count of the steps that quote it.
+/// The open line. `change ›` and the bin, which can break a method chip, stand
+/// under the count of steps that quote the line.
 class _OpenLine extends StatelessWidget {
   const _OpenLine({
     required this.item,
@@ -1183,12 +1081,9 @@ class _OpenLine extends StatelessWidget {
   );
 }
 
-/// The card's head is the identity, and the identity is the door: the shipped
-/// line target picker, behind `change ›`.
-///
-/// It keeps the line's id (0022 D6), which is what keeps every method chip
-/// pointing at it — a swap by delete + re-add would mint a fresh
-/// `line_item_id` and leave them all silently dangling.
+/// The card's head: the identity, which opens the line target picker behind
+/// `change ›`. The swap keeps the line's id so method chips keep pointing at
+/// it.
 class _HeadIdentity extends StatelessWidget {
   const _HeadIdentity({required this.child, required this.onChange});
 
@@ -1215,11 +1110,8 @@ class _HeadIdentity extends StatelessWidget {
   );
 }
 
-/// What depends on this line — the quiet count that makes the substitution
-/// notice and the removal prompt read as consequences rather than surprises.
-///
-/// It sits on the open card, under the head: nobody needs it while scanning a
-/// list of ingredients, and every collapsed row is the same height without it.
+/// How many steps quote this line. Shown only on the open card, so collapsed
+/// rows keep one height.
 class _UsedInSteps extends StatelessWidget {
   const _UsedInSteps({required this.count});
 
@@ -1239,7 +1131,7 @@ class _UsedInSteps extends StatelessWidget {
 }
 
 /// Tap the identity → the shipped picker → the line keeps its id and takes a
-/// new one. Chips survive by construction; D3 then relabels them.
+/// new one. Chips survive by construction and are then relabelled.
 Future<void> changeLineIdentity(
   BuildContext context, {
   required String recipeId,
@@ -1260,7 +1152,7 @@ Future<void> changeLineIdentity(
   }
 }
 
-/// Removing a referenced line asks first (D3's sibling). Confirming converts
+/// Removing a referenced line asks first. Confirming converts
 /// its chips to plain words — the sentences survive, only the links die.
 Future<void> removeLineWithChips(
   BuildContext context,

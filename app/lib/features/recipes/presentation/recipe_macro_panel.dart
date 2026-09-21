@@ -1,39 +1,13 @@
-/// The recipe page's macro panel (step 9) — the per-serving cell strip the
-/// design board drew for the Recipe frame (`.macro`), fed by the real
-/// [summarizeRecipeMacros] summation instead of mock numbers.
+/// The recipe page's macro panel: a per-serving cell strip fed by
+/// [summarizeRecipeMacros].
 ///
-/// **Four cells, or five.** Fibre is the one optional figure
-/// ([RecipeMacroSummary.linesWithoutFiber]): its cell is drawn when the total
-/// states it and left out — never blank, never zero — when it does not, with
-/// the lines that could not supply it named underneath.
-///
-/// **Per serving, and therefore scale-invariant.** The servings scaler above
-/// it must NOT move these numbers: scaling multiplies every line *and* the
-/// servings the recipe yields by the same factor, so a serving is the same
-/// serving at 2 or at 12. The panel deliberately takes only the summary (no
-/// `servings`/`factor` argument) so a future edit cannot quietly wire the
-/// scaler in. The picker rows are per-serving for the same reason.
-///
-/// **Honesty (invariant 3).** When the summary is `incomplete` — any stub
-/// ingredient, any line the unit system cannot bridge, or no lines at all —
-/// the strip is replaced by the shared `incomplete` badge and the same note
-/// the picker rows print (`1 stub line`, `no ingredients yet`, …). A partial
-/// total is never rendered as if it were the recipe's macros, and zeros are
-/// never shown for an absence.
-///
-/// **The refusal NAMES its causes** (seam D5). The owner's sentence was
-/// "this message makes it impossible to know what ingredients need fixing",
-/// so the count line is kept verbatim and the lines it is waiting on are
-/// listed under it — capped at four with `+N more`, each one a door to the
-/// fix its reason implies. Invariant 3 is unchanged: nothing new is included
-/// in any total; the refusal just says what it is waiting on.
-///
-/// **And a real total says what it left out**, in two labelled rows beneath
-/// the cells: `NOT COUNTED · Parsley · handful` for the lines that carry no
-/// weight to count, `OPTIONAL · Lime, Coriander` for the ones the rule drops,
-/// and one caption under both. Opened from a week that plans the recipe, a
-/// third row names what came IN — `INCLUDED · Pickled Red Onions · for this
-/// week` — and the figures above it are that week's own re-summation.
+/// Four cells, or five when the total states fibre
+/// ([RecipeMacroSummary.linesWithoutFiber]). Figures are per serving and so
+/// scale-invariant: the panel takes only the summary, never a scale factor. An
+/// `incomplete` summary replaces the strip with the shared badge, the count
+/// note, and up to four named lines (`+N more`), each a door to its fix. A real
+/// total names what it left out in `NOT COUNTED` and `OPTIONAL` rows; opened
+/// from a week, an `INCLUDED` row names the optional lines that week ticked in.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -56,46 +30,35 @@ class RecipeMacroPanel extends StatelessWidget {
     super.key,
   });
 
-  /// What stands over the strip. Null keeps the micro-label the panel has
-  /// always drawn; the recipe page passes the `Macros | Cost` chip pair, which
-  /// says the same thing and offers the other reading beside it.
+  /// What stands over the strip; null draws the default micro-label. The recipe
+  /// page passes the `Macros | Cost` chip pair.
   final Widget? header;
 
-  /// The optional lines THIS WEEK ticked in, in stored order — named in a row
-  /// of their own, because they are the one thing under this panel that came
-  /// IN rather than staying out, and the figures above have counted them.
-  /// Empty everywhere but a page opened from a week that plans the recipe.
+  /// The optional lines this week ticked in, in stored order. Empty except on a
+  /// page opened from a week that plans the recipe.
   final List<String> includedNames;
 
-  /// The optional lines that week is still leaving out. The week's own
-  /// re-summation drops them through the seam BEFORE it runs, so its notes
-  /// cannot name them and the caller names them instead; from the Library
-  /// this is empty and the summary names them itself.
+  /// The optional lines that week still leaves out. The week's re-summation
+  /// drops them before it runs, so the caller names them; from the Library this
+  /// is empty and the summary names them.
   final List<String> optionalNames;
 
-  /// The recipe's honest per-serving summary. Null when the aggregate was
-  /// built without line nutrition (the panel then draws nothing rather than
-  /// guessing).
+  /// The per-serving summary. Null when the aggregate has no line nutrition;
+  /// the panel then draws nothing.
   final RecipeMacroSummary? summary;
 
-  /// Opens the fix a named line's reason implies — the amount sheet for a
-  /// bare count or a missing amount, the flesh-out form for a stub or a
-  /// missing density, the target recipe for the two nested reasons (seam
-  /// **D5**). Null leaves the names as plain text: the panel is a pure widget
-  /// and routes nothing itself.
+  /// Opens the fix a named line's reason implies (amount sheet, ingredient
+  /// form, or the target recipe). Null leaves the names as plain text.
   final ValueChanged<MacroLineNote>? onFix;
 
-  /// How many named lines the panel prints before it folds (owner call): four,
-  /// with `+N more`. The count above them is the honest fallback for a
-  /// thoroughly broken recipe.
+  /// How many named lines print before folding to `+N more`.
   static const int maxNamedLines = 4;
 
   @override
   Widget build(BuildContext context) {
     final summary = this.summary;
-    // The header is the page's control, not the strip's content: a reading
-    // that has not loaded must not take the pair that offers the other one
-    // with it.
+    // The header is the page's control, so it shows even before the summary
+    // loads.
     if (summary == null) return header ?? const SizedBox.shrink();
 
     return Column(
@@ -120,8 +83,7 @@ class RecipeMacroPanel extends StatelessWidget {
                 )
               : _Cells(summary: summary),
         ),
-        // D6: a real total says what it left out, by name, every time. It
-        // rides OUTSIDE the cell strip so the four cells keep their shape.
+        // A real total names what it left out, outside the cell strip.
         if (summary.perServing != null)
           _NotCounted(
             summary: summary,
@@ -133,7 +95,7 @@ class RecipeMacroPanel extends StatelessWidget {
   }
 }
 
-/// What the total left out, by rule — one labelled row per reason:
+/// What the total left out, one labelled row per reason:
 ///
 /// ```text
 /// NOT COUNTED   Cilantro · handful, Kosher Salt · to taste
@@ -141,14 +103,9 @@ class RecipeMacroPanel extends StatelessWidget {
 /// INCLUDED      Pickled Red Onions · for this week
 /// ```
 ///
-/// Two rows rather than one run-on sentence, because they are two different
-/// claims and a reader weighing the number is asking which lines are which.
-/// One caption under both says the thing they share. The fibre line keeps its
-/// own row: it is a missing FIGURE, not missing lines.
-///
-/// The third row is the week's, and it is the only one that names lines the
-/// total DOES cover — so it wears the herb label rather than the muted one,
-/// and it stands outside the caption, which is about what was left out.
+/// One caption covers the first two. `INCLUDED` names lines the total does
+/// cover, so it wears the herb label and sits outside the caption. Missing
+/// fibre has its own row.
 class _NotCounted extends StatelessWidget {
   const _NotCounted({
     required this.summary,
@@ -169,8 +126,8 @@ class _NotCounted extends StatelessWidget {
     final included = includedNames.isEmpty
         ? null
         : '${includedNames.join(', ')} · for this week';
-    // The fifth cell's absence, said in words: the lines are all in the total,
-    // and the one figure they cannot support is named.
+    // Fibre's absence in words: the lines are counted, the figure is not
+    // stated.
     final fibre = fiberNotCountedNote(summary);
     final excluded = imprecise != null || optional != null;
     if (!excluded && included == null && fibre == null) {
@@ -217,11 +174,8 @@ class _NotCounted extends StatelessWidget {
   }
 }
 
-/// One reason's row: the micro-label, then the names it covers.
-///
-/// Shared with the panel's COST reading, whose `UNPRICED`, `OLDEST` and
-/// `NOT COUNTED` rows are the same claim in the same shape — a label in the
-/// amount column, the lines it covers beside it.
+/// One reason's row: the micro-label, then the names it covers. Shared with the
+/// panel's cost reading.
 class PanelNoteRow extends StatelessWidget {
   const PanelNoteRow({
     required this.label,
@@ -244,8 +198,8 @@ class PanelNoteRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            // The ingredient rows' own amount column, so the names below the
-            // panel start where the ingredients above it do.
+            // The ingredient rows' amount column, so names align with the list
+            // above.
             width: kLineAmountWidth,
             child: Text(
               label,
@@ -265,9 +219,8 @@ class PanelNoteRow extends StatelessWidget {
   }
 }
 
-/// One named line under the badge: `Cucumber · needs a piece weight ›`.
-/// Tapping it opens the fix its reason implies — the marker is a door, not a
-/// label.
+/// One named line under the badge: `Cucumber · needs a piece weight ›`. Tapping
+/// opens the fix its reason implies.
 class _NamedLine extends StatelessWidget {
   const _NamedLine({required this.note, this.onFix});
 
@@ -316,8 +269,7 @@ class _NamedLine extends StatelessWidget {
   }
 }
 
-/// The same amber the review card's `attn` state uses, because it is the same
-/// claim: *this line is why a number is missing.*
+/// The amber the import review card's `attn` state uses.
 class _AmberDot extends StatelessWidget {
   const _AmberDot();
 
@@ -332,11 +284,8 @@ class _AmberDot extends StatelessWidget {
   );
 }
 
-/// The board's equal cells, hairline-divided: a value over a micro-label.
-///
-/// Four of them for the macro reading (five with fibre), three for the cost
-/// one. It is one strip, so it is one widget — the panel's two readings differ
-/// in what they say, never in how the strip is drawn.
+/// Equal cells, hairline-divided: a value over a micro-label. Shared by the
+/// macro and cost readings.
 class PanelCells extends StatelessWidget {
   const PanelCells({required this.cells, super.key});
 
@@ -383,8 +332,7 @@ class _Cells extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Non-null by construction: the panel only builds cells for a complete
-    // summary.
+    // Non-null: cells are only built for a complete summary.
     final m = summary.perServing!;
     final fiber = m.fiber;
     final cells = <(String, String)>[
@@ -392,9 +340,8 @@ class _Cells extends StatelessWidget {
       ('${formatGrams(m.protein)} g', 'protein'),
       ('${formatGrams(m.carb)} g', 'carb'),
       ('${formatGrams(m.fat)} g', 'fat'),
-      // A fifth cell only where there is a fifth fact: fibre is optional, and
-      // an empty cell would read as a zero (invariant 3). What its absence
-      // means is said in words underneath instead.
+      // Fibre is optional; an empty cell would read as a zero, so its absence
+      // is said in words underneath.
       if (fiber != null) ('${formatGrams(fiber)} g', 'fibre'),
     ];
     return PanelCells(cells: cells);
@@ -417,10 +364,8 @@ class _Incomplete extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The COUNT stays, verbatim — the picker rows and the confirm sheet print
-    // that same string, and `incomplete_macros.dart` exists so the three
-    // surfaces cannot drift into three different failures. What D5 adds is
-    // the names underneath it.
+    // The count note is the same string the picker rows and confirm sheet print
+    // (`incomplete_macros.dart`); the named lines go under it.
     final named = fixableNotes(summary);
     final shown = named.take(RecipeMacroPanel.maxNamedLines).toList();
     final more = named.length - shown.length;
@@ -464,9 +409,7 @@ class _Incomplete extends StatelessWidget {
                 ),
               ),
           ],
-          // An incomplete recipe can still be excluding imprecise lines by
-          // rule, and they are named here too — the exclusion is the honesty,
-          // whether or not there is a number above it.
+          // An incomplete recipe still names the lines it excludes by rule.
           _NotCounted(
             summary: summary,
             includedNames: includedNames,

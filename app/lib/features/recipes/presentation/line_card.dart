@@ -1,29 +1,11 @@
-/// The expanding ingredient line — the chrome and the slots two screens fill.
+/// The expanding ingredient line shared by the import review and the recipe
+/// editor: a row at rest, a card when open. Each screen fills the card's slots
+/// with its own content.
 ///
-/// A line is a **row at rest** and a **card when it is open**: tapping the row
-/// opens it in place, and everything the line can say about itself is inside —
-/// the identity, whether it may be left out, the amount, the notes. The import
-/// review and the recipe editor are the same component here; what differs is
-/// what each puts in the slots (the review's match cascade and never-invent
-/// flags mean nothing on a saved recipe, and the editor's *used in N steps*
-/// means nothing on a line that is not saved yet).
-///
-/// **One gesture.** Anywhere on the collapsed row opens the card. A row that
-/// meant the quantity sheet on its left 84 px and the identity picker on the
-/// rest is a row a cook has to aim at — and the fact that sent them looking,
-/// the note, was behind neither. The cost is honest: changing an amount is two
-/// taps, row then chip.
-///
-/// **The grip is on the collapsed row only**, outside its tap target, so
-/// taking hold of the handle never opens the card; and a drag starting
-/// anywhere in the list closes every open card ([LineCard.collapseEpoch]), so
-/// what crosses the list is a row like every other row rather than forms of
-/// wildly different heights.
-///
-/// **The border is a state, not a decoration.** The review borders every line
-/// because every line there is a claim waiting to be checked; the editor's
-/// lines are settled, so they sit bare on the recipe page's own hairline and
-/// the box appears when one opens ([LineCard.borderAtRest]).
+/// Anywhere on the collapsed row opens the card. The grip sits outside the
+/// row's tap target, and a drag anywhere in the list closes every open card
+/// ([LineCard.collapseEpoch]). The review borders every line; the editor's
+/// lines sit bare until opened ([LineCard.borderAtRest]).
 library;
 
 import 'package:flutter/widgets.dart';
@@ -36,16 +18,12 @@ import '../../../shared/ansi_tap.dart';
 import '../../../shared/reorder_grip.dart';
 import 'ingredient_line.dart';
 
-/// The label column on the card's rows — AMOUNT, UNIT, NOTES. One number, so
-/// the three slots line up under each other on both screens.
+/// The label column on the card's rows (AMOUNT, UNIT, NOTES).
 const double kLineCardLabelWidth = 64;
 
-/// One line: the row at rest, the card when it is open.
-///
-/// [collapsed] and [expanded] are builders rather than widgets because each
-/// is handed the gesture that changes the state — the row opens itself, the
-/// card's chevron closes it — and neither screen should have to hold that
-/// state to draw its own contents.
+/// One line: the row at rest, the card when open. [collapsed] and [expanded]
+/// are builders so each receives the gesture that toggles the state, which
+/// lives here.
 class LineCard extends HookWidget {
   const LineCard({
     required this.collapsed,
@@ -65,41 +43,33 @@ class LineCard extends HookWidget {
   /// The open card, given the callback that closes it.
   final Widget Function(VoidCallback onCollapse) expanded;
 
-  /// This card's position in the list that drags it — what the grip takes
-  /// hold of. Null where the card renders on its own.
+  /// This card's index in the list that drags it. Null when not in a list.
   final int? dragIndex;
 
   /// Bumped by the list when a drag starts elsewhere: every open card closes.
   final int collapseEpoch;
 
-  /// Whether the card stands open the first time it is built — a line the
-  /// person just added, which arrives as a form rather than as a row to find.
-  /// It is a starting state and nothing more: closing it closes it for good.
+  /// Whether the card starts open — a line the person just added. Only the
+  /// starting state.
   final bool initiallyOpen;
 
-  /// Whether the line needs the user — the border goes amber and stays amber
-  /// while it does. Always false where nothing gates a save.
+  /// Whether the line needs the user; the border stays amber while it does.
   final bool attention;
 
-  /// Whether a closed line is drawn as a bordered card or as a bare row on a
-  /// hairline. False in the editor, where a wall of boxes makes a finished
-  /// list look unfinished.
+  /// Whether a closed line is a bordered card (review) or a bare row on a
+  /// hairline (editor).
   final bool borderAtRest;
 
-  /// Whether a step being written points at this line — the wide editor's one
-  /// use of the width. It is view state that follows focus and is never
-  /// stored, and it only shows on the bare row: an open card is already the
-  /// loudest thing in the column.
+  /// Whether the step being written points at this line (wide editor). View
+  /// state, never stored; shows only on the bare row.
   final bool lit;
 
   @override
   Widget build(BuildContext context) {
-    // Local to the row: several cards stand open at once, and each survives
-    // the host's rebuild on every keystroke somewhere else.
+    // Local to the row, so it survives the host's rebuilds.
     final open = useState(initiallyOpen);
-    // A drag anywhere in the list bumps the epoch and closes every open card.
-    // The first build is not a change, so a card that opens at birth stays
-    // open.
+    // A drag bumps the epoch and closes every open card. The first build is not
+    // a change, so a card that opens at birth stays open.
     final seen = useRef(collapseEpoch);
     useEffect(() {
       if (seen.value != collapseEpoch) {
@@ -127,8 +97,8 @@ class LineCard extends HookWidget {
   }
 }
 
-/// The surface a line is drawn on: the card's bordered box, or — at rest in
-/// the editor — the bare row with the recipe page's hairline under it.
+/// The surface a line is drawn on: the bordered box, or the bare row with a
+/// hairline under it.
 class LineCardSurface extends StatelessWidget {
   const LineCardSurface({
     required this.child,
@@ -141,8 +111,7 @@ class LineCardSurface extends StatelessWidget {
 
   final Widget child;
 
-  /// An aging border while the line needs the user, a quiet line once it is
-  /// done.
+  /// An amber border while the line needs the user.
   final bool attention;
 
   /// A line on its way out of an import: the flat paper fill that says so.
@@ -150,8 +119,7 @@ class LineCardSurface extends StatelessWidget {
 
   final bool bordered;
 
-  /// See [LineCard.lit] — the Shop pane's own selected-row wash, on the bare
-  /// row. The hairline goes with it: a rule under a washed row cuts it in half.
+  /// See [LineCard.lit]. The hairline is hidden under the wash.
   final bool lit;
 
   @override
@@ -176,8 +144,8 @@ class LineCardSurface extends StatelessWidget {
             )
           else
             row,
-          // Kept as a gap when the wash takes the rule's place, so lighting a
-          // line never moves the ones under it.
+          // Kept as a gap when lit, so lighting a line never moves the ones
+          // under it.
           Container(height: 1, color: lit ? null : AnsiColors.line),
         ],
       );
@@ -201,9 +169,7 @@ class LineCardSurface extends StatelessWidget {
   }
 }
 
-/// The grip beside a collapsed row, when the list it lives in drags. It sits
-/// OUTSIDE the row's own tap target, so taking hold of the handle never counts
-/// as opening the card.
+/// The drag grip beside a collapsed row, outside the row's tap target.
 class LineCardGrip extends StatelessWidget {
   const LineCardGrip({required this.child, this.dragIndex, super.key});
 
@@ -224,13 +190,8 @@ class LineCardGrip extends StatelessWidget {
   }
 }
 
-/// The card's head: what the line IS, and the two things that can be done to
-/// the card itself — remove the line, close the card.
-///
-/// The identity is a slot because the two screens name a line differently: the
-/// editor puts `change ›` beside the name (the head IS the identity door
-/// there), the review prints the current identity and leaves re-matching to
-/// the cascade under it.
+/// The card's head: the line's identity slot, remove, and close. The editor
+/// puts `change ›` in the slot; the review prints the current identity.
 class LineCardHead extends StatelessWidget {
   const LineCardHead({
     required this.identity,
@@ -274,8 +235,8 @@ class LineCardHead extends StatelessWidget {
   }
 }
 
-/// One labelled row of the open card — `AMOUNT`, `UNIT`, `NOTES`. The label
-/// column is [kLineCardLabelWidth] on both screens, so the slots stack.
+/// One labelled row of the open card, with a [kLineCardLabelWidth] label
+/// column.
 class LineCardRow extends StatelessWidget {
   const LineCardRow({required this.label, required this.child, super.key});
 
@@ -296,10 +257,8 @@ class LineCardRow extends StatelessWidget {
   );
 }
 
-/// The amount as the card prints it: a chip with the pencil that opens the
-/// sheet where an amount is said. The sheet is the app's one place for a
-/// keypad, the unit chip row and the measures — a card cannot hold those, and
-/// two ways to say an amount would be two vocabularies.
+/// The amount as a chip with a pencil; it opens the quantity sheet, the one
+/// place an amount is entered.
 class LineCardAmountChip extends StatelessWidget {
   const LineCardAmountChip({
     required this.label,
@@ -309,13 +268,10 @@ class LineCardAmountChip extends StatelessWidget {
     super.key,
   });
 
-  /// What the line's amount reads as. Empty prints [emptyLabel] instead — the
-  /// slot never invents a unit to look filled.
+  /// The amount's text. Empty prints [emptyLabel].
   final String label;
 
-  /// The prompt an empty chip carries, and what a screen reader calls it.
-  /// Both are the amount's by default; a chip that asks for something else —
-  /// a receipt line's PACK — says so in its own words.
+  /// The empty chip's prompt and semantic label; the amount's by default.
   final String emptyLabel;
   final String semanticsLabel;
 
@@ -357,8 +313,7 @@ class LineCardAmountChip extends StatelessWidget {
 }
 
 /// The inline notes field. Blank clears the note; a value is trimmed and
-/// stored. It is a field rather than a sheet because it is the one control on
-/// the card a cook wants to read while looking at the amount above it.
+/// stored.
 class LineCardNotesField extends StatelessWidget {
   const LineCardNotesField({
     required this.initial,
@@ -367,13 +322,12 @@ class LineCardNotesField extends StatelessWidget {
     super.key,
   });
 
-  /// The note as it stands. The field is uncontrolled from there on, so the
-  /// host's rebuild on every keystroke never moves the caret.
+  /// The note as it stands. The field is uncontrolled afterwards, so host
+  /// rebuilds never move the caret.
   final String? initial;
   final ValueChanged<String> onChanged;
 
-  /// False where the line has nothing to hang a note on yet — an import line
-  /// with no ingredient matched.
+  /// False where the line has no ingredient to attach a note to yet.
   final bool enabled;
 
   @override
@@ -390,14 +344,9 @@ class LineCardNotesField extends StatelessWidget {
   );
 }
 
-/// The `optional` flag as the card's one-tap control.
-///
-/// It is [OptionalTag]'s geometry — the same 6 px box, the same muted mono —
-/// because it is the same mark the collapsed row and the recipe page print,
-/// and a second pill shape would read as a second vocabulary. Off, it is an
-/// outline with an empty ring: a question nobody has answered. On, it is the
-/// tag the row will wear. The filled herb + check stays reserved for week
-/// mode's `included`, which is a different question ("this time, yes").
+/// The `optional` flag as a one-tap control, in [OptionalTag]'s geometry: an
+/// outline with an empty ring when off, the tag when on. The filled herb check
+/// is reserved for week mode's `included`.
 class OptionalFlagToggle extends StatelessWidget {
   const OptionalFlagToggle({
     required this.value,

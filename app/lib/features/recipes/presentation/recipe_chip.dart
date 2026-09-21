@@ -1,12 +1,7 @@
-/// The identity cell a **component** line wears (step 8.6 / D1, design board
-/// frames a · d · h): the board's `.ichip` — a paper pill with the
-/// cross-reference glyph and the target recipe's title.
-///
-/// It is the one place the "this line is a recipe" signal is drawn, so the
-/// recipe page, the editor row, the picker row and the quantity sheet cannot
-/// drift apart. The glyph is [FLucideIcons.cornerDownRight] — the board's "↪";
-/// a raw unicode arrow would render as tofu, the bundled fonts having no such
-/// glyph (the library_view rule).
+/// The identity cell of a component line: a paper pill with the cross-reference
+/// glyph and the target recipe's title. Shared by the recipe page, the editor
+/// row, the picker row and the quantity sheet. The glyph is
+/// [FLucideIcons.cornerDownRight]; the bundled fonts have no unicode arrow.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -28,8 +23,8 @@ class RecipeChip extends StatelessWidget {
 
   final String title;
 
-  /// Pushes the target's page when set. Null wherever navigating away would
-  /// be wrong (the import review card, a read-only preview).
+  /// Pushes the target's page. Null where navigating away would be wrong (the
+  /// import review card, a read-only preview).
   final VoidCallback? onTap;
 
   final double size;

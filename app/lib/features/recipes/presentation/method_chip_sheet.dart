@@ -1,19 +1,9 @@
-/// The chip sheet (0022 D2a, design board frame c) — tap a chip to edit it.
+/// The chip sheet, opened by tapping a chip. Four controls: **Points at**
+/// (re-points this chip only), **Word** (the text in the sentence), **Show the
+/// amount here**, and **Remove chip** (drops the link, keeps the word).
 ///
-/// Four controls and nothing else:
-///
-/// | **Points at** | the line, with its live amount → the picker re-points
-///   **this chip only** |
-/// | **Word** | the text as it reads in the sentence |
-/// | **Show the amount here** | the D9 override |
-/// | **Remove chip** | drops the link and **keeps the word** — the sentence is
-///   untouched |
-///
-/// The accepted cost of tap-to-edit: **you cannot place a caret inside a chip
-/// by tapping it.** Inline word editing moves to this sheet's Word field,
-/// which is the sanctioned path anyway (it is also D3's "keep the old word"
-/// revert, so there is exactly one place that changes what a chip says).
-/// Backspacing from just after a chip still demotes it, so nothing is trapped.
+/// A tap cannot place a caret inside a chip, so a chip's word is edited here.
+/// Backspacing from just after a chip still demotes it.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -26,8 +16,8 @@ import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../domain/method_step.dart';
 
-/// What the sheet is showing at any moment: where the chip points, what it
-/// says, and whether it carries its line's amount.
+/// What the sheet shows: where the chip points, what it says, and whether it
+/// carries its line's amount.
 typedef ChipEdit = ({
   List<String> refs,
   String word,
@@ -35,11 +25,8 @@ typedef ChipEdit = ({
 });
 
 /// Opens the chip sheet. Every control writes through [onChanged] as it is
-/// touched, so the sentence behind the sheet updates in place; [onRemove]
-/// drops the link and pops.
-///
-/// [pickLine] opens the line picker and resolves to the line the chip should
-/// point at instead — null if the picker was dismissed.
+/// touched; [onRemove] drops the link and pops. [pickLine] opens the line
+/// picker and resolves to the new line, or null if dismissed.
 Future<void> showMethodChipSheet(
   BuildContext context, {
   required ChipEdit initial,
@@ -72,7 +59,7 @@ class _ChipSheet extends HookWidget {
 
   final ChipEdit initial;
 
-  /// How the lines behind a chip's refs read — "Fennel bulb · 1", or the
+  /// How the lines behind a chip's refs read: "Fennel bulb · 1", or the
   /// constituent run for a collective.
   final String Function(List<String> refs) describe;
   final Future<String?> Function() pickLine;

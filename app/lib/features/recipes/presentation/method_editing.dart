@@ -1,22 +1,10 @@
-/// What the method step cards actually need from their host.
+/// What the method step cards (`method_editor.dart`) need from their host.
+/// Implemented by `RecipeEditor` and by `ImportMethodEditing`, an adapter over
+/// the import review's draft.
 ///
-/// The cards (`method_editor.dart`) have two hosts: `RecipeEditor`, and the
-/// import review — the screen most likely to need a method fix, and so the
-/// wrong one to leave read-only.
-///
-/// This is a **declaration, not a refactor**: `RecipeEditor` already has every
-/// member below, and gains `implements MethodEditing` with no change to its
-/// body. The import side supplies `ImportMethodEditing`, an adapter over the
-/// review draft. Both hosts keep their own state model — the alternative
-/// (hoisting both onto a shared draft controller) would re-plumb a surface
-/// that shipped the day before and is under sim coverage.
-///
-/// The surface is deliberately narrow and deliberately *the cards' own*: if a
-/// card needs something new it goes here, and both hosts have to answer for
-/// it. Two members exist only so the picker's add-a-line door can be offered —
-/// `addLineItem` and `addComponentLineItem` — and the import adapter throws
-/// [UnsupportedError] from them, with the door disabled and its reason shown
-/// rather than the throw ever being reachable.
+/// `addLineItem` and `addComponentLineItem` exist only for the picker's
+/// add-a-line door; the import adapter throws [UnsupportedError] from them and
+/// disables the door with its reason.
 library;
 
 import '../../../core/units/recipe_measure.dart';
@@ -30,22 +18,18 @@ import '../domain/recipe.dart';
 /// The host a `MethodStepCard` edits through.
 abstract interface class MethodEditing {
   /// The method as the cards hold it: one sentence per step, plus the ranges
-  /// that are chips or timers. Derived, so there is one source of truth.
+  /// that are chips or timers.
   List<MethodDraftStep> methodDraft();
 
-  /// The lines a chip can point at, by the id its refs carry. On the recipe
-  /// editor these are real `line_item_id`s; at review they are the preview's
-  /// synthetic `line-<i>` ids, which is what lets the "Reads as" fold show
-  /// live amounts with no extra plumbing.
+  /// The lines a chip can point at, by ref id: real `line_item_id`s in the
+  /// editor, the preview's synthetic `line-<i>` ids at review.
   Map<String, LineItem> lineById();
 
   /// The pending identity substitution to notice, or null. Always null at
-  /// review: a re-match there re-points by line INDEX, so no chip can be
-  /// orphaned by one.
+  /// review, where a re-match re-points by line index and orphans no chip.
   Substitution? substitution();
 
-  /// Chips whose word no longer matches the line they point at. Always empty
-  /// at review, for the same reason.
+  /// Chips whose word no longer matches their line. Always empty at review.
   List<ChipRelabel> relabels();
 
   /// What a convert-to-plain-text would cost, for the confirm to count.
@@ -66,7 +50,7 @@ abstract interface class MethodEditing {
   });
 
   /// Marks `[start, end)` of [stepId] as a timer, rewriting its words to
-  /// [formatTimerRange]'s own output.
+  /// [formatTimerRange]'s output.
   void timerRange(
     String stepId, {
     required int start,
@@ -95,8 +79,7 @@ abstract interface class MethodEditing {
   void setChipAmountRule(String stepId, int index, ChipAmountRule rule);
   void setTimerSpan(String stepId, int index, int low, int high);
 
-  /// Drops a chip or timer, keeping its word: the sentence survives and only
-  /// the link dies.
+  /// Drops a chip or timer, keeping its word in the sentence.
   void removeChip(String stepId, int index);
 
   /// Dismisses one relabel notice, keeping the word the step already had.
@@ -105,19 +88,15 @@ abstract interface class MethodEditing {
   /// The one lossy act: every chip and timer becomes ordinary words.
   void convertMethodToPlainText();
 
-  /// Whether the chip picker may mint a BRAND-NEW line here. False at review
-  /// (seam D4's scope cut): a new line would need a flat index `buildCommit`
-  /// does not walk, and the review screen has never had an add-a-line
-  /// affordance. The footer is then disabled and says [addLineReason] —
-  /// disabled rather than hidden, because a door that vanishes teaches
-  /// nothing — so the three members below are unreachable there.
+  /// Whether the chip picker may mint a new line here. False at review, where
+  /// `buildCommit` cannot index a new line; the footer is then disabled and
+  /// shows [addLineReason], and the three members below are unreachable.
   bool get canAddLine;
 
   /// Why [canAddLine] is false, in one line. Null when it is true.
   String? get addLineReason;
 
-  /// The group a chip's *new* line lands in. Throws [UnsupportedError] on a
-  /// host with no add-a-line door.
+  /// The group a chip's new line lands in. Throws [UnsupportedError] at review.
   String ensureGroupId();
 
   /// Appends an ingredient line. Throws [UnsupportedError] at review.
@@ -129,11 +108,9 @@ abstract interface class MethodEditing {
   });
 
   /// Appends a sub-recipe component line. Throws [UnsupportedError] at review.
-  ///
-  /// [recipeMeasureId] is one of the target's own words, and it replaces the
-  /// unit rather than joining it — a line is denominated once (ADR-0018).
-  /// [recipeMeasure] is that word's row, where the caller has it: one coined a
-  /// tap ago is not yet in [target], and the line's row prints from there.
+  /// [recipeMeasureId] replaces the unit (ADR-0018). [recipeMeasure] is that
+  /// measure's row where the caller has it, since a just-coined one is not yet
+  /// in [target].
   void addComponentLineItem(
     String groupId,
     SubRecipeTarget target, {

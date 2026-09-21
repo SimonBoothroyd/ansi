@@ -1,8 +1,6 @@
-/// Riverpod ViewModels for the recipes UI.
-///
-/// Read models are thin streams off the repository; the editor is a small
-/// [RecipeEditor] notifier holding the in-progress aggregate with immutable
-/// mutators the editor view calls.
+/// Riverpod ViewModels for the recipes UI: thin read streams off the
+/// repository, and the [RecipeEditor] notifier holding the in-progress
+/// aggregate.
 library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -44,38 +42,27 @@ Stream<List<RecipeSummary>> recipeList(Ref ref) =>
 Stream<Recipe?> recipeById(Ref ref, String id) =>
     ref.watch(recipeRepositoryProvider).watchRecipe(id);
 
-/// The recipes that list [id] as a component — the "Used in · N" tab's rows
-/// (step 8.6 / D9), and the same count D5's delete refusal speaks.
-///
-/// It re-reads whenever the recipe itself changes, which is what a link
-/// written on this device (or synced in from the other one) moves.
+/// The recipes that list [id] as a component: the "Used in · N" rows and the
+/// count the delete refusal speaks. Re-reads whenever the recipe changes.
 @riverpod
 Future<List<RecipeUse>> recipeUsedIn(Ref ref, String id) {
   ref.watch(recipeByIdProvider(id));
   return ref.watch(recipeRepositoryProvider).usedIn(id);
 }
 
-/// Every recipe's cost, keyed by recipe id (ADR-0017) — the Cost reading of
-/// the recipe panel, and what the week's band sums.
-///
-/// A second stream beside [recipeList] rather than a field on it: a cost moves
-/// when a receipt lands, and money never rides on a macro summary.
+/// Every recipe's cost, keyed by recipe id (ADR-0017). A separate stream from
+/// [recipeList]: a cost moves when a receipt lands, and money stays apart from
+/// macros.
 @riverpod
 Stream<Map<String, RecipeCostSummary>> recipeCosts(Ref ref) =>
     ref.watch(recipeRepositoryProvider).watchRecipeCosts();
 
 /// Whether the recipe page prints each ingredient line's own figures under its
-/// name, beneath the panel's total.
+/// name.
 ///
-/// A **reading posture**, not a household fact: it changes what one person is
-/// looking at right now, so it is neither written to the recipe nor synced.
-/// Keep-alive rather than per-page so the choice survives moving between
-/// recipes — a reader comparing two recipes' lines should not have to switch it
-/// back on — and it resets with the app, which is as long as a posture lasts.
-///
-/// WHICH figures it prints is [CostReading]'s answer, not this one: there is
-/// one toggle and one menu item, and the lines print whatever the panel above
-/// them is reading.
+/// A reading posture, neither stored nor synced: keep-alive so it survives
+/// moving between recipes, reset with the app. Which figures print is
+/// [CostReading]'s answer.
 @Riverpod(keepAlive: true)
 class ShowLineFigures extends _$ShowLineFigures {
   @override
@@ -84,30 +71,23 @@ class ShowLineFigures extends _$ShowLineFigures {
   void toggle() => state = !state;
 }
 
-/// Whether the recipe panel reads COST rather than macros — the `Macros |
-/// Cost` chip pair that closes the Ingredients tab.
-///
-/// The same kind of posture as [ShowLineFigures] and held the same way: for the
-/// session, across recipes, written nowhere and synced to nobody. Somebody
-/// pricing a week's cooking stays in Cost while they move between recipes; the
-/// app forgets it when it restarts, which is as long as a posture lasts.
+/// Whether the recipe panel reads cost rather than macros. A session posture
+/// held like [ShowLineFigures].
 @Riverpod(keepAlive: true)
 class CostReading extends _$CostReading {
   @override
   bool build() => false;
 
-  /// A verb, not a setter: `show(cost: true)` is what the chip pair means,
-  /// and a named argument keeps the call site saying which reading it asked
+  /// A verb rather than a setter so the call site names the reading it asks
   /// for.
   // ignore: use_setters_to_change_properties
   void show({required bool cost}) => state = cost;
 }
 
-/// Resolves the vocab [Ingredient] behind an editor line item, so its unit
-/// dropdown can be filtered by [allowedUnitsFor]. The repository only exposes
-/// search (ADR-0004), so this searches by the denormalised name and matches on
-/// id; null when the vocab row can't be resolved (the dropdown then falls back
-/// to the full catalog).
+/// Resolves the vocab [Ingredient] behind an editor line item so its units can
+/// be filtered by [allowedUnitsFor]. The repository only exposes search
+/// (ADR-0004), so this searches by name and matches on id; null when
+/// unresolved.
 @riverpod
 Future<Ingredient?> lineItemIngredient(
   Ref ref, {
@@ -123,27 +103,13 @@ Future<Ingredient?> lineItemIngredient(
   return null;
 }
 
-/// Editable recipe state. `build` loads an existing recipe (edit) or starts a
-/// blank one with a fresh id and a single empty group (create).
+/// Editable recipe state. `build` loads an existing recipe or starts a blank
+/// one with a fresh id and one empty group.
 ///
-/// [RecipeEditor.build]'s [initialTitle] seeds a NEW draft's title — what
-/// `/recipes/new?title=…` carries from the Library's "nothing matches" state,
-/// so a search for a recipe you were about to write becomes that recipe rather
-/// than an empty form. It is part of the family key, so arriving with a
-/// different title is a different draft.
-///
-/// [initialBookId] and [initialSectionId] are the same idea for the FILING
-/// (0028 E3): `/recipes/new?book=…&section=…` is what a section's `＋` hands
-/// over, so the recipe lands on the shelf you tapped instead of in whichever
-/// book `ensureDefaultBook` returns. They key the family too — the same
-/// blank form filed into two different sections is two drafts.
-///
-/// It `implements MethodEditing` (seam D4) — a declaration, not a refactor:
-/// every member of that interface was already here, written for the step cards.
-/// The import review's adapter implements the same surface, so the cards can
-/// host on either screen without two of them existing. The same holds for
-/// [RecipeHeaderHost]: the header form renders over this notifier here and over
-/// the import controller at review.
+/// [initialTitle], [initialBookId] and [initialSectionId] seed a new draft from
+/// the route (`/recipes/new?title=…&book=…&section=…`) and are part of the
+/// family key. Implements [MethodEditing] and [RecipeHeaderHost], the surfaces
+/// the step cards and header form also host on at import review.
 @riverpod
 class RecipeEditor extends _$RecipeEditor
     implements MethodEditing, RecipeHeaderHost {
@@ -164,9 +130,8 @@ class RecipeEditor extends _$RecipeEditor
         return _tokenized(existing);
       }
     }
-    // New recipe: filed from the start, so FILE UNDER states a fact rather
-    // than asking a question. The shelf you tapped when it is one of the
-    // section doors; otherwise the default book, unsectioned, as before.
+    // A new recipe is filed from the start: the section door's shelf, otherwise
+    // the default book, unsectioned.
     final bookId =
         initialBookId ??
         (await ref.read(bookRepositoryProvider).ensureDefaultBook()).id;
@@ -181,11 +146,9 @@ class RecipeEditor extends _$RecipeEditor
     );
   }
 
-  /// One method shape from here on (0022 D8): a recipe opened with the legacy
-  /// plain [Recipe.steps] becomes one text token per line, so the editor, the
-  /// recipe page and cook mode all read the same thing. Nothing is
-  /// re-tokenized, re-matched or re-fetched — a line of prose is a line of
-  /// prose.
+  /// A recipe with legacy plain [Recipe.steps] becomes one text token per line,
+  /// so every reader sees one method shape. Nothing is re-tokenized or
+  /// re-matched.
   Recipe _tokenized(Recipe recipe) => recipe.methodSteps != null
       ? recipe
       : recipe.copyWith(methodSteps: methodFromPlainSteps(recipe.steps));
@@ -193,27 +156,20 @@ class RecipeEditor extends _$RecipeEditor
   Recipe get _current => state.requireValue;
   void _set(Recipe r) => state = AsyncData(r);
 
-  /// Editor-session step ids, index-aligned with `methodSteps`. Minted on
-  /// load, carried through reorder, and never persisted — see
-  /// [stableStepKey] for why the wire format holds none.
+  /// Editor-session step ids, index-aligned with `methodSteps`. Never
+  /// persisted; see [stableStepKey].
   List<String> _stepIds = const [];
 
   /// True while a [save] is in flight. A double-tapped Save would otherwise run
   /// the child-diff write twice concurrently.
   bool _saving = false;
 
-  /// What the recipe said a batch makes when this editor OPENED — the left-hand
-  /// side of the orphan question, which is about what a Save takes away
-  /// (ADR-0018 rule 4). Empty for a new recipe, which has nothing to take.
+  /// What the recipe said a batch makes when this editor opened, for the orphan
+  /// question (ADR-0018 rule 4). Empty for a new recipe.
   List<YieldDenomination> _yieldsAsOpened = const [];
 
-  /// The live words this Save would leave standing on nothing: the ones the
-  /// recipe can hold now and could not once it says what the draft says.
-  ///
-  /// Empty is the ordinary answer, so a caller can use it as the condition. It
-  /// **warns, never refuses** — what a batch makes is the recipe's own fact and
-  /// the household may restate it; the words survive, and every line saying one
-  /// reads as unresolved until MAKES says that family again.
+  /// The live words this Save would orphan: those the recipe can hold now but
+  /// not once it says what the draft says. Usually empty. Warns, never refuses.
   List<RecipeMeasure> measuresOrphanedBySave() => recipeMeasuresOrphanedBy(
     measures: _current.measures,
     from: _yieldsAsOpened,
@@ -222,9 +178,8 @@ class RecipeEditor extends _$RecipeEditor
 
   // --- the header ---------------------------------------------------
   //
-  // Every rule — both halves of a yield or neither, the other-family lock,
-  // no freezer window on a dish that does not freeze — is `RecipeHeaderEdits`,
-  // shared with the import review's host; these only seat the result.
+  // Every rule lives in `RecipeHeaderEdits`, shared with the import review's
+  // host; these only seat the result.
 
   @override
   Recipe get header => _current;
@@ -287,9 +242,8 @@ class RecipeEditor extends _$RecipeEditor
     ),
   );
 
-  /// Appends a line for [ingredient]. The 7.7 add flow hands the quantity +
-  /// unit choice straight from the quantity sheet; without a [choice] the
-  /// line starts in the ingredient's default unit.
+  /// Appends a line for [ingredient] with the quantity sheet's [choice], or in
+  /// the ingredient's default unit without one.
   @override
   void addLineItem(
     String groupId,
@@ -328,16 +282,12 @@ class RecipeEditor extends _$RecipeEditor
     ),
   );
 
-  /// Appends a **component** line pointing at [target] (step 8.6 / D1). It is
-  /// an ordinary line with the other identity: no ingredient id, no ingredient
-  /// measure (those are a vocabulary concept), and a `batch` default so a line
-  /// backed out of the quantity sheet still means something honest.
+  /// Appends a component line pointing at [target]: no ingredient id or
+  /// ingredient measure, and a `batch` default.
   ///
-  /// [recipeMeasureId] is one of the TARGET's own words (`3 blob`, ADR-0018),
-  /// and it is the line's whole denomination: a unit beside it would count
-  /// something nobody said, so it takes the unit's place rather than sitting
-  /// next to it. [recipeMeasure] is that word's row, where the caller has it —
-  /// a word coined a tap ago is not yet in [target] (see [targetWithMeasure]).
+  /// [recipeMeasureId] is one of the target's own words (ADR-0018) and takes
+  /// the unit's place. [recipeMeasure] is that word's row where the caller has
+  /// it; a word just coined is not yet in [target] (see [targetWithMeasure]).
   @override
   void addComponentLineItem(
     String groupId,
@@ -368,13 +318,9 @@ class RecipeEditor extends _$RecipeEditor
     ),
   );
 
-  /// Moves the ingredient line at flat row [from] to row [to] — the editor's
-  /// whole reorder-and-refile gesture (`line_reorder.dart` holds the rule, and
-  /// the import review's list obeys the same one).
-  ///
-  /// **The line object is carried across, not rebuilt**, so its id survives
-  /// the move and every method chip pointing at it still does. A group left
-  /// empty by the move is kept: the heading is the human's.
+  /// Moves the ingredient line at flat row [from] to row [to]; the rule is in
+  /// `line_reorder.dart`. The line object is carried across, so its id and
+  /// method chips survive. A group left empty is kept.
   void moveLine(int from, int to) {
     final items = moveLineRow(
       [for (final g in _current.groups) g.items],
@@ -394,14 +340,10 @@ class RecipeEditor extends _$RecipeEditor
   void setLineItemQuantity(String itemId, double? quantity) =>
       _mapItem(itemId, (i) => i.copyWith(quantity: quantity));
 
-  /// Quantifies the line in a plain unit, clearing any measure — an
-  /// ingredient's word and the target recipe's alike.
-  ///
-  /// The recipe measure goes because a line says its amount in a unit **or** in
-  /// one of the target's own words, never both. Keeping `blob` beside a unit
-  /// would make a row the database refuses, and a refused upload drops the
-  /// whole crud transaction — so a build that cannot yet *author* a measured
-  /// line must still never corrupt one it reads.
+  /// Quantifies the line in a plain unit, clearing any ingredient or recipe
+  /// measure. A line is said in a unit or a word, never both; the database
+  /// refuses a row with both, and a refused upload drops the whole crud
+  /// transaction.
   void setLineItemUnit(String itemId, Unit unit) => _mapItem(
     itemId,
     (i) => i.copyWith(
@@ -412,14 +354,9 @@ class RecipeEditor extends _$RecipeEditor
     ),
   );
 
-  /// Quantifies a COMPONENT line in one of the target recipe's own words —
-  /// `3 blob` (ADR-0018). The unit goes, because the word IS the denomination:
-  /// the line's number counts words, so the measure's own `g` beside it would
-  /// read as `3 g` where the line means 45.
-  ///
-  /// [word] is the row behind the pointer, where the caller has it: a word
-  /// coined a tap ago is not in the target this line carries, and the row
-  /// prints from there ([targetWithMeasure]).
+  /// Quantifies a component line in one of the target recipe's own words
+  /// (ADR-0018), clearing the unit. [word] is the row behind the pointer where
+  /// the caller has it ([targetWithMeasure]).
   void setLineItemRecipeMeasure(
     String itemId,
     String recipeMeasureId, {
@@ -451,34 +388,22 @@ class RecipeEditor extends _$RecipeEditor
     ),
   );
 
-  /// Sets the line's note — the modifier the recipe page prints after the name
-  /// ("Garlic · peeled and crushed"). Blank clears it, so the field and the
-  /// absence of a note are the same gesture.
-  ///
-  /// It goes through [_mapItem], never [_setIdentity]: a note says nothing
-  /// about what the line IS, so it must not relabel a single method chip.
+  /// Sets the line's note; blank clears it. Goes through [_mapItem], never
+  /// [_setIdentity], so no method chip is relabelled.
   void setLineItemNote(String itemId, String? note) {
     final text = note?.trim() ?? '';
     _mapItem(itemId, (i) => i.copyWith(note: text.isEmpty ? null : text));
   }
 
-  /// Marks the line optional, or not (the card's flag row). A fact
-  /// about the line, never about its amount: the quantity and unit are
-  /// untouched, and what changes is what a total covers.
+  /// Marks the line optional or not. Quantity and unit are untouched.
   void setLineItemOptional(String itemId, {required bool optional}) =>
       _mapItem(itemId, (i) => i.copyWith(optional: optional));
 
-  /// Re-points a line at another ingredient, **keeping the line's id** (0022
-  /// D6).
+  /// Re-points a line at another ingredient, keeping the line's id.
   ///
-  /// The id is the load-bearing part twice over. It makes `saveRecipe`'s child
-  /// diff issue an UPDATE rather than a soft-delete + INSERT — and it is what
-  /// keeps every chip that references this line pointing at it. Delete +
-  /// re-add would mint a fresh `line_item_id` and leave every chip silently
-  /// dangling.
-  ///
-  /// The measure goes with the old ingredient: "potato, medium = 213 g" says
-  /// nothing about a fennel bulb.
+  /// The id makes `saveRecipe`'s child diff issue an UPDATE rather than delete
+  /// + INSERT, and keeps every chip that references the line pointing at it.
+  /// The ingredient measure is cleared with the old ingredient.
   void setLineItemIngredient(String itemId, Ingredient ingredient) =>
       _setIdentity(
         itemId,
@@ -490,9 +415,8 @@ class RecipeEditor extends _$RecipeEditor
           ingredientName: ingredient.canonicalName,
           measureId: null,
           measure: null,
-          // The picker only offers live rows, so a re-point is exactly the
-          // repair the tag asked for: it stops reading as removed the moment
-          // the pick lands, not on the next reload.
+          // The picker only offers live rows, so a re-point clears the removed
+          // tag at once.
           ingredientDeleted: false,
           // A re-point onto an ingredient drops any recipe measure with it:
           // `blob` is a word for a recipe, and this line no longer names one.
@@ -532,8 +456,8 @@ class RecipeEditor extends _$RecipeEditor
     final before = lineById()[itemId];
     if (before == null) return;
     _mapItem(itemId, item);
-    // D3 fires ONLY on an identity change — never on a quantity, unit,
-    // measure or note edit. Re-picking the same ingredient changes nothing.
+    // A substitution fires only on an identity change, never on a quantity,
+    // unit, measure or note edit. Re-picking the same ingredient is a no-op.
     if (before.ingredientName == name) return;
     final relabelled = relabelRefs(methodDraft(), lineId: itemId, label: name);
     if (relabelled.relabels.isEmpty) return;
@@ -552,9 +476,8 @@ class RecipeEditor extends _$RecipeEditor
     );
   }
 
-  /// The substitution being read through this sitting, or null. **Session
-  /// state, not a column** — the swap and the read-through happen in one
-  /// sitting, and a save clears it.
+  /// The substitution being read through this sitting, or null. Session state;
+  /// a save clears it.
   @override
   Substitution? substitution() => _substitution;
   Substitution? _substitution;
@@ -565,9 +488,7 @@ class RecipeEditor extends _$RecipeEditor
   List<ChipRelabel> relabels() => List.unmodifiable(_relabels);
   final List<ChipRelabel> _relabels = [];
 
-  /// D3's revert: the chip keeps its ref and takes its printed word back.
-  /// Re-pointing "sausages" from Pork sausage to Italian sausage is the case
-  /// where the old word was right all along.
+  /// Reverts a relabel: the chip keeps its ref and takes its printed word back.
   @override
   void keepOldWord(ChipRelabel relabel) {
     renameChip(relabel.stepId, relabel.spanIndex, relabel.oldWord);
@@ -604,7 +525,7 @@ class RecipeEditor extends _$RecipeEditor
     );
   }
 
-  // --- the method (0022) ------------------------------------------------
+  // --- the method -------------------------------------------------------
 
   /// Every line of this recipe by id — what the fold derives a chip's live
   /// amount from, and what the line picker offers.
@@ -698,11 +619,9 @@ class RecipeEditor extends _$RecipeEditor
 
   /// Marks `[start, end)` of [stepId] as a timer.
   ///
-  /// This is the ONE place a selection rewrites text, and it is deliberate: a
-  /// timer's words ARE [formatTimerRange]'s output, occupying a locked range
-  /// with the seconds in the span record, so the round-trip never re-parses
-  /// the string it printed. The timer sheet's "Goes in as" shows exactly what
-  /// will land before it lands.
+  /// The one place a selection rewrites text: a timer's words are
+  /// [formatTimerRange]'s output in a locked range, with the seconds in the
+  /// span record, so the round-trip never re-parses them.
   @override
   void timerRange(
     String stepId, {
@@ -778,9 +697,8 @@ class RecipeEditor extends _$RecipeEditor
     ),
   );
 
-  /// Re-points the chip at [index] of [stepId] — **this chip only**, and
-  /// without touching the sentence. The line's identity picker is what moves
-  /// every chip at once (D3).
+  /// Re-points only the chip at [index] of [stepId], without touching the
+  /// sentence.
   @override
   void repointChip(String stepId, int index, List<String> refs) => _mapStep(
     stepId,
@@ -796,7 +714,8 @@ class RecipeEditor extends _$RecipeEditor
   );
 
   /// Renames the chip's word. The one place that changes what a chip says —
-  /// the sheet's Word field and D3's "keep the old word" call it alike.
+  /// the sheet's Word field and the substitution's "keep the old word" both
+  /// call it.
   @override
   void renameChip(String stepId, int index, String word) => _mapStep(
     stepId,
@@ -805,8 +724,8 @@ class RecipeEditor extends _$RecipeEditor
         : d,
   );
 
-  /// The D9 override: display only. No quantity is invented, moved or summed
-  /// by flipping it.
+  /// The show-amount override: display only. No quantity is invented, moved
+  /// or summed by flipping it.
   @override
   void setChipAmountRule(String stepId, int index, ChipAmountRule rule) =>
       _mapStep(
@@ -848,7 +767,7 @@ class RecipeEditor extends _$RecipeEditor
   void removeChip(String stepId, int index) =>
       _mapStep(stepId, (d) => removeSpan(d, index));
 
-  /// What a convert-to-plain-text would cost, for the confirm to count (D5).
+  /// What a convert-to-plain-text would cost, for the confirm to count.
   @override
   ({int chips, int timers}) methodLinkCounts() {
     var chips = 0;
@@ -862,15 +781,11 @@ class RecipeEditor extends _$RecipeEditor
     return (chips: chips, timers: timers);
   }
 
-  /// D5, the one lossy act in the editor: every chip and timer becomes
-  /// ordinary words. Each step keeps its OWN prose, byte-identical to what its
-  /// card was showing — no sentence changes, only the links go.
+  /// The one lossy act in the editor: every chip and timer becomes ordinary
+  /// words, each step's prose unchanged.
   ///
-  /// **There is no reverse, and the copy says why.** Tokenization happens only
-  /// inside the import call, which grounds each ref by index into the same
-  /// extraction it just read (§4.6). There is no endpoint that takes free text
-  /// and returns tokens, and building one would ship user prose to a model
-  /// over a route ADR-0004 never opened.
+  /// There is no reverse: tokenization happens only inside the import call, and
+  /// no endpoint takes free text and returns tokens (ADR-0004).
   @override
   void convertMethodToPlainText() {
     final prose = flattenMethod(
@@ -884,7 +799,7 @@ class RecipeEditor extends _$RecipeEditor
   }
 
   /// The recipe editor owns the whole recipe, so the chip picker's
-  /// add-a-line door is open here (seam D4).
+  /// add-a-line door is open here.
   @override
   bool get canAddLine => true;
 
@@ -901,20 +816,13 @@ class RecipeEditor extends _$RecipeEditor
     return id;
   }
 
-  /// Persists the recipe (dropping blank steps) and returns it as written. A
-  /// second call while the first is still writing is a no-op that returns the
-  /// same recipe — a double-tapped Save must not race two child-diff writes.
+  /// Persists the recipe (dropping blank steps) and returns it as written, so a
+  /// caller making a sub-recipe gets its title and yields. A second call while
+  /// the first is writing returns the same recipe.
   ///
-  /// It hands back the whole [Recipe], not just the id, because a caller that
-  /// pushed this editor to MAKE a sub-recipe needs its title and yields to
-  /// build the line that was waiting on it.
-  ///
-  /// Also resets the provider: the editor is left after a save, and without an
-  /// explicit reset a lingering instance (auto-dispose only fires once the
-  /// last listener is gone, which navigation timing can defer) hands the old
-  /// draft to the next "New recipe" open. Invalidate-on-save guarantees a
-  /// fresh open always rebuilds from scratch — but only while this notifier is
-  /// still alive: after an auto-dispose mid-write, touching `ref` throws.
+  /// Also invalidates the provider so the next "New recipe" rebuilds from
+  /// scratch, but only while this notifier is alive: after an auto-dispose
+  /// mid-write, touching `ref` throws.
   Future<Recipe> save() async {
     final kept = lineById().keys.toSet();
     final method = [
@@ -924,7 +832,7 @@ class RecipeEditor extends _$RecipeEditor
     final recipe = _current.copyWith(
       // The backstop for a title field that was never left.
       title: cleanName(_current.title, NameKind.title),
-      // The plain shape is write-never, read-legacy from 0022 on (D8).
+      // The plain-text shape is read for legacy rows and never written.
       steps: const [],
       // A dangling ref can never reach the database, however the editor got
       // here — the invariant is enforced on the way out, not trusted.

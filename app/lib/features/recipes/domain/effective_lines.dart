@@ -1,53 +1,35 @@
-/// The ONE seam between a recipe's stored lines and the lines a derivation
-/// actually runs over — PURE DART (invariant 2). (D6b).
+/// The one seam between a recipe's stored lines and the lines a derivation runs
+/// over. Pure Dart.
 ///
-/// Three derivations read a recipe's lines: the macro summation
-/// (`recipe_macros.dart`), the shopping list (`shopping_repository_impl.dart`
-/// expanding sessions into contributions) and the cook plan (which reads only
-/// the component lines, through `componentGraphForWeek`). Each of them calls
-/// [effectiveLines] rather than filtering for itself, so a rule about *which*
-/// lines count lives in exactly one place — and so does every line it drops,
-/// with a reason, because a dropped line is NAMED by whichever surface dropped
-/// it (never a silent hole; invariant 3 read the stronger way).
-///
-/// **Two rules.** The recipe's own: drop the lines marked `optional`. And the
-/// week's: apply this week's [LineOverride]s first — a line swapped, an amount
-/// changed, a line added, one left out, an optional one ticked back in. A
-/// caller that holds a week passes its overrides; one that does not (the
-/// recipe page, the Library) passes none and gets the recipe as it stands.
-///
-/// The answer COMPOSES: an overridden line comes back with `optional` cleared,
-/// because the week has already ruled on it. So running the seam again over
-/// its own `kept` list changes nothing, and a caller may hand the result
-/// straight to `summarizeRecipeMacros` without the recipe's rule firing twice.
+/// The macro summation, the shopping list and the cook plan all call
+/// [effectiveLines] rather than filtering themselves, and every dropped line
+/// comes back with a reason so the surface can name it. It applies this week's
+/// [LineOverride]s first (none for the recipe page and Library), then drops
+/// lines marked `optional`. An overridden line comes back with `optional`
+/// cleared, so running the seam over its own `kept` list changes nothing.
 library;
 
 import 'line_override.dart';
 import 'recipe.dart';
 
-/// Why [effectiveLines] left a line out — what the surface that dropped it
-/// switches on, rather than on a flag.
+/// Why [effectiveLines] left a line out.
 enum LineDropReason {
-  /// The recipe marks the line optional ([LineItem.optional]) and nothing has
-  /// asked for it back.
+  /// The recipe marks the line optional ([LineItem.optional]) and nothing asked
+  /// for it back.
   optional,
 
   /// This week's variant leaves the line out ([LineOverrideAction.exclude]).
-  /// The recipe still has it; only this week does not.
   thisWeek,
 }
 
-/// One line [effectiveLines] dropped, and why — so the derivation that asked
-/// can name it: "not counted · 2 optional lines: Lime, Coriander".
+/// One dropped line and why, so the caller can name it.
 typedef DroppedLine = ({LineItem line, LineDropReason reason});
 
-/// What a derivation runs over: the `kept` lines in their stored order, and
-/// the `dropped` ones with a reason, also in stored order.
+/// The `kept` lines and the `dropped` ones with reasons, both in stored order.
 typedef EffectiveLines = ({List<LineItem> kept, List<DroppedLine> dropped});
 
-/// Splits [lines] into the ones a derivation should sum and the ones it must
-/// name instead, after applying this week's [overrides]. Order is preserved on
-/// both sides; added lines land at the end, in their stored order.
+/// Splits [lines] into kept and dropped after applying this week's [overrides].
+/// Order is preserved; added lines land at the end.
 EffectiveLines effectiveLines(
   Iterable<LineItem> lines, {
   List<LineOverride> overrides = const [],
@@ -66,8 +48,7 @@ EffectiveLines effectiveLines(
       case LineOverrideAction.replace:
         kept.add(applyOverride(line, override!));
       case LineOverrideAction.include:
-        // The week ruled on it, so the recipe's own rule has nothing left to
-        // say — clearing the flag is what makes a second pass a no-op.
+        // The week ruled on it; clearing the flag makes a second pass a no-op.
         kept.add(line.copyWith(optional: false));
       // An `add` names no recipe line, so it can never land here.
       case LineOverrideAction.add:
@@ -87,16 +68,13 @@ EffectiveLines effectiveLines(
   return (kept: kept, dropped: dropped);
 }
 
-/// The names of the lines dropped for [reason], in stored order — the list a
-/// surface prints after its count ("Lime, Coriander").
+/// The names of the lines dropped for [reason], in stored order.
 List<String> droppedNames(EffectiveLines lines, LineDropReason reason) => [
   for (final d in lines.dropped)
     if (d.reason == reason) d.line.subRecipe?.title ?? d.line.ingredientName,
 ];
 
-/// The ids of the lines dropped for [reason], in stored order and PARALLEL to
-/// [droppedNames] — what a surface that turns those names into doors writes
-/// its override about.
+/// The ids of the lines dropped for [reason], parallel to [droppedNames].
 List<String> droppedLineIds(EffectiveLines lines, LineDropReason reason) => [
   for (final d in lines.dropped)
     if (d.reason == reason) d.line.id,

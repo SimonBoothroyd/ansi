@@ -1,27 +1,11 @@
-/// The METHOD slot of the recipe editor — one card per step (0022 D1, design
-/// board frame a).
+/// The recipe editor's METHOD section: one card per step.
 ///
-/// A step's prose is a real editable sentence and a chip is a **highlighted
-/// word inside it**, backed by a ref to a recipe line. That works because a
-/// ref's label already IS the word at that position, so the editor's document
-/// is a plain String plus a side table of ranges (`method_draft.dart`) and the
-/// chip skin is painted by [MethodSpanController].
-///
-/// The card that has focus grows two things: the insert toolbar, and a
-/// **"Reads as"** preview rendered by the shipped [MethodStepText] — the same
-/// fold the recipe page runs, so the live amounts are visible while you write
-/// and the editor never has to fake a number.
-///
-/// An imported method is editable like any other: nothing is re-tokenized,
-/// re-matched or re-fetched on open — the refs are the `line_item_id`s the
-/// import committed.
-///
-/// **Two hosts, one card.** The cards edit through [MethodEditing]
-/// rather than the recipe editor's notifier, so the import review screen —
-/// the screen most likely to need a method fix — edits with these same cards
-/// over its own draft. There the refs are the preview's `line-<i>` ids and
-/// the picker's add-a-line door is disabled with its reason; everything else
-/// is identical, which is the point of there being one card.
+/// A step's prose is an editable sentence; a chip is a highlighted word in it,
+/// backed by a ref to a recipe line. The document is a plain String plus a side
+/// table of ranges (`method_draft.dart`), painted by [MethodSpanController].
+/// The focused card shows the insert toolbar and a "Reads as" preview rendered
+/// by [MethodStepText]. Cards edit through [MethodEditing], so the import
+/// review screen uses the same cards over its own draft.
 library;
 
 import 'dart:async';
@@ -68,9 +52,8 @@ class MethodEditor extends StatelessWidget {
   final Recipe recipe;
   final MethodEditing notifier;
 
-  /// Told which step has the caret, so a host with the width can light the
-  /// lines that step's chips point at. Null on the phone and at review, where
-  /// there is nothing beside the method to light.
+  /// Told which step has the caret, so a wide host can light the lines its
+  /// chips point at. Null on the phone and at review.
   final void Function(String stepId, {required bool focused})? onStepFocus;
 
   /// See [MethodSpanController.ringsCaretChip].
@@ -89,8 +72,8 @@ class MethodEditor extends StatelessWidget {
           label: 'METHOD',
           count: '${steps.length}',
           trailing: FPopoverMenu(
-            // `menuBuilder`, not `menu`: the item has to dismiss its own
-            // menu before the confirm opens over it.
+            // `menuBuilder`, not `menu`: the item must dismiss its menu before
+            // the confirm opens over it.
             menuBuilder: (_, controller, _) => [
               FItemGroup(
                 children: [
@@ -142,12 +125,8 @@ class MethodEditor extends StatelessWidget {
   }
 }
 
-/// The name over a section of the editor: the micro-label, the count beside
-/// it, and whatever door the section keeps at its right end.
-///
-/// The METHOD header has always been this row; on the wide editor the
-/// ingredients column takes the same one, so the two columns are named the
-/// same way rather than one of them growing a heading of its own.
+/// An editor section's heading: the micro-label, the count, and the section's
+/// door at the right. Used by METHOD and, wide, by the ingredients column.
 class EditorSectionHead extends StatelessWidget {
   const EditorSectionHead({
     required this.label,
@@ -166,9 +145,8 @@ class EditorSectionHead extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 8),
     child: ConstrainedBox(
-      // The height the section's own door sets, stated once so a head with a
-      // door and a head without one are the same box — which is what puts the
-      // two wide columns' first rows on one line.
+      // One fixed height, so a head with a door and one without align across
+      // the two wide columns.
       constraints: const BoxConstraints(minHeight: kEditorSectionHeadHeight),
       child: Row(
         children: [
@@ -188,22 +166,17 @@ class EditorSectionHead extends StatelessWidget {
 /// See [EditorSectionHead] — the `⋯` door's own height.
 const double kEditorSectionHeadHeight = 40;
 
-/// Hands the keyboard back to nobody when a step's sheet closes.
-///
-/// The sentence is an editable, so the tap that opens a chip's sheet also
-/// asks the field for focus — and the request is still pending when
-/// [showAnsiSheet] drops focus on the way in, so the field ends up holding it
-/// behind the sheet. The navigator then restores it on the way out: the
-/// keyboard springs up and the card re-expands over a step the reader has
-/// finished with. Dropping it twice is not superstition — a focus change is
-/// applied in a microtask, which can land either side of the next frame.
+/// Drops focus when a step's sheet closes. The tap that opens a chip's sheet
+/// also requests focus for the field, and the navigator restores it on the way
+/// out, raising the keyboard. Focus is dropped twice because a focus change
+/// applies in a microtask that can land either side of the next frame.
 void _keepTheKeyboardDown(FocusNode node) {
   node.unfocus();
   WidgetsBinding.instance.addPostFrameCallback((_) => node.unfocus());
 }
 
-/// One step card: the sentence, its reorder/delete controls, and — while it
-/// has focus — the insert toolbar and the "Reads as" preview.
+/// One step card: the sentence, its reorder/delete controls and, while focused,
+/// the insert toolbar and the "Reads as" preview.
 class MethodStepCard extends HookConsumerWidget {
   const MethodStepCard({
     required this.step,
@@ -227,15 +200,14 @@ class MethodStepCard extends HookConsumerWidget {
   final MethodEditing notifier;
 
   /// Whether a line's identity change moved one of this step's chips this
-  /// sitting — the amber *check* in the card's header.
+  /// sitting (the amber check).
   final bool flagged;
 
   /// Each moved chip's previous word, so "keep the old word" is one tap.
   final List<ChipRelabel> relabels;
 
-  /// See [MethodEditor.onStepFocus]. Told on the focus node's own
-  /// notification rather than from the build, because what hears it lights
-  /// something outside this card.
+  /// See [MethodEditor.onStepFocus]. Called from the focus node's listener, not
+  /// from build.
   final void Function(String stepId, {required bool focused})? onFocusChange;
 
   /// See [MethodSpanController.ringsCaretChip].
@@ -254,8 +226,8 @@ class MethodStepCard extends HookConsumerWidget {
     final focusNode = useFocusNode();
     useListenable(focusNode);
     final focused = focusNode.hasFocus;
-    // Through a ref, so the subscription is made once per node and still calls
-    // whatever the host handed us on the latest build.
+    // A ref, so the listener subscribes once and still calls the latest
+    // callback.
     final report = useRef(onFocusChange)..value = onFocusChange;
     final stepId = step.id;
     useEffect(() {
@@ -311,23 +283,20 @@ class MethodStepCard extends HookConsumerWidget {
             hint: 'What happens in this step?',
             focusNode: focusNode,
             minLines: 1,
-            // onTap fires AFTER the tap has set the selection, so the span
-            // lookup is exact and needs no hit-testing of its own;
-            // onTapAlwaysCalled so a second tap on the same chip re-opens it.
+            // onTap fires after the tap has set the selection, so the span
+            // lookup is exact; onTapAlwaysCalled lets a second tap re-open the
+            // same chip.
             onTap: () => _openSpanSheet(context, controller, focusNode),
             onTapAlwaysCalled: true,
-            // The CARD's context, not the toolbar's: the toolbar's is
-            // unmounted by `hideToolbar` before the sheet ever opens.
+            // The card's context, not the toolbar's: `hideToolbar` unmounts
+            // that one before the sheet opens.
             contextMenuBuilder: (_, state) =>
                 _selectionToolbar(context, state, controller, focusNode),
             control: FTextFieldControl.managed(
               controller: controller,
-              // The ECHO, refused at the door. Forui registers this as a
-              // plain listener on the controller, so text `sync` pushed IN
-              // (a chip renamed in its sheet, a relabel a re-match ran)
-              // arrives here as if a human had typed it — and `applyEdit`
-              // would drop every span it overlaps, deleting the chip the
-              // rename was renaming. Only a real keystroke gets through.
+              // Forui also calls this for text pushed in programmatically (a
+              // chip renamed in its sheet). `applyEdit` would drop every span
+              // that edit overlaps, so only a real keystroke is let through.
               onChange: (v) {
                 if (controller.isSyncing) return;
                 notifier.editStep(step.id, v.text);
@@ -374,14 +343,8 @@ class MethodStepCard extends HookConsumerWidget {
     );
   }
 
-  /// **Select the text, then say what it is** (D2b) — the writing door.
-  ///
-  /// The platform's own toolbar gains two items, placed immediately after
-  /// **Copy**: iOS paginates after roughly four, and ours must not be the ones
-  /// behind the `▸`. This is the shipped path, not a Material intrusion —
-  /// Forui's own default builder is already
-  /// `AdaptiveTextSelectionToolbar.editableText`, and we hand it one more
-  /// [ContextMenuButtonItem] each.
+  /// The platform selection toolbar with two extra items placed right after
+  /// Copy, so iOS does not paginate them away.
   Widget _selectionToolbar(
     BuildContext context,
     EditableTextState state,
@@ -389,8 +352,8 @@ class MethodStepCard extends HookConsumerWidget {
     FocusNode focusNode,
   ) {
     final items = [...state.contextMenuButtonItems];
-    // Captured BEFORE the toolbar hides and the field loses focus: the sheet
-    // that opens next would otherwise be handed an empty range.
+    // Captured before the toolbar hides and the field loses focus, or the sheet
+    // gets an empty range.
     final selection = controller.selection;
     if (selection.isValid && !selection.isCollapsed) {
       final copy = items.indexWhere(
@@ -421,10 +384,7 @@ class MethodStepCard extends HookConsumerWidget {
     );
   }
 
-  /// The selected words become the chip's word **verbatim** — nothing is
-  /// inserted, deleted or rewritten. Selection → chip is a pure annotation of
-  /// text the user already wrote, which is the whole reason it reads as
-  /// obvious.
+  /// Turns the selected words into a chip verbatim; no text changes.
   Future<void> _selectionToIngredient(
     BuildContext context,
     MethodSpanController controller,
@@ -452,21 +412,15 @@ class MethodStepCard extends HookConsumerWidget {
       end: selection.end,
       refs: [lineId],
     );
-    // The words are a chip now, so the selection that made one is spent. It
-    // has to be dropped by hand because this path is the one that changes no
-    // text (the timer path rewrites the words, and a text change reseats the
-    // caret on its own) — and a live selection swallows the next tap inside
-    // it, which on the new chip is the tap that opens its sheet.
+    // No text changed, so the selection must be collapsed by hand: a live
+    // selection swallows the next tap inside it, which is the tap that opens
+    // the new chip.
     controller.selection = TextSelection.collapsed(offset: selection.end);
   }
 
-  /// Parses ONLY the selected substring, and seeds the stepper with it.
-  ///
-  /// This is not render-time matching (ADR-0004). Nothing scans prose on its
-  /// own: it runs once, at edit time, on a string the user deliberately
-  /// pointed at and asked us to read, and its output is shown in a stepper for
-  /// confirmation before a single token is written. A failure opens the
-  /// stepper EMPTY rather than guessing.
+  /// Parses only the selected substring and seeds the timer stepper with it for
+  /// confirmation. A parse failure opens the stepper empty. Not render-time
+  /// matching (ADR-0004): it runs once, on text the user selected.
   Future<void> _selectionToTimer(
     BuildContext context,
     TextSelection selection,
@@ -493,8 +447,7 @@ class MethodStepCard extends HookConsumerWidget {
     );
   }
 
-  /// A tap inside a chip opens its sheet; a tap anywhere else is an ordinary
-  /// caret placement. A drag-select is not a tap.
+  /// A tap inside a chip opens its sheet; any other tap places the caret.
   Future<void> _openSpanSheet(
     BuildContext context,
     MethodSpanController controller,
@@ -502,10 +455,9 @@ class MethodStepCard extends HookConsumerWidget {
   ) async {
     final selection = controller.selection;
     if (!selection.isCollapsed) return;
-    // A caret at a chip's closing edge is either a tap ON the chip (iOS snaps
-    // the caret to the end of the tapped word) or a tap on the prose that
-    // starts there. The affinity is what tells them apart: upstream is the
-    // word that ends here — the chip — and downstream is the one that begins.
+    // A caret at a chip's closing edge is a tap on the chip (iOS snaps to the
+    // word's end) when the affinity is upstream, and a tap on the following
+    // prose when downstream.
     final offset = selection.baseOffset;
     final index =
         spanAt(step, offset) ??
@@ -560,8 +512,8 @@ class MethodStepCard extends HookConsumerWidget {
     }
   }
 
-  /// How the lines behind a chip read in its sheet — the name and the live
-  /// amount, or the honest note when the ref no longer resolves.
+  /// How the lines behind a chip read in its sheet: the name and live amount,
+  /// or a note when the ref no longer resolves.
   String _describeRefs(List<String> refs) {
     final names = [
       for (final ref in refs)
@@ -594,10 +546,8 @@ class MethodStepCard extends HookConsumerWidget {
     return '${line.ingredientName} · $amount';
   }
 
-  /// The no-selection door: pick a line, and its name goes in at the caret as
-  /// a chip, cased for where it lands ([chipWord]) — a name stored `Onion`
-  /// arrives as `onion` mid-sentence. Renaming it to the printed word is the
-  /// chip sheet's Word field.
+  /// Picks a line and inserts its name at the caret as a chip, cased for its
+  /// position ([chipWord]).
   Future<void> _insertIngredient(
     BuildContext context,
     MethodSpanController controller,
@@ -646,14 +596,10 @@ class MethodStepCard extends HookConsumerWidget {
   }
 }
 
-/// Opens the line picker over this recipe's own lines and returns the id of
-/// the line the chip should point at — running the shipped
-/// [showLineTargetPicker] → quantity-sheet chain when the footer is taken, so
-/// adding an ingredient and chipping it is ONE act.
-///
-/// [canAddLine] false (the import review, seam D4) disables that door and
-/// says why: the review offers THIS import's lines only, because a brand-new
-/// line would need a flat index `buildCommit` does not walk.
+/// Opens the line picker over this recipe's lines and returns the chosen line's
+/// id, running [showLineTargetPicker] and the quantity sheet when the add
+/// footer is taken. [canAddLine] false (the import review) disables that footer
+/// with its reason.
 Future<String?> pickOrAddLine(
   BuildContext context, {
   required Recipe recipe,
@@ -716,13 +662,8 @@ Future<String?> pickOrAddLine(
   return null;
 }
 
-/// D5's confirm (design board frame g). It counts what dies and promises what
-/// does not: [flattenMethod] emits each step's own prose, byte-identical to
-/// what the card was already showing, so **no sentence changes**.
-///
-/// It lives in the METHOD header's ⋯, not behind a red button: converting is
-/// a legitimate choice for a badly-tokenized import, not a mistake to be
-/// guarded against.
+/// Confirms converting the method to plain text. It counts the chips that go;
+/// [flattenMethod] emits each step's prose unchanged.
 Future<void> _confirmFlatten(
   BuildContext context,
   MethodEditing notifier,
@@ -748,13 +689,10 @@ Future<void> _confirmFlatten(
   if (confirmed) notifier.convertMethodToPlainText();
 }
 
-/// *"2 steps mentioned the sausage — their chips now read meatballs."*
-///
-/// The invariant behind it: **a chip never names something the recipe does not
-/// contain.** Prose is authored, but a chip's label is data about what it
-/// points at, so an identity change retires the printed word — visibly, and
-/// revertibly. The words AROUND the chip are yours: "casings removed" is
-/// flagged, never rewritten.
+/// "2 steps mentioned the sausage — their chips now read meatballs." A chip's
+/// label follows the line it points at, so an identity change replaces the
+/// chip's word, visibly and revertibly. The prose around the chip is flagged,
+/// never rewritten.
 class _SubstitutionNotice extends StatelessWidget {
   const _SubstitutionNotice(this.substitution);
 
