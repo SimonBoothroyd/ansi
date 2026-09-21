@@ -1,18 +1,8 @@
-/// The Cook screen — the DERIVED batch cook plan (spec §4). The counterpart to
-/// the Week: it groups the active week's meals by recipe and splits each into
-/// cook sessions bounded by shelf life. Read-only; nothing here is planned or
-/// persisted — edit the Week, and this re-derives.
+/// The Cook screen: the derived batch cook plan for the viewed week. Read-only;
+/// edit the Week and this re-derives.
 ///
-/// Each recipe is a card; each cook session a paper tile showing the cook day,
-/// the honest scale factor, the meals it covers, and a fresh→gone timeline. A
-/// split recipe (a later meal outran the fridge window) is flagged; a freezer
-/// rescue (a freezable dish reaching a far meal from the freezer) gets its own
-/// note. Nothing to sync: the plan re-derives per device from synced inputs.
-///
-/// **At [AnsiLayout.expanded] the same plan is one schedule sheet** — a row per
-/// recipe against seven day columns drawn once ([CookSheet]) — because the
-/// width's dividend is a shared axis, not a grid of cards with a hole in it.
-/// Below expanded this file draws the whole screen.
+/// On a phone each recipe is a card of session tiles; at [AnsiLayout.expanded]
+/// the same plan is one schedule sheet ([CookSheet]).
 library;
 
 import 'package:flutter/foundation.dart' show listEquals;
@@ -47,11 +37,9 @@ class CookView extends ConsumerWidget {
   /// the smoke test waits on this key instead of a title.
   static const rootKey = ValueKey('cook-root');
 
-  /// `?week=YYYY-MM-DD` — the week this tab was opened at, so a refresh or a
-  /// pasted link derives the week you were looking at rather than this one. The
-  /// plan itself still comes from the one shared position
-  /// ([viewedWeekStartProvider]); this only seats it on arrival and names it
-  /// afterwards ([WeekInTheLocation]).
+  /// `?week=YYYY-MM-DD`: the week this tab was opened at. It only seats the
+  /// shared position ([viewedWeekStartProvider]) on arrival; see
+  /// [WeekInTheLocation].
   final String? weekKey;
 
   @override
@@ -64,21 +52,15 @@ class CookView extends ConsumerWidget {
       weekKey: weekKey,
       child: FScaffold(
         key: rootKey,
-        // A tab root sits INSIDE the shell's scaffold, which already shrinks
-        // the branch area for the keyboard; a second scaffold subtracting the
-        // same inset squeezes the content twice (Android showed a list a few
-        // lines tall after the sign-in keyboard).
+        // A tab root sits inside the shell's scaffold, which already shrinks
+        // for the keyboard; a second inset would squeeze the content twice.
         resizeToAvoidBottomInset: false,
-        // D7a/D7c: the plan derives from the ONE viewed week, so the switcher
-        // is the whole title — no screen name (the lit tab says where you are),
-        // no pill (the switcher's dot and its "This week" item are the same
-        // information). No "copy last week": that is a Week write (D7b).
+        // The week switcher is the whole title: no screen name, no pill.
         header: FHeader.nested(
           title: WeekSwitcher(
             showCopyLastWeek: false,
-            // The menu speaks in this tab's derivation — "2 cooks", not "9
-            // meals" — for the week it has already derived. The other rows stay
-            // bare rather than deriving two more plans just to label them.
+            // Only the already-derived week is labelled; other rows stay bare
+            // rather than deriving more plans.
             detailFor: (weekStart) {
               final data = plan.asData?.value;
               if (data == null || weekStart != viewed) return null;
@@ -102,12 +84,8 @@ class CookView extends ConsumerWidget {
     );
   }
 
-  /// The plan: a column of cards on a phone, and ONE schedule sheet from
-  /// [AnsiLayout.expanded] up.
-  ///
-  /// The sheet is the same plan on a shared seven-day axis, capped at
-  /// [kCookSheetWidth] and centred in the pane — the width buys a week you can
-  /// read down a Tuesday, not a grid of cards with a hole under a short one.
+  /// The plan: a column of cards on a phone, one schedule sheet capped at
+  /// [kCookSheetWidth] from [AnsiLayout.expanded] up.
   Widget _plan(BuildContext context, CookPlan data) {
     if (AnsiLayout.of(context) == AnsiLayout.expanded) {
       return Align(
@@ -136,9 +114,8 @@ class CookView extends ConsumerWidget {
         const _PlanCaption(),
         if (data.isEmpty) const _NothingToCookLine(),
         for (final recipe in data.recipes) ...[
-          // Two denominations, two cards (D3): a recipe that is both
-          // planned and demanded as a component shows its portions
-          // and its batches side by side, never summed.
+          // A recipe both planned and demanded as a component shows two cards,
+          // never summed.
           if (recipe.mealSessions.isNotEmpty) _RecipeCard(recipe: recipe),
           if (recipe.componentSessions.isNotEmpty)
             _ComponentCard(recipe: recipe),
@@ -189,9 +166,8 @@ class _RecipeCard extends ConsumerWidget {
                     ?.value[recipe.recipeId] ??
                 const [])
             .isNotEmpty;
-    // The title carries the week it is cooking for (`?week=`), so the recipe
-    // page can offer "Edit for this week" beside its own Edit. Cook itself
-    // stays read-only — the week rides along, nothing here writes it.
+    // The title link carries the viewed week (`?week=`) so the recipe page can
+    // offer "Edit for this week".
     final weekKey = isoDateOf(ref.watch(viewedWeekStartProvider));
     final shape = ref.watch(weekShapeProvider);
     return _Card(
@@ -213,13 +189,8 @@ class _RecipeCard extends ConsumerWidget {
   }
 }
 
-/// A sub-recipe's derived batches (step 8.6 / D3, board frame f): the same
-/// card anatomy, denominated in batches and titled by the plans it answers.
-///
-/// The yield it quotes ("makes 1 cup, you need 0.25") comes off the recipe
-/// list, which carries it since 8.6 — a session that resolved was resolved
-/// *against* that yield, so naming it is stating the fact the math used, not
-/// fetching a new one.
+/// A sub-recipe's derived batches: the session card's anatomy, denominated in
+/// batches and titled by the plans it answers.
 class _ComponentCard extends ConsumerWidget {
   const _ComponentCard({required this.recipe});
 
@@ -258,10 +229,8 @@ class _ComponentCard extends ConsumerWidget {
   }
 }
 
-/// A component the plan could NOT derive (D3): the named gap, in the session
-/// card's shape so it reads as the session it would have been. It never shows
-/// a scale — assuming one batch is exactly the invented number this app
-/// refuses — and it carries the one-tap fix where there is one.
+/// A component the plan could not derive, in the session card's shape. It never
+/// shows a scale and carries the one-tap fix where there is one.
 class _GapCard extends ConsumerWidget {
   const _GapCard({required this.gap});
 
@@ -386,20 +355,16 @@ class _Card extends StatelessWidget {
   }
 }
 
-/// One cook session as a paper tile: cook day · scale · covers · timeline,
-/// plus the whole-batch nudge when the raw factor is fractional (step 7.6).
-/// Tapping the nudge toggles the tile's DISPLAY between the honest raw factor
-/// and the nudged whole batch — nothing is persisted, and the shopping list
-/// keeps scaling by the raw factor either way (invariant 3).
+/// One cook session as a paper tile: cook day, scale, covers, timeline, plus
+/// the whole-batch nudge when the factor is fractional. Tapping the nudge
+/// toggles display only; nothing is persisted.
 class _SessionTile extends ConsumerWidget {
   const _SessionTile({required this.session, this.denomination});
 
   final CookSession session;
 
-  /// The target's first stated yield, for a COMPONENT session's arithmetic
-  /// ("makes 1 cup, you need 0.25"). Null for a meal session, and for a
-  /// component whose recipe states no yield — the clause is dropped, never
-  /// guessed.
+  /// The target's first stated yield, for a component session's arithmetic.
+  /// Null for a meal session or a recipe that states no yield.
   final YieldDenomination? denomination;
 
   @override
@@ -489,10 +454,8 @@ class _SessionTile extends ConsumerWidget {
   }
 }
 
-/// The freshness timeline on the week's own seven-day axis: a green fresh
-/// window from the cook day, a blue tail when a share is frozen to reach a
-/// later meal, or a hatched "gone" tail to the week's end; every eaten day is
-/// a marker (the cook day solid), with a weekday ruler beneath.
+/// The freshness timeline on the week's seven-day axis; geometry from
+/// [CookTimelineSpec].
 class CookTimeline extends ConsumerWidget {
   const CookTimeline({required this.session, super.key});
 
@@ -518,9 +481,8 @@ class CookTimeline extends ConsumerWidget {
   }
 }
 
-/// Paints the freshness track: a neutral week bar overlaid with the green
-/// fresh window, a blue frozen tail or hatched gone tail, day markers (the
-/// cook day solid, other eaten days ringed), and a weekday-initial ruler.
+/// Paints the freshness track: the week bar, the fresh window, a frozen or gone
+/// tail, day markers and a weekday-initial ruler.
 class _TrackPainter extends CustomPainter {
   _TrackPainter(this.spec, {required this.initials});
 
@@ -645,13 +607,8 @@ class _Note extends StatelessWidget {
   );
 }
 
-/// Nothing planned, said INSIDE the screen (week redesign D5b/D5c).
-///
-/// This replaces a full-bleed page with a cooking-pot icon and one button — a
-/// dead end with a single exit, on a screen whose header (and week switcher)
-/// it hid. The house rule now is that a screen never swaps itself out for a
-/// data condition: the chrome stays, and the empty region carries the
-/// affordance that would fill it.
+/// The empty state, shown inside the screen so the header and week switcher
+/// stay.
 class _NothingToCookLine extends ConsumerWidget {
   const _NothingToCookLine();
 

@@ -1,38 +1,13 @@
-/// Cook-plan domain — the DERIVED batch view (spec §4).
+/// The cook plan: a derived view of the week's meals, never persisted. Pure
+/// Dart.
 ///
-/// PURE DART (invariant 2): no `package:flutter`. The cook plan is a pure
-/// function of the week's meals plus each recipe's shelf life — nothing here is
-/// persisted (the repository re-derives it on every change). [buildCookPlan]
-/// groups the week's meals by recipe; [clusterSessions] splits one recipe into
-/// [CookSession]s bounded by its fridge shelf life (`keeps_for_days`), with a
-/// freezer *merge* (spec §4 stretch, built): a freezable recipe's later
-/// instance folds into one session — cook once, freeze the far share — instead
-/// of opening a second session.
-///
-/// Days are offsets from the week's own first day, 0..6 (matching
-/// `plan_entry.day_of_week`) — the derivation never asks which weekday that
-/// is, so it is correct under any household's week and improves under a
-/// Sunday-first one: a batch cooked on shopping day heads the week instead of
-/// trailing the next day's. The cook day is the earliest covered day. Scale
-/// factor is the raw `total_portions / servings_base` — honest, not nudged to
-/// a whole batch.
-///
-/// **Nested recipes (step 8.6 / D3).** A planned recipe's *component* lines
-/// derive sessions of their own: each parent session demands `parent scale ×
-/// batches-per-parent-batch` of the sub-recipe ([ComponentDemand]), every
-/// demand on the same sub-recipe clusters into that recipe's own sessions
-/// through the machinery above, and the resulting session's scale reads in
-/// BATCHES ([CookSession.batchesToCook]) because portions are the wrong
-/// denomination for a sauce. The walk is depth-first with a visited-set guard,
-/// so a cycle raced in by two devices stops and flags ([ComponentCycle])
-/// instead of looping. A component whose batch math does not resolve becomes a
-/// first-class [ComponentGap] on the plan — never a `1×` assumption.
-///
-/// **The graph is read for ONE week.** A recipe's component lines go through
-/// the `effectiveLines` seam before any demand is derived
-/// ([componentGraphForWeek]), so an optional sub-recipe is cooked only when the
-/// week ticks it in, and the cook plan, the shop and the week's macros all read
-/// one rule about which lines count.
+/// [buildCookPlan] groups meals by recipe and [clusterSessions] splits each
+/// recipe into [CookSession]s bounded by its shelf life, folding freezable
+/// shares into one cook. Days are offsets 0..6 from the week's own first day. A
+/// recipe's component lines derive batch-denominated sessions of their own,
+/// read through the `effectiveLines` seam for the week
+/// ([componentGraphForWeek]); an unresolvable component is a [ComponentGap],
+/// never an assumed `1×`.
 library;
 
 // Freezed needs each class's private `._` constructor before the factory (for
@@ -51,12 +26,9 @@ import '../../recipes/domain/recipe.dart';
 
 part 'cook_plan.freezed.dart';
 
-/// One planned appearance of a recipe in the week — a `plan_entry` reduced to
-/// what batching needs: its [dayOfWeek] (0..6 from the week's first day),
-/// [mealSlot], and the
-/// [portions] it demands (the entry's override, or the sum of its eaters'
-/// portion factors — `demandPortions`). Fractional by design: a 1 and a ¾ eater
-/// are `1.75`, and nothing here rounds it.
+/// One planned appearance of a recipe in the week: its [dayOfWeek] (0..6 from
+/// the week's first day), [mealSlot] and the [portions] it demands. Portions
+/// are fractional and never rounded here.
 @freezed
 abstract class CoveredMeal with _$CoveredMeal {
   const factory CoveredMeal({
@@ -86,15 +58,11 @@ abstract class PlannedRecipe with _$PlannedRecipe {
   }) = _PlannedRecipe;
 }
 
-/// One parent cook session's demand on a sub-recipe (step 8.6 / D3): the
-/// [batches] of it that session needs, and who needs them.
+/// One parent cook session's demand on a sub-recipe: the [batches] it needs and
+/// who needs them.
 ///
-/// [parentRecipeId]/[parentTitle] name the **planned** recipe at the top of the
-/// walk — the one a person put on the week and will recognise ("for Sausage
-/// Sliders"), which is also what the shopping breakdown's extra provenance
-/// segment says. [via] names the intermediate recipe when the demand came
-/// through one (an aioli inside a sauce inside the sliders); it is null at
-/// depth one, which is every demand a printed page has yet produced.
+/// [parentRecipeId] / [parentTitle] name the planned recipe at the top of the
+/// walk; [via] names the intermediate recipe, null at depth one.
 @freezed
 abstract class ComponentDemand with _$ComponentDemand {
   const ComponentDemand._();
@@ -104,8 +72,7 @@ abstract class ComponentDemand with _$ComponentDemand {
     required String parentTitle,
 
     /// The demanding parent session's cook day (0..6 from the week's first
-    /// day) — the day this
-    /// batch has to be ready *by*.
+    /// day): the day this batch must be ready by.
     required int cookDay,
 
     /// Batches of the sub-recipe, already multiplied through the parent
@@ -116,15 +83,9 @@ abstract class ComponentDemand with _$ComponentDemand {
     /// What the demanding line printed, unscaled.
     double? quantity,
 
-    /// The target's own word the demanding line was said in — the WHOLE
-    /// measure, not merely its label, because a card says what one of the word
-    /// comes to on the way to the batch share (`3 blob → 45 g → 0.15 of a
-    /// batch`). That middle step is the fact the word carries, and the one a
-    /// cook checks when the share looks wrong.
-    ///
-    /// Null when the line named no word, and null the moment the word has GONE
-    /// from the target — which is exactly the state a card must not print a
-    /// number for.
+    /// The target's own word the demanding line was said in, whole so a card
+    /// can print what one of it comes to. Null when the line named no word or
+    /// the target no longer has it.
     RecipeMeasure? measure,
   }) = _ComponentDemand;
 
@@ -132,21 +93,13 @@ abstract class ComponentDemand with _$ComponentDemand {
   String? get measureLabel => measure?.label;
 }
 
-/// A derived cook session: one batch to cook on [cookDay], covering [covers]
-/// and/or answering [demands].
+/// A derived cook session: one batch to cook on [cookDay].
 ///
-/// Two flavours, and a session is exactly one of them (step 8.6 / D3):
-///
-/// - a **meal session** covers planned meals and scales in PORTIONS
-///   ([totalPortions] / [scaleFactor] = portions ÷ servings_base);
-/// - a **component session** answers other recipes' component lines and scales
-///   in BATCHES ([batchesToCook], and [scaleFactor] *is* that number).
-///
-/// They are never merged into one session even for the same recipe on the same
-/// day: "4 portions + ¼ batch" is two denominations, and summing them would
-/// need a number nobody stated. The two cards sit side by side instead.
-///
-/// Everything past the stored fields is a pure getter over them.
+/// A meal session covers planned meals and scales in portions
+/// ([totalPortions]); a component session answers other recipes' component
+/// lines and scales in batches ([batchesToCook]). The two are never merged,
+/// even for one recipe on one day, because their denominations cannot be
+/// summed.
 @freezed
 abstract class CookSession with _$CookSession {
   const CookSession._();
@@ -169,9 +122,8 @@ abstract class CookSession with _$CookSession {
     @Default(<ComponentDemand>[]) List<ComponentDemand> demands,
   }) = _CookSession;
 
-  /// Whether this session exists to feed another recipe's component line
-  /// rather than a planned meal — the card that reads "×¼ batch", not
-  /// "×2 — covers 8 portions".
+  /// Whether this session feeds another recipe's component line rather than a
+  /// planned meal.
   bool get isComponent => demands.isNotEmpty;
 
   /// Batches to cook, or null for a meal session. The sum of every demand this
@@ -180,8 +132,7 @@ abstract class CookSession with _$CookSession {
       isComponent ? demands.fold<double>(0, (s, d) => s + d.batches) : null;
 
   /// The distinct titles of the recipes demanding this component batch, in
-  /// first-seen order — the card's "for Sausage Sliders" (and, when two
-  /// parents share a batch, both of them).
+  /// first-seen order.
   List<String> get demandedBy {
     final seen = <String>{};
     return [
@@ -203,27 +154,21 @@ abstract class CookSession with _$CookSession {
   /// The last day this batch is eaten.
   int get lastCoveredDay => coveredDays.isEmpty ? cookDay : coveredDays.last;
 
-  /// Portions to cook: the sum of every covered meal's demand — fractional
-  /// when a portion factor is (P-D4), and said as a fraction. Zero on a
-  /// component session — portions are not its denomination ([batchesToCook]
-  /// is).
+  /// Portions to cook: the sum of every covered meal's demand, possibly
+  /// fractional. Zero on a component session.
   double get totalPortions => covers.fold(0, (s, m) => s + m.portions);
 
-  /// The multiplier everything downstream scales the recipe's lines by.
-  ///
-  /// A meal session's is the raw `total_portions / servings_base` — honest,
-  /// not rounded to a whole recipe (whole-ingredient scaling is deferred). A
-  /// component session's is its batch count directly: one batch means the
-  /// recipe as written, so ×batches is exactly right and needs no servings.
+  /// The multiplier the recipe's lines scale by: `total_portions /
+  /// servings_base`, unrounded, for a meal session; the batch count for a
+  /// component session.
   double get scaleFactor {
     final batches = batchesToCook;
     if (batches != null) return batches;
     return servingsBase == 0 ? 0 : totalPortions / servingsBase;
   }
 
-  /// Covered days that fall past the fridge window and are therefore served
-  /// from the freezer (only meaningful for a [freezable] recipe with a known
-  /// [keepsForDays]).
+  /// Covered days past the fridge window, served from the freezer. Only
+  /// meaningful for a [freezable] recipe with a known [keepsForDays].
   List<int> get frozenDays {
     final keeps = keepsForDays;
     if (!freezable || keeps == null) return const [];
@@ -287,19 +232,12 @@ abstract class RecipeCookPlan with _$RecipeCookPlan {
   bool get usesFreezer => sessions.any((s) => s.hasFreezerRescue);
 }
 
-/// Who demanded a component the plan could not derive — the planned recipe at
-/// the top of the walk, the day it is cooked, and what its line printed.
+/// Who demanded a component the plan could not derive: the planned recipe at
+/// the top of the walk, its cook day, and what its line printed.
 ///
-/// [quantity]/[unit] are the demanding line's stored values **as printed**,
-/// NOT multiplied by the parent session's scale: the gap card quotes what the
-/// page says ("the line asks for ¼ cup"), because a scaled number would be
-/// arithmetic done against a yield that is exactly what is missing. [quantity]
-/// is null on a numberless line, and the card drops the clause rather than
-/// filling it.
-///
-/// One source per demanding parent: when a parent lists the same target more
-/// than once, the first line's amount is the one quoted (the gap is keyed by
-/// target + reason, so the two lines are one gap).
+/// [quantity] / [unit] are the demanding line's stored values, not scaled by
+/// the parent session; [quantity] is null on a numberless line. When a parent
+/// lists the same target more than once, the first line is the one quoted.
 @freezed
 abstract class ComponentDemandSource with _$ComponentDemandSource {
   const factory ComponentDemandSource({
@@ -312,30 +250,19 @@ abstract class ComponentDemandSource with _$ComponentDemandSource {
     Unit? unit,
     double? quantity,
 
-    /// The target's own word the demanding line said it in, when the target
-    /// still has that word — so the card quotes `3 blob`.
-    ///
-    /// Null when the line named no word AND when the word is the very thing
-    /// that has gone: a gap card that cannot say what the line asked for
-    /// drops the clause rather than printing the number against a unit the
-    /// line never meant.
+    /// The target's own word the demanding line was said in, when the target
+    /// still has it. Null when the line named no word or the word has gone.
     String? measureLabel,
 
-    /// Whether the line named a word at all. With a null [measureLabel] it is
-    /// what tells "this line says cups" apart from "this line says a word
-    /// nobody here has".
+    /// Whether the line named a word at all; tells a missing word apart from a
+    /// catalog unit when [measureLabel] is null.
     @Default(false) bool saysAMeasure,
   }) = _ComponentDemandSource;
 }
 
-/// A component the plan could NOT derive a session for (step 8.6 / D3) — the
-/// named gap the cook card renders in place of a scale.
-///
-/// This is a first-class value, not a fallback: the alternative to a gap is
-/// assuming one batch, which is precisely the invented number this app
-/// refuses. [reason] says which honest refusal it is (no yield, a unit in no
-/// yield's family, no amount, a cycle), and [demandedBy] says whose plan is
-/// short because of it.
+/// A component the plan could not derive a session for. [reason] says why (no
+/// yield, family mismatch, no amount, a cycle) and [demandedBy] says whose plan
+/// is short.
 @freezed
 abstract class ComponentGap with _$ComponentGap {
   const factory ComponentGap({
@@ -347,9 +274,8 @@ abstract class ComponentGap with _$ComponentGap {
   }) = _ComponentGap;
 }
 
-/// The whole derived cook plan: one [RecipeCookPlan] per recipe on the week,
-/// ordered by earliest cook day then title, plus the component [gaps] that
-/// could not be turned into sessions.
+/// The whole derived cook plan: one [RecipeCookPlan] per recipe, ordered by
+/// earliest cook day then title, plus the component [gaps].
 @freezed
 abstract class CookPlan with _$CookPlan {
   const CookPlan._();
@@ -361,9 +287,7 @@ abstract class CookPlan with _$CookPlan {
 
   bool get isEmpty => recipes.isEmpty && gaps.isEmpty;
 
-  /// How many components each PLANNED recipe is short by — the shopping
-  /// list's per-parent echo line ("1 component unresolved"), keyed by the
-  /// planned recipe's id.
+  /// How many components each planned recipe is short by, keyed by its id.
   Map<String, int> get unresolvedComponentsByParent {
     final counts = <String, int>{};
     for (final gap in gaps) {
@@ -375,18 +299,13 @@ abstract class CookPlan with _$CookPlan {
   }
 }
 
-/// Greedy shelf-life clustering for one recipe (spec §4): sort the days the
-/// dish appears; start a session at the first; fold each later meal into the
-/// current session while it stays within the fridge window
-/// ([PlannedRecipe.keepsForDays]); a meal past the window folds in anyway as a
-/// *frozen* share when the recipe is [PlannedRecipe.freezable] and the meal is
-/// within the freezer window ([PlannedRecipe.freezerDays], null = no limit);
-/// otherwise it opens a new session. O(n log n).
+/// Greedy shelf-life clustering for one recipe: a meal joins the current
+/// session while it is within [PlannedRecipe.keepsForDays], or as a frozen
+/// share when the recipe is [PlannedRecipe.freezable] and within
+/// [PlannedRecipe.freezerDays] (null = no limit); otherwise it opens a new
+/// session.
 ///
-/// A recipe with no shelf life (unknown) is never split — it yields a single
-/// session covering every meal. A *negative* shelf life (bad data) is clamped
-/// to 0 ("eat the day you cook") rather than trusted — a negative window would
-/// split even same-day meals into separate cooks.
+/// An unknown shelf life never splits. A negative one is clamped to 0.
 List<CookSession> clusterSessions(PlannedRecipe recipe) {
   final keeps = _clampWindow(recipe.keepsForDays);
   final freezerDays = _clampWindow(recipe.freezerDays);
@@ -411,12 +330,9 @@ List<CookSession> clusterSessions(PlannedRecipe recipe) {
   ];
 }
 
-/// The same greedy shelf-life clustering [clusterSessions] runs, over the
-/// component demands on one sub-recipe (step 8.6 / D3): each cluster becomes
-/// one **batch-denominated** session cooked on its earliest demanding parent's
-/// cook day, and bounded by the sub-recipe's OWN keeps/freezer facts — a sauce
-/// that keeps three days is cooked twice for parents six days apart, exactly
-/// as a planned meal would be.
+/// [clusterSessions] over the component demands on one sub-recipe: each cluster
+/// is one batch-denominated session on its earliest demanding parent's cook
+/// day, bounded by the sub-recipe's own shelf life.
 List<CookSession> clusterComponentSessions({
   required String recipeId,
   required String title,
@@ -454,12 +370,8 @@ List<CookSession> clusterComponentSessions({
 /// cook". Trusting it would split even same-day meals into separate cooks.
 int? _clampWindow(int? days) => days == null ? null : max(0, days);
 
-/// The greedy walk both clusterings share: sort by day, start a cluster at the
-/// first item, fold each later one in while it stays within the fridge window
-/// (or is rescued by the freezer), else open a new cluster. O(n log n).
-///
-/// An unknown [keepsForDays] never splits — one cluster covering everything,
-/// because inventing a window would be inventing a number.
+/// The greedy walk both clusterings share. An unknown [keepsForDays] yields one
+/// cluster covering everything.
 List<List<T>> _clusterByDay<T>(
   List<T> items, {
   required int Function(T) dayOf,
@@ -491,27 +403,20 @@ List<List<T>> _clusterByDay<T>(
   return clusters;
 }
 
-/// The whole-batch nudge for a session cooking a fractional batch (step 7.6):
-/// round the raw factor UP to `factor` whole batches, which yields
-/// `batchPortions` portions — covering the session's demanded portions with
-/// `leftoverPortions` to spare. Portions can be fractional when
-/// `servings_base` is (formatting trims honestly).
+/// The whole-batch nudge for a fractional session: round the raw factor up to
+/// `factor` whole batches, yielding `batchPortions` portions with
+/// `leftoverPortions` to spare.
 typedef WholeBatchNudge = ({
   int factor,
   double batchPortions,
   double leftoverPortions,
 });
 
-/// The nudge for [session], or null when there is nothing to nudge:
-/// the raw factor is already a whole number (within float noise), the session
-/// is a batch-denominated component one (step 8.6 — its scale is already in
-/// batches, and "cook ×1, 3 portions left over" is the wrong sentence for a
-/// sauce), or the session's inputs are degenerate (`servings_base` ≤ 0,
-/// nothing covered).
+/// The nudge for [session], or null when the factor is already whole, the
+/// session is a component one, or its inputs are degenerate.
 ///
-/// The nudge is display-level advice ("cook ×1 — covers 4 portions · 1 left
-/// over"); the honest raw factor stays the number everything else — the
-/// shopping list included — scales by (invariant 3).
+/// Display advice only: everything else, the shopping list included, scales by
+/// the raw factor.
 WholeBatchNudge? wholeBatchNudgeFor(CookSession session) {
   if (session.isComponent) return null;
   final raw = session.scaleFactor;
@@ -526,17 +431,13 @@ WholeBatchNudge? wholeBatchNudgeFor(CookSession session) {
   );
 }
 
-/// The batch a meal being added would join, for the planner's "same batch"
-/// hint. `withDay` is the day of the shared batch (its cook day, or the meal it
-/// now cooks alongside); `frozen` is true when the new meal is reached from the
-/// freezer within that batch.
+/// The batch a meal being added would join. `withDay` is the day of the shared
+/// batch; `frozen` is true when the new meal is reached from the freezer.
 typedef BatchHint = ({int withDay, bool frozen});
 
-/// Whether adding a meal of a recipe on [newDay] would share a cook session
-/// with meals already planned on [plannedDays] (same recipe), under the
-/// recipe's shelf life. Returns the batch it joins, or null when the new meal
-/// would be its own cook. Runs the real [clusterSessions] over the combined
-/// days so the hint never disagrees with the cook plan.
+/// The batch a meal on [newDay] would share with meals already on
+/// [plannedDays], or null when it would be its own cook. Runs the real
+/// [clusterSessions] so the hint cannot disagree with the cook plan.
 BatchHint? batchHintFor({
   required List<int> plannedDays,
   required int newDay,
@@ -563,9 +464,8 @@ BatchHint? batchHintFor({
     final others = days.where((d) => d != newDay).toList();
     if (others.isEmpty) {
       // `coveredDays` is distinct, so a second meal on an already-planned day
-      // leaves no *other* day — but it still shares the batch (clusterSessions
-      // merges same-day meals into one session). More than one covered meal in
-      // the session means the day was already planned: same-batch, same day.
+      // shows no other day; more than one covered meal means same batch, same
+      // day.
       return session.covers.length > 1
           ? (withDay: session.cookDay, frozen: false)
           : null;
@@ -578,21 +478,16 @@ BatchHint? batchHintFor({
   return null;
 }
 
-/// One component line of a recipe, as the expansion needs it (step 8.6).
-/// `quantity` is null on a line that carries no number, which is legal to
-/// store and derives nothing.
-///
-/// `id` is the `recipe_line_item` row's id, because a week's override names
-/// the line it is about, and `optional` is the recipe's own flag: both are
-/// what [componentGraphForWeek] needs to run the seam over the graph.
+/// One component line of a recipe, as the expansion needs it. `quantity` is
+/// null on a numberless line. `id` is the `recipe_line_item` id a week's
+/// override names; `optional` is the recipe's own flag.
 typedef ComponentLine = ({
   String id,
   String subRecipeId,
   double? quantity,
 
-  /// The catalog unit, or null when the line is said in one of the target's
-  /// own words instead — exactly one of this and `recipeMeasureId` below is
-  /// set, as the database pins it.
+  /// The catalog unit, or null when the line is said in one of the target's own
+  /// words; exactly one of this and `recipeMeasureId` is set.
   Unit? unit,
 
   /// The target recipe's own word this line is said in, or null. Carried
@@ -601,14 +496,12 @@ typedef ComponentLine = ({
   bool optional,
 });
 
-/// A recipe as the component walk sees it: the shelf-life facts a derived
-/// session inherits, the yields its own component references are resolved
-/// against, and the component lines it is built from.
+/// A recipe as the component walk sees it: shelf life, yields and component
+/// lines.
 ///
-/// The repository supplies one of these per LIVE recipe in the household, so
-/// the walk can reach a component of a component without another query. A
-/// sub-recipe id the map does not hold is a dangling link: nothing is derived
-/// and no gap is raised — the line degrades to the plain text it stored (D5).
+/// The repository supplies one per live recipe in the household. A sub-recipe
+/// id the map does not hold is a dangling link: nothing is derived and no gap
+/// is raised.
 typedef ComponentRecipe = ({
   String title,
   double servingsBase,
@@ -623,14 +516,9 @@ typedef ComponentRecipe = ({
   List<ComponentLine> components,
 });
 
-/// One recipe's component lines as ONE week cooks them: the [effectiveLines]
-/// seam's answer — the lines a demand is derived from, and the ones a surface
-/// must NAME instead of quietly dropping.
-///
-/// The seam rules on [LineItem]s, so each component line is read as one: it
-/// carries the sub-recipe's title as its name (from [graph]), which is what
-/// makes a dropped component say "Romesco Aioli" rather than nothing at all. A
-/// recipe [graph] does not hold has no component lines to rule on.
+/// One recipe's component lines as one week cooks them, through the
+/// [effectiveLines] seam. Each line carries the sub-recipe's title from [graph]
+/// so a dropped component can be named.
 EffectiveLines componentLinesForWeek(
   Map<String, ComponentRecipe> graph,
   String recipeId, {
@@ -642,10 +530,8 @@ EffectiveLines componentLinesForWeek(
       ingredientName: graph[line.subRecipeId]?.title ?? '',
       unit: line.unit,
       subRecipeId: line.subRecipeId,
-      // The whole target, yields AND words: a line's amount is resolved
-      // against both together, so a target carrying one and not the other is a
-      // reading waiting to go wrong. The yields come back off the pair the
-      // graph holds, which is the shape the four persisted columns state.
+      // The whole target, yields and words: a line's amount resolves against
+      // both.
       subRecipe: switch (graph[line.subRecipeId]) {
         final target? => SubRecipeTarget(
           id: line.subRecipeId,
@@ -664,23 +550,11 @@ EffectiveLines componentLinesForWeek(
     ),
 ], overrides: overrides);
 
-/// The household's component [graph] as ONE week cooks it: every recipe's
-/// lines through [componentLinesForWeek] with that week's [overridesByRecipe],
-/// so a demand is derived from exactly the lines the week actually cooks.
+/// The household's component [graph] as one week cooks it: every recipe's lines
+/// through [componentLinesForWeek] with [overridesByRecipe].
 ///
-/// This is what makes "optional" mean the same thing in Cook as it does in the
-/// shop and in a week's macros: a component line the recipe marks optional
-/// spawns no session until the week ticks it in, a line the week leaves out
-/// spawns none, and a replaced one is cooked at the week's amount. A line the
-/// week ruled on comes back with `optional` cleared, which is the seam's own
-/// composition rule.
-///
-/// Runs over the WHOLE graph rather than only the planned recipes: a sub-recipe
-/// reached through a component line can itself carry an optional component, and
-/// the walk that reaches it reads this same map.
-///
-/// Only lines that still name a sub-recipe survive — an added or replaced line
-/// that names an ingredient is the shop's business, not the cook plan's.
+/// Runs over the whole graph, because a sub-recipe can itself carry an optional
+/// component. Only lines that still name a sub-recipe survive.
 Map<String, ComponentRecipe> componentGraphForWeek(
   Map<String, ComponentRecipe> graph,
   Map<String, List<LineOverride>> overridesByRecipe,
@@ -713,12 +587,9 @@ Map<String, ComponentRecipe> componentGraphForWeek(
     ),
 };
 
-/// Builds the whole derived cook plan from the week's [recipes], ordering the
-/// cards by earliest cook day then title.
-///
-/// [components] is the household's component graph (step 8.6 / D3). Passing
-/// none — the default — derives exactly what it did before nested recipes
-/// existed: meal sessions and nothing else.
+/// Builds the derived cook plan from the week's [recipes], ordered by earliest
+/// cook day then title. [components] is the household's component graph; empty
+/// derives meal sessions only.
 CookPlan buildCookPlan(
   List<PlannedRecipe> recipes, {
   Map<String, ComponentRecipe> components = const {},
@@ -754,9 +625,8 @@ CookPlan buildCookPlan(
       demands: entry.value,
     );
     if (sessions.isEmpty) continue;
-    // A sub-recipe that is ALSO on the week keeps one card: its meal sessions
-    // and its component sessions sit side by side, in two denominations that
-    // are never summed.
+    // A sub-recipe that is also on the week keeps one card holding both kinds
+    // of session.
     final existing = plans.indexWhere((p) => p.recipeId == entry.key);
     if (existing >= 0) {
       plans[existing] = plans[existing].copyWith(
@@ -784,25 +654,16 @@ CookPlan buildCookPlan(
   return CookPlan(recipes: plans, gaps: gaps);
 }
 
-/// The planned recipe a walk descends from — the identity every demand and gap
-/// on that branch is attributed to. Kept separate from [ComponentDemandSource]
-/// because that carries the per-LINE printed amount, while this is fixed for
-/// the whole branch.
+/// The planned recipe a walk descends from, fixed for the whole branch.
 typedef _PlannedRoot = ({String recipeId, String title, int cookDay});
 
 /// Walks every planned session's component lines depth-first, returning the
-/// [ComponentDemand]s per sub-recipe and the [ComponentGap]s for the ones that
-/// could not be resolved (step 8.6 / D3).
+/// [ComponentDemand]s per sub-recipe and the [ComponentGap]s.
 ///
-/// A parent session demanding `f` batches of a sub-recipe whose own line asks
-/// for `b` batches of a third recipe demands `f × b` of that third one — the
-/// multiplication is the whole recursion.
-///
-/// The walk carries a **visited set** down each branch. A cycle cannot normally
-/// be written (the server trigger and [closesComponentCycle] both refuse
-/// one), but two devices racing can outrun the trigger, and a derivation that
-/// looped would hang the Cook tab rather than merely be wrong. It stops at the
-/// repeat and raises a [ComponentCycle] gap instead.
+/// A parent demanding `f` batches of a sub-recipe that asks `b` batches of a
+/// third demands `f × b` of it. A visited set stops at a cycle (two racing
+/// devices can outrun the server trigger) and raises a [ComponentCycle] gap
+/// instead of looping.
 (Map<String, List<ComponentDemand>>, List<ComponentGap>) expandComponentDemands(
   List<RecipeCookPlan> plans,
   Map<String, ComponentRecipe> components,
@@ -827,10 +688,7 @@ typedef _PlannedRoot = ({String recipeId, String title, int cookDay});
       // the text it stored, with plain-text semantics (D5).
       if (target == null) continue;
 
-      // The word the line says, when the target still has it — carried into
-      // every source and demand so a card quotes the line in the words it was
-      // written in. Null the moment the word has gone, which is exactly the
-      // state a card must not print a number for.
+      // The word the line says, when the target still has it; null otherwise.
       final said = switch (line.recipeMeasureId) {
         final id? => recipeMeasureById(id, target.measures),
         _ => null,
@@ -845,9 +703,7 @@ typedef _PlannedRoot = ({String recipeId, String title, int cookDay});
               title: target.title,
               reason: reason,
             );
-        // The source carries the DEMANDING LINE's printed amount, unscaled —
-        // frame (f)'s "the line asks for ¼ cup" quotes the page, not
-        // arithmetic against the yield that is missing.
+        // The source carries the demanding line's printed amount, unscaled.
         gaps[key] = gap.demandedBy.any((s) => s.recipeId == root.recipeId)
             ? gap
             : gap.copyWith(

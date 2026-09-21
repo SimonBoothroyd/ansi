@@ -1,11 +1,8 @@
-/// [CookPlanRepository] over the local PowerSync SQLite (offline in step 5).
+/// [CookPlanRepository] over the local PowerSync SQLite. Read-only.
 ///
-/// Read-only: the cook plan is derived, so this class never writes. It watches
-/// the week's `plan_entry` rows joined to `recipe` shelf life, assembles one
-/// [PlannedRecipe] per recipe, and hands them to the pure [buildCookPlan]. The
-/// watch query names every table the load reads (and selects a column from each
-/// joined one) so PowerSync re-fires on any relevant change: SQLite drops a
-/// LEFT JOIN with no selected column, and that table then never triggers.
+/// The watch query must select a column from every joined table: SQLite drops a
+/// LEFT JOIN with no selected column, and that table then never re-fires the
+/// watch.
 library;
 
 import 'dart:convert';
@@ -33,15 +30,10 @@ class SqliteCookPlanRepository implements CookPlanRepository {
   @override
   Stream<CookPlan> watchCookPlan(DateTime weekStart) {
     final key = isoDateOf(weekStart);
-    // Reference week_plan + plan_entry + recipe and select a column from each,
-    // so a change to any (including a recipe's shelf life) re-derives the plan.
-    // The groups and line items join too: a component line — or the yield it
-    // resolves against — moves the derived component sessions, so a change to
-    // either must re-fire. A member's portion factor is part of every meal's
-    // demand, so `household_member` joins as well (cross-joined — it is not
-    // tied to the week — purely to be seen). And the week's line overrides:
-    // ticking an optional component in opens a session, so that row must
-    // re-fire the plan exactly as a changed recipe line does.
+    // Every table whose change moves the plan is joined with a column selected:
+    // week, entries, recipes, groups and line items (component lines and
+    // yields), `household_member` (portion factors; cross-joined, it is not
+    // tied to the week) and the week's line overrides.
     return _db
         .watch(
           'SELECT wp.id, pe.id, r.keeps_for_days, g.id, li.id, hm.id, '
@@ -54,10 +46,8 @@ class SqliteCookPlanRepository implements CookPlanRepository {
           'LEFT JOIN recipe r ON r.id = pe.recipe_id '
           'LEFT JOIN ingredient_group g ON g.recipe_id = r.id '
           'LEFT JOIN recipe_line_item li ON li.group_id = g.id '
-          // A word coined, re-stated or retired moves what a measured
-          // component line demands — a whole derived session's size, or
-          // whether it opens at all — so the table joins here too. Not tied to
-          // the week, so cross-joined purely to be seen.
+          // A recipe measure changes what a measured component line demands.
+          // Not tied to the week, so cross-joined purely to be watched.
           'LEFT JOIN recipe_measure rm ON 1 = 1 '
           'LEFT JOIN household_member hm ON 1 = 1 '
           'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL LIMIT 1',
@@ -67,18 +57,9 @@ class SqliteCookPlanRepository implements CookPlanRepository {
   }
 
   Future<CookPlan> _load(String weekKey) async {
-    // One row per planned meal, carrying its recipe's shelf life. A meal whose
-    // recipe was deleted (r.id null) can't be cooked, so it's filtered out.
-    //
-    // **The cook plan takes RECIPE meals and nothing else.** A protein bar is
-    // not cooked (step 8.14 / A-D4), and neither is an office lunch: neither
-    // opens a session, neither joins a batch. The `recipe_id IS NOT NULL`
-    // clause is redundant beside the inner join — it is written anyway,
-    // because a null recipe must never read as an accident of the join, and
-    // because this clause is where this derivation states which kind it takes.
-    // The rest of the ruling lives one derivation over: the SHOPPING list buys
-    // an ingredient meal, which is why it walks entries rather than only
-    // sessions, and buys nothing at all for a meal eaten out.
+    // One row per planned recipe meal with its recipe's shelf life. Ingredient
+    // meals and meals out are not cooked; `recipe_id IS NOT NULL` states that
+    // explicitly beside the inner join.
     final rows = await _db.getAll(
       'SELECT pe.day_of_week, pe.meal_slot, pe.eaters, pe.portions, '
       'r.id AS recipe_id, r.title, r.servings_base, r.keeps_for_days, '
@@ -92,9 +73,8 @@ class SqliteCookPlanRepository implements CookPlanRepository {
       [weekKey],
     );
 
-    // A meal's demand is Σ of its eaters' portion factors unless the entry's
-    // override is set — the same `eatersDemand` the Week's sheets and macro
-    // lens read, so the cook plan never disagrees with them.
+    // A meal's demand is the sum of its eaters' portion factors unless the
+    // entry overrides it: the same `eatersDemand` the Week reads.
     final members = {for (final m in await loadMembers(_db)) m.id: m};
 
     // Group meals by recipe, preserving first-seen recipe order (buildCookPlan
@@ -141,20 +121,13 @@ class SqliteCookPlanRepository implements CookPlanRepository {
   }
 }
 
-/// The household's component graph (step 8.6 / D3): every LIVE recipe keyed by
-/// id, with its yields and the component lines it is built from.
+/// The household's component graph: every live recipe keyed by id, with its
+/// yields and component lines. Shared by the cook-plan and shopping
+/// repositories.
 ///
-/// Read whole rather than walked query-by-query: the walk is depth-first over
-/// a graph a household holds entirely in local SQLite, and two round trips
-/// beat one per edge. Shared by the cook-plan and shopping repositories, which
-/// derive the same sessions from the same rows.
-///
-/// A recipe with no component lines still appears — it is a possible *target*,
-/// and its yields are what a referencing line resolves against.
-///
-/// The graph is the household's STORED facts, week-blind on purpose: each line
-/// carries its id and its `optional` flag, and every caller hands the graph to
-/// [componentGraphForWeek] to learn which of those lines one week cooks.
+/// Read whole rather than per edge. A recipe with no component lines still
+/// appears, as a possible target. The graph is week-blind: callers pass it to
+/// [componentGraphForWeek].
 Future<Map<String, ComponentRecipe>> loadComponentGraph(
   SqliteConnection db,
 ) async {
@@ -174,13 +147,9 @@ Future<Map<String, ComponentRecipe>> loadComponentGraph(
     final unit = recipeMeasureId != null
         ? null
         : unitById(row['unit'] as String? ?? '');
-    // Neither a unit nor a word: nothing this line says can be read, so it
-    // derives nothing (invariant 3). A line said in one of the target's own
-    // WORDS is not this case — it flows through with its pointer and resolves
-    // against the target's measures, or surfaces as the named gap
-    // `ComponentMeasureMissing` when the word has gone. Dropping it here is
-    // what once made a measured sauce vanish from the cook plan and the shop
-    // in silence, which is the one outcome this design refuses.
+    // Neither a unit nor a word: the line derives nothing. A line said in one
+    // of the target's words must flow through, to resolve or surface as
+    // `ComponentMeasureMissing`.
     if (unit == null && recipeMeasureId == null) continue;
     (componentsByRecipe[row['recipe_id'] as String] ??= []).add((
       id: row['id'] as String,
@@ -206,9 +175,7 @@ Future<Map<String, ComponentRecipe>> loadComponentGraph(
         keepsForDays: r['keeps_for_days'] as int?,
         freezable: (r['freezable'] as int? ?? 0) == 1,
         freezerDays: r['freezer_days'] as int?,
-        // This recipe's OWN words — a PARENT's line saying one of them
-        // resolves through this list, and a word it has not got is the named
-        // gap both the cook plan and the shop print.
+        // This recipe's own words, which a parent's line resolves through.
         measures: measuresByRecipe[r['id']] ?? const <RecipeMeasure>[],
         yields: yieldDenominations(
           (r['yield_qty'] as num?)?.toDouble(),

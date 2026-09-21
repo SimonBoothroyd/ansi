@@ -1,25 +1,8 @@
-/// The Cook plan at the expanded band — the whole week as ONE schedule sheet.
+/// The Cook plan at the expanded band: the whole week as one schedule sheet, a
+/// row per recipe against seven shared day columns.
 ///
-/// **Why not cards.** The phone draws a card per recipe because a hand's width
-/// holds one; a desk given the same cards has to put them in a grid, and a grid
-/// of cards is mostly air around one timeline with a hole wherever a card is
-/// short. The width's real dividend is a SHARED AXIS: seven day columns drawn
-/// once, every recipe a row against them, so "what am I cooking on Tuesday" is
-/// a glance down a column instead of a comparison of seven little bars.
-///
-/// **The row.** The recipe and its week-level facts on the left; the track in
-/// the middle — a herb tick with its `×N` on the cook day, a herb-soft band
-/// for as long as the batch keeps, a dot on every day it feeds, amber for a
-/// day past the window; and on the right the same sentences the phone's tile
-/// prints, with the split or freezer note hanging in the row's margin behind a
-/// 2 px rule rather than in a box.
-///
-/// **It is the phone's plan, not a second one.** One view model
-/// (`cook_view_models.dart`), one set of words and one set of rulings about
-/// them ([SessionSpeech]), one keep-window geometry ([CookTimelineSpec]
-/// through [cookTrackDays]) and the same doors: the recipe title opens the
-/// recipe for this week, the whole-batch nudge toggles the same display state,
-/// and a component gap offers the same fix. What changes is the shape.
+/// Same view model, words ([SessionSpeech]), keep-window geometry
+/// ([cookTrackDays]) and doors as the phone's cards; only the shape differs.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -37,10 +20,8 @@ import '../domain/cook_plan.dart';
 import 'cook_format.dart';
 import 'cook_view_models.dart';
 
-/// How wide the schedule sheet is ever drawn: the recipe column, seven days at
-/// their full 66 px pitch, and the column of words, centred in the pane. Past
-/// this the sheet stops growing — a seven-day axis wider than this is a poster,
-/// not a planner.
+/// The sheet's maximum width: the recipe column, seven days at 66 px and the
+/// column of words.
 const kCookSheetWidth = 1140.0;
 
 /// The recipe and its week-level facts.
@@ -73,9 +54,8 @@ class CookSheet extends ConsumerWidget {
 
     final rows = <Widget>[
       for (final recipe in plan.recipes) ...[
-        // Two denominations, two rows: a recipe that is both planned and
-        // demanded as a component states its portions and its batches on their
-        // own rows, never summed.
+        // A recipe both planned and demanded as a component gets two rows,
+        // never summed.
         if (recipe.mealSessions.isNotEmpty) _MealRow(recipe: recipe),
         if (recipe.componentSessions.isNotEmpty) _ComponentRow(recipe: recipe),
       ],
@@ -90,9 +70,8 @@ class CookSheet extends ConsumerWidget {
         children: [
           _HeadRow(weekStart: weekStart, shape: shape, today: today),
           const _Rule(),
-          // The faint verticals belong to the sheet, not to a row: every row
-          // reads against the same seven days, so the lines run behind all of
-          // them at once.
+          // The day verticals belong to the sheet, so they run behind every row
+          // at once.
           Stack(
             children: [
               const Positioned.fill(
@@ -189,9 +168,8 @@ class _HeadRow extends StatelessWidget {
   }
 }
 
-/// The sheet's one grid: name, track, words. Every row — the head included —
-/// goes through this, which is what keeps a Tuesday in the head over the
-/// Tuesdays under it.
+/// The sheet's one grid (name, track, words). Every row, the head included,
+/// goes through it so the day columns align.
 class _SheetRow extends StatelessWidget {
   const _SheetRow({
     required this.name,
@@ -562,9 +540,8 @@ class _MarginNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(top: 13),
-    // The rule is as tall as the words it stands beside, and nothing above
-    // these rows bounds their height — so the height has to be measured from
-    // the text rather than stretched into infinity.
+    // Nothing above bounds these rows' height, so the rule's height is measured
+    // from the text.
     child: IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -684,9 +661,8 @@ class CookTrackCell extends StatelessWidget {
           Positioned.fill(
             child: Row(
               children: [
-                // The tick stands a little into the day rather than on its
-                // edge: a cook happens ON that day, and an edge would read as
-                // the boundary between two.
+                // The tick stands a little into the day: an edge would read as
+                // the boundary between two days.
                 const Spacer(flex: 42),
                 Expanded(
                   flex: 58,
@@ -723,11 +699,8 @@ class CookTrackCell extends StatelessWidget {
   }
 }
 
-/// The faint day boundaries, behind every row at once.
-///
-/// It reads the sheet's own geometry rather than the window's: the track starts
-/// where the name column ends and stops where the words begin, so the six lines
-/// land on the same boundaries the flex cells divide at.
+/// The faint day boundaries behind every row. Reads the sheet's own geometry so
+/// the lines land where the flex cells divide.
 class _DayVerticalsPainter extends CustomPainter {
   const _DayVerticalsPainter();
 
