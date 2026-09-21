@@ -1,14 +1,9 @@
-/// The draft behind week mode: the recipe's lines as this week would cook
-/// them, edited but not yet stored.
+/// The draft behind week mode: the recipe's lines as this week would cook them,
+/// edited but not stored until Save.
 ///
-/// It keeps the recipe EXACTLY as loaded beside the edited list, because the
-/// diff is computed against that original on every save and on every keystroke
-/// the footer counts — recomputed whole, never accumulated, so a line edited
-/// back to the recipe's value leaves nothing behind.
-///
-/// Nothing here writes. The editor's own **Save** does, which is the recipe
-/// editor's posture rather than the meal sheet's write-through: a variant is
-/// several decisions that only make sense together.
+/// The recipe is kept as loaded, and the diff is recomputed whole against it on
+/// every read, so a line edited back to the recipe's value leaves nothing
+/// behind.
 library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -34,12 +29,11 @@ const _uuid = Uuid();
 class WeekVariant {
   const WeekVariant({required this.recipe, required this.lines});
 
-  /// The recipe's own lines and groups, untouched — the base every diff runs
-  /// against, and the words the tags quote back ("was 400 g Pork sausage").
+  /// The recipe as loaded — the base every diff runs against.
   final Recipe recipe;
 
-  /// Every recipe line in stored order, an excluded one still among them, then
-  /// the lines this week adds.
+  /// Every recipe line in stored order (excluded ones included), then the lines
+  /// this week adds.
   final List<WeekDraftLine> lines;
 
   /// The recipe's lines, flattened in group order.
@@ -47,9 +41,7 @@ class WeekVariant {
     for (final group in recipe.groups) ...group.items,
   ];
 
-  /// The override set this draft would store. Recomputed on every read — it is
-  /// a pure function of the draft, and the footer's count and the save's rows
-  /// must be the same answer.
+  /// The override set this draft would store, recomputed on every read.
   List<LineOverride> get overrides =>
       diffLineOverrides(base: base, draft: lines);
 
@@ -61,8 +53,7 @@ class WeekVariant {
 }
 
 /// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's first
-/// day
-/// as `YYYY-MM-DD` — the query param the door opens the editor with.
+/// day as `YYYY-MM-DD`.
 @riverpod
 class WeekVariantDraft extends _$WeekVariantDraft {
   @override
@@ -101,11 +92,8 @@ class WeekVariantDraft extends _$WeekVariantDraft {
     ),
   );
 
-  /// Quantifies this week's line in a plain unit, clearing any measure — an
-  /// ingredient's word and the target recipe's alike. A line says its amount in
-  /// a unit **or** in one of the target's own words, never both, and a row
-  /// carrying both is one the server refuses (which would drop the whole crud
-  /// transaction with it).
+  /// Quantifies the line in a plain unit, clearing any measure. A line is in a
+  /// unit or a word, never both; the server refuses a row carrying both.
   void setUnit(String id, Unit unit) => _mapLine(
     id,
     (e) => (
@@ -120,14 +108,9 @@ class WeekVariantDraft extends _$WeekVariantDraft {
     ),
   );
 
-  /// Quantifies this week's COMPONENT line in one of the target recipe's own
-  /// words — `3 blob` (ADR-0018). The unit goes with it, for the same XOR: the
-  /// number counts words, and the measure's own unit beside it would read as a
-  /// mass where the line means a count of blobs.
-  ///
-  /// [word] is the row behind the pointer, where the caller has it: a word
-  /// coined a tap ago is not in the target this line carries, and the row
-  /// prints what it says from there.
+  /// Quantifies a component line in one of the target recipe's own words
+  /// (ADR-0018), clearing the unit. [word] is the measure row where the caller
+  /// has it, since a just-coined word is not yet on the line's target.
   void setRecipeMeasure(
     String id,
     String recipeMeasureId, {
@@ -156,8 +139,7 @@ class WeekVariantDraft extends _$WeekVariantDraft {
         measureId: measure.id,
         measure: measure,
         unit: pieces,
-        // The same XOR from the other side: an ingredient's word is not a
-        // recipe's.
+        // An ingredient's word is not a recipe's.
         recipeMeasureId: null,
       ),
       excluded: e.excluded,
@@ -165,9 +147,8 @@ class WeekVariantDraft extends _$WeekVariantDraft {
     ),
   );
 
-  /// Ticking an optional line IN for the week, or a counted line OUT of it —
-  /// the amount sheet's own switch, which the diff reads as an include or an
-  /// exclusion (there is no third thing it could mean this week).
+  /// Ticks an optional line in for the week, or a counted line out; the diff
+  /// reads it as an include or an exclusion.
   void setOptional(String id, {required bool optional}) => _mapLine(
     id,
     (e) => (
@@ -177,8 +158,7 @@ class WeekVariantDraft extends _$WeekVariantDraft {
     ),
   );
 
-  /// The line cooks something else this week. The note travels with it, as the
-  /// recipe editor's own substitution does — never rewritten for you.
+  /// Swaps the line's ingredient for this week. The note is kept as written.
   void setIngredient(String id, Ingredient ingredient) => _mapLine(
     id,
     (e) => (
@@ -193,9 +173,7 @@ class WeekVariantDraft extends _$WeekVariantDraft {
     ),
   );
 
-  /// The bin. On a RECIPE line it excludes — this screen cannot delete the
-  /// recipe's line, and a row that vanished would be a hole nobody could see.
-  /// On an added line it removes: there is nothing to go back to.
+  /// Excludes a recipe line (it stays visible); removes a line this week added.
   void removeOrExclude(String id) {
     final entry = _current.lines.where((e) => e.line.id == id).firstOrNull;
     if (entry == null) return;
@@ -211,8 +189,8 @@ class WeekVariantDraft extends _$WeekVariantDraft {
     _mapLine(id, (e) => (line: e.line, excluded: true, added: false));
   }
 
-  /// A line added for this week only. Its id is the override row's from here
-  /// on, so reopening the week lands on the same row rather than a new one.
+  /// Adds a line for this week only. Its id is the override row's, so reopening
+  /// lands on the same row.
   void addLine(
     Ingredient ingredient, {
     double? quantity,
@@ -236,8 +214,7 @@ class WeekVariantDraft extends _$WeekVariantDraft {
     );
   }
 
-  /// One line back to what the recipe says. Muted, no confirm — it is a draft
-  /// action, and Save is still what stores it.
+  /// Puts one line back to what the recipe says.
   void reset(String id) {
     final original = _current.baseOf(id);
     if (original == null) return;

@@ -1,24 +1,10 @@
-/// What the dish row's **portions chip + eater avatars** open: which slot this
-/// meal is in, who is eating it, and how many portions to cook.
+/// The sheet a dish row's portions chip and avatars open: the meal's slot, its
+/// eaters and its portions.
 ///
-/// **A field editor, not a hub.** It is reached by tapping *the values it
-/// edits* and holds nothing else: there is no route to the recipe in here (that
-/// is the row's title) and no remove (that is the row's `−`).
-///
-/// The rule it comes from: **a row's controls are the facts the row prints.**
-/// The slot is one of them — it is the gutter label the row sits under — so
-/// it is a field here, and a meal moves from lunch to dinner in place. The
-/// day is not: a row does not print a day as a value, its *position* is its
-/// day, so a meal changes day by remove-and-re-add through the picker's
-/// "already this week" quick picks, and no repository method exists for it.
-///
-/// The controls come from `meal_fields.dart`, which is the whole reason that
-/// file exists: the confirm sheet sets these fields when a meal is made, this
-/// sets them afterwards in the same order, and hoisting them is what stops
-/// the two paths drifting.
-///
-/// Every control writes through on change; there is no Save. `Close` is a
-/// dismissal, not a commit.
+/// A field editor only: the recipe opens from the row's title and removal is
+/// the row's `−`. The day is not a field; a meal changes day by
+/// remove-and-re-add. Controls come from `meal_fields.dart`. Every control
+/// writes through on change, so `Close` only dismisses.
 library;
 
 import 'dart:async';
@@ -52,10 +38,8 @@ Future<void> showMealEditorSheet(
 class _MealEditorSheet extends ConsumerWidget {
   const _MealEditorSheet({required this.entryId});
 
-  /// The sheet holds the entry's ID, not the entry: it re-reads the live row
-  /// every build, so its own writes (and the partner's) show immediately, and
-  /// an entry removed from the row underneath — or from the other phone —
-  /// leaves the sheet drawing nothing rather than editing a ghost.
+  /// The entry's id, not the entry: the sheet re-reads the live row every
+  /// build, so remote writes show and a removed entry draws nothing.
   final String entryId;
 
   @override
@@ -65,18 +49,13 @@ class _MealEditorSheet extends ConsumerWidget {
     final members = ref.watch(membersProvider);
     final repo = ref.read(planningRepositoryProvider);
 
-    // Gone while the sheet was open. Unlike the entry sheet this one has no
-    // removal of its own to race with, so there is nothing to auto-pop for:
-    // the sheet simply has nothing to say, and the user's own dismissal is
-    // still the way out.
+    // Removed while the sheet was open: draw nothing and let the user dismiss.
     if (entry == null) return const SizedBox.shrink();
 
     return AnsiSheetShell(
-      // Every control writes through, so there is nothing to save — "Close" is
-      // the honest way out.
+      // Every control writes through, so the way out is "Close".
       title: entry.recipeTitle ?? 'This meal',
-      // Which meal this is, since the sheet no longer carries the picked-recipe
-      // card: the row you tapped, named back to you.
+      // Names the row that was tapped.
       subtitle:
           '${ref.watch(weekShapeProvider).labelFull(entry.dayOfWeek)} · '
           '${entry.mealSlot.toLowerCase()}',
@@ -132,14 +111,9 @@ class _MealEditorSheet extends ConsumerWidget {
             ),
           ),
         ),
-        // The one thing in here that is not a field (0043 D1). The sheet is a
-        // field editor, so this states one fact and opens the screen that
-        // edits it — and it states its own SCOPE, because the sheet is per
-        // meal and the variant is per week and recipe. Without that sub-line
-        // the row would lie about what a tap changes.
-        // A RECIPE meal only: there are no lines to vary behind a snack or
-        // behind a meal eaten out, so the door is not drawn rather than drawn
-        // inert (the kind is asked, never a null recipe id).
+        // The door into week mode, for a recipe meal only. Its sub-line states
+        // its scope, because the sheet is per meal and the variant is per week
+        // and recipe.
         if (entry.kind == PlanEntryKind.recipe) ...[
           const SizedBox(height: 18),
           const AnsiMicroLabel('Ingredients'),

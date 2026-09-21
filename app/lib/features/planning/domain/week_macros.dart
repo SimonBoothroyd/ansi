@@ -1,28 +1,10 @@
-/// Honest macros for a SET of planned meals — PURE DART (invariant 2).
+/// Macros for a set of planned meals (a day, a week, either under a person's
+/// lens). Pure Dart.
 ///
-/// The week redesign's D4, as one rule applied at three scopes (a day, the
-/// week, and either of those under a person's lens):
-///
-/// > A meal-set total shows the sum of the meals that **resolved**, is labelled
-/// > with its **own denominator** (`1 of 2 meals`), and **names every excluded
-/// > meal**. When nothing resolves, no number is drawn at all — the badge and
-/// > the reasons, exactly as the recipe macro panel refuses. An **empty** set
-/// > is a third state — `no meals` — never `0 kcal`.
-///
-/// Why that is not invariant 3 bending. On the recipe page the scope is fixed
-/// ("this recipe's macros") and a partial sum lies about it. Here the scope is
-/// *a set of meals whose label states it*, and each meal is an independently
-/// honest unit — the same doctrine as the shopping list, which already sums
-/// what it can and shows provenance for every part. The teeth are that the
-/// denominator is mandatory (no bare number, ever) and that an exclusion is
-/// NAMED, not counted.
-///
-/// This file computes nothing about a recipe. The per-serving figure is
-/// already produced by [summarizeRecipeMacros], and re-deriving it here would
-/// create exactly the "three surfaces that can drift" problem
-/// `shared/incomplete_macros.dart` exists to prevent. The excluded meal
-/// carries its [RecipeMacroSummary] so the UI prints the shared
-/// `incompleteNote`, in its exact words.
+/// A total sums the meals that resolved, states its denominator (`1 of 2
+/// meals`) and names every excluded meal. When nothing resolves there is no
+/// number; an empty set is `no meals`, never `0 kcal`. Per-serving figures come
+/// from [summarizeRecipeMacros]; nothing about a recipe is re-derived here.
 library;
 
 import 'package:meta/meta.dart';
@@ -37,40 +19,28 @@ import 'planning.dart';
 
 /// Why a planned meal could not join a total.
 enum MealExclusion {
-  /// Its recipe's own macro summary is incomplete (a stub line, an
-  /// unconvertible line, an unresolved sub-recipe …). The reason WORDS come
-  /// from `incompleteNote` on the excluded meal's summary — never re-invented
-  /// here.
+  /// The recipe's own macro summary is incomplete. The reason wording comes
+  /// from `incompleteNote` on the excluded meal's summary.
   incomplete,
 
-  /// The recipe behind the entry is gone, or its macros were never loaded.
-  /// There is nothing to sum and nothing to say about why.
+  /// The recipe is gone, or its macros were never loaded.
   recipeMissing,
 
-  /// Nobody is down to eat it (and no portions override says otherwise), so
-  /// there is no demand to multiply — and, under a person's lens, nothing to
-  /// divide by. Never a division by zero, never a silent zero.
+  /// No eaters and no portions override, so there is no demand to multiply.
   noEaters,
 
-  /// The meal is a bare INGREDIENT (step 8.14) whose one portion cannot be
-  /// weighed honestly — a stub row with no macros, a row this device has never
-  /// synced, an amount that never reached the row's basis, or no amount at
-  /// all. The reason WORDS come from the excluded meal's `lineReason`, through
-  /// the shared `incompleteLineNote` — so a snack says `stub ingredient` in
-  /// exactly the words a stub recipe LINE says it (A-D5 / B-D3).
+  /// A bare ingredient whose portion cannot be weighed: a stub row, an unsynced
+  /// row, an amount that does not reach the row's basis, or no amount. The
+  /// wording comes from the meal's `lineReason` via `incompleteLineNote`.
   ingredientNotCounted,
 
-  /// The meal was eaten OUT and nobody stated what it was worth. There is
-  /// nothing to weigh and nothing to look up — a canteen prints a plate or it
-  /// does not — so the meal is named and left out, in the shape a stub
-  /// ingredient already wears. An unstated FIBRE is not this: the four are the
-  /// panel, and a meal that stated them is counted whether or not it stated a
-  /// fifth.
+  /// A meal eaten out with no stated macros. An unstated fibre alone does not
+  /// exclude it.
   outNotStated,
 }
 
-/// One meal left out of a total, and why. `label` is the dish's title as the
-/// week shows it, so the exclusion can be NAMED rather than counted.
+/// One meal left out of a total, and why. `label` is the title as the week
+/// shows it.
 typedef ExcludedMeal = ({
   String entryId,
   String label,
@@ -78,8 +48,7 @@ typedef ExcludedMeal = ({
   RecipeMacroSummary? summary,
 
   /// Set only for [MealExclusion.ingredientNotCounted]: the per-line reason
-  /// whose wording an excluded SNACK borrows, so the week's refusal and a
-  /// recipe page's refusal are one vocabulary.
+  /// whose wording the excluded snack borrows.
   MacroLineReason? lineReason,
 });
 
@@ -96,13 +65,9 @@ class MealSetMacros {
     this.demand = 0,
   });
 
-  /// The sum over the meals that resolved. **Null when nothing resolved, and
-  /// null when the set is empty** — never a zero standing in for an absence.
-  ///
-  /// Its `fiber` obeys [Macros.fiber]'s every-addend rule at this scope too: a
-  /// week states fibre only when every meal it counted did. The meal is still
-  /// counted — an unstated fibre is not an exclusion, and the denominator does
-  /// not move.
+  /// The sum over the meals that resolved; null when none did or the set is
+  /// empty. Its `fiber` is stated only when every counted meal stated it
+  /// ([Macros.fiber]); an unstated fibre does not exclude the meal.
   final Macros? total;
 
   /// Meals that joined [total].
@@ -111,37 +76,31 @@ class MealSetMacros {
   /// Meals in scope, after the lens. The denominator the label must state.
   final int considered;
 
-  /// The servings [total] was multiplied over: the whole demand of every
-  /// counted meal under Everyone, and under a person's lens their weighted
-  /// share of it (P-D5). With [demand], the lens's own denominator — `¾ of
-  /// 1¾ portions`.
+  /// The servings [total] was multiplied over: the counted meals' whole demand
+  /// under Everyone, a person's weighted share of it under their lens.
   final double servings;
 
-  /// The full demand of the counted meals — everyone's portions, whoever's
-  /// lens this is. Equal to [servings] under Everyone.
+  /// The full demand of the counted meals, whoever's lens this is.
   final double demand;
 
   /// Every meal in scope that did not join the total, named.
   final List<ExcludedMeal> excluded;
 
-  /// Distinct days that put something into [total] — the week average's own
-  /// denominator (`6 of 7 days`).
+  /// Distinct days that contributed to [total] — the week average's
+  /// denominator.
   final int daysContributing;
 
-  /// Nothing was in scope: a day with no meals, or a lens under which this
-  /// person eats nothing. A third state, not a zero.
+  /// Nothing was in scope: no meals, or none this person eats.
   bool get isEmpty => considered == 0;
 
-  /// Meals were in scope and NONE resolved: draw no number, show the badge
-  /// and the reasons.
+  /// Meals were in scope and none resolved: draw the badge and reasons, no
+  /// number.
   bool get isRefused => !isEmpty && total == null;
 
-  /// A total that is honest but short — it must print its denominator and
-  /// name what it left out.
+  /// A total that left meals out; it prints its denominator and names them.
   bool get isPartial => total != null && excluded.isNotEmpty;
 
-  /// The per-day average over [daysContributing], or null when there is no
-  /// total to average.
+  /// The per-day average over [daysContributing], or null without a total.
   Macros? get perDayAverage {
     final t = total;
     if (t == null || daysContributing == 0) return null;
@@ -155,28 +114,18 @@ class MealSetMacros {
       'servings: $servings of $demand)';
 }
 
-/// The lens's denominator, named (P-D5): `Jun · ¾ of 1¾ portions`. Null when
-/// there is no total to attribute (the refusals print their own words) — and
-/// null under Everyone, whose share is the whole and needs no second number.
+/// The lens's denominator: `Jun · ¾ of 1¾ portions`. Null without a total, and
+/// under Everyone.
 String? portionShareLine(MealSetMacros macros, {required String? lensName}) {
   if (lensName == null || macros.total == null) return null;
   return '$lensName · ${formatFraction(macros.servings)} of '
       '${formatPortions(macros.demand)}';
 }
 
-/// One portion of an INGREDIENT meal, weighed — or the reason it cannot be
-/// (step 8.14 / B-D3).
-///
-/// The rule is the recipe summation's own, applied to one amount instead of a
-/// line: the row must have macros, the entry must state an amount, and that
-/// amount must reach the row's basis unit (a measure through its stored
-/// weight, a cross-basis amount through the density). Nothing is invented at
-/// any step — a stub contributes nothing and says so, in the words a stub LINE
-/// uses.
-///
-/// The returned macros are what ONE portion is worth; the caller multiplies by
-/// the entry's demand, exactly as it multiplies a recipe's per-serving figure
-/// (A-D3 — a snack carries eaters and multiplies).
+/// One portion of an ingredient meal, weighed, or the reason it cannot be. The
+/// row must have macros, the entry must state an amount, and the amount must
+/// reach the row's basis unit (a measure through its weight, a cross-basis
+/// amount through density). The caller multiplies by the entry's demand.
 typedef PortionMacros = ({Macros? perPortion, MacroLineReason? reason});
 
 PortionMacros ingredientPortionMacros(
@@ -209,13 +158,10 @@ PortionMacros ingredientPortionMacros(
       densityGPerMl: nutrition.densityGPerMl,
     );
   } else if (entry.measureId != null) {
-    // An unresolved measure reads as its honest count fallback — a count
-    // cannot join a mass/volume total, so the snack is unweighable until the
-    // measure row syncs in. Nothing is broken to fix, so it is NOT
-    // `needsWeight`: since ADR-0015 that word sends the household to the
-    // ingredient's form to enter a number nothing is missing. It degrades
-    // the way the recipe engine degrades the same line — unconvertible, in
-    // the density's words — until the row syncs in.
+    // An unresolved measure reads as its count fallback, which cannot join a
+    // mass/volume total. Nothing is missing on the ingredient, so this is
+    // `needsDensity` (unconvertible), not `needsWeight`, until the measure row
+    // syncs. See ADR-0015.
     return (perPortion: null, reason: MacroLineReason.needsDensity);
   } else if (unit.family == UnitFamily.count &&
       pieceMeasureOf(nutrition) != null) {
@@ -239,9 +185,8 @@ PortionMacros ingredientPortionMacros(
       perPortion: macros.scaledBy(value.amount / 100),
       reason: null,
     ),
-    // A bare count with nothing weighing it is fixed on the ingredient (its
-    // piece weight), so it keeps its own word — the same split the recipe
-    // panel makes.
+    // A bare count with no piece weight is fixed on the ingredient, so it keeps
+    // `needsWeight`.
     Err() => (
       perPortion: null,
       reason: unit.family == UnitFamily.count
@@ -251,21 +196,8 @@ PortionMacros ingredientPortionMacros(
   };
 }
 
-/// What ONE planned meal is worth **as served to the people eating it** — the
-/// figure the wide Week prints under a dish in the day pane.
-///
-/// It is [sumPlannedMacros] over a set of one, and deliberately nothing else:
-/// a meal's served figure is `perServing × the portions planned`, which is
-/// exactly the multiplication a day total already does per entry, and a second
-/// implementation of it in a widget is the drift `shared/incomplete_macros.dart`
-/// exists to prevent. Everything else follows for free — the lens (a meal
-/// somebody else eats is out of scope and comes back [MealSetMacros.isEmpty]),
-/// the refusals (an incomplete recipe, a missing one, no eaters, an unweighable
-/// snack) and their exact words.
-///
-/// So the caller draws the same three states it draws for a day, at the scope
-/// of one meal: an absence, a refusal that prints no number at all, or a total
-/// whose denominator is `1 meal`.
+/// One planned meal's macros as served: [sumPlannedMacros] over a set of one,
+/// so the lens, the refusals and their wording match the day total.
 MealSetMacros servedMealMacros(
   PlanEntry entry, {
   required RecipeMacroSummary? Function(String recipeId) summaryFor,
@@ -280,29 +212,17 @@ MealSetMacros servedMealMacros(
 
 /// Sums `perServing × servings` over [entries].
 ///
-/// * **Everyone** ([lensMemberId] null) — `servings = demandPortions`, the
-///   household figure: the override, else Σ of the eaters' portion factors.
-/// * **A person's lens** — the entry is in scope only if that member is in
-///   `eaterIds`, and `servings` is their own factor — the split the household
-///   itself declared — scaled by `override ÷ Σ factors` when an override is
-///   set (spec §8 calls the override "big/small appetites", so the override IS
-///   eating more, shared out in the same proportions). With every factor at 1
-///   this is an even split. An entry with NO eaters cannot be attributed to
-///   anyone, so under a person's lens it stays in scope and is excluded WITH A
-///   REASON — it might be theirs, and pretending otherwise would quietly
-///   shrink the denominator.
+/// Under Everyone ([lensMemberId] null) `servings` is [demandPortions]. Under a
+/// person's lens an entry is in scope only if they eat it, and `servings` is
+/// their own factor, scaled by `override ÷ Σ factors` when an override is set.
+/// An entry with no eaters stays in scope under a lens and is excluded with a
+/// reason.
 ///
-/// [summaryFor] hands back a recipe's per-serving summary (null when the
-/// recipe is gone or not loaded); a bare INGREDIENT meal is weighed from the
-/// nutrition it already carries (step 8.14) and a meal eaten OUT from the
-/// per-portion figures stated on it, so no second lookup can go missing for
-/// either. [membersById] carries the factors (an absent member counts 1, as
-/// [eatersDemand] says). Day and week totals come from this one function over
-/// two entry sets, so a week is never a sum of rounded days.
-///
-/// A snack multiplies exactly like a dish (A-D3): its stated amount is ONE
-/// portion, and the same `servings` figure scales it. So does a meal eaten
-/// out — the canteen printed one plate, and two people eating it is two.
+/// [summaryFor] returns a recipe's per-serving summary (null when gone or not
+/// loaded). An ingredient meal is weighed from the nutrition it carries and a
+/// meal out from its stated figures; both multiply by `servings` like a dish.
+/// Day and week totals both come from this function, so a week is never a sum
+/// of rounded days.
 MealSetMacros sumPlannedMacros(
   Iterable<PlanEntry> entries, {
   required RecipeMacroSummary? Function(String recipeId) summaryFor,
@@ -322,8 +242,7 @@ MealSetMacros sumPlannedMacros(
     if (lensMemberId != null &&
         eaters.isNotEmpty &&
         !eaters.contains(lensMemberId)) {
-      // Out of scope entirely: somebody else's meal. Not an exclusion — it
-      // was never this person's to count.
+      // Somebody else's meal: out of scope, not an exclusion.
       continue;
     }
     considered++;
@@ -343,12 +262,8 @@ MealSetMacros sumPlannedMacros(
       continue;
     }
 
-    // The explicit branch (B-D2), now over all three kinds. Each is weighed in
-    // its own way — a recipe hands over a per-SERVING summary somebody else
-    // computed, a bare ingredient is weighed here from its own stated amount,
-    // and a meal eaten out is worth exactly what was typed for it or nothing
-    // at all. None may fall through: a null `recipe_id` is another kind of
-    // meal, never a meal to skip.
+    // Every kind is weighed explicitly; a null `recipe_id` is another kind of
+    // meal, never one to skip.
     final Macros? perPortion;
     switch (entry.kind) {
       case PlanEntryKind.ingredient:
@@ -365,9 +280,7 @@ MealSetMacros sumPlannedMacros(
         }
         perPortion = weighed.perPortion;
       case PlanEntryKind.out:
-        // Nothing is derived and nothing is looked up: the figures are the
-        // ones somebody read off a menu or a till receipt, per portion, and
-        // their absence is an absence (invariant 3).
+        // The stated per-portion figures, or an absence; nothing is derived.
         final stated = entry.macros;
         if (stated == null) {
           excluded.add((

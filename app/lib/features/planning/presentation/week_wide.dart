@@ -1,48 +1,12 @@
-/// The Week at [AnsiLayout.expanded] — **the week to scan at left, one day to
-/// read at right.**
+/// The Week at [AnsiLayout.expanded]: a compact agenda of the whole week at
+/// left, one day to read at right.
 ///
-/// The owner's ruling, after using the built screen on his own household:
-/// *"left and right duplicate too much information, and text on left looks big
-/// and angry… maybe the two panes should swap sides, and the days of week pane
-/// should be a more compact repr."* Every dish was set twice, once at 24 px in
-/// the pane and once at 16.5 px beside it, and the screen read as two lists
-/// arguing rather than as a week with a day open in it.
-///
-/// So the two panes swap and change voice:
-///
-/// * **The agenda** (340, fixed) is the whole week, small enough to scan in one
-///   go. A day is a heading — its name, its date, `TODAY` where it is, and what
-///   it holds at the right edge — then **every meal as ONE wrapping run** in
-///   the mono at 10.5, names whole, a faint `·` between them and an eater mark
-///   only where the meal is not for everyone; then the day's own [MacroStrip].
-///   No slot labels, no `−`, no add door: the run is for reading, and the doors
-///   are all one tap away in the pane.
-/// * **The day pane** (the rest) draws ONE day as a page — today by default, or
-///   the day the person picked at left. Each meal gets its slot, who eats it,
-///   what cooks, its `−` and its own macros as the muted strip; the day's
-///   ledger is pinned to the foot, where the grams are spelt out. It is the
-///   only place a meal is added.
-/// * **The week band** pins to the agenda's foot ([WeekFootBand]): the week's
-///   total in the same strip its days draw, over `avg N · n of 7 days`.
-///
-/// **Every name, in the small voice.** The run wraps rather than listing one
-/// meal per line, and it never truncates — a five-meal day takes three lines at
-/// 340, which is what every name costs and what was chosen over `and 3 more`.
-///
-/// **The batch story stays out of the agenda.** No cook markers, no batch
-/// ticks, no leaders. Nothing at left says Wednesday's dinner is Monday's
-/// leftovers — that reads in the pane, one tap away, and in Cook.
-///
-/// **It is the phone's week, not a second one.** One view model
-/// (`week_view_models.dart`), one vocabulary (`week_macro_widgets.dart`,
-/// `week_format.dart`) and one set of doors — a meal's `−` runs the same undo,
-/// its eaters open the same editor, its title opens the same page, and the add
-/// door is [AddMealLine] with its own day. The numbers are the phone's strip on
-/// both sides; only the pinned ledger has the room to spell its grams out, and
-/// it is the one line that does.
-///
-/// **Nothing here is dragged.** The week has no `move`, so a meal changes day
-/// by being removed and added again, and every target is drawn.
+/// The agenda draws each day as a heading, its meals as one wrapping mono run
+/// (names never truncated) and its [MacroStrip]; it has no doors and no cook
+/// markers. The day pane draws one day with each meal's slot, eaters, cook
+/// marker, `−` and macros, its ledger pinned to the foot; it is the only place
+/// a meal is added. Both panes share the phone's view model, wording and
+/// targets.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -65,39 +29,21 @@ import 'week_macro_widgets.dart';
 import 'week_view_models.dart';
 import 'week_widgets.dart';
 
-/// The agenda's width. Fixed, at every expanded width: it holds the longest
-/// name in the household's week inside the run and the day's whole macro strip
-/// without scaling it, and the day pane beside it is what gives when the window
-/// narrows to an iPad's 1180 — what is spent there is reading slack, not type.
+/// The agenda's fixed width; the day pane takes what the window leaves.
 const _agendaPx = 340.0;
 
-/// How wide the day pane's meals and its ledger are allowed to get.
-///
-/// The pane takes whatever the window leaves, but a dish, a cook marker and a
-/// macro strip are lines of reading and a 800 px line of reading is not one.
-/// The day's name and date sit outside the cap, at the pane's own edge, so the
-/// heading still spans the pane it belongs to.
+/// The cap on the day pane's line length. The day's heading sits outside it.
 const _readingPx = 600.0;
 
-/// The run's quiet marks: the `·` between two names, and the eater initial
-/// after one. Muted, thinned — they are punctuation among the names rather
-/// than names, and at 10.5 a second full-strength ink would read as a word.
+/// The run's punctuation ink: the `·` between names and the eater initial.
 final _runQuiet = AnsiColors.muted.withValues(alpha: 0.6);
 
-/// A meal the lens is not on, in the run. The agenda draws a day's meals as
-/// ONE line and cannot lift a name out of it, so D8's dimming is the ink's own
-/// alpha here rather than an [Opacity] around a row — the same fading, at the
-/// only scope the run has.
+/// A meal the lens is not on, in the run. The run is one text line, so dimming
+/// is the ink's alpha rather than an [Opacity] around a row.
 final _runDimmed = AnsiColors.muted.withValues(alpha: 0.38);
 
-/// The eater mark the agenda prints beside a meal, or null when it would add
-/// nothing.
-///
-/// A meal both members eat is the household's ordinary case, and printing
-/// `SA` on nineteen lines out of twenty is noise that hides the twentieth. So
-/// the mark appears only where the meal is NOT for everyone: `A` on the oats
-/// Ana alone eats, and `nobody` — the phone's own word — on a meal with no
-/// eaters at all — a real state the day's macro line already refuses on.
+/// The eater mark the agenda prints beside a meal: null when everyone eats it,
+/// an initial per eater otherwise, `nobody` when it has no eaters.
 String? eaterMark(PlanEntry entry, List<Member> roster) {
   final eaters = entry.eaterIds.toSet();
   if (eaters.isEmpty) return 'nobody';
@@ -110,20 +56,8 @@ String? eaterMark(PlanEntry entry, List<Member> roster) {
   ].join(' ');
 }
 
-/// A day's meals as ONE line: every name whole, a faint `·` between them, and
-/// an eater mark where [eaterMark] has something to say.
-///
-/// One voice for the whole run — a snack is muted like everything else in it.
-/// What a meal *is* reads in the pane, where a dish's weight tells a recipe
-/// from a handful of almonds; here the line is a list of names to scan, and a
-/// second ink in it would be a distinction nobody asked the agenda for.
-///
-/// **One exception, and it is not an ink**: a meal eaten OUT carries a hollow
-/// dot before its name. The agenda's other rows are all things the week will
-/// cook or buy, and this one is neither — a fact worth seeing while scanning
-/// seven days, and the only fact in the run that changes what the days below
-/// it mean. It stays in the run's own voice: the same size, the same muted
-/// colour, an outline rather than a second colour.
+/// A day's meals as one line: every name whole, a faint `·` between them, an
+/// [eaterMark] where there is one, and a hollow dot before a meal eaten out.
 List<InlineSpan> mealRunSpans(
   List<PlanEntry> entries, {
   required List<Member> roster,
@@ -139,18 +73,15 @@ List<InlineSpan> mealRunSpans(
         ),
       );
     }
-    // D8: a meal this person is not eating fades, it does not leave — a day
-    // somebody else cooks for themselves is not an empty day.
+    // A meal this person is not eating fades; it does not leave.
     final dimmed = lens != null && !entry.eaterIds.contains(lens);
     final name = ansiMono(
       size: 10.5,
       color: dimmed ? _runDimmed : AnsiColors.muted,
     );
     if (entry.kind == PlanEntryKind.out) {
-      // Drawn through the macro line's own span builder, which sits a glyph
-      // on the middle of the digits' ink rather than on the font's ascent
-      // midpoint — the alignment a run at this size cannot afford to get
-      // wrong. Its semantic label is the word the mark replaces.
+      // The macro line's span builder centres the glyph on the digits' ink, not
+      // the font's ascent midpoint. Its semantic label is the word it replaces.
       spans
         ..add(macroUnitSpan(kMealOutIcon, label: 'eaten out', style: name))
         ..add(TextSpan(text: ' ', style: name));
@@ -161,8 +92,7 @@ List<InlineSpan> mealRunSpans(
       spans.add(
         TextSpan(
           text: mark,
-          // Smaller and quieter than the name it belongs to, so it reads as a
-          // mark ON the name rather than as another meal.
+          // Smaller and quieter than the name, so it reads as a mark on it.
           style: ansiMono(
             size: 8.5,
             color: dimmed ? _runDimmed : _runQuiet,
@@ -175,11 +105,9 @@ List<InlineSpan> mealRunSpans(
   return spans;
 }
 
-/// Consecutive same-slot runs of a day's entries, grouped under one label.
-///
-/// `entriesForDay` is already slot-ordered, so a run is contiguous; the
-/// comparison is case-insensitive for the same reason [defaultMealSlot] is — a
-/// day that typed `dinner` belongs under Dinner, not beside it.
+/// Consecutive same-slot runs of a day's entries. `entriesForDay` is
+/// slot-ordered, so a run is contiguous; the comparison is case-insensitive
+/// like [defaultMealSlot].
 List<List<PlanEntry>> slotGroupsOf(List<PlanEntry> entries) {
   final groups = <List<PlanEntry>>[];
   for (final e in entries) {
@@ -213,8 +141,7 @@ class WeekWide extends StatelessWidget {
   final WeekPlan? plan;
   final List<Member> roster;
 
-  /// null = Everyone; a member id = that person's lens (D8: it dims, it does
-  /// not remove).
+  /// null = Everyone; a member id = that person's lens.
   final ValueNotifier<String?> lens;
 
   /// Whose numbers these are — `Everyone` or a member's display name.
@@ -222,17 +149,12 @@ class WeekWide extends StatelessWidget {
   final CookPlan? cookPlan;
   final int? todayDayOfWeek;
 
-  /// The day the right pane draws, already resolved — today when the week on
-  /// screen contains it, the week's first day otherwise.
-  ///
-  /// It lives in the LOCATION (`/week?day=YYYY-MM-DD`), which is what makes a
-  /// refresh land back on it; [onSelectDay] restates the location and the new
-  /// day arrives back through here. See `WeekView.dayKey`.
+  /// The day the right pane draws, resolved from `/week?day=`: today when the
+  /// week contains it, else the week's first day. See `WeekView.dayKey`.
   final int selectedDay;
 
-  /// Stand on another day. It restates the location rather than pushing, so
-  /// browser back leaves the week instead of walking back through every day
-  /// that was read.
+  /// Stand on another day. Restates the location rather than pushing, so
+  /// browser back leaves the week.
   final void Function(int dayOfWeek) onSelectDay;
 
   /// Opens the add flow on one day — the phone card's own door, with its day.
@@ -298,8 +220,8 @@ class WeekWide extends StatelessWidget {
   }
 }
 
-/// ONE day as a page: the day it is, its meals at reading size, its add door,
-/// and its ledger pinned to the foot.
+/// One day as a page: its meals at reading size, its add door, and its ledger
+/// pinned to the foot.
 class _DayPane extends ConsumerWidget {
   const _DayPane({
     required this.weekStart,
@@ -321,8 +243,8 @@ class _DayPane extends ConsumerWidget {
   final String scope;
   final CookPlan? cookPlan;
 
-  /// Today's offset within the week on screen, or null when the week on screen
-  /// is not the one containing today — what makes `cooks today` true.
+  /// Today's offset within the week on screen, or null when that week does not
+  /// contain today.
   final int? todayDayOfWeek;
   final VoidCallback onAddMeal;
 
@@ -334,9 +256,7 @@ class _DayPane extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // The eyebrow is drawn only when the day IS today. A day the person
-          // chose needs no label — its name is the heading, and a permanent
-          // strip that sometimes says nothing is a strip that says nothing.
+          // The eyebrow is drawn only when the day is today.
           if (isToday)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -381,9 +301,7 @@ class _DayPane extends ConsumerWidget {
               ),
             ],
           ),
-          // The meals scroll; the ledger below does not. A five-meal Monday is
-          // taller than an iPad's 758 px, and on the web a pane scrolls without
-          // ceremony — what must not scroll away is the day's total.
+          // The meals scroll; the ledger below does not.
           Expanded(
             child: SingleChildScrollView(
               padding: ansiScrollPadding(
@@ -401,18 +319,15 @@ class _DayPane extends ConsumerWidget {
                           slot: i == 0 ? group.first.mealSlot : null,
                           roster: roster,
                           lens: lens,
-                          // D8: a meal this person is not eating is dimmed, not
-                          // gone — a day somebody else cooks for themselves is
-                          // not an empty day.
+                          // A meal this person is not eating is dimmed, not
+                          // removed.
                           dimmed:
                               lens != null && !entry.eaterIds.contains(lens),
                           cookPlan: cookPlan,
                           todayDayOfWeek: todayDayOfWeek,
                         ),
-                    // The week's ONE add door, in every state: `add a meal`, or
-                    // `nothing planned` on a day that holds nothing — which is
-                    // how this pane says a day is empty. The agenda has none:
-                    // seven doors onto a list nobody adds from are seven doors.
+                    // The wide Week's one add door; it says `nothing planned`
+                    // on an empty day.
                     Padding(
                       padding: const EdgeInsets.only(top: 12),
                       child: AddMealLine(
@@ -438,8 +353,7 @@ class _DayPane extends ConsumerWidget {
   }
 }
 
-/// One column of reading in the day pane, at [_readingPx], left-aligned in
-/// whatever width the window leaves.
+/// One column of reading at [_readingPx], left-aligned.
 class _Reading extends StatelessWidget {
   const _Reading({required this.child});
 
@@ -455,12 +369,8 @@ class _Reading extends StatelessWidget {
   );
 }
 
-/// One meal in the day pane: its slot, who eats it, what cooks, and what it is
-/// worth as served.
-///
-/// The same facts the phone row prints, in the same words and through the same
-/// targets — at reading size, and with one line the phone has no room for: the
-/// meal's own macros ([MealMacroLine]).
+/// One meal in the day pane: the phone row's facts and targets at reading size,
+/// plus the meal's own macros ([MealMacroLine]).
 class _PaneMeal extends ConsumerWidget {
   const _PaneMeal({
     required this.entry,
@@ -474,8 +384,7 @@ class _PaneMeal extends ConsumerWidget {
 
   final PlanEntry entry;
 
-  /// The slot label, on the FIRST meal of a run only — two dishes in one slot
-  /// are one slot, said once.
+  /// The slot label, on the first meal of a same-slot run only.
   final String? slot;
   final List<Member> roster;
   final String? lens;
@@ -491,9 +400,8 @@ class _PaneMeal extends ConsumerWidget {
     final snack = kind == PlanEntryKind.ingredient;
     final out = kind == PlanEntryKind.out;
     final plan = cookPlan;
-    // Only a RECIPE has a cook marker, and that is a ruling (A-D5): nothing
-    // about a protein bar or a canteen lunch is cooked. What the meal IS takes
-    // the marker's place — a snack's amount, a meal out's tag and figures.
+    // Only a recipe has a cook marker; a snack shows its amount and a meal out
+    // its tag and figures instead.
     final marker = plan == null || kind != PlanEntryKind.recipe
         ? null
         : cookMarkerFor(
@@ -547,14 +455,11 @@ class _PaneMeal extends ConsumerWidget {
                 padding: const EdgeInsets.only(top: 2, bottom: 6),
                 child: Text(
                   mealTitleText(entry),
-                  // No truncation anywhere in this pane: a name that needs two
-                  // lines takes two. `Clarity over compactness wins.`
+                  // No truncation in this pane: a long name wraps.
                   style: entry.title == null
                       ? ansiSerif(size: AnsiType.row, color: AnsiColors.muted)
-                      // Three weights for three kinds (A-D5) — the dish's
-                      // emphasis is what says "there is a page behind this",
-                      // so a snack reads plainer and a meal eaten out, which
-                      // has no page at all, reads plain and italic.
+                      // A recipe reads emphasised, a snack plainer, a meal out
+                      // plain italic.
                       : out
                       ? ansiSerif(
                           size: AnsiType.row,
@@ -573,7 +478,7 @@ class _PaneMeal extends ConsumerWidget {
             if (marker != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
-                // wrap, not ellipsis: half of `from Tuesday's batch` names the
+                // Wrap, not ellipsis: half of `from Tuesday's batch` names the
                 // wrong day.
                 child: CookMarkerLine(
                   marker: marker,
@@ -589,8 +494,7 @@ class _PaneMeal extends ConsumerWidget {
                   child: EditedForThisWeekMark(),
                 ),
               ),
-            // The snack's amount sits exactly where a cook marker would — the
-            // line says what this meal IS, since nothing about it is cooked.
+            // The snack's amount sits where a cook marker would.
             if (snack)
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
@@ -605,9 +509,8 @@ class _PaneMeal extends ConsumerWidget {
                 padding: const EdgeInsets.only(bottom: 6),
                 child: OutMealLine(entry: entry, size: 11),
               ),
-            // The recipe's macros, per meal, beside the day's — read through
-            // the day total's own function so the parts cannot disagree with
-            // the sum, and drawn in the strip every other line here speaks.
+            // Read through the day total's own function so the parts match the
+            // sum.
             MealMacroLine(
               macros: ref.watch(mealMacrosProvider(entry.id, lens)),
             ),
@@ -669,10 +572,8 @@ class _Agenda extends ConsumerWidget {
           ),
         ),
         Expanded(
-          // This list keeps no scroll gutter, and it is the one pane that
-          // does not: a day's own 18 px right padding already clears the thumb
-          // by the air the gutter is made of, and adding it here would inset
-          // the lit day's wash from the edge it is drawn to.
+          // No scroll gutter here: a day's own right padding already clears the
+          // thumb, and a gutter would inset the lit day's wash from the edge.
           child: ListView(
             padding: const EdgeInsets.only(bottom: 10),
             children: [
@@ -697,8 +598,8 @@ class _Agenda extends ConsumerWidget {
   }
 }
 
-/// One day of the agenda: a heading, every meal in one run, and the day's
-/// macro strip.
+/// One day of the agenda: a heading, every meal in one run, and the day's macro
+/// strip.
 class _AgendaDay extends ConsumerWidget {
   const _AgendaDay({
     required this.weekStart,
@@ -728,9 +629,7 @@ class _AgendaDay extends ConsumerWidget {
     final macros = ref.watch(dayMacrosProvider(dayOfWeek, lens));
     final empty = entries.isEmpty;
     return AnsiTap(
-      // The whole day is the door — there is nothing else on it to aim at, and
-      // a `›` at the end of a row that is entirely a target only says where
-      // the target is not. The day already open has nowhere to go.
+      // The whole day is the target; the open day has nowhere to go.
       onTap: selected ? null : onSelect,
       radius: 0,
       child: Container(
@@ -738,9 +637,7 @@ class _AgendaDay extends ConsumerWidget {
           color: selected ? AnsiColors.herbSoft : null,
           border: Border(
             top: const BorderSide(color: AnsiColors.line),
-            // The lit day carries a herb rule down its left edge — the same
-            // mark the phone's day card gives today, spent here on the day
-            // that is open beside it.
+            // The open day carries a herb rule down its left edge.
             left: BorderSide(
               color: selected ? AnsiColors.herb : const Color(0x00000000),
               width: 3,
@@ -785,10 +682,8 @@ class _AgendaDay extends ConsumerWidget {
                   ),
                 ],
                 const SizedBox(width: 10),
-                // What the day HOLDS, at the right edge: the figures are the
-                // strip below, so the heading counts. It takes the rest of the
-                // row and wraps rather than shortening — `no meals for Ana
-                // Maria` is a whole sentence or it is a wrong one.
+                // What the day holds, at the right edge. It wraps rather than
+                // shortening.
                 Expanded(
                   child: Text(
                     dayCountLabel(macros, scope: scope),
@@ -804,8 +699,8 @@ class _AgendaDay extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: empty
-                  // An empty day says so where its run would be, in the words
-                  // the add door says it in — and never `0 kcal`.
+                  // An empty day says so where its run would be, never `0
+                  // kcal`.
                   ? Text(
                       'nothing planned',
                       style: ansiMono(
@@ -825,9 +720,8 @@ class _AgendaDay extends ConsumerWidget {
                     ),
             ),
             if (macros.isRefused)
-              // No strip at all: a day that resolved nothing has no number to
-              // draw, and it names the meal that stopped it — [DayEnergyLine]'s
-              // own refusal, which is the app's one wording for this.
+              // A day that resolved nothing draws no strip; [DayEnergyLine]
+              // names the refusal.
               Padding(
                 padding: const EdgeInsets.only(top: 5),
                 child: DayEnergyLine(macros: macros, scope: scope, size: 11.5),

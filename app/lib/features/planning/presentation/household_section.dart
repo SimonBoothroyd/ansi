@@ -1,24 +1,9 @@
-/// "Household" — who eats here and how much, as a section of `/account`.
+/// "Household": a section of `/account` stating each member's usual portion and
+/// the household's first day of the week.
 ///
-/// A usual portion belongs to the person, not to Tuesday's curry, so it is
-/// stated once here and spent wherever a demand is counted — the entry sheet's
-/// Portions row, the cook plan, the shopping list, the macro lens. The override
-/// on an entry is the place for the exception ("cook 3 tonight"). Either member
-/// may set either's: the rows are the whole roster, not "me".
-///
-/// The segment (P-D2) is the five quick picks ×½ · ×¾ · ×1 · ×1¼ · ×1½ and a
-/// `…` that opens a stepper in quarter steps from ¼ to 3 — nobody knows they
-/// eat 0.83 of a portion. Every tap writes through; there is no Save.
-///
-/// This was a sheet off the Library `⋯` until 0028 deleted that menu. It is a
-/// section now, not a sheet: a sheet is a place to answer one question, and
-/// the household is a thing you look at beside the device and the session.
-///
-/// [WeekStartControl] is the third standing fact the section states (D5): the
-/// day the household's week begins on. It sits under the roster because a
-/// portion is read far more often than the week's shape is changed, and it is
-/// the same chip row at the same height as the portion segment above it — one
-/// small closed choice, no dropdown and no settings screen.
+/// A portion factor is set once here and read wherever demand is counted; an
+/// entry's override is the exception. Either member may set either's, and every
+/// tap writes through.
 library;
 
 import 'dart:async';
@@ -106,25 +91,16 @@ class HouseholdSection extends ConsumerWidget {
   }
 }
 
-/// The household's first day of the week (D5): two chips, a confirm, and the
-/// one line under them that says whatever is currently true.
+/// The household's first day of the week: two chips, a confirm, and one note
+/// line.
 ///
-/// **Online-only, and it says so rather than failing.** The flip is a single
-/// server transaction over every week the household has planned — it re-homes
-/// them so a meal keeps its calendar date under the new key — so a phone that
-/// cannot reach the server cannot do it correctly. The chips go inert with the
-/// reason instead of offering an action that would half-land.
-///
-/// The failure carries in two voices on purpose (`errors-and-sync-health.md`):
-/// the write door's toast reports the ACT that did not happen, with Retry, and
-/// the amber line under the chips reports the STATE — still on the old day —
-/// until the next attempt changes it.
+/// Online-only: the flip is one server transaction re-homing every planned
+/// week, so offline the chips go inert with the reason. A failure shows as the
+/// write door's toast (with Retry) and as an amber note until the next attempt.
 class WeekStartControl extends HookConsumerWidget {
   const WeekStartControl({super.key});
 
-  /// The two days the app offers. Every other start day is a real week shape
-  /// the code handles; nobody has asked to begin their week on a Wednesday,
-  /// and a seven-chip row would be a settings screen.
+  /// The two days offered; the code handles any start day.
   static const _offered = [DateTime.sunday, DateTime.monday];
 
   @override
@@ -138,9 +114,8 @@ class WeekStartControl extends HookConsumerWidget {
     Future<void> pick(int startsOn) async {
       if (inert || startsOn == shape.startsOn) return;
       final day = WeekShape(startsOn).startsOnName;
-      // Captured before the confirm: the dialog is an async gap, and the
-      // write that follows it goes through the handles taken here
-      // (`shared/write.dart`), never through this `ref`.
+      // Captured before the confirm: the dialog is an async gap, and the write
+      // goes through these handles (`shared/write.dart`), never this `ref`.
       final container = ProviderScope.containerOf(context, listen: false);
       final host = hostContextOf(context);
       final repo = ref.read(householdRepositoryProvider);
@@ -161,8 +136,7 @@ class WeekStartControl extends HookConsumerWidget {
         'move your weeks',
         () => repo.setWeekStart(startsOn),
       );
-      // Only the row's own display is left to set, so an Account screen the
-      // reader has already left simply has nothing to tell.
+      // Only this row's display remains to update.
       if (!context.mounted) return;
       moving.value = false;
       failed.value = !done;
@@ -209,9 +183,8 @@ class WeekStartControl extends HookConsumerWidget {
   }
 }
 
-/// The one line under the chips. Four things can be true, and exactly one of
-/// them shows: the flip is running, it failed, it cannot be run at all, or
-/// this is simply what the setting means.
+/// The note under the chips: running, failed, unavailable offline, or what the
+/// setting means.
 String weekStartNote(
   WeekShape shape, {
   required bool moving,
@@ -227,10 +200,8 @@ String weekStartNote(
       'covers that ${shape.startsOnName}’s dinner';
 }
 
-/// The section's foot: what a meal for the whole roster now counts as, and the
-/// three places that read it that way — *"a meal for both counts as 1¾
-/// portions — the cook plan, the shop and the macro lens all read it that
-/// way"* (board frame a).
+/// The section's foot: "a meal for both counts as 1¾ portions — the cook plan,
+/// the shop and the macro lens all read it that way".
 String householdDemandLine(List<Member> members) {
   final demand = eatersDemand(members.map((m) => m.id), {
     for (final m in members) m.id: m,
@@ -244,10 +215,9 @@ String householdDemandLine(List<Member> members) {
       'plan, the shop and the macro lens all read it that way';
 }
 
-/// The segment (P-D2): the five picks, and `…` for a custom value in quarter
-/// steps within [kPortionFactorMin]..[kPortionFactorMax]. A stored value that
-/// is not one of the picks opens in custom mode, so what the row shows is
-/// always the value on file, never the nearest chip.
+/// The five picks, and `…` for a custom value in quarter steps within
+/// [kPortionFactorMin]..[kPortionFactorMax]. A stored value that is not a pick
+/// opens in custom mode, so the row always shows the value on file.
 class PortionFactorSegment extends HookWidget {
   const PortionFactorSegment({
     required this.value,

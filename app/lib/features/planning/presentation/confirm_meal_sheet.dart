@@ -1,35 +1,11 @@
-/// Step 3 of the add-a-meal flow: confirm the slot, who's eating, and how many
-/// portions, then place the meal on the week.
+/// The add flow's last sheet: confirm the slot, the eaters and the portions,
+/// then write the meal and pop.
 ///
-/// The picked card carries the honest per-serving macro line, and the batch cue
-/// is the full prose ("Chicken Curry already cooks Monday and keeps 4 days —
-/// …") rather than a truncated one-liner.
-///
-/// Portions default to the eater count and can be bumped for big appetites
-/// (spec §8); a null override means "track |eaters|". The sheet does the
-/// write itself and pops.
-///
-/// Its controls live in `meal_fields.dart` because a second sheet uses them:
-/// `meal_editor_sheet.dart` sets the slot, who's eating and how many portions
-/// on a meal already on the week, in this same order. Hoisting them is what
-/// stops the add path and the edit path drifting apart.
-///
-/// **The day is not asked here.** Every add starts from a day card, so the day
-/// arrived with the flow: it is the sheet's subtitle and the button repeats it
-/// ("Add to Wednesday"). The slot is asked, and it arrives already answered:
-/// the flow opens it on the day's next unfilled default slot
-/// ([defaultMealSlot]) — Breakfast on an empty day, Dinner once breakfast and
-/// lunch are planned — so the usual add is a confirm, not a choice. A wrong
-/// day is one back-tap away while the sheet is open, and remove-and-re-add
-/// once it is placed; a wrong slot is a field of the meal editor afterwards.
-///
-/// It places ANY kind of meal ([MealTarget]) — a recipe, a bare ingredient
-/// whose amount the quantity sheet already settled, or a meal eaten out. The
-/// slot, the eaters and the portions stepper are identical for all three,
-/// because every kind carries eaters and multiplies (A-D3); what differs is
-/// the card at the top, which repository door the write goes through, and one
-/// optional fold a meal eaten out alone is offered — the figures it was
-/// given, which nothing else in the app could know.
+/// It places any [MealTarget]; only the card at the top, the repository call
+/// and a meal out's optional macros fold differ. The day arrives with the flow
+/// and is stated, not asked. The slot opens on the day's next unfilled default
+/// ([defaultMealSlot]). A null portions override tracks the eater count. Its
+/// controls live in `meal_fields.dart`, shared with the meal editor.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -54,8 +30,7 @@ import '../domain/planning.dart' show defaultMealSlot;
 import 'meal_fields.dart';
 import 'week_view_models.dart';
 
-/// What this sheet is about to place on the week — the `plan_entry` XOR, at
-/// the door that writes it (step 8.14 / B-D1).
+/// What this sheet is about to place on the week.
 sealed class MealTarget {
   const MealTarget();
 }
@@ -67,9 +42,8 @@ final class RecipeMeal extends MealTarget {
   final RecipeSummary recipe;
 }
 
-/// A bare ingredient — a protein bar, a yoghurt. Its amount is ONE portion of
-/// it, already settled by the shipped quantity sheet (A-D2) and carried here so
-/// this sheet only has to ask the questions both kinds share.
+/// A bare ingredient. Its amount is one portion, already settled by the
+/// quantity sheet.
 final class SnackMeal extends MealTarget {
   const SnackMeal({
     required this.ingredient,
@@ -84,11 +58,8 @@ final class SnackMeal extends MealTarget {
   final Measure? measure;
 }
 
-/// A meal eaten out — the typed words, and nothing behind them.
-///
-/// Its figures are NOT carried here the way a snack's amount is: they are
-/// asked for on this sheet, in its one optional fold, because this is the only
-/// kind of meal whose macros nothing else in the app can know.
+/// A meal eaten out: the typed words. Its figures are asked for on this sheet,
+/// in the optional fold.
 final class OutMeal extends MealTarget {
   const OutMeal(this.label);
 
@@ -133,17 +104,13 @@ class _ConfirmMealSheet extends HookConsumerWidget {
     final eaters = useState<Set<String>>({});
     // Null = track the eater count; a number is an explicit override (spec §8).
     final portionsOverride = useState<int?>(null);
-    // The optional fold's five slots, as typed — a meal eaten out only. Blank
-    // is a real answer: the meal fills its slot uncounted.
+    // A meal out's optional figures, as typed. Blank places the meal uncounted.
     final stated = useState(const MacroDraft());
 
     final members = ref.watch(membersProvider);
     final shape = ref.watch(weekShapeProvider);
 
-    // The batch cue is a RECIPE fact — how long a cooked dish keeps, and
-    // whether this day could share a batch with another. A snack is not
-    // cooked (A-D4), so there is no batch to hint at and the card carries its
-    // amount instead: the absence is the ruling, not an oversight.
+    // The batch cue is a recipe fact; a snack is not cooked, so it has none.
     final recipe = target is RecipeMeal ? (target as RecipeMeal).recipe : null;
     final plannedDays = recipe == null
         ? null
@@ -175,9 +142,8 @@ class _ConfirmMealSheet extends HookConsumerWidget {
     }, [members]);
 
     Future<void> add() async {
-      // The sheet closes only on a write that landed: a throw must not skip
-      // the pop and leave it open and inert, the most confusing possible
-      // outcome.
+      // The sheet closes only on a write that landed; a throw must not leave it
+      // open and inert.
       final repo = ref.read(planningRepositoryProvider);
       final added = await ref.write(
         context,
@@ -203,9 +169,8 @@ class _ConfirmMealSheet extends HookConsumerWidget {
               measureId: (target as SnackMeal).measure?.id,
               portions: portionsOverride.value,
             ),
-          // A half-filled panel is not a panel ([MacroDraft.isCoherent]), so
-          // it writes as "not stated" rather than as four numbers with a hole
-          // in it. The fold says so where it is typed.
+          // An incomplete panel ([MacroDraft.isCoherent]) writes as "not
+          // stated".
           OutMeal(:final label) => repo.addOutEntry(
             weekStart: weekStart,
             dayOfWeek: dayOfWeek,
@@ -222,16 +187,12 @@ class _ConfirmMealSheet extends HookConsumerWidget {
 
     return AnsiSheetShell(
       title: 'Add to plan',
-      // The day, stated rather than asked — the flow started on this card, so
-      // the sheet names it back the way the meal editor names the row it was
-      // opened from.
+      // The day is stated, not asked: the flow started on its card.
       subtitle: 'to · ${shape.labelFull(dayOfWeek)}',
       centerTitle: false,
       dismiss: AnsiSheetDismiss.none,
       topPadding: 16,
-      // The card, three questions and — for a meal eaten out — a fold of five
-      // number slots are taller than a small phone's sheet. The column
-      // scrolls rather than the button being pushed off the bottom of it.
+      // Scrolls, so a tall sheet on a small phone keeps its button reachable.
       scrollable: true,
       children: [
         const SizedBox(height: 14),
@@ -273,9 +234,8 @@ class _ConfirmMealSheet extends HookConsumerWidget {
           roster: members.asData?.value ?? const [],
           onChanged: (v) => portionsOverride.value = v < 1 ? 1 : v,
         ),
-        // The one question the other two kinds are never asked, because the
-        // app can answer it for them. Left empty the meal still fills its
-        // slot, and the week names it as uncounted — a blank is never a zero.
+        // Only a meal out is asked its figures; left empty it is placed
+        // uncounted.
         if (target is OutMeal) ...[
           const SizedBox(height: 18),
           MealMacrosFold(

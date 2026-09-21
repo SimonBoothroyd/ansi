@@ -1,26 +1,17 @@
-/// The persistence contract for **this week's variant** — PURE DART
-/// (invariant 2). The data layer implements it over PowerSync's local SQLite.
+/// The persistence contract for a week's recipe variants. Pure Dart.
 ///
-/// A variant is one set of [LineOverride]s per `(week, recipe)`. The set is
-/// written WHOLE: the editor recomputes it from the recipe's lines every save,
-/// so the repository's job is to make the stored rows equal the set it is
-/// handed — not to apply a patch to whatever was there.
+/// A variant is one set of [LineOverride]s per `(week, recipe)`, written whole:
+/// the repository makes the stored rows equal the set it is handed.
 library;
 
 import '../../recipes/domain/line_override.dart';
 import '../../recipes/domain/recipe_cost.dart';
 import '../../recipes/domain/recipe_macros.dart';
 
-/// A delta that names one of the target's own words but no number — refused by
-/// `saveOverrides` before it is written.
-///
-/// "blob" alone says nothing: the word IS the denomination, so it only means
-/// something beside a count. The database says the same
-/// (`week_recipe_line_override_recipe_measure_needs_amount`) and would refuse
-/// it on UPLOAD — where a rejected upload makes the PowerSync connector drop
-/// the WHOLE crud transaction, taking every write queued beside it in silence.
-/// So the repository refuses this save instead, where the write door can say
-/// why.
+/// A delta naming one of the target's words but no number, refused by
+/// `saveOverrides` before it is written. The server would reject it on upload,
+/// and a rejected upload makes the PowerSync connector drop the whole crud
+/// transaction.
 class WordlessOverrideError implements Exception {
   const WordlessOverrideError({
     required this.overrideId,
@@ -37,10 +28,8 @@ class WordlessOverrideError implements Exception {
 }
 
 abstract interface class WeekVariantRepository {
-  /// Every override on the week beginning [weekStart], keyed by recipe id and
-  /// live — what the dish row's "edited for this week" mark, the cook card's
-  /// sub-line and the shopping derivation all read. A recipe with no variant
-  /// is absent from the map rather than present and empty.
+  /// Every override on the week beginning [weekStart], keyed by recipe id,
+  /// live. A recipe with no variant is absent.
   Stream<Map<String, List<LineOverride>>> watchWeekOverrides(
     DateTime weekStart,
   );
@@ -48,25 +37,18 @@ abstract interface class WeekVariantRepository {
   /// One recipe's set for that week, as week mode opens on it.
   Future<List<LineOverride>> loadOverrides(DateTime weekStart, String recipeId);
 
-  /// Makes the stored set for `(weekStart, recipeId)` equal [overrides], in
-  /// one transaction: rows that are still wanted are updated in place (so a
-  /// line keeps one row across many saves), the rest are tombstoned.
-  ///
-  /// An empty list is "back to the recipe" — it drops the whole variant.
+  /// Makes the stored set for `(weekStart, recipeId)` equal [overrides] in one
+  /// transaction: wanted rows are updated in place, the rest tombstoned. An
+  /// empty list drops the variant.
   Future<void> saveOverrides(
     DateTime weekStart,
     String recipeId, {
     required List<LineOverride> overrides,
   });
 
-  /// Ticks one optional line IN for this week, or takes it back out — the
-  /// one-tap door, which has no draft and no diff behind it.
-  ///
-  /// Adds (or removes) a single [LineOverrideAction.include] row inside the
-  /// stored set for `(weekStart, recipeId)` and saves that set whole, so the
-  /// tap composes with everything else the week already says about the recipe.
-  /// Idempotent: asking for the answer the week already gives writes nothing,
-  /// and a line the week states its own amount for keeps that amount.
+  /// Ticks one optional line in for this week, or back out, by adding or
+  /// removing one [LineOverrideAction.include] row and saving the set whole.
+  /// Idempotent, and a line with its own stated amount keeps it.
   Future<void> setLineIncluded(
     DateTime weekStart,
     String recipeId,
@@ -74,22 +56,14 @@ abstract interface class WeekVariantRepository {
     required bool included,
   });
 
-  /// Macro summaries for the recipes this week actually VARIES: the same
-  /// summation the Library runs, over each one's lines after its overrides.
-  ///
-  /// The week cannot borrow the Library's per-recipe figure for a varied
-  /// recipe — a variant makes that figure wrong for the week while leaving it
-  /// right on the recipe page and in the Library. A recipe with no variant is
-  /// absent, because the Library's figure is still exactly correct for it, and
-  /// re-summing every recipe on every week watch would be a second answer to a
-  /// question that already has one.
+  /// Macro summaries for the recipes this week varies, summed over each one's
+  /// effective lines. A recipe with no variant is absent; the Library's figure
+  /// stands for it.
   Stream<Map<String, RecipeMacroSummary>> watchVariantRecipeMacros(
     DateTime weekStart,
   );
 
-  /// The same thing for COST (ADR-0017), for the same reason: a week that
-  /// ticks an optional line in has to pay for it, and a week that leaves one
-  /// out does not. Absent for a recipe with no variant.
+  /// The same for cost (ADR-0017).
   Stream<Map<String, RecipeCostSummary>> watchVariantRecipeCosts(
     DateTime weekStart,
   );

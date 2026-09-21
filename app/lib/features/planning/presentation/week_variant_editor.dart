@@ -1,30 +1,12 @@
-/// The recipe editor **in week mode**: the same list, the same two doors per
-/// line, saving a diff against the recipe instead of the recipe.
+/// The recipe editor in week mode: the same line list, saving a diff against
+/// the recipe instead of the recipe. Reached by the editor's own route with a
+/// `?week=` param.
 ///
-/// It is reached by the recipe editor's own route with a `?week=` param, so
-/// there is no second route and no second screen in the map — the mode is a
-/// fact about what Save writes.
-///
-/// **What is not drawn, and why it is not drawn rather than locked.** The whole
-/// header form (title, serves, times, shelf life, filing) and the whole method
-/// are absent. A control drawn and refused has to be explained on every tap; a
-/// control absent is a mode you understand in one look. The method is gone
-/// rather than muted for a second reason: a step's chip points at a line id, an
-/// added line has not got one, and an excluded line would orphan its chips.
-///
-/// Two carve-outs. **Serves survives as a sentence** — every amount on the
-/// list is *per serves 4*, so dropping the number makes the list unreadable —
-/// in one inert strip with the step count and the title. And there is **no
-/// grip**: a reorder is not storable this week, and a drag that silently
-/// reverts on reopen is worse than no drag.
-///
-/// **Wide is one column, deliberately.** With no header form and no method
-/// there is no second column to make, so from [AnsiLayout.expanded] up this is
-/// the same list at the same 640 measure, centred in the pane the sidebar
-/// leaves. What the measure does buy is a column for the week's own statement
-/// at the row's right end: every row is then one line and the changes read down
-/// an edge, which is what makes the foot's *drops 5 changes* a count you can
-/// check rather than one you take on trust.
+/// The header form and the method are absent, not locked: a step's chip points
+/// at a line id, which an added line lacks and an excluded line would orphan.
+/// Serves survives as an inert sentence because every amount is per that
+/// number. There is no reorder grip, since a week cannot store an order. Wide
+/// is one column, with the week's statement at each row's right end.
 library;
 
 import 'dart:async';
@@ -64,12 +46,11 @@ class WeekVariantEditorView extends ConsumerWidget {
 
   final String recipeId;
 
-  /// The week's first day as `YYYY-MM-DD` — the `?week=` param the door
-  /// carries.
+  /// The week's first day as `YYYY-MM-DD` — the `?week=` param.
   final String weekKey;
 
-  /// Puts the form down: onto the page it edits, or onto that page's own
-  /// route when a pasted link left nothing under this one.
+  /// Back to the page this edits, or to its route when nothing is under this
+  /// one.
   void _back(BuildContext context) =>
       ansiBack(context, home: '/recipes/$recipeId?week=$weekKey');
 
@@ -83,8 +64,7 @@ class WeekVariantEditorView extends ConsumerWidget {
       childPad: false,
       header: FHeader.nested(
         title: Text('Edit for this week', style: ansiHeaderTitle()),
-        // This form is a page over the recipe as that week plans it, so
-        // that is where it belongs when nothing is under it.
+        // Falls back to the recipe page as that week plans it.
         prefixes: [FHeaderAction.back(onPress: () => _back(context))],
         suffixes: [
           FButton(
@@ -98,8 +78,8 @@ class WeekVariantEditorView extends ConsumerWidget {
                       notifier.save,
                     );
                     if (saved == null || !context.mounted) return;
-                    // The same helper the chevron uses: a Save with nothing to
-                    // pop must not write the diff and then strand the form.
+                    // The same helper as the chevron, so a Save with nothing to
+                    // pop does not strand the form.
                     _back(context);
                   },
             child: const Text('Save'),
@@ -191,10 +171,9 @@ class _WeekList extends StatelessWidget {
   }
 }
 
-/// The band that says whose lines these are, and that the recipe is not the
-/// thing being changed. It names the DAYS this week plans the recipe on,
-/// because the variant is per (week, recipe) and the door that opened it was
-/// per meal.
+/// The band saying these are the week's lines, not the recipe's. It names the
+/// days the week plans the recipe on, because the variant is per (week,
+/// recipe).
 class WeekVariantBand extends ConsumerWidget {
   const WeekVariantBand({
     required this.title,
@@ -252,8 +231,8 @@ class WeekVariantBand extends ConsumerWidget {
   }
 }
 
-/// The recipe's own facts, stated once and not editable here — serves above
-/// all, because every amount on the list is per that number.
+/// The recipe's own facts, inert — serves above all, because every amount is
+/// per that number.
 class _FromTheRecipe extends StatelessWidget {
   const _FromTheRecipe({required this.recipe});
 
@@ -269,8 +248,7 @@ class _FromTheRecipe extends StatelessWidget {
   );
 }
 
-/// A group heading, inert: no rename, no bin, no add-group. The grouping is
-/// the recipe's, and this screen does not edit the recipe.
+/// An inert group heading; the grouping is the recipe's.
 class _GroupHeading extends StatelessWidget {
   const _GroupHeading({required this.group});
 
@@ -287,8 +265,8 @@ class _GroupHeading extends StatelessWidget {
   }
 }
 
-/// One line in week mode: the shipped three-part row without its grip, plus
-/// the tag that says what this week did to it and the reset that undoes it.
+/// One line in week mode: the editor row without its grip, plus the week's tag
+/// and its reset.
 class _WeekLineRow extends ConsumerWidget {
   const _WeekLineRow({
     required this.entry,
@@ -310,22 +288,14 @@ class _WeekLineRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final item = entry.line;
-    // An optional line is a line this week has not asked for, which is what an
-    // excluded line is too — so it reads the same: struck and muted. The
-    // difference is only how it comes back, and each says so in its own slot
-    // below the name.
+    // An untaken optional line reads like an excluded one: struck and muted.
     final struck = entry.excluded || item.optional;
     final muted = struck ? AnsiColors.muted : AnsiColors.ink;
 
     Future<void> editAmount() async {
-      // **A component line gets the component sheet, measured or not.** The
-      // ingredient sheet's offer cannot express a recipe at all — no `batch`,
-      // no yield families, and no way to say one of the target's own words. It
-      // opens such a line preselected on `piece`, and for a measured line it
-      // hands back a unit written where `blob` was, which is the only place
-      // that line's amount lived (ADR-0018). The component sheet asks the
-      // question the line is actually about, and hands back exactly one
-      // denomination.
+      // A component line always gets the component sheet: the ingredient sheet
+      // cannot offer `batch`, yield families or the target's own words. See
+      // ADR-0018.
       if (item.subRecipeId != null || item.recipeMeasureId != null) {
         final target =
             item.subRecipe ??
@@ -340,18 +310,16 @@ class _WeekLineRow extends ConsumerWidget {
           initialUnit: item.unit,
           initialMeasureId: item.recipeMeasureId,
           initialOptional: item.optional,
-          // The week says a line in the target's own word exactly as the
-          // recipe does, so the ＋ is the same door here — and it is shut for
-          // a line whose recipe row has not synced, which has no yields to
-          // gate a word on.
+          // Coining a word needs the target's yields, so it is closed for a
+          // recipe row that has not synced.
           mayCoinWords: item.subRecipe != null,
         );
         if (measured == null) return;
         notifier
           ..setQuantity(item.id, measured.quantity)
           ..setOptional(item.id, optional: measured.optional);
-        // Both null is a line whose word has gone and whose reader picked no
-        // chip: it keeps the pointer it had rather than a unit nobody stated.
+        // Both null: the line's word has gone and no chip was picked, so it
+        // keeps the pointer it had.
         if (measured.recipeMeasureId case final id?) {
           notifier.setRecipeMeasure(item.id, id, word: measured.measure);
         } else if (measured.unit case final picked?) {
@@ -362,8 +330,8 @@ class _WeekLineRow extends ConsumerWidget {
       final ingredient = Ingredient(
         id: item.ingredientId ?? '',
         canonicalName: item.ingredientName,
-        // A stand-in for a row this sheet is not really about; a line said
-        // in a recipe's own word has no catalog unit to lend it.
+        // A stand-in row: a line said in a recipe's own word has no catalog
+        // unit.
         defaultUnit: item.measure != null ? pieces : (item.unit ?? pieces),
         status: IngredientStatus.stub,
       );
@@ -397,9 +365,7 @@ class _WeekLineRow extends ConsumerWidget {
         editingRecipeId: recipeId,
         title: 'Change ${item.ingredientName} to',
         subtitle: 'for this week only',
-        // No sub-recipe swaps in v1 (0043 D7): the component graph knows no
-        // week, so a component swapped for one week would make it
-        // week-dependent.
+        // No sub-recipe swaps: the component graph knows no week.
         suppressRecipes: true,
       );
       if (picked is PickedIngredient) {
@@ -407,10 +373,8 @@ class _WeekLineRow extends ConsumerWidget {
       }
     }
 
-    // The measure's own extra: the week's statement at the row's right end
-    // instead of under the name, so a row is one line and the changes read
-    // down an edge. Below expanded it stays under the name, where a phone has
-    // no room for a second column.
+    // Wide puts the week's statement at the row's right end; a phone keeps it
+    // under the name.
     final wide = AnsiLayout.of(context) == AnsiLayout.expanded;
 
     final amount = Semantics(
@@ -420,9 +384,8 @@ class _WeekLineRow extends ConsumerWidget {
         behavior: HitTestBehavior.opaque,
         onTap: struck ? null : () => unawaited(editAmount()),
         child: SizedBox(
-          // A measure that weighs a piece is a word (ADR-0016), so at the
-          // measure the column is wide enough to say one — the only thing on
-          // this list that can still take a row to two lines.
+          // A measure that weighs a piece is a word (ADR-0016), so the wide
+          // column is wide enough to say one.
           width: wide ? kWeekAmountWidth : kLineAmountWidth,
           child: Text(
             amountOfLine(item).isEmpty ? '—' : amountOfLine(item),
@@ -454,10 +417,8 @@ class _WeekLineRow extends ConsumerWidget {
       ),
     );
 
-    // One slot per row, never two badges at once: a line this week has changed
-    // says what it did and offers the undo; an untouched optional line says it
-    // is optional and offers the way in. Ticking it in IS a change, so the
-    // first takes over from the second.
+    // One slot per row: a changed line shows its change and the undo; an
+    // untouched optional line shows the way in.
     final statement = change != null
         ? _WeekTag(
             change: change!,
@@ -519,18 +480,14 @@ class _WeekLineRow extends ConsumerWidget {
   }
 }
 
-/// The amount column at the measure — wide enough for a whole measure in its
-/// own words (ADR-0016), where the phone's [kLineAmountWidth] wraps one.
+/// The wide amount column, wide enough for a whole measure in words (ADR-0016).
 const double kWeekAmountWidth = 118;
 
-/// The column the week's own statement stands in at the measure: the tag and
-/// the control that undoes it, set at the row's right end.
+/// The wide column for the week's tag and its undo.
 const double kWeekStatementWidth = 256;
 
-/// The tag and its reset — one badge vocabulary on a recipe line, not two, so
-/// it wears the `optional` tag's voice. The reset is the dish row's `−` idiom:
-/// muted, not red, and no confirm, because Save is what stores it and back is
-/// the undo.
+/// The week tag and its reset, in the `optional` tag's style. The reset is
+/// muted with no confirm: Save stores it and back undoes it.
 class _WeekTag extends StatelessWidget {
   const _WeekTag({
     required this.change,
@@ -543,8 +500,7 @@ class _WeekTag extends StatelessWidget {
   final LineItem? base;
   final VoidCallback onReset;
 
-  /// In its own column at the measure, so it sets from the row's right edge
-  /// and the changes read down one line.
+  /// Align to the row's right edge (the wide column).
   final bool alignEnd;
 
   @override
@@ -576,18 +532,8 @@ class _WeekTag extends StatelessWidget {
   );
 }
 
-/// The `optional` tag, on the one screen where it is also the switch.
-///
-/// Week mode is where a household says what it is actually eating, and an
-/// optional line is the question that asks most often: *are we doing the
-/// parmesan this week?* Everywhere else the tag states a fact and the amount
-/// sheet's **Optional** switch changes it; here the fact and the question are
-/// the same thing, so the tag answers it in one tap — no second screen, no new
-/// state, and Save still stores it. Ticking it in writes the `include` row the
-/// diff already had words for, and the row swaps this slot for the week tag.
-///
-/// It wears `_WeekTag`'s own shape — a badge and the muted action beside it —
-/// because that is the one badge vocabulary a recipe line has.
+/// The `optional` tag as a one-tap switch. Ticking it in writes the diff's
+/// `include` row, and the slot becomes the week tag.
 class _OptionalSwitch extends StatelessWidget {
   const _OptionalSwitch({required this.onTap, this.alignEnd = false});
 
@@ -603,8 +549,7 @@ class _OptionalSwitch extends StatelessWidget {
     child: GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      // A badge is a small thing to hit; the row it sits under is not, so the
-      // target is padded out to a comfortable one rather than drawn bigger.
+      // Padded out to a comfortable tap target.
       child: Container(
         constraints: const BoxConstraints(minHeight: 32),
         alignment: alignEnd ? Alignment.centerRight : Alignment.centerLeft,
@@ -627,17 +572,16 @@ class _OptionalSwitch extends StatelessWidget {
   );
 }
 
-/// The add door, in week mode's words. The line lands at the foot of the list
-/// — an override carries no group, and no derivation reads one.
+/// The add door. The line lands at the foot of the list: an override carries no
+/// group.
 Future<void> _addLine(
   BuildContext context,
   String recipeId,
   WeekVariantDraft notifier,
 ) async {
-  // The picker's search brings the keyboard, which shrinks the list under it:
-  // the door can be unmounted by the time a row is tapped. The second sheet
-  // opens from a context that outlives it, and the notifier is the screen's
-  // own — never a `context.mounted` bail here, which would drop the pick.
+  // The picker's keyboard can unmount this door before a row is tapped, so the
+  // second sheet opens from a context that outlives it. Never bail on
+  // `context.mounted` here: that drops the pick.
   final host = hostContextOf(context);
   final picked = await showLineTargetPicker(
     context,

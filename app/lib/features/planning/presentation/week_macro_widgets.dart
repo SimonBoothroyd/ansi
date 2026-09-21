@@ -1,35 +1,10 @@
-/// The Week's numbers, and its three refusals (D4).
+/// The Week's macro totals, phone and wide.
 ///
-/// [DayMacroLine] sits at the foot of a day card, [WeekMacroBand] at the foot
-/// of the list, and both draw the SAME [MealSetMacros] shape at two sizes, so
-/// there is one honesty story rather than two. The numbers themselves are the
-/// recipe line's dense grammar ([MacroStrip]) — a week reads in the same
-/// words an ingredient does.
-///
-/// The **wide** Week draws the same four states again, in the same order and
-/// with the same denominators and refusals: [MealMacroLine] under one dish,
-/// [DayEnergyLine] where a day states its energy in words, [DayLedger] pinned
-/// to the day pane's foot, and [WeekFootBand] at the agenda's. Only the
-/// **ledger** spells its figures out (`protein 255 g` rather than `255P`) — it
-/// is the one place with the room to say them and it says them once, while
-/// every line above it is the strip the phone already speaks.
-///
-/// The rule, in the order it is applied:
-///
-/// 1. **empty** (`considered == 0`) — `no meals`, or `no meals for Ada` under
-///    a lens. An absence, never `0 kcal`.
-/// 2. **refused** (nothing resolved) — the shared `incomplete` badge and the
-///    reasons, and **no number at all**, exactly as `RecipeMacroPanel`
-///    refuses.
-/// 3. **partial** — the macro line, the denominator (`1 of 2 meals`), and a
-///    `left out:` line NAMING each excluded meal in [incompleteNote]'s exact
-///    words.
-/// 4. **whole** — the macro line and the plain denominator (`2 meals`).
-///
-/// The reason wording for an incomplete meal comes from
-/// `shared/incomplete_macros.dart` and is never re-invented here — that shared
-/// vocabulary is the whole reason the picker, the confirm card and the recipe
-/// panel read as one refusal instead of three.
+/// Every total draws one of four states, in this order: empty (`no meals`,
+/// never `0 kcal`), refused (the `incomplete` badge and reasons, no number),
+/// partial (the figures, `1 of 2 meals` and a `left out:` line naming each
+/// excluded meal) and whole. Reason wording comes from
+/// `shared/incomplete_macros.dart`.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -49,17 +24,13 @@ import '../../receipts/domain/receipt_ledger.dart';
 import '../domain/week_cost.dart';
 import '../domain/week_macros.dart';
 
-/// An energy figure with a thin thousands separator: `1 900`, `90`.
-/// Whole, like every printed kcal ([formatKcal]) — a week's total runs to
-/// five digits, and the separator is what keeps them readable.
+/// A whole energy figure with a thin thousands separator: `1 900`, `90`.
 String formatMacroNumber(double value) => _separated(formatKcal(value));
 
-/// The same separator over a gram figure's one decimal ([formatGrams]):
-/// `1 900.5`, `21.4`, `90`.
+/// A gram figure ([formatGrams]) with the same separator: `1 900.5`, `21.4`.
 String formatMacroGrams(double value) => _separated(formatGrams(value));
 
-/// Thin spaces every three digits of the integer part; a decimal tail and
-/// the sign ride along untouched.
+/// Thin spaces every three digits of the integer part.
 String _separated(String number) {
   final sign = number.startsWith('-') ? '-' : '';
   final rest = sign.isEmpty ? number : number.substring(1);
@@ -74,8 +45,7 @@ String _separated(String number) {
   return buffer.toString();
 }
 
-/// `2 meals` / `1 of 2 meals` — the denominator is MANDATORY beside any total
-/// (D4's teeth: no bare number, ever).
+/// `2 meals` / `1 of 2 meals` — printed beside every total.
 String mealDenominator(MealSetMacros macros) {
   final noun = plural(macros.considered, 'meal');
   return macros.counted == macros.considered
@@ -83,10 +53,9 @@ String mealDenominator(MealSetMacros macros) {
       : '${macros.counted} of ${macros.considered} $noun';
 }
 
-/// The denominator line under a total: the meal count, and under a person's
-/// lens their share of the portions too — `1 meal · Jun · ¾ of 1¾ portions`.
-/// [scope] is `Everyone` or the member's display name, as the Week passes it;
-/// only a person has a share to name.
+/// The meal count, and under a person's lens their share of the portions: `1
+/// meal · Jun · ¾ of 1¾ portions`. [scope] is `Everyone` or the member's
+/// display name.
 String denominatorLine(MealSetMacros macros, {required String scope}) {
   final share = portionShareLine(
     macros,
@@ -95,22 +64,12 @@ String denominatorLine(MealSetMacros macros, {required String scope}) {
   return [mealDenominator(macros), if (share != null) share].join(' · ');
 }
 
-/// `no meals`, or `no meals for Ada` under a lens — the Week's one way of
-/// saying an absence, wherever it says it.
-///
-/// [scope] is `Everyone` or the member's display name. An absence is never
-/// `0 kcal` and never a blank: a day holding nothing has to say so, and under
-/// a lens it has to say whose nothing it is.
+/// `no meals`, or `no meals for Ada` under a lens. [scope] is `Everyone` or the
+/// member's display name.
 String noMealsLine(String scope) =>
     scope == 'Everyone' ? 'no meals' : 'no meals for $scope';
 
-/// What a day HOLDS, in one phrase — `3 meals`, `2 of 3 meals`, or the
-/// absence.
-///
-/// The wide agenda prints it at the right edge of a day's heading, where the
-/// figures themselves are the strip underneath. It is [mealDenominator] and
-/// [noMealsLine] and nothing else, so a heading and a total cannot disagree
-/// about how many meals a day has.
+/// What a day holds: `3 meals`, `2 of 3 meals`, or [noMealsLine].
 String dayCountLabel(MealSetMacros macros, {required String scope}) =>
     macros.isEmpty ? noMealsLine(scope) : mealDenominator(macros);
 
@@ -121,32 +80,22 @@ String exclusionNote(ExcludedMeal meal) => switch (meal.reason) {
     meal.summary == null ? 'incomplete' : incompleteNote(meal.summary!),
   MealExclusion.recipeMissing => 'recipe unavailable',
   MealExclusion.noEaters => 'no eaters',
-  // A snack says `stub ingredient` in the exact words a stub recipe LINE says
-  // it (step 8.14 / B-D3) — one vocabulary, not a second one for the week.
+  // The same words a stub recipe line uses.
   MealExclusion.ingredientNotCounted =>
     meal.lineReason == null
         ? 'not counted'
         : incompleteLineNote(meal.lineReason!),
-  // A meal eaten out that nobody wrote figures for. It wears the shape a stub
-  // ingredient wears — the meal NAMED, the reason one clause — because it is
-  // the same kind of absence: `Office lunch · macros not stated`.
+  // A meal eaten out with no stated figures.
   MealExclusion.outNotStated => 'macros not stated',
 };
 
-/// `left out: Sausage Sliders · 1 stub line` — every exclusion NAMED, never
-/// counted.
+/// `left out: Sausage Sliders · 1 stub line` — every exclusion named.
 String excludedLine(MealSetMacros macros) =>
     macros.excluded.map((e) => '${e.label} · ${exclusionNote(e)}').join(', ');
 
-/// The week's total in the dense macro line's own grammar
-/// ([macroLineSpans]), at [size]: `1 900 🔥 · 90P 212C 70F · 24 🌾`.
-///
-/// The same line a recipe's ingredient draws, with the week's thousands
-/// separator ([formatMacroNumber], [formatMacroGrams]) in place of the plain
-/// figures — one span builder, so a day's foot, the band and a recipe line
-/// cannot drift into three dialects. Fibre rides along only where every meal
-/// in the total stated it ([Macros.fiber]); an absent one prints nothing at
-/// all, never a zero (invariant 3).
+/// A total in the dense macro grammar ([macroLineSpans]) at [size], with
+/// thousands separators: `1 900 🔥 · 90P 212C 70F · 24 🌾`. Fibre prints only
+/// where every meal stated it ([Macros.fiber]).
 class MacroStrip extends StatelessWidget {
   const MacroStrip({
     required this.macros,
@@ -159,22 +108,17 @@ class MacroStrip extends StatelessWidget {
   final Macros macros;
   final double size;
 
-  /// The line's ink. Muted is the wide day pane's voice, where one meal's
-  /// figures sit under a dish that is the thing being read; ink is a total's,
-  /// wherever a total closes a day, a week or a card.
+  /// The line's ink: muted for one meal's figures, ink for a total.
   final Color color;
 
-  /// The line's weight — the muted voice drops to [FontWeight.w400] with the
-  /// colour, so a per-meal strip does not read as another total.
+  /// The line's weight; a per-meal strip uses [FontWeight.w400].
   final FontWeight weight;
 
   @override
   Widget build(BuildContext context) {
     final style = ansiMono(size: size, color: color, weight: weight);
-    // A macro number is never clipped or ellipsised — a truncated `1 234` is
-    // a wrong number, not a shortened one (invariant 3). So when the widest
-    // honest total outgrows its band the whole line scales down together,
-    // keeping every digit.
+    // A macro number is never clipped or ellipsised; the whole line scales down
+    // instead.
     return FittedBox(
       fit: BoxFit.scaleDown,
       alignment: AlignmentDirectional.centerStart,
@@ -192,19 +136,11 @@ class MacroStrip extends StatelessWidget {
   }
 }
 
-/// `3 661 kcal` — the energy figure with its unit spelt out.
-///
-/// The wide Week's own wording. The phone's strip carries a flame because two
-/// spelled-out units would be the longest things on a 320 px line; a 560 px
-/// pane has no such problem, and a word needs no alt text.
+/// `3 661 kcal` — the wide Week's spelled-out energy.
 String spelledEnergy(Macros macros) => '${formatMacroNumber(macros.kcal)} kcal';
 
-/// `protein 255 g · carbs 366 g · fat 145 g · fibre 76 g` — the same four (or
-/// five) figures the phone prints as `255P 366C 145F · 76 🌾`, in words.
-///
-/// Fibre obeys [Macros.fiber]'s every-addend rule here as everywhere: an
-/// unstated fibre prints nothing at all, never a zero, and the meals that made
-/// the total are still counted.
+/// `protein 255 g · carbs 366 g · fat 145 g · fibre 76 g`. An unstated fibre
+/// prints nothing ([Macros.fiber]).
 String spelledGrams(Macros macros) {
   final fiber = macros.fiber;
   return [
@@ -215,15 +151,13 @@ String spelledGrams(Macros macros) {
   ].join(' · ');
 }
 
-/// The day card's foot: the macro line and its denominator, or one of the two
-/// refusals.
+/// The day card's foot: the macro line and its denominator, or a refusal.
 class DayMacroLine extends StatelessWidget {
   const DayMacroLine({required this.macros, required this.scope, super.key});
 
   final MealSetMacros macros;
 
-  /// Whose numbers these are — `Everyone`, or a member's display name. It is
-  /// printed on the refusals so an absence says WHOSE absence it is.
+  /// `Everyone`, or a member's display name; printed on the refusals.
   final String scope;
 
   @override
@@ -261,11 +195,8 @@ class DayMacroLine extends StatelessWidget {
         ],
       );
     }
-    // 3/4 · the total, its denominator, and anything it left out. The
-    // denominator sits UNDER the line rather than beside it: the figures fill
-    // a day card's width on their own, and the strip can only scale itself
-    // down inside a bounded width — a row sharing it with a second text has
-    // none to give.
+    // The denominator sits under the strip, not beside it: the strip can only
+    // scale down inside a bounded width.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -291,16 +222,8 @@ class DayMacroLine extends StatelessWidget {
   }
 }
 
-/// A day's energy and its denominator on one spelled-out mono line —
-/// `3 661 kcal · 3 meals`.
-///
-/// The wide Week draws it twice: under every heading in the agenda, and as the
-/// first line of the day pane's [DayLedger]. The four states are
-/// [DayMacroLine]'s own, in the same order and the same words — an empty day
-/// says `no meals`, a day that resolved nothing shows the badge and NO number,
-/// and a short day still states `1 of 2 meals`. What it never carries is the
-/// grams: in the agenda they are the day pane's job, and in the ledger they are
-/// the line underneath.
+/// A day's energy and denominator on one line — `3 661 kcal · 3 meals` — with
+/// [DayMacroLine]'s four states. It never carries the grams.
 class DayEnergyLine extends StatelessWidget {
   const DayEnergyLine({
     required this.macros,
@@ -322,8 +245,7 @@ class DayEnergyLine extends StatelessWidget {
     final muted = ansiMono(size: size - 1.5, color: AnsiColors.muted);
     // 1 · an absence is an absence, never a zero.
     if (macros.isEmpty) return Text(noMealsLine(scope), style: muted);
-    // 2 · nothing resolved: no number at all, and the reasons in full — the
-    // wide pane has the width the phone's card had to borrow from.
+    // Nothing resolved: no number, and the reasons in full.
     if (macros.isRefused) {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,14 +276,8 @@ class DayEnergyLine extends StatelessWidget {
   }
 }
 
-/// The day pane's foot in the wide Week: [DayEnergyLine] large, and under it
-/// the same day's grams spelt out.
-///
-/// It is [DayMacroLine]'s content in the wide form's wording — one ledger
-/// pinned to the bottom of the pane, so the day's meals may scroll past it and
-/// the numbers stay where they were. The refusals are not re-spelt here: an
-/// empty or refusing day draws its one line and nothing under it, because
-/// there are no grams to spell.
+/// The wide day pane's pinned foot: [DayEnergyLine], and the day's grams
+/// spelled out under it. An empty or refusing day draws the one line only.
 class DayLedger extends StatelessWidget {
   const DayLedger({required this.macros, required this.scope, super.key});
 
@@ -402,26 +318,12 @@ class DayLedger extends StatelessWidget {
   }
 }
 
-/// ONE meal's figures, as served to the people eating it — the line the day
-/// pane prints under a dish.
+/// One meal's figures as served (per serving × the portions planned, via
+/// [servedMealMacros]), printed under a dish in the wide day pane.
 ///
-/// The owner asked for per-recipe macros beside the day's, and this is the
-/// honest form of that: not the recipe's per-serving figure (which would be a
-/// fact about the recipe, not about Sunday lunch) but `per serving × the
-/// portions planned`, read through [servedMealMacros] so it cannot disagree
-/// with the ledger that sums it.
-///
-/// Three states, the day's own:
-///
-/// * **out of scope** — under a person's lens, a meal they are not eating has
-///   no served figure for them. The row is already dimmed; the line simply
-///   is not drawn, because there is nothing true to write on it.
-/// * **refused** — the badge and the reason, in [exclusionNote]'s exact words
-///   (`1 stub line`, `no eaters`, `stub ingredient`), and never a number.
-/// * **counted** — the [MacroStrip], muted: `620 🔥 · 60P 80C 40F`.
-///   The dense grammar rather than the spelt-out grams, because the pane draws
-///   one of these under every dish and the words are then said five times on a
-///   Monday; the grams stay in the day's pinned ledger, which says them once.
+/// Under a lens a meal the person is not eating draws nothing; a refused meal
+/// draws the badge and [exclusionNote]'s reason; a counted meal draws a muted
+/// [MacroStrip].
 class MealMacroLine extends StatelessWidget {
   const MealMacroLine({required this.macros, super.key});
 
@@ -429,14 +331,12 @@ class MealMacroLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Not this person's meal: no figure exists to print, and inventing an
-    // "everyone" number under a lens would be answering a question nobody
-    // asked. The dimmed row says the rest.
+    // Not this person's meal: there is no figure to print.
     if (macros.isEmpty) return const SizedBox.shrink();
     final total = macros.total;
     if (total == null) {
-      // The meal names itself directly above, so the refusal states the REASON
-      // rather than repeating the label the day's own line has to carry.
+      // The meal is named directly above, so the refusal states only the
+      // reason.
       final reason = macros.excluded.isEmpty
           ? 'no total'
           : 'no total — ${exclusionNote(macros.excluded.first)}';
@@ -462,9 +362,9 @@ class MealMacroLine extends StatelessWidget {
   }
 }
 
-/// The band at the foot of the list: the week's total, its per-day average
-/// over the days that counted, and the label that stops the biggest number on
-/// the screen inviting a health reading it cannot support (D4d).
+/// The band at the foot of the phone's list: the week's total, its per-day
+/// average over the days that counted, and a label saying what the total is
+/// not.
 class WeekMacroBand extends StatelessWidget {
   const WeekMacroBand({
     required this.macros,
@@ -478,30 +378,18 @@ class WeekMacroBand extends StatelessWidget {
   final MealSetMacros macros;
   final String scope;
 
-  /// The receipts dated inside the week on screen. Empty is the ordinary
-  /// case, and the band then says nothing about spending — `\$0 spent` would
-  /// claim a free week rather than an unshopped one.
+  /// The receipts dated inside the week on screen. Empty draws no spend line.
   final List<ReceiptSummary> spent;
 
   /// The household's week, for the day a receipt's date names.
   final WeekShape shape;
 
-  /// What the same meals cost to cook, at the latest prices (ADR-0017) — one
-  /// line under the macros, in the same denominator posture: the meals that
-  /// resolved, and the lines that kept the rest out, named by count.
-  ///
-  /// It is an ESTIMATE and wears `≈` to say so — until a line is unpriced,
-  /// when it is a **floor** and says `at least` instead: a meal with one
-  /// unpriced line is out of the figure whole, so the number is short by
-  /// meals. The `spent` line under it is
-  /// the other figure — what the week's receipts actually came to — and the
-  /// two are deliberately **never reconciled** (ADR-0017): the gap between
-  /// them is the pantry filling or emptying, shown and not explained.
+  /// What the week's meals cost to cook at the latest prices: `≈` when every
+  /// line is priced, `at least` once an unpriced line has left a meal out.
+  /// Never reconciled with [spent]. See ADR-0017.
   final PlannedCost? cost;
 
-  /// `avg 1 425 kcal/day over the 6 days that counted` — the average states
-  /// its OWN denominator too, because a week that plans four days is not a
-  /// week that ate a quarter less.
+  /// `avg 1 425 kcal/day over the 6 days that counted`.
   static String _averageLine(Macros average, MealSetMacros macros) {
     final days = macros.daysContributing;
     return 'avg ${formatMacroNumber(average.kcal)} kcal/day over the $days '
@@ -543,9 +431,7 @@ class WeekMacroBand extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           if (macros.isEmpty)
-            // A week that plans nothing can still have been shopped for: the
-            // spend is a fact about the paper, not about the plan, so it is
-            // drawn beside the absence rather than swallowed by it.
+            // A week that plans nothing can still have been shopped for.
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -570,10 +456,7 @@ class WeekMacroBand extends StatelessWidget {
                         'no total — ${excludedLine(macros)}',
                         style: ansiMono(size: 10.5, color: AnsiColors.muted),
                       ),
-                      // A week whose macros refuse can still have a cost, and
-                      // can still have been shopped for: the readings fail for
-                      // different reasons, and one silence is no reason for
-                      // three.
+                      // Cost and spend do not depend on the macros resolving.
                       _CostLine(cost: cost),
                       _SpentLine(spent: spent, shape: shape),
                     ],
@@ -618,9 +501,7 @@ class WeekMacroBand extends StatelessWidget {
   }
 }
 
-/// The band's cost line, or nothing — `≈ $71 to cook` where the whole week
-/// is priced, and `at least $71 to cook · 3 lines unpriced` once an unpriced
-/// line has taken a meal out of the sum.
+/// `≈ $71 to cook`, or `at least $71 to cook · 3 lines unpriced`, or nothing.
 class _CostLine extends StatelessWidget {
   const _CostLine({required this.cost});
 
@@ -640,12 +521,8 @@ class _CostLine extends StatelessWidget {
   }
 }
 
-/// `\$84.12 spent · 1 receipt · TJ's, Sun` — the band's SECOND figure, and a
-/// door onto the ledger.
-///
-/// Drawn only when a receipt is dated inside the week on screen. It is the
-/// phone's band alone: the wide Week has no home for the band yet (tracker
-/// row), so the spent line waits there with the cost line it sits under.
+/// `\$84.12 spent · 1 receipt · TJ's, Sun` — a door onto the ledger, drawn only
+/// when a receipt is dated inside the week. Phone band only.
 class _SpentLine extends StatelessWidget {
   const _SpentLine({required this.spent, required this.shape});
 
@@ -677,12 +554,7 @@ class _SpentLine extends StatelessWidget {
   }
 }
 
-/// `avg 2 915 · 6 of 7 days` — the week's figures in one sub-line.
-///
-/// Both halves state a denominator, which is the whole point: an average over
-/// the days that counted is not an average over seven, and a week that plans
-/// four days did not eat three days' less. The average is absent — and prints
-/// nothing rather than a zero — when nothing counted.
+/// `avg 2 915 · 6 of 7 days`. The average is absent when nothing counted.
 String weekAverageLine(MealSetMacros macros) {
   final average = macros.perDayAverage;
   return [
@@ -691,19 +563,8 @@ String weekAverageLine(MealSetMacros macros) {
   ].join(' · ');
 }
 
-/// The week's own ledger, pinned to the foot of the wide agenda: the total as
-/// a [MacroStrip], and [weekAverageLine] under it.
-///
-/// It is [WeekMacroBand]'s content in the wide form's voice. The phone's band
-/// is a bordered card at the end of a scroll with a paragraph explaining what
-/// the biggest number on the screen is not; here the days are right above it
-/// and the strip is the same line each of them draws, so the sum reads as
-/// their sum and needs no card to say so.
-///
-/// **An empty week draws nothing at all** — the band's own empty rule, minus
-/// the sentence. Seven days each already saying `no meals` do not need an
-/// eighth absence under them, and a foot that is sometimes blank is how this
-/// pane says the week is blank.
+/// The wide agenda's pinned foot: the week's total as a [MacroStrip] and
+/// [weekAverageLine] under it. An empty week draws nothing.
 class WeekFootBand extends StatelessWidget {
   const WeekFootBand({required this.macros, required this.scope, super.key});
 
@@ -721,8 +582,7 @@ class WeekFootBand extends StatelessWidget {
         border: Border(top: BorderSide(color: AnsiColors.line)),
       ),
       child: macros.isRefused
-          // Nothing resolved: no number, and the reasons named — the refusal
-          // every other total on this screen makes, in the same words.
+          // Nothing resolved: no number, and the reasons named.
           ? Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

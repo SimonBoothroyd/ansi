@@ -1,20 +1,10 @@
-/// Riverpod ViewModels for the Week screen.
+/// Riverpod view models for the Week screen.
 ///
-/// The week is a **position, not a singleton** (D2/D3). [currentWeekStart] is
-/// still the first day of the week containing today, but its only jobs now are
-/// (a) seeding [ViewedWeekStart], (b) the "is this week?" emphasis, and (c) the
-/// switcher menu's "This week" return. It derives from [Today], the one place
-/// the app asks what day it is, which re-fires at local midnight and on resume
-/// — so "today" moves while the app stays open, and ONLY today moves.
-/// [ViewedWeekStart] is the week being LOOKED AT — app-level and keep-alive,
-/// so it survives the bottom nav's `context.go` (which replaces the route),
-/// carries across the Week/Cook/Shop tabs, and does not jump at midnight.
-/// [viewedWeek] streams that week's meals off the repository.
-///
-/// Mutations don't need their own notifier — views call the keep-alive
-/// [planningRepositoryProvider] directly, which stays valid across the async
-/// gaps a picker sheet introduces — a throwaway notifier does not, because
-/// Riverpod disposes it underneath the call.
+/// [currentWeekStart] is the week containing [Today]; [ViewedWeekStart] is the
+/// week on screen, keep-alive so it survives tab switches and does not jump at
+/// midnight. Views write through the keep-alive [planningRepositoryProvider]
+/// directly: a throwaway notifier is disposed across a picker sheet's async
+/// gap.
 library;
 
 import 'dart:async';
@@ -38,26 +28,15 @@ import '../domain/week_macros.dart';
 
 part 'week_view_models.g.dart';
 
-/// The wall clock, as a seam: production reads [DateTime.now]; a test
-/// overrides this with a fixed or scripted clock and drives [Today] across a
-/// midnight it chooses. Keep-alive because [Today] is, and a keep-alive
-/// provider may only depend on keep-alive providers (riverpod_lint).
+/// The wall clock, overridable in tests. Keep-alive because [Today] is.
 @Riverpod(keepAlive: true)
 DateTime Function() clock(Ref ref) => DateTime.now;
 
-/// The current LOCAL calendar day — midnight, local time, date-only.
+/// The current local calendar day (midnight, date-only).
 ///
-/// A `DateTime.now()` read once in a provider is stale from midnight until
-/// something else rebuilds the tree, which the TODAY pill made visible. This
-/// re-fires twice over: one [Timer] armed for the next local midnight, whose
-/// callback re-arms it (a 23- or 25-hour DST day is simply a different wait),
-/// and an [AppLifecycleListener] for resume, because a phone asleep in a
-/// pocket suspends timers and may wake past several midnights. Keep-alive so
-/// the timer outlives the screens that read it; both hooks are released in
-/// `onDispose`, which also runs if [clock] is ever overridden mid-flight.
-///
-/// The state is a value, so listeners are told only when the day actually
-/// changes — a resume at 3 pm on the same day is silent.
+/// Re-fires from a [Timer] armed for the next local midnight and from an
+/// [AppLifecycleListener] on resume, since a sleeping phone suspends timers.
+/// Listeners are told only when the day changes.
 @Riverpod(keepAlive: true)
 class Today extends _$Today {
   @override
@@ -87,82 +66,67 @@ class Today extends _$Today {
   static DateTime _dateOf(DateTime at) => DateTime(at.year, at.month, at.day);
 }
 
-/// The first day of the week containing [Today]. Moves with it, so it is right
-/// across midnight and after a resume; the week on screen does not — that is
-/// [ViewedWeekStart]'s job, and it is deliberately left alone.
+/// The first day of the week containing [Today]. Moves at midnight; the week on
+/// screen ([ViewedWeekStart]) does not.
 @riverpod
 DateTime currentWeekStart(Ref ref) =>
     ref.watch(weekShapeProvider).weekStartOf(ref.watch(todayProvider));
 
-/// The first day of the week on screen. Defaults to the week containing today;
-/// the header switcher moves it and Cook/Shop derive from it (D3).
-///
-/// It watches the household's [WeekShape], so flipping the first day re-seats
-/// the screen on the window containing today under the new shape — which is
-/// what "this week" means the moment the weeks move.
+/// The first day of the week on screen; Cook and Shop derive from it. Defaults
+/// to the week containing today, and re-seats there when the household's
+/// [WeekShape] changes.
 @Riverpod(keepAlive: true)
 class ViewedWeekStart extends _$ViewedWeekStart {
   @override
   DateTime build() => ref.watch(weekShapeProvider).weekStartOf(DateTime.now());
 
-  /// The shape as it stands. [build] is what WATCHES it — these movers only
-  /// need the current value to resolve a date into a week.
+  /// The current shape; [build] is what watches it.
   WeekShape get _shape => ref.read(weekShapeProvider);
 
   /// Jumps to the week containing [date].
   void set(DateTime date) => state = _shape.weekStartOf(date);
 
-  /// Steps [weeks] forward (negative steps back). Unbounded in both
-  /// directions: a week with no row costs nothing, because the row is only
-  /// written on the first meal (`_getOrCreateWeek`).
+  /// Steps [weeks] forward (negative steps back), unbounded: a week's row is
+  /// only written on its first meal.
   void step(int weeks) => state = state.add(Duration(days: 7 * weeks));
 
   /// Returns to the week containing today.
   void today() => state = _shape.weekStartOf(DateTime.now());
 }
 
-/// The viewed week with its meals, or null while it has no row yet — which
-/// means "seven empty days", not "a different screen" (D5).
+/// The viewed week with its meals, or null while it has no row (seven empty
+/// days).
 @riverpod
 Stream<WeekPlan?> viewedWeek(Ref ref) => ref
     .watch(planningRepositoryProvider)
     .watchWeek(ref.watch(viewedWeekStartProvider));
 
-/// The household eater roster, live — a portion factor set on either phone
-/// reaches every Portions row and the Household sheet as it lands.
+/// The household eater roster, live.
 @riverpod
 Stream<List<Member>> members(Ref ref) =>
     ref.watch(planningRepositoryProvider).watchMembers();
 
-/// The most recent planned week before the VIEWED one — what "copy last week"
-/// would copy, so it is relative to the week you are standing on.
+/// The most recent planned week before the viewed one — what "copy last week"
+/// copies.
 @riverpod
 Future<WeekPlan?> lastWeek(Ref ref) => ref
     .watch(planningRepositoryProvider)
     .mostRecentWeekBefore(ref.watch(viewedWeekStartProvider));
 
-/// Most recent planned date per recipe, across every week — the picker
-/// rows' "last planned" recency (7.7).
+/// Most recent planned date per recipe, for the picker's "last planned".
 @riverpod
 Stream<Map<String, DateTime>> lastPlannedByRecipe(Ref ref) =>
     ref.watch(planningRepositoryProvider).watchLastPlanned();
 
-/// Every override on the viewed week, keyed by recipe id — what the dish
-/// row's "edited for this week" mark and the cook card's sub-line read, and
-/// what the editor's own draft starts from.
+/// Every override on the viewed week, keyed by recipe id.
 @riverpod
 Stream<Map<String, List<LineOverride>>> viewedWeekOverrides(Ref ref) => ref
     .watch(weekVariantRepositoryProvider)
     .watchWeekOverrides(ref.watch(viewedWeekStartProvider));
 
 /// How the week a `?week=` link names holds one recipe: the days it plans it
-/// on, in order, and whether the week varies it.
-///
-/// An empty `days` is the GUARD the recipe page's planned-arrival band and its
-/// week door both stand on. The link is a fact about where the tap came from,
-/// and the week can have moved on since — the meal removed, the link kept in a
-/// back stack — so the page asks the week itself rather than trusting the
-/// parameter. An unparseable key answers the same way.
+/// on, and whether the week varies it. Empty `days` means the link is stale (or
+/// unparseable), and the recipe page then hides its week door.
 typedef WeekRecipePlacement = ({List<int> days, bool edited});
 
 @riverpod
@@ -183,8 +147,7 @@ WeekRecipePlacement weekRecipePlacement(
   return (days: days, edited: (overrides[recipeId] ?? const []).isNotEmpty);
 }
 
-/// The week [weekKey] names, with its meals — a sibling of [viewedWeek] keyed
-/// by the link rather than by what is on screen.
+/// The week [weekKey] names, with its meals.
 @riverpod
 Stream<WeekPlan?> weekPlanFor(Ref ref, String weekKey) {
   final weekStart = weekStartOfKey(weekKey, ref.watch(weekShapeProvider));
@@ -205,12 +168,8 @@ Stream<Map<String, List<LineOverride>>> weekOverridesFor(
       : ref.watch(weekVariantRepositoryProvider).watchWeekOverrides(weekStart);
 }
 
-/// The re-summed figures for the recipes the week [weekKey] names varies — the
-/// sibling of [variantRecipeMacros] keyed by the link rather than by the week
-/// on screen, for the recipe page opened from a week that plans it.
-///
-/// A recipe the week does not vary is absent, and its reader falls back to the
-/// Library's figure, which is exactly right for it.
+/// [variantRecipeMacros] for the week [weekKey] names. A recipe the week does
+/// not vary is absent.
 @riverpod
 Stream<Map<String, RecipeMacroSummary>> weekVariantMacrosFor(
   Ref ref,
@@ -224,8 +183,7 @@ Stream<Map<String, RecipeMacroSummary>> weekVariantMacrosFor(
             .watchVariantRecipeMacros(weekStart);
 }
 
-/// The same for COST (ADR-0017) — a week that ticks an optional line in pays
-/// for it, so the panel's Cost reading has to be the week's own.
+/// The same for cost (ADR-0017).
 @riverpod
 Stream<Map<String, RecipeCostSummary>> weekVariantCostsFor(
   Ref ref,
@@ -239,9 +197,8 @@ Stream<Map<String, RecipeCostSummary>> weekVariantCostsFor(
             .watchVariantRecipeCosts(weekStart);
 }
 
-/// Per-recipe cost summaries **for the viewed week** — the Library's figure
-/// underneath, the week's own on top, exactly as [weekRecipeMacros] layers the
-/// macros.
+/// Per-recipe cost summaries for the viewed week: the Library's figure,
+/// overlaid by the week's own where it varies the recipe.
 @riverpod
 Map<String, RecipeCostSummary> weekRecipeCosts(Ref ref) => {
   ...?ref.watch(recipeCostsProvider).asData?.value,
@@ -254,15 +211,9 @@ Stream<Map<String, RecipeCostSummary>> variantRecipeCosts(Ref ref) => ref
     .watch(weekVariantRepositoryProvider)
     .watchVariantRecipeCosts(ref.watch(viewedWeekStartProvider));
 
-/// What the viewed week costs to cook under [lens] — the band's second line.
-///
-/// The same entries, the same portions and the same lens as [weekMacros]: the
-/// two lines of the band describe one week or they describe none.
-///
-/// It reads two price sources because a week plans two priceable things: the
-/// recipes' own summaries, already costed line by line, and the latest price of
-/// every vocabulary row, which is what a planned bare ingredient is weighed
-/// against.
+/// What the viewed week costs to cook under [lens], over the same entries and
+/// portions as [weekMacros]. Recipes are priced from their summaries, bare
+/// ingredients from the latest vocabulary prices.
 @riverpod
 PlannedCost weekCost(Ref ref, String? lens) {
   final plan = ref.watch(viewedWeekProvider).asData?.value;
@@ -279,30 +230,21 @@ PlannedCost weekCost(Ref ref, String? lens) {
   );
 }
 
-/// An ISO `YYYY-MM-DD` week key as the first day of the week it names, or null
-/// when it is not a date.
-///
-/// The key already IS a week start, so [shape] normally changes nothing. It is
-/// applied anyway because a `?week=` param can outlive the shape that minted it
-/// — a link in a back stack, a household that flipped — and the week a date
-/// belongs to is the honest answer to a stale one.
+/// An ISO `YYYY-MM-DD` week key as the first day of its week, or null when it
+/// is not a date. [shape] is applied because a link can outlive the shape that
+/// minted it.
 DateTime? weekStartOfKey(String weekKey, WeekShape shape) {
   final date = DateTime.tryParse(weekKey);
   return date == null ? null : shape.weekStartOf(date);
 }
 
-/// Per-recipe macro summaries **for the viewed week**, indexed by recipe id.
-///
-/// The Library's figure underneath, the week's own on top. A recipe the week
-/// does not vary is still exactly what `watchRecipes` computed — the same
-/// figure the picker rows and the recipe panel show — and a recipe it does
-/// vary is re-summed over the week's effective lines, because the Library's
-/// number is wrong for this week and right everywhere else.
+/// Per-recipe macro summaries for the viewed week, by recipe id: the Library's
+/// figure, re-summed over the week's effective lines where it varies the
+/// recipe.
 @riverpod
 Map<String, RecipeMacroSummary> weekRecipeMacros(Ref ref) {
   final recipes =
-      // Decorative emptiness, weighed (D6): this resolves figures for rows the
-      // week already has; an unresolved one simply has none.
+      // An unloaded recipe list simply resolves no figures.
       ref.watch(recipeListProvider).asData?.value ?? const <RecipeSummary>[];
   return {
     for (final r in recipes)
@@ -311,19 +253,14 @@ Map<String, RecipeMacroSummary> weekRecipeMacros(Ref ref) {
   };
 }
 
-/// The re-summed figures for the recipes the viewed week varies — usually
-/// none, in which case the map above is the Library's, untouched.
+/// The re-summed figures for the recipes the viewed week varies.
 @riverpod
 Stream<Map<String, RecipeMacroSummary>> variantRecipeMacros(Ref ref) => ref
     .watch(weekVariantRepositoryProvider)
     .watchVariantRecipeMacros(ref.watch(viewedWeekStartProvider));
 
-/// What the last copy carried, and what it left behind — held for the week it
-/// is about, so moving off that week and back does not re-announce it.
-///
-/// A **state**, not a toast: it reports a part of an act that did not happen,
-/// it stays true until the person does something about it, and it names rows
-/// they may want to open. Cleared by reading it once the week moves.
+/// What the last copy carried and left behind, held for the week it is about. A
+/// state rather than a toast, so it stays until the week moves.
 @Riverpod(keepAlive: true)
 class LastCopyReport extends _$LastCopyReport {
   @override
@@ -335,15 +272,14 @@ class LastCopyReport extends _$LastCopyReport {
   void clear() => state = null;
 }
 
-/// The roster keyed by id — the portion factors every demand and lens share is
-/// weighted by.
+/// The roster keyed by id.
 @riverpod
 Map<String, Member> membersById(Ref ref) => {
   for (final m in ref.watch(membersProvider).asData?.value ?? const <Member>[])
     m.id: m,
 };
 
-/// The viewed week's macros under [lens] (null = Everyone) — D4.
+/// The viewed week's macros under [lens] (null = Everyone).
 @riverpod
 MealSetMacros weekMacros(Ref ref, String? lens) {
   final plan = ref.watch(viewedWeekProvider).asData?.value;
@@ -356,15 +292,8 @@ MealSetMacros weekMacros(Ref ref, String? lens) {
   );
 }
 
-/// One MEAL's macros under [lens], as served to the people eating it — the
-/// same reading again, at the narrowest scope there is (the wide Week's day
-/// pane prints one under each dish).
-///
-/// Keyed by the entry's id rather than handed the entry, so the figure follows
-/// the live week: change the portions or the eaters and this re-reads the row
-/// the write produced, exactly as the day total does. An id the week no longer
-/// has reads as an empty set — `no meals` — which is the honest answer for a
-/// meal that has just been removed.
+/// One meal's macros under [lens], as served. Keyed by entry id so it follows
+/// the live week; an id the week no longer has reads as an empty set.
 @riverpod
 MealSetMacros mealMacros(Ref ref, String entryId, String? lens) {
   final plan = ref.watch(viewedWeekProvider).asData?.value;
@@ -382,8 +311,8 @@ MealSetMacros mealMacros(Ref ref, String entryId, String? lens) {
   );
 }
 
-/// One day's macros under [lens] — the SAME function over a narrower set, so
-/// the week is never a sum of rounded day totals.
+/// One day's macros under [lens], from the same function as the week's so the
+/// week is never a sum of rounded days.
 @riverpod
 MealSetMacros dayMacros(Ref ref, int dayOfWeek, String? lens) {
   final plan = ref.watch(viewedWeekProvider).asData?.value;

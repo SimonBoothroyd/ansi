@@ -1,12 +1,8 @@
-/// [PlanningRepository] over the local PowerSync SQLite (offline in step 4).
+/// [PlanningRepository] over the local PowerSync SQLite.
 ///
-/// Reads assemble `week_plan` / `plan_entry` / `recipe` rows into the
-/// [WeekPlan] aggregate and react to local writes via `watch`. Writes are
-/// small, targeted INSERT/UPDATE: never `INSERT ... ON CONFLICT`, which
-/// PowerSync's view-backed local tables reject (a regression test under
-/// `test/core/sync/` pins that). Deletes are soft (tombstone), spec §3. The one
-/// write to a server-owned table is `household_member.portion_factor` — the
-/// column the server grants UPDATE on, and nothing else on that row.
+/// Writes are targeted INSERT/UPDATE, never `INSERT ... ON CONFLICT`, which
+/// PowerSync's view-backed local tables reject. Deletes are soft. The one write
+/// to a server-owned table is `household_member.portion_factor`.
 library;
 
 import 'dart:convert';
@@ -30,23 +26,18 @@ class SqlitePlanningRepository implements PlanningRepository {
 
   final SqliteConnection _db;
 
-  /// The household stamped on rows this repo writes (injected — the app passes
-  /// the signed-in household, tests pass their own).
+  /// The household stamped on rows this repo writes.
   final String _householdId;
 
-  /// The ISO date (YYYY-MM-DD) a week is addressed by — the date of its own
-  /// first day. The caller holds a week start already (the shape resolved it),
-  /// so this only spells it.
+  /// The ISO date (YYYY-MM-DD) of the week's first day.
   String _weekKey(DateTime weekStart) => isoDateOf(weekStart);
 
   @override
   Stream<WeekPlan?> watchWeek(DateTime weekStart) {
     final key = _weekKey(weekStart);
     // Reference every table [_loadWeek] reads so PowerSync re-fires on any
-    // change — including `plan_entry` and `recipe`. Each joined table must
-    // contribute a *selected* column: SQLite omits a LEFT JOIN whose columns go
-    // unused, and an omitted join is an undetected table (the stale-breadcrumb
-    // class, see docs). The rows are ignored; each fire re-assembles the week.
+    // change. Each joined table must contribute a selected column: SQLite omits
+    // an unused LEFT JOIN, and the watch then misses that table.
     return _db
         .watch(
           'SELECT wp.id, pe.id, r.title, i.canonical_name, im.label '
@@ -54,9 +45,8 @@ class SqlitePlanningRepository implements PlanningRepository {
           'LEFT JOIN plan_entry pe '
           'ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
           'LEFT JOIN recipe r ON r.id = pe.recipe_id '
-          // A meal can be a bare ingredient (step 8.14), so its vocab row and
-          // its measure are read by [_assembleWeek] too — and an unselected
-          // LEFT JOIN is an undetected table, so both contribute a column.
+          // An ingredient meal's vocab row and measure are read too, so both
+          // contribute a column.
           'LEFT JOIN ingredient i ON i.id = pe.ingredient_id '
           'LEFT JOIN ingredient_measure im ON im.id = pe.measure_id '
           'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL LIMIT 1',
@@ -81,9 +71,8 @@ class SqlitePlanningRepository implements PlanningRepository {
     final entryRows = await _db.getAll(
       'SELECT pe.id, pe.day_of_week, pe.meal_slot, pe.recipe_id, pe.eaters, '
       'pe.portions, pe.ingredient_id, pe.quantity, pe.unit, pe.measure_id, '
-      // The third arm of the XOR. `pe.macros` is aliased because the vocab
-      // row's own `macros` is selected below and the two are different facts:
-      // one is per portion as stated, the other per 100 of a basis.
+      // `pe.macros` is aliased: it is per portion as stated, while the vocab
+      // row's `macros` below is per 100 of a basis.
       'pe.label, pe.macros AS stated_macros, '
       'r.title AS recipe_title, i.canonical_name AS ingredient_name, '
       'i.macros, i.density_g_per_ml, i.piece_basis_amount, '
@@ -92,10 +81,8 @@ class SqlitePlanningRepository implements PlanningRepository {
       'im.source AS measure_source '
       'FROM plan_entry pe '
       'LEFT JOIN recipe r ON r.id = pe.recipe_id AND r.deleted_at IS NULL '
-      // The other half of the XOR (step 8.14): a meal that names an
-      // ingredient instead of a dish, with the measure its amount is counted
-      // in. A row that has not synced (or was deleted) leaves the name null —
-      // a real answer the surfaces print their own words for.
+      // An ingredient meal's vocab row and measure. An unsynced or deleted row
+      // leaves the name null.
       'LEFT JOIN ingredient i '
       'ON i.id = pe.ingredient_id AND i.deleted_at IS NULL '
       'LEFT JOIN ingredient_measure im '
@@ -106,19 +93,15 @@ class SqlitePlanningRepository implements PlanningRepository {
     );
     return WeekPlan(
       id: id,
-      // The key is a bare 'YYYY-MM-DD'; parse it as a UTC date-only value so it
-      // round-trips equal to the shape's week start (which is UTC).
+      // Parsed as a UTC date-only value so it equals the shape's week start.
       weekStart: DateTime.parse('${wp['week_start_date']}T00:00:00Z'),
       label: wp['label'] as String?,
       entries: [for (final e in entryRows) _entryFrom(e)],
     );
   }
 
-  /// One [PlanEntry] from a row of [_assembleWeek]'s SELECT.
-  ///
-  /// An unknown persisted unit id stays NULL rather than falling back to
-  /// `pieces` — a fallback would let a total sum an invented unit (invariant
-  /// 3), exactly as the recipe line reader refuses to.
+  /// One [PlanEntry] from a row of [_assembleWeek]'s SELECT. An unknown unit id
+  /// stays null, never a `pieces` fallback a total could sum.
   PlanEntry _entryFrom(Row e) => PlanEntry(
     id: e['id'] as String,
     dayOfWeek: e['day_of_week'] as int,
@@ -128,24 +111,18 @@ class SqlitePlanningRepository implements PlanningRepository {
     ingredientId: e['ingredient_id'] as String?,
     ingredientName: e['ingredient_name'] as String?,
     label: e['label'] as String?,
-    // A meal eaten out is worth what somebody typed for it, per portion.
-    // `tryParse` answers null for absent OR malformed figures, which is the
-    // same answer either way: nothing was stated, and the week says so.
+    // Null for absent or malformed figures: nothing was stated.
     macros: Macros.tryParse(e['stated_macros'] as String?),
     quantity: (e['quantity'] as num?)?.toDouble(),
     unit: unitById(e['unit'] as String? ?? ''),
     measureId: e['measure_id'] as String?,
     measure: _toMeasure(e),
-    // Gated on the JOINED row, not on `pe.ingredient_id`: a vocab row this
-    // device cannot see (deleted, or not yet synced) leaves the nutrition
-    // null, which the week names as "not in your ingredients yet" — a
-    // different answer from a row that is present but a stub.
+    // Gated on the joined row, not on `pe.ingredient_id`: an unseen vocab row
+    // leaves nutrition null, which reads differently from a present stub.
     nutrition: e['ingredient_name'] == null
         ? null
         : (
-            // `tryParse` returns null for absent OR malformed macros, which is
-            // the same answer either way: the row is a stub, and the week says
-            // so rather than inventing the missing keys.
+            // Null for absent or malformed macros: the row is a stub.
             macros: Macros.tryParse(e['macros'] as String?),
             basis: MacrosBasis.fromDb(e['measure_basis'] as String?),
             densityGPerMl: (e['density_g_per_ml'] as num?)?.toDouble(),
@@ -156,10 +133,9 @@ class SqlitePlanningRepository implements PlanningRepository {
     portions: e['portions'] as int?,
   );
 
-  /// The resolved [Measure] of a row selected with the measure aliases, or
-  /// null when the entry has none (or its measure row is missing — an honest
-  /// degradation to the stored count unit, never invented grams). The basis is
-  /// the MEASURED ingredient's own `macros_basis` (ADR-0008).
+  /// The row's resolved [Measure], or null when the entry has none or its
+  /// measure row is missing. The basis is the measured ingredient's own
+  /// `macros_basis` (ADR-0008).
   Measure? _toMeasure(Row row) {
     final id = row['measure_id'] as String?;
     final label = row['measure_label'] as String?;
@@ -189,9 +165,8 @@ class SqlitePlanningRepository implements PlanningRepository {
     return week.entries.isEmpty ? null : week;
   }
 
-  // The same SELECT as [loadMembers], written out rather than shared through
-  // a constant: the watch-coverage structural test reads the literal after
-  // `.watch(` to learn which tables this stream is triggered by.
+  // The same SELECT as [loadMembers], written out: the watch-coverage
+  // structural test reads the literal after `.watch(`.
   @override
   Stream<List<Member>> watchMembers() => _db
       .watch(
@@ -218,9 +193,7 @@ class SqlitePlanningRepository implements PlanningRepository {
         'FROM plan_entry pe '
         'JOIN week_plan wp ON wp.id = pe.week_plan_id '
         'AND wp.deleted_at IS NULL '
-        // The explicit branch (step 8.14 / B-D2): this map is the RECIPE
-        // picker's "last planned" recency, so an ingredient meal is filtered
-        // out by name rather than by grouping silently under a null key.
+        // Recipe meals only: this feeds the recipe picker's "last planned".
         'WHERE pe.deleted_at IS NULL AND pe.recipe_id IS NOT NULL '
         'GROUP BY pe.recipe_id',
       )
@@ -297,9 +270,7 @@ class SqlitePlanningRepository implements PlanningRepository {
   );
 
   /// The one INSERT every add path shares. Exactly one of [recipeId] /
-  /// [ingredientId] / [label] is set — the server's `plan_entry_target_xor`
-  /// refuses anything else, and this is where the app keeps its side of that
-  /// bargain.
+  /// [ingredientId] / [label] is set (the server's `plan_entry_target_xor`).
   Future<String> _insertEntry({
     required DateTime weekStart,
     required int dayOfWeek,
@@ -325,8 +296,8 @@ class SqlitePlanningRepository implements PlanningRepository {
     final key = _weekKey(weekStart);
     final id = _uuid.v4();
     final now = _now();
-    // The local table holds jsonb as TEXT; the connector decodes it on the way
-    // up (`jsonbColumnsByTable`).
+    // The local table holds jsonb as TEXT; the connector decodes it on upload
+    // (`jsonbColumnsByTable`).
     final statedMacros = macros == null ? null : jsonEncode(macros.toJson());
     await _db.writeTransaction((tx) async {
       final weekId = await _getOrCreateWeek(tx, key);
@@ -412,11 +383,8 @@ class SqlitePlanningRepository implements PlanningRepository {
       for (var i = 0; i < entries.length; i++) {
         final e = entries[i];
         final stated = e.macros;
-        // Copies the whole meal, whichever kind it is: a snack is an ordinary
-        // entry, so it comes over with its amount rather than being dropped
-        // for having no recipe, and a meal eaten out comes over with its words
-        // AND its stated figures — a copy that dropped half the row would be
-        // an edit nobody asked for.
+        // Copies the whole row whatever its kind, including a snack's amount
+        // and a meal out's words and figures.
         await tx.execute(
           'INSERT INTO plan_entry (id, household_id, week_plan_id, '
           'day_of_week, meal_slot, recipe_id, ingredient_id, label, macros, '
@@ -451,9 +419,8 @@ class SqlitePlanningRepository implements PlanningRepository {
     );
   }
 
-  /// The variants the copy did not bring: one row per recipe the SOURCE week
-  /// varied, named and counted. Nothing is written for them — not copying is
-  /// already the behaviour, and this is the saying of it.
+  /// One row per recipe the source week varied, named and counted. Nothing is
+  /// written for them.
   Future<List<VariantLeftBehind>> _variantsLeftBehind(String weekPlanId) async {
     final rows = await _db.getAll(
       'SELECT r.title, COUNT(*) AS n '
@@ -472,19 +439,7 @@ class SqlitePlanningRepository implements PlanningRepository {
   String _now() => DateTime.now().toUtc().toIso8601String();
 }
 
-/// The household's live members in display order, with their portion factors.
-/// Shared with the cook-plan and shopping repositories, which derive the same
-/// demand from the same rows — a factor read three ways would be three places
-/// to drift.
-///
-/// A row without a factor (a local test insert; a device mid-sync before
-/// `0026` reached it) reads `1`, the column's own default — never a zero that
-/// would silently empty a meal.
-/// The id of the `week_plan` row for [weekKey], creating it on first use.
-///
-/// A week costs nothing until something is written against it, so the row is
-/// made lazily — by the first meal, and equally by the first line somebody
-/// changes for that week.
+/// The id of the `week_plan` row for [weekKey], created on first use.
 Future<String> getOrCreateWeekPlan(
   SqliteWriteContext tx, {
   required String weekKey,
@@ -505,6 +460,8 @@ Future<String> getOrCreateWeekPlan(
   return id;
 }
 
+/// The household's live members in display order. Shared with the cook-plan
+/// and shopping repositories. A row without a factor reads `1`, never zero.
 Future<List<Member>> loadMembers(SqliteConnection db) async => _membersFrom(
   await db.getAll(
     'SELECT id, display_name, portion_factor FROM household_member '

@@ -1,24 +1,9 @@
-/// The controls a meal is described with — the picked recipe card, the slot
-/// picker, the eater row and the portions stepper.
+/// The controls a meal is described with: the picked-meal cards, the slot
+/// picker, the eater row, the portions stepper and [MealBatchBanner]. Shared by
+/// `confirm_meal_sheet.dart` and `meal_editor_sheet.dart`.
 ///
-/// They live here because **two** sheets use them: `confirm_meal_sheet.dart`
-/// places a NEW meal on the week, and `meal_editor_sheet.dart` changes the
-/// slot, who's eating and how many portions on one already on it. Hoisting
-/// them is the only way the two stay the same controls in the same order: two
-/// copies would drift the first time one of them was touched (the same
-/// argument that hoisted `MethodStepText` and [incompleteNote]).
-///
-/// There is no day control here at all — the add flow starts from a day, so
-/// the day is a fact the sheet is opened with rather than a question it asks,
-/// and a meal changes day by remove-and-re-add. The slot is different: a row
-/// prints it, as the gutter label it sits under, so it is a field both sheets
-/// hold.
-///
-/// [MealBatchBanner] rides along for the same reason: both sheets say the same
-/// sentence about a meal joining an existing batch.
-///
-/// Nothing here talks to the repository or holds state; each control takes its
-/// value and hands back the new one.
+/// There is no day control: a sheet is opened with its day. Nothing here holds
+/// state or talks to the repository.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -45,9 +30,8 @@ import 'confirm_meal_sheet.dart' show SnackMeal;
 import 'week_format.dart';
 import 'week_widgets.dart';
 
-/// The picked recipe, with its shelf life and its HONEST per-serving line —
-/// real numbers or the shared `incomplete` badge and reason, never zeros
-/// (invariant 3).
+/// The picked recipe, with its shelf life and per-serving line: real numbers or
+/// the `incomplete` badge and reason, never zeros.
 class MealRecipeCard extends StatelessWidget {
   const MealRecipeCard({required this.recipe, super.key});
 
@@ -142,15 +126,9 @@ class MealRecipeCard extends StatelessWidget {
   }
 }
 
-/// The confirm sheet's card for a SNACK — a bare ingredient rather than a dish
-/// (step 8.14 / A-D5).
-///
-/// Deliberately not a recipe card wearing a different icon: there is no shelf
-/// life, no batch hint and no `/serving` denominator, because none of those are
-/// facts about a protein bar. What it prints instead is the amount the quantity
-/// sheet just settled, and — when the row can be weighed honestly — what one
-/// portion of that amount comes to. A stub says so in the words a stub recipe
-/// line uses, through the same [IncompleteBadge].
+/// The confirm sheet's card for a bare ingredient: the amount the quantity
+/// sheet settled and, when the row can be weighed, what one portion comes to. A
+/// stub says so through [IncompleteBadge].
 class MealSnackCard extends StatelessWidget {
   const MealSnackCard({required this.snack, super.key});
 
@@ -252,13 +230,8 @@ class MealSnackCard extends StatelessWidget {
   }
 }
 
-/// The confirm sheet's card for a meal eaten OUT — the words, and what the app
-/// will not do with them.
-///
-/// It prints the consequence rather than a number, because at this point there
-/// is no number: the figures are asked for below, in the optional fold, and
-/// most meals out will never have any. The card's job is to make sure nobody
-/// places one thinking they have added a recipe.
+/// The confirm sheet's card for a meal eaten out: the words, and that it is not
+/// cooked and not bought.
 class MealOutCard extends StatelessWidget {
   const MealOutCard({required this.label, super.key});
 
@@ -323,15 +296,10 @@ class MealOutCard extends StatelessWidget {
   }
 }
 
-/// The confirm sheet's one optional fold, for a meal eaten out: what the
-/// canteen printed, per portion, on the macro keypad the ingredient form uses
-/// ([MacroFields]).
-///
-/// **Optional means optional.** Left empty the meal is placed anyway and the
-/// week names it as uncounted; there is no nag and no default. A panel with a
-/// hole in it is not written either ([MacroDraft.isCoherent]) — the note under
-/// the slots says which of the two states the typing is currently in, so
-/// nobody taps Add believing four numbers were saved when three were.
+/// The optional fold for a meal eaten out: per-portion figures on the shared
+/// macro keypad ([MacroFields]). Left empty, the meal is placed uncounted; an
+/// incomplete panel is not written ([MacroDraft.isCoherent]), and the note says
+/// which state applies.
 class MealMacrosFold extends StatelessWidget {
   const MealMacrosFold({
     required this.draft,
@@ -361,12 +329,8 @@ class MealMacrosFold extends StatelessWidget {
   }
 }
 
-/// What the fold says about what is typed in it: nothing stated, a panel with
-/// a hole in it, or the figures that will be saved.
-///
-/// The three states are [MacroDraft]'s own, in the week's words — a blank is
-/// never a zero, and a half-filled panel is never rounded up into one
-/// (invariant 3).
+/// The fold's note: nothing stated, an incomplete panel, or the figures that
+/// will be saved.
 String mealMacrosFoldNote(MacroDraft draft) {
   if (draft.allBlank) {
     return 'left empty — the meal fills its slot, and the day says it was '
@@ -379,16 +343,8 @@ String mealMacrosFoldNote(MacroDraft draft) {
   return 'counted in the day and the week, as stated';
 }
 
-/// The slot picker: the default slots plus whatever custom slot the meal
-/// already carries, with a trailing `+` that prompts a new one — `meal_slot` is
-/// free text, so a household names its own.
-///
-/// **The day is not here, and that is the ruling.** Every add starts from a day
-/// card, so the day is a fact the sheet was *opened with*: it is printed as the
-/// sheet's subtitle and the button repeats it. A combined "Day · Slot" menu
-/// would ask it again as one of many pairs, which makes the one question
-/// actually open — the slot — the harder half of a pair nobody asked for. A
-/// wrong day is one back-tap away, or remove-and-re-add once it is placed.
+/// The slot picker: the default slots, any custom slot the meal already
+/// carries, and a trailing `+` for a new one (`meal_slot` is free text).
 class MealSlotPicker extends StatelessWidget {
   const MealSlotPicker({
     required this.slot,
@@ -491,12 +447,9 @@ class MealEaterPicker extends StatelessWidget {
   }
 }
 
-/// Portions: the eaters' usual — Σ of their portion factors, said as a fraction
-/// (`1¾ portions — Ada 1 · Jun ¾`) — or the whole-number [override] for
-/// big/small appetites (spec §8), whose small print reads *overrides the
-/// eaters' 1¾* so the figure it replaced is never hidden. The stepper itself
-/// stays whole: from a fractional usual, `+` goes to the next whole number and
-/// `−` to the previous one.
+/// Portions: the eaters' usual (`1¾ portions — Ada 1 · Jun ¾`), or the
+/// whole-number [override], whose small print names the figure it replaced. The
+/// stepper moves in whole numbers.
 class MealPortionsStepper extends StatelessWidget {
   const MealPortionsStepper({
     required this.portionsOverride,
@@ -509,8 +462,7 @@ class MealPortionsStepper extends StatelessWidget {
   /// `plan_entry.portions`: null tracks the eaters.
   final int? portionsOverride;
 
-  /// Who is eating, and the household roster to read their factors and names
-  /// from. An eater the roster lacks counts one, as [eatersDemand] says.
+  /// Who is eating, and the roster their factors and names come from.
   final List<String> eaterIds;
   final List<Member> roster;
   final ValueChanged<int> onChanged;
@@ -596,9 +548,8 @@ class _StepButton extends StatelessWidget {
   }
 }
 
-/// The batch-awareness cue, in full prose rather than a one-liner: it names the
-/// dish, the day it already cooks, the shelf-life window that makes it one
-/// batch, and the freezer hop when that's how the meal is reached.
+/// The batch cue in prose: the dish, the day it already cooks, the shelf-life
+/// window, and the freezer hop when that is how the meal is reached.
 class MealBatchBanner extends ConsumerWidget {
   const MealBatchBanner({
     required this.hint,

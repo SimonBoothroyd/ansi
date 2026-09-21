@@ -1,24 +1,11 @@
-/// The recipe picker v2 (step 7.7, design board "Pickers v2" frame c): the
-/// shared picker shell over the household's recipes, with three sources
-/// (Recent · Books · Favorites), day-tagged "already this week" quick picks,
-/// information-honest rows (filing · last-planned recency · shelf-life chips
-/// · per-serving macros or an `incomplete` badge — never zeros), and the
-/// "Eating" footer naming the household the meal is planned for.
+/// The meal picker: the shared picker shell over the household's recipes
+/// (Recent · Books · Favorites), with "already this week" quick picks and
+/// per-serving macros or an `incomplete` badge on each row.
 ///
-/// Search is the shared [searchRank] rule over titles — the same call the
-/// editor's "Your recipes" section makes. When nothing was spelled right the
-/// typo tier answers and the list arrives under a `DID YOU MEAN` header.
-///
-/// **One door, two kinds of thing** (step 8.14 / C-D1). Under the recipe rows
-/// sits an `INGREDIENTS` section, exactly as the editor's line picker grew a
-/// "Your recipes" one — because adding a meal is one act, and a separate `＋`
-/// would force a cook to know, *before searching*, whether the thing they want
-/// is a recipe. The section appears only once something is typed: with an
-/// empty query this is the shipped browse surface, unchanged.
-///
-/// Resolves to a [PickedMeal] — a recipe or a bare ingredient — or null if
-/// dismissed; the caller then opens the quantity sheet (ingredients only) and
-/// the confirm sheet.
+/// Search is the shared [searchRank] rule over titles. Once something is typed,
+/// an `INGREDIENTS` section follows the recipes; when nothing matches, the
+/// footer offers to plan the typed words as a meal eaten out. Resolves to a
+/// [PickedMeal], or null if dismissed.
 library;
 
 import 'dart:async';
@@ -53,8 +40,7 @@ import 'week_format.dart';
 import 'week_view_models.dart';
 import 'week_widgets.dart';
 
-/// What the picker resolved to — the two things a plan slot can hold (the
-/// `plan_entry` XOR, step 8.14 / B-D1).
+/// What the picker resolved to: a recipe, a bare ingredient, or a meal out.
 sealed class PickedMeal {
   const PickedMeal();
 }
@@ -71,19 +57,18 @@ final class PickedIngredientMeal extends PickedMeal {
   final Ingredient ingredient;
 }
 
-/// The words themselves — a meal eaten out. Offered only when the typed words
-/// match no recipe and no ingredient, because it is an answer to "the app has
-/// nothing for this", not a fourth thing to browse.
+/// A meal eaten out. Offered only when the typed words match no recipe and no
+/// ingredient.
 final class PickedMealOut extends PickedMeal {
   const PickedMealOut(this.label);
 
-  /// What was typed, trimmed. It is the whole of the meal: nothing is minted
-  /// for it in the Library or the vocabulary.
+  /// What was typed, trimmed. Nothing is minted for it in the Library or the
+  /// vocabulary.
   final String label;
 }
 
 /// Opens the meal picker for a meal on [dayOfWeek] in [slot]. Resolves to the
-/// chosen recipe or ingredient, or null if dismissed.
+/// pick, or null if dismissed.
 Future<PickedMeal?> showRecipePickerSheet(
   BuildContext context, {
   required int dayOfWeek,
@@ -105,15 +90,11 @@ class _RecipePickerSheet extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final query = useState('');
     final tab = useState(0); // 0 = Recent, 1 = Books, 2 = Favorites
-    // The SAME search the ingredient pickers run — one rule over the
-    // vocabulary, so this section and the line picker's cannot disagree about
-    // what "prot" hits.
+    // The same vocabulary search the ingredient pickers run.
     final ingredientSearch = useIngredientSearch(ref, context);
 
-    // Decorative emptiness, weighed (D6): every one of these decorates the
-    // picker's rows — the filing breadcrumb, the eater avatars, the "last
-    // planned" chip. A missing decoration is a quieter row, not a wrong
-    // answer, and the recipe list itself renders its own empty state.
+    // These only decorate the rows (filing, avatars, "last planned"); a missing
+    // one is a quieter row.
     final recipes = ref.watch(recipeListProvider).asData?.value ?? const [];
     final library = ref.watch(libraryProvider).asData?.value ?? const [];
     final week = ref.watch(viewedWeekProvider).asData?.value;
@@ -123,19 +104,14 @@ class _RecipePickerSheet extends HookConsumerWidget {
         const <String, DateTime>{};
     final filing = filingByRecipe(library);
 
-    // The shared rule, over titles — the same call the editor's "Your recipes"
-    // section makes, so the two pickers cannot disagree about what hits. An
-    // empty query still matches everything: this list is a browse surface as
-    // well as a search.
-    //
-    // Only the BEST tier is shown. If any title was spelled right, no guess is
-    // offered beside it; if none was, the whole list is a guess and says so.
+    // The shared title search, as in the editor's "Your recipes" section. An
+    // empty query matches everything. Only the best tier is shown: guesses
+    // appear only when no title was spelled right.
     final tier = bestTier([
       for (final r in recipes) recipeTitleHit(r.title, query.value),
     ]);
 
-    // What was typed with its edges off — the words an empty list says back,
-    // and the words the footer's third answer would plan.
+    // What was typed, trimmed.
     final typed = query.value.trim();
     bool matches(String title) {
       if (query.value.isEmpty) return true;
@@ -148,9 +124,8 @@ class _RecipePickerSheet extends HookConsumerWidget {
     // Distinct recipes already planned this week, with the earliest day.
     final alreadyThisWeek = <String, ({String title, int day})>{};
     for (final e in week?.entries ?? const <PlanEntry>[]) {
-      // These are RECIPE quick picks. A snack and a meal eaten out are meals
-      // too, but neither is a dish this list can re-plan, so they are skipped
-      // by KIND rather than by a null title (step 8.14 / B-D2).
+      // Recipe quick picks only; other kinds are skipped by kind, not by a null
+      // title.
       if (e.kind != PlanEntryKind.recipe) continue;
       if (e.recipeTitle == null) continue;
       final recipeId = e.recipeId!;
@@ -169,16 +144,15 @@ class _RecipePickerSheet extends HookConsumerWidget {
       onPick: pick,
     );
 
-    // The second section (C-D1). Only under a typed query: with an empty one
-    // the vocabulary's recents feed would bury the recipe list this screen is
-    // primarily for, and nobody opened "add a meal" to browse ingredients.
+    // Only under a typed query: the vocabulary's recents would bury the recipe
+    // list.
     final ingredientHits = typed.isEmpty
         ? const <Ingredient>[]
         : ingredientSearch.results;
     final ingredientSection = <Widget>[
       if (ingredientHits.isNotEmpty) ...[
-        // The vocabulary's own tier band: these rows can be guesses while the
-        // recipe titles above are spellings, or the reverse.
+        // The vocabulary has its own tier: these rows can be guesses while the
+        // recipe titles are spellings, or the reverse.
         if (ingredientSearch.guessed)
           const Padding(
             padding: EdgeInsets.only(top: 14),
@@ -248,8 +222,8 @@ class _RecipePickerSheet extends HookConsumerWidget {
             index: tab.value,
             onChanged: (i) => tab.value = i,
           ),
-          // Nothing was spelled right, so the rows below are guesses and the
-          // list says so before the user reads one as a find.
+          // Nothing was spelled right, so the rows below are guesses and say
+          // so.
           if (guessing) ...[
             const SizedBox(height: 12),
             const DidYouMeanHeader(),
@@ -260,8 +234,8 @@ class _RecipePickerSheet extends HookConsumerWidget {
               items: alreadyThisWeek,
               onPick: (id, title) {
                 // Hand the confirm sheet the real summary (shelf life drives
-                // its "same batch" hint); a fabricated one only if the
-                // recipe vanished from the list mid-build.
+                // its "same batch" hint); a fabricated one only if the recipe
+                // vanished mid-build.
                 final real = recipes.where((r) => r.id == id);
                 pick(
                   real.isNotEmpty
@@ -277,11 +251,8 @@ class _RecipePickerSheet extends HookConsumerWidget {
       footer: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // The third answer (the one door's, not a fourth door): when the
-          // typed words hit no recipe and no ingredient, the picker offers to
-          // plan the WORDS. It says up front what the app will not do with
-          // them, so a canteen lunch is never dressed up as a one-line recipe
-          // or as a stub ingredient nobody will flesh out.
+          // When the typed words hit no recipe and no ingredient, offer to plan
+          // the words as a meal eaten out.
           if (_nothingMatched(
             query: query.value,
             recipeTier: tier,
@@ -337,24 +308,14 @@ class _RecipePickerSheet extends HookConsumerWidget {
   }
 }
 
-/// The third answer's own words: `note it — “Office lunch” · not cooked, not
-/// bought`.
-///
-/// The consequence is in the label rather than behind it, because that is the
-/// whole reason this row exists: the two things the app will NOT do with these
-/// words are what distinguishes them from a recipe and from an ingredient.
+/// `note it — “Office lunch” · not cooked, not bought`.
 String noteItLabel(String query) =>
     'note it — “${query.trim()}” · $kNotCookedNotBought';
 
-/// Whether the typed words found NOTHING — the one condition the third answer
-/// appears under.
-///
-/// All four clauses are load-bearing. An empty query is the browse surface, so
-/// it offers nothing; [recipeTier] is null exactly when no title hit at any
-/// tier, typos included; an ingredient hit is an answer, even a guessed one;
-/// and [searchedQuery] must have caught up with what is typed, because the
-/// vocabulary search is asynchronous and a row that flashed between keystrokes
-/// would be offering to plan half a word.
+/// Whether the typed words found nothing. An empty query offers nothing;
+/// [recipeTier] is null only when no title hit at any tier; any ingredient hit
+/// is an answer; and [searchedQuery] must have caught up with [query], because
+/// the vocabulary search is asynchronous.
 bool _nothingMatched({
   required String query,
   required SearchTier? recipeTier,
@@ -368,8 +329,8 @@ bool _nothingMatched({
       searchedQuery.trim() == typed;
 }
 
-/// "Eating: Ada & Jun · shared" — who the plan feeds (frame c footer). The
-/// actual eater selection happens on the confirm sheet.
+/// "Eating: Ada & Jun · shared" — who the plan feeds. Eaters are chosen on the
+/// confirm sheet.
 class _EatingFooter extends StatelessWidget {
   const _EatingFooter({required this.members});
 
@@ -482,10 +443,8 @@ class _AlreadyThisWeek extends ConsumerWidget {
   }
 }
 
-/// "Recent" means what the rows display (post-7.7 review): recently PLANNED
-/// first (newest last-planned date leading), then never-planned recipes in
-/// the list's own order (newest created first). The old created-at-only
-/// order contradicted the recency label each row carries.
+/// Recently planned first (newest last-planned date leading), then
+/// never-planned recipes in the list's own order.
 List<RecipeSummary> _recentOrder(
   List<RecipeSummary> recipes,
   Map<String, DateTime> lastPlanned,
@@ -501,18 +460,9 @@ List<RecipeSummary> _recentOrder(
   ];
 }
 
-/// The sentence a list with nothing in it says — and the two different things
-/// "nothing" can mean.
-///
-/// With no [query] the shelf itself is bare, and [bare] points at the door that
-/// fills it. With one, the shelf may be full and simply hold nothing under
-/// those words: the line names [shelf] and says the words back, the way the
-/// vocabulary tier does under its own rows, so a cook reads a *search result*
-/// rather than a verdict on their Library — and the tab's own shelf is named,
-/// because a recipe missing from Favorites may sit in the Library all the
-/// same. It stays a statement of fact and offers nothing: the third answer (a
-/// meal eaten out) is a footer door, and an empty state that proposed one too
-/// would be two offers for one miss.
+/// The sentence an empty list says. With no [query] the shelf is bare and
+/// [bare] points at the door that fills it; with one, the line names [shelf]
+/// and says the words back.
 String emptyPickerLine({
   required String query,
   required String bare,
@@ -534,13 +484,13 @@ class _RecentList extends StatelessWidget {
 
   final Widget Function(RecipeSummary r, {Filing? explicitFiling}) row;
 
-  /// The ingredients section, in the same scroll view (C-D1).
+  /// The ingredients section, in the same scroll view.
   final List<Widget> trailing;
 
   @override
   Widget build(BuildContext context) {
-    // Only an empty list AND no second section is an empty screen: an
-    // ingredient hit is still an answer to what was typed.
+    // An ingredient hit is still an answer, so only both sections empty is an
+    // empty screen.
     if (recipes.isEmpty && trailing.isEmpty) {
       return Center(
         child: Text(
@@ -607,9 +557,8 @@ class _BooksList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The Library aggregate carries its own (macro-less) summaries; render
-    // the richer list-row summary where one exists so books rows stay as
-    // honest as Recent's.
+    // The Library aggregate's summaries carry no macros; prefer the list-row
+    // summary where one exists.
     final byId = {for (final r in recipes) r.id: r};
     return ListView(
       children: [
@@ -713,8 +662,8 @@ class _RecipeRow extends StatelessWidget {
   }
 }
 
-/// The shelf-life chips (keeps N d with the freshness bar · freezable ·
-/// best fresh).
+/// The shelf-life chips (keeps N d with the freshness bar · freezable · best
+/// fresh).
 class _ShelfChips extends StatelessWidget {
   const _ShelfChips({required this.recipe});
 
@@ -768,8 +717,8 @@ class _Pill extends StatelessWidget {
   }
 }
 
-/// The honest per-serving line: `serves 4 · ~520 kcal · 31P /serving`, or
-/// `serves 2 · [incomplete] 1 stub line` — never zeros (invariant 3).
+/// `serves 4 · ~520 kcal · 31P /serving`, or the `incomplete` badge and its
+/// reason — never zeros.
 class _MacroLine extends StatelessWidget {
   const _MacroLine({required this.recipe});
 
@@ -817,10 +766,7 @@ class _MacroLine extends StatelessWidget {
             style: ansiMono(size: 10, color: AnsiColors.muted),
           ),
           const IncompleteBadge(),
-          // The reason WRAPS rather than running off the row: 8.6's nested
-          // reasons ("1 unconvertible · 1 sub-recipe incomplete") are longer
-          // than any before them, and a clipped reason is worse than a tall
-          // row — the note exists to be read.
+          // The reason wraps rather than clipping; nested reasons run long.
           Expanded(
             child: Text(
               ' ${incompleteNote(summary)}',

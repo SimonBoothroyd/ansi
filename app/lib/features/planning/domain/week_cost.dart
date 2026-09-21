@@ -1,28 +1,10 @@
-/// What a planned week costs — PURE DART (invariant 2), and the money twin of
-/// `sumPlannedMacros`.
+/// What a planned week costs to cook. Pure Dart. See ADR-0017.
 ///
-/// One rule, and it is the week's own: **sum the meals that resolved, and name
-/// what kept the rest out.** A recipe with an unpriced line has no cost at all
-/// (`summarizeRecipeCost` refuses it, invariant 3), so the meal cannot join the
-/// figure — and the band says which lines to go and price rather than quietly
-/// understating the week by exactly the things nobody has priced.
-///
-/// It computes nothing about a recipe. The per-serving figure is already
-/// produced by `summarizeRecipeCost`, and re-deriving it here would create the
-/// drift `shared/cost_words.dart` exists to prevent. The multiplication is the
-/// one `sumPlannedMacros` does — `per serving × the portions planned` — so the
-/// two lines of the band share a denominator and can never describe two
-/// different weeks.
-///
-/// **A meal that is a bare ingredient costs what its row costs.** It is weighed
-/// the way `ingredientPortionMacros` weighs it — the entry's own amount, unit
-/// or measure carried to the row's basis through the one shared conversion —
-/// and multiplied by the latest price per unit of that basis. A snack is a line
-/// of a recipe that happens to be the whole meal, and pricing it any other way
-/// would let the same yoghurt cost two figures depending on which screen asked.
-/// It joins the unpriced names only when the row really has no price, or when
-/// nothing carries its amount to the basis — the recipe cost's own two reasons,
-/// in its own words.
+/// Sums `per serving × portions` over the meals that resolved, as
+/// `sumPlannedMacros` does, and names what kept the rest out. A recipe with an
+/// unpriced line has no cost, so its meal is left out whole. A bare ingredient
+/// meal is weighed like `ingredientPortionMacros` and priced at the row's
+/// latest price per basis unit.
 library;
 
 import '../../../core/result/result.dart';
@@ -34,8 +16,7 @@ import 'planning.dart';
 
 /// What a set of planned meals costs, and what it could not price.
 typedef PlannedCost = ({
-  /// The sum over the meals that resolved, in cents. **Null when nothing
-  /// resolved** — never a zero standing in for an absence.
+  /// The sum over the meals that resolved, in cents. Null when none did.
   double? cents,
 
   /// Meals that joined [cents].
@@ -44,32 +25,20 @@ typedef PlannedCost = ({
   /// Meals in scope, after the lens — the denominator [counted] is out of.
   int considered,
 
-  /// Every distinct thing that kept a meal out of the figure, named in the
-  /// order it was met: an unpriced line of a planned recipe, or a bare
-  /// ingredient meal whose own row is unpriced. Distinct, because the same
-  /// unpriced ingredient in three recipes is one thing to go and price.
+  /// Each distinct thing that kept a meal out, in the order met: an unpriced
+  /// recipe line, or an unpriced ingredient meal.
   List<String> unpriced,
 });
 
-/// What one portion of a bare INGREDIENT meal costs, or the reason it cannot
-/// be said — the money twin of `ingredientPortionMacros`, line for line.
-///
-/// The walk is the recipe cost's, applied to one amount instead of a line: the
-/// row must be known, its amount must reach its basis unit, and something must
-/// have been paid for it in that same basis. Nothing is invented at any step,
-/// and the reasons are [CostLineReason]'s own — a snack says `no price yet` in
-/// exactly the words an unpriced recipe LINE says it.
-///
-/// The returned figure is what ONE portion is worth; the caller multiplies by
-/// the entry's demand, exactly as it multiplies a recipe's per-serving figure.
+/// What one portion of a bare ingredient meal costs, or why it cannot be said,
+/// in [CostLineReason]'s terms. The caller multiplies by the entry's demand.
 typedef PortionCost = ({double? cents, CostLineReason? reason});
 
 PortionCost ingredientPortionCost(PlanEntry entry, PriceObservation? price) {
   final nutrition = entry.nutrition;
   final quantity = entry.quantity;
   final unit = entry.unit;
-  // The dimension facts alone. Built here rather than borrowed from the macro
-  // side, so nothing nutritional is in scope where money is (ADR-0017).
+  // Only dimension facts are read here, nothing nutritional (ADR-0017).
   if (nutrition == null || quantity == null || unit == null) {
     return (cents: null, reason: CostLineReason.noPathToBasis);
   }
@@ -92,8 +61,8 @@ PortionCost ingredientPortionCost(PlanEntry entry, PriceObservation? price) {
       Err() => null,
     };
   } else if (entry.measureId != null) {
-    // A measure this device has not synced weighs nothing yet — the amount is
-    // a count until the row arrives, and a count joins no mass or volume.
+    // An unsynced measure weighs nothing yet, and a count joins no mass or
+    // volume.
     amount = null;
   } else {
     amount = quantityInBasis(quantity, unit, row);
@@ -108,23 +77,17 @@ PortionCost ingredientPortionCost(PlanEntry entry, PriceObservation? price) {
   final per100 = price.per100;
   return switch (per100) {
     Ok(:final value) => (cents: value.cents * amount / 100, reason: null),
-    // The fact's own refusals (a pack of nothing, nothing paid), passed
-    // through rather than second-guessed.
+    // The price's own refusals (empty pack, nothing paid) pass through.
     Err() => (cents: null, reason: CostLineReason.noPrice),
   };
 }
 
-/// Sums `perServing × servings` over [entries], exactly as `sumPlannedMacros`
-/// does — see that function for what `servings` means under a lens.
+/// Sums `perServing × servings` over [entries]; see `sumPlannedMacros` for
+/// `servings` under a lens.
 ///
-/// [costFor] hands back a recipe's cost summary (null when the recipe is gone
-/// or not loaded); such a meal is excluded and its title named, because a meal
-/// this device cannot resolve is not a meal that costs nothing.
-///
-/// [priceFor] hands back the latest price paid for one vocabulary row, which
-/// is what a bare INGREDIENT meal is costed from. It is required rather than
-/// defaulted: a caller that forgot it would name every snack unpriced and read
-/// as a household that has priced nothing.
+/// [costFor] returns a recipe's cost summary; null (gone or not loaded)
+/// excludes the meal by name. [priceFor] returns the latest price for a
+/// vocabulary row, which ingredient meals are costed from.
 PlannedCost sumPlannedCost(
   Iterable<PlanEntry> entries, {
   required RecipeCostSummary? Function(String recipeId) costFor,
@@ -155,25 +118,19 @@ PlannedCost sumPlannedCost(
     final demand = demandPortions(entry, membersById);
     if (demand <= 0 ||
         (lensMemberId != null && (eaters.isEmpty || factorsSum <= 0))) {
-      // Nobody is down to eat it, so there is no demand to multiply. Not a
-      // pricing gap — nothing is named, the way the macros name nothing.
+      // No eaters means no demand; not a pricing gap, so nothing is named.
       continue;
     }
 
-    // The explicit branch over every kind, as the macros take it. A recipe
-    // hands over a per-SERVING figure somebody else computed; a bare
-    // ingredient is weighed and priced here from its own stated amount, which
-    // is the whole meal; a meal eaten out is neither cooked nor bought, so it
-    // is not a cost to cook and not a gap in one — passed over without a name,
-    // and leaving the count it never joined.
+    // Every kind is handled explicitly. A meal eaten out is neither a cost nor
+    // a gap: it is skipped unnamed and uncounted.
     final double? perServing;
     switch (entry.kind) {
       case PlanEntryKind.out:
         considered--;
         continue;
       case PlanEntryKind.ingredient:
-        // The kind IS the guarantee: a meal is this kind exactly when it
-        // names a vocabulary row.
+        // An ingredient meal always names a vocabulary row.
         final priced = ingredientPortionCost(
           entry,
           priceFor(entry.ingredientId!),
@@ -192,8 +149,7 @@ PlannedCost sumPlannedCost(
           continue;
         }
         if (summary.perServingCents == null) {
-          // The recipe's own refusal, passed through by name: these are the
-          // lines a person can go and price to make the week whole.
+          // The recipe's unpriced lines, passed through by name.
           for (final note in summary.unpriced) {
             name(note.name);
           }

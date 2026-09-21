@@ -1,43 +1,11 @@
-/// The Week — the meal-planning screen, and the INPUT to the derived
-/// cook-plan / shopping pipeline (steps 5–6).
+/// The Week: the meal-planning screen, and the input to the derived cook plan
+/// and shopping list.
 ///
-/// **One screen, one state.** There is no presentation/edit mode: no tap here
-/// is destructive, and a mode that blanks the numbers you are editing against
-/// costs more than it explains.
-///
-/// **A row's controls are the facts the row prints.** The title opens the
-/// recipe it names. The portions chip and eater avatars are ONE target — they
-/// open `meal_editor_sheet.dart`, which holds the row's other printed facts:
-/// its slot (the gutter label it sits under), who is eating and the portions.
-/// The `−` removes the meal, with an undo toast rather than a confirm: a
-/// destructive control on every row of a resting screen is defensible only
-/// because the act is trivially reversible, so the screen makes it so. The
-/// day is deliberately not a field — a row does not print a day as a value,
-/// its *position* is its day — so a meal changes day by removing it and
-/// adding it again through the picker's "already this week" quick picks.
-///
-/// **One add door, in every state.** `＋ add a meal` is the last row of every
-/// day card, sitting with the meals and above the day's total, because it adds
-/// a *meal*, not a number. On an empty day it is the same line saying `nothing
-/// planned`.
-///
-/// **The numbers are honest and never hidden.** Each day card foots with its
-/// own macro line and that line's denominator; the list foots with the week
-/// band. The lens above the cards rescopes both — and DIMS the meals a person
-/// is not eating rather than deleting them, because a day somebody else cooks
-/// for themselves is not an empty day.
-///
-/// **There is no blank-week page.** A week with nothing in it is this same
-/// screen with nothing in it: header, switcher, lens row, seven day cards and
-/// the week band all render, exactly as they do for a full week.
-///
-/// **At [AnsiLayout.expanded] the same week is one day beside the week that
-/// scrolls** — a 560 px day pane and a vertical agenda (`week_wide.dart`). It
-/// is one view model, one set of words and one set of doors, drawn in two
-/// shapes: this file's list below the band, the two panes above it.
-///
-/// The week itself is a position, not a singleton — see `week_header.dart` and
-/// `week_view_models.dart`.
+/// One screen with no edit mode. A row's title opens the recipe; its portions
+/// chip and avatars open the meal editor; `−` removes the meal with an undo
+/// toast. Each day card ends with the one add door and the day's macro line. At
+/// [AnsiLayout.expanded] the same view model draws as two panes
+/// (`week_wide.dart`).
 library;
 
 import 'dart:async';
@@ -73,27 +41,18 @@ import 'week_view_models.dart';
 import 'week_wide.dart';
 import 'week_widgets.dart';
 
-/// The add flow: pick from the ONE door, then confirm slot/eaters/portions.
-///
-/// The slot it starts on follows the day: the next default slot the day has
-/// not filled yet ([defaultMealSlot]), read off the viewed week before the
-/// first sheet opens. A recipe goes straight to the confirm sheet — its
-/// amount is its portions. A bare ingredient (step 8.14) stops at the shipped
-/// quantity sheet first, opened on the row's default unit — `piece`, weighed
-/// by the row's own piece weight (ADR-0015), so "1 bar" is a bar. A meal eaten
-/// out goes straight through too, since its words are all of it; the confirm
-/// sheet then asks the questions every kind shares, and one only it is asked.
+/// The add flow: pick a recipe, ingredient or meal out, then confirm slot,
+/// eaters and portions. The slot starts on the day's first unfilled default
+/// ([defaultMealSlot]). A bare ingredient stops at the quantity sheet first.
 Future<void> _addMealFlow(
   BuildContext context,
   WidgetRef ref, {
   required DateTime weekStart,
   required int dayOfWeek,
 }) async {
-  // The picker's search brings the keyboard, which shrinks the week's list
-  // under it: the day card whose door opened this flow can be unmounted by
-  // the time a recipe is tapped. The confirm sheet opens from a context that
-  // outlives the card (`hostContextOf`), so the pick is never dropped — and
-  // the slot is settled here, before anything is awaited, for the same reason.
+  // The picker's keyboard can unmount the day card that opened this flow, so
+  // the confirm sheet opens from a context that outlives it and the slot is
+  // settled before any await.
   final host = hostContextOf(context);
   final week = ref.read(viewedWeekProvider).asData?.value;
   final slot = defaultMealSlot(week?.entriesForDay(dayOfWeek) ?? const []);
@@ -109,9 +68,8 @@ Future<void> _addMealFlow(
     case PickedRecipe(:final recipe):
       target = RecipeMeal(recipe);
     case PickedIngredientMeal(:final ingredient):
-      // The sheet opens on the first chip the row offers — its own word for
-      // one where it has one, else `piece`, weighed by the row's piece weight
-      // on a counted food (ADR-0015).
+      // Opens on the row's first chip: its own word for one, else `piece`
+      // (ADR-0015).
       final result = await showQuantityUnitSheet(
         // The host outlives the row — see [hostContextOf].
         // ignore: use_build_context_synchronously
@@ -120,16 +78,14 @@ Future<void> _addMealFlow(
         requireQuantity: true,
         confirmLabel: 'Next',
       );
-      // Backing out of the amount backs out of the whole add: an entry with
-      // no amount is a real state, but not one anybody asked for here.
+      // Backing out of the amount backs out of the whole add.
       if (result is! QuantitySaved) return;
       target = SnackMeal(
         ingredient: ingredient,
         quantity: result.quantity,
         unit: switch (result.choice) {
-          // A measure counts THINGS, so its row stores the honest count
-          // fallback beside the measure id — the same pair every other
-          // measure-quantified row in the app stores.
+          // A measure-quantified row stores the count fallback beside the
+          // measure id.
           MeasureOption() => pieces,
           RecipeMeasureOption(:final measure) => notAWordForAnIngredient(
             measure,
@@ -145,8 +101,7 @@ Future<void> _addMealFlow(
         },
       );
     case PickedMealOut(:final label):
-      // Nothing to settle first: the words ARE the meal, and the only
-      // question left is the one the confirm sheet's optional fold asks.
+      // A meal out needs nothing settled first.
       target = OutMeal(label);
   }
 
@@ -164,39 +119,26 @@ Future<void> _addMealFlow(
 class WeekView extends HookConsumerWidget {
   const WeekView({this.weekKey, this.dayKey, super.key});
 
-  /// `?week=YYYY-MM-DD` — the week this tab was opened at, seated on arrival so
-  /// a refresh or a pasted link opens the week you were looking at
-  /// ([WeekInTheLocation]).
+  /// `?week=YYYY-MM-DD` — the week to open at ([WeekInTheLocation]).
   final String? weekKey;
 
-  /// `?day=YYYY-MM-DD` — which day the wide day pane stands on. **The URL is
-  /// where that choice lives**, not a notifier beside it: the `›` restates the
-  /// location and the pane reads it back, so one refresh lands on the same day
-  /// and back still leaves the week in one press (`restateOnce`).
-  ///
-  /// A date rather than an index, so it says what it means in a shared link and
-  /// so a date left over from another week simply does not match — the pane
-  /// falls back to its default (today, or the week's first day) instead of
-  /// pointing at a day this week does not have.
+  /// `?day=YYYY-MM-DD` — the day the wide day pane stands on. The URL holds the
+  /// choice, so a refresh keeps it; a date from another week does not match and
+  /// the pane falls back to its default.
   final String? dayKey;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final weekStart = ref.watch(viewedWeekStartProvider);
     final week = ref.watch(viewedWeekProvider);
-    // Decorative emptiness, weighed (D6): an empty roster draws no avatars and
-    // no lens chips. The week's own meals — the thing this screen is for — are
-    // unaffected, and the roster arrives with the first sync.
+    // An empty roster draws no avatars and no lens chips; it arrives with the
+    // first sync.
     final roster = ref.watch(membersProvider).asData?.value ?? const <Member>[];
-    // The cook markers are a READ of the derivation the Cook tab draws, for
-    // this same week (D6). Null while it loads — a row simply has no second
-    // line until it arrives.
+    // The Cook tab's derivation for this week; null while it loads.
     final cookPlan = ref.watch(currentCookPlanProvider).asData?.value;
 
-    // "cooks today" is only true of the week containing today.
-    // Read off [Today], not `DateTime.now()`: the week start is the same all
-    // week,
-    // so only the day provider re-fires this at a Tuesday midnight.
+    // "cooks today" is only true of the week containing today. Read off
+    // [Today], not `DateTime.now()`, so it re-fires at midnight.
     final isThisWeek = weekStart == ref.watch(currentWeekStartProvider);
     final shape = ref.watch(weekShapeProvider);
     final todayDayOfWeek = isThisWeek
@@ -205,17 +147,11 @@ class WeekView extends HookConsumerWidget {
 
     final lastWeek = ref.watch(lastWeekProvider).asData?.value;
 
-    // null = Everyone; a member id = that person's lens (D8: it dims, it does
-    // not remove).
-    //
-    // The lens stays a notifier and stays OUT of the URL: it is a question
-    // about how the numbers are being read, not a position, and a link that
-    // silently scoped a household's week to one eater would be a link nobody
-    // meant to send.
+    // null = Everyone; a member id = that person's lens. The lens stays out of
+    // the URL so a shared link is never silently scoped to one eater.
     final lens = useState<String?>(null);
-    // Which day the wide day pane draws, read off `?day=` — null means "the
-    // default" (see [WeekWide]). A date from another week does not match and so
-    // does not count.
+    // The wide day pane's day from `?day=`; null means the default (see
+    // [WeekWide]).
     final chosen = dayKey == null ? null : DateTime.tryParse(dayKey!);
     final selectedDay = chosen != null && shape.weekStartOf(chosen) == weekStart
         ? shape.offsetOf(chosen)
@@ -231,24 +167,19 @@ class WeekView extends HookConsumerWidget {
     return WeekInTheLocation(
       path: '/week',
       weekKey: weekKey,
-      // The day is only a question the WIDE day pane asks. A phone draws all
-      // seven days and stands on none of them, so it names none — the one thing
-      // that differs by width in the whole location.
+      // Only the wide day pane stands on a day, so only it names one.
       also: AnsiLayout.of(context) == AnsiLayout.expanded
           ? {'day': isoDateOf(shape.dateFor(weekStart, day))}
           : const {},
       child: FScaffold(
-        // A tab root sits INSIDE the shell's scaffold, which already shrinks
-        // the branch area for the keyboard; a second scaffold subtracting the
-        // same inset squeezes the content twice (Android showed a list a few
-        // lines tall after the sign-in keyboard).
+        // A tab root sits inside the shell's scaffold, which already shrinks
+        // for the keyboard; a second inset would squeeze the content twice.
         resizeToAvoidBottomInset: false,
-        // "Copy last week" has ONE permanent home — the switcher menu — plus
-        // the empty-week chip below.
+        // "Copy last week" lives in the switcher menu, plus the empty-week chip
+        // below.
         header: FHeader.nested(
           title: WeekSwitcher(
-            // The menu speaks in this tab's derivation — "9 meals" — for the
-            // week on screen; the other rows stay bare.
+            // The menu details only the week on screen ("9 meals").
             detailFor: (monday) => week.asData == null || monday != weekStart
                 ? null
                 : formatMealCount(week.asData!.value?.entries.length ?? 0),
@@ -262,8 +193,7 @@ class WeekView extends HookConsumerWidget {
             stackTrace: st,
             onRetry: () => ref.invalidate(viewedWeekProvider),
           ),
-          // `watchWeek` emitting null stops meaning "show a different screen"
-          // and starts meaning "seven empty days" (D5).
+          // A null plan draws seven empty days.
           data: (plan) {
             final empty = plan == null || plan.entries.isEmpty;
             if (AnsiLayout.of(context) == AnsiLayout.expanded) {
@@ -325,8 +255,7 @@ class WeekView extends HookConsumerWidget {
                 WeekMacroBand(
                   macros: ref.watch(weekMacrosProvider(lens.value)),
                   cost: ref.watch(weekCostProvider(lens.value)),
-                  // What the week's receipts came to, beside what it plans to
-                  // cook. Never reconciled (ADR-0017).
+                  // Never reconciled with the planned cost (ADR-0017).
                   spent: ref.watch(receiptsForWeekProvider(weekStart)),
                   shape: shape,
                   scope: scope,
@@ -340,9 +269,8 @@ class WeekView extends HookConsumerWidget {
   }
 }
 
-/// One day of the week as a card: its name and date, its meals grouped by
-/// slot, and — in presentation the day's macro line, in edit the dashed
-/// add-meal door (D1's density switch).
+/// One day as a card: its name and date, its meals grouped by slot, the add
+/// door and the day's macro line.
 class _DayCard extends ConsumerWidget {
   const _DayCard({
     required this.weekStart,
@@ -366,13 +294,10 @@ class _DayCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // D8: the lens DIMS, it does not remove. Every meal on the day still
-    // renders, so a day the other person cooks for themselves is not
-    // mistaken for an empty one.
+    // The lens dims, it does not remove: every meal on the day still renders.
     final visible = entries;
 
-    // entriesForDay is already slot-ordered, so same-slot entries are
-    // contiguous — group consecutive runs under one slot label.
+    // entriesForDay is slot-ordered, so group consecutive runs under one label.
     final groups = <List<PlanEntry>>[];
     for (final e in visible) {
       if (groups.isNotEmpty &&
@@ -396,9 +321,8 @@ class _DayCard extends ConsumerWidget {
           ),
           child: _body(context, ref, groups, visible, isToday),
         ),
-        // The herb left rule pins today (D2). It is PAINTED over the card's
-        // edge rather than being a thicker left border, because a rounded box
-        // may not have per-side colours.
+        // Today's left rule is painted over the card's edge: a rounded box may
+        // not have per-side border colours.
         if (isToday)
           Positioned(
             left: 16,
@@ -435,7 +359,7 @@ class _DayCard extends ConsumerWidget {
                 style: ansiSerif(size: AnsiType.row),
               ),
               const SizedBox(width: 8),
-              // The date is load-bearing once weeks vary (D6).
+              // Weeks vary, so the date is needed.
               Text(
                 formatDayDate(weekStart, dayOfWeek),
                 style: ansiMono(size: 11, color: AnsiColors.muted),
@@ -471,10 +395,8 @@ class _DayCard extends ConsumerWidget {
             cookPlan: cookPlan,
             todayDayOfWeek: todayDayOfWeek,
           ),
-        // E5: one add door, always, as the card's last ROW — with the meals
-        // it extends, above the day's total. On an empty day it is the same
-        // line saying `nothing planned`, so the first meal lands on the day
-        // you pointed at (D5b) and there is no second widget to keep in step.
+        // The one add door, always the card's last row; on an empty day it says
+        // `nothing planned`.
         AddMealLine(
           empty: visible.isEmpty,
           onTap: () => _addMealFlow(
@@ -484,8 +406,7 @@ class _DayCard extends ConsumerWidget {
             dayOfWeek: dayOfWeek,
           ),
         ),
-        // The day's own honest total, with its denominator (D4). Absent on an
-        // empty day: `no meals` is a state, never `0 kcal`.
+        // The day's total with its denominator; absent on an empty day.
         if (visible.isNotEmpty)
           DayMacroLine(
             macros: ref.watch(dayMacrosProvider(dayOfWeek, lens)),
@@ -515,10 +436,8 @@ class _SlotGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The board's week frame: the slot label sits in a left gutter ON THE
-    // SAME LINE as the dish name (vertically centred with the row), never
-    // floating above it — a multi-dish slot centres the label beside the
-    // stack, exactly like the frame's split rows.
+    // The slot label sits in a left gutter, vertically centred beside its
+    // dishes.
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 4, 12, 4),
       decoration: const BoxDecoration(
@@ -544,7 +463,7 @@ class _SlotGroup extends StatelessWidget {
                   _DishRow(
                     entry: e,
                     roster: roster,
-                    // D8: a meal this person is not eating is dimmed, not gone.
+                    // A meal this person is not eating is dimmed, not gone.
                     dimmed: lens != null && !e.eaterIds.contains(lens),
                     cookPlan: cookPlan,
                     todayDayOfWeek: todayDayOfWeek,
@@ -558,26 +477,11 @@ class _SlotGroup extends StatelessWidget {
   }
 }
 
-/// A single dish within a slot — and, since v3, three targets on one row.
+/// A single dish within a slot, on up to two lines: the title with its eaters
+/// and portions chip, then the cook marker (absent for a single-meal cook).
 ///
-/// Two lines, not one column of cells (D6, owner-ruled): the title with its
-/// eaters (and a portions chip when the override differs) on the first, the
-/// cook marker on the second — absent entirely for a single-meal cook, which
-/// collapses the row back to one line.
-///
-/// **A row's controls are the facts the row prints** (E7):
-///
-/// * the **title** opens the recipe it names;
-/// * the **portions chip + avatars** are ONE target — they open the meal
-///   editor, whose fields are the slot, the eaters and the portions. One
-///   target, not two, because the chip is conditional: a chip-only tap would
-///   be missing from most rows and could never *set* a first override;
-/// * the **`−`** removes the meal, with an undo toast (E3).
-///
-/// This is not the old `›`, which was drawn but announced "the row navigates"
-/// and so competed with the row itself. The test a target has to pass is not
-/// "is the row's tap unambiguous" but **"is the target drawn"** — which is
-/// also why there is no long-press anywhere on this screen.
+/// Three targets: the title opens the recipe; the chip and avatars together
+/// open the meal editor; `−` removes the meal with an undo toast.
 class _DishRow extends ConsumerWidget {
   const _DishRow({
     required this.entry,
@@ -599,14 +503,8 @@ class _DishRow extends ConsumerWidget {
     final snack = kind == PlanEntryKind.ingredient;
     final out = kind == PlanEntryKind.out;
     final plan = cookPlan;
-    // E6: the marker is never suppressed — there is no mode left to suppress
-    // it in, and the cook consequence is most worth reading while planning.
-    //
-    // Only a RECIPE has a cook marker, and that is a ruling, not an omission
-    // (step 8.14 / A-D5): nothing about a protein bar or a canteen lunch is
-    // cooked, so a row that drew a shelf-life chip or a batch hint would be
-    // describing a recipe. What the meal IS takes the marker's place instead —
-    // a snack's stated amount, a meal out's tag and figures.
+    // Only a recipe has a cook marker; a snack shows its amount and a meal out
+    // its tag and figures instead.
     final marker = plan == null || kind != PlanEntryKind.recipe
         ? null
         : cookMarkerFor(
@@ -615,13 +513,11 @@ class _DishRow extends ConsumerWidget {
             dayOfWeek: entry.dayOfWeek,
             mealSlot: entry.mealSlot,
           );
-    // The week this row belongs to, carried into the dish's page: the recipe
-    // page's week door is only offered to an arrival that names a week which
-    // actually plans the recipe.
+    // The recipe page offers its week door only to an arrival naming a week
+    // that plans the recipe.
     final weekKey = isoDateOf(ref.watch(viewedWeekStartProvider));
     final route = mealTitleRoute(entry, weekKey: weekKey);
-    // Every planned day of a varied recipe says so, because the variant is
-    // per (week, recipe) — two rows describing one pot cannot disagree.
+    // The variant is per (week, recipe), so every planned day of it says so.
     final edited =
         (ref.watch(viewedWeekOverridesProvider).asData?.value[entry.recipeId] ??
                 const [])
@@ -636,23 +532,15 @@ class _DishRow extends ConsumerWidget {
               Expanded(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  // The title opens the thing it NAMES, with the week it is
-                  // planned in — [mealTitleRoute] holds which page that is, for
-                  // this row and for the wide day pane both. A deleted target
-                  // has no page to open, so the title is inert; the row's other
-                  // two targets still work, because the meal is still a real
-                  // row on the week.
+                  // [mealTitleRoute] decides the page. A deleted target has
+                  // none, so the title is inert.
                   onTap: route == null ? null : () => context.pushOnce(route),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     child: Text(
                       mealTitleText(entry),
-                      // Three weights, because there are three kinds (A-D5).
-                      // The dish's emphasis is what says "this is a dish with
-                      // a page behind it", so a bare ingredient reads at the
-                      // row's ordinary weight — and a meal eaten out, which
-                      // has no page at all, reads plain and italic: the
-                      // household's own words rather than a title.
+                      // A recipe reads emphasised, a bare ingredient at
+                      // ordinary weight, a meal out plain italic.
                       style: entry.title == null
                           ? ansiSans(size: 15, color: AnsiColors.muted)
                           : ansiSans(
@@ -683,8 +571,8 @@ class _DishRow extends ConsumerWidget {
           if (marker != null || edited)
             Padding(
               padding: const EdgeInsets.only(bottom: 6),
-              // A Row, not a Wrap: the marker line is itself a Row with a
-              // Flexible label, and a Wrap hands its children unbounded width.
+              // A Row, not a Wrap: the marker line has a Flexible label, and a
+              // Wrap hands its children unbounded width.
               child: Row(
                 children: [
                   if (marker != null)
@@ -699,9 +587,7 @@ class _DishRow extends ConsumerWidget {
                 ],
               ),
             ),
-          // The snack's amount sits exactly where a cook marker would (A-D5)
-          // — the row's second line says what this meal IS, since nothing
-          // about it is cooked.
+          // The snack's amount sits where a cook marker would.
           if (snack)
             Padding(
               padding: const EdgeInsets.only(bottom: 6),
@@ -711,8 +597,7 @@ class _DishRow extends ConsumerWidget {
                 style: ansiMono(size: 10.5, color: AnsiColors.muted),
               ),
             ),
-          // And the meal eaten out says the same thing in its own terms: the
-          // `out` tag, and the figures it was given or the absence of them.
+          // A meal out shows its `out` tag and its figures, or their absence.
           if (out)
             Padding(
               padding: const EdgeInsets.only(bottom: 6),
@@ -724,15 +609,8 @@ class _DishRow extends ConsumerWidget {
   }
 }
 
-/// The empty week's one obvious door, at the top of the list.
-///
-/// Seven identical quiet lines have no focal point, so the primary lives here;
-/// each day's own `nothing planned` line is still its add door, which is what
-/// makes the first meal land on the day you MEANT (the old CTA always added to
-/// the week's first day, `dayOfWeek: 0`).
-///
-/// `copy last week` sits beside it only while the week has zero entries. Its
-/// permanent home is the switcher menu (D2).
+/// The empty week's primary add door, at the top of the list. `copy last week`
+/// sits beside it only while the week has no entries.
 class _FirstMealBar extends ConsumerWidget {
   const _FirstMealBar({
     required this.weekStart,

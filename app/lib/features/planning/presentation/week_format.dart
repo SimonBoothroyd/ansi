@@ -1,8 +1,6 @@
-/// Display strings for the Week screen: weekday labels, the week's own name,
-/// the per-dish cook marker, a snack row's stated amount and what a meal eaten
-/// out prints in the marker's place. Kept apart from
-/// widgets so the labels — and, for the marker, the derivation behind them —
-/// are trivially testable.
+/// Display strings for the Week screen: weekday labels, the week's name, the
+/// cook marker, a snack's amount and a meal out's line. Kept apart from widgets
+/// so they are testable.
 library;
 
 import 'dart:math' as math;
@@ -15,25 +13,17 @@ import '../../cook_plan/domain/cook_plan.dart';
 import '../../ingredients/presentation/macros_format.dart';
 import '../domain/planning.dart';
 
-/// The week header, e.g. "Week of Aug 24" for the day the week begins on.
-///
-/// Superseded on the Week screen itself by [formatWeekTitle] (which names the
-/// week rather than dating it); kept for surfaces that only ever want the date.
+/// "Week of Aug 24" — the week by its first day's date. The Week screen itself
+/// uses [formatWeekTitle].
 String formatWeekOf(DateTime weekStart) =>
     'Week of ${formatMonthShort(weekStart)} ${weekStart.day}';
 
-/// The date of [dayOfWeek] (0..6 from the first day) within the week beginning
-/// [weekStart].
+/// The date of [dayOfWeek] (0..6) within the week beginning [weekStart].
 String formatDayDate(DateTime weekStart, int dayOfWeek) =>
     formatDayMonth(weekStart.add(Duration(days: dayOfWeek)));
 
-/// The week's seven days as a span — `13–19 Sep`, or `28 Sep – 4 Oct` where it
-/// crosses a month.
-///
-/// The month is said ONCE while one month holds the week: repeating it is the
-/// kind of noise the wide Week was redrawn to lose. A week that straddles two
-/// months says both, because leaving one out would date four of its days
-/// wrongly.
+/// The week's seven days as a span: `13–19 Sep`, or `28 Sep – 4 Oct` across a
+/// month boundary.
 String formatWeekSpan(DateTime weekStart) {
   final last = weekStart.add(const Duration(days: 6));
   return weekStart.month == last.month
@@ -41,16 +31,9 @@ String formatWeekSpan(DateTime weekStart) {
       : '${formatDayMonth(weekStart)} – ${formatDayMonth(last)}';
 }
 
-/// How the Week screen NAMES the week it is showing (D2).
-///
-/// A week is a position, not a date, so the title says the position whenever
-/// it can — `This week · 31 Aug`, `Next week · 7 Sep`, `Last week · 24 Aug` —
-/// and falls back to `Week of 14 Sep` (with no separate date part) beyond
-/// that. The `isThisWeek` flag drives the herb dot, so the emphasis survives
-/// a glance.
-///
-/// [today] is any date in the current week; only the week it falls in matters,
-/// which is what [shape] resolves.
+/// The week's name: `This week · 31 Aug`, `Next week · 7 Sep`, `Last week · 24
+/// Aug`, else `Week of 14 Sep` with no date part. [today] is any date in the
+/// current week, resolved through [shape].
 ({String label, String? date, bool isThisWeek}) formatWeekTitle(
   DateTime weekStart,
   DateTime today,
@@ -68,10 +51,8 @@ String formatWeekSpan(DateTime weekStart) {
   };
 }
 
-/// The Cook/Shop empty states' week word under D3 — those screens derive from
-/// the VIEWED week, so "nothing planned for *next week* yet" has to say which
-/// one when it isn't the current one. Null on the current week. (The headers no
-/// longer need it: the switcher is their title.)
+/// The week word for the Cook/Shop empty states ("nothing planned for next week
+/// yet"). Null on the current week.
 String? formatDerivedWeekSuffix(
   DateTime weekStart,
   DateTime today,
@@ -79,23 +60,19 @@ String? formatDerivedWeekSuffix(
 ) {
   final title = formatWeekTitle(weekStart, today, shape);
   if (title.isThisWeek) return null;
-  // "Next week" → "next week"; "Week of 14 Sep" → "week of 14 Sep" (only the
-  // leading word is lowered — the month keeps its casing).
+  // Only the leading word is lowered; the month keeps its casing.
   return title.label[0].toLowerCase() + title.label.substring(1);
 }
 
-/// The Week menu row's trailing label — what that week holds, in the Week's
-/// own derivation: `9 meals` / `1 meal` / `empty`.
+/// The Week menu row's trailing label: `9 meals` / `1 meal` / `empty`.
 String formatMealCount(int meals) => switch (meals) {
   0 => 'empty',
   1 => '1 meal',
   _ => '$meals meals',
 };
 
-/// The picker row's "last planned" recency: `today`, `3d ago`, `2w ago`,
-/// `3mo ago` — or, for a meal planned in the FUTURE, `in 3d` / `in 2w` /
-/// `in 1mo` (the old label called any future date "this week", which read
-/// wrong for next month's plan). Date-only comparison.
+/// The picker row's recency: `today`, `3d ago`, `2w ago`, `3mo ago`, or `in 3d`
+/// / `in 2w` / `in 1mo` for a future date. Date-only comparison.
 String formatLastPlanned(DateTime lastPlanned, DateTime today) {
   final a = DateTime.utc(lastPlanned.year, lastPlanned.month, lastPlanned.day);
   final b = DateTime.utc(today.year, today.month, today.day);
@@ -112,7 +89,7 @@ String formatLastPlanned(DateTime lastPlanned, DateTime today) {
   return '${math.max(1, days ~/ 30)}mo ago';
 }
 
-/// What a planned dish's second line says about how it gets cooked (D6).
+/// What a planned dish's second line says about how it gets cooked.
 enum CookMarkerKind {
   /// This day IS the batch's cook day.
   cooks,
@@ -120,38 +97,27 @@ enum CookMarkerKind {
   /// The batch was cooked earlier and this meal comes out of the fridge.
   fromBatch,
 
-  /// The batch was cooked earlier, this day is past the fridge window, and
-  /// the freezer is what reaches it.
+  /// Cooked earlier, and this day is past the fridge window, so it comes from
+  /// the freezer.
   freezerShare,
 }
 
-/// The cook marker for one planned meal, or null when there is nothing worth
-/// saying (see [cookMarkerFor]).
+/// The cook marker for one planned meal (see [cookMarkerFor]).
 typedef CookMarker = ({
   CookMarkerKind kind,
   int cookDay,
 
-  /// Portions the whole batch cooks — the `batch of 4` (or `batch of 1¾`,
-  /// P-D4) on the cook day.
+  /// Portions the whole batch cooks — `batch of 4`, or `batch of 1¾`.
   double batchPortions,
 
   /// Where this day sits in the batch's fridge window, 0 (just cooked) to 1
-  /// (the end of it). Drives the mini fresh→gone bar. 0 when the recipe has
-  /// no shelf life set — an unknown window is not a full one.
+  /// (its end). 0 when the recipe has no shelf life.
   double position,
 });
 
-/// Reads the cook marker for the meal on [dayOfWeek] / [mealSlot] back off the
-/// cook plan (D6) — a READ of the derivation the Cook tab already draws,
-/// turned around and printed on its input. No new batching logic lives here.
-///
-/// Null — no second line at all — when:
-///
-/// * nothing in the plan covers that meal (an unknown recipe, or a plan still
-///   loading), or
-/// * the session cooks for **one** meal only. "cooks today" on every row of a
-///   week with no batching in it is noise, and an absent second line collapses
-///   the row back to one line, which is the point of putting it there.
+/// Reads the cook marker for the meal on [dayOfWeek] / [mealSlot] off the cook
+/// plan; no batching logic lives here. Null when nothing in the plan covers the
+/// meal, or when the session cooks for one meal only.
 CookMarker? cookMarkerFor(
   CookPlan plan, {
   required String recipeId,
@@ -188,9 +154,8 @@ CookMarker? cookMarkerFor(
   return null;
 }
 
-/// The marker's words. [todayDayOfWeek] is today's offset within the week when
-/// the CURRENT week is on screen, and null otherwise — "cooks today" is only
-/// true of the week that contains today.
+/// The marker's words. [todayDayOfWeek] is today's offset when the current week
+/// is on screen, else null.
 String cookMarkerLabel(
   CookMarker marker,
   WeekShape shape, {
@@ -203,29 +168,17 @@ String cookMarkerLabel(
               'batch of ${formatFraction(marker.batchPortions)}',
   CookMarkerKind.fromBatch =>
     'from ${shape.labelFull(marker.cookDay)}\u2019s batch',
-  // The snowflake is drawn as an icon beside this, never as a glyph: no
-  // bundled face carries \u2744.
+  // The snowflake is drawn as an icon: no bundled face carries ❄.
   CookMarkerKind.freezerShare =>
     '${shape.labelFull(marker.cookDay)}\u2019s freezer share',
 };
 
-/// What the app will NOT do with a meal eaten out — said in the same four
-/// words wherever it is said: the picker's third answer, which offers the
-/// consequence rather than hiding it, and the confirm card that repeats it
-/// back before the meal is placed.
+/// What the app does not do with a meal eaten out, as said by the picker and
+/// the confirm card.
 const kNotCookedNotBought = 'not cooked, not bought';
 
-/// What a meal eaten OUT prints where a dish's cook marker would sit:
-/// `620 kcal · 42P — as stated`, or `macros not stated`.
-///
-/// The figures are per portion — what the canteen put on one plate — and the
-/// row says `as stated` because they were typed rather than derived: a
-/// recipe's come from its lines and an ingredient's from its vocabulary row,
-/// and this is the one meal whose numbers nothing else can check.
-///
-/// Their absence is a real state, not an empty string. The meal still fills
-/// its slot; what it does not do is join the day's total, and a row that said
-/// nothing about that would be hiding why the day's denominator moved.
+/// A meal out's second line: `620 kcal · 42P — as stated` (per portion, as
+/// typed), or `macros not stated`.
 String outMacroLine(PlanEntry entry) {
   final macros = entry.macros;
   if (macros == null) return 'macros not stated';
@@ -233,17 +186,9 @@ String outMacroLine(PlanEntry entry) {
       '${formatGrams(macros.protein)}P — as stated';
 }
 
-/// A snack row's amount, in the place a dish's cook marker would sit (step
-/// 8.14 / A-D5): `1 bar · 60 g`, `170 g`, or `no amount`.
-///
-/// The second segment is what the measure WEIGHS — the stored fact, not a
-/// conversion — so the row states both what was planned and what it comes to.
-/// It is omitted when the amount is already in the basis unit, which would
-/// only repeat it.
-///
-/// `no amount` is a real state, not an empty string: an entry that states none
-/// contributes nothing to the week's macros or to the shopping list, and a row
-/// that said nothing about it would be hiding the reason.
+/// A snack row's amount: `1 bar · 60 g`, `170 g`, or `no amount`. The second
+/// segment is the measure's stored weight, omitted when the amount is already
+/// in the basis unit.
 String snackAmount(PlanEntry entry) {
   final quantity = entry.quantity;
   final unit = entry.unit;

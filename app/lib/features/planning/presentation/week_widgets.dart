@@ -1,13 +1,7 @@
-/// Small shared widgets for the Week screen: the selectable [Pill] used by the
-/// day/slot/eater pickers, the [EaterAvatar] initial-circle, the overlapping
-/// [EaterAvatarStack] shown on a meal row (design board), the [PortionsChip]
-/// and the [CookMarkerLine] beneath the title (D6), and the two targets a meal
-/// carries wherever it is drawn — [EatersTarget] and [RemoveTarget].
-///
-/// A meal is drawn three times: as the phone's dish row, as the wide day
-/// pane's large entry and as one line of the wide agenda. The pieces those
-/// spellings share live here, so no two of them can print different facts or
-/// open different doors.
+/// Shared widgets for the Week screen: [Pill], [EaterAvatar],
+/// [EaterAvatarStack], [PortionsChip], [CookMarkerLine], and a meal's two
+/// targets, [EatersTarget] and [RemoveTarget]. The phone row, the wide day pane
+/// and the wide agenda all draw a meal from these.
 library;
 
 import 'dart:async';
@@ -32,9 +26,8 @@ import 'week_format.dart';
 import 'week_variant_format.dart';
 import 'week_view_models.dart';
 
-/// A rounded, tappable label that fills herb-green when [selected] (design
-/// board `.pchip` / `.wkchip`). An [icon] renders instead of the label (the
-/// bundled fonts lack glyphs like ＋, so affordance pills use icons).
+/// A rounded, tappable label that fills herb-green when [selected]. An [icon]
+/// renders instead of the label (the bundled fonts lack glyphs like ＋).
 class Pill extends StatelessWidget {
   const Pill({
     required this.selected,
@@ -87,8 +80,8 @@ class Pill extends StatelessWidget {
   }
 }
 
-/// The avatar palette, indexed by a member's position in the roster so the same
-/// person keeps a colour everywhere (Ada green, Jun ink — design board).
+/// The avatar palette, indexed by a member's roster position so a person keeps
+/// one colour everywhere.
 const _memberPalette = [
   AnsiColors.herb,
   AnsiColors.ink,
@@ -99,9 +92,8 @@ const _memberPalette = [
 /// The colour for the member at roster position [rank].
 Color memberColor(int rank) => _memberPalette[rank % _memberPalette.length];
 
-/// A small initial-circle for a household member (design board `.av`), with a
-/// white ring so it reads when overlapped. [dimmed] greys it for a member who
-/// isn't selected/eating; [color] is the member's roster colour.
+/// An initial-circle for a household member, ringed white so it reads when
+/// overlapped. [dimmed] greys it; [color] is the member's roster colour.
 class EaterAvatar extends StatelessWidget {
   const EaterAvatar({
     required this.member,
@@ -137,8 +129,8 @@ class EaterAvatar extends StatelessWidget {
   }
 }
 
-/// The overlapping avatar cluster on a meal row: the [roster] members who are
-/// in [eaterIds], in roster order, each in their roster colour (board `.avs`).
+/// The overlapping avatars on a meal row: the [roster] members in [eaterIds],
+/// in roster order.
 class EaterAvatarStack extends StatelessWidget {
   const EaterAvatarStack({
     required this.roster,
@@ -178,10 +170,8 @@ class EaterAvatarStack extends StatelessWidget {
   }
 }
 
-/// `3 portions` — drawn ONLY when the entry's portions differ from its eater
-/// count. A silent override is a fact about the cook plan and the shopping
-/// list that the week could not otherwise show you; an override that merely
-/// equals the eater count is not worth a chip.
+/// `3 portions` — drawn only when the entry's portions differ from its eaters'
+/// demand.
 class PortionsChip extends StatelessWidget {
   const PortionsChip({required this.portions, super.key});
 
@@ -204,24 +194,13 @@ class PortionsChip extends StatelessWidget {
   }
 }
 
-/// What a meal's title READS as: the thing it names, or the standing words for
-/// a target that is gone ([deletedTargetLabel] — one sentence per kind, said
-/// the same way by every surface).
+/// A meal's title text: the thing it names, or [deletedTargetLabel].
 String mealTitleText(PlanEntry entry) =>
     entry.title ?? deletedTargetLabel(entry);
 
-/// Where a meal's title GOES, or null when there is nothing to open.
-///
-/// The thing it names: a recipe's page, carrying the week it is planned in
-/// (`?week=`) so that page can offer the week door beside its own Edit, or —
-/// for a bare ingredient (A-D5: an ingredient detail link at most, never a
-/// recipe door on a row that is not a recipe) — its ingredient page, plain,
-/// since a snack has no recipe to vary. A deleted target has no page, so the
-/// title is inert and the meal's other targets carry the row.
-///
-/// A meal eaten OUT opens nothing, ever — there is nothing behind the words.
-/// Its title IS the meal, so an inert title is the truth here rather than a
-/// degradation.
+/// Where a meal's title goes: a recipe's page with the week it is planned in
+/// (`?week=`), a bare ingredient's page, or null for a deleted target or a meal
+/// eaten out.
 String? mealTitleRoute(PlanEntry entry, {required String weekKey}) {
   if (entry.title == null) return null;
   return switch (entry.kind) {
@@ -231,9 +210,8 @@ String? mealTitleRoute(PlanEntry entry, {required String weekKey}) {
   };
 }
 
-/// The portions a meal's chip should print, or null when there is no chip to
-/// draw: an override only earns one when it DIFFERS from what its eaters would
-/// have demanded on their own (their factors summed).
+/// The portions a meal's chip prints, or null when the override equals what its
+/// eaters' factors sum to.
 int? portionsChipFor(PlanEntry entry, List<Member> roster) {
   final override = entry.portions;
   if (override == null) return null;
@@ -241,14 +219,9 @@ int? portionsChipFor(PlanEntry entry, List<Member> roster) {
   return (override - usual).abs() > 1e-9 ? override : null;
 }
 
-/// The portions chip and the eater avatars as ONE tap target (E7), opening
-/// the meal editor.
-///
-/// When a meal has neither — nobody eating and no override — the cluster
-/// would otherwise be empty, which is both an untappable target and a silent
-/// rendering of a real data condition (the macro lens excludes such an entry
-/// with a reason). It says `nobody` instead: the state, named, and something
-/// to aim at.
+/// The portions chip and eater avatars as one tap target, opening the meal
+/// editor. With no eaters and no override it says `nobody`, so the target is
+/// never empty.
 class EatersTarget extends StatelessWidget {
   const EatersTarget({
     required this.entry,
@@ -267,8 +240,7 @@ class EatersTarget extends StatelessWidget {
     return AnsiTap(
       onTap: () => showMealEditorSheet(context, entry: entry),
       semanticsLabel: 'Who is eating',
-      // Vertical padding is the hit area, not decoration: the avatars are
-      // 24 pt tall and this brings the target to ~44.
+      // Vertical padding is the hit area: it brings the 24 pt avatars to ~44.
       padding: const EdgeInsets.fromLTRB(8, 10, 4, 10),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -287,12 +259,8 @@ class EatersTarget extends StatelessWidget {
   }
 }
 
-/// The `−` (E3): removes the meal, and hands back an undo.
-///
-/// Muted, not red. A destructive glyph on every row of a resting screen
-/// shouts, and the colour was never what made this safe — the undo is. There
-/// is deliberately no confirm dialog: it would tax every removal to prevent a
-/// rare mis-tap, and everything needed to put the meal back is in hand.
+/// The `−`: removes the meal and offers an undo toast. Muted, with no confirm
+/// dialog, because the undo makes it safe.
 class RemoveTarget extends ConsumerWidget {
   const RemoveTarget({required this.entry, required this.roster, super.key});
 
@@ -313,10 +281,8 @@ class RemoveTarget extends ConsumerWidget {
   Future<void> _remove(BuildContext context, WidgetRef ref) async {
     final repo = ref.read(planningRepositoryProvider);
     final weekStart = ref.read(viewedWeekStartProvider);
-    // Captured BEFORE the write: the undo fires from a toast up to six
-    // seconds later, by which time this row is certainly gone — it is the row
-    // that was just removed. `ref` and this context are unusable by then; the
-    // container and the root overlay are not (`shared/write.dart`).
+    // Captured before the write: the undo fires from a toast after this row is
+    // gone, when `ref` and this context are unusable (`shared/write.dart`).
     final container = ProviderScope.containerOf(context, listen: false);
     final host = hostContextOf(context);
     final day = ref.read(weekShapeProvider).labelFull(entry.dayOfWeek);
@@ -331,22 +297,15 @@ class RemoveTarget extends ConsumerWidget {
       // ignore: use_build_context_synchronously
       host.context,
       what: 'Removed ${entry.title ?? 'that meal'} from $day.',
-      // What would come back, in the words the row used: an undo you cannot
-      // audit is a promise, not a control.
+      // What would come back, in the row's own words.
       detail: _undoDetail(),
       onUndo: () => unawaited(
-        // The same door every other post-await write goes through
-        // (`shared/write.dart`), so a failed undo says so instead of
-        // vanishing.
+        // Through `shared/write.dart`, so a failed undo reports itself.
         container.write(
           host,
           'put that meal back',
-          // A new row with the same facts — the id was the removed one's, and
-          // nothing downstream keys on it (the cook plan and the list both
-          // re-derive from the week). Each kind comes back as itself, with
-          // everything it carried: a snack with its amount, a meal eaten out
-          // with its words AND its figures. An undo that quietly dropped half
-          // the row would be worse than no undo.
+          // A new row with the same facts; nothing downstream keys on the old
+          // id. Each kind comes back with everything it carried.
           () => switch (entry.kind) {
             PlanEntryKind.ingredient => repo.addIngredientEntry(
               weekStart: weekStart,
@@ -399,15 +358,9 @@ class RemoveTarget extends ConsumerWidget {
   }
 }
 
-/// The lens (D8): `Everyone · Ada · Jun` — whose numbers the week is read as.
-///
-/// Selecting a person DIMS the meals they are not eating rather than removing
-/// them: a hard filter renders a day the other person cooks for themselves as
-/// an empty day, which is false. Dimming also makes a `⇄ shared` tag
-/// unnecessary, because both avatars are right there.
-///
-/// The everyone option is called `Everyone`, never `Shared` — that word names a
-/// per-entry fact, and one word cannot mean both.
+/// The lens: `Everyone · Ada · Jun` — whose numbers the week is read as.
+/// Selecting a person dims the meals they are not eating rather than removing
+/// them.
 class WeekLensRow extends StatelessWidget {
   const WeekLensRow({required this.lens, required this.roster, super.key});
 
@@ -443,22 +396,8 @@ class WeekLensRow extends StatelessWidget {
   }
 }
 
-/// The one add door a day card has (E5) — its last row, in every state.
-///
-/// v2 had two widgets here: a dashed `＋ Add a meal` box that existed only in
-/// edit mode, and a separate `nothing planned` line that existed only in
-/// presentation on an empty day. They were the same door wearing two hats,
-/// and keeping them in step was a standing cost. This is one widget whose
-/// only variation is its wording, so the affordance that fills a region is
-/// always on the region (D5b, stated strictly).
-///
-/// It sits with the MEALS, above the day's total: it adds a *meal*, not a
-/// number, so it belongs to the list it extends, and the macro line stays
-/// what closes the card.
-///
-/// Deliberately not the dashed box in both states: seven permanent dashed
-/// rectangles is the noise v2 built a whole mode to escape. The quiet mono
-/// line carries the same door at a fraction of the weight.
+/// A day's one add door: the last row of its meals, above the day's total. It
+/// reads `nothing planned` on an empty day.
 class AddMealLine extends StatelessWidget {
   const AddMealLine({
     required this.empty,
@@ -472,24 +411,18 @@ class AddMealLine extends StatelessWidget {
   final bool empty;
   final VoidCallback onTap;
 
-  /// The inset around the line. The wide day pane has a margin to spend where
-  /// a phone card does not.
+  /// The inset around the line.
   final EdgeInsets padding;
 
-  /// Whether the line draws the hairline that separates it from the meals
-  /// above.
-  ///
-  /// It does on a card, where the rule is the card's own grid. It does not in
-  /// the wide agenda, where the only rules are the ones BETWEEN days — a
-  /// seventh hairline inside each day would make seven days look like fourteen.
+  /// Whether the line draws a hairline above it. True on a card; false in the
+  /// wide agenda, where rules only separate days.
   final bool divider;
 
   @override
   Widget build(BuildContext context) {
     return AnsiTap(
       onTap: onTap,
-      // The line is the door, so the ground is the line: a `＋` that lit on its
-      // own would say the glyph is the target and the words beside it are not.
+      // The whole line is the target, so the whole line highlights.
       radius: 0,
       child: Container(
         padding: padding,
@@ -520,9 +453,8 @@ class AddMealLine extends StatelessWidget {
   }
 }
 
-/// The dish row's SECOND line (D6, owner-ruled): the cook marker sits under
-/// the title, not in a column beside it — so it reads as a sentence about the
-/// dish, and can carry a full clause without squeezing the title.
+/// The dish row's second line: the cook marker, under the title so it can carry
+/// a full clause.
 class CookMarkerLine extends ConsumerWidget {
   const CookMarkerLine({
     required this.marker,
@@ -537,10 +469,7 @@ class CookMarkerLine extends ConsumerWidget {
   /// [cookMarkerLabel].
   final int? todayDayOfWeek;
 
-  /// Whether the label may run onto further lines instead of ellipsising.
-  ///
-  /// A phone row has a whole width for one clause and clips what will not fit.
-  /// The wide day pane wraps instead: it has no reason to shorten anything, and
+  /// Whether the label wraps instead of ellipsising. The wide day pane wraps:
   /// half of `from Tuesday's batch` names the wrong day.
   final bool wrap;
 
@@ -583,14 +512,9 @@ class CookMarkerLine extends ConsumerWidget {
   }
 }
 
-/// "edited for this week", beside the cook marker on the row's second line.
-///
-/// The cook marker's second, quieter voice — the one the board already uses
-/// for *"from Monday's batch"*: derived, not fresh. It is a fact the row
-/// prints and not a target, so it never moves onto the title line.
-///
-/// Every planned day of the recipe wears it, because the variant is per
-/// `(week, recipe)`: one pot, one line set, and two rows that cannot disagree.
+/// "edited for this week", beside the cook marker. A printed fact, not a
+/// target. Every planned day of the recipe wears it, because the variant is per
+/// `(week, recipe)`.
 class EditedForThisWeekMark extends StatelessWidget {
   const EditedForThisWeekMark({super.key});
 
@@ -609,20 +533,11 @@ class EditedForThisWeekMark extends StatelessWidget {
   );
 }
 
-/// The mark a meal eaten out wears where the agenda has room for one glyph and
-/// no room for a tag: Lucide's `circle`, a hollow dot among the run's names.
-///
-/// Hollow deliberately — everything else in that run is a thing the week will
-/// cook or buy, and this is the one that is neither. An outline says "counted
-/// differently" without spending a second colour on it.
+/// The agenda's one-glyph mark for a meal eaten out: a hollow dot.
 const kMealOutIcon = FLucideIcons.circle;
 
-/// The `out` tag — what a meal eaten out wears where a dish wears its cook
-/// marker's fresh bar.
-///
-/// The same quiet pill the week already uses for a fact a row prints rather
-/// than a target it offers ([EditedForThisWeekMark]): this is not a door and
-/// never becomes one, because there is nothing behind the words.
+/// The `out` tag a meal eaten out wears where a dish wears its cook marker. Not
+/// a target.
 class OutTag extends StatelessWidget {
   const OutTag({super.key});
 
@@ -638,13 +553,8 @@ class OutTag extends StatelessWidget {
   );
 }
 
-/// A meal eaten out's second line: the [OutTag], and beside it the per-portion
-/// figures as stated — or the words for their absence ([outMacroLine]).
-///
-/// It sits exactly where a dish's cook marker sits, because it answers the
-/// same question that line answers for a recipe: what does this meal cost the
-/// day it is on? Nothing is cooked, so there is no batch to talk about; what
-/// there is instead is a number somebody typed, or the honest absence of one.
+/// A meal eaten out's second line: the [OutTag] and the stated per-portion
+/// figures, or the words for their absence ([outMacroLine]).
 class OutMealLine extends StatelessWidget {
   const OutMealLine({required this.entry, this.size = 10.5, super.key});
 
@@ -669,8 +579,8 @@ class OutMealLine extends StatelessWidget {
   );
 }
 
-/// The design board's fresh→gone gradient at 26px, with a notch showing where
-/// this day sits in the batch's fridge window.
+/// The fresh→gone gradient at 26px, with a notch where this day sits in the
+/// batch's fridge window.
 class MiniFreshBar extends StatelessWidget {
   const MiniFreshBar({required this.position, super.key});
 

@@ -1,15 +1,8 @@
-/// Copying last week, and saying what it could not bring.
+/// Copying last week, and reporting what it left behind.
 ///
-/// `copyLastWeek` takes `plan_entry` columns only, so a recipe's **this-week
-/// changes** already stayed behind — "just this week" is the whole promise,
-/// and carrying a variant forward would turn it into a recipe edit made by
-/// accretion. The work here is the saying of it: a silent drop is the same bug
-/// as a silent carry, pointing the other way.
-///
-/// It is a **state, not a toast**. It stays true until somebody acts on it, it
-/// names rows they may want to open, and it is about the part of an act that
-/// did NOT happen — so it renders in the week's own body and clears when the
-/// week moves.
+/// `copyLastWeek` never carries a recipe's this-week changes forward, and the
+/// notice names them. It is a state in the week's body, not a toast: it stays
+/// until the week moves.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -25,16 +18,14 @@ import '../data/planning_providers.dart';
 import '../domain/planning.dart';
 import 'week_view_models.dart';
 
-/// Runs the copy and records what it left behind, for both doors that offer
-/// it — the empty week's bar and the week menu — so the two cannot report it
-/// two different ways.
+/// Runs the copy and records what it left behind, for both doors that offer it.
 Future<void> copyLastWeekInto(
   BuildContext context,
   WidgetRef ref, {
   required DateTime weekStart,
 }) async {
   // Captured before the await: the menu that opened this closes itself, so the
-  // widget's own ref is not safe on the far side.
+  // widget's own ref is unsafe afterwards.
   final container = ProviderScope.containerOf(context, listen: false);
   final result = await ref.write(
     context,
@@ -45,10 +36,8 @@ Future<void> copyLastWeekInto(
   container.read(lastCopyReportProvider.notifier).record(weekStart, result);
 }
 
-/// What the copy brought, and the recipes whose variants it did not.
-///
-/// Drawn only for the week the report is about: stepping away and back is not
-/// a reason to be told again.
+/// What the copy brought, and the recipes whose variants it did not. Drawn only
+/// for the week the report is about.
 class CopyLastWeekNotice extends ConsumerWidget {
   const CopyLastWeekNotice({required this.weekStart, super.key});
 
@@ -106,13 +95,8 @@ class CopyLastWeekNotice extends ConsumerWidget {
   }
 }
 
-/// The `copy last week` chip an empty week offers.
-///
-/// It is the one door both shapes of the screen share: beside the phone's
-/// "Add the first meal" button, and above the wide screen's two panes, where
-/// the agenda's seven add doors already cover the days so a primary would be a
-/// second door to the same place. Drawn only while the week has zero entries
-/// and there is a week behind it — the permanent home is the switcher menu.
+/// The `copy last week` chip, drawn only while the week has no entries and an
+/// earlier week exists. Its permanent home is the switcher menu.
 class CopyLastWeekChip extends StatelessWidget {
   const CopyLastWeekChip({required this.onTap, super.key});
 

@@ -1,20 +1,10 @@
-/// The week switcher — the title of the Week, Cook and Shop screens.
+/// The week switcher: the title of the Week, Cook and Shop screens — `‹ This
+/// week · 31 Aug ▾ ›`.
 ///
-/// The week is a **position**, so the header title is itself the control:
-/// `‹ This week · 31 Aug ▾ ›`. The chevrons step one week (unbounded — a week
-/// with no row costs nothing, because `_getOrCreateWeek` only writes on the
-/// first meal); tapping the title opens the short week menu.
-///
-/// There is ONE viewed week ([ViewedWeekStart], D3): Cook and Shop derive from
-/// it, so all three tabs carry this same switcher as their only title. Its herb
-/// dot and its "This week" item are how a derived tab says which week it shows
-/// and offers the tap home, without a pill or a banner saying it a second
-/// time. Two things differ per host: "Copy last week into this one" is a Week
-/// *write* and stays off the derived tabs ([WeekSwitcher.showCopyLastWeek]),
-/// and each tab's menu rows speak in that tab's own derivation
-/// ([WeekSwitcher.detailFor]).
-///
-/// Lives apart from `week_view.dart` because all three tabs draw it.
+/// The chevrons step [ViewedWeekStart] one week, unbounded; the title opens the
+/// week menu. Cook and Shop derive from the same viewed week. Per host, "Copy
+/// last week" is Week-only ([WeekSwitcher.showCopyLastWeek]) and the menu rows
+/// use the tab's own wording ([WeekSwitcher.detailFor]).
 library;
 
 import 'dart:async';
@@ -31,22 +21,16 @@ import 'copy_last_week.dart';
 import 'week_format.dart';
 import 'week_view_models.dart';
 
-/// The header title of every tab that shows a week: chevrons either side of
-/// the week's name, the name itself opening the week menu.
+/// Chevrons either side of the week's name; the name opens the week menu.
 class WeekSwitcher extends ConsumerWidget {
   const WeekSwitcher({this.showCopyLastWeek = true, this.detailFor, super.key});
 
-  /// Whether the menu offers "Copy last week into this one". It is a Week
-  /// write, and a derived tab's rule is "edit the Week, and this re-derives"
-  /// (D7b) — so Cook and Shop pass false and never read the planning
-  /// repository at all.
+  /// Whether the menu offers "Copy last week into this one". A Week write, so
+  /// Cook and Shop pass false and never read the planning repository.
   final bool showCopyLastWeek;
 
-  /// The trailing label for the menu row of a given week (its first day), in
-  /// the
-  /// host tab's own words — `2 cooks`, `6 items`, `9 meals` — or null for a
-  /// bare row. A tab only knows the week it has derived, so the rows it can
-  /// label are the ones it already has data for.
+  /// The trailing label for a week's menu row in the host tab's words (`2
+  /// cooks`, `6 items`, `9 meals`), or null for a bare row.
   final String? Function(DateTime weekStart)? detailFor;
 
   @override
@@ -103,8 +87,8 @@ class _Chevron extends StatelessWidget {
   }
 }
 
-/// The title, tappable: `● This week · 31 Aug ▾`. The herb dot marks the
-/// current week so the emphasis survives a glance.
+/// The tappable title: `● This week · 31 Aug ▾`. The herb dot marks the current
+/// week.
 class _WeekMenu extends ConsumerWidget {
   const _WeekMenu({
     required this.title,
@@ -120,8 +104,7 @@ class _WeekMenu extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final viewed = ref.watch(viewedWeekStartProvider);
     final thisWeek = ref.watch(currentWeekStartProvider);
-    // Only the Week screen's menu has a reason to know whether there is a
-    // last week to copy; the derived tabs never touch the planning repository.
+    // Only the Week screen's menu reads the planning repository.
     final hasLastWeek =
         showCopyLastWeek && ref.watch(lastWeekProvider).asData?.value != null;
     final notifier = ref.read(viewedWeekStartProvider.notifier);
@@ -134,8 +117,8 @@ class _WeekMenu extends ConsumerWidget {
     }
 
     return FPopoverMenu(
-      // `menuBuilder`, not `menu`: an item has to be able to dismiss the menu
-      // it was picked from before it acts.
+      // `menuBuilder`, not `menu`: an item must be able to dismiss the menu
+      // before it acts.
       menuBuilder: (_, controller, _) => [
         FItemGroup(
           children: [

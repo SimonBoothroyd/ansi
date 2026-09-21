@@ -1,19 +1,11 @@
 /// [WeekVariantRepository] over the local PowerSync SQLite.
 ///
-/// Writes go through the local VIEWS, so no UPSERT (a view rejects
-/// `ON CONFLICT`): making the stored set equal the handed set is a read of
-/// what is there, an UPDATE per row that stays, an INSERT per row that is new,
-/// and a tombstone per row that went.
-///
-/// A row that stays keeps its id. That is what makes the unique key
-/// `(week_plan, recipe, line)` survive repeated saves instead of racing
-/// against its own tombstones, and it is why an added line's override id is
-/// minted when the line is DRAFTED rather than when it is stored.
-///
-/// One watch query serves both streams, and it names every table the two
-/// loads read while selecting a column from each: SQLite drops a LEFT JOIN
-/// whose columns go unused, and a dropped join is a table PowerSync never
-/// fires on.
+/// Writes go through the local views, which reject UPSERT, so a save reads what
+/// is stored, then UPDATEs rows that stay, INSERTs new ones and tombstones the
+/// rest. A row that stays keeps its id, so the unique key `(week_plan, recipe,
+/// line)` never races its own tombstones. The watch query selects a column from
+/// every joined table: SQLite drops an unselected LEFT JOIN, and PowerSync
+/// never fires on a dropped table.
 library;
 
 import 'package:sqlite3/common.dart' show Row;
@@ -43,8 +35,7 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
 
   final SqliteConnection _db;
 
-  /// The household stamped on rows this repo writes (injected — the app passes
-  /// the signed-in household, tests pass their own).
+  /// The household stamped on rows this repo writes.
   final String _householdId;
 
   @override
@@ -55,10 +46,9 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
     return _weekChanges(key).asyncMap((_) => _loadByRecipe(key));
   }
 
-  /// Every table the two loads read, each contributing a SELECTed column so
-  /// SQLite keeps its join and PowerSync registers it as a trigger. The
-  /// recipe/group/line tables are in here for the macro summation, which
-  /// re-sums a varied recipe off its own lines.
+  /// Every table the two loads read, each contributing a selected column so
+  /// SQLite keeps the join. The recipe tables are here because a varied recipe
+  /// is re-summed off its own lines.
   Stream<void> _weekChanges(String weekKey) => _db.watch(
     'SELECT wp.id, wro.id, r.id, g.id, li.id, i.id, im.id, rm.id '
     'FROM week_plan wp '
@@ -69,9 +59,8 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
     'LEFT JOIN recipe_line_item li ON li.group_id = g.id '
     'LEFT JOIN ingredient i ON 1 = 1 '
     'LEFT JOIN ingredient_measure im ON 1 = 1 '
-    // A recipe's own words: re-stating `blob` moves what every measured
-    // component line comes to, so a varied recipe's re-summation has to
-    // re-run for it exactly as it does for a changed line.
+    // A recipe measure's weight changes what every measured component line
+    // comes to.
     'LEFT JOIN recipe_measure rm ON 1 = 1 '
     'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL LIMIT 1',
     parameters: [weekKey],
@@ -98,8 +87,7 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
     DateTime weekStart,
   ) {
     final key = isoDateOf(weekStart);
-    // The prices ride the same watch: a receipt landing changes what a varied
-    // recipe costs this week exactly as an override does.
+    // Prices ride the same watch: a new receipt changes a varied recipe's cost.
     return _priceChanges(key).asyncMap((_) => _loadVariantRecipeCosts(key));
   }
 
@@ -139,8 +127,7 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
               overrides: byRecipe[entry.key] ?? const [],
             ).kept,
             pricingOf: pricingOf,
-            // A component is costed as the recipe stands, for the reason its
-            // macros are summed that way.
+            // A component is costed as the recipe stands, as its macros are.
             subRecipeOf: (id) => nodes[id],
           ),
     };
@@ -153,8 +140,7 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
     String weekKey,
   ) async {
     final byRecipe = await _loadByRecipe(weekKey);
-    // The common week has no variant at all, and a whole-library summation on
-    // every fire of this watch would be a real cost for nothing.
+    // Most weeks have no variant; skip the whole-library summation.
     if (byRecipe.isEmpty) return const {};
     final (nodes, nutrition) = await loadRecipeMacroNodes(_db);
     return {
@@ -162,19 +148,16 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
         if (byRecipe.containsKey(entry.key))
           entry.key: summarizeRecipeMacros(
             servingsBase: entry.value.servingsBase,
-            // The seam, with this week's answer: an excluded line is gone, a
-            // replaced one carries its absolute values, an added one is there.
-            // The summation runs the seam again over what comes back and finds
-            // nothing left to drop, which is why the two rules compose.
+            // Excluded lines gone, replaced lines carrying their values, added
+            // lines present.
             lines: effectiveLines(
               entry.value.lines,
               overrides: byRecipe[entry.key] ?? const [],
             ).kept,
             nutritionOf: (id) => nutrition[id],
-            // A component is summed as the recipe stands. A variant is one set
-            // per (week, recipe), so a sub-recipe's own set belongs to the
-            // sub-recipe's figure, not to this one; re-targeting the link here
-            // would make a week's total disagree with the page it came from.
+            // A component is summed as the recipe stands: a variant is per
+            // (week, recipe), so a sub-recipe's own variant belongs to its own
+            // figure.
             subRecipeOf: (id) => nodes[id],
           ),
     };
@@ -187,10 +170,9 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
     required List<LineOverride> overrides,
   }) async {
     final key = isoDateOf(weekStart);
-    // Refused before anything is written, for the reason `saveRecipe` states:
-    // `week_recipe_line_override_amount_pair` rejects the upload, and a
-    // rejected upload makes the connector drop the WHOLE crud transaction —
-    // so one malformed delta would take every write queued beside it.
+    // Refused before anything is written: a row the server's
+    // `week_recipe_line_override_amount_pair` rejects makes the connector drop
+    // the whole crud transaction.
     for (final override in overrides) {
       if (override.recipeMeasureId != null && override.quantity == null) {
         throw WordlessOverrideError(
@@ -211,8 +193,8 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
         'WHERE week_plan_id = ? AND recipe_id = ? AND deleted_at IS NULL',
         [weekId, recipeId],
       );
-      // What is already standing, by the thing that identifies it: the recipe
-      // line for a delta about one, the row's own id for an addition.
+      // What is stored, keyed by recipe line for a delta and by row id for an
+      // addition.
       final byLine = <String, String>{};
       final addIds = <String>{};
       for (final r in stored) {
@@ -232,11 +214,9 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
             : byLine[line];
         final id = existing ?? (line == null ? override.id : _uuid.v4());
         kept.add(id);
-        // A word is only sayable about a COMPONENT, and beside it the unit
-        // column goes null: 0048's pair rule, resolved here so the two
-        // statements below cannot read the delta differently. `include` and
-        // `exclude` carry no target at all (0040's `action_shape`), so they
-        // can never carry a word either.
+        // A word is only sayable about a component, and the unit column is then
+        // null (the server's pair rule). Resolved once so both statements bind
+        // the same values.
         final recipeMeasureId = override.subRecipeId == null
             ? null
             : override.recipeMeasureId;
@@ -270,10 +250,8 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
             'recipe_measure_id, note, '
             'sort_order, created_at, updated_at) '
             'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            // The same [values] the UPDATE binds, whose last element is the
-            // `updated_at` stamp — so the two statements cannot drift on which
-            // columns a delta carries, which is how `recipe_measure_id` came
-            // to be missing from one of them in the first place.
+            // The same [values] the UPDATE binds (last element is the
+            // `updated_at` stamp), so the two statements cannot drift.
             [id, _householdId, weekId, recipeId, ...values, now],
           );
         }
@@ -300,24 +278,16 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
   }) async {
     final stored = await loadOverrides(weekStart, recipeId);
     final next = _lineIncluded(stored, lineId, included: included);
-    // Nothing to say: the week already reads the way the tap asked for, and a
-    // save would tombstone and re-insert rows for no change at all.
+    // Nothing to change, so nothing is written.
     if (next == null) return;
     await saveOverrides(weekStart, recipeId, overrides: next);
   }
 }
 
-/// [stored] with one line's `include` row added or removed — or null when the
-/// set already says what the tap asked for.
-///
-/// A one-tap door hands the repository a decision, not a diff, so this is the
-/// whole edit: an optional line the recipe would drop gains an
-/// [LineOverrideAction.include]; the same tap on a line the week EXCLUDES
-/// replaces that exclusion, which is the other side of the same question.
-///
-/// A row that carries values of its own is left alone: a `replace` already
-/// keeps the line this week, and overwriting it with a bare include would
-/// throw away the amount somebody stated.
+/// [stored] with one line's `include` row added or removed, or null when
+/// nothing changes. An include replaces an exclusion of the same line. A
+/// `replace` row is left alone: it already keeps the line, and overwriting it
+/// would drop its stated amount.
 List<LineOverride>? _lineIncluded(
   List<LineOverride> stored,
   String lineId, {
@@ -348,20 +318,15 @@ List<LineOverride>? _lineIncluded(
   ];
 }
 
-/// One week's whole variant, by recipe id — the loader the shop, the cook plan
-/// and this repository share, so the three derivations cannot read the week's
-/// deltas three slightly different ways.
-///
-/// One query: a week holds a handful of changed lines, so there is nothing to
-/// page and nothing to narrow.
+/// One week's whole variant, by recipe id. Shared by the shop, the cook plan
+/// and this repository.
 Future<Map<String, List<LineOverride>>> loadWeekOverrides(
   SqliteConnection db,
   String weekKey,
 ) async {
   final rows = await db.getAll(
-    // `wp.week_start_date` is selected as well as filtered on: an unselected
-    // join is one SQLite drops, and a dropped join is a table the watch never
-    // fires for.
+    // `wp.week_start_date` is selected as well as filtered on, so SQLite keeps
+    // the join and the watch fires for it.
     'SELECT wp.week_start_date, '
     'wro.id, wro.recipe_id, wro.recipe_line_item_id, wro.action, '
     'wro.ingredient_id, wro.sub_recipe_id, wro.quantity, wro.unit, '
@@ -396,22 +361,18 @@ LineOverride _overrideFrom(Row r) {
     action: _actionOf(r['action'] as String),
     recipeLineItemId: r['recipe_line_item_id'] as String?,
     ingredientId: r['ingredient_id'] as String?,
-    // The vocab row's name, or nothing: a row that has not synced leaves the
-    // line reading as the recipe's own name rather than as an empty cell.
+    // Empty until the vocab row syncs; the line then reads as the recipe's own
+    // name.
     ingredientName: r['ing_name'] as String? ?? '',
     subRecipeId: r['sub_recipe_id'] as String?,
     quantity: (r['quantity'] as num?)?.toDouble(),
-    // An unknown persisted unit id stays null — never a `pieces` fallback,
-    // which would let a total sum an invented unit (invariant 3). It is null
-    // on purpose beside a word, too: `recipe_measure_id` set means the amount
-    // is said in the target's own word and in no unit at all (0048's pair
-    // rule), and the word is asked first so a row carrying both is read as
-    // the word rather than the unit.
+    // An unknown unit id stays null, never a `pieces` fallback a total could
+    // sum. Null beside a word too: `recipe_measure_id` means the amount is in
+    // the target's word, and the word is read first.
     unit: recipeMeasureId != null ? null : unitById(r['unit'] as String? ?? ''),
     measureId: measureId,
-    // This week's own word for the amount — absolute like every other value
-    // here: the recipe re-stating `blob` later leaves this week at the count
-    // somebody asked for.
+    // Absolute, like every value here: re-weighing the word later leaves this
+    // week's count alone.
     recipeMeasureId: recipeMeasureId,
     measure: measureId == null || measureLabel == null || measureAmount == null
         ? null
@@ -428,9 +389,8 @@ LineOverride _overrideFrom(Row r) {
   );
 }
 
-/// An action this client does not know is not a delta it can apply, so the row
-/// is read as an exclusion of nothing: `include` on a line it is about changes
-/// no total. Never a guess at what a newer client meant.
+/// An action this client does not know reads as `include`, which changes no
+/// total. Never a guess at what a newer client meant.
 LineOverrideAction _actionOf(String stored) => switch (stored) {
   'exclude' => LineOverrideAction.exclude,
   'replace' => LineOverrideAction.replace,

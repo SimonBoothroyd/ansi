@@ -1,15 +1,6 @@
-/// The one door into week mode: a row at the foot of the meal editor sheet.
-///
-/// Not a fourth target on the dish row (0043 D1). The row's rule is *a row's
-/// controls are the facts the row prints*, and "edited for this week" is a
-/// result almost no row is in — a control drawn on every row to reach it is a
-/// target every row pays for. Not a Week-header menu item either: that is a
-/// menu for the thing you are already looking at.
-///
-/// The sheet is per **meal** and the variant is per **week and recipe**, so
-/// the row states its own scope in its own words — "a change covers every day
-/// this week — Tue and Sat". That sub-line is a condition of the door, not
-/// decoration.
+/// The door into week mode at the foot of the meal editor sheet. The sheet is
+/// per meal and the variant is per week and recipe, so the row states its
+/// scope: "a change covers every day this week — Tue and Sat".
 library;
 
 import 'package:flutter/widgets.dart';
