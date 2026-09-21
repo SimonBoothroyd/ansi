@@ -1,6 +1,6 @@
 # Exec plan: Food cost, receipts, and a meal eaten out
 
-- **Status:** active — phases one and three shipped as `v0.19.0`, phase two as `v0.20.0`, the first feedback pass as `v0.21.0`; open: the desk's three-column receipt review
+- **Status:** active — phases one and three shipped as `v0.19.0`, phase two as `v0.20.0`, the feedback passes as `v0.21.0`, `v0.24.0` (a line's count) and `v0.24.1` (add a line); open: the desk's three-column receipt review
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 1 — the first ideas off the backlog
 - **Created:** 2026-09-16
@@ -533,8 +533,7 @@ and can run beside phase one.
 
 ## Step-done checklist
 
-- [x] Roadmap: the Next list names this plan; phases one and three sit under
-      *On main, not yet tagged*; phase two joins them when it lands.
+- [x] Roadmap: every phase has its Shipped row.
 - [x] `ARCHITECTURE.md` standing table: ingredients (price fact), recipes
       (cost reading), planning (the third kind), shopping. *(import waits on
       receipts.)*
@@ -549,18 +548,8 @@ and can run beside phase one.
 - [x] ADR-0017 (cost is a unit price) written at P2's landing.
 - [ ] `make ci` green on every landing so far; `make test-sim` on one
       simulator, serially, when the owner says go.
-- [x] **0047 + `import-receipt`** for the match memory, on cloud
-      ([ledger](../../cloud-setup.md#last-verified-ledger)): the migration
-      applied, then the function deployed (`docs/release.md` §4). Both receipt
-      sync rules are `select *`, so `name_printed` arrives with the migration —
-      but the local sync container still has to be recreated from a checkout
-      that holds it before a device sees the column. Nothing new is set by
-      hand: the recall runs on the same `SUPABASE_DB_URL` pool the cascade
-      already uses.
-- [x] `deploy-supabase` run by hand for R1 — the workflow deploys
-      `import-receipt` by name beside `import-recipe`, and the two share the
-      `ANTHROPIC_API_KEY` / `IMPORT_ALLOWED_HOUSEHOLDS` secrets, so nothing new
-      is set by hand; sync rules recreated for 0044 and 0045. **0046 needs no sync-rule edit** — both receipt rules are
-      `select *`, so the two new columns arrive with the migration — but the
-      local container still has to be recreated from the checkout that holds
-      it before a device sees them.
+- [x] On cloud: `0044`–`0046` went with the hand-run `deploy-supabase` for R1;
+      `0047`, `0050` and the `import-receipt` deploys are in the
+      [ledger](../../cloud-setup.md#last-verified-ledger). Both receipt sync
+      rules are `select *`, so a new column needs no rule edit — only the local
+      sync container recreated from a checkout that holds the migration.
