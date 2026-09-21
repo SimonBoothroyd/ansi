@@ -1,40 +1,26 @@
-/// How a barcode draft lands on an ingredient — PURE DART (invariant 2).
+/// How a barcode draft lands on an ingredient. Pure Dart.
 ///
-/// The ingredient form takes an [IngredientDraft] whether or not the row
-/// exists yet, and whether or not a human has already typed into the fields. It
-/// applies every draft through [applyDraft], so there is one answer to "what
-/// does a scan overwrite":
+/// The ingredient form applies every [IngredientDraft] through [applyDraft],
+/// whether or not the row exists yet:
 ///
-/// - **A draft fills what is EMPTY and leaves what a human typed alone.** A
-///   name already in the field, a macro panel already entered, a provenance a
-///   lookup already stamped — none of it is replaced by a shop's label.
-/// - **Provenance becomes `off:<barcode>` unless the row already NAMES its
-///   food.** A USDA pick or an earlier scan is a name and stays. `manual`,
-///   `seed`, `import_stub` and a borrowed density's `fdc_density:<id>` are
-///   not names — they say how the row arrived — so the pack the person is
-///   holding names it; the one exception is a seed row still holding the
-///   seed's own numbers, which keeps them unattributed rather than gaining a
-///   pack they never came off. The stamp travels with a **name for the pack**
-///   ([DraftApplication.sourceLabel]), because a barcode is a key and nobody
-///   reads keys.
-/// - **Nothing here confirms the row**. The application is values for fields;
-///   `status` is untouched and the human confirms.
-/// - **A pack size is an OFFER, never a write.** The draft's "400 ml" becomes
-///   a ready-made measure only when the person ticks or taps it — and only
-///   when it converts honestly into the row's own basis (a measure stores its
-///   amount in the basis unit, ADR-0008, and a barcode carries no density).
+/// - A draft fills what is empty and leaves what a human typed alone.
+/// - Provenance becomes `off:<barcode>` unless the row already names its food
+///   ([hasLookupProvenance]). A seed row still holding the seed's numbers is
+///   the exception and stays unattributed. The stamp travels with
+///   [DraftApplication.sourceLabel].
+/// - `status` is untouched; the human confirms the row.
+/// - A pack size is an offer, never a write, and only when it converts into the
+///   row's basis (ADR-0008; a barcode carries no density).
 ///
-/// What was skipped is reported by name, so the host can say so instead of
-/// leaving the user to wonder why the panel on the card is not in the fields.
+/// What was skipped is reported by name so the host can say so.
 library;
 
 import '../../../core/result/result.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
-// The hand-off type is pure Dart and lives behind the barcode module's door;
-// this is the one file outside that directory allowed to name it directly,
-// because the door itself (`barcode_add.dart`) imports Flutter and a domain
-// file may not.
+// This is the one file outside the barcode directory allowed to import the
+// hand-off type directly: the module's door (`barcode_add.dart`) imports
+// Flutter, which a domain file may not.
 import '../barcode/ingredient_draft.dart';
 import 'ingredient.dart';
 
@@ -51,11 +37,8 @@ enum DraftSkip {
   final String reason;
 }
 
-/// What the host currently holds for the row the draft is landing on.
-///
-/// Every value is "as the human sees it right now": the sheet passes what is
-/// typed into it, the form passes its unsaved draft. Null / empty means the
-/// slot is free.
+/// What the host currently holds for the row the draft is landing on, as the
+/// human sees it now. Null or empty means the slot is free.
 class DraftTarget {
   const DraftTarget({
     this.name = '',
@@ -108,36 +91,29 @@ class DraftApplication {
   /// The name to put in the field, or null when the human's stays.
   final String? name;
 
-  /// The panel to put in the fields, with [macrosBasis]. Null when the
-  /// human's panel stays, and null when the draft has none: an absent panel
-  /// is a fact about Open Food Facts, never a row of zeros.
+  /// The panel to put in the fields, with [macrosBasis]. Null when the human's
+  /// panel stays or the draft has none.
   final Macros? macros;
 
-  /// The basis the landing panel reads in — set with [macros], or with
-  /// [servingPanel] (the serving's own basis, the row's default when OFF
-  /// named none); null when neither lands.
+  /// The basis the landing panel reads in. Set with [macros] or [servingPanel];
+  /// null when neither lands.
   final MacrosBasis? macrosBasis;
 
-  /// A panel printed per serving to land on the host's per-serving mode — the
-  /// same slot [macros] fills, so the same rule: null when the human's panel
-  /// stays. [macros] is null whenever this is set; the per-100 reading is the
-  /// host's to derive, in front of the person.
+  /// A per-serving panel to land on the host's per-serving mode. Null when the
+  /// human's panel stays. [macros] is null whenever this is set; the host
+  /// derives the per-100 reading.
   final DraftServingPanel? servingPanel;
 
-  /// The serving a per-100 panel also printed, to seed the row's one `serving`
-  /// measure. It rides with [macros] and is dropped on the same terms: a
-  /// serving describes the panel it was printed beside, so a panel that was
-  /// not taken brings no serving with it.
+  /// The serving a per-100 panel also printed, to seed the row's `serving`
+  /// measure. It lands only with [macros].
   final DraftServing? serving;
 
   /// The provenance to write (`off:<barcode>`), or null to keep the stored one.
   final String? source;
 
-  /// What to call the pack the [source] stamp points at — the row's
-  /// `source_label`, so a scanned row can name its food the way a USDA-filled
-  /// one names its description. Set only with [source]; null where the draft
-  /// named neither a brand nor a product, which means **no line** rather than
-  /// a name assembled out of nothing.
+  /// What to call the pack the [source] stamp points at: the row's
+  /// `source_label`. Set only with [source]; null when the draft named neither
+  /// a brand nor a product.
   final String? sourceLabel;
 
   /// The pack size, offered — see [PackMeasureOffer]. Null when the draft has
@@ -190,10 +166,8 @@ DraftApplication applyDraft(
     if (hasLookupProvenance(target.source)) {
       skipped.add(DraftSkip.provenance);
     } else if (target.source == 'seed' && target.hasMacros) {
-      // A seed row's numbers are the reference's, not this pack's: the scan
-      // leaves them (above) and must not put a pack's name over them. Every
-      // other row without a name — hand-made, an import stub, a borrowed
-      // density — is named by the pack the person is holding.
+      // A seed row's numbers are the reference's, so a scan must not put a
+      // pack's name over them. Every other unnamed row is named by the pack.
     } else {
       source = draft.sourceValue;
       sourceLabel = packLabel(draft);
@@ -220,20 +194,10 @@ DraftApplication applyDraft(
   );
 }
 
-/// What to call the pack a barcode draft came from, or null when Open Food
-/// Facts named neither a brand nor a product.
-///
-/// The brand and the product name, in the order a shelf prints them —
-/// "Kraft mac & cheese". Either alone stands on its own; **neither is not a
-/// name**, and null is the honest answer, because the alternative is a row
-/// whose provenance reads as a name nobody ever wrote. Nothing is re-cased or
-/// re-worded: what the pack says is evidence, the same reason
-/// [IngredientDraft.suggestedName] copies it verbatim.
-///
-/// A product name that already opens with its brand — "Monster Energy" by
-/// "Monster" — does not get it a second time. OFF's contributors put the brand
-/// in both fields often enough that the doubled reading would be the common
-/// one, not the exception.
+/// What to call the pack a barcode draft came from: the brand then the product
+/// name, verbatim, as a shelf prints them. Either alone stands; null when there
+/// is neither. A product name that already opens with its brand is not given it
+/// twice.
 String? packLabel(IngredientDraft draft) {
   final brand = draft.brand?.trim() ?? '';
   final product = draft.productName?.trim() ?? '';
@@ -243,28 +207,17 @@ String? packLabel(IngredientDraft draft) {
   return '$brand $product';
 }
 
-/// Whether [source] NAMES the food the row's numbers came from — a USDA pick
-/// (`usda_fdc:<id>`) or a barcode scan (`off:<barcode>`). Those are the two
-/// stamps a person put there, and a second machine does not talk over them.
-///
-/// Every other stamp is not a name: `seed` and `import_stub` say how the row
-/// arrived, and `fdc_density:<id>` says where a DENSITY was borrowed from —
-/// which is exactly the stamp the density prefill leaves on a hand-made row,
-/// and it must not stop the first scan of that row from saying whose pack
-/// the macros are. (The owner's Vegan Cheddar: made by hand, density
-/// borrowed, scanned — and the page had nothing to name it by.)
+/// Whether [source] names the food the row's numbers came from: a USDA pick
+/// (`usda_fdc:<id>`) or a barcode scan (`off:<barcode>`). Every other stamp
+/// (`seed`, `import_stub`, `fdc_density:<id>`) says how the row or its density
+/// arrived and does not stop a scan from naming the pack.
 bool hasLookupProvenance(String? source) =>
     isUsdaPrefilled(source) || isBarcodeFilled(source);
 
-/// The pack size expressed in [basis]'s base unit, or null when there is no
-/// pack size or it cannot be bridged honestly.
-///
-/// Open Food Facts' free-text `quantity` ("400 ml", "1 kg") is a ready-made
-/// measure — but a measure stores its amount in the ingredient's **basis**
-/// unit (ADR-0008), and a barcode carries no density. So "400 ml" on a
-/// per-100 ml row converts, "1 kg" on a per-100 g row converts, and "400 ml"
-/// on a per-100 g row does **not** — the offer is simply absent rather than
-/// present and wrong.
+/// The pack size in [basis]'s base unit, or null when there is none or it
+/// cannot be bridged. A measure stores its amount in the basis unit (ADR-0008)
+/// and a barcode carries no density, so "400 ml" on a per-100 g row yields no
+/// offer.
 double? packAmountInBasis(IngredientDraft draft, MacrosBasis basis) {
   final pack = draft.packSize;
   if (pack == null) return null;

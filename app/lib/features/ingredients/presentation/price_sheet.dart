@@ -1,40 +1,15 @@
-/// The price sheet — *paid* … *for* … *at* — the one door a price is entered
-/// through.
+/// The price sheet (*paid* … *for* … *at*): the one place a price is typed.
 ///
-/// Three questions and nothing else: what the money was, what it bought, and
-/// where. The pack is an amount in a unit this row can already say, picked
-/// from **the quantity sheet's own chip row** ([UnitChipRow]) rather than a
-/// second picker built for money: the row's measures lead it exactly as they
-/// do on a recipe line, so a bag the household has named is one tap and a
-/// plain `454 g` works where nothing is named. Same control, same height, same
-/// order.
+/// The pack is an amount in a unit the row can already say, picked from the
+/// quantity sheet's chip row ([UnitChipRow]). The dock shows the derived figure
+/// (`= 77¢ / 100 g`) before Done, or the refusal (`priceRefusal`) when the pack
+/// cannot be weighed. The store is a word: chips are what the household typed
+/// before, and `＋` names a new one. Save writes one `manual` receipt with one
+/// line.
 ///
-/// **The dock states what the two come to before Done.** It is the figure a
-/// recipe will read — `= 77¢ / 100 g` — and it is the derivation itself, not a
-/// preview of one, so a pack this row cannot weigh says so in the same slot
-/// and Done is refused with the reason (`priceRefusal`). A g-basis row bought
-/// by the litre prices only through a density; that is the macros' own gate,
-/// on the same boundary.
-///
-/// The store is a **word**, not a row: the chips are what this household has
-/// typed before, most recent first, and `＋` names a new one. Nothing about a
-/// store is stored anywhere but on the receipt that used it.
-///
-/// What Save writes is one `manual` receipt with one line — a hand-typed price
-/// and a scanned one are the same fact in the same ledger.
-///
-/// **The same sheet fixes a price it typed.** A tap on the Price group's
-/// *Latest* line or on any row under *Before* opens it **on that line**: the
-/// same three answers, filled in as they were entered — the pound as a pound,
-/// the bag as the bag — and Done writes an UPDATE rather than a new receipt, so
-/// correcting a typo does not leave the mistake behind as history. A **Delete**
-/// sits under it, because the other thing a mistyped price needs is to stop
-/// existing.
-///
-/// **Hand-typed prices only.** A line off a photographed receipt is edited on
-/// that receipt — the pack, the store and the paper's own sum are one sitting
-/// there, and two doors onto one line disagreed: this sheet could null a
-/// scanned pack and could not move a scanned line's store at all.
+/// Opened on a stored line, the sheet fills in the answers as entered, Done
+/// writes an UPDATE, and a Delete sits under it. Hand-typed prices only; a line
+/// off a photographed receipt is edited on that receipt.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -66,15 +41,10 @@ const kPriceDerivedKey = ValueKey('price-derived');
 /// The sheet's Delete, for the same reason.
 const kPriceDeleteKey = ValueKey('price-delete');
 
-/// Opens the price sheet for [ingredient]; resolves to true when a price was
-/// written or taken back, and null when the sheet was dismissed.
-///
-/// [editing] opens it **on a stored line** rather than on a new one: the
-/// answers are filled in as they were entered, Done rewrites that line, and a
-/// Delete appears under it.
-///
-/// Through [showAnsiSheet], which is also what makes it a centred dialog from
-/// `medium` up — the same door, in the room the window has for it.
+/// Opens the price sheet for [ingredient]. Resolves to true when a price was
+/// written or taken back, null when dismissed. [editing] opens it on a stored
+/// line. Goes through [showAnsiSheet], so it is a centred dialog from `medium`
+/// up.
 Future<bool?> showPriceSheet(
   BuildContext context, {
   required Ingredient ingredient,
@@ -111,17 +81,15 @@ class PriceEditor extends HookConsumerWidget {
     final packAmount = useState<double?>(null);
     final choice = useState<UnitChoice?>(null);
     final store = useState<String?>(null);
-    // A store named through `＋` but not yet written anywhere — it belongs in
-    // the chip row from the moment it is typed, and it becomes a remembered
-    // word only when Save lands the receipt that used it.
+    // A store named through `＋` in this sitting. It joins the chip row at once
+    // and is remembered only when Save lands.
     final coined = useState<List<String>>(const []);
     final busy = useState(false);
     final paidField = useTextEditingController();
     final packField = useTextEditingController();
-    // The stored line is copied into the fields ONCE, and only once the row's
-    // measures have arrived: a pack tapped as `bag` cannot be reopened on that
-    // chip before the chip exists, and re-seeding on a later frame would
-    // overwrite what the person had started typing.
+    // The stored line is copied into the fields once, after the row's measures
+    // arrive: a `bag` chip cannot be selected before it exists, and re-seeding
+    // later would overwrite typing.
     final seeded = useRef(false);
 
     final measuresAsync = ref.watch(ingredientMeasuresProvider(ingredient.id));
@@ -138,9 +106,8 @@ class PriceEditor extends HookConsumerWidget {
         return null;
       }
       seeded.value = true;
-      // The pack as it was ENTERED, where the line kept it and the chip it
-      // named still exists; otherwise the basis figure it is derived from,
-      // which is the honest reading of a line whose word is gone.
+      // The pack as entered, when the line kept it and its chip still exists;
+      // otherwise the basis figure.
       final asEntered = enteredChoice(line, measures);
       choice.value = asEntered ?? UnitOption(line.basis.baseUnit);
       final amount = asEntered == null
@@ -161,10 +128,8 @@ class PriceEditor extends HookConsumerWidget {
       return null;
     }, [measuresAsync]);
 
-    // The chip row opens on the first chip it offers — the same rule the
-    // quantity sheet opens on, because it is the same control. A sheet opened
-    // on a stored line opens on the chip that line was entered on instead,
-    // seeded above.
+    // Opens on the first chip offered, as the quantity sheet does, or on the
+    // stored line's chip seeded above.
     final packChoice = choice.value ?? firstOfferedChoice(ingredient, measures);
 
     final stores = <String>[
@@ -174,12 +139,9 @@ class PriceEditor extends HookConsumerWidget {
     ];
     final pickedStore = store.value ?? (stores.isEmpty ? null : stores.first);
 
-    // Only once both halves are stated: an empty field is a question nobody
-    // has answered yet, not a mistake to be named.
-    //
-    // What was PAID is the typed figure less the deduction the paper printed
-    // under it, exactly as the ledger reads it — on a hand-typed price there
-    // is none, and on a scanned line it is not this sheet's to restate.
+    // Derived only once both halves are stated; an empty field is not an error.
+    // What was paid is the typed figure less the line's printed deduction,
+    // which is zero on a hand-typed price.
     final derived = paidCents.value == null || packAmount.value == null
         ? null
         : priceFromEntry(
@@ -243,9 +205,8 @@ class PriceEditor extends HookConsumerWidget {
     }
 
     Future<void> remove() async {
-      // Captured BEFORE the confirm dialog: this sheet's own row can be gone
-      // by the time the answer comes back, and a `ref` that outlives its
-      // widget throws.
+      // Captured before the confirm dialog: this sheet's row can be gone by the
+      // time it answers, and a `ref` that outlives its widget throws.
       final container = ProviderScope.containerOf(context, listen: false);
       final host = hostContextOf(context);
       final ok = await askAnsi(

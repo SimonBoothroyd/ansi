@@ -1,14 +1,9 @@
-/// The barcode path's hand-off type — PURE DART (invariant 2).
+/// The barcode path's hand-off type. Pure Dart.
 ///
-/// An [IngredientDraft] is a *sketch*, never a row: an Open Food Facts lookup
-/// **prefills a draft and never completes an ingredient**. OFF is
-/// volunteer-entered, so a product with a blank or absurd panel is ordinary.
-/// Everything a lookup could not establish stays null here — never zero, never
-/// guessed (invariant 3, honest numbers) — and the human confirms what survives
-/// into the row: macros gate `complete`, and confirming is a human act.
-///
-/// The type is deliberately decoupled from the manager's form: plain fields,
-/// no Flutter, no repository. The form reads them as initial values.
+/// An [IngredientDraft] is a sketch, never a row: an Open Food Facts lookup
+/// prefills a draft and never completes an ingredient. Anything the lookup
+/// could not establish stays null, never zero, and a human confirms what
+/// reaches the row. Plain fields, no Flutter, no repository.
 library;
 
 import 'package:meta/meta.dart';
@@ -27,10 +22,8 @@ enum DraftSource {
   manual,
 }
 
-/// Why a draft carries no [IngredientDraft.macros].
-///
-/// The message is the honest sentence the form shows in place of the numbers.
-/// It exists because "blank" alone reads as "we forgot to ask".
+/// Why a draft carries no [IngredientDraft.macros]. The message is the sentence
+/// the form shows in place of the numbers.
 enum DraftMacrosGap {
   /// Macros are present — nothing to explain.
   none(null),
@@ -38,12 +31,10 @@ enum DraftMacrosGap {
   /// The product is in Open Food Facts but nobody has entered its panel.
   noPanel('Open Food Facts has no nutrition panel for this product.'),
 
-  /// The panel Open Food Facts holds is per *serving*, and the four printed
-  /// figures ride along in [IngredientDraft.servingPanel]. Converting them to
-  /// per-100 needs the serving's mass; OFF's `serving_size` is free text ("1
-  /// serving (16 fl oz)"), so it is never parsed — the numeric
-  /// `serving_quantity` prefills the serving row when OFF has one, and
-  /// otherwise the host asks for it.
+  /// OFF's panel is per serving; the four printed figures ride in
+  /// [IngredientDraft.servingPanel]. OFF's `serving_size` is free text and is
+  /// never parsed: the numeric `serving_quantity` prefills the serving row when
+  /// present, else the host asks.
   perServingPanel(
     'Open Food Facts holds this panel per serving, not per 100 — type the '
     'serving weight from the pack and the row stores per 100.',
@@ -56,11 +47,9 @@ enum DraftMacrosGap {
   final String? message;
 }
 
-/// A pack size read from Open Food Facts' free-text `quantity` ("400 ml",
-/// "1 kg"), parsed only when it lands cleanly on a catalog [Unit].
-///
-/// Offered to the form as a ready-made measure ("can = 400 ml"), which the
-/// board draws as an **opt-in tick** — this type never writes anything.
+/// A pack size read from Open Food Facts' free-text `quantity` ("400 ml", "1
+/// kg"), parsed only when it lands cleanly on a catalog [Unit]. Offered to the
+/// form as an opt-in measure ("can = 400 ml"); this type writes nothing.
 @immutable
 class DraftPackSize {
   const DraftPackSize(this.amount, this.unit);
@@ -79,14 +68,10 @@ class DraftPackSize {
   String toString() => 'DraftPackSize($amount ${unit.id})';
 }
 
-/// The serving a **per-100** label also prints — "0.25 cup (28 g)", "1 Cup
-/// (237 mL)" — read off Open Food Facts' free-text `serving_size`.
-///
-/// It is not the panel's basis and it is never a density: [amount] and [unit]
-/// are the pack's own words for one serving, chosen so they convert into the
-/// row's basis through the catalog alone. The host seeds the row's `serving`
-/// measure from it, which is what lets the reading posture print "80 kcal per
-/// 28 g" — the label's own line — beside the per-100 figures.
+/// The serving a per-100 label also prints ("0.25 cup (28 g)"), read off OFF's
+/// free-text `serving_size`. Not the panel's basis and never a density:
+/// [amount] and [unit] convert into the row's basis through the catalog alone.
+/// The host seeds the row's `serving` measure from it.
 @immutable
 class DraftServing {
   const DraftServing({
@@ -98,19 +83,17 @@ class DraftServing {
 
   final double amount;
 
-  /// A catalog unit in the panel's own family: a per-100 g label's serving is
-  /// a mass, a per-100 ml label's a volume. Crossing the two would need a
-  /// density Open Food Facts does not hold, so a serving that cannot be said
-  /// in the basis is simply not carried.
+  /// A catalog unit in the panel's own family: a mass for a per-100 g label, a
+  /// volume for per-100 ml. A serving that cannot be said in the basis is not
+  /// carried.
   final Unit unit;
 
   /// OFF's `serving_size` verbatim ("1 Cup (237 mL)") — quoted back in the
   /// line that checks the pack's own arithmetic against the app's.
   final String? printedText;
 
-  /// The label's per-serving figures, when OFF carried all four of them
-  /// alongside the per-100 column. The two readings are checked against each
-  /// other and nothing more: neither is derived from the other.
+  /// The label's per-serving figures, when OFF carried all four alongside the
+  /// per-100 column. Neither reading is derived from the other.
   final Macros? printed;
 
   @override
@@ -128,13 +111,9 @@ class DraftServing {
   String toString() => 'DraftServing($amount ${unit.id} · $printedText)';
 }
 
-/// A nutrition panel as a pack prints it **per serving** — the four figures
-/// verbatim, and what Open Food Facts knows about the serving they describe.
-///
-/// Never converted here: a per-100 reading needs the serving's amount in the
-/// row's basis, and this type only carries what OFF said. The host lands it
-/// on the form's per-serving mode, where [Macros.per100From] does the
-/// arithmetic in front of the person holding the pack.
+/// A nutrition panel as a pack prints it per serving: the four figures
+/// verbatim, and what OFF knows about the serving. Never converted here; the
+/// form's per-serving mode runs [Macros.per100From].
 @immutable
 class DraftServingPanel {
   const DraftServingPanel({
@@ -148,9 +127,8 @@ class DraftServingPanel {
   /// panel is not carried at all — [Macros.tryParse]'s rule.
   final Macros printed;
 
-  /// OFF's numeric `serving_quantity`, when it carries one, in
-  /// [servingBasis]'s base unit. Null means the person types it from the
-  /// pack — the free-text `serving_size` is never parsed into a number.
+  /// OFF's numeric `serving_quantity`, in [servingBasis]'s base unit. Null
+  /// means the person types it from the pack.
   final double? servingAmount;
 
   /// The basis `serving_quantity_unit` names (g → per-100 g, ml → per-100
@@ -196,17 +174,13 @@ class IngredientDraft {
     this.packSize,
   });
 
-  /// The draft a failed or skipped lookup lands on: nothing filled in, but
-  /// the scanned [barcode] kept so the form can record what was in hand.
-  /// This is the "add it by hand" exit from the not-found state.
+  /// The draft a failed or skipped lookup lands on: nothing filled in, but the
+  /// scanned [barcode] kept.
   const IngredientDraft.blank({String? barcode})
     : this(suggestedName: '', barcode: barcode);
 
-  /// What to put in the canonical-name field. A *starting point* — the board
-  /// is explicit that "the product name is a starting point; yours is the
-  /// name your recipes will read". It is [productName] trimmed, falling back
-  /// to [brand] and then to the empty string; nothing is re-cased or
-  /// re-worded, because a shop's name for a thing is evidence, not a guess.
+  /// What to put in the canonical-name field as a starting point: [productName]
+  /// trimmed, falling back to [brand], then empty. Never re-cased or re-worded.
   final String suggestedName;
 
   final DraftSource source;
@@ -219,19 +193,16 @@ class IngredientDraft {
   /// beside the name the user is choosing.
   final String? productName;
 
-  /// The first of OFF's comma-separated `brands`. OFF stores a list because
-  /// contributors add the parent company too ("Nutella, Ferrero, Yum yum");
-  /// only the first is the brand a shopper would name.
+  /// The first of OFF's comma-separated `brands`; contributors append parent
+  /// companies after it.
   final String? brand;
 
-  /// Per-100 macros in [macrosBasis], or null. All four values or none —
-  /// the same all-or-nothing rule [Macros.tryParse] applies to a vocab row,
-  /// so a half-filled panel never becomes three real numbers and a zero.
+  /// Per-100 macros in [macrosBasis], or null. All four values or none, as in
+  /// [Macros.tryParse].
   final Macros? macros;
 
-  /// The basis the panel was read in, carried straight through rather than
-  /// converted (7.7: macros are stored as the label reads). A `100ml` panel
-  /// gives [MacrosBasis.perMl].
+  /// The basis the panel was read in, carried through unconverted. A `100ml`
+  /// panel gives [MacrosBasis.perMl].
   final MacrosBasis macrosBasis;
 
   /// Why [macros] is null. [DraftMacrosGap.none] whenever it is not.
@@ -239,20 +210,16 @@ class IngredientDraft {
 
   /// The panel as printed per serving, when [macrosGap] is
   /// [DraftMacrosGap.perServingPanel] and OFF carried all four figures.
-  /// [macros] stays null alongside it: the per-100 reading is derived on the
-  /// host, in front of the person, from a serving amount they can see.
+  /// [macros] stays null alongside it.
   final DraftServingPanel? servingPanel;
 
-  /// The serving a **per-100** panel also printed, when the label's
-  /// `serving_size` says one in the panel's own family. Null on a per-serving
-  /// panel — there the serving is [servingPanel]'s, and the row is entered in
-  /// it rather than beside it.
+  /// The serving a per-100 panel also printed, when `serving_size` says one in
+  /// the panel's family. Null on a per-serving panel, where the serving is
+  /// [servingPanel]'s.
   final DraftServing? serving;
 
-  /// Always null from a barcode lookup: Open Food Facts holds no density,
-  /// and one is not derivable from a pack size. The field exists so the
-  /// form's initial value has somewhere to come from, not so a mapper can
-  /// invent it.
+  /// Always null from a barcode lookup: Open Food Facts holds no density. The
+  /// field gives the form's initial value a source.
   final double? densityGPerMl;
 
   /// The pack size, when OFF's free-text `quantity` parsed. Null otherwise.
@@ -266,8 +233,7 @@ class IngredientDraft {
   };
 
   /// The credit line the form must show beside anything Open Food Facts
-  /// supplied. Its database is ODbL; the board has carried this line since
-  /// the original "Barcode add" frame. Null for a manual draft.
+  /// supplied (its database is ODbL). Null for a manual draft.
   String? get attribution =>
       source == DraftSource.barcode ? 'Open Food Facts · ODbL' : null;
 

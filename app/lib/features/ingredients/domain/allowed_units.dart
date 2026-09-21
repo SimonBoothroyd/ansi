@@ -1,18 +1,9 @@
-/// Which units a picker may offer for an ingredient — PURE DART (invariant 2).
+/// Which units a picker may offer for an ingredient. Pure Dart (invariant 2).
 ///
-/// The rule is short, and it is meant to be (ADR-0014). A row may be said in
-/// its whole **basis family** (per-100 g ⇒ every mass unit, per-100 ml ⇒ every
-/// volume unit), in the **other** mass/volume family once a density bridges
-/// the two, in `piece` when it is counted AND the row says what one weighs
-/// (ADR-0015: a piece weight is the count fact the way a density is the
-/// volume fact), and in the imprecise words its category earns. Nothing else
-/// is trimmed away: a household prunes what it does not want row by row, in
-/// the flesh-out form's chips.
-///
-/// The one thing still refused is the pair that cannot convert — "200 cup" of
-/// a mass-default row with no density would split aggregation into subtotals
-/// nobody can add up, so the other family stays out until the number that
-/// bridges it exists.
+/// A row may be said in its basis family, in the other mass/volume family once
+/// a density bridges the two, in `piece` when it is counted and states a piece
+/// weight, and in the imprecise words its category earns. The household prunes
+/// the rest row by row. See ADR-0014 and ADR-0015.
 library;
 
 import '../../../core/units/macros.dart';
@@ -24,10 +15,7 @@ import '../../../core/units/units.dart';
 import 'ingredient.dart';
 import 'serving_measure.dart';
 
-// The picker's vocabulary and the unit-word lookup are the unit system's, not
-// this feature's — a component's dock offers the same row one level up. Every
-// surface that reads the offer reads it from here, so they move without a
-// churn of imports.
+// Re-exported so surfaces that read the offer need one import.
 export '../../../core/units/measure.dart' show kWholeMeasureTolerance;
 export '../../../core/units/unit_choice.dart';
 export '../../../core/units/unit_words.dart'
@@ -35,35 +23,18 @@ export '../../../core/units/unit_words.dart'
 
 // --- Kitchen ordering (ADR-0008 §Consequences) -------------------------------
 
-/// Kitchen display order within each family — the order a cook reaches for
-/// them, not the order the catalog declares them. The default unit is always
-/// fronted within the catalog units; the rest of its family follows in this
-/// order. The ingredient's own measures sit in front of all of it
-/// ([allowedUnitChoicesFor]) — they are words for this row alone, where a
-/// catalog unit is offered on every row.
-///
-/// Volume runs spoons → the sizes a bottle or a recipe prints (`fl oz`, `cup`)
-/// → the metric jug → the US pair, which is last because it is what an
-/// American recipe prints rather than what this kitchen measures in. Mass runs
-/// metric then customary, for the same reason.
-///
-/// Order only: which units are *admitted* is [_derivedSet]'s answer, and a
-/// catalog unit missing from these lists still renders — [_orderUnits] ends
-/// with whatever it did not place.
+/// Kitchen display order within each family. Order only: admission is
+/// [_derivedSet]'s answer, and [_orderUnits] appends any catalog unit missing
+/// here. The row's own measures lead the whole offer ([allowedUnitChoicesFor]).
 const _kitchenOrder = {
   UnitFamily.volume: [tsp, tbsp, flOz, cup, ml, l, pint, quart],
   UnitFamily.mass: [g, kg, oz, lb],
 };
 
-/// The units an amount **about this row** may be typed in and still be stored
-/// in the row's basis: its own basis family, in kitchen order, plus the other
-/// mass/volume family only while a density bridges the two (ADR-0009).
-///
-/// It is the entry-side twin of [allowedUnitsFor]. That one answers "what may
-/// a recipe LINE say"; this answers "what may a number the form is about to
-/// store in `basis_amount`/`piece_basis_amount` be written in" — a measure's
-/// weight, a piece's weight. The honesty rule is the same one and the only
-/// one: never offer a pair the converter cannot resolve.
+/// The units an amount stored in the row's basis (a measure's weight, a piece's
+/// weight) may be typed in: the basis family in kitchen order, plus the other
+/// mass/volume family while a density bridges them (ADR-0009). The entry-side
+/// twin of [allowedUnitsFor].
 List<Unit> basisConvertibleUnits(Ingredient ingredient) {
   final basisFamily = ingredient.macrosBasis.baseUnit.family;
   final other = basisFamily == UnitFamily.mass
@@ -80,22 +51,12 @@ List<Unit> basisConvertibleUnits(Ingredient ingredient) {
 Iterable<Unit> _familyUnits(UnitFamily family) =>
     kIngredientUnits.where((u) => u.family == family);
 
-/// Which categories admit which imprecise word (ADR-0008 §5: category-gated,
-/// not universal, and gated per WORD).
+/// Which categories admit which imprecise word, gated per word (ADR-0008 §5):
+/// pinch and dash for spices, seasonings and oils, handful for greens.
 ///
-/// One set of categories admitting all four words would mean anything earning
-/// `pinch` earns `handful` too, which is how "a dash of kale" becomes
-/// offerable. **Pinch and dash are for the spice/seasoning/oil classes;
-/// handful is for greens** — that is how cooks actually talk. Every surface
-/// reads this map, the import review included.
-///
-/// Keys are the vocab's ACTUAL category values (`produce`, `pantry`, `spices &
-/// seasoning`, `grains`, `baking`, `fats & oils`, `dairy`, `proteins`). It has
-/// no separate 'condiment' category, and no leafy/greens category either —
-/// `produce` is the nearest thing the vocabulary can express, so it is what
-/// `handful` is gated on; a tighter gate would need the seed to split the
-/// category, not this map to grow. Condiment-ish pantry rows get theirs via
-/// curation overrides.
+/// Keys are the vocab's actual category values. There is no greens category, so
+/// `handful` is gated on `produce`; condiment-like pantry rows get theirs
+/// through curation overrides.
 const kImpreciseCategoryGates = <Unit, Set<String>>{
   pinch: {'spices & seasoning', 'fats & oils'},
   dash: {'spices & seasoning', 'fats & oils'},
@@ -103,13 +64,9 @@ const kImpreciseCategoryGates = <Unit, Set<String>>{
   toTaste: {'spices & seasoning', 'fats & oils'},
 };
 
-/// The imprecise units [ingredient]'s own category earns it (**J3**), plus its
-/// default unit when that is itself imprecise — a row defaulting to `pinch`
-/// must always be able to say `pinch`.
-///
-/// This is the vocab rule. The import amount editor admits `to taste` on top
-/// of it for every food, because "plus more, to serve" is legitimately
-/// imprecise whatever the ingredient — see `importImpreciseUnitsFor`.
+/// The imprecise units [ingredient]'s category earns, plus its default unit
+/// when that is itself imprecise. The import editor also admits `to taste` for
+/// every food; see `importImpreciseUnitsFor`.
 Set<Unit> impreciseUnitsFor(Ingredient ingredient) {
   final category = ingredient.category?.trim().toLowerCase();
   final d = ingredient.defaultUnit;
@@ -120,45 +77,30 @@ Set<Unit> impreciseUnitsFor(Ingredient ingredient) {
   };
 }
 
-/// The **derived** allowed-unit defaults for [ingredient] — the Dart mirror
-/// of the database's `default_allowed_units()` (change one, change both:
-/// `unit_admission.sql` and the tests here pin the same vectors). Used as the
-/// fallback when a row carries no explicit list (legacy/unsynced rows, freshly
-/// typed local stubs), and as the rule the seed pipeline materializes.
+/// The derived allowed-unit defaults for [ingredient]: the Dart mirror of the
+/// database's `default_allowed_units()` (change both; `unit_admission.sql` and
+/// the tests pin the same vectors). The fallback for a row with no explicit
+/// list. See ADR-0014 and ADR-0015.
 ///
-/// Four bullets, and that is the whole rule (ADR-0014, ADR-0015):
+/// - The basis family, whole ([Ingredient.macrosBasis]).
+/// - The other mass/volume family, only while a density is stored
+///   ([densityUnlockedUnits]); without one [convert] fails with
+///   `unit/no_density`.
+/// - `piece`, only on a count-default row with a piece weight
+///   ([Ingredient.pieceBasisAmount]).
+/// - The imprecise words per [kImpreciseCategoryGates], plus an imprecise
+///   default's own word.
 ///
-/// - the **basis family**, whole ([Ingredient.macrosBasis]: /g → every mass
-///   unit, /ml → every volume unit) — the canonical dimension is always
-///   sayable, so yeast (tsp default, per-g macros) admits `g` and `kg` alike;
-/// - the **other** mass/volume family, whole, but only while a density is
-///   stored ([densityUnlockedUnits]) — without one [convert] would fail with
-///   `unit/no_density`. A density is a property of the substance, not of how
-///   the shop sells it, so this fires for a count- or imprecise-default row
-///   too ("1 cup diced mango");
-/// - `piece` on a count-default row that carries a **piece weight**
-///   ([Ingredient.pieceBasisAmount]) — the count fact the way the density is
-///   the volume fact. A count default with no weight admits no `piece`: an
-///   unweighed count is exactly the line the converter cannot bridge, and
-///   `piece` is never derived for any other default unit at all;
-/// - the imprecise words per [kImpreciseCategoryGates] — gated word by word,
-///   so greens earn `handful` without earning `pinch` (and an imprecise
-///   default always keeps its own word).
-///
-/// A row's own default unit needs no clause of its own: it is in the basis
-/// family, or in the other one and therefore density-gated, which is exactly
-/// what [unitSayableAsDefault] refuses to store without a number.
+/// [unitSayableAsDefault] covers the default unit itself.
 Set<Unit> defaultAllowedUnitSet(Ingredient ingredient) => _derivedSet(
   ingredient,
   density: ingredient.densityGPerMl != null,
   piece: ingredient.pieceBasisAmount != null,
 );
 
-/// [defaultAllowedUnitSet] with the density and piece-weight legs forced on
-/// or off, so callers can ask the counterfactual — "what would this row admit
-/// *with* a density" ([allowedUnitCandidates]' locked chips) and "what does it
-/// admit *without* one" ([densityStrippedUnits], [pieceStrippedUnits]) —
-/// without minting a copy of the row.
+/// [defaultAllowedUnitSet] with the density and piece-weight legs forced on or
+/// off, for the counterfactuals [allowedUnitCandidates], [densityStrippedUnits]
+/// and [pieceStrippedUnits] ask.
 Set<Unit> _derivedSet(
   Ingredient ingredient, {
   required bool density,
@@ -173,26 +115,16 @@ Set<Unit> _derivedSet(
   return {
     ..._familyUnits(basisFamily),
     if (density) ..._familyUnits(otherFamily),
-    // `batch` is a sub-recipe denomination and never an ingredient's unit; an
-    // imprecise default earns no family of its own and rides the line below.
-    // `piece` needs BOTH: a count default (the owner's ruling — piece shows
-    // only where the row is counted) and a weight for one (ADR-0015).
+    // `batch` is never an ingredient's unit. `piece` needs both a count default
+    // and a piece weight (ADR-0015).
     if (ingredient.defaultUnit.family == UnitFamily.count && piece) pieces,
     ...impreciseUnitsFor(ingredient),
   };
 }
 
-/// What a stored density actually buys [ingredient]: the whole rule read with
-/// the density on, minus the whole rule read with it off.
-///
-/// Derived rather than listed, which is what keeps it honest in both directions
-/// — the density write path unions exactly this into the EXPLICIT
-/// `allowed_units` list, and [densityStrippedUnits] takes exactly this back.
-///
-/// It is the whole other family, whatever the default unit: a per-100 g row
-/// gains every volume unit, a per-100 ml row every mass unit. A row whose own
-/// default sits on that side (flour, `cup` on a per-100 g basis) has the
-/// density to thank for its default too.
+/// What a stored density buys [ingredient]: the rule with the density on, minus
+/// the rule with it off, which is the whole other family. The density write
+/// path unions exactly this into the explicit list.
 Set<Unit> densityUnlockedUnits(Ingredient ingredient) {
   final piece = ingredient.pieceBasisAmount != null;
   return _derivedSet(
@@ -202,27 +134,14 @@ Set<Unit> densityUnlockedUnits(Ingredient ingredient) {
   ).difference(_derivedSet(ingredient, density: false, piece: piece));
 }
 
-/// The units an ingredient admits **only because a density is stored** — what
-/// deleting that density takes away again.
-///
-/// The same rule as [densityUnlockedUnits], read in the opposite direction:
-/// what a density adds is exactly what deleting it removes. The **basis
-/// family** (per-100 g ⇒ mass, per-100 ml ⇒ volume) always survives, because
-/// it never needed a density to be sayable.
-///
-/// This is the one removal leg in the whole admission model. ADR-0009's
-/// union-never-remove rule still governs backfills and reseeds; a density
-/// **deletion** is different in kind, because that admission was *derived*
-/// from the number being deleted — see the ADR's D4b refinement note.
+/// The units admitted only because a density is stored, which deleting it takes
+/// away; the basis family always survives. The one removal leg in the admission
+/// model (see ADR-0009's note on density deletion).
 Set<Unit> densityStrippedUnits(Ingredient ingredient) =>
     densityUnlockedUnits(ingredient);
 
-/// What a stored **piece weight** buys [ingredient]: `piece`, on a
-/// count-default row, and nothing anywhere else (ADR-0015). Derived the way
-/// [densityUnlockedUnits] is — the rule read with the weight on, minus the
-/// rule read with it off — so the two legs of the admission model cannot
-/// drift apart. The piece-weight write path unions exactly this into the
-/// explicit list; [pieceStrippedUnits] takes exactly this back.
+/// What a stored piece weight buys [ingredient]: `piece` on a count-default
+/// row, nothing elsewhere (ADR-0015). Derived as [densityUnlockedUnits] is.
 Set<Unit> pieceUnlockedUnits(Ingredient ingredient) {
   final density = ingredient.densityGPerMl != null;
   return _derivedSet(
@@ -232,9 +151,8 @@ Set<Unit> pieceUnlockedUnits(Ingredient ingredient) {
   ).difference(_derivedSet(ingredient, density: density, piece: false));
 }
 
-/// The piece weight as the [Measure] the converter already understands:
-/// `n piece` is `n × amount` of the basis unit, exactly like a named measure.
-/// Null when the row has no weight — nothing is invented for it.
+/// The piece weight as a [Measure] the converter understands. Null when the row
+/// has no weight.
 Measure? pieceAsMeasure(Ingredient ingredient) {
   final amount = ingredient.pieceBasisAmount;
   if (amount == null) return null;
@@ -246,28 +164,14 @@ Measure? pieceAsMeasure(Ingredient ingredient) {
   );
 }
 
-/// The row's **whole measure**: the live measure among [measures] whose amount
-/// is what the row says one piece weighs ([Ingredient.pieceBasisAmount], within
-/// [kWholeMeasureTolerance]), or null.
+/// The row's whole measure: the live measure whose amount equals the row's
+/// piece weight ([Ingredient.pieceBasisAmount], within
+/// [kWholeMeasureTolerance]), or null. See ADR-0016.
 ///
-/// A measure that weighs what a piece weighs is the row's word for one — Lime's
-/// `lime, whole` = 67 g on a 67 g piece, Onion's `onion, medium` = 110 g on a
-/// 110 g piece — and every door says it (ADR-0016): the chip row leads with
-/// it and the sheet opens on it, the import review lands a counted line on it,
-/// the recipe page prints its words. `piece` stays sayable after it; a row
-/// that weighs a piece but names no size (Avocado, Chicken thigh) has no
-/// whole measure and still says `piece`.
-///
-/// It is **derived by weight, never stored as a pointer.** A stored
-/// `default_measure_id` could be re-aimed later and silently change what a
-/// saved line meant — ADR-0015's objection, which retired that column — while
-/// two numbers agreeing is a fact that reads the same on every device and in
-/// the server's SQL. Null when the row states no weight (nothing to match
-/// against), when no measure weighs a piece, or when the only candidate is one
-/// the chip row would not offer anyway: a measure merely naming a volume unit
-/// (density owns volume — [isVolumeUnitLabel]) or the row's serving
-/// ([isServingMeasure]). Two measures within tolerance resolve to the lowest
-/// [Measure.sortOrder], then label, so every reader picks the same one.
+/// Derived by weight, never stored as a pointer, so a saved line cannot
+/// silently change meaning. Skips a measure that merely names a volume unit
+/// ([isVolumeUnitLabel]) and the row's serving ([isServingMeasure]). Ties
+/// resolve to the lowest [Measure.sortOrder], then label.
 Measure? wholeMeasureOf(Ingredient ingredient, List<Measure> measures) {
   final weight = ingredient.pieceBasisAmount;
   if (weight == null || !(weight > 0)) return null;
@@ -285,10 +189,8 @@ Measure? wholeMeasureOf(Ingredient ingredient, List<Measure> measures) {
   return whole;
 }
 
-/// What a `piece` chip SAYS wherever it is offered: `piece (350 g)` on a row
-/// that states what one weighs, so the word is never a bare count beside a
-/// `clove (3 g)` that explains itself. A row with no weight — where `piece` is
-/// only ever drawn locked or off-filter — keeps the bare word.
+/// The `piece` chip's label: `piece (350 g)` on a row that states a piece
+/// weight, else the bare word.
 String pieceChipLabel(Ingredient ingredient) {
   final amount = ingredient.pieceBasisAmount;
   if (amount == null) return pieces.label;
@@ -296,40 +198,23 @@ String pieceChipLabel(Ingredient ingredient) {
   return '${pieces.label} (${formatAmountIn(amount, basis)} ${basis.label})';
 }
 
-/// The units an ingredient admits **only because a piece weight is stored** —
-/// what clearing that weight takes away again. The same rule as
-/// [pieceUnlockedUnits], read in the opposite direction, and the mirror of
-/// [densityStrippedUnits]: an admission derived from a number goes with the
-/// number.
+/// The units admitted only because a piece weight is stored; the mirror of
+/// [densityStrippedUnits].
 Set<Unit> pieceStrippedUnits(Ingredient ingredient) =>
     pieceUnlockedUnits(ingredient);
 
-/// Whether [ingredient]'s stored default unit is one its own admission rules no
-/// longer support: a mass/volume default on the far side of the basis family,
-/// with no density to bridge it (the renamed-rice shape, `cup` default on a
-/// per-100 g row).
-///
-/// The form draws this as a flag with a one-tap fix ([basisDefaultUnitFix])
-/// **and refuses to save while it holds**: a flag alone is advice, and a basis
-/// flipped after the default was chosen would otherwise let a row the chips
-/// never offered reach the database. It is never repaired silently either — a
-/// default unit is a statement about how the household buys the thing, so the
-/// refusal names both fixes and the person picks one.
+/// Whether the stored default is a mass/volume unit outside the basis family
+/// with no density to bridge it (`cup` on a per-100 g row). The form flags it
+/// with [basisDefaultUnitFix] and refuses Save while it holds; it is never
+/// repaired silently.
 bool defaultUnitNeedsDensity(Ingredient ingredient) =>
     ingredient.densityGPerMl == null &&
     !unitSayableAsDefault(ingredient, ingredient.defaultUnit);
 
-/// The count-side stranded default (ADR-0015): a `piece` default on a row
-/// with no piece weight. The same shape as [defaultUnitNeedsDensity] — the
-/// default names a unit nothing on the row can convert — and it gets the same
-/// treatment: the form draws the flag with its ways out (enter what one
-/// weighs, or switch to the basis unit) and **refuses Save** while it holds. A
-/// row is not saveable as piece-default with nothing weighing a piece
-/// (ADR-0015, owner-ruled).
-///
-/// It is deliberately NOT folded into [unitSayableAsDefault]: `piece` stays
-/// pickable on the chip row with no weight yet, because picking it is what
-/// makes the weight field appear. The refusal, not the chip, holds the line.
+/// The count-side stranded default (ADR-0015): a `piece` default with no piece
+/// weight. Flagged and refused at Save like [defaultUnitNeedsDensity]. Not
+/// folded into [unitSayableAsDefault], because picking `piece` is what reveals
+/// the weight field.
 bool defaultUnitNeedsPieceWeight(Ingredient ingredient) =>
     ingredient.defaultUnit.family == UnitFamily.count &&
     ingredient.pieceBasisAmount == null;
@@ -340,9 +225,9 @@ bool defaultUnitStranded(Ingredient ingredient) =>
     defaultUnitNeedsDensity(ingredient) ||
     defaultUnitNeedsPieceWeight(ingredient);
 
-/// Whether [unit] may be *chosen* as [ingredient]'s default (**D4c**): the
-/// basis family, count and imprecise always; the other mass/volume family
-/// only while a density bridges it.
+/// Whether [unit] may be chosen as [ingredient]'s default: the basis family,
+/// count and imprecise always; the other mass/volume family only with a
+/// density.
 bool unitSayableAsDefault(Ingredient ingredient, Unit unit) {
   if (unit.family != UnitFamily.mass && unit.family != UnitFamily.volume) {
     return true;
@@ -358,27 +243,15 @@ bool unitSayableAsDefault(Ingredient ingredient, Unit unit) {
 Unit basisDefaultUnitFix(Ingredient ingredient) =>
     ingredient.macrosBasis.baseUnit;
 
-/// The default-unit row's offer: the units that may be CHOSEN as the
-/// ingredient's default right now, and the ones a missing density still keeps
-/// out of that row — in chip order, for the note that names them.
+/// The default-unit row's offer: the units that may be chosen now, and those a
+/// missing density keeps out, in chip order.
 typedef DefaultUnitOffer = ({List<Unit> choices, List<Unit> needDensity});
 
-/// What the default-unit chip row draws for [ingredient]: only the units it
-/// can honestly be counted in ([unitSayableAsDefault]), with the rest named in
-/// one line under the row rather than offered and refused at Save.
-///
-/// **The stored default is always a chip**, sayable or not. A row saved while
-/// stranded — a `cup` default whose density was deleted, a `g` default under a
-/// basis flipped to per 100 ml — must show the person the very chip they need
-/// to move off, so it is drawn (and [defaultUnitStranded] paints it) rather
-/// than hidden. Hiding a broken row's own default would leave the Save refusal
-/// naming a unit nothing on screen mentions.
-///
-/// `piece` stays among the choices on a row with no piece weight, the one
-/// place this offer is wider than "what the row can convert". The reason is
-/// the same one [defaultUnitNeedsPieceWeight] documents: picking `piece` is
-/// what makes the weight field appear, so a row could never acquire the number
-/// that unlocks it. The stranded flag and the Save refusal hold that line.
+/// What the default-unit chip row draws: the units passing
+/// [unitSayableAsDefault], with the rest named under the row. The stored
+/// default is always a chip, even when stranded ([defaultUnitStranded] paints
+/// it). `piece` is offered with no piece weight yet; see
+/// [defaultUnitNeedsPieceWeight].
 DefaultUnitOffer defaultUnitOfferFor(Ingredient ingredient) {
   final choices = <Unit>[];
   final needDensity = <Unit>[];
@@ -392,17 +265,10 @@ DefaultUnitOffer defaultUnitOfferFor(Ingredient ingredient) {
   return (choices: choices, needDensity: _orderUnits(needDensity, ingredient));
 }
 
-/// Orders an allowed-unit set into chip order: the default unit fronted, the
-/// rest of its family in kitchen order, count next, then the demoted other
-/// mass/volume family (basis family first when both are demoted), imprecise
-/// last. Stored `allowed_units` is a SET — this is the single place display
-/// order comes from.
-///
-/// **The default unit is fronted whatever its family** (owner), imprecise
-/// included: the few rows that are bought and said in a word — Ground
-/// Allspice, Flaky Salt — would otherwise open on `g`, because the imprecise
-/// tail sits behind every weight. A word fronted this way is still taken
-/// once, so it never reappears among its own family.
+/// Orders a unit set into chip order: the default unit first (whatever its
+/// family), the rest of its family in kitchen order, count, the other
+/// mass/volume family, imprecise last. Stored `allowed_units` is a set, so
+/// display order comes only from here.
 List<Unit> _orderUnits(Iterable<Unit> unitsIn, Ingredient ingredient) {
   final remaining = unitsIn.toSet();
   final d = ingredient.defaultUnit;
@@ -440,35 +306,17 @@ List<Unit> _orderUnits(Iterable<Unit> unitsIn, Ingredient ingredient) {
   return out;
 }
 
-/// The units a unit picker should offer for [ingredient], in chip order
-/// (default first → its family in kitchen order → the demoted other family →
-/// imprecise last). This is the CATALOG half of the order:
-/// [allowedUnitChoicesFor] puts the ingredient's own measures in front of the
-/// whole of it.
+/// The catalog units a picker offers for [ingredient], in chip order.
+/// [allowedUnitChoicesFor] puts the row's measures in front.
 ///
-/// Reads the **explicit per-ingredient list** ([Ingredient.allowedUnits]) when
-/// the row carries one — explicit beats derived, and the flesh-out form owns
-/// it from creation on. Since the rule stopped trimming, that list is mostly
-/// how a row gets *narrower* than the rule: the household prunes what it will
-/// never say. A row without one (legacy, unsynced, a freshly typed local stub)
-/// falls back to the derived defaults the server materializes
-/// ([defaultAllowedUnitSet]).
-///
-/// **One thing an explicit list cannot do: make a unit sayable that no density
-/// supports.** A list naming `cup` on a row with no density arrives from
-/// plenty of honest places — an older client, a density deleted where the list
-/// did not follow — and offering it would hand the converter a pair it cannot
-/// resolve. The density-derived units are subtracted while the number is
-/// missing; the editor draws exactly those chips locked, and a recipe line
-/// still saying one degrades to the standard `unitNotAllowed` flag rather than
-/// being rewritten.
+/// Reads the explicit [Ingredient.allowedUnits] when the row carries one, else
+/// [defaultAllowedUnitSet]. An explicit list cannot make a unit sayable that no
+/// density supports: those units are subtracted while the number is missing,
+/// and a recipe line still saying one degrades to the `unitNotAllowed` flag.
 List<Unit> allowedUnitsFor(Ingredient ingredient) {
   final explicit = ingredient.allowedUnits;
-  // **A row can always say its own default unit.** An explicit list that does
-  // not name it is a list written where the default has since moved, and
-  // honouring it literally leaves the row unable to say the word it is bought
-  // in. Unioned BEFORE the fences below, never after: a default the numbers
-  // cannot support is still stranded, and that is the flag's business.
+  // A row can always say its own default unit. Unioned before the fences below,
+  // so a default the numbers cannot support still reads as stranded.
   final set =
       (explicit == null || explicit.isEmpty
             ? defaultAllowedUnitSet(ingredient)
@@ -477,12 +325,9 @@ List<Unit> allowedUnitsFor(Ingredient ingredient) {
   if (ingredient.densityGPerMl == null) {
     set.removeAll(densityStrippedUnits(ingredient));
   }
-  // The same fence for the count side (ADR-0015): a list naming `piece` on a
-  // row with no piece weight — every list written before the weight existed
-  // — would hand the converter a count nothing weighs; and `piece` on a row
-  // whose default is not a count is a curation the rule no longer has
-  // (owner: piece shows only where the default unit is piece). A stored line
-  // still saying it is offered off-filter, never rewritten.
+  // The count-side fence (ADR-0015): no `piece` without a piece weight, or on a
+  // row whose default is not a count. A stored line saying it is offered
+  // off-filter.
   if (ingredient.pieceBasisAmount == null ||
       ingredient.defaultUnit.family != UnitFamily.count) {
     set.remove(pieces);
@@ -494,24 +339,12 @@ List<Unit> allowedUnitsFor(Ingredient ingredient) {
 /// 7.8 — the section that never got built until 8.5).
 typedef UnitAdmission = ({Unit unit, bool selected, bool locked});
 
-/// The admission editor's chips for [ingredient], in chip order.
+/// The admission editor's chips, in chip order: every catalog mass/volume unit
+/// and imprecise word, plus `piece` on a count-default row.
 ///
-/// Every catalog unit of both mass/volume families is a chip, and so is every
-/// imprecise word, because the user is the one who prunes now: a chip the rule
-/// does not derive is drawn unselected and TAPPABLE rather than hidden or
-/// dashed. `piece` joins them only on a count-default row (ADR-0015 — it is
-/// never offered where the default unit is not a count), and there it is
-/// locked until the row carries a piece weight.
-///
-/// Two states carry the meaning. `selected` chips are what a line may say
-/// today; `locked` chips are the dashed ones — the other mass/volume family
-/// while no density is stored, and `piece` while no piece weight is — drawn
-/// rather than hidden so the form explains what entering the number buys.
-///
-/// A chip is locked even when the stored list still names it: a list can
-/// arrive that way from a device that wrote it before the density was deleted,
-/// and the editor must say what the number supports rather than what the list
-/// happens to hold. The basis family is never locked — it needs no density.
+/// `selected` chips are what a line may say today. `locked` chips (the other
+/// family with no density, `piece` with no piece weight) are drawn dashed, even
+/// when the stored list names them. The basis family is never locked.
 List<UnitAdmission> allowedUnitCandidates(Ingredient ingredient) {
   final selected = allowedUnitsFor(ingredient).toSet();
   // Empty while a density is stored — nothing is density-locked then.
@@ -531,9 +364,7 @@ List<UnitAdmission> allowedUnitCandidates(Ingredient ingredient) {
     ..._familyUnits(UnitFamily.imprecise),
     if (countDefault) pieces,
   };
-  // A stored list naming `piece` on a non-count row is a curation the rule no
-  // longer knows; the chip is not drawn, and the list stops carrying it on the
-  // form's next save (the same fate a density-locked unit has).
+  // `piece` on a non-count row is not drawn, and the next save drops it.
   if (!countDefault) all.remove(pieces);
   return [
     for (final u in _orderUnits(all, ingredient))
@@ -547,45 +378,18 @@ List<UnitAdmission> allowedUnitCandidates(Ingredient ingredient) {
 
 // --- v2: units + the ingredient's live measures (step 7.6) -------------------
 
-/// [allowedUnitsFor] plus the ingredient's live [measures], as picker choices
-/// in chip order: **the measures lead**, the row's whole measure
-/// ([wholeMeasureOf]) first of all, then the rest one [MeasureOption] each in
-/// the given order (callers pass them `sort_order`-sorted, so the household's
-/// first measure is the next chip), then the default unit and the rest of its
-/// family, then the demoted other mass/volume family ("g of milk" —
-/// reachable, never fronted), then imprecise last.
+/// [allowedUnitsFor] plus the row's live [measures] as picker choices. Measures
+/// lead: the whole measure ([wholeMeasureOf]) first, then the rest in the given
+/// (`sort_order`) order, then the catalog units.
 ///
-/// **Two kinds of measure are never offered.** One whose label merely names a
-/// volume unit, because density owns volume conversion ([isVolumeUnitLabel]);
-/// and the row's **serving** ([isServingMeasure]) — a serving is the size a
-/// nutrition panel is printed per, not a size a household cooks or shops in,
-/// so no door offers it (owner). It stays a measure arithmetically, and it is
-/// edited beside the figures it explains, in the nutrition section.
+/// - A measure that merely names a volume unit ([isVolumeUnitLabel]) and the
+///   row's serving ([isServingMeasure]) are never offered.
+/// - An imprecise default unit leads the catalog half, once.
+/// - A measure needs no density gate; its stored weight is the bridge.
+/// - [current] is always offered: outside the computed set it is appended last
+///   and returned as `offFilter`.
 ///
-/// **Measures first, because a measure is what this ingredient is.** `clove`
-/// and `can (400 g)` are words for *this* row and exist nowhere else; `g` and
-/// `cup` are the catalog, offered on everything, and a cook reaching for a
-/// clove of garlic should not read past four units the row shares with every
-/// other row to find it. The chip a surface opens on is simply the first of
-/// this offer ([firstOfferedChoice]).
-///
-/// **A row whose default unit is an imprecise word leads with that word**
-/// (owner), behind its own measures and ahead of the catalog: Ground Allspice
-/// is said in pinches, and a row that opens on `g` opens already scrolled
-/// past its own answer. It is offered ONCE — the imprecise tail at the end
-/// skips it — so the divider still separates the words nobody defaulted to.
-///
-/// A measure needs no density gate — its stored weight IS the bridge — and it
-/// applies to any ingredient that has one, count-default included (that's the
-/// whole point: count foods finally reach mass honestly).
-///
-/// **The stored selection is always offered** (the retired dropdowns' rule —
-/// an existing line must never render an orphaned value): when [current] is
-/// set and falls outside the computed set — a merge-hidden duplicate measure,
-/// a cross-family unit whose density was removed, a unit the household pruned
-/// off the row — it is appended last and returned as `offFilter`, so every
-/// entry surface inherits the guarantee and can still mark the chip as outside
-/// the honest filter.
+/// A surface opens on the first choice ([firstOfferedChoice]).
 UnitChoiceOffer allowedUnitChoicesFor(
   Ingredient ingredient,
   List<Measure> measures, {
@@ -600,9 +404,7 @@ UnitChoiceOffer allowedUnitChoicesFor(
 
   final units = allowedUnitsFor(ingredient);
   final whole = wholeMeasureOf(ingredient, measures);
-  // The row's own word for itself, where that word is an imprecise one: it
-  // leads the catalog rather than sinking to the tail with the words the row
-  // merely admits.
+  // An imprecise default leads the catalog instead of sinking to the tail.
   final leadWord = defaultFamily == UnitFamily.imprecise
       ? ingredient.defaultUnit
       : null;
@@ -628,17 +430,8 @@ UnitChoiceOffer allowedUnitChoicesFor(
   return (choices: choices, offFilter: offFilter);
 }
 
-/// The chip a quantity surface opens on when nothing is stored: **the first
-/// one offered** ([allowedUnitChoicesFor]).
-///
-/// The row opens on the chip it leads with, wherever that lands — the row's
-/// whole measure, else its first named word (`jar`, `clove`), else the default
-/// unit, which the catalog half fronts. Selecting something else would open
-/// the row already scrolled past its own first answer, which is the shape the
-/// owner ruled against.
-///
-/// A surface that has a choice to reopen on — a line being edited, a pack in
-/// the words it was last bought in — passes that instead and never asks here.
+/// The chip a quantity surface opens on when nothing is stored: the first one
+/// offered by [allowedUnitChoicesFor].
 UnitChoice firstOfferedChoice(Ingredient ingredient, List<Measure> measures) {
   final choices = allowedUnitChoicesFor(ingredient, measures).choices;
   // Totality only: the basis family is always admitted, so the offer is never

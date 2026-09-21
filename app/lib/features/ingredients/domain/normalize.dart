@@ -1,40 +1,20 @@
-/// The **phrase-level** ingredient normalizer — PURE DART (invariant 2).
+/// The phrase-level ingredient normalizer. Pure Dart.
 ///
-/// This is the Dart port of `supabase/functions/_shared/normalize.ts` (spec
-/// §7). The server writes every `ingredient.match_text` with those phrase
-/// rules; before this port the app could only apply the *character* rules
-/// ([normalizeSearchQuery]), so a stub created in the picker carried a
-/// `match_text` the server would never have written — and the next import's
-/// cascade, searching by the server's rules, missed it.
+/// A port of `supabase/functions/_shared/normalize.ts`, which stays
+/// authoritative for the server. The shared vectors in
+/// `test/features/ingredients/normalize_vectors.json` pin the two together:
+/// change one, change both, and extend the vectors.
 ///
-/// **Two mirrors, one fact.** `normalize.ts` stays authoritative for the
-/// server; this is its twin. The shared vectors in
-/// `test/features/ingredients/normalize_vectors.json` are copied from
-/// `normalize.test.ts` and pin the two together — the same habit
-/// `default_allowed_units()` and `defaultAllowedUnitSet` already keep. Change
-/// one, change both, and extend the vectors.
+/// In order, it: 1. lowercases, turns hyphens into word breaks and folds Latin
+/// diacritics; 2. splits trailing comma modifiers off the head; 3. drops
+/// non-identity words: quantities (fused ones like "400g" too), filler,
+/// measures, sizes, prep adverbs and prep verbs; 4. keeps state words that
+/// change identity (fresh, ground, canned) and moves them after the noun,
+/// folding British forms first (tinned → canned); 5. singularizes what remains.
 ///
-/// What it does, in order (unchanged from the TS):
-/// 1. lowercase, hyphens/dashes → word breaks, Latin diacritics folded onto
-///    their base letter ("Jalapeño" → `jalapeno`, so a line printed without the
-///    tilde still matches);
-/// 2. split trailing comma modifier(s) off the head;
-/// 3. drop non-identity words — quantities (including an amount fused to its
-///    unit, "400g"), filler, measures/containers, sizes, prep adverbs and
-///    prep verbs;
-/// 4. KEEP form/state words that DO change identity (fresh, ground, canned)
-///    and move them after the noun, so "fresh ginger" and "ginger, fresh"
-///    both land on "ginger fresh"; a British surface form folds onto the one
-///    the vocabulary stores first (tinned → canned);
-/// 5. singularize what remains.
-///
-/// The §7 own-goal is over-stripping: "ground ginger" ≠ "fresh ginger". Never
-/// move a word into a strip set to make one match work.
-///
-/// [displayWords] reads the same verdict the other way — which words a person
-/// should still SEE, as typed and in order — so the ingredient form's name
-/// suggestion can borrow these classes instead of growing a second list of
-/// stop words beside them.
+/// Never move a word into a strip set to make one match work: "ground ginger"
+/// is not "fresh ginger". [displayWords] reads the same classes to pick the
+/// words a person should still see.
 library;
 
 import '../../../core/search/search_query.dart'
@@ -45,9 +25,8 @@ const _filler = {'a', 'an', 'the', 'of', 'or', 'and', 'desired'};
 
 /// Container / measure / vague-amount words — quantity, not identity.
 const _measures = {
-  // Standard cooking units. The miner parses them separately; they are
-  // stripped here too for when they appear mid-phrase ("heaping tablespoon
-  // nutritional yeast").
+  // Standard cooking units, stripped here for when they appear mid-phrase
+  // ("heaping tablespoon nutritional yeast").
   'teaspoon', 'teaspoons', 'tsp',
   'tablespoon', 'tablespoons', 'tbsp', 'tbs',
   'cup', 'cups',
@@ -91,9 +70,8 @@ const _prepAdverbs = {
   'very',
 };
 
-/// Prep verbs (past participles) that describe handling, never identity.
-/// "ground" is deliberately absent — it changes identity (ground vs fresh
-/// ginger) and lives in [_stateWords].
+/// Prep verbs that describe handling, never identity. "ground" changes identity
+/// and lives in [_stateWords].
 const _prepVerbs = {
   'chopped',
   'diced',
@@ -123,28 +101,16 @@ const _prepVerbs = {
   'torn',
 };
 
-/// Cut words that are prep everywhere EXCEPT inside a canned/tinned phrase,
-/// where they name the product on the shelf: a can of diced tomatoes and a
-/// can of chopped tomatoes are the same SKU, and neither is a can of crushed.
-/// The gold conventions already rule this — "Chopped/crushed/diced tomatoes
-/// (tinned) are DIFFERENT PRODUCTS"
-/// (`evals/datasets/extraction/gold/_SCHEMA.md`) — and the extraction prompt
-/// keeps the word in identity for the same reason; this is the matcher
-/// catching up.
+/// Cut words that are prep everywhere except inside a canned phrase, where they
+/// name the product: canned diced tomatoes are a different product from canned
+/// crushed. Outside a canned phrase "2 diced tomatoes" is still `tomato`.
 ///
-/// Same shape as the `clove`/allium and `stick`/cinnamon carve-outs: a word
-/// whose class depends on a noun sharing the phrase. Outside a canned phrase
-/// these stay prep — "2 diced tomatoes" is still `tomato`, the fresh one.
-///
-/// "crushed" is deliberately absent — see the note in `normalize.ts`: it
-/// already holds the generic `tomato canned` key the seeded measures hang
-/// off, so adding it here re-keys that row and is a vocabulary move (rename,
-/// re-export, regenerate the seed), not a normalizer tweak.
+/// "crushed" is absent on purpose (see `normalize.ts`): it already holds the
+/// generic `tomato canned` key, so adding it would re-key that row.
 const _cannedCutWords = {'chopped', 'diced'};
 
-/// Form/state words that DO change identity. Kept, and moved to the end so
-/// the noun leads regardless of where the descriptor sat. The §7 KEEP set —
-/// the guard against over-stripping.
+/// State words that change identity. Kept, and moved to the end so the noun
+/// leads.
 const _stateWords = {
   'fresh',
   'ground',
@@ -170,19 +136,12 @@ const _stateWords = {
   'unsweetened',
 };
 
-/// Singular words the suffix rules would mangle because they END like a
-/// plural. The regex guard ([_looksSingular]: `-ss`, `-us`, `-is`, `-ous`)
-/// already spares boneless, asparagus and hummus; this set is for the words
-/// it cannot see — "molasses" ends in `-sses`, so the guard misses it and the
-/// sibilant rule would write `molass`.
+/// Singular words the suffix rules would mangle and the [_looksSingular] guard
+/// cannot see ("molasses" → `molass`).
 ///
-/// Admission rule: a word goes in only when it is genuinely singular AND the
-/// rules produce a non-word for it. A word the rules reduce to a real stem
-/// (grits → grit, brussels → brussel) stays out — the query side reduces it
-/// the same way, so the stored key still matches — and would cost every
-/// household a `match_text` rewrite for no gain. Adding a word here changes
-/// what is stored: pair it with a migration that rewrites the old form in
-/// place (`0022_singularize_invariants.sql` is the model), mirror it in
+/// Add a word only when it is singular and the rules produce a non-word for it.
+/// Adding one changes what is stored: pair it with a migration that rewrites
+/// the old form (`0022_singularize_invariants.sql` is the model), mirror it in
 /// `normalize.ts`, and extend the shared vectors.
 const _invariantWords = {'molasses'};
 
@@ -201,25 +160,18 @@ const _fractionGlyphs = '¼½¾⅓⅔⅕⅖⅗⅘⅙⅐⅛⅜⅝⅞';
 /// Purely a quantity token: digits, unicode fractions, ranges.
 final _quantity = RegExp('^[0-9$_fractionGlyphs/.,\\-–—]+\$');
 
-/// An amount fused to its unit in one token: "400g", "1.5kg", "½oz".
-/// [_measures] lists the unit words bare and [_quantity] needs the WHOLE token
-/// to be numeric, so without this a printed "400g tin of black beans" keeps
-/// `400g` as a noun and matches nothing at all. Only the unambiguous mass/volume
-/// abbreviations: a bare "l" or "g" after a number can only be a unit, while a
-/// longer suffix would start eating real words.
+/// An amount fused to its unit in one token: "400g", "1.5kg", "½oz". Only the
+/// unambiguous mass/volume abbreviations; a longer suffix would eat real words.
 final _fusedAmount = RegExp(
   '^[0-9$_fractionGlyphs/.,\\-–—]+(g|kg|ml|l|oz|lb)\$',
 );
 
-/// British surface forms folded onto the word the vocabulary stores. "tinned"
-/// and "canned" name the same thing on the same shelf, but only "canned" is a
-/// state word — so without the fold "tinned chickpeas" keys as `tinned
-/// chickpea`, a leading noun nothing else produces, and misses `chickpea
-/// canned` by enough to lose the auto band.
+/// British surface forms folded onto the word the vocabulary stores, so "tinned
+/// chickpeas" keys as `chickpea canned`.
 ///
-/// A word added here changes what is STORED: pair it with a migration that
-/// rewrites the old form in place (`0031_tinned_is_canned.sql` is the model),
-/// mirror it in `normalize.ts`, and extend the shared vectors.
+/// Adding a word changes what is stored: pair it with a migration
+/// (`0031_tinned_is_canned.sql` is the model), mirror it in `normalize.ts`, and
+/// extend the shared vectors.
 const _synonyms = {'tinned': 'canned'};
 
 /// Everything a word may keep: unicode letters/numbers, `/`, fraction glyphs
@@ -235,30 +187,26 @@ final _cinnamon = RegExp(r'\bcinnamon\b');
 final _canned = RegExp(r'\b(canned|tinned)\b');
 
 /// Normalizes a raw ingredient string to its `match_text` (see the library
-/// doc). Deterministic and pure: same string in, same string out.
+/// doc). Deterministic and pure.
 ///
-/// This is what every locally authored vocab row's `match_text` must be
-/// written with — stub creation and rename alike — so the server's cascade
-/// can find it. [normalizeSearchQuery] stays the right tool for an in-flight
-/// *search* prefix, which must not be singularized or reordered.
+/// Every locally authored vocab row's `match_text` must be written with this so
+/// the server's cascade can find it. Use [normalizeSearchQuery] for an
+/// in-flight search prefix, which must not be singularized or reordered.
 String normalizeMatchText(String ingredientText) {
   final cleaned = _fold(ingredientText);
   final phrase = _PhraseContext.of(cleaned);
 
   final nouns = <String>[];
   final states = <String>[];
-  // Comma modifiers are identity only if they're a state word ("…, boneless");
-  // a prep modifier ("…, diced") drops out entirely — same classifier, so the
-  // head and its modifiers are treated alike.
+  // A comma modifier is identity only if it is a state word ("…, boneless"); a
+  // prep modifier ("…, diced") drops out.
   for (final segment in cleaned.split(',')) {
     for (final raw in segment.split(_whitespace)) {
       final word = raw.replaceAll(_punctuation, '');
       if (word.isEmpty) continue;
       final wordClass = phrase.classify(word);
       if (wordClass == _WordClass.drop) continue;
-      // Fold so the synonym lands as the word it folds ONTO: this is what
-      // puts "tinned" in the trailing state run rather than leaving it
-      // leading the nouns.
+      // Fold first, so "tinned" lands in the trailing state run as "canned".
       final identity = _synonyms[word] ?? word;
       (wordClass == _WordClass.state ? states : nouns).add(identity);
     }
@@ -270,24 +218,12 @@ String normalizeMatchText(String ingredientText) {
   ].map(_singularize).where((w) => w.isNotEmpty).join(' ');
 }
 
-/// The words of [phrase] a person should still SEE — **as they were typed**,
-/// and in the order they were typed.
+/// The words of [phrase] a person should still see, as typed and in order.
 ///
-/// The normalizer's own output is a key: folded, lowercased, singularized and
-/// reordered noun-first. A caller building something a person will *read*
-/// needs the same verdict about which words matter and none of that
-/// flattening, and must not grow a second list of stop words to get it — one
-/// vocabulary, two readers.
-///
-/// Every word [normalizeMatchText] keeps as identity is kept here. So is a
-/// [_filler] word standing BETWEEN two of them: `of` carries no identity and
-/// the key is right to drop it, but "cream of tartar" is what the jar says and
-/// "Cream Tartar" is not a name. A filler leading or trailing the run is
-/// dropped as the key drops it ("2 cups of flour" → "flour").
-///
-/// A word is a whitespace-separated token of [phrase]. It survives when any of
-/// its hyphenated parts carries identity, so a compound is kept or dropped
-/// whole ("all-purpose", "2-3").
+/// Keeps every word [normalizeMatchText] keeps as identity, plus a [_filler]
+/// word standing between two of them ("cream of tartar"). A word is a
+/// whitespace-separated token and survives when any hyphenated part carries
+/// identity, so a compound is kept or dropped whole.
 List<String> displayWords(String phrase) {
   final context = _PhraseContext.of(_fold(phrase));
   final tokens = [
@@ -318,10 +254,8 @@ _TokenClass _tokenClass(String token, _PhraseContext context) {
   return connective ? _TokenClass.connective : _TokenClass.drop;
 }
 
-/// Hyphens join compound descriptors ("all-purpose"); treat them as word
-/// breaks so the parts tokenize rather than fusing ("allpurpose"). Diacritics
-/// fold here rather than in the classifier so every downstream test — the
-/// allium/cinnamon/canned probes — sees the folded spelling too.
+/// Hyphens become word breaks so compounds tokenize ("all-purpose"). Diacritics
+/// fold here so every downstream probe sees the folded spelling.
 String _fold(String text) =>
     foldDiacritics(text.toLowerCase()).replaceAll(_dashes, ' ');
 
@@ -349,9 +283,8 @@ class _PhraseContext {
   /// cloves").
   final bool allium;
 
-  /// "stick" is likewise both a measure ("1 stick butter") and identity next
-  /// to cinnamon ("2 cinnamon sticks" — the whole quill, a different vocab row
-  /// from ground cinnamon).
+  /// "stick" is a measure ("1 stick butter") but identity next to cinnamon ("2
+  /// cinnamon sticks").
   final bool cinnamon;
 
   /// Whether [_cannedCutWords] name the product rather than the prep.
@@ -368,9 +301,8 @@ class _PhraseContext {
     if ((word == 'stick' || word == 'sticks') && cinnamon) {
       return _WordClass.noun;
     }
-    // The cut of a canned tomato is the product, not a prep instruction. It
-    // trails like any other state word, so "canned diced tomatoes" and "diced
-    // tomatoes, canned" land together.
+    // The cut of a canned tomato is the product, and trails like any other
+    // state word.
     if (canned && _cannedCutWords.contains(word)) return _WordClass.state;
     if (_filler.contains(word) ||
         _measures.contains(word) ||
@@ -390,26 +322,14 @@ final _ies = RegExp(r'ies$');
 final _sibilantEs = RegExp(r'(ch|sh|x|z|s)es$');
 final _oes = RegExp(r'oes$');
 
-/// The normalizer's own singularization, exposed for the search seam.
-///
-/// `match_text` is singularized ("Almonds" → `almond`) while a search query
-/// deliberately is not ([normalizeSearchQuery] mirrors the character rules
-/// only, because a query is an in-flight prefix). A query token therefore has
-/// to be tried in this form too, or a plural query could never word-prefix the
-/// very row it names — see [matchTextForms].
-///
-/// A thin wrapper on purpose: [_singularize] is half of the shared-vector port
-/// of `normalize.ts` and its rules belong to that mirror, not to search.
+/// The normalizer's singularization, exposed for search. `match_text` is
+/// singularized and a search query is not, so a query token is also tried in
+/// this form; see [matchTextForms].
 String singularizeToken(String word) => _singularize(word);
 
-/// The forms of an already-normalized query [token] that may legitimately
-/// word-prefix a phrase-normalized `match_text`: the token as typed, plus its
-/// singular when [singularizeToken] changes it.
-///
-/// Both forms derive from a [normalizeSearchQuery]-normalized token, and
-/// singularization only ever drops or rewrites trailing letters — so the
-/// `%`/`_`-stripping guarantee survives: neither form can carry a LIKE
-/// wildcard.
+/// The forms of a normalized query [token] that may word-prefix a `match_text`:
+/// the token as typed, plus its singular when that differs. Neither form can
+/// carry a LIKE wildcard.
 List<String> matchTextForms(String token) {
   final singular = singularizeToken(token);
   return singular == token ? [token] : [token, singular];
@@ -426,9 +346,8 @@ String _singularize(String word) {
   if (_ies.hasMatch(word) && word.length > 4) {
     return '${word.substring(0, word.length - 3)}y';
   }
-  // No general -ves→-f rule: most food -ves are plain -s plurals
-  // (chives→chive, olives→olive). The genuine -ves→-f words are in
-  // [_irregularPlurals]; falling through to -s handles the rest.
+  // No general -ves→-f rule: most food -ves are plain -s plurals (chives,
+  // olives). The genuine ones are in [_irregularPlurals].
   if (_sibilantEs.hasMatch(word) || _oes.hasMatch(word)) {
     return word.substring(0, word.length - 2);
   }

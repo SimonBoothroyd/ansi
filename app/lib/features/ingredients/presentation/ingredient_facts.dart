@@ -1,21 +1,10 @@
-/// What the ingredient page says about a row while it is being **read** — one
-/// line per fact, in the words the form's own fields and entries already use.
+/// What the ingredient page says about a row while it is being read: one line
+/// per stored fact, in the words the form's fields already use.
 ///
-/// Pure functions, apart from the widgets, because the page has two postures
-/// over one route and the fastest way to make them disagree is to let each
-/// write its own sentence. Every line here is a stored fact restated, never a
-/// new one: the macro line is the picker row's ([formatMacroLine]), the density
-/// is the density entry's own headline plus the sentence it was entered as
-/// (read back through [volumeWeightFromDensity]), the piece weight is the
-/// piece-weight entry's sentence with its number in place, and the admitted
-/// units are the chips' own labels off [allowedUnitsFor].
-///
-/// **Honest numbers (invariant 3).** A row with no macros reads `needs macros`
-/// — the words the dock and the manager's stub band already use — never four
-/// zeros. A row whose macros are a machine's and unconfirmed states them: the
-/// status strip above says they are left out of totals, which is the fact the
-/// page owes a reader, and hiding numbers the editing posture shows would be
-/// the two postures telling two stories.
+/// Pure functions, so the page's reading and editing postures cannot disagree.
+/// A row with no macros reads `needs macros`, never zeros; unconfirmed machine
+/// macros are still shown, and the status strip says they are left out of
+/// totals.
 library;
 
 import '../../../core/money.dart';
@@ -33,27 +22,21 @@ import '../domain/price_repository.dart';
 import '../domain/serving_measure.dart';
 import 'macros_format.dart';
 
-/// The volume unit a stored density is read back in on a row that names no
-/// friendlier one. A ratio is not something a kitchen holds, and `cup` is the
-/// measure a person can picture.
+/// The volume unit a stored density is read back in when the row names no
+/// friendlier one.
 const kDensityReadingUnit = cup;
 
-/// `60 kcal · 1P 0F 15C /100 g`, or `needs macros` on a row that has none.
-///
-/// **A row that states a serving leads with the label's own line** —
-/// `190 kcal · 7P 16F 7C per 2 tbsp` — because that is the line a person can
-/// check against the jar in their hand without a calculator. The per-100
-/// figures then read as the aside they are ([per100Fact]).
+/// `60 kcal · 1P 0F 15C /100 g`, or `needs macros` on a row with none. A row
+/// that states a serving leads with the label's line (`190 kcal · 7P 16F 7C per
+/// 2 tbsp`); the per-100 figures follow as [per100Fact].
 String macrosFact(Ingredient ingredient, {Measure? serving}) {
   final figures = macrosFactFigures(ingredient, serving: serving);
   if (figures == null) return 'needs macros';
   return '${formatMacroLine(figures.macros)} ${figures.per}';
 }
 
-/// The same fact as its two parts — the figures, and the tail that says what
-/// they are per — for the posture that draws it as one dense line, energy as
-/// a glyph. Null on a row with no panel, where [macrosFact]'s words are the
-/// whole answer.
+/// The same fact as its two parts, the figures and what they are per, for the
+/// posture that draws it as one dense line. Null on a row with no panel.
 ({Macros macros, String per})? macrosFactFigures(
   Ingredient ingredient, {
   Measure? serving,
@@ -70,12 +53,8 @@ String macrosFact(Ingredient ingredient, {Measure? serving}) {
   );
 }
 
-/// The label's figures, reversed out of the stored per-100 and the serving —
-/// `642 kcal/100 ml × 29.57 ml` back to the 190 the jar prints.
-///
-/// It is the entry arithmetic run backwards, unrounded, which is exactly why
-/// the serving is kept: nothing is re-derived from a rounded figure and
-/// nothing is invented. Null on a row with no macros or no serving.
+/// The label's figures, reversed out of the stored per-100 and the serving,
+/// unrounded. Null on a row with no macros or no serving.
 Macros? servingPrintedMacros(Ingredient ingredient, {Measure? serving}) {
   final macros = ingredient.macros;
   if (macros == null || serving == null || !(serving.amount > 0)) return null;
@@ -83,9 +62,8 @@ Macros? servingPrintedMacros(Ingredient ingredient, {Measure? serving}) {
   return macros.scaledBy(serving.amount / 100);
 }
 
-/// `per 100 ml · 642 kcal · 23.7P 54.1F 23.7C` — the muted line under a
-/// label-led macro fact, for the reader who wants to see what the totals use.
-/// Null where the fact already says it.
+/// `per 100 ml · 642 kcal · 23.7P 54.1F 23.7C`: the muted line under a
+/// label-led macro fact. Null where the fact already says it.
 String? per100Fact(Ingredient ingredient, {Measure? serving}) {
   final macros = ingredient.macros;
   if (macros == null ||
@@ -107,16 +85,10 @@ String categoryFact(Ingredient ingredient) {
 String allowedUnitsFact(Ingredient ingredient) =>
     allowedUnitsFor(ingredient).map((u) => u.label).join(' · ');
 
-/// The stated density, as the sentence it was entered as and the number it is
-/// stored as: `1 cup weighs 156.15 g · 0.66 g/ml`. A row with none says what
-/// the density entry's own headline says.
-///
-/// **A row whose serving is a volume reads the density back in that unit** —
-/// `2 tbsp weighs 32 g` — with the g/ml as the aside ([densityAsideFact]),
-/// because that is the sentence the pack printed and the one that was typed.
-/// A row with no serving reads it in its own default unit where that is a
-/// volume ([densityReading]). The stored fact is unchanged either way: one
-/// ratio, said in the unit the person is holding.
+/// The stated density as the sentence it was entered as and the stored number:
+/// `1 cup weighs 156.15 g · 0.66 g/ml`. A row with none says what the density
+/// entry's headline says. A row whose serving is a volume reads it in that
+/// unit, with the g/ml as [densityAsideFact].
 String densityFact(Ingredient ingredient, {Measure? serving}) {
   final density = ingredient.densityGPerMl;
   if (density == null) return 'none yet — unlocks volume⇄weight';
@@ -143,22 +115,15 @@ String? densityAsideFact(Ingredient ingredient, {Measure? serving}) {
   return '${formatDensity(density)} g/ml';
 }
 
-/// **Which amount and unit this row's density is SAID in** — the one
-/// derivation the fact sheet reads a stored density back through and the
-/// density entry opens its sentence on, so a number entered as "1 tsp weighs
-/// 5 g" never reads back as a cup and never reopens as one.
+/// Which amount and unit this row's density is said in. The fact sheet and the
+/// density entry both read it, so a number entered as "1 tsp weighs 5 g" reads
+/// back and reopens that way.
 ///
-/// In order of how much the row itself has said:
-/// 1. its own **serving**, when that is a volume — the sentence the pack
-///    printed and the one that was typed;
-/// 2. its **default unit**, when that is a volume — the word this row is
-///    counted in, so the reading is in the unit a line will say;
-/// 3. [kDensityReadingUnit] — the cup a person can picture, for a row that
-///    names nothing friendlier.
+/// In order: 1. the row's serving, when it is a volume; 2. its default unit,
+/// when that is a volume; 3. [kDensityReadingUnit].
 ///
-/// The `fromServing` field says whether the first leg won: that is the
-/// reading the fact sheet leads with, moving the `g/ml` into an aside beneath
-/// it.
+/// `fromServing` says whether the first leg won; the fact sheet then moves the
+/// `g/ml` into an aside.
 ({double amount, Unit unit, bool fromServing}) densityReading(
   Ingredient ingredient, {
   Measure? serving,
@@ -176,9 +141,8 @@ String? densityAsideFact(Ingredient ingredient, {Measure? serving}) {
   return (amount: 1, unit: kDensityReadingUnit, fromServing: false);
 }
 
-/// What a stored density comes to in the unit this row says it in — the
-/// weight slot of the entry's sentence, and the grams the fact sheet prints.
-/// Null on a row with no density, or one whose reading unit cannot carry it.
+/// What a stored density weighs in the unit this row says it in. Null on a row
+/// with no density, or whose reading unit cannot carry it.
 double? densityReadingWeight(Ingredient ingredient, {Measure? serving}) {
   final density = ingredient.densityGPerMl;
   if (density == null) return null;
@@ -187,9 +151,8 @@ double? densityReadingWeight(Ingredient ingredient, {Measure? serving}) {
   return perUnit == null ? null : perUnit * read.amount;
 }
 
-/// The stated piece weight as the piece-weight entry's own sentence — `1 piece
-/// weighs 200 g` — or null on a row that states none, where there is no
-/// sentence to say.
+/// The stated piece weight as a sentence, `1 piece weighs 200 g`, or null on a
+/// row that states none.
 String? pieceWeightFact(Ingredient ingredient) {
   final weight = ingredient.pieceBasisAmount;
   if (weight == null) return null;
@@ -199,11 +162,8 @@ String? pieceWeightFact(Ingredient ingredient) {
 }
 
 /// ` · borrowed from onion, medium` for a seeded weight; nothing for a typed
-/// one — "yours" is the default reading of a row you own. A curated seed
-/// number reads **estimate**, the same word the measures list gives it.
-///
-/// Shared with the piece-weight entry's own headline, so the number reads the
-/// same whether the page is being edited or read.
+/// one. A curated seed number reads "estimate". Shared with the piece-weight
+/// entry's headline.
 String pieceWeightSourceSuffix(String? source) {
   if (source == null || source == 'manual') return '';
   if (source == 'seed:typical') return ' · estimate';
@@ -214,9 +174,8 @@ String pieceWeightSourceSuffix(String? source) {
 String aliasesFact(Iterable<IngredientAlias> aliases) =>
     aliases.map((a) => a.text).join(' · ');
 
-/// One measure, in the measures editor's own words: `onion, medium · 110 g`.
-/// The provenance word rides beside it on the row rather than inside this
-/// string, exactly as the editor draws it.
+/// One measure in the measures editor's words: `onion, medium · 110 g`. The
+/// provenance word is drawn beside it, not inside this string.
 String measureFact(Measure measure) {
   final basis = measure.basis.baseUnit;
   return '${measure.label} · ${formatQuantityIn(measure.amount, basis)} '
@@ -225,22 +184,14 @@ String measureFact(Measure measure) {
 
 // --- The price group's sentences ---------------------------------------------
 //
-// One rule, three surfaces: the group's Latest line, its Before rows and the
-// price sheet's own header all restate the same stored facts, so a wording
-// that changes changes once.
+// Shared by the group's Latest line, its Before rows and the price sheet's
+// header.
 
-/// What the cents bought, **in the words it was bought in**: `1 lb` for a pack
-/// typed as a pound, `bag (454 g)` for one tapped as the row's own measure,
-/// `454 g` where the amount was typed in the basis unit itself.
-///
-/// How many the line rang up leads where it was more than one (`8 × block
-/// (16 oz)`); the entered pack follows, because it is the fact a person
-/// recognises — a pound of butter was a pound, not 454 g. The basis weight
-/// rides in brackets behind a measure's word, which on its own says nothing
-/// about size — and is left off a word that already states one
-/// ([measureWordWithSize]). It stands
-/// alone on a line that kept no entered pack: that is honestly all a row
-/// written before the ledger held the words has.
+/// What the cents bought, in the words it was bought in: `1 lb`, `bag (454 g)`,
+/// or `454 g`. A count above one leads (`8 × block (16 oz)`). The basis weight
+/// follows a measure's word in brackets unless the word already states a size
+/// ([measureWordWithSize]), and stands alone on a line that kept no entered
+/// pack.
 String pricePackPhrase(PriceObservation price) {
   final basis = price.basis.baseUnit;
   // How many of that pack the line rang up, in front of everything else, so
@@ -250,9 +201,8 @@ String pricePackPhrase(PriceObservation price) {
       '${formatQuantityIn(price.packBasisAmount, basis)} ${basis.label}';
   final label = price.packLabel;
   if (label != null && label.isNotEmpty) {
-    // A count rides in front only when it is not one — `bag (454 g)`, but
-    // `2 bag (908 g)`. A pack that stated a unit rather than this measure
-    // counts nothing, and reads as the plain word.
+    // A measure count leads only when it is not one: `bag (454 g)`, `2 bag (908
+    // g)`. A pack stated in a unit counts nothing.
     final count = price.packUnit == null ? price.packAmount : null;
     final head = count == null || count == 1
         ? label
@@ -265,12 +215,9 @@ String pricePackPhrase(PriceObservation price) {
   return '$times${formatAmountIn(amount, unit)} ${unit.label}';
 }
 
-/// The **latest** price as the group's one line — `77¢ / 100 g · $3.49 for bag
-/// (454 g) · TJ's · 13 Sep`.
-///
-/// The per-100 figure leads because it is the one a recipe reads; everything
-/// after it is what was paid, restated, so a figure that looks wrong is
-/// traceable to the purchase that made it.
+/// The latest price as one line: `77¢ / 100 g · $3.49 for bag (454 g) · TJ's ·
+/// 13 Sep`. The per-100 figure leads; the rest restates the purchase it came
+/// from.
 String latestPriceFact(PriceObservation price) {
   final paid = formatMoney(price.paidCents);
   final head = switch (price.per100) {
@@ -283,9 +230,8 @@ String latestPriceFact(PriceObservation price) {
       '${formatDayMonth(price.purchasedAt)}';
 }
 
-/// One **earlier** price, as the history row's own two parts: what it came to
-/// and what was paid (`72¢ / 100 g · $3.29 · bag (454 g)`), and where and when
-/// it was seen (`TJ's · 23 Aug`).
+/// One earlier price in two parts: what it came to and what was paid (`72¢ /
+/// 100 g · $3.29 · bag (454 g)`), and where and when (`TJ's · 23 Aug`).
 ({String paid, String seen}) earlierPriceFact(PriceObservation price) {
   final head = switch (price.per100) {
     Ok(:final value) => '${formatPricePer100(value)} · ',
@@ -297,29 +243,16 @@ String latestPriceFact(PriceObservation price) {
   );
 }
 
-/// What the `On receipts` fold says while it is **shut** — `3 names · 5 lines`.
-///
-/// The counts are the whole of the closed state: they are what tells a reader
-/// whether there is anything in here worth opening, and a row printed under one
-/// name on every shop says so without being opened at all.
+/// What the shut `On receipts` fold says: `3 names · 5 lines`.
 String onReceiptsFact(List<ReceiptName> names) {
   final lines = names.fold(0, (sum, name) => sum + name.lineCount);
   return '${names.length} ${plural(names.length, 'name')} · '
       '$lines ${plural(lines, 'line')}';
 }
 
-/// One printed name's own line — `2 lines · TJ's · 19 Sep`.
-///
-/// Every clause is a count of rows or a word off one, never a judgment: how
-/// many lines carry it, who printed it, and the date of the newest receipt that
-/// did — which is the receipt the row's tap opens, so the words say where the
-/// tap goes.
-///
-/// **Only the newest store is named**, with `+2` for the rest. A name printed
-/// at four shops would otherwise crowd the column its date is ruled to, and the
-/// shop that printed it last is the one a reader is placing it by.
-/// A receipt whose store nobody named contributes nothing, and the clause goes
-/// rather than standing empty.
+/// One printed name's line: `2 lines · TJ's · 19 Sep`. The date is the newest
+/// receipt's, which the row's tap opens. Only the newest store is named, with
+/// `+2` for the rest; an unnamed store contributes nothing.
 String receiptNameFact(ReceiptName name) => [
   '${name.lineCount} ${plural(name.lineCount, 'line')}',
   if (storeWordsFact(name.stores) case final where?) where,
@@ -334,12 +267,8 @@ String? storeWordsFact(List<String> stores) {
   return rest == 0 ? stores.first : '${stores.first} +$rest';
 }
 
-/// What the price sheet says over its fields about the price it is replacing —
-/// `latest 72¢ / 100 g · TJ's · Aug` — or null on a row nobody has priced,
-/// where there is nothing to replace and nothing to say.
-///
-/// The month alone, not the day: the sheet is about the price being entered,
-/// and the last one is context rather than a record.
+/// What the price sheet says about the price it is replacing: `latest 72¢ / 100
+/// g · TJ's · Aug`. Null on an unpriced row. The month alone, as context.
 String? latestPriceAside(PriceObservation? price) {
   if (price == null) return null;
   final head = switch (price.per100) {
@@ -350,23 +279,15 @@ String? latestPriceAside(PriceObservation? price) {
       '${formatMonthShort(price.purchasedAt)}';
 }
 
-/// What the price sheet says over its fields when it was opened **on a stored
-/// line** — `editing $3.49 · TJ's · 13 Sep`.
-///
-/// The full day, not the month [latestPriceAside] shows: that one is context
-/// about a price being replaced, and this one names the very row about to be
-/// rewritten, so the reader can tell at a glance they are on the right one.
+/// What the price sheet says when opened on a stored line: `editing $3.49 ·
+/// TJ's · 13 Sep`. The full day, since it names the row being rewritten.
 String editedPriceAside(PriceObservation price) =>
     'editing ${formatMoney(price.cents)} · ${price.store} · '
     '${formatDayMonth(price.purchasedAt)}';
 
-/// Why a price cannot be read from what has been typed — the sentence the
-/// sheet's dock states in place of the figure, and the reason Done is refused.
-///
-/// Every one of them names a way out, because a refusal a person can act on
-/// beats one they can only stare at. The codes are the unit system's own and
-/// the price domain's; an unfamiliar one says the plain thing rather than
-/// printing a code at somebody.
+/// Why a price cannot be read from what has been typed: the sentence the
+/// sheet's dock shows in place of the figure. Each names a way out; an
+/// unfamiliar code reads as a plain sentence, never as the code.
 String priceRefusal(Failure failure, Ingredient ingredient) {
   final basis = ingredient.macrosBasis.baseUnit;
   return switch (failure.code) {

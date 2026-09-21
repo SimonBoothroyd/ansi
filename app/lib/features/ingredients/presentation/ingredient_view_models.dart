@@ -1,21 +1,10 @@
-/// The ingredient form's state, as one notifier over one draft.
+/// The ingredient form's state: one notifier over one draft.
 ///
-/// **Everything the form intends and has not written lives here** — the row's
-/// fields, the macros as typed, the density, the measures and aliases added and
-/// removed, the USDA pick, the barcode scan — and [IngredientForm.save] writes
-/// the lot in a single transaction (ADR-0011). The view reads the draft and
-/// dispatches intents; it decides nothing.
-///
-/// The draft is held as DELTAS rather than as replacement lists: a save that
-/// only inserts its adds and tombstones its named removes never needs the whole
-/// list, so a measures stream that failed to load cannot become a narrowed set
-/// written back.
-///
-/// **The seams that stay in the view** are the ones that need a
-/// `BuildContext`: opening the barcode scanner, opening the USDA short-list,
-/// and the failure toast. Each of those hands its result back here as an
-/// intent, so the decision about what a result means is still one place —
-/// exactly the shape `RecipeEditor` uses for the recipe editor's Save.
+/// The draft holds everything the form intends, and [IngredientForm.save]
+/// writes it in one transaction (ADR-0011). It is held as deltas, so a measures
+/// stream that failed to load cannot be written back as a narrowed set. The
+/// view keeps only what needs a `BuildContext` and hands each result back as an
+/// intent.
 library;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -47,23 +36,14 @@ part 'ingredient_view_models.g.dart';
 
 const _uuid = Uuid();
 
-/// The one sentence the form says about a per-serving panel with no serving
-/// under it — said by the dock before Save, and by the mode chips when
-/// leaving the mode would be what threw the figures away.
-///
-/// One sentence because it is one rule: figures printed per serving have no
-/// per-100 reading until somebody says how much a serving is.
+/// Said when a per-serving panel has no serving amount, so no per-100 reading.
 const kServingAmountFirst =
     'One serving is how much? The label’s figures become per 100 only once '
     'the serving amount is typed.';
 
-/// The macro inputs as typed TEXT, so "half filled in" is a state the form
-/// can name rather than a silent zero.
-///
-/// [kcal], [protein], [carb] and [fat] are the panel and move together;
-/// [fiber] is the optional fifth ([Macros.fiber]) and may be left blank on a
-/// panel that is otherwise whole. What it may NOT be is the only thing typed:
-/// fibre qualifies a panel, it is not one.
+/// The macro inputs as typed text, so "half filled in" is a nameable state.
+/// [kcal], [protein], [carb] and [fat] move together; [fiber] ([Macros.fiber])
+/// is optional but cannot be the only thing typed.
 @freezed
 abstract class MacroDraft with _$MacroDraft {
   const factory MacroDraft({
@@ -74,10 +54,7 @@ abstract class MacroDraft with _$MacroDraft {
     @Default('') String fiber,
   }) = _MacroDraft;
 
-  /// Seeds the fields from a stored panel.
-  ///
-  /// **Lossless, deliberately** — see [macroFieldSeed]. These are not printed
-  /// numbers; they are the editable text a Save reads back.
+  /// Seeds the fields from a stored panel, losslessly; see [macroFieldSeed].
   factory MacroDraft.from(Macros? m) => m == null
       ? const MacroDraft()
       : MacroDraft(
@@ -97,9 +74,8 @@ abstract class MacroDraft with _$MacroDraft {
   static bool _parses(String field) =>
       double.tryParse(field.trim())?.isFinite ?? false;
 
-  /// The four REQUIRED fields are empty. Fibre is not consulted: a lone fibre
-  /// figure is not a panel, so it must not read as one to a scan deciding what
-  /// it may fill ([DraftTarget.hasMacros]).
+  /// The four required fields are empty. Fibre is ignored, so a lone fibre
+  /// figure does not read as a panel to a scan ([DraftTarget.hasMacros]).
   bool get allBlank => _fields.every(_blank);
 
   /// All four parse, or all four are blank. Anything between is a panel with a
@@ -125,11 +101,8 @@ abstract class MacroDraft with _$MacroDraft {
   }
 }
 
-/// One ingredient form, in flight.
-///
-/// [row] is the stored row as the watched query last had it — or a blank
-/// stand-in while creating, whose id is empty and never used. Everything else
-/// is what the form intends.
+/// One ingredient form, in flight. [row] is the stored row as last watched, or
+/// a blank stand-in with an empty id while creating.
 @freezed
 abstract class IngredientFormDraft with _$IngredientFormDraft {
   const factory IngredientFormDraft({
@@ -142,40 +115,31 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     required Set<Unit> allowed,
     required MacroDraft macros,
 
-    /// What the row last handed the macro draft. "Untouched" is defined against
-    /// this rather than against blankness, so a row that arrives with numbers
-    /// is as re-seedable as an empty one.
+    /// What the row last seeded the macro draft with; "untouched" is measured
+    /// against this, not against blankness.
     required MacroDraft seededMacros,
 
     /// Bumped on every re-seed, and used as the macro fields' key: `initial`
     /// seeds a controller once, so new text needs a new field to seed it into.
     @Default(0) int macroSeed,
 
-    /// Bumped whenever the name moved by something other than typing — a scan,
-    /// or a tidy. The name field pushes the new text into the controller it
-    /// already has rather than being replaced around a fresh one, because
-    /// replacing a *focused* field is what a Save tapped straight from the
-    /// keyboard would do.
+    /// Bumped when the name moved by something other than typing, so the name
+    /// field pushes the text into its existing controller instead of being
+    /// re-keyed.
     @Default(0) int nameSeed,
     @Default(0) int servingSeed,
 
-    /// The macros section's per-serving mode: the four fields then hold the
-    /// label's figures AS PRINTED and the serving row says what they describe,
+    /// Per-serving mode: the four fields hold the label's figures as printed,
     /// and what is stored is still per 100 of the basis.
     @Default(false) bool perServing,
 
-    /// The serving the row's label prints — typed in per-serving mode, or
-    /// carried by a scan whose per-100 panel named one. Independent of
-    /// [perServing]: a per-100 label that says "80 kcal per 28 g" states a
-    /// serving without the row ever being entered in it, and Save keeps it as
-    /// the row's one `serving` measure either way.
+    /// The serving the label prints, typed or scanned. Independent of
+    /// [perServing]; Save keeps it as the row's one `serving` measure either
+    /// way.
     @Default(ServingDraft()) ServingDraft serving,
 
     /// The per-100 figures the fields held before per-serving mode cleared
-    /// them, so leaving the mode without typing anything puts the row back
-    /// exactly as it was found. On a scan of a label that printed BOTH
-    /// columns it is the pack's own per-100 column, which is the same fact
-    /// said by the same pack.
+    /// them, or a scanned pack's own per-100 column.
     MacroDraft? per100Macros,
     @Default(DensityUnchanged()) DensityChange density,
 
@@ -187,9 +151,7 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     @Default(<IngredientAlias>[]) List<IngredientAlias> aliasesAdded,
     @Default(<String>{}) Set<String> aliasesRemoved,
 
-    /// A provenance the scan or the USDA pick stamped and the next Save writes
-    /// — held with the macros it explains rather than written on its own, so
-    /// backing out of the form leaves the row exactly as it was found.
+    /// A provenance stamp the scan or USDA pick set, written by the next Save.
     String? pendingSource,
     String? pendingSourceLabel,
     double? pendingSourceScore,
@@ -204,35 +166,24 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     /// back the resolved spoon — the density entry pre-picks it.
     Unit? redirectedSpoon,
 
-    /// The name as it was typed, when [IngredientForm.tidyName] replaced a
-    /// WORD in it — what the `was “…”` line under the field prints, and what
-    /// *keep the old word* puts back. Null when nothing was suggested.
+    /// The name as typed, when [IngredientForm.tidyName] replaced a word in it;
+    /// the `was “…”` line prints it. Null when nothing was suggested.
     String? nameWas,
 
-    /// The live row this name would land on top of — the household's names and
-    /// aliases are one namespace, and a second **Sauerkraut** makes every
-    /// exact match after it a coin toss. Set when the name field is left (and
-    /// again if the write itself refuses), cleared by the next keystroke.
+    /// The live row that already holds this name or alias. Set when the name
+    /// field is left or the write refuses; cleared by the next keystroke.
     NameEntry? nameCollision,
 
-    /// Rows whose name or alias this one was very nearly spelled — at most
-    /// three, offered under the pickers' `DID YOU MEAN` band and never acted
-    /// on unattended. Empty whenever something WAS spelled right, which is the
-    /// same band rule the pickers hold.
+    /// Up to three rows this name nearly spells, for the `DID YOU MEAN` band.
+    /// Empty whenever something matched exactly.
     @Default(<NameEntry>[]) List<NameEntry> nameNearMatches,
 
-    /// A typed name the person chose to KEEP. While [name] is exactly this,
-    /// the tidy recases and respaces but suggests nothing: a suggestion once
-    /// refused must not be offered again on the next leave. Cleared by the
-    /// next edit, and carried forward when the tidy's own recasing moves it.
+    /// A typed name the person chose to keep. While [name] equals it the tidy
+    /// recases but suggests nothing; cleared by the next edit.
     String? namePinned,
 
-    /// Whether a person has typed in the name field during this sitting.
-    ///
-    /// Save tidies only what somebody wrote. A stored name is not rewritten by
-    /// a Save that was about the macros — the row's own name is a thing a
-    /// human already chose, and a save of something else is no occasion to
-    /// take it away.
+    /// Whether the name field was typed in during this sitting. Save tidies
+    /// only a name somebody wrote.
     @Default(false) bool nameEdited,
 
     /// The form's one feedback line.
@@ -260,11 +211,9 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     PieceWeightUnchanged() => row.pieceBasisAmount,
   };
 
-  /// The row as the FORM currently reads it: the stored facts with the draft
-  /// choices the admission rule turns on — the default unit, the macros basis,
-  /// the density and the piece weight — folded in. Every "what may this row
-  /// say" question asks this rather than the stored row, so flipping the basis
-  /// chip moves the locks and the flag with it.
+  /// The row as the form reads it: the stored facts with the draft's default
+  /// unit, basis, density and piece weight folded in. Every admission question
+  /// asks this.
   Ingredient get editedRow => row.copyWith(
     defaultUnit: defaultUnit,
     macrosBasis: basis,
@@ -275,19 +224,13 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
   /// The four fields as numbers, whatever mode they are in.
   Macros? get printedMacros => macros.toMacros();
 
-  /// The per-100 column a scan landed, when the pack printed one. It is the
-  /// other half of a label that printed both, kept so the comparison line can
-  /// check the two readings against each other from either mode — in
-  /// per-serving mode the fields hold the pack's per-serving column and this
-  /// is what their derivation is checked against.
+  /// The per-100 column a scan landed, kept so the comparison line can check
+  /// the pack's two readings against each other.
   Macros? get scannedPer100 => scanApplied?.macros;
 
-  /// What Save would STORE: per 100 of the basis. In per-serving mode that is
-  /// the derivation, which is null until the serving amount is in — nothing is
-  /// stored that was divided by a blank.
-  ///
-  /// The serving converts into the basis through the catalog alone (`1 cup` is
-  /// 236.59 ml, exactly), so a volume serving needs no density.
+  /// What Save would store: per 100 of the basis. In per-serving mode it is the
+  /// derivation, null until the serving amount is in. A volume serving converts
+  /// through the catalog alone, so it needs no density.
   Macros? get storedMacros {
     if (!perServing) return printedMacros;
     final printed = printedMacros;
@@ -296,11 +239,8 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     return Macros.per100From(serving: amount, basis: basis, printed: printed);
   }
 
-  /// The serving to keep as the row's one measure, or null when the row states
-  /// none. It is the serving as typed or scanned, refused only when it cannot
-  /// be said in the basis the row is actually storing — a `cup` serving with
-  /// the basis flipped to per 100 g has no honest weight, and a measure that
-  /// needed a density would be smuggling one in (ADR-0008 §2).
+  /// The serving to keep as the row's one measure, or null. Refused when it
+  /// cannot be said in the stored basis without a density (ADR-0008 §2).
   ({double inBasis, String label})? get servingMeasure {
     final amount = serving.amount;
     final inBasis = serving.amountInBasis;
@@ -310,23 +250,9 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     return (inBasis: inBasis, label: servingMeasureLabel(amount, serving.unit));
   }
 
-  /// What the density sentence is offered: its left-hand side always, and the
-  /// weight to type into its right when the pack printed one.
-  ///
-  /// **A US label's serving line is a density statement.** "2 tbsp (7 g)" says
-  /// what one spoonful of this weighs, in one breath — but only one of those
-  /// two readings can be the row's serving, because a serving is denominated
-  /// in the basis. The other half is read back off the pack's line, which the
-  /// draft keeps verbatim, so neither reading is lost to the basis the row
-  /// happens to store in.
-  ///
-  /// Only a **volume** reading can open the sentence: what a gram weighs is
-  /// not a fact. A serving with no volume anywhere — typed or printed —
-  /// therefore offers nothing, and `grams` stays null wherever the pack
-  /// stated no weight beside it.
-  ///
-  /// It is an OFFER and nothing more (ADR-0008 §2, ADR-0011): the sentence is
-  /// still what states a density, and the person is the one who taps it.
+  /// What the density sentence is offered: a volume left-hand side, and the
+  /// grams when the pack printed a weight beside it ("2 tbsp (7 g)"). Null when
+  /// the serving has no volume reading. An offer only (ADR-0008 §2).
   ({double amount, Unit unit, double? grams})? get densityPrefill {
     final printed = readPrintedServing(serving.packPrintedText);
     final said = serving.amount;
@@ -353,19 +279,9 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     );
   }
 
-  /// A scan that landed a **per-100** panel and named no serving — the one
-  /// state where the macros section says, unprompted, that per-serving is
-  /// there.
-  ///
-  /// Every clause earns its place. A hand-typed row is excluded because
-  /// nobody there is reading a mode off a screen they did not choose; a pack
-  /// whose panel WAS per serving already landed in that mode; and a per-100
-  /// pack that also printed its serving already states one, so there is
-  /// nothing to point at.
-  ///
-  /// It reads the fields rather than a flag, so it goes as soon as the person
-  /// touches either the mode or a figure: from then on what is on screen is
-  /// theirs, not the scan's.
+  /// True for a scan that landed a per-100 panel and named no serving: the one
+  /// state where the section hints that per-serving mode exists. Reads the
+  /// fields, so it goes once the person touches the mode or a figure.
   bool get scannedPer100NeedsServingHint {
     final scanned = this.scanned;
     final applied = scanApplied;
@@ -385,15 +301,9 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
   /// been written yet — the state the card says *not saved* in.
   bool get sourcePending => pendingSource != null;
 
-  /// The row as the form reads its **provenance**: the pick or the scan the
-  /// draft is holding, or the stored stamp when it holds none.
-  ///
-  /// The three source fields travel together or not at all — a stamp carrying
-  /// the previous food's label would name the wrong food — and a fill that has
-  /// just landed is nobody's override yet, so [Ingredient.sourceEdited] comes
-  /// off with them. Every door and card that asks "where did these numbers
-  /// come from" asks this, so a fresh pick is on the card before it is on the
-  /// row.
+  /// The row as the form reads its provenance: the draft's pick or scan, else
+  /// the stored stamp. The three source fields travel together, and a fresh
+  /// fill clears [Ingredient.sourceEdited].
   Ingredient get sourcedRow => pendingSource == null
       ? row
       : row.copyWith(
@@ -403,25 +313,17 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
           sourceEdited: false,
         );
 
-  /// Why this form cannot be saved yet, in the user's words, or null.
-  ///
-  /// It lives on the draft rather than inside [IngredientForm.save] because a
-  /// dock has to ask it *before* the tap: the create form's one button is
-  /// enabled by [completable], and the line above it prints this.
+  /// Why this form cannot be saved yet, in the user's words, or null. On the
+  /// draft so the dock can ask before the tap.
   String? get refusal {
     if (name.trim().isEmpty) {
       return 'A name is the one field an ingredient can’t go without.';
     }
-    // One namespace: a name already carried by another row, or by another
-    // row's alias, is not this row's to take. The field prints the same
-    // sentence with a door onto that row.
+    // One namespace: a name or alias another row carries is refused.
     if (nameCollision case final taken?) {
       return nameTakenMessage(taken.ingredientName);
     }
-    // Asked of a NEW row only. A category is what puts a thing in the shop's
-    // walk and what earns it the imprecise words, so a row coined today states
-    // one; the rows already here that never did stay saveable, because
-    // refusing them would make an unrelated edit impossible to put down.
+    // New rows only: rows already stored without a category stay saveable.
     if (creating && category.trim().isEmpty) {
       return 'Which aisle is it in? Pick a category — an uncategorised row '
           'sorts ahead of every aisle, and words like pinch and handful are '
@@ -438,21 +340,15 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     if (perServing && printedMacros != null && serving.amountInBasis == null) {
       return kServingAmountFirst;
     }
-    // D4c, held on the write side too. The chips refuse to OFFER a default
-    // the row cannot say, but a basis flipped (or a USDA pick landed) after
-    // the pick strands the one already chosen, and a flag beside it is only
-    // advice a Save can walk past. The row is still never rewritten silently:
-    // this names what is wrong and leaves both fixes to the person.
+    // A basis flip or USDA pick can strand a default already chosen, so the
+    // write side refuses too. The row is never rewritten silently.
     if (!unitSayableAsDefault(editedRow, defaultUnit)) {
       final basisWord = basis == MacrosBasis.perMl ? 'ml' : 'g';
       return 'Macros per 100 $basisWord and no density can’t have '
           '${defaultUnit.label} as the default unit — add a density '
           'below, or make it ${basisDefaultUnitFix(editedRow).label}.';
     }
-    // The count-side twin of D4c (ADR-0015): a `piece` default with nothing
-    // weighing a piece is a count the converter can never bridge, and the
-    // owner's ruling is that such a row is not saveable. Same manners — the
-    // refusal names both ways out and the person picks one.
+    // The count-side twin (ADR-0015): a `piece` default with no piece weight.
     if (defaultUnitNeedsPieceWeight(editedRow)) {
       return 'Piece can’t be the default unit with nothing weighing one — '
           'enter what one weighs below, or make it '
@@ -461,10 +357,8 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     return null;
   }
 
-  /// Whether this form would land a row that **counts**: nothing refused, and
-  /// macros on a basis. It is exactly the gate `Mark complete` applies to a
-  /// stub, asked of the draft instead of the stored row — which is what lets
-  /// the create form offer one button and mean it.
+  /// Whether this form would land a row that counts: nothing refused, and
+  /// macros on a basis. The same gate `Mark complete` applies to a stub.
   bool get completable => refusal == null && storedMacros != null;
 }
 
@@ -472,28 +366,22 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
 /// (a null id, which is what makes this the app's one add flow).
 @riverpod
 class IngredientForm extends _$IngredientForm {
-  /// Whether the row's own serving has been read into this draft yet. The
-  /// measures are a stream and emit again for every measure the form adds;
-  /// the serving is seeded ONCE, from the first list that carries one.
+  /// The measures stream re-emits; the serving is seeded once, from the first
+  /// list that carries one.
   bool _servingSeeded = false;
 
   @override
   IngredientFormDraft build(String? ingredientId, {String initialName = ''}) {
     _servingSeeded = false;
-    // The row is a WATCHED query, and it moves under an open form: this
-    // device's own Save, and a second device's edit. Listened to rather than
-    // watched, because rebuilding this notifier on every row change would
-    // throw away the draft — what a moving row is allowed to do is re-seed
-    // the macro fields, below, and only while nobody has typed in them.
+    // Listened to, not watched: rebuilding the notifier on a row change would
+    // discard the draft. A moving row may only re-seed untouched macro fields.
     if (ingredientId != null) {
       ref.listen(ingredientByIdProvider(ingredientId), (_, next) {
         final row = next.asData?.value;
         if (row != null) _rowMoved(row);
       });
-      // The measures are watched the same way, and for one thing: the row's
-      // own serving is one of them. A list that has not arrived yet is why
-      // this is a listen as well as a read — the form opens before the stream
-      // does, and the serving is seeded when it lands.
+      // The row's serving is one of its measures, and the stream may open after
+      // the form does.
       ref.listen(ingredientMeasuresProvider(ingredientId), (_, next) {
         final measures = next.asData?.value;
         if (measures != null) _servingArrived(servingMeasureOf(measures));
@@ -505,10 +393,8 @@ class IngredientForm extends _$IngredientForm {
             : ref.read(ingredientByIdProvider(ingredientId)).asData?.value) ??
         Ingredient(
           id: ingredientId ?? '',
-          // The create form's seed is a picker query, which is prose. Only
-          // the silent half applies — the field must open reading exactly
-          // what a Save would write, and choosing a different WORD is not the
-          // picker's to do.
+          // The seed is a picker query: clean it silently, suggest no other
+          // word.
           canonicalName: cleanName(initialName, NameKind.title),
           defaultUnit: g,
           status: IngredientStatus.stub,
@@ -535,29 +421,18 @@ class IngredientForm extends _$IngredientForm {
         : _withServing(draft, servingMeasureOf(measures));
   }
 
-  /// **A row that states a serving reopens in it.** The label's own figures
-  /// are what a person typed and what the fact sheet prints back, so the form
-  /// that edits them opens on the same reading rather than on the per-100 the
-  /// row happens to store.
-  ///
-  /// The serving is a measure — `serving · 2 tsp` — so its words are the
-  /// truth and the arithmetic reverses exactly: the four fields hold the
-  /// stored per-100 scaled by the serving amount ([servingPrintedMacros]),
-  /// unrounded, and a Save that changes nothing writes the same per-100 back.
-  ///
-  /// The fields then hold the LABEL's column rather than the row's, which is
-  /// also what stops [_rowMoved] overwriting them — the same guard that
-  /// protects typing, doing the same job for figures the form derived.
+  /// A row that states a serving reopens in per-serving mode: the fields hold
+  /// the stored per-100 scaled by the serving ([servingPrintedMacros]),
+  /// unrounded, so an unchanged Save writes the same per-100 back. Holding the
+  /// label's column also keeps [_rowMoved] from overwriting them.
   IngredientFormDraft _withServing(
     IngredientFormDraft draft,
     Measure? measure,
   ) {
     if (measure == null) return draft;
     final stated = servingFromMeasureLabel(measure.label);
-    // A serving the household renamed no longer parses, and one in a
-    // dimension the row does not store cannot be read back into the fields
-    // (the reversal would be a conversion nobody stated). Either way the form
-    // opens per 100, which is what the row stores.
+    // A renamed serving no longer parses, and one in another dimension cannot
+    // be reversed; either way the form opens per 100.
     if (stated == null || measure.basis != draft.row.macrosBasis) return draft;
     final serving = ServingDraft(
       amountText: macroFieldSeed(stated.amount),
@@ -581,11 +456,8 @@ class IngredientForm extends _$IngredientForm {
     );
   }
 
-  /// The serving arriving after the form opened.
-  ///
-  /// It seeds once, and only into a form nobody has touched — the guard is
-  /// [IngredientFormDraft.seededMacros], the one [_rowMoved] uses, so a panel
-  /// somebody is typing is never relabelled per serving under their hands.
+  /// The serving arriving after the form opened. Seeds once, and only into
+  /// untouched fields ([IngredientFormDraft.seededMacros]).
   void _servingArrived(Measure? measure) {
     if (_servingSeeded || state.perServing) return;
     if (state.macros != state.seededMacros) return;
@@ -593,12 +465,10 @@ class IngredientForm extends _$IngredientForm {
     state = _withServing(state, measure);
   }
 
-  /// The admission set [allowed] would be, given the density and the piece
-  /// weight [row] carries: a density unlocks the other family's units and
-  /// removing it strips them; a piece weight unlocks `piece` on a count row
-  /// and removing it strips that (ADR-0015). `piece` is never kept on a row
-  /// whose default is not a count. Derived here rather than by an effect that
-  /// watches the numbers, so the chips and the stored set can never disagree.
+  /// The admission set [allowed] becomes under [row]'s density and piece
+  /// weight: a density unlocks the other family, a piece weight unlocks `piece`
+  /// on a count row (ADR-0015), and removing either strips them. Derived, so
+  /// the chips and the stored set cannot disagree.
   Set<Unit> _admissionFor(Ingredient row, Set<Unit> allowed) {
     final next = {...allowed};
     if (row.densityGPerMl != null) {
@@ -615,17 +485,10 @@ class IngredientForm extends _$IngredientForm {
     return next;
   }
 
-  /// **A lookup's numbers reach the FIELDS, not just the row.**
-  ///
-  /// The macro inputs are seeded once, when their controllers are built, so a
-  /// write that put macros on the row re-rendered everything *derived* from it
-  /// while the four fields went on showing the blanks they were born with. The
-  /// re-seed bumps [IngredientFormDraft.macroSeed], which is the fields' key,
-  /// so the framework rebuilds the controllers around their new text.
-  ///
-  /// The guard is what keeps a pending edit safe: the draft is re-seeded only
-  /// while it still says exactly what the row last put there. Type into any
-  /// macro field and the row's own changes stop overwriting you.
+  /// Re-seeds the macro fields when the row's macros move, bumping
+  /// [IngredientFormDraft.macroSeed] (the fields' key) so their controllers
+  /// rebuild. Only while the draft still says what the row last put there;
+  /// typed fields are left alone.
   void _rowMoved(Ingredient row) {
     final fresh = MacroDraft.from(row.macros);
     if (fresh == state.seededMacros || state.macros != state.seededMacros) {
@@ -648,12 +511,8 @@ class IngredientForm extends _$IngredientForm {
 
   // --- The row's own fields ------------------------------------------------
 
-  /// The name as the field now reads.
-  ///
-  /// Text identical to what the draft already holds is not an edit: pushing a
-  /// re-seeded name into the field's controller echoes back through here, and
-  /// treating that echo as typing would lift the pin and clear the `was` line
-  /// the same tidy had just set.
+  /// The name as the field now reads. Identical text is not an edit: a
+  /// re-seeded name echoes back through here.
   void setName(String name) {
     if (name == state.name) return;
     state = state.copyWith(
@@ -668,14 +527,9 @@ class IngredientForm extends _$IngredientForm {
     );
   }
 
-  /// The name field was left (or Save is about to write it): [cleanName],
-  /// then the ingredient suggestion.
-  ///
-  /// Recasing and respacing are silent — the field simply reads right. A word
-  /// changing is not: [IngredientFormDraft.nameWas] is set and the view prints
-  /// the revert line under the field. A pinned name skips the suggestion and
-  /// keeps its pin through the recasing, so *keep the old word* holds for as
-  /// long as the person leaves that name alone.
+  /// Tidies the name: [cleanName], then the ingredient suggestion. Recasing is
+  /// silent; a changed word sets [IngredientFormDraft.nameWas]. A pinned name
+  /// skips the suggestion.
   void tidyName() {
     final typed = state.name;
     final cleaned = cleanName(typed, NameKind.title);
@@ -693,23 +547,15 @@ class IngredientForm extends _$IngredientForm {
     );
   }
 
-  /// The name field was LEFT: the tidy, and then the namespace.
-  ///
-  /// One call because they are one moment — the check has to ask about the
-  /// name as it will be SAVED, and the tidy is what decides that ("sauerkraut
-  /// " and "Sauerkraut" are the same name only after it has run).
+  /// The name field was left: tidy first, then check the namespace, because the
+  /// check must ask about the name as it will be saved.
   Future<void> leaveNameField() async {
     tidyName();
     await checkName();
   }
 
-  /// Asks the household's one name namespace about the name as it now stands:
-  /// is it already somebody's, and — only when it is not — whose name was it
-  /// very nearly spelled?
-  ///
-  /// The two never show together. An exact collision is a refusal with one
-  /// answer; a guess is a question with up to three, and offering both would
-  /// be the form asking and telling at once.
+  /// Asks the name namespace whether the name is taken and, only when it is
+  /// not, which names it nearly spells. The two never show together.
   Future<void> checkName() async {
     final name = state.name;
     if (name.trim().isEmpty) return;
@@ -745,12 +591,8 @@ class IngredientForm extends _$IngredientForm {
   void setCategory(String category) =>
       state = state.copyWith(category: category);
 
-  /// Only a sayable unit is offered (the rest are named in the note under the
-  /// row), so admitting the pick can never strand the row on the density side.
-  /// `piece` is the one exception by design: it is offered with no weight yet,
-  /// because picking it is what makes the weight sentence appear — the
-  /// admission rule then keeps `piece` locked until the number is in, and Save
-  /// refuses meanwhile.
+  /// Only sayable units are offered, except `piece`: picking it is what reveals
+  /// the weight field, and Save refuses until the weight is in.
   void setDefaultUnit(Unit unit) {
     final next = state.copyWith(
       defaultUnit: unit,
@@ -759,12 +601,8 @@ class IngredientForm extends _$IngredientForm {
     state = next.copyWith(allowed: _admissionFor(next.editedRow, next.allowed));
   }
 
-  /// A tap turns a unit on or off — except the row's own default, which stays
-  /// on. Pruning is the household's to do, but not down to a row that cannot
-  /// say the word it is bought in; [allowedUnitsFor] unions the default back
-  /// in on the next read anyway, so honouring the tap would only make the
-  /// chips lie until then. The chip is drawn locked, with the note under the
-  /// row saying why.
+  /// Toggles a unit, except the row's own default: [allowedUnitsFor] unions it
+  /// back in anyway, so the chip is drawn locked.
   void toggleUnit(Unit unit) {
     if (unit == state.defaultUnit) return;
     final next = {...state.allowed};
@@ -772,22 +610,10 @@ class IngredientForm extends _$IngredientForm {
     state = state.copyWith(allowed: next);
   }
 
-  /// Per 100 of the basis — the mode a row's own macros are in by definition.
-  ///
-  /// **Leaving per-serving mode refills the four fields with the derivation**,
-  /// because that is what they now mean. Nothing was typed in the mode yet?
-  /// Then the per-100 figures it cleared come back, so a mis-tap costs a
-  /// person nothing.
-  ///
-  /// **With figures in the fields and no serving under them, the mode does
-  /// not leave.** There is no derivation to put in their place, and the two
-  /// things that could happen instead are both worse than a refusal: blanking
-  /// them loses what somebody typed and invites them to retype a serving
-  /// column into per-100 fields, and carrying them across relabels the
-  /// label's own numbers as a fact about 100 g. So the chips say
-  /// [kServingAmountFirst] — the same sentence Save says about the same
-  /// missing number — and the figures stand. Clearing them is what leaves
-  /// the mode with nothing to lose.
+  /// Back to per 100 of the basis. The fields refill with the derivation, or
+  /// with the per-100 figures the mode cleared when nothing was typed. With
+  /// figures and no serving amount the mode does not leave, and the chips say
+  /// [kServingAmountFirst].
   void setBasis(MacrosBasis basis) {
     if (!state.perServing) {
       state = state.copyWith(basis: basis);
@@ -819,9 +645,8 @@ class IngredientForm extends _$IngredientForm {
     state = state.copyWith(serving: serving, basis: serving.basis);
   }
 
-  /// **The four fields CLEAR.** They held per-100 figures; carrying them into
-  /// fields that now mean per serving is how a right number becomes a wrong
-  /// one. What they held is remembered, so [setBasis] can put it back.
+  /// Clears the four fields, because per-100 figures are wrong per serving.
+  /// What they held is remembered so [setBasis] can put it back.
   void setPerServing() {
     if (state.perServing) return;
     state = state.copyWith(
@@ -856,9 +681,7 @@ class IngredientForm extends _$IngredientForm {
 
   // --- Piece weight (ADR-0015) ---------------------------------------------
 
-  /// What one of these weighs, in the basis unit — drafted, not written; the
-  /// chips follow it through the admission rule exactly as they follow the
-  /// density.
+  /// What one piece weighs, in the basis unit. Drafted, not written.
   void draftPieceWeight(double amount) =>
       _withPieceWeight(PieceWeightSet(amount));
 
@@ -885,10 +708,8 @@ class IngredientForm extends _$IngredientForm {
     return pending;
   }
 
-  /// Re-states a measure the form has not written yet, keeping the id it was
-  /// minted with. A STORED measure is not editable here — it is a live row and
-  /// its correction is a write of its own — so this answers null for one, and
-  /// the host takes the repository door instead.
+  /// Re-states a drafted measure, keeping its id. Null for a stored measure,
+  /// which the host corrects through the repository.
   Measure? editDraftMeasure(String measureId, String label, double amount) {
     final index = state.measuresAdded.indexWhere((m) => m.id == measureId);
     if (index < 0) return null;
@@ -908,9 +729,8 @@ class IngredientForm extends _$IngredientForm {
     return edited;
   }
 
-  /// Re-stamps the DRAFT's measures to the positions [ids] gives them in the
-  /// list the person just dragged. The stored rows in that same list are
-  /// re-stamped by the repository, so both halves land on the one order.
+  /// Re-stamps the draft's measures to their positions in [ids]; the repository
+  /// re-stamps the stored rows.
   void reorderDraftMeasures(List<String> ids) {
     final position = {for (final (i, id) in ids.indexed) id: i};
     state = state.copyWith(
@@ -948,9 +768,7 @@ class IngredientForm extends _$IngredientForm {
     );
   }
 
-  /// The scan's pack size, taken. It lands in the draft, so it rides the form's
-  /// one Save like every other measure — which is what lets a barcode-created
-  /// row carry its pack size before the row exists.
+  /// Takes the scan's pack size into the draft as a measure.
   void addPackMeasure({required int sortOrder}) {
     final pack = state.scanApplied?.packMeasure;
     if (pack == null) return;
@@ -969,12 +787,8 @@ class IngredientForm extends _$IngredientForm {
     );
   }
 
-  /// Minted here and kept: the save inserts under this id.
-  ///
-  /// **An alias is a name**, so it is refused on the same namespace a
-  /// canonical name is — and the refusal is the entry it would have landed on,
-  /// so the editor can name the row and offer a door onto it. Null means the
-  /// alias was taken into the draft; nothing is written either way.
+  /// Adds an alias to the draft under an id minted here. An alias shares the
+  /// name namespace: returns the entry it collides with, or null when taken.
   Future<NameEntry?> addAlias(String text) async {
     final cleaned = cleanName(text, NameKind.alias);
     final entries = await ref.read(ingredientRepositoryProvider).nameIndex();
@@ -1009,9 +823,8 @@ class IngredientForm extends _$IngredientForm {
 
   // --- The two prefill doors -----------------------------------------------
 
-  /// A barcode draft, landed through the shared rule and against the form's OWN
-  /// draft — a panel typed and not yet saved is as much the human's as a saved
-  /// one. Nothing here confirms the row.
+  /// Lands a barcode draft through the shared rule, against the form's own
+  /// draft. Never confirms the row.
   void applyScan(IngredientDraft draft) {
     final applied = applyDraft(
       draft,
@@ -1028,10 +841,8 @@ class IngredientForm extends _$IngredientForm {
       packAdded: false,
     );
     if (applied.macros != null) {
-      // A per-100 label that ALSO names its serving ("0.25 cup (28 g)") states
-      // two things, and the row keeps both: the serving as a measure, so the
-      // reading posture can print the pack's own line back, and the figures in
-      // the fields.
+      // A per-100 label that also names its serving keeps both: the serving as
+      // a measure, the figures in the fields.
       final printedServing = applied.serving;
       final serving = printedServing == null
           ? null
@@ -1041,13 +852,9 @@ class IngredientForm extends _$IngredientForm {
               packPrinted: printedServing.printed,
               packPrintedText: printedServing.printedText,
             );
-      // **Which figures those are is the label's call.** A pack that printed
-      // its per-serving column beside its per-100 one is entered in the
-      // column a person reading the pack would type: the label's numbers are
-      // the fact, and per 100 is the derivation the app shows under them. A
-      // serving with no figures of its own, or figures with no serving to
-      // divide by, leaves the row per 100 — there is no second reading to
-      // enter it in.
+      // A pack that printed a per-serving column beside its per-100 one is
+      // entered per serving. A serving with no figures, or figures with no
+      // serving, stays per 100.
       final printed = printedServing?.printed;
       final perServing = serving != null && printed != null;
       next = next.copyWith(
@@ -1066,17 +873,15 @@ class IngredientForm extends _$IngredientForm {
     }
     final panel = applied.servingPanel;
     if (panel != null) {
-      // A per-serving panel lands on the per-serving mode: the four as printed,
-      // the serving amount prefilled when the payload had a number and
-      // otherwise left for the person, never parsed out of the free text.
+      // A per-serving panel lands in per-serving mode; the serving amount
+      // prefills only from a payload number, never parsed from free text.
       final unit = (panel.servingBasis ?? next.basis).baseUnit;
       final amount = panel.servingAmount;
       final serving = ServingDraft(
         amountText: amount == null ? '' : macroFieldSeed(amount),
         unit: unit,
-        // The pack's line verbatim. The serving row can only hold the reading
-        // the basis is in, and "2 tbsp (7 g)" states two — keeping the words
-        // is what lets the density sentence be offered the other half.
+        // The pack's line verbatim, so the density sentence can be offered its
+        // other half.
         packPrintedText: panel.servingSize,
       );
       next = next.copyWith(
@@ -1089,17 +894,12 @@ class IngredientForm extends _$IngredientForm {
         servingSeed: next.servingSeed + 1,
       );
     }
-    // **The name, when there isn't one yet.** `applyDraft` returns one only
-    // where the target's was EMPTY, so on an existing row it never fires; on a
-    // new row it is the difference between a scan that fills the form in and a
-    // Save that refuses for want of a name. A starting point, not a decision.
+    // `applyDraft` returns a name only where the target's was empty.
     if (applied.name case final scanned?) {
       next = next.copyWith(name: scanned, nameSeed: next.nameSeed + 1);
     }
-    // A stamp travels with the name of the pack it points at, and with NO fit
-    // score: a scan is an exact-key fetch, so there is no coverage of the typed
-    // name to report and a stale one would describe a food that is no longer
-    // the row's. A draft that stamps nothing leaves all three alone.
+    // A scan is an exact-key fetch, so its stamp carries the pack's name and no
+    // fit score.
     state = applied.source == null
         ? next
         : next.copyWith(
@@ -1109,17 +909,15 @@ class IngredientForm extends _$IngredientForm {
           );
   }
 
-  /// A USDA pick. **It writes nothing** — it fills the draft with the macros,
-  /// the density and which food they came from, and the form's own Save lands
-  /// the lot. That is also what lets it work on a row that does not exist yet.
+  /// A USDA pick: fills the draft with the macros, the density and the food
+  /// they came from. Writes nothing.
   void applyUsdaPick(UsdaCandidate pick) {
     var next = state.copyWith(
       pendingSource: pick.source,
       pendingSourceLabel: pick.description,
       pendingSourceScore: pick.score,
-      // A pick replaces the old fill WHOLE, so a food with no density of its
-      // own clears the one the previous food supplied — otherwise the row keeps
-      // a number that came from a match the household has just rejected.
+      // A pick replaces the old fill whole, so a food with no density clears
+      // the previous food's.
       density: pick.densityGPerMl != null
           ? DensitySet(pick.densityGPerMl!)
           : const DensityCleared(),
@@ -1142,21 +940,13 @@ class IngredientForm extends _$IngredientForm {
     state = next.copyWith(allowed: _admissionFor(next.editedRow, next.allowed));
   }
 
-  /// *Not this food*: the fill comes out of the **form** always, and out of
-  /// the **row** when the row is the one carrying it.
-  ///
-  /// Both halves are needed because a pick reaches the draft before it reaches
-  /// the row (ADR-0011). Refusing a food while its stamp sat in the draft
-  /// cleared the row and left the stamp, so the next Save wrote back the food
-  /// that had just been refused; and refusing one that was never saved had
-  /// nothing to write at all, so the card said cleared while the fields still
-  /// held the food's numbers.
+  /// `Not this food`: the fill always comes out of the form, and out of the row
+  /// when the row carries it. A pick reaches the draft before the row
+  /// (ADR-0011), so both halves are needed.
   Future<void> declineUsda() async {
     final stored = isUsdaPrefilled(state.row.source);
     _dropUsdaFill();
-    // A pick that only ever sat in the draft has no row to clear — the write
-    // refuses it by design (`declineUsdaPrefill` writes only on a row the
-    // prefill still authors), and there is nothing to say about renames.
+    // A pick that only sat in the draft has no row to clear.
     if (!stored) {
       state = state.copyWith(
         message:
@@ -1182,15 +972,9 @@ class IngredientForm extends _$IngredientForm {
     }
   }
 
-  /// The refused fill, out of the draft: the stamp the next Save would write,
-  /// the density it asserted, and — while nobody has typed over them — the
-  /// macro fields it seeded.
-  ///
-  /// The density goes back to *unchanged* rather than to *cleared*: the form
-  /// stops asserting the pick's number, and what is left is whatever the row
-  /// itself says — none, once the write below has run, and the row's own
-  /// again on a pick that never landed. The macro guard is the row-move
-  /// guard ([_rowMoved]): a field somebody has typed in is theirs.
+  /// Drops the refused fill from the draft: the pending stamp, the density it
+  /// asserted (back to unchanged, not cleared) and any macro fields nobody has
+  /// typed over ([_rowMoved]'s guard).
   void _dropUsdaFill() {
     var next = state.copyWith(
       pendingSource: null,
@@ -1213,19 +997,11 @@ class IngredientForm extends _$IngredientForm {
 
   // --- The three writes ----------------------------------------------------
 
-  /// **One call.** The row's fields, the density, the piece weight, every
-  /// measure added and removed, the aliases and — when the CTA asked — the
-  /// status flip, in a single transaction (ADR-0011). Nothing here can
-  /// half-land.
-  ///
-  /// Returns the row as the write left it, or null when the form refused
-  /// itself — the message line then says why. A repository failure THROWS: the
-  /// view's `ref.write` owns the toast, the same way the recipe editor's Save
-  /// does.
+  /// Writes the whole form in one transaction (ADR-0011). Returns the row as
+  /// written, or null when the form refused itself. A repository failure
+  /// throws; the view's `ref.write` owns the toast.
   Future<Ingredient?> save({bool markComplete = false}) async {
-    // The backstop for a field that was TYPED IN and never left — Save tapped
-    // straight from the keyboard. A name nobody touched is left exactly as the
-    // row has it.
+    // The backstop for a name typed and never left.
     if (state.nameEdited) tidyName();
     final refusal = state.refusal;
     if (refusal != null) {
@@ -1244,10 +1020,8 @@ class IngredientForm extends _$IngredientForm {
           );
       if (!ref.mounted) return null;
       if (result case Err(:final failure)) {
-        // The write refused: the name (or an alias) is already somebody's
-        // here. Nothing was written, and the check runs again first so the
-        // field gets its note and its door back — the message alone cannot
-        // name a row, let alone open it.
+        // The write refused a taken name; re-check so the field gets its note
+        // back.
         await checkName();
         if (!ref.mounted) return null;
         state = state.copyWith(message: failure.message);
@@ -1258,10 +1032,8 @@ class IngredientForm extends _$IngredientForm {
         state = state.copyWith(message: 'It is no longer here.');
         return null;
       }
-      // Landed, so the draft empties: a second Save must not write any of it
-      // twice. This is the one place the draft is discarded on purpose. The
-      // row, its measures and its aliases are watched queries, so nothing is
-      // invalidated here — the write that just landed re-fires them.
+      // Landed, so the draft empties and a second Save writes nothing twice.
+      // The watched queries re-fire on their own.
       state = state.copyWith(
         message: 'Saved.',
         pendingSource: null,
@@ -1280,9 +1052,8 @@ class IngredientForm extends _$IngredientForm {
     }
   }
 
-  /// The whole form as one intent. The serving, when the row states one, rides
-  /// the same write as everything else — as the row's one `serving` measure,
-  /// which is what lets the reading posture print the label's figures back.
+  /// The whole form as one intent, including the serving as a `serving`
+  /// measure.
   IngredientFormEdit _edit({required bool markComplete}) {
     final serving = state.servingMeasure;
     return IngredientFormEdit(
@@ -1325,9 +1096,7 @@ class IngredientForm extends _$IngredientForm {
     );
   }
 
-  /// A stored default the rules no longer support — a cup default on a
-  /// per-100 g row with no density. Repaired only when asked, and saved in the
-  /// same breath so the row stops being broken.
+  /// Repairs a stranded default, only when asked, and saves at once.
   Future<Ingredient?> fixStrandedDefault() async {
     final fix = basisDefaultUnitFix(state.editedRow);
     setDefaultUnit(fix);
@@ -1362,14 +1131,9 @@ class IngredientForm extends _$IngredientForm {
   }
 }
 
-/// The delete refusal, in the form's one message line (board
-/// `ingredient-detail.html`): *"Still used by 3 recipes (4 lines). Change those
-/// lines first."*
-///
-/// The week's lines join the same sentence rather than getting a second one:
-/// a household reads "what still uses this", not "which table". Each clause
-/// only appears when it has something to say, so the recipes-only case prints
-/// exactly the sentence it always has.
+/// The delete refusal for the message line: "Still used by 3 recipes (4 lines).
+/// Change those lines first." Week lines join the same sentence; each clause
+/// appears only when non-empty.
 String _refusalSentence(DeleteRefused refused) {
   final recipes =
       '${refused.recipeCount} ${plural(refused.recipeCount, 'recipe')} '

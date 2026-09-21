@@ -1,41 +1,26 @@
-/// The USDA enrichment probe — PURE DART (invariant 2).
+/// The USDA enrichment probe. Pure Dart.
 ///
-/// `usda_food` never syncs to a device (ADR-0005), so the app cannot search
-/// it. What it *can* do, since migration 0016, is ask the server for candidates
-/// by name through a security-definer RPC that writes nothing (`probe_usda`).
-/// The answer names each candidate (its `description`) and is a short-list
-/// ranked by coverage, so the form can offer *Choose another*. The reference
-/// set is still not browsable: the server caps the list.
+/// `usda_food` never syncs to a device (ADR-0005), so the app asks the server
+/// for candidates by name through the write-free `probe_usda` RPC, which
+/// returns a capped short-list ranked by coverage.
 ///
-/// **The offline contract is part of the type.** [UsdaProbe.search] returns an
-/// empty list for "nothing matches" *and* for "could not ask", and nothing else
-/// will fill the row afterwards — there is no probe-at-birth and no server
-/// trigger. Callers degrade with honest copy; they never raise a dialog for a
-/// missing connection.
+/// [UsdaProbe.search] returns an empty list both for "nothing matches" and for
+/// "could not ask", and nothing else fills the row afterwards. Callers degrade
+/// with copy, never a dialog.
 library;
 
 import 'package:meta/meta.dart';
 
 import '../../../core/units/macros.dart';
 
-/// Whether a candidate accounts for **every word of the name it was found
-/// for**, or only some of them.
+/// Whether a candidate accounts for every word of the name it was found for, or
+/// only some.
 ///
-/// It is coverage, not confidence: a person picks the food, so how sure a
-/// machine was is not the useful thing to say, and `score` is the query's
-/// idf-weighted coverage rather than a graded likelihood. Measured over the 267
-/// curated ingredient → FDC pairs the vocabulary was built from it is
-/// **bimodal**: 226 of 264 top picks
-/// sit at exactly 1.0 and *nothing* falls between 0.85 and 1.0, so every
-/// threshold in that range asks the same yes/no question. A band with no middle
-/// is a boolean wearing a threshold's clothes.
-///
-/// It earns its place all the same: a full-coverage pick is the right food
-/// **63%** of the time against **34%** for a partial one.
-///
-/// A row stamped before 0029 carries a trigram score, where 1.0 meant an
-/// identical string — which also means every word matched, so the reading
-/// stays true for those rows rather than quietly meaning something else.
+/// It is coverage, not confidence: `score` is the query's idf-weighted
+/// coverage. Over the curated ingredient → FDC pairs it is bimodal (nothing
+/// falls between 0.85 and 1.0), so it is a yes/no reading; a full-coverage pick
+/// is the right food about twice as often as a partial one. Older rows carry a
+/// trigram score, where 1.0 also means every word matched.
 enum UsdaMatchFit {
   full,
   partial;
@@ -56,14 +41,9 @@ enum UsdaMatchFit {
   };
 }
 
-/// One USDA candidate, as `probe_usda` returns it.
-///
-/// Deliberately only what the server prefill itself copies — a density, a
-/// macro panel, the provenance stamp — plus what a person needs to recognise
-/// it: the [description], its [category], and the trigram [score] that
-/// earned it. Nothing here describes the reference set beyond the rows
-/// offered; this is an answer about one ingredient, not a window onto
-/// `usda_food`.
+/// One USDA candidate, as `probe_usda` returns it: what the prefill copies (a
+/// density, a macro panel, the provenance stamp) plus what a person needs to
+/// recognise it ([description], [category], [score]).
 @immutable
 class UsdaCandidate {
   const UsdaCandidate({
@@ -76,12 +56,9 @@ class UsdaCandidate {
     this.macros,
   });
 
-  /// Parses one RPC row, or null when the shape is not what 0027 promises —
-  /// a malformed answer must degrade to "nothing came back", never to a
-  /// half-populated candidate that then writes half a panel. A row without a
-  /// description is such a row: the whole point of 0027 is that a match can
-  /// be named, and a server that cannot name it is a server this build does
-  /// not yet understand.
+  /// Parses one RPC row, or null when the shape is wrong, so a malformed answer
+  /// never becomes a half-populated candidate. A row with no description is
+  /// malformed.
   static UsdaCandidate? tryParse(Map<String, Object?> row) {
     final fdcId = row['fdc_id'];
     final description = row['description'];
@@ -117,9 +94,7 @@ class UsdaCandidate {
     if (kcal is! num || protein is! num || carb is! num || fat is! num) {
       return null;
     }
-    // The reference set states fibre for most foods and not for all, so it is
-    // read when present and costs the candidate nothing when it is not
-    // ([Macros.fiber]).
+    // Fibre is read when present and optional otherwise ([Macros.fiber]).
     final fiber = raw['fiber'];
     return Macros(
       kcal: kcal.toDouble(),
@@ -144,9 +119,8 @@ class UsdaCandidate {
   /// server so the app and the trigger cannot disagree about it.
   final String source;
 
-  /// The trigram similarity that cleared the server's 0.5 floor. Shown as a
-  /// [fit], stored beside the label, never acted on: the floor is the
-  /// server's to enforce.
+  /// The server's match score, already above its floor. Shown as a [fit] and
+  /// stored beside the label, never acted on.
   final double score;
 
   UsdaMatchFit get fit => UsdaMatchFit.of(score);
@@ -155,8 +129,8 @@ class UsdaCandidate {
   final Macros? macros;
 
   /// Whether there is anything worth writing. A candidate with neither a
-  /// density nor a panel is a name match and nothing else — applying it would
-  /// only churn the row's `source`, and the pick sheets leave it out.
+  /// density nor a panel would only churn the row's `source`, so the pick
+  /// sheets leave it out.
   bool get hasSomethingToCopy => densityGPerMl != null || macros != null;
 
   @override
@@ -165,30 +139,19 @@ class UsdaCandidate {
       'density: $densityGPerMl, macros: $macros)';
 }
 
-/// The one question the app can ask the reference set.
-///
-/// One member, and deliberately a type rather than a callback: tests and the
-/// unconfigured build swap the whole implementation through a provider, which a
-/// bare function cannot do.
+/// The one question the app can ask the reference set. A type rather than a
+/// callback so tests and the unconfigured build can swap the implementation
+/// through a provider.
 // ignore: one_member_abstracts
 abstract class UsdaProbe {
   const UsdaProbe();
 
-  /// The best [limit] USDA candidates for [matchText], best first, or an
-  /// empty list.
+  /// The best [limit] USDA candidates for [matchText], best first, or an empty
+  /// list. The server caps [limit] at ten.
   ///
-  /// [matchText] is **match text** — what `normalizeMatchText` produces —
-  /// because that is the shape `usda_food.match_text` is stored in and what
-  /// the server tokenises against. It is the normalised form of the name in
-  /// the FIELD, not of the stored row: the search asks about what the person
-  /// is looking at, which is what lets a rename be searched before it is
-  /// saved.
-  ///
-  /// Empty for a name nothing matches **and** for an unreachable server. The
-  /// caller cannot tell the two apart, and the sheet does not need to — it
-  /// draws its own empty state either way. Nothing fills the row behind it:
-  /// since 0029 there is no probe-at-birth and no server trigger, so an empty
-  /// result means the person has to look again or type the numbers, and
-  /// saying so plainly is the whole point. The server caps [limit] at ten.
+  /// [matchText] is what `normalizeMatchText` produces, from the name in the
+  /// field rather than the stored row, so a rename can be searched before it is
+  /// saved. Empty for no match and for an unreachable server alike; the sheet
+  /// draws its own empty state.
   Future<List<UsdaCandidate>> search(String matchText, {int limit = 5});
 }

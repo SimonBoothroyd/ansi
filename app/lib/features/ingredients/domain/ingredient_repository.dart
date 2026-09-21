@@ -1,16 +1,9 @@
-/// Ingredient vocabulary lookup and editing — PURE DART (invariant 2).
+/// Ingredient vocabulary lookup and editing. Pure Dart (invariant 2).
 ///
-/// The picker searches the local synced vocab offline through `searchRank`'s
-/// three tiers — exact, word prefix, and a guarded typo tier that only ever
-/// *offers* rows to a human under a "did you mean" header. ADR-0004 still
-/// holds: no index, no model, no reference set on the device, and nothing
-/// resolved without someone looking. Step 7.7 added the recents feed
-/// and the add-new stub path; step 8.5 adds the write half the manager needs
-/// — rename (one write: the stored name and its `match_text` move together,
-/// or the cascade searches for a name nothing carries), the fact edits, the
-/// explicit
-/// `allowed_units` list, aliases, the D5 confirm/unconfirm pair, and the
-/// guarded soft-delete.
+/// Search runs offline over the synced vocab through `searchRank`'s three
+/// tiers: exact, word prefix, and a guarded typo tier that only offers rows
+/// under "did you mean" (ADR-0004: nothing resolves without a person looking).
+/// A rename moves the stored name and its `match_text` in one write.
 library;
 
 import 'package:meta/meta.dart';
@@ -20,18 +13,10 @@ import '../../../core/units/units.dart';
 import 'ingredient.dart';
 import 'name_namespace.dart';
 
-/// What a [IngredientRepository.softDelete] attempt did.
-///
-/// Deletion is guarded, not merely audited: a `recipe_line_item`'s
-/// `ingredient_id` is NOT NULL by design (0014's commit contract), so a row a
-/// live line points at can never go. The refusal carries the counts the
-/// screen shows ("used by 3 recipes") — a refusal a user can act on beats an
-/// error they can't.
-///
-/// The set counted here is exactly the set migration 0041's trigger counts:
-/// live recipe lines in live groups of live recipes, plus the week's own
-/// lines. Two guards over one rule, and they must not disagree — the door
-/// exists so a person gets a sentence instead of a failed upload.
+/// What a [IngredientRepository.softDelete] attempt did. Deletion is refused
+/// while a live line points at the row, and the refusal carries the counts the
+/// screen shows. The counted set must match migration 0041's trigger: live
+/// recipe lines in live groups of live recipes, plus the week's lines.
 sealed class DeleteOutcome {
   const DeleteOutcome();
 }
@@ -53,11 +38,9 @@ final class DeleteRefused extends DeleteOutcome {
   final int recipeCount;
   final int lineCount;
 
-  /// Live lines in the WEEK that name the row — a bare-ingredient meal
-  /// (`plan_entry`) or a this-week swap (`week_recipe_line_override`). They
-  /// count because the database counts them (migration 0041): a delete this
-  /// door allowed and the server refused would be an upload the sync queue
-  /// can never drain, which is worse than the refusal.
+  /// Live week lines naming the row: a bare-ingredient `plan_entry` or a
+  /// `week_recipe_line_override`. Counted because migration 0041 counts them,
+  /// and a delete the server refused would block the sync queue.
   final int plannedCount;
 }
 
@@ -66,20 +49,10 @@ final class DeleteMissing extends DeleteOutcome {
   const DeleteMissing();
 }
 
-/// What the flesh-out form asks for, as ONE intent
-/// (`docs/decisions/0011-one-save-one-write.md`).
-///
-/// The form writes once, on Save, so everything it changed has to travel
-/// together: the row's own fields, the density, the measures added and
-/// removed, the aliases, and what a bare count means. [IngredientRepository]
-/// applies the lot in a single transaction, which is what makes partial
-/// success stop being representable — several calls under one error guard can
-/// leave a row without its pack measure.
-///
-/// **Ids are minted by the caller.** Measures and aliases already carry
-/// client-generated uuids, so a draft can name a row before it exists and the
-/// save inserts it under that id. That is also what lets the form work with
-/// no ingredient id at all (lane C).
+/// What the flesh-out form saves, as one intent applied in one transaction
+/// (ADR-0011): the row's fields, density, piece weight, measures, aliases and
+/// the status flip. Measure and alias ids are minted by the caller, so a draft
+/// can name a row before it exists.
 @immutable
 class IngredientFormEdit {
   const IngredientFormEdit({
@@ -97,19 +70,13 @@ class IngredientFormEdit {
   /// The row's own scalar fields — the half that already went through Save.
   final IngredientEdit row;
 
-  /// **The form owns the admission set, and it owns the density with it.**
-  /// The old `setDensity` unioned `allowed_units` itself and the form's chips
-  /// followed the row afterwards; under one write the draft has already
-  /// applied that unlock (or strip), so `row.allowedUnits` is authoritative
-  /// and this is written beside it rather than deriving it.
+  /// The form's draft has already applied the density's unlock or strip to
+  /// `row.allowedUnits`, so this is written beside that list, not derived from
+  /// it.
   final DensityChange density;
 
-  /// The serving the row's label prints, kept as its **one**
-  /// `serving · 2 tbsp` measure. Writing one replaces whatever serving the row
-  /// already had rather than stacking a second beside it — a row has one
-  /// label, and a serving is a fact about that label. Null says nothing about
-  /// the serving, so a save that was about something else leaves it alone; the
-  /// measures editor is where one is binned.
+  /// The serving the label prints, kept as the row's one `serving · 2 tbsp`
+  /// measure; writing one replaces the old. Null leaves the serving alone.
   final PendingMeasure? serving;
 
   final List<PendingMeasure> measuresAdded;
@@ -117,14 +84,12 @@ class IngredientFormEdit {
   final List<PendingAlias> aliasesAdded;
   final Set<String> aliasesRemoved;
 
-  /// The piece weight, three-valued like the density and for the same
-  /// reason: the form's draft has already applied what it unlocks (or strips)
-  /// to `row.allowedUnits`, and this rides beside it (ADR-0015).
+  /// The piece weight (ADR-0015), three-valued like [density] and likewise
+  /// already applied to `row.allowedUnits`.
   final PieceWeightChange pieceWeight;
 
-  /// `Mark complete` saves and marks in the SAME transaction: split across two
-  /// writes, a failure between them leaves the row saved and not marked, under
-  /// an error implying neither happened.
+  /// Save and mark in the same transaction, so a failure cannot leave the row
+  /// saved but unmarked.
   final bool markComplete;
 }
 
@@ -145,10 +110,7 @@ class PendingMeasure {
   /// `addMeasure` refuses it — the contract does not soften for being batched.
   final double amount;
 
-  /// Where the row lands in the ingredient's list. Null appends it, which is
-  /// what a measure typed into the add form wants; a form whose list has been
-  /// dragged states the position, so the first row stays the one the person
-  /// put first.
+  /// Where the row lands in the ingredient's list; null appends it.
   final int? sortOrder;
 }
 
@@ -181,9 +143,8 @@ class DensityCleared extends DensityChange {
   const DensityCleared();
 }
 
-/// The piece weight (ADR-0015), three-valued the way the density is: untouched,
-/// set, or deliberately removed. Removal strips `piece` from the admission
-/// list in the same write — the count-side mirror of D4b.
+/// The piece weight change (ADR-0015): untouched, set, or removed. Removal
+/// strips `piece` from the admission list in the same write.
 sealed class PieceWeightChange {
   const PieceWeightChange();
 }
@@ -204,11 +165,9 @@ class PieceWeightCleared extends PieceWeightChange {
   const PieceWeightCleared();
 }
 
-/// The editable facts of one vocab row — everything the flesh-out form saves
-/// in a single write. Every field is a replacement, not a patch: the form
-/// always holds the whole row, and a null [macros] is a deliberate clear
-/// (which sends a `complete` row back to `stub` — D5's reversibility).
-/// [source] is the one exception, and says why.
+/// The editable facts of one vocab row. Every field replaces, not patches: a
+/// null [macros] is a deliberate clear, which sends a `complete` row back to
+/// `stub`. [source] is the one exception.
 class IngredientEdit {
   const IngredientEdit({
     required this.canonicalName,
@@ -233,225 +192,127 @@ class IngredientEdit {
   final String? category;
   final Macros? macros;
 
-  /// What the provenance is called and how sure the match was — written beside
-  /// [source] and patch-shaped for the same reason. A USDA pick fills these
-  /// into the draft rather than writing them itself, so the food that filled a
-  /// row and the numbers it filled land together.
+  /// The provenance's name and match score, written beside [source] and
+  /// patch-shaped like it.
   final String? sourceLabel;
   final double? sourceScore;
 
   /// A provenance to stamp (`off:<barcode>`), or null to keep the stored one.
-  ///
-  /// Patch-shaped where every other field replaces, because provenance is never
-  /// *cleared* by a form: it records where numbers came from, and the only
-  /// writer is a barcode scan on the form landing on a row that had no source
-  /// yet (`applyDraft`). Written in the same statement as the macros it
-  /// explains, so a row never carries one without the other.
+  /// Patch-shaped because a form never clears provenance; written in the same
+  /// statement as the macros it explains (`applyDraft`).
   final String? source;
 }
 
-/// What a vocab search found — and whether the phone had to **guess** to find
-/// it.
-///
-/// `guessed` is true only when nothing was spelled right: the exact and prefix
-/// tiers came back empty and the typo tier answered instead. The picker renders
-/// those rows under a `DID YOU MEAN` header, because tier 2 is retrieval for a
-/// human to pick, never a resolution. It is never true for a browse (empty
-/// query) and never true when a single spelled hit exists — a guess is the
-/// whole list or it is absent.
+/// What a vocab search found. `guessed` is true only when the exact and prefix
+/// tiers were empty and the typo tier answered; the picker then shows the rows
+/// under `DID YOU MEAN`. Never true for an empty query.
 typedef IngredientMatches = ({List<Ingredient> rows, bool guessed});
 
-/// The refusal [IngredientRepository.saveForm] returns when the name (or an
-/// alias) being saved is already a live name in this household — its own row's
-/// name excepted.
-///
-/// **No unique index backs this, and none should.** `0019_shopping_week.sql`
-/// says why for its own rows and the reason is general: two devices offline
-/// can mint the same row and converge later, so Postgres stays permissive and
-/// the app is where a duplicate is refused *while a person is looking at it*.
-/// A constraint would turn a convergence into a sync error nobody can act on.
+/// The refusal [IngredientRepository.saveForm] returns when the name or an
+/// alias is already a live name in this household. No unique index backs this,
+/// by design: two offline devices can mint the same row and must converge, so
+/// the app refuses the duplicate instead (see `0019_shopping_week.sql`).
 Failure nameTakenFailure(String existingName) =>
     Failure('ingredient/name_taken', nameTakenMessage(existingName));
 
 abstract interface class IngredientRepository {
-  /// Ingredients whose name/aliases match [query], best first, capped at
-  /// [limit]. Empty [query] → the first [limit] ingredients (so the picker has
-  /// something to show unfiltered).
-  ///
-  /// Ordering is `searchRank`'s and nothing else's: the tier decides first (an
-  /// exact hit outranks a prefix hit outranks a guess, whatever the scores
-  /// say), then the score, then the shorter name. The typo tier runs only when
-  /// the other two find nothing at all, and says so through
-  /// [IngredientMatches]`.guessed`.
+  /// Ingredients whose name or aliases match [query], best first, capped at
+  /// [limit]; an empty [query] returns the first [limit] rows. Ordering is
+  /// `searchRank`'s: tier, then score, then shorter name. The typo tier runs
+  /// only when the others find nothing ([IngredientMatches]`.guessed`).
   Future<IngredientMatches> search(String query, {int limit = 30});
 
-  /// The ingredients most recently used in a recipe line or manual shopping
-  /// top-up, newest first — the picker's "Recent" section (7.7). Empty when
-  /// nothing has been used yet (the picker then falls back to [search]).
+  /// The ingredients most recently used in a recipe line or manual top-up,
+  /// newest first. Empty when nothing has been used.
   Future<List<Ingredient>> recentlyUsed({int limit = 8});
 
-  /// The live vocab row with [id], or null when it doesn't exist (or is
-  /// tombstoned). Resolves an ingredient a caller only knows by reference —
-  /// e.g. the edit-top-up sheet filtering its unit picker.
+  /// The live vocab row with [id], or null when missing or tombstoned.
   Future<Ingredient?> byId(String id);
 
-  /// The same row as a watched query — what a screen that STAYS OPEN on one
-  /// ingredient reads. The form saves and then goes on showing the row it
-  /// saved, and another device's edit arrives while it is open; a one-shot
-  /// read leaves both stale until something invalidates it by hand.
+  /// [byId] as a watched query, for a screen that stays open on one row.
   Stream<Ingredient?> watchIngredient(String id);
 
-  /// The live vocab rows for [ids], keyed by id — missing/tombstoned ids are
-  /// simply absent. One query for a whole set: the import review validates
-  /// every line's unit against its ingredient, and doing that a row at a time
-  /// is a DB round-trip per line on every edit.
+  /// The live vocab rows for [ids], keyed by id, in one query. Missing or
+  /// tombstoned ids are absent.
   Future<Map<String, Ingredient>> byIds(Set<String> ids);
 
-  /// Stores [gPerMl] as the ingredient's density — the single volume⇄mass
-  /// fact (ADR-0008; both entry styles resolve to this one number) — and
-  /// extends its explicit `allowed_units` with the units the density
-  /// unlocks, in the same write (the stored list is never silently
-  /// recomputed; a density's arrival is the one explicit extension).
-  /// Returns the updated row, or null when [ingredientId] doesn't resolve.
-  ///
-  /// Throws [ArgumentError] for a non-positive/NaN [gPerMl] — a zero density
-  /// would fabricate Infinity conversions (invariant 3).
+  /// Stores [gPerMl] as the density (ADR-0008) and unions the units it unlocks
+  /// into the explicit `allowed_units` in the same write. Returns the updated
+  /// row, or null when [ingredientId] does not resolve. Throws [ArgumentError]
+  /// for a non-positive or NaN [gPerMl] (invariant 3).
   Future<Ingredient?> setDensity(String ingredientId, double gPerMl);
 
-  /// Deletes the ingredient's density and, **in the same write**, removes the
-  /// units that density was the only reason to admit (`densityStrippedUnits`).
+  /// Deletes the density and, in the same write, removes the units only it
+  /// admitted (`densityStrippedUnits`). The one place the admission list
+  /// shrinks; ADR-0009's union-never-remove rule governs backfills, not this.
+  /// Existing lines are never rewritten: one still saying a stripped unit
+  /// degrades to the `unitNotAllowed` flag.
   ///
-  /// This is the one place the admission list ever shrinks. ADR-0009's
-  /// union-never-remove rule governs backfills and reseeds, where the arriving
-  /// set is a *default* and the stored list is the user's; here the removed
-  /// units were **derived from the number being deleted**, so leaving them
-  /// would let a line say `cup` with nothing left to convert it. The basis
-  /// family and the default unit's own family survive — they never needed a
-  /// density.
-  ///
-  /// **Existing lines are never rewritten.** A recipe line already saying a
-  /// stripped unit keeps saying it and degrades to the ordinary
-  /// `unitNotAllowed` flag on the import review — the same honest refusal any
-  /// other out-of-set unit gets. Silently rewriting someone's line to a unit
-  /// they did not choose would be the invented number this app refuses.
-  ///
-  /// Returns the updated row, or null when [ingredientId] doesn't resolve. A
-  /// no-op (returning the row unchanged) when there is no density to delete.
+  /// Returns the updated row (unchanged when there was no density), or null
+  /// when [ingredientId] does not resolve.
   Future<Ingredient?> clearDensity(String ingredientId);
 
-  /// Stores [amount] as what ONE of this ingredient weighs, in its basis unit
-  /// — the piece weight (ADR-0015), the count-side twin of [setDensity] — and
-  /// extends the explicit `allowed_units` with what it unlocks (`piece`, on a
-  /// count-default row) in the same write. `piece_source` becomes `manual`.
-  /// Returns the updated row, or null when [ingredientId] doesn't resolve.
+  /// Stores [amount] as what one piece weighs in the basis unit (ADR-0015),
+  /// unions `piece` into `allowed_units` on a count-default row in the same
+  /// write, and sets `piece_source` to `manual`. Returns the updated row, or
+  /// null when [ingredientId] does not resolve. Throws [ArgumentError] for a
+  /// non-positive or NaN [amount] (invariant 3).
   ///
-  /// Throws [ArgumentError] for a non-positive/NaN [amount] — a zero weight
-  /// would fabricate a free count (invariant 3).
-  ///
-  /// The quantity sheet's manage state calls this on tap (it has no Save);
-  /// the flesh-out form holds the change in its draft and lands it through
-  /// [saveForm] instead.
+  /// The quantity sheet calls this on tap; the form lands the same change
+  /// through [saveForm].
   Future<Ingredient?> setPieceWeight(String ingredientId, double amount);
 
-  /// Deletes the piece weight and, **in the same write**, removes `piece`
-  /// from the admission list (`pieceStrippedUnits`) — the count-side mirror
-  /// of [clearDensity]'s D4b leg, and for the same reason: the admission was
-  /// derived from the number being deleted, and a line saying `piece` with
-  /// nothing weighing one is the fabricated conversion this app refuses.
-  ///
-  /// Lines are never rewritten: one already saying `piece` reads as "needs a
-  /// piece weight" until the row has one again. A piece-default row is then a
-  /// stranded default and the form refuses to save it that way; the caller
-  /// is expected to know that. Returns the updated row, or null when
-  /// [ingredientId] doesn't resolve; a no-op when there is nothing to delete.
+  /// Deletes the piece weight and, in the same write, removes `piece` from the
+  /// admission list (`pieceStrippedUnits`); the mirror of [clearDensity]. Lines
+  /// are never rewritten, and a piece-default row becomes a stranded default
+  /// the form refuses to save. Returns the updated row (unchanged when nothing
+  /// to delete), or null when [ingredientId] does not resolve.
   Future<Ingredient?> clearPieceWeight(String ingredientId);
 
-  /// *Not this food* — undoes a USDA prefill in ONE write: the density goes
-  /// through the same strip [clearDensity] runs (D4b — the units it alone
-  /// unlocked come out), the macros go, and `source` becomes
-  /// [usdaDeclinedSource]. The row is a `stub` afterwards (a row with no macros
-  /// never asserts `complete`, D5), and [Ingredient.sourceLabel] SURVIVES so
-  /// the form can name the food that was refused; the score is cleared with the
-  /// match it described.
+  /// `Not this food`: undoes a USDA prefill in one write. The density goes
+  /// through [clearDensity]'s strip, the macros go, `source` becomes
+  /// [usdaDeclinedSource] and the row is a `stub`. [Ingredient.sourceLabel]
+  /// survives so the form can name the refused food; the score is cleared.
   ///
-  /// Exactly what the prefill wrote comes out, because on a `usda_fdc:` row
-  /// both prefill writers are fill-null-only on a bare stub — so the prefill
-  /// is the author of both numbers. Offered only while `source` still starts
-  /// with `usda_fdc:`: a row a human has since re-sourced is the human's.
-  /// Returns null when [ingredientId] doesn't resolve or the row is not a
-  /// USDA-filled one (nothing written).
-  ///
-  /// Why a new source value rather than a reset to `manual`: the rename
-  /// trigger's WHEN clause (0015) listed the sources it could refill —
-  /// `manual` among them — and `usda_declined` was deliberately not, so
-  /// declining once meant the next rename left the row alone. 0029 dropped
-  /// that trigger; no rename refills anything now. The value stays because it
-  /// is still how a row says "not from USDA", and only a food a person picks
-  /// themselves — saved with the form, which stamps [IngredientEdit.source]
-  /// in the same write as the numbers it explains — writes over it.
+  /// Only for a row whose `source` still starts with `usda_fdc:`. Returns null,
+  /// writing nothing, when [ingredientId] does not resolve or the row is not
+  /// USDA-filled. A later pick saved with the form overwrites the declined
+  /// stamp ([IngredientEdit.source]).
   Future<Ingredient?> declineUsdaPrefill(String ingredientId);
 
   // --- The manager's write half (step 8.5) -----------------------------------
 
-  /// The whole live vocabulary, canonical-name ordered, as a watched query —
-  /// the manager list, which must re-render when a sync (or this device's own
-  /// edit) changes a row. Carries the same `measureCount` the picker rows do.
+  /// The whole live vocabulary, ordered by canonical name, as a watched query.
+  /// Carries the same `measureCount` the picker rows do.
   Stream<List<Ingredient>> watchVocabulary();
 
   /// How many live rows still read `stub` — the Library menu's badge. Watched
   /// so confirming one decrements it without a refresh.
   Stream<int> watchStubCount();
 
-  /// How many live rows the vocabulary holds — the Library's Ingredients card
-  /// says what is on that shelf, the way a book says "42 recipes". A count, not
-  /// the list: the Library must not carry 300 rows to print one number.
+  /// How many live rows the vocabulary holds, for the Library card.
   Stream<int> watchVocabularyCount();
 
-  /// The household's distinct live categories, alphabetical — the flesh-out
-  /// form's category dropdown.
-  ///
-  /// The vocabulary *is* the category list: there is no separate table, and
-  /// inventing one would leave two places to disagree about whether "produce"
-  /// exists. Watched, so a category typed on one row is offered on the next
-  /// without a refresh. Blank and whitespace-only values are excluded — they
-  /// are what free text left behind, and they are not a category.
+  /// The household's distinct live categories, alphabetical, watched. There is
+  /// no category table; blank values are excluded.
   Stream<List<String>> watchCategories();
 
-  /// Applies a whole form in ONE transaction: the row's fields, the density,
-  /// the piece weight, measures added and removed, aliases, and — when
-  /// [IngredientFormEdit.markComplete] — the status flip.
+  /// Applies a whole form in one transaction. A null [ingredientId] creates the
+  /// row, with its measures and aliases, in that transaction.
   ///
-  /// **A null [ingredientId] creates the row**, which is what lets the form be
-  /// the app's one add flow: with nothing written until Save, a form with no
-  /// row behind it is coherent, backing out of it leaves nothing to clean up,
-  /// and its children — measures, aliases — are inserted in the same
-  /// transaction as the row they belong to.
-  ///
-  /// Returns [Ok] with the row as the write left it — or `Ok(null)` if an
-  /// existing row is gone — and [Err] when the save was **refused**, which
-  /// today means one thing: the name, or an alias, is already somebody's in
-  /// this household's one name namespace ([nameTakenFailure]).
-  ///
-  /// A refusal, not a throw, because it is a sentence a person can act on
-  /// rather than a programming error: the form prints it under the field it
-  /// belongs to, beside a door onto the row that already has that name. The
-  /// contracts that ARE programming errors still throw [ArgumentError] — a
-  /// blank name, a non-positive measure amount, an alias with no identity
-  /// word. Nothing is written in either case.
-  ///
-  /// The check runs **inside the write transaction**, so the form's own
-  /// pre-check cannot be raced past by a sync landing between the two.
+  /// Returns [Ok] with the row as written (`Ok(null)` if an existing row is
+  /// gone), or [Err] with [nameTakenFailure] when the name or an alias is
+  /// already taken. That check runs inside the write transaction, so a sync
+  /// cannot race past the form's pre-check. Programming errors (blank name,
+  /// non-positive measure amount, alias with no identity word) throw
+  /// [ArgumentError]. Nothing is written in either case.
   Future<Result<Ingredient?>> saveForm(
     String? ingredientId,
     IngredientFormEdit edit,
   );
 
-  /// Every live name in the household — each row's canonical name and each
-  /// live alias — as the one namespace they are.
-  ///
-  /// One read rather than a query per question: the form asks twice on every
-  /// leave of the name field (is this name taken, and is it nearly taken),
-  /// and the vocabulary is a few hundred rows the device already holds.
+  /// Every live name in the household, canonical names and aliases, as one
+  /// namespace, in one read.
   Future<List<NameEntry>> nameIndex();
 
   /// Returns a `complete` row to `stub` — confirm is reversible. The
@@ -462,8 +323,6 @@ abstract interface class IngredientRepository {
   /// it. See [DeleteOutcome].
   Future<DeleteOutcome> softDelete(String ingredientId);
 
-  /// The ingredient's live aliases, oldest first — the form's "Also known as"
-  /// chips. Watched, so an alias the form's own Save just inserted (and one a
-  /// second device added) appears without being invalidated by hand.
+  /// The ingredient's live aliases, oldest first, watched.
   Stream<List<IngredientAlias>> watchAliases(String ingredientId);
 }

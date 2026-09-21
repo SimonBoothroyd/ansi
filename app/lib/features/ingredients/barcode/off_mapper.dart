@@ -1,16 +1,11 @@
-/// Open Food Facts payload → [IngredientDraft] — PURE DART (invariant 2), so it
-/// is tested off committed fixtures with no network.
+/// Open Food Facts payload → [IngredientDraft]. Pure Dart, tested off committed
+/// fixtures.
 ///
-/// The mapping is deliberately narrow. OFF returns hundreds of nutriment
-/// keys, several of which *look* like the ones we want; this file reads the
-/// four required macros plus the optional fibre, and explains why the
-/// near-misses are left alone. Anything the payload does not establish comes
-/// out null with a reason attached — never zero.
-///
-/// The one place it reads WIDELY is the basis — which 100 the four numbers are
-/// per. OFF files a per-100 ml label under the same `*_100g` keys as a per-100
-/// g one and defaults `nutrition_data_per` to `100g` for both, so the panel
-/// alone cannot say; [_basisFor] weighs the rest of the payload instead.
+/// Reads the four required macros plus optional fibre, and leaves OFF's
+/// near-miss keys alone. Anything the payload does not establish comes out null
+/// with a reason, never zero. The basis is the exception: OFF files per-100 ml
+/// labels under the same `*_100g` keys, so [_basisFor] weighs the rest of the
+/// payload.
 library;
 
 import '../../../core/units/macros.dart';
@@ -19,12 +14,9 @@ import '../../../core/units/units.dart';
 import '../domain/serving_measure.dart';
 import 'ingredient_draft.dart';
 
-/// Maps a decoded `/api/v2/product/{barcode}.json` body to a draft.
-///
-/// Returns null when the body carries no usable product — `status` is not 1
-/// (OFF's "product not found"), or `product` is missing/not an object. The
-/// caller separates those two cases: a not-found answer is a designed state,
-/// a shapeless 200 is a malformed one.
+/// Maps a decoded `/api/v2/product/{barcode}.json` body to a draft. Returns
+/// null when `status` is not 1 (not found) or `product` is missing or not an
+/// object; the caller tells the two apart.
 IngredientDraft? draftFromOffBody(Map<String, Object?> body) {
   if (body['status'] != 1) return null;
   final product = body['product'];
@@ -54,10 +46,9 @@ IngredientDraft? draftFromOffBody(Map<String, Object?> body) {
   );
 }
 
-/// What the panel read as: per-100 macros in their basis, or a per-serving
-/// panel carried as printed, or nothing — with the gap saying which.
-/// The `printedServing` field rides beside per-100 macros when the label
-/// also named the serving they are printed per.
+/// What the panel read as: per-100 macros in their basis, a per-serving panel
+/// as printed, or nothing, with the gap saying which. `printedServing` rides
+/// beside per-100 macros when the label named a serving.
 typedef _Panel = ({
   Macros? macros,
   MacrosBasis basis,
@@ -71,18 +62,15 @@ _Panel _readPanel(Map<String, Object?> p) {
   final n = p['nutriments'];
   final nutriments = n is Map<String, Object?> ? n : const <String, Object?>{};
 
-  // A per-serving panel: the four printed figures ride through as printed, with
-  // OFF's numeric `serving_quantity` when it has one. Never a per-100 figure
-  // from here — the serving's mass is what the conversion needs, and
-  // `serving_size` is free text ("1 serving (16 fl oz)") that is never parsed
-  // into a number. The host lands the panel on the form's per-serving mode and
-  // does the arithmetic in front of the person holding the pack.
+  // A per-serving panel rides through as printed, with OFF's numeric
+  // `serving_quantity` when present. It is never converted to per-100 here:
+  // `serving_size` is free text and is not parsed. The form's per-serving mode
+  // does the arithmetic.
   if (per == 'serving') {
     final printed = _four(nutriments, '_serving');
     if (printed == null) {
-      // Flagged per serving but the only serving keys are `*_prepared_*`
-      // (the NESQUIK shape): there is no printed panel to carry, and no
-      // serving weight would make one.
+      // Flagged per serving but only `*_prepared_*` serving keys exist: there
+      // is no printed panel to carry.
       return (
         macros: null,
         basis: _basisFor(p),
@@ -116,15 +104,9 @@ _Panel _readPanel(Map<String, Object?> p) {
   );
 }
 
-/// The serving a per-100 label prints beside its panel — "0.25 cup (28 g)".
-///
-/// **The pack's own words first, its bracket second.** A label says the
-/// serving in the unit a person measures with and converts it in parentheses
-/// for the panel; whichever of the two the row's basis can actually say is the
-/// one carried. A quarter-cup on a per-100 **g** panel is not it — the app
-/// would need a density to weigh it, and Open Food Facts holds none — so that
-/// label falls back to its own `(28 g)`. Nothing is converted here and nothing
-/// is implied: both readings are the pack's, printed on it side by side.
+/// The serving a per-100 label prints beside its panel, e.g. "0.25 cup (28 g)".
+/// The pack's own words are used when the row's basis can say them, else the
+/// bracketed figure. Nothing is converted here.
 DraftServing? _printedServing(Map<String, Object?> p, MacrosBasis basis) {
   final text = _text(p['serving_size']);
   if (text == null) return null;
@@ -144,38 +126,17 @@ DraftServing? _printedServing(Map<String, Object?> p, MacrosBasis basis) {
   return null;
 }
 
-/// **Which 100 the panel is per** — grams or millilitres.
+/// Which 100 the panel is per: grams or millilitres. Strongest evidence first:
 ///
-/// OFF stores both columns under the same `*_100g` keys, so this is the only
-/// thing standing between an oat milk's per-100 ml label and a row that says
-/// it weighs 46 kcal per 100 g. Read strongest evidence first:
+/// 1. `nutrition_data_per` naming ml, however spelt. 2. The net quantity on the
+/// pack ("1,5 l", "1 kg"). 3. The mass or volume printed in parentheses beside
+/// the serving (`1 Cup (237 mL)`). 4. `serving_quantity_unit`. Weaker: OFF
+/// derives it from free text, and a US "1 cup (62 g)" of dry macaroni comes
+/// back as `ml`. 5. OFF's category taxonomy (`en:beverages`). Last: the drinks
+/// branch also holds beans and powders.
 ///
-/// 1. `nutrition_data_per` **naming ml**, however it is spelt (`100ml`,
-///    `100 ml`). Somebody changed that field on purpose, so it wins outright.
-/// 2. The **net quantity on the pack** — "1,5 l", "1 kg", "7.25oz". It is the
-///    legally printed contents, in the unit the label is obliged to use, so a
-///    litre bottle is a litre label and a 1 kg bag of coffee beans is a
-///    per-100 g one whatever aisle it is sold in.
-/// 3. The mass or volume the label prints **in parentheses beside the
-///    serving** — `0.25 cup (28 g)`, `1 Cup (237 mL)`. It is the label's own
-///    conversion of the serving, in the unit the panel is per.
-/// 4. `serving_quantity_unit`. Weaker than the two above, because OFF derives
-///    it by normalising the free-text `serving_size` and a US "1 cup (62 g)"
-///    of dry macaroni comes back as `ml` — a serving measured by volume, not
-///    a label printed per volume. A bag of cheddar shreds served by the
-///    quarter-cup is the same trap, and step 3 is what catches it.
-/// 5. OFF's own category taxonomy: `en:beverages`. Last, because it describes
-///    what a product IS rather than how it is measured, and the drinks branch
-///    holds beans, leaves and powders as well as liquids — which is exactly
-///    what step 2 has already settled by the time this is reached.
-///
-/// **`100g` is not evidence.** It is the field's default in OFF's own entry
-/// form, written unchanged by every app and bot that never asked; the oat milk
-/// this rule exists for carries it beside twelve `en:beverages` categories and
-/// a label printed per 100 ml. So an explicit gram reading and a missing one
-/// are treated alike: unstated, and the pack is asked instead. Nothing here
-/// invents a density — the basis says which unit the numbers are per, and
-/// crossing between the two still needs a number a person typed.
+/// A `nutrition_data_per` of `100g` is not evidence; it is OFF's form default,
+/// so it is treated as unstated.
 MacrosBasis _basisFor(Map<String, Object?> p) {
   if (_perKey(p)?.endsWith('ml') ?? false) return MacrosBasis.perMl;
 
@@ -201,29 +162,18 @@ MacrosBasis _basisFor(Map<String, Object?> p) {
   return MacrosBasis.perG;
 }
 
-/// `nutrition_data_per`, reduced to the letters and digits contributors agree
-/// on: `100 ml`, `100_ml` and `100ML` are all `100ml`, and `serving` stays
-/// itself. Null when OFF holds nothing there.
+/// `nutrition_data_per` reduced to letters and digits, so `100 ml`, `100_ml`
+/// and `100ML` are all `100ml`. Null when absent.
 String? _perKey(Map<String, Object?> p) => _text(
   p['nutrition_data_per'],
 )?.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '');
 
 /// The macro panel under one OFF key [suffix] (`_100g`, `_serving`), or null
-/// unless all four required macros are there.
+/// unless all four required macros are present ([Macros.tryParse]'s rule).
 ///
-/// Only the plain keys. The near-misses are real and wrong: `energy-kcal`
-/// (no suffix) is whatever column the contributor typed in, and
-/// `*_prepared_100g` describes the made-up drink, not the powder in the tin
-/// — a cocoa powder mapped from its prepared panel would understate every
-/// recipe that used it by roughly a factor of ten. All four or none, the
-/// same rule a vocab row's macros obey ([Macros.tryParse]) — three numbers
-/// and an invented zero is exactly the dishonest total invariant 3 exists to
-/// prevent.
-///
-/// `fiber$suffix` rides along when OFF holds it, and its absence costs the
-/// panel nothing ([Macros.fiber]) — the same optional fifth key the rest of
-/// the app reads. `fiber_prepared_*` is a near-miss for the same reason its
-/// neighbours are, and is left alone.
+/// Only the plain keys: `energy-kcal` with no suffix is ambiguous, and
+/// `*_prepared_100g` describes the made-up drink, not the powder.
+/// `fiber$suffix` rides along when present ([Macros.fiber]).
 Macros? _four(Map<String, Object?> n, String suffix) {
   final kcal = _number(n['energy-kcal$suffix']);
   final protein = _number(n['proteins$suffix']);
@@ -241,14 +191,9 @@ Macros? _four(Map<String, Object?> n, String suffix) {
   );
 }
 
-/// OFF's numeric `serving_quantity` with the basis its unit names, or
-/// `(null, null)` when there is none or the unit is neither g nor ml. A
-/// positive number only — a zero serving is no serving.
-///
-/// A serving with **no unit at all** keeps its number and takes the basis
-/// [_basisFor] reads off the rest of the payload: "250" on a carton of oat
-/// milk is 250 ml, and reading the blank as grams is the same mistake the
-/// `100g` default invites one field over.
+/// OFF's numeric `serving_quantity` with the basis its unit names, or `(null,
+/// null)` when absent, not positive, or in a unit that is neither g nor ml. A
+/// serving with no unit takes the basis [_basisFor] reads.
 (double?, MacrosBasis?) _servingQuantity(Map<String, Object?> p) {
   final amount = _number(p['serving_quantity']);
   if (amount == null || !(amount > 0)) return (null, null);
@@ -260,12 +205,9 @@ Macros? _four(Map<String, Object?> n, String suffix) {
   };
 }
 
-/// Parses OFF's free-text `quantity` ("400 ml", "1 kg", "1 oz (28.3 g)")
-/// into a catalog quantity, or null when it does not land cleanly on one.
-///
-/// Null is the common answer and the safe one: the pack size is only ever
-/// offered as an opt-in measure, so an unparsed "6 x 33cl" simply isn't
-/// offered rather than being approximated.
+/// Parses OFF's free-text `quantity` ("400 ml", "1 kg", "1 oz (28.3 g)") into a
+/// catalog quantity, or null when it does not parse cleanly. The pack size is
+/// only an opt-in measure, so null just means no offer.
 DraftPackSize? parsePackQuantity(String? quantity) {
   // Contributors leave a stray stop or comma after the unit ("226g,"); it is
   // punctuation, not a second quantity.
@@ -288,9 +230,8 @@ DraftPackSize? parsePackQuantity(String? quantity) {
   return DraftPackSize(amount, unit);
 }
 
-/// OFF's `brands` is a comma-separated list because contributors append the
-/// parent company ("Nutella, Ferrero, Yum yum"). Only the first is the brand
-/// a shopper would name.
+/// OFF's `brands` is comma-separated, with parent companies appended. Only the
+/// first is kept.
 String? _firstBrand(String? brands) {
   if (brands == null) return null;
   final first = brands.split(',').first.trim();

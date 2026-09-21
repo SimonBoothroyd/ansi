@@ -1,22 +1,14 @@
-/// **The household's ingredient names and its aliases are ONE namespace**,
-/// keyed by `match_text` — PURE DART (invariant 2).
+/// The household's ingredient names and aliases are one namespace, keyed by
+/// `match_text`. Pure Dart.
 ///
-/// The seed's generator already holds this rule (`planSeed` in
-/// `supabase/seed/scripts/gen_seed.ts` refuses a vocabulary where two rows, or
-/// a row and another row's alias, normalize to the same text), and the import
-/// cascade's exact tier already reads names and aliases as one surface. What
-/// was missing was the phone: the flesh-out form would happily save a second
-/// **Sauerkraut** beside the first, and from then on every exact match was a
-/// coin toss between two rows.
+/// The seed generator (`planSeed` in `supabase/seed/scripts/gen_seed.ts`) and
+/// the import cascade's exact tier hold the same rule. Two questions are asked
+/// of one list of [NameEntry]:
 ///
-/// Two questions live here, and both are asked of the same list of [NameEntry]
-/// so they cannot disagree about what the namespace holds:
-///
-/// * [collisionIn] — is this text *already* a name here? An exact answer,
-///   over normalized match text, and the one a save is refused on.
-/// * [nearMatchesIn] — is it nearly one? [searchRank]'s guarded typo tier,
-///   offered under the pickers' `DID YOU MEAN` band and never acted on
-///   unattended (ADR-0004).
+/// - [collisionIn]: is this text already a name here? Exact, over normalized
+///   match text; a save is refused on it.
+/// - [nearMatchesIn]: is it nearly one? [searchRank]'s guarded typo tier,
+///   offered and never acted on unattended (ADR-0004).
 library;
 
 import 'package:meta/meta.dart';
@@ -24,23 +16,17 @@ import 'package:meta/meta.dart';
 import '../../../core/search/search_rank.dart';
 import 'normalize.dart';
 
-/// What the form's note and the write's refusal both open with — one sentence
-/// in two places would be two sentences by the second edit.
-///
-/// The name after it is a **door** where a widget draws it, so the prefix is
-/// exported on its own as well as inside [nameTakenMessage].
+/// What the form's note and the write's refusal both open with. Exported apart
+/// from [nameTakenMessage] because a widget draws the name after it as a link.
 const kNameTakenPrefix = 'Already an ingredient: ';
 
 /// The refusal in words: `Already an ingredient: Sauerkraut`.
 String nameTakenMessage(String existingName) =>
     '$kNameTakenPrefix$existingName';
 
-/// One name in the namespace: a row's own canonical name, or one of its live
-/// aliases.
-///
-/// [ingredientName] is the row's canonical name whichever this is, because it
-/// is what a person is sent to — "already an alias of Sauerkraut" names the
-/// row, not the alias.
+/// One name in the namespace: a row's canonical name or one of its live
+/// aliases. [ingredientName] is always the row's canonical name, which is where
+/// a person is sent.
 @immutable
 class NameEntry {
   const NameEntry({
@@ -84,15 +70,9 @@ class NameEntry {
       'NameEntry($ingredientName${isAlias ? ' alias' : ''}: $matchText)';
 }
 
-/// The live entry [text] would land on top of, or null when the name is free.
-///
-/// Exact over [normalizeMatchText], because that is what the namespace is
-/// keyed by: "Sauerkraut", "sauerkraut " and "Sauer-Kraut" are one name here,
-/// and an alias counts exactly as much as a canonical name does.
-///
-/// [selfId] is the row being edited, and its own entries are skipped — a row
-/// may always be saved under the name it already has, and re-saving a row
-/// whose alias matches its own name is not a duplicate of anything.
+/// The live entry [text] would collide with, or null when the name is free.
+/// Exact over [normalizeMatchText], and an alias counts as much as a canonical
+/// name. [selfId] is the row being edited; its own entries are skipped.
 NameEntry? collisionIn(
   String text,
   Iterable<NameEntry> entries, {
@@ -107,17 +87,10 @@ NameEntry? collisionIn(
   return null;
 }
 
-/// Up to [limit] rows whose name or alias [text] was very nearly spelled —
-/// one per row, best first, and **empty unless the typo tier answered**.
-///
-/// The band rule the pickers hold, applied to a name being typed: a guess is
-/// the whole list or it is absent ([bestTier]). A word-prefix hit is a
-/// spelling, not a guess — "Onion" beside the household's "Onion Powder" is
-/// two ingredients, and interrupting it with `DID YOU MEAN` would make the
-/// band mean nothing where it matters.
-///
-/// Rows collapse to one entry each: a row matched through both its name and an
-/// alias is still one row to go and look at.
+/// Up to [limit] rows whose name or alias [text] nearly spells, one per row,
+/// best first. Empty unless the typo tier answered ([bestTier]): a word-prefix
+/// hit is a spelling, not a guess, so "Onion" beside "Onion Powder" raises
+/// nothing.
 List<NameEntry> nearMatchesIn(
   String text,
   Iterable<NameEntry> entries, {

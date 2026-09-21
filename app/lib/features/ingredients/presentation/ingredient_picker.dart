@@ -1,19 +1,11 @@
-/// The ingredient picker (step 7.7): top-anchored search over the synced
-/// vocabulary, a Recent section before any
-/// query, information-honest result rows (category · capability hints · a
-/// per-100 macro line for complete rows, a `stub` badge — never zeros), and
-/// the add-new affordance.
+/// The ingredient picker: top-anchored search over the synced vocabulary, a
+/// Recent section before any query, result rows with hints and a per-100 macro
+/// line (a `stub` badge, never zeros), and the add-new door.
 ///
-/// Search is the shared [searchRank] rule, in the repository. When nothing was
-/// spelled right the guarded typo tier answers instead, and those rows arrive
-/// under a `DID YOU MEAN` header — the phone offers a guess for a human to
-/// pick, it never resolves on one (ADR-0004).
-///
-/// **Add-new is one chain, everywhere**: the footer pushes the ingredient form
-/// with the query prefilled and *waits for back*, and the row the form pops is
-/// what reaches the host — so the quantity sheet that follows offers the units
-/// the form just set. No path mints a stub as a side effect of something else;
-/// the form is on the way, not a detour.
+/// Search is the shared [searchRank] rule, in the repository. Typo-tier results
+/// arrive under a `DID YOU MEAN` header; the app offers a guess for a human to
+/// pick and never resolves on one (ADR-0004). Add-new pushes the ingredient
+/// form with the query prefilled and waits for the row it pops.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -37,10 +29,9 @@ import 'ingredient_detail_view.dart' show newIngredientRoute;
 import 'macro_line_text.dart';
 import 'macros_format.dart';
 
-/// Opens the picker as a bottom sheet; resolves to the chosen ingredient — an
-/// existing row, or one the add-new chain just created and fleshed out — or
-/// null if dismissed. [title] carries the destination context ('Add to "for
-/// the curry"').
+/// Opens the picker as a bottom sheet. Resolves to the chosen ingredient,
+/// existing or just created, or null if dismissed. [title] carries the
+/// destination context ('Add to "for the curry"').
 Future<Ingredient?> showIngredientPicker(
   BuildContext context, {
   String title = 'Add an ingredient',
@@ -51,9 +42,8 @@ Future<Ingredient?> showIngredientPicker(
   );
 }
 
-/// The search state both hosts share (the picker sheet and the shopping
-/// top-up embed): query text, results, whether the results are the recents
-/// feed (empty query) or a search, and whether the search had to guess.
+/// The search state both hosts share: query text, results, whether they are the
+/// recents feed or a search, and whether the search had to guess.
 ({
   String query,
   List<Ingredient> results,
@@ -137,13 +127,9 @@ class _IngredientPickerSheet extends HookConsumerWidget {
   }
 }
 
-/// The scrolling results — frame-a rows, with the Recent header before any
-/// query.
-///
-/// [trailing] is the one extension point (step 8.6 / D7, board frame c): a
-/// section rendered UNDER the ingredient rows in the same scroll view — the
-/// "Your recipes" section the line picker adds. Nothing else about the list
-/// moves; when it is empty this is the shipped 7.7 list exactly.
+/// The scrolling results, with the Recent header before any query. [trailing]
+/// is a section rendered under the ingredient rows in the same scroll view,
+/// e.g. the line picker's "Your recipes".
 class IngredientResultList extends StatelessWidget {
   const IngredientResultList({
     required this.results,
@@ -160,9 +146,8 @@ class IngredientResultList extends StatelessWidget {
   final bool showingRecents;
   final ValueChanged<Ingredient> onPick;
 
-  /// Whether [results] are the typo tier's guesses rather than spellings.
-  /// True only when nothing was spelled right, so the band is the whole list
-  /// or it is absent — a guess is never a tail under real hits.
+  /// Whether [results] are typo-tier guesses. True only when nothing was
+  /// spelled right, so guesses are the whole list or absent.
   final bool guessed;
 
   /// Extra sections below the ingredient rows.
@@ -178,14 +163,11 @@ class IngredientResultList extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 4),
             child: Text('RECENT', style: ansiLabel()),
           )
-        // Nothing was spelled right, so say so above the rows. The header is
-        // the whole reason a four-character floor is safe: it is the
-        // difference between "we found this" and "we guessed this".
+        // Nothing was spelled right; the header says these are guesses.
         else if (guessed && results.isNotEmpty)
           const DidYouMeanHeader()
-        // With a second section below, the ingredient rows need a name of
-        // their own — the board's frame-c header. Without one they are the
-        // whole list and labelling them would be noise.
+        // With a second section below, the ingredient rows get a header of
+        // their own.
         else if (trailing.isNotEmpty && results.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
@@ -201,10 +183,8 @@ class IngredientResultList extends StatelessWidget {
   }
 }
 
-/// An empty result list is an ANSWER, not a failure — "nothing here is a
-/// chicken thigh" is the honest reply from a vegan vocabulary. When the query
-/// was also too short for the rule to guess at, it says that too, so the
-/// silence is legible rather than mysterious.
+/// An empty result list is an answer, not a failure. When the query was also
+/// too short to guess at, it says so.
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.query});
 
@@ -241,22 +221,13 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-/// The muted second line under a vocabulary row: the category, what the row
-/// can convert, how many measures it carries, and whether its macros are
-/// still missing — joined with ` · `, and empty when there is nothing to say.
+/// The muted second line under a vocabulary row: category, what the row can
+/// convert, its measure count, and whether macros are missing, joined with ` ·
+/// `. Empty when there is nothing to say.
 ///
-/// Every clause is a fact already on the row, never a judgement about it: a
-/// row with no density is described, not scolded, and a stub says what it is
-/// short of rather than showing a line of zeros.
-///
-/// [advisoryDensityGap] makes a missing density a clause of its own. Only a
-/// screen that can fix it asks for it — the manager list passes true, the
-/// picker leaves it false, because an advisory nobody can act on is noise.
-///
-/// [showCategory] is false under a section header that has already said it —
-/// the manager's grouped list. A flat list (the picker, and the manager's own
-/// search results) keeps it, because nothing else there says where the row
-/// lives.
+/// [advisoryDensityGap] adds a clause for a missing density; only the manager
+/// list, which can fix it, passes true. [showCategory] is false under a section
+/// header that already said it.
 String vocabRowHints(
   Ingredient ing, {
   bool advisoryDensityGap = false,
@@ -272,12 +243,9 @@ String vocabRowHints(
   if (ing.status == IngredientStatus.stub) 'needs macros — no zeros shown',
 ].join(' · ');
 
-/// One dense, information-honest result row: name (+`stub` badge), category
-/// and capability hints, and a per-100 macro line for complete rows.
-///
-/// Shared by the picker (7.7) and the ingredients manager list (8.5) — the
-/// two must read alike or the same ingredient tells two stories. Only the
-/// trailing affordance differs: the picker adds, the manager navigates.
+/// One dense result row: name (+`stub` badge), hints, and a per-100 macro line
+/// for complete rows. Shared by the picker and the ingredients manager list;
+/// only the trailing affordance differs.
 class IngredientRow extends StatelessWidget {
   const IngredientRow({
     required this.ingredient,
@@ -295,23 +263,17 @@ class IngredientRow extends StatelessWidget {
   /// Defaults to the picker's `+`. The manager passes a chevron.
   final Widget? trailing;
 
-  /// Whether a missing density is worth saying out loud. The manager list says
-  /// it ("no density — volume units locked") because it is the screen that can
-  /// fix it; the picker stays quiet because it can't (this is an advisory,
-  /// never a completion blocker).
+  /// Whether a missing density is said out loud. True on the manager list,
+  /// which can fix it; an advisory, never a completion blocker.
   final bool advisoryDensityGap;
 
   /// Whether to name the USDA food behind a machine-filled row
-  /// ([sourceProvenanceLine]). The **manager list** says it —
-  /// scanning the vocabulary is where a wrong match is cheap to catch and
-  /// expensive to miss. The **picker** deliberately does not (A-D2): it is a
-  /// search surface, and a description under every row is noise while you are
-  /// typing.
+  /// ([sourceProvenanceLine]). True on the manager list; the picker omits it as
+  /// noise while typing.
   final bool showSource;
 
-  /// Whether the fact line opens with the row's category. False under a
-  /// section header that has just said it (the manager's grouped list); true
-  /// anywhere the rows are flat.
+  /// Whether the fact line opens with the row's category. False under a section
+  /// header that already said it.
   final bool showCategory;
 
   @override
@@ -360,12 +322,9 @@ class IngredientRow extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
-                  // Which food filled this row, under the hints and above its
-                  // numbers — the line reads as provenance for the macros it
-                  // sits over. Muted mono and ONE line: the USDA descriptions
-                  // are long ("Cereals ready-to-eat, GENERAL MILLS, Corn
-                  // CHEX"), and a row that grows to three lines stops being
-                  // scannable, which is the whole point of putting it here.
+                  // Which food filled this row, above its numbers. One muted
+                  // mono line: USDA descriptions are long, and a three-line row
+                  // stops being scannable.
                   if (sourceLine != null) ...[
                     const SizedBox(height: 2),
                     Text(
@@ -398,16 +357,12 @@ class IngredientRow extends StatelessWidget {
   }
 }
 
-/// "＋ can't find it? add a new ingredient" — the add-new chain's front door in
-/// every picker. Disabled until something is typed.
+/// "＋ can't find it? add a new ingredient": the add-new door in every picker.
+/// Disabled until something is typed.
 ///
-/// Tapping it writes nothing here. It pushes the ingredient form with the query
-/// prefilled and WAITS for back — the only exit — and whatever the form pops
-/// goes to [onCreated]: the row it created, with the units, measures and
-/// density it set, or null if the person backed out, in which case nothing was
-/// written and nothing resolves.
-///
-/// Needs a router in scope — every host that embeds it is under one.
+/// Tapping writes nothing here. It pushes the ingredient form with the query
+/// prefilled and waits; the created row goes to [onCreated], and backing out
+/// resolves nothing. Needs a router in scope.
 class AddNewIngredientRow extends HookConsumerWidget {
   const AddNewIngredientRow({
     required this.query,
@@ -418,9 +373,8 @@ class AddNewIngredientRow extends HookConsumerWidget {
 
   final String query;
 
-  /// Receives the row as the form left it. Not called when the row was
-  /// deleted on the form — there is nothing to hand back, and the host is
-  /// simply back where it was.
+  /// Receives the row as the form left it. Not called when the person backed
+  /// out or deleted the row on the form.
   final ValueChanged<Ingredient> onCreated;
 
   /// The row's wording for a name, when the host's voice differs from the
@@ -437,30 +391,20 @@ class AddNewIngredientRow extends HookConsumerWidget {
 
     Future<void> addNew() async {
       busy.value = true;
-      // The chain crosses two awaits with a keyboard in each; the handles
-      // it continues through outlive this row (`hostContextOf`), so the
-      // row the human just fleshed out is handed back whatever became of
-      // the footer that started it.
+      // The chain crosses two awaits with a keyboard in each, so it continues
+      // through handles that outlive this row (`hostContextOf`).
       final host = hostContextOf(context);
       try {
-        // ONE push, not a sheet and then a form. The form is the create surface
-        // now: it lands ABOVE this picker's sheet, writes nothing until Save,
-        // and pops with the row it made — so backing out resolves nothing and
-        // leaves nothing behind, which the sheet could not offer because its
-        // Create had already written a row.
-        //
-        // The picker stays open underneath the whole time, which is what lets
-        // it resolve after. The host outlives the row (`hostContextOf`).
+        // One push: the form lands above this picker's sheet, writes nothing
+        // until Save, and pops with the row it made. The picker stays open
+        // underneath so it can resolve after.
         // ignore: use_build_context_synchronously
         final created = await host.context.pushOnceFor<Ingredient?>(
           newIngredientRoute(name: name),
         );
         if (created == null) return;
-        // The popped row IS the row as that one write left it — allowed
-        // units, measures, a density, the macros — which is exactly what the
-        // quantity sheet opening next must see. Re-reading is what the old
-        // two-step needed, because the sheet handed over a row that predated
-        // everything the form then did to it.
+        // The popped row is the row as the write left it, which is what the
+        // quantity sheet opening next must see.
         onCreated(created);
       } finally {
         if (context.mounted) busy.value = false;

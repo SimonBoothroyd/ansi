@@ -1,21 +1,10 @@
-/// The ingredients manager list (`/ingredients`) — design board "Ingredients
-/// manager · v1" frame (a). A **pushed** route with a back chevron and no
-/// bottom nav (the four tabs are the loop; a vocabulary is reference data),
-/// reached from Library ▸ ⋯ ▸ Ingredients.
+/// The ingredients manager list (`/ingredients`): a pushed route with a back
+/// chevron and no bottom nav, reached from Library ▸ ⋯ ▸ Ingredients.
 ///
-/// The old "Fleshing-out queue" frame becomes a **band on top of the whole
-/// vocabulary** rather than its own screen: a vocabulary you can only see
-/// when it is broken is not a vocabulary you can edit.
-///
-/// Rows are the 7.7 picker rows ([IngredientRow]) — same hints, same honest
-/// silence where a number is missing — with a chevron instead of a `+`, and
-/// one thing the picker's rows do not carry: the **USDA food behind a filled
-/// row**, named as a muted second line. This is the screen
-/// you scan, so it is where a wrong match is worth catching; the picker stays
-/// quiet because a description under every row is noise while you type.
-/// Search is the same deterministic local search the picker uses
-/// ([useIngredientSearch]); typing collapses the band into the results, which
-/// is what a search is for.
+/// The stubs that need fleshing out sit as a band above the whole vocabulary.
+/// Rows are the picker's [IngredientRow] with a chevron, plus a muted second
+/// line naming the USDA food behind a filled row. Search is the picker's local
+/// search ([useIngredientSearch]); typing collapses the band into the results.
 library;
 
 import 'dart:async';
@@ -44,49 +33,37 @@ import 'ingredient_picker.dart';
 /// The manager's route.
 const kIngredientsRoute = '/ingredients';
 
-/// The vocabulary row the fact-sheet pane is reading — exported so a test
-/// names the lit row rather than hunting for a background colour. Only one row
-/// carries it.
+/// Keys the vocabulary row the fact-sheet pane is reading, so a test can name
+/// the lit row.
 const kVocabularyReadingRowKey = ValueKey('vocabulary-reading-row');
 
 /// How wide the fact-sheet pane is ever drawn beside the vocabulary. A row
 /// reads at a page's measure, not at a desk's width.
 const kFactSheetPaneWidth = 720.0;
 
-/// The vocabulary's own scroller — exported so a test names the list rather
-/// than picking a `ListView` out of a page that has several. Its offset
-/// survives a pick because `/ingredients` and `/ingredients/:id` are one page
-/// (`_IngredientPage`, `core/router/app_router.dart`), so the scroller is the
-/// same element either side of the restate.
+/// Keys the vocabulary's scroller. Its offset survives a pick because
+/// `/ingredients` and `/ingredients/:id` are one page (`_IngredientPage`,
+/// `core/router/app_router.dart`).
 const kVocabularyScrollKey = ValueKey('vocabulary-scroller');
 
-/// How many index-guided jumps the reveal below is allowed before it gives up.
-/// Each one builds the rows around where the lit row should be, so the second
-/// pass normally finds it; the cap is there so a list that cannot settle stops
-/// asking for frames rather than spinning.
+/// How many index-guided jumps the reveal below may make before it gives up, so
+/// a list that cannot settle stops asking for frames.
 const _revealAttempts = 6;
 
 class IngredientListView extends HookConsumerWidget {
   const IngredientListView({this.selectedId, super.key});
 
-  /// The row the fact-sheet pane opens on, on a window wide enough to hold the
-  /// vocabulary and one row at once — what a deep link to `/ingredients/:id`
-  /// hands over. Null on `/ingredients`, where the pane waits for a pick.
-  ///
-  /// Ignored below [AnsiLayout.expanded], where a row is a pushed page of its
-  /// own and this screen is only ever the list.
+  /// The row the fact-sheet pane opens on, from a deep link to
+  /// `/ingredients/:id`. Null on `/ingredients`. Ignored below
+  /// [AnsiLayout.expanded], where a row is a pushed page.
   final String? selectedId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final search = useIngredientSearch(ref, context);
     final vocabulary = ref.watch(vocabularyProvider);
-    // The search field owns its controller (a hook, so it survives every
-    // rebuild) and the list branches on WHAT THE FIELD SAYS — never on a query
-    // that has outlived the text that produced it. An empty field is therefore
-    // the whole vocabulary, by construction: no round-trip, stale `onChange` or
-    // re-seeded control can leave the list showing search results under a field
-    // displaying its hint.
+    // The list branches on what the field says, never on a held query, so an
+    // empty field is always the whole vocabulary.
     final field = useTextEditingController();
     final typed = useValueListenable(field).text;
     final searching = typed.trim().isNotEmpty;
@@ -104,9 +81,8 @@ class IngredientListView extends HookConsumerWidget {
       return () => field.removeListener(onEdit);
     }, [field]);
 
-    // Decorative emptiness, weighed (D6): the screen's own `when` renders the
-    // loading and error branches, so this fallback only ever covers the frame
-    // before the first emission.
+    // The screen's own `when` renders loading and error; this fallback covers
+    // only the frame before the first emission.
     final all = vocabulary.asData?.value ?? const <Ingredient>[];
     final stubs = [
       for (final i in all)
@@ -118,22 +94,10 @@ class IngredientListView extends HookConsumerWidget {
     final wide = AnsiLayout.of(context) == AnsiLayout.expanded;
     final sections = _sections(all);
 
-    // **The location IS the selection.** A pick restates `/ingredients/:id`,
-    // so the row the pane is reading is the row the address bar names: a
-    // refresh keeps it, the link is worth sending, and a recipe's ingredient
-    // door and a tap in this list land in exactly the same place. It goes
-    // through [restateOnce] — `replace` inside `Router.neglect` — so reading
-    // down a vocabulary leaves no history to walk back out through: Back
-    // leaves the manager, it does not step back up the rows.
-    //
-    // The row is in the URL; the POSTURE it opens in is not. Which row the
-    // pane is reading is a place — a refresh should keep it and a link should
-    // carry it — but whether that pane opened at the fields is a mode of it,
-    // like the Shop's selected row or the Library's fold, and a link that
-    // silently put somebody in a form is a link nobody meant to send.
-    //
-    // [picked] is the fallback for a screen pumped with no router above it,
-    // which is how much of this suite builds one.
+    // The location is the selection: a pick restates `/ingredients/:id` through
+    // [restateOnce], which leaves no history, so Back leaves the manager. The
+    // posture the pane opens in is not in the URL. [picked] is the fallback for
+    // a screen pumped with no router above it, as in tests.
     final routed = context.topLocationPath != null;
     final picked = useState<String?>(selectedId);
     useEffect(() {
@@ -141,16 +105,12 @@ class IngredientListView extends HookConsumerWidget {
       return null;
     }, [selectedId]);
     final reading = wide ? (routed ? selectedId : picked.value) : null;
-    // Held as the id whose pane opens at the fields, not as a flag: the pick
-    // that carries the posture also restates the location, and a bare flag
-    // would outlive the row it was set for and open the NEXT row at its
-    // fields.
+    // Held as the id whose pane opens at the fields, not a flag: a flag would
+    // outlive its row and open the next one at its fields.
     final atFields = useState<String?>(null);
     final readingAtFields = reading != null && atFields.value == reading;
 
-    // A vocabulary row opens as a row: what it is, what it converts, what it
-    // counts for — the same posture a recipe opens in from the Library, with
-    // `⋯ ▸ Edit` behind it.
+    // A vocabulary row opens on its fact sheet, with `⋯ ▸ Edit` behind it.
     void open(Ingredient i) {
       atFields.value = null;
       if (!wide) {
@@ -164,14 +124,8 @@ class IngredientListView extends HookConsumerWidget {
       picked.value = i.id;
     }
 
-    // The band is a WORK QUEUE, and its rows say what each one is short of.
-    // Landing them on a fact sheet that repeats "needs macros" would put a
-    // menu between the queue and the fields it exists to fill in.
-    //
-    // On a desk that happens in the pane, beside the queue it was picked from:
-    // the location says which row, and the pane opens it at its fields. A
-    // vocabulary you can only fill in by leaving it is a vocabulary you fill in
-    // one row per visit.
+    // A work-queue row opens straight at its fields. On a wide screen that
+    // happens in the pane, beside the queue.
     void fleshOut(Ingredient i) {
       if (!wide) {
         context.pushOnce(ingredientDetailRoute(i.id, edit: true));
@@ -189,16 +143,11 @@ class IngredientListView extends HookConsumerWidget {
     // create surface — back out of it and there is nothing to clean up.
     void addNew() => context.pushOnce(newIngredientRoute());
 
-    // Arriving on `/ingredients/:id` — a pasted link, a recipe's ingredient
-    // door — lights a row that can be three hundred rows down the vocabulary,
-    // and a lit row nobody can see is not a selection. Put it on screen once,
-    // after the list has laid out.
-    //
-    // The vocabulary is one lazy sliver, so the row a deep link lands on has
-    // no render object to reveal: the walk jumps to where the row's INDEX says
-    // it roughly is, which builds it, and then reveals it exactly. A row that
-    // is already on screen is left alone — that is every tap, and a tap must
-    // not move the list out from under the finger.
+    // A deep link can light a row far down the list, so it is revealed once
+    // after layout. The list is one lazy sliver, so the walk first jumps to
+    // where the row's index says it is, which builds it, then reveals it
+    // exactly. A row already on screen is left alone, so a tap never moves the
+    // list.
     final listController = useScrollController();
     final readingRowKey = useMemoized(GlobalKey.new);
     final ordered = searching
@@ -229,10 +178,8 @@ class IngredientListView extends HookConsumerWidget {
 
       WidgetsBinding.instance.addPostFrameCallback(step);
       return () => done = true;
-      // The vocabulary's own length is a dependency, not decoration: a cold
-      // deep link builds this screen before the rows have arrived, and an
-      // effect that only watched the selection would have given up on an
-      // empty list and never looked again.
+      // The vocabulary's length is a dependency: a cold deep link builds this
+      // screen before the rows arrive.
     }, [reading, ordered.length]);
 
     final header = FHeader.nested(
@@ -347,9 +294,8 @@ class IngredientListView extends HookConsumerWidget {
     );
   }
 
-  /// The list's four states, with [rows] as the one that has a vocabulary to
-  /// show. Shared by the phone's one column and the wide list pane, so a
-  /// vocabulary that failed to load says the same thing in both.
+  /// The list's four states, with [rows] as the loaded one. Shared by the
+  /// phone's column and the wide list pane.
   Widget _vocabularyStates(
     WidgetRef ref,
     AsyncValue<List<Ingredient>> vocabulary,
@@ -374,9 +320,8 @@ class IngredientListView extends HookConsumerWidget {
     _ => rows(),
   };
 
-  /// The whole vocabulary, in its aisle sections. [reading] is the row the
-  /// fact-sheet pane is on, which is lit; null on a phone, where the row a
-  /// person is reading is a page and not a row.
+  /// The whole vocabulary in its aisle sections. [reading] is the lit row the
+  /// fact-sheet pane is on; null on a phone.
   List<Widget> _vocabularyRows(
     List<({String label, List<Ingredient> rows})> sections,
     ValueChanged<Ingredient> onOpen, {
@@ -422,10 +367,9 @@ class IngredientListView extends HookConsumerWidget {
     ),
   );
 
-  /// The vocabulary cut into aisle sections, in the same shop-walk order the
-  /// Shop tab groups by ([kAisleOrder]) — you learn one order, not two.
-  /// [all] arrives ordered by canonical name, so each section stays A–Z by
-  /// construction.
+  /// The vocabulary cut into aisle sections in the Shop tab's order
+  /// ([kAisleOrder]). [all] arrives ordered by canonical name, so each section
+  /// stays A–Z.
   List<({String label, List<Ingredient> rows})> _sections(
     List<Ingredient> all,
   ) {
@@ -472,11 +416,8 @@ class IngredientListView extends HookConsumerWidget {
   }
 }
 
-/// Whether the lit row is where a reader can already see it, whole.
-///
-/// A tap's own row always is, and the reveal leaves the list exactly where the
-/// finger left it — scrolling under a tap is the manager's own version of the
-/// page jumping as you read.
+/// Whether the lit row is already wholly visible. A tapped row always is, so
+/// the reveal never scrolls under a tap.
 bool _onScreen(BuildContext rowContext, ScrollController controller) {
   final row = rowContext.findRenderObject();
   final viewport = controller.position.context.notificationContext
@@ -504,9 +445,8 @@ class _ManagerRow extends StatelessWidget {
   /// The row the fact-sheet pane is on, lit so the two panes read as one page.
   final bool reading;
 
-  /// The list's one handle on whichever row is lit, so the scroller can find
-  /// it once it exists. It travels with the selection, which is a reparent
-  /// inside the one list.
+  /// The list's handle on whichever row is lit, so the scroller can find it. It
+  /// moves with the selection.
   final GlobalKey? readingKey;
 
   /// False under a section header, which has already said it. Search results
@@ -520,9 +460,9 @@ class _ManagerRow extends StatelessWidget {
       onPick: onOpen,
       advisoryDensityGap: true,
       showCategory: showCategory,
-      // A-D1: the manager names the USDA food behind a filled row, so a wrong
-      // match is caught in the scan rather than one opened row at a time. The
-      // picker sets this false — see [IngredientRow.showSource].
+      // The manager names the USDA food behind a filled row so a wrong match is
+      // caught while scanning. The picker sets this false; see
+      // [IngredientRow.showSource].
       showSource: true,
       trailing: const Icon(
         FLucideIcons.chevronRight,
@@ -547,8 +487,7 @@ class _ManagerRow extends StatelessWidget {
 }
 
 /// The vocabulary pane: the field and the work queue pinned at the top, the
-/// aisle sections travelling under them, and the add door at the foot — where a
-/// whole vocabulary cannot push it away.
+/// aisle sections scrolling under them, and the add door at the foot.
 class _ListPane extends StatelessWidget {
   const _ListPane({
     required this.searchField,
@@ -583,10 +522,8 @@ class _ListPane extends StatelessWidget {
   );
 }
 
-/// The fact sheet, beside the vocabulary instead of pushed over it: the same
-/// [IngredientDetailView] a phone pushes — one sheet, never a second copy of
-/// one — with the page's own back control above both panes rather than in its
-/// header.
+/// The fact sheet beside the vocabulary: the same [IngredientDetailView] a
+/// phone pushes, with the page's back control above both panes.
 class _SheetPane extends StatelessWidget {
   const _SheetPane({required this.ingredientId, required this.atFields});
 
@@ -614,9 +551,8 @@ class _SheetPane extends StatelessWidget {
             ),
           )
         : IngredientDetailView(
-            // Keyed by the row AND the posture it opens in: picking a row draws
-            // that row's sheet instead of inheriting the last one's state, and
-            // the work queue's door lands on the fields.
+            // Keyed by the row and the posture, so picking a row draws a fresh
+            // sheet and the work queue's door lands on the fields.
             key: ValueKey('sheet-$ingredientId-$atFields'),
             ingredientId: ingredientId,
             edit: atFields,
@@ -625,17 +561,9 @@ class _SheetPane extends StatelessWidget {
   );
 }
 
-/// "Needs fleshing out" — the stub band pinned above the vocabulary.
-///
-/// The per-row hint says **needs macros**, not "needs density · macros": the
-/// D5 gate is macros alone, and a missing density is an advisory the full row
-/// below already carries.
-///
-/// **G4** — and once a prefill has put macros there, the hint stops asking
-/// for what the row already has. It reads **needs completing**, which is D5's
-/// own language for the one thing still missing: a human standing behind the
-/// numbers. "needs macros" stays for the truly bare stubs, where it is the
-/// literal truth.
+/// "Needs fleshing out": the stub band pinned above the vocabulary. A bare
+/// stub's hint reads "needs macros"; once a prefill has filled the macros it
+/// reads "needs completing".
 class _StubBand extends StatelessWidget {
   const _StubBand({required this.stubs, required this.onOpen});
 
@@ -686,10 +614,8 @@ class _StubBand extends StatelessWidget {
                           'needs macros'
                         else
                           'needs completing',
-                        // WHICH machine filled it — the band is a work queue,
-                        // so the tag says what kind of fill is waiting for a
-                        // human. The food's own name is on the row below, and
-                        // no key of either kind is printed anywhere.
+                        // Which machine filled it. The food's own name is on
+                        // the row below, and no key is printed.
                         if (isUsdaPrefilled(s.source))
                           'usda prefilled'
                         else if (isBarcodeFilled(s.source))

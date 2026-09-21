@@ -20,12 +20,8 @@ class SqlitePriceRepository implements PriceRepository {
   /// The household stamped on rows this repo writes.
   final String _householdId;
 
-  /// One row of the price read, turned into the fact it states — or dropped.
-  ///
-  /// [observationFrom] is the one place that decides what IS a price, so a
-  /// line whose pack nobody has stated and a line whose ingredient was retired
-  /// out from under it fall out here rather than being rendered as a zero
-  /// somewhere downstream (invariant 3).
+  /// The price rows as observations. [observationFrom] decides what is a price;
+  /// lines that are not are dropped, never rendered as zero.
   static List<PriceObservation> _observations(
     Iterable<Map<String, dynamic>> rows,
   ) => [
@@ -48,9 +44,8 @@ class SqlitePriceRepository implements PriceRepository {
           kind: ReceiptLineKind.fromDb(r['kind'] as String?),
           packBasisAmount: (r['pack_basis_amount'] as num?)?.toDouble(),
           packAmount: (r['pack_amount'] as num?)?.toDouble(),
-          // A unit id this catalog does not know reads as no unit at all, and
-          // the line falls back to printing the basis figure it is derived
-          // from — never a word this app cannot stand behind.
+          // An unknown unit id reads as no unit, and the line prints its basis
+          // figure instead.
           packUnit: unitById((r['pack_unit'] as String?) ?? ''),
           measureId: r['measure_id'] as String?,
           sortOrder: (r['sort_order'] as int?) ?? 0,
@@ -65,15 +60,10 @@ class SqlitePriceRepository implements PriceRepository {
         packLabel: r['measure_label'] as String?,
       );
 
-  /// The SELECT is spelled out in full rather than shared as a fragment:
-  /// `watch_coverage_test` reads these queries as literals to hold the
-  /// LEFT-JOIN watch trap, and an interpolated string is invisible to it.
-  ///
-  /// Every joined table contributes a selected column, which is the trap
-  /// itself: SQLite drops a LEFT JOIN nothing selects from, and PowerSync
-  /// derives a watch's trigger tables from `EXPLAIN`, so an unselected join
-  /// would leave the page stale when the ingredient's basis or the pack's
-  /// measure changed under it.
+  /// The SELECT is a full literal, not a shared fragment: `watch_coverage_test`
+  /// reads these queries as literals. Every joined table contributes a selected
+  /// column, because SQLite drops an unselected LEFT JOIN and PowerSync would
+  /// then miss that table as a watch trigger.
   @override
   Stream<List<PriceObservation>> watchPrices(String ingredientId) {
     return _db
@@ -95,15 +85,10 @@ class SqlitePriceRepository implements PriceRepository {
         .map(_observations);
   }
 
-  /// The LATEST price per ingredient, household-wide.
-  ///
-  /// The SELECT is spelled out in full for the reason [watchPrices]'s is, and
-  /// every joined table contributes a selected column so PowerSync fires this
-  /// watch when a price, a basis or a pack's word changes under it.
-  ///
-  /// The newest-first ordering does the picking: the first row for an
-  /// ingredient that IS a price (`observationFrom` — a line whose pack nobody
-  /// has stated is not one) wins, and the rest are what was paid before it.
+  /// The latest price per ingredient, household-wide. A full literal with a
+  /// column selected from every joined table, as in [watchPrices]. Rows are
+  /// newest first, so the first row per ingredient that is a price
+  /// (`observationFrom`) wins.
   @override
   Stream<Map<String, PriceObservation>> watchLatestPrices() {
     return _db
@@ -124,9 +109,8 @@ class SqlitePriceRepository implements PriceRepository {
         .map(latestByIngredient);
   }
 
-  /// The newest readable price per ingredient, from rows already ordered
-  /// newest-first. Shared with the recipe and week loads, which read the same
-  /// query through their own connection.
+  /// The newest readable price per ingredient, from rows ordered newest first.
+  /// Shared with the recipe and week cost loads.
   static Map<String, PriceObservation> latestByIngredient(
     Iterable<Map<String, dynamic>> rows,
   ) {
@@ -140,17 +124,10 @@ class SqlitePriceRepository implements PriceRepository {
     return latest;
   }
 
-  /// The names this household's receipts have carried for one ingredient.
-  ///
-  /// The SELECT is spelled out in full for the reason [watchPrices]'s is, and
-  /// both joined tables contribute a selected column, so PowerSync fires this
-  /// watch when a line is re-matched to a different row and when the receipt
-  /// carrying it is renamed, re-dated or taken back.
-  ///
-  /// No grouping happens here — not a `GROUP BY` and not a key column either:
-  /// the fold below needs the newest row's own spelling, receipt and date,
-  /// which an aggregate would have to win back with a correlated subquery, and
-  /// it files each row under [printedNameKey] off the row's own words.
+  /// The names this household's receipts have printed for one ingredient. A
+  /// full literal with a column selected from both joined tables, as in
+  /// [watchPrices]. No `GROUP BY`: the fold below needs the newest row's own
+  /// spelling, receipt and date.
   @override
   Stream<List<ReceiptName>> watchReceiptNames(String ingredientId) {
     return _db
@@ -167,18 +144,10 @@ class SqlitePriceRepository implements PriceRepository {
         .map(receiptNamesFrom);
   }
 
-  /// The ordered rows folded into one entry per name, **newest first**.
-  ///
-  /// The rows arrive newest-first, so a name's FIRST row decides everything a
-  /// reader sees about it — the spelling, the date, and the receipt a
-  /// correction is made on — and every row after it only adds to the count and
-  /// the store words. That also makes insertion order the answer's order, so
-  /// nothing is sorted again afterwards.
-  ///
-  /// The key is [printedNameKey] — the one spelling of the printed-name key
-  /// this app has, shared with the carry-over read below and with the server's
-  /// own recall. Two spellings that differ by more than case are two names on
-  /// purpose: that difference is exactly what this list exists to show.
+  /// The ordered rows folded into one entry per name, newest first. A name's
+  /// first row fixes its spelling, date and receipt; later rows only add to the
+  /// count and the stores. Keyed by [printedNameKey], so spellings that differ
+  /// by more than case stay separate.
   static List<ReceiptName> receiptNamesFrom(
     Iterable<Map<String, dynamic>> rows,
   ) {
@@ -212,19 +181,13 @@ class SqlitePriceRepository implements PriceRepository {
     ];
   }
 
-  /// One query for the whole receipt, however many names it carries: the keys
-  /// ride as placeholders in a single `IN`, and nothing here grows per line.
+  /// One query per receipt: the keys ride as placeholders in a single `IN`.
   ///
-  /// `UPPER(TRIM(l.name_printed))` is the key spelled in SQL and
-  /// [printedNameKey] is the same key spelled in Dart. The returned map is
-  /// keyed by the **Dart** one, read off the row's own words, so what a caller
-  /// looks up is exactly what it gets; where the two normalisations could
-  /// disagree (SQLite's `UPPER` is ASCII-only) the row simply does not come
-  /// back and the line falls through to the row's latest price, which is a
-  /// carry-over lost and never a wrong one.
-  ///
-  /// `observationFrom` is the gate here as everywhere: a line whose pack
-  /// nobody stated, or that rang up as nothing, is not a pack to carry.
+  /// `UPPER(TRIM(l.name_printed))` is [printedNameKey] in SQL. The map is keyed
+  /// by the Dart one, read off the row's own words. Where the two disagree
+  /// (SQLite's `UPPER` is ASCII-only) the row is not returned and the line
+  /// falls back to the row's latest price. `observationFrom` gates what counts
+  /// as a pack.
   @override
   Future<Map<String, PackLastBoughtAs>> packsByPrintedName(
     Set<String> namesPrinted,
@@ -295,18 +258,14 @@ class SqlitePriceRepository implements PriceRepository {
     final receiptId = _uuid.v4();
     final lineId = _uuid.v4();
     final stamp = DateTime.now().toUtc().toIso8601String();
-    // The day this was paid on is WALL time, like a scanned receipt's: a real
-    // instant would show an evening price as tomorrow's, and file it into
-    // next week.
+    // Wall time, like a scanned receipt's: a real instant could file an evening
+    // price on the next day.
     final bought = receiptStamp(purchasedAt ?? DateTime.now());
 
     await _db.writeTransaction((tx) async {
-      // Plain INSERTs, never ON CONFLICT: the local tables are SQLite views
-      // and a view rejects UPSERT.
-      //
-      // The subtotal IS the line's cents — a typed price has one line and no
-      // paper, so there is nothing else it could honestly be. Tax and total
-      // stay null rather than repeating it: nobody stated them.
+      // Plain INSERTs, never ON CONFLICT: the local tables are views, which
+      // reject UPSERT. The subtotal is the line's cents; tax and total stay
+      // null.
       await tx.execute(
         'INSERT INTO receipt (id, household_id, store, purchased_at, '
         'subtotal_cents, source, created_at, updated_at) '
@@ -326,9 +285,9 @@ class SqlitePriceRepository implements PriceRepository {
           ingredientId,
           cents,
           0,
-          // A typed price is one pack for the money typed. Written out rather
-          // than left to the column's default: the local table is a view, and
-          // a null here would not survive the upload.
+          // A typed price counts one pack. Written explicitly: the local table
+          // is a view, and a null would not take the column's default on
+          // upload.
           1,
           'item',
           packBasisAmount,
@@ -375,8 +334,7 @@ class SqlitePriceRepository implements PriceRepository {
           lineId,
         ],
       );
-      // The store, the date and the subtotal move only on this app's own
-      // one-line `manual` receipt, which has no printed figures to contradict.
+      // The store, date and subtotal move only on a one-line `manual` receipt.
       // A photographed receipt keeps what the paper said.
       if (await _isOneManualLine(tx, lineId)) {
         await tx.execute(
@@ -397,12 +355,9 @@ class SqlitePriceRepository implements PriceRepository {
       // receipt's live ones to count.
       final manual = await _isManualReceipt(tx, lineId);
       if (!manual) {
-        // A photographed receipt keeps its line: the cents were paid and the
-        // paper still has to add up. Only the price facts go, so the line
-        // stops pricing anything while still saying what was bought.
-        // No door reaches this today — a scanned line is corrected on its own
-        // receipt — and it stays because the rule is the table's, not a
-        // sheet's.
+        // A photographed receipt keeps its line; only the pack facts are
+        // cleared, so it stops pricing anything. No screen reaches this branch
+        // today.
         await tx.execute(
           'UPDATE receipt_line SET pack_basis_amount = NULL, '
           'pack_amount = NULL, pack_unit = NULL, measure_id = NULL, '
@@ -439,11 +394,8 @@ class SqlitePriceRepository implements PriceRepository {
     return row != null && row['source'] == 'manual';
   }
 
-  /// Whether [lineId] is the only live line of a `manual` receipt — this app's
-  /// own hand-typed price, whose receipt says nothing the line does not.
-  ///
-  /// A photographed receipt answers false however few lines survive on it: it
-  /// is a piece of paper, and the paper is not a price.
+  /// Whether [lineId] is the only live line of a `manual` receipt. A
+  /// photographed receipt answers false however few lines it has.
   static Future<bool> _isOneManualLine(
     SqliteWriteContext tx,
     String lineId,
@@ -463,12 +415,8 @@ class SqlitePriceRepository implements PriceRepository {
         (row['live'] as num?) == 1;
   }
 
-  /// The three honesty rules every write here holds, and the trimmed store
-  /// word they hand back.
-  ///
-  /// Validated at the repository and not only in the sheet, for the reason
-  /// `addMeasure` states one table over: every write path has to hold the same
-  /// lines, and the receipt importer is the next one.
+  /// Validates the three write rules and returns the trimmed store word. Held
+  /// at the repository so every write path shares them.
   static String _checked(int cents, double packBasisAmount, String store) {
     final word = store.trim();
     if (word.isEmpty) {
@@ -493,12 +441,9 @@ class SqlitePriceRepository implements PriceRepository {
   }
 }
 
-/// One name while [SqlitePriceRepository.receiptNamesFrom] is still walking the
-/// rows: the newest row's own three facts, which are fixed the moment the name
-/// is first seen, beside the two things every later row adds to.
-///
-/// Mutable, and private, because a record cannot be added to — and the walk is
-/// what decides these, one row at a time.
+/// One name's running tally while [SqlitePriceRepository.receiptNamesFrom]
+/// walks the rows: the newest row's facts, plus the count and stores later rows
+/// add to.
 class _NameTally {
   _NameTally({
     required this.namePrinted,
@@ -513,12 +458,10 @@ class _NameTally {
   int lines = 0;
 }
 
-/// The latest price per ingredient, read once rather than watched — what the
-/// recipe and week cost loads join their lines against.
-///
-/// The query is [SqlitePriceRepository.watchLatestPrices]'s, spelled out again
-/// rather than shared as a fragment: `watch_coverage_test` reads these queries
-/// as literals, and an interpolated string is invisible to it.
+/// The latest price per ingredient, read once: what the recipe and week cost
+/// loads join against. Repeats [SqlitePriceRepository.watchLatestPrices]'s
+/// query as a literal, because `watch_coverage_test` cannot see an interpolated
+/// fragment.
 Future<Map<String, PriceObservation>> loadLatestPrices(
   SqliteConnection db,
 ) async => SqlitePriceRepository.latestByIngredient(

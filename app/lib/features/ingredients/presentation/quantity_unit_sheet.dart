@@ -1,31 +1,16 @@
-/// The one surface for editing a quantity + unit — recipe editor line items,
-/// the shopping add sheet, the edit-top-up sheet. There is no unit dropdown
-/// anywhere.
+/// The one surface for editing a quantity and unit: recipe lines, the shopping
+/// add sheet, the edit-top-up sheet.
 ///
-/// The everyday state shows the ingredient card (name + macro line), the
-/// quantity input, the chip row (precise units · measure chips · imprecise
-/// after a divider · a `+` chip), the live honest conversion line, and Done.
-/// Tapping `+` opens the second state — **manage measures** — with the measure
-/// list (label · grams · humanized source) and the add-measure form (label +
-/// grams, saved as `manual`).
+/// The everyday state shows the ingredient card, the quantity input, the chip
+/// row, the live conversion line and Done. The `+` chip opens the
+/// manage-measures state. The sheet bottom-pads itself by `viewInsets` instead
+/// of mounting a keyboard-accessory view.
 ///
-/// **The sheet bottom-pads itself by `viewInsets`** rather than mounting a true
-/// iOS keyboard-accessory view, which fights Flutter's insets model. The stack
-/// above the keyboard therefore reads chips → Done → keyboard.
-///
-/// **A caller that names no choice opens on the first chip in the row**
-/// (`firstOfferedChoice`) — the row's whole measure where it has one
-/// (ADR-0016: a lime opens on `lime, whole`, with `piece (67 g)` offered after
-/// it), else its first named word, else the default unit, which the catalog
-/// half fronts. The measures land a frame after the sheet does, so the seed
-/// moves once when they arrive and never after a chip has been tapped. A line
-/// being edited opens on its own stored choice.
-///
-/// **Deleting the selected measure** (manage state) reconciles the choice to
-/// the ingredient's default unit with a visible note: Done must never write a
-/// tombstoned `measure_id`. Keep-with-flag is reserved for measures merely
-/// hidden by merge-on-read, which stay reachable through the chip row's
-/// off-filter admission.
+/// A caller that names no choice opens on the first chip offered
+/// (`firstOfferedChoice`, ADR-0016); the measures land a frame later, so the
+/// seed moves once and never after a tap. Deleting the selected measure resets
+/// the choice to the default unit with a note, so Done never writes a
+/// tombstoned `measure_id`.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -61,10 +46,10 @@ sealed class QuantitySheetResult {
   const QuantitySheetResult();
 }
 
-/// The user confirmed a quantity + unit choice. [unitPicked] is true only when
-/// a chip was explicitly tapped — callers preserving an unresolved `measure_id`
-/// (the degrade-don't-destroy rule) clear it only then. [optional] is the
-/// Optional switch's final state — false for a host that did not offer the row.
+/// The user confirmed a quantity and unit. [unitPicked] is true only when a
+/// chip was tapped; callers preserving an unresolved `measure_id` clear it only
+/// then. [optional] is the Optional switch's final state, false when the host
+/// did not offer it.
 final class QuantitySaved extends QuantitySheetResult {
   const QuantitySaved({
     required this.choice,
@@ -141,13 +126,8 @@ class QuantityUnitEditor extends HookConsumerWidget {
   /// shown with a pending note until a chip is explicitly picked.
   final bool pendingMeasure;
 
-  /// The line's stored `optional` flag, when the host has nowhere else to set
-  /// it — the import review's amount door, and the week's, where the sheet
-  /// shows the Optional switch between the chips and Done.
-  ///
-  /// Null hides the row: a shopping top-up has no such fact, the component
-  /// sheet is its own surface, and the recipe editor's line owns the flag on
-  /// its own card, where one fact has one door.
+  /// The line's stored `optional` flag, for hosts with nowhere else to set it
+  /// (the import review's and the week's amount doors). Null hides the switch.
   final bool? initialOptional;
 
   final String confirmLabel;
@@ -164,23 +144,18 @@ class QuantityUnitEditor extends HookConsumerWidget {
     final optional = useState(initialOptional ?? false);
     final managing = useState(false);
     final deletedNote = useState<String?>(null);
-    // The line's stored choice, admitted into the chip row even when the
-    // filter wouldn't offer it (the retired dropdowns' rule) — so it stays
-    // re-selectable after tapping another chip, for as long as it exists.
+    // The line's stored choice, admitted into the chip row even when the filter
+    // would not offer it, so it stays re-selectable.
     final stored = useState<UnitChoice?>(initialChoice);
-    // The vocab row can change while the sheet is open — the manage state's
-    // density entry unlocks the other unit family live — so the surfaces
-    // read this copy, updated by the density write path.
+    // The vocab row can change while the sheet is open (a density entry unlocks
+    // the other unit family), so the surfaces read this copy.
     final live = useState(ingredient);
 
     final measuresAsync = ref.watch(ingredientMeasuresProvider(ingredient.id));
     final measures = measuresAsync.asData?.value ?? const <Measure>[];
 
-    // A caller that names no choice opens on the first chip the row offers,
-    // and the measures arrive a frame after the sheet does — so the seed
-    // moves once, when they land, and only while nothing has been picked and
-    // the choice is still the measure-less seed. An explicit [initialChoice]
-    // is a line being edited and is never moved.
+    // The seed moves once, when the measures land, and only while nothing has
+    // been picked. An explicit [initialChoice] is never moved.
     useEffect(() {
       if (initialChoice != null ||
           unitPicked.value ||
@@ -192,13 +167,10 @@ class QuantityUnitEditor extends HookConsumerWidget {
       return null;
     }, [measuresAsync.hasValue]);
 
-    // Deleting the SELECTED measure reconciles the choice (deliberate call,
-    // post-7.7 review): keeping it would let Done write a tombstoned
-    // measure_id, silently degrading "2 half cans" to "2 pieces" everywhere.
-    // The selection resets to the ingredient's default unit with a visible
-    // note (the pending-note pattern); a measure merely hidden by
-    // merge-on-read is NOT deleted and stays admitted via the chip row's
-    // off-filter rule instead.
+    // Deleting the selected measure resets the choice to the default unit with
+    // a visible note; keeping it would let Done write a tombstoned measure_id.
+    // A measure merely hidden by merge-on-read is not deleted and stays
+    // admitted.
     Future<void> deleteMeasure(Measure m) async {
       // A measure a recipe still uses cannot go: the lines that name it would
       // quietly drop out of every total.
@@ -223,11 +195,8 @@ class QuantityUnitEditor extends HookConsumerWidget {
       }
     }
 
-    // Load-bearing emptiness (D6): an errored measures stream read as "no
-    // measures" silently narrows which units this line may be written in
-    // (ADR-0008) — the user's honest "2 half-cans" is simply not offered,
-    // with no hint that anything went wrong. So it is said out loud, instead
-    // of the chips it would otherwise quietly remove.
+    // An errored measures stream read as "no measures" would silently narrow
+    // the units on offer (ADR-0008), so the error is shown instead.
     if (measuresAsync.hasError) {
       return AnsiSheetShell(
         dismiss: AnsiSheetDismiss.none,
@@ -387,9 +356,8 @@ class _QuantitySurface extends StatelessWidget {
               child: FTextField(
                 autofocus: true,
                 hint: 'qty',
-                // A TEXT keyboard, not the decimal pad: iOS's numeric pads
-                // carry no `/`, so `1/2` could not be typed on one — and a
-                // fraction is how a recipe says this number.
+                // A text keyboard: iOS's numeric pads have no `/`, so `1/2`
+                // could not be typed.
                 keyboardType: TextInputType.text,
                 control: FTextFieldControl.managed(
                   initial: TextEditingValue(
@@ -438,13 +406,9 @@ class _QuantitySurface extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         UnitChipRow(
-          // The offer comes from the domain filter — already in ADR-0008 chip
-          // order (measures → an imprecise default → default set → demoted →
-          // imprecise), excluding volume-named measures (density owns volume
-          // conversion, frame-b review) and ALWAYS admitting the stored
-          // selection, so a merge-hidden duplicate measure or a
-          // no-longer-allowed unit stays reachable and reads as outside the
-          // honest filter (the retired dropdowns' rule).
+          // The offer comes from the domain filter, already in ADR-0008 chip
+          // order. It excludes volume-named measures and always admits the
+          // stored selection.
           offer: allowedUnitChoicesFor(
             ingredient,
             measures,
@@ -458,10 +422,8 @@ class _QuantitySurface extends StatelessWidget {
           },
           onManage: onManage,
         ),
-        // The Optional row (D6a, board frame e1) sits between the chips and
-        // Done, in the row grammar the chip sheet's "Show the amount here"
-        // uses. The caption names BOTH consequences, because the switch is
-        // one tap and the effect is on two other screens.
+        // The Optional row sits between the chips and Done. Its caption names
+        // both consequences, since the effect is on two other screens.
         if (optional != null) ...[
           const SizedBox(height: 14),
           FSwitch(
@@ -501,10 +463,9 @@ String _amountIn(double? quantity, UnitChoice choice) => switch (choice) {
   RecipeMeasureOption(:final measure) => notAWordForAnIngredient(measure),
 };
 
-/// The honest conversion line: shown only when the unit system can actually
-/// bridge the current entry to the ingredient's basis unit (g or ml — the
-/// dimension its macros speak, ADR-0008) — a cross-family entry names the
-/// density it used; nothing is ever fabricated (invariant 3).
+/// The conversion line, shown only when the entry can be bridged to the
+/// ingredient's basis unit (ADR-0008). A cross-family entry names the density
+/// it used.
 String? _conversionNote(double? qty, UnitChoice choice, Ingredient ing) {
   if (qty == null || !(qty > 0)) return null;
   final base = ing.macrosBasis.baseUnit;
@@ -623,10 +584,8 @@ class _MeasureManager extends HookConsumerWidget {
             );
             return outcome ?? const MeasureNotAdded();
           },
-          // A measure here is always a stored row, so the correction is a
-          // write, under the same guard the add takes. It keeps the id: a
-          // line already pointing at this measure follows the fix instead of
-          // being orphaned by a delete-and-re-add.
+          // An edit keeps the measure's id, so lines pointing at it follow the
+          // fix.
           onEdit: (m, label, amount) async {
             final outcome = await ref.write(
               context,
@@ -638,9 +597,8 @@ class _MeasureManager extends HookConsumerWidget {
                   if (amount != m.amount) {
                     await repo.setMeasureAmount(m.id, amount);
                   }
-                  // The repository's validation contract IS ArgumentError
-                  // (documented on renameMeasure), so catching it is the
-                  // point.
+                  // The repository's validation contract is ArgumentError (see
+                  // renameMeasure).
                   // ignore: avoid_catching_errors
                 } on ArgumentError catch (e) {
                   return MeasureRefused('${e.message}');
@@ -659,9 +617,8 @@ class _MeasureManager extends HookConsumerWidget {
             );
             return outcome ?? const MeasureNotAdded();
           },
-          // The first measure is the ingredient's typical one — it fronts the
-          // chip row this sheet is about to draw — so the drag writes at once,
-          // like everything else in a host with no Save.
+          // The first measure is the ingredient's typical one. This host has no
+          // Save, so the drag writes at once.
           onReorder: (ids) async {
             await ref.write(
               context,
@@ -675,10 +632,8 @@ class _MeasureManager extends HookConsumerWidget {
           onVolumeLabel: (u) => redirected.value = u,
           autofocus: true,
         ),
-        // The piece weight (ADR-0015), on a count-default row only — the
-        // number that makes `piece` sayable, entered where the chip row is
-        // about to read it. This host has no Save, so it writes on tap and
-        // swaps its live row by the same door a density write uses.
+        // The piece weight (ADR-0015), on a count-default row only. This host
+        // has no Save, so it writes on tap and swaps its live row.
         if (ingredient.defaultUnit.family == UnitFamily.count)
           PieceWeightEntry(
             ingredient: ingredient,
@@ -715,9 +670,7 @@ class _MeasureManager extends HookConsumerWidget {
           // fact sheet states this density in.
           serving: servingMeasureOf(measures),
           redirectedSpoon: redirected.value,
-          // This host has no Save of its own — you are managing the vocabulary
-          // in the middle of picking a unit for a line — so it commits on tap,
-          // and its button goes on saying `Save` because that is what it does.
+          // This host has no Save of its own, so it commits on tap.
           onSave: (gPerMl) async {
             final updated = await ref.write(
               context,

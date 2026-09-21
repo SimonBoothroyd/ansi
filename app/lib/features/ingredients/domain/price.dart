@@ -1,41 +1,9 @@
-/// What a row costs, and how the app knows — PURE DART (invariant 2).
+/// What a row costs. Pure Dart.
 ///
-/// A price is an **event**, not a field: cents paid for a stated pack, at a
-/// store, on a day. The household's prices live as `receipt_line` rows
-/// (migration 0044), because a shop's receipt is already a list of exactly
-/// that, and a price typed by hand on the ingredient page is the same fact
-/// with a smaller piece of paper behind it — one `manual` [Receipt], one
-/// [ReceiptLine]. One fact, one ledger.
-///
-/// **The derived figure is never stored.** `77¢ / 100 g` is read off the
-/// observation every time it is printed, in the row's own basis unit, so a
-/// pack re-weighed or a discount corrected moves every screen at once and
-/// nothing has to be re-derived into a column.
-///
-/// **The pack is kept twice, on purpose.** What the person SAID — `1 lb`, or
-/// one `bag` — is what the ledger prints back at them ([PriceObservation
-/// .packAmount]), and what it CAME TO in the row's basis unit is what every
-/// figure is derived from ([PriceObservation.packBasisAmount]). They answer
-/// different questions and must be able to disagree: a household that
-/// re-weighs its `bag` from 454 g to 500 g is saying what a bag is today, and
-/// last month's $3.49 bought last month's bag. Re-deriving the basis figure
-/// from the words would silently re-price a shop that has already happened.
-///
-/// **The count is not part of the pack.** A receipt line that rang up eight
-/// blocks of tofu for $23.92 says how many on a sub-row of its own, and the
-/// pack stays what ONE block is. So what the cents bought is
-/// `count × packBasisAmount` — one derivation, [pricePer100], which takes the
-/// count as a required argument so that no reader can forget it. The pack
-/// carries to the next receipt; the count arrives fresh from the paper.
-///
-/// **The honesty gate is at entry, and it refuses rather than guesses**
-/// (invariant 3). A pack is stored in the row's basis unit — grams on a
-/// per-100 g row, millilitres on a per-100 ml one — so a person who buys
-/// olive oil by the litre on a gram-basis row is asking to cross the
-/// mass↔volume boundary, and that crosses only through the row's density.
-/// Without one there is no number, so [packInBasis] returns a typed
-/// [Failure] and the sheet's Done says why. The same gate the macros use, on
-/// the same boundary, refusing for the same reason.
+/// A price is an event: cents paid for a stated pack, at a store, on a day.
+/// Each is one [ReceiptLine] on a [Receipt]; a hand-typed price is a `manual`
+/// receipt of one line. The per-100 figure is derived on read ([pricePer100]),
+/// never stored.
 library;
 
 import 'package:meta/meta.dart';
@@ -89,9 +57,8 @@ enum ReceiptLineKind {
   /// The persisted `receipt_line.kind` value.
   final String dbValue;
 
-  /// Parses the stored value; an unrecognized kind reads as [notFood], which
-  /// is the one reading that can never fabricate a price out of a row this
-  /// client does not understand.
+  /// Parses the stored value. An unrecognized kind reads as [notFood], which
+  /// can never become a price.
   static ReceiptLineKind fromDb(String? value) {
     for (final kind in ReceiptLineKind.values) {
       if (kind.dbValue == value) return kind;
@@ -100,12 +67,8 @@ enum ReceiptLineKind {
   }
 }
 
-/// One shop, or one hand-typed price.
-///
-/// The printed figures are kept as printed and never re-derived from the
-/// lines: the sum of the lines *checked against* [subtotalCents] is the
-/// review's reconcile figure, and two numbers that have to be able to
-/// disagree cannot be stored as one.
+/// One shop, or one hand-typed price. The printed totals are kept as printed,
+/// never re-derived from the lines.
 @immutable
 class Receipt {
   const Receipt({
@@ -120,9 +83,7 @@ class Receipt {
 
   final String id;
 
-  /// The store as a word — whatever the household calls it. There is no store
-  /// table: what a shop is called is a chip, not an entity with an identity
-  /// two devices would have to agree about.
+  /// The store as a word. There is no store table.
   final String store;
 
   /// When the shopping happened — the receipt's own date, never the scan's.
@@ -134,14 +95,10 @@ class Receipt {
   final int? totalCents;
 }
 
-/// [wall] as `purchased_at` stores it — the **wall time** of the shop or of
-/// the typing, marked `Z`.
+/// [wall] as `purchased_at` stores it: the wall time, marked `Z`.
 ///
-/// A price's moment has to read back as the same day on every device, so the
-/// wall components are written as they stand: converting 18:00 on a phone
-/// four hours west of UTC would store 22:00, and 21:00 would store tomorrow,
-/// filing an evening price into next week. Every price door writes through
-/// this, and [receiptInstant] reads it back unchanged.
+/// The wall components are written unconverted so a price reads back as the
+/// same day on every device. [receiptInstant] reads it back unchanged.
 String receiptStamp(DateTime wall) => DateTime.utc(
   wall.year,
   wall.month,
@@ -153,12 +110,10 @@ String receiptStamp(DateTime wall) => DateTime.utc(
 
 /// A stored `purchased_at` as an instant.
 ///
-/// The column is TEXT and its format differs by writer — this client writes
-/// `…T…Z`, a Postgres-sourced row syncs as `… …Z` — and a value with no zone
-/// marker at all is read as UTC, because `DateTime.tryParse` would otherwise
-/// read it in the device's zone and two phones would date one shop
-/// differently. An unparseable value falls back to the epoch: it sorts last,
-/// which is where a row nobody can date belongs.
+/// The column is TEXT and its format differs by writer (`…T…Z` from this
+/// client, `… …Z` from Postgres). A value with no zone marker is read as UTC,
+/// not in the device's zone. An unparseable value falls back to the epoch and
+/// sorts last.
 DateTime receiptInstant(Object? raw) {
   final text = (raw as String? ?? '').trim();
   final parsed = DateTime.tryParse(text);
@@ -168,11 +123,8 @@ DateTime receiptInstant(Object? raw) {
       : DateTime.tryParse('${text}Z') ?? parsed.toUtc();
 }
 
-/// One line of a receipt.
-///
-/// A [ReceiptLineKind.item] line that names an ingredient AND states a pack is
-/// a price; every other line is kept because the paper is kept whole, and
-/// prices nothing.
+/// One line of a receipt. Only a [ReceiptLineKind.item] line that names an
+/// ingredient and states a pack is a price.
 @immutable
 class ReceiptLine {
   const ReceiptLine({
@@ -194,9 +146,8 @@ class ReceiptLine {
   final String id;
   final String receiptId;
 
-  /// The vocabulary row this line is about, or null — a non-food line, a tax
-  /// line, and a line whose ingredient was retired out from under it (the
-  /// server detaches it rather than letting it dangle, 0044).
+  /// The vocabulary row this line is about. Null on a non-food line and on one
+  /// whose ingredient was retired (the server detaches it).
   final String? ingredientId;
 
   /// What the paper said, verbatim. Null on a hand-typed price: nothing
@@ -207,60 +158,45 @@ class ReceiptLine {
   /// negative — an unattached discount kept as its own line.
   final int cents;
 
-  /// How many of the thing this line rang up — the count printed on the
-  /// sub-row under it (`8 @ $2.99`), 1 unless the paper said otherwise, and
-  /// only ever more on an [ReceiptLineKind.item] line (migration 0050).
+  /// How many of the thing this line rang up (`8 @ $2.99`); 1 unless the paper
+  /// said otherwise, and more only on an [ReceiptLineKind.item] line.
   ///
-  /// [cents] already includes them all, so nothing about what the trip cost
-  /// changes. What it changes is the PRICE: what the cents bought is
-  /// `count × packBasisAmount`, because the pack is what ONE of them comes in.
+  /// [cents] already covers them all. What the cents bought is `count ×
+  /// packBasisAmount`.
   final int count;
 
   /// The deduction printed under the item, kept beside [cents] rather than
-  /// subtracted into it, so both printed figures survive. What was **paid** is
-  /// [paidCents].
+  /// subtracted into it. What was paid is [paidCents].
   final int discountCents;
 
   final ReceiptLineKind kind;
 
-  /// What the cents bought, in the ingredient's basis unit (g or ml). Null
-  /// where nobody has said what the pack is, which is an honest state: the
-  /// line is kept, and it simply is not a price yet.
-  ///
-  /// **Every derived figure comes from this one**, never from [packAmount].
+  /// What ONE pack holds, in the ingredient's basis unit (g or ml). Null where
+  /// nobody has stated the pack; the line is then not a price. Every derived
+  /// figure comes from this, never from [packAmount].
   final double? packBasisAmount;
 
-  /// The pack as the person SAID it, read through [packUnit]: an amount in
-  /// that unit, or — with [packUnit] null and [measureId] set — a count of
-  /// that measure. Null on a line nobody has stated the pack of, and on one
-  /// written before the ledger kept the words.
+  /// The pack as entered: an amount in [packUnit], or, with [packUnit] null and
+  /// [measureId] set, a count of that measure. Null when no pack was stated.
   final double? packAmount;
 
   /// The catalog unit [packAmount] is said in, or null when the pack was
   /// tapped as one of the row's measures (whose label is then the word).
   final Unit? packUnit;
 
-  /// The row's own word for that pack ("bag"), when the pack was named as a
-  /// measure. A LABEL, never the amount — [packBasisAmount] is the number, so
-  /// a measure re-weighed later does not silently re-price a shop that has
-  /// already happened.
+  /// The measure the pack was named as ("bag"). A label only: [packBasisAmount]
+  /// is the number, so re-weighing the measure does not re-price a past shop.
   final String? measureId;
 
   final int sortOrder;
 
-  /// What was handed over for this line: the printed figure less the printed
-  /// deduction. It is the figure a price is derived from, because what you
-  /// paid is the price.
+  /// What was paid for this line: the printed figure less the printed
+  /// deduction. Prices derive from this.
   int get paidCents => cents - discountCents;
 }
 
-/// One price the household paid, as every reader of a price sees it: a
-/// [ReceiptLine] joined to the [Receipt] that dates and places it.
-///
-/// It is the shape of the fact, not of the table — the ingredient page's
-/// *Latest* line, its *Before* rows and (from the cost lane) a recipe's
-/// per-line figure all read this and nothing else, so there is one account of
-/// what a price is.
+/// One price the household paid: a [ReceiptLine] joined to the [Receipt] that
+/// dates and places it. Every reader of a price reads this shape.
 @immutable
 class PriceObservation {
   const PriceObservation({
@@ -291,10 +227,8 @@ class PriceObservation {
   /// be an observation: [observationFrom] refuses to build one otherwise.
   final double packBasisAmount;
 
-  /// How many packs the cents bought — see [ReceiptLine.count]. It multiplies
-  /// [packBasisAmount] in [per100] and nowhere else, and it is never carried
-  /// to another receipt: the pack carries, the count arrives fresh from the
-  /// paper.
+  /// How many packs the cents bought; see [ReceiptLine.count]. It multiplies
+  /// [packBasisAmount] in [per100] and is never carried to another receipt.
   final int count;
 
   /// The ingredient's basis at the time this was read — the dimension both
@@ -304,34 +238,26 @@ class PriceObservation {
   final String store;
   final DateTime purchasedAt;
 
-  /// What kind of paper is behind this price. It is the one thing a reader
-  /// needs to know before offering to take it back: a hand-typed price is a
-  /// whole receipt of its own and goes entirely, while a line of a
-  /// photographed receipt only stops being a price (`deletePrice`).
-  ///
-  /// It defaults to [ReceiptSource.photo] for the reason [ReceiptSource
-  /// .fromDb] reads an unknown value that way: the conservative answer is
-  /// that this app did not type it, and the conservative answer keeps a piece
-  /// of paper standing.
+  /// What kind of paper is behind this price. Taking back a hand-typed price
+  /// deletes its whole receipt; a line of a photographed receipt only stops
+  /// being a price. Defaults to [ReceiptSource.photo], the conservative
+  /// reading.
   final ReceiptSource source;
 
-  /// The pack's own word, where the person named one ("bag"). Null for a pack
-  /// typed as a plain amount, and null where the measure has since been
-  /// deleted — the amount is the fact, the word is how it was said.
+  /// The pack's own word ("bag"). Null for a plain amount, and when the measure
+  /// has since been deleted.
   final String? packLabel;
 
-  /// The pack as the person SAID it — see [ReceiptLine.packAmount]. It is what
-  /// the ledger PRINTS; [packBasisAmount] is what it is read from, and the two
-  /// are deliberately different questions.
+  /// The pack as entered; see [ReceiptLine.packAmount]. The ledger prints this
+  /// and derives from [packBasisAmount].
   final double? packAmount;
 
   /// The catalog unit [packAmount] is said in, or null for a count of
   /// [packLabel]'s measure — see [ReceiptLine.packUnit].
   final Unit? packUnit;
 
-  /// The measure the pack was tapped as, still by id, so the sheet reopened on
-  /// this line lands on the same chip. Kept even when the measure has been
-  /// deleted since and [packLabel] is gone.
+  /// The measure the pack was tapped as, so the reopened sheet lands on the
+  /// same chip. Kept even when the measure has since been deleted.
   final String? measureId;
 
   /// What was paid — see [ReceiptLine.paidCents].
@@ -347,35 +273,22 @@ class PriceObservation {
   );
 }
 
-/// The key a receipt line's printed words are filed under — trimmed and
-/// upper-cased, and nothing else.
-///
-/// It is the server's own recall key (`_shared/receipt_memory.ts`) spelled in
-/// Dart, so the two things a printed name carries between shops — the match
-/// and the pack — are recalled under ONE spelling of it rather than two.
-///
-/// Null where there is nothing to file: a line whose words are empty, or one
-/// read by a server older than the column.
+/// The key a receipt line's printed words are filed under: trimmed and
+/// upper-cased. It mirrors the server's recall key
+/// (`_shared/receipt_memory.ts`). Null when the words are empty or absent.
 String? printedNameKey(String? namePrinted) {
   final trimmed = (namePrinted ?? '').trim();
   return trimmed.isEmpty ? null : trimmed.toUpperCase();
 }
 
 /// The pack one printed name was last bought in, and the vocabulary row it was
-/// bought AS.
-///
-/// The row travels with the pack because a printed name is one store's word for
-/// one product and a household can re-point it: `ORG TRICOLOR QUINOA` bought as
-/// Quinoa last month and matched to something else on this receipt is no carry
-/// over at all, and only a caller holding the line's current match can say so.
+/// bought as. The row travels with the pack because a household can re-point a
+/// printed name; only a caller holding the line's current match can tell
+/// whether the pack still applies.
 typedef PackLastBoughtAs = ({String ingredientId, PriceObservation pack});
 
-/// A price per 100 of an ingredient's basis unit — `77¢ / 100 g`.
-///
-/// [cents] is a real number of cents and not an integer: it is derived, not
-/// paid, and rounding it before it is printed would put a rounding inside
-/// every downstream sum. It is rounded once, at the edge, by
-/// [formatPricePer100].
+/// A price per 100 of an ingredient's basis unit (`77¢ / 100 g`). [cents] is
+/// fractional: it is derived, and is rounded once, by [formatPricePer100].
 @immutable
 class PricePer100 {
   const PricePer100(this.cents, this.basis);
@@ -395,25 +308,14 @@ class PricePer100 {
 }
 
 /// What [paidCents] for [count] packs of [packBasisAmount] of [basis] comes to
-/// per 100 of it.
+/// per 100 of it. Every price in the app is read through this; a hand-typed
+/// price passes a [count] of 1.
 ///
-/// **This is THE derivation** — every price in the app is read through it, and
-/// [count] is a required argument for exactly that reason: a receipt line that
-/// rang up eight blocks of tofu for $23.92 is the price of eight blocks, and a
-/// reader that forgot to say so would price each one at eight times what it
-/// cost. A pack is what ONE of them comes in ([packBasisAmount]); how many
-/// were bought is a fact about one shop. A hand-typed price passes 1.
+/// Refuses with:
 ///
-/// Two refusals, and no third (invariant 3 — a refusal beats a number nobody
-/// can stand behind):
-///
-/// - `price/no_pack` when what the cents bought is not a positive finite
-///   amount — a pack of nothing, or a count of none. Dividing by it would
-///   fabricate an infinity, and would price everything at once.
-/// - `price/nothing_paid` when nothing was paid. A zero is not a discovery
-///   that the food is free — it is a line somebody has not finished — and a
-///   recipe reading `$0.00` for it would state a cost the receipt never
-///   supported. A free sample is honestly *unpriced*.
+/// - `price/no_pack` when `count × packBasisAmount` is not positive and finite.
+/// - `price/nothing_paid` when nothing was paid. An unpaid line is unpriced,
+///   not free.
 Result<PricePer100> pricePer100({
   required int paidCents,
   required double packBasisAmount,
@@ -442,30 +344,17 @@ Result<PricePer100> pricePer100({
 String formatPricePer100(PricePer100 price) =>
     '${formatMoneyRounded(price.cents)} / 100 ${price.basis.dbValue}';
 
-/// `8 × ` in front of a pack the line rang up more than one of, and nothing
-/// at all for the ordinary one — a `1 × ` everywhere would be noise.
-///
-/// It is the house spelling of a count, shared by the receipt card and the
-/// ingredient page, so `$23.92 for 8 × block (16 oz)` reads back to the
-/// figure beside it wherever a price is restated.
+/// `8 × ` in front of a pack the line rang up more than one of, and nothing for
+/// a count of one. Shared by the receipt card and the ingredient page.
 String countTimes(int count) =>
     count > 1 ? '${formatAmount(count.toDouble())} × ' : '';
 
-/// The pack a person typed — [amount] of [choice] — resolved into
-/// [ingredient]'s basis unit, which is the only denomination a pack is stored
-/// in.
+/// The pack a person typed, [amount] of [choice], in [ingredient]'s basis unit.
 ///
-/// **This is the honesty gate.** A measure carries its own weight and needs
-/// nothing; a `piece` on a row that says what one weighs converts the same way
-/// (ADR-0015); a unit of the basis family converts by the ratio table. A unit
-/// of the *other* mass/volume family crosses the boundary and therefore needs
-/// the row's density — a 500 ml bottle of oil on a per-100 g row is grams only
-/// if the row says what a millilitre of it weighs. Without one this returns
-/// `unit/no_density` and the sheet refuses Done, naming it, rather than
-/// storing a number the row cannot support.
-///
-/// An imprecise word (`a handful of parsley for $2`) refuses as
-/// `unit/imprecise`: it converts to nothing, here as everywhere.
+/// A measure and a weighed `piece` (ADR-0015) carry their own weight; a unit of
+/// the basis family converts by ratio. A unit of the other mass/volume family
+/// needs the row's density and refuses with `unit/no_density` without one. An
+/// imprecise word refuses as `unit/imprecise`.
 Result<double> packInBasis(
   Ingredient ingredient, {
   required double amount,
@@ -478,10 +367,8 @@ Result<double> packInBasis(
   }
   final basis = ingredient.macrosBasis.baseUnit;
   final density = ingredient.densityGPerMl;
-  // A weighed `piece` is a measure the row states rather than names, so it
-  // bridges exactly as one does. A count on a row that weighs nothing falls
-  // through to [convert] and is refused there as `unit/incompatible` — which
-  // is the truth about it.
+  // A weighed `piece` bridges as a measure does. A count on a row with no piece
+  // weight falls through to [convert] and is refused as `unit/incompatible`.
   final piece = pieceAsMeasure(ingredient);
   return switch (choice) {
     RecipeMeasureOption(:final measure) => notAWordForAnIngredient(measure),
@@ -507,16 +394,10 @@ Result<double> packInBasis(
   };
 }
 
-/// The whole of what the price sheet asks, as one pure function: what a person
-/// paid, for the pack they typed, comes to *this* per 100 of the row's basis —
-/// or refuses, with the reason the dock prints.
-///
-/// The two halves are [packInBasis] (the density gate) and [pricePer100] (the
-/// arithmetic), in that order, so the refusal a person sees is the first thing
-/// that was actually wrong.
-///
-/// [count] is how many of that pack the money bought — one, on the hand-typed
-/// price door, and whatever the receipt's sub-row said on a receipt line.
+/// What a person paid for the pack they typed, per 100 of the row's basis, or
+/// the refusal the dock prints. Runs [packInBasis] then [pricePer100], so the
+/// first thing wrong is the refusal shown. [count] is how many of that pack the
+/// money bought.
 Result<PricePer100> priceFromEntry(
   Ingredient ingredient, {
   required int paidCents,
@@ -536,13 +417,9 @@ Result<PricePer100> priceFromEntry(
   };
 }
 
-/// The pack as it will be STORED, from the choice the person tapped — the one
-/// place the two shapes a pack can take are decided.
-///
-/// A unit chip stores the amount and the unit's catalog id; a measure chip
-/// stores the COUNT and points at the measure, whose own label is the word. So
-/// `pack_unit` is what tells a reader which of the two it is holding, and the
-/// measure's label is never copied into a second column to drift from.
+/// The pack as it will be stored. A unit chip stores the amount and the unit's
+/// catalog id; a measure chip stores the count and the measure's id, and the
+/// label is read from the measure.
 typedef PackAsEntered = ({double amount, String? unitId, String? measureId});
 
 PackAsEntered packAsEntered(double amount, UnitChoice choice) =>
@@ -560,12 +437,9 @@ PackAsEntered packAsEntered(double amount, UnitChoice choice) =>
       ),
     };
 
-/// The chip [price] was entered on, resolved against the row's [measures] —
-/// what the price sheet reopens a stored line on.
-///
-/// Null when the line kept no entered pack (a row written before the ledger
-/// held the words), or when the measure it named has been deleted since: the
-/// caller then opens on its own default rather than on a word that is gone.
+/// The chip [price] was entered on, resolved against the row's [measures], for
+/// reopening the price sheet. Null when the line kept no entered pack or its
+/// measure has been deleted.
 UnitChoice? enteredChoice(PriceObservation price, List<Measure> measures) {
   if (price.packAmount == null) return null;
   final unit = price.packUnit;
@@ -578,12 +452,8 @@ UnitChoice? enteredChoice(PriceObservation price, List<Measure> measures) {
   return null;
 }
 
-/// [line] as an observation, or null where it is not one.
-///
-/// A line is a price when it is food, names an ingredient, states a pack and
-/// was paid for. Everything else is a line of a receipt and nothing more —
-/// the tax, the bag fee, the matched row whose pack nobody has said yet — and
-/// null is the honest answer for it, not a zero.
+/// [line] as an observation, or null when it is not a price. A line is a price
+/// when it is food, names an ingredient, states a pack and was paid for.
 PriceObservation? observationFrom(
   ReceiptLine line,
   Receipt receipt, {

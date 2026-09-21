@@ -1,93 +1,55 @@
-/// Reading and writing what the household paid — PURE DART (invariant 2).
+/// Reading and writing what the household paid. Pure Dart.
 ///
-/// The ledger is `receipt` + `receipt_line` (migration 0044) and a hand-typed
-/// price is a one-line `manual` receipt, so this interface is deliberately
-/// narrow: one write, and the two reads the ingredient page makes. The photo
-/// pipeline writes the same two tables through its own door and everything
-/// here goes on reading it without knowing which way a line arrived.
+/// The ledger is `receipt` + `receipt_line`; a hand-typed price is a one-line
+/// `manual` receipt. The photo pipeline writes the same tables through its own
+/// door.
 library;
 
 import 'price.dart';
 
 abstract interface class PriceRepository {
-  /// Every price the household has paid for [ingredientId], **newest first**.
-  ///
-  /// The first element is what a recipe reads; the rest are what was paid
-  /// before it, kept as paid. Lines that are not prices — a pack nobody has
-  /// stated, a line whose ingredient was retired out from under it — are not
-  /// in the list at all (`observationFrom`): a price that cannot be read is
-  /// not shown as a zero.
-  ///
-  /// Watched, so a shop synced from the other phone lands on the page without
-  /// a refresh.
+  /// Every price the household has paid for [ingredientId], newest first. Lines
+  /// that are not prices are left out (`observationFrom`), never shown as zero.
+  /// Watched, so a synced shop lands without a refresh.
   Stream<List<PriceObservation>> watchPrices(String ingredientId);
 
-  /// The LATEST price for every ingredient the household has ever paid for,
-  /// keyed by ingredient id — the one read every cost surface makes.
-  ///
-  /// One map rather than a stream per row: a recipe costs a dozen lines, a
-  /// week costs every recipe it plans and the shop costs every aisle, so the
-  /// question is always "what does everything cost right now". A row with no
-  /// readable price is simply absent — never present with a zero.
+  /// The latest price for every ingredient the household has paid for, keyed by
+  /// ingredient id. One map, because every cost surface prices many rows at
+  /// once. A row with no readable price is absent.
   Stream<Map<String, PriceObservation>> watchLatestPrices();
 
-  /// Every distinct name this household's receipts have carried for
-  /// [ingredientId], most recently first — what the `On receipts` fold lists.
-  ///
-  /// This is the receipt door's memory read back (`name_printed`, migration
-  /// 0047): a store's own printed words, grouped case-insensitively on the
-  /// same key the server's recall uses, so a mis-transcription stands beside
-  /// the line it is a mis-transcription of and somebody can see it.
-  ///
-  /// Live lines of live receipts only, and a line with **no printed name** is
-  /// not one: a hand-typed price has no paper behind it, so there is nothing
-  /// for the memory to be keyed by and nothing to spot-check.
+  /// Every distinct name this household's receipts have printed for
+  /// [ingredientId], most recently first, for the `On receipts` fold. Grouped
+  /// case-insensitively on the server's recall key. Live lines of live receipts
+  /// only; a line with no printed name is skipped.
   Stream<List<ReceiptName>> watchReceiptNames(String ingredientId);
 
   /// The pack each of [namesPrinted] was last bought in, keyed by
-  /// [printedNameKey] — the receipt review's carry-over, read ONCE for a whole
-  /// receipt.
+  /// [printedNameKey]; read once per receipt.
   ///
-  /// A printed name is one store's words for one product, so the pack filed
-  /// under it is the size THAT shop sells: a household alternating a 16 oz bag
-  /// of quinoa and a 12 oz one has two names and two answers, where the row's
-  /// latest price has only the later of them. Each entry carries the row the
-  /// pack was bought as ([PackLastBoughtAs]), because the name is the key and
-  /// the match is not — the caller holds what this line is matched to now.
-  ///
+  /// A printed name is one store's words for one product, so its pack can
+  /// differ from the row's latest. Each entry carries the row it was bought as
+  /// ([PackLastBoughtAs]), since the caller holds the line's current match.
   /// Live lines of live receipts only, latest by the receipt's `purchased_at`
-  /// and then by the line's own `updated_at`, so correcting a saved receipt
-  /// corrects what the next one opens on. A name nobody has bought under is
-  /// absent, and a batch of none is an empty map without a query.
-  ///
-  /// A one-shot read rather than a watch: it answers what a scan should open
-  /// on, which is a question asked once per receipt.
+  /// then the line's `updated_at`. A name never bought under is absent.
   Future<Map<String, PackLastBoughtAs>> packsByPrintedName(
     Set<String> namesPrinted,
   );
 
-  /// The store words this household has used, most recently first — the price
-  /// sheet's chip row.
-  ///
-  /// A store is a word, not a row: there is no store table, so the offer is
-  /// simply what has been typed before, and the sheet's `＋` names a new one.
+  /// The store words this household has used, most recently first, for the
+  /// price sheet's chip row. There is no store table.
   Stream<List<String>> watchStores();
 
   /// Writes one hand-typed price: a `manual` [Receipt] with a single item
   /// [ReceiptLine], in one transaction.
   ///
-  /// [cents] is what was paid and [packBasisAmount] is what it bought, in the
-  /// ingredient's basis unit — the caller resolves the pack through
-  /// `packInBasis` first, so the density refusal happens where the person can
-  /// see it rather than here. [packAmount] with [packUnitId], or [packAmount]
-  /// with [measureId], is the pack as the person SAID it — the pair
-  /// `packAsEntered` builds, kept so the ledger can print it back and nothing
-  /// derived from it. [purchasedAt] defaults to now, because a price typed
-  /// today is a price seen today.
+  /// [cents] is what was paid and [packBasisAmount] what it bought, in the
+  /// ingredient's basis unit; the caller resolves the pack through
+  /// `packInBasis` first. [packAmount] with [packUnitId] or [measureId] is the
+  /// pack as entered (`packAsEntered`). [purchasedAt] defaults to now.
   ///
-  /// Throws [ArgumentError] for a non-positive [cents] or [packBasisAmount],
-  /// or an empty [store] — the honesty rules hold at the repository, not only
-  /// at the sheet, because the receipt importer will write here too.
+  /// Throws [ArgumentError] for a non-positive [cents] or [packBasisAmount], or
+  /// an empty [store].
   Future<void> recordManualPrice({
     required String ingredientId,
     required int cents,
@@ -99,24 +61,15 @@ abstract interface class PriceRepository {
     DateTime? purchasedAt,
   });
 
-  /// Rewrites the stored price [lineId] in place — the same four answers the
-  /// sheet asks, for a line that already exists.
+  /// Rewrites the stored price [lineId] in place. An UPDATE, never an upsert:
+  /// the local tables are PowerSync views, which reject `INSERT … ON CONFLICT`.
   ///
-  /// It is an **UPDATE, never an upsert**: the local tables are PowerSync
-  /// views, which reject `INSERT … ON CONFLICT`.
+  /// The line's facts always move. The receipt's store, `purchased_at` and
+  /// subtotal move only when it is a one-line `manual` receipt; a photographed
+  /// receipt keeps what the paper printed. [purchasedAt] is required: an edit
+  /// passes back the date the price already carried.
   ///
-  /// The line's own facts always move. Its receipt's do too **only when the
-  /// receipt is this app's one-line `manual` kind** — store, `purchased_at`
-  /// and the subtotal that is simply the line's cents. A photographed receipt
-  /// is a piece of paper: correcting what one of its lines is understood to be
-  /// worth must not restate what the paper printed, or which shop printed it.
-  ///
-  /// [purchasedAt] is passed rather than defaulted, because an edit is a
-  /// correction and not a new shop: the caller hands back the date the price
-  /// already carried unless the person changed it.
-  ///
-  /// Throws [ArgumentError] on the same three honesty rules
-  /// [recordManualPrice] holds.
+  /// Throws [ArgumentError] as [recordManualPrice] does.
   Future<void> updatePrice({
     required String lineId,
     required int cents,
@@ -128,50 +81,32 @@ abstract interface class PriceRepository {
     String? measureId,
   });
 
-  /// Takes back the stored price [lineId] — a mistyped price, undone.
+  /// Takes back the stored price [lineId].
   ///
-  /// **What that means depends on what is behind the line**, because the two
-  /// cases are different objects:
-  ///
-  /// - A hand-typed price is a one-line `manual` receipt with no paper behind
-  ///   it, so the line is tombstoned and its receipt goes with it: there is
-  ///   nothing left for it to be.
-  /// - A line of a **photographed** receipt stays. A receipt is a piece of
-  ///   paper and the paper is still true — the cents were paid, the store and
-  ///   the date stand, and the receipt has to go on adding up. So only its
-  ///   **price facts** are cleared: `pack_basis_amount`, `pack_amount`,
-  ///   `pack_unit` and `measure_id` become null and the line stops pricing
-  ///   anything, while `ingredient_id` stays, because what was bought is not
-  ///   in doubt — only what the pack was.
+  /// - A hand-typed price: the line is tombstoned and its `manual` receipt goes
+  ///   with it.
+  /// - A line of a photographed receipt stays, and only its pack facts are
+  ///   cleared (`pack_basis_amount`, `pack_amount`, `pack_unit`, `measure_id`),
+  ///   so it stops pricing anything. `ingredient_id` stays.
   Future<void> deletePrice(String lineId);
 }
 
-/// One name this household's receipts have carried for an ingredient — what
-/// the receipt door's memory is filed under.
+/// One name this household's receipts have printed for an ingredient.
 ///
-/// **It is not an alias.** An `ingredient_alias` is a word this household's
-/// own language holds, and the recipe door, the picker and the search all see
-/// it. This is a store's abbreviation, printed on paper, kept only beside the
-/// answer somebody gave it once — nothing here ever reaches the vocabulary
-/// matcher, and nothing here is learned. Reading these back is how a
-/// mis-transcription (`SHELLER EDAMAME` beside `SHELLED EDAMAME`) is spotted;
-/// correcting the receipt it is printed on is how it is answered, because the
-/// latest answer per name is the one the next receipt recalls.
+/// Not an alias: it is a store's abbreviation, never reaches the vocabulary
+/// matcher, and nothing is learned from it. Reading these back is how a
+/// mis-transcription is spotted; correcting the receipt fixes it, because the
+/// latest answer per name is what the next receipt recalls.
 typedef ReceiptName = ({
-  /// The name as the MOST RECENT line spells it.
-  ///
-  /// Lines are grouped case-insensitively, so one word in two cases is one
-  /// entry and the newest spelling is the one shown: a printed name is a
-  /// reading of paper, and the latest reading is the one this household last
-  /// stood behind.
+  /// The name as the most recent line spells it. Lines are grouped
+  /// case-insensitively.
   String namePrinted,
 
   /// How many live lines carry it, across every live receipt.
   int lineCount,
 
-  /// The stores that have printed it, most recently first, each named once. A
-  /// receipt whose store nobody named contributes no word, rather than a blank
-  /// one.
+  /// The stores that have printed it, most recently first, each once. An
+  /// unnamed store contributes nothing.
   List<String> stores,
 
   /// When it was last on a receipt — that receipt's own date, never a scan's.

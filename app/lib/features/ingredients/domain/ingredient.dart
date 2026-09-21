@@ -1,10 +1,8 @@
-/// The ingredient vocabulary entity — PURE DART (invariant 2).
+/// The ingredient vocabulary entity. Pure Dart.
 ///
-/// Density/macros are nullable and a `stub` row omits them (invariant 3,
-/// honest numbers) — the picker flags stubs instead of showing zeros, and
-/// the macro summation excludes them (rendering the recipe `incomplete`).
-/// `macros` carries the vocab's per-100 values in `macrosBasis` (per-100 g
-/// or per-100 ml — stored with the basis the label read them in, 0011).
+/// Density and macros are nullable and a `stub` row omits them: the picker
+/// flags stubs instead of showing zeros, and macro totals exclude them.
+/// `macros` holds per-100 values in `macrosBasis` (per 100 g or per 100 ml).
 library;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -28,102 +26,63 @@ abstract class Ingredient with _$Ingredient {
     Macros? macros,
     @Default(MacrosBasis.perG) MacrosBasis macrosBasis,
 
-    /// The explicit per-ingredient allowed-unit list (ADR-0008, migration
-    /// 0012) — parsed from the row's `allowed_units` jsonb, unknown ids
-    /// dropped. Null for a legacy/unsynced row: the pickers then fall back
-    /// to deriving the same ADR defaults (`defaultAllowedUnitSet`).
+    /// The explicit allowed-unit list (ADR-0008), parsed from the row's
+    /// `allowed_units` jsonb with unknown ids dropped. Null for a legacy or
+    /// unsynced row; pickers then derive `defaultAllowedUnitSet`.
     List<Unit>? allowedUnits,
 
-    /// What ONE of this ingredient weighs, in the row's basis unit — the
-    /// **piece weight** (ADR-0015, migration 0039). A row fact exactly as the
-    /// density is: density says what a volume of this weighs and unlocks the
-    /// volume units; this says what a piece weighs and unlocks `piece`.
-    ///
-    /// Null means the row has no such fact, and `piece` is then not sayable
-    /// on it. A piece-default row with a null here is a stranded default (the
-    /// D4c shape), named on the form and refused at Save — a count nobody
-    /// weighed is the one honest state this replaces ("needs a weight").
+    /// What one of this ingredient weighs, in the row's basis unit (ADR-0015).
+    /// It unlocks `piece` as density unlocks the volume units. Null means
+    /// `piece` is not sayable; a piece-default row with a null is named on the
+    /// form and refused at Save.
     double? pieceBasisAmount,
 
-    /// Where [pieceBasisAmount] came from: `manual` for a typed one,
-    /// `borrowed from <label>` where the seed copied a curated size ("onion,
-    /// medium" → 110 g), `seed:typical` for a hand-curated number. Shown, never
-    /// interpreted. Null when there is no weight, or the row predates it.
+    /// Where [pieceBasisAmount] came from: `manual`, `borrowed from <label>`
+    /// for a seeded copy of a curated size, or `seed:typical`. Shown, never
+    /// interpreted. Null when there is no weight.
     String? pieceSource,
 
-    /// Distinct live measure labels this ingredient carries — the picker
-    /// row's "N measures" capability hint (7.7). Populated by list reads;
-    /// 0 where a caller didn't ask for it.
+    /// Distinct live measure labels, for the picker row's "N measures" hint.
+    /// Populated by list reads; 0 otherwise.
     @Default(0) int measureCount,
 
-    /// The row's provenance stamp (`seed`, `manual`, `import_stub`,
-    /// `usda_fdc:<fdc_id>` for a USDA pick, `off:<barcode>` for a scan, or
-    /// [usdaDeclinedSource] for a person's "not this food"). Shown, never
-    /// interpreted as truth: it says where the numbers came from, and a
-    /// machine-supplied one still waits for a human confirm. Null on a row read
-    /// by a caller that didn't select it.
+    /// The row's provenance stamp: `seed`, `manual`, `import_stub`,
+    /// `usda_fdc:<fdc_id>`, `off:<barcode>`, or [usdaDeclinedSource]. Shown,
+    /// never treated as truth; a machine-supplied one still waits for a human
+    /// confirm. Null when the caller did not select it.
     String? source,
 
-    /// The food the row was filled from, **named** — `usda_food.description`
-    /// for a pick, the pack's brand and product name for a scan — written
-    /// beside [source] so every surface can say WHICH food filled the row,
-    /// offline. It is what the ids in [source] are for a reader: the stamp is a
-    /// key, this is the answer. Survives a decline, so the form can name the
-    /// food that was refused. Null on rows filled before the column existed and
-    /// on rows nothing filled, and null is a real answer — a surface then says
-    /// nothing rather than inventing a name.
+    /// The food the row was filled from, named: `usda_food.description` for a
+    /// pick, the pack's brand and product for a scan. Lets every surface say
+    /// which food filled the row, offline. Survives a decline. Null when
+    /// nothing filled the row; surfaces then say nothing.
     String? sourceLabel,
 
-    /// How much of the query the matched food's description covered, 0..1 —
-    /// the idf-weighted coverage `probe_usda` returns, not a graded confidence.
-    /// Stored so `UsdaMatchFit` reads the same offline as it did online. Shown,
-    /// never acted on. A USDA fact only: a scan matches nothing, so a barcode
-    /// row carries a [sourceLabel] and no score. Cleared by a decline.
+    /// How much of the query the matched USDA description covered, 0..1 (the
+    /// idf-weighted coverage `probe_usda` returns). Stored so `UsdaMatchFit`
+    /// reads the same offline. Shown, never acted on. Null on a barcode row;
+    /// cleared by a decline.
     double? sourceScore,
 
-    /// Whether a human has overridden the numbers the lookup filled in
-    /// (migration 0034) — **macros, macros basis or density**,
-    /// on a row whose [source] is a lookup stamp.
-    ///
-    /// It exists because [source] is patch-shaped and survives a form save, so
-    /// without it a row goes on naming a USDA food whose figures are no longer
-    /// on it. The fence is what keeps it honest: it means *the numbers are no
-    /// longer the source's*, so a rename, a unit toggle, a measure or an alias
-    /// must never set it — none of those contradicts the source. A fresh pick
-    /// clears it, because the numbers are the new food's.
+    /// Whether a human has overridden the macros, macros basis or density a
+    /// lookup filled in, on a row whose [source] is a lookup stamp. Renames,
+    /// unit toggles, measures and aliases never set it. A fresh pick clears it.
     @Default(false) bool sourceEdited,
   }) = _Ingredient;
 }
 
-/// Whether [source] is a machine **lookup's** stamp — a USDA pick
-/// (`usda_fdc:<id>`) or a barcode read (`off:<barcode>`).
-///
-/// The predicate [Ingredient.sourceEdited]'s fence is keyed on: those are the
-/// two provenances that assert "these numbers came from somewhere else", so
-/// they are the two a human edit can contradict. `seed`, `manual`,
-/// `import_stub`, [usdaDeclinedSource] and a null all carry no such claim, and
-/// a row wearing one is never flagged.
+/// Whether [source] is a lookup's stamp: a USDA pick (`usda_fdc:<id>`) or a
+/// barcode read (`off:<barcode>`). Only these rows can be flagged
+/// [Ingredient.sourceEdited].
 bool isLookupFilled(String? source) =>
     isUsdaPrefilled(source) || isBarcodeFilled(source);
 
-/// The one line the ingredients list and the import review's identity cell
-/// print under a machine-filled row's name, or null
-/// where there is nothing true to say.
+/// The line the ingredients list and the import review print under a
+/// machine-filled row's name, or null. Not used by the picker.
 ///
-/// One rule, two surfaces — rendering it twice in two places is how the same
-/// row starts telling two stories. Deliberately absent from the ingredient
-/// **picker**: that is a search surface, and a description under every row is
-/// noise while you are typing.
-///
-/// The word before the label is **where the name came from**, not what the
-/// stamp encodes: `usda · «description»` for a pick, `barcode · «brand and
-/// product»` for a scan. Neither prints the key inside the stamp — an FDC id
-/// and a GTIN are lookups into databases the reader does not have.
-///
-/// **No label, no line**: a row filled before the label column existed carries
-/// a stamp and no name, and it says nothing rather than inventing one — the
-/// same rule the form's provenance card holds. A declined row says nothing
-/// either: its numbers are gone, so there is no fill to name.
+/// Reads `usda · «description»` for a pick and `barcode · «brand and product»`
+/// for a scan; the key inside the stamp is never printed. A row with no label,
+/// or a declined one, gets no line.
 String? sourceProvenanceLine(Ingredient ingredient) {
   final label = ingredient.sourceLabel;
   if (label == null || label.isEmpty) return null;
@@ -140,48 +99,33 @@ String? sourceProvenanceLine(Ingredient ingredient) {
   return '${ingredient.sourceEdited ? 'edited · ' : ''}$kind · $label';
 }
 
-/// Whether [source] marks a row filled from USDA — `usda_fdc:<fdc_id>`.
-///
-/// The stamp means **a person picked that food** from the search; nothing
-/// writes it on the row's behalf. Rows carrying it from before migration 0029's
-/// automatic prefill are not distinguishable here, which is deliberate — they
-/// were not re-matched. The list's stub band and the form's provenance line
-/// both read this rather than guessing from the presence of macros.
+/// Whether [source] marks a row filled from USDA (`usda_fdc:<fdc_id>`): a
+/// person picked that food from the search. The list's stub band and the form's
+/// provenance line read this rather than guessing from the macros.
 bool isUsdaPrefilled(String? source) =>
     source?.startsWith('usda_fdc:') ?? false;
 
-/// Whether [source] marks a row filled from a barcode scan — `off:<barcode>`.
-///
-/// Like a USDA stamp it means **a person scanned that pack**; and like one, the
-/// code inside it is never what a surface prints. What the row says out loud is
-/// [Ingredient.sourceLabel] — the brand and product name the scan wrote beside
-/// the stamp.
+/// Whether [source] marks a row filled from a barcode scan (`off:<barcode>`).
+/// Surfaces print [Ingredient.sourceLabel], never the code.
 bool isBarcodeFilled(String? source) => source?.startsWith('off:') ?? false;
 
-/// The `source` a person's *Not this food* leaves behind.
-///
-/// Its own value rather than a reset to `manual`, because it is how a row says
-/// "a person unlinked a USDA pick here" — a distinct fact from "nobody ever
-/// linked one", and one the form's provenance line reads.
+/// The `source` a person's *Not this food* leaves behind. Distinct from
+/// `manual` so the form's provenance line can say a USDA pick was unlinked.
 const usdaDeclinedSource = 'usda_declined';
 
 /// Whether [source] is [usdaDeclinedSource].
 bool isUsdaDeclined(String? source) => source == usdaDeclinedSource;
 
 /// The FDC id inside a `usda_fdc:<id>` stamp, or null for any other [source].
-///
-/// A **fallback name**, not a caption: no surface prints it beside the food's
-/// own name, because a reader has no FoodData Central to look it up in. The
-/// form's provenance card falls back to it only on a row that carries no
-/// [Ingredient.sourceLabel], where it is the one true thing left to say.
+/// The form's provenance card prints it only on a row with no
+/// [Ingredient.sourceLabel].
 int? usdaFdcId(String? source) {
   if (source == null || !isUsdaPrefilled(source)) return null;
   return int.tryParse(source.substring('usda_fdc:'.length));
 }
 
-/// One alternate name for an ingredient ("mangoes", "ataulfo") — the search
-/// cascade matches these as well as [Ingredient.canonicalName], so the
-/// flesh-out form owns them (board: "Also known as").
+/// One alternate name for an ingredient ("mangoes", "ataulfo"). The search
+/// cascade matches these as well as [Ingredient.canonicalName].
 class IngredientAlias {
   const IngredientAlias({
     required this.id,
@@ -192,8 +136,7 @@ class IngredientAlias {
   final String id;
   final String text;
 
-  /// `seed`, `manual` (typed here), or `import_correction` (lane B's
-  /// correction loop). Rendered so a user can tell their own alias from one
-  /// an import minted.
+  /// `seed`, `manual` (typed here) or `import_correction` (learned from an
+  /// import). Rendered so a user can tell their own alias from a learned one.
   final String source;
 }

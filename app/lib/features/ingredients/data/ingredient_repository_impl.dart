@@ -1,21 +1,10 @@
-/// [IngredientRepository] over the local SQLite vocab (server-synced since
-/// step 7 — `ensure_onboarded` clones the household's starter vocab).
+/// [IngredientRepository] over the local, server-synced SQLite vocab.
 ///
-/// Search is [searchRank]'s three tiers, split across SQL and Dart because
-/// each half is better at one of them:
-///
-/// * **SQL selects, Dart ranks.** The word-boundary `LIKE` pass IS tiers 0 and
-///   1 expressed as SQL, and it is the index-friendly way to ask the question.
-///   What comes back is then ordered by [searchRank] alone, so the picker's
-///   ordering is the shared rule rather than a `length(canonical_name)` proxy
-///   that happened to approximate it. Each token is tried raw AND singularized
-///   ([matchTextForms]), because `match_text` itself is singularized — that is
-///   what lets "almonds" find "Almonds".
-/// * **Tier 2 is Dart's.** When the SQL pass finds nothing at all, every live
-///   row is scored in Dart and the guarded typo tier answers — or honestly
-///   returns nothing. That result is flagged `IngredientMatches.guessed` so
-///   the picker can label the band: the phone offers guesses to a human, it
-///   never resolves on one (ADR-0004).
+/// Search follows [searchRank]. A word-boundary `LIKE` pass selects rows and
+/// Dart ranks them; each token is tried raw and singularized ([matchTextForms])
+/// because `match_text` is singularized. When SQL finds nothing, every live row
+/// is scored in Dart for the typo tier, and that result is flagged
+/// `IngredientMatches.guessed` (ADR-0004).
 library;
 
 import 'dart:convert';
@@ -40,8 +29,8 @@ import 'name_holder.dart';
 const _uuid = Uuid();
 
 /// The volume-unit names the chip row refuses as measure labels
-/// ([isVolumeUnitLabel] — ids, display labels, and their simple s plurals),
-/// lowercased for the SQL filter below. Static catalog values, no user input.
+/// ([isVolumeUnitLabel]), lowercased for the SQL filter below. Static catalog
+/// values, no user input.
 final _volumeLabelList = [
   for (final u in kAllUnits)
     if (u.family == UnitFamily.volume)
@@ -51,30 +40,22 @@ final _volumeLabelList = [
       ],
 ].map((l) => "'$l'").join(', ');
 
-/// Distinct live labels, matching the merge-on-read view of the measures
-/// (duplicate labels collapse to one chip, so they count once here too) and
-/// the chip row's volume-label exclusion — the hint counts what is actually
-/// offered, not rows the picker hides.
+/// Distinct live labels, excluding volume-unit labels: what the chip row
+/// actually offers after merge-on-read.
 final _measureCount =
     '(SELECT COUNT(DISTINCT m.label) FROM ingredient_measure m '
     'WHERE m.ingredient_id = i.id AND m.deleted_at IS NULL '
     'AND LOWER(TRIM(m.label)) NOT IN ($_volumeLabelList)) AS measure_count';
 
 /// A row's live aliases' `match_text`, newline-separated so each stays a
-/// phrase of its own — the rule's tier 0 asks whether the query IS an alias,
-/// which a space-joined blob could never answer. `match_text` cannot contain a
-/// newline (the normalizer collapses all whitespace), so the split is exact.
-/// `char(10)`, not a quoted literal: SQLite reads `"x"` as an identifier first
-/// and only falls back to a string as a legacy quirk that `SQLITE_DQS=0`
-/// builds disable outright.
+/// phrase; `match_text` never contains a newline. `char(10)` rather than a
+/// quoted literal, because SQLite reads `"x"` as an identifier first.
 const _aliasText =
     '(SELECT GROUP_CONCAT(a.match_text, char(10)) FROM ingredient_alias a '
     'WHERE a.ingredient_id = i.id AND a.deleted_at IS NULL) AS alias_text';
 
-/// The `macros` column's jsonb, or null when there are none — null (not `{}`,
-/// and never four zeros) is how an absent panel is stored, on the create path
-/// and the edit path alike (invariant 3). The shape is [Macros.toJson]'s, so
-/// what is written back is exactly what [Macros.tryParse] reads.
+/// The `macros` column's jsonb in [Macros.toJson]'s shape. An absent panel is
+/// stored as null, never `{}` or zeros.
 String? _macrosJson(Macros? macros) =>
     macros == null ? null : jsonEncode(macros.toJson());
 
@@ -107,21 +88,11 @@ class SqliteIngredientRepository implements IngredientRepository {
       return (rows: rows.map(_toIngredient).toList(), guessed: false);
     }
 
-    // Token-subset match: EVERY query token must be a word-prefix of the
-    // ingredient's `match_text` OR one of its live aliases (order-independent,
-    // so "canned tomatoes" finds "Canned Whole Tomatoes"). Each token is a
-    // word-boundary LIKE (`tok%` = leading word, `% tok%` = any later word).
-    //
-    // A token matches in its RAW form or its SINGULAR one ([matchTextForms]):
-    // `match_text` is written by the phrase normalizer, which singularizes
-    // ("Almonds" → `almond`), while the query is deliberately only
-    // character-normalized. Without the singular branch `'almond'.startsWith(
-    // 'almonds')` is false, so a one-word plural query would hit nothing here.
-    // Both forms are still wildcard-free, so `%`/`_` stay inert.
-    //
-    // This pass SELECTS; it does not rank. `searchRank` does the ordering
-    // below, over the same rows, so the picker and the two recipe pickers
-    // cannot drift apart on what "best match" means.
+    // Every query token must be a word-prefix of the ingredient's `match_text`
+    // or of one of its live aliases, in any order (`tok%` = leading word, `%
+    // tok%` = a later word). Each token matches raw or singular
+    // ([matchTextForms]); both forms are wildcard-free. This pass selects;
+    // [searchRank] orders below.
     final where = StringBuffer('i.deleted_at IS NULL');
     final params = <Object?>[];
     for (final tok in tokens) {
@@ -141,9 +112,8 @@ class SqliteIngredientRepository implements IngredientRepository {
     final rows = await _db.getAll(
       'SELECT i.*, $_measureCount, $_aliasText FROM ingredient i '
       'WHERE $where '
-      // A stable page, then ranked in Dart. `length(canonical_name)` is only
-      // the tie-break `searchRank` itself falls back on, so the page the LIMIT
-      // keeps and the order it ends up in agree.
+      // A stable page, ranked in Dart afterwards. The ORDER BY is
+      // [searchRank]'s own tie-break, so the LIMIT keeps the right rows.
       'ORDER BY length(i.canonical_name), i.canonical_name '
       'LIMIT ?',
       [...params, limit],
@@ -152,31 +122,23 @@ class SqliteIngredientRepository implements IngredientRepository {
       return (rows: _rank(query, rows, limit: limit), guessed: false);
     }
 
-    // Nothing was spelled right. Score every live row instead — the guarded
-    // typo tier, which may still answer with nothing, and that emptiness is an
-    // honest answer ("no match for 'tfu'"), not a bug.
+    // Nothing matched by spelling: score every live row for the typo tier,
+    // which may honestly return nothing.
     return _typoSearch(query, limit: limit);
   }
 
-  /// The tier-2 pass: scores every live ingredient with [searchRank] and
-  /// returns what clears the guards, best first. Runs only when the SQL pass
-  /// found nothing, so the common path never pays for it.
+  /// Scores every live ingredient with [searchRank] and returns what clears the
+  /// guards, best first. Runs only when the SQL pass found nothing.
   ///
-  /// A hit here is normally a guess, and the result says so. It is not always:
-  /// the SQL pass searches `match_text` only, and the phrase normalizer eats
-  /// any name word that happens to be a measure ("Jars", "Blocks"), while
-  /// [searchRank] also sees the row's raw name. A row rescued that way is a
-  /// genuine prefix hit, so the band is keyed on the best tier found rather
-  /// than on which pass produced it.
+  /// The guessed band is keyed on the best tier found, not on this pass: the
+  /// phrase normalizer strips name words that are measures ("Jars"), so a row
+  /// the SQL pass missed can still be a genuine prefix hit on its raw name.
   Future<IngredientMatches> _typoSearch(
     String query, {
     required int limit,
   }) async {
-    // No LIMIT: a cap would silently stop typo-tolerance working for whatever
-    // fell off the end as the household's vocab grew, and this pass only runs
-    // when the SQL search already found nothing. The stated bound (and it is a
-    // bound, not an accident): correct to roughly 2 000 rows on a phone; past
-    // that it needs an index, and that is a tracker row.
+    // No LIMIT: a cap would silently drop typo tolerance for rows past it. Fine
+    // to roughly 2 000 rows on a phone; past that it needs an index.
     final rows = await _db.getAll(
       'SELECT i.*, $_measureCount, $_aliasText FROM ingredient i '
       'WHERE i.deleted_at IS NULL ORDER BY i.canonical_name',
@@ -193,9 +155,8 @@ class SqliteIngredientRepository implements IngredientRepository {
   List<Ingredient> _rank(String query, List<Row> rows, {required int limit}) =>
       [for (final r in _rankHits(query, rows).take(limit)) r.ingredient];
 
-  /// [rows] scored and ordered by the shared rule: the tier decides first (a
-  /// guess never outranks a spelling), then the score, then the shorter name,
-  /// then the name.
+  /// [rows] scored and ordered: tier, then score, then the shorter name, then
+  /// the name.
   List<({SearchHit hit, Ingredient ingredient})> _rankHits(
     String query,
     List<Row> rows,
@@ -221,8 +182,7 @@ class SqliteIngredientRepository implements IngredientRepository {
   }
 
   /// One row's searchable surface: its `match_text`, each live alias's
-  /// `match_text`, and the character-normalized raw name (which carries the
-  /// words the phrase normalizer strips).
+  /// `match_text`, and the character-normalized raw name.
   List<String> _surfaces(Row r) => [
     (r['match_text'] as String?) ?? '',
     ...((r['alias_text'] as String?) ?? '').split('\n'),
@@ -292,10 +252,8 @@ class SqliteIngredientRepository implements IngredientRepository {
     if (!(gPerMl > 0)) {
       throw ArgumentError.value(gPerMl, 'gPerMl', 'must be a positive number');
     }
-    // Read-modify-write: the allowed set written back is derived from the row
-    // as it is read, so the read and the write must be one transaction — a
-    // concurrent density/allowed-units write between them would be clobbered.
-    // This is the repo's only such pair; every other write is self-contained.
+    // Read-modify-write: the allowed set written back derives from the row as
+    // read, so both run in one transaction.
     final now = DateTime.now().toUtc().toIso8601String();
     final updated = await _db.writeTransaction((tx) async {
       final row = await tx.getOptional(
@@ -305,9 +263,8 @@ class SqliteIngredientRepository implements IngredientRepository {
       );
       if (row == null) return false;
       final current = _toIngredient(row);
-      // Extend the explicit list with what this density unlocks, in the same
-      // write (see the interface doc). A row still on the derived fallback is
-      // materialized first, so the extension has something explicit to join.
+      // Extend the explicit list with what this density unlocks. A row on the
+      // derived fallback is materialized first.
       final unlocked = {
         ...current.allowedUnits ?? defaultAllowedUnitSet(current),
         ...densityUnlockedUnits(current),
@@ -318,10 +275,8 @@ class SqliteIngredientRepository implements IngredientRepository {
           : null;
       await tx.execute(
         'UPDATE ingredient SET density_g_per_ml = ?, allowed_units = ?, '
-        // The quantity sheet's density entry is a human write that changes a
-        // number, so it flags a lookup-filled row exactly as the form's Save
-        // does (0034) — the flag is a fact about the row, not about which
-        // screen you were standing on.
+        // A human density write flags a lookup-filled row as edited, as the
+        // form's Save does.
         'source_edited = COALESCE(?, source_edited), updated_at = ? '
         'WHERE id = ?',
         [
@@ -355,10 +310,8 @@ class SqliteIngredientRepository implements IngredientRepository {
       final edited = isLookupFilled(current.source) ? 1 : null;
       await tx.execute(
         'UPDATE ingredient SET density_g_per_ml = NULL, allowed_units = ?, '
-        // Deleting a lookup's density is as much an override of its numbers as
-        // typing a different one (0034). Not to be confused with
-        // [declineUsdaPrefill], which also clears a density but is the person
-        // rejecting the match outright — that row stops being a fill at all.
+        // Deleting a lookup's density overrides its numbers, so it flags the
+        // row. [declineUsdaPrefill] differs: it rejects the match outright.
         'source_edited = COALESCE(?, source_edited), updated_at = ? '
         'WHERE id = ?',
         [
@@ -374,12 +327,9 @@ class SqliteIngredientRepository implements IngredientRepository {
     return byId(ingredientId);
   }
 
-  /// D4b: the admission list as it reads once [current]'s density is gone —
-  /// the cross-family units go with the number they were derived from. The
-  /// basis family and the default unit's family survive (see
-  /// [densityStrippedUnits]); curated units outside the derived rules are
-  /// untouched. Read by [clearDensity] and [declineUsdaPrefill], which are
-  /// the two places a density is ever deleted.
+  /// The admission list once [current]'s density is gone: the cross-family
+  /// units go with it, the basis and default-unit families stay (see
+  /// [densityStrippedUnits]).
   static Set<Unit> _strippedOfDensity(Ingredient current) =>
       {...current.allowedUnits ?? defaultAllowedUnitSet(current)}
         ..removeAll(densityStrippedUnits(current));
@@ -397,14 +347,10 @@ class SqliteIngredientRepository implements IngredientRepository {
       final current = _toIngredient(row);
       // Only a row the prefill still authors: anything else is a human's.
       if (!isUsdaPrefilled(current.source)) return false;
-      // One statement: the density strip (the clearDensity rule, D4b), the
-      // macros, the stamp, and the status — a row with no macros is a stub
-      // (D5). The label stays: the form names what was refused.
-      // `source_edited` goes back to 0 with them (0034): the flag says "the
-      // numbers on this row are no longer the source's", and after a decline
-      // there are no numbers and no fill — there is nothing left to override,
-      // so `true` would be a claim about a state that no longer exists. The
-      // two doors themselves are untouched (B-D3).
+      // One statement: the density strip, the macros, the stamp and the status
+      // (a row with no macros is a stub). The label stays so the form can name
+      // what was refused. `source_edited` returns to 0: with no fill left there
+      // is nothing to override.
       await tx.execute(
         'UPDATE ingredient SET density_g_per_ml = NULL, macros = NULL, '
         "allowed_units = ?, source = ?, source_score = NULL, status = 'stub', "
@@ -487,9 +433,8 @@ class SqliteIngredientRepository implements IngredientRepository {
     return byId(ingredientId);
   }
 
-  /// The admission list as it reads once [current]'s piece weight is gone:
-  /// `piece` goes with the number it was derived from ([pieceStrippedUnits]),
-  /// everything else stands. The count-side twin of [_strippedOfDensity].
+  /// The admission list once [current]'s piece weight is gone: `piece` goes
+  /// with it ([pieceStrippedUnits]).
   static Set<Unit> _strippedOfPieceWeight(Ingredient current) =>
       {...current.allowedUnits ?? defaultAllowedUnitSet(current)}
         ..removeAll(pieceStrippedUnits(current));
@@ -553,13 +498,8 @@ class SqliteIngredientRepository implements IngredientRepository {
     ];
   }
 
-  /// The name namespace's rule as a *save* asks it: the canonical name of
-  /// **another** live row already carrying [matchText], or null.
-  ///
-  /// One question in one place ([nameHolderFor]), because the import's
-  /// learning loop asks the same one at its own write; all this leg adds is
-  /// what self-ownership means here — a row may always be saved under the name
-  /// it already has.
+  /// The canonical name of another live row already carrying [matchText], or
+  /// null. Asks [nameHolderFor]; a row may always be saved under its own name.
   Future<String?> _nameTakenBy(
     SqliteWriteContext tx,
     String matchText,
@@ -575,10 +515,8 @@ class SqliteIngredientRepository implements IngredientRepository {
     String? ingredientId,
     IngredientFormEdit edit,
   ) async {
-    // **Validate everything BEFORE opening the transaction.** The contract is
-    // that nothing is written when this throws, and the cheapest way to mean
-    // it is to refuse before a single statement runs. These are the same
-    // lines `addMeasure` and `addAlias` hold — batching does not soften them.
+    // Validate everything before opening the transaction, so nothing is written
+    // when this throws.
     final name = edit.row.canonicalName.trim();
     if (name.isEmpty) {
       throw ArgumentError.value(
@@ -643,19 +581,16 @@ class SqliteIngredientRepository implements IngredientRepository {
     final macrosJson = _macrosJson(macros);
     final now = DateTime.now().toUtc().toIso8601String();
 
-    // C1: a form with no row yet mints one here, so the row and its children
-    // are inserted in the same transaction — a create that half-lands stops
-    // being representable, which the sheet's four-calls-under-one-guard never
-    // managed.
+    // A form with no row yet mints one here, so the row and its children are
+    // inserted in one transaction.
     final creating = ingredientId == null;
     final id = ingredientId ?? _uuid.v4();
 
     // Three answers, one transaction: written, refused with the reason, or
     // the row is no longer there.
     final outcome = await _db.writeTransaction<_SaveOutcome>((tx) async {
-      // **The name namespace, checked where the write happens.** The form asks
-      // the same question before the tap, but a sync landing between the two
-      // would slip a second Sauerkraut past it.
+      // The name is checked again inside the write: a sync could land between
+      // the form's check and the tap.
       final taken = await _nameTakenBy(tx, normalizeMatchText(name), id);
       if (taken != null) {
         return (wrote: false, refusal: nameTakenFailure(taken));
@@ -684,39 +619,33 @@ class SqliteIngredientRepository implements IngredientRepository {
         [id],
       );
       if (row == null) return (wrote: false, refusal: null);
-      // D5, both directions in one place now. Clearing the macros of a
-      // complete row returns it to `stub` rather than leaving it asserting a
-      // number it no longer has; filling them in never promotes on its own —
-      // only `markComplete`, which is a human tapping the CTA (W5b).
+      // Clearing the macros of a complete row returns it to `stub`. Filling
+      // them in never promotes; only `markComplete` does.
       final status = macros == null
           ? 'stub'
           : edit.markComplete
           ? 'complete'
           : row['status'] as String;
 
-      // The row itself. `allowed_units` is written AS THE FORM HOLDS IT: the
-      // draft has already applied whatever the density unlocked or stripped,
-      // so re-deriving here would give two owners to one fact.
+      // `allowed_units` is written as the form holds it; the draft already
+      // applied what the density unlocked or stripped.
       await tx.execute(
         'UPDATE ingredient SET canonical_name = ?, match_text = ?, '
         'category = ?, default_unit = ?, macros = ?, macros_basis = ?, '
         'allowed_units = ?, status = ?, '
-        // Provenance is patch-shaped (see [IngredientEdit.source]): a null
-        // keeps what is stored, so a save that is not about the match cannot
-        // erase which food filled the row.
+        // Patch-shaped (see [IngredientEdit.source]): null keeps the stored
+        // provenance.
         'source = COALESCE(?, source), '
         'source_label = COALESCE(?, source_label), '
         'source_score = COALESCE(?, source_score), '
-        // Patch-shaped too, and for a sharper reason: most saves have nothing
-        // to say about the flag, and a save that DID edit the numbers must not
-        // be un-said by the next one that only renamed the row (0034).
+        // Patch-shaped too: a save with nothing to say about the flag must not
+        // clear it.
         'source_edited = COALESCE(?, source_edited), '
         'updated_at = ? WHERE id = ?',
         [
           name,
-          // The rename hazard (D6): the stored name and its match_text are
-          // written together or the cascade searches for a name nothing
-          // carries.
+          // The stored name and its match_text are written together, or the
+          // cascade searches for a name nothing carries.
           normalizeMatchText(name),
           edit.row.category,
           edit.row.defaultUnit.id,
@@ -756,9 +685,8 @@ class SqliteIngredientRepository implements IngredientRepository {
           break;
       }
 
-      // The piece weight, the count-side twin of the density above. The
-      // admission set was written AS THE FORM HOLDS IT a moment ago, so
-      // nothing is unioned or stripped here (ADR-0011: one owner per fact).
+      // The piece weight. The admission set was already written as the form
+      // holds it, so nothing is unioned or stripped here (ADR-0011).
       switch (pieceWeight) {
         case PieceWeightSet(:final amount):
           await tx.execute(
@@ -793,9 +721,8 @@ class SqliteIngredientRepository implements IngredientRepository {
         );
       }
 
-      // The serving is ONE measure per row, so the old one goes before the new
-      // one lands — in this same transaction, so the row is never seen with
-      // two servings or with none.
+      // A row has one serving measure, so the old one goes before the new one
+      // lands, in this transaction.
       if (edit.serving != null) {
         await tx.execute(
           'UPDATE ingredient_measure SET deleted_at = ?, updated_at = ? '
@@ -814,9 +741,8 @@ class SqliteIngredientRepository implements IngredientRepository {
         );
         var nextFree = (maxRow['m'] as int) + 1;
         for (final m in adding) {
-          // A plain INSERT, never ON CONFLICT (view-backed local tables
-          // reject UPSERT), and no label-collision check — a duplicate merges
-          // on read instead of failing anywhere.
+          // A plain INSERT: view-backed local tables reject UPSERT. No
+          // label-collision check; duplicates merge on read.
           await tx.execute(
             'INSERT INTO ingredient_measure '
             '(id, household_id, ingredient_id, label, basis_amount, '
@@ -839,9 +765,8 @@ class SqliteIngredientRepository implements IngredientRepository {
       }
 
       for (final a in aliases) {
-        // Find-or-create, not blind insert (the import cascade's rule): two
-        // identically matching aliases on one ingredient are noise that can
-        // only ever tie.
+        // Find-or-create: two identical aliases on one ingredient can only ever
+        // tie.
         final existing = await tx.getOptional(
           'SELECT id FROM ingredient_alias '
           'WHERE ingredient_id = ? AND match_text = ? AND deleted_at IS NULL '
@@ -863,34 +788,19 @@ class SqliteIngredientRepository implements IngredientRepository {
     return Ok(await byId(id));
   }
 
-  /// What this save has to say about `source_edited` — `1`, `0`, or **null for
-  /// "nothing"**, which the `COALESCE` above turns into "leave it as it is"
-  /// (migration 0034).
+  /// What this save says about `source_edited`: `1`, `0`, or null for "leave
+  /// it", which the `COALESCE` above honours.
   ///
-  /// Three answers, and the fence is the whole design:
+  /// - A fresh stamp ([IngredientEdit.source] non-null) clears it: the numbers
+  ///   landing with it are that source's.
+  /// - A human write over a lookup's macros, macros basis or density sets it.
+  ///   Nothing else does.
+  /// - Every other save, and every save on a row that is not [isLookupFilled],
+  ///   returns null.
   ///
-  /// * **A fresh stamp clears it.** [IngredientEdit.source] is non-null only
-  ///   when this very save carries a new provenance — a USDA pick or a barcode
-  ///   read — and then the numbers landing beside it ARE that source's, so the
-  ///   row starts un-edited whatever it said before (B-D3).
-  /// * **A human write over a lookup's numbers sets it.** Only macros, the
-  ///   macros basis and the density count. That is the fence: a rename, a unit
-  ///   toggle, a measure, an alias, a piece weight, a category, `Mark
-  ///   complete` — none of them contradicts the source, so none may set it.
-  ///   A save that only touches those returns null here and the stored value
-  ///   stands, in both directions.
-  /// * **Anything else says nothing.** Including every save on a row with no
-  ///   lookup provenance to contradict ([isLookupFilled]): a `manual` row's
-  ///   numbers were always its owner's, so "edited" is not a fact about it.
-  ///
-  /// Compared against the row AS STORED, not against the draft's own idea of
-  /// what changed: opening a form and saving it untouched must not flag it,
-  /// and `MacroDraft` seeds losslessly precisely so that round-trip is exact.
-  ///
-  /// Once set it is **sticky** until a fresh pick, which is the honest answer
-  /// available: the source's own figures are not kept on the row (B-D1 refused
-  /// a second copy of them), so nothing here can tell a number typed back to
-  /// the food's value from a coincidence.
+  /// Compared against the row as stored, so an untouched save does not flag it.
+  /// Once set it stays until a fresh pick: the source's figures are not kept,
+  /// so a value typed back cannot be recognised.
   static int? _sourceEditedPatch({
     required String? storedSource,
     required Macros? storedMacros,
@@ -925,14 +835,9 @@ class SqliteIngredientRepository implements IngredientRepository {
     return byId(ingredientId);
   }
 
-  /// Every live line naming [ingredientId], as (recipes, lines, planned) — the
-  /// delete guard's evidence, and the numbers a refusal names.
-  ///
-  /// The three tables are the three a line's `ingredient_id` can live in, and
-  /// they are the same three migration 0041's trigger counts. The week's two
-  /// were missing here until then, which is how a bare-ingredient meal could
-  /// be deleted out from under itself: the week's own query inner-joins the
-  /// live vocab, so the meal simply vanished from the week and the shop.
+  /// Every live line naming [ingredientId], as (recipes, lines, planned): the
+  /// delete guard's evidence. These are the three tables the server's delete
+  /// trigger counts.
   Future<({int recipeCount, int lineCount, int plannedCount})> _liveReferences(
     String ingredientId,
   ) async {
@@ -1034,16 +939,13 @@ class SqliteIngredientRepository implements IngredientRepository {
     source: r['source'] as String?,
     sourceLabel: r['source_label'] as String?,
     sourceScore: (r['source_score'] as num?)?.toDouble(),
-    // PowerSync carries the server's boolean as 0/1. A row synced before 0034
-    // has no value at all, which is the same answer as `false`: nobody edited
-    // it, because there was nothing to record the edit in.
+    // PowerSync carries the boolean as 0/1; an absent value reads as false.
     sourceEdited: (r['source_edited'] as int?) == 1,
   );
 
-  /// Parses the row's `allowed_units` jsonb (a JSON array of unit ids) into
-  /// catalog units. Unknown ids are dropped (a newer server vocabulary must
-  /// not orphan this client); a malformed/absent value is null, which sends
-  /// the pickers to the derived-defaults fallback.
+  /// Parses the row's `allowed_units` jsonb (a JSON array of unit ids). Unknown
+  /// ids are dropped; a malformed or absent value is null, which sends the
+  /// pickers to the derived defaults.
   static List<Unit>? _parseAllowedUnits(String? json) {
     if (json == null || json.isEmpty) return null;
     final Object? decoded;

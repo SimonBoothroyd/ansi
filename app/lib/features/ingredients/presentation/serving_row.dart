@@ -1,17 +1,10 @@
-/// The macros section's **per-serving** mode: the serving row ("One serving is
-/// 1 cup"), the derivation line under the four fields, and — on a scanned
-/// per-100 row — the line that checks the pack's two readings against each
-/// other.
+/// The macros section's per-serving mode: the serving row ("One serving is 1
+/// cup"), the derivation line under the four fields, and, on a scanned per-100
+/// row, the line that checks the pack's two readings against each other.
 ///
-/// The row takes an amount and **any kitchen unit**, and the unit's family is
-/// the row's basis: a mass serving stores per 100 g, a volume serving per
-/// 100 ml. A volume serving therefore needs no density at all — `2 tbsp` is
-/// 29.57 ml by the catalog, exactly. Density is the density section's subject
-/// and is stated nowhere else.
-///
-/// The arithmetic is [Macros.per100From]'s and the row stores per 100 like
-/// every row — this file is only how the person sees the derivation before
-/// Save.
+/// The serving's unit family sets the row's basis: mass stores per 100 g,
+/// volume per 100 ml, so a volume serving needs no density. The arithmetic is
+/// [Macros.per100From]'s; this file only shows the derivation before Save.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -27,10 +20,8 @@ import '../../../shared/format.dart';
 import '../domain/serving_measure.dart';
 import 'macros_format.dart';
 
-/// The units a serving line may say — the mass and volume families of the
-/// catalog, in the catalog's own order. Count and imprecise words are not
-/// servings: a label prints a weight or a measure, and "1 pinch" is not a
-/// panel.
+/// The units a serving may say: the catalog's mass and volume families, in
+/// catalog order. Count and imprecise words are not servings.
 const kServingUnits = <Unit>[
   g, kg, oz, lb, //
   ml, l, tsp, tbsp, flOz, cup, pint, quart,
@@ -53,9 +44,8 @@ class ServingDraft {
   /// moves the stored fact's dimension with it.
   final Unit unit;
 
-  /// A scanned per-100 label's own per-serving figures, kept only to check
-  /// the pack's two readings against each other. Never entered into a field
-  /// and never stored.
+  /// A scanned per-100 label's own per-serving figures, kept only for the
+  /// cross-check. Never entered or stored.
   final Macros? packPrinted;
 
   /// The pack's `serving_size` verbatim ("1 Cup (237 mL)"), quoted in that
@@ -87,9 +77,8 @@ class ServingDraft {
   /// `1 cup` — the serving as the pack says it.
   String get phrase => amount == null ? '' : formatServingPhrase(amount!, unit);
 
-  /// `1 cup = 236.59 ml` — the conversion the derivation line cites. Empty
-  /// for a serving already in its own base unit, where there is nothing to
-  /// convert and the line would only repeat itself.
+  /// `1 cup = 236.59 ml`: the conversion the derivation line cites. Empty for a
+  /// serving already in its base unit.
   String get conversion {
     final inBasis = amountInBasis;
     if (inBasis == null || unit == basis.baseUnit) return '';
@@ -117,18 +106,10 @@ class ServingDraft {
       Object.hash(amountText, unit, packPrinted, packPrintedText);
 }
 
-/// "One serving is `1` `cup`" — the whole row.
-///
-/// **The unit is one chip, and the twelve are behind it.** Twelve kitchen
-/// units is three runs of chips at 402 pt, so the row wears
-/// [AmountAndUnitField]: the unit it currently says drawn as the chip it
-/// would be in any dock, and the whole offer one tap away. The sentence stays
-/// a sentence, and a unit is still picked the way units are picked everywhere
-/// else.
-///
-/// The unit sets the row's **basis**, so the admission chips and the stored
-/// dimension follow it live. Each field reports its own value rather than a
-/// whole draft, so the host folds it into whatever it holds *now*.
+/// "One serving is `1` `cup`": the whole row. The unit is one chip
+/// ([AmountAndUnitField]) with the full offer a tap away, since twelve chips
+/// would not fit a phone row. The unit sets the row's basis. Each field reports
+/// its own value, so the host folds it into whatever it holds now.
 class ServingRow extends StatelessWidget {
   const ServingRow({
     required this.draft,
@@ -146,10 +127,7 @@ class ServingRow extends StatelessWidget {
     children: [
       Text('One serving is', style: ansiMono(size: 11)),
       const SizedBox(width: 8),
-      // The one amount-and-unit control (`shared/amount_and_unit.dart`) — the
-      // same one the density, the piece weight, the measures form and the
-      // recipe's yield use, so every number with a unit is stated the same
-      // way.
+      // The shared amount-and-unit control (`shared/amount_and_unit.dart`).
       AmountAndUnitField(
         amountKey: const ValueKey('serving-amount'),
         unitKey: const ValueKey('serving-unit'),
@@ -164,12 +142,9 @@ class ServingRow extends StatelessWidget {
   );
 }
 
-/// The one muted line under the four fields in per-serving mode: what the row
-/// will store, derived live from the serving and the figures as printed.
-///
-/// `stored per 100 ml · 46 kcal · 0.4P 2.1F 7.2C · from 1 cup = 236.59 ml`.
-/// It is a derivation and reads like one — the fields keep the label's own
-/// numbers, and this says what the app made of them.
+/// The muted line under the four fields in per-serving mode: what the row will
+/// store, derived live. `stored per 100 ml · 46 kcal · 0.4P 2.1F 7.2C · from 1
+/// cup = 236.59 ml`.
 class StoredPer100Line extends StatelessWidget {
   const StoredPer100Line({
     required this.serving,
@@ -208,19 +183,9 @@ class StoredPer100Line extends StatelessWidget {
   }
 }
 
-/// The line a scanned per-100 row shows **in place of** the comparison, when
-/// the payload named no serving at all.
-///
-/// Open Food Facts holds plenty of packs as per-100 figures with nothing said
-/// about a serving, and the form then draws `per 100 g` over numbers a person
-/// is reading off a panel that prints per serving. There is nothing wrong to
-/// correct — the record says per 100 and the app believes it — so this says
-/// only that the other mode exists and what to do in it.
-///
-/// It is the [ScannedServingLine]'s slot and its style: one muted mono line
-/// under the macro fields. It goes the moment the mode moves or a figure is
-/// typed, because from then on the person is not looking at what the scan
-/// landed.
+/// The line a scanned per-100 row shows in [ScannedServingLine]'s slot when the
+/// payload named no serving: it says per-serving mode exists. It goes once the
+/// mode moves or a figure is typed.
 class ScannedPerServingNudge extends StatelessWidget {
   const ScannedPerServingNudge({super.key});
 
@@ -235,16 +200,10 @@ class ScannedPerServingNudge extends StatelessWidget {
   );
 }
 
-/// The line under a **scanned** row's figures: what the pack printed per
-/// serving, what that is per 100, and whether the two agree.
-///
-/// Drawn only when both readings exist. Which of them is in the fields
-/// depends on the mode, and the host says which is which: a row entered per
-/// 100 holds the panel and the label's per-serving column rides on the
-/// serving; a row entered per serving holds the label's figures and the
-/// pack's per-100 column is the reading they are checked against. Nothing is
-/// invented and nothing is corrected — the pack printed both columns and the
-/// app says whether they say the same thing.
+/// The line under a scanned row's figures: what the pack printed per serving,
+/// what that is per 100, and whether the two agree. Drawn only when both
+/// readings exist; the host says which one is in the fields. Nothing is
+/// corrected.
 class ScannedServingLine extends StatelessWidget {
   const ScannedServingLine({
     required this.serving,
@@ -261,10 +220,9 @@ class ScannedServingLine extends StatelessWidget {
   /// The label's own per-100 column, which [printed] is checked against.
   final Macros? per100;
 
-  /// The gap either reading is allowed before the line says they differ. A
-  /// label rounds its per-serving column to whole kcal, so a percent of the
-  /// per-100 figure is the rounding the pack itself carries, not a
-  /// disagreement.
+  /// The gap allowed before the line says the readings differ. A label rounds
+  /// its per-serving column, so a percent of the per-100 figure is the pack's
+  /// own rounding.
   static const _tolerance = 0.01;
 
   @override
@@ -281,11 +239,9 @@ class ScannedServingLine extends StatelessWidget {
       printed: printed,
     );
     if (implied == null) return const SizedBox.shrink();
-    // Every figure is compared, not the calories alone: a contributor who
-    // mistyped one gram figure leaves the kcal agreeing and the carb wrong,
-    // and that is exactly the error a person holding the pack can catch.
-    // Fibre joins only when BOTH columns state it — an unstated figure has
-    // nothing to disagree with ([Macros.fiber]).
+    // Every figure is compared, not the calories alone: one mistyped gram
+    // figure leaves the kcal agreeing. Fibre joins only when both columns state
+    // it ([Macros.fiber]).
     final impliedFiber = implied.fiber;
     final heldFiber = per100.fiber;
     final differs = [
@@ -314,9 +270,8 @@ class ScannedServingLine extends StatelessWidget {
     );
   }
 
-  /// A percent of the held figure, with a floor a label's own rounding can
-  /// reach: whole kcal, and grams printed to the nearest 0.5 g on a 28 g
-  /// serving are ~1.8 g per 100.
+  /// A percent of the held figure, with a floor a label's rounding can reach:
+  /// whole kcal, and 0.5 g on a 28 g serving is ~1.8 g per 100.
   static double _slack(String label, double held) =>
       (held * _tolerance).clamp(label == 'kcal' ? 2.0 : 0.3, double.infinity);
 

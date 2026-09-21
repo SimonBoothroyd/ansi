@@ -1,19 +1,10 @@
-/// The scan surface — board frames "Add · scan a barcode" and "When it doesn't
-/// work" (step 8.5).
+/// The barcode scan sheet.
 ///
-/// Two ways in, side by side and permanently: the camera reticle, and a typed
-/// number beneath it. The typed field is not a courtesy — it is the
-/// no-permission path, the scuffed-label path, and the only path the iOS
-/// Simulator can walk, which is where `make test-sim` proves this app's UI. A
-/// camera-only design would be unverifiable in our own loop.
-///
-/// Every failure comes back to *this* surface with the reason under it —
-/// never a dialog, never a dead end (the rule the import intake screen
-/// already follows). The sheet resolves with an [IngredientDraft] and stops:
-/// filling the form is the manager's job, and nothing here writes a row.
-///
-/// Chrome is Forui/Ansi-token only; the camera preview itself is the
-/// plugin's widget, which is the one thing Forui cannot supply.
+/// Two ways in, always: the camera reticle, and a typed number beneath it. The
+/// typed field is the no-permission path, the scuffed-label path, and the only
+/// path the iOS Simulator can use. Every failure returns to this surface with
+/// the reason under it, never a dialog. The sheet resolves with an
+/// [IngredientDraft] and writes nothing.
 library;
 
 import 'dart:async';
@@ -32,11 +23,9 @@ import '../../../shared/ansi_sheet_shell.dart';
 import 'ingredient_draft.dart';
 import 'off_lookup.dart';
 
-/// Builds the pane above the typed field, reporting each decoded code.
-///
-/// Defaults to the plugin's preview. Injectable because the plugin
-/// needs a real camera: the widget tests hand in a pane that reports codes on
-/// command, which is how the sheet's logic is exercised headless.
+/// Builds the pane above the typed field, reporting each decoded code. Defaults
+/// to the plugin's preview; injectable because the plugin needs a real camera,
+/// so widget tests pass a pane that reports codes on command.
 typedef BarcodeCameraPane =
     Widget Function(BuildContext context, ValueChanged<String> onCode);
 
@@ -75,9 +64,8 @@ class BarcodeScanSheet extends HookWidget {
     final typed = useState('');
     final busy = useState(false);
     final failure = useState<BarcodeLookupFailed?>(null);
-    // Single-fire: the detector reports the same barcode on every frame it
-    // can see it. The first attempt claims the code, and only an explicit
-    // "Try again" spends another request on it.
+    // Single-fire: the detector reports the same barcode every frame. The first
+    // attempt claims the code, and only "Try again" spends another request.
     final attempted = useRef<String?>(null);
 
     Future<void> run(String raw, {required bool fromCamera}) async {
@@ -172,12 +160,10 @@ class BarcodeScanSheet extends HookWidget {
   }
 }
 
-/// The preview, where there is a camera to preview. In a browser there is
-/// not: `mobile_scanner`'s web build fetches its detector from a CDN at run
-/// time and then asks for a camera, so it is never built here — the sheet
-/// draws its own "no camera" state and the typed field below finishes the job.
-/// The door onto this sheet is not offered on the web either
-/// (`ingredient_detail_view.dart`); this is the second lock on the same gate.
+/// The camera preview. Never built in a browser: `mobile_scanner`'s web build
+/// fetches its detector from a CDN at run time. The sheet draws its "no camera"
+/// state there, and `ingredient_detail_view.dart` does not offer the door on
+/// the web either.
 Widget _defaultCameraPane(BuildContext context, ValueChanged<String> onCode) =>
     kIsWeb
     ? const CameraOffNotice(permissionDenied: false)
@@ -236,9 +222,9 @@ class _MobileScannerPaneState extends State<_MobileScannerPane> {
   }
 }
 
-/// The reticle: a fixed-height window with a rounded inner frame and the
-/// board's hint under it. Painted, not laid out with flexible children — a
-/// [Row] of [Expanded] inside a [Stack] collapses to nothing.
+/// The reticle: a fixed-height window with a rounded inner frame and a hint
+/// under it. Painted, because a [Row] of [Expanded] inside a [Stack] collapses
+/// to nothing.
 class _CameraFrame extends StatelessWidget {
   const _CameraFrame({required this.child});
 
@@ -290,9 +276,8 @@ class _CameraFrame extends StatelessWidget {
   }
 }
 
-/// "Ansi can't open the camera" — shown in place of the preview, with the
-/// typed field below still live. Public so the widget tests assert the copy
-/// the plugin path actually renders.
+/// "Ansi can't open the camera": shown in place of the preview, with the typed
+/// field below still live. Public so widget tests can assert the copy.
 class CameraOffNotice extends HookWidget {
   const CameraOffNotice({
     required this.permissionDenied,
@@ -302,9 +287,8 @@ class CameraOffNotice extends HookWidget {
 
   final bool permissionDenied;
 
-  /// Whether this platform can open the app's own settings pane — asked
-  /// rather than assumed, because the button below is drawn only where the
-  /// answer is yes. Injectable so both answers are testable.
+  /// Whether this platform can open the app's settings pane. The button is
+  /// drawn only when it can. Injectable for tests.
   final Future<bool> Function() canOpenSettings;
 
   @override
@@ -353,10 +337,8 @@ class CameraOffNotice extends HookWidget {
   }
 }
 
-/// iOS opens the app's own settings pane for this scheme. Nowhere else does:
-/// a browser cannot open a foreign scheme at all, and the button is not drawn
-/// where this answers false — a control that does nothing is worse than no
-/// control, because the person keeps pressing it.
+/// Only iOS opens the app's settings pane for this scheme. Where this answers
+/// false the button is not drawn.
 Future<bool> _canOpenAppSettings() async {
   try {
     return await canLaunchUrl(_appSettings);
@@ -368,9 +350,7 @@ Future<bool> _canOpenAppSettings() async {
 
 final _appSettings = Uri.parse('app-settings:');
 
-/// Opens that pane. A refusal is swallowed: the typed field is the path that
-/// always works, so a dead button must not become an error the user has to
-/// dismiss.
+/// Opens that pane. A refusal is swallowed: the typed field always works.
 Future<void> _openSettings() async {
   try {
     await launchUrl(_appSettings);

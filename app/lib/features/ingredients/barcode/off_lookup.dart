@@ -1,22 +1,11 @@
-/// The Open Food Facts product read, run **on the device**.
+/// The Open Food Facts product read, run on the device.
 ///
-/// It is a keyless, free, public GET, so the two reasons `import-recipe` is
-/// an edge function — it holds an API key, and it spends money per call —
-/// both fail to apply. OFF's rate limit (15 req/min for product reads) is
-/// **per IP**, so a shared server address would pool every household onto one
-/// budget; on device each phone spends its own. A barcode is an exact-key
-/// fetch, not vocabulary matching, so ADR-0004's online-only rule does not
-/// reach it.
-///
-/// Etiquette, from OFF's API docs: send a `User-Agent` of
-/// `AppName/Version (contact)` so the traffic is distinguishable from a bot;
-/// read operations need no account. We send a `fields=` projection so the
-/// response is the handful of keys the mapper reads rather than the ~40 kB
-/// full product.
-///
-/// Everything this file can fail with is [BarcodeLookupFailure] — the three
-/// designed states on the board's "When it doesn't work" frame plus the
-/// shapeless-answer case, never an exception escaping into the UI.
+/// It is a keyless, free, public GET, and OFF's rate limit (15 req/min) is per
+/// IP, so each phone spends its own budget. A barcode is an exact-key fetch, so
+/// ADR-0004's online-only matching rule does not apply. Per OFF's API docs we
+/// send a `User-Agent` of `AppName/Version (contact)` and a `fields=`
+/// projection. Every failure is a [BarcodeLookupFailure]; no exception escapes
+/// into the UI.
 library;
 
 import 'dart:async';
@@ -27,12 +16,9 @@ import 'package:http/http.dart' as http;
 import 'ingredient_draft.dart';
 import 'off_mapper.dart';
 
-/// Why a lookup produced no draft.
-///
-/// The board designs three failure states; this taxonomy is finer so the copy
-/// can be, mapping onto them as: [notFound] → "isn't in Open Food Facts",
-/// [offline] → "can't reach Open Food Facts", and [unavailable], [malformed]
-/// and [invalidCode] → the same reachable-failure panel with their own line.
+/// Why a lookup produced no draft. [notFound] and [offline] have their own
+/// panels; [unavailable], [malformed] and [invalidCode] share the
+/// reachable-failure panel, each with its own line.
 enum BarcodeLookupFailure {
   /// OFF answered, and nobody has added this product. A designed state: the
   /// user is offered a blank draft carrying the code.
@@ -42,18 +28,16 @@ enum BarcodeLookupFailure {
   /// one action in the app that genuinely cannot be queued.
   offline,
 
-  /// OFF answered with an error status: a 429 (the 15 req/min limit), or a
-  /// 5xx. Distinct from [offline] because the phone's connection is fine and
-  /// retrying in a moment is the right advice.
+  /// OFF answered with an error status: a 429 (rate limit) or a 5xx. Distinct
+  /// from [offline] because retrying in a moment is the right advice.
   unavailable,
 
   /// A 200 whose body was not the product shape we asked for. Rare, and kept
   /// separate so it never reads as "this product does not exist".
   malformed,
 
-  /// The text handed in is not a barcode at all. Refused here rather than
-  /// spent as a request against a 15/min budget; the typed field gates on the
-  /// same rule, so this is a backstop rather than a state a user reaches.
+  /// The text is not a barcode. Refused here rather than spent against the rate
+  /// limit; the typed field gates on the same rule.
   invalidCode,
 }
 
@@ -79,14 +63,12 @@ final class BarcodeLookupFailed extends BarcodeLookupResult {
 }
 
 /// A contact for OFF's etiquette line, set at build time
-/// (`--dart-define=OFF_CONTACT=…`). Left unset the app still identifies
-/// itself honestly; no address is invented on the owner's behalf.
+/// (`--dart-define=OFF_CONTACT=…`). Unset, the app still names itself and no
+/// address is invented.
 const _offContact = String.fromEnvironment('OFF_CONTACT');
 
-/// Reads one product from Open Food Facts by barcode.
-///
-/// Construct one per surface and [close] it with the surface. Stateless
-/// otherwise — a lookup is a single GET.
+/// Reads one product from Open Food Facts by barcode. Construct one per surface
+/// and [close] it with the surface.
 class OffLookup {
   OffLookup({
     http.Client? client,
@@ -96,19 +78,14 @@ class OffLookup {
        _ownsClient = client == null,
        userAgent = userAgent ?? defaultUserAgent;
 
-  /// `AppName/Version (contact)`, the shape OFF's docs ask for. With no
-  /// contact configured the app still names itself honestly — inventing an
-  /// address would be worse than admitting there isn't one.
+  /// `AppName/Version (contact)`, the shape OFF's docs ask for; the contact is
+  /// omitted when none is configured.
   static const defaultUserAgent = _offContact == ''
       ? 'Ansi/0.1.0 (offline-first household recipe app)'
       : 'Ansi/0.1.0 ($_offContact)';
 
-  /// The keys the mapper reads. Sent as `fields=` so OFF returns those
-  /// rather than the whole product document.
-  ///
-  /// `categories_tags` is here for one job: it is the last thing the basis
-  /// rule asks (`en:beverages`) when a payload says nothing about whether its
-  /// label is per 100 g or per 100 ml.
+  /// The keys the mapper reads, sent as `fields=`. `categories_tags` is there
+  /// for the basis rule's last resort (`en:beverages`).
   static const fields =
       'code,product_name,brands,quantity,serving_size,serving_quantity,'
       'serving_quantity_unit,nutrition_data_per,categories_tags,nutriments';
@@ -117,9 +94,8 @@ class OffLookup {
   final bool _ownsClient;
   final String userAgent;
 
-  /// Short on purpose: the user is standing in a shop holding a tin, and the
-  /// typed field beneath the scanner is a working alternative the moment we
-  /// admit defeat.
+  /// Short on purpose: the typed field under the scanner is a working
+  /// alternative.
   final Duration timeout;
 
   Uri urlFor(String barcode) => Uri.https(
@@ -141,12 +117,9 @@ class OffLookup {
       response = await _client
           .get(urlFor(code), headers: {'User-Agent': userAgent})
           .timeout(timeout);
-      // `http` wraps most transport problems (DNS, refused, reset) into a
-      // ClientException, and the timeout arrives separately — but not
-      // everything: a TLS `HandshakeException` escapes IOClient's own catch
-      // unwrapped, and the web client has its own vocabulary. To the person
-      // holding the phone all of them are one fact — no answer came back —
-      // and none of them may reach the UI as a thrown exception.
+      // `http` wraps most transport problems into a ClientException, but a TLS
+      // `HandshakeException` escapes unwrapped and the web client differs. All
+      // of them mean no answer came back, and none may reach the UI as a throw.
     } on Exception {
       return BarcodeLookupFailed(BarcodeLookupFailure.offline, barcode: code);
     }
@@ -207,22 +180,11 @@ class OffLookup {
 /// A scanned or typed barcode reduced to the digits OFF keys on, or null when
 /// it cannot be one.
 ///
-/// Accepts the separators people type and scanners occasionally emit (spaces,
-/// hyphens) and the GTIN lengths in circulation: EAN-8/UPC-E's 8, UPC-A's 12,
-/// EAN-13, and GTIN-14. Anything else — a letter, a wrong length — is refused
-/// here rather than spent as a request against a 15/min budget.
-///
-/// **A UPC-A as the pack prints it.** The human-readable line under a US
-/// barcode shows the ten middle digits in two groups of five, with the
-/// number-system digit small at the left and the check digit small at the
-/// right — `0 99482 47826 1` reads as `99482 47826`, and that is what a
-/// person types. Ten digits are therefore taken as that middle: the
-/// number-system digit is assumed `0` (every grocery item in the seed and
-/// every scan so far) and the check digit is computed, so the lookup gets the
-/// twelve-digit code OFF keys on. Eleven digits are a UPC-A typed without its
-/// check digit and get the same completion. A wrong assumption costs one
-/// not-found, which the sheet already handles; a refusal cost the owner the
-/// scan.
+/// Accepts spaces and hyphens, and the GTIN lengths in circulation: 8, 12, 13
+/// and 14. Ten digits are taken as a UPC-A's printed middle (`0 99482 47826 1`
+/// reads as `99482 47826`): the number-system digit is assumed `0` and the
+/// check digit computed. Eleven digits are a UPC-A without its check digit and
+/// are completed the same way. A wrong assumption costs one not-found.
 String? normalizeBarcode(String raw) {
   final stripped = raw.trim().replaceAll(RegExp('[ -]'), '');
   if (stripped.isEmpty || !RegExp(r'^\d+$').hasMatch(stripped)) return null;
