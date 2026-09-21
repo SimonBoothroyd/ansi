@@ -1,15 +1,7 @@
-/// The reading screen's checklist — the server's stages as a vertical list,
-/// each row carrying the time it actually took.
-///
-/// The wait is a minute or more from photos, and a screen that says one
-/// frozen sentence through all of it reads as a hang. What makes this honest
-/// rather than reassuring is that every row is something the server SAID —
-/// the list, the order and the elapsed times all arrive on the wire (import
-/// spec §4.7), so nothing here is a guess about progress.
-///
-/// It is drawn by both readers, the recipe's and the receipt's, because it is
-/// one promise and not two: the rows come from whatever [PipelineStage] the
-/// caller's pipeline names, and the wording belongs to those stages.
+/// The reading screen's checklist: the server's stages as a vertical list, each
+/// row carrying the time it took. The list, the order and the elapsed times all
+/// arrive on the wire, so nothing is estimated. Shared by the recipe and
+/// receipt readers through [PipelineStage].
 library;
 
 import 'package:flutter/widgets.dart';
@@ -89,10 +81,8 @@ class StageRow extends StatelessWidget {
                     )
                   : active
                   // Sized by its own variant, never by a box around it: the
-                  // spinner is `Transform.rotate(alignment: center, …)` over a
-                  // glyph, so a box smaller than the glyph clips the box and
-                  // leaves the ink off the pivot — the marker then turns like a
-                  // cam rather than spinning in place.
+                  // spinner rotates about its centre, so a box smaller than the
+                  // glyph puts the ink off the pivot and it wobbles.
                   ? const FCircularProgress(
                       size: FCircularProgressSizeVariant.xs,
                     )

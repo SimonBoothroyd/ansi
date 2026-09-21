@@ -1,20 +1,11 @@
-/// The seam between the review screen's METHOD DRAFTS and the import payload
-/// — PURE DART (invariant 2).
+/// The seam between the review's method drafts and the import payload. Pure
+/// Dart.
 ///
-/// Two vocabularies meet here, and neither moves:
-///
-/// - the **payload** (`reconciliation_payload.dart`) keys a [StepToken.ref] on
-///   `refs: List<int>` — flattened LINE INDEXES, which is what `buildCommit`
-///   walks and what the repository turns into `line_item_id`s;
-/// - the **editor** (`method_draft.dart`) keys a [RefSpan] on
-///   `refs: List<String>` — and on the review screen those strings are the
-///   preview's synthetic ids, `previewLineId(i) == 'line-<i>'`, which is what
-///   lets `MethodStepText`'s "Reads as" fold show live amounts with no extra
-///   plumbing.
-///
-/// So the whole conversion is one parse at one place (seam **D4**). Nothing
-/// renumbers: a dropped line's index simply stays unused, which `buildCommit`
-/// already depends on.
+/// The payload (`reconciliation_payload.dart`) keys a [StepToken.ref] on
+/// flattened line indexes, which `buildCommit` walks. The editor
+/// (`method_draft.dart`) keys a [RefSpan] on string ids, which on the review
+/// are the preview's `previewLineId(i) == 'line-<i>'`. This file converts
+/// between them. Nothing renumbers: a dropped line's index stays unused.
 library;
 
 import '../../recipes/domain/method_draft.dart';
@@ -28,14 +19,9 @@ int? previewLineIndex(String id) => id.startsWith(kPreviewLinePrefix)
     ? int.tryParse(id.substring(kPreviewLinePrefix.length))
     : null;
 
-/// The review screen's editable drafts for [preview] — the recipe
-/// [buildPreviewRecipe] just built, whose method steps already carry the
-/// synthetic `line-<i>` refs and whose dropped-line chips have already
-/// demoted.
-///
-/// Step ids are positional and stable (`step-<i>`), so deriving twice from the
-/// same payload gives the same drafts and nothing has to be cached to keep the
-/// cards from re-keying underneath the user.
+/// The review's editable drafts for [preview], the recipe [buildPreviewRecipe]
+/// built. Step ids are positional (`step-<i>`), so deriving twice gives the
+/// same drafts and the cards never re-key.
 List<MethodDraftStep> draftsFromPreview(Recipe preview) {
   final lines = {
     for (final group in preview.groups)
@@ -49,17 +35,12 @@ List<MethodDraftStep> draftsFromPreview(Recipe preview) {
 }
 
 /// The payload steps to commit, built from the review's edited [drafts].
+/// [keptIndexes] is the set of surviving line indexes: a ref to a dropped line
+/// is left out, and a chip with no surviving refs demotes to plain text
+/// carrying its label.
 ///
-/// [keptIndexes] is the set of line indexes surviving the review. A ref whose
-/// index was DROPPED is left out, and a chip left with no surviving refs
-/// **demotes to plain text carrying its own label** — the never-dangling-line
-/// rule `buildCommit` and the repository's `_remapSteps` already implement,
-/// said once more here because this is where a chip could first lose its last
-/// ref.
-///
-/// Throws [StateError] on a ref id that is not `line-<i>`. That is a
-/// programming error (some other host's ids reached the import seam), and the
-/// alternative — dropping it silently — would lose a chip with no trace.
+/// Throws [StateError] on a ref id that is not `line-<i>`: a programming error,
+/// which dropping silently would hide.
 List<Step> stepsFromDrafts(
   List<MethodDraftStep> drafts,
   Set<int> keptIndexes,
@@ -109,10 +90,8 @@ Step _step(MethodDraftStep draft, Set<int> keptIndexes) {
   return Step(tokens: _merged(tokens));
 }
 
-/// Adjacent text tokens fold into one. A demoted chip leaves its label sitting
-/// between the prose either side of it, and three tokens where the payload
-/// would have written one is the difference between "edited nothing" and a
-/// changed `steps` jsonb.
+/// Adjacent text tokens fold into one, so a demoted chip does not change the
+/// `steps` jsonb shape more than it must.
 List<StepToken> _merged(List<StepToken> tokens) {
   final out = <StepToken>[];
   for (final token in tokens) {

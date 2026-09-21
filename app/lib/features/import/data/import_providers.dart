@@ -1,4 +1,4 @@
-/// Riverpod wiring for the import data layer (step 8).
+/// Riverpod wiring for the import data layer.
 library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -16,17 +16,11 @@ part 'import_providers.g.dart';
 
 /// The import repository the app uses.
 ///
-/// `commit` is always the local PowerSync writer ([SqliteImportRepository]).
-/// The extract→match step is what varies: with Supabase configured
-/// ([Env.isConfigured]) it runs for real against the `import-recipe` edge
-/// function ([EdgeImportRepository]).
-///
-/// Unconfigured, extraction has nowhere to run, so it FAILS LOUDLY
-/// ([_UnconfiguredImport]) rather than falling through to the canned demo
-/// payload, which would have a misconfigured build silently answer "import this
-/// URL" with somebody else's spaghetti recipe. Tests and the on-device smoke
-/// test get the canned repository by naming [SqliteImportRepository] directly,
-/// never by accident.
+/// `commit` is always the local writer ([SqliteImportRepository]). With
+/// Supabase configured ([Env.isConfigured]) extraction runs against the edge
+/// function ([EdgeImportRepository]); unconfigured it fails loudly
+/// ([_UnconfiguredImport]) rather than serving the canned payload. Tests get
+/// the canned repository by naming [SqliteImportRepository] directly.
 @Riverpod(keepAlive: true)
 ImportRepository importRepository(Ref ref) {
   final local = SqliteImportRepository(
@@ -40,9 +34,8 @@ ImportRepository importRepository(Ref ref) {
   );
 }
 
-/// Extraction with no backend to extract with. `commit` still works — a recipe
-/// already reconciled writes locally — but [startImport] refuses rather than
-/// inventing a recipe.
+/// Extraction with no backend. `commit` still writes locally; [startImport]
+/// refuses.
 class _UnconfiguredImport implements ImportRepository {
   const _UnconfiguredImport(this._commit);
 

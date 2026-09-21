@@ -1,12 +1,9 @@
-/// The import contract — PURE DART (invariant 2). The presentation layer
-/// depends only on this; the data layer implements it.
+/// The import contract. Pure Dart.
 ///
-/// `startImport` is the "edge function" seam: it runs the server-side
-/// extract→match pipeline and returns a [ReconciliationPayload]. In the app it
-/// is the real `import-recipe` invoke (`EdgeImportRepository`); the canned
-/// `SqliteImportRepository.startImport` is the test/dev stand-in, named
-/// explicitly by whoever wants it. `commit` is always real — it writes the
-/// resolved recipe through PowerSync.
+/// `startImport` runs the server-side extract→match pipeline and returns a
+/// [ReconciliationPayload]. The app uses `EdgeImportRepository`;
+/// `SqliteImportRepository.startImport` is the canned stand-in for tests.
+/// `commit` always writes the resolved recipe through PowerSync.
 library;
 
 import 'commit_payload.dart';
@@ -30,14 +27,13 @@ class ImportFromPhotos extends ImportSource {
   final List<String> imagePaths;
 }
 
-/// Something the server said while an import was running (import spec §4.7).
+/// Something the server said while an import was running.
 sealed class ImportProgress {
   const ImportProgress();
 }
 
-/// The stage list this import will walk, sent before any of it has happened.
-/// The server decides it — a photo import transcribes first, a link import
-/// fetches — so the screen never has to guess which door it came through.
+/// The stage list this import will walk, sent first. The server decides it: a
+/// photo import transcribes, a link import fetches.
 class ImportPlanned extends ImportProgress {
   const ImportPlanned(this.stages);
   final List<ImportStage> stages;
@@ -52,20 +48,17 @@ class ImportStageDone extends ImportProgress {
 }
 
 abstract interface class ImportRepository {
-  /// Runs extraction + matching for [source] and returns the reconciliation
-  /// payload the user resolves.
-  ///
-  /// [onProgress] is called as the server reports each stage. It is optional
-  /// because progress is a courtesy, never the result: an implementation that
-  /// has nothing to report still returns the same payload.
+  /// Runs extraction and matching for [source] and returns the reconciliation
+  /// payload the user resolves. [onProgress] is called as the server reports
+  /// each stage; an implementation with nothing to report returns the same
+  /// payload.
   Future<ReconciliationPayload> startImport(
     ImportSource source, {
     void Function(ImportProgress)? onProgress,
   });
 
-  /// Writes a fully-resolved [payload] — the recipe, its groups and line items,
-  /// any create-new stubs, and correction aliases — through PowerSync in one
-  /// transaction, remapping step `line_index` refs to real `line_item_id`s.
-  /// Returns the new recipe's id.
+  /// Writes a fully resolved [payload] (the recipe, its groups and line items,
+  /// and correction aliases) through PowerSync in one transaction, remapping
+  /// step `line_index` refs to `line_item_id`s. Returns the new recipe's id.
   Future<String> commit(CommitPayload payload);
 }

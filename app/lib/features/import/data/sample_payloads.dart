@@ -1,17 +1,11 @@
 /// Fixed reconciliation payloads for tests and the on-device smoke test.
 ///
-/// [cannedReconciliationPayloadJson] is a compact recipe covering all three
-/// match bands, a printed range, a counted-produce line, a coalescing duplicate
-/// no-match, and every step-token kind. [peanutStirFryPayloadJson] is a whole
-/// page written for this repo, carrying the bands the real cascade
-/// (`supabase/functions/_shared/match.ts`) returns for it against the seeded
-/// vocabulary.
-///
-/// They live in `lib/` because the smoke tests under `integration_test/` drive
-/// the import flow through `SqliteImportRepository`. Neither is a production
-/// fallback (see `importRepositoryProvider`). Candidate `ingredient_id`s are
-/// placeholders that `SqliteImportRepository` re-resolves. Extraction-contract
-/// tests use the gold files under `evals/datasets/extraction/gold/`.
+/// [cannedReconciliationPayloadJson] covers all three match bands, a printed
+/// range, a counted-produce line, a duplicate no-match and every step-token
+/// kind. [peanutStirFryPayloadJson] carries the bands the real cascade returns
+/// for a page written for this repo. They live in `lib/` because
+/// `integration_test/` drives `SqliteImportRepository`, which re-resolves the
+/// placeholder `ingredient_id`s. Never a production fallback.
 library;
 
 const cannedReconciliationPayloadJson = '''
@@ -166,26 +160,17 @@ const cannedReconciliationPayloadJson = '''
 }
 ''';
 
-/// "Peanut Tofu Stir-Fry": a page written here, not transcribed, with the bands
-/// `matchLines` returns for it against `supabase/seed/snapshot.jsonl`. It uses
-/// a British kitchen's words against an American vocabulary.
+/// "Peanut Tofu Stir-Fry": a page written here, with the bands `matchLines`
+/// returns for it against `supabase/seed/snapshot.jsonl`. British words against
+/// an American vocabulary.
 ///
-/// Band per line:
-///
-/// - 0 pak choi: `none`.
-/// - 1 groundnut oil: `none` (`Peanut Oil` shares only `oil`).
-/// - 2 extra firm tofu: `auto`.
-/// - 3 coriander: `suggest`. The herb is stored as `Cilantro`; the one chip
-///   offered is `Ground Coriander`, the wrong jar.
-/// - 4 peanut butter, 5 tamari: `auto`.
-/// - 6 sugar snap peas: `none`.
-/// - 7 lime juice: `auto`.
-/// - 8 sea salt, 9 black pepper: `auto`, one per half of the compound split.
-///   Both carry `unit: "to_taste"` with `unit_mappable: false`, as the
-///   extractor returns for an imprecise word.
-///
-/// Four lines want the human: three `none`, and the `suggest` whose right
-/// answer is reached through search.
+/// - `none`: 0 pak choi, 1 groundnut oil, 6 sugar snap peas.
+/// - `suggest`: 3 coriander. The herb is stored as `Cilantro`; the one chip
+///   offered is `Ground Coriander`, so the right answer is reached through
+///   search.
+/// - `auto`: 2 extra firm tofu, 4 peanut butter, 5 tamari, 7 lime juice, 8 sea
+///   salt, 9 black pepper. The last two carry `unit: "to_taste"` with
+///   `unit_mappable: false`, as the extractor returns for an imprecise word.
 const peanutStirFryPayloadJson = '''
 {
   "title": "Peanut Tofu Stir-Fry",

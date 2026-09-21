@@ -347,8 +347,8 @@ class ReviewLineRow extends StatelessWidget {
               ],
             ],
           ),
-          // The board's `l3-note`: a line the page never printed says so on
-          // the compact row too, not only once it is opened.
+          // A line the page never printed says so on the compact row too, not
+          // only once it is opened.
           if (resolution.addedAtReview)
             Padding(
               padding: const EdgeInsets.only(top: 2, left: 96),
@@ -528,8 +528,8 @@ class ReviewLineForm extends ConsumerWidget {
               style: ansiMono(size: 10, color: AnsiColors.muted),
             ),
           ),
-        // The two rules a linked line lives by, said on the card (board frame
-        // e) rather than left for the user to infer from what is missing.
+        // The two rules a linked line lives by, said on the card rather than
+        // left for the user to infer.
         if (linked)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -633,8 +633,8 @@ class _UnitSuggestionsState extends State<_UnitSuggestions> {
   }
 }
 
-/// The clear "needs you" tag (round-2 #4) — a short amber label, not a bare
-/// dot. Disappears the moment the line is done.
+/// The "needs you" tag: a short amber label, not a bare dot. Disappears the
+/// moment the line is done.
 class _AttentionTag extends StatelessWidget {
   const _AttentionTag({required this.label});
 

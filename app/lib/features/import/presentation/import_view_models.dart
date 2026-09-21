@@ -148,8 +148,8 @@ class ImportReconciling extends ImportState {
         ..write('|')
         ..write(r.unit ?? '')
         ..write('|')
-        // A linked line's validity turns on its amount alone (D6), so the
-        // amount has to be part of the fingerprint for it.
+        // A linked line's validity turns on its amount alone, so the amount has
+        // to be part of the fingerprint for it.
         ..write(r.isComponent && r.quantity == null)
         ..write('|')
         ..write(r.isRange && r.quantity == null)
@@ -512,8 +512,8 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
     return s is ImportReconciling ? s : null;
   }
 
-  /// Re-seats the review's method drafts (seam **D4**) — every step-card edit
-  /// lands here through `ImportMethodEditing`.
+  /// Re-seats the review's method drafts; every step-card edit lands here
+  /// through `ImportMethodEditing`.
   void setMethodDraft(List<MethodDraftStep> drafts) {
     final s = state;
     if (s is! ImportReconciling) return;
@@ -605,7 +605,7 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
       issuesByLine: issuesByLine,
       sections: s.sections,
       // Only when somebody actually typed: an untouched method commits the
-      // payload's own steps byte-for-byte (seam D4).
+      // payload's own steps byte for byte.
       steps: edited == null
           ? null
           : stepsFromDrafts(edited, {
@@ -737,8 +737,8 @@ Future<Map<int, LineValidation>> importValidation(Ref ref) async {
       issues: lineIssues(r, ingredient: ingredient, measures: measures),
       unitChoices: ingredient == null
           ? const []
-          // The line's own printed unit rides along: a source-printed
-          // imprecise word is admissible whatever the category (J3b).
+          // The line's own printed unit rides along: a source-printed imprecise
+          // word is admissible whatever the category.
           : acceptableUnitChips(ingredient, measures, parsedUnit: r.unit),
       unitMeasure: measureNamed(r.unit, measures),
       pieceWeightMissing: countNeedsPieceWeight(r, ingredient),

@@ -1,14 +1,11 @@
 /// [ImportRepository] over the local PowerSync SQLite.
 ///
-/// `startImport` is the canned stand-in for tests and the smoke run: it parses
-/// a canned payload and re-resolves its candidates against the real local
-/// vocab. The app itself calls `EdgeImportRepository`.
-///
-/// `commit` is real. It writes the recipe, its groups, line items and
-/// correction aliases in one transaction, generating ids up front so step
-/// tokens' `line_index` refs can be remapped to `line_item_id`s. It creates no
-/// ingredient: every line arrives with a real id. Local tables are views, so
-/// every write is a plain INSERT, never `ON CONFLICT`.
+/// `startImport` is the canned stand-in for tests and the smoke run; the app
+/// calls `EdgeImportRepository`. `commit` writes the recipe, its groups, line
+/// items and correction aliases in one transaction, generating ids up front so
+/// step refs can be remapped to `line_item_id`s. It creates no ingredient.
+/// Local tables are views, so every write is a plain INSERT, never `ON
+/// CONFLICT`.
 library;
 
 import 'dart:convert';

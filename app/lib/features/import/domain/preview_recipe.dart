@@ -1,12 +1,6 @@
-/// Builds the in-memory [Recipe] the import **preview** renders — PURE DART
-/// (invariant 2). The preview (v3 LOCKED, step 7) is the resolved recipe shown
-/// exactly as the recipe page will read it, before anything is written: the
-/// same three-part ingredient lines (so multi-use identities fold inline) and
-/// the same method fold, read-only.
-///
-/// Nothing here is persisted — ids are synthetic (`line-<index>`), so the
-/// preview never leaks a fake id into PowerSync. The real ids are minted by the
-/// repository at commit; this recipe exists only to be looked at.
+/// Builds the in-memory [Recipe] the import review renders. Pure Dart. Nothing
+/// is persisted: ids are synthetic (`line-<index>`), and the repository mints
+/// real ones at commit.
 library;
 
 import '../../../core/search/search_query.dart';
@@ -26,26 +20,15 @@ const kPreviewLinePrefix = 'line-';
 /// the preview's method refs point at.
 String previewLineId(int index) => '$kPreviewLinePrefix$index';
 
-/// Assembles the preview [Recipe] from a resolved reconciliation. Every line
-/// carries the ingredient the user resolved it to (a real match's name, or —
-/// defensively — the raw text); a multi-use
-/// identity shares one [LineItem.ingredientId] so the recipe page folds it into
-/// a single inline row. Method steps are remapped from line-index refs to the
-/// synthetic line ids and rendered by the existing fold.
+/// Assembles the preview [Recipe] from a resolved reconciliation. A multi-use
+/// identity shares one [LineItem.ingredientId]; steps are remapped from
+/// line-index refs to the synthetic line ids. A dropped line is left out, as in
+/// [buildCommit], and a chip that pointed at it demotes to plain text.
 ///
-/// A DROPPED line is left out, exactly as [buildCommit] leaves it out, and any
-/// step chip that pointed at it demotes to its own label as plain prose — so
-/// the preview keeps showing what a save would actually write.
-///
-/// [measureByLine] is the measure each line's unit NAMES, by flat line index —
-/// the review's validation already resolved it once for the whole import
-/// (`LineValidation.unitMeasure`), and the preview takes that same value rather
-/// than re-deriving it, so the card and the chip sheet cannot disagree. A line
-/// with a measure previews exactly as commit writes it (`unit = 'piece'` +
-/// `measure_id`, migration 0009): its formatter reads the measure label, not
-/// "piece". A measure word is not a catalogue unit id, so without this it
-/// degraded to a bare count — right at commit, wrong on the sheet. A component
-/// line never carries one, whatever the map says, mirroring the commit guard.
+/// [measureByLine] is the measure each line's unit names, by flat line index,
+/// taken from the review's validation (`LineValidation.unitMeasure`). A line
+/// with one previews as commit writes it (`unit = 'piece'` + `measure_id`); a
+/// component line never carries one.
 Recipe buildPreviewRecipe(
   ReconciliationPayload payload,
   List<LineResolution> resolutions, {
@@ -70,8 +53,8 @@ Recipe buildPreviewRecipe(
       items.add(
         LineItem(
           id: previewLineId(flatIndex),
-          // Exactly one identity, as the saved row will have (8.6 / D1): a
-          // review-LINKED line previews as the component it is about to be.
+          // Exactly one identity, as the saved row will have: a review-linked
+          // line previews as the component it is about to be.
           ingredientId: r.isComponent ? null : _identityId(r),
           subRecipeId: r.linkedRecipeId,
           subRecipe: r.isComponent
@@ -108,20 +91,17 @@ Recipe buildPreviewRecipe(
   );
 }
 
-/// The stable identity id for the preview line — a matched ingredient's id, or
-/// a `raw:` handle for a line that has no identity at all. A line with no
-/// identity is still a line, so the looser character normalization is the right
-/// one there — two differently phrased unresolved lines are two lines. There is
-/// no third handle between them: a row created at review has a real id like any
-/// other.
+/// The stable identity id for the preview line: a matched ingredient's id, or a
+/// `raw:` handle for a line with no identity, using the character normalization
+/// so two differently phrased unresolved lines stay two lines.
 String _identityId(LineResolution r) {
   if (r.chosenIngredientId != null) return r.chosenIngredientId!;
   return 'raw:${normalizeSearchQuery(r.ingredientText)}';
 }
 
-/// The line's unit when it names no measure: the mapped catalog unit, else an
-/// honest degrade — count for a numbered line, "to taste" for a numberless one
-/// (invariant 3, never a fabricated gram). Mirrors the repository's `_unitId`.
+/// The line's unit when it names no measure: the mapped catalog unit, else
+/// count for a numbered line and "to taste" for a numberless one. Mirrors the
+/// repository's `_unitId`.
 Unit _unitOf(LineResolution r) {
   final mapped = r.unit == null ? null : unitById(r.unit!);
   if (mapped != null) return mapped;
@@ -129,10 +109,8 @@ Unit _unitOf(LineResolution r) {
 }
 
 /// One step's tokens, remapped onto the surviving lines in [keptIndexes]. A
-/// chip keeps every ref that survived; a chip whose lines were ALL dropped
-/// demotes to its own label as prose (the same demotion the repository does at
-/// commit), so the sentence still reads — "finish with basil", chip-less —
-/// instead of losing the word.
+/// chip keeps every ref that survived; one whose lines were all dropped demotes
+/// to its label as text, as the repository does at commit.
 MethodStep _methodStep(Step step, Set<int> keptIndexes) => MethodStep(
   tokens: [
     for (final token in step.tokens)

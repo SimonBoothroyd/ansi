@@ -1,21 +1,14 @@
-/// What the AMOUNT slot of a reviewed import line may say — PURE DART
-/// (invariant 2).
+/// What the amount slot of a reviewed import line may say. Pure Dart.
 ///
-/// A line whose source printed no number and no mappable unit ("Tortilla chips
-/// (to serve (optional))") must not dump its whole raw amount into the amount
-/// column, where it reads as a quantity it is not. The amount slot shows the
-/// QUALIFIER the source named ("to serve") when there is one and nothing at all
-/// ("—", rendered by the caller) when there isn't; the raw parenthetical
-/// travels to the NOTES slot, which is where free prose belongs.
-///
-/// Nothing here invents: both the qualifier and the note are substrings of what
-/// the source actually printed (0014).
+/// A raw amount with no number and no mappable unit ("(to serve (optional))")
+/// must not read as a quantity. The slot shows the qualifier the source named
+/// ("to serve"), or nothing; the raw text goes to the notes slot. Both are
+/// substrings of what the source printed.
 library;
 
 /// The relative amount words a source uses in place of a quantity, longest
-/// first so "for the garnish" wins over "garnish". Matched case-insensitively
-/// against the printed amount; the MATCHED text is what the amount slot shows,
-/// so the vocabulary is also the display vocabulary.
+/// first so "for the garnish" wins over "garnish". Matched case-insensitively;
+/// the matched entry is what the slot shows.
 const kAmountQualifiers = <String>[
   'for the garnish',
   'for serving',
@@ -29,11 +22,8 @@ const kAmountQualifiers = <String>[
   'plus more',
 ];
 
-/// The qualifier [rawAmount] names ("to serve"), or null when it names none.
-///
-/// Case-insensitive; the returned string is the canonical vocabulary spelling
-/// from [kAmountQualifiers], so the amount slot reads consistently however the
-/// source capitalized it.
+/// The qualifier [rawAmount] names, in [kAmountQualifiers]' spelling, or null.
+/// Case-insensitive.
 String? amountQualifier(String rawAmount) {
   final lower = rawAmount.toLowerCase();
   for (final q in kAmountQualifiers) {
@@ -42,20 +32,17 @@ String? amountQualifier(String rawAmount) {
   return null;
 }
 
-/// Whether [rawAmount] is prose rather than an amount: no digits anywhere and
-/// something written. Such a string is a note the extractor filed in the amount
-/// field ("(to serve (optional))"), and the caller routes it to NOTES.
+/// Whether [rawAmount] is prose rather than an amount: something written, with
+/// no digits. The caller routes it to notes.
 bool isProseAmount(String rawAmount) =>
     rawAmount.trim().isNotEmpty && !RegExp('[0-9]').hasMatch(rawAmount);
 
-/// [rawAmount] cleaned up for the NOTES slot: outer brackets peeled off and
-/// whitespace collapsed, nothing else — the source's own words, minus the
-/// punctuation that only ever wrapped them. Null when nothing is left.
+/// [rawAmount] cleaned for the notes slot: outer brackets peeled and whitespace
+/// collapsed. Null when nothing is left.
 String? amountAsNote(String rawAmount) {
   var text = rawAmount.trim().replaceAll(RegExp(r'\s+'), ' ');
-  // Peel only BALANCED outer brackets: "(to serve (optional))" is a wrapper,
-  // "(400g) tin" is not, and stripping the latter's parenthesis would change
-  // what the source said.
+  // Peel only balanced outer brackets: "(to serve (optional))" is a wrapper,
+  // "(400g) tin" is not.
   while (text.length > 1 && text.startsWith('(') && text.endsWith(')')) {
     var depth = 0;
     var balanced = true;

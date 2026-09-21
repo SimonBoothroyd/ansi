@@ -1,14 +1,9 @@
-/// Reading a `text/event-stream` body.
+/// Reading a `text/event-stream` body. This is the parser; what the events mean
+/// lives in `remote_import_repository.dart`.
 ///
-/// `import-recipe` narrates its stages as Server-Sent Events (import spec
-/// §4.7), so the phone has to decode them as they arrive — the whole point is
-/// that the first stage lands long before the last one. This is the parser, not
-/// the protocol: what the events MEAN lives in `remote_import_repository.dart`.
-///
-/// It implements the parts of the SSE grammar the function actually sends —
-/// `event:` and `data:` fields, one frame per blank line, `:` comment lines
-/// ignored (that is what a heartbeat is) — and deliberately not `id:`/`retry:`
-/// or reconnection, because a reconnect would re-run a billed model call.
+/// Implements what the function sends: `event:` and `data:` fields, one frame
+/// per blank line, `:` comment lines ignored (heartbeats). No `id:`/`retry:` or
+/// reconnection, because a reconnect would re-run a billed model call.
 library;
 
 import 'dart:convert';
@@ -27,11 +22,8 @@ class SseEvent {
   String toString() => 'SseEvent($event, ${data.length} chars)';
 }
 
-/// Decodes [bytes] into events as they arrive.
-///
-/// A frame is emitted on its terminating blank line, and — because a server
-/// that closes cleanly after its last frame is well within its rights — any
-/// trailing frame is emitted when the stream ends.
+/// Decodes [bytes] into events as they arrive. A frame is emitted on its
+/// terminating blank line, and any trailing frame when the stream ends.
 Stream<SseEvent> decodeSse(Stream<List<int>> bytes) async* {
   var event = 'message';
   var data = <String>[];

@@ -26,8 +26,8 @@ enum LineIssue {
   /// The line's unit isn't one the matched ingredient can carry.
   unitNotAllowed,
 
-  /// A line LINKED to a household recipe (8.6 / D6) carries no amount. That is
-  /// its only gate: it wants no ingredient match and faces no admission check.
+  /// A line linked to a household recipe carries no amount. That is its only
+  /// gate: it wants no ingredient match and faces no admission check.
   amountMissing,
 }
 
@@ -139,17 +139,12 @@ const kVisibleUnitChips = 5;
 
 /// [chips] reordered so the most likely land before the fold.
 ///
-/// With a [parsedUnit]: that unit first, then the rest of its family, then the
-/// ingredient's measures in their given order, then g/ml, then everything else,
-/// imprecise words last. A parsed imprecise unit fronts its family like any
-/// other.
-///
-/// With no parsed unit the incoming order stands, imprecise still last:
-/// [allowedUnitChoicesFor] already built it in ADR-0008 kitchen order, and the
-/// g/ml boost would outrank the row's own default.
-///
-/// The sort is stable within each rank. A parsed `piece` the row refuses is not
-/// among the chips, so the measures lead (ADR-0010).
+/// With a [parsedUnit]: that unit, the rest of its family, the ingredient's
+/// measures, g/ml, everything else, imprecise words last. With none, the
+/// incoming order stands ([allowedUnitChoicesFor] built it in ADR-0008 kitchen
+/// order), imprecise still last. The sort is stable within each rank. A parsed
+/// `piece` the row refuses is not among the chips, so the measures lead
+/// (ADR-0010).
 List<UnitSuggestion> rankedUnitChips(
   List<UnitSuggestion> chips, {
   required String? parsedUnit,

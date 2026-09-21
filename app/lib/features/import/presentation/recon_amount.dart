@@ -97,7 +97,7 @@ Future<void> editLineAmount(
   final resolution = state.resolutions.firstWhere(
     (r) => r.lineIndex == lineIndex,
   );
-  // A LINKED line is quantified against a RECIPE, not an ingredient: lane U's
+  // A linked line is quantified against a recipe, not an ingredient: the
   // component sheet, whose chips are `batch` ∪ the target's yield families.
   if (resolution.isComponent) {
     await editComponentAmount(context, ref, lineIndex);

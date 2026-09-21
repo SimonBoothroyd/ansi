@@ -1,17 +1,11 @@
 /// Photo intake for import: pick or capture recipe photos, then crop and rotate
-/// each page.
+/// each page, and hand back the cropped paths.
 ///
-/// The confirmed files are handed back as paths for `startImport`; the
-/// repository downscales and encodes them. In a browser pages are chosen as
-/// files, with no camera and no crop step ([cropSeam]). The camera door asks
-/// after each cropped shot whether there is another page; the multi-select
-/// library door never asks.
-///
-/// [PhotoIntakeService] is the testable loop over two injected seams,
-/// `pickImages` and `cropImage`, plugged in by [photoIntakeProvider].
-/// [AskAnotherPage] is a parameter of [PhotoIntakeService.pickAndCrop] rather
-/// than a constructor argument because asking needs a `BuildContext`, which the
-/// provider lacks.
+/// In a browser pages are chosen as files, with no camera and no crop
+/// ([cropSeam]). [PhotoIntakeService] is the testable loop over two injected
+/// seams, plugged in by [photoIntakeProvider]. [AskAnotherPage] is a parameter
+/// of [PhotoIntakeService.pickAndCrop] because asking needs a `BuildContext`,
+/// which the provider lacks.
 library;
 
 import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;

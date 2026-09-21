@@ -74,7 +74,7 @@ class LineResolution {
   final String ingredientText;
 
   /// The source printed a range (`qtyLow`/`qtyHigh`), so [quantity] must be
-  /// picked before the line is resolved — no silent auto-pick (0014).
+  /// picked before the line is resolved; there is no silent auto-pick.
   final bool isRange;
   final String? unit;
 
@@ -100,7 +100,7 @@ class LineResolution {
   final double? quantity;
 
   /// The user overrode the match (picked a different ingredient than the band
-  /// implied), so the raw text is written back as an alias (lane B).
+  /// implied), so the raw text is written back as an alias.
   final bool isCorrection;
 
   /// The user dropped this line at review. It stays in the list until Save, but
@@ -121,8 +121,8 @@ class LineResolution {
   /// review's work queue reads it.
   final bool createdHere;
 
-  /// Whether this line is a sub-recipe COMPONENT (step 8.6 / D1) rather than
-  /// an ingredient line.
+  /// Whether this line is a sub-recipe component rather than an ingredient
+  /// line.
   bool get isComponent => linkedRecipeId != null;
 
   /// What the line is now: its resolved identity, else the page's own words.
@@ -197,8 +197,8 @@ class LineResolution {
     isCorrection: correction,
     // The mark follows the row, so re-matching onto an existing row clears it.
     createdHere: created,
-    // Matching an ingredient UN-LINKS a component line: exactly one identity
-    // (D1's XOR), and re-picking is how a link is undone (D7's rule too).
+    // Matching an ingredient un-links a component line: a line has exactly one
+    // identity, and re-picking is how a link is undone.
     clearLink: true,
   );
 
@@ -231,7 +231,7 @@ class LineResolution {
       copyWith(quantity: quantity, clearQuantity: quantity == null, unit: unit);
 
   /// Picks a unit from the inline unit-suggestion chips, leaving the quantity
-  /// untouched (unit resolution is independent of the amount — round-3 #4).
+  /// untouched.
   LineResolution pickUnit(String unit) => copyWith(unit: unit);
 
   /// Sets the line's note (blank/whitespace clears it).
@@ -389,8 +389,8 @@ List<LineResolution> keptLines(List<LineResolution> resolutions) => [
     if (!r.isDropped) r,
 ];
 
-/// The confidence floor below which an extracted line is surfaced as shaky —
-/// the single source for the recon card's honest-import flags (0014).
+/// The confidence floor below which an extracted line is surfaced as shaky: the
+/// single source for the review card's honest-import flags.
 const kLowConfidenceFloor = 0.75;
 
 /// Builds the [CommitPayload] from a fully resolved, fully valid
@@ -524,8 +524,8 @@ CommitPayload buildCommit(
     // The measure words ride the draft and land with this commit (ADR-0011).
     measures: header.measures,
     groups: commitGroups,
-    // The review screen's own method, when it edited one (seam D4); otherwise
-    // the payload's, byte-for-byte.
+    // The review's own method when it edited one; otherwise the payload's, byte
+    // for byte.
     steps: steps ?? payload.steps,
     corrections: corrections,
   );

@@ -66,12 +66,13 @@ const _fractionGlyphs = <String, double>{
 
 /// What [raw] says one batch makes, or null when it does not plainly say.
 ///
-/// 1. Strip a leading `MAKES`/`YIELDS`-style prefix and its colon. 2. What is
-/// left must be a number, optionally followed by one word. 3. That word is a
-/// catalog unit if [unitFromWord] knows it ("1 CUP" → `1 cup`), otherwise a
-/// count noun ("8 SLIDERS" → `8 piece`). 4. Anything else refuses: extra words,
-/// a portion word ([kYieldPortionWords]), a refused word
-/// ([kYieldRefusedWords]), no number, a non-positive amount.
+/// 1. Strip a leading `MAKES`/`YIELDS`-style prefix and its colon.
+/// 2. What is left must be a number, optionally followed by one word.
+/// 3. That word is a catalog unit if [unitFromWord] knows it ("1 CUP" → `1
+///    cup`), otherwise a count noun ("8 SLIDERS" → `8 piece`).
+/// 4. Anything else refuses: extra words, a portion word
+///    ([kYieldPortionWords]), a refused word ([kYieldRefusedWords]), no number,
+///    a non-positive amount.
 YieldPrefill? parseYieldRaw(String? raw) {
   final text = (raw ?? '').trim();
   if (text.isEmpty) return null;
