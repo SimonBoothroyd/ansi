@@ -1,250 +1,132 @@
 # Feature: planning
 
-**Roadmap:** Step 4 — week planning (see `docs/exec-plans/roadmap.md`,
-[exec plan](../../../../docs/exec-plans/completed/0005-week-planning.md)).
+The **Week** tab: one active week, several entries per (day, slot), eaters per
+meal, copy last week. It is the input to the derived cook plan and shopping
+list — you say what you want to eat, nothing about batching
+([plan 0005](../../../../docs/exec-plans/completed/0005-week-planning.md)).
 
-Single active week; multiple entries per (day, slot); per-meal eaters;
-copy-last-week. The INPUT to the derived cook-plan / shopping pipeline (steps
-5–6) — you say *what you want to eat*, nothing about batching or leftovers.
+A planned meal is a **recipe**, a **bare ingredient** (a yoghurt) or a **meal
+eaten out** (its words and, when stated, its macros) — exactly one of the three
+(`plan_entry_target_xor`, migrations 0033 and 0045).
 
-A planned meal is a **recipe, a bare ingredient** — a protein bar, a yoghurt —
-**or a meal eaten out** — its own words and, when they were stated, the macros
-that came with it. Exactly one of the three, never two and never none
-(`plan_entry_target_xor`, migrations 0033 and 0045). See
-[The entry XOR](#the-entry-xor) below.
-
-## What's here
+## Files
 
 ```
 planning/
-  domain/         planning.dart (Member, PlanEntry, PlanEntryKind, WeekPlan,
-                  mealSlotRank), week_macros.dart
-                  (sumPlannedMacros + ingredientPortionMacros) +
-                  planning_repository.dart + week_variant_repository.dart
-                  — PURE DART
-  data/           SqlitePlanningRepository and SqliteWeekVariantRepository
-                  over the local PowerSync views; providers
-  presentation/   WeekView (day-card grid; ONE state since v3 — the mode is
-                  gone; an empty week is a STATE of it, not a page),
-                  week_header (the week switcher and its returns),
-                  recipe_picker_sheet + confirm_meal_sheet (the add flow's ONE
-                  door and its confirm), meal_editor_sheet (slot + who's eating
-                  + portions, opened by a row's avatar/portions cluster — v3 E7;
-                  it replaced entry_sheet, which was a hub behind a mode),
-                  meal_fields (the controls both sheets share),
-                  household_section (the members' usual portions, a section
-                  of /account),
-                  week_widgets (Pill, EaterAvatar, EaterAvatarStack,
-                  PortionsChip, CookMarkerLine, OutTag, OutMealLine),
-                  week_format,
-                  copy_last_week (the copy, and what it could not bring),
-                  week_variant_door + week_variant_editor +
-                  week_variant_format + week_variant_view_models
-                  (this week's variant)
+  domain/         PURE DART
+    planning.dart                 Member, PlanEntry, PlanEntryKind, WeekPlan,
+                                  demandPortions, mealSlotRank, defaultMealSlot
+    week_macros.dart              sumPlannedMacros, ingredientPortionMacros
+    week_cost.dart                the week's cost to cook, ingredientPortionCost
+    planning_repository.dart      read/write contract
+    week_variant_repository.dart  this week's variant, WordlessOverrideError
+  data/           SqlitePlanningRepository, SqliteWeekVariantRepository, providers
+  presentation/
+    week_view.dart            the phone Week: day cards, the add flow, the band
+    week_wide.dart            the wide Week: agenda left, day pane right
+    week_header.dart          the week switcher
+    week_in_the_location.dart the viewed week in the URL, shared by Week/Cook/Shop
+    recipe_picker_sheet.dart  the add flow's one door (Recent · Books · Favorites)
+    confirm_meal_sheet.dart   slot, eaters, portions; macros fold for a meal out
+    meal_editor_sheet.dart    edit a placed meal; the variant door at its foot
+    meal_fields.dart          controls both sheets share
+    week_macro_widgets.dart   day foot, week band, the spent line
+    week_recipe_band.dart     "Planned Tue · Sat this week" on a recipe page
+    week_widgets.dart         Pill, EaterAvatar, PortionsChip, OutTag, …
+    week_format.dart, copy_last_week.dart, household_section.dart
+    week_variant_door / _editor / _format / _view_models
 ```
+
+## The entry kinds
+
+- An **ingredient** entry states one portion: `quantity` + `unit`, or a
+  `measure_id` with `unit` as the count fallback. Amount columns are refused on
+  the other two kinds.
+- A meal **eaten out** states its `label` and optional per-portion `macros`.
+  Null macros mean not stated, never zero.
+- Every kind carries `eaters` and the `portions` override, and multiplies by
+  demand.
+- **Read `PlanEntry.kind`, never a null `recipeId`.** Every derivation switches
+  on the kind with no wildcard:
+  - week macros weigh an ingredient meal from its row
+    (`ingredientPortionMacros`) and a meal out from its stated figures, or name
+    it as uncounted (`MealExclusion.outNotStated`);
+  - the cook plan ignores both;
+  - the shopping list buys an ingredient meal
+    (`SqliteShoppingRepository._derivePlannedIngredients`) and nothing for a
+    meal out;
+  - copy last week carries every kind whole.
+- `test/structure/plan_entry_kind_seam_test.dart` holds this: no wildcard, no
+  null-column kind test, and both SQL derivations state their kind in `WHERE`.
 
 ## This week's variant
 
 A recipe can be cooked differently for one week without being edited. The
-variant is per **(week, recipe)** — every day that plans the recipe shares one
-pot — and is stored as a set of `week_recipe_line_override` rows: a replace, an
-add, an exclude or an include, recomputed whole on save, with a line edited
-back to the recipe's own value leaving no row at all.
+variant is per **(week, recipe)**, stored as `week_recipe_line_override` rows
+(replace, add, exclude, include), recomputed whole on save.
 
-- **One door**, a row at the foot of the meal editor sheet, which opens the
-  recipe editor's week mode (`/recipes/:id/edit?week=`). Not a target on the
-  dish row: a control drawn on every row is a cost every row pays for a result
-  almost no row is in. The row states its own scope, because the sheet is
-  per-*meal* and the variant is per-*(week, recipe)*.
-- **`effectiveLines` is the one seam.** The shopping list, the cook plan and
-  the week's macros all read the week's overrides through it, so they cannot
-  disagree about what this week actually cooks. Amounts are absolute: the
-  recipe moving on afterwards leaves this week at the amount that was asked
-  for.
-- **The week's macro lens re-sums a varied recipe** over its effective lines,
-  and keeps borrowing the Library's per-recipe figure for every recipe the
-  week leaves alone — that number is still exactly right for them, so a week
-  with no variant costs nothing.
-- **Copy last week does not carry a variant**, and says which recipes it left
-  behind. "Just this week" is the whole promise; a silent drop would be the
-  same bug as a silent carry.
-- **A component's amount can be said in the target recipe's own word** — `3
-  blob` (ADR-0018). `week_recipe_line_override.recipe_measure_id` carries it and
-  `unit` is then NULL, the same XOR the recipe line wears, resolved in one place
-  on the way in and one on the way out so the INSERT and the UPDATE cannot
-  disagree. Only a delta about a COMPONENT may carry a word — one about an
-  ingredient has it dropped — and a word with no number is refused before
-  anything is written (`WordlessOverrideError`), because the server refuses it on
-  upload and a refused upload drops the whole crud transaction. Absolute like
-  every other value here: the recipe re-stating `blob` later leaves this week at
-  the count somebody asked for, while what that count *comes to* moves — which is
-  why the week's watches join `recipe_measure`.
-
-## The entry XOR
-
-`plan_entry` names a `recipe_id`, an `ingredient_id` **or** a `label`, enforced
-server-side (migrations 0033 and 0045, the shape `recipe_line_item` wears). Something you simply *eat* is planned as itself rather than dressed
-up as a one-line recipe; something eaten OUT is planned as the words it is,
-rather than as a vocabulary row the household does not own.
-
-- An **ingredient** entry states the amount of **one portion** —
-  `quantity` + `unit`, or a `measure_id` ("1 bar") with `unit` holding the
-  honest count fallback. The amount columns are refused on a recipe entry,
-  whose amount is its `portions`, and on a meal eaten out, which is neither
-  measured nor bought.
-- A meal **eaten out** states its `label` and, optionally, per-portion
-  `macros` — the vocabulary's `{kcal, protein, carb, fat}` shape with its
-  optional `fiber` key, but per PORTION rather than per 100 of a basis. Null
-  macros mean **not stated**, never zero.
-- Every kind **carries eaters and multiplies**: the same `eaters` array, the
-  same `portions` override, the same Σ-portion-factor demand. Two people having
-  the same snack — or the same canteen lunch — is two of them.
-- Read `PlanEntry.kind`, never a null `recipeId` by hand. **Every derivation
-  branches explicitly** on the kind, and the compiler holds it: a `switch` over
-  `PlanEntryKind` must name all three cases.
-  - **week macros** weigh an ingredient meal from the nutrition the entry
-    carries (`ingredientPortionMacros`), naming any refusal in a stub *line's*
-    own words (`MealExclusion.ingredientNotCounted` + a `MacroLineReason`), and
-    weigh a meal eaten out from its stated figures — or name it as uncounted
-    (`MealExclusion.outNotStated` → `Office lunch · macros not stated`). An
-    unstated *fibre* is not an exclusion;
-  - **the cook plan ignores** an ingredient meal and a meal eaten out — nothing
-    about either is cooked, so neither opens a session or joins a batch;
-  - **the shopping list includes** an ingredient meal, which is why
-    `SqliteShoppingRepository._derivePlannedIngredients` walks the week's
-    ENTRIES beside the cook plan's sessions, and **buys nothing** for a meal
-    eaten out;
-  - **copy last week** carries every kind whole — a snack with its amount, a
-    meal eaten out with its words AND its figures.
-- `test/structure/plan_entry_kind_seam_test.dart` is the seam: no switch over
-  the kind carries a wildcard, no file that knows a `PlanEntry` reads a null
-  column as a kind test, and the two SQL derivations state the kind they take
-  in their own `WHERE` clause.
+- **One door**: a row at the foot of the meal editor sheet, opening the recipe
+  editor's week mode (`/recipes/:id/edit?week=`).
+- **`effectiveLines` is the one seam.** Shopping, the cook plan and week macros
+  all read overrides through it. Amounts are absolute.
+- Week macros re-sum only a varied recipe; the rest borrow the Library's
+  per-recipe figure.
+- Copy last week does not carry a variant, and says which recipes it left.
+- A component override may carry a `recipe_measure_id` with `unit` NULL
+  ([ADR-0018](../../../../docs/decisions/0018-a-recipe-measure-is-a-named-amount.md)).
+  A measure with no number is refused before the write
+  (`WordlessOverrideError`), because the server would refuse the upload and
+  drop the whole transaction. The week's watches join `recipe_measure`.
 
 ## The add flow
 
-Tapping a day's dashed "+ Add a meal" runs `_addMealFlow` in `week_view.dart`:
+`_addMealFlow` in `week_view.dart`:
 
-1. **`showRecipePickerSheet`** — **one door for all three kinds of thing**:
-   search, Recent/Books tabs, book·section subtitles (from the books
-   `libraryProvider`), dishes "already this week" as quick picks, and — once
-   something is typed — an `INGREDIENTS` section over the household vocabulary,
-   mirroring how the editor's `line_target_picker` gained "Your recipes". When
-   the typed words hit **nothing** — no recipe title at any tier, no ingredient,
-   and the vocabulary search has caught up with what is typed — a third answer
-   appears in the footer: `＋ note it — "Office lunch" · not cooked, not
-   bought`. Returns a `PickedMeal`.
-2. **The quantity sheet**, for an ingredient only: the shipped
-   `showQuantityUnitSheet`, opened on the row's own **default unit** — a
-   piece-default row opens on `piece`, weighed by its `piece_basis_amount`
-   ([ADR-0015](../../../../docs/decisions/0015-piece-weight-is-a-row-fact.md)).
-   There is no stated default measure to seed from any more.
-3. **`showConfirmMealSheet`** — the slot, who's-eating, and a **portions**
-   stepper (`plan_entry.portions`, null = track |eaters|, spec §8). It takes a
-   `MealTarget` (`RecipeMeal` / `SnackMeal` / `OutMeal`) and writes the matching
-   entry. A meal eaten out is asked one more question, in an optional fold:
-   `Macros · per portion`, on the ingredient form's own `MacroFields` keypad.
-   Left empty the meal is still placed and the week names it as uncounted; a
-   half-filled panel is not stated either, and the note under the slots says
-   which of the three states the typing is in.
-   The slot arrives already answered: the flow opens both sheets on the day's
-   next unfilled default slot (`defaultMealSlot` — Breakfast on an empty day,
-   Lunch once breakfast is planned, Dinner once all four are), so the usual
-   add is a confirm rather than a choice.
+1. **`showRecipePickerSheet`** — one door for all three kinds. Typed words
+   search recipes and the household vocabulary; when they hit nothing, the
+   footer offers `＋ note it` for a meal eaten out. Returns a `PickedMeal`.
+2. **The quantity sheet**, for an ingredient only, opened on the row's default
+   unit.
+3. **`showConfirmMealSheet`** — slot, eaters, portions (`plan_entry.portions`,
+   null = track the eaters). A meal out gets an optional per-portion macros
+   fold; left empty or half-filled, the meal is placed and named as uncounted.
 
-The picker/confirm rows show the shelf-life chips ("keeps N d · freezable"),
-and the confirm sheet surfaces a **"same batch" hint** when the new meal would
-cook alongside one already on the week (both reuse the cook plan's
-`batchHintFor`/`clusterSessions`). Neither appears on a snack or a
-meal eaten out: they are facts about a cooked dish. `MealSnackCard` prints its
-amount instead, and `MealOutCard` prints `out · not cooked, not bought`.
+Both sheets open on `defaultMealSlot`, the day's first unfilled default slot.
+Recipe rows show shelf-life chips and a "same batch" hint
+(`batchHintFor`); snacks and meals out do not.
 
 ## Model notes
 
-- **Active week = the window containing today** under the household's first day
-  (`weekShapeProvider`, `core/week_shape.dart`); older `week_plan` rows are the
-  past, reached only via "copy last week". No calendar (spec §4).
-- **A week is addressed by the date of its own first day**, and
-  `plan_entry.day_of_week` is the **offset from that key**, 0..6 — so
-  `week_start_date + n days` is the meal's real date whatever day the week
-  starts on. The household picks that day (`household.week_starts_on`, set in
-  the Household section of `/account`); the phone only reads it, because moving
-  it re-homes every week the household has planned and that is one server
-  transaction. `WeekShape` is the only place an offset becomes a weekday name —
-  indexing the tables in `core/words.dart` directly is a Monday-first
-  assumption, and a structural test refuses it.
-- **`plan_entry.eaters`** is a JSON array of `household_member` ids; demand for
-  an entry = Σ of the eaters' `portion_factor` (`demandPortions` — `1¾` for a 1 and a ¾ eater, printed as a fraction through
-  `core/units/portions.dart`, never rounded), unless the whole-number
-  `portions` override is set. It's a field (last-write-wins, spec §3), not a
-  join table.
-- **Meal slots are free text** (spec §8). `kDefaultMealSlots` are the four the
-  UI offers (Breakfast · Lunch · Dinner · Snack); `mealSlotRank` orders known
-  slots ahead of custom ones per day, and `defaultMealSlot` picks the first
-  one a day has not filled for the add flow to start on. **The slot is a
-  field of the meal editor** (`setMealSlot`): a row prints it, as the gutter
-  label it sits under, so it is changed in place. **The day is not** — a row's
-  position is its day — so a meal changes day by remove-and-re-add.
-- **Members** are **synced** from the server: `ensure_onboarded`
-  (migration 0007) creates the `household_member` rows at sign-in and they stream
-  down; the app reads them, and the one column it writes is `portion_factor`
-  (either member may set either's). See [`schema.dart`](../../core/sync/schema.dart).
+- **A week is keyed by the date of its first day**, and
+  `plan_entry.day_of_week` is the offset from it, 0..6. The household picks the
+  first day (`household.week_starts_on`, set in `/account`); changing it
+  re-homes every week on the server. `WeekShape` (`core/week_shape.dart`) is
+  the only place an offset becomes a weekday name —
+  `test/structure/weekday_labels_go_through_the_shape_test.dart`.
+- **`plan_entry.eaters`** is a JSON array of member ids, last-write-wins.
+  Demand is the sum of the eaters' `portion_factor` (`demandPortions`, printed
+  as a fraction) unless `portions` is set.
+- **Slots are free text.** `kDefaultMealSlots` are the four offered;
+  `mealSlotRank` orders them. The slot is a field of the meal editor
+  (`setMealSlot`); the day is not — a meal changes day by remove and re-add.
+- **Members** are created server-side by `ensure_onboarded` and synced down;
+  the app writes only `portion_factor`.
 
-## Navigation
+## Cost
 
-The Week is a bottom-nav tab (`shared/ansi_bottom_nav.dart`), alongside Library,
-Cook (step 5), and Shop (step 6) — all four tabs are live.
-
-## Deferred
-
-- Recipe photos (picker/confirm thumbnails are placeholders) — needs Storage.
-- Favorites tab in the picker — no favorite flag on `recipe` yet.
-
-## What the week costs to cook
-
-The band at the foot of the week states one cost line under the macros —
-`≈ $71 to cook` — from `week_cost.dart`, which is `sumPlannedMacros`'s money
-twin: the same entries, the same portions and the same lens, so the two lines
-of the band can never describe two different weeks. A recipe with an unpriced
-line has no cost at all, so its meal cannot join the figure; the lines that
-kept it out are named instead, distinct, because the same unpriced ingredient
-in three recipes is one thing to go and price.
-
-**A week missing a meal says its figure is a floor**: with anything
-unpriced the line reads `at least $71 to cook · 3 lines unpriced`, and it
-wears no `≈`, because a meal drops out WHOLE — the number is short by meals,
-not rounded, and what is uncertain is the lines nobody has priced rather than
-the arithmetic. It is the recipe strip's own voice (`costFloor`,
-[ADR-0017](../../../../docs/decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md)
-rule 4). With every planned line priced it reads exactly as before.
-
-**The wording is all that changes.** Folding the recipes' own floors into the
-week was weighed and refused: the sum would then mix whole meals with parts of
-meals, and no reader could say which figure they were looking at.
-
-A **bare ingredient meal is costed from its own row**, by
-`ingredientPortionCost`: the entry's amount, unit or measure carried to the
-row's basis through the same conversion its macros take, times the latest price
-per unit of that basis. A snack is a recipe line that happens to be the whole
-meal, and weighing it any other way would let the same yoghurt cost two figures
-depending on which screen asked. It is named with the unpriced only when the
-row really has no price, or when nothing carries its amount to the basis — the
-recipe cost's own reasons (`CostLineReason`), in its own words. A meal eaten
-out is passed over entirely: neither a cost to cook nor a gap in one.
-
-Under it sits the band's **second figure** — `$84.12 spent · 1 receipt ·
-TJ's, Sun` — what the week's receipts actually came to
-(`features/receipts/domain/receipt_ledger.dart`). It is drawn **only when a
-receipt is dated inside the week on screen**, and a week nobody shopped for
-says nothing rather than `$0 spent`, which would read as a free week. It names
-where and when the money went, and it is a door onto the receipts ledger. It is
-drawn on a week that plans nothing too: a shop is a fact about the paper, not
-about the plan.
-
-The two figures are **never reconciled**
+`week_cost.dart` mirrors `sumPlannedMacros` — same entries, portions and lens
 ([ADR-0017](../../../../docs/decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md)).
-The gap between them is the pantry filling or emptying, and no line tries to
-explain it.
 
-The wide Week has no home for the band yet, so both lines are drawn on the
-phone only.
+- A recipe with an unpriced line drops out whole, and the band reads
+  `at least $71 to cook · 3 lines unpriced`, naming the distinct lines.
+- An ingredient meal is costed from its own row (`ingredientPortionCost`); a
+  meal out is passed over.
+- The **spent** line (`$84.12 spent · 1 receipt · TJ's, Sun`) reads the week's
+  receipts (`receipts/domain/receipt_ledger.dart`), is drawn only when a
+  receipt is dated inside the week, and opens the ledger. The two figures are
+  never reconciled.
+- Both lines are on the phone's band only; the wide foot band carries macros.
+
+## Not built
+
+Recipe photos — picker thumbnails are placeholders until Storage exists.
