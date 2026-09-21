@@ -1,22 +1,13 @@
-/// The review's **sections**, as the human holds them — PURE DART
-/// (invariant 2).
+/// The review's sections, as the human holds them. Pure Dart.
 ///
-/// The payload's `groups` are the server's word about what the page printed,
-/// and they never change: `from source:` has to keep telling the truth, and a
-/// re-derivation has to stay possible. What the cook does to the *structure*
-/// — rename a heading, delete one, add one, add a line the page forgot — is
-/// this list, which rides `ImportReconciling` beside the resolutions.
+/// The payload's `groups` stay as the server sent them. What the cook does to
+/// the structure (rename, delete or add a heading, add a line) is this list,
+/// which rides `ImportReconciling` beside the resolutions.
 ///
-/// A section holds **flat line indexes**, not lines. The index is already the
-/// review's stable key everywhere else: resolutions are keyed by it, step
-/// chips point at it (through `previewLineId`), and `buildCommit` writes it.
-/// Holding indexes means moving a line between sections moves nothing else,
-/// and a line minted here is just an index the payload does not have.
-///
-/// **Nothing renumbers, ever.** A dropped line's index stays unused and a
-/// minted one is taken from past the payload's last — the rule `buildCommit`
-/// already depended on, now said out loud because there is finally something
-/// that mints.
+/// A section holds flat line indexes, the review's stable key: resolutions are
+/// keyed by it, step chips point at it (`previewLineId`), and `buildCommit`
+/// writes it. Nothing renumbers: a dropped line's index stays unused and a new
+/// one is taken from past the payload's last.
 library;
 
 import 'package:meta/meta.dart';
@@ -33,9 +24,8 @@ class ReviewGroup {
   /// payload's own group at index `i`, `g-new-<n>` for one added here.
   final String id;
 
-  /// The heading, or null for a section with none. A section with no heading
-  /// is not a missing section — it is the ordinary shape of a recipe that
-  /// never divided its ingredients.
+  /// The heading, or null for none: the ordinary shape of a recipe that never
+  /// divided its ingredients.
   final String? name;
 
   /// The flat line indexes this section holds, in order. Every index lives in
@@ -111,17 +101,10 @@ List<ReviewGroup> renameGroup(
   ];
 }
 
-/// Deletes the section [id]'s **heading**, never its lines.
-///
-/// The lines move into the section above, keeping their order and every
-/// resolution they carry; deleting the first section sends them into the one
-/// that becomes first instead. Dropping food is what a line's own `🗑`
-/// already does, and a delete that silently took four ingredients with it is
-/// not on offer — which is also why no confirm is needed: nothing is lost.
-///
-/// The last section standing cannot be removed, because its lines would have
-/// nowhere to go; it loses its heading instead, which is the whole of what
-/// the reader asked for.
+/// Deletes the section [id]'s heading, never its lines. The lines move into the
+/// section above, keeping their order and resolutions; the first section's
+/// lines go into the one that becomes first. The last section standing only
+/// loses its heading.
 List<ReviewGroup> removeGroup(List<ReviewGroup> groups, String id) {
   final at = groups.indexWhere((g) => g.id == id);
   if (at < 0) return groups;
@@ -134,9 +117,8 @@ List<ReviewGroup> removeGroup(List<ReviewGroup> groups, String id) {
     out.add(
       i != into
           ? g
-          // Merging upward, the moved lines land after the ones already
-          // there. Merging down into what becomes the first section, they
-          // keep the head of the list — they were above it on the page.
+          // Merging upward, the moved lines land after the ones already there.
+          // Merging down into the new first section, they stay at the head.
           : g.copyWith(
               lines: at == 0 ? [...moved, ...g.lines] : [...g.lines, ...moved],
             ),
@@ -165,15 +147,10 @@ List<ReviewGroup> addLineToGroup(
   ];
 }
 
-/// Moves the line row at [from] to row [to] over the review's flat list —
-/// heading rows and line rows, the same shape and the same rule the editor's
-/// groups drag by ([moveLineRow]).
-///
-/// **A line keeps its index and changes only its position.** The index is the
-/// review's identity for a line — resolutions are keyed by it and step chips
-/// point at it — while the position is where it sits in a section, which is
-/// what commits as `sort_order`. Order and identity are no longer the same
-/// number, and this is the function where they part.
+/// Moves the line row at [from] to row [to] over the review's flat list of
+/// heading and line rows, by the editor's rule ([moveLineRow]). A line keeps
+/// its index, its identity, and changes only its position, which commits as
+/// `sort_order`.
 List<ReviewGroup> moveReviewLine(
   List<ReviewGroup> groups, {
   required int from,
@@ -187,12 +164,9 @@ List<ReviewGroup> moveReviewLine(
   return [for (final (i, g) in groups.indexed) g.copyWith(lines: lines[i])];
 }
 
-/// The next flat line index a review-minted line may take: one past the
-/// highest any section holds, and never below the payload's own count.
-///
-/// It counts the payload's lines rather than the sections' so that a dropped
-/// line's index — which stays in its section and simply commits nothing —
-/// can never be handed out twice.
+/// The next flat line index a review-added line may take: one past the highest
+/// any section holds, and never below the payload's own line count, so a
+/// dropped line's index is never reused.
 int nextLineIndex(ReconciliationPayload payload, List<ReviewGroup> groups) {
   var next = payload.flatLines.length;
   for (final group in groups) {

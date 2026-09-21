@@ -1,10 +1,7 @@
 /// Editing one review line's amount: what the card prints in its amount slot,
-/// and the two doors that change it.
-///
-/// An ingredient line opens the shared quantity + unit-chip sheet on the
-/// matched ingredient's allowed set; a component line opens the component
-/// sheet's batch math instead. Both write the picked quantity + unit back onto
-/// the line's resolution and nothing else.
+/// and the two sheets that change it. An ingredient line opens the shared
+/// quantity sheet; a component line opens the component sheet. Both write only
+/// the picked quantity and unit back onto the line's resolution.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -27,17 +24,13 @@ import '../domain/line_validation.dart';
 import '../domain/reconciliation_payload.dart';
 import 'import_view_models.dart';
 
-/// The amount label. With a picked number: the quantity + unit (count shows
-/// just its number). With NO picked number: the original printed amount is
-/// preferred while it still reads as an amount (so a range reads "2–3 cloves",
-/// never a bare "clove" — round-2 #3), else the imprecise/measure unit word
-/// ("to taste"), else empty (the caller renders "—" or a "set amount" prompt —
-/// never an invented unit).
+/// The amount label. With a picked number: the quantity and unit (a count shows
+/// just the number). Without one: the printed amount while it still reads as an
+/// amount ("2–3 cloves"), else the imprecise or measure unit word, else empty.
 ///
-/// The AMOUNT slot never carries prose. A raw amount with no number in it is
-/// not an amount — "(to serve (optional))" — so it shows the qualifier the
-/// source named ("to serve") and nothing else; the prose itself rides the NOTES
-/// slot instead (see [noteFromRawAmount]).
+/// The slot never carries prose. A raw amount with no number shows only the
+/// qualifier the source named ("to serve"); the prose goes to the notes slot
+/// ([noteFromRawAmount]).
 String amountLabel(LineResolution r, RawLineItem raw) {
   final mapped = r.unit == null ? null : unitById(r.unit!);
   if (r.quantity != null) {
@@ -50,9 +43,8 @@ String amountLabel(LineResolution r, RawLineItem raw) {
     if (mapped != null && mapped.family == UnitFamily.count) return qty;
     return '$qty $unitLabel'.trim();
   }
-  // No number. A CLEAN catalog unit names itself — an imprecise amount reads
-  // "pinch" / "to taste" / "handful", NEVER the raw phrase "A good pinch"
-  // (round-3 #1a: an imprecise amount is a clean unit, not raw text).
+  // No number: a catalog unit names itself ("pinch", "to taste"), never the raw
+  // phrase.
   if (mapped != null) return mapped.label;
   // Unmapped/absent unit: the printed original still wins WHILE IT IS ONE — an
   // unpicked range ("2–3 cloves"), a "2 sprigs" the vocab couldn't map.
@@ -62,53 +54,35 @@ String amountLabel(LineResolution r, RawLineItem raw) {
       (r.unit?.isNotEmpty ?? false ? r.unit! : '');
 }
 
-/// What the card actually prints in its AMOUNT slot: [amountLabel], except on
-/// a line whose unit the matched ingredient cannot carry
-/// ([LineIssue.unitNotAllowed]), where the slot prints NOTHING and the caller
-/// renders its empty state (`—` / "set amount").
+/// What the card prints in its amount slot: [amountLabel], except on a
+/// [LineIssue.unitNotAllowed] line, where it prints nothing and the caller
+/// renders its empty state.
 ///
-/// A slot reading "1 whole" or "1 can" looks *filled* — so the flag under it
-/// ("Pick a supported unit") reads as pedantry rather than as the one thing
-/// left to do. The word is the source's, not the kitchen's: "whole" is no unit
-/// at all, and a "can" that the row measures as a `400 g can` is a word the
-/// picker would never hand back. Blanking the slot says the amount is still
-/// owed, which is the truth. The page's own words are not lost — a flagged
-/// line keeps its `from source:` line in both states — and neither is the
-/// parsed number: it stays on the resolution, so the amount sheet opens on
-/// "1" and one chip tap resolves the line.
+/// A slot reading "1 whole" looks filled, which hides that the amount is still
+/// owed. The parsed number stays on the resolution, so the amount sheet opens
+/// on "1".
 String amountSlotLabel(
   LineResolution r,
   RawLineItem raw,
   List<LineIssue> issues,
 ) => issues.contains(LineIssue.unitNotAllowed) ? '' : amountLabel(r, raw);
 
-/// Whether the line's unit is one of the imprecise words — the card italicises
-/// what [amountLabel] prints for one, so the reader can see it is a hand
-/// gesture rather than a measurement.
+/// Whether the line's unit is an imprecise word; the card italicises those.
 bool isImpreciseAmount(LineResolution r) {
   if (r.unit == null) return false;
   return unitById(r.unit!)?.family == UnitFamily.imprecise;
 }
 
-/// Opens the step-7.7 quantity + unit-chip sheet for the flattened line at
-/// [lineIndex] and writes the picked quantity + unit back onto its resolution
-/// (decision 6). Only ever called on a MATCHED line (round-2 #7); the chips are
-/// the matched ingredient's allowed set + measures + the always-admitted
-/// imprecise units ([amountSheetIngredient], ADR-0008).
+/// Opens the quantity sheet for the flattened line at [lineIndex] and writes
+/// the picked quantity and unit back onto its resolution. Only called on a
+/// matched line; the chips come from [amountSheetIngredient] (ADR-0008).
 ///
-/// Round-2 #1 fix: the matched ingredient is loaded DIRECTLY by id (not via a
-/// name search that could fail to return it and silently leave the tap inert);
-/// a load failure degrades to a stub stand-in, and the sheet ALWAYS opens.
-///
-/// Round-1 fixes still hold: a picked MEASURE chip ("clove") rides its LABEL
-/// through [sheetChoiceUnit] not a degraded "piece", and a RANGE opens on its
-/// printed low endpoint so confirming resolves it.
-///
-/// Owner call (count-measure pre-selection): when the line's parsed unit is one
-/// this ingredient cannot carry — the "pick a supported unit" flag — and the
-/// ingredient names a measure, the sheet opens with that measure already
-/// selected ([preselectedMeasure]), and Done adopts it even if no chip was
-/// tapped. Resolving becomes one confirm tap; the flag stands until that tap.
+/// The ingredient is loaded by id, and a load failure degrades to a stub
+/// stand-in, so the sheet always opens. A picked measure rides its label
+/// through [sheetChoiceUnit], and a range opens on its low endpoint. When the
+/// line's unit is one the ingredient cannot carry and [preselectedMeasure]
+/// names a measure, the sheet opens on it and Done adopts it even with no chip
+/// tapped.
 Future<void> editLineAmount(
   BuildContext context,
   WidgetRef ref,
@@ -143,13 +117,9 @@ Future<void> editLineAmount(
       loaded = null; // never leave the tap inert — fall back to a stand-in
     }
     try {
-      // Straight off the repository, NOT through the measures stream provider.
-      // That read only ever worked because `importValidation` happened to be
-      // holding the same watch open: on its own it mints an autoDispose element
-      // with nothing listening, and a PowerSync watch does not emit before the
-      // element is collected — so the future completed with a `StateError`, the
-      // catch below turned it into "no measures", and the one-tap measure
-      // repair silently did nothing.
+      // Straight off the repository, not the measures stream provider: read
+      // alone, that mints an autoDispose element nothing listens to, and the
+      // watch does not emit before it is collected.
       measures =
           (await ref.read(measureRepositoryProvider).measuresByIngredients({
             chosenId,
@@ -180,9 +150,7 @@ Future<void> editLineAmount(
   final preselect = loaded == null
       ? null
       : preselectedMeasure(loaded, measures, unit: resolution.unit);
-  // A line already on one of the row's measures — the review landed a counted
-  // lime on `lime, whole`, or a chip put it on `clove` — is a line being
-  // edited, and opens on that measure rather than on the row's own seed.
+  // A line already on one of the row's measures opens on that measure.
   final named = measureNamed(resolution.unit, measures);
   final result = await showQuantityUnitSheet(
     context,
@@ -198,16 +166,14 @@ Future<void> editLineAmount(
     initialOptional: resolution.optional,
   );
   if (result is! QuantitySaved) return;
-  // The notifier is read HERE, after the awaited sheet, through the container
-  // captured before it — never through `ref` (the chip's element can be
-  // unmounted by now, and Riverpod 3 throws on that) and never as an instance
-  // captured before the await (which can be a disposed one).
+  // The notifier is read after the awaited sheet, through the container
+  // captured before it; never through `ref` (the element can be unmounted, and
+  // Riverpod 3 throws) or a pre-captured instance (it can be disposed).
   container.read(importControllerProvider.notifier).updateResolution(
     lineIndex,
     (r) {
-      // A pre-selected measure counts as picked on confirm: the sheet opened ON
-      // it, so Done means "yes, that one" — otherwise the one-tap resolve would
-      // silently keep the unit the line was flagged for.
+      // A pre-selected measure counts as picked on confirm, or Done would keep
+      // the flagged unit.
       final picked = sheetChoiceUnit(
         choice: result.choice,
         unitPicked: result.unitPicked || preselect != null,
@@ -220,17 +186,13 @@ Future<void> editLineAmount(
   );
 }
 
-/// Opens lane U's COMPONENT quantity sheet for a linked line (8.6 / D2 · D6)
-/// and writes the picked amount back onto its resolution.
+/// Opens the component quantity sheet for a linked line and writes the picked
+/// amount back onto its resolution.
 ///
-/// The target's yields come off the local repository — the link points at a
-/// household recipe, which is a row this device already has — read STRAIGHT
-/// from the keepAlive repository provider rather than through a stream provider
-/// (an autoDispose element with nothing listening completes into an empty
-/// default, and "no yields" would silently become "no yield set" on the sheet).
-/// A read that cannot answer degrades the same honest way the sheet's own
-/// no-yield state does: `batch` only, said out loud, never a guessed
-/// conversion.
+/// The target's yields are read straight from the keepAlive repository, not a
+/// stream provider (an autoDispose element with nothing listening completes
+/// empty). A read that cannot answer degrades to `batch` only, as the sheet's
+/// no-yield state does.
 Future<void> editComponentAmount(
   BuildContext context,
   WidgetRef ref,
@@ -255,11 +217,9 @@ Future<void> editComponentAmount(
         .timeout(const Duration(seconds: 5));
     for (final r in recipes) {
       if (r.id != recipeId) continue;
-      // The summary's own conversion, so the dock opens on the target's stated
-      // yields. Its WORDS are dropped: a review line stores a unit id and has
-      // no column for one of the target's own words, so a `blob` picked here
-      // could only land as a whole batch (ADR-0018 — the review prefills no
-      // word and offers none either).
+      // The summary's conversion, so the dock opens on the target's stated
+      // yields. Its measures are dropped: a review line stores a unit id and
+      // has no column for a recipe's own word (ADR-0018).
       target = r.asSubRecipeTarget.copyWith(measures: const []);
       break;
     }
@@ -274,21 +234,15 @@ Future<void> editComponentAmount(
     context,
     target: target,
     initialQuantity: resolution.quantity,
-    // The 7.7 stored-selection rule: the line's printed unit is admissible on
-    // this line whatever the sheet would otherwise offer. No ＋: the target
-    // above carries no words, and one coined here would have nowhere on a
-    // review line to be said.
+    // The line's printed unit is admissible whatever the sheet would otherwise
+    // offer. No ＋: a word coined here could not be stored on a review line.
     initialUnit: stored,
     initialOptional: resolution.optional,
   );
   if (result == null) return;
-  // Read AFTER the awaited sheet through the container, never captured before
-  // it and never through a possibly-unmounted `ref` (see `editLineAmount`).
-  // An import line is never said in a recipe's own word: the extractor prints
-  // units, and ADR-0018 prefills nothing into the authoring form because there
-  // is nothing to prefill FROM. The target above carries no words either, so
-  // the sheet always hands a unit back here; `batches` only keeps the
-  // expression total.
+  // Read after the awaited sheet through the container (see `editLineAmount`).
+  // The target carries no measures, so the sheet always hands back a unit;
+  // `batches` only keeps the expression total.
   final picked = result.unit ?? batches;
   container
       .read(importControllerProvider.notifier)

@@ -1,30 +1,17 @@
 /// Fixed reconciliation payloads for tests and the on-device smoke test.
 ///
-/// [cannedReconciliationPayloadJson] is a compact, representative recipe that
-/// exercises all three match bands, a printed range, a counted-produce line
-/// that names a number and no thing (seam D2 — it arrives on the row's curated
-/// default measure, unflagged), a coalescing duplicate no-match, and the full
-/// step-token vocabulary (text / ref / timer / portion / collective).
-///
-/// [peanutStirFryPayloadJson] is the opposite kind of fixture: a whole page
-/// written for this repo, with the bands the REAL cascade
+/// [cannedReconciliationPayloadJson] is a compact recipe covering all three
+/// match bands, a printed range, a counted-produce line, a coalescing duplicate
+/// no-match, and every step-token kind. [peanutStirFryPayloadJson] is a whole
+/// page written for this repo, carrying the bands the real cascade
 /// (`supabase/functions/_shared/match.ts`) returns for it against the seeded
-/// vocabulary. The per-line band and why it landed there are recorded on the
-/// constant.
+/// vocabulary.
 ///
-/// They live in `lib/` (not `test/`) because the on-device smoke tests under
-/// `integration_test/` drive the whole import flow through
-/// `SqliteImportRepository` against the real synced stack, with no network and
-/// no LLM on the import path.
-///
-/// Neither is a production fallback: the app's import path is the real
-/// `import-recipe` edge function, and an unconfigured build refuses to import
-/// rather than serving these (see `importRepositoryProvider`). Candidate
-/// `ingredient_id`s here are placeholders that `SqliteImportRepository`
-/// re-resolves against the real local vocab.
-///
-/// The extraction-contract tests use the blessed gold files under
-/// `evals/datasets/extraction/gold/` instead.
+/// They live in `lib/` because the smoke tests under `integration_test/` drive
+/// the import flow through `SqliteImportRepository`. Neither is a production
+/// fallback (see `importRepositoryProvider`). Candidate `ingredient_id`s are
+/// placeholders that `SqliteImportRepository` re-resolves. Extraction-contract
+/// tests use the gold files under `evals/datasets/extraction/gold/`.
 library;
 
 const cannedReconciliationPayloadJson = '''
@@ -179,41 +166,26 @@ const cannedReconciliationPayloadJson = '''
 }
 ''';
 
-/// A weeknight page of our own — "Peanut Tofu Stir-Fry" — carrying the bands
-/// the REAL cascade returns for it against the seeded vocabulary.
+/// "Peanut Tofu Stir-Fry": a page written here, not transcribed, with the bands
+/// `matchLines` returns for it against `supabase/seed/snapshot.jsonl`. It uses
+/// a British kitchen's words against an American vocabulary.
 ///
-/// The recipe is written here, not transcribed from a book, so the repo
-/// carries no cookbook text; the bands and candidates come from running
-/// `matchLines` over these lines with the in-memory matcher built from
-/// `supabase/seed/snapshot.jsonl`. Nothing is hand-picked to make a screen
-/// look good — the page is written in a British kitchen's words and the
-/// vocabulary is stored in an American one's, which is exactly the review
-/// screen's hardest real input.
+/// Band per line:
 ///
-/// **Which band each line landed in, and why** — the part that is otherwise
-/// invisible once the payload is JSON:
+/// - 0 pak choi: `none`.
+/// - 1 groundnut oil: `none` (`Peanut Oil` shares only `oil`).
+/// - 2 extra firm tofu: `auto`.
+/// - 3 coriander: `suggest`. The herb is stored as `Cilantro`; the one chip
+///   offered is `Ground Coriander`, the wrong jar.
+/// - 4 peanut butter, 5 tamari: `auto`.
+/// - 6 sugar snap peas: `none`.
+/// - 7 lime juice: `auto`.
+/// - 8 sea salt, 9 black pepper: `auto`, one per half of the compound split.
+///   Both carry `unit: "to_taste"` with `unit_mappable: false`, as the
+///   extractor returns for an imprecise word.
 ///
-/// - **0 pak choi — `none`.** No row and no alias comes near it; the
-///   household's nearest thing is `Napa Cabbage`, which shares no trigram.
-/// - **1 groundnut oil — `none`.** `Peanut Oil` is the same bottle, but the
-///   only shared word is `oil`, well under the trigram floor.
-/// - **2 extra firm tofu — `auto`.** Exact `match_text` hit.
-/// - **3 coriander — `suggest`.** The herb is stored as `Cilantro`, which
-///   shares no letters; `Ground Coriander` scores 0.588 on the shared word,
-///   so the one chip offered is the wrong jar.
-/// - **4 peanut butter / 5 tamari — `auto`.** Exact hits.
-/// - **6 sugar snap peas — `none`.** `Peas` and `Frozen Peas` both sit under
-///   the floor once `sugar snap` is in the phrase.
-/// - **7 lime juice — `auto`.** Exact hit.
-/// - **8 Sea salt / 9 black pepper — `auto`.** Exact hits, one per half of
-///   the compound split. Both carry `unit: "to_taste"` with
-///   `unit_mappable: false`, which is what the extractor really returns for an
-///   imprecise word (it is a catalog id AND not a measurable unit) — the page
-///   prints no "to taste", so the unit is the extractor's, not the page's.
-///
-/// Four lines want the human: three `none` lines to find or create, and one
-/// `suggest` line whose right answer — `Cilantro` — is not the chip on offer
-/// and is reached through the sheet's search.
+/// Four lines want the human: three `none`, and the `suggest` whose right
+/// answer is reached through search.
 const peanutStirFryPayloadJson = '''
 {
   "title": "Peanut Tofu Stir-Fry",

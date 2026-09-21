@@ -1,11 +1,9 @@
-/// Per-line validity for the import review screen — PURE DART (invariant 2).
+/// Per-line validity for the import review. Pure Dart.
 ///
-/// A reviewed line is "done" (its needs-attention flag cleared, and it stops
-/// blocking Save) exactly when it is MATCHED to an ingredient, any printed
-/// range has a picked number, and its unit is one the matched ingredient
-/// actually admits (ADR-0008 `allowed_units` + the ingredient's measures + the
-/// always-admitted imprecise units). Anything else is surfaced, never hidden
-/// (0014) — and Save stays disabled until every line clears.
+/// A line is done, and stops blocking Save, when it is matched to an
+/// ingredient, any printed range has a picked number, and its unit is one the
+/// ingredient admits (ADR-0008 `allowed_units`, its measures, and the imprecise
+/// words it earns).
 library;
 
 import 'package:meta/meta.dart';
@@ -33,9 +31,8 @@ enum LineIssue {
   amountMissing,
 }
 
-/// The imprecise word a LINE actually printed, when it printed one — the
-/// source's own vocabulary, resolved to a catalog unit. Null for a mass,
-/// volume or count unit, a measure label, or no unit at all.
+/// The imprecise word a line printed, as a catalog unit. Null for any other
+/// unit, a measure label, or no unit.
 Unit? printedImpreciseUnit(String? unit) {
   if (unit == null || unit.isEmpty) return null;
   final resolved = unitById(unit);
@@ -44,25 +41,17 @@ Unit? printedImpreciseUnit(String? unit) {
       : null;
 }
 
-/// The imprecise units the import surface admits for [ingredient] on a line
-/// whose source printed [parsedUnit]. Three legs:
+/// The imprecise units the import admits for [ingredient] on a line whose
+/// source printed [parsedUnit]:
 ///
-/// - `to taste` unconditionally: a "plus more, to serve" use is legitimately
-///   imprecise whatever the food, and an import line is exactly where that
-///   phrasing arrives;
-/// - the ingredient's own category gate ([impreciseUnitsFor]) — J3's ruling,
-///   which is what stops the editor OFFERING "a dash of kale";
-/// - **the line's own printed word** ([printedImpreciseUnit]), whatever the
-///   category, uncategorised rows included.
+/// - `to taste`, always;
+/// - the ingredient's category gate ([impreciseUnitsFor]);
+/// - the line's own printed word ([printedImpreciseUnit]), whatever the
+///   category.
 ///
-/// That third leg is never-invent, read the other way round. J3 gated what the
-/// editor may SUGGEST; it must not gate what the source SAID. Without it a
-/// canned "a pinch of chilli flakes" landing on a freshly created row — which
-/// has no category until the form gives it one — validated as
-/// `unitNotAllowed` and locked the Save gate on a unit nobody could have
-/// picked, because it was never offered.
-/// Exactly one word is admitted: the one that was printed. A row still earns
-/// no other imprecise chip it has not earned.
+/// The category gates what the editor suggests, not what the source said: a
+/// printed "pinch" on an uncategorised row would otherwise flag a unit nobody
+/// could pick.
 Set<Unit> importImpreciseUnitsFor(Ingredient ingredient, {String? parsedUnit}) {
   final printed = printedImpreciseUnit(parsedUnit);
   return {
@@ -72,13 +61,10 @@ Set<Unit> importImpreciseUnitsFor(Ingredient ingredient, {String? parsedUnit}) {
   };
 }
 
-/// The unit tokens acceptable for a matched line: the ingredient's allowed
-/// catalog units (by id) + its [measures] (by label) + the imprecise words it
-/// earns, [parsedUnit]'s own printed word included (J3b). Mirrors exactly what
-/// the amount sheet offers for this line (see [amountSheetIngredient]), so a
-/// unit is "allowed" iff the picker could have produced it — which is why the
-/// line's printed unit has to be threaded through both: a word the editor
-/// never offers is a word the user can never clear the flag with.
+/// The unit tokens acceptable for a matched line: allowed catalog units (by
+/// id), [measures] (by label) and the imprecise words it earns, [parsedUnit]'s
+/// included. Mirrors what the amount sheet offers ([amountSheetIngredient]), so
+/// a unit is allowed iff the picker could have produced it.
 Set<String> acceptableUnitTokens(
   Ingredient ingredient,
   List<Measure> measures, {
@@ -98,9 +84,8 @@ Set<String> acceptableUnitTokens(
   };
 }
 
-/// One inline unit-suggestion chip: [token] is what gets stored on the
-/// resolution's unit (a catalog unit id, or a measure label); [label] is the
-/// chip text. Parallel to the ingredient "did you mean" chips (round-3 #2).
+/// One unit-suggestion chip. [token] is what the resolution stores (a catalog
+/// unit id or a measure label); [label] is the chip text.
 @immutable
 class UnitSuggestion {
   const UnitSuggestion({required this.token, required this.label});
@@ -116,10 +101,8 @@ class UnitSuggestion {
   int get hashCode => Object.hash(token, label);
 }
 
-/// A matched line's acceptable units as ordered suggestion chips — exactly the
-/// amount sheet's offer for this line (allowed set + measures + the imprecise
-/// words it earns, including [parsedUnit]'s printed one), so tapping a chip
-/// always yields a valid unit.
+/// A matched line's acceptable units as ordered chips: the amount sheet's offer
+/// for this line, so tapping a chip always yields a valid unit.
 List<UnitSuggestion> acceptableUnitChips(
   Ingredient ingredient,
   List<Measure> measures, {
@@ -151,50 +134,22 @@ List<UnitSuggestion> acceptableUnitChips(
   ];
 }
 
-/// How many unit chips a review line shows before the fold (owner call): five,
-/// with the rest one "more" tap away. The full admission set for a common
-/// ingredient runs to a dozen-plus chips, which reads as a wall rather than a
-/// choice — but every chip stays reachable, so nothing honest is hidden.
+/// How many unit chips a review line shows before the "more" fold.
 const kVisibleUnitChips = 5;
 
-/// [chips] reordered so the five most likely land in front of the fold.
+/// [chips] reordered so the most likely land before the fold.
 ///
-/// **With a parsed unit** — the line printed one — the owner's relevance
-/// ranking: the line's own [parsedUnit] first, then the rest of that unit's
-/// family, then the ingredient's named measures (in the order they were given
-/// — most likely first), then the generic mass/volume unit (g/ml), then
-/// everything else, with the imprecise words last.
+/// With a [parsedUnit]: that unit first, then the rest of its family, then the
+/// ingredient's measures in their given order, then g/ml, then everything else,
+/// imprecise words last. A parsed imprecise unit fronts its family like any
+/// other.
 ///
-/// The imprecise tail folds UNLESS the parsed amount is itself imprecise ("a
-/// good pinch"), in which case its family leads by the same rule that fronts
-/// any other parsed unit — a pinch line should not have to expand to say pinch.
+/// With no parsed unit the incoming order stands, imprecise still last:
+/// [allowedUnitChoicesFor] already built it in ADR-0008 kitchen order, and the
+/// g/ml boost would outrank the row's own default.
 ///
-/// **With no parsed unit the incoming order is preserved as given**, imprecise
-/// still sinking to the back. A line that printed no unit offers no evidence
-/// to rank on, so the only honest order is the ingredient's own — and the
-/// caller already built it: [allowedUnitChoicesFor] hands these chips over in
-/// ADR-0008 kitchen order (the row's DEFAULT unit fronted, the rest of its
-/// family in kitchen order, then the measures, then the demoted other family,
-/// imprecise last).
-///
-/// The g/ml boost below is relevance only NEXT TO a parsed unit; with none it
-/// just outranks the row's own default, which is how the vocab audit came to
-/// offer `ml` before flour's `cup`, `g` before black pepper's `tsp`, and
-/// `ml g` ahead of kale's own `cup`. Owner ruling (batch 6): spices lead
-/// `tsp`, and "in general we use american recipes, so cup / spoon is preferred
-/// over ml / L" — which is the ADR kitchen order, so this leg ranks nothing
-/// and defers to it. One source of chip order for a line that said nothing.
-///
-/// The sort is stable within each rank, so the ADR-0008 chip order the caller
-/// built survives inside every group.
-///
-/// **A parsed `piece` the row refuses ranks nothing** (ADR-0010). The chips
-/// come from the offer, so a refused `piece` is not among them and cannot take
-/// rank 0; and `piece` is the whole count family, so the same-family leg has
-/// nothing to lift either. What is left in front is the row's measures at rank
-/// 2 — a clove, an avocado, three potato sizes — which is exactly the offer the
-/// user has to choose from. Nothing here reads the line's words to guess which
-/// measure it meant.
+/// The sort is stable within each rank. A parsed `piece` the row refuses is not
+/// among the chips, so the measures lead (ADR-0010).
 List<UnitSuggestion> rankedUnitChips(
   List<UnitSuggestion> chips, {
   required String? parsedUnit,
@@ -223,31 +178,15 @@ List<UnitSuggestion> rankedUnitChips(
   return [for (final e in indexed) chips[e.at]];
 }
 
-/// The measure a line should open PRE-SELECTED on in the amount editor: when
-/// the source's [unit] is one the matched [ingredient] cannot carry
-/// ([LineIssue.unitNotAllowed]) and the ingredient names **exactly one**
-/// measure, that measure is what the line meant — there is nothing else it
-/// could have meant. Pre-selecting it turns resolving into one confirm tap
-/// instead of a scroll-and-choose.
+/// The measure the amount editor opens pre-selected on: when [unit] is one
+/// [ingredient] cannot carry ([LineIssue.unitNotAllowed]) and the ingredient
+/// names exactly one measure.
 ///
-/// **It pre-selects the SHEET, not the LINE.** Nothing in the validation path
-/// calls this: [lineIssues] checks the resolution's own unit, which this
-/// function does not write, so the line stays flagged until somebody opens
-/// the sheet and confirms. Nothing writes a line from a row's default any more
-/// (ADR-0015 retired the arrival rule with Counts as): a bare count is either
-/// a `piece` the row admits — weighed by its piece weight — or a flag.
-///
-/// **Two or more measures pre-select nothing** (ADR-0010, owner). A potato line
-/// arriving as `piece` could be small, medium or large, and picking the first
-/// in `sort_order` — or reading "large" out of the raw text, or defaulting to
-/// medium — is the machine deciding what a piece meant. The chips are right
-/// there; the user picks, and Save stays gated until they do.
-///
-/// Null when the unit is already fine, when the line printed none, or when the
-/// ingredient has no measure to offer. A measure the chip row would not offer
-/// is skipped here for the reason the row skips it — a volume-named one
-/// because density owns volume (ADR-0008 §2), the row's serving because a
-/// serving is not a size anyone cooks in.
+/// It pre-selects the sheet, not the line: [lineIssues] never calls this, so
+/// the line stays flagged until someone confirms. Two or more measures
+/// pre-select nothing (ADR-0010). Null when the unit is fine, the line printed
+/// none, or no offered measure exists; volume-named measures and the serving
+/// are skipped, as the chip row skips them.
 Measure? preselectedMeasure(
   Ingredient ingredient,
   List<Measure> measures, {
@@ -282,43 +221,29 @@ class LineValidation {
   final List<LineIssue> issues;
   final List<UnitSuggestion> unitChoices;
 
-  /// The matched row's provenance line — `usda · «description»`, led by
-  /// `edited ·` where a human has overridden its numbers
-  /// ([sourceProvenanceLine]). Null on an unmatched line and
-  /// on any row no lookup filled.
-  ///
-  /// It rides on the validation because that is where the whole import's vocab
-  /// is ALREADY read, in one query: the review is the other moment a wrong
-  /// food is cheap to catch, and it must not cost a read per line to say so.
+  /// The matched row's provenance line ([sourceProvenanceLine]). Null on an
+  /// unmatched line and on a row no lookup filled. Carried here because
+  /// validation already reads the import's vocab in one query.
   final String? sourceLine;
 
-  /// The measure the line's current unit NAMES, when it names one — so the
-  /// method's step chips can read the same measure the card resolved, without
-  /// a second measure read per line. Null when the unit is a catalog unit, a
-  /// word nothing carries, or absent.
+  /// The measure the line's current unit names, so the method's step chips need
+  /// no second read. Null for a catalog unit, an unknown word, or no unit.
   final Measure? unitMeasure;
 
-  /// The line is a count on a piece-default row that has no piece weight yet
-  /// (ADR-0015) — the one [LineIssue.unitNotAllowed] whose fix is not on this
-  /// card. The weight is the INGREDIENT's fact, so the card says so and opens
-  /// the row rather than offering to type it here (owner: "it's a property
-  /// the ingredient must define").
+  /// The line is a count on a piece-default row with no piece weight
+  /// (ADR-0015). The weight is the ingredient's fact, so the card opens the row
+  /// rather than taking it here.
   final bool pieceWeightMissing;
 
-  /// The matched row is a `stub` — real, plannable, and honest about the
-  /// numbers it has not got. It gates NOTHING (a stub commits perfectly well);
-  /// it rides here because the row is already in hand from the one vocab
-  /// query, and the wide review's work queue prints the word beside a row
-  /// created during this review.
+  /// The matched row is a `stub`. It gates nothing; the wide review's work
+  /// queue prints the word beside a row created during this review.
   final bool rowIsStub;
 
   bool get isClean => issues.isEmpty;
 }
 
-/// Whether [resolution] is a plain COUNT — a printed `piece`, or a number
-/// with no unit word at all, which is what the commit path stores as `piece`
-/// (`_unitId`). One predicate, so the validity check and the card agree about
-/// which lines are counts.
+/// Whether [resolution] is a plain count: a printed `piece`, or a number with
+/// no unit word, which commits as `piece`.
 bool resolutionIsCount(LineResolution resolution) {
   final unit = resolution.unit;
   if (unit == null || unit.isEmpty) return resolution.quantity != null;
@@ -332,14 +257,10 @@ bool countNeedsPieceWeight(LineResolution resolution, Ingredient? ingredient) =>
     resolutionIsCount(resolution) &&
     defaultUnitNeedsPieceWeight(ingredient);
 
-/// The ingredient the import amount editor and the validity check both reason
-/// about: the real ingredient with the imprecise units it earns
-/// ([importImpreciseUnitsFor]) unioned into its allowed set, so those chips are
-/// offered (and accepted) on a line without touching the stored vocab row.
-///
-/// [parsedUnit] is the line's own printed unit, so a source-printed imprecise
-/// word is admitted on this line alone (J3b) — the sheet must always be able
-/// to render the unit the line is already carrying.
+/// The ingredient the amount editor and the validity check reason about: the
+/// real row with its import imprecise units ([importImpreciseUnitsFor]) unioned
+/// into the allowed set, without touching the stored row. [parsedUnit] admits
+/// the line's own printed imprecise word.
 Ingredient amountSheetIngredient(Ingredient ingredient, {String? parsedUnit}) {
   final base = ingredient.allowedUnits ?? defaultAllowedUnitSet(ingredient);
   return ingredient.copyWith(
@@ -350,30 +271,22 @@ Ingredient amountSheetIngredient(Ingredient ingredient, {String? parsedUnit}) {
   );
 }
 
-/// The outstanding issues for [resolution]. Pass the matched [ingredient] (and
-/// its [measures]) to check the unit against the allowed set; without an
-/// ingredient only the structural issues (unmatched / range) are reported.
+/// The outstanding issues for [resolution]. With a matched [ingredient] and its
+/// [measures] the unit is checked against the allowed set; without one only
+/// unmatched and range issues are reported.
 ///
-/// A DROPPED line has no issues by construction: it is leaving the recipe, so
-/// it can neither be flagged nor hold up Save (owner call).
-///
-/// The line's own unit is passed to [acceptableUnitTokens] as the parsed unit:
-/// a source-printed imprecise word validates whatever the ingredient's
-/// category (J3b). A printed mass/volume unit gets no such pass — D4c flags
-/// "1 cup" on a density-less row exactly as before, because that one the
-/// converter genuinely cannot resolve.
+/// A dropped line has no issues. A printed imprecise word validates whatever
+/// the category; a printed mass/volume unit the row cannot convert is still
+/// flagged.
 List<LineIssue> lineIssues(
   LineResolution resolution, {
   Ingredient? ingredient,
   List<Measure> measures = const [],
 }) {
   if (resolution.isDropped) return const [];
-  // A LINKED line answers to D6's rule alone: valid when its amount is set.
-  // No ingredient match is wanted (it has the other identity), and no
-  // `allowed_units` gate applies — admission is an ingredient concept, and
-  // this unit meets the target recipe's yield family later, at derive time
-  // (D2). Which is why "¼ cup of a yield-less aioli" surfaces on the cook
-  // plan, not here.
+  // A linked line is valid when its amount is set. No ingredient match or
+  // `allowed_units` gate applies; its unit meets the target recipe's yield
+  // family at derive time, on the cook plan.
   if (resolution.isComponent) {
     return resolution.quantity == null
         ? const [LineIssue.amountMissing]
@@ -387,10 +300,8 @@ List<LineIssue> lineIssues(
   if (resolution.isRange && resolution.quantity == null) {
     issues.add(LineIssue.rangeUnpicked);
   }
-  // A number with no unit word is a count, and it commits as `piece`
-  // (`_unitId`), so it is validated as one (ADR-0015): "2 dragon fruit" on a
-  // row that cannot say `piece` is flagged here, not committed as a bare
-  // count nothing weighs.
+  // A number with no unit word is a count and commits as `piece`, so it is
+  // validated as one (ADR-0015).
   final unit = resolution.unit;
   final effectiveUnit = (unit == null || unit.isEmpty)
       ? (resolution.quantity != null ? pieces.id : null)
@@ -412,14 +323,9 @@ List<LineIssue> lineIssues(
 bool allLinesValid(Map<int, List<LineIssue>> issuesByLine) =>
     issuesByLine.values.every((i) => i.isEmpty);
 
-/// The printed CROSS-REFERENCE a line carries — `"(page 38)"` — or null.
-///
-/// One more honest-import flag: the server strips it before matching (the way
-/// parentheticals already are), so saying so on the card is what keeps the
-/// stripping from looking like a misreading — the identity text still says
-/// "(page 38)" and the chip below says which recipe that turned out to be.
-/// The pattern mirrors the server's stripping, so the two agree about what
-/// counts as a reference rather than as an ordinary parenthetical.
+/// The printed cross-reference a line carries, e.g. `"(page 38)"`, or null. The
+/// server strips it before matching; the pattern mirrors the server's so both
+/// agree on what counts as a reference.
 String? crossReferenceFlag(String ingredientText) {
   final match = RegExp(
     r'\((?:see\s+)?p(?:age|g)?\.?\s*\d+\)',

@@ -1,22 +1,11 @@
-/// The v3 review screen (owner refinement): ONE editable surface. There is no
-/// separate triage/preview split any more — the imported recipe is reviewed and
-/// confirmed here, every line an expandable [ReviewLineCard] (compact by
-/// default, tap to edit in place). The honest-import warnings ride the top and
-/// commit happens at the bottom.
+/// The import review screen: one editable surface.
 ///
-/// The never-invent flags (0014) are shown, not hidden: parse warnings, a
-/// degraded image, a truncated source, and each line's own flags.
-///
-/// The METHOD is editable here too: the editor's own step cards, hosted over
-/// the review's draft by [ImportMethodEditing]. Chips key on the preview's
-/// `line-<i>` ids and convert back to line indexes at commit.
-///
-/// The **structure** is the human's as well: a section can be renamed, added
-/// and deleted (which never deletes its lines — they move into the section
-/// above), and a line the page forgot can be added, taking a flat index past
-/// the payload's last. All of that rides `ImportReconciling.sections`; the
-/// payload stays the server's word about the page, so `from source:` never
-/// starts lying.
+/// Every line is an expandable [ReviewLineCard]; the honest-import warnings
+/// ride the top and commit happens at the bottom. The method is editable
+/// through [ImportMethodEditing], whose chips key on the preview's `line-<i>`
+/// ids. Sections can be renamed, added and deleted (their lines move into the
+/// section above), and lines can be added; all of that lives in
+/// `ImportReconciling.sections`, and the payload stays as the server sent it.
 library;
 
 import 'dart:async';
@@ -54,21 +43,15 @@ class ReconciliationBody extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(importControllerProvider.notifier);
     final payload = state.payload;
-    // Per-line validity (matched? range picked? unit in the ingredient's
-    // allowed set?) + inline unit chips — drives each card's flag, its unit
-    // suggestions, AND the Save gate. Read through `AsyncValue.value`, NOT
-    // `asData`: a recompute passes through a loading state whose data-only
-    // view is null, and reading THAT blinked every card's border, the counter
-    // and the Save button on every keystroke. `.value` keeps the last map
-    // until the new one lands.
+    // Per-line validity and unit chips: drives each card's flag, its
+    // suggestions and the Save gate. Read through `.value`, not `asData`: a
+    // recompute passes through a loading state whose data-only view is null,
+    // which blinked every card on each keystroke.
     final validation = ref.watch(importValidationProvider);
     final byLine = validation.value;
-    // The method's step cards read the same recipe a save would write — so the
-    // "Reads as" fold shows live amounts, and a chip keyed on
-    // `previewLineId(i)` resolves without any extra plumbing (seam D4). The
-    // measure a line's unit names rides in from the SAME validation map the
-    // card prints it from, so the chip sheet cannot say "piece" where the card
-    // says "avocado".
+    // The method's step cards read the recipe a save would write, so a chip
+    // keyed on `previewLineId(i)` resolves directly. The measure a line's unit
+    // names comes from the same validation map the card prints.
     final recipe = buildPreviewRecipe(
       payload,
       state.resolutions,
@@ -86,15 +69,10 @@ class ReconciliationBody extends HookConsumerWidget {
       preview: recipe,
     );
 
-    // The sections are the HUMAN's, not the payload's: renamed, deleted and
-    // added here, holding flat line indexes. `lineAt` is what covers a line
-    // the review minted, whose index the payload has no entry for.
-    //
-    // They render as ONE flat list — a heading row, then its line rows — so a
-    // line dragged under another heading is filed under it. Every index a
-    // section holds takes a row whether or not a resolution answers for it:
-    // the row positions ARE the drag's arithmetic, and a silently skipped row
-    // would file the next drop one line off.
+    // The sections are the review's own, holding flat line indexes; `lineAt`
+    // covers a line added at review. They render as one flat list, a heading
+    // row then its line rows. Every index takes a row, resolved or not, because
+    // row positions are the drag's arithmetic.
     final collapseEpoch = useState(0);
     final rows = reviewRowList(
       state: state,
@@ -112,10 +90,8 @@ class ReconciliationBody extends HookConsumerWidget {
     final source = payload.yieldRaw?.trim();
     final sourceStated = source != null && source.isNotEmpty;
     return CustomScrollView(
-      // Once you start dragging the list you have finished typing, and a
-      // field left focused off the top of the screen asks to be scrolled back
-      // to on every keyboard metrics change — which is enough to throw the
-      // page to the title while a line further down is being corrected.
+      // Dragging dismisses the keyboard: a focused field off screen asks to be
+      // scrolled back to on every keyboard metrics change.
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       slivers: [
         SliverPadding(
@@ -124,17 +100,13 @@ class ReconciliationBody extends HookConsumerWidget {
           // method's step cards are not all built to show the top of the page.
           sliver: SliverList.list(
             children: [
-              // The never-invent strip sits ABOVE the form: with the title an
-              // editable field now, it reads as "about the whole import"
-              // before the fields begin.
+              // The source notes sit above the form, since they are about the
+              // whole import.
               ImportSourceNotes(payload: payload),
-              // The editor's header, hosted by the controller (D4). What
-              // only the review knows is drawn around it through the note
-              // slot, not inside a copy of it: whether the page printed a
-              // serving count, and what it said about the yield —
-              // `yield_raw` stays visible as the reference the fields are
-              // (or are not) filled from, the same honesty every line card
-              // has under it. Nothing here gates Save.
+              // The editor's header, hosted by the controller. What only the
+              // review knows is drawn through the note slot: whether the page
+              // printed a serving count, and its `yield_raw`. Nothing here
+              // gates Save.
               RecipeHeaderForm(
                 host: controller,
                 timeCaptions: false,
@@ -157,9 +129,7 @@ class ReconciliationBody extends HookConsumerWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              // The count is what the recipe will HAVE — a dropped line is
-              // on its way out, and counting it would contradict the greyed
-              // card saying so.
+              // The count excludes dropped lines.
               ReviewSectionHeader(
                 label: 'Ingredients',
                 count: keptLines(state.resolutions).length,
@@ -183,9 +153,8 @@ class ReconciliationBody extends HookConsumerWidget {
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
           sliver: SliverList.list(
             children: [
-              // The two doors sit TIGHT under the last line: they belong to
-              // the list, not to the screen, and a gap reads as a section
-              // break that is not there.
+              // The two doors sit tight under the last line, as part of the
+              // list.
               ReviewListDoors(recipe: recipe, sections: state.sections),
               const SizedBox(height: 24),
               MethodEditor(recipe: recipe, notifier: methodHost),
@@ -200,17 +169,11 @@ class ReconciliationBody extends HookConsumerWidget {
 }
 
 /// The flat row list the review drags: a heading per section, then a row per
-/// line index that section holds.
+/// line index it holds. Shared by the phone's cards and the wide screen's rows.
+/// Every index takes a row, resolved or not, because row positions are the
+/// drag's arithmetic.
 ///
-/// Both forms of the review build it — the phone's expanding cards and the
-/// wide screen's bare rows — because the arithmetic is load-bearing and must
-/// not be written twice. **Every index a section holds takes a row** whether or
-/// not a resolution answers for it: the row positions ARE the drag's
-/// arithmetic, and a silently skipped row would file the next drop one line
-/// off.
-///
-/// [row] is handed the line, its resolution, its validation and its position
-/// in this list — the drag index — and returns whatever that screen draws.
+/// [row] receives the line, its resolution, its validation and its drag index.
 List<Widget> reviewRowList({
   required ImportReconciling state,
   required Map<int, LineValidation>? byLine,
@@ -244,14 +207,9 @@ List<Widget> reviewRowList({
   return rows;
 }
 
-/// The Save gate, and the one sentence that says why it is shut.
-///
-/// It is a widget rather than a slab of the body because the wide review draws
-/// it as the **lines column's footer** — the number on it is about the lines,
-/// and a bar across the source pane would say the page has something to save.
-/// Two places, one rule: the gate, its retry and its three labels are written
-/// once here, and `buildCommit` re-asserts the same map at the seam so this
-/// button is never the only thing holding the invariant.
+/// The Save gate and the sentence that says why it is shut. A widget of its own
+/// because the wide review draws it as the lines column's footer. `buildCommit`
+/// re-asserts the same map at the seam.
 class ReviewCommitBar extends ConsumerWidget {
   const ReviewCommitBar({required this.state, super.key});
 
@@ -260,31 +218,24 @@ class ReviewCommitBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(importControllerProvider.notifier);
-    // `.value`, never `asData`: a recompute passes through a loading state
-    // whose data-only view is null, and reading THAT blinked the button on
-    // every keystroke.
+    // `.value`, never `asData`; see the body's note on the same provider.
     final validation = ref.watch(importValidationProvider);
     final byLine = validation.value;
     final issuesByLine = byLine == null
         ? null
         : {for (final e in byLine.entries) e.key: e.value.issues};
-    // The vocab read behind the gate failed and has never answered: Save
-    // cannot open, and the count it would otherwise show is the structural
-    // one — zero, once every line is matched. "0 line(s) need you" over a
-    // disabled button is a wall with no door.
+    // The vocab read behind the gate failed and has never answered. Save cannot
+    // open, and a structural count of zero would be misleading.
     final unchecked = byLine == null && validation.hasError;
-    // Save is gated on EVERY line being valid: matched, range picked, and a
-    // unit inside the matched ingredient's allowed set (round-2 #2). While
-    // validation has never yet loaded it stays disabled.
+    // Save requires every line valid: matched, range picked, unit allowed.
+    // Disabled until validation has loaded once.
     final canSave =
         issuesByLine != null && state.canCommit && allLinesValid(issuesByLine);
     // ONE count, shared with the header's "N to review" (they were two
     // different rules and the header never decremented).
     final outstanding = ref.watch(importOutstandingLinesProvider);
     return FButton(
-      // A failed check is the one disabled state with something to do:
-      // re-running the read is the whole fix, so the button becomes the retry
-      // rather than a dead end.
+      // After a failed check the button becomes the retry.
       onPress: canSave
           ? () => controller.commit(issuesByLine: issuesByLine)
           : unchecked
@@ -305,16 +256,9 @@ class ReviewCommitBar extends ConsumerWidget {
   }
 }
 
-/// One section's heading: the name as an editable field, and the bin.
-///
-/// **Deleting a heading never deletes its lines** — they move into the
-/// section above, which is why the bin needs no confirm. Dropping food is
-/// what each line's own bin already does.
-///
-/// A single UNNAMED section shows no row at all: that is the ordinary shape
-/// of a recipe that never divided its ingredients, and an empty field over
-/// the first line would be furniture. `＋ section` is the way out of it, and
-/// the moment there are two, both are nameable.
+/// One section's heading: the name as an editable field, and the bin. Deleting
+/// a heading moves its lines into the section above, so the bin needs no
+/// confirm. A single unnamed section shows no heading row.
 class ReviewSectionHeading extends ConsumerWidget {
   const ReviewSectionHeading({
     required this.group,
@@ -362,11 +306,8 @@ class ReviewSectionHeading extends ConsumerWidget {
   }
 }
 
-/// The list's own two doors, tight under the last line: add a line the page
-/// forgot, and add a section to put lines in.
-///
-/// A line added here lands in the LAST section, which is what makes
-/// `＋ section` then `＋ ingredient` read as one gesture.
+/// The list's two doors: add a line, and add a section. A new line lands in the
+/// last section.
 class ReviewListDoors extends ConsumerWidget {
   const ReviewListDoors({
     required this.recipe,
@@ -409,9 +350,8 @@ class ReviewListDoors extends ConsumerWidget {
   /// sheet — landing on the review's `addLine` instead of the editor's.
   Future<void> _addLine(BuildContext context, WidgetRef ref) async {
     // Read through the container, not this widget's `ref`: the picker's
-    // keyboard shrinks the review under it, and the doors can be unmounted by
-    // the time a row is tapped. A `WidgetRef` used after unmount throws
-    // (Riverpod 3) and the pick would be lost.
+    // keyboard can unmount the doors before a row is tapped, and a `WidgetRef`
+    // used after unmount throws.
     final container = ProviderScope.containerOf(context, listen: false);
     final controller = container.read(importControllerProvider.notifier);
     final groupId = sections.last.id;
@@ -442,12 +382,9 @@ class ReviewListDoors extends ConsumerWidget {
       case PickedSubRecipe(:final target):
         final result = await showComponentQuantitySheet(
           context,
-          // No words on the review's dock: a review line stores a unit id and
-          // has no column for one of the target's own words, so a `blob`
-          // picked here could only land as a whole batch. A word is said on
-          // the line once the recipe exists, in the editor, where it is stored
-          // as the pointer it is (ADR-0018). No ＋ either, for the same
-          // reason: a word coined here would have nowhere to be said.
+          // No recipe measures and no ＋ on the review's dock: a review line
+          // stores a unit id and has no column for one of the target's own
+          // words (ADR-0018).
           target: target.copyWith(measures: const []),
         );
         controller.addLine(
@@ -462,11 +399,9 @@ class ReviewListDoors extends ConsumerWidget {
   }
 }
 
-/// What the extractor could NOT read cleanly: a truncated source, a
-/// degraded/poor photo, and the model's own [ReconciliationPayload.parseWarnings]
-/// — which were carried all the way to the client and then never rendered,
-/// while this file's doc claimed they were shown. Empty when the import came
-/// back clean.
+/// What the extractor could not read cleanly: a truncated source, a degraded
+/// photo, and the model's [ReconciliationPayload.parseWarnings]. Empty for a
+/// clean import.
 List<String> sourceNotes(ReconciliationPayload payload) => <String?>[
   if (payload.truncated)
     'The source was longer than we could read — check nothing is missing.',
@@ -480,9 +415,7 @@ List<String> sourceNotes(ReconciliationPayload payload) => <String?>[
   ...payload.parseWarnings,
 ].whereType<String>().toList();
 
-/// [sourceNotes] at the top of the review — the never-invent flags (0014)
-/// belong on screen, not in a log. Each is a reason to look harder at the lines
-/// below, so they read as one quiet block rather than an alarm.
+/// [sourceNotes] at the top of the review, as one quiet block.
 class ImportSourceNotes extends StatelessWidget {
   const ImportSourceNotes({required this.payload, super.key});
 

@@ -1,28 +1,17 @@
-/// The stages the import screen shows while `import-recipe` is running — PURE
-/// DART (invariant 2).
+/// The stages the import screen shows while `import-recipe` runs. Pure Dart.
 ///
-/// The server runs several stages behind one call: a URL import fetches the
-/// page, extracts with the model, then matches the lines; a photo import
-/// transcribes the pages with the vision tier first, so it makes TWO model
-/// calls before matching. The call answers as a `text/event-stream` and names
-/// each stage as it completes, so **none of this is estimated**: the list comes
-/// from the server's first event and every finished row carries the server's
-/// own elapsed time.
-///
-/// The ids are the wire contract (`supabase/functions/import-recipe/index.ts`);
-/// the wording is here, because copy belongs where the screen is.
+/// The call answers as a `text/event-stream` and names each stage as it
+/// completes, so nothing is estimated: the list comes from the server's first
+/// event and every finished row carries the server's elapsed time. The ids are
+/// the wire contract (`supabase/functions/import-recipe/index.ts`); the wording
+/// lives here.
 library;
 
 import 'package:meta/meta.dart';
 
-/// One stage of a server pipeline that narrates itself, whatever it is
-/// reading.
-///
-/// [ImportStage] is the recipe pipeline's; `features/receipts` has its own for
-/// `import-receipt`, whose ids and wording are its own. The checklist
-/// arithmetic below is shared, because it is the same screen with the same
-/// promise — nothing estimated — and two copies of it would be two chances to
-/// print a negative duration.
+/// One stage of a server pipeline that narrates itself. [ImportStage] is the
+/// recipe pipeline's; `features/receipts` has its own for `import-receipt`. The
+/// checklist arithmetic below is shared.
 abstract interface class PipelineStage {
   /// The id the server sends. Never shown.
   String get id;
@@ -31,12 +20,9 @@ abstract interface class PipelineStage {
   String label({required bool fromPhotos, required StageStatus status});
 }
 
-/// One stage of the server pipeline, as named on the wire.
-///
-/// Each stage carries its wording in **both tenses**: what is happening while
-/// it runs, and what happened once it is done. A row that says "Photos read"
-/// while the pages are still being read is claiming something that has not
-/// occurred yet — the same lie, in miniature, as a progress bar that guesses.
+/// One stage of the server pipeline, as named on the wire. Each carries its
+/// wording in both tenses: what is happening while it runs, and what happened
+/// once done.
 enum ImportStage implements PipelineStage {
   /// The request — for photos, however many megabytes of it — is in hand.
   received(
@@ -71,10 +57,8 @@ enum ImportStage implements PipelineStage {
     done: 'Ingredients matched',
   );
 
-  /// Only `received` states the two door wordings apart — from a link there is
-  /// nothing to upload, so naming photos there would be a lie. Every other
-  /// stage reads the same through either door, and says so by leaving the
-  /// `url…` pair off rather than by repeating itself.
+  /// Only `received` words the link and photo doors differently (a link uploads
+  /// nothing). Other stages leave the `url…` pair off.
   const ImportStage(
     this.id, {
     required String running,
@@ -95,10 +79,9 @@ enum ImportStage implements PipelineStage {
   final String _urlRunning;
   final String _urlDone;
 
-  /// What the checklist row reads, **in the tense the row is actually in**: a
-  /// running stage says what is happening (and ends in an ellipsis), a
-  /// finished one what happened. A pending row borrows the finished wording —
-  /// it is the plan, read muted, and there is no third tense worth a word.
+  /// What the checklist row reads, in the row's tense: a running stage says
+  /// what is happening (with an ellipsis), a finished one what happened. A
+  /// pending row borrows the finished wording, drawn muted.
   @override
   String label({required bool fromPhotos, required StageStatus status}) =>
       switch ((status, fromPhotos)) {
@@ -159,17 +142,14 @@ class StageProgress {
   String toString() => 'StageProgress(${stage.id}, $status, $elapsed)';
 }
 
-/// The checklist as the screen draws it, built from what the server has said so
-/// far plus the clock.
+/// The checklist as the screen draws it, from what the server has said so far
+/// plus the clock.
 ///
 /// [plan] is the server's stage list, in order. [finished] maps each completed
-/// stage to the server's elapsed time **since the request arrived** — so a
-/// stage's own duration is the difference between consecutive entries, and the
-/// running stage's is [elapsed] (the client's clock) minus the last finished
-/// one. Stages the server has not reached are `pending`.
-///
-/// When every planned stage is done the last row stays `done`: the payload is
-/// already on its way and there is nothing left to tick.
+/// stage to the server's elapsed time since the request arrived, so a stage's
+/// duration is the difference between consecutive entries, and the running
+/// stage's is [elapsed] (the client's clock) minus the last finished one. When
+/// every planned stage is done the last row stays `done`.
 List<StageProgress> stageChecklist({
   required List<PipelineStage> plan,
   required Map<PipelineStage, Duration> finished,
@@ -213,9 +193,8 @@ List<StageProgress> stageChecklist({
   return rows;
 }
 
-/// `m:ss` — the shape a stage row prints. Minutes are not zero-padded; a stage
-/// that runs past an hour would print its minutes as a running total, which is
-/// the honest thing for a wait nobody should be having.
+/// `m:ss`, as a stage row prints it. Minutes are not zero-padded and run past
+/// 59 as a total.
 String formatStageDuration(Duration d) {
   final seconds = d.inSeconds;
   final minutes = seconds ~/ 60;

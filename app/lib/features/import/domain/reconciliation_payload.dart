@@ -1,16 +1,13 @@
-/// The reconciliation payload — the edge function's output, mirrored in Dart.
+/// The reconciliation payload: the edge function's output, mirrored in Dart.
+/// Pure Dart.
 ///
-/// PURE DART (invariant 2): no `package:flutter`. These types mirror the frozen
-/// server contract in `supabase/functions/_shared/types.ts`
-/// ([ReconciliationPayload] and friends) one-for-one — the real `import-recipe`
-/// edge function returns this shape, and the canned test payload parses into
-/// it. Field names are camelCase here and serialize to the contract's
-/// snake_case via `build.yaml`'s `field_rename`.
+/// Mirrors the frozen server contract in `supabase/functions/_shared/types.ts`
+/// one for one. Field names are camelCase here and serialize to snake_case via
+/// `build.yaml`'s `field_rename`.
 ///
-/// INVARIANT — extraction never invents (0014): absent/ambiguous values arrive
-/// as nulls, ranges (`qtyLow`/`qtyHigh`), `unitMappable: false`, or
-/// `parseWarnings` — never a guessed number. The reconciliation UI surfaces all
-/// of them; it never silently fills one in.
+/// Extraction never invents: absent or ambiguous values arrive as nulls, ranges
+/// (`qtyLow`/`qtyHigh`), `unitMappable: false` or `parseWarnings`, and the
+/// review surfaces them all.
 library;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -39,9 +36,8 @@ enum MatchBand {
   none,
 }
 
-/// The LLM's within-recipe classification of a step reference (§4.6). Drives
-/// whether the chip renders a number, never the number itself (that is derived
-/// live from the line item). `isNew` is the JSON `"new"`.
+/// The model's classification of a step reference. Drives whether the chip
+/// renders a number, never the number itself. `isNew` is the JSON `"new"`.
 enum MentionKind {
   @JsonValue('new')
   isNew,
@@ -90,9 +86,9 @@ class TimeFieldConverter implements JsonConverter<TimeRange?, Object?> {
   }
 }
 
-/// One extracted ingredient line, ingredient-blind and unit-aware. Identity
-/// ([ingredientText]) is preserved as-written; only [qty]/[unit] are normalized
-/// toward our vocab, and an unmappable amount is preserved + flagged.
+/// One extracted ingredient line. [ingredientText] is preserved as written;
+/// only [qty] and [unit] are normalized, and an unmappable amount is preserved
+/// and flagged.
 @freezed
 abstract class RawLineItem with _$RawLineItem {
   const factory RawLineItem({
@@ -108,9 +104,8 @@ abstract class RawLineItem with _$RawLineItem {
     String? unit,
     @Default(true) bool unitMappable,
 
-    /// A per-use note ("juiced", "zested", "to serve") — never part of the
-    /// ingredient identity we match on. Renamed from `prep` (server contract
-    /// rename): the slot also carries usage notes, not only prep transforms.
+    /// A per-use note ("juiced", "zested", "to serve"); never part of the
+    /// identity we match on.
     String? notes,
 
     /// The full printed amount, verbatim — never lost (e.g. "2½ x 400g cans").
@@ -123,17 +118,10 @@ abstract class RawLineItem with _$RawLineItem {
       _$RawLineItemFromJson(json);
 }
 
-/// Where a line was read from inside [ReconciliationPayload.sourceText] —
-/// a half-open character range, `[start, end)`, into that exact string.
-///
-/// Additive: the server emits it only where the line's own printed words can
-/// be pointed at in that text unambiguously, and omits the field entirely
-/// otherwise. The wide review lights the range in its source column; nothing
-/// else reads it, and a payload without one still renders the plain page.
-///
-/// It indexes the text the server sent, not the page: [ReconciliationPayload
-/// .sourceText] is bounded, so a span is only ever emitted for a line that
-/// falls inside what was sent.
+/// Where a line was read from inside [ReconciliationPayload.sourceText]: a
+/// half-open character range, `[start, end)`. The server emits it only when the
+/// line's words can be located unambiguously in the (bounded) text it sent.
+/// Only the wide review's source column reads it.
 @freezed
 abstract class SourceSpan with _$SourceSpan {
   const factory SourceSpan({required int start, required int end}) =
@@ -156,14 +144,11 @@ abstract class MatchCandidate with _$MatchCandidate {
       _$MatchCandidateFromJson(json);
 }
 
-/// A server-scored candidate **household recipe** for a line (step 8.6 / D6):
-/// the matcher ran this line's `ingredient_text` — cross-reference
-/// parentheticals stripped ("(page 38)") — through the shared normalizer
-/// against recipe TITLES as well as the vocabulary.
-///
-/// It is an OFFER, never a link: the review card renders it as one more
-/// did-you-mean chip and a human taps it (the D6 non-goal — auto-linking,
-/// ever). A line can carry both ingredient [MatchCandidate]s and these.
+/// A server-scored candidate household recipe for a line: the matcher ran the
+/// line's `ingredient_text`, cross-references stripped, against recipe titles
+/// as well as the vocabulary. An offer, never a link: the review renders it as
+/// a did-you-mean chip. A line can carry these and ingredient
+/// [MatchCandidate]s.
 @freezed
 abstract class RecipeCandidate with _$RecipeCandidate {
   const factory RecipeCandidate({
@@ -180,9 +165,8 @@ abstract class RecipeCandidate with _$RecipeCandidate {
       _$RecipeCandidateFromJson(json);
 }
 
-/// A sub-amount named IN A STEP for one reference (§4.6). Source-derived — a
-/// number transcribed from the prose, or a relative [qualifier], never
-/// invented.
+/// A sub-amount named in a step for one reference: a number transcribed from
+/// the prose, or a relative [qualifier]. Never invented.
 @freezed
 abstract class RefPortion with _$RefPortion {
   const factory RefPortion({
@@ -199,9 +183,8 @@ abstract class RefPortion with _$RefPortion {
       _$RefPortionFromJson(json);
 }
 
-/// A step is an ordered token stream (§4.6), rendered by a fold — never
-/// render-time text matching. Refs are by **line index** in this payload; the
-/// app remaps them to real `line_item_id`s on commit.
+/// A step is an ordered token stream. Refs are by line index in this payload;
+/// commit remaps them to `line_item_id`s.
 @Freezed(unionKey: 't')
 sealed class StepToken with _$StepToken {
   /// Plain prose between chips.
@@ -234,8 +217,8 @@ abstract class Step with _$Step {
 }
 
 /// One reconciliation line: the raw extraction, its match [band], the server's
-/// ingredient [candidates] (empty for `none`), and — additively (8.6) — any
-/// household recipes whose title this line might be naming.
+/// ingredient [candidates] (empty for `none`), and any household recipes whose
+/// title it might name.
 @freezed
 abstract class ReconLine with _$ReconLine {
   const factory ReconLine({
@@ -243,16 +226,12 @@ abstract class ReconLine with _$ReconLine {
     required MatchBand band,
     @Default(<MatchCandidate>[]) List<MatchCandidate> candidates,
 
-    /// The D6 recipe offers. The server OMITS the field entirely when there
-    /// are none — and when no recipe-title matcher is wired at all — so an
-    /// absent field must decode to exactly what it decoded before this
-    /// existed: the empty list, no chip, and a byte-identical commit.
+    /// The recipe offers. The server omits the field when there are none, which
+    /// decodes to the empty list.
     @Default(<RecipeCandidate>[]) List<RecipeCandidate> recipeCandidates,
 
-    /// Where this line sits in [ReconciliationPayload.sourceText], when the
-    /// extractor knows. Omitted by the server otherwise, exactly as
-    /// [recipeCandidates] is, so a payload without it decodes to the same
-    /// bytes it always did.
+    /// Where this line sits in [ReconciliationPayload.sourceText]. Omitted by
+    /// the server when unknown.
     SourceSpan? sourceSpan,
   }) = _ReconLine;
 
@@ -287,14 +266,9 @@ abstract class ReconciliationPayload with _$ReconciliationPayload {
     @Default(<ReconGroup>[]) List<ReconGroup> groups,
     @Default(<Step>[]) List<Step> steps,
 
-    /// The text the server actually read this recipe out of — a **link**
-    /// import's fetched page, bounded server-side. Null for a
-    /// photo import, where the pages are images the phone already holds, and
-    /// null from any server that does not send it.
-    ///
-    /// It is the source column's copy on a desk. Bounded because a page's
-    /// text is unbounded and this rides the same response as the recipe: the
-    /// cap is the server's, stated in `import-recipe/index.ts`.
+    /// The text the server read this recipe from: a link import's fetched page,
+    /// capped server-side (`import-recipe/index.ts`). Null for a photo import.
+    /// Feeds the wide review's source column.
     String? sourceText,
   }) = _ReconciliationPayload;
 
@@ -302,9 +276,8 @@ abstract class ReconciliationPayload with _$ReconciliationPayload {
       _$ReconciliationPayloadFromJson(json);
 }
 
-/// The flattened line-index order (§4.6): all lines across all groups, in
-/// order. Step refs index into this list, and commit assigns `line_item_id`s in
-/// exactly this order.
+/// The flattened line-index order: all lines across all groups. Step refs index
+/// into it, and commit assigns `line_item_id`s in this order.
 extension ReconciliationPayloadFlatten on ReconciliationPayload {
   List<ReconLine> get flatLines => [for (final group in groups) ...group.lines];
 }

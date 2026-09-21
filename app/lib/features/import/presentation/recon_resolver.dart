@@ -1,11 +1,8 @@
-/// Saying what one review line IS: the ingredient it resolved to, or the
-/// candidates and the seeded search that answer it.
-///
-/// [Resolver] is the identity cell of a review line card — the chosen
-/// ingredient (the whole row taps to re-match), the server's candidate chips,
-/// or a recipe-title offer that turns the line into a component. Tapping into
-/// it opens [showReconcileIngredientSheet], the seeded search with the
-/// create-new door, which resolves to a [ReconcilePick] and writes nothing.
+/// Saying what one review line is. [Resolver] is the identity cell of a review
+/// line card: the chosen ingredient, the server's candidate chips, or a
+/// recipe-title offer that turns the line into a component. It opens
+/// [showReconcileIngredientSheet], which resolves to a [ReconcilePick] and
+/// writes nothing.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -22,9 +19,9 @@ import '../../recipes/presentation/recipe_chip.dart';
 import '../domain/line_resolution.dart';
 import '../domain/reconciliation_payload.dart';
 
-/// The band-appropriate resolver: the chosen ingredient (the whole row taps to
-/// re-match) or, unresolved, the candidate chips / seeded-search entry point.
-/// Resolving is delegated up so a caller could write several lines at once.
+/// The resolver: the chosen ingredient (the whole row taps to re-match) or,
+/// unresolved, the candidate chips and the search entry point. Resolving is
+/// delegated up to the caller.
 class Resolver extends StatelessWidget {
   const Resolver({
     required this.candidates,
@@ -40,16 +37,15 @@ class Resolver extends StatelessWidget {
 
   final List<MatchCandidate> candidates;
 
-  /// The household recipes the server thinks this line names (8.6 / D6).
-  /// Rendered as chips in the SAME did-you-mean row, never instead of the
-  /// ingredient ones — a line can be either, and the human says which.
+  /// The household recipes the server thinks this line names. Rendered as chips
+  /// in the same did-you-mean row as the ingredient candidates, never instead
+  /// of them.
   final List<RecipeCandidate> recipeCandidates;
 
   final LineResolution resolution;
 
-  /// Resolves the line to a vocabulary row — a candidate, a search hit, or the
-  /// row the create-new chain just made in the ingredient form, which lands on
-  /// the line as the ordinary matched state.
+  /// Resolves the line to a vocabulary row: a candidate, a search hit, or the
+  /// row the create-new chain just made.
   final void Function(
     String id,
     String name, {
@@ -64,20 +60,13 @@ class Resolver extends StatelessWidget {
   /// Un-links a linked line, back to the plain text it arrived as.
   final VoidCallback? onUnlink;
 
-  /// The matched row's `usda · «description»` line, under the name in the
-  /// chosen cell. Null where the row names no lookup — and null while the line
-  /// is unmatched, where there is no row to name. A LINKED line is a recipe,
-  /// not a vocabulary row, so it never carries one.
+  /// The matched row's provenance line, under the name. Null when the row names
+  /// no lookup, the line is unmatched, or the line is linked to a recipe.
   final String? sourceLine;
 
   /// Whether the row this line names is not in the vocabulary this device can
-  /// read — retired since the server matched, or never synced. The identity
-  /// cell is then the PICK cell: there is no row to draw a ✓ over, and the
-  /// line needs the same answer an unmatched one needs.
-  ///
-  /// The verdict comes from `importValidation`, the one place that resolves a
-  /// match against the live vocabulary; this widget never decides it from the
-  /// id the resolution still carries.
+  /// read (retired or never synced). The cell then asks for a pick. The verdict
+  /// comes from `importValidation`, never from the id the resolution carries.
   final bool matchMissing;
 
   Future<void> _openSearch(BuildContext context) async {
@@ -107,10 +96,9 @@ class Resolver extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // LINKED: the identity cell is the recipe chip, with the same
-    // tap-the-row-to-re-match affordance a chosen ingredient has (picking an
-    // ingredient un-links it, D1's XOR) and an explicit unlink beside it, so
-    // the decision is reversible right up to Save.
+    // Linked: the identity cell is the recipe chip. Tapping the row re-matches
+    // (picking an ingredient un-links it), and an explicit unlink sits beside
+    // it.
     if (resolution.isComponent) {
       return _LinkedRecipe(
         title: resolution.linkedRecipeTitle ?? resolution.ingredientText,
@@ -139,9 +127,8 @@ class Resolver extends StatelessWidget {
             spacing: 6,
             runSpacing: 6,
             children: [
-              // The recipe offers lead the row — a line that names one of your
-              // own recipes usually means it — but they never replace the
-              // ingredient candidates beside them.
+              // Recipe offers lead the row but never replace the ingredient
+              // candidates.
               for (final c in offers)
                 ReconPill(
                   icon: kSubRecipeIcon,
@@ -166,9 +153,8 @@ class Resolver extends StatelessWidget {
           size: FButtonSizeVariant.sm,
           prefix: const Icon(FLucideIcons.search),
           onPress: () => _openSearch(context),
-          // Flexible, because this button stands in a 640-wide card on a phone
-          // and in a 340 panel on a desk: without it the longer label runs off
-          // the narrow one instead of taking a second line.
+          // Flexible so the longer label wraps in the narrow wide-review panel
+          // instead of overflowing.
           child: Flexible(
             child: Text(
               candidates.isEmpty && offers.isEmpty
@@ -190,10 +176,8 @@ class _Chosen extends StatelessWidget {
 
   final String label;
 
-  /// Which USDA food the matched row's numbers came from, under its name. The
-  /// review is the other place a wrong food is cheap to catch: the canonical
-  /// name alone can look perfectly right while the row behind it was filled
-  /// from something else entirely.
+  /// Which USDA food the matched row's numbers came from, under its name, so a
+  /// wrong fill can be caught at review.
   final String? sourceLine;
 
   final VoidCallback onTap;
@@ -258,10 +242,8 @@ class _Chosen extends StatelessWidget {
   }
 }
 
-/// A LINKED line's identity cell: lane U's recipe chip, the whole row a
-/// re-match target (picking an ingredient un-links it — one identity, D1), and
-/// an explicit unlink so the offer can be taken back without hunting for the
-/// ingredient the line never had.
+/// A linked line's identity cell: the recipe chip, the whole row a re-match
+/// target, and an explicit unlink.
 class _LinkedRecipe extends StatelessWidget {
   const _LinkedRecipe({
     required this.title,
@@ -331,9 +313,8 @@ class _LinkedRecipe extends StatelessWidget {
   }
 }
 
-/// One tappable offer on a review card — a candidate ingredient, a recipe the
-/// line might name, or a unit the card suggests. Shared with the card so the
-/// two rows of offers read as the same kind of answer.
+/// One tappable offer on a review card: a candidate ingredient, a recipe, or a
+/// suggested unit.
 class ReconPill extends StatelessWidget {
   const ReconPill({
     required this.label,
@@ -405,9 +386,8 @@ class ReconPill extends StatelessWidget {
 
 // --- The seeded search / create-new sheet ------------------------------------
 
-/// A reconciliation pick: a server candidate, or an existing vocab ingredient —
-/// which is also what the create-new footer hands back, once the row exists and
-/// the flesh-out form has been walked.
+/// A reconciliation pick: a server candidate, or an existing vocab ingredient,
+/// which is also what the create-new footer hands back.
 sealed class ReconcilePick {
   const ReconcilePick();
 }
@@ -421,22 +401,16 @@ class PickExisting extends ReconcilePick {
   const PickExisting(this.ingredient, {this.created = false});
   final Ingredient ingredient;
 
-  /// The row did not exist when the sheet opened — it was made through the
-  /// create-new footer, on the flesh-out form (§9). The resolution carries the
-  /// mark so the wide review's work queue can list those lines apart and out
-  /// of its count; nothing about the match itself differs.
+  /// The row was made through the create-new footer while the sheet was open.
+  /// The wide review's work queue lists such lines apart; the match itself is
+  /// no different.
   final bool created;
 }
 
-/// Opens the vocab search sheet PRE-SEEDED with this line's [candidates] +
-/// recents + create-new — never blank (decision 5). Resolves to a
-/// [ReconcilePick] or null if dismissed.
-///
-/// Create-new is the picker's own add-new chain: the ingredient form with the
-/// line's text prefilled, pushed over THIS sheet and awaited, and the row it
-/// pops resolved as a [PickExisting] — the ordinary matched state, no special
-/// case. Nothing is deferred to commit: a line cannot carry a name instead of
-/// an id, so there is nothing to coalesce there.
+/// Opens the vocab search sheet pre-seeded with this line's [candidates],
+/// recents and create-new. Resolves to a [ReconcilePick], or null if dismissed.
+/// Create-new is the picker's add-new chain, and the row it pops resolves as a
+/// [PickExisting].
 Future<ReconcilePick?> showReconcileIngredientSheet(
   BuildContext context, {
   required String seedName,
@@ -476,18 +450,14 @@ class _ReconcileSheet extends HookConsumerWidget {
         results: search.results,
         query: search.query,
         showingRecents: search.showingRecents,
-        // A guess is banded here as it is everywhere else. This is the picker
-        // where an unlabelled one costs the most: the row it lands on is
-        // written into a saved recipe AND learned as an alias of the line's
-        // raw text, so an unbanded guess is the phone resolving rather than
-        // offering (ADR-0004).
+        // A guess is banded here too: the row picked is written into a saved
+        // recipe and learned as an alias, so an unbanded guess would be the app
+        // resolving rather than offering (ADR-0004).
         guessed: search.guessed,
         onPick: (ing) => Navigator.of(context).pop(PickExisting(ing)),
       ),
-      // The picker footer's own row, in its `.addnew` voice — it no longer
-      // creates a stub-by-default, so it no longer reads like one. Seeded
-      // with the query, else the raw line text, so "curry leaves" becomes the
-      // row without retyping.
+      // The picker's add-new row, seeded with the query, else the raw line
+      // text.
       footer: AddNewIngredientRow(
         query: search.query.trim().isEmpty ? seedName : search.query,
         label: (name) => 'create "$name" as a new ingredient',

@@ -1,6 +1,5 @@
-/// Riverpod ViewModels for the import flow (step 8): intake → reconcile →
-/// commit, held in one [ImportController] the intake and reconciliation views
-/// share.
+/// Riverpod ViewModels for the import flow: intake, reconcile, commit, held in
+/// one [ImportController] the intake and reconciliation views share.
 library;
 
 import 'dart:async';
@@ -43,24 +42,17 @@ class ImportIdle extends ImportState {
   const ImportIdle();
 }
 
-/// Extraction + matching is running server-side (the `import-recipe` edge
-/// function).
-///
-/// It carries the checklist the reading screen draws: one row per stage the
-/// SERVER said this import would walk, each finished row frozen at the elapsed
-/// time the server reported for it, the running one ticking. Nothing here is
-/// an estimate — before the plan's first event arrives, [rows] is simply
-/// empty.
+/// Extraction and matching is running server-side (`import-recipe`). [rows] is
+/// the stage checklist the server announced, with server-reported times; empty
+/// until the plan's first event.
 class ImportLoading extends ImportState {
   const ImportLoading({required this.rows, required this.request});
 
   /// The checklist, in the server's order. Empty until the plan arrives.
   final List<StageProgress> rows;
 
-  /// What the cook handed intake. It rides the loading state so the wide
-  /// review's SOURCE column can be drawn while the server is still reading:
-  /// photo pages are local files the cook just chose, and a link at least has
-  /// its URL. The phone's checklist reads only [fromPhotos] off it.
+  /// What the cook handed intake, so the wide review's source column can draw
+  /// while the server is still reading.
   final ImportSource request;
 
   /// Which door this import came through — the only thing the checklist's
@@ -82,72 +74,42 @@ class ImportReconciling extends ImportState {
 
   final ReconciliationPayload payload;
 
-  /// What the cook handed intake — the URL, or the photo pages' local paths.
-  ///
-  /// The payload is the server's word about the page; this is the page
-  /// itself, or the way back to it. It rides the state because the wide
-  /// review's SOURCE column has nothing to draw without it: a photo import's
-  /// pages are files on this device that the payload never mentions, and a
-  /// link import's URL is the caption over the fetched text. Nothing on the
-  /// phone reads it.
+  /// What the cook handed intake: the URL, or the photo pages' local paths.
+  /// Only the wide review's source column reads it.
   final ImportSource request;
 
   final List<LineResolution> resolutions;
 
-  /// The ingredient list's SECTIONS as the human holds them: the payload's
-  /// own to start with, then whatever they renamed, deleted, added or filed a
-  /// line into (`review_groups.dart`).
-  ///
-  /// It rides here rather than on the payload deliberately. The payload is
-  /// the server's word about the page and has to stay that way — `from
-  /// source:` is only honest while nothing has rewritten it — so the human's
-  /// structure is a second list beside it, keyed by the same flat line
-  /// indexes everything else already uses.
+  /// The ingredient list's sections as the human holds them
+  /// (`review_groups.dart`). Kept beside the payload, which stays the server's
+  /// word about the page, and keyed by the same flat line indexes.
   final List<ReviewGroup> sections;
 
-  /// The header draft: title, serves, makes in up to two denominations, times,
-  /// shelf life and filing, as the shared header form edits them — seeded by
-  /// [headerDraft], every column read off it at commit. The preview recipe is
-  /// this same object with the lines on it, earlier.
-  ///
-  /// None of it gates Save. A yield-less, time-less recipe saves, links and
-  /// scales; only the derived numbers wait.
+  /// The header draft (title, serves, makes, times, shelf life, filing), seeded
+  /// by [headerDraft] and read at commit. None of it gates Save.
   final Recipe header;
 
-  /// The method as the review's step cards hold it, once anybody has typed
-  /// (seam **D4**). Null means "nobody has": the cards then derive their
-  /// drafts from the payload through the preview, so the common path stores
-  /// nothing and a commit writes `payload.steps` byte-for-byte.
+  /// The method as the step cards hold it once anybody has typed. Null means
+  /// untouched: the cards derive from the payload and a commit writes
+  /// `payload.steps` byte-for-byte.
   final List<MethodDraftStep>? editedSteps;
 
   /// The serving count the preview scales against — the header's, read
   /// through so the preview and the commit cannot disagree.
   double get servings => header.servingsBase;
 
-  /// The [ReconLine] behind [lineIndex] — the payload's own, or the stand-in
-  /// for a line the REVIEW minted, whose index is past the payload's last.
-  ///
-  /// Every widget on this screen is written against "the page's line", and a
-  /// line the page does not have still has to render: the stand-in carries
-  /// the name the human picked and nothing else, which is exactly what "the
-  /// page never printed this" looks like. One rule, so no caller has to
-  /// remember that indexing `flatLines` can now run off the end.
+  /// The [ReconLine] behind [lineIndex]: the payload's own, or a stand-in
+  /// carrying only the picked name for a line the review minted (its index is
+  /// past the payload's last).
   ReconLine lineAt(int lineIndex) {
     final flat = payload.flatLines;
     if (lineIndex < flat.length) return flat[lineIndex];
     return addedLine(resolutions.firstWhere((r) => r.lineIndex == lineIndex));
   }
 
-  /// The method as the step cards hold it **right now**: the stored drafts
-  /// once anybody has typed, else derived from this state's own preview.
-  ///
-  /// One rule, in one place, because two callers need it at different moments:
-  /// the step-card host on every build (which already has the preview, and
-  /// passes it in rather than paying for a second one), and
-  /// [ImportController.updateResolution]'s relabel — which runs before any
-  /// card has been built and so has to derive its own. The measures a view's
-  /// preview carries change a line's printed AMOUNT, never its name, and a
-  /// draft reads only names, so the two derivations agree.
+  /// The method drafts right now: the stored ones once anybody has typed, else
+  /// derived from [preview] or this state's own preview. A draft reads only
+  /// names, so either preview gives the same result.
   List<MethodDraftStep> methodDrafts({Recipe? preview}) =>
       editedSteps ??
       draftsFromPreview(
@@ -160,25 +122,20 @@ class ImportReconciling extends ImportState {
             ),
       );
 
-  /// Every kept line resolved, and at least one line kept — the structural half
-  /// of the commit gate. Unit validity is the other half and needs the vocab,
-  /// so it lives in [importValidation]; [importOutstandingLines] is what the UI
-  /// gates on. Dropping every line leaves nothing to save, and [buildCommit]
-  /// refuses it at the seam as well.
+  /// The structural half of the commit gate: at least one kept line, all
+  /// resolved. Unit validity needs the vocab and lives in [importValidation];
+  /// the UI gates on [importOutstandingLines]. [buildCommit] re-checks.
   bool get canCommit =>
       allResolved(resolutions) && keptLines(resolutions).isNotEmpty;
 
-  /// Count of lines still structurally unresolved — the fallback count while
-  /// the ingredient-backed validation is loading for the first time. A dropped
-  /// line never counts: it is leaving.
+  /// Lines still structurally unresolved, dropped ones excluded. The fallback
+  /// count while the first validation loads.
   int get unresolvedCount =>
       resolutions.where((r) => !r.isDropped && !r.isResolved).length;
 
-  /// The fingerprint of everything [importValidation] depends on: per line, its
-  /// match, its unit, whether a printed range still needs a number, and whether
-  /// it was dropped (a dropped line reports no issues). Notes and the header
-  /// change no line's validity, so typing a note must not re-run a vocab
-  /// query per line.
+  /// The fingerprint of everything [importValidation] depends on, per line:
+  /// match, unit, open range, dropped. Notes and the header are left out so
+  /// typing one does not re-run a vocab query.
   String get validationKey {
     final key = StringBuffer();
     for (final r in resolutions) {
@@ -235,14 +192,10 @@ class ImportFailed extends ImportState {
   final String message;
 }
 
-/// The import session controller.
-///
-/// It is `autoDispose` (the default), so the user can back out of `/import`
-/// while an extraction or a commit is still in flight — and in Riverpod 3
-/// writing `state` on a disposed notifier THROWS (in release too). Every
-/// post-await assignment here, the `catch` blocks included, is therefore
-/// guarded by [Ref.mounted]. Guards rather than `keepAlive`: an abandoned
-/// import should be collected, not kept warm for a flow the user left.
+/// The import session controller. It is `autoDispose`, so the user can leave
+/// mid-flight, and Riverpod 3 throws on writing `state` to a disposed notifier:
+/// every post-await assignment, `catch` blocks included, is guarded by
+/// [Ref.mounted].
 @riverpod
 class ImportController extends _$ImportController implements RecipeHeaderHost {
   @override
@@ -266,9 +219,7 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
   List<ImportStage> _plan = const [];
   final Map<ImportStage, Duration> _finished = {};
 
-  /// Time since the call started, ACCUMULATED from the ticks rather than read
-  /// off the wall clock, so the screen advances with whatever clock the caller
-  /// is pumping — which is what makes it testable.
+  /// Accumulated from ticks rather than the wall clock, so tests can pump it.
   Duration _elapsed = Duration.zero;
 
   /// Opens the reading screen with nothing claimed yet and starts the clock.
@@ -342,23 +293,18 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
         source,
         onProgress: (p) => _onProgress(p, request: source),
       );
-      // The draft is FILED from the start, so FILE UNDER shows where the
-      // recipe will land rather than a blank a human has to fill before
-      // anything is honest. The shelf the door knew about when there was one
-      // (0028 E3), else the same default book commit has always used.
+      // The draft is filed from the start: the door's shelf, else the default
+      // book.
       final filedBookId = bookId ?? (await bookRepo.ensureDefaultBook()).id;
-      // A counted line lands on its row's whole measure as it arrives
-      // (`landOnWholeMeasure`): the review never shows a word the row would
-      // not choose. The whole import's rows and measures are one read each.
+      // A counted line lands on its row's whole measure (`landOnWholeMeasure`);
+      // rows and measures are one read each.
       final resolutions = await _landedOnWholeMeasures(
         initialResolutions(payload),
         vocabRepo: vocabRepo,
         measureRepo: measureRepo,
       );
       if (!ref.mounted) return;
-      // The header opens on whatever the page PLAINLY said — servings, a
-      // yield in a plain amount + unit, the printed times — and unset
-      // otherwise: 0014's attempt-then-flag, over the whole header now.
+      // The header opens on what the page plainly said, and unset otherwise.
       state = ImportReconciling(
         payload: payload,
         request: source,
@@ -374,12 +320,9 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
     }
   }
 
-  /// Resolves the line at [lineIndex] to an existing ingredient — the card's
-  /// re-match, and the create-new chain's return — then lands a counted line
-  /// on that row's whole measure ([landOnWholeMeasure]), reading the row it
-  /// is leaving as well so the word this rule gave it there is taken back
-  /// first. The match itself is applied before the reads and never waits on
-  /// them: it is the person's act, and a lookup must not be able to lose it.
+  /// Resolves the line at [lineIndex] to an existing ingredient, then lands a
+  /// counted line on that row's whole measure ([landOnWholeMeasure]). The match
+  /// is applied before the reads, so a failed lookup cannot lose it.
   Future<void> resolveLine(
     int lineIndex,
     String ingredientId,
@@ -435,12 +378,9 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
     if (s is! ImportReconciling) return;
     final before = s.resolutions.firstWhere((r) => r.lineIndex == lineIndex);
     final after = update(before);
-    // D-D1: an IDENTITY change carries every chip that points at this line —
-    // the editor's shipped behaviour, switched on here. It fires on the
-    // display name, so a re-match, a recipe LINK and an unlink all count, and
-    // a quantity, unit, measure, note, drop or optional edit does not. The
-    // drafts are derived from the state BEFORE, so a blank-labelled chip's
-    // "old word" is the word it was actually showing.
+    // An identity change (re-match, recipe link, unlink) relabels every step
+    // chip pointing at this line; amount, note, drop and optional edits do not.
+    // Drafts derive from the state before the change.
     final relabelled = after.displayName == before.displayName
         ? null
         : relabelRefs(
@@ -454,9 +394,8 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
         for (final r in s.resolutions)
           if (r.lineIndex == lineIndex) after else r,
       ],
-      // Only when a chip actually moved: an identity change nothing points at
-      // must leave the method exactly as it was, so an untouched method still
-      // commits `payload.steps` byte-for-byte (seam D4).
+      // Only when a chip moved, so an untouched method still commits
+      // byte-for-byte.
       editedSteps: moved ? relabelled.steps : null,
     );
     if (moved) {
@@ -475,11 +414,8 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
     }
   }
 
-  /// The substitution being read through this sitting, or null — what the
-  /// method's *"2 steps mentioned coriander"* notice speaks.
-  ///
-  /// **Session state, not a column**, exactly as on the editor: the swap and
-  /// the read-through happen in one sitting, and the commit ends it.
+  /// The substitution being read through this sitting, or null. Session state,
+  /// not a column.
   Substitution? substitution() => _substitution;
   Substitution? _substitution;
 
@@ -502,12 +438,10 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
     _substitution = null;
   }
 
-  // --- the sections (front A) -------------------------------------------
+  // --- the sections -------------------------------------------------------
   //
-  // The editor's three group doors, over the review's own section list. The
-  // payload is never touched: these edit `ImportReconciling.sections`, which
-  // `buildCommit` reads, so the server's word about the page and the human's
-  // structure stay separate things.
+  // These edit `ImportReconciling.sections`, which `buildCommit` reads; the
+  // payload is never touched.
 
   void _mapSections(List<ReviewGroup> Function(List<ReviewGroup>) f) {
     final s = state;
@@ -519,20 +453,14 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
   void setSectionName(String groupId, String? name) =>
       _mapSections((g) => renameGroup(g, groupId, name));
 
-  /// Deletes a section's heading. **Its lines are never deleted** — they move
-  /// into the section above (below, for the first), keeping their order and
-  /// every resolution. Dropping food is the line's own bin, and nothing is
-  /// lost here, so nothing is confirmed here either.
+  /// Deletes a section's heading. Its lines move into the section above (below,
+  /// for the first), keeping their order and resolutions.
   void removeSection(String groupId) =>
       _mapSections((g) => removeGroup(g, groupId));
 
-  /// Moves the line row at flat row [from] to row [to] — the editor's gesture,
-  /// over the review's own list (`review_groups.dart`).
-  ///
-  /// A line keeps its **index** and changes only its **position**: the index
-  /// is what resolutions are keyed by and what step chips point at, while the
-  /// position is what commits as `sort_order`. Nothing renumbers, so no chip
-  /// moves.
+  /// Moves the line row at flat row [from] to [to] (`review_groups.dart`). A
+  /// line keeps its index, which keys resolutions and step chips; only its
+  /// position, committed as `sort_order`, changes.
   void moveLine(int from, int to) =>
       _mapSections((g) => moveReviewLine(g, from: from, to: to));
 
@@ -540,16 +468,12 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
   void addSection() =>
       _mapSections((g) => addGroup(g, id: 'g-new-${_newSectionSeq++}'));
 
-  /// A counter rather than a uuid: the review is one screen with no
-  /// persistence of its own, and a stable readable id keeps the widget keys
-  /// legible in a test.
+  /// A counter, not a uuid, so widget keys stay readable in tests.
   int _newSectionSeq = 0;
 
-  /// Mints a line the page never printed, files it into [groupId], and
-  /// returns its flat index (null outside the review).
-  ///
-  /// The index comes from past the payload's last, so nothing renumbers and
-  /// every step chip already written keeps pointing where it did.
+  /// Mints a line the page never printed, files it into [groupId] and returns
+  /// its flat index (null outside the review). The index is past the payload's
+  /// last, so nothing renumbers.
   int? addLine(
     String groupId, {
     required String name,
@@ -580,10 +504,9 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
     return index;
   }
 
-  /// The reconciliation as it stands **right now**, or null outside the
-  /// review. The step-card host is built once per frame but its mutators fire
-  /// several times per gesture, so it reads through this rather than the
-  /// state it captured — see `ImportMethodEditing.methodDraft`.
+  /// The reconciliation as it stands now, or null outside the review. The
+  /// step-card host's mutators fire several times per frame, so they read
+  /// through this; see `ImportMethodEditing.methodDraft`.
   ImportReconciling? reconciling() {
     final s = state;
     return s is ImportReconciling ? s : null;
@@ -599,9 +522,8 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
 
   // --- the header ---------------------------------------------------
   //
-  // The review is the header form's second host. Every rule a setter holds
-  // is `RecipeHeaderEdits`, shared with the editor's notifier; these only
-  // re-seat the draft. A no-op unless the flow is at reconciliation.
+  // The setters' rules are the shared `RecipeHeaderEdits`; these only re-seat
+  // the draft, and are no-ops outside reconciliation.
 
   /// The header draft the form renders. Only meaningful at reconciliation —
   /// the form exists on no other screen of the flow.
@@ -635,10 +557,8 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
   void setSecondYield(double? qty, Unit? unit) =>
       _mapHeader((h) => h.withSecondYield(qty, unit));
 
-  /// The review's MEASURES list, which **prefills nothing**: an extractor
-  /// prints units, and a household's word for a blob of their own sauce is in
-  /// no source page (ADR-0018). A word typed here rides the draft and lands
-  /// with the commit, exactly as the editor's rides `saveRecipe`.
+  /// The review's measures list, which prefills nothing (ADR-0018). A word
+  /// typed here rides the draft and lands with the commit.
   @override
   void setMeasures(List<RecipeMeasure> measures) =>
       _mapHeader((h) => h.withMeasures(measures));
@@ -669,11 +589,9 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
       _mapHeader((h) => h.withSection(sectionId));
 
   /// Builds the commit payload and writes it. Returns the new recipe id, or
-  /// null if the flow wasn't ready / a write failed.
-  ///
-  /// [issuesByLine] is the review screen's per-line validity (from
-  /// [importValidation]) — the SAME map the Save button is derived from, handed
-  /// down so [buildCommit] can enforce the gate rather than trust the caller.
+  /// null if the flow was not ready or a write failed. [issuesByLine] is the
+  /// map from [importValidation] the Save button reads, so [buildCommit]
+  /// enforces the same gate.
   Future<String?> commit({
     required Map<int, List<LineIssue>>? issuesByLine,
   }) async {
@@ -697,9 +615,8 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
     state = const ImportCommitting();
     try {
       final id = await ref.read(importRepositoryProvider).commit(payload);
-      // The recipe IS saved. If the user left mid-write we can't route them to
-      // it, but we must not throw over a disposed notifier either — return the
-      // id so the caller can still act on it.
+      // The recipe is saved even if the user left mid-write: return the id, but
+      // do not write to a disposed notifier.
       if (ref.mounted) state = ImportCommitted(id);
       return id;
     } on Object catch (e) {
@@ -716,14 +633,9 @@ class ImportController extends _$ImportController implements RecipeHeaderHost {
 }
 
 /// The rows [ids] name and their live measures, one query each, for
-/// [landOnWholeMeasure] — or null when the vocabulary could not be read.
-///
-/// A failed local read must not throw away a billed extraction or a person's
-/// match, so the landing is best-effort: a line it could not land arrives as
-/// it was — a `piece` on a weighed row is valid and one chip from the word.
-/// The failure is not silent either: the same read failing is what the
-/// review's *Couldn't check the lines* says, with its retry
-/// (`importValidation`).
+/// [landOnWholeMeasure]; null when the vocabulary could not be read.
+/// Best-effort: a failed read leaves lines as they arrived, and
+/// `importValidation` reports the same failure with its retry.
 Future<
   ({Map<String, Ingredient> vocab, Map<String, List<Measure>> measuresById})?
 >
@@ -742,9 +654,8 @@ _rowsAndMeasures(
   }
 }
 
-/// [landedOnWholeMeasures] over a payload's arriving [resolutions], with the
-/// matched rows and their measures fetched once each for the whole import —
-/// never a read per line. A payload with no match reads nothing.
+/// [landedOnWholeMeasures] over a payload's arriving [resolutions], with rows
+/// and measures fetched once for the whole import.
 Future<List<LineResolution>> _landedOnWholeMeasures(
   List<LineResolution> resolutions, {
   required IngredientRepository vocabRepo,
@@ -768,44 +679,26 @@ Future<List<LineResolution>> _landedOnWholeMeasures(
   );
 }
 
-/// The narrow slice of the controller [importValidation] actually depends on
-/// (see [ImportReconciling.validationKey]). Watching THIS rather than the whole
-/// state is what keeps a note keystroke or a servings tap from re-running a
-/// vocab query per line.
+/// The slice of the controller [importValidation] depends on (see
+/// [ImportReconciling.validationKey]), so a note keystroke does not re-run it.
 @riverpod
 String importValidationKey(Ref ref) {
   final state = ref.watch(importControllerProvider);
   return state is ImportReconciling ? state.validationKey : '';
 }
 
-/// Per-line validity for the current reconciliation, keyed by flat line index —
-/// resolves each matched line's ingredient + measures and checks its unit
-/// against the ingredient's allowed set (ADR-0008), offering that ingredient's
-/// valid units as inline suggestion chips. The review screen reads it for the
-/// per-line needs-attention flag, the unit chips, AND the Save gate. Empty
-/// until reconciling.
+/// Per-line validity for the current reconciliation, keyed by flat line index:
+/// checks each matched line's unit against its ingredient's allowed set
+/// (ADR-0008) and offers valid units as chips. Drives the per-line flag, the
+/// unit chips and the Save gate.
 ///
-/// It is also the one place a match meets THIS DEVICE's vocabulary, so it is
-/// where [againstLiveVocabulary] rules: a line matched to a row that has been
-/// retired since the server answered reads as UNMATCHED — needs a pick, and
-/// holds Save exactly as an unmatched line does. Before that it read as done
-/// (no ingredient, so no unit to fault) and committed the dead id.
+/// [againstLiveVocabulary] runs here, so a line matched to a since-retired row
+/// reads as unmatched. Depends only on [importValidationKey]; read it with
+/// `AsyncValue.value`, which keeps the last data across a refresh.
 ///
-/// It is deliberately NOT recomputed on every controller change: it depends on
-/// [importValidationKey], so editing a note or the servings leaves the cached
-/// map alone. Views must read it with `AsyncValue.value` (which keeps the last
-/// data across a refresh), never a data-only view that goes null mid-recompute.
-///
-/// The whole import's vocab and the whole import's measures are each fetched in
-/// ONE repository query — never N round-trips down the line list, and never
-/// through the per-ingredient measure STREAM providers. Those are autoDispose,
-/// PowerSync's `watch` does not emit synchronously, and an element disposed
-/// before its first emission completes `.future` with a [StateError] — which
-/// this loader caught and turned into "no measures", so "1 clove" of a garlic
-/// row that carries a `clove` measure validated against an empty list and was
-/// flagged "Pick a supported unit". A plain read has no element to lose.
-/// Nothing is swallowed now either: a query that genuinely fails surfaces as
-/// the provider's error rather than as a screen full of wrongly-flagged lines.
+/// Vocab and measures are each one plain repository query. Never use the
+/// per-ingredient autoDispose stream providers' `.future` here: an element
+/// disposed before its first emission completes with a [StateError].
 @riverpod
 Future<Map<int, LineValidation>> importValidation(Ref ref) async {
   ref.watch(importValidationKeyProvider);
@@ -816,22 +709,17 @@ Future<Map<int, LineValidation>> importValidation(Ref ref) async {
     for (final r in state.resolutions)
       if (r.chosenIngredientId != null) r.chosenIngredientId!,
   };
-  // BOTH repositories are resolved before the first await. They are keepAlive,
-  // but `Ref` is not: this provider is autoDispose and can be disposed while
-  // its own build is still in flight (the user backs out of the review, or a
-  // recompute lands), after which `ref.read` THROWS.
+  // Resolve both repositories before the first await: this autoDispose provider
+  // can be disposed mid-build, after which `ref.read` throws.
   final vocabRepo = ref.read(ingredientRepositoryProvider);
   final measureRepo = ref.read(measureRepositoryProvider);
   final vocab = await vocabRepo.byIds(matchedIds);
   final measuresById = await measureRepo.measuresByIngredients(matchedIds);
 
   final result = <int, LineValidation>{};
-  // THE seam: this is where the server's match meets this device's vocabulary,
-  // so this is where a match at a row that is no longer live becomes what it
-  // is — unmatched. `byIds` hands back live rows only, so its keys ARE the
-  // liveness answer, at no extra read. Downstream nothing has to know: the
-  // card's flag, the "N need you" count, the Save gate and `buildCommit`'s
-  // re-check all read the issues this loop writes.
+  // `byIds` returns live rows only, so its keys are the liveness answer: a
+  // match at a retired row becomes unmatched here, and everything downstream
+  // reads the issues this loop writes.
   final resolutions = againstLiveVocabulary(
     state.resolutions,
     liveIngredientIds: vocab.keys.toSet(),
@@ -863,11 +751,9 @@ Future<Map<int, LineValidation>> importValidation(Ref ref) async {
   return result;
 }
 
-/// The ONE "how many lines still want you" count — the header's "N to review"
-/// and the Save button's "N line(s) need you" are the same number, read from
-/// the same place — two rules would let the header stop decrementing while the
-/// button kept counting. Until the first validation lands it falls back to the
-/// structural unresolved count, so the header is never blank or wrong-by-zero.
+/// The one count of lines still needing attention, shared by the header and the
+/// Save button. Falls back to the structural unresolved count until the first
+/// validation lands.
 @riverpod
 int importOutstandingLines(Ref ref) {
   final state = ref.watch(importControllerProvider);

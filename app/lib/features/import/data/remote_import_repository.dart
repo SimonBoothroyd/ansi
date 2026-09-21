@@ -1,22 +1,10 @@
-/// [ImportRepository] backed by the REAL `import-recipe` edge function (the
-/// integration tail).
+/// [ImportRepository] backed by the `import-recipe` edge function.
 ///
-/// `startImport` calls `supabase.functions.invoke('import-recipe', …)` — a URL
-/// goes up as `{url}`, picked photos are read from disk and base64-encoded as
-/// `{images: [...]}`. The function answers `text/event-stream` and narrates its
-/// stages as they land (import spec §4.7), so `functions_client` hands back a
-/// live byte stream rather than a decoded body: this file parses the events,
-/// reports each finished stage through `onProgress`, and returns the
-/// [ReconciliationPayload] carried by the last one — which feeds the existing
-/// reconciliation UI unchanged. The function is auth-scoped: `supabase_flutter`
-/// attaches the signed-in user's access token, whose `household_id` claim
-/// scopes matching to the household.
-///
-/// `commit` is unchanged — it always writes locally through PowerSync — so this
-/// class delegates it to the SQLite repository. Only the extract→match step
-/// moved server-side. With Supabase unconfigured there is nothing to extract
-/// with, and `importRepositoryProvider` fails the import loudly rather than
-/// substituting the canned payload.
+/// A URL goes up as `{url}`, photos as base64 `{images: [...]}`. The function
+/// answers `text/event-stream`; this file parses the events, reports each stage
+/// through `onProgress`, and returns the [ReconciliationPayload] on the last
+/// one. `commit` always writes locally, so it is delegated to the SQLite
+/// repository.
 library;
 
 import 'dart:async';
@@ -34,11 +22,9 @@ import '../domain/import_stage.dart';
 import '../domain/reconciliation_payload.dart';
 import 'sse.dart';
 
-/// Longest-edge cap for an uploaded page (px) — mirrors the server adapter's
-/// `UPLOAD_MAX_EDGE`. A recipe photo gains nothing above this and costs 3–5 MB
-/// of base64 per page, which risks the edge payload limit on a multi-page
-/// import. The server downscale stays as a safety net; the phone shouldn't send
-/// full-res.
+/// Longest-edge cap for an uploaded page (px), mirroring the server's
+/// `UPLOAD_MAX_EDGE`. Full-resolution pages cost 3–5 MB of base64 each and risk
+/// the edge payload limit.
 const _uploadMaxEdge = 1568;
 
 /// Re-encode quality for the downscaled JPEG (matches the server's ~85).
@@ -46,62 +32,20 @@ const _uploadJpegQuality = 85;
 
 /// How long the client waits for the whole of `import-recipe`.
 ///
-/// **The timeout ladder, re-derived for the stage stream and its heartbeats.**
-/// The function answers `text/event-stream`, sends an event as each stage
-/// lands, and — while a model call is streaming — sends a `heartbeat` every ten
-/// seconds saying the model is still producing. That moves what every rung is
-/// measuring:
+///```text
+///client, silence   90s  edgeSilenceTimeout: the longest gap between events
+///platform idle    150s  Supabase cuts a response silent this long
+///function, gap   ≤ 64s  a model call that never produced (no heartbeats)
+///client, total    240s  this constant
+///function, total ~195s  worst case, from photos
+///platform, whole  400s  Supabase's wall-clock limit per invocation
+///```
 ///
-/// ```text
-/// client, silence   90s  edgeSilenceTimeout — the longest GAP this will sit
-///                        through before deciding the server is gone
-/// platform idle    150s  Supabase's cut-off for a response that has sent
-///                        NOTHING since the last byte. It bounds one GAP, not
-///                        the call: the stream keeps the connection warm
-///                        through the stages either side of it.
-/// function, longest gap:
-///   ≤ 25s intake (jsonld.ts FETCH_TOTAL_TIMEOUT_MS)
-///   ≤ 30s a model call that IS producing: one heartbeat interval
-///         (index.ts HEARTBEAT_INTERVAL_MS), then one idle window before
-///         the attempt is cut (http.ts DEFAULT_IDLE_TIMEOUT_MS)
-///   ≤ 64s a model call that never produced — nothing to heartbeat
-///         about, so three idle windows and the sleeps between them are
-///         ONE gap. The widest, and the honest bound.
-///
-/// client, total    240s  this constant
-/// platform, whole  400s  Supabase's wall-clock limit for one invocation
-/// function, total        the worst case the pipeline can reach:
-///   from a link   ≤ 25s intake + ≤ 120s sanitise + match     ⇒ ~160s
-///   from photos   ≤ 60s transcribe + ≤ 120s sanitise + match ⇒ ~195s
-/// ```
-///
-/// **What sizes the model budgets.** The evals, not the platform. The biggest
-/// structured answer in the extraction corpus is 4,962 output tokens and its
-/// slowest generation ran at 92 tok/s, so a bad day is ~54s for sanitise
-/// alone — hence 120s for it and 60s for transcribe
-/// (`_shared/adapters/claude.ts`), each a little over twice what has ever been
-/// measured. The platform's 150s idle cut-off is a fact about the platform and
-/// not about reading a recipe, and a budget cut to fit it is a budget under
-/// what the model needs. Heartbeats are what let the two be separated: a model
-/// call is not a silence, so the thing that has to fit the platform is the
-/// pipeline's TOTAL, against the 400s wall clock.
-///
-/// Two client rungs, because there are two ways for this to go wrong and only
-/// one of them is a duration. **Silence** is the honest signal that the
-/// connection is dead: bytes arriving prove the server is alive, so an import
-/// must not be abandoned merely for taking a while — and now that the long
-/// stages talk while they work, a gap is an even stronger signal than it was.
-/// It sits above the widest real gap — ~64s, a model call that never said
-/// anything at all, which is the one case heartbeats cannot cover — with room
-/// for a cold start, and below the platform's own 150s so the app is the one
-/// that gives up, with a sentence, rather than a gateway cutting in.
-/// **Total** still exists because a stream that dribbles forever would never
-/// trip the silence rung, and because `functions.invoke` has no deadline of
-/// its own — a hung request would leave the user on the spinner with no way
-/// back but killing the app. It stays above the function's worst case (~195s).
-///
-/// The server half of this arithmetic is a test
-/// (`supabase/functions/_shared/timeouts.test.ts`); this half is
+/// The silence rung sits above the widest real gap and below the platform's
+/// idle cut-off, so the app gives up first, with a sentence. The total rung
+/// exists because `functions.invoke` has no deadline and a dribbling stream
+/// never trips the silence rung. The server half is tested in
+/// `supabase/functions/_shared/timeouts.test.ts`, this half in
 /// `edge_import_failures_test.dart`.
 const edgeInvokeTimeout = Duration(seconds: 240);
 
@@ -109,11 +53,9 @@ const edgeInvokeTimeout = Duration(seconds: 240);
 /// ladder on [edgeInvokeTimeout].
 const edgeSilenceTimeout = Duration(seconds: 90);
 
-/// Downscales one page's [bytes] so its longest edge is ≈ [_uploadMaxEdge],
-/// re-encoded as JPEG. Runs off the UI isolate (decoding a full-res phone photo
-/// in pure Dart is heavy). GRACEFUL: any decode/encode failure — or an image
-/// already within the cap — returns the original bytes rather than throwing, so
-/// one odd photo can never fail the import.
+/// Downscales one page's [bytes] so its longest edge is about [_uploadMaxEdge],
+/// re-encoded as JPEG. Any decode or encode failure, or an image already within
+/// the cap, returns the original bytes.
 Uint8List downscaleForUpload(Uint8List bytes) {
   try {
     final decoded = img.decodeImage(bytes);
@@ -134,13 +76,9 @@ Uint8List downscaleForUpload(Uint8List bytes) {
   }
 }
 
-/// What a person is told when the request outlives the whole timeout ladder.
-///
-/// It names what was being waited on and says the import is safe to repeat:
-/// nothing is written until Save at review, so a second attempt cannot
-/// duplicate or half-write a recipe. The photo wording carries the one remedy
-/// that actually shortens the wait — a photo import is two model calls over
-/// however many pages were sent, so fewer pages is a shorter read.
+/// What a person is told when the request outlives [edgeInvokeTimeout]. It says
+/// the import is safe to repeat (nothing is written until Save), and for photos
+/// that fewer pages is a shorter read.
 String importTimeoutMessage(ImportSource source) {
   final minutes = edgeInvokeTimeout.inMinutes;
   return switch (source) {
@@ -153,9 +91,8 @@ String importTimeoutMessage(ImportSource source) {
   };
 }
 
-/// What a person is told when the stream goes quiet for longer than any stage
-/// can account for. A different failure from the one above and it deserves
-/// different words: the import was not slow, the connection stopped answering.
+/// What a person is told when the stream goes quiet: the connection stopped
+/// answering, as opposed to the import being slow.
 String importSilenceMessage() =>
     'the import service stopped answering part way through '
     '(nothing for ${edgeSilenceTimeout.inSeconds} seconds) — nothing was '
@@ -180,22 +117,12 @@ class ImportException implements Exception {
 
 /// Consumes the function's stage stream: reports each stage through
 /// [onProgress] and returns the [ReconciliationPayload] the `result` event
-/// carries.
+/// carries. Takes a plain byte stream so it can be tested without a socket.
 ///
-/// Separate from the HTTP call on purpose — this is the half with the rules in
-/// it (which events mean what, what a silent stream means, what an `error`
-/// event costs), and it takes a plain byte stream so those rules can be tested
-/// without a socket.
-///
-/// [silence] is the SILENCE rung of the ladder on [edgeInvokeTimeout]: a
-/// deadline on the GAP between events, restarted by every one of them, never on
-/// the import's length.
-///
-/// It is an explicit [Timer] and a `listen`, rather than `Stream.timeout` and
-/// an `await for`, because those two do not compose: `await for` pauses its
-/// subscription between events and the timeout's clock does not survive the
-/// pause, so the deadline silently never fires. A stream deadline that cannot
-/// fire is worse than none — it reads as protection that is not there.
+/// [silence] is a deadline on the gap between events, restarted by each one. It
+/// is an explicit [Timer] and a `listen` because `Stream.timeout` under `await
+/// for` never fires: the subscription pauses between events and the timeout's
+/// clock does not survive the pause.
 Future<ReconciliationPayload> readImportStream(
   Stream<List<int>> bytes, {
   void Function(ImportProgress)? onProgress,
@@ -224,17 +151,13 @@ Future<ReconciliationPayload> readImportStream(
 
   events = decodeSse(bytes).listen(
     (event) {
-      // EVERY event restarts the silence clock, including ones this build has
-      // no case for. That is what makes the server's `heartbeat` work on an
-      // app that predates it, and it is why a new event id can be added
-      // server-side without shipping a client first.
+      // Every event restarts the silence clock, unknown ones included, so the
+      // server can add event ids without a client release.
       waitAgain();
       try {
         switch (event.event) {
           case 'heartbeat':
-            // The model is still producing. Nothing to show — the frame's
-            // whole job was done by `waitAgain()` above, which is what keeps a
-            // long model call from reading as a dead connection.
+            // The model is still producing; `waitAgain()` above did the work.
             break;
           case 'plan':
             onProgress?.call(ImportPlanned(_planFrom(event.data)));
@@ -242,9 +165,8 @@ Future<ReconciliationPayload> readImportStream(
             final stage = _stageFrom(event.data);
             if (stage != null) onProgress?.call(stage);
           case 'error':
-            // The status is committed before the work runs, so a failure past
-            // the first byte arrives here rather than as a 4xx/5xx. The
-            // sentence is the function's own, as it was on the JSON path.
+            // The status is committed before the work runs, so a later failure
+            // arrives here rather than as a 4xx/5xx.
             throw ImportException(_errorFrom(event.data));
           case 'result':
             final payload = ReconciliationPayload.fromJson(
@@ -365,25 +287,18 @@ class EdgeImportRepository implements ImportRepository {
   ) async {
     final FunctionResponse response;
     try {
-      // The stream's own deadline is the SILENCE rung below, not this: with
-      // `text/event-stream` this future completes as soon as the headers are
-      // back, which is long before the work is done.
+      // With `text/event-stream` this future completes when the headers are
+      // back; the stream's deadline is the silence rung below.
       response = await _functions.invoke('import-recipe', body: body);
     } on FunctionException catch (e) {
-      // The edge fn returns `{error}` on a handled failure (4xx/5xx); surface
-      // the human-readable message when present. It is what tells a person
-      // whether the SITE would not give us the page (a block, a redirect loop,
-      // a 404) or the MODEL ran long — two failures with different remedies.
+      // A handled failure returns `{error}`; surface its message when present.
       final details = e.details;
       if (details is Map && details['error'] is String) {
         throw ImportException(details['error'] as String);
       }
-      // No message of its own: the function never answered, and something in
-      // front of it did. A 504 here is the platform's gateway timeout, not a
-      // rejection; every other status carries what the platform said, because
-      // the remedies differ and a sentence without the status cannot tell
-      // them apart — a relay 546 is the worker hitting its limits (send fewer
-      // pages), a status 0 is this phone never reaching the service at all.
+      // The function never answered; something in front of it did. A 504 is the
+      // gateway timeout; other statuses carry what the platform said (a relay
+      // 546 is the worker at its limits, 0 is never reaching the service).
       final detail = _platformDetail(e.status, details);
       throw ImportException(switch (e.status) {
         504 || 408 =>
@@ -406,10 +321,8 @@ class EdgeImportRepository implements ImportRepository {
     return readImportStream(data, onProgress: onProgress);
   }
 
-  /// What the app knows about a failure the function did not explain: the
-  /// platform's status and whatever it said with it, on one line and short
-  /// enough to survive a toast. Status 0 is the client's own "never got
-  /// there", so there is no HTTP status to print for it.
+  /// The platform's status and message on one short line. Status 0 is the
+  /// client never connecting, so no HTTP status is printed for it.
   static String _platformDetail(int status, Object? details) {
     final head = status == 0 ? 'no response' : 'HTTP $status';
     final said = (details?.toString() ?? '')
@@ -419,18 +332,13 @@ class EdgeImportRepository implements ImportRepository {
     return '$head: ${said.length > 200 ? '${said.substring(0, 200)}…' : said}';
   }
 
-  /// Builds the invoke body: a URL passes straight through; photos are read
-  /// back from whatever the picker called them and base64-encoded (the edge fn
-  /// decodes them back to bytes for the vision tier).
+  /// Builds the invoke body: a URL passes through; photos are read and
+  /// base64-encoded.
   ///
-  /// Two platform facts shape this loop. A page is read through [XFile], not
-  /// `dart:io`: on a phone the picker's path is a file and on the web it is a
-  /// `blob:` URL with no filesystem behind it, and `XFile` is the one reader
-  /// that answers to both. And the downscale goes through `compute`, which is
-  /// a background isolate where there are isolates and a plain call in the
-  /// browser, where `Isolate.run` throws — a page decode is heavy enough to
-  /// want off the UI thread, but not so heavy that the web build should refuse
-  /// to import rather than jank for a moment.
+  /// A page is read through [XFile], not `dart:io`, because on the web the
+  /// picker's path is a `blob:` URL. The downscale goes through `compute`,
+  /// which is an isolate on a phone and a plain call in the browser, where
+  /// `Isolate.run` throws.
   Future<Map<String, Object?>> _bodyFor(ImportSource source) async {
     switch (source) {
       case ImportFromUrl(:final url):

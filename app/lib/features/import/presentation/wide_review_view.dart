@@ -1,26 +1,11 @@
-/// The import review on a desk (design board `Import review`, the
-/// `Wide · ≥ 1024` frames): the page on the left, the lines in the middle, one
-/// line's form held open on the right.
+/// The import review at [AnsiLayout.expanded]: the source page on the left, the
+/// lines in the middle, one line's form on the right.
 ///
-/// **What the width is spent on, and nothing else.** The phone's review asks
-/// somebody to hold two things in their head at once — what the page said, and
-/// what we made of it — and the only place the page survives there is the
-/// `from source:` line under each row. On a desk the page can simply *be*
-/// there. That is the first thing the width buys; the second is editing a line
-/// in a panel instead of in a card that expands in place, so correcting line
-/// four never moves line five.
-///
-/// **Nothing else changes.** Every row, word, flag, count and door is the
-/// phone's: the rows are [ReviewLineRow], the panel's contents are
-/// [ReviewLineForm] — the phone's *expanded* card, exactly — the gate is
-/// [ReviewCommitBar], the header form, the section doors and the method editor
-/// are the same widgets in the same order, and the work queue is a **view** of
-/// the one `importValidation` map the header count and Save already read. The
-/// card just stopped being a fold and became a column. **The selected line is
-/// view state**: it navigates nothing and writes nothing.
-///
-/// Below `expanded` this file is not built at all — the phone review, expanding
-/// in place, is unchanged.
+/// Everything is the phone's: rows are [ReviewLineRow], the panel is
+/// [ReviewLineForm], the gate is [ReviewCommitBar], and the work queue is a
+/// view of the one `importValidation` map. The selected line is view state; it
+/// navigates nothing and writes nothing. Below `expanded` this file is not
+/// built.
 library;
 
 import 'dart:async';
@@ -93,15 +78,12 @@ class WideReviewBody extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // The selection is VIEW state: which line the panel is reading. It
-    // navigates nothing, writes nothing, and survives no rebuild it shouldn't
-    // — a line that stops existing (dropped and saved, a section deleted)
-    // simply stops being found below, and the panel falls back to the queue.
+    // View state: which line the panel is reading. A line that stops existing
+    // is simply not found below, and the panel falls back to the queue.
     final selected = useState<int?>(null);
 
     // `.value`, never `asData`: a recompute passes through a loading state
-    // whose data-only view is null, and reading THAT blinked every row's rule
-    // and the panel on every keystroke (the phone's body documents this).
+    // whose data-only view is null, which blinked every row on each keystroke.
     final byLine = ref.watch(importValidationProvider).value;
 
     final reading = selected.value == null
@@ -150,15 +132,9 @@ class WideReviewBody extends HookConsumerWidget {
   }
 }
 
-/// The reading state at [AnsiLayout.expanded]: the source column already
-/// drawn, and the streamed checklist standing in the lane the lines and the
-/// panel will take.
-///
-/// The pages are local files the cook just chose, so there is nothing to wait
-/// for on the left — and when the review lands, that column does not move. The
-/// checklist is the phone's, unchanged and centred in its lane rather than
-/// stretched across it: four short rows spread over 900 px would be a progress
-/// screen pretending to be a dashboard.
+/// The reading state at [AnsiLayout.expanded]: the source column already drawn,
+/// and the streamed checklist centred in the lane the lines and panel will
+/// take. The pages are local files, so the left column never waits or moves.
 class WideReadingBody extends StatelessWidget {
   const WideReadingBody({
     required this.rows,
@@ -207,17 +183,10 @@ class WideReadingBody extends StatelessWidget {
 /// Which column a child of [_Columns] is.
 enum _Col { source, lines, panel }
 
-/// The three columns, and what happens to them as the pane narrows.
-///
-/// A [CustomMultiChildLayout] rather than a [Row] of flexes, because the rule
-/// is a **priority** and not a proportion: at 1180 the source gives up its
-/// width first, down to 300; then the panel, down to 300; and the lines go last
-/// and never under 440, because they are what a person is reading. Flex would
-/// shrink all three together and take the lines under their floor first.
-///
-/// It reads its own constraints, which is not a viewport read: this widget is
-/// told how wide its pane is, the way every widget is, and it never asks how
-/// wide the window is. The one viewport reader is still `ansi_layout.dart`.
+/// The three columns. A [CustomMultiChildLayout] rather than flexes because
+/// shrinking is a priority, not a proportion; see [wideReviewColumnWidths]. It
+/// reads its own constraints, never the viewport; the one viewport reader is
+/// `ansi_layout.dart`.
 class _Columns extends StatelessWidget {
   const _Columns({
     required this.source,
@@ -262,15 +231,10 @@ class _ColumnsDelegate extends MultiChildLayoutDelegate {
   bool shouldRelayout(_ColumnsDelegate oldDelegate) => false;
 }
 
-/// How wide each column is drawn in [available] px — the shrink policy, pulled
-/// out so it can be read and tested without a widget.
-///
-/// Down from the cap: the source pays first, then the panel, then the lines.
-/// Under the sum of the three floors (1040) there is nothing left to protect,
-/// so all three shrink together in proportion — which is what the bottom of the
-/// band looks like, a 1024 window whose rail leaves 920 for the page. Three
-/// narrow columns is still the honest answer there; the alternative is a
-/// column running off the edge.
+/// How wide each column is drawn in [available] px. Down from the cap, the
+/// source shrinks first (to 300), then the panel (to 300), then the lines
+/// (never under 440). Under the sum of the floors (1040) all three shrink in
+/// proportion.
 ({double source, double lines, double panel}) wideReviewColumnWidths(
   double available,
 ) {
@@ -306,16 +270,13 @@ class _ColumnsDelegate extends MultiChildLayoutDelegate {
 
 // --- The source column -------------------------------------------------------
 
-/// The page itself, at a readable measure, scrolling on its own — so reading it
-/// never moves a line out from under the hand.
+/// The source page at a readable measure, scrolling on its own.
 ///
-/// A **link** import draws the URL and the fetched text, with the selected
-/// line's span lit when the payload carried one (both fields are additive and
-/// optional: without them this column says so rather than pretending). A
-/// **photo** import draws the pages the cook handed over, the current one large
-/// with a thumbnail each — and **no box on the photo**, because nothing on the
-/// wire carries one; the selected line's own words are pinned under the page
-/// instead of a rectangle somebody would trust.
+/// A link import draws the URL and the fetched text, with the selected line's
+/// span lit when the payload carried one. A photo import draws the chosen
+/// pages, the current one large with thumbnails. No box is drawn on a photo,
+/// since the payload carries none; the selected line's words are pinned under
+/// the page instead.
 class _SourceColumn extends StatelessWidget {
   const _SourceColumn({
     required this.request,
@@ -359,9 +320,8 @@ class _SourceColumn extends StatelessWidget {
   }
 }
 
-/// Opens [url] in the platform's browser, and says nothing when it cannot: the
-/// column beside this door already holds the page's words, so a failed launch
-/// costs the reader nothing they did not already have.
+/// Opens [url] in the platform's browser. A failed launch is silent: the column
+/// already holds the page's words.
 Future<void> _open(String url) async {
   final uri = Uri.tryParse(url);
   if (uri == null) return;
@@ -395,11 +355,9 @@ class _PageTextState extends State<_PageText> {
     final text = widget.text;
     if (span == null || text == null || span == old.span) return;
     if (!_scroll.hasClients || text.isEmpty) return;
-    // Proportional, and deliberately not claimed to be exact: the page's text
-    // is one collapsed run with no line structure to count, so where a
-    // character sits in the string is the only honest estimate of where it
-    // sits in the column. The lit range is what actually says where the line
-    // is; this only saves a scroll.
+    // A proportional estimate: the page's text is one collapsed run, so the
+    // character offset is all there is to go on. The lit range marks the line;
+    // this only saves a scroll.
     final where = _scroll.position.maxScrollExtent * (span.start / text.length);
     _scroll.animateTo(
       where.clamp(0.0, _scroll.position.maxScrollExtent),
@@ -428,9 +386,7 @@ class _PageTextState extends State<_PageText> {
               button: true,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                // The page itself, in a real browser — the one thing this
-                // column cannot be: it is text, and the original has pictures,
-                // a comments section and the cook's own bookmark.
+                // Opens the original page in a browser.
                 onTap: () => unawaited(_open(widget.url)),
                 child: Text(
                   'open ↗',
@@ -470,13 +426,8 @@ class _PageTextState extends State<_PageText> {
   }
 }
 
-/// [text] with [span] washed in the herb the Shop's read row uses — one idiom
-/// for "the pane is reading this one".
-///
-/// A span the payload never sent, or one that does not fit the text it came
-/// with, lights nothing: the plain page is the honest fallback, and a range
-/// aimed at the wrong characters would tell a reader the page said something
-/// it did not.
+/// [text] with [span] washed in the herb the Shop's read row uses. A missing
+/// span, or one that does not fit the text, lights nothing.
 TextSpan _spanned(String text, SourceSpan? span) {
   if (span == null ||
       span.start < 0 ||
@@ -568,11 +519,8 @@ class _PhotoPages extends HookWidget {
   }
 }
 
-/// One page image.
-///
-/// Read through [XFile], not `dart:io`: on a phone the picker's path is a file
-/// and in a browser it is a `blob:` URL with no filesystem behind it — the same
-/// reason the upload loop reads pages this way.
+/// One page image. Read through [XFile], not `dart:io`: in a browser the
+/// picker's path is a `blob:` URL.
 class _Page extends HookWidget {
   const _Page({required this.path, this.fit = BoxFit.contain});
 
@@ -593,9 +541,8 @@ class _Page extends HookWidget {
 
 // --- The lines column --------------------------------------------------------
 
-/// The phone's rows, one selected, with the commit bar as this column's own
-/// footer — because the number on it is about the lines, and a bar across the
-/// source pane would say the page has something to save.
+/// The phone's rows, one selected, with the commit bar as this column's footer,
+/// since its count is about the lines.
 class _LinesColumn extends HookConsumerWidget {
   const _LinesColumn({
     required this.state,
@@ -716,17 +663,10 @@ class _LinesColumn extends HookConsumerWidget {
   }
 }
 
-/// A line as a **row on bare paper** — no card, no box.
-///
-/// The card's border was the affordance for expanding it, and expanding is what
-/// the panel took over. What is left keeps the phone's three parts (the mono
-/// amount in its own column, the identity, the note) and its **grip**, since
-/// drag was always a collapsed-row gesture and here every row is collapsed —
-/// which makes the whole list draggable rather than only the shut part of it.
-///
-/// A flagged row has no amber box because it has no box at all: the amber is a
-/// **2 px rule in its margin**, Cook's own device, carrying the same `⚠` tag
-/// and the same words. The selected row takes the Shop's herb wash.
+/// A line as a row with no card: the mono amount, the identity, the note, and
+/// the grip (every row here is collapsed, so the whole list drags). A flagged
+/// row carries a 2 px amber rule in its margin with the `⚠` tag; the selected
+/// row takes the herb wash.
 class _WideLineRow extends StatelessWidget {
   const _WideLineRow({
     required this.line,
@@ -835,12 +775,7 @@ class _Panel extends ConsumerWidget {
                       onSelect: onSelect,
                     )
                   : SingleChildScrollView(
-                      // The phone's EXPANDED card, verbatim — the bin, the
-                      // optional switch, the amount door, the unit chips and
-                      // the notes field are all here because that is where the
-                      // phone keeps them. Nothing was dropped and nothing
-                      // moved between states; the state stopped being a fold
-                      // and became a column.
+                      // The phone's expanded card, unchanged.
                       child: ReviewLineForm(
                         line: state.lineAt(line.lineIndex),
                         resolution: line,
@@ -876,10 +811,8 @@ class _Panel extends ConsumerWidget {
   }
 }
 
-/// The card's own rule, read here so the panel and the row agree: a match is
-/// the VALIDATION's verdict, not a re-derivation from the id the resolution
-/// still holds — a line matched to a row retired since the server answered
-/// comes back unmatched there, and the form must ask for a pick.
+/// A match is the validation's verdict, not the id the resolution holds: a line
+/// matched to a retired row comes back unmatched, and the form asks for a pick.
 bool _matched(LineResolution line, LineValidation? validation) {
   final issues = validation?.issues ?? lineIssues(line);
   return !issues.contains(LineIssue.unmatched) &&
@@ -906,12 +839,9 @@ class _PanelHead extends StatelessWidget {
   );
 }
 
-/// The import's outstanding work, grouped by what each line WANTS.
-///
-/// A view, not a feature: every item is a flag already on a row, read from the
-/// one validation map the header count and the Save gate read, so the queue
-/// cannot say four while the bar says five. Tapping an item selects its line
-/// and the panel becomes the form.
+/// The import's outstanding work, grouped by what each line wants. A view over
+/// the validation map the header count and Save read, so the counts agree.
+/// Tapping an item selects its line.
 class _WorkQueue extends StatelessWidget {
   const _WorkQueue({
     required this.state,
@@ -1046,9 +976,8 @@ class _QueueItem extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            // What one of a thing weighs is the INGREDIENT's property, so the
-            // one door for that item is the row's own form — never a weight
-            // typed on this line (ADR-0015).
+            // A piece weight is the ingredient's property, so this item opens
+            // the row's own form (ADR-0015).
             if (openRow != null)
               GestureDetector(
                 behavior: HitTestBehavior.opaque,

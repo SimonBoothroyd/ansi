@@ -1,41 +1,26 @@
-/// Parsing the extraction's `yield_raw` into a prefilled MAKES row — PURE DART
-/// (invariant 2), and deliberately the smallest parser that could work.
+/// Parsing the extraction's `yield_raw` into a prefilled MAKES row. Pure Dart.
 ///
-/// Extraction already captures what the page printed about what it makes
-/// (`"MAKES: 8 SLIDERS"`), and until 8.6 commit dropped it on the floor. The
-/// board's frame (h) rules what may come back out of it: **a plain
-/// `amount + unit` and nothing else**. "MAKES: 8 SLIDERS" prefills `8 piece`,
-/// "MAKES 1 CUP" prefills `1 cup`, and "MAKES ENOUGH FOR A CROWD" prefills
-/// NOTHING — the fields stay empty over the still-visible source line and wait
-/// for a human (the attempt-then-flag pattern 0014 ruled for servings, on the
-/// same screen).
-///
-/// Why so little: a yield is not display text. Every derived batch, cook
-/// session, shopping quantity and macro share downstream divides by it (D2), so
-/// a wrong yield poisons numbers all over the app silently, while an empty
-/// field is honest and one tap from right. When in doubt this refuses.
+/// Only a plain `amount + unit` is accepted: "MAKES: 8 SLIDERS" prefills `8
+/// piece`, "MAKES 1 CUP" prefills `1 cup`, and "MAKES ENOUGH FOR A CROWD"
+/// prefills nothing. Every derived batch, shopping quantity and macro share
+/// divides by the yield, so when in doubt this refuses and leaves the fields
+/// empty.
 library;
 
 import '../../../core/units/unit_words.dart';
 import '../../../core/units/units.dart';
 
-/// A prefilled yield: what one batch makes, as one denomination. The review
-/// screen carries only the first (frame h draws one row there); a second
+/// A prefilled yield: what one batch makes, as one denomination. A second
 /// denomination is added in the editor afterwards.
 typedef YieldPrefill = ({double qty, Unit unit});
 
 /// The prefixes a printed yield line wears, stripped case-insensitively along
-/// with a following colon — "MAKES: 8 SLIDERS", "Yields 12 muffins".
-///
-/// `serves` is NOT here: that is the servings fact, which has its own field.
+/// with a following colon. `serves` is not here: servings have their own field.
 const kYieldPrefixes = <String>['makes', 'yields', 'yield'];
 
-/// Words that name a unit a yield cannot be stated IN, so they must refuse
-/// rather than fall through to the count fallback below.
-///
-/// `batch` is what a yield is measured *against* ("makes 1 batch" says
-/// nothing), and an imprecise word carries no number to divide by. Both would
-/// otherwise read as plain count nouns — "makes 2 pinch" is not 2 pieces.
+/// Words a yield cannot be stated in, which must refuse rather than fall
+/// through to the count fallback: `batch` is circular, and an imprecise word
+/// carries no number.
 const kYieldRefusedWords = <String>[
   'batch',
   'batches',
@@ -48,9 +33,8 @@ const kYieldRefusedWords = <String>[
   'taste',
 ];
 
-/// Words that name a PORTION, not a yield denomination: "makes 4 servings" is
-/// the servings fact wearing a MAKES prefix, and prefilling it as `4 piece`
-/// would state something the page never said. Refused, not guessed.
+/// Words that name a portion: "makes 4 servings" is the servings fact, so it is
+/// refused rather than prefilled as `4 piece`.
 const kYieldPortionWords = <String>[
   'serving',
   'servings',
@@ -82,20 +66,12 @@ const _fractionGlyphs = <String, double>{
 
 /// What [raw] says one batch makes, or null when it does not plainly say.
 ///
-/// The whole rule:
-///
-/// 1. strip a leading `MAKES`/`YIELDS`-style prefix and its colon;
-/// 2. what is left must be a number, optionally followed by ONE word;
-/// 3. that word is a catalog unit if [unitFromWord] knows it ("1 CUP" →
-///    `1 cup`), and otherwise a plain count noun — the page's own name for the
-///    thing it makes ("8 SLIDERS" → `8 piece`), which is what makes the board's
-///    sausage answer fall out;
-/// 4. anything else — extra words, a portion word ([kYieldPortionWords]), an
-///    imprecise or `batch` word ([kYieldRefusedWords]), no number, a
-///    non-positive amount — refuses.
-///
-/// Nothing is invented at any step: every accepted parse states a number the
-/// page printed, in a family the page's own word names.
+/// 1. Strip a leading `MAKES`/`YIELDS`-style prefix and its colon. 2. What is
+/// left must be a number, optionally followed by one word. 3. That word is a
+/// catalog unit if [unitFromWord] knows it ("1 CUP" → `1 cup`), otherwise a
+/// count noun ("8 SLIDERS" → `8 piece`). 4. Anything else refuses: extra words,
+/// a portion word ([kYieldPortionWords]), a refused word
+/// ([kYieldRefusedWords]), no number, a non-positive amount.
 YieldPrefill? parseYieldRaw(String? raw) {
   final text = (raw ?? '').trim();
   if (text.isEmpty) return null;
@@ -120,15 +96,11 @@ YieldPrefill? parseYieldRaw(String? raw) {
 
   final unit = unitFromWord(word);
   if (unit == null) {
-    // An unknown word after a number is the page naming what it makes —
-    // "8 SLIDERS", "12 muffins". That is a COUNT of the yield, which is
-    // exactly what `piece` means; the noun itself is display text the source
-    // line still shows.
+    // An unknown word after a number is the page naming what it makes, which is
+    // a count: `piece`.
     return (qty: qty, unit: pieces);
   }
-  // A yield is what other amounts are measured AGAINST, so the two families
-  // that cannot be measured against refuse: `batch` is circular and imprecise
-  // words carry no number to divide by.
+  // `batch` and imprecise units cannot be measured against, so they refuse.
   if (unit.family == UnitFamily.imprecise || unit.family == UnitFamily.batch) {
     return null;
   }

@@ -1,34 +1,20 @@
-/// The import's outstanding work, grouped by what each line WANTS — PURE DART
-/// (invariant 2).
+/// The import's outstanding work, grouped by what each line wants. Pure Dart.
 ///
-/// This is the wide review panel's idle state, and it is a **view, not a
-/// feature**: every item here is a flag already drawn on its own row, read from
-/// the one `importValidation` map the header's "N to review", the rows' own
-/// amber tags and the Save gate all read. No new number, no new state, nothing
-/// that can disagree with a row — the queue cannot say four while the bar says
-/// five, because both count the same map.
+/// The wide review panel's idle state. It is a view over the one
+/// `importValidation` map that the header count, the rows' tags and the Save
+/// gate read, so the numbers always agree. The groups are the rows' own `⚠`
+/// labels, in the order the gate checks them.
 ///
-/// What the grouping buys is the one thing a twenty-line import hides: that
-/// four of the five outstanding lines are the same job done four times. The
-/// groups are the rows' own `⚠` labels, in the order the phone's gate checks
-/// them.
-///
-/// **Rows created here are listed apart and are OUT of the count.** A stub
-/// commits perfectly well — it is a real, plannable, shoppable line that
-/// reports `incomplete` instead of a fabricated number — so putting it in the
-/// work list would be inventing an obligation. Saying so on screen is the whole
-/// point of drawing it.
+/// Rows created during this review are listed apart and are out of the count: a
+/// stub commits fine, so it is not an obligation.
 library;
 
 import 'line_resolution.dart';
 import 'line_validation.dart';
 import 'reconciliation_payload.dart';
 
-/// What an outstanding line wants, in the order [lineIssues] is checked.
-///
-/// One line belongs to exactly one group — the same priority
-/// `attentionLabel` uses, so the queue's heading is the words already on the
-/// row rather than a second vocabulary.
+/// What an outstanding line wants, in the order [lineIssues] is checked. A line
+/// belongs to exactly one group, by `attentionLabel`'s priority.
 enum ImportWork {
   /// No ingredient chosen yet ([LineIssue.unmatched]).
   match('Match an ingredient'),
@@ -38,8 +24,7 @@ enum ImportWork {
   amount('Set the amount'),
 
   /// The line's unit is not one the matched row can carry
-  /// ([LineIssue.unitNotAllowed]) — the piece-weight case included, because it
-  /// meets that same gate.
+  /// ([LineIssue.unitNotAllowed]), the missing piece weight case included.
   unit('Pick a supported unit');
 
   const ImportWork(this.label);
@@ -49,10 +34,8 @@ enum ImportWork {
 }
 
 /// Which group [issues] puts a line in, or null when the line is done.
-///
-/// The priority is `attentionLabel`'s: unmatched first (nothing else can be
-/// judged without an ingredient), then the unit, then the amount. A line with
-/// two flags is listed once, under the one it is really waiting on.
+/// Unmatched first, then the unit, then the amount; a line with two flags is
+/// listed once.
 ImportWork? workFor(List<LineIssue> issues) {
   if (issues.isEmpty) return null;
   if (issues.contains(LineIssue.unmatched)) return ImportWork.match;
@@ -84,9 +67,8 @@ class ImportWorkItem {
   /// unit is the thing being refused. Empty when the page printed neither.
   final String printed;
 
-  /// The ingredient whose own form holds the fix, when the fix is not on this
-  /// line at all — a count on a row with no piece weight (ADR-0015). Null
-  /// everywhere else, and the panel then offers no row door.
+  /// The ingredient whose own form holds the fix: a count on a row with no
+  /// piece weight (ADR-0015). Null otherwise.
   final String? openIngredientId;
 }
 
@@ -98,12 +80,9 @@ class ImportWorkGroup {
   final List<ImportWorkItem> items;
 }
 
-/// The queue for [resolutions] against [byLine] — the validation map, exactly
-/// as the count and the Save gate read it.
-///
-/// Groups come back in [ImportWork] order and empty groups are omitted; items
-/// keep the list's own line order inside a group. A dropped line reports no
-/// issues, so it never appears — it is leaving.
+/// The queue for [resolutions] against [byLine], the validation map. Groups
+/// come back in [ImportWork] order with empty ones omitted; items keep line
+/// order. A dropped line never appears.
 List<ImportWorkGroup> importWorkQueue({
   required List<LineResolution> resolutions,
   required Map<int, LineValidation> byLine,
@@ -115,9 +94,8 @@ List<ImportWorkGroup> importWorkQueue({
     if (validation == null) continue;
     final work = workFor(validation.issues);
     if (work == null) continue;
-    // The unit group is about a WORD the row refuses, so that word is what the
-    // item prints; every other group is about the amount, where the page's own
-    // printed phrase is the useful reminder.
+    // The unit group prints the word the row refuses; every other group prints
+    // the page's printed amount.
     final printed = work == ImportWork.unit
         ? (r.unit?.isNotEmpty ?? false ? '“${r.unit}”' : '')
         : lineAt(r.lineIndex).raw.rawAmount.trim();
@@ -139,13 +117,9 @@ List<ImportWorkGroup> importWorkQueue({
   ];
 }
 
-/// The rows this review CREATED, listed apart and out of the count.
-///
-/// [LineResolution.createdHere] is set by the picker's create-new door, so
-/// these are exactly the lines whose vocabulary row did not exist when the
-/// import landed. The word beside each is what the row is — `stub` while its
-/// numbers are outstanding, which is the ordinary case, since the form writes
-/// one and confirming is a human act (§9).
+/// The rows this review created, listed apart and out of the count.
+/// [LineResolution.createdHere] is set by the picker's create-new door. The
+/// word beside each is the row's status, usually `stub`.
 List<ImportWorkItem> createdHereItems({
   required List<LineResolution> resolutions,
   required Map<int, LineValidation> byLine,

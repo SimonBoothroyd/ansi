@@ -1,22 +1,12 @@
 /// The import review as a host for the editor's method step cards.
 ///
-/// The review is the screen most likely to need a method fix, so it edits the
-/// method rather than showing it read-only.
-///
-/// This adapter satisfies [MethodEditing] over the review's own state. It owns
-/// no state itself: it derives the drafts from the preview recipe when nobody
-/// has typed, and every mutator re-seats the whole list through
-/// [ImportController.setMethodDraft]. That keeps the review's single source of
-/// truth where it already was — the controller — and means a rebuild between
-/// two keystrokes cannot lose one.
-///
-/// **Chips key on the preview's ids** (`previewLineId(i) == 'line-<i>'`), so
-/// `MethodStepText`'s "Reads as" fold shows live amounts with no extra
-/// plumbing, and [stepsFromDrafts] parses them back to line indexes at commit.
-///
-/// The picker's add-a-line door is open here: a line minted from the method
-/// lands in the review's last section with an index past the payload's last,
-/// exactly as one added from the list does.
+/// This adapter implements [MethodEditing] over the review's state and owns
+/// none itself: it derives the drafts from the preview recipe until someone
+/// types, and every mutator re-seats the whole list through
+/// [ImportController.setMethodDraft]. Chips key on the preview's ids
+/// (`previewLineId(i) == 'line-<i>'`), and [stepsFromDrafts] parses them back
+/// to line indexes at commit. A line added from the chip picker lands in the
+/// review's last section, as one added from the list does.
 library;
 
 import '../../../core/units/recipe_measure.dart';
@@ -47,17 +37,10 @@ class ImportMethodEditing implements MethodEditing {
   /// and, until somebody types, the drafts themselves.
   final Recipe preview;
 
-  /// The drafts as they stand **right now**, not as they stood when this
-  /// adapter was built.
-  ///
-  /// One gesture fires several mutators — the chip sheet's
-  /// `repointChip · renameChip · setChipAmountRule` cascade is three — and
-  /// each re-seats the whole list through the controller. Reading the
-  /// captured [state] would start every call after the first from the draft
-  /// *before* it, so the second silently undoes the first, and any `editStep`
-  /// arriving after a rename diffs against a draft the rename is not in —
-  /// which is enough to lose the chip. [preview] is consulted only while
-  /// nobody has edited, and in that window the two states agree.
+  /// The drafts as they stand now, not when this adapter was built. One gesture
+  /// fires several mutators, each re-seating the whole list; reading the
+  /// captured [state] would make the second undo the first. [preview] is
+  /// consulted only while nobody has edited.
   @override
   List<MethodDraftStep> methodDraft() => _now.methodDrafts(preview: _preview);
 
@@ -71,13 +54,10 @@ class ImportMethodEditing implements MethodEditing {
   /// this gesture is not the one the view handed over.
   ImportReconciling get _now => controller.reconciling() ?? state;
 
-  /// The preview over [_now]. While nothing has moved this is the view's own,
-  /// measures and all; once something has, it is re-derived so a line the
-  /// chip picker just added is pickable *immediately* — which is the whole
-  /// point of `pickOrAddLine` diffing this map before and after. The
-  /// re-derived one carries no measure map, so a chip's printed amount can
-  /// read as a bare count for the one frame before the view rebuilds with the
-  /// real one.
+  /// The preview over [_now]. Once something has moved it is re-derived, so a
+  /// line the chip picker just added is pickable immediately. The re-derived
+  /// one carries no measure map, so a chip's amount can read as a bare count
+  /// for one frame.
   Recipe get _preview {
     final now = _now;
     if (identical(now, state)) return preview;
@@ -89,14 +69,10 @@ class ImportMethodEditing implements MethodEditing {
     );
   }
 
-  /// The identity change being read through this sitting.
-  ///
-  /// A re-match here re-points by line INDEX, so no chip can be *orphaned* —
-  /// but a surviving ref says nothing about the WORD, and a chip naming a
-  /// food the recipe no longer contains is exactly what D3 exists to stop.
-  /// The controller runs the editor's own `relabelRefs` on an identity change
-  /// and keeps what it returns, so the shipped notice and the shipped *keep
-  /// the old word* appear here with no new UI.
+  /// The identity change being read through this sitting. A re-match re-points
+  /// by line index, so no chip is orphaned, but its word may now name a food
+  /// the recipe lacks. The controller runs the editor's `relabelRefs` on an
+  /// identity change, which drives the notice and *keep the old word*.
   @override
   Substitution? substitution() => controller.substitution();
 
@@ -137,9 +113,8 @@ class ImportMethodEditing implements MethodEditing {
   void addMethodStep() =>
       _set(addStep(methodDraft(), id: 'step-new-${_newStepSeq++}'));
 
-  /// A counter rather than a uuid: the review is one screen with no
-  /// persistence of its own, and a stable, readable id keeps the cards' keys
-  /// legible in a widget test.
+  /// A counter rather than a uuid: the review persists nothing, and readable
+  /// ids keep widget-test keys legible.
   static int _newStepSeq = 0;
 
   @override
@@ -308,9 +283,8 @@ class ImportMethodEditing implements MethodEditing {
   void removeChip(String stepId, int index) =>
       _mapStep(stepId, (d) => removeSpan(d, index));
 
-  /// D3's revert: the chip keeps its ref and takes its printed word back. The
-  /// rename goes through the ordinary chip door the sheet's Word field uses,
-  /// so one place changes what a chip says.
+  /// The revert: the chip keeps its ref and takes its printed word back,
+  /// through the same rename door the sheet's Word field uses.
   @override
   void keepOldWord(ChipRelabel relabel) {
     renameChip(relabel.stepId, relabel.spanIndex, relabel.oldWord);
@@ -326,12 +300,9 @@ class ImportMethodEditing implements MethodEditing {
     ]);
   }
 
-  /// The review mints lines now (front B), so the chip picker's
-  /// *＋ Add an ingredient to this recipe* is open here as it is in the
-  /// editor. A minted line takes a flat index past the payload's last, which
-  /// `buildCommit` writes like any other and the repository turns into a real
-  /// `line_item_id`; nothing renumbers, so every chip already written keeps
-  /// pointing where it did.
+  /// The chip picker's *＋ Add an ingredient to this recipe* is open here. A new
+  /// line takes a flat index past the payload's last; nothing renumbers, so
+  /// existing chips keep pointing where they did.
   @override
   bool get canAddLine => true;
 
@@ -369,11 +340,9 @@ class ImportMethodEditing implements MethodEditing {
     RecipeMeasure? recipeMeasure,
     bool optional = false,
   }) {
-    // A review line stores its denomination as a unit id and has no column for
-    // a recipe's own word, so one arriving here could only be written as a
-    // batch — three blobs of a sauce stored as three whole batches of it. The
-    // review's doors therefore offer no words, and this says so out loud rather
-    // than rounding one off.
+    // A review line stores a unit id and has no column for a recipe's own word,
+    // so one arriving here is refused out loud rather than written as whole
+    // batches.
     if (recipeMeasureId != null) {
       throw UnsupportedError(
         'an import review line cannot be said in a recipe’s own word',

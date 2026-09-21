@@ -1,20 +1,14 @@
 /// [ImportRepository] over the local PowerSync SQLite.
 ///
-/// `startImport` here is the CANNED stand-in, not the app's import path: it
-/// parses the canned payload and re-resolves its placeholder candidates against
-/// the real local vocab, so tests and the on-device smoke test exercise the
-/// whole reconciliation flow with no network and no LLM. The app itself calls
-/// the real `import-recipe` edge function (`EdgeImportRepository`); this class
-/// only reaches a running app when something names it directly.
+/// `startImport` is the canned stand-in for tests and the smoke run: it parses
+/// a canned payload and re-resolves its candidates against the real local
+/// vocab. The app itself calls `EdgeImportRepository`.
 ///
-/// `commit` is real. It writes the resolved recipe, its groups and line items,
-/// and correction aliases in one transaction, generating ids up front so it can
-/// remap each step token's `line_index` refs to the created `line_item_id`s
-/// before the recipe row is written (§4.6). It creates no ingredient: every
-/// line arrives with a real id, because "create new" at review runs the
-/// ingredient form before the line resolves — the `import_stub` leg is gone.
-/// Local tables are SQLite VIEWS, so every write is a plain INSERT, never
-/// `ON CONFLICT`, which those views reject.
+/// `commit` is real. It writes the recipe, its groups, line items and
+/// correction aliases in one transaction, generating ids up front so step
+/// tokens' `line_index` refs can be remapped to `line_item_id`s. It creates no
+/// ingredient: every line arrives with a real id. Local tables are views, so
+/// every write is a plain INSERT, never `ON CONFLICT`.
 library;
 
 import 'dart:convert';
@@ -38,16 +32,12 @@ import 'sample_payloads.dart';
 
 const _uuid = Uuid();
 
-/// How many LIKE candidates are ranked. A commit resolves one name against a
-/// household's own vocabulary, where a token-subset match returning more than
-/// a handful of rows is already unusual; the cap is here so a pathological
-/// name cannot walk the whole table.
+/// How many LIKE candidates are ranked; a cap so a pathological name cannot
+/// walk the whole table.
 const _page = 30;
 
 /// A row's live aliases' `match_text`, newline-separated so each stays a
-/// phrase of its own — the rule's tier 0 asks whether the query IS an alias,
-/// which a space-joined blob could never answer. `match_text` cannot contain a
-/// newline (the normalizer collapses all whitespace), so the split is exact.
+/// phrase; `match_text` never contains a newline.
 const _aliasText =
     '(SELECT GROUP_CONCAT(a.match_text, char(10)) FROM ingredient_alias a '
     'WHERE a.ingredient_id = i.id AND a.deleted_at IS NULL) AS alias_text';
@@ -64,10 +54,8 @@ class SqliteImportRepository implements ImportRepository {
   final String _householdId;
 
   /// Which canned payload `startImport` serves. Defaults to
-  /// [cannedReconciliationPayloadJson]; a smoke scenario driving a different
-  /// recipe (see [peanutStirFryPayloadJson]) passes its own. Only the
-  /// extract+match hop is fixed — the candidates are still re-resolved against
-  /// the real local vocab below.
+  /// [cannedReconciliationPayloadJson]; a smoke scenario can pass its own (see
+  /// [peanutStirFryPayloadJson]).
   final String _payloadJson;
 
   @override
@@ -88,15 +76,10 @@ class SqliteImportRepository implements ImportRepository {
   }
 
   /// Re-points a canned line's placeholder candidates at real vocab rows: an
-  /// exact canonical-name match first, then the same token-subset search the
-  /// picker uses (so a candidate named "Parmesan" still lands on a seeded
-  /// "Parmesan cheese" — the round-1 bug where suggestions silently vanished
-  /// because only exact names resolved). The RESOLVED row's own name replaces
-  /// the canned one: a candidate that reads "Parmesan" while pointing at
-  /// "Parmesan cheese" would put the wrong label on the chip the user taps,
-  /// and that label is what the resolution stores as `chosenName`. A line
-  /// whose candidates all miss degrades to `none` — the user resolves it,
-  /// exactly as an unmatched line from the real server.
+  /// exact canonical-name match first, then the picker's token-subset search.
+  /// The resolved row's own name replaces the canned one, because the chip's
+  /// label is what the resolution stores as `chosenName`. A line whose
+  /// candidates all miss degrades to `none`.
   Future<ReconLine> _resolve(ReconLine line) async {
     if (line.candidates.isEmpty) return line;
     final resolved = <MatchCandidate>[];
@@ -114,32 +97,13 @@ class SqliteImportRepository implements ImportRepository {
     return line.copyWith(candidates: resolved);
   }
 
-  /// The live vocab row a candidate [name] resolves to: the best hit of the
-  /// SAME ranking the pickers use ([searchRank]) over the rows a word-prefix
-  /// LIKE pass selects — the ingredient's `match_text` **or any of its live
-  /// aliases**, every token raw or singularized — else null.
+  /// The live vocab row a candidate [name] resolves to, or null: the best
+  /// [searchRank] hit over the rows a word-prefix LIKE pass selects from
+  /// `match_text` and live aliases, each token raw or singularized.
   ///
-  /// **Tiers 0 and 1 only — never the typo tier**, and that asymmetry is a
-  /// rule, not an omission. This is the one search seam with no human in the
-  /// loop: it picks one row at commit time and writes the answer into a
-  /// saved recipe. A guess here is a wrong ingredient on a line nobody
-  /// reviewed, which is what ADR-0004 exiles and what the never-invent
-  /// invariant refuses. **Tier 2 is retrieval for a human to pick, never a
-  /// resolution** — the pickers may guess because someone is looking at the
-  /// list; this may not, and must not "have the job finished" for it by a
-  /// later unification pass.
-  ///
-  /// What the ranking buys: the SQL knows which rows *could* match, and
-  /// nothing more. Ordered by name length instead, `tom` committed `Tomato`
-  /// where the picker offered `Cherry Tomato` first — its alias `tom` is an
-  /// exact surface — so the seam nobody reviews answered differently from the
-  /// one everybody sees. One rule now decides both.
-  ///
-  /// Aliases matter here for the same reason they matter in the picker: the
-  /// learning loop's absorbed phrasing ("coco milk" → Coconut Milk) is a
-  /// SPELLING the household taught us, not a guess. Searching only
-  /// `ingredient.match_text` made that knowledge invisible to the one caller
-  /// that most needed it.
+  /// Tiers 0 and 1 only, never the typo tier. This seam picks a row at commit
+  /// time with no human looking, and a guess would put a wrong ingredient on a
+  /// saved line (ADR-0004).
   Future<({String id, String canonicalName})?> _findVocabRow(
     String name,
   ) async {
@@ -148,9 +112,8 @@ class SqliteImportRepository implements ImportRepository {
     final where = StringBuffer('i.deleted_at IS NULL');
     final params = <Object?>[];
     for (final tok in tokens) {
-      // Raw form OR singular form, the same rule the picker's search uses:
-      // `match_text` is singularized by the phrase normalizer, so a candidate
-      // named "Almonds" must still resolve to the row holding `almond`.
+      // Raw or singular form, as the picker's search: `match_text` is
+      // singularized, so "Almonds" must still find `almond`.
       final patterns = [
         for (final form in matchTextForms(tok)) ...['$form%', '% $form%'],
       ];
@@ -164,9 +127,8 @@ class SqliteImportRepository implements ImportRepository {
       );
       params.addAll([...patterns, ...patterns]);
     }
-    // This pass SELECTS a page; it does not rank. The page is bounded and
-    // ordered the way the picker's is, so the rows the cap keeps are the same
-    // rows it would keep.
+    // This pass selects a bounded page, ordered as the picker's is; ranking
+    // follows.
     final rows = await _db.getAll(
       'SELECT i.id, i.canonical_name, i.match_text, $_aliasText '
       'FROM ingredient i WHERE $where '
@@ -222,20 +184,14 @@ class SqliteImportRepository implements ImportRepository {
     final stepsJson = jsonEncode(_remapSteps(payload.steps, lineIds));
 
     await _db.writeTransaction((tx) async {
-      // 1. The recipe row, carrying the remapped tokenized steps and EVERY
-      // header column the editor's save writes — the same column list, in the
-      // same order, which a structural test pins so the two writers cannot
-      // drift apart again.
+      // 1. The recipe row, carrying the remapped steps and every header column
+      // the editor's save writes, in the same order (a structural test pins the
+      // two).
       //
-      // Filing is load-bearing: the Library renders books and skips book-less
-      // recipes, so a null `book_id` would save the recipe into a place
-      // nothing shows it. The review's draft normally names the default book
-      // from the start (FILE UNDER can move it); a draft that never resolved
-      // one still lands in the default book here, exactly as the new-recipe
-      // path does (`RecipeEditor.build` → `ensureDefaultBook`).
-      //
+      // `book_id` must not be null: the Library skips book-less recipes. A
+      // draft that never resolved a book lands in the default one.
       // `buildCommit` guarantees both halves of a yield or neither, so the
-      // `recipe_yield_pair` CHECKs cannot be hit here.
+      // `recipe_yield_pair` CHECKs cannot fail here.
       final bookId = payload.bookId ?? await _defaultBookId(tx, now);
       await tx.execute(
         'INSERT INTO recipe (id, household_id, title, servings_base, steps, '
@@ -265,11 +221,9 @@ class SqliteImportRepository implements ImportRepository {
         ],
       );
 
-      // 2. The recipe's own words, before the lines — the same order and the
-      // same diff `saveRecipe` runs, through the one file that writes
-      // `recipe_measure` at all. A commit carries them because the review hosts
-      // the same MEASURES list the editor does (ADR-0018), and it re-stamps
-      // this recipe's id over the draft's placeholder.
+      // 2. The recipe's own measures, before the lines, in the same order and
+      // diff as `saveRecipe` (ADR-0018). Re-stamps this recipe's id over the
+      // draft's placeholder.
       await writeRecipeMeasures(
         tx,
         recipeId: recipeId,
@@ -278,9 +232,7 @@ class SqliteImportRepository implements ImportRepository {
         now: now,
       );
 
-      // 3. Groups, then line items in flattened order. Every line carries
-      // exactly one identity: an ingredient or, for a line the reviewer
-      // LINKED, a sub-recipe (0017's XOR).
+      // 3. Groups, then line items in flattened order.
       var sortInGroup = 0;
       for (var gi = 0; gi < payload.groups.length; gi++) {
         final group = payload.groups[gi];
@@ -292,23 +244,17 @@ class SqliteImportRepository implements ImportRepository {
         );
         sortInGroup = 0;
         for (final line in group.lines) {
-          // Exactly one identity (migration 0017's `line_item_identity_xor`):
-          // a review-LINKED line is a component — `sub_recipe_id` set,
-          // `ingredient_id` null — and everything else resolves to a real
+          // Exactly one identity (`line_item_identity_xor`): a linked line sets
+          // `sub_recipe_id` and no `ingredient_id`; every other line names a
           // vocabulary row.
           final subRecipeId = line.subRecipeId;
           final ingredientId = subRecipeId != null ? null : line.ingredientId;
           if (subRecipeId == null && ingredientId == null) {
             throw StateError('line ${line.lineIndex} has no identity');
           }
-          // A resolved measure (the user picked "can", "clove"…) persists as a
-          // `measure_id` FK with `unit='piece'` (migration 0009) so the count↔
-          // basis bridge survives commit, instead of degrading to a bare
-          // "piece". Only an existing vocab row can carry measures — a
-          // freshly-created stub never does — and a measure that has since
-          // vanished still degrades to an honest count via [_unitId]. A
-          // COMPONENT line never carries one at all — a measure is an
-          // ingredient concept, and 0017 fences that with its own CHECK.
+          // A picked measure ("can", "clove") persists as a `measure_id` FK
+          // with `unit='piece'`. A measure that has since vanished degrades to
+          // a count via [_unitId]. A component line never carries one.
           final measureId = (subRecipeId != null || line.ingredientId == null)
               ? null
               : await _measureIdFor(tx, line.ingredientId!, line.unit);
@@ -339,43 +285,22 @@ class SqliteImportRepository implements ImportRepository {
         }
       }
 
-      // 4. Correction aliases (source='import_correction') — lane B's loop.
-      // The alias is written with the SERVER's phrase normalizer
-      // (`normalizeMatchText`), not the character-level search normalizer,
-      // because the cascade that will one day match on it searches by those
-      // rules — "ripe tomatoes, chopped" is `ripe tomato chopped` to the
-      // server. Local tables are VIEWS, so this is a lookup + a plain INSERT:
-      // a view rejects `ON CONFLICT`.
+      // 4. Correction aliases (source='import_correction'). Written with
+      // `normalizeMatchText`, the rules the server's cascade searches by. A
+      // lookup plus a plain INSERT, since views reject `ON CONFLICT`.
       //
-      // **An alias is a name, so it lands in the one namespace or not at all**
-      // (`ingredients/domain/name_namespace.dart`), and the rule is asked
-      // HERE, inside the write, by the same `nameHolderFor` the flesh-out
-      // form's save asks. Learning is the silent half of this loop, so a taken
-      // name is not an error and nothing is said about it: the line has
-      // already resolved to the row the human picked, which is the whole of
-      // what they asked for. Two cases, one answer — write nothing:
-      //
-      // * **another row holds the text.** "extra-firm tofu" corrected onto
-      //   Super Firm Tofu normalizes to `extra firm tofu`, which IS Extra Firm
-      //   Tofu's own name; learning it would make every later exact match
-      //   between those two rows a coin toss.
-      // * **the picked row holds it** — as its own name (the page printed what
-      //   the row is already called) or as an alias it already has, which is
-      //   also this loop's find-or-create rule: correcting "yellow onion" onto
-      //   Onion on every import must not pile up a duplicate alias row per
-      //   import, all of them matching identically.
+      // An alias is a name, so `nameHolderFor` is asked inside the write
+      // (`ingredients/domain/name_namespace.dart`). A taken name writes nothing
+      // and says nothing, whether another row holds the text or the picked row
+      // already does (as its name or an existing alias).
       for (final c in payload.corrections) {
-        // A whole printed LINE is not a name either — "olive oil or cooking
-        // oil of choice" names two things and an aside, and normalizing it
-        // would bury that in a bag of words nothing will ever ask for. Asked
-        // of the raw text, because normalization erases the very marks that
-        // give it away (`domain/learnable_alias.dart`).
+        // A whole printed line is not a name. Asked of the raw text, because
+        // normalization erases the marks that give it away
+        // (`domain/learnable_alias.dart`).
         if (!looksLikeAName(c.aliasText)) continue;
         final matchText = normalizeMatchText(c.aliasText);
-        // A phrase with no identity word ("a good pinch of") is not a name and
-        // could never match anything; the form refuses one outright, and here
-        // — where a refusal would cost the human their whole recipe — it is
-        // simply not learned.
+        // A phrase with no identity word ("a good pinch of") could never match
+        // anything, so it is not learned.
         if (matchText.isEmpty) continue;
         if (await nameHolderFor(tx, matchText) != null) continue;
         await tx.execute(
@@ -398,12 +323,10 @@ class SqliteImportRepository implements ImportRepository {
     return recipeId;
   }
 
-  /// The book an imported recipe is filed into: the household's first live book
-  /// (creating "Our Cookbook" if there is somehow none), mirroring
-  /// `BookRepository.ensureDefaultBook`. Kept inline rather than delegating so
-  /// the whole commit stays in one transaction — a recipe must never land
-  /// half-filed. The orphan-adoption leg of `ensureDefaultBook` is deliberately
-  /// not mirrored: this write sets `book_id` directly.
+  /// The book an imported recipe is filed into: the household's first live
+  /// book, creating "Our Cookbook" if there is none. Mirrors
+  /// `BookRepository.ensureDefaultBook` inline so the commit stays in one
+  /// transaction; the orphan-adoption leg is not mirrored.
   Future<String> _defaultBookId(SqliteWriteContext tx, String now) async {
     final existing = await tx.getOptional(
       'SELECT id FROM book WHERE deleted_at IS NULL '
@@ -424,10 +347,9 @@ class SqliteImportRepository implements ImportRepository {
     return id;
   }
 
-  /// The stored unit id for a line: the catalog unit when the printed word maps
-  /// (`tbsp`, `g`, `piece`…); otherwise `to_taste` for a numberless line and
-  /// `piece` for a counted one. A non-catalog measure word (`clove`, `can`) is
-  /// not fabricated into grams — it degrades to an honest count (invariant 3).
+  /// The stored unit id for a line: the catalog unit when the printed word
+  /// maps; otherwise `to_taste` for a numberless line and `piece` for a counted
+  /// one. A non-catalog measure word degrades to a count.
   String _unitId(CommitLine line) {
     final mapped = line.unit == null ? null : unitById(line.unit!);
     if (mapped != null) return mapped.id;
@@ -435,11 +357,9 @@ class SqliteImportRepository implements ImportRepository {
   }
 
   /// The `ingredient_measure.id` that a line's [unit] names for [ingredientId],
-  /// or null. Returns null for a catalog unit (`tbsp`, `g`, `piece`…) — those
-  /// aren't measures — and for a measure word that names no live measure of the
-  /// ingredient. A measure pick rides on the line as its raw `label` (see
-  /// `sheetChoiceUnit`), so an exact case-insensitive label match resolves it
-  /// back to the FK the commit persists.
+  /// or null for a catalog unit or a word naming no live measure. A measure
+  /// pick rides on the line as its raw label (see `sheetChoiceUnit`), matched
+  /// case-insensitively.
   Future<String?> _measureIdFor(
     SqliteWriteContext tx,
     String ingredientId,
@@ -456,11 +376,9 @@ class SqliteImportRepository implements ImportRepository {
   }
 
   /// Rebuilds the stored step JSON, remapping each ref token's `line_index`
-  /// refs to the created `line_item_id`s (§4.6). Text and timer tokens pass
-  /// through; a ref whose lines all vanished — an out-of-range index, or a line
-  /// the user DROPPED at review — never invents a target: it demotes to its own
-  /// label as plain prose, so "finish with basil" keeps the word and loses only
-  /// the chip.
+  /// refs to the created `line_item_id`s. Text and timer tokens pass through. A
+  /// ref whose lines all vanished (out of range, or dropped at review) demotes
+  /// to its label as plain text.
   List<Map<String, Object?>> _remapSteps(
     List<Step> steps,
     Map<int, String> lineIds,
@@ -491,9 +409,7 @@ class SqliteImportRepository implements ImportRepository {
             if (lineIds[i] != null) lineIds[i]!,
         ];
         if (ids.isEmpty) {
-          // No line survived. The chip's label is the extractor's own prose, so
-          // keeping it as text loses the link and nothing else; a chip with no
-          // label has nothing honest to say and goes.
+          // No line survived: keep the label as text; a ref with no label goes.
           final text = label.trim();
           return text.isEmpty ? null : {'t': 'text', 's': text};
         }

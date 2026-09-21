@@ -1,31 +1,11 @@
-/// The single-screen review surface (v3, owner refinement): every import line
-/// renders as one [ReviewLineCard] — compact `amount · ingredient · notes` by
-/// default, expanding IN PLACE (tap the row or the pencil) into the full
-/// editable card: tap the ingredient to re-match (decision 5's seeded picker),
-/// the tap-to-edit [AmountEditor] (the step-7.7 quantity + unit-chip sheet,
-/// decision 6), and an inline notes field. Auto / suggest / none lines are all
-/// equally editable; a needs-attention line only gets a visual flag. The
-/// never-invent flags (0014) are shown, not hidden.
+/// The import review's line card.
 ///
-/// A line can also be DROPPED here (the bin on the expanded card): the card
-/// greys into an "as deleted" state that says so and offers undo, and the line
-/// stops being anyone's problem — no flag, no Save gate — until Save makes the
-/// removal real (see [LineResolution.isDropped]).
-///
-/// And a line can be LINKED to a household recipe (step 8.6 / D6, design board
-/// frame e): when the server offers a recipe-title candidate it rides the
-/// existing did-you-mean chip row as "↪ your recipe · Romesco Aioli", ALONGSIDE
-/// the ingredient candidates. Nothing links itself — the chip is an offer, at
-/// any score. Tapping it turns the line into a component line: the identity
-/// cell becomes the recipe chip, no ingredient match is wanted, no
-/// allowed-units gate applies (admission is an ingredient concept), and the
-/// line is valid for Save the moment its amount is set. Ignoring it leaves the
-/// line exactly as it is today, and it commits byte-identically.
-///
-/// Two of the card's three jobs live beside it: saying what the line IS is
-/// `recon_resolver.dart` ([Resolver] and the seeded search sheet), and saying
-/// how much of it is `recon_amount.dart` ([AmountEditor] and the two sheets it
-/// opens). Both have public entry points other surfaces already call.
+/// Each line renders as one [ReviewLineCard]: compact `amount · ingredient ·
+/// notes`, expanding in place into the editable card (re-match, [AmountEditor],
+/// notes). A line can be dropped, which greys it until Save
+/// ([LineResolution.isDropped]), or linked to a household recipe offered on the
+/// did-you-mean chip row, which makes it a component line. Matching lives in
+/// `recon_resolver.dart` ([Resolver]) and the amount in `recon_amount.dart`.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -49,10 +29,8 @@ import 'import_view_models.dart';
 import 'recon_amount.dart';
 import 'recon_resolver.dart';
 
-/// One expandable review row — [LineCard] with the review's contents in its
-/// slots. Collapsed, it reads as the recipe page will: `amount · ingredient ·
-/// notes` with a pencil. Expanded, it becomes the full editable card (re-match,
-/// amount+unit, notes) that the recipe editor's line is also built from.
+/// One expandable review row: a [LineCard] with the review's contents in its
+/// slots.
 class ReviewLineCard extends ConsumerWidget {
   const ReviewLineCard({
     required this.line,
@@ -66,16 +44,12 @@ class ReviewLineCard extends ConsumerWidget {
   final ReconLine line;
   final LineResolution resolution;
 
-  /// The line's validity + unit chips (from [importValidation]). Null while
-  /// validation is still loading — the card falls back to the structural
-  /// check (matched? range picked?) so it always renders something sane.
+  /// The line's validity and unit chips (from [importValidation]). Null while
+  /// validation loads; the card then falls back to the structural check.
   final LineValidation? validation;
 
-  /// This card's position in the review's flat row list, when it is hosted in
-  /// one — what the grip drags by. Null where the card renders on its own.
-  ///
-  /// The grip appears on a COLLAPSED row only: an open card is a form, not a
-  /// row, and a drag surface of uniform rows is the shape drag is good at.
+  /// This card's position in the review's flat row list, which the grip drags
+  /// by. Null when the card renders alone. Only a collapsed row shows the grip.
   final int? dragIndex;
 
   /// Bumped by the list when a drag starts elsewhere — an open card closes,
@@ -91,15 +65,9 @@ class ReviewLineCard extends ConsumerWidget {
         ? const LineValidation(issues: [])
         : (validation ?? LineValidation(issues: lineIssues(resolution)));
     final attention = effective.issues.isNotEmpty;
-    // A LINKED line counts as resolved for the card's purposes: it has an
-    // identity, so the amount and notes unlock exactly as a matched line's do.
-    //
-    // "Matched" is the VALIDATION's verdict, not a re-derivation from the id
-    // the resolution still holds: `importValidation` is where a match meets
-    // this device's live vocabulary, and a line matched to a retired row comes
-    // back `unmatched` there. So the card asks for a pick and locks the amount
-    // exactly as it does for a line the cascade could not match — a green ✓
-    // over a row that is gone is the lie this prevents.
+    // A linked line counts as resolved. "Matched" is the validation's verdict,
+    // not the id the resolution holds: a line matched to a retired row comes
+    // back `unmatched`, so the card asks for a pick and locks the amount.
     final unmatched = effective.issues.contains(LineIssue.unmatched);
     final matched =
         !unmatched &&
@@ -144,10 +112,8 @@ class ReviewLineCard extends ConsumerWidget {
   }
 }
 
-/// The "as deleted" card: the line stays on screen, greyed and plainly
-/// labelled, with the un-delete beside it. Nothing is written until Save, so
-/// this state is the whole deletion — reversible, visible, and out of the
-/// Save gate.
+/// The dropped card: greyed and labelled, with undo beside it. Nothing is
+/// written until Save.
 class _DroppedLine extends StatelessWidget {
   const _DroppedLine({
     required this.line,
@@ -227,9 +193,8 @@ class _PieceWeightDoor extends StatelessWidget {
         GestureDetector(
           key: ValueKey('piece-weight-door-$ingredientId'),
           behavior: HitTestBehavior.opaque,
-          // The door names the number it wants set, so it opens the page
-          // in its editing posture rather than on a fact sheet that would
-          // only repeat that the weight is missing.
+          // Opens the ingredient page in its editing posture, since the piece
+          // weight is what needs setting.
           onTap: () =>
               context.pushOnce(ingredientDetailRoute(ingredientId, edit: true)),
           child: Text(
@@ -242,12 +207,8 @@ class _PieceWeightDoor extends StatelessWidget {
   );
 }
 
-/// The short, human "why this line needs you" — a clear label, not a bare dot
-/// (round-2 #4). Null when the line is done.
-///
-/// [hasRecipeOffer] widens the unmatched label to name the other door the card
-/// is showing (board frame e): a line the server thinks names one of your own
-/// recipes can be answered either way, and the tag should say so.
+/// The short "why this line needs you" label, or null when the line is done.
+/// [hasRecipeOffer] widens the unmatched label to name the recipe door too.
 String? attentionLabel(List<LineIssue> issues, {bool hasRecipeOffer = false}) {
   if (issues.isEmpty) return null;
   if (issues.contains(LineIssue.unmatched)) {
@@ -263,11 +224,8 @@ String? attentionLabel(List<LineIssue> issues, {bool hasRecipeOffer = false}) {
   return 'Needs a look';
 }
 
-/// The original imported line as written — amount + ingredient — shown as a
-/// muted reference so the user always sees what the source said (round-2 #3:
-/// "from a photo I wouldn't know the original amount"). The two halves are
-/// joined by [joinSourceLine], which drops the measure word they both print
-/// rather than stuttering it ("2–3 cloves garlic cloves, sliced").
+/// The imported line as written, amount and ingredient, shown as a muted
+/// reference. [joinSourceLine] drops a measure word both halves print.
 String rawLineText(RawLineItem raw) =>
     joinSourceLine(raw.rawAmount, raw.ingredientText);
 
@@ -295,16 +253,12 @@ class ReviewLineRow extends StatelessWidget {
   /// the panel at this line on a desk.
   final VoidCallback onTap;
 
-  /// Whether the row carries the pencil that says "this opens". False where
-  /// the row does not open into anything — the wide review, where the form is
-  /// already standing beside the list.
+  /// Whether the row carries the pencil. False on the wide review, where the
+  /// form already stands beside the list.
   final bool pencil;
 
-  /// Whether a flagged row repeats what the page printed under it.
-  ///
-  /// True on a phone, where it is the only copy of the source there is. False
-  /// on a wide screen, where the page itself is a column away and set larger:
-  /// the duplicate would be the same words twice, five centimetres apart.
+  /// Whether a flagged row repeats what the page printed. False on a wide
+  /// screen, where the page itself is a column away.
   final bool sourceLine;
 
   @override
@@ -319,9 +273,7 @@ class ReviewLineRow extends StatelessWidget {
       hasRecipeOffer: line.recipeCandidates.isNotEmpty,
     );
     // The amount slot is blank on a line whose unit the row refuses, so the
-    // compact row prints what the page said. The whole reason for blanking it
-    // is that "1 whole" read as filled — the reader still has to see those
-    // words to know which supported unit they meant.
+    // compact row prints what the page said.
     final reference = rawLineText(raw);
     final showSource =
         sourceLine &&
@@ -348,9 +300,8 @@ class ReviewLineRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              // The identity cell is the ONLY part of the v3 line that changes
-              // for a component (board frames a · e): the amount column and the
-              // note modifier stay exactly as they are.
+              // Only the identity cell changes for a component; the amount and
+              // the note stay as they are.
               if (resolution.isComponent)
                 Expanded(
                   child: Row(
@@ -424,10 +375,8 @@ class ReviewLineRow extends StatelessWidget {
   }
 }
 
-/// The full editable card: the raw line for reference, the re-match resolver
-/// (tap the ingredient), then the amount editor + notes — which stay disabled
-/// until an ingredient is matched (round-2 #7: a unit/note is meaningless with
-/// no ingredient to derive an allowed set from).
+/// The editable card: the raw line for reference, the resolver, then the amount
+/// editor and notes, which stay disabled until an ingredient is matched.
 class ReviewLineForm extends ConsumerWidget {
   const ReviewLineForm({
     required this.line,
@@ -452,14 +401,10 @@ class ReviewLineForm extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Read at CALL time through the app-lifetime container, never through
-    // this card's `ref` and never as a captured notifier: `Resolver` hands its
-    // pick back after an awaited sheet, and by then the card can be UNMOUNTED
-    // — on a phone the sheet's keyboard shrinks the review list under it and
-    // the card scrolls out — and a `WidgetRef` used after unmount throws
-    // (Riverpod 3), which lost the pick. A notifier captured before the await
-    // can be a disposed one instead. The container outlives both; the review
-    // still watching the provider keeps the notifier alive.
+    // Read at call time through the app-lifetime container, never this card's
+    // `ref` or a captured notifier: [Resolver] hands its pick back after an
+    // awaited sheet, by when the card can be unmounted (the keyboard scrolls it
+    // out), and a `WidgetRef` used after unmount throws.
     final container = ProviderScope.containerOf(context, listen: false);
     void update(LineResolution Function(LineResolution) f) => container
         .read(importControllerProvider.notifier)
@@ -471,9 +416,7 @@ class ReviewLineForm extends ConsumerWidget {
       hasRecipeOffer: line.recipeCandidates.isNotEmpty,
     );
     final reference = rawLineText(line.raw);
-    // Offer inline unit chips when the current unit needs a fix — an
-    // ambiguous/unmapped unit (round-3 #2), parallel to the ingredient "did
-    // you mean" pills. Any other valid unit needs no prompting.
+    // Offer inline unit chips only when the current unit needs a fix.
     final showUnitChips =
         matched &&
         issues.contains(LineIssue.unitNotAllowed) &&
@@ -481,11 +424,8 @@ class ReviewLineForm extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // The head is the line's CURRENT identity, the same rule the collapsed
-        // row reads (C-D1) — not the source text, which sits on the
-        // `from source:` line directly underneath. The bin drops the line: the
-        // recipe prints it, this cook doesn't want it, and it greys out in
-        // place until Save makes the removal real.
+        // The head is the line's current identity, as on the collapsed row; the
+        // source text sits directly underneath. The bin drops the line.
         LineCardHead(
           identity: Text(
             resolution.displayName,
@@ -494,10 +434,8 @@ class ReviewLineForm extends ConsumerWidget {
           onRemove: onDrop,
           onCollapse: onCollapse,
         ),
-        // Always show the source line as written — the reference the owner
-        // wants while fixing a photo import (round-2 #3). A line the REVIEW
-        // minted has no source, and says that in the same slot rather than
-        // leaving a silence: the honesty rule cuts both ways.
+        // Always show the source line as written. A line added at review has no
+        // source and says so in the same slot.
         if (resolution.addedAtReview)
           Padding(
             padding: const EdgeInsets.only(top: 2),
@@ -524,25 +462,20 @@ class ReviewLineForm extends ConsumerWidget {
           _AttentionTag(label: label),
         ],
         const SizedBox(height: 10),
-        // The ingredient match — tap the ingredient itself to re-match. A
-        // recipe offer rides the same chip row, and a LINKED line renders its
-        // recipe chip here with the unlink beside it (reversible until Save).
+        // The ingredient match. A recipe offer rides the same chip row, and a
+        // linked line renders its recipe chip here with the unlink beside it.
         Resolver(
           candidates: line.candidates,
           recipeCandidates: line.recipeCandidates,
           resolution: resolution,
-          // The line still remembers an id, but the vocabulary cannot hand
-          // that row back (it was retired since the server matched), and the
-          // validation said so. The identity cell is then the PICK cell, not
-          // a ✓ over a row that is gone — the whole point of reading the one
-          // verdict instead of the stale id.
+          // The line holds an id the vocabulary can no longer return (the row
+          // was retired), so this is the pick cell, not a ✓.
           matchMissing: !matched && resolution.chosenIngredientId != null,
           // Which food the matched row's numbers came from,
           // already on the validation the card is holding.
           sourceLine: validation.sourceLine,
-          // The match goes through the controller's own door, which also
-          // lands a counted line on the row's whole measure once the row's
-          // measures are read.
+          // The controller's match also lands a counted line on the row's whole
+          // measure once the measures are read.
           onResolveExisting:
               (id, name, {required correction, created = false}) => container
                   .read(importControllerProvider.notifier)
@@ -570,8 +503,7 @@ class ReviewLineForm extends ConsumerWidget {
           ),
         ),
         // A count on a row with no piece weight (ADR-0015): the fix is the
-        // INGREDIENT's, not this line's, so the card names it and opens the
-        // row — it never offers to type a weight here.
+        // ingredient's, so the card names it and opens the row.
         if (validation.pieceWeightMissing &&
             resolution.chosenIngredientId != null)
           _PieceWeightDoor(
@@ -638,15 +570,10 @@ class _DisabledChip extends StatelessWidget {
   }
 }
 
-/// Inline unit "did you mean" chips (round-3 #2) — the matched ingredient's
-/// valid units, offered when the current unit is unsupported so the user can
-/// pick a good one in a tap, parallel to the ingredient candidate pills.
-///
-/// The admission set for a common ingredient runs past a dozen units, which
-/// reads as a wall rather than a choice. Owner's call: [kVisibleUnitChips] of
-/// them — [rankedUnitChips]' likeliest — and the rest behind a "more" chip that
-/// expands IN PLACE. Nothing is unreachable, and the fold never hides the
-/// current selection: it opens on one.
+/// Inline unit chips: the matched ingredient's valid units, offered when the
+/// current unit is unsupported. Shows [kVisibleUnitChips] of [rankedUnitChips]'
+/// likeliest and folds the rest behind a "more" chip that expands in place. The
+/// fold never hides the current selection.
 class _UnitSuggestions extends StatefulWidget {
   const _UnitSuggestions({
     required this.choices,
@@ -757,27 +684,18 @@ class _NotesEditor extends ConsumerWidget {
 
 /// Whether the extractor's unit word is one this app cannot read.
 ///
-/// `unit_mappable: false` is the extractor saying "this amount did not land on
-/// a **measurable** unit" — which covers two different things. One is a phrase
-/// nothing can resolve ("thumb-sized piece"): that genuinely needs the user.
-/// The other is an imprecise word the catalog *does* carry — `pinch`, `dash`,
-/// `handful`, `to taste` — which the extraction prompt is told to emit as a
-/// catalog id, and which the import surface then admits on the line by name.
-/// Saying that one "needs a look" flags two lines of every seasoned recipe for
-/// a word the app understood perfectly and has already accepted.
+/// `unit_mappable: false` covers both a phrase nothing can resolve
+/// ("thumb-sized piece") and an imprecise word the catalog carries (`pinch`,
+/// `to taste`). Only the first needs the user.
 bool unitNeedsALook(RawLineItem raw) {
   final unit = raw.unit;
   if (raw.unitMappable || unit == null || unit.isEmpty) return false;
   return unitById(unit) == null;
 }
 
-/// The honest-import flags for a line — shown, never hidden (0014) — led by
-/// the one flag that is also a control.
-///
-/// That control rides the row of EVERY expanded card, matched or not: "to
-/// serve" is a fact about the line the cook can read off the page, and waiting
-/// for an ingredient match to record it would lose it on exactly the lines — a
-/// garnish, a cross-reference — that most often go unmatched.
+/// The honest-import flags for a line, led by the "to serve" control. The
+/// control shows on every expanded card, matched or not, since garnish lines
+/// most often go unmatched.
 class _Flags extends StatelessWidget {
   const _Flags({
     required this.raw,
@@ -787,9 +705,7 @@ class _Flags extends StatelessWidget {
 
   final RawLineItem raw;
 
-  /// The line's flag as it stands, seeded from the extractor's and editable
-  /// from here — never the raw one, which would keep saying what the page
-  /// said after the cook disagreed.
+  /// The line's flag as it stands: seeded from the extractor and editable here.
   final bool optional;
   final ValueChanged<bool> onToggleOptional;
 
