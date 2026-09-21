@@ -1,12 +1,6 @@
-/// The Shop screen — the DERIVED, provenance-aware shopping list (spec §4).
-///
-/// The list sums each ingredient's contributions from the batch cook plan, plus
-/// any manual top-ups, and groups them by aisle. Check-off is on the rolled-up
-/// item (spec §4), and a ticked row leaves its aisle for one basket section at
-/// the bottom. A "+ add item or top up" affordance opens the add sheet for
-/// non-food staples and manual top-ups. Read-derived; edit the Week/Cook and
-/// this re-sums. Only the thin overlay (check-off + manual contributions)
-/// persists — and syncs, since step 7.
+/// The Shop screen: the derived, provenance-aware shopping list (spec §4),
+/// grouped by aisle, with ticked rows moving to a basket section at the bottom.
+/// Only the overlay (check-offs and manual top-ups) persists and syncs.
 library;
 
 import 'dart:async';
@@ -56,11 +50,8 @@ class ShoppingView extends ConsumerWidget {
   /// the smoke test waits on this key instead of a title.
   static const rootKey = ValueKey('shop-root');
 
-  /// `?week=YYYY-MM-DD` — the week this tab was opened at, so a refresh or a
-  /// pasted link sums the week you were looking at rather than this one. The
-  /// list still derives from the one shared position
-  /// ([viewedWeekStartProvider]); this only seats it on arrival and names it
-  /// afterwards ([WeekInTheLocation]).
+  /// `?week=YYYY-MM-DD`: the week this tab was opened at. It only seats the
+  /// shared [viewedWeekStartProvider] on arrival ([WeekInTheLocation]).
   final String? weekKey;
 
   @override
@@ -73,15 +64,11 @@ class ShoppingView extends ConsumerWidget {
       weekKey: weekKey,
       child: FScaffold(
         key: rootKey,
-        // A tab root sits INSIDE the shell's scaffold, which already shrinks
-        // the branch area for the keyboard; a second scaffold subtracting the
-        // same inset squeezes the content twice (Android showed a list a few
-        // lines tall after the sign-in keyboard).
+        // A tab root sits inside the shell's scaffold, which already shrinks
+        // for the keyboard; a second inset would squeeze the content twice.
         resizeToAvoidBottomInset: false,
-        // D7a/D7c: the list derives from the ONE viewed week (and since 0018
-        // its check-offs and top-ups belong to that week), so the switcher is
-        // the whole title — no screen name, no pill. No "copy last week": that
-        // is a Week write (D7b).
+        // The list derives from the one viewed week, so the switcher is the
+        // title.
         header: FHeader.nested(
           title: WeekSwitcher(
             showCopyLastWeek: false,
@@ -97,26 +84,17 @@ class ShoppingView extends ConsumerWidget {
           ),
           suffixes: const [_ReceiptsDoor()],
         ),
-        // The status line sits between the header and the scroll, not inside
-        // it: mid-aisle, an answer that has scrolled away is no answer. It
-        // keeps its height whether or not it is saying anything, so a tick
-        // never walks the rows under the thumb that ticked one. The shell's
-        // banner, when there is one, sits above this whole column — the banner
-        // says something is wrong, this says where you stand.
+        // The status line sits outside the scroll and keeps its height whether
+        // or not it says anything, so a tick never shifts the rows.
         child: Column(
           children: [
-            // The trip estimate rides the sync line, where the one sentence
-            // about the whole list already lives — and it stays put while the
-            // sync words come and go beside it.
+            // The trip estimate rides the sync line.
             AnsiSyncStatusLine(
               noun: 'tick',
               trailing: _TripEstimate(trip: ref.watch(shopTripCostProvider)),
             ),
-            // The width buys ONE thing here: the breakdown a phone opens
-            // under a row, held open in a pane beside the walk. The walk
-            // itself is the same single column at the measure — two phones
-            // drive this screen at once, and a second column to re-find a row
-            // in is not an offer.
+            // At expanded width the walk stays one column; the width buys only
+            // the breakdown pane beside it.
             Expanded(
               child: AnsiLayout.of(context) == AnsiLayout.expanded
                   ? const _WideShop()
@@ -129,20 +107,10 @@ class ShoppingView extends ConsumerWidget {
   }
 }
 
-/// The ledger's door, in the header beside the week.
-///
-/// The Shop's foot is the end of a list you have to walk to reach, so the one
-/// door that is not about *this* trip stands in the chrome instead, where it
-/// is in the same place at every scroll position and every width. It is the
-/// only thing in the header besides the switcher, and **the switcher stays
-/// centred**: [FHeader.nested] centres its title in the header's whole width
-/// and moves it only when title and action would collide, so a balancing
-/// spacer opposite would buy no centring and cost the title room.
-///
-/// It is still drawn **only once the household has kept a receipt** — a door
-/// onto an empty page is furniture, and the chrome is the one strip on screen
-/// for the whole walk. [ScanReceiptDoor] is what teaches the feature; this is
-/// what gets you back to what it kept.
+/// The receipts ledger's door in the header, drawn only once the household has
+/// kept a receipt. [FHeader.nested] keeps the week switcher centred, so no
+/// balancing spacer is needed. [ScanReceiptDoor] is what introduces the
+/// feature.
 class _ReceiptsDoor extends ConsumerWidget {
   const _ReceiptsDoor();
 
@@ -157,13 +125,9 @@ class _ReceiptsDoor extends ConsumerWidget {
       : const SizedBox.shrink();
 }
 
-/// `≈ $58 still to buy` at the end of the sync line — what the rest of the
-/// walk comes to at the latest prices (ADR-0017), and `at least $58 still to
-/// buy · 2 rows unpriced` where a row on the walk has no price to read.
-///
-/// Nothing at all when not one open row can be priced: `≈ $0` would read as a
-/// free trip rather than an unpriced one, and the rows themselves each say
-/// which of them has no price.
+/// `≈ $58 still to buy` on the sync line, at the latest prices (ADR-0017); `at
+/// least $58 still to buy · 2 rows unpriced` where a row has no price. Draws
+/// nothing when no open row can be priced, since `≈ $0` would read as free.
 class _TripEstimate extends StatelessWidget {
   const _TripEstimate({required this.trip});
 
@@ -178,12 +142,10 @@ class _TripEstimate extends StatelessWidget {
   }
 }
 
-/// The walk: the aisles, the basket section, the echo rows and the add door.
-///
-/// [selection] is null on a phone, where every row draws its own breakdown
-/// under it. At [AnsiLayout.expanded] it is the pane's seam: the row it is
-/// reading lights up, a tap anywhere on a row but its check box points the pane
-/// at it, and no row draws a breakdown of its own.
+/// The walk: aisles, basket, echo rows and the add door. [selection] is null on
+/// a phone, where each row draws its own breakdown. At [AnsiLayout.expanded] it
+/// drives the pane: a tap outside a row's check box selects that row, and no
+/// row draws a breakdown.
 Widget _shoppingList(
   BuildContext context,
   WidgetRef ref,
@@ -197,10 +159,8 @@ Widget _shoppingList(
     stackTrace: st,
     onRetry: () => ref.invalidate(currentShoppingListProvider),
   ),
-  // D5b: the screen never swaps itself out for a data condition. An
-  // empty list is a quiet line INSIDE the list chrome, keeping both of
-  // this screen's affordances — the add-item door works with no plan at
-  // all, which is exactly why it must not be taken away.
+  // An empty list is a quiet line inside the list chrome, so the add-item door
+  // stays available with no plan at all.
   data: (data) => ListView(
     padding: ansiScrollPadding(
       context,
@@ -209,32 +169,20 @@ Widget _shoppingList(
     children: [
       const _ListCaption(),
       if (data.isEmpty) const _NothingToBuyLine(),
-      // The aisles hold only what is still to grab; a ticked row leaves for
-      // the basket section at the bottom, so what is and isn't in the
-      // trolley reads at a glance. When the aisles are empty but the trip
-      // is not, the line below says so where they were.
+      // The aisles hold only unticked rows; when all are ticked a line says so.
       if (data.allTicked) const _EverythingInBasketLine(),
       for (final group in data.openGroups)
         _Group(group: group, selection: selection),
       if (data.basket.isNotEmpty)
         _Basket(groups: data.basketGroups, selection: selection),
-      // What the list is short by, and why it is silent about it
-      // (step 8.6 / D4): an unresolved component contributes
-      // nothing — never an invented quantity — so the parent it
-      // belongs to says so and points at the surface that fixes
-      // it. A list that is quietly short is worse than one that
-      // says what it left out.
+      // An unresolved component contributes nothing, so its parent recipe says
+      // so and points at the Cook tab.
       for (final note in data.unresolvedComponents) _UnresolvedEcho(note: note),
-      // …and what it cannot buy because the thing itself is gone: a line, or
-      // a planned meal, whose vocab row was retired. Amber like the
-      // unresolved echo, because it is the same kind of news — a defect
-      // somebody can fix — and the words name where the pick is.
+      // A line or planned meal whose vocab row was retired. Amber: it is
+      // fixable.
       for (final note in data.retiredIngredients)
         RetiredIngredientEcho(note: note),
-      // …and what it left out BY RULE: an optional line contributes nothing,
-      // and the recipe it belongs to says which lines, in the same voice —
-      // muted, not amber, because a rule somebody chose is not a defect
-      // somebody can fix.
+      // Optional lines left out by rule. Muted: a choice, not a defect.
       for (final note in data.optionalLines) OptionalLinesEcho(note: note),
       const _AddItemButton(),
       const ScanReceiptDoor(),
@@ -242,11 +190,8 @@ Widget _shoppingList(
   ),
 );
 
-/// The row the provenance pane is reading, and how a row asks to be read.
-///
-/// The row is named by [shoppingItemIdentity] rather than by a position: the
-/// list re-derives whenever the week, a tick or the other shopper changes it,
-/// and an index does not survive that.
+/// The row the provenance pane is reading, named by [shoppingItemIdentity]
+/// because an index does not survive a re-derivation.
 class _Selection {
   const _Selection({required this.identity, required this.read});
 
@@ -258,12 +203,8 @@ class _Selection {
   final ValueChanged<ShoppingItem> read;
 }
 
-/// The Shop at [AnsiLayout.expanded]: the walk at the measure, and the
-/// breakdown beside it.
-///
-/// The pane reads one row at a time and changes nothing — a tick is still what
-/// sends a row to the basket, and a row the pane is reading stays exactly where
-/// the aisles put it.
+/// The Shop at [AnsiLayout.expanded]: the walk, with the breakdown pane beside
+/// it. The pane reads one row and changes nothing.
 class _WideShop extends ConsumerStatefulWidget {
   const _WideShop();
 
@@ -272,12 +213,8 @@ class _WideShop extends ConsumerStatefulWidget {
 }
 
 class _WideShopState extends ConsumerState<_WideShop> {
-  /// The row a tap has pointed the pane at, or null while the pane is reading
-  /// the first row of the walk.
-  ///
-  /// Held as an identity, so a row the pane is on that is ticked keeps the pane
-  /// as it walks to the basket section — the row did not go anywhere, and
-  /// moving the pane off it would be a second thing the tick did.
+  /// The row the pane was pointed at, or null while it reads the first row. An
+  /// identity, so the pane follows a row that is ticked into the basket.
   String? _reading;
 
   @override
@@ -338,9 +275,8 @@ const kShopReadingRowKey = ValueKey('shop-reading-row');
 /// wide frame adds, and the same 360 the board's pane is drawn at.
 const kProvenancePaneWidth = 360.0;
 
-/// The breakdown the phone opens under a row, held open beside the walk: what
-/// the row is, what it came to, which recipes and sessions asked for it, and
-/// the manual top-up, which is editable here exactly as it is inline.
+/// The breakdown held open beside the walk: the row, its total, the
+/// contributions behind it and the editable manual top-up.
 class _ProvenancePane extends StatelessWidget {
   const _ProvenancePane({required this.item, required this.aisle});
 
@@ -396,9 +332,7 @@ class _ProvenancePane extends StatelessWidget {
                       style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
                     ),
                   ),
-                // Where the row is: the aisle it is walked to, and whether it
-                // is already in the basket — the two words the list says about
-                // its position, said here for the row the pane is on.
+                // The row's aisle, and whether it is already in the basket.
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
@@ -481,11 +415,8 @@ class _Group extends StatelessWidget {
   }
 }
 
-/// The one section every ticked row moves to — `IN THE BASKET · 4` in the
-/// group-header voice — keeping its aisles inside it, so a row is re-found
-/// the way it was found: under `PRODUCE`, then `PANTRY`, in the order the
-/// aisles would have put them. A ticked row keeps its ticked look and its
-/// tap: tapping unticks it and it returns to its aisle on the next derivation.
+/// The section every ticked row moves to (`IN THE BASKET · 4`), keeping its
+/// aisles inside it. Tapping a row unticks it.
 class _Basket extends StatelessWidget {
   const _Basket({required this.groups, this.selection});
 
@@ -531,9 +462,7 @@ class _Basket extends StatelessWidget {
   }
 }
 
-/// Every item is ticked: the aisles are empty but the trip is not, and the
-/// line says so where the aisles were, in [_NothingToBuyLine]'s voice. The
-/// single place the screen knows the trip is done.
+/// Shown where the aisles were once every item is ticked.
 class _EverythingInBasketLine extends StatelessWidget {
   const _EverythingInBasketLine();
 
@@ -549,9 +478,8 @@ class _EverythingInBasketLine extends StatelessWidget {
   }
 }
 
-/// A parent recipe's "N components unresolved — see Cook" echo, drawn in the
-/// group-header voice (board frame g) because that is what it is: a heading
-/// for the items that are NOT below it.
+/// A parent recipe's "N components unresolved — see Cook" echo, in the
+/// group-header voice.
 class _UnresolvedEcho extends StatelessWidget {
   const _UnresolvedEcho({required this.note});
 
@@ -591,15 +519,8 @@ class _UnresolvedEcho extends StatelessWidget {
   }
 }
 
-/// A line at a RETIRED ingredient: "SAUERKRAUT · ingredient removed · pick
-/// again in the recipe" — the same group-header row the unresolved echo uses,
-/// amber, because it is the same kind of statement: a heading for something
-/// that is NOT below it, and a defect somebody can fix.
-///
-/// The list buys nothing from a retired row (there is no honest name, aisle or
-/// density left on it) and drops nothing either — a planned snack that
-/// vanished with its check-off row is how this went unnoticed. So the row
-/// leaves the aisles and says, here, which thing is missing and where the pick
+/// A line at a retired ingredient: "SAUERKRAUT · ingredient removed · pick
+/// again in the recipe". Amber, like the unresolved echo. Names where the pick
 /// is: the recipe for a recipe line, the plan for a bare-ingredient meal.
 /// Public so the screen test can find the row by type.
 class RetiredIngredientEcho extends StatelessWidget {
@@ -607,12 +528,8 @@ class RetiredIngredientEcho extends StatelessWidget {
 
   final RetiredIngredientNote note;
 
-  /// `Sauerkraut · ingredient removed · pick again in the recipe`.
-  ///
-  /// `ingredient removed · pick again` is the recipe page's and the editor's
-  /// exact words (`RemovedIngredientTag`) — one vocabulary for one kind of
-  /// broken line — with the surface that holds the pick named at the end,
-  /// because from an aisle it is a different tap.
+  /// `Sauerkraut · ingredient removed · pick again in the recipe`: the words of
+  /// `RemovedIngredientTag`, with the surface that holds the pick named last.
   static String text(RetiredIngredientNote note) {
     final where = switch (note.site) {
       RetiredIngredientSite.recipeLine => 'recipe',
@@ -655,24 +572,14 @@ class RetiredIngredientEcho extends StatelessWidget {
   }
 }
 
-/// A recipe's "N optional lines not listed — lime, coriander" echo: the
-/// group-header voice nested recipes' unresolved echo uses, because it is the
-/// same shape of statement — a heading for the items that are NOT below it —
-/// drawn muted rather than amber. Public so the screen test can find the row by
-/// type.
+/// A recipe's "N optional lines not listed — lime, coriander" echo, muted. A
+/// line this week left out takes the same row ("1 line left out this week — Red
+/// wine").
 ///
-/// A line THIS WEEK left out takes the same row in the same grammar — "1 line
-/// left out this week — Red wine". An exclusion cannot be a provenance segment
-/// (there is no row left to hang one on), and a list that is quietly short is
-/// worse than one that says what it dropped.
-///
-/// **On an optional row the names are doors.** Each one is a tap that writes
-/// this week's include row for that line, so the question the row raises can be
-/// answered where it is asked rather than three screens away in the editor. A
-/// line the WEEK left out keeps its plain words: that is a change somebody
-/// made, and it is undone where it was made.
-///
-/// Stateful only to own the names' tap recognizers.
+/// On an optional row each name is a door: a tap writes this week's include row
+/// for that line. A week exclusion keeps plain words; it is undone where it was
+/// made. Stateful only to own the tap recognizers. Public so the screen test
+/// can find the row by type.
 class OptionalLinesEcho extends ConsumerStatefulWidget {
   const OptionalLinesEcho({required this.note, super.key});
 
@@ -714,9 +621,8 @@ class _OptionalLinesEchoState extends ConsumerState<OptionalLinesEcho> {
   Widget build(BuildContext context) {
     final note = widget.note;
     final muted = ansiMono(size: 10.5, color: AnsiColors.muted);
-    // A door only where there is a decision to make. The ids ride beside the
-    // names, and a row that somehow carries fewer of one than the other says
-    // its sentence plainly rather than pointing a tap at the wrong line.
+    // A door only where there is a decision; a row whose ids and names do not
+    // line up says its sentence plainly.
     final isDoor =
         note.reason == LineDropReason.optional &&
         note.lineIds.length == note.names.length;
@@ -788,27 +694,18 @@ class _OptionalLinesEchoState extends ConsumerState<OptionalLinesEcho> {
   }
 }
 
-/// One shopping line: check box · name · total, with the provenance breakdown
-/// beneath. On a phone, tapping the row (or its box) toggles check-off; at
-/// [AnsiLayout.expanded] the box is the only thing that ticks and the rest of
-/// the row points the pane at it. A purely user-added
-/// line (a non-food item, or an ingredient that's only a manual top-up) can be
-/// removed by swiping it away or long-pressing — a cook-derived line can't (its
-/// quantity comes from the week; drop its top-up via the edit sheet instead).
+/// One shopping line: check box, name, total, and the provenance breakdown
+/// under it. On a phone a tap anywhere toggles the tick; at
+/// [AnsiLayout.expanded] only the box does. A purely user-added line can be
+/// removed by swipe or long-press; a cook-derived one cannot.
 class _ItemRow extends ConsumerStatefulWidget {
   const _ItemRow({required this.item, this.selection});
 
   final ShoppingItem item;
 
-  /// Non-null at [AnsiLayout.expanded], where the breakdown is held open in the
-  /// pane beside the list instead of under the row: the CHECK BOX is then the
-  /// only thing that ticks, a tap anywhere else on the row points the pane at
-  /// it, and the row the pane is on is lit.
-  ///
-  /// Owner's reading of the first cut, where the name selected and the row
-  /// ticked: *"pressing the title selects, but the row toggles on/off, which is
-  /// a bit confusing"*. One press cannot mean two things, so the tick keeps the
-  /// control that draws it and the row becomes the pane's pointer.
+  /// Non-null at [AnsiLayout.expanded]: the check box is then the only thing
+  /// that ticks, a tap elsewhere points the pane at the row, and the selected
+  /// row is lit.
   final _Selection? selection;
 
   @override
@@ -825,9 +722,7 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
     final repo = ref.read(shoppingRepositoryProvider);
     final entryId = item.entryId;
     final what = item.checked ? 'untick ${item.name}' : 'tick ${item.name}';
-    // Decided on the list as it stands, before the write and before any
-    // await: the derivation that follows would call the partner's last tick
-    // a finish too.
+    // Decided on the list as it stands, before the write and before any await.
     _celebrateIfLastTick();
     // A touched line (free-text, checked, or topped-up) has an entry; a purely
     // derived ingredient doesn't yet — check-off lazily creates it.
@@ -852,11 +747,9 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
     }
   }
 
-  /// The last tick's celebration: a light haptic and, unless the phone asks
-  /// for no animation, the confetti from this row's box. Asked of the list as
-  /// it stands before the write ([completesTheList]), so the other phone's
-  /// finish plays nothing and every finishing tick here plays — untick the
-  /// last row, tick it again, and the confetti comes back.
+  /// The last tick's celebration: a light haptic and, unless animations are
+  /// off, confetti from this row's box. Asked before the write
+  /// ([completesTheList]), so another phone's finish plays nothing.
   void _celebrateIfLastTick() {
     final list = ref.read(currentShoppingListProvider).asData?.value;
     if (list == null || !completesTheList(list, item)) return;
@@ -916,9 +809,7 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
     );
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      // A phone's row IS the tick. At expanded the row is the pane's pointer
-      // instead, and the box below keeps the tick — the name selecting while
-      // the row toggled was one press with two answers.
+      // On a phone the row is the tick; at expanded the row points the pane.
       onTap: selection == null ? _toggle : () => selection.read(item),
       onLongPress: item.isUserAdded
           ? () => _confirmRemove(context, ref, item)
@@ -927,9 +818,7 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
         key: reading ? kShopReadingRowKey : null,
         margin: const EdgeInsets.symmetric(horizontal: 20),
         padding: EdgeInsets.symmetric(
-          // At expanded the row's own top and bottom are folded into the tick
-          // target, so a thumb aimed at the box lands on it; the tail puts the
-          // bottom half back under itself.
+          // At expanded the vertical padding moves into the tick target below.
           vertical: selection == null ? 11 : 0,
           horizontal: reading ? 11 : 0,
         ),
@@ -951,12 +840,8 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
                   _CheckBox(key: _box, checked: item.checked),
                   const SizedBox(width: 11),
                 ] else
-                  // The one thing on a wide row that ticks. The box is drawn
-                  // exactly where the phone draws it — nothing about a row
-                  // changes with the width — inside a target that takes the
-                  // row's full height and the whole run up to the name:
-                  // 31 × 44, which is why the row's vertical padding moved in
-                  // here.
+                  // The wide row's tick target: the box where the phone draws
+                  // it, inside a 31 × 44 target spanning the row's height.
                   GestureDetector(
                     key: shopTickTargetKey(shoppingItemIdentity(item)),
                     behavior: HitTestBehavior.opaque,
@@ -982,9 +867,8 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
                 ),
               ],
             ),
-            // What a measure-counted row weighs ("400 g"), or the whole-unit
-            // round-up ("≈ 2.25 potato, large → buy 3"). Either way it sits
-            // under the honest total, never replacing it (invariant 3).
+            // What a measure-counted row weighs, or the whole-unit round-up;
+            // always under the total, never replacing it (invariant 3).
             if (secondary.isNotEmpty) ...[
               const SizedBox(height: 3),
               Padding(
@@ -998,11 +882,8 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
                 ),
               ),
             ],
-            // Every row says where it came from — a single source is still a
-            // source, and a shopper reading one line should not have to
-            // remember which recipe asked for it.
-            // …under the row on a phone, and in the pane beside the list at
-            // expanded, which is the whole of what the width buys here.
+            // Every row says where it came from: under the row on a phone, in
+            // the pane at expanded.
             if (selection == null &&
                 !item.checked &&
                 item.contributions.isNotEmpty) ...[
@@ -1027,9 +908,8 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
   }
 }
 
-/// The key on a wide row's tick target — the only thing that ticks at
-/// [AnsiLayout.expanded], named by [shoppingItemIdentity] so a test can tick
-/// one named row without hunting for a box.
+/// The key on a wide row's tick target, named by [shoppingItemIdentity] so a
+/// test can tick a named row.
 ValueKey<String> shopTickTargetKey(String identity) =>
     ValueKey('shop-tick-$identity');
 
@@ -1049,9 +929,8 @@ class _DeleteBackground extends StatelessWidget {
   }
 }
 
-/// The provenance breakdown: one line per contribution, source on the left,
-/// quantity on the right. Manual top-ups read muted + italic and are tappable
-/// (a pencil affordance) to edit or remove that single top-up.
+/// The provenance breakdown: one line per contribution, source left, quantity
+/// right. Manual top-ups read muted italic and tap to edit or remove.
 class _Provenance extends StatelessWidget {
   const _Provenance({
     required this.itemName,
@@ -1199,19 +1078,9 @@ class _AddItemButton extends StatelessWidget {
   }
 }
 
-/// The second foot door: the one that ends the trip.
-///
-/// It is drawn in herb beside the top-up door because scanning the receipt is
-/// what closes a shop, and it opens the camera the recipe import already has.
-///
-/// **The ledger is not here.** Its door is the receipt action in the header
-/// ([_ReceiptsDoor]) — one door, where the chrome is, not a second link at the
-/// foot saying the same thing a scroll further down.
-///
-/// On the **web** the photo import is gated (there is no camera and no
-/// cropper — `photo_intake.dart`), so the door says what it can actually do,
-/// exactly as the recipe import's photo doors do: a receipt is shot on the
-/// phone and reviewed on whichever screen is nearest.
+/// The scan-receipt door at the foot of the list, beside the top-up door. On
+/// the web the photo import is gated (`photo_intake.dart`), so the door says
+/// what it can do there. The ledger's door is [_ReceiptsDoor] in the header.
 class ScanReceiptDoor extends StatelessWidget {
   const ScanReceiptDoor({this.web = kIsWeb, super.key});
 
@@ -1267,12 +1136,8 @@ class ScanReceiptDoor extends StatelessWidget {
   }
 }
 
-/// Nothing to buy, said inside the list chrome (D5b/D5c).
-///
-/// Shop was already closest to the house rule — it tells its two causes apart
-/// and keeps `Add an item`, which works with no plan at all. All that changed
-/// is that it stopped replacing the screen; the [_AddItemButton] below is now
-/// permanently on screen rather than being swapped away with everything else.
+/// Nothing to buy, said inside the list chrome; the [_AddItemButton] below
+/// stays on screen.
 class _NothingToBuyLine extends ConsumerWidget {
   const _NothingToBuyLine();
 
@@ -1337,12 +1202,10 @@ Future<void> _confirmRemove(
   WidgetRef ref,
   ShoppingItem item,
 ) async {
-  // Everything the write needs is resolved BEFORE the dialog await: while it
-  // sits open the watched stream can drop this row (say, the other device
-  // removed it), unmounting the row widget — a `ref` used after the await
-  // would then throw, and a `context.mounted` bail would drop the removal
-  // the user just confirmed. The container and the host context outlive
-  // the row (`hostContextOf`).
+  // Resolve everything the write needs before the dialog await: the watched
+  // stream can drop this row while the dialog is open, after which `ref` throws
+  // and a `context.mounted` bail would lose the confirmed removal. The
+  // container and host context outlive the row (`hostContextOf`).
   final repo = ref.read(shoppingRepositoryProvider);
   final container = ProviderScope.containerOf(context, listen: false);
   final host = hostContextOf(context);

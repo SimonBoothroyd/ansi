@@ -1,44 +1,15 @@
-/// [ShoppingRepository] over the local PowerSync SQLite (offline in step 6).
+/// [ShoppingRepository] over the local PowerSync SQLite.
 ///
-/// The read derives cook contributions live from the batch cook plan (spec §4):
-/// it reads the week's planned meals, runs the same pure [buildCookPlan] the
-/// Cook screen uses, then multiplies each covered recipe's line items by its
-/// session scale factor. It overlays the persisted check-off + manual/free-text
-/// rows and hands everything to the pure [buildShoppingList].
+/// The list is derived live: the week's cook plan ([buildCookPlan]) expands
+/// each recipe's lines by its session factor, bare-ingredient meals are walked
+/// from the week's entries, and the week-scoped overlay of check-offs and
+/// manual rows goes on top ([buildShoppingList]). A retired ingredient buys
+/// nothing and is named in [ShoppingList.retiredIngredients].
 ///
-/// Since step 8.14 it derives from the week's **entries** as well as its
-/// sessions. A planned meal can be a bare ingredient — a protein bar — which is
-/// bought but never cooked (A-D4), so it belongs to no session at all; a
-/// derivation that only ever walked sessions would leave a hole in a list
-/// somebody shops from. `_derivePlannedIngredients` is that second walk.
-///
-/// **Both walks join the vocab row without a liveness guard, and neither buys
-/// from a retired one.** A row the household has RETIRED is not a fact about
-/// food any more — name, aisle and density are all stale — so a recipe line or
-/// a planned meal that names one contributes nothing, and says so on the
-/// list's third echo channel ([ShoppingList.retiredIngredients]) under the
-/// row's last known name. What that replaced was the worst of both: a recipe
-/// line was shopped FROM the dead row, while a planned snack (an inner join to
-/// a LIVE row) fell off the list altogether, taking its check-off row with it.
-///
-/// The watch query references every table the load path reads AND selects a
-/// column from each — the two shopping tables and the `ingredient` vocab
-/// (aisle/density/name) via a `LEFT JOIN … ON 1=1` — so PowerSync's
-/// `EXPLAIN`-based detection registers all of them as triggers. An unselected
-/// LEFT JOIN is dropped by SQLite before `EXPLAIN` sees it, and its table is
-/// then silently missed; selecting a column from each keeps it.
-/// `test/core/sync/watch_coverage_test.dart` pins this structurally.
-///
-/// Writes go through the local VIEWS, so no UPSERT (a view rejects
-/// `ON CONFLICT`): entry creation is a find-or-create with a plain INSERT.
-///
-/// **The overlay is week-scoped.** Every entry — an ingredient someone ticked
-/// or topped up, a free-text non-food item — carries the first day of the
-/// week it was made
-/// against, and the read only takes that week's. So
-/// `_findOrCreateIngredientEntry` converges per WEEK, not per household — two
-/// devices ticking Flour on next week still meet on one row, and neither of
-/// them touches this week's.
+/// The watch query selects a column from every table the load reads: SQLite
+/// drops an unselected LEFT JOIN before PowerSync sees it
+/// (`watch_coverage_test.dart`). Writes go through views, which reject UPSERT,
+/// so entry creation is find-or-create with a plain INSERT.
 library;
 
 import 'dart:convert';
@@ -66,13 +37,10 @@ import '../domain/shopping_repository.dart';
 
 const _uuid = Uuid();
 
-/// A recipe line as the shopping list needs it. `line` is the domain
-/// [LineItem] the [effectiveLines] seam rules on (id, name, `optional`);
-/// `unit` is null when the persisted id isn't a known unit — `rawUnit` keeps
-/// the string for the breakdown's unconverted note, and the domain line's
-/// `pieces` fallback is never read here. `measure` is resolved when the line
-/// is quantified in one (null if its row is missing — the stored count unit
-/// then stands, an honest degradation).
+/// A recipe line as the shopping list needs it. `line` is the domain [LineItem]
+/// the [effectiveLines] seam rules on. `unit` is null when the persisted id is
+/// unknown, and `rawUnit` keeps the string for the breakdown's note. `measure`
+/// is null when the line has none or its row is missing.
 typedef _LineItem = ({
   LineItem line,
   String ingredientId,
@@ -96,9 +64,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
   /// the signed-in household, tests pass their own).
   final String _householdId;
 
-  /// The household's week, for the one thing this layer says in words: a
-  /// breakdown line's day. The data layer cannot reach up into presentation
-  /// for a word, and an offset only names a weekday once the shape is known.
+  /// The household's week, used to name a breakdown line's day.
   final WeekShape _weekShape;
 
   String _weekKey(DateTime weekStart) => isoDateOf(weekStart);
@@ -106,12 +72,9 @@ class SqliteShoppingRepository implements ShoppingRepository {
   @override
   Stream<ShoppingList> watchShoppingList(DateTime weekStart) {
     final key = _weekKey(weekStart);
-    // Reference every table the load reads and select a column from each so
-    // all of them become watch triggers (see the library doc). The shopping,
-    // ingredient, measure and member tables aren't tied to the week, so
-    // they're cross-joined (`ON 1=1`) purely to be seen — and so is
-    // `recipe_measure`, whose words decide how much of a component's batch a
-    // measured line asks for, and therefore how much of it this list buys.
+    // Select a column from every table the load reads so each becomes a watch
+    // trigger (see the library doc). Tables not tied to the week are
+    // cross-joined (`ON 1=1`) only to be seen.
     return _db
         .watch(
           'SELECT wp.id, pe.id, r.keeps_for_days, g.id, li.id, se.id, sc.id, '
@@ -158,9 +121,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
       weekdayShort: _weekShape.shortLabels,
       unresolvedComponents: unresolved,
       optionalLines: optional,
-      // Both walks can meet a retired row, and a shopper reads one list of
-      // what is missing rather than two — so the two channels are one, sorted
-      // the way the other echoes are.
+      // Both walks can meet a retired row; the shopper reads one sorted list.
       retiredIngredients: [...retiredLines, ...retiredPlanned]
         ..sort((a, b) {
           final c = a.heading.compareTo(b.heading);
@@ -169,26 +130,14 @@ class SqliteShoppingRepository implements ShoppingRepository {
     );
   }
 
-  /// The week's bare-INGREDIENT meals as shopping contributions (step 8.14 /
-  /// A-D4).
+  /// The week's bare-ingredient meals as shopping contributions. They are never
+  /// cooked, so no cook session carries them.
   ///
-  /// This is the one piece of real plumbing the ruling asks for: a snack is
-  /// never cooked, so it appears in no cook session, and a list derived only
-  /// from sessions would be quietly short of the thing somebody planned to
-  /// eat. So the derivation walks **entries** here, beside
-  /// [_deriveCookContributions]'s walk of the plan.
-  ///
-  /// The amount is multiplied by the entry's demand — Σ of the eaters' portion
-  /// factors, the `portions` override winning — which is the same demand every
-  /// other derivation reads (A-D3: a snack two people are having is bought
-  /// twice). An entry that states no amount contributes nothing; one whose
-  /// unit or measure will not resolve degrades to a visible note in the
-  /// breakdown rather than an invented number, exactly as a cook line does.
-  ///
-  /// An entry at a RETIRED vocab row buys nothing and is not dropped either:
-  /// it comes back in the second list as a [RetiredIngredientNote], so the
-  /// snack somebody planned still has a row a shopper can read — the check-off
-  /// row vanishing with it is how this went unnoticed.
+  /// The amount is one portion multiplied by the entry's demand (the eaters'
+  /// portion factors, the `portions` override winning). An entry with no amount
+  /// contributes nothing; an unresolvable unit or measure becomes a breakdown
+  /// note. An entry at a retired row comes back as a [RetiredIngredientNote]
+  /// instead.
   Future<(List<PlanIngredientInput>, List<RetiredIngredientNote>)>
   _derivePlannedIngredients(String weekKey) async {
     final rows = await _db.getAll(
@@ -201,15 +150,9 @@ class SqliteShoppingRepository implements ShoppingRepository {
       'im.sort_order AS measure_sort, im.source AS measure_source '
       'FROM week_plan wp '
       'JOIN plan_entry pe ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
-      // The explicit branch: an entry with no ingredient is a RECIPE meal,
-      // already covered by the cook derivation below, or a meal eaten OUT,
-      // which nothing buys and which therefore reaches neither. The kind each
-      // of the two halves takes is stated in its own WHERE clause rather than
-      // left to the join. The join carries no liveness
-      // guard — an UNSYNCED row still drops out (there is no row to join, and
-      // nothing truthful to say about it), but a RETIRED one is joined
-      // deliberately, because its last known name is the whole of what the
-      // echo row has to say. Nothing else about it is read.
+      // Entries with an ingredient only: recipe meals go through the cook
+      // derivation and a meal out buys nothing. The join has no liveness guard,
+      // so a retired row still yields its last known name for the echo row.
       'JOIN ingredient i ON i.id = pe.ingredient_id '
       'LEFT JOIN ingredient_measure im '
       'ON im.id = pe.measure_id AND im.deleted_at IS NULL '
@@ -231,24 +174,20 @@ class SqliteShoppingRepository implements ShoppingRepository {
       final demand =
           (row['portions'] as int?)?.toDouble() ??
           eatersDemand(eaters, members);
-      // An unknown persisted unit id stays null (rawUnit keeps the string)
-      // — never a `pieces` fallback, which would let the total sum an
-      // invented unit (invariant 3).
+      // An unknown unit id stays null (rawUnit keeps the string), never a
+      // `pieces` fallback the total could sum.
       final rawUnit = row['unit'] as String?;
       final unit = rawUnit == null ? null : unitById(rawUnit);
       final quantity = (row['quantity'] as num?)?.toDouble();
       final input = (
         ingredientId: row['ingredient_id'] as String,
-        // The stated amount is ONE portion; the week's demand multiplies
-        // it. A count in a measure scales linearly, so the same product is
-        // the measure amount too.
+        // The stated amount is one portion; the demand multiplies it. A measure
+        // count scales the same way.
         quantity: quantity == null ? null : quantity * demand,
         unit: unit,
         rawUnit: rawUnit,
-        // A measure beside an UNRECOGNISED unit is dropped: the quantity's
-        // semantics are unknown, so pricing it through the measure's
-        // weight would sum an invented number. The row surfaces as the
-        // unrecognised-unit note instead.
+        // A measure beside an unrecognised unit is dropped: the quantity's
+        // meaning is unknown, so the row surfaces as a note instead.
         measure: unit == null ? null : _toMeasure(row),
         dayOfWeek: row['day_of_week'] as int,
         mealSlot: row['meal_slot'] as String,
@@ -268,28 +207,15 @@ class SqliteShoppingRepository implements ShoppingRepository {
     return (planned, retired);
   }
 
-  /// Runs the cook plan for the week, then expands each session's recipe line
-  /// items scaled by the session's factor into per-ingredient contributions.
+  /// Runs the cook plan for the week, then expands each session's recipe lines,
+  /// scaled by the session's factor, into per-ingredient contributions.
   ///
-  /// Since 8.6 the plan also carries **component** sessions (D3/D4): a
-  /// component session is a cook session, so the sub-recipe's own ingredient
-  /// lines flow through this same pipeline, scaled by its batch factor, and
-  /// carry one extra provenance segment naming the plan they serve. The
-  /// component LINE itself never becomes an item — [_loadLineItems] skips any
-  /// row without an `ingredient_id`, which is exactly the component rows (you
-  /// buy almonds, not aioli). The second return value is the per-parent
-  /// "N components unresolved" echo built from the plan's gaps.
-  ///
-  /// Each recipe's lines pass through the [effectiveLines] seam before any
-  /// session expands them — this is where lines meet the week — and the third
-  /// return value is the per-recipe "N optional lines not listed" echo built
-  /// from what the seam dropped, ingredient lines and component lines alike.
-  ///
-  /// The fourth is the lines whose INGREDIENT has been retired: a kept line
-  /// pointing at a tombstone expands into no contribution at all — there is no
-  /// name to shop by, no aisle to file it under and no density to sum it with
-  /// — and is named on its own echo row instead, so the list is never quietly
-  /// short of it.
+  /// Component sessions flow through the same pipeline and carry an extra
+  /// provenance segment naming the plan they serve; a component line itself
+  /// never becomes an item. Lines pass through [effectiveLines] first. Returns
+  /// the contributions, the unresolved-component echoes, the
+  /// optional-lines-not-listed echoes, and the lines whose ingredient is
+  /// retired.
   Future<
     (
       List<CookContributionInput>,
@@ -307,10 +233,8 @@ class SqliteShoppingRepository implements ShoppingRepository {
       'JOIN plan_entry pe ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
       'JOIN recipe r ON r.id = pe.recipe_id AND r.deleted_at IS NULL '
       'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL '
-      // The explicit branch (step 8.14 / B-D2). A bare-ingredient meal has no
-      // recipe to expand; it reaches the list through
-      // [_derivePlannedIngredients] instead, never by falling through here.
-      // A meal eaten out reaches neither, because nothing about it is bought.
+      // Recipe meals only. A bare-ingredient meal goes through
+      // [_derivePlannedIngredients]; a meal out buys nothing.
       'AND pe.recipe_id IS NOT NULL '
       'ORDER BY pe.day_of_week, pe.sort_order, pe.created_at',
       [weekKey],
@@ -324,10 +248,8 @@ class SqliteShoppingRepository implements ShoppingRepository {
       );
     }
 
-    // The same demand the cook plan derives: Σ of the eaters' portion factors,
-    // the override winning. The list is otherwise untouched by the factor — it
-    // still scales by the session's batch factor, which is where the demand
-    // lands.
+    // The same demand the cook plan derives: the eaters' portion factors, the
+    // override winning.
     final members = {for (final m in await loadMembers(_db)) m.id: m};
     final byRecipe = <String, PlannedRecipe>{};
     final meals = <String, List<CoveredMeal>>{};
@@ -366,9 +288,8 @@ class SqliteShoppingRepository implements ShoppingRepository {
       components: componentGraphForWeek(graph, weekOverrides),
     );
 
-    // Line items per recipe, read once — for every recipe the plan cooks,
-    // which since 8.6 includes the sub-recipes it derived component sessions
-    // for as well as the ones somebody planned.
+    // Line items per recipe, read once, for every recipe the plan cooks,
+    // including derived component sessions.
     final lineItems = await _loadLineItems({
       for (final r in plan.recipes) r.recipeId,
     });
@@ -379,13 +300,9 @@ class SqliteShoppingRepository implements ShoppingRepository {
     for (final recipe in plan.recipes) {
       final batched = recipe.sessions.length > 1;
       final stored = lineItems[recipe.recipeId] ?? const <_LineItem>[];
-      // The seam (D6b): the sessions below expand only the kept lines, and
-      // the dropped ones become this recipe's echo row — never a silent
-      // hole in a list somebody shops from.
-      // This is where lines meet the week, so this is where the week's
-      // variant joins. The overrides are read once per week and looked up per
-      // recipe — the variant is per (week, recipe) too, so the sessions below
-      // stay correct without a refactor.
+      // The sessions below expand only the lines the seam keeps; dropped ones
+      // become this recipe's echo row. The week's overrides are read once and
+      // looked up per recipe.
       final overrides =
           weekOverrides[recipe.recipeId] ?? const <LineOverride>[];
       final effective = effectiveLines(
@@ -401,15 +318,12 @@ class SqliteShoppingRepository implements ShoppingRepository {
           if (o.action == LineOverrideAction.add) o.id: o,
       };
       final storedById = {for (final i in stored) i.line.id: i};
-      // The kept lines ARE the week's lines: a replaced one carries absolute
-      // values and an added one has no stored row at all, so the contribution
-      // is rebuilt from what the seam returned rather than from what was read.
+      // A replaced line carries absolute values and an added one has no stored
+      // row, so contributions are rebuilt from what the seam returned.
       final items = [
         for (final line in effective.kept)
-          // A line at a retired row is kept by the seam — the seam rules on
-          // what the WEEK cooks, and the week still asks for this line — but
-          // nothing about the row it names can be shopped, so the sessions
-          // below expand nothing for it and the echo names it instead.
+          // The seam keeps a line at a retired row, but nothing about the row
+          // can be shopped, so the echo names it instead.
           if (!line.ingredientDeleted)
             (
               item: _weekLine(line, storedById[line.id]),
@@ -426,10 +340,8 @@ class SqliteShoppingRepository implements ShoppingRepository {
           site: RetiredIngredientSite.recipeLine,
         ));
       }
-      // The recipe's COMPONENT lines meet the same week through the same seam
-      // (it is the graph the plan above was derived from). A sub-recipe this
-      // week does not cook buys nothing, and is named here by its title —
-      // otherwise the list would be short of a whole sauce in silence.
+      // Component lines meet the week through the same seam. A sub-recipe this
+      // week does not cook buys nothing and is named by title.
       final components = componentLinesForWeek(
         graph,
         recipe.recipeId,
@@ -454,9 +366,8 @@ class SqliteShoppingRepository implements ShoppingRepository {
       }
       for (final session in recipe.sessions) {
         for (final (:item, :note) in items) {
-          // An unrecognised unit can't be scaled (it might even be imprecise);
-          // pass the raw quantity through — the domain surfaces it as an
-          // unconverted note and keeps it out of the totals.
+          // An unrecognised unit cannot be scaled; the raw quantity passes
+          // through and the domain keeps it out of the totals.
           final unit = item.unit;
           final scaled = item.quantity == null || unit == null
               ? null
@@ -466,19 +377,15 @@ class SqliteShoppingRepository implements ShoppingRepository {
             quantity: unit == null ? item.quantity : scaled?.amount,
             unit: unit,
             rawUnit: item.rawUnit,
-            // A measure count scales linearly (its stored unit is a count),
-            // so the already-scaled amount is the measure amount too. But a
-            // measure beside an UNRECOGNISED unit is dropped: the quantity's
-            // semantics are unknown AND unscaled, so folding it through the
-            // measure's gram weight would sum an invented number — the line
-            // surfaces as the unrecognised-unit note instead (invariant 3).
+            // A measure count scales linearly, so the scaled amount is the
+            // measure amount too. A measure beside an unrecognised unit is
+            // dropped, and the line surfaces as a note instead.
             measure: unit == null ? null : item.measure,
             recipeTitle: recipe.title,
             cookDay: session.cookDay,
             batched: batched,
-            // The extra provenance segment, deepest-first: this recipe's own
-            // line, then the plan(s) it is being cooked for (D4). Empty for a
-            // meal session, which reads exactly as it always has.
+            // The extra provenance segment, deepest first: this recipe's line,
+            // then the plans it is cooked for. Empty for a meal session.
             forParents: session.demandedBy,
             // And one more when the WEEK changed this line, so the aisle says
             // why the amount is not the recipe's.
@@ -499,10 +406,8 @@ class SqliteShoppingRepository implements ShoppingRepository {
     return (contributions, unresolved, optionalNotes, retiredNotes);
   }
 
-  /// The seam's answer as this file's row shape. A line the week left alone
-  /// keeps the row that was read (`rawUnit` and all); one the week changed —
-  /// or added — is rebuilt from the domain line, whose unit is a resolved
-  /// [Unit] and therefore never a raw string nobody knows.
+  /// The seam's answer in this file's row shape. An untouched line keeps the
+  /// stored row; a changed or added one is rebuilt from the domain line.
   static _LineItem _weekLine(LineItem line, _LineItem? stored) {
     if (stored != null && identical(stored.line, line)) return stored;
     return (
@@ -516,8 +421,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
   }
 
   /// The provenance segment this line carries, or null when the recipe states
-  /// it itself. An exclusion never lands here — the seam dropped it, so there
-  /// is no row for a segment to sit on.
+  /// it itself.
   static String? _weekNoteFor(
     LineItem line,
     Map<String, LineOverride> byBaseLine,
@@ -558,16 +462,14 @@ class SqliteShoppingRepository implements ShoppingRepository {
     for (final row in rows) {
       final ingredientId = row['ingredient_id'] as String?;
       if (ingredientId == null) continue;
-      // An unknown persisted unit id stays null (rawUnit keeps the string) —
-      // NOT a `pieces` fallback, which would let the total sum an invented
-      // unit (invariant 3: honest numbers).
+      // An unknown unit id stays null (rawUnit keeps the string), never a
+      // `pieces` fallback the total could sum.
       final rawUnit = row['unit'] as String?;
       final unit = rawUnit == null ? null : unitById(rawUnit);
       final measure = _toMeasure(row);
       (byRecipe[row['recipe_id'] as String] ??= []).add((
-        // The domain line the seam rules on. Its `unit` is the honest
-        // fallback the recipe page also shows; the expansion reads the
-        // record's nullable `unit` instead, so nothing invented is summed.
+        // The domain line the seam rules on. The expansion reads the record's
+        // nullable `unit`, not this line's fallback unit.
         line: LineItem(
           id: row['id'] as String,
           ingredientId: ingredientId,
@@ -577,9 +479,8 @@ class SqliteShoppingRepository implements ShoppingRepository {
           measureId: row['measure_id'] as String?,
           measure: measure,
           optional: row['optional'] == 1,
-          // The vocab row is joined WITHOUT the liveness guard (so a retired
-          // row still hands over its last known name); this is the flag that
-          // stops that name reaching an aisle as if the row were fine.
+          // The vocab join has no liveness guard; this flag keeps a retired
+          // row's name out of the aisles.
           ingredientDeleted: row['ingredient_deleted_at'] != null,
         ),
         ingredientId: ingredientId,
@@ -592,11 +493,9 @@ class SqliteShoppingRepository implements ShoppingRepository {
     return byRecipe;
   }
 
-  /// The resolved [Measure] of a row selected with the
-  /// `measure_id`/`measure_label`/`measure_amount`/`measure_basis`/
-  /// `measure_sort` aliases, or null when the row has no measure (or its
-  /// measure row is missing). The basis comes from the measure's own
-  /// ingredient (`macros_basis` — the single stored fact, ADR-0008).
+  /// The [Measure] of a row selected with the `measure_*` aliases, or null when
+  /// the row has none. The basis is the measure's ingredient's `macros_basis`
+  /// (ADR-0008).
   Measure? _toMeasure(Row row) {
     final id = row['measure_id'] as String?;
     final label = row['measure_label'] as String?;
@@ -612,11 +511,8 @@ class SqliteShoppingRepository implements ShoppingRepository {
     );
   }
 
-  /// The week's overlay: the entries stamped with THIS week, and their manual
-  /// contributions. A row stamped with another week belongs to a list this is
-  /// not, so it is not read here — and neither is a row carrying no week at
-  /// all, which only an older client writes and the server stamps onto the
-  /// week it was created in.
+  /// The week's overlay: the entries stamped with this week, and their manual
+  /// contributions.
   Future<(List<ShoppingEntryInput>, Map<String, List<ManualContributionInput>>)>
   _loadOverlay(String weekKey) async {
     final entryRows = await _db.getAll(
@@ -673,13 +569,9 @@ class SqliteShoppingRepository implements ShoppingRepository {
     return (entries, manual);
   }
 
-  /// The vocab facts the ids in hand need — name, aisle, density, measures.
-  ///
-  /// No liveness guard, deliberately: every id that reaches here already
-  /// earned a row on the list, and the only way a RETIRED one can (the two
-  /// derivations above leave theirs out) is a manual top-up somebody typed
-  /// against it. That row stays, and the honest label for it is the last known
-  /// name — a `(unknown ingredient)` would hide which thing they topped up.
+  /// The vocab facts for the ids in hand: name, aisle, density, measures. No
+  /// liveness guard: a manual top-up against a retired row keeps its last known
+  /// name.
   Future<Map<String, IngredientMetaInput>> _loadIngredientMeta(
     Set<String> ids,
   ) async {
@@ -728,16 +620,13 @@ class SqliteShoppingRepository implements ShoppingRepository {
 
   // --- Writes ----------------------------------------------------------------
 
-  /// Finds the live entry for [ingredientId] **on the week [weekKey]** or
-  /// creates one there, returning its id.
+  /// Finds the live entry for [ingredientId] on the week [weekKey], or creates
+  /// one, and returns its id.
   ///
-  /// Two offline devices can each create an entry for the same ingredient and
-  /// merge later — no unique index guards this (one would make the offline
-  /// duplicate fail upload and lose its data). Instead every device converges
-  /// on the same canonical row: the *oldest* live entry (created_at, then id —
-  /// the same order [buildShoppingList] merges by). When duplicates are seen
-  /// here, they're folded into the canonical row losslessly — contributions
-  /// re-pointed, checked propagated (any-checked) — then soft-deleted.
+  /// No unique index guards this, because offline duplicates must still upload.
+  /// Devices converge on the oldest live entry (created_at, then id, as
+  /// [buildShoppingList] merges); duplicates seen here are folded into it
+  /// (contributions re-pointed, checked if any was) and soft-deleted.
   Future<String> _findOrCreateIngredientEntry(
     SqliteWriteContext tx,
     String ingredientId,
