@@ -34,26 +34,20 @@ same two tables a hand-typed price writes one row each of
   totals and printed words never move.
 - **A zero is never a price.** An unreadable figure arrives as `cents: 0` and
   is flagged, holding Save until somebody reads it off the paper.
-- **A line the reader missed has a door.** The foot of the Lines list carries a
-  dashed *add a line*, on a fresh scan and on a kept receipt alike: the
-  ingredient picker, then *What did this line cost?*, and the line lands open,
-  matched, counting one, on the pack the row was last bought in. It carries no
-  printed words (`printed_text` and `name_printed` are written NULL), so the
-  match memory learns nothing from it and two hand-added lines are never twins;
-  the card prints `added by hand` where a scanned one prints the paper's words.
-  It holds Save until it has a pack, like any other matched line, and becomes a
-  price. The trash takes back a line nobody has saved yet — there is no row to
-  tombstone — and drops one that has.
-- **The count rides on the line, never on the pack.** Both of the owner's shops
-  print how many on a sub-row UNDER the item (`8 @ $2.99`, `Qty 4  $2.39 ea`);
-  that sub-row attaches to the item above it and never becomes a line
-  (`receipt_line.count`, migration 0050). The line's `cents` already include
-  them all, so nothing about what the trip cost moves — what moves is the
-  price, which divides by `count × pack_basis_amount`. The pack is what ONE of
-  them comes in and carries to the next receipt; the count arrives fresh from
-  the paper every time. The card reads `8 × block (16 oz) · 66¢ / 100 g`, and
-  the COUNT chip beside PACK is the door. A by-weight sub-row
-  (`Qty 0.73 lb @ $2.99/lb`) is a WEIGHT, never a count: the unit decides.
+- **A line the reader missed has a door.** *add a line* at the foot of the
+  Lines list, on a fresh scan and a kept receipt alike: the ingredient picker,
+  then *What did this line cost?*; the line lands matched, counting one, on the
+  pack the row was last bought in. It carries no printed words (`printed_text`
+  and `name_printed` are NULL), so the match memory learns nothing from it and
+  two hand-added lines are never twins; the card prints `added by hand`. It
+  holds Save until it has a pack, like any matched line.
+- **The count rides on the line, never on the pack** (`receipt_line.count`,
+  migration 0050). A sub-row under an item (`8 @ $2.99`, `Qty 4  $2.39 ea`)
+  attaches to the item above and never becomes a line. `cents` already include
+  them all; the price divides by `count × pack_basis_amount`. The pack is what
+  ONE comes in and carries to the next receipt; the count arrives fresh each
+  time. The COUNT chip beside PACK is the door. A by-weight sub-row
+  (`Qty 0.73 lb @ $2.99/lb`) is a weight, never a count: the unit decides.
 - **Identical lines are answered together.** A match, a pack, *Not food* or
   *it is food* lands on every line with the same printed words and figure that
   still stands where this one stood; the card says how many before the answer.

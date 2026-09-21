@@ -132,25 +132,23 @@ the host owns the delete gate (`mayDeleteRecipeMeasure`, with a **Show me
 where** door), the orphan warning (`measuresOrphanedBySave()`, which warns and
 never refuses) and the printing of `RecipeMeasureRefused`.
 
-**Its second host is the `＋` on a component's quantity dock**
-(`presentation/component_quantity_sheet.dart`), aimed at the **target** recipe —
-the sauce being measured, not the one being written — because that is the recipe
-the word belongs to. It has no Save, so each callback is a write through
-`RecipeMeasureRepository` wrapped in `ref.write`: a `RecipeMeasureRefused`
-becomes `RecipeMeasureTurnedDown` and prints under the field, any other failure
-is `RecipeMeasureNotLanded` and has already been said by the write door. Three
-things follow from a door opened mid-sentence — the sheet **watches**
-`recipeMeasuresProvider(target.id)` rather than trusting the snapshot its caller
-passed, so a coined word is a chip on return with nothing reloaded; the word is
-**selected** as it lands and the sheet returns to the amount, as the ingredient
-dock does, so it reads `3 blob`; and the selection is re-read
-from the live row every build, so a re-statement follows through and a
-retirement lights no chip. Retiring the word the open line was counting
-reconciles the choice to the yield's own unit with a note — Done must never
-write a tombstone. The `＋` is drawn for the two recipe-editor doors, the method
-editor's and week mode's, and **not** for the import review's two, which strip
-the target's words for the same reason: a review line has no column for a
-pointer.
+**Its second host is the `＋` on a component's quantity dock**, aimed at the
+**target** recipe, the one the word belongs to. It has no Save, so each callback
+is a write through `RecipeMeasureRepository` wrapped in `ref.write`: a
+`RecipeMeasureRefused` becomes `RecipeMeasureTurnedDown` and prints under the
+field; any other failure is `RecipeMeasureNotLanded`, already said by the write
+door.
+
+- The sheet **watches** `recipeMeasuresProvider(target.id)` rather than trusting
+  its caller's snapshot, so a coined word is a chip on return.
+- A coined word is **selected** as it lands and the sheet returns to the amount,
+  as the ingredient dock does.
+- The selection is re-read from the live row every build. Retiring the word the
+  open line was counting falls back to the yield's own unit with a note — Done
+  never writes a tombstone.
+- The `＋` is drawn for the recipe editor's two doors, the method editor's and
+  week mode's (`mayCoinWords`), and not for the import review's two: a review
+  line has no column for a pointer.
 
 Every door onto a component line opens that sheet: the recipe editor's two, the
 method editor's and week mode's amount cell. A line whose measure has gone
