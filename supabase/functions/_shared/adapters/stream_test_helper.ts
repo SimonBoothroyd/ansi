@@ -1,9 +1,6 @@
-// Building an Anthropic message STREAM for the tests, frame by frame.
-//
-// A test-only writer, and the mirror of what `anthropicAssembler` reads. It
-// exists so a test can say what the provider sends — including the awkward
-// cases: a delta at a time, a pause between them, a stream that stops before
-// `message_stop`. Nothing in the deployed function imports it.
+// A test-only writer of Anthropic message streams, frame by frame: the mirror
+// of what `anthropicAssembler` reads. It can model a delta at a time, a pause,
+// or a stream that stops before `message_stop`.
 
 /** One SSE frame, in the wire format the Messages API uses. */
 export function sseFrame(event: string, data: unknown): string {
@@ -19,7 +16,7 @@ export interface AnthropicStreamOptions {
   inputUsage?: Record<string, number>;
   /** Usage as `message_delta` reports it (the final output count). */
   outputUsage?: Record<string, number>;
-  /** Omit `message_stop` — a stream that died mid-answer. */
+  /** Omit `message_stop`: a stream that died mid-answer. */
   unterminated?: boolean;
   /** Model id echoed back in `message_start` (default `test-model`). */
   model?: string;
@@ -69,19 +66,15 @@ export function anthropicFrames(opts: AnthropicStreamOptions): string[] {
 }
 
 export interface SseResponseInit {
-  /** Delay BEFORE each frame (one number, or one per frame). */
+  /** Delay before each frame (one number, or one per frame). */
   pauseMs?: number | number[];
   status?: number;
   /**
-   * Go quiet after the last frame instead of closing — a provider that stopped
-   * answering without hanging up. It ends only when `signal` aborts, which is
-   * how a test tells SILENCE from a slow answer.
+   * Go quiet after the last frame instead of closing. It ends only when
+   * `signal` aborts.
    */
   stall?: boolean;
-  /**
-   * The caller's abort signal. A real `fetch` fails its body read on abort;
-   * a stub has to be told to, or a test's idle timer fires into nothing.
-   */
+  /** The caller's abort signal; a stub must be told to fail its body read. */
   signal?: AbortSignal | null;
 }
 
@@ -107,9 +100,8 @@ export function sseResponse(
     },
     async pull(controller) {
       if (i >= frames.length) {
-        // Never resolves — no timer to leak, and the abort above is what ends
-        // it. A `return` here would close the stream, which is a different
-        // failure entirely (a stream that stopped mid-message).
+        // Never resolves; the abort above ends it. A `return` would close the
+        // stream, which is a different failure.
         if (init.stall) return await new Promise<void>(() => {});
         controller.close();
         return;

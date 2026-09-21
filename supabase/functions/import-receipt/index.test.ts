@@ -159,7 +159,7 @@ Deno.test("importReceipt — the stages land in order, once each, with elapsed t
     deps(),
     (stage, ms) => seen.push([stage, ms]),
   );
-  // `received` is the HTTP edge's — the spine narrates the three it runs.
+  // `received` is the HTTP edge's; the spine narrates the three it runs.
   assertEquals(seen.map(([s]) => s), ["read", "written", "matched"]);
   assert(seen.every(([, ms]) => ms >= 0));
   for (let i = 1; i < seen.length; i++) {
@@ -176,8 +176,7 @@ Deno.test("importReceipt — a heartbeat is sent while the model produces, and t
       duringStructure: (a) => {
         progress = a.onProgress;
         // Three deltas in quick succession: the throttle allows at most one
-        // frame per interval, and the first is due because the last frame was
-        // the `read` stage a moment ago... which is itself inside the window.
+        // frame per interval, and the `read` stage was a frame a moment ago.
         a.onProgress?.();
         a.onProgress?.();
         a.onProgress?.();
@@ -188,8 +187,7 @@ Deno.test("importReceipt — a heartbeat is sent while the model produces, and t
     (ms) => beats.push(ms),
   );
   assert(beats.length <= 1, `throttled: got ${beats.length}`);
-  // And the observer is unhooked when the import ends, so a shared adapter
-  // does not keep beating into a finished request.
+  // The observer is unhooked when the import ends.
   assert(progress !== undefined);
 });
 
@@ -295,9 +293,8 @@ Deno.test("makeHandler — plan, four stages in order, then the result", async (
 });
 
 Deno.test("makeHandler — the stage NAMES are the contract", () => {
-  // The wording belongs to the app ("Photos received", "Photos read",
-  // "Writing the receipt out…", "Lines matched"); these ids are what the wire
-  // carries, and renaming one silently blanks a row on the reading screen.
+  // These ids are what the wire carries; renaming one blanks a row on the
+  // app's reading screen.
   assertEquals(RECEIPT_STAGES, ["received", "read", "written", "matched"]);
 });
 
@@ -315,7 +312,7 @@ Deno.test("makeHandler — a failure after the first byte is an error EVENT, not
   const last = events[events.length - 1];
   assertEquals(last.event, "error");
   assertStringIncludes((last.data as { error: string }).error, "too long");
-  // And NO result rode along beside it.
+  // No result rode along beside it.
   assertEquals(events.filter((e) => e.event === "result").length, 0);
 });
 
@@ -346,8 +343,7 @@ Deno.test("failureFor — the three shapes, in this door's voice", () => {
 
   const timedOut = failureFor(new ProviderTimeoutError("Claude", 60_000));
   assertEquals(timedOut.status, 504);
-  // Names the RECEIPT, and says retrying is safe — nothing is written until
-  // the review's Save.
+  // Names the receipt, and says retrying is safe.
   assertStringIncludes(timedOut.error, "read this receipt");
   assertStringIncludes(timedOut.error, "safe to try again");
 
@@ -393,9 +389,8 @@ Deno.test("recall — the household's own answer overrides the cascade", async (
 });
 
 Deno.test("recall — a lookup that throws does not cost the receipt", async () => {
-  // The photos are read and the model is paid for by the time this runs. A
-  // receipt matched exactly as it would have been last month is a working
-  // receipt; failing the import over it would not be.
+  // The photos are read and the model is paid by the time recall runs, so a
+  // failed recall must not fail the import.
   const payload = await importReceipt(
     { images: oneImage() },
     deps({}, noMatches, () => Promise.reject(new Error("pool exhausted"))),

@@ -25,8 +25,7 @@ import type {
   RawLineItem,
 } from "../_shared/types.ts";
 
-// --- Canned extraction (gold-shaped: 2 groups of sizes 2 and 2, steps by index).
-// Mirrors an ExtractionResult without touching disk (permission-free tests).
+// --- Canned extraction: 2 groups of 2 lines, steps by index. No disk access.
 function cannedExtraction(): ExtractionResult {
   const line = (ingredient_text: string, qty: number | null): RawLineItem => ({
     qty,
@@ -80,9 +79,8 @@ function cannedExtraction(): ExtractionResult {
   };
 }
 
-// A fake sanitize adapter: returns the canned extraction, records the hints it
-// received (to assert vocab-blindness downstream if needed). `transcribe`
-// present only when `withVision`.
+// A fake sanitize adapter: returns the canned extraction and records the hints
+// it received. `transcribe` is present only when `withVision`.
 function fakeAdapter(
   opts: {
     withVision?: boolean;
@@ -111,8 +109,8 @@ function fakeAdapter(
   return adapter;
 }
 
-// A fake matcher: bands every line `auto` and echoes its index as a candidate
-// score — so re-grouping order is observable. Records the flat input it saw.
+// A fake matcher: bands every line `auto` and echoes its index as the
+// candidate score, so re-grouping order is observable.
 function fakeMatcher(seen?: { lines?: RawLineItem[] }) {
   return (lines: RawLineItem[]): Promise<MatchedLine[]> => {
     if (seen) seen.lines = lines;
@@ -207,9 +205,8 @@ Deno.test("importRecipe — re-groups matched lines to the right groups", async 
 });
 
 Deno.test("importRecipe — a recipe suggestion rides through, and only when there is one", async () => {
-  // 8.6 / D6: the spine copies `recipe_candidates` onto the payload line when
-  // the matcher supplied one, and OMITS the key otherwise — a pre-8.6 client
-  // decodes the same bytes it always did.
+  // The spine copies `recipe_candidates` onto the payload line when the matcher
+  // supplied one, and omits the key otherwise.
   const withSuggestion: ImportDeps["matchLines"] = (lines) =>
     Promise.resolve(lines.map((raw) => ({
       raw,
@@ -334,7 +331,7 @@ function rejection(body: unknown): string {
 }
 
 Deno.test("parseRequestBody — `url` and `images` together is a real error", () => {
-  // It used to let `url` win silently, so a confused client never found out.
+  // `url` must not win silently.
   assertStringIncludes(
     rejection({ url: "https://x.test", images: [btoa("a")] }),
     "not both",
@@ -362,8 +359,7 @@ Deno.test("parseRequestBody — caps the size of one image", () => {
 });
 
 Deno.test("parseRequestBody — malformed base64 is a 400, not an unhandled throw", () => {
-  // `atob` throws; this runs BEFORE the handler's try/catch, so an escaping
-  // throw was a 500 with a stack trace in it.
+  // `atob` throws, and this runs before the handler's try/catch.
   assertStringIncludes(rejection({ images: ["not!valid!base64"] }), "base64");
 });
 
@@ -402,8 +398,8 @@ Deno.test("makeHandler — an unexpected failure returns an OPAQUE 500", async (
       body: JSON.stringify({ url: "https://example.test/x" }),
     }),
   );
-  // The answer streams, so the STATUS was committed before the failure
-  // happened; the sentence arrives as the last event instead.
+  // The status was committed before the failure; the sentence arrives as the
+  // last event.
   assertEquals(res.status, 200);
   const events = await collectSse(res);
   assertEquals(last(events).event, "error");
@@ -411,10 +407,9 @@ Deno.test("makeHandler — an unexpected failure returns an OPAQUE 500", async (
 });
 
 Deno.test("makeHandler — a model that ran long is a 504 that says so, not the opaque 500", async () => {
-  // Intake's own timeout arrives as an ImportError (⇒ 422, "could not reach
-  // that site"), so a timeout reaching the handler ran long in the MODEL. The
-  // person needs two things from it: that it was the reading, and that trying
-  // again costs nothing — the import writes nothing until Save.
+  // Intake's own timeout arrives as an ImportError (⇒ 422), so a timeout
+  // reaching the handler ran long in the model. The sentence says it was the
+  // reading, and that trying again costs nothing.
   for (const name of ["ProviderTimeoutError", "TimeoutError", "AbortError"]) {
     const slow = deps({
       adapter: {
@@ -454,8 +449,7 @@ Deno.test("makeHandler — POST url streams its stages, then the payload LAST", 
   assertEquals(events[0].data, { stages: URL_STAGES });
   // Every stage of the plan, in the plan's order, each one an event of its own.
   assertEquals(stageIds(events), URL_STAGES);
-  // The payload is the last thing on the wire — a client that stops at the
-  // first `result` has the whole answer.
+  // The payload is the last thing on the wire.
   assertEquals(last(events).event, "result");
   assertEquals((last(events).data as { title: string }).title, "Test Curry");
   assertEquals(events.filter((e) => e.event === "result").length, 1);
@@ -488,10 +482,8 @@ Deno.test("makeHandler — the photo door names the transcribe stage, and the cl
 });
 
 /**
- * Freezes `Date.now` so a test can spend ten seconds of pipeline time without
- * spending any. The heartbeat interval is a real number of seconds and the
- * throttle it drives is the thing under test — a fake clock is the only way to
- * exercise the shipped interval rather than a test-only one.
+ * Freezes `Date.now` so a test can exercise the shipped heartbeat interval
+ * without spending real seconds.
  */
 function fakeClock(start = 1_700_000_000_000) {
   const real = Date.now;
@@ -508,10 +500,8 @@ function fakeClock(start = 1_700_000_000_000) {
 }
 
 Deno.test("makeHandler — a long model call HEARTBEATS, so the stream is never silent", async () => {
-  // Without these the gap between `transcribed` and `sanitised` is one whole
-  // model budget of silence, which is what used to force those budgets to fit
-  // inside the platform's idle cut-off. Five deltas six seconds apart ⇒ two
-  // frames: they report the model producing, throttled, not a clock ticking.
+  // Five deltas six seconds apart ⇒ two frames: heartbeats report the model
+  // producing, throttled, not a clock ticking.
   const clock = fakeClock();
   try {
     const adapter = fakeAdapter({
@@ -537,8 +527,7 @@ Deno.test("makeHandler — a long model call HEARTBEATS, so the stream is never 
     const order = events.map((e) => e.event);
     const beats = events.filter((e) => e.event === "heartbeat");
     assertEquals(beats.length, 2, order.join(","));
-    // They land INSIDE the stage they are reporting on — after the stage that
-    // preceded the model call, before the one that ends it.
+    // They land inside the stage they report on.
     const firstBeat = order.indexOf("heartbeat");
     assert(firstBeat > order.indexOf("stage"));
     assert(order.lastIndexOf("heartbeat") < order.lastIndexOf("stage"));
@@ -556,8 +545,8 @@ Deno.test("makeHandler — a long model call HEARTBEATS, so the stream is never 
 });
 
 Deno.test("importRecipe — the heartbeat observer is unhooked when the import ends", async () => {
-  // The eval runner hangs its own observers on a shared adapter; an import must
-  // hand it back the one it had.
+  // The eval runner hangs its own observers on a shared adapter; an import
+  // must hand back the one it had.
   const adapter = fakeAdapter();
   const mine = () => {};
   adapter.onProgress = mine;
@@ -574,8 +563,7 @@ Deno.test("makeHandler — a failure ends the stream with an error and NO result
     (last(events).data as { error: string }).error,
     "cannot transcribe",
   );
-  // The stages that DID complete before it still arrived, so the screen shows
-  // how far the import got rather than blanking.
+  // The stages that completed before it still arrived.
   assertEquals(stageIds(events), ["received"]);
 });
 
@@ -591,18 +579,13 @@ Deno.test("makeHandler — method, body, and pipeline errors map to codes", asyn
   );
   assertEquals(empty.status, 400); // parseRequestBody rejects before orchestration
 
-  // A request that parses but fails IN orchestration is past the point where a
-  // status can still be chosen — the stream has started — so it is a 200
-  // carrying an `error` event. Covered above; what this pins is that the
-  // pre-pipeline rejections are still plain statuses.
+  // A failure in orchestration is a 200 carrying an `error` event (covered
+  // above); pre-pipeline rejections are still plain statuses.
 });
 
-// --- 0047: the page's own text, and where each line sits in it ---------------
+// --- The page's own text, and where each line sits in it ---------------------
 
-/**
- * A page whose visible text prints three of the canned extraction's four
- * lines — the salt is deliberately absent, so one line cannot be placed.
- */
+/** A page that prints three of the canned extraction's four lines; no salt. */
 const pageText = "Test Curry. Serves 4. Ingredients: 900 g chicken thighs, " +
   "boneless; 150 g onion, diced; 400 g coconut milk.";
 
@@ -629,8 +612,7 @@ Deno.test("importRecipe — a link import carries the page's text and a span per
     l.raw.ingredient_text === "chicken thighs, boneless"
   )!;
   const span = chicken.source_span!;
-  // The span is a real range into the string the payload is carrying, and what
-  // it points at is what the page printed — amount through identity.
+  // The span is a range into `source_text`, amount through identity.
   assertEquals(
     payload.source_text!.slice(span.start, span.end),
     "900 g chicken thighs, boneless",
@@ -643,8 +625,7 @@ Deno.test("importRecipe — a link import carries the page's text and a span per
 });
 
 Deno.test("importRecipe — a line the text cannot place carries no span, and the key is absent", async () => {
-  // The page never printed the salt line, so there is nothing to point at and
-  // the field is omitted rather than aimed somewhere plausible.
+  // The page never printed the salt line, so the field is omitted.
   const payload = await importRecipe({ url: "u" }, pageDeps());
   const salt = payload.groups.flatMap((g) => g.lines).find((l) =>
     l.raw.ingredient_text === "salt"
@@ -653,8 +634,7 @@ Deno.test("importRecipe — a line the text cannot place carries no span, and th
 });
 
 Deno.test("importRecipe — a photo import carries neither field", async () => {
-  // A transcription blob has no `page_text`: the pages are files the phone
-  // already holds, so the payload is byte-identical to the pre-0047 one.
+  // A transcription blob has no `page_text`, so no `source_text` either.
   const payload = await importRecipe(
     { images: [new Uint8Array([1])] },
     deps({ adapter: fakeAdapter({ withVision: true }) }),

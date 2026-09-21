@@ -1,9 +1,5 @@
-// The model pin, held mechanically rather than by a comment.
-//
-// Two things have to stay true or the pin is decorative: the id on the WIRE is
-// the constant (nothing else can slip in as a default), and the id a run record
-// reports is that same value — a record that names a model the request did not
-// send makes every dated comparison in `evals/runs/` a lie.
+// The model pin, held by a test: the id on the wire is the constant, and the
+// id a run record reports is that same value.
 
 import { assert, assertEquals } from "@std/assert";
 import { CLAUDE_HAIKU_MODEL, ClaudeHaikuAdapter } from "./claude.ts";
@@ -24,7 +20,7 @@ const BLOB: RawBlob = {
   text: "dirty rice\n2 cups long-grain white rice",
 };
 
-/** The narrowest text `decodeClaudeSanitize` accepts, as the model would say it. */
+/** The narrowest text `decodeClaudeSanitize` accepts. */
 const ANSWER = JSON.stringify({
   title: "Dirty Rice",
   groups: [{ name: null, line_items: [] }],
@@ -56,17 +52,15 @@ Deno.test("the id on the wire is the pinned constant, and it carries no date suf
   assertEquals(adapter.model, CLAUDE_HAIKU_MODEL);
   const { body } = await capture(adapter);
   assertEquals(body.model, CLAUDE_HAIKU_MODEL);
-  // A date-suffixed variant is not a stricter pin here, it is a different id —
-  // and one the provider does not serve for this tier.
+  // A date-suffixed variant is a different id, not a stricter pin.
   assert(!/-\d{8}$/.test(CLAUDE_HAIKU_MODEL));
   assert(!CLAUDE_HAIKU_MODEL.endsWith("-latest"));
 });
 
 Deno.test("production asks for a STREAM — the budgets assume one", async () => {
-  // Not a preference: the per-op deadlines (120s for sanitize) are only safe
-  // because an idle timer is watching the wire. A request that forgot
-  // `stream: true` would sit silent for the whole of one, and the platform
-  // would cut it off with the answer already generated and billed.
+  // The per-op deadlines are only safe because an idle timer watches the wire.
+  // Without `stream: true` a request would sit silent until the platform cut
+  // it off.
   const adapter = new ClaudeHaikuAdapter({ apiKey: "test-key" });
   const { body } = await capture(adapter);
   assertEquals(body.stream, true);

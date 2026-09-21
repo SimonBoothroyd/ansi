@@ -1,19 +1,13 @@
-// Shared types for the import pipeline — the SERVER boundary contracts.
+// Shared types for the import pipeline: the server boundary contracts. Types
+// only.
 //
-// Mirrors docs/product-specs/import-and-matching.md §4.4 and the finalized shapes
-// in docs/exec-plans/completed/0014-import-foundation.md + the gold schema at
-// evals/datasets/extraction/gold/_SCHEMA.md (one source — keep them in step).
-// Types only — no logic.
+// Mirrors docs/product-specs/import-and-matching.md §4.4 and the gold schema at
+// evals/datasets/extraction/gold/_SCHEMA.md; keep them in step.
 //
-// INVARIANT — extraction never invents (0014). No fabricated ingredient, quantity,
-// unit, time, serving, or step: absent/ambiguous ⇒ flagged (parse_warnings, low
-// confidence, a range the user resolves), never guessed. These types make that
-// expressible (nullable numbers, ranges, `unit_mappable`) rather than forcing a
-// value.
-//
-// The commit contract (resolved lines + stubs written through PowerSync, with step
-// `line_index` refs remapped to real line_item_ids) is built on the APP side in
-// Dart — it is not a server type and lives with the app, not here.
+// Extraction never invents: an absent or ambiguous value is flagged
+// (parse_warnings, low confidence, a range), never guessed. Nullable numbers,
+// ranges and `unit_mappable` make that expressible. The commit contract is
+// built app-side in Dart.
 
 export type ImageQuality = "ok" | "degraded" | "poor";
 
@@ -27,9 +21,8 @@ export interface TimeRange {
 export type TimeField = number | TimeRange | null;
 
 // --- Extraction input: RawBlob (§3, §4.1–4.2) --------------------------------
-// The union output of intake. `jsonld.ts` produces `jsonld`/`page_text`; vision
-// transcription produces `transcription`. The sanitize stage consumes only this —
-// it never sees the URL or the image.
+// `jsonld.ts` produces `jsonld`/`page_text`; vision transcription produces
+// `transcription`. Sanitize sees only this, never the URL or the image.
 
 export type RawBlobSource = "jsonld" | "page_text" | "transcription";
 
@@ -39,11 +32,9 @@ export interface RawBlob {
   jsonld: Record<string, unknown> | null; // raw schema.org/Recipe when source=jsonld
   text: string | null; // page text or vision transcription
   /**
-   * ADDITIVE (0047): the fetched page's visible text, bounded, for the app's
-   * source column — never an input to sanitize, which reads `text`/`jsonld`
-   * alone. It is set on BOTH link branches (a JSON-LD page still has a page a
-   * person can read), and absent from a transcription blob, whose pages are
-   * images the phone already holds.
+   * The fetched page's visible text, bounded, for the app's source column.
+   * Never an input to sanitize. Set on both link branches; absent from a
+   * transcription blob.
    */
   page_text?: string;
 }
@@ -74,8 +65,8 @@ export interface RawGroup {
 export type MentionKind = "new" | "rementioned" | "fraction";
 
 /**
- * A sub-amount named IN A STEP for one reference (§4.6). Source-derived — the
- * number is transcribed from the step prose, never invented — or a relative word.
+ * A sub-amount named in a step for one reference (§4.6): a number transcribed
+ * from the step prose, or a relative word.
  */
 export interface RefPortion {
   qty: number | null; // single step sub-amount
@@ -104,7 +95,7 @@ export interface TimerToken {
   high_seconds: number;
 }
 
-/** A step is an ordered token stream (§4.6) — rendered by a fold, not text-match. */
+/** A step is an ordered token stream (§4.6). */
 export type StepToken = TextToken | RefToken | TimerToken;
 
 export interface Step {
@@ -126,8 +117,8 @@ export interface ExtractionResult {
 }
 
 // --- The provider seam (the edge function + the eval harness) ----------------
-// `unitHints` = our canonical units + accepted imprecise/size words (NOT the
-// ingredient vocab, NOT per-ingredient measures), so ① lands qty/unit in-system.
+// `unitHints` = our canonical units + accepted imprecise/size words, not the
+// ingredient vocab.
 
 export interface UnitHints {
   units: string[]; // canonical unit ids: g, ml, tsp, tbsp, cup, piece…
@@ -137,36 +128,29 @@ export interface UnitHints {
 }
 
 /**
- * Token usage for ONE provider call, NORMALIZED across providers so a cost
- * formula can be written once (evals/runner/pricing.ts). The three vendors
- * disagree about what their own totals include, so the adapters' parsers
- * (`_shared/adapters/usage.ts`) reduce them all to this contract:
+ * Token usage for one provider call, normalized across providers
+ * (`_shared/adapters/usage.ts`) so one cost formula applies
+ * (evals/runner/pricing.ts):
  *
- * - `input_tokens` is the **uncached, non-cache-write** billable input. OpenAI
- *   and Gemini fold cached tokens INTO their prompt count and Anthropic does
- *   not; the parsers subtract, so every provider reports the same thing here.
- * - `output_tokens` INCLUDES reasoning/thinking tokens, which every provider
- *   bills at the output rate even when it reports them in a separate field.
- * - Any field the provider did not report stays `null` — never 0, so "not
- *   reported" is distinguishable from "genuinely zero" in a cost table.
+ * - `input_tokens` is the uncached, non-cache-write billable input; parsers
+ *   subtract cached tokens where a provider folds them in.
+ * - `output_tokens` includes reasoning/thinking tokens.
+ * - A field the provider did not report is `null`, never 0.
  */
 export interface TokenUsage {
   input_tokens: number | null;
   output_tokens: number | null;
   cache_read_tokens: number | null;
   cache_write_tokens: number | null;
-  /** Reasoning/thinking tokens — already counted inside `output_tokens`. */
+  /** Reasoning/thinking tokens, already counted inside `output_tokens`. */
   reasoning_tokens: number | null;
   /** The provider's own total, verbatim, when it reports one. Audit only. */
   total_tokens: number | null;
 }
 
 /**
- * One completed provider HTTP call, handed to an optional observer. This is the
- * benchmark's side-channel: it carries the VERBATIM response so a paid run can
- * be persisted and rescored for free, plus usage and latency for the cost
- * columns. It is deliberately a callback rather than a change to `sanitize`'s
- * return type, so `import-recipe` (which never sets an observer) is untouched.
+ * One completed provider HTTP call, handed to an optional observer: the
+ * verbatim response (so a paid run can be rescored) plus usage and latency.
  */
 export interface ProviderCall {
   provider: string; // adapter name, e.g. "gpt-5-mini"
@@ -185,19 +169,14 @@ export interface ExtractAdapter {
   /** The pinned model id this adapter sends (absent for non-LLM adapters). */
   readonly model?: string;
   /**
-   * OPTIONAL observer, off by default. The edge function leaves it unset and
-   * behaves exactly as before; the eval runner sets it to capture usage + the
-   * raw response. An observer that throws must never fail an import — the
-   * adapters swallow its errors.
+   * Optional observer, unset in production; the eval runner uses it to capture
+   * usage and the raw response. Adapters swallow its errors.
    */
   onCall?: ProviderCallSink;
   /**
-   * OPTIONAL observer, off by default: told whenever the model produced more
-   * output during a call. Payload-free ON PURPOSE — the point is the TICK, not
-   * the text. The orchestrator attaches one so the function can emit a
-   * `heartbeat` frame while a long call runs (import spec §4.7); a model call
-   * that does not stream simply never calls it, and the caller sees a gap, as
-   * it always did. An observer that throws must never fail an import.
+   * Optional observer, told whenever the model produced more output during a
+   * call. Payload-free. The orchestrator uses it to emit `heartbeat` frames
+   * (import spec §4.7). Adapters swallow its errors.
    */
   onProgress?: ProgressSink;
   transcribe?(images: Uint8Array[]): Promise<RawBlob>; // vision tier (LLM)
@@ -208,8 +187,7 @@ export interface ExtractAdapter {
 export type ProgressSink = () => void;
 
 // --- The match cascade output (§6) -------------------------------------------
-// No silent auto-stub: band `none` carries empty candidates; the user resolves it
-// (search / create-new) at reconciliation.
+// Band `none` carries empty candidates; the user resolves it at reconciliation.
 
 export type MatchBand = "auto" | "suggest" | "none";
 
@@ -220,10 +198,8 @@ export interface MatchCandidate {
 }
 
 /**
- * A household RECIPE whose title the line's identity text matched (step 8.6,
- * exec plan 0021 D6). Deliberately a separate shape from {@link MatchCandidate}:
- * a recipe is not an ingredient, it never carries a band, and it is NEVER
- * auto-linked — a human taps the suggestion or ignores it.
+ * A household recipe whose title the line's identity text matched. Separate
+ * from {@link MatchCandidate}: it carries no band and is never auto-linked.
  */
 export interface RecipeCandidate {
   recipe_id: string;
@@ -236,30 +212,21 @@ export interface MatchedLine {
   band: MatchBand;
   candidates: MatchCandidate[]; // top-N; empty for `none`
   /**
-   * ADDITIVE (8.6): household recipes whose title this line might be naming.
-   * OMITTED entirely when there are none — and when no recipe-title matcher is
-   * wired at all — so a client that predates the field decodes exactly what it
-   * decoded before. Independent of `band`/`candidates`: a line can match an
-   * ingredient AND a recipe, and the human picks.
+   * Household recipes whose title this line might be naming. Omitted when
+   * there are none. Independent of `band`/`candidates`.
    */
   recipe_candidates?: RecipeCandidate[];
 }
 
 // --- Edge fn → app: ReconciliationPayload ------------------------------------
-// What the deployed `import-recipe` function returns and the app's reconciliation
-// screen consumes. The Dart side pins this shape through the committed golden
-// fixture (`import-recipe/__fixtures__/reconciliation_payload.golden.json`), so a
-// change here is a change to that contract. Step refs are still by line_index;
-// the app remaps them to line_item_ids on commit.
+// What `import-recipe` returns. The Dart side pins this shape through
+// `import-recipe/__fixtures__/reconciliation_payload.golden.json`. Step refs
+// are by line_index; the app remaps them to line_item_ids on commit.
 
 /**
  * Where a line was read from inside {@link ReconciliationPayload.source_text}:
- * a half-open character range `[start, end)` into that exact string.
- *
- * ADDITIVE (0047), and LOCATED rather than guessed — `source_span.ts` emits one
- * only for an unambiguous verbatim occurrence of what the line printed, and
- * omits the field otherwise. Never-invent: a span nobody can point at is no
- * span.
+ * a half-open character range `[start, end)`. `source_span.ts` emits one only
+ * for an unambiguous verbatim occurrence.
  */
 export interface SourceSpan {
   start: number;
@@ -273,10 +240,8 @@ export interface ReconLine {
   /** See {@link MatchedLine.recipe_candidates} — present only when non-empty. */
   recipe_candidates?: RecipeCandidate[];
   /**
-   * ADDITIVE (0047): where this line sits in {@link
-   * ReconciliationPayload.source_text}. OMITTED when there is no source text,
-   * or when the line's printed words cannot be pointed at unambiguously — so a
-   * client that predates the field decodes exactly what it decoded before.
+   * Where this line sits in {@link ReconciliationPayload.source_text}. Omitted
+   * when there is no source text or the words cannot be located unambiguously.
    */
   source_span?: SourceSpan;
 }
@@ -299,12 +264,9 @@ export interface ReconciliationPayload {
   groups: ReconGroup[];
   steps: Step[];
   /**
-   * ADDITIVE (0047): the page's own text, for the wide review's source column.
-   * Bounded server-side at `SOURCE_TEXT_MAX_CHARS` (jsonld.ts) — a page's text
-   * is unbounded and this rides the same response as the recipe.
-   *
-   * OMITTED for a photo import (the pages are images the phone already holds)
-   * and whenever intake produced no page text at all.
+   * The page's own text, for the wide review's source column, bounded at
+   * `SOURCE_TEXT_MAX_CHARS` (jsonld.ts). Omitted for a photo import and when
+   * intake produced no page text.
    */
   source_text?: string;
 }

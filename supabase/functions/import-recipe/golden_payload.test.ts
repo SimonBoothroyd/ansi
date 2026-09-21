@@ -1,31 +1,19 @@
-// The TS→Dart CONTRACT test: runs the real orchestration spine end to end with
-// no network and no LLM, and pins its `ReconciliationPayload` output as a
-// committed golden JSON file that the Flutter side parses in
-// `app/test/features/import/golden_payload_contract_test.dart`.
+// The TS→Dart contract test: runs the real orchestration spine with no network
+// and no LLM, and pins its `ReconciliationPayload` as a committed golden JSON
+// file that `app/test/features/import/golden_payload_contract_test.dart`
+// parses.
 //
-// WHY: `types.ts` (server) and `reconciliation_payload.dart` (client) mirror each
-// other by hand, and the Dart mirror is defaults-everywhere
-// (`@Default('') rawAmount`, `@Default(true) unitMappable`, …). A field rename or
-// a shape change on either side therefore degrades SILENTLY — the client decodes
-// a default instead of throwing. One shared artefact closes that: this test
-// writes what the server really emits; the Dart test asserts every load-bearing
-// field of that same file is non-default. Either side drifting fails a suite.
+// `types.ts` and `reconciliation_payload.dart` mirror each other by hand, and
+// the Dart mirror defaults every field, so drift would decode silently. The
+// Dart test asserts every load-bearing field of this file is non-default.
 //
-// Everything here is deterministic and offline:
-//   - `MockAdapter` supplies ① (and routes through the REAL
-//     `coerceExtractionResult` + `validateExtractionResult`, so schema.ts is on
-//     the path too),
-//   - the REAL `matchLines` cascade runs over `inMemoryVocabMatcher` with a small
-//     vocab pinned in this file (NOT `snapshot.jsonl` — the golden must not churn
-//     when the seed vocab is edited; the real-vocab run is
-//     `index_vocab.test.ts`),
-//   - the request goes through the REAL `makeHandler` HTTP boundary, so the
-//     golden is literally the response body the app receives.
+// `MockAdapter` supplies ① through the real coercion and validation; the real
+// `matchLines` runs over a small vocab pinned here (the real-vocab run is
+// `index_vocab.test.ts`); the request goes through the real `makeHandler`.
 //
-// REGENERATE after an intentional contract change:
+// Regenerate after an intentional contract change:
 //   cd supabase/functions && deno task golden
-// (equivalently `UPDATE_GOLDEN=1 deno test`). Review the diff, then update the
-// Dart assertions if a shape actually moved.
+// Review the diff, then update the Dart assertions if a shape moved.
 
 import { assert, assertEquals } from "@std/assert";
 import { type ImportDeps, makeHandler } from "./index.ts";
@@ -48,9 +36,8 @@ const GOLDEN_PATH = new URL(
 );
 
 // --- The pinned vocab --------------------------------------------------------
-// Small and committed on purpose: it makes the golden reproducible forever. The
-// entries are chosen so the cascade produces ALL THREE bands (exact → auto,
-// trigram → suggest, miss → none) over the sampler below.
+// Small and committed, so the golden is reproducible. Chosen so the cascade
+// produces all three bands over the sampler below.
 
 const VOCAB: VocabEntry[] = [
   { ingredient_id: "v-onion", canonical_name: "Onion", match_texts: ["onion"] },
@@ -70,8 +57,8 @@ const VOCAB: VocabEntry[] = [
     match_texts: ["flat leaf parsley"],
   },
   {
-    // No exact surface for the sampler's bare "parmesan" — trigram lands it in
-    // the mid band, which is what a `suggest` line must look like on the wire.
+    // No exact surface for the sampler's bare "parmesan": trigram lands it in
+    // the mid band, a `suggest` line.
     ingredient_id: "v-parmesan",
     canonical_name: "Parmesan Cheese",
     match_texts: ["parmesan cheese"],
@@ -79,9 +66,8 @@ const VOCAB: VocabEntry[] = [
 ];
 
 // --- The contract sampler ----------------------------------------------------
-// NOT a real recipe: a compact fixture that deliberately carries every shape the
-// Dart mirror has to decode. Keep it structurally valid (no `structural-review:`
-// warning) so the golden stays about the contract, not about validation.
+// Not a real recipe: a compact fixture carrying every shape the Dart mirror
+// has to decode. Keep it structurally valid (no `structural-review:` warning).
 
 function contractSampler(): ExtractionResult {
   return {
@@ -156,15 +142,12 @@ function contractSampler(): ExtractionResult {
         ],
       },
       {
-        // a NAMED group — the second group proves the flattened line_index space
-        // spans groups in order.
+        // A named second group: the flattened line_index space spans groups.
         name: "To finish",
         line_items: [
           {
-            // a typo'd surface → no exact hit → trigram scores ~0.68, i.e.
-            // mid-band → `suggest`. Deliberately well clear of BOTH band edges
-            // (0.55 / 0.85) so an unrelated normalize tweak can't silently flip
-            // the golden's band mix.
+            // A typo'd surface: trigram scores ~0.68 → `suggest`, well clear
+            // of both band edges (0.55 / 0.85).
             qty: 30,
             qty_low: null,
             qty_high: null,
@@ -283,9 +266,8 @@ function goldenDeps(): ImportDeps {
     url: "https://example.test/contract-sampler",
     jsonld: null,
     text: "Contract Sampler Stew\n(the mock adapter ignores this text)",
-    // 0047: the readable page, so the fixture pins `source_text` and a MIX of
-    // spans — five lines this text prints and can be pointed at, and the
-    // gochujang, which it does not print at all and so carries no span.
+    // The readable page, so the fixture pins `source_text` and a mix of spans:
+    // five lines this text prints, and the gochujang, which it does not.
     page_text: "Contract Sampler Stew. Serves 4. Ingredients: " +
       "2 medium onion, finely chopped; 2\u20133 cloves garlic; " +
       "One 400 g tin coconut milk; flat-leaf parsley, to serve; " +
@@ -301,7 +283,7 @@ function goldenDeps(): ImportDeps {
   };
 }
 
-/** Runs a URL import through the REAL HTTP handler and returns the payload. */
+/** Runs a URL import through the real HTTP handler and returns the payload. */
 async function producePayload(): Promise<ReconciliationPayload> {
   const res = await makeHandler(goldenDeps())(
     new Request("https://edge.test/import-recipe", {
@@ -311,9 +293,7 @@ async function producePayload(): Promise<ReconciliationPayload> {
     }),
   );
   assertEquals(res.status, 200, "the sampler must import cleanly");
-  // The answer is a stage stream now; the payload is its last event. The
-  // CONTRACT this file pins is that payload, unchanged — the stream is how it
-  // travels, not what it is.
+  // The payload is the stream's last event.
   const events = await collectSse(res);
   const result = events[events.length - 1];
   assertEquals(result.event, "result", "the payload is the last event");
@@ -355,8 +335,8 @@ Deno.test("golden payload — the spine's output matches the committed fixture",
   );
 });
 
-// The golden is only worth what it covers — if the sampler ever stops producing
-// one of these shapes the Dart assertions would pass vacuously.
+// If the sampler stops producing one of these shapes, the Dart assertions
+// would pass vacuously.
 Deno.test("golden payload — the fixture covers every load-bearing shape", async () => {
   const p = await producePayload();
   const flat = p.groups.flatMap((g) => g.lines);
@@ -390,8 +370,8 @@ Deno.test("golden payload — the fixture covers every load-bearing shape", asyn
   );
   assert(p.truncated);
   assertEquals(p.image_quality, "degraded");
-  // 0047: the page's text, and a MIX of spans — every span indexes that exact
-  // string, and the one line the page never printed carries none.
+  // Every span indexes `source_text`, and the line the page never printed
+  // carries none.
   assert(p.source_text !== undefined, "no source_text in the golden");
   const spanned = flat.filter((l) => l.source_span !== undefined);
   assertEquals(spanned.length, 5, "spanned line count");
@@ -440,8 +420,7 @@ Deno.test("golden payload — the fixture covers every load-bearing shape", asyn
     "a qualifier-only portion",
   );
 
-  // Step refs are still by FLATTENED line_index here (the app remaps on commit),
-  // so every ref must be in range of the flattened list.
+  // Step refs are by flattened line_index, so every ref must be in range.
   for (const t of refs) {
     if (t.t !== "ref") continue;
     for (const i of t.refs) {

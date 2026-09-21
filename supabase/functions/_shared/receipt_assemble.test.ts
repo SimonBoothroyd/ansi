@@ -47,7 +47,7 @@ function flatTranscript(e: ReceiptExtraction) {
   return joinPhotoTranscripts([e.lines.map((l) => l.printed_text).join("\n")]);
 }
 
-/** `none`-banded matches, one per item line: assembly under no vocabulary at all. */
+/** `none`-banded matches, one per item line. */
 function unmatched(e: ReceiptExtraction): MatchedLine[] {
   return itemMatchInputs(e).map((raw: RawLineItem) => ({
     raw,
@@ -94,8 +94,7 @@ Deno.test("reconcile — the server states BOTH numbers and refuses nothing", ()
   const p = assemble(e);
   assertEquals(p.lines_sum_cents, 349);
   assertEquals(p.printed.subtotal_cents, 9999);
-  // No exception, no flag field, no "valid" boolean: two numbers, side by
-  // side. The review draws the join card.
+  // No flag field and no "valid" boolean: two numbers, side by side.
   assert(!("reconciled" in p));
 });
 
@@ -129,8 +128,8 @@ Deno.test("discount — always non-negative, whichever sign the paper printed", 
 });
 
 Deno.test("discount — one that could not be attached rides as a negative fee", () => {
-  // The model's escape hatch when it cannot tell which item a deduction
-  // belongs to. The reconcile still closes, because a fee counts.
+  // The model's fallback when it cannot tell which item a deduction belongs
+  // to. The reconcile still closes, because a fee counts.
   const e = extraction([
     line({ amount_printed: "3.49" }),
     line({
@@ -240,7 +239,7 @@ Deno.test("photo — a line is attributed to the photo it was shot on", () => {
     "B 2.00\nC 3.00\nD 4.00",
   ]);
   const p = assembleReceipt(e, transcript, unmatched(e));
-  // A seam line belongs to the FIRST photo it appeared on.
+  // A seam line belongs to the first photo it appeared on.
   assertEquals(p.lines.map((l) => l.photo), [0, 0, 0, 1]);
   assertEquals(p.photos_joined, [{ from: 0, to: 1, overlap_lines: 2 }]);
 });
@@ -282,7 +281,7 @@ Deno.test("matching — only ITEM lines are asked about, in printed order", () =
   ]);
   const inputs = itemMatchInputs(e);
   assertEquals(inputs.length, 2);
-  // The NAME goes to the cascade, never the line with its price stuck on.
+  // The name goes to the cascade, never the line with its price.
   assertEquals(inputs.map((i) => i.ingredient_text), [
     "TJ ORG BANANAS",
     "TJ SRIRACHA",
@@ -388,14 +387,11 @@ Deno.test("linesSumCents is the whole arithmetic, and nothing else is", () => {
 
 // --- The household's own answers have the last word --------------------------
 //
-// The memory is read off this household's saved receipt lines
-// (`receipt_memory.ts`). Here it is just a Map, which is the point: assembly
-// stays pure, and the rule — what a remembered answer does to a line — is
-// arithmetic with a test.
+// The memory (`receipt_memory.ts`) is a plain Map here, so assembly stays pure.
 
 import type { ReceiptMemory, RememberedAnswer } from "./receipt_memory.ts";
 
-/** One `suggest`-banded match per item line, so the override has something to beat. */
+/** One `suggest`-banded match per item line, for the override to beat. */
 function suggested(e: ReceiptExtraction, id: string): MatchedLine[] {
   return itemMatchInputs(e).map((raw: RawLineItem) => ({
     raw,
@@ -412,9 +408,8 @@ const memory = (entries: [string, RememberedAnswer][]): ReceiptMemory =>
   new Map(entries);
 
 Deno.test("remembered — the household's answer overrides the cascade", () => {
-  // The strip this was found on: a whole-string trigram cannot score
-  // `ORG TRICOLOR QUINOA` against `Quinoa` above the suggest floor. Once
-  // somebody has said it, it does not have to.
+  // A whole-string trigram cannot score `ORG TRICOLOR QUINOA` against `Quinoa`
+  // above the suggest floor; a remembered answer does not have to.
   const e = extraction([
     line({
       printed_text: "ORG TRICOLOR QUINOA 4.49",
@@ -437,8 +432,7 @@ Deno.test("remembered — the household's answer overrides the cascade", () => {
     remembered: true,
   });
   assertEquals(p.lines[0].kind, "item");
-  // The cascade's offers stand: a remembered answer is one the person can
-  // change, and these are what they would change it to.
+  // The cascade's offers stand, so the person can change the answer.
   assertEquals(p.lines[0].suggestions.length, 1);
   assertEquals(p.lines[0].suggestions[0].ingredient_id, "v-quinoa-red");
 });
@@ -470,7 +464,7 @@ Deno.test("remembered — a line the household folded arrives folded", () => {
   );
   assertEquals(p.lines[0].kind, "not_food");
   assertEquals(p.lines[0].match, null, "a folded line names no row");
-  // It still counts toward what the trip cost, and toward nothing else.
+  // It still counts toward what the trip cost.
   assertEquals(p.lines_sum_cents, 699);
 });
 
@@ -525,7 +519,7 @@ Deno.test("remembered — nothing remembered is the cascade, exactly as before",
 });
 
 Deno.test("remembered — a line the reader named nothing on recalls nothing", () => {
-  // It would be asking about a string no saved line was ever filed under.
+  // No saved line is filed under that string.
   const e = extraction([
     line({ printed_text: "?????? 2.49", name_printed: "  " }),
   ]);
@@ -539,9 +533,8 @@ Deno.test("remembered — a line the reader named nothing on recalls nothing", (
 });
 
 Deno.test("remembered — a non-item line is never recalled for", () => {
-  // A tax line has no ingredient to be about (migration 0044's own fence), and
-  // the cursor over `matched` walks the MODEL's item lines, not the recalled
-  // ones.
+  // A tax line has no ingredient (migration 0044), and the cursor over
+  // `matched` walks the model's item lines, not the recalled ones.
   const e = extraction([
     line({
       printed_text: "TAX 0.82",
@@ -630,8 +623,8 @@ Deno.test("count — a penny of rounding per thing is not a disagreement", () =>
 });
 
 Deno.test("count — a weight sub-row is a weight and never a count", () => {
-  // `Qty 0.73 lb @ $2.99/lb` says how heavy, not how many. Counting it too
-  // would divide the price twice.
+  // `Qty 0.73 lb @ $2.99/lb` is a weight; counting it too would divide the
+  // price twice.
   const e = extraction([
     line({
       printed_text: "OG RED ONION 2.18",
@@ -652,7 +645,7 @@ Deno.test("count — a weight sub-row is a weight and never a count", () => {
 
 Deno.test("count — a fee charged in the totals block is one line with its count", () => {
   // The bag charge prints no money on its own line; the figure is in the
-  // totals block ("Bag Fee: $0.05EA  $0.10"), and it is ONE fee line.
+  // totals block ("Bag Fee: $0.05EA  $0.10"), and it is one fee line.
   const e = extraction([
     line({ printed_text: "A 3.49", amount_printed: "3.49" }),
     line({

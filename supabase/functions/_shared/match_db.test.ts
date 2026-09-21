@@ -7,7 +7,7 @@ import {
 import { matchLines, matchOne, matchRecipeTitles } from "./match.ts";
 import type { RawLineItem } from "./types.ts";
 
-/** A line carrying nothing but its identity text — matching reads no other field. */
+/** A line carrying only its identity text; matching reads no other field. */
 const line = (ingredient_text: string): RawLineItem => ({
   qty: 1,
   qty_low: null,
@@ -21,9 +21,9 @@ const line = (ingredient_text: string): RawLineItem => ({
   confidence: 1,
 });
 
-// A fake SqlExecutor: routes on a substring of the query and records calls, so the
-// SQL contracts are testable without Postgres. `deno test` stays hermetic; the
-// real pg_trgm behaviour is covered offline by match_trgm.ts + match.test.ts.
+// A fake SqlExecutor: routes on a substring of the query and records calls, so
+// the SQL contracts are testable without Postgres. pg_trgm behaviour is
+// covered offline by match_trgm.ts + match.test.ts.
 interface Call {
   text: string;
   params: unknown[];
@@ -62,15 +62,14 @@ Deno.test("sqlVocabMatcher — exact query is household + text-SET parameterized
   }]);
   // An identity with nothing to show simply has no bucket.
   assertEquals(cands.get("garlic"), undefined);
-  // ONE query for the whole set, and the set rides as a single array parameter
-  // — nothing about this SQL grows with the line count.
+  // One query for the whole set, which rides as a single array parameter.
   assertEquals(calls.length, 1);
   assertEquals(calls[0].params, ["hh-1", ["onion", "garlic"]]);
   assertStringIncludes(calls[0].text, "unnest($2::text[]) as q(match_text)");
   assertStringIncludes(calls[0].text, "ingredient_alias"); // unions aliases
   assertStringIncludes(calls[0].text, "deleted_at is null"); // soft-delete aware
-  // Defence in depth: the alias branch scopes the INGREDIENT to the household
-  // too, so a mis-written alias row cannot reach across households.
+  // The alias branch scopes the ingredient to the household too, so a
+  // mis-written alias row cannot reach across households.
   assertStringIncludes(
     calls[0].text,
     "a.household_id = $1 and a.deleted_at is null",
@@ -111,11 +110,10 @@ Deno.test("sqlVocabMatcher — trigram uses the % index op, similarity(), a per-
   assertEquals(calls.length, 1);
   assertEquals(calls[0].params, ["hh-1", ["suger", "sumak"], 3]);
   assertStringIncludes(calls[0].text, "i.match_text % q.match_text"); // GIN path
-  // The cap is per identity, so one query can carry many of them and each still
-  // gets its own top-N.
+  // The cap is per identity: each gets its own top-N within one query.
   assertStringIncludes(calls[0].text, "partition by b.match_text");
   assertStringIncludes(calls[0].text, "where c.rank <= $3");
-  // A TOTAL sort: score ties must break the same way on every run/plan.
+  // A total sort: score ties break the same way on every run and plan.
   assertStringIncludes(
     calls[0].text,
     "order by b.score desc, b.canonical_name asc, b.ingredient_id asc",
@@ -148,9 +146,8 @@ Deno.test("sqlVocabMatcher — drives the cascade end to end", async () => {
 });
 
 Deno.test("the whole cascade is two queries for a long recipe, and the trigram tier only sees what exact missed", async () => {
-  // The shape this file exists to pin: a 35-line recipe used to cost 70 round
-  // trips through one pool. Tier 1 answers most lines; tier 2 is asked ONLY
-  // about the remainder, and each tier is one query whatever the line count.
+  // Tier 1 answers most lines; tier 2 is asked only about the remainder, and
+  // each tier is one query whatever the line count.
   const vocab = ["onion", "garlic", "celery", "bay leaf", "tamari"];
   const { exec, calls } = fakeExec((text, params) => {
     const asked = params[1] as string[];
@@ -186,8 +183,7 @@ Deno.test("the whole cascade is two queries for a long recipe, and the trigram t
 
   assertEquals(calls.length, 2, "one query per tier, not one per line");
   assertEquals(calls[0].params[1], vocab.concat("liquid smoke", "rubbed sage"));
-  // Repeated identities are asked about once and share the answer; the trigram
-  // tier is handed the remainder only.
+  // Repeated identities are asked once; trigram gets the remainder only.
   assertEquals(calls[1].params[1], ["liquid smoke", "rubbed sage"]);
   assertEquals(out.length, texts.length);
   assertEquals(out.map((l) => l.band), [
@@ -203,7 +199,7 @@ Deno.test("the whole cascade is two queries for a long recipe, and the trigram t
   ]);
 });
 
-// --- The sub-recipe tier's DB seam (8.6 / 0021 D6) ---------------------------
+// --- The sub-recipe tier's DB seam -------------------------------------------
 
 Deno.test("sqlRecipeTitleMatcher — one household-scoped, live-only title read", async () => {
   const { exec, calls } = fakeExec(() => [
@@ -223,7 +219,7 @@ Deno.test("sqlRecipeTitleMatcher — one household-scoped, live-only title read"
   assertStringIncludes(calls[0].text, "r.household_id = $1");
   assertStringIncludes(calls[0].text, "r.deleted_at is null"); // soft-delete aware
 
-  // Lazily loaded ONCE: an import matches many lines against one household.
+  // Lazily loaded once per matcher.
   await m.trigram("pretzle bun", 3);
   await m.exact("pretzel bun");
   assertEquals(calls.length, 1, "the title list is read once per matcher");
@@ -240,7 +236,7 @@ Deno.test("sqlRecipeTitleMatcher — titles are normalized on read (no match_tex
     { recipe_id: "r-buns", title: "Pretzel Buns" },
   ]);
   const m = sqlRecipeTitleMatcher(exec, "hh-1");
-  // Singularized by the SAME §7 normalizer the line's identity goes through.
+  // Singularized by the same §7 normalizer the line's identity goes through.
   assertEquals((await m.exact("pretzel bun")).length, 1);
   assertEquals((await m.exact("Pretzel Buns")).length, 0);
 });

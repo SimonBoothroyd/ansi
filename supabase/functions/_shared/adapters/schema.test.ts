@@ -182,8 +182,8 @@ Deno.test("coerceExtractionResult — an unknown token kind is dropped", () => {
 });
 
 Deno.test("coerceExtractionResult — null refs filtered; a string is a key (unknown ⇒ -1)", () => {
-  // Strings are line keys now, not junk: an unknown one resolves to -1 so the
-  // out-of-range machinery reports and demotes it, same as a bad index.
+  // Strings are line keys: an unknown one resolves to -1 so the out-of-range
+  // machinery reports and demotes it, same as a bad index.
   const r = coerceExtractionResult({
     ...MINIMAL,
     steps: [{ tokens: [{ t: "ref", refs: [0, "x", null, 2], label: "L" }] }],
@@ -392,8 +392,8 @@ Deno.test("validateExtractionResult — a wholly-invalid ref demotes to its labe
     }]),
   );
   assertEquals(r.steps[0].tokens.map((t) => t.t), ["text", "text"]);
-  // The leading determiner relocates into the preceding text token BEFORE the
-  // demotion, so the sentence still reads "add the sauce" across the two spans.
+  // The leading determiner moves into the preceding text token before the
+  // demotion, so the sentence still reads "add the sauce".
   assertEquals((r.steps[0].tokens[0] as TextToken).s, "add the ");
   assertEquals((r.steps[0].tokens[1] as TextToken).s, "sauce");
 });
@@ -414,8 +414,8 @@ Deno.test("validateExtractionResult — an unlabelled invalid ref is removed ent
 });
 
 Deno.test("validateExtractionResult — other issues are reported, not repaired", () => {
-  // Honest numbers: a contradictory quantity is flagged for the human, and the
-  // payload still carries exactly what the model said.
+  // A contradictory quantity is flagged, and the payload still carries exactly
+  // what the model said.
   const raw = coerceExtractionResult({
     ...MINIMAL,
     groups: [{ line_items: [lineItem({ qty: 1, qty_low: 1, qty_high: 2 })] }],
@@ -466,7 +466,7 @@ Deno.test("coerce — string refs resolve through minted line keys", () => {
     }],
   });
   const tok = r.steps[0].tokens[0] as RefToken;
-  // keys resolve to FLATTENED indices across groups, in printed order
+  // keys resolve to flattened indices across groups, in printed order
   assertEquals(tok.refs, [2, 0]);
 });
 
@@ -622,10 +622,8 @@ Deno.test("decodeClaudeSanitize — a two-phase wrapper merges lines and steps",
 
 // --- the title arrives cased like a title ------------------------------------
 //
-// A photographed page shouts and a scraped one sometimes whispers; neither is
-// a decision the page made about capitalisation, so we supply the ordinary
-// one. A page that DID decide is left alone — the words, the order, the
-// punctuation and any case it actually carries are all the page's.
+// A title with no case of its own (all caps, all lower) is title-cased; a
+// mixed-case title is left alone.
 
 Deno.test("a SHOUTED title is title-cased", () => {
   assertEquals(

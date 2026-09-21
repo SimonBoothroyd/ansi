@@ -1,48 +1,33 @@
 // Intake: URL → RawBlob (§3, §4.1). The deterministic, LLM-free front of the
 // pipeline. Fetches a page, reads every schema.org/Recipe JSON-LD block, and
-// hands the sanitize stage a `RawBlob` — the structured recipe object when the
-// page publishes one, or the page's visible text as a fallback.
+// hands sanitize a `RawBlob`: the structured Recipe object when the page
+// publishes one, or the page's visible text as a fallback.
 //
-// PORTED from supabase/seed/scripts/mine_recipes.ts (`extractIngredientLines` /
-// `collectRecipes`): the same block scan and @graph walk that the seed miner
-// proved on the real recipe_urls.txt set. The difference is the output — the
-// seed miner pulls `recipeIngredient` lines; here we keep the WHOLE Recipe
-// object, because ① sanitize (an LLM, always — 0014 decision log) consumes the
-// structured blob, not pre-parsed lines. A parity test pins the block scan to
-// the miner's on a shared fixture.
+// The block scan and @graph walk are ported from
+// supabase/seed/scripts/mine_recipes.ts; a parity test pins them together.
+// JSON-LD is a cheaper input to sanitize, never a bypass of it, so this stage
+// parses no ingredients and matches nothing.
 //
-// One forced LLM path (0014): JSON-LD is a cheaper *input* to the shared
-// pipeline, never an LLM-free bypass. So this stage only ever produces a
-// `RawBlob` — it does no ingredient parsing, no matching, no invention.
-//
-// Pure/deterministic given the HTML: `buildRawBlob(html, url)` has no I/O.
-// `fetchRawBlob(url)` is the network wrapper — and the pipeline's only
-// attacker-reachable outbound request, so it carries the SSRF guards, the size
-// and time budgets, and the fail-loud contract (see its doc comment). Both I/O
-// seams (fetch, DNS) are injectable so the whole module stays offline-testable.
+// `buildRawBlob(html, url)` is pure. `fetchRawBlob(url)` is the pipeline's only
+// attacker-reachable outbound request, so it carries the SSRF guards and the
+// size and time budgets. Both I/O seams (fetch, DNS) are injectable.
 
 import type { RawBlob } from "./types.ts";
 import { ImportError } from "./errors.ts";
 
 // --- Budgets -----------------------------------------------------------------
-// This module is the ONLY place an attacker-influenced string (a URL the user
-// pasted, a page someone else's server returned) enters the pipeline, and every
-// byte past here is billed to a model. Bound all of it.
+// This is the only place an attacker-influenced string enters the pipeline,
+// and every byte past here is billed to a model.
 
 /**
- * Wall-clock budget for one hop.
- *
- * Intake is the FIRST rung of the import's timeout ladder (the whole ladder is
- * written out where the client timeout lives,
- * `app/lib/features/import/data/remote_import_repository.dart`). A slow or
- * hostile site must not be able to spend the budget the model call still needs.
+ * Wall-clock budget for one hop. Intake is the first rung of the import's
+ * timeout ladder, written out in
+ * `app/lib/features/import/data/remote_import_repository.dart`.
  */
 export const FETCH_TIMEOUT_MS = 10_000;
 /**
- * Budget for the WHOLE intake, redirects included. Without it a chain of
- * {@link MAX_REDIRECTS} slow hops costs `FETCH_TIMEOUT_MS × (MAX_REDIRECTS+1)`
- * — four times the number the ladder is counting on. Each hop gets whatever is
- * smaller: its own budget, or what is left of this one.
+ * Budget for the whole intake, redirects included. Each hop gets the smaller
+ * of its own budget and what is left of this one.
  */
 export const FETCH_TOTAL_TIMEOUT_MS = 25_000;
 /** Redirect hops we will follow; each destination is re-validated. */
@@ -52,25 +37,19 @@ export const MAX_BODY_BYTES = 2_000_000;
 /** Chars of page text that may reach the prompt. */
 export const MAX_TEXT_CHARS = 120_000;
 /**
- * Chars of page text that may reach the APP, on {@link RawBlob.page_text} and
- * from there the payload's `source_text` (0047).
- *
- * Far under {@link MAX_TEXT_CHARS}: the prompt's copy is billed once and read
- * by a model, while this one crosses the wire on every import and is read by a
- * person in a 380 px column. 20k characters is a long recipe page's visible
- * text with room to spare, and it bounds the SSE `result` frame — which is one
- * line of JSON — to something a phone can hold.
+ * Chars of page text that may reach the app, on {@link RawBlob.page_text} and
+ * the payload's `source_text`. Far under {@link MAX_TEXT_CHARS}: it crosses the
+ * wire on every import, and it bounds the one-line SSE `result` frame.
  */
 export const SOURCE_TEXT_MAX_CHARS = 20_000;
 
 /**
  * Scans an HTML document for every schema.org/Recipe JSON-LD block and returns
- * the raw Recipe objects, in document order. Malformed blocks are skipped (a
- * later block may still parse) — never throws. Ported from mine_recipes.ts.
+ * the raw Recipe objects, in document order. Malformed blocks are skipped;
+ * never throws.
  */
 export function extractRecipeObjects(html: string): Record<string, unknown>[] {
-  // The type value may be quoted or bare (HTML5 allows unquoted attributes, and
-  // some sites/minifiers emit `type=application/ld+json`).
+  // The type value may be quoted or bare (`type=application/ld+json`).
   const blocks = [
     ...html.matchAll(
       /<script[^>]*type=["']?application\/ld\+json["']?[^>]*>([\s\S]*?)<\/script>/gi,
@@ -89,7 +68,7 @@ export function extractRecipeObjects(html: string): Record<string, unknown>[] {
   return recipes;
 }
 
-/** Recursively collects Recipe nodes, walking `@graph` and arrays (mine_recipes.ts). */
+/** Recursively collects Recipe nodes, walking `@graph` and arrays. */
 function collectRecipes(node: unknown, out: Record<string, unknown>[]): void {
   if (Array.isArray(node)) {
     for (const n of node) collectRecipes(n, out);
@@ -105,22 +84,17 @@ function collectRecipes(node: unknown, out: Record<string, unknown>[]): void {
 }
 
 /**
- * Builds the intake {@link RawBlob} from a page's HTML. Deterministic — no I/O.
+ * Builds the intake {@link RawBlob} from a page's HTML. Pure.
  *
- * - First schema.org/Recipe JSON-LD block found → `source: "jsonld"` carrying
- *   that Recipe object. (A page rarely has more than one true Recipe; when it
- *   does, the first in document order wins — the contract's `jsonld` holds a
- *   single object, and sanitize reads one recipe.)
- * - No usable JSON-LD → `source: "page_text"` carrying the page's visible text,
- *   the `needs_fallback` path ① still handles (0014: JSON-LD is an input, not a
- *   gate — a page without it is not an error, just the text tier).
+ * - The first schema.org/Recipe JSON-LD block in document order →
+ *   `source: "jsonld"` carrying that Recipe object.
+ * - No usable JSON-LD → `source: "page_text"` carrying the page's visible
+ *   text. A page without JSON-LD is not an error.
  */
 export function buildRawBlob(html: string, url: string | null): RawBlob {
   const recipes = extractRecipeObjects(html);
-  // The page as a PERSON reads it (0047), on both branches and bounded
-  // separately: a JSON-LD page is still a page, and the review's source column
-  // has to be able to show it. It is never an input to sanitize — `text` and
-  // `jsonld` are, and neither moves here.
+  // The page as a person reads it, on both branches and bounded separately,
+  // for the review's source column. Never an input to sanitize.
   const visible = htmlToText(html);
   const pageText = visible.slice(0, SOURCE_TEXT_MAX_CHARS);
   if (recipes.length > 0) {
@@ -132,8 +106,7 @@ export function buildRawBlob(html: string, url: string | null): RawBlob {
       page_text: pageText,
     };
   }
-  // Bounded before it leaves this module: `text` goes straight into the ①
-  // prompt, and a 5 MB page of comments would be billed in full.
+  // Bounded before it leaves this module: `text` goes straight into the prompt.
   return {
     source: "page_text",
     url,
@@ -145,10 +118,8 @@ export function buildRawBlob(html: string, url: string | null): RawBlob {
 
 /**
  * Strips an HTML document to its visible text: drops `<script>`/`<style>`
- * bodies, unwraps remaining tags, decodes the handful of entities that matter,
- * and collapses whitespace. Good enough to feed ① as the page_text fallback —
- * not a full DOM parse (the model tolerates noise; never-invent means we pass
- * text through, we don't reconstruct structure here).
+ * bodies, unwraps tags, decodes common entities and collapses whitespace. Not
+ * a DOM parse; the model tolerates noise.
  */
 export function htmlToText(html: string): string {
   const stripped = html
@@ -183,10 +154,9 @@ function decodeEntities(s: string): string {
 
 // --- Target validation (SSRF) ------------------------------------------------
 // The URL comes from the client, and this function runs inside the Supabase
-// network with a service-role DB connection and a cloud metadata endpoint one
-// hop away. Every hop is validated: scheme, hostname shape, and the ADDRESSES
-// the hostname actually resolves to (a public name can point at 127.0.0.1 or
-// 169.254.169.254 — DNS rebinding).
+// network. Every hop is validated: scheme, hostname shape, and the addresses
+// the hostname resolves to (a public name can point at 127.0.0.1 or
+// 169.254.169.254).
 
 /** Hostnames that never leave the machine/VPC, whatever DNS says. */
 const BLOCKED_SUFFIXES = [".localhost", ".local", ".internal", ".home.arpa"];
@@ -222,7 +192,7 @@ export function isPrivateIpv4(ip: string): boolean {
 export function isPrivateIpv6(ip: string): boolean {
   const h = ip.toLowerCase().replace(/^\[|\]$/g, "").split("%")[0];
   if (h === "::1" || h === "::" || h === "") return true;
-  // IPv4-mapped / -compatible (::ffff:127.0.0.1) — judge the embedded address.
+  // IPv4-mapped / -compatible (::ffff:127.0.0.1): judge the embedded address.
   const v4 = h.match(/(\d{1,3}(?:\.\d{1,3}){3})$/);
   if (v4 && h.includes(":")) return isPrivateIpv4(v4[1]);
   if (/^f[cd]/.test(h)) return true; // fc00::/7 unique-local
@@ -240,8 +210,8 @@ export type ResolveFn = (hostname: string) => Promise<string[]>;
 
 /**
  * The production resolver. Asks for both families and tolerates one being
- * absent; a hostname that resolves to NOTHING (including because the runtime
- * denied us `--allow-net`) yields `[]`, and the caller fails CLOSED on that.
+ * absent. A hostname that resolves to nothing yields `[]`, and the caller
+ * fails closed on that.
  */
 const resolveDns: ResolveFn = async (hostname) => {
   const out: string[] = [];
@@ -249,16 +219,16 @@ const resolveDns: ResolveFn = async (hostname) => {
     try {
       out.push(...await Deno.resolveDns(hostname, type));
     } catch {
-      // No record of this family (or no permission) — the other may still answer.
+      // No record of this family (or no permission); the other may answer.
     }
   }
   return out;
 };
 
 /**
- * Validates one hop. Throws {@link ImportError} (⇒ 422 with a human message) for
- * anything we will not fetch: a non-https scheme, a name that is structurally
- * internal, a literal private address, or a name resolving to one.
+ * Validates one hop. Throws {@link ImportError} (⇒ 422) for a non-https
+ * scheme, a structurally internal name, a literal private address, or a name
+ * resolving to one.
  */
 async function assertFetchableTarget(
   target: URL,
@@ -304,8 +274,7 @@ async function readCappedText(res: Response): Promise<string> {
       }
     }
   } finally {
-    // Past the cap we stop reading and drop the connection rather than buffer
-    // a page someone is streaming at us forever.
+    // Past the cap, stop reading and drop the connection.
     await reader.cancel().catch(() => {});
   }
   const buf = new Uint8Array(Math.min(total, MAX_BODY_BYTES));
@@ -320,7 +289,7 @@ async function readCappedText(res: Response): Promise<string> {
 
 const HTML_TYPES = ["text/html", "application/xhtml+xml"];
 
-/** Fetch impl seam — the global `fetch` in prod, a stub in tests. */
+/** Fetch seam: the global `fetch` in prod, a stub in tests. */
 export type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
 
 export interface FetchBlobOptions {
@@ -329,15 +298,11 @@ export interface FetchBlobOptions {
 }
 
 /**
- * Fetches a URL and builds its {@link RawBlob}. Both I/O seams are injectable so
- * the module stays offline-testable; production uses the global `fetch` and DNS.
+ * Fetches a URL and builds its {@link RawBlob}. Both I/O seams are injectable.
  *
- * NOT total, deliberately. It used to swallow every failure into an empty
- * page_text blob on the theory that "the orchestrator decides how to surface an
- * unusable page" — the orchestrator does no such thing, so a 403 challenge page
- * or a DNS failure became an empty blob that was cheerfully sent to the LLM and
- * billed. Anything that leaves us without a page now throws {@link ImportError}
- * (⇒ 422 with a message the user can act on) BEFORE a provider is called.
+ * Not total: anything that leaves us without a page (a 403, a DNS failure)
+ * throws {@link ImportError} (⇒ 422) before a provider is called, so an empty
+ * blob is never sent to the model and billed.
  */
 export async function fetchRawBlob(
   url: string,
@@ -363,8 +328,7 @@ export async function fetchRawBlob(
     let res: Response;
     try {
       res = await fetchImpl(target.toString(), {
-        // Manual: a 30x is re-validated against the SSRF rules above before we
-        // follow it, which `redirect: "follow"` would deny us.
+        // Manual, so each 30x is re-validated against the SSRF rules first.
         redirect: "manual",
         signal: AbortSignal.timeout(Math.min(FETCH_TIMEOUT_MS, left)),
         headers: { accept: "text/html,application/xhtml+xml" },

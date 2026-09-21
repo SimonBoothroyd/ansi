@@ -1,6 +1,6 @@
 // The wire schema and its coercion, round-tripped: what the model is asked for
-// is what the coercion accepts, and what a provider having a bad day sends
-// still lands as a known shape.
+// is what the coercion accepts, and a malformed answer still lands as a known
+// shape.
 
 import { assert, assertEquals, assertThrows } from "@std/assert";
 import {
@@ -16,9 +16,8 @@ import type { ReceiptExtraction } from "../receipt_types.ts";
 // deno-lint-ignore no-explicit-any
 const schema = RECEIPT_JSON_SCHEMA as any;
 
-// A model answer in EXACTLY the schema's shape — every required key, nothing
-// else. This is the round-trip subject: schema → this object → coercion → the
-// frozen type, with nothing lost on the way.
+// A model answer in exactly the schema's shape: every required key, nothing
+// else.
 const WIRE = {
   store_printed: "TRADER JOE'S #135",
   purchased_at_printed: "09/13/26 05:42 PM",
@@ -88,8 +87,8 @@ Deno.test("schema — nothing un-modelled can be smuggled past us", () => {
       .additionalProperties,
     false,
   );
-  // Every property is required and nullable rather than optional — the
-  // dialects disagree about optionality and agree about null.
+  // Every property is required and nullable rather than optional: the dialects
+  // disagree about optionality and agree about null.
   assertEquals(
     (schema.required as string[]).sort(),
     Object.keys(schema.properties).sort(),
@@ -220,14 +219,14 @@ Deno.test("count — read as printed where it is a whole number of things", () =
 });
 
 Deno.test("count — a count nobody can divide by reads as one, and flags the line", () => {
-  // A fraction, a zero, a negative, a figure no till prints, and a word. The
-  // count is a DIVISOR now, so an unusable one must be seen rather than used.
+  // A fraction, a zero, a negative, an absurd figure and a word. The count is
+  // a divisor, so an unusable one must be flagged.
   for (const bad of [2.5, 0, -3, 1000, "four", null]) {
     const r = coerceReceiptExtraction({
       lines: [{ printed_text: "A 1.00", amount_printed: "1.00", count: bad }],
     });
     assertEquals(r.lines[0].count, 1, `${bad}`);
-    // An ABSENT count is not a coercion: most lines print none.
+    // An absent count is not a coercion: most lines print none.
     assertEquals(r.lines[0].low_confidence, bad !== null, `${bad}`);
   }
 });

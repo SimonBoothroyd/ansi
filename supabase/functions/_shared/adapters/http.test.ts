@@ -11,9 +11,8 @@ import {
   UPLOAD_MAX_EDGE,
 } from "./http.ts";
 
-// A scripted fetch: one entry per attempt, so retry behaviour is observable
-// without a network. Backoff is driven down to ~1ms via `baseBackoffMs`, so a
-// retry test costs microseconds instead of seconds.
+// A scripted fetch: one entry per attempt. `baseBackoffMs` drives backoff down
+// to ~1ms.
 type Step = Response | Error;
 function scriptedFetch(steps: Step[]) {
   const calls: { url: string; body: unknown }[] = [];
@@ -114,7 +113,7 @@ Deno.test("postJson — gives up after 3 attempts, surfacing the last status", a
 });
 
 Deno.test("retryAfterDelayMs — clamps what a provider asks us to sleep", () => {
-  // `Retry-After: 600` used to mean a ten-minute sleep inside a request handler.
+  // `Retry-After: 600` must not mean a ten-minute sleep in a request handler.
   assertEquals(retryAfterDelayMs("600"), MAX_RETRY_AFTER_MS);
   assertEquals(retryAfterDelayMs("3600"), MAX_RETRY_AFTER_MS);
   assertEquals(retryAfterDelayMs("2"), 2_000); // a reasonable one is honoured
@@ -190,9 +189,8 @@ Deno.test("toBase64 — round-trips bytes", () => {
 });
 
 /**
- * A minimal but structurally valid JPEG prefix: SOI, an APP0 segment that must
- * be skipped, then a SOF0 frame header carrying the dimensions (declared length
- * 17, as a real single-component-listing SOF0 does, padded to match).
+ * A minimal valid JPEG prefix: SOI, an APP0 segment to skip, then a SOF0 frame
+ * header carrying the dimensions (declared length 17, padded to match).
  */
 function jpegHeader(width: number, height: number): Uint8Array {
   const sofPayload = new Uint8Array(15); // 17 minus the 2 length bytes
@@ -231,7 +229,7 @@ Deno.test("jpegDimensions — reads the SOF header without decoding", () => {
 });
 
 Deno.test("jpegDimensions — anything it cannot read cheaply returns null", () => {
-  // …and the caller then falls back to the real WASM decode, as before.
+  // The caller then falls back to the WASM decode.
   const truncated = jpegHeader(800, 600).subarray(0, 12);
   for (
     const bad of [

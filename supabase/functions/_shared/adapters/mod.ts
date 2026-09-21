@@ -1,7 +1,5 @@
-// Adapter registry + re-exports. The eval harness swaps adapters by name to
-// compare providers; the edge function wires the chosen one. The three real adapters
-// build keyless (their constructors only demand a key when actually
-// instantiated live); the mock needs no key at all.
+// Adapter registry + re-exports. The eval harness swaps adapters by name; the
+// edge function wires the chosen one. Constructing an adapter needs no key.
 
 export {
   decodeMockSanitize,
@@ -62,7 +60,7 @@ import { decodeClaudeSanitize } from "./claude.ts";
 import { decodeGeminiSanitize } from "./gemini.ts";
 import { decodeGptSanitize } from "./gpt.ts";
 
-/** The provider adapters the eval harness benchmarks (the mock is constructed separately). */
+/** The provider adapters the eval harness benchmarks. */
 export type ProviderName =
   | "claude-haiku"
   | "claude-sonnet"
@@ -83,21 +81,15 @@ export const PROVIDER_NAMES: ProviderName[] = [
 ];
 
 /**
- * HTTP budgets for the adaptive-thinking benchmark lanes. The production
- * defaults serve a user on a spinner and abort a Sonnet/Opus call that is
- * legitimately still thinking (observed: every claude-sonnet transcribe in the
- * first ref-recall run died "signal has been aborted"). Thinking streams as
- * empty blocks with `display: "omitted"`, so the SILENCE those lanes can
- * produce is real and long — hence four minutes of idle, and ten for the whole
- * call. Benchmarks have no user waiting. Production stays on the defaults —
- * Haiku answers well inside them.
+ * HTTP budgets for the adaptive-thinking benchmark lanes. Thinking streams as
+ * empty blocks, so a Sonnet/Opus call is legitimately silent for minutes and
+ * the production defaults would abort it. Production stays on the defaults.
  */
 const BENCH_BUDGETS = { idleTimeoutMs: 240_000, deadlineMs: 600_000 };
 
 /**
  * Builds a live provider adapter by name. Throws `MissingKeyError` when the
- * provider's key env var is unset — callers doing keyless runs should catch it
- * and fall back to the mock.
+ * provider's key env var is unset; keyless callers fall back to the mock.
  */
 export function buildProvider(name: ProviderName): ExtractAdapter {
   switch (name) {
@@ -136,7 +128,7 @@ export function buildProvider(name: ProviderName): ExtractAdapter {
   }
 }
 
-/** The pinned model id each provider name sends — no key or network needed. */
+/** The pinned model id each provider name sends. */
 export const PROVIDER_MODELS: Record<ProviderName, string> = {
   "claude-haiku": CLAUDE_HAIKU_MODEL,
   "claude-sonnet": CLAUDE_SONNET_MODEL,
@@ -148,10 +140,8 @@ export const PROVIDER_MODELS: Record<ProviderName, string> = {
 };
 
 /**
- * VERBATIM provider response → `ExtractionResult`, by provider name. This is
- * what makes a paid run re-scoreable: the benchmark persists each raw response
- * and later replays it through the SAME decode the live call used, so a scorer
- * or gold fix never costs a second run.
+ * Verbatim provider response → `ExtractionResult`, by provider name, so a
+ * persisted paid run can be re-scored through the decode the live call used.
  */
 export const RESPONSE_DECODERS: Record<
   ProviderName,

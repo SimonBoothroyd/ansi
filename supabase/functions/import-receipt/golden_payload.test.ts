@@ -1,28 +1,17 @@
-// The TS→Dart CONTRACT test: runs the real spine end to end with no network
-// and no LLM, and pins its `ReceiptPayload` output as a committed golden JSON
-// file the Flutter side parses.
+// The TS→Dart contract test for receipts: runs the real spine with no network
+// and no LLM, and pins its `ReceiptPayload` as a committed golden JSON file the
+// Flutter side parses. `receipt_types.ts` and the Dart mirror are written by
+// hand and the Dart side defaults every field, so drift would decode silently
+// (see `import-recipe/golden_payload.test.ts`).
 //
-// WHY, the same reason `import-recipe/golden_payload.test.ts` exists:
-// `receipt_types.ts` (server) and the Dart mirror are written by hand, and the
-// Dart side is defaults-everywhere — so a field rename or a shape change
-// degrades SILENTLY, with the client decoding a default instead of throwing.
-// One shared artefact closes that: this test writes what the server really
-// emits, and the Dart test asserts every load-bearing field of that same file
-// is non-default.
+// The replay adapter answers from a synthetic fixture (testdata/) through the
+// real decoder and coercion; the real join runs over its three photos; the
+// real cascade runs over a small vocab pinned here; the request goes through
+// the real `makeHandler`.
 //
-// Everything here is deterministic and offline:
-//   - the replay adapter answers from a SYNTHETIC fixture (testdata/), through
-//     the REAL Claude decoder and the REAL coercion,
-//   - the REAL join runs over its three photos, so both seams are in the
-//     golden,
-//   - the REAL cascade runs over `inMemoryVocabMatcher` with a small vocab
-//     pinned in this file, chosen so all three bands appear,
-//   - the request goes through the REAL `makeHandler`, so the golden is
-//     literally the response body the app receives.
-//
-// REGENERATE after an intentional contract change:
+// Regenerate after an intentional contract change:
 //   cd supabase/functions && deno task golden-receipt
-// Review the diff, then update the Dart assertions if a shape actually moved.
+// Review the diff, then update the Dart assertions if a shape moved.
 
 import { assert, assertEquals } from "@std/assert";
 import { makeHandler, type ReceiptDeps } from "./index.ts";
@@ -46,11 +35,9 @@ const FIXTURE_PATH = new URL(
 
 // --- The pinned vocab --------------------------------------------------------
 //
-// Small and committed on purpose: it makes the golden reproducible forever.
-// The entries are chosen so the cascade produces ALL THREE bands over the
-// fixture's lines, and so the mix is the HONEST one for a receipt — two exact
-// hits, one trigram suggestion, and two abbreviations nothing in a kitchen
-// vocabulary is close to. A receipt's words are a store's, not a cook's.
+// Small and committed, so the golden is reproducible. Chosen so all three
+// bands appear in a receipt's usual mix: two exact hits, one trigram
+// suggestion, and two store abbreviations nothing is close to.
 
 const VOCAB: VocabEntry[] = [
   // exact → auto
@@ -59,7 +46,7 @@ const VOCAB: VocabEntry[] = [
     canonical_name: "Yellow onion",
     match_texts: ["yellow onion"],
   },
-  // exact through an ALIAS the household already had → auto
+  // exact through an alias → auto
   {
     ingredient_id: "v-salmon",
     canonical_name: "Salmon fillet",
@@ -90,12 +77,10 @@ async function runPipeline(): Promise<ReceiptPayload> {
   const deps: ReceiptDeps = {
     adapter: replayReceiptAdapter(saved, "tj_three_photos"),
     matchLines: (lines) => matchLines(lines, inMemoryVocabMatcher(VOCAB)),
-    // The golden is the CASCADE's answer. A remembered match is this
-    // household's own, and a fixture has no household to have answered.
+    // The golden is the cascade's answer; a fixture has no household memory.
     recallMatches: () => Promise.resolve(new Map()),
   };
-  // Three base64 strings: the replay adapter never looks at the bytes, but the
-  // request still has to be a real one, cost caps and all.
+  // The replay adapter never reads the bytes, but the request must be real.
   const res = await makeHandler(deps)(
     new Request("https://fn.test", {
       method: "POST",
@@ -138,8 +123,7 @@ Deno.test("golden — the shape it pins is the one worth pinning", async () => {
     total_cents: 3478,
   });
 
-  // The reconcile CLOSES on this receipt — which is the state the review draws
-  // with a tick, and the one a broken join would break.
+  // The reconcile closes on this receipt; a broken join would break it.
   assertEquals(p.lines_sum_cents, p.printed.subtotal_cents);
 
   // Three photos, two seams of two lines each.
@@ -177,11 +161,11 @@ Deno.test("golden — the shape it pins is the one worth pinning", async () => {
   assertEquals(salmon.cents, 604);
   assertEquals(salmon.discount_cents, 55);
   assertEquals(salmon.weight, { amount: 1.1, unit: "lb", rate_cents: 549 });
-  // The PRIME SAVINGS line does NOT also appear as a line of its own.
+  // The PRIME SAVINGS line does not also appear as a line of its own.
   assertEquals(p.lines.filter((l) => l.cents === -55).length, 0);
 
-  // The count sub-row under the sriracha rides ON the item, and is no line of
-  // its own: two bottles at $3.99 rang up as $7.98 once.
+  // The count sub-row under the sriracha rides on the item: two bottles at
+  // $3.99 rang up as $7.98 once.
   const sriracha = p.lines.find((l) =>
     l.printed_text.startsWith("TJ SRIRACHA")
   )!;
@@ -190,7 +174,7 @@ Deno.test("golden — the shape it pins is the one worth pinning", async () => {
   assertEquals(sriracha.each_cents, 399);
   assertEquals(p.lines.filter((l) => l.printed_text === "2 @ 3.99").length, 0);
 
-  // THE RULE: bananas were bought twice and are two lines, on two photos.
+  // Bananas were bought twice and are two lines, on two photos.
   const bananas = p.lines.filter((l) => l.printed_text.includes("BANANAS"));
   assertEquals(bananas.length, 2);
   assertEquals(bananas.map((l) => l.photo), [0, 1]);

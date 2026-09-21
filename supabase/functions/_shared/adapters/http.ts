@@ -1,8 +1,5 @@
-// Small shared helpers for the provider adapters. Raw `fetch` (no per-provider
-// SDK) keeps the three adapters uniform, dependency-free, and fully reasonable
-// in-repo — the same reason the codebase favours boring, legible dependencies
-// (AGENTS.md). Each adapter owns its provider's request/response shape; this
-// file only holds what all three share.
+// Shared helpers for the provider adapters. Raw `fetch`, no provider SDKs; each
+// adapter owns its provider's request/response shape.
 
 /** Reads an API key from env, throwing a clear error when it is absent. */
 export function requireKey(envVar: string, providerLabel: string): string {
@@ -52,24 +49,14 @@ export interface PostJsonOpts {
 /** Transient HTTP statuses worth retrying (overload, rate limit, gateway). */
 const TRANSIENT_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 /**
- * Attempts, and the TOTAL budget they share. The caller is a user staring at a
- * spinner inside an edge function with its own wall-clock limit, so the ceiling
- * that matters is the total, not the per-attempt one: five attempts each
- * allowed 120s could hang for ten minutes.
- *
- * These two belong to `postJson`, which is the BENCHMARK-only path now (Gemini
- * and GPT). Production extraction goes through `streamJson` below, whose budgets
- * are per-op and live on the adapter that owns the ops (`claude.ts`), because a
- * per-attempt WALL CLOCK is the wrong instrument for a generation: 45s cannot
- * tell a hung socket from a long answer, and aborting a stream that was
- * producing throws away output the provider has already generated and billed.
- *
- * The whole timeout ladder, with its numbers, is written out where the client
- * timeout lives (`app/lib/features/import/data/remote_import_repository.dart`);
- * change a budget anywhere and re-read it.
+ * Attempts, and the total budget they share. These belong to `postJson`, the
+ * benchmark-only path (Gemini, GPT). Production goes through `streamJson`,
+ * whose per-op budgets live in `claude.ts`. The whole timeout ladder is
+ * written out in
+ * `app/lib/features/import/data/remote_import_repository.dart`.
  */
 export const MAX_ATTEMPTS = 3;
-/** TOTAL budget for one logical provider call, across every attempt and sleep. */
+/** Total budget for one logical provider call, across attempts and sleeps. */
 export const DEFAULT_DEADLINE_MS = 60_000;
 /** Per-attempt wall clock, so one hung socket cannot eat the whole deadline. */
 export const DEFAULT_ATTEMPT_TIMEOUT_MS = 45_000;
@@ -77,10 +64,8 @@ export const DEFAULT_ATTEMPT_TIMEOUT_MS = 45_000;
 export const MAX_RETRY_AFTER_MS = 10_000;
 
 /**
- * A `Retry-After` header as a delay in ms, or null when it is absent/unusable
- * (an HTTP-date form included — we fall back to backoff rather than parse it).
- * CLAMPED: an honest `Retry-After: 600` is a request to sleep ten minutes inside
- * a request handler, which is not a thing we can do to a waiting user.
+ * A `Retry-After` header as a delay in ms, or null when absent or unusable
+ * (the HTTP-date form included). Clamped to {@link MAX_RETRY_AFTER_MS}.
  */
 export function retryAfterDelayMs(header: string | null): number | null {
   const seconds = Number(header);
@@ -100,13 +85,12 @@ export class ProviderTimeoutError extends Error {
 
 /**
  * POST JSON, return parsed JSON. Retries transient failures (429/503/5xx and
- * network/abort errors) with exponential backoff — providers like Gemini Flash
- * 503 "high demand" intermittently — but every attempt and every sleep draws on
- * ONE total deadline, so the worst case is bounded.
+ * network/abort errors) with exponential backoff, all within one total
+ * deadline.
  *
  * Throws `ProviderHttpError` on a non-transient status, on a 2xx whose body is
- * not JSON (a proxy's HTML error page reaches us as a 200), or once retries are
- * exhausted; `ProviderTimeoutError` when the deadline runs out first.
+ * not JSON, or once retries are exhausted; `ProviderTimeoutError` when the
+ * deadline runs out first.
  */
 export async function postJson(opts: PostJsonOpts): Promise<unknown> {
   const fetchImpl = opts.fetchImpl ?? fetch;
@@ -143,7 +127,7 @@ export async function postJson(opts: PostJsonOpts): Promise<unknown> {
       });
       text = await res.text();
     } catch (e) {
-      // Network / timeout-abort — transient; retry while the budget allows.
+      // Network error or timeout abort: transient.
       clearTimeout(timer);
       lastError = e;
       if (attempt >= MAX_ATTEMPTS) throw e;
@@ -156,9 +140,7 @@ export async function postJson(opts: PostJsonOpts): Promise<unknown> {
       try {
         return JSON.parse(text);
       } catch {
-        // A 200 that isn't JSON is a provider/proxy fault, not a parse bug of
-        // ours — map it onto the same typed contract as any other bad response
-        // so callers have one thing to catch.
+        // A 200 that is not JSON is a provider/proxy fault; same typed error.
         throw new ProviderHttpError(
           opts.provider,
           res.status,
@@ -182,67 +164,49 @@ export async function postJson(opts: PostJsonOpts): Promise<unknown> {
 
 // --- Streaming one provider call ---------------------------------------------
 //
-// `postJson` waits for a whole response with `await res.text()`, which makes a
-// slow generation indistinguishable from a hang: the only instrument it has is
-// a wall clock, and a wall clock generous enough for a long answer is useless
-// against a dead socket. `streamJson` replaces it for the calls a user is
-// waiting on. Three things change, and each one fixes a real failure:
+// `streamJson` replaces `postJson` for the calls a user waits on:
 //
-//   * an IDLE timer instead of a per-attempt wall clock. Bytes arriving prove
-//     the provider is working, so what is bounded is SILENCE — the same rule
-//     the app applies to this function's own stream.
-//   * NO RETRY once the answer has started. An aborted attempt was fully
-//     generated and billed upstream; retrying it cannot be cheaper than the
-//     failure, and it spends the rest of the budget on a second copy of work
-//     that just did not fit.
-//   * no RETRY is STARTED into a budget too small to finish in. A doomed
-//     attempt bills a whole response nobody will ever read.
+//   * an idle timer instead of a per-attempt wall clock: arriving bytes prove
+//     the provider is working, so what is bounded is silence.
+//   * no retry once the answer has started: the aborted attempt was already
+//     generated and billed.
+//   * no retry is started into a budget too small to finish in.
 //
-// The assembled return value has the same shape the non-streaming call
-// returned, so the decoders, the usage parsing and the saved raw responses in
-// `evals/runs/` are all untouched by the switch.
+// The assembled value has the non-streaming response's shape.
 
-/** No progress on the wire for this long ⇒ this attempt is abandoned. */
+/** No progress on the wire for this long and the attempt is abandoned. */
 export const DEFAULT_IDLE_TIMEOUT_MS = 20_000;
 /**
- * Shortest window a RETRY may be started into. Below it the attempt would be
- * aborted mid-generation, having cost a full response upstream — so the call
- * fails as the timeout it already is instead of paying for that. It does not
- * gate the first attempt: the budget a caller passed is the budget they meant.
+ * Shortest window a retry may be started into; below it the attempt would be
+ * aborted mid-generation after billing a full response. It does not gate the
+ * first attempt.
  */
 export const DEFAULT_MIN_ATTEMPT_MS = 30_000;
 
-/**
- * Folds a provider's stream frames into one response object. Provider-specific
- * (this file stays neutral): `claude.ts` supplies the Anthropic one.
- */
+/** Folds a provider's stream frames into one response object. */
 export interface StreamAssembler {
   /**
-   * Folds one frame in. Returns true when the frame carried GENERATED OUTPUT —
-   * which is what makes a retry waste, and what a heartbeat reports. Throws to
-   * fail the attempt (a provider error frame).
+   * Folds one frame in. Returns true when the frame carried generated output.
+   * Throws to fail the attempt (a provider error frame).
    */
   push(event: string, data: unknown): boolean;
-  /**
-   * The assembled response, or null when the stream stopped before the message
-   * did — a truncation we must never hand on as if it were an answer.
-   */
+  /** The assembled response, or null when the stream stopped mid-message. */
   finish(): unknown | null;
 }
 
 export interface StreamJsonOpts {
   url: string;
   headers: Record<string, string>;
-  /** Request body. `stream: true` is added here, so it cannot be forgotten. */
+  /** Request body. `stream: true` is added here. */
   body: Record<string, unknown>;
   provider: string;
   /** Builds a fresh assembler per attempt. */
   assembler: () => StreamAssembler;
-  /** TOTAL budget across every attempt and every backoff sleep. */
+  /** Total budget across every attempt and every backoff sleep. */
   deadlineMs?: number;
   /** Silence that ends an attempt. See {@link DEFAULT_IDLE_TIMEOUT_MS}. */
   idleTimeoutMs?: number;
-  /** Smallest budget worth starting a RETRY into. See {@link DEFAULT_MIN_ATTEMPT_MS}. */
+  /** Smallest budget worth retrying into. See {@link DEFAULT_MIN_ATTEMPT_MS}. */
   minAttemptMs?: number;
   /** Backoff base; a test seam so retry paths don't cost seconds. */
   baseBackoffMs?: number;
@@ -258,10 +222,7 @@ interface SseFrame {
   data: string;
 }
 
-/**
- * Parses one frame's lines. Comment lines (`:`) and fields we do not use are
- * ignored; `data:` lines are joined with newlines, as the SSE spec says.
- */
+/** Parses one frame's lines; `data:` lines are joined with newlines. */
 function parseSseFrame(frame: string): SseFrame | null {
   let event = "message";
   const data: string[] = [];
@@ -295,8 +256,7 @@ async function* sseFrames(
       }
     }
   } finally {
-    // An abort leaves the body locked otherwise, and the next attempt would
-    // fail on a resource we are done with rather than on the provider.
+    // An abort would otherwise leave the body locked for the next attempt.
     reader.cancel().catch(() => {});
   }
 }
@@ -317,13 +277,13 @@ function notify(fn: (() => void) | undefined): void {
 
 /**
  * POST a streaming provider call and return the assembled response. Retries
- * transient failures the way `postJson` does — but only while nothing has been
- * generated yet, and only into a budget an attempt could finish in.
+ * transient failures only while nothing has been generated, and only into a
+ * budget an attempt could finish in.
  *
- * Throws `ProviderHttpError` on a non-transient status, on a provider error
- * frame, or on a stream that ends mid-message; `ProviderTimeoutError` when the
- * budget is gone; and the abort itself when an attempt runs silent or overruns
- * — the last two of which `isTimeoutFailure` reads as "we ran out of time".
+ * Throws `ProviderHttpError` on a non-transient status, a provider error
+ * frame, or a stream that ends mid-message; `ProviderTimeoutError` when the
+ * budget is gone; and the abort itself when an attempt runs silent or
+ * overruns. `isTimeoutFailure` reads the last two as a timeout.
  */
 export async function streamJson(opts: StreamJsonOpts): Promise<unknown> {
   const fetchImpl = opts.fetchImpl ?? fetch;
@@ -344,12 +304,8 @@ export async function streamJson(opts: StreamJsonOpts): Promise<unknown> {
   let lastError: unknown = null;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const left = deadline - Date.now();
-    // Out of time, or — for a RETRY — too little left to finish an attempt in.
-    // Whatever went wrong earlier, what is true NOW is that we are out of time:
-    // say that, and bill nothing more. The minimum is a bar for RETRIES only.
-    // The first attempt always dials, because a caller who set a budget under
-    // the minimum meant that budget, and a call that never rang at all is a
-    // stranger answer than the timeout it asked for.
+    // Out of time, or too little left for a retry to finish in. The minimum
+    // gates retries only: the first attempt always dials.
     if (left <= 0 || (attempt > 1 && left < minAttempt)) {
       throw new ProviderTimeoutError(opts.provider, budget);
     }
@@ -416,9 +372,8 @@ export async function streamJson(opts: StreamJsonOpts): Promise<unknown> {
       return message;
     } catch (e) {
       lastError = e;
-      // PAST THE FIRST DELTA: the provider generated — and billed — an answer.
-      // A second copy of it is pure waste, and spending the rest of the budget
-      // on one is how a slow-but-working call became a failed one.
+      // Past the first delta the answer was generated and billed; do not
+      // retry.
       if (produced) throw e;
       if (e instanceof ProviderHttpError && !TRANSIENT_STATUSES.has(e.status)) {
         throw e;
@@ -446,9 +401,8 @@ export function toBase64(bytes: Uint8Array): string {
 }
 
 /**
- * Pulls the first JSON object out of a text blob. Providers in structured-output
- * mode return clean JSON, but a stray markdown fence or leading prose is a
- * common real-world wobble — recover from it rather than fail the whole case.
+ * Pulls the first JSON object out of a text blob, recovering from a stray
+ * markdown fence or leading prose.
  */
 export function extractJson(text: string): string {
   const trimmed = text.trim();
@@ -462,20 +416,15 @@ export function extractJson(text: string): string {
   return trimmed;
 }
 
-/** Media type for a recipe photo — the corpus is JPEG. */
+/** Media type for a recipe photo. */
 export const IMAGE_MEDIA_TYPE = "image/jpeg";
 
-/**
- * Longest-edge target (px) for uploaded photos (spec §4.3). The Pixel corpus is
- * ~4080×3064; the vision models gain nothing from that resolution and it costs
- * 3–5 MB of base64 per image, so we downscale before upload.
- */
+/** Longest-edge target (px) for uploaded photos (spec §4.3). */
 export const UPLOAD_MAX_EDGE = 1568;
 
 /**
- * Reads a JPEG's pixel dimensions from its SOF header — bytes only, no decode.
- * Returns null for anything that is not a JPEG we can read this cheaply (the
- * caller then falls back to a real decode).
+ * Reads a JPEG's pixel dimensions from its SOF header without decoding.
+ * Returns null for anything it cannot read this cheaply.
  */
 export function jpegDimensions(
   bytes: Uint8Array,
@@ -498,7 +447,7 @@ export function jpegDimensions(
     if (marker === 0xda || marker === 0xd9) return null; // scan/end: no SOF found
     const length = (bytes[i + 2] << 8) | bytes[i + 3];
     if (length < 2 || i + 2 + length > bytes.length) return null;
-    // SOF0-3, SOF5-7, SOF9-11, SOF13-15 — every frame header carries the size.
+    // SOF0-3, SOF5-7, SOF9-11, SOF13-15: every frame header carries the size.
     const isSof = marker >= 0xc0 && marker <= 0xcf &&
       marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc;
     if (isSof) {
@@ -513,16 +462,10 @@ export function jpegDimensions(
 }
 
 /**
- * Downscale a recipe photo before it goes to a vision model: decode the JPEG,
- * scale so the longest edge is ≈ `UPLOAD_MAX_EDGE`px (skip if already ≤ that),
- * re-encode JPEG at quality ~85, return the bytes. Still `image/jpeg`.
- *
- * Pure/WASM (imagescript) — no subprocess, so it is safe on Deno Deploy where
- * the edge function runs. The WASM decode is the expensive part, so an image
- * whose SOF header already reports an in-budget size skips it entirely (the
- * app downscales before upload, making that the common case). GRACEFUL: any
- * decode/encode failure logs and returns the ORIGINAL bytes rather than
- * throwing, so one odd image can never crash a transcribe call.
+ * Downscales a photo before it goes to a vision model: longest edge ≈
+ * `UPLOAD_MAX_EDGE`px, JPEG quality ~85. Pure WASM (imagescript), safe on Deno
+ * Deploy. An image whose SOF header is already in budget skips the decode.
+ * Any decode/encode failure logs and returns the original bytes.
  */
 export async function resizeForUpload(bytes: Uint8Array): Promise<Uint8Array> {
   const header = jpegDimensions(bytes);
@@ -530,10 +473,8 @@ export async function resizeForUpload(bytes: Uint8Array): Promise<Uint8Array> {
     return bytes;
   }
   try {
-    // Imported LAZILY: imagescript instantiates a WASM module at import time by
-    // fetching it over the network, which would make merely importing this file
-    // (any adapter, any test) require net access and pay that cost on every
-    // cold start — including URL imports, which never decode an image.
+    // Imported lazily: imagescript fetches and instantiates a WASM module at
+    // import time, which every importer of this file would otherwise pay.
     const { Image } = await import("imagescript");
     const img = await Image.decode(bytes);
     const longest = Math.max(img.width, img.height);

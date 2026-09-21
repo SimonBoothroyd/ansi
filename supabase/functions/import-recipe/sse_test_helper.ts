@@ -1,10 +1,6 @@
-// Reading the function's `text/event-stream` answer back, for the tests.
-//
-// A test-only reader, deliberately: the production reader is in Dart
-// (`app/lib/features/import/data/remote_import_repository.dart`), and a second
-// one shipped inside the function would be a copy nothing calls. This one is
-// the simplest thing that can check the wire — it buffers the whole response,
-// which a real client must not do.
+// A test-only reader for the function's `text/event-stream` answer. It buffers
+// the whole response, which a real client must not do. The production reader
+// is `app/lib/features/import/data/remote_import_repository.dart`.
 
 export interface SseEvent {
   event: string;

@@ -1,9 +1,5 @@
-// The recipe door's binding of the shared household gate.
-//
-// The gate itself — the `household_id` claim, the `IMPORT_ALLOWED_HOUSEHOLDS`
-// allowlist, and the 401/403 ladder — lives in `_shared/auth.ts` and is shared
-// with `import-receipt`. All that is local is the two strings that have to name
-// this door: the log prefix, and the sentence a household outside the allowlist
+// The recipe door's binding of the shared household gate (`_shared/auth.ts`).
+// Local are the log prefix and the sentence a household outside the allowlist
 // is shown.
 
 import {

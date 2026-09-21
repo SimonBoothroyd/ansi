@@ -1,45 +1,15 @@
-// Edge function: import-receipt — the deterministic orchestration spine for a
-// photographed till receipt.
+// Edge function: import-receipt, the orchestration spine for a photographed
+// till receipt.
 //
 //   photos → ① transcribe (vision) → join by position → ② structure →
 //   ⑥ match the item lines → ReceiptPayload
 //
-// It is `import-recipe`'s shape, deliberately: the same auth and household
-// allowlist, the same Haiku pin, the same streaming transport and budgets, the
-// same SSE stage events with the server's own elapsed clock, the same four
-// failure shapes. What differs is the document. A receipt is smaller, flatter
-// and more regular than a cookbook page — and it has one thing a recipe does
-// not, which is a printed subtotal it can be checked against.
-//
-// Two model calls and nothing between them that thinks:
-//
-//   * **the join is ours.** `transcribe` returns one transcription per photo;
-//     `receipt_join.ts` finds the seam by position and a unit test says what
-//     that means. A model asked to splice the photos would have to decide
-//     whether a repeated line is an overlap or a second banana, and it would be
-//     believed.
-//   * **the match is ours.** The model never sees the vocabulary and never
-//     matches (ADR-0004). The existing cascade runs afterwards over each item
-//     line's printed words, and because those words are a store's
-//     abbreviations it says `suggest` far more often than it does on a recipe
-//     line. That is the honest answer, and the review is built for it.
-//
-// **The vocabulary learns nothing here.** No alias is written, and there is no
-// code path from this function to one — a receipt's words are one store's
-// abbreviations, and putting them in the household's own language would
-// surface them in every recipe import, picker and search (ADR-0004).
-// `no_alias.test.ts` holds that structurally.
-//
-// What DOES carry between shops is the household's own answers, and neither of
-// them is a word the vocabulary knows:
-//
-//   * the **pack**, on the ingredient row, written by the app at Save;
-//   * the **match**, recalled per printed name off this household's own saved
-//     receipt lines (`_shared/receipt_memory.ts`) — a SELECT, latest answer
-//     wins, so correcting the receipt corrects the memory.
-//
-// The spine takes its collaborators injected (`ReceiptDeps`), so the whole
-// pipeline is offline-testable with fakes and replayable with a saved answer.
+// It shares `import-recipe`'s auth, model pin, streaming transport, stage
+// events and failure shapes. The join (`receipt_join.ts`) and the match are
+// deterministic code; the model never sees the vocabulary (ADR-0004). No alias
+// is written (`no_alias.test.ts`); matches are recalled per printed name from
+// the household's saved receipt lines (`_shared/receipt_memory.ts`).
+// Collaborators are injected (`ReceiptDeps`).
 
 import type { MatchedLine, RawLineItem } from "../_shared/types.ts";
 import type {
@@ -69,7 +39,7 @@ import {
 export { ImportError };
 export { MAX_IMAGE_BYTES, MAX_IMAGES } from "../_shared/http_edge.ts";
 
-/** Match cascade seam — the household-scoped matcher, pre-bound at integration. */
+/** Match cascade seam: the household-scoped matcher, pre-bound in `live.ts`. */
 export type MatchLinesFn = (lines: RawLineItem[]) => Promise<MatchedLine[]>;
 
 /** The injected collaborators. Real ones wired in `live.ts`; fakes in tests. */
@@ -78,8 +48,7 @@ export interface ReceiptDeps {
   matchLines: MatchLinesFn;
   /**
    * What this household has already said about these printed names
-   * (`_shared/receipt_memory.ts`) — a SELECT over its own saved receipt lines,
-   * pre-bound to the household exactly as `matchLines` is.
+   * (`_shared/receipt_memory.ts`), pre-bound to the household.
    */
   recallMatches: RecallMatchesFn;
 }
@@ -91,10 +60,7 @@ export interface ReceiptRequest {
 
 // --- The stages the caller is told about -------------------------------------
 //
-// The ids are the contract; the WORDING is the app's, because copy belongs
-// where the screen is. The board names them: "Photos received", "Photos read",
-// "Writing the receipt out…", "Lines matched" — the recipe reader's four rows,
-// the third renamed for what it writes.
+// The ids are the contract; the wording is the app's.
 
 export type ReceiptStageId = "received" | "read" | "written" | "matched";
 
@@ -116,14 +82,12 @@ export { HEARTBEAT_INTERVAL_MS };
 
 /**
  * Runs transcribe → join → structure → match and assembles the
- * {@link ReceiptPayload}. Pure orchestration over the injected `deps`;
- * deterministic given deterministic collaborators.
+ * {@link ReceiptPayload}. Pure orchestration over the injected `deps`.
  *
- * `onStage` is told as each stage completes, with the elapsed time measured
- * from `startedAt` — the caller's clock, so the numbers on the screen and the
- * numbers in the log are the same numbers. `onBeat` is told, at most every
- * {@link HEARTBEAT_INTERVAL_MS}, that the model has produced output since the
- * last frame went out. Neither changes what is produced.
+ * `onStage` is told as each stage completes, with the time elapsed since
+ * `startedAt`. `onBeat` is told, at most every {@link HEARTBEAT_INTERVAL_MS},
+ * that the model has produced output since the last frame. Neither changes
+ * what is produced.
  */
 export async function importReceipt(
   req: ReceiptRequest,
@@ -132,8 +96,8 @@ export async function importReceipt(
   startedAt: number = Date.now(),
   onBeat: BeatSink = () => {},
 ): Promise<ReceiptPayload> {
-  // NOW, not `startedAt`: the caller has just sent `received`, and `startedAt`
-  // is however long ago the upload began.
+  // Now, not `startedAt`: the caller has just sent `received`, and `startedAt`
+  // is when the upload began.
   let lastFrameAt = Date.now();
   const done = (stage: ReceiptStageId) => {
     lastFrameAt = Date.now();
@@ -152,9 +116,7 @@ export async function importReceipt(
 
     const transcript = joinPhotoTranscripts(segments);
     if (segments.length !== req.images.length) {
-      // Said FIRST, before the seams' own notes: if a photo went missing
-      // between the camera and the transcription, everything below is a
-      // consequence of that and not a separate problem.
+      // Said first: a missing photo explains the seam notes below it.
       transcript.notes.unshift(
         `We read ${segments.length} of the ${req.images.length} photos — a ` +
           `stretch of the receipt may be missing.`,
@@ -170,9 +132,8 @@ export async function importReceipt(
     const extraction = await deps.adapter.structure(transcript.text);
     done("written");
 
-    // ⑥ — the deterministic cascade, over the ITEM lines only. A tax line has
-    // no ingredient to be about (migration 0044's own fence), and asking about
-    // one would spend a query to be told so.
+    // ⑥ over the item lines only: a tax line has no ingredient (migration
+    // 0044).
     const inputs = itemMatchInputs(extraction);
     const matched = await deps.matchLines(inputs);
     if (matched.length !== inputs.length) {
@@ -194,8 +155,7 @@ export async function importReceipt(
 
 /**
  * What the household has already said about these printed names, item and
- * folded alike. A recall that fails is logged and the receipt goes on with
- * the cascade alone: it improves the match, the import never depends on it.
+ * folded alike. A failed recall is logged and the import goes on without it.
  */
 async function recall(
   extraction: ReceiptExtraction,
@@ -216,13 +176,8 @@ async function recall(
 
 /**
  * Parses a decoded JSON body into a {@link ReceiptRequest}, or an error message
- * (⇒ 400). TOTAL: every rejection path returns an error string rather than
- * throwing, because this runs BEFORE the handler's try/catch and a throw here
- * would escape as an unhandled 500.
- *
- * Photos only. There is no link door for a receipt — a till receipt is a piece
- * of paper — and a body carrying a `url` is told so rather than ignored, so a
- * client that sent one learns why nothing happened.
+ * (⇒ 400). Total: it never throws, because it runs before the handler's
+ * try/catch. Photos only; a body carrying a `url` is told so.
  */
 export function parseRequestBody(
   body: unknown,
@@ -244,18 +199,17 @@ export function parseRequestBody(
 
 /**
  * What a person is told when the pipeline throws, and the status that would
- * carry it if the answer had not already started streaming. The three shapes
- * are `_shared/failures.ts`'s, so both import doors fail alike; only the
- * subject is this door's.
+ * carry it had the answer not started streaming. The shapes are
+ * `_shared/failures.ts`'s, shared with import-recipe.
  */
 export function failureFor(e: unknown): { status: number; error: string } {
   return sharedFailureFor(e, { fn: "import-receipt", subject: "receipt" });
 }
 
-// --- The answer is a STREAM --------------------------------------------------
+// --- The answer is a stream --------------------------------------------------
 //
-// Same wire as `import-recipe` (spec §4.7), frame for frame, because the app
-// reads both with one reader:
+// The same wire as `import-recipe` (spec §4.7); the app reads both with one
+// reader:
 //
 //   `plan`      `{stages}`            — once, first: what this import will walk
 //   `stage`     `{stage, elapsed_ms}` — one per stage as it completes
@@ -263,11 +217,9 @@ export function failureFor(e: unknown): { status: number; error: string } {
 //   `result` the `ReceiptPayload`     — last, on success
 //   `error`     `{error}`             — last, instead, on failure
 //
-// And the same consequence: the STATUS is committed before the work runs, so a
-// failure after the first byte arrives as an `error` event carrying the
-// sentence `failureFor` gives it, not as a 4xx/5xx. Everything knowable BEFORE
-// the pipeline starts — the method, a malformed body, an unusable request — is
-// still a plain JSON status, because nothing has been promised yet.
+// The status is committed before the work runs, so a failure after the first
+// byte arrives as an `error` event; anything known before the pipeline starts
+// is still a plain JSON status.
 
 function streamReceipt(
   request: ReceiptRequest,
@@ -281,8 +233,8 @@ function streamReceipt(
         controller.enqueue(encoder.encode(sseFrame(event, data)));
       try {
         send("plan", { stages: RECEIPT_STAGES });
-        // The body is in hand and usable: that IS the first stage, and its
-        // elapsed covers reading however many megabytes of photo off the wire.
+        // A usable body in hand is the first stage; its elapsed covers the
+        // upload.
         send("stage", {
           stage: "received",
           elapsed_ms: Date.now() - startedAt,
@@ -305,7 +257,7 @@ function streamReceipt(
   return new Response(body, { status: 200, headers: SSE_HEADERS });
 }
 
-/** Builds the HTTP handler over injected `deps` (real ones supplied by `live.ts`). */
+/** Builds the HTTP handler over injected `deps`. */
 export function makeHandler(
   deps: ReceiptDeps,
 ): (req: Request) => Promise<Response> {
@@ -326,12 +278,11 @@ export function makeHandler(
   };
 }
 
-// Production wiring — the real `ClaudeReceiptAdapter`, the household-scoped
-// Postgres matcher, auth and CORS — lives in `live.ts`, loaded ONLY when this
-// module runs as the served entry point, so the pure orchestration above (and
-// its tests) never pull in the Postgres driver or the provider path.
+// Production wiring lives in `live.ts`, loaded only when this module is the
+// served entry point, so the orchestration and its tests never pull in the
+// Postgres driver.
 if (import.meta.main) {
-  // NOT a top-level await: `live.ts` imports back from this module, so awaiting
-  // the dynamic import here deadlocks module evaluation.
+  // Not a top-level await: `live.ts` imports back from this module, so awaiting
+  // here would deadlock module evaluation.
   import("./live.ts").then((m) => m.serveImport());
 }

@@ -51,8 +51,7 @@ Deno.test("replay — a saved reading comes back through the live decoder, with 
 });
 
 Deno.test("replay — the photos come back UNJOINED, so the join is exercised", async () => {
-  // The point of holding one transcription per photo rather than a finished
-  // strip: a replay run puts the real seam-finder to work.
+  // One transcription per photo, so a replay runs the real seam-finder.
   const adapter = replayReceiptAdapter(
     fixture("tj_three_photos"),
     "tj_three_photos",
@@ -103,8 +102,7 @@ Deno.test("replay — a file that is not a fixture fails at wiring, not as an em
 });
 
 Deno.test("replay — a fixture with no photos is refused", () => {
-  // Without them the join would be skipped, and a replay that skips the join
-  // is a replay of half the pipeline.
+  // Without them the join would be skipped.
   assertThrows(
     () =>
       replayReceiptAdapter({ provider: "claude", raw: {}, photos: [] }, "x"),
@@ -123,8 +121,8 @@ Deno.test("replay — off unless the env var names something", () => {
 });
 
 Deno.test("replay — REFUSES to load where a real key can read", () => {
-  // The lock that matters: a deployed environment always has the key, so even
-  // if the switch were somehow set there it can never serve a canned receipt.
+  // A deployed environment always has the key, so it can never serve a canned
+  // receipt even with the switch set.
   withEnv(
     { [REPLAY_FIXTURE_ENV]: "/does/not/matter", ANTHROPIC_API_KEY: "sk-ant-x" },
     () => {
@@ -139,8 +137,8 @@ Deno.test("replay — REFUSES to load where a real key can read", () => {
 
 Deno.test("replay — the committed fixtures carry no real receipt", async () => {
   // The repo is public and a real receipt carries a card's last four and a
-  // loyalty number. What is committed is written by hand; the owner's real
-  // ones live in `__fixtures__/local/`, which is gitignored.
+  // loyalty number. Committed fixtures are written by hand; real ones live in
+  // the gitignored `__fixtures__/local/`.
   for (const name of ["tj_three_photos", "whole_foods_two_photos"]) {
     const src = await Deno.readTextFile(
       new URL(`./testdata/${name}.json`, import.meta.url),

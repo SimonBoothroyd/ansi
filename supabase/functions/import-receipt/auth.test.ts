@@ -1,7 +1,6 @@
-// The receipt door's binding of the shared gate. The ladder itself is covered
-// once, in `import-recipe/auth.test.ts`; what is checked here is that this door
-// is bound to it AT ALL — the same allowlist var, the same statuses — and that
-// the one string it owns is its own.
+// The receipt door's binding of the shared gate. The ladder is covered in
+// `import-recipe/auth.test.ts`; this checks the door is bound to it (the same
+// allowlist var and statuses) and that its one string is its own.
 
 import { assert, assertEquals } from "@std/assert";
 import { ALLOWLIST_ENV, type Caller, readCaller } from "./auth.ts";
@@ -37,9 +36,7 @@ function withAllowlist<T>(value: string | undefined, fn: () => T): T {
 }
 
 Deno.test("receipt auth — ONE allowlist, shared with the recipe door", () => {
-  // Not `RECEIPT_ALLOWED_HOUSEHOLDS`: a household allowed to photograph a
-  // recipe is the same household allowed to photograph its receipt, and a
-  // second var is a second thing to forget at deploy.
+  // Not `RECEIPT_ALLOWED_HOUSEHOLDS`: one allowlist covers both doors.
   assertEquals(ALLOWLIST_ENV, "IMPORT_ALLOWED_HOUSEHOLDS");
   withAllowlist(`${OTHER},${HH}`, () => {
     const r = readCaller(request(`Bearer ${bearer({ household_id: HH })}`));

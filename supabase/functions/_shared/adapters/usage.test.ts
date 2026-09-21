@@ -1,6 +1,5 @@
-// The usage parsers are the input to every dollar figure the benchmark prints,
-// so the three vendors' disagreements about what their own totals include are
-// pinned here rather than trusted.
+// The usage parsers feed every dollar figure the benchmark prints, so the
+// vendors' disagreements about their own totals are pinned here.
 
 import { assertEquals } from "@std/assert";
 import {
@@ -14,7 +13,7 @@ import { MockAdapter, mockUsage } from "./mock.ts";
 import type { ProviderCall, RawBlob, UnitHints } from "../types.ts";
 import { coerceExtractionResult } from "./schema.ts";
 
-/** A minimal, valid ExtractionResult — the mock only needs something coercible. */
+/** A minimal, valid ExtractionResult. */
 function blank(title: string) {
   return coerceExtractionResult({ title });
 }
@@ -35,8 +34,8 @@ Deno.test("anthropicUsage — input_tokens already excludes both cache fields", 
       cache_creation_input_tokens: 50,
     },
   });
-  // Passed through untouched — Anthropic is the one provider that does NOT
-  // fold cached tokens into its prompt count, so subtracting would double-count.
+  // Passed through: Anthropic does not fold cached tokens into its prompt
+  // count, so subtracting would double-count.
   assertEquals(u?.input_tokens, 100);
   assertEquals(u?.cache_read_tokens, 900);
   assertEquals(u?.cache_write_tokens, 50);
@@ -72,8 +71,8 @@ Deno.test("geminiUsage — cached subtracted from prompt, thoughts added to outp
   });
   assertEquals(u?.input_tokens, 750);
   assertEquals(u?.cache_read_tokens, 250);
-  // Gemini reports thinking OUTSIDE candidatesTokenCount but bills it at the
-  // output rate, so the normalized output token count includes it.
+  // Gemini reports thinking outside candidatesTokenCount but bills it as
+  // output, so the normalized output count includes it.
   assertEquals(u?.output_tokens, 1000);
   assertEquals(u?.reasoning_tokens, 700);
   assertEquals(u?.total_tokens, 2000);
@@ -88,8 +87,7 @@ Deno.test("usage parsers — a response with no usage block yields null", () => 
 
 Deno.test("usage parsers — an unreported field stays null, never 0", () => {
   const u = anthropicUsage({ usage: { input_tokens: 10 } });
-  // "not reported" and "genuinely zero" must stay distinguishable, or a cost
-  // table silently prices a missing field as free.
+  // "Not reported" must stay distinguishable from zero.
   assertEquals(u?.cache_read_tokens, null);
   assertEquals(u?.output_tokens, null);
   assertEquals(emptyUsage().input_tokens, null);

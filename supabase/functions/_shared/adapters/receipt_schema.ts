@@ -1,13 +1,9 @@
-// Provider JSON → the frozen `ReceiptExtraction`, beside the recipe coercion in
-// `schema.ts` and for the same reasons: a structured-output dialect can still
-// hand back a number where a string was asked for, a missing key, or a `kind`
-// nobody modelled, and every one of those must land as a known shape rather
-// than as an exception three modules downstream.
+// Provider JSON → the frozen `ReceiptExtraction`, the receipt twin of the
+// coercion in `schema.ts`: a wrong type, a missing key or an unmodelled `kind`
+// lands as a known shape, not as an exception downstream.
 //
-// The rule this file holds to is the recipe pipeline's: coercion only ever
-// REMOVES or NORMALISES. It caps a string, it reads a number written as a
-// string, it drops a line that has nothing in it. It never fills a figure in —
-// an amount that cannot be read stays unreadable and becomes a note.
+// Coercion only removes or normalises. It never fills a figure in: an amount
+// that cannot be read stays unreadable and becomes a note.
 
 import type {
   ExtractedLine,
@@ -17,11 +13,7 @@ import type {
 } from "../receipt_types.ts";
 import { ExtractionParseError } from "./schema.ts";
 
-/**
- * Length caps, in the shape `schema.ts` uses. A receipt's strings are short —
- * a till line is under 50 characters — so these are several times the longest
- * real value and exist only to bound a provider having a bad day.
- */
+/** Length caps, several times the longest real value (a till line is < 50). */
 export const RECEIPT_CAPS = {
   store: 200,
   purchased_at: 80,
@@ -32,16 +24,16 @@ export const RECEIPT_CAPS = {
   note: 500,
 } as const;
 
-/** Most notes kept. A per-line note storm is bounded, exactly as warnings are. */
+/** Most notes kept. */
 export const MAX_RECEIPT_NOTES = 100;
 
-/** Most lines one receipt may carry. A long TJ's strip is ~40; this is a fence. */
+/** Most lines one receipt may carry. A long strip is ~40. */
 export const MAX_RECEIPT_LINES = 400;
 
 /**
- * Most of one thing a line may say was bought. A till prints two digits here;
- * a three-digit count is a misread rate or a run-together figure, and it reads
- * as one — with the line flagged, because the count is now a divisor.
+ * Most of one thing a line may say was bought. A three-digit count is a
+ * misread; it reads as one and the line is flagged, because the count is a
+ * divisor.
  */
 export const MAX_LINE_COUNT = 99;
 
@@ -76,24 +68,16 @@ function numOrNull(v: unknown): number | null {
   return null;
 }
 
-/**
- * A `kind` we do not model reads as `item`, because "food" is the default a
- * receipt line is, and the review can move a line either way in one tap. It is
- * the one coercion here that chooses, and it chooses the reversible answer.
- */
+/** An unmodelled `kind` reads as `item`; the review can move it in one tap. */
 function coerceKind(v: unknown): ReceiptLineKind {
   const s = typeof v === "string" ? v.trim().toLowerCase() : "";
   return KINDS.has(s) ? s as ReceiptLineKind : "item";
 }
 
 /**
- * The count the sub-row said, or 1 — with `coerced` true where a value was
- * thrown away.
- *
- * A count is a DIVISOR now, so an unusable one must not ride through quietly:
- * a fraction, a zero, a negative and an absurd figure all read as one thing
- * bought, and the line is flagged so the review checks it against the paper.
- * An absent count is not a coercion — most lines print none.
+ * The count the sub-row said, or 1, with `coerced` true where a value was
+ * thrown away. The count is a divisor, so a fraction, zero, negative or absurd
+ * figure reads as one and flags the line. An absent count is not a coercion.
  */
 function coerceCount(v: unknown): { count: number; coerced: boolean } {
   if (v === null || v === undefined) return { count: 1, coerced: false };
@@ -110,9 +94,8 @@ function coerceWeight(v: unknown): ExtractedWeight | null {
   const amount = numOrNull(w.amount);
   const unit = strOrNull(w.unit_printed, RECEIPT_CAPS.unit_printed);
   const rate = strOrNull(w.rate_printed, RECEIPT_CAPS.amount_printed);
-  // All three or none: a weight with no rate prices nothing, and a rate with no
-  // weight is a number with no dimension. Either way the line is still a line —
-  // it simply is not a by-weight one.
+  // All three or none: a weight with no rate, or a rate with no weight, makes
+  // the line an ordinary one.
   if (amount === null || amount <= 0 || unit === null || rate === null) {
     return null;
   }
@@ -124,8 +107,7 @@ function coerceLine(v: unknown): ExtractedLine | null {
   const l = v as Record<string, unknown>;
   const printed_text = str(l.printed_text, RECEIPT_CAPS.printed_text);
   const amount_printed = str(l.amount_printed, RECEIPT_CAPS.amount_printed);
-  // A line with neither words nor a figure is not a line. Dropping it is a
-  // removal, which is the only thing coercion is allowed to do.
+  // A line with neither words nor a figure is dropped.
   if (printed_text === "" && amount_printed === "") return null;
   const { count, coerced } = coerceCount(l.count);
   return {
@@ -152,7 +134,7 @@ function coerceNotes(v: unknown): string[] {
     .slice(0, MAX_RECEIPT_NOTES);
 }
 
-/** Provider JSON → `ReceiptExtraction`. Throws only when the top level is not an object. */
+/** Provider JSON → `ReceiptExtraction`. Throws only on a non-object top level. */
 export function coerceReceiptExtraction(raw: unknown): ReceiptExtraction {
   const r = asRecord(raw);
   const lines = Array.isArray(r.lines)
@@ -179,11 +161,9 @@ export function coerceReceiptExtraction(raw: unknown): ReceiptExtraction {
 }
 
 /**
- * The one structural check worth failing on: a receipt with no lines at all.
- * Everything else a receipt can be missing — a subtotal, a store, a date — is a
- * real state of real paper and rides through as null. No lines means the model
- * did not read a receipt, and showing an empty review over that would make the
- * person look for what they were sure they photographed.
+ * The one structural check worth failing on: a receipt with no lines, which
+ * means the model did not read a receipt. A missing subtotal, store or date is
+ * real paper and rides through as null.
  */
 export function validateReceiptExtraction(
   r: ReceiptExtraction,

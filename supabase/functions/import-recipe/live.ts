@@ -1,24 +1,9 @@
-// Production wiring for `import-recipe` (plan 0019 — the integration tail).
-//
-// `index.ts` is the pure, deps-injected orchestration spine; this module binds
-// it to real infrastructure and owns the HTTP edges the spine deliberately does
-// not:
-//   - the extraction provider — `ClaudeHaikuAdapter` (`claude-haiku-4-5`), keyed
-//     by ANTHROPIC_API_KEY. Missing key → a clear 500.
-//   - the match cascade's DB seam — a household-scoped `sqlVocabMatcher`
-//     (match_db.ts) over Postgres (`SUPABASE_DB_URL`, service role). The parameterized
-//     pg_trgm SQL is scoped to the caller's household in `WHERE household_id = $1`,
-//     so a service-role connection is safe: the household never comes from the
-//     body, only from the verified token.
-//   - auth — `auth.ts`: the `household_id` claim the `add_household_claim` hook
-//     (migration 0007) injects into the caller's JWT, plus the deploy-time
-//     household allowlist. No bearer token → 401; a token with no household (not
-//     onboarded), or a household outside `IMPORT_ALLOWED_HOUSEHOLDS` → 403.
-//   - CORS — a permissive preflight so a browser client can call it too (the iOS
-//     app uses native HTTP, where CORS is moot).
-//
-// It reuses `makeHandler(deps)` unchanged: per request we build the household-
-// scoped `deps` from the token, then hand the request to the spine.
+// Production wiring for `import-recipe`. `index.ts` is the pure spine; this
+// module supplies `ClaudeHaikuAdapter` (ANTHROPIC_API_KEY); a household-scoped
+// `sqlVocabMatcher` over Postgres (`SUPABASE_DB_URL`, service role), where the
+// household comes only from the verified token; auth (`auth.ts`: no bearer
+// token → 401, no household or one outside `IMPORT_ALLOWED_HOUSEHOLDS` → 403);
+// and a permissive CORS preflight.
 
 import postgres from "postgres";
 import type { ExtractAdapter } from "../_shared/types.ts";
@@ -51,10 +36,9 @@ function jsonResponse(status: number, body: unknown): Response {
 }
 
 /**
- * Copies a spine response through, stamping the CORS headers onto it. The body
- * is passed as a STREAM, never read: the success answer is `text/event-stream`
- * and buffering it here would hold every stage event back until the import was
- * already over — which is the whole thing the stream exists to avoid.
+ * Copies a spine response through with the CORS headers. The body is passed
+ * as a stream, never read: buffering `text/event-stream` would hold every
+ * stage event back until the import was over.
  */
 function withCors(res: Response): Response {
   const headers = new Headers(res.headers);
@@ -65,16 +49,12 @@ function withCors(res: Response): Response {
 // --- Postgres seam -----------------------------------------------------------
 
 // One connection pool per cold start, lazily opened. `prepare: false` keeps it
-// compatible with a transaction-mode pooler (Supabase's `SUPABASE_DB_URL` may be
-// pgbouncer, which rejects prepared statements) and is harmless on a direct
-// connection.
+// compatible with a transaction-mode pooler (pgbouncer rejects prepared
+// statements).
 //
-// `max` is small ON PURPOSE, and it is a statement about the cascade rather
-// than a throttle: one import asks for at most two connections at once — a
-// vocab tier and, overlapping it, the household's recipe titles — because each
-// tier is a single batched query (match_db.ts) rather than one per line. A pool
-// wider than the work is what lets a per-line fan-out hide: naming the real
-// number means anything that reintroduces one has to raise this too.
+// `max` is small on purpose: one import needs at most two connections at once,
+// because each tier is a single batched query (match_db.ts). A per-line
+// fan-out would have to raise this.
 const POOL_MAX = 4;
 
 let pool: ReturnType<typeof postgres> | null = null;
@@ -95,17 +75,14 @@ function executor(): SqlExecutor {
 // --- Per-request deps --------------------------------------------------------
 
 function buildDeps(householdId: string): ImportDeps {
-  // Off in every deployed environment — see `replay.ts` for the three locks
-  // that keep it that way. It exists so the deterministic half of the pipeline
-  // (cascade, assembly, HTTP edges) can be driven against a real Postgres with
-  // no API key and no provider call.
+  // Off in every deployed environment; see `replay.ts`. It drives the
+  // deterministic half of the pipeline against a real Postgres with no API key.
   const adapter: ExtractAdapter = replayAdapterFromEnv() ??
     new ClaudeHaikuAdapter();
   const exec = executor();
   const matcher = sqlVocabMatcher(exec, householdId);
-  // 8.6 / D6: the same household's live recipe TITLES, so a printed
-  // cross-reference ("Romesco Aioli (page 38)") can be OFFERED as a component
-  // link at review. Never auto-linked; a line with no hit is untouched.
+  // The household's live recipe titles, so a printed cross-reference can be
+  // offered as a component link at review. Never auto-linked.
   const recipes = sqlRecipeTitleMatcher(exec, householdId);
   return {
     adapter,
@@ -127,9 +104,8 @@ async function handle(req: Request): Promise<Response> {
   try {
     deps = buildDeps(caller.householdId);
   } catch (e) {
-    // A missing ANTHROPIC_API_KEY or SUPABASE_DB_URL is a server misconfig, not
-    // a client error → a 500. The detail names env vars and provider internals,
-    // so it goes to the function log, never to the caller.
+    // A missing ANTHROPIC_API_KEY or SUPABASE_DB_URL is a server misconfig → a
+    // 500. The detail goes to the function log, never to the caller.
     console.error(
       `import-recipe: dependency wiring failed: ${
         e instanceof Error ? e.stack ?? e.message : String(e)

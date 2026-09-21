@@ -1,22 +1,13 @@
-// Server-real end-to-end for a URL import: the REAL orchestration spine, the
-// REAL match cascade, and the REAL household vocabulary — no fakes on the
-// matching side, and still no network and no LLM.
+// A URL import through the real spine, the real match cascade and the real
+// seed vocabulary (`supabase/seed/snapshot.jsonl`), with no network and no LLM.
 //
-// `index.test.ts` proves the spine's wiring with hand fakes on every seam;
-// `golden_payload.test.ts` pins the exact wire shape against a tiny pinned
-// vocab. Neither exercises the cascade over the ~300-row seed vocab, which is
-// where band behaviour actually lives — the ≥0.85 / 0.55–0.85 / <0.55 split
-// (§6) is a property of real ingredient surfaces, not of a 5-row fixture.
-//
-// So this file runs an original recipe in the gold shape (the replay fixture
-// under `testdata/`; the real gold corpus is local-only, it is cookbook pages)
-// through MockAdapter → real `matchLines` → `inMemoryVocabMatcher` over
-// `supabase/seed/snapshot.jsonl`, and asserts the PROPERTIES that must hold for
-// any vocab: a sane band mix, the `none`-carries-no-candidates invariant, and
-// the flattened line order the step refs depend on. It deliberately does NOT
-// assert per-line matches — the vocab is edited often, and pinning individual
-// rows here would make it a chore rather than a guard. (Per-ingredient
-// precision over the real vocab is `_shared/match.test.ts`'s calibration test.)
+// `index.test.ts` fakes every seam and `golden_payload.test.ts` pins the wire
+// shape against a tiny vocab; band behaviour (§6) only shows over real
+// ingredient surfaces. This runs the replay fixture under `testdata/` through
+// MockAdapter → `matchLines` → `inMemoryVocabMatcher` and asserts properties
+// that hold for any vocab: a sane band mix, `none` carries no candidates, and
+// the flattened line order. It asserts no per-line matches, because the vocab
+// is edited often; per-ingredient precision is `_shared/match.test.ts`.
 
 import { assert, assertEquals } from "@std/assert";
 import { type ImportDeps, makeHandler } from "./index.ts";
@@ -72,7 +63,6 @@ function realVocabMatcher(): ReturnType<typeof inMemoryVocabMatcher> {
   return inMemoryVocabMatcher(entries);
 }
 
-/** A blessed gold recipe as the adapter's ① output. */
 /** The extraction result inside a saved-run-shaped case file. */
 function loadGold(id: string): ExtractionResult {
   const path = new URL(`./testdata/${id}.json`, import.meta.url).pathname;
@@ -129,18 +119,13 @@ Deno.test("URL import over the REAL vocab — band mix is sane", async () => {
     `  replay_case over snapshot.jsonl: auto=${auto} suggest=${suggest} none=${none}`,
   );
 
-  // A household stocked with a 300-row vocab should recognise a good share of a
-  // mainstream recipe. A FLOOR, not equality — the vocab is
-  // edited over time and this must not become a chore, so it sits well below
-  // today's number with room for ordinary drift. What it catches is a COLLAPSE:
-  // if the cascade or §7 normalize regresses, `auto` goes to near zero.
+  // A floor, well below today's number: it catches a collapse of the cascade
+  // or of §7 normalize, not ordinary vocab drift.
   assert(
     auto >= flat.length * 0.4,
     `only ${auto}/${flat.length} lines auto-matched — the cascade regressed`,
   );
-  // …and it should NOT match everything: a real recipe carries a few things the
-  // household has never bought. An all-auto run means the bands stopped
-  // discriminating.
+  // An all-auto run means the bands stopped discriminating.
   assert(
     auto < flat.length,
     "every single line auto-matched — the bands stopped discriminating",
@@ -153,7 +138,7 @@ Deno.test("URL import over the REAL vocab — band/candidate invariants hold", a
 
   for (const [i, l] of flat.entries()) {
     if (l.band === "none") {
-      // §6 / 0014: `none` carries NO candidates — no silent auto-stub.
+      // §6: `none` carries no candidates.
       assertEquals(
         l.candidates,
         [],
@@ -186,8 +171,7 @@ Deno.test("URL import over the REAL vocab — band/candidate invariants hold", a
 Deno.test("URL import over the REAL vocab — line order and step refs survive", async () => {
   const { gold, payload } = await importGold("replay_case");
 
-  // The flattened order IS the `line_index` space step refs point into (§4.6),
-  // so the payload must reproduce the gold's group shape and line order exactly.
+  // The flattened order is the `line_index` space step refs point into (§4.6).
   assertEquals(
     payload.groups.map((g) => g.name),
     gold.groups.map((g) => g.name),
@@ -206,8 +190,7 @@ Deno.test("URL import over the REAL vocab — line order and step refs survive",
     "flattened line order changed — step refs would point at the wrong lines",
   );
 
-  // Steps pass through UNTOUCHED (refs stay by line_index until commit), and
-  // every ref still addresses a real line.
+  // Steps pass through untouched, and every ref still addresses a real line.
   assertEquals(payload.steps, gold.steps, "steps were not passed through");
   const refs = payload.steps
     .flatMap((s) => s.tokens)
@@ -223,12 +206,8 @@ Deno.test("URL import over the REAL vocab — line order and step refs survive",
 
 Deno.test("URL import over the REAL vocab — recipe-level fields pass through", async () => {
   const { gold, payload } = await importGold("replay_case");
-  // Never-invent: the orchestrator moves data, it never fills a value in.
-  //
-  // The title is the ONE field the sanitizer may recase, and only when the
-  // page carried no case of its own; this one is already cased, so it passes
-  // through untouched. The words, their order and their punctuation are still
-  // the page's, which is what the comparison below checks.
+  // Never-invent. The title is the one field the sanitizer may recase, and
+  // only when the page carried no case; this one is already cased.
   assertEquals(payload.title, titleCaseIfUncased(gold.title));
   assertEquals(payload.title.toLowerCase(), gold.title.toLowerCase());
   assertEquals(payload.servings_base, gold.servings_base);

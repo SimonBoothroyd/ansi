@@ -1,12 +1,11 @@
 // A pg_trgm-compatible trigram similarity in TypeScript, plus an in-memory
-// {@link VocabMatcher} built on it. This is the OFFLINE side of the cascade: it lets the
-// cascade (match.ts) be tested and band-calibrated against the real household vocab
-// without a live Postgres. The production path uses Postgres `similarity()` (see
-// match_db.ts); this mirrors it closely enough for scoring/calibration.
+// {@link VocabMatcher} built on it, so the cascade (match.ts) can be tested
+// and band-calibrated without Postgres. Production uses `similarity()` (see
+// match_db.ts).
 //
-// pg_trgm's algorithm (documented): split on non-alphanumerics into words; pad each
-// word with two leading spaces and one trailing space; take the set of 3-char
-// windows; similarity = |A ∩ B| / |A ∪ B| over the two trigram SETS.
+// pg_trgm's algorithm: split on non-alphanumerics into words; pad each word
+// with two leading spaces and one trailing space; take the set of 3-char
+// windows; similarity = |A ∩ B| / |A ∪ B|.
 
 import type { MatchCandidate, RecipeCandidate } from "./types.ts";
 import {
@@ -46,14 +45,14 @@ export function trigramSimilarity(a: string, b: string): number {
 export interface VocabEntry {
   ingredient_id: string;
   canonical_name: string;
-  /** normalized match_text(s): normalize(canonical_name) + each normalized alias. */
+  /** normalize(canonical_name) plus each normalized alias. */
   match_texts: string[];
 }
 
 /**
- * An in-memory {@link VocabMatcher} over `entries`, mirroring `sqlVocabMatcher`
- * semantics: exact `match_text` equality, and best-per-ingredient trigram scoring
- * with the same TRIGRAM_FLOOR prune the SQL `%` operator applies.
+ * An in-memory {@link VocabMatcher} over `entries`, mirroring
+ * `sqlVocabMatcher`: exact `match_text` equality, and best-per-ingredient
+ * trigram scoring with the same TRIGRAM_FLOOR prune.
  */
 export function inMemoryVocabMatcher(entries: VocabEntry[]): VocabMatcher {
   const exactFor = (matchText: string): MatchCandidate[] => {
@@ -91,8 +90,6 @@ export function inMemoryVocabMatcher(entries: VocabEntry[]): VocabMatcher {
   };
 
   // Set-shaped like the SQL matcher, so the cascade drives both the same way.
-  // In memory the batch is a loop; what it mirrors is the CONTRACT, not a saved
-  // round trip.
   return {
     exact(matchTexts: string[]): Promise<CandidatesByText> {
       return Promise.resolve(
@@ -107,7 +104,7 @@ export function inMemoryVocabMatcher(entries: VocabEntry[]): VocabMatcher {
   };
 }
 
-// --- The sub-recipe tier's matcher (step 8.6 / 0021 D6) ----------------------
+// --- The sub-recipe tier's matcher -------------------------------------------
 
 /** One household recipe as the title tier sees it. */
 export interface RecipeTitleEntry {
@@ -117,21 +114,15 @@ export interface RecipeTitleEntry {
 
 /**
  * A {@link RecipeTitleMatcher} over an in-memory list of household recipes.
- *
- * Unlike the ingredient vocab, a recipe has no stored `match_text` column — the
- * title is normalized HERE, with the same shared normalizer the line's identity
- * text goes through, which is what makes the comparison symmetric (§7). This is
- * also the production path: `sqlRecipeTitleMatcher` loads the household's
- * titles once and hands them straight to this function, because normalizing in
- * TypeScript keeps ONE normalizer rather than a SQL mirror of it.
+ * Titles have no stored `match_text`, so they are normalized here with the
+ * shared normalizer (§7). Also the production path: `sqlRecipeTitleMatcher`
+ * loads the titles and hands them to this function.
  */
 export function inMemoryRecipeTitleMatcher(
   entries: RecipeTitleEntry[],
 ): RecipeTitleMatcher {
   const rows = entries.map((e) => ({ ...e, match_text: normalize(e.title) }));
-  // Total ordering, for the same reason TRIGRAM_SQL sorts on three keys: ties
-  // are common in trigram space and a candidate list must not depend on row
-  // order.
+  // A total order, as in TRIGRAM_SQL: trigram ties are common.
   const byScore = (a: RecipeCandidate, b: RecipeCandidate) =>
     b.score - a.score || a.title.localeCompare(b.title) ||
     a.recipe_id.localeCompare(b.recipe_id);

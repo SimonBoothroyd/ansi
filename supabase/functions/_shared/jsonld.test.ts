@@ -18,7 +18,7 @@ import {
   SOURCE_TEXT_MAX_CHARS,
 } from "./jsonld.ts";
 import { ImportError } from "./errors.ts";
-// Parity anchor: the seed miner's proven block scanner (a separate deno project,
+// Parity anchor: the seed miner's block scanner (a separate deno project,
 // imported by relative path). Both must agree on which Recipe a page publishes.
 import { extractIngredientLines } from "../../seed/scripts/mine_recipes.ts";
 
@@ -142,7 +142,7 @@ Deno.test("fetchRawBlob — injectable fetch + DNS, offline", async () => {
 });
 
 Deno.test("fetchRawBlob — a network error is a 422, not an empty blob", async () => {
-  // The old behaviour swallowed this into `text: ""` and billed the LLM for it.
+  // Must throw, not become `text: ""` and get billed to the LLM.
   const boom: FetchFn = () => Promise.reject(new Error("offline"));
   const e = await importErrorFrom(
     fetchRawBlob("https://example.test/down", {
@@ -354,8 +354,8 @@ Deno.test("buildRawBlob — page text is capped for the prompt", () => {
 });
 
 Deno.test("buildRawBlob — the readable page rides BOTH link branches (0047)", () => {
-  // A JSON-LD page is still a page: `text` stays null (the prompt reads the
-  // structured object), and `page_text` carries what a person would read.
+  // A JSON-LD page: `text` stays null (the prompt reads the structured
+  // object), and `page_text` carries what a person would read.
   const structured = buildRawBlob(PLAIN_RECIPE, "https://example.test/curry");
   assertEquals(structured.text, null);
   assertStringIncludes(structured.page_text ?? "", "Weeknight Chicken Curry");
@@ -399,9 +399,8 @@ Deno.test("private-address classification — the ranges that matter", () => {
 });
 
 Deno.test("PARITY — recipe scan matches mine_recipes.ts on a shared fixture", () => {
-  // Same block scan, different projection: the seed miner pulls recipeIngredient
-  // lines; this module keeps the whole object. On a shared fixture the ingredient
-  // lines the two derive must be identical.
+  // Same block scan, different projection: on a shared fixture the ingredient
+  // lines the miner and this module derive must be identical.
   for (const html of [PLAIN_RECIPE, GRAPH_RECIPE]) {
     const mine = extractIngredientLines(html); // seed miner
     const ours = extractRecipeObjects(html)

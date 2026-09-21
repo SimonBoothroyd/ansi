@@ -1,22 +1,10 @@
 // Assembly: what the model printed + where the photos joined + what the cascade
-// matched ⇒ the `ReceiptPayload` the app receives.
+// matched ⇒ the `ReceiptPayload` the app receives. Pure.
 //
-// PURE. No I/O, no clock, no model. Everything here is arithmetic over strings
-// somebody else read, which is what makes the reconcile figure — the one number
-// the review hangs its join card on — a thing with tests rather than a thing
-// that looked right on one receipt.
-//
-// Two rules run through it:
-//
-//   * **Never invent a figure.** A price that cannot be read does not become a
-//     plausible number. The contract has nowhere to put "unreadable" on a
-//     line's `cents`, so such a line lands at 0 with `low_confidence` set and a
-//     note naming it — the three signals a review needs to stop and ask. What
-//     it never does is quietly contribute a figure to a sum.
-//   * **The server states both numbers and stops.** `lines_sum_cents` and
-//     `printed.subtotal_cents` are returned side by side; nothing here decides
-//     which is right, and nothing here refuses a receipt for their disagreeing.
-//     The paper's total is the paper's, and the review draws the flag.
+//   * Never invent a figure. A price that cannot be read lands at 0 with
+//     `low_confidence` set and a note naming it.
+//   * `lines_sum_cents` and `printed.subtotal_cents` are returned side by side;
+//     nothing here decides which is right or refuses a receipt over them.
 
 import type { MatchedLine, RawLineItem } from "./types.ts";
 import type {
@@ -39,21 +27,13 @@ import {
 } from "./receipt_parse.ts";
 import { MAX_RECEIPT_NOTES } from "./adapters/receipt_schema.ts";
 
-/** At most this many "did you mean" candidates ride on a line (the cascade's own TOP_N). */
+/** Most "did you mean" candidates on a line (the cascade's own TOP_N). */
 export const MAX_SUGGESTIONS = 3;
 
 /**
- * The match cascade's input for each ITEM line, in printed order — one
- * `RawLineItem` per item, built from the printed words alone.
- *
- * Only `ingredient_text` does any work: the cascade normalizes it (§7) and
- * compares it against the household's vocabulary. Everything else on the shape
- * is a recipe line's business and is filled with the empty answer, because a
- * receipt line has no quantity in the recipe sense — what it has is money, and
- * money never reaches the matcher.
- *
- * The text handed over is `name_printed`, the line with its figures taken off.
- * Matching `TJ ORG BANANAS 3.49` would compare a price against a vocabulary.
+ * The match cascade's input for each item line, in printed order. Only
+ * `ingredient_text` does any work; it is `name_printed`, the line with its
+ * figures taken off. The other fields take the empty answer.
  */
 export function itemMatchInputs(extraction: ReceiptExtraction): RawLineItem[] {
   return extraction.lines
@@ -64,8 +44,7 @@ export function itemMatchInputs(extraction: ReceiptExtraction): RawLineItem[] {
       qty_high: null,
       unit: null,
       unit_mappable: false,
-      // The name if the model split one out, else the whole printed line —
-      // a line is never sent to the cascade as nothing.
+      // The name if the model split one out, else the whole printed line.
       ingredient_text: l.name_printed.trim() !== ""
         ? l.name_printed
         : l.printed_text,
@@ -87,10 +66,8 @@ function suggestionsOf(m: MatchedLine | undefined): ReceiptSuggestion[] {
 }
 
 /**
- * The line's best answer. `auto` only where the cascade said `auto` — i.e. only
- * above its own auto threshold, which is calibrated on recipe lines and which a
- * store's abbreviations clear far less often. Everything it bands as `suggest`
- * comes back as a suggestion, and `none` comes back as nothing at all.
+ * The line's best answer: `auto` only where the cascade said `auto`, a
+ * suggestion for `suggest`, nothing for `none`.
  */
 function matchOf(m: MatchedLine | undefined): ReceiptLineOut["match"] {
   if (!m || m.band === "none" || m.candidates.length === 0) return null;
@@ -104,10 +81,8 @@ function matchOf(m: MatchedLine | undefined): ReceiptLineOut["match"] {
 }
 
 /**
- * What the household already said about this line's printed name, where they
- * have said anything. The key is `name_printed` alone — that is what a saved
- * line stores, so recalling by anything else would be asking about a string
- * nothing was ever filed under.
+ * What the household already said about this line's printed name, keyed on
+ * `name_printed`, which is what a saved line stores.
  */
 function recallFor(
   memory: ReceiptMemory,
@@ -119,8 +94,8 @@ function recallFor(
 
 /**
  * The line's answer, with the household's own having the last word. A
- * remembered ingredient is a fact, not a reading, so it arrives `auto` at
- * `confidence: 1`; a remembered fold has no match.
+ * remembered ingredient arrives `auto` at `confidence: 1`; a remembered fold
+ * has no match.
  */
 function matchFor(
   recalled: RememberedAnswer | undefined,
@@ -137,13 +112,9 @@ function matchFor(
 }
 
 /**
- * Which photo a printed line came from.
- *
- * A forward-only cursor over the joined strip, so the same printed line
- * appearing twice on one receipt is attributed to its OWN occurrence rather
- * than to the first one — the same reason the join itself is positional. A line
- * inside a seam belongs to the photo that contributed it, which is the earlier
- * one (`receipt_join.ts` keeps the earlier photo's copy).
+ * Which photo a printed line came from. A forward-only cursor over the joined
+ * strip, so a line printed twice is attributed to its own occurrence. A line
+ * inside a seam belongs to the earlier photo.
  */
 class PhotoCursor {
   #at = 0;
@@ -152,7 +123,7 @@ class PhotoCursor {
     this.#keys = transcript.lines.map(joinKey);
   }
 
-  /** The photo `printedText` came from; the current position's when it cannot be found. */
+  /** The photo `printedText` came from; the current position's if not found. */
   photoFor(printedText: string): number {
     const key = joinKey(printedText);
     if (key !== "") {
@@ -164,14 +135,14 @@ class PhotoCursor {
         }
       }
     }
-    // Not located: the model reordered or merged something. The cursor's own
-    // position is the honest best answer — it is where we were reading.
+    // Not located (the model reordered or merged something): use the cursor's
+    // own position.
     const here = Math.min(this.#at, this.#keys.length - 1);
     return this.transcript.photoOfLine[here] ?? 0;
   }
 }
 
-/** The printed weight and rate, canonicalised — or null, with a note saying why. */
+/** The printed weight and rate, canonicalised, or null with a note saying why. */
 function weightOf(
   line: ExtractedLine,
   notes: string[],
@@ -190,12 +161,9 @@ function weightOf(
 }
 
 /**
- * How many of the thing this line rang up.
- *
- * A by-weight line is ONE of whatever was weighed, whatever the sub-row's word
- * was: `Qty 0.73 lb @ $2.99/lb` says how heavy, not how many, and a weight
- * that also counted would divide the price twice. The unit is the
- * discriminator, here as in the prompt.
+ * How many of the thing this line rang up. A by-weight line is one: its
+ * sub-row (`Qty 0.73 lb @ $2.99/lb`) states a weight, and counting it too
+ * would divide the price twice.
  */
 function countOf(line: ExtractedLine, weight: ReceiptWeight | null): number {
   if (weight !== null) return 1;
@@ -205,26 +173,19 @@ function countOf(line: ExtractedLine, weight: ReceiptWeight | null): number {
 
 /**
  * Whether `count × each` and the printed line total agree, within a penny per
- * thing — a till rounds each unit price, and four of them may be four pennies
- * off the figure it printed beside them.
- *
- * Disagreeing by more than that is a reading somebody has to look at: the line
- * keeps the total the PAPER printed (never a figure we multiplied), and says
- * so out loud.
+ * thing (a till rounds each unit price). A line that disagrees keeps the
+ * printed total and is flagged.
  */
 function countAgrees(cents: number, count: number, each: number): boolean {
   return Math.abs(count * each - cents) <= count;
 }
 
 /**
- * The reconcile figure: what the lines come to, against what the paper said its
- * subtotal was.
+ * The reconcile figure, compared against the paper's subtotal:
  *
  *   `sum(item.cents − item.discount_cents) + sum(not_food.cents) + sum(fee.cents)`
  *
- * Tax is out, because a subtotal is the figure before it. A `fee` line's cents
- * may be negative — that is how a discount nobody could attach to an item still
- * lets the two numbers meet.
+ * Tax is out. A `fee` line's cents may be negative.
  */
 export function linesSumCents(lines: ReceiptLineOut[]): number {
   return lines.reduce((sum, l) => {
@@ -237,15 +198,10 @@ export function linesSumCents(lines: ReceiptLineOut[]): number {
 /**
  * Builds the payload.
  *
- * `matched` is one entry per ITEM line, in the order {@link itemMatchInputs}
- * produced them — the caller is the orchestrator, which checks that length
- * before it gets here.
- *
- * `remembered` is what this household has already said about these printed
- * names, and it has the last word over the cascade. An empty one — the
- * default — is a receipt assembled by the cascade alone, which is exactly what
- * a household with no saved receipts gets, and what a failed recall falls back
- * to.
+ * `matched` is one entry per item line, in the order {@link itemMatchInputs}
+ * produced them; the orchestrator checks the length. `remembered` is what this
+ * household has already said about these printed names, and it overrides the
+ * cascade. Empty by default, and after a failed recall.
  */
 export function assembleReceipt(
   extraction: ReceiptExtraction,
@@ -253,8 +209,7 @@ export function assembleReceipt(
   matched: MatchedLine[],
   remembered: ReceiptMemory = new Map(),
 ): ReceiptPayload {
-  // The join's own notes lead: a seam that could not be found is the thing most
-  // likely to be behind whatever else looks wrong below it.
+  // The join's notes lead: a missed seam explains most of what follows.
   const notes: string[] = [...transcript.notes, ...extraction.notes];
   const cursor = new PhotoCursor(transcript);
   let itemIndex = 0;
@@ -296,11 +251,11 @@ export function assembleReceipt(
       );
       low_confidence = true;
     }
-    // `line.kind`, never the recalled one: the cascade was given the item
-    // lines the MODEL found, and this cursor has to walk the same ones.
+    // `line.kind`, never the recalled one: this cursor must walk the same
+    // item lines the cascade was given.
     const m = line.kind === "item" ? matched[itemIndex++] : undefined;
-    // Both ways round: a fold the household matched is as much an answer as a
-    // match it folded. Tax and fee lines are never either.
+    // A remembered fold is as much an answer as a remembered match. Tax and
+    // fee lines are never either.
     const recalled = line.kind === "item" || line.kind === "not_food"
       ? recallFor(remembered, line)
       : undefined;
@@ -312,13 +267,12 @@ export function assembleReceipt(
       count,
       each_cents,
       discount_cents,
-      // A folded line still counts toward what the trip cost, and nothing else.
+      // A folded line still counts toward what the trip cost.
       kind: recalled?.kind ?? line.kind,
       weight,
       match: matchFor(recalled, m),
-      // The cascade's offers stand whatever is remembered: a remembered answer
-      // is one the person can change, and these are what they would change it
-      // to.
+      // The cascade's offers stand whatever is remembered, so the person can
+      // change the answer.
       suggestions: suggestionsOf(m),
       low_confidence,
       photo: cursor.photoFor(line.printed_text),

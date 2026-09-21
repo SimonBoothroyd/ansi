@@ -1,16 +1,11 @@
-// The count sub-row, over two whole receipts shaped like the owner's.
+// The count sub-row, over two whole synthetic receipts: a count printed on its
+// own line under the item it belongs to, as Whole Foods and Trader Joe's print
+// multiples. Read as a line of its own, it would leave the item above priced
+// as one pack.
 //
-// Both fixtures are synthetic and both are the real thing in shape: a count
-// printed on its OWN line under the item it belongs to, which is how Whole
-// Foods and Trader Joe's print nearly every multiple. Before this, that
-// sub-row became a junk line of its own and the item above kept the whole
-// figure against ONE pack — eight blocks of tofu priced as one block, eight
-// times too dear.
-//
-// The replay path is the subject: the saved transcriptions go through the REAL
-// join (so a seam falling between an item and its sub-row is exercised), the
-// REAL Claude decoder, the REAL coercion, and the REAL assembly. Nothing here
-// calls a model and nothing here needs a network.
+// The saved transcriptions go through the real join (a seam can fall between
+// an item and its sub-row), decoder, coercion and assembly. No model, no
+// network.
 
 import { assert, assertEquals } from "@std/assert";
 import { replayReceiptAdapter } from "./replay.ts";
@@ -48,7 +43,7 @@ function of(p: ReceiptPayload, starts: string): ReceiptLineOut {
   return line;
 }
 
-/** Every count sub-row, as a line of its own, would show up here. */
+/** Any count sub-row that became a line of its own. */
 function strayCountLines(p: ReceiptPayload): ReceiptLineOut[] {
   return p.lines.filter((l) =>
     /^(qty\b|\d+\s*@)/i.test(l.printed_text.trim()) && l.weight === null
@@ -61,15 +56,14 @@ Deno.test("Whole Foods — the counts ride on their items, and the strip adds up
   assertEquals(p.store_printed, "WHOLE FOODS MARKET");
   assertEquals(p.purchased_at, "2026-09-20T11:04:00");
 
-  // Five skyr lines, counted off the sub-rows under them — not five lines and
-  // five junk rows, and not one bought thirteen times.
+  // Five skyr lines, counted off the sub-rows under them.
   const skyr = p.lines.filter((l) => l.printed_text.includes("SKYR"));
   assertEquals(skyr.length, 5);
   assertEquals(skyr.map((l) => l.count), [2, 4, 4, 2, 1]);
   assertEquals(skyr.map((l) => l.cents), [478, 956, 956, 478, 239]);
   for (const l of skyr) assertEquals(l.each_cents, 239);
 
-  // `Qty 0.73 lb @ $2.99/lb` is a WEIGHT. The word "Qty" decides nothing.
+  // `Qty 0.73 lb @ $2.99/lb` is a weight. The word "Qty" decides nothing.
   const onion = of(p, "OG RED ONION");
   assertEquals(onion.weight, { amount: 0.73, unit: "lb", rate_cents: 299 });
   assertEquals(onion.count, 1);
@@ -77,8 +71,7 @@ Deno.test("Whole Foods — the counts ride on their items, and the strip adds up
   assertEquals(serrano.weight, { amount: 0.31, unit: "lb", rate_cents: 499 });
   assertEquals(serrano.count, 1);
 
-  // The bag charge printed no money on its own line: the figure is in the
-  // totals block, and it is ONE fee line carrying it.
+  // The bag charge's figure is in the totals block; it is one fee line.
   const bags = of(p, "CARRY OUT BAG CHARGE");
   assertEquals(bags.kind, "fee");
   assertEquals(bags.cents, 10);
@@ -101,7 +94,7 @@ Deno.test("Trader Joe's — no subtotal printed, and the lines plus tax are the 
   assertEquals(p.store_printed, "TRADER JOE'S #542");
   assertEquals(p.purchased_at, "2026-09-20T12:12:00");
 
-  // THE ONE THAT WAS EIGHT TIMES TOO DEAR.
+  // Eight blocks for one figure: the price divides by the count.
   const tofu = of(p, "TOFU SPR FRM HGH PRTN OR");
   assertEquals(tofu.cents, 2392);
   assertEquals(tofu.count, 8);
@@ -114,8 +107,7 @@ Deno.test("Trader Joe's — no subtotal printed, and the lines plus tax are the 
   assertEquals(of(p, "LIME EACH").count, 4);
   assertEquals(of(p, "LIME EACH").cents, 196);
 
-  // Two identical single lines are TWO lines. A receipt honestly prints the
-  // same thing twice when it was rung up twice, and neither is a count.
+  // Two identical single lines are two lines; neither is a count.
   const yeast = p.lines.filter((l) => l.printed_text.includes("NUTRITIONAL"));
   assertEquals(yeast.length, 2);
   assertEquals(yeast.map((l) => l.count), [1, 1]);
@@ -130,8 +122,7 @@ Deno.test("Trader Joe's — no subtotal printed, and the lines plus tax are the 
     ),
   );
 
-  // This strip prints no subtotal at all — so the reconcile is the total less
-  // the tax, which is the figure the review holds the lines against.
+  // This strip prints no subtotal, so the reconcile is the total less the tax.
   assertEquals(p.printed.subtotal_cents, null);
   assertEquals(p.printed.tax_cents, 11);
   assertEquals(p.printed.total_cents, 10445);

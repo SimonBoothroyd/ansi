@@ -18,8 +18,7 @@ Deno.test("normalize — keeps form/state words (the §7 own-goal)", () => {
 });
 
 Deno.test("normalize — is symmetric on stored names", () => {
-  // The same function runs on canonical_name at write time, so a tidy stored
-  // name is already in its own normal form.
+  // The same function runs on canonical_name at write time.
   assertEquals(normalize("Ginger, fresh"), "ginger fresh");
   assertEquals(normalize(normalize("fresh ginger")), normalize("fresh ginger"));
 });
@@ -28,16 +27,15 @@ Deno.test("normalize — singularization edge cases", () => {
   assertEquals(normalize("tomatoes"), "tomato");
   assertEquals(normalize("berries"), "berry");
   assertEquals(normalize("asparagus"), "asparagus"); // not a plural
-  // -ves: plain -s plurals, not -f (the regression that made "chives"→"chif")
+  // -ves: plain -s plurals, not -f ("chives" must not become "chif")
   assertEquals(normalize("chives"), "chive");
   assertEquals(normalize("olives"), "olive");
   assertEquals(normalize("bay leaves"), "bay leaf"); // genuine -ves→-f (irregular)
 });
 
 Deno.test("normalize — invariant words that only look plural", () => {
-  // The regex guard spares -ss/-us/-is/-ous; "molasses" ends in -sses and
-  // used to come out as `molass`, which migration 0022 rewrote. It is in
-  // INVARIANT_WORDS now, wherever it sits in the phrase.
+  // The regex guard spares -ss/-us/-is/-ous; "molasses" ends in -sses, so it
+  // is in INVARIANT_WORDS (migration 0022 rewrote the old `molass`).
   assertEquals(normalize("molasses"), "molasses");
   assertEquals(normalize("Blackstrap Molasses"), "blackstrap molasses");
   assertEquals(normalize("2 tablespoons molasses"), "molasses");
@@ -46,15 +44,15 @@ Deno.test("normalize — invariant words that only look plural", () => {
   assertEquals(normalize("couscous"), "couscous");
   assertEquals(normalize("Swiss chard"), "swiss chard");
   assertEquals(normalize("watercress"), "watercress");
-  // Real -es plurals keep singularizing — the set is a list, not a rule.
+  // Real -es plurals keep singularizing.
   assertEquals(normalize("radishes"), "radish");
   assertEquals(normalize("2 peaches"), "peach");
   assertEquals(normalize("mashed potatoes"), "potato");
 });
 
 Deno.test("normalize — folds diacritics onto the base letter", () => {
-  // The letter survives (never "jalapeo"), but its accent does not: a line
-  // printed without the tilde has to reach the row that has it (0023 D5).
+  // The letter survives (never "jalapeo") but its accent does not, so a line
+  // printed without the tilde reaches the row that has it.
   assertEquals(normalize("jalapeño"), "jalapeno");
   assertEquals(normalize("Jalapeño"), "jalapeno");
   assertEquals(normalize("jalapeno"), "jalapeno");
@@ -79,9 +77,8 @@ Deno.test("normalize — stick is identity only next to cinnamon", () => {
 });
 
 Deno.test("normalize — tinned folds onto canned", () => {
-  // "tinned" is the same shelf product as "canned", but only "canned" is a
-  // state word: without the fold the British phrasing kept a leading noun
-  // nothing else produces and missed the row by a whole band.
+  // Only "canned" is a state word; without the fold "tinned" would lead the
+  // nouns and miss the row.
   assertEquals(normalize("tinned chickpeas"), "chickpea canned");
   assertEquals(normalize("canned chickpeas"), "chickpea canned");
   assertEquals(normalize("1 tin of tinned black beans"), "black bean canned");
@@ -90,9 +87,7 @@ Deno.test("normalize — tinned folds onto canned", () => {
 });
 
 Deno.test("normalize — an amount fused to its unit is still an amount", () => {
-  // The token is not wholly numeric, so QUANTITY misses it, and MEASURES
-  // lists the unit words bare — "400g" used to survive as a noun and take
-  // the whole line down to no candidates at all.
+  // "400g" is neither wholly numeric (QUANTITY) nor a bare unit (MEASURES).
   assertEquals(normalize("400g tin of black beans"), "black bean");
   assertEquals(normalize("400g tin chickpeas"), "chickpea");
   assertEquals(normalize("1.5kg potatoes"), "potato");
@@ -103,9 +98,8 @@ Deno.test("normalize — an amount fused to its unit is still an amount", () => 
 });
 
 Deno.test("normalize — a cut word is identity inside a canned phrase", () => {
-  // The gold conventions' ruling (_SCHEMA.md): chopped / crushed / diced
-  // tomatoes in a can are DIFFERENT PRODUCTS, so the cut cannot be stripped
-  // as prep the way it is on a fresh tomato.
+  // _SCHEMA.md: chopped / crushed / diced tomatoes in a can are different
+  // products, so the cut is not stripped as prep.
   assertEquals(normalize("Canned Diced Tomatoes"), "tomato canned diced");
   assertEquals(normalize("canned chopped tomatoes"), "tomato canned chopped");
   // British phrasing folds onto the stored word, so it lands on the same row.
@@ -113,18 +107,16 @@ Deno.test("normalize — a cut word is identity inside a canned phrase", () => {
   // It trails like any other state word, so word order doesn't matter.
   assertEquals(normalize("diced tomatoes, canned"), "tomato diced canned");
 
-  // OUTSIDE a canned phrase the cut is prep, exactly as before — this is the
-  // §7 own-goal guard read the other way round.
+  // Outside a canned phrase the cut is prep.
   assertEquals(normalize("diced tomatoes"), "tomato");
   assertEquals(normalize("2 diced tomatoes"), "tomato");
   assertEquals(normalize("1 onion, diced"), "onion");
-  // The MEASURE "can" is not the STATE "canned": a line whose tin is the
-  // amount is unaffected (this is eval case 7, which must not move).
+  // The measure "can" is not the state "canned" (eval case 7 must not move).
   assertEquals(
     normalize("1  (28-ounce) can fire-roasted, chopped tomatoes"),
     "fire tomato roasted",
   );
-  // "crushed" is not in the set — it still holds the generic canned key.
+  // "crushed" is not in the set; it still holds the generic canned key.
   assertEquals(normalize("Canned Crushed Tomatoes"), "tomato canned");
 });
 
@@ -151,9 +143,8 @@ Deno.test("normalize — drops vague amount words", () => {
 // --- the shared vectors ------------------------------------------------------
 
 Deno.test("normalize — agrees with the shared Dart/TS vectors", () => {
-  // The same file the Dart port's parity test reads. The literals above are
-  // the source the vectors are copied from; this closes the loop from the
-  // other side, so an entry added for Dart alone still has to hold here.
+  // The same file the Dart port's parity test reads, so an entry added for
+  // Dart alone still has to hold here.
   const path = new URL(
     "../../../app/test/features/ingredients/normalize_vectors.json",
     import.meta.url,
@@ -167,7 +158,7 @@ Deno.test("normalize — agrees with the shared Dart/TS vectors", () => {
   }
 });
 
-// --- stripParentheticals (8.6 / 0021 D6) -------------------------------------
+// --- stripParentheticals -----------------------------------------------------
 
 Deno.test("stripParentheticals — drops a printed cross-reference", () => {
   assertEquals(
@@ -197,7 +188,7 @@ Deno.test("stripParentheticals — nested and mid-phrase asides", () => {
 });
 
 Deno.test("stripParentheticals — an unbalanced bracket is left alone", () => {
-  // Never truncate what the source printed on a guess: the tail survives.
+  // An unbalanced bracket truncates nothing: the tail survives.
   assertEquals(
     stripParentheticals("Romesco Aioli (page 38"),
     "Romesco Aioli (page 38",
@@ -210,8 +201,8 @@ Deno.test("stripParentheticals — an all-aside line strips to nothing", () => {
 });
 
 Deno.test("normalize — is unchanged by 8.6: parentheticals still reach it", () => {
-  // The ingredient cascade's behaviour must not move for a suggestion-only
-  // feature — gold and the benchmark are built on these exact strings.
+  // The ingredient cascade must not move: gold and the benchmark are built on
+  // these exact strings.
   assertEquals(normalize("coconut milk (400 g)"), "coconut milk");
   assertEquals(normalize("romesco aioli (page 38)"), "romesco aioli page");
 });

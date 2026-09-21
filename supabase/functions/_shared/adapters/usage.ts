@@ -1,22 +1,16 @@
-// Per-provider token-usage parsing, normalized onto the ONE `TokenUsage`
-// contract in `../types.ts`.
+// Per-provider token-usage parsing, normalized onto the `TokenUsage` contract
+// in `../types.ts`.
 //
-// Why normalize here and not in the cost table: the three vendors disagree
-// about what their own prompt total means. Anthropic reports `input_tokens`
-// EXCLUDING cache reads and cache writes; OpenAI's `prompt_tokens` and Gemini's
-// `promptTokenCount` INCLUDE the cached part. Gemini also reports thinking
-// tokens outside `candidatesTokenCount`, while OpenAI reports reasoning tokens
-// inside `completion_tokens`. Left un-normalized, every one of those quirks
-// becomes a silent multiplier on the benchmark's $/import figure.
-//
-// The rule (documented on `TokenUsage`): `input_tokens` = uncached,
-// non-cache-write billable input; `output_tokens` = everything billed at the
-// output rate, thinking included. A field the provider did not report stays
-// `null`, never 0.
+// The vendors disagree: Anthropic's `input_tokens` excludes cache reads and
+// writes, while OpenAI's `prompt_tokens` and Gemini's `promptTokenCount`
+// include the cached part; Gemini reports thinking tokens outside
+// `candidatesTokenCount`, OpenAI inside `completion_tokens`. Normalized:
+// `input_tokens` = uncached, non-cache-write input; `output_tokens` =
+// everything billed at the output rate. An unreported field is `null`.
 
 import type { ProviderCall, ProviderCallSink, TokenUsage } from "../types.ts";
 
-/** All-null usage — "the provider told us nothing", distinct from all-zero. */
+/** All-null usage: the provider reported nothing. */
 export function emptyUsage(): TokenUsage {
   return {
     input_tokens: null,
@@ -46,11 +40,7 @@ function obj(v: unknown): Record_ | null {
   return typeof v === "object" && v !== null ? v as Record_ : null;
 }
 
-/**
- * Anthropic Messages API `usage`. `input_tokens` already EXCLUDES both cache
- * fields, so it passes through untouched — the one provider that needs no
- * subtraction.
- */
+/** Anthropic `usage`. `input_tokens` already excludes both cache fields. */
 export function anthropicUsage(res: unknown): TokenUsage | null {
   const u = obj(obj(res)?.usage);
   if (!u) return null;
@@ -71,10 +61,9 @@ export function anthropicUsage(res: unknown): TokenUsage | null {
 }
 
 /**
- * OpenAI Chat Completions `usage`. `prompt_tokens` INCLUDES
- * `prompt_tokens_details.cached_tokens`, so the cached part is subtracted out;
- * `completion_tokens` already includes `completion_tokens_details.reasoning_tokens`,
- * so reasoning is reported for visibility but NOT added again.
+ * OpenAI Chat Completions `usage`. `prompt_tokens` includes the cached part,
+ * which is subtracted; `completion_tokens` already includes reasoning tokens,
+ * which are reported but not added again.
  */
 export function openAiUsage(res: unknown): TokenUsage | null {
   const u = obj(obj(res)?.usage);
@@ -92,10 +81,9 @@ export function openAiUsage(res: unknown): TokenUsage | null {
 }
 
 /**
- * Gemini `usageMetadata`. `promptTokenCount` INCLUDES
- * `cachedContentTokenCount`, so the cached part is subtracted out;
- * `thoughtsTokenCount` sits OUTSIDE `candidatesTokenCount` but is billed at the
- * output rate, so it is added in.
+ * Gemini `usageMetadata`. `promptTokenCount` includes the cached part, which
+ * is subtracted; `thoughtsTokenCount` sits outside `candidatesTokenCount` but
+ * is billed as output, so it is added in.
  */
 export function geminiUsage(res: unknown): TokenUsage | null {
   const u = obj(obj(res)?.usageMetadata);
@@ -116,11 +104,7 @@ export function geminiUsage(res: unknown): TokenUsage | null {
   };
 }
 
-/**
- * Hands one completed call to an observer, if any. NEVER lets the observer's
- * failure reach the caller: the sink exists for the benchmark, and a benchmark
- * bug must not be able to fail a user's import.
- */
+/** Hands one completed call to an observer, if any, swallowing its errors. */
 export function emitCall(
   sink: ProviderCallSink | undefined,
   call: ProviderCall,

@@ -21,8 +21,7 @@ function spy(rows: Record<string, unknown>[] = []) {
 Deno.test("recallKey — trimmed and upper-cased, and nothing else", () => {
   assertEquals(recallKey("  org tricolor quinoa "), "ORG TRICOLOR QUINOA");
   assertEquals(recallKey("TJ ORG BANANAS"), "TJ ORG BANANAS");
-  // No normalizing, no stemming, no fuzz: that is the cascade's job, and it
-  // has a calibrated floor this lookup would be pretending to.
+  // No normalizing, stemming or fuzz: that is the cascade's job.
   assertEquals(recallKey("tj-org bananas"), "TJ-ORG BANANAS");
   assertEquals(recallKey("   "), "");
 });
@@ -35,8 +34,7 @@ Deno.test("pgTAP runs this very statement", async () => {
 });
 
 Deno.test("the statement says latest-wins, and says it deterministically", () => {
-  // The whole answer to "how do I take a wrong match back": edit the receipt,
-  // and its lines become the most recent thing said.
+  // Latest wins, so editing the receipt takes a wrong match back.
   assertStringIncludes(RECALL_SQL, "distinct on (q.name)");
   assertStringIncludes(
     RECALL_SQL,
@@ -53,9 +51,8 @@ Deno.test("the statement fences the household, the tombstones and the kinds", ()
 });
 
 Deno.test("the statement fences a retired row out of the answer", () => {
-  // An item line whose row has been retired, or that nobody ever matched, is
-  // not an answer — and the `where` runs before the pick, so an OLDER line
-  // that still stands is used instead of nothing.
+  // A retired or never-matched item line is not an answer, and the `where`
+  // runs before the pick, so an older line that still stands is used.
   assertStringIncludes(RECALL_SQL, "i.household_id = $1");
   assertStringIncludes(RECALL_SQL, "i.deleted_at is null");
   assertStringIncludes(
@@ -104,8 +101,7 @@ Deno.test("a folded answer is a fold, and names no row", async () => {
 });
 
 Deno.test("an item row naming nothing is no answer at all", async () => {
-  // The `where` already refuses it; this is the same refusal said in TS, so a
-  // change to one cannot quietly produce a match to nothing.
+  // The `where` already refuses it; this is the same refusal in TS.
   const { exec } = spy([
     { name: "TJ ????", kind: "item", ingredient_id: null },
     { name: "TJ SRIRACHA", kind: "item", ingredient_id: "v-sriracha" },

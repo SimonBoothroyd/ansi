@@ -1,8 +1,5 @@
-// Reading the paper's printed strings: money, a date, a weight unit.
-//
-// Every case here came off a real till at some point — the parenthesised
-// credit, the trailing minus, the comma decimal, the Unicode minus a good
-// transcription gives back for a laser-printed one.
+// Reading the paper's printed strings: money, a date, a weight unit. The cases
+// are forms real tills print.
 
 import { assertEquals } from "@std/assert";
 import {
@@ -43,13 +40,11 @@ Deno.test("money — a bare integer is whole dollars", () => {
 });
 
 Deno.test("money — never through a float", () => {
-  // parseFloat("3.49") * 100 is 348.99999999999994. Money that rounds is money
-  // that stops adding up against the printed subtotal.
+  // parseFloat("3.49") * 100 is 348.99999999999994.
   assertEquals(parseCents("3.49"), 349);
   assertEquals(parseCents("1.10"), 110);
   assertEquals(parseCents("8.29"), 829);
-  // More than two decimals is truncated, never rounded: we are copying a
-  // figure, not computing one.
+  // More than two decimals is truncated, never rounded: the figure is a copy.
   assertEquals(parseCents("1.999"), 199);
 });
 
@@ -102,8 +97,7 @@ Deno.test("date — midnight and noon do not swap", () => {
 });
 
 Deno.test("date — a two-digit year is this century", () => {
-  // There is no 1926 receipt in anybody's kitchen drawer, and the other
-  // reading would file a shop a hundred years out of its week.
+  // A two-digit year is this century.
   assertEquals(parseReceiptDate("01/02/99"), "2099-01-02T00:00:00");
 });
 

@@ -1,20 +1,14 @@
-// The server half of the import's timeout ladder, checked as arithmetic rather
-// than as prose. The ladder itself is written out where the client timeout
-// lives (`app/lib/features/import/data/remote_import_repository.dart`).
+// The server half of the import's timeout ladder, checked as arithmetic. The
+// ladder is written out in
+// `app/lib/features/import/data/remote_import_repository.dart`.
 //
-// Why this is worth a test: the numbers live in four files that nobody edits
-// together, and the failure they guard against is silent. Raise one model
-// deadline "a bit" and the longest SILENCE the function can produce walks past
-// the platform's cut-off, at which point every long import dies as a gateway
-// 504 with the model call already paid for.
-//
-// What the platform's idle timeout measures changed twice. The stage stream
-// (§4.7) made it bound the longest GAP between events rather than the whole
-// call. HEARTBEATS then shrank that gap again: while a model call streams, the
-// function says so every `HEARTBEAT_INTERVAL_MS`, so a model budget is no
-// longer a silence at all. That is what lets the budgets below be sized by what
-// the model needs (`evals/runs/`) instead of by what the platform tolerates —
-// and it is why the photo path may now cost MORE than the idle timeout.
+// The numbers live in four files nobody edits together, and the failure is
+// silent: raise one budget and the longest silence the function can produce
+// passes the platform's cut-off, so long imports die as gateway 504s after the
+// model call is paid for. The platform's idle timeout bounds one gap between
+// events, and heartbeats keep a streaming model call from being a gap, so
+// model budgets are sized from `evals/runs/` and the photo path may cost more
+// than the idle timeout.
 
 import { assert } from "@std/assert";
 import {
@@ -36,17 +30,15 @@ import {
 } from "./jsonld.ts";
 
 /**
- * Supabase's request idle timeout: a function that has sent nothing by then is
- * cut off with a gateway 504, whatever it is still doing. It bounds one GAP,
- * not the call — the call is bounded by the wall-clock limit below.
+ * Supabase's request idle timeout: a function silent for this long gets a
+ * gateway 504. It bounds one gap, not the call.
  * https://supabase.com/docs/guides/functions/limits
  */
 const PLATFORM_IDLE_TIMEOUT_MS = 150_000;
 
 /**
- * Supabase's wall-clock limit for one invocation, from the same page. With the
- * stream and its heartbeats this — not the idle timeout — is the platform
- * ceiling the pipeline's total has to fit inside. It is not ours to raise.
+ * Supabase's wall-clock limit for one invocation: the ceiling the pipeline's
+ * total has to fit inside.
  */
 const PLATFORM_WALL_CLOCK_MS = 400_000;
 
@@ -55,9 +47,8 @@ const OVERHEAD_MS = 15_000;
 
 /**
  * `edgeInvokeTimeout` and `edgeSilenceTimeout` in
- * `app/lib/features/import/data/remote_import_repository.dart` — the client's
- * two rungs. Mirrored here (there is no way to import a Dart constant) so
- * raising a server budget past one fails on this side too.
+ * `app/lib/features/import/data/remote_import_repository.dart`, mirrored by
+ * hand so raising a server budget past one fails here too.
  */
 const CLIENT_TOTAL_DEADLINE_MS = 240_000;
 const CLIENT_SILENCE_MS = 90_000;
@@ -71,13 +62,13 @@ const LINK_WORST_CASE_MS = FETCH_TOTAL_TIMEOUT_MS + SANITIZE_DEADLINE_MS +
 
 Deno.test("intake is capped as a whole, not just per hop", () => {
   assert(FETCH_TOTAL_TIMEOUT_MS >= FETCH_TIMEOUT_MS);
-  // The cap has to actually BIND, or it is decorative: without it a chain of
-  // slow redirects costs one hop's budget times the number of hops.
+  // The cap has to bind: without it a chain of slow redirects costs one hop's
+  // budget per hop.
   assert(FETCH_TOTAL_TIMEOUT_MS < FETCH_TIMEOUT_MS * (MAX_REDIRECTS + 1));
 });
 
 Deno.test("one attempt cannot eat a whole provider deadline", () => {
-  // `postJson`'s pair — the benchmark-only providers still use it.
+  // `postJson`'s pair, used by the benchmark-only providers.
   assert(DEFAULT_ATTEMPT_TIMEOUT_MS < DEFAULT_DEADLINE_MS);
 });
 
@@ -98,24 +89,21 @@ Deno.test("the streaming budgets leave room for the attempt they allow", () => {
 const MODEL_BACKOFF_MS = 4_000;
 
 /**
- * A model call that IS producing. The heartbeat is throttled, so the worst gap
- * is a delta landing just under one interval after the last frame — too soon to
- * beat — and then nothing, until the idle timer ends the attempt.
+ * A model call that is producing. The worst gap is a delta landing just under
+ * one interval after the last frame, then nothing until the idle timer fires.
  */
 const STREAMING_MODEL_SILENCE_MS = HEARTBEAT_INTERVAL_MS +
   DEFAULT_IDLE_TIMEOUT_MS;
 
 /**
- * A model call that never starts producing — the honest worst case, and the
- * widest gap in the whole pipeline. Before the first delta there is nothing to
- * heartbeat ABOUT, so a run of attempts that each go silent is ONE gap: every
- * idle window, plus the sleeps between them. Raising the idle timer is what
- * would break this first, which is exactly the coupling worth a test.
+ * A model call that never starts producing: the widest gap in the pipeline.
+ * With nothing to heartbeat about, a run of silent attempts is one gap: every
+ * idle window plus the sleeps between them.
  */
 const STALLED_MODEL_SILENCE_MS = DEFAULT_IDLE_TIMEOUT_MS * MAX_ATTEMPTS +
   MODEL_BACKOFF_MS;
 
-/** The longest the stream can go quiet — the widest of the three. */
+/** The longest the stream can go quiet. */
 const LONGEST_SILENCE_MS = Math.max(
   FETCH_TOTAL_TIMEOUT_MS,
   STREAMING_MODEL_SILENCE_MS,
@@ -129,8 +117,8 @@ Deno.test("the stream is never quiet for as long as the platform's idle timeout"
       `${OVERHEAD_MS}ms of slack does not fit inside the platform's ` +
       `${PLATFORM_IDLE_TIMEOUT_MS}ms idle timeout`,
   );
-  // …and the APP gives up on a gap before the platform does, so a person gets
-  // a sentence rather than a gateway error.
+  // The app gives up on a gap before the platform does, so a person gets a
+  // sentence rather than a gateway error.
   assert(
     LONGEST_SILENCE_MS + OVERHEAD_MS < CLIENT_SILENCE_MS,
     `the longest gap between events is ${LONGEST_SILENCE_MS}ms, which with ` +
@@ -138,17 +126,14 @@ Deno.test("the stream is never quiet for as long as the platform's idle timeout"
       `silence rung — the app would give up on a server that is still trying`,
   );
   assert(CLIENT_SILENCE_MS < PLATFORM_IDLE_TIMEOUT_MS);
-  // The widest gap is a model call that never produced, not one that is slow:
-  // heartbeats cover the second case, and nothing can cover the first.
+  // The widest gap is a call that never produced; heartbeats cover a slow one.
   assert(STALLED_MODEL_SILENCE_MS > STREAMING_MODEL_SILENCE_MS);
 });
 
 Deno.test("the photo path outlives the idle timeout — which is exactly what heartbeats buy", () => {
-  // THE rung. Before the heartbeats, both model calls had to fit inside
-  // PLATFORM_IDLE_TIMEOUT_MS together, and that arithmetic is what held
-  // sanitize to 60s while the corpus said it could legitimately need ~54s on a
-  // bad day. If this assertion ever fails the budgets have shrunk back under
-  // the old ceiling, and the reason for the heartbeats has been lost.
+  // Heartbeats free the two model calls from fitting inside
+  // PLATFORM_IDLE_TIMEOUT_MS together. If this fails, the budgets have shrunk
+  // back under that ceiling.
   assert(
     PHOTO_WORST_CASE_MS > PLATFORM_IDLE_TIMEOUT_MS,
     `the photo path (${PHOTO_WORST_CASE_MS}ms) is back inside the platform's ` +

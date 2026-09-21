@@ -1,19 +1,13 @@
-// GPT budget-tier adapter — behind the frozen ExtractAdapter.
+// GPT budget-tier adapter, behind the frozen ExtractAdapter. Benchmark only.
 //
-// Model id: `gpt-5.6-luna` (the `GPT_MINI_MODEL` constant below; overridable via
-// options). CONFIRMED 2026-08-31 against OpenAI's own model-list endpoint
-// (`GET /v1/models`) and https://developers.openai.com/api/docs/models — the
-// GPT-5.6 family renamed its tiers (sol = flagship, terra = mid, luna = budget),
-// so `luna` is the successor to the `-mini` tier this adapter was pinned to
-// (`gpt-5.4-mini`). It is an EXACT id, not an alias: the models list carries no
-// dated `gpt-5.6-luna-YYYY-MM-DD` snapshot, so this string IS the pin.
-// Vision: yes (image_url data-URI parts). Native structured output: Chat
-// Completions `response_format: { type: "json_schema" }`. We pass
-// `strict: false` because the token object is an intentionally loose tagged
-// shape (only `t` is required), which strict mode forbids; the prompt +
-// coercion carry the rest. Raw HTTP keeps the three adapters uniform.
+// `GPT_MINI_MODEL` is an exact id (the models list carries no dated snapshot
+// of it), overridable via options. Vision uses image_url data-URI parts;
+// structured output uses Chat Completions
+// `response_format: { type: "json_schema" }` with `strict: false`, because the
+// token object is a loose tagged shape (only `t` is required), which strict
+// mode forbids. Raw HTTP, like the other adapters.
 //
-// KEYLESS: needs OPENAI_API_KEY for a live call.
+// A live call needs OPENAI_API_KEY.
 
 import type {
   ExtractAdapter,
@@ -45,14 +39,10 @@ import {
 } from "./http.ts";
 
 export const GPT_MINI_MODEL = "gpt-5.6-luna";
-/** The id this adapter was pinned to before 2026-08-31 — kept for A/B reruns. */
+/** The id this adapter was pinned to previously; kept for A/B reruns. */
 export const GPT_MINI_MODEL_PREVIOUS = "gpt-5.4-mini";
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
-/**
- * A ceiling, not a target — unreached it costs nothing, reached it truncates the
- * JSON. Well inside this tier's output limit and far above any real recipe.
- * (Was 8192, which a long multi-page recipe could genuinely hit.)
- */
+/** A ceiling, not a target: a reached one truncates the JSON. */
 const DEFAULT_MAX_TOKENS = 32_000;
 
 export interface GptAdapterOptions {
@@ -83,8 +73,8 @@ function firstText(res: OpenAiResponse): string {
 }
 
 /**
- * VERBATIM response → `ExtractionResult`. Split out of `sanitize` so a saved raw
- * response can be rescored later with no second paid call (evals `--rescore`).
+ * Verbatim response → `ExtractionResult`. Split out of `sanitize` so a saved
+ * raw response can be rescored without a second paid call (evals `--rescore`).
  */
 export function decodeGptSanitize(res: unknown): ExtractionResult {
   const typed = res as OpenAiResponse;
@@ -93,7 +83,7 @@ export function decodeGptSanitize(res: unknown): ExtractionResult {
   return validateExtractionResult(coerceExtractionResult(json));
 }
 
-/** VERBATIM response → the transcription text (the D1 half of the decode). */
+/** Verbatim response → the transcription text. */
 export function decodeGptTranscribe(res: unknown): string {
   const typed = res as OpenAiResponse;
   assertComplete(typed);
@@ -152,8 +142,7 @@ export class GptMiniAdapter implements ExtractAdapter {
       body: {
         model: this.model,
         max_completion_tokens: this.#maxTokens,
-        // No temperature pin here, unlike claude.ts/gemini.ts: GPT-5-family
-        // models reject the parameter (only the default is supported).
+        // No temperature pin: GPT-5-family models reject the parameter.
         messages: [{ role: "user", content }],
       },
     });

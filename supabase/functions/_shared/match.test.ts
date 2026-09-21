@@ -18,14 +18,13 @@ import {
 import { normalize } from "./normalize.ts";
 import type { RawLineItem } from "./types.ts";
 
-// A tiny, deterministic hand vocab for the cascade unit tests. match_texts are the
-// normalized forms the row writer would store (§7).
+// A tiny hand vocab. match_texts are the normalized forms a row stores (§7).
 const HAND: VocabEntry[] = [
   { ingredient_id: "i-onion", canonical_name: "Onion", match_texts: ["onion"] },
   {
     ingredient_id: "i-cilantro",
     canonical_name: "Cilantro",
-    // an alias absorbs the household's phrasing (the §8 learning loop shape)
+    // an alias absorbs the household's phrasing (§8)
     match_texts: ["cilantro", "coriander", "cilantro leaf tender stem"],
   },
   {
@@ -77,8 +76,8 @@ Deno.test("cascade — exact match_text → auto with the single candidate", asy
 });
 
 Deno.test("cascade — exact via an alias → auto on the aliased ingredient", async () => {
-  // "coriander" is an alias of Cilantro; exact tier resolves it (the synonym gap
-  // trigram can't close is handled by aliases, per the 0014 decision log).
+  // "coriander" is an alias of Cilantro; the exact tier resolves it. Aliases
+  // close the synonym gap trigram cannot.
   const r = await matchOne("coriander", hand);
   assertEquals(r.band, "auto");
   assertEquals(r.candidates[0].canonical_name, "Cilantro");
@@ -91,7 +90,7 @@ Deno.test("cascade — exact wins over a longer alias surface", async () => {
 });
 
 Deno.test("cascade — exact does NOT over-collapse form/state words", async () => {
-  // The §7 own-goal: coconut milk ≠ coconut cream. Distinct exact rows.
+  // §7: coconut milk ≠ coconut cream. Distinct exact rows.
   assertEquals(
     (await matchOne("coconut milk", hand)).candidates[0].canonical_name,
     "Coconut Milk",
@@ -103,7 +102,7 @@ Deno.test("cascade — exact does NOT over-collapse form/state words", async () 
 });
 
 Deno.test("cascade — trigram typo lands in a band, best-first", async () => {
-  // "granulated suger" (typo) — no exact, trigram should surface Granulated Sugar.
+  // "granulated suger" (typo): no exact; trigram surfaces Granulated Sugar.
   const r = await matchOne("granulated suger", hand);
   assert(r.candidates.length >= 1);
   assertEquals(r.candidates[0].canonical_name, "Granulated Sugar");
@@ -133,9 +132,7 @@ Deno.test("matchLines — preserves order and normalizes each line", async () =>
 });
 
 Deno.test("matchLines — one call per tier, and tier 2 only sees what tier 1 missed", async () => {
-  // The batch shape, at the cascade level: a recipe costs two calls into the
-  // seam, not two per line. `matchOne` keeps its own short-circuit — an exact
-  // hit never reaches the trigram tier at all.
+  // A recipe costs two calls into the seam, not two per line.
   const asked: { exact: string[][]; trigram: string[][] } = {
     exact: [],
     trigram: [],
@@ -152,8 +149,8 @@ Deno.test("matchLines — one call per tier, and tier 2 only sees what tier 1 mi
   };
 
   const out = await matchLines(
-    // `onion` twice, an alias hit, a typo, and something the vocab has never
-    // heard of — five lines, four distinct identities.
+    // `onion` twice, an alias hit, a typo and a miss: five lines, four
+    // distinct identities.
     ["2 large Onions, diced", "onion", "coriander", "granulated suger", "ice"]
       .map(line),
     counted,
@@ -161,7 +158,7 @@ Deno.test("matchLines — one call per tier, and tier 2 only sees what tier 1 mi
 
   assertEquals(asked.exact.length, 1);
   assertEquals(asked.trigram.length, 1);
-  // Distinct identities only — `onion` is asked about once for both its lines.
+  // Distinct identities only: `onion` is asked about once.
   assertEquals(asked.exact[0], [
     "onion",
     "coriander",
@@ -217,9 +214,8 @@ Deno.test("cascade — ambiguous exact (shared surface) → suggest, not auto", 
   assertEquals(r.candidates.length, 2);
 });
 
-// --- The sub-recipe tier (step 8.6 / exec plan 0021 D6) ----------------------
-// The household's own recipes, as the review card would offer them. Titles are
-// normalized by the matcher itself (a recipe has no stored match_text).
+// --- The sub-recipe tier -----------------------------------------------------
+// The household's own recipes. Titles are normalized by the matcher itself.
 
 const RECIPES: RecipeTitleEntry[] = [
   { recipe_id: "r-aioli", title: "Romesco Aioli" },
@@ -229,12 +225,10 @@ const RECIPES: RecipeTitleEntry[] = [
 const recipes = inMemoryRecipeTitleMatcher(RECIPES);
 
 Deno.test("sub-recipe tier — the printed cross-reference is stripped before matching", () => {
-  // "(page 38)" is the whole reason a title hit needs its own match text: the
-  // ingredient cascade's normalizer keeps "page" as a noun.
+  // The ingredient normalizer would keep "page" as a noun.
   assertEquals(recipeMatchText("Romesco Aioli (page 38)"), "romesco aioli");
   assertEquals(normalize("Romesco Aioli (page 38)"), "romesco aioli page");
-  // An aside that IS the line falls back to the unstripped text rather than
-  // matching everything with an empty string.
+  // An aside that is the whole line falls back to the unstripped text.
   assertEquals(recipeMatchText("(page 38)"), "page");
 });
 
@@ -247,8 +241,7 @@ Deno.test("sub-recipe tier — an exact title hit is offered", async () => {
 });
 
 Deno.test("sub-recipe tier — the normalizer is symmetric on titles", async () => {
-  // "8 Pretzel Buns (page 97)" — plural on the line, singular nowhere: both
-  // sides go through the same §7 normalizer, so they meet.
+  // Plural on the line, singular in the title: both go through §7.
   const hits = await matchRecipeTitles("Pretzel Buns (page 97)", recipes);
   assertEquals(hits.map((h) => h.recipe_id), ["r-buns"]);
 });
@@ -259,13 +252,12 @@ Deno.test("sub-recipe tier — an ordinary ingredient line offers nothing", asyn
 });
 
 Deno.test("sub-recipe tier — weak trigram noise is filtered out", async () => {
-  // Below BAND_SUGGEST_MIN nothing is offered: a stray "↪ your recipe" chip on
-  // a plain ingredient line is pure noise, and a missed one costs a tap.
+  // Below BAND_SUGGEST_MIN nothing is offered.
   const noisy = inMemoryRecipeTitleMatcher([
     { recipe_id: "r-x", title: "Roast Aubergine and Butterbean Stew" },
   ]);
   assertEquals(await matchRecipeTitles("butter", noisy), []);
-  // …while a typo'd surface that still scores in-band IS offered.
+  // A typo'd surface that still scores in-band is offered.
   const near = await matchRecipeTitles("garlick butter", recipes);
   assertEquals(near.map((h) => h.recipe_id), ["r-butter"]);
   assert(near[0].score >= BAND_SUGGEST_MIN && near[0].score < 1);
@@ -290,9 +282,8 @@ Deno.test("matchLines — recipe candidates are ADDITIVE and never auto-link", a
 });
 
 Deno.test("matchLines — the ingredient cascade is unaffected by the recipe tier", async () => {
-  // A line that hits BOTH: the band and candidates are exactly what the
-  // two-argument call produces; the suggestion rides alongside, and the human
-  // picks (D6 — matching offers, it never chooses).
+  // A line that hits both: band and candidates are what the two-argument call
+  // produces, and the suggestion rides alongside.
   const alsoARecipe = inMemoryRecipeTitleMatcher([
     { recipe_id: "r-onion", title: "Onion" },
   ]);
@@ -302,7 +293,7 @@ Deno.test("matchLines — the ingredient cascade is unaffected by the recipe tie
   assertEquals(after[0].band, before[0].band);
   assertEquals(after[0].candidates, before[0].candidates);
   assertEquals(after[0].recipe_candidates?.length, 1);
-  // No matcher ⇒ the key is absent entirely (the pre-8.6 wire shape).
+  // No matcher ⇒ the key is absent entirely.
   assert(!("recipe_candidates" in before[0]));
 });
 
@@ -317,18 +308,18 @@ Deno.test("sub-recipe tier — candidates are capped at TOP_N and deterministic"
   assertEquals(hits.length, 1, "an exact title hit wins outright");
   const fuzzy = await matchRecipeTitles("romesco aiolis extra verde", many);
   assert(fuzzy.length <= TOP_N);
-  // Stable order: score desc, then title, then id — never row order.
+  // Stable order: score desc, then title, then id.
   assertEquals(
     fuzzy,
     await matchRecipeTitles("romesco aiolis extra verde", many),
   );
 });
 
-// --- Calibration against the household vocab + lane-D eval set ----------------
-// Exercises the cascade over the REAL vocab (evals note: cases.jsonl may be stale
-// vs snapshot.jsonl — this asserts a precision FLOOR + reports, it is not a
-// per-case gate). We isolate the cascade from extraction by feeding the gold-normalized
-// identity (expect_normalized) as the line's ingredient_text.
+// --- Calibration against the household vocab + eval set ----------------------
+// Runs the cascade over the real vocab. cases.jsonl may be stale vs
+// snapshot.jsonl, so this asserts a precision floor and reports; it is not a
+// per-case gate. The gold-normalized identity (expect_normalized) is fed as
+// the line's ingredient_text, isolating the cascade from extraction.
 
 const REPO = new URL("../../../", import.meta.url); // repo root from _shared/
 const readIf = (rel: string): string | null => {
@@ -367,10 +358,8 @@ function loadVocabMatcher(): ReturnType<typeof inMemoryVocabMatcher> | null {
 Deno.test("calibration — cascade over the real vocab hits a precision floor", async () => {
   const matcher = loadVocabMatcher();
   const casesRaw = readIf("evals/datasets/matching/cases.jsonl");
-  // HARD FAILURE, not a skip. This test used to `console.log("(skipped)")` and
-  // return green when a fixture was missing — which is exactly how it went
-  // unnoticed that `deno test` without `--allow-read` was never running it at
-  // all. A missing fixture is a broken test run, not a passing one.
+  // A hard failure, not a skip: a missing fixture (or a run without
+  // `--allow-read`) must not pass silently.
   assert(
     matcher,
     "supabase/seed/snapshot.jsonl is missing or unreadable — the calibration " +
@@ -389,10 +378,9 @@ Deno.test("calibration — cascade over the real vocab hits a precision floor", 
   }
   const cases: Case[] = jsonl(casesRaw);
 
-  // Grade only single-ingredient AUTO cases whose gold label still exists in the
-  // current vocab — the fair, drift-robust measure of the cascade's job. (Compound
-  // "suggest" cases assume upstream line-splitting; stale singular/plural canonical
-  // drift is a vocab-eval sync issue, flagged in the report, not a cascade bug.)
+  // Grade only single-ingredient auto cases whose gold label still exists in
+  // the vocab. Compound "suggest" cases assume upstream line-splitting, and
+  // stale labels are eval/vocab drift, not a cascade bug.
   let gradable = 0;
   let recovered = 0; // right ingredient appears as top candidate (auto or suggest)
   let autoExact = 0; // and the band was auto
@@ -405,7 +393,7 @@ Deno.test("calibration — cascade over the real vocab hits a precision floor", 
     const r = await matchOne(normalize(c.expect_normalized), matcher);
     const identity = normalize(c.expect_normalized);
     const labelPresent = r.candidates.some((x) => x.canonical_name === label) ||
-      // label may be absent from vocab entirely (drift) — detect by exact probe
+      // The label may be absent from the vocab (drift): detect by exact probe.
       ((await matcher.exact([identity])).get(identity)?.length ?? 0) > 0;
     if (!labelPresent && r.candidates.length === 0) continue; // pure vocab drift
     gradable++;
@@ -430,9 +418,7 @@ Deno.test("calibration — cascade over the real vocab hits a precision floor", 
   if (misses.length) console.log("  sample misses (mostly vocab/eval drift):");
   for (const m of misses) console.log("    -", m);
 
-  // A conservative floor: the cascade must recover the right ingredient for the
-  // large majority of gradable in-vocab auto cases. Precision here is limited by
-  // eval/vocab drift, not the cascade — hence a floor, not equality.
+  // A conservative floor: precision here is limited by eval/vocab drift.
   assert(gradable > 100, `expected a meaningful gradable set, got ${gradable}`);
   assert(precision >= 0.9, `precision ${precision} below floor`);
 });

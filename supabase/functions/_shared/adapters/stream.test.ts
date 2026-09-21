@@ -1,9 +1,8 @@
 // `streamJson` + the Anthropic assembler: the plumbing a user waits on.
 //
-// The bug these were written against: a 45s per-attempt wall clock aborted a
-// sanitize that was streaming perfectly well, a retry started into the 13s the
-// deadline had left, and that aborted too — two fully generated, fully billed
-// answers, and a 504 on the phone. Every test below pins one half of the fix.
+// The failure these guard against: a per-attempt wall clock aborts a sanitize
+// that is streaming well, a retry starts into too little budget and aborts
+// too. Two billed answers and a 504.
 
 import { assert, assertEquals, assertRejects } from "@std/assert";
 import {
@@ -24,8 +23,7 @@ import {
 
 /**
  * A scripted fetch: one step per attempt. A step is handed the caller's abort
- * signal, because that is the whole subject here — a stub that ignores it can
- * never show an idle timer firing.
+ * signal, since a stub that ignores it can never show an idle timer firing.
  */
 type Step = Response | Error | ((signal: AbortSignal | null) => Response);
 function scripted(steps: Step[]) {
@@ -74,13 +72,12 @@ Deno.test("the deltas are reassembled into the response the non-streaming call r
     }),
   ]);
   const res = await promise as Record<string, unknown>;
-  // The three pieces are ONE text block — the shape every decoder expects.
+  // The three pieces are one text block, the shape every decoder expects.
   assertEquals(res.content, [{ type: "text", text: '{"title":"Dirty Rice"}' }]);
   assertEquals(res.stop_reason, "end_turn");
   assertEquals(res.model, "test-model");
-  // Usage is MERGED, not replaced: the input half arrives with `message_start`
-  // and the output half with `message_delta`. Losing either silently halves
-  // what a run record says the import cost.
+  // Usage is merged, not replaced: the input half arrives with
+  // `message_start` and the output half with `message_delta`.
   const usage = anthropicUsage(res)!;
   assertEquals(usage.input_tokens, 900);
   assertEquals(usage.cache_read_tokens, 40);
@@ -88,9 +85,8 @@ Deno.test("the deltas are reassembled into the response the non-streaming call r
 });
 
 Deno.test("an assembled answer decodes exactly as a non-streamed one does", async () => {
-  // The equivalence claim, end to end: whatever arrives frame by frame has to
-  // survive `decodeClaudeSanitize` — the same function `evals/runs/` rescoring
-  // and the replay adapter put saved responses through.
+  // What arrives frame by frame has to survive `decodeClaudeSanitize`, the
+  // function rescoring and the replay adapter use.
   const recipe = JSON.stringify({
     title: "Dirty Rice",
     groups: [{ name: null, line_items: [] }],
@@ -104,7 +100,7 @@ Deno.test("an assembled answer decodes exactly as a non-streamed one does", asyn
 
 Deno.test("a truncated answer still says it was truncated", async () => {
   // `stop_reason: max_tokens` has to survive the stream, or a half-written
-  // recipe parses as a whole one and quietly loses its tail.
+  // recipe parses as a whole one.
   const { promise } = call([
     anthropicStream({ deltas: ['{"title":"Dir'], stopReason: "max_tokens" }),
   ]);
@@ -137,9 +133,8 @@ Deno.test("a `ping` is not output — it keeps the socket honest and nothing els
 // --- The idle timer -----------------------------------------------------------
 
 Deno.test("slow but FLOWING output is not a timeout — the gap is what is bounded", async () => {
-  // Six frames, 25ms apart, against a 90ms idle budget: the call runs far
-  // longer than the budget and must still succeed. This is the whole point —
-  // the old per-attempt wall clock failed exactly this shape.
+  // Six frames, 25ms apart, against a 90ms idle budget: the call outlasts the
+  // budget and must still succeed.
   const { promise, attempts } = call(
     [anthropicStream({ deltas: ["a", "b", "c", "d"] }, { pauseMs: 25 })],
     { idleTimeoutMs: 90, deadlineMs: 5_000, minAttemptMs: 50 },
@@ -150,8 +145,8 @@ Deno.test("slow but FLOWING output is not a timeout — the gap is what is bound
 });
 
 Deno.test("SILENCE mid-answer ends the attempt, and is never retried", async () => {
-  // Three frames, then nothing: the provider has generated and billed whatever
-  // it was going to, so a second attempt would buy a second copy of it.
+  // Three frames, then nothing: the answer was generated and billed, so a
+  // second attempt would buy a second copy.
   const started = anthropicFrames({ deltas: ["a"] }).slice(0, 3);
   const { promise, attempts } = call([stalls(started)], {
     idleTimeoutMs: 60,
@@ -226,10 +221,8 @@ Deno.test("a call with no budget left never dials out at all", async () => {
 });
 
 Deno.test("a short budget still dials ONCE — the minimum is a bar for retries", async () => {
-  // The minimum gates a RETRY, not the call. A 500ms budget is under
-  // DEFAULT_MIN_ATTEMPT_MS by two orders of magnitude, and must still ring:
-  // refusing to call at all is a stranger answer than the timeout asked for,
-  // and it is what a naive `left < minAttempt` on attempt 1 would give.
+  // The minimum gates a retry, not the call: a 500ms budget, far under
+  // DEFAULT_MIN_ATTEMPT_MS, must still dial.
   const { promise, attempts } = call([anthropicStream({ deltas: ["ok"] })], {
     deadlineMs: 500,
   });
@@ -239,9 +232,8 @@ Deno.test("a short budget still dials ONCE — the minimum is a bar for retries"
 });
 
 Deno.test("a RETRY is never STARTED into a budget it cannot finish in", async () => {
-  // The retry that made the real bug worse: ~13s left, a call that needs ~40s,
-  // and we dialled anyway — billing a whole answer only to abort it. Now the
-  // call says it ran out of time, which is what had actually happened.
+  // A retry into too little budget would bill a whole answer only to abort it;
+  // the call reports a timeout instead.
   const started = Date.now();
   const { promise, attempts } = call(
     [stalls([]), () => anthropicStream({ deltas: ["never reached"] })],
@@ -253,8 +245,7 @@ Deno.test("a RETRY is never STARTED into a budget it cannot finish in", async ()
 });
 
 Deno.test("the defaults are the ones the ladder is drawn with", () => {
-  // Named here so a change to either shows up as a diff on a test that says
-  // what it is for, rather than as a quiet constant edit.
+  // Named here so a change to either shows up as a diff on a test.
   assertEquals(DEFAULT_IDLE_TIMEOUT_MS, 20_000);
   assertEquals(DEFAULT_MIN_ATTEMPT_MS, 30_000);
   assert(DEFAULT_MIN_ATTEMPT_MS > DEFAULT_IDLE_TIMEOUT_MS);

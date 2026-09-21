@@ -15,7 +15,7 @@ import type { ReceiptAdapter } from "../_shared/receipt_types.ts";
 
 const HH = "11111111-2222-3333-4444-555555555555";
 
-/** A receipt whose every line WOULD teach something, if anything could. */
+/** A receipt whose every line would teach something, if anything could. */
 const adapter: ReceiptAdapter = {
   name: "fake",
   transcribe: () =>
@@ -70,8 +70,7 @@ const adapter: ReceiptAdapter = {
 
 Deno.test("no alias — every statement the function issues is a SELECT", async () => {
   const issued: string[] = [];
-  // The REAL Postgres-backed matcher over a spying executor: whatever SQL the
-  // cascade would send, we see it, in the shape it would send it.
+  // The real Postgres-backed matcher over a spying executor.
   const spy = (text: string) => {
     issued.push(text);
     return Promise.resolve([]);
@@ -80,8 +79,7 @@ Deno.test("no alias — every statement the function issues is a SELECT", async 
   const deps: ReceiptDeps = {
     adapter,
     matchLines: (lines) => matchLines(lines, matcher),
-    // The REAL recall too: the match memory reads this household's own saved
-    // lines, and "reads" is exactly the thing this test exists to hold.
+    // The real recall too: it must only read.
     recallMatches: sqlReceiptMemory(spy, HH),
   };
 
@@ -105,9 +103,8 @@ Deno.test("no alias — every statement the function issues is a SELECT", async 
 });
 
 Deno.test("no alias — nothing in this function's own sources can write one", async () => {
-  // Every file the receipt pipeline owns. Listed rather than crawled so that
-  // ADDING one is a deliberate act: a new file not named here is caught by the
-  // completeness check below.
+  // Every file the receipt pipeline owns, listed rather than crawled; the
+  // completeness check below catches a new file not named here.
   const OWNED = [
     "import-receipt/index.ts",
     "import-receipt/live.ts",
@@ -135,8 +132,7 @@ Deno.test("no alias — nothing in this function's own sources can write one", a
     }
   }
 
-  // Completeness: every non-test module in the function's own folder is on the
-  // list above, so a file added tomorrow is covered or this fails today.
+  // Completeness: every non-test module in the function's folder is listed.
   const dir = new URL("./", import.meta.url);
   for await (const entry of Deno.readDir(dir)) {
     if (!entry.isFile || !entry.name.endsWith(".ts")) continue;
@@ -149,9 +145,8 @@ Deno.test("no alias — nothing in this function's own sources can write one", a
 });
 
 Deno.test("no alias — the match cascade's DB module offers no writer to call", async () => {
-  // The cascade's Postgres side is shared with the recipe door. If a write
-  // contract is ever added there, a receipt must not be able to reach it by
-  // simply importing the module it already imports.
+  // The cascade's Postgres side is shared with the recipe door; a write
+  // contract added there must not be reachable from a receipt.
   const src = await Deno.readTextFile(
     new URL("../_shared/match_db.ts", import.meta.url),
   );

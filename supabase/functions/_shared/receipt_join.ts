@@ -1,30 +1,12 @@
-// Joining the photos of one receipt — BY POSITION, never by identity.
+// Joining the photos of one receipt by position, never by identity.
 //
-// A till receipt is one strip. Photographed in parts, top to bottom, each photo
-// overlaps the one before it by a few lines, and the whole job here is to find
-// where. The rule, and it is the whole rule:
+//   The seam between photo n and photo n+1 is the longest run of identical
+//   consecutive lines shared by the end of photo n and the start of photo n+1.
 //
-//   the seam between photo n and photo n+1 is the LONGEST RUN of identical
-//   consecutive lines shared by the END of photo n and the START of photo n+1.
-//
-// Longest, consecutive, and anchored at those two ends. Nothing else is
-// considered, and in particular **a line is never deduplicated because it looks
-// like another line**. A receipt honestly prints the same item twice when two
-// were bought, and a joiner that noticed "BANANAS 1.99" twice and kept one
-// would delete a banana the household paid for. Every de-duplication this
-// module performs is positional: it drops photo n+1's copy of a run that photo
-// n already contributed, at the join, and nowhere else.
-//
-// When no run is found the photos are concatenated end to end and a note says
-// so — in the review's voice, because it is the review that has to act on it.
-// The reconcile figure (`receipt_assemble.ts`) is the backstop: a missed seam
-// double-counts its overlap and a wrong one loses lines, and either way the
-// lines stop adding up to the printed subtotal, which is exactly the flag the
-// join card draws.
-//
-// Pure, and unit-tested against the four cases that matter: an overlap found,
-// none found, the same item printed twice across a seam (kept twice), and three
-// photos in a row.
+// A line is never dropped for looking like another: a receipt prints an item
+// twice when two were bought. With no run found, the photos are concatenated
+// and a note says so; the reconcile figure (`receipt_assemble.ts`) then shows
+// the lines not adding up.
 
 import type { ReceiptSeam } from "./receipt_types.ts";
 
@@ -32,21 +14,19 @@ import type { ReceiptSeam } from "./receipt_types.ts";
 export interface JoinedTranscript {
   /** Every line of the joined strip, verbatim, in printed order. */
   lines: string[];
-  /** `photoOfLine[i]` — which photo `lines[i]` came from. A seam line is the EARLIER photo's. */
+  /** Which photo `lines[i]` came from. A seam line is the earlier photo's. */
   photoOfLine: number[];
   /** One entry per join, in order. Empty for a single photo. */
   seams: ReceiptSeam[];
   /** "What we could not read", in the review's voice. */
   notes: string[];
-  /** The joined strip as one document — what the structuring call is given. */
+  /** The joined strip as one document, given to the structuring call. */
   text: string;
 }
 
 /**
- * The comparison form. Case and inner whitespace are noise across two photos of
- * the same paper (one shot is brighter, one transcription spaces a column
- * differently), so they are folded away FOR THE COMPARISON ONLY — every line
- * kept is kept verbatim.
+ * The comparison form: case and inner whitespace folded away, for the
+ * comparison only. Every kept line is kept verbatim.
  */
 export function joinKey(line: string): string {
   return line.trim().replace(/\s+/g, " ").toLowerCase();
@@ -61,10 +41,8 @@ export function transcriptLines(text: string): string[] {
 
 /**
  * The length of the longest run of identical consecutive lines shared by the
- * end of `head` and the start of `tail`, or 0 when there is none. Compared
- * through {@link joinKey}; a run of 1 is a real answer (a receipt's lines are
- * long and specific enough that one is rarely a coincidence, and the reconcile
- * catches it when it is).
+ * end of `head` and the start of `tail`, or 0. Compared through
+ * {@link joinKey}. A run of 1 counts; the reconcile catches a coincidence.
  */
 export function overlapLength(head: string[], tail: string[]): number {
   const max = Math.min(head.length, tail.length);
@@ -81,7 +59,7 @@ export function overlapLength(head: string[], tail: string[]): number {
   return 0;
 }
 
-/** "the second", "the third" — the review speaks about photos in words, not indices. */
+/** "the second", "the third": the review names photos in words. */
 function ordinal(n: number): string {
   const words = [
     "first",
@@ -97,11 +75,8 @@ function ordinal(n: number): string {
 }
 
 /**
- * Joins consecutive photo transcriptions into one strip.
- *
- * `photos` are the segments IN ORDER, top to bottom — the order they were shot
- * in, which the camera door states and the transcription preserves. A single
- * photo joins to nothing and comes back as itself.
+ * Joins consecutive photo transcriptions, in top-to-bottom order, into one
+ * strip. A single photo comes back as itself.
  */
 export function joinPhotoTranscripts(photos: string[]): JoinedTranscript {
   const perPhoto = photos.map(transcriptLines);
@@ -118,8 +93,7 @@ export function joinPhotoTranscripts(photos: string[]): JoinedTranscript {
       }
       return;
     }
-    // The end of the PREVIOUS photo, not the end of everything joined so far:
-    // the rule is about two photos, and a run may not reach back past one.
+    // The end of the previous photo only: a run may not reach back past one.
     const previous = perPhoto[photo - 1];
     const previousKept = Math.min(previous.length, lines.length);
     const head = lines.slice(lines.length - previousKept);
@@ -135,8 +109,7 @@ export function joinPhotoTranscripts(photos: string[]): JoinedTranscript {
     } else {
       seams.push({ from: photo - 1, to: photo, overlap_lines: overlap });
     }
-    // The overlap's lines are already in `lines`, contributed by the earlier
-    // photo — which is why a seam line's `photo` is the FIRST one it appeared in.
+    // The overlap's lines are already in `lines`, from the earlier photo.
     for (const l of photoLines.slice(overlap)) {
       lines.push(l);
       photoOfLine.push(photo);

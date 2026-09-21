@@ -1,40 +1,26 @@
-// Reading the paper's printed strings honestly — money, a date, a weight unit.
+// Parses the paper's printed strings: money, a date, a weight unit.
 //
-// The model prints what the receipt printed and stops there (ADR-0004 in its
-// own small way: the model is not asked to convert, because a conversion is a
-// thing we can get right deterministically and it cannot). Everything numeric
-// in the payload is therefore parsed HERE, from the printed words, by code with
-// tests.
-//
-// "Honestly" is the whole rule: a figure that cannot be read comes back `null`
-// and becomes a note in the review, never a zero. A zero would add up.
+// The model prints what the receipt printed and never converts (ADR-0004), so
+// every number in the payload is parsed here. A figure that cannot be read
+// comes back `null` and becomes a note in the review, never a zero.
 
 // -----------------------------------------------------------------------------
 // Money → integer cents
 // -----------------------------------------------------------------------------
 
-/**
- * Every character a till has been seen to put in front of a negative number.
- * The ASCII hyphen, the real minus sign (U+2212 — what a good transcription of
- * a laser-printed receipt gives back), and the en dash.
- */
+/** A minus sign as tills print it: ASCII hyphen, U+2212, or en dash. */
 const MINUS = /[-−–]/;
 
 /**
  * A printed money figure → integer cents, or `null` when it cannot be read.
  *
- * Reads, in this order: a parenthesised figure `(0.55)` as negative; a leading
- * or TRAILING minus (`-0.55`, `0.55-` — the trailing form is what a lot of
- * tills print for a credit); a currency symbol or code anywhere; and either
- * separator as the decimal point. `3,49` is three dollars forty-nine, and
- * `1,234.56` is a thousand-odd — the LAST separator is the decimal one, unless
- * a lone comma is followed by three digits, which makes it a thousands mark.
+ * Reads a parenthesised figure `(0.55)` as negative; a leading or trailing
+ * minus (`-0.55`, `0.55-`); a currency symbol or code anywhere; and either
+ * separator as the decimal point. The last separator is the decimal one,
+ * unless a lone comma is followed by three digits (a thousands mark).
  *
  * Parsed as digits, never through a float: `parseFloat("3.49") * 100` is
- * 348.99999999999994, and money that rounds is money that stops adding up.
- *
- * A bare integer is read as whole dollars (`3` ⇒ 300). Tills print the cents,
- * so this is rare, and dollars is the only reading that is ever right.
+ * 348.99999999999994. A bare integer is whole dollars (`3` ⇒ 300).
  */
 export function parseCents(printed: string | null | undefined): number | null {
   if (printed === null || printed === undefined) return null;
@@ -42,14 +28,13 @@ export function parseCents(printed: string | null | undefined): number | null {
   if (s === "") return null;
 
   let negative = false;
-  // (0.55) — the accountant's minus.
+  // (0.55): the accountant's minus.
   const parens = s.match(/^\((.*)\)$/);
   if (parens) {
     negative = true;
     s = parens[1].trim();
   }
-  // A sign at either end. Stripped before the digits are read so "0.55-" and
-  // "-0.55" reach the same place.
+  // A sign at either end, stripped before the digits are read.
   if (MINUS.test(s.charAt(0))) {
     negative = true;
     s = s.slice(1).trim();
@@ -86,8 +71,7 @@ export function parseCents(printed: string | null | undefined): number | null {
     whole = s.slice(0, decimalAt).replace(/[.,]/g, "");
     frac = s.slice(decimalAt + 1).replace(/[.,]/g, "");
     if (frac.length === 0) return null;
-    // A till prints two; anything longer is truncated rather than rounded,
-    // because rounding a figure we are copying would be inventing one.
+    // Longer fractions are truncated, not rounded: the figure is a copy.
     frac = (frac + "00").slice(0, 2);
   }
   if (whole === "") whole = "0";
@@ -98,7 +82,7 @@ export function parseCents(printed: string | null | undefined): number | null {
   return negative ? -cents : cents;
 }
 
-/** {@link parseCents}, with the sign dropped — for a deduction, which is stated as an amount. */
+/** {@link parseCents} with the sign dropped, for a deduction. */
 export function parseDiscountCents(
   printed: string | null | undefined,
 ): number | null {
@@ -136,11 +120,7 @@ function validDate(y: number, m: number, d: number): boolean {
   return d <= days[m - 1];
 }
 
-/**
- * A two-digit year on a till receipt is this century. There is no receipt from
- * 1926 in anybody's kitchen drawer, and the alternative reading would file a
- * shop a hundred years out of the week it belongs to.
- */
+/** A two-digit year on a till receipt is this century. */
 function fullYear(raw: string): number {
   const n = Number(raw);
   return raw.length <= 2 ? 2000 + n : n;
@@ -148,9 +128,8 @@ function fullYear(raw: string): number {
 
 /** The time of day, if the paper printed one. `null` ⇒ midnight. */
 function parseClock(s: string): { h: number; min: number; sec: number } | null {
-  // The hour must not be preceded by a digit or a colon: without that,
-  // "2026-09-13T11:04:09" matches at "04:09" and the receipt lands four
-  // minutes past midnight.
+  // The hour must not follow a digit or a colon, or "2026-09-13T11:04:09"
+  // matches at "04:09".
   const m = s.match(
     /(?<![\d:])(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([ap]\.?m\.?)?/i,
   );
@@ -166,20 +145,14 @@ function parseClock(s: string): { h: number; min: number; sec: number } | null {
 }
 
 /**
- * The printed date and time → `YYYY-MM-DDTHH:MM:SS`, local wall time with NO
- * zone, or `null` when it cannot be read.
+ * The printed date and time → `YYYY-MM-DDTHH:MM:SS`, local wall time with no
+ * zone, or `null` when it cannot be read. The paper states no offset, and a
+ * receipt scanned in another zone must still land on the day it was printed.
  *
- * No zone on purpose: a receipt states the moment the shop happened in the
- * shop's own clock, there is nothing on the paper that says which offset that
- * was, and a receipt scanned in another time zone must still land on the day it
- * was printed. The week it files under is the household's own week start, read
- * off these wall-clock digits.
- *
- * Reads the US forms a till prints — `09/13/26`, `9/13/2026`, `09-13-2026`,
- * `2026-09-13`, `SEP 13 2026`, `13 SEP 2026` — each with an optional 12- or
- * 24-hour time. A slashed or dashed date is READ MONTH-FIRST; the household shops in the US, and a
- * paper that means otherwise is a note away from being corrected by hand in the
- * review, which is the door the board draws beside the date.
+ * Reads the US forms a till prints (`09/13/26`, `9/13/2026`, `09-13-2026`,
+ * `2026-09-13`, `SEP 13 2026`, `13 SEP 2026`), each with an optional 12- or
+ * 24-hour time. A slashed or dashed date is read month-first; the review can
+ * correct it.
  */
 export function parseReceiptDate(
   printed: string | null | undefined,
@@ -192,8 +165,8 @@ export function parseReceiptDate(
   let d = 0;
 
   const iso = s.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})(?!\d)/);
-  // The dash is a till's separator too (Trader Joe's prints `09-12-2026`). The
-  // year-first form is tried before this one, so `2026-09-13` never reads here.
+  // A dash separates too (`09-12-2026`). The year-first form is tried first,
+  // so `2026-09-13` never reads here.
   const slashed = s.match(/\b(\d{1,2})([/.-])(\d{1,2})\2(\d{2,4})(?!\d)/);
   const monthFirst = s.match(
     /\b([a-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{2,4})\b/i,
@@ -242,12 +215,8 @@ export function parseReceiptDate(
 
 /**
  * Every printed spelling of the four units a till weighs in, mapped to the
- * canonical id `app/lib/core/units/units.dart` holds. The payload carries the
- * id, so the app converts with the same catalog every other amount in the
- * system uses — a receipt is not a second unit vocabulary.
- *
- * Volume is deliberately absent: a till does not sell by the litre, and a
- * printed `@ /ea` is a count, not a weight (it comes back as no weight at all).
+ * canonical id in `app/lib/core/units/units.dart`. Volume is absent, and a
+ * printed `@ /ea` is a count, not a weight.
  */
 const WEIGHT_UNITS: Record<string, string> = {
   lb: "lb",
@@ -275,7 +244,7 @@ const WEIGHT_UNITS: Record<string, string> = {
   grams: "g",
 };
 
-/** A printed unit word → its canonical id, or `null` when it is not a weight we know. */
+/** A printed unit word → its canonical id, or `null` for an unknown weight. */
 export function canonicalWeightUnit(printed: string | null): string | null {
   if (!printed) return null;
   const key = printed.trim().toLowerCase().replace(/\s+/g, "");

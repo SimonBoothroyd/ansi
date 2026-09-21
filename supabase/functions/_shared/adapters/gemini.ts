@@ -1,17 +1,11 @@
-// Gemini Flash adapter — behind the frozen ExtractAdapter.
+// Gemini Flash adapter, behind the frozen ExtractAdapter. Benchmark only.
 //
-// Model id: `gemini-3.7-flash` (the `GEMINI_FLASH_MODEL` constant below).
-// CONFIRMED 2026-08-31 against Google's own model-list endpoint
-// (`GET /v1beta/models`, which reports version `3.7-flash-08-2026`) and
-// https://ai.google.dev/gemini-api/docs/models. This replaces the previous
-// `gemini-flash-latest` pin, which was an ALIAS — the 0018 convention is exact
-// ids, because an alias silently re-points and makes two dated benchmark runs
-// incomparable. Vision: yes (inline_data image parts). Native structured
-// output: `responseMimeType: "application/json"` + `responseSchema` in
-// generationConfig. Raw HTTP to the Generative Language REST endpoint keeps the
-// three adapters uniform.
+// `GEMINI_FLASH_MODEL` is an exact id, not an alias: an alias re-points and
+// makes two benchmark runs incomparable. Vision uses inline_data image parts;
+// structured output uses `responseMimeType: "application/json"` +
+// `responseSchema`. Raw HTTP, like the other adapters.
 //
-// KEYLESS: needs GEMINI_API_KEY (or GOOGLE_API_KEY) for a live call.
+// A live call needs GEMINI_API_KEY (or GOOGLE_API_KEY).
 
 import type {
   ExtractAdapter,
@@ -43,7 +37,7 @@ import {
 } from "./http.ts";
 
 export const GEMINI_FLASH_MODEL = "gemini-3.7-flash";
-/** The alias this adapter used before 2026-08-31 — kept for A/B reruns only. */
+/** The alias this adapter used previously; kept for A/B reruns only. */
 export const GEMINI_FLASH_MODEL_PREVIOUS = "gemini-flash-latest";
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
@@ -52,10 +46,7 @@ export interface GeminiAdapterOptions {
   model?: string;
 }
 
-/**
- * A ceiling, not a target — unreached it costs nothing, reached it truncates the
- * JSON. Well inside the Flash tier's output limit.
- */
+/** A ceiling, not a target: a reached one truncates the JSON. */
 const DEFAULT_MAX_OUTPUT_TOKENS = 32_000;
 
 interface GeminiPart {
@@ -94,8 +85,8 @@ function firstText(res: GeminiResponse): string {
 }
 
 /**
- * VERBATIM response → `ExtractionResult`. Split out of `sanitize` so a saved raw
- * response can be rescored later with no second paid call (evals `--rescore`).
+ * Verbatim response → `ExtractionResult`. Split out of `sanitize` so a saved
+ * raw response can be rescored without a second paid call (evals `--rescore`).
  */
 export function decodeGeminiSanitize(res: unknown): ExtractionResult {
   const typed = res as GeminiResponse;
@@ -104,7 +95,7 @@ export function decodeGeminiSanitize(res: unknown): ExtractionResult {
   return validateExtractionResult(coerceExtractionResult(json));
 }
 
-/** VERBATIM response → the transcription text (the D1 half of the decode). */
+/** Verbatim response → the transcription text. */
 export function decodeGeminiTranscribe(res: unknown): string {
   const typed = res as GeminiResponse;
   assertComplete(typed);
@@ -142,11 +133,7 @@ export class GeminiFlashAdapter implements ExtractAdapter {
     });
   }
 
-  /**
-   * The key goes in a HEADER, never the query string: URLs are the most-logged
-   * string in any stack (proxies, error reporters, our own ProviderHttpError
-   * message), and `?key=…` leaks the secret into every one of them.
-   */
+  /** The key goes in a header, never the query string: URLs get logged. */
   #headers(): Record<string, string> {
     return { "x-goog-api-key": this.#apiKey };
   }
@@ -166,8 +153,8 @@ export class GeminiFlashAdapter implements ExtractAdapter {
       provider: "Gemini",
       body: {
         contents: [{ role: "user", parts }],
-        // temperature 0: transcription is deterministic work (the Claude
-        // adapter's pin, mirrored — unpinned sampling gave run-to-run variance).
+        // temperature 0, as in the Claude adapter: unpinned sampling varies
+        // run to run.
         generationConfig: {
           maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS,
           temperature: 0,
@@ -199,7 +186,7 @@ export class GeminiFlashAdapter implements ExtractAdapter {
           responseMimeType: "application/json",
           responseSchema: toGeminiSchema(),
           maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS,
-          // Same pin as transcribe: extraction is deterministic work.
+          // Same pin as transcribe.
           temperature: 0,
         },
       },

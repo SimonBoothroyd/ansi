@@ -1,5 +1,4 @@
-// The positional join — the four cases it has to get right, and the one it
-// must never "helpfully" get wrong.
+// The positional join: the cases it has to get right.
 
 import { assertEquals } from "@std/assert";
 import {
@@ -27,7 +26,7 @@ Deno.test("join — the overlap is found, and counted", () => {
   assertEquals(t.lines, ["A 1.00", "B 2.00", "C 3.00", "D 4.00"]);
   assertEquals(t.seams, [{ from: 0, to: 1, overlap_lines: 2 }]);
   assertEquals(t.notes, []);
-  // A seam line belongs to the photo that CONTRIBUTED it — the earlier one.
+  // A seam line belongs to the earlier photo.
   assertEquals(t.photoOfLine, [0, 0, 0, 1]);
 });
 
@@ -37,7 +36,7 @@ Deno.test("join — case and inner spacing are noise across two shots of one pap
     strip("tj org bananas 3.49", "B 2.00"),
   ]);
   assertEquals(t.seams, [{ from: 0, to: 1, overlap_lines: 1 }]);
-  // Kept VERBATIM: the fold is for the comparison only.
+  // Kept verbatim: the fold is for the comparison only.
   assertEquals(t.lines, ["A 1.00", "TJ  ORG   BANANAS 3.49", "B 2.00"]);
 });
 
@@ -59,8 +58,7 @@ Deno.test("join — no run: the photos are concatenated and the review is told",
   assertEquals(t.lines, ["A 1.00", "B 2.00", "C 3.00", "D 4.00"]);
   assertEquals(t.seams, []);
   assertEquals(t.notes.length, 1);
-  // Names the two photos in the words the review speaks, and says what the
-  // consequence is rather than that an algorithm failed.
+  // Names the two photos in words and states the consequence.
   assertEquals(
     t.notes[0],
     "We could not find where the first photo joins the second — their lines " +
@@ -70,8 +68,7 @@ Deno.test("join — no run: the photos are concatenated and the review is told",
 });
 
 Deno.test("join — THE RULE: an item printed twice is kept twice", () => {
-  // Two bunches of bananas, on ONE photo. Nothing about the join may notice
-  // that two lines look alike; only position is ever consulted.
+  // Two bunches of bananas on one photo. Only position is consulted.
   const t = joinPhotoTranscripts([
     strip(
       "TJ ORG BANANAS 3.49",
@@ -89,8 +86,8 @@ Deno.test("join — THE RULE: an item printed twice is kept twice", () => {
     "EGGS 4.29",
     "TOTAL 14.26",
   ]);
-  // Both bananas survive: the seam consumed the LAST two lines, which is where
-  // they positionally overlapped, and left the first bunch alone.
+  // Both bananas survive: the seam consumed the last two lines, where they
+  // positionally overlapped.
   assertEquals(
     t.lines.filter((l) => l === "TJ ORG BANANAS 3.49").length,
     2,
@@ -143,9 +140,8 @@ Deno.test("join — blank lines are dropped, trailing space never counted", () =
 });
 
 Deno.test("join — a count sub-row at the top of a photo stays with its item", () => {
-  // The owner's receipts print the count UNDER the item, so a seam can fall
-  // between them. The join is positional and puts the two back in order — the
-  // structuring call then sees the pair, and never a stray "8 @ $2.99".
+  // A count prints under its item, so a seam can fall between them. The join
+  // puts the two back in order.
   const t = joinPhotoTranscripts([
     strip("LIME EACH  $1.96", "TOFU SPR FRM HGH PRTN OR  $23.92"),
     strip("TOFU SPR FRM HGH PRTN OR  $23.92", "8 @ $2.99", "TAX  $0.11"),

@@ -1,28 +1,14 @@
-// Claude Haiku adapter — the Haiku tier behind the frozen ExtractAdapter.
+// Claude Haiku adapter: the Haiku tier behind the frozen ExtractAdapter.
 //
-// Model id pinned via the `claude-api` reference: `CLAUDE_HAIKU_MODEL` below is
-// the one source of truth for what production sends, and the same constant is
-// what `ProviderCall.model` reports (see `#emit`), so the id in a run record is
-// the id that was on the wire. `claude-haiku-4-5` is the Haiku tier; 200K
-// context. Vision: yes (image content blocks, base64). Native
-// structured output: `output_config.format` with a `json_schema` (the current
-// Messages-API mechanism; the deprecated `output_format` is not used). Raw HTTP
-// to POST /v1/messages keeps the three adapters uniform and dependency-free.
+// Raw HTTP to POST /v1/messages, like the other adapters. Vision uses base64
+// image blocks; structured output uses `output_config.format` with a
+// `json_schema`. Both calls stream, and `#assembler` folds the frames back
+// into the non-streaming response shape, so decoders, usage parsing and saved
+// responses in `evals/runs/` are unaffected. Streaming lets an idle timer tell
+// a long answer from a hung one and drives `onProgress` heartbeats.
 //
-// STREAMING (`stream: true`). Both calls a user waits on stream, and
-// `#assembler` folds the frames back into exactly the response shape the
-// non-streaming call returned — so the decoders, the usage parsing and every
-// saved response in `evals/runs/` are unchanged. It is not about showing text
-// as it arrives (nobody reads a JSON payload being typed): it is that a
-// streaming call can tell a long answer from a hung one, and can say so out
-// loud while it works (`onProgress` ⇒ the function's `heartbeat` frames).
-//
-// Prompt caching (GA, no beta header): the stable sanitize system prompt is sent
-// as a content block with `cache_control: {type:"ephemeral"}` so repeated calls
-// read it from cache instead of re-billing the full prefix each time.
-//
-// KEYLESS: constructing/`deno check`ing this is free; a live call needs
-// ANTHROPIC_API_KEY. Without it the benchmark uses the mock adapter.
+// The stable system prompt carries `cache_control: {type:"ephemeral"}`.
+// A live call needs ANTHROPIC_API_KEY; constructing the adapter does not.
 
 import type {
   ExtractAdapter,
@@ -62,64 +48,38 @@ import {
 } from "./http.ts";
 
 /**
- * THE PIN. This exact string is the model every production import is extracted
- * with — there is no alias, no `-latest`, and no date suffix to append: the id
- * IS the version, and a new Haiku generation arrives under a new id rather than
- * re-pointing this one. So the app cannot silently be moved onto a different
- * model by the provider; only an edit here moves it.
- *
- * Which is the point of stating it this plainly. A newer or larger model is not
- * automatically a better extractor — this tier was chosen by measurement, and
- * measured against a blessed gold — so changing this string means RE-RUNNING
- * the extraction eval (`evals/`, `runner/EXTRACTION.md`) and reading its
- * never-invent ledger before the change ships. Adding a `runner/pricing.ts` row
- * for the new id is part of that, or the cost columns go quiet.
+ * The pinned model every production import is extracted with, and what
+ * `ProviderCall.model` reports. The id is the version: there is no alias or
+ * `-latest`. Changing it means re-running the extraction eval (`evals/`,
+ * `runner/EXTRACTION.md`) and adding a `runner/pricing.ts` row for the new id.
  */
 export const CLAUDE_HAIKU_MODEL = "claude-haiku-4-5";
-/**
- * Benchmark alternates for the eval harness: the current Sonnet and Opus tiers,
- * pinned the same way. Production never sends these — they are what a compare
- * run measures the pin against.
- */
+/** Benchmark alternates for the eval harness. Production never sends these. */
 export const CLAUDE_SONNET_MODEL = "claude-sonnet-5";
 export const CLAUDE_OPUS_MODEL = "claude-opus-5";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
 /**
- * `max_tokens` is a CEILING, not a target — an unreached one costs nothing, and
- * a reached one truncates the JSON mid-object. claude-haiku-4-5 tops out at 64K
- * output tokens; we ask for half of that, which no real recipe approaches. (Was
- * 8192, which a long multi-page recipe could genuinely hit.) A ceiling this far
- * above the real answers is only safe BECAUSE the call streams: nothing waits
- * on a whole `max_tokens` worth of generation, it waits on the next delta.
+ * A ceiling, not a target: a reached one truncates the JSON mid-object.
+ * claude-haiku-4-5 tops out at 64K output tokens; half of that is far above
+ * any real recipe, and safe only because the call streams.
  */
 const DEFAULT_MAX_TOKENS = 32_000;
 
 // --- The model rung of the timeout ladder ------------------------------------
 //
-// Per-OP, because the two calls are not the same size of work and pretending
-// they were is what broke a real import: one 60s budget covered transcribe
-// (12s) and then aborted sanitize mid-generation, retried into the 13s that
-// were left, and aborted again — two paid answers, nothing shown.
-//
-// Both numbers are sized from `evals/runs/` and both are BACKSTOPS. What
-// actually catches a hang is the idle timer in `streamJson`; these bound the
-// pathological case where output dribbles out forever.
+// Budgets are per op, because transcribe and sanitize are different sizes of
+// work. Both are backstops sized from `evals/runs/`; the idle timer in
+// `streamJson` is what catches a hang.
 
 /**
- * TOTAL budget for one sanitize call. The corpus's biggest structured answer is
- * 4,962 output tokens and its slowest generation ran at 92 tok/s — ~54s for the
- * worst case on the worst day — so this is a little over two times the longest
- * answer we have ever measured. The previous 60s was under it.
+ * Total budget for one sanitize call: a little over twice the longest measured
+ * answer (4,962 output tokens at 92 tok/s, ~54s).
  */
 export const SANITIZE_DEADLINE_MS = 120_000;
 /**
- * TOTAL budget for one transcribe call. No transcribe rows exist in
- * `evals/runs/` (the corpus was recorded through the page-text door), so this
- * is sized from what transcribe EMITS: its output is the page text, and the
- * corpus's source texts run 1.1k–4.7k characters (~280–1,190 tokens) for a one-
- * to two-page recipe. At `MAX_IMAGES` = 8 pages that is ~5k tokens, ~54s at the
- * same 92 tok/s floor. A live two-page import measured 12s.
+ * Total budget for one transcribe call. Sized from its output, the page text:
+ * ~5k tokens at `MAX_IMAGES` = 8 pages, ~54s at 92 tok/s.
  */
 export const TRANSCRIBE_DEADLINE_MS = 60_000;
 
@@ -129,27 +89,22 @@ export interface ClaudeAdapterOptions {
   maxTokens?: number;
   name?: string; // provider label in benchmark/usage rows; defaults to "claude-haiku"
   /**
-   * `output_config.effort` for models that take it (Sonnet 5 / Opus 5 tiers —
-   * controls adaptive-thinking depth and total token spend; default "high").
-   * Leave unset for Haiku 4.5, which rejects the parameter.
+   * `output_config.effort` for the Sonnet 5 / Opus 5 tiers. Leave unset for
+   * Haiku 4.5, which rejects the parameter.
    */
   effort?: "low" | "medium" | "high";
   /**
-   * Run sanitize as TWO calls (lines, then steps against the finished keyed
-   * line list) instead of one. Benchmarked 2026-09-02: ref F1 flat vs the
-   * one-shot keys pipeline (91.1±0.9 vs 91.0±0.4) with a slightly better
-   * never-invent ledger, at +40% cost — so production ships ONE-SHOT (owner
-   * call) and this stays as the benchmark seam for revisiting collectives.
+   * Run sanitize as two calls (lines, then steps against the keyed line list)
+   * instead of one. Benchmark only: it measured flat on ref F1 at +40% cost,
+   * so production is one-shot.
    */
   twoPhase?: boolean;
   /**
-   * Budgets forwarded to `streamJson`. `idleTimeoutMs` is the SILENCE an
-   * attempt is allowed (default 20s); `deadlineMs` overrides BOTH per-op totals
-   * ({@link SANITIZE_DEADLINE_MS}, {@link TRANSCRIBE_DEADLINE_MS}) with one
-   * number. An adaptive-thinking model streams a long, empty thinking block
-   * before it says anything, so benchmark lanes for the Sonnet/Opus tiers MUST
-   * raise the idle budget or every call aborts (observed: eleven "signal has
-   * been aborted" transcribes in a row).
+   * Budgets forwarded to `streamJson`. `idleTimeoutMs` is the silence an
+   * attempt is allowed (default 20s); `deadlineMs` overrides both per-op totals
+   * ({@link SANITIZE_DEADLINE_MS}, {@link TRANSCRIBE_DEADLINE_MS}). An
+   * adaptive-thinking model streams a long empty thinking block first, so
+   * Sonnet/Opus benchmark lanes must raise the idle budget.
    */
   idleTimeoutMs?: number;
   deadlineMs?: number;
@@ -171,17 +126,14 @@ function obj(v: unknown): Record<string, unknown> | null {
 }
 
 /**
- * Folds an Anthropic message stream back into the SAME object the
- * non-streaming endpoint returns: `{id, model, content, stop_reason, usage,
- * …}`. That equivalence is the whole contract — `decodeClaudeSanitize`,
- * `assertComplete`, `anthropicUsage` and the run records in `evals/runs/` all
- * read the assembled value and none of them can tell which way it arrived.
+ * Folds an Anthropic message stream back into the object the non-streaming
+ * endpoint returns (`{id, model, content, stop_reason, usage, …}`), so nothing
+ * downstream can tell which way it arrived.
  *
- * The frames (Messages API, `stream: true`): `message_start` carries the
- * message shell and the input half of `usage`; `content_block_start` opens a
- * block; `content_block_delta` appends to it; `message_delta` carries the final
- * `stop_reason` and the output half of `usage`; `message_stop` ends it. `ping`
- * is a keep-alive. An `error` frame is the provider failing mid-answer.
+ * Frames: `message_start` carries the shell and the input half of `usage`;
+ * `content_block_start`/`content_block_delta` build a block; `message_delta`
+ * carries `stop_reason` and the output half of `usage`; `message_stop` ends
+ * it. `ping` is a keep-alive. An `error` frame is the provider failing.
  */
 export function anthropicAssembler(provider: string): StreamAssembler {
   const blocks: AnthropicContentBlock[] = [];
@@ -212,8 +164,7 @@ export function anthropicAssembler(provider: string): StreamAssembler {
           if (delta.type === "text_delta" && typeof delta.text === "string") {
             block.text = (block.text ?? "") + delta.text;
           }
-          // TRUE for every delta, text or not: the provider is generating, and
-          // that is what makes a retry waste and what a heartbeat reports.
+          // True for every delta, text or not: the provider is generating.
           return true;
         }
         case "message_delta": {
@@ -228,19 +179,16 @@ export function anthropicAssembler(provider: string): StreamAssembler {
           stopped = true;
           return false;
         case "error":
-          // The provider gave up mid-answer (`overloaded_error` is the common
-          // one). 503 is OUR transport classification of it, so the retry
-          // policy has one thing to read; the provider's own words ride along
-          // in the body for the log.
+          // The provider gave up mid-answer (`overloaded_error`, usually).
+          // Classified as 503 so the retry policy has one thing to read.
           throw new ProviderHttpError(provider, 503, JSON.stringify(data));
         default:
           return false; // `ping`, and anything a later API version adds
       }
     },
     finish(): unknown | null {
-      // No `message_stop` means the connection died mid-answer. The blocks we
-      // have would parse as a truncated recipe — silently losing its tail — so
-      // this is a failure, never a partial success.
+      // No `message_stop` means the connection died mid-answer: a failure,
+      // never a partial success.
       if (!stopped) return null;
       return { ...shell, content: blocks.filter((b) => b !== undefined) };
     },
@@ -256,10 +204,8 @@ function firstText(res: AnthropicResponse): string {
 }
 
 /**
- * A `max_tokens` stop means the JSON was cut off mid-object. Parsing it would
- * either throw a confusing syntax error or — worse, if the truncation happens
- * to land on a valid boundary — silently drop the tail of a recipe. Fail with
- * something the user can act on instead (⇒ 422).
+ * A `max_tokens` stop means the JSON was cut off mid-object, which could
+ * silently drop the tail of a recipe. Fail with a 422 instead.
  */
 function assertComplete(res: AnthropicResponse): void {
   if (res.stop_reason === "max_tokens") {
@@ -270,10 +216,9 @@ function assertComplete(res: AnthropicResponse): void {
 }
 
 /**
- * VERBATIM response → `ExtractionResult`, split out of `sanitize` so a saved
- * raw response can be re-decoded and rescored later without a second paid call
- * (evals `--rescore`). This is the whole decode path, truncation check included,
- * so a rescore reproduces the live run exactly — including its failures.
+ * Verbatim response → `ExtractionResult`, split out of `sanitize` so a saved
+ * raw response can be re-decoded without a second paid call (evals
+ * `--rescore`). It includes the truncation check.
  */
 /** The persisted shape of a two-phase sanitize: both verbatim responses. */
 interface TwoPhaseRaw {
@@ -289,9 +234,8 @@ function isTwoPhase(res: unknown): res is TwoPhaseRaw {
 
 export function decodeClaudeSanitize(res: unknown): ExtractionResult {
   if (isTwoPhase(res)) {
-    // Two-phase: merge the phase-1 lines JSON with the phase-2 steps JSON and
-    // coerce ONCE — the key map is built from the lines half, so the steps
-    // half's key refs resolve exactly as a one-shot response's would.
+    // Two-phase: merge the lines JSON with the steps JSON and coerce once, so
+    // the steps' key refs resolve as a one-shot response's would.
     const linesTyped = res.lines as AnthropicResponse;
     const stepsTyped = res.steps as AnthropicResponse;
     assertComplete(linesTyped);
@@ -310,7 +254,7 @@ export function decodeClaudeSanitize(res: unknown): ExtractionResult {
   return validateExtractionResult(coerceExtractionResult(json));
 }
 
-/** VERBATIM response → the transcription text (the D1 half of the decode). */
+/** Verbatim response → the transcription text. */
 export function decodeClaudeTranscribe(res: unknown): string {
   const typed = res as AnthropicResponse;
   assertComplete(typed);
@@ -345,8 +289,7 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
 
   /**
    * The budgets and the observer every model call shares. `onDelta` reads
-   * `this.onProgress` at call time, so an observer attached after construction
-   * (which is how the orchestrator wires heartbeats) is still heard.
+   * `this.onProgress` at call time, so an observer attached later is heard.
    */
   #streamOpts(deadlineMs: number) {
     return {
@@ -358,16 +301,14 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
     };
   }
 
-  /** `output_config.effort`, when configured — merged into any output_config. */
+  /** `output_config.effort`, when configured. */
   #effortConfig(): { effort?: string } {
     return this.#effort ? { effort: this.#effort } : {};
   }
 
   /**
-   * The temperature pin, where the API still takes one. Claude removed the
-   * sampling params (`temperature`/`top_p`/`top_k`) on the Sonnet-5/Opus-5
-   * generation — sending them is a 400 — while Haiku 4.5 still accepts them.
-   * Extraction is deterministic work, so pin 0 whenever the model allows it.
+   * Pins temperature 0 where the API takes one: Haiku 4.5 accepts sampling
+   * params; the Sonnet-5/Opus-5 generation rejects them with a 400.
    */
   #sampling(): { temperature?: number } {
     return this.model.includes("haiku") ? { temperature: 0 } : {};
@@ -416,9 +357,8 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
       body: {
         model: this.model,
         max_tokens: this.#maxTokens,
-        // Transcription is deterministic work: unpinned, the API defaults to
-        // temperature 1.0, and the same page transcribes differently run to
-        // run (observed live: one paragraph → 1 step or 4, chips or none).
+        // Unpinned, the API defaults to temperature 1.0 and the same page
+        // transcribes differently run to run.
         ...this.#sampling(),
         ...(this.#effort ? { output_config: this.#effortConfig() } : {}),
         messages: [{ role: "user", content }],
@@ -447,15 +387,10 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
       body: {
         model: this.model,
         max_tokens: this.#maxTokens,
-        // Same pin as transcribe: extraction is deterministic work, and the
-        // API's 1.0 default was the source of run-to-run step/chip variance.
+        // Same pin as transcribe.
         ...this.#sampling(),
-        // Prompt caching (GA, no beta header): each phase's system prompt is
-        // stable across every call for a given hint set, so mark it as a cache
-        // breakpoint. Render order is tools → system → messages, so a breakpoint
-        // on the (only) system block reuses the whole ~stable prefix; the volatile
-        // per-recipe content stays in the user turn after it. Cuts repeated input
-        // cost (verify via usage.cache_read_input_tokens).
+        // Prompt caching: the system prompt is stable per hint set, so it is
+        // the cache breakpoint; the per-recipe content stays in the user turn.
         system: [
           {
             type: "text",
@@ -464,7 +399,7 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
           },
         ],
         messages: [{ role: "user", content: user }],
-        // Native structured output (Messages API): constrain the response.
+        // Native structured output.
         output_config: {
           format: { type: "json_schema", schema },
           ...this.#effortConfig(),
@@ -474,15 +409,12 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
   }
 
   /**
-   * TWO-PHASE sanitize: lines first, then steps against the finished, keyed
-   * line list. Step refs and collective membership need the WHOLE line list in
-   * view — one-shot extraction made the model reference a list it was still
-   * writing, which is where the missed collectives came from. Both verbatim
-   * responses persist as one `{two_phase, lines, steps}` wrapper so the eval's
-   * save-and-rescore contract holds; usage is emitted once, summed.
+   * One call in production. The two-phase path persists both verbatim
+   * responses as one `{two_phase, lines, steps}` wrapper so save-and-rescore
+   * holds; usage is emitted once, summed.
    */
   async sanitize(blob: RawBlob, hints: UnitHints): Promise<ExtractionResult> {
-    // PRODUCTION PATH — one call, the full schema (keys + steps together).
+    // Production path: one call, the full schema.
     if (!this.#twoPhase) {
       const startedAt = performance.now();
       const res = await this.#structuredCall(
@@ -496,7 +428,7 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
     return await this.#sanitizeTwoPhase(blob, hints);
   }
 
-  /** The benchmark-only two-phase path — see `ClaudeAdapterOptions.twoPhase`. */
+  /** The benchmark-only two-phase path; see `ClaudeAdapterOptions.twoPhase`. */
   async #sanitizeTwoPhase(
     blob: RawBlob,
     hints: UnitHints,
@@ -507,9 +439,8 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
       sanitizeUserPrompt(blob),
       EXTRACTION_JSON_SCHEMA,
     );
-    // The phase-2 table renders from the RAW phase-1 JSON (uncoerced) so it
-    // shows exactly the keys the model minted. A phase-1 response that cannot
-    // parse fails here — same failure surface as the one-shot path.
+    // The phase-2 table renders from the raw phase-1 JSON, so it shows exactly
+    // the keys the model minted. An unparseable phase-1 response fails here.
     const linesTyped = linesRes as AnthropicResponse;
     assertComplete(linesTyped);
     const linesJson = JSON.parse(extractJson(firstText(linesTyped)));

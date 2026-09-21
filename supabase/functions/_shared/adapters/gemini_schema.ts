@@ -1,11 +1,8 @@
 // Gemini's `responseSchema` speaks an OpenAPI-3 subset, not JSON Schema: types
-// are uppercase enums (OBJECT/STRING/NUMBER/…), nullability is `nullable: true`
-// (never `type: [..., "null"]`), and `additionalProperties` is unsupported. So
-// the canonical EXTRACTION_JSON_SCHEMA (adapters/schema.ts) is hand-mirrored
-// here in Gemini's dialect rather than machine-transformed — the mapping is
-// small and explicit, and coercion (schema.ts) tolerates either shape anyway.
-//
-// Re-confirm against Google's Structured-Output docs before the live compare.
+// are uppercase enums, nullability is `nullable: true`, and
+// `additionalProperties` is unsupported. So EXTRACTION_JSON_SCHEMA
+// (adapters/schema.ts) is hand-mirrored here in Gemini's dialect; coercion
+// tolerates either shape.
 
 interface GSchema {
   type: string;

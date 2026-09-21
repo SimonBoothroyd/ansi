@@ -1,21 +1,15 @@
 // The structured-output JSON Schema every provider adapter targets, plus the
-// coercion + never-invent validation that turns a provider's raw JSON into the
-// frozen `ExtractionResult` (types.ts §4.4).
+// coercion and never-invent validation that turn a provider's raw JSON into
+// the frozen `ExtractionResult` (types.ts §4.4).
 //
-// One schema, three providers. Each provider's *native* structured-output mode
-// (Anthropic `output_config.format`, OpenAI `response_format: json_schema`,
-// Gemini `responseSchema`) consumes `EXTRACTION_JSON_SCHEMA`; each adapter then
-// runs `coerceExtractionResult` (portability normalisation) and
-// `validateExtractionResult` (structural never-invent checks). Keeping this in
-// one place is what makes the providers comparable in the eval harness.
-//
-// Two deliberate simplifications make the schema portable across all three
-// structured-output dialects (which disagree on unions):
-//   1. Recipe-level times are always emitted as `{low_seconds, high_seconds}`
-//      or null — never a bare number. Coercion collapses low === high back to
-//      the `number` form of the frozen `TimeField`.
-//   2. A step token is one flat object with a `t` discriminator and every other
-//      field optional, rather than a tagged union. Coercion re-narrows it.
+// Each provider's native structured-output mode consumes
+// `EXTRACTION_JSON_SCHEMA`; each adapter then runs `coerceExtractionResult`
+// and `validateExtractionResult`. Two simplifications keep the schema portable
+// across dialects that disagree on unions:
+//   1. Recipe-level times are `{low_seconds, high_seconds}` or null, never a
+//      bare number. Coercion collapses low === high back to a number.
+//   2. A step token is one flat object with a `t` discriminator and every
+//      other field optional. Coercion re-narrows it.
 
 import type {
   ExtractionResult,
@@ -31,10 +25,9 @@ import type {
 } from "../types.ts";
 
 // --- The wire schema ---------------------------------------------------------
-// A JSON Schema (draft-2020-12 flavoured, kept to the common subset the three
-// providers accept). `additionalProperties: false` everywhere so a provider
-// cannot smuggle an un-modelled field past us. Adapters may down-convert this
-// to a provider-specific dialect (see gemini.ts) but the shape is the contract.
+// JSON Schema, kept to the subset all three providers accept.
+// `additionalProperties: false` everywhere. Adapters may down-convert the
+// dialect (see gemini.ts), but the shape is the contract.
 
 const timeObject = {
   type: ["object", "null"],
@@ -63,10 +56,9 @@ const lineItemSchema = {
     "confidence",
   ],
   properties: {
-    // The line's model-minted reference slug: step refs COPY these instead of
-    // counting flattened positions (LLMs echo strings reliably and mis-count
-    // arrays — the off-by-one chips observed live). Resolved to a flattened
-    // index at coerce time; never leaves the adapter.
+    // The line's model-minted slug. Step refs copy these instead of counting
+    // positions, which models mis-count. Resolved to a flattened index at
+    // coerce time; never leaves the adapter.
     key: { type: "string" },
     qty: { type: ["number", "null"] },
     qty_low: { type: ["number", "null"] },
@@ -102,9 +94,8 @@ const tokenSchema = {
     t: { type: "string", enum: ["text", "ref", "timer"] },
     // text
     s: { type: "string" },
-    // ref — entries are line KEYS (the slugs minted on line_items). Integers
-    // are the legacy positional form, still accepted by coercion so committed
-    // runs replay, but the schema steers new output to keys only.
+    // ref: entries are line keys. Coercion still accepts the legacy integer
+    // positions so committed runs replay.
     refs: { type: "array", items: { type: "string" } },
     label: { type: "string" },
     mention: { type: "string", enum: ["new", "rementioned", "fraction"] },
@@ -168,10 +159,8 @@ export const EXTRACTION_JSON_SCHEMA = {
 } as const;
 
 /**
- * The phase-2 schema of the two-phase sanitize: steps only. The line list is
- * INPUT to that call (already extracted by phase 1), so the response carries
- * nothing but the tokenized method — same step/token shapes as the one-shot
- * schema, refs by line key.
+ * The phase-2 schema of the two-phase sanitize: steps only, refs by line key.
+ * The line list is input to that call.
  */
 export const STEPS_JSON_SCHEMA = {
   type: "object",
@@ -192,10 +181,8 @@ export class ExtractionParseError extends Error {
 
 // --- Coercion: provider JSON → frozen ExtractionResult -----------------------
 
-// Length caps on every coerced string. A provider under a bad prompt (or a page
-// that fed it a megabyte of junk) can emit an arbitrarily long "title" or
-// "notes", and those strings go on to be stored, synced to every device, and
-// rendered. Generous — several times the longest real value — but bounded.
+// Length caps on every coerced string, several times the longest real value:
+// these strings are stored, synced and rendered.
 export const CAPS = {
   title: 300,
   servings_raw: 120,
@@ -211,19 +198,17 @@ export const CAPS = {
   parse_warning: 500,
 } as const;
 
-/** Max entries kept in `parse_warnings` (a per-line warning storm is bounded). */
+/** Max entries kept in `parse_warnings`. */
 export const MAX_PARSE_WARNINGS = 100;
 
-/** Truncates to `max` chars. Never pads, never invents — only ever removes. */
+/** Truncates to `max` chars. */
 function cap(s: string, max: number): string {
   return s.length <= max ? s : s.slice(0, max);
 }
 
 /**
- * Words a title leaves lower-case unless they open or close it.
- *
- * `à` and `la` are here for *Chicken à la King*, which a shouting cookbook
- * page prints as CHICKEN A LA KING.
+ * Words a title leaves lower-case unless they open or close it. `à` and `la`
+ * are here for "Chicken à la King".
  */
 const SMALL_WORDS = new Set([
   "a",
@@ -248,24 +233,13 @@ const SMALL_WORDS = new Set([
 const isLetter = (c: string) => c.toLowerCase() !== c.toUpperCase();
 
 /**
- * Title-cases a title that carries **no case information of its own**.
+ * Title-cases a title that carries no case information of its own (all caps
+ * or all lower). A mixed-case title is left alone. Words, order and
+ * punctuation are untouched.
  *
- * A photographed page shouts: PEANUT TOFU NOODLES, and a scraped one sometimes
- * whispers. Neither is a decision the page made about capitalisation — it is
- * the absence of one — so we supply the ordinary one. A title that already
- * carries MIXED case is left exactly alone: the page that prints *PIZZA alla
- * Norma* meant it, and second-guessing that is inventing.
- *
- * The words, their order and their punctuation are the page's throughout.
- * Casing is not inventing; nothing else here is touched.
- *
- * A word that begins with a digit is left as it is — `400g` is a measurement,
- * not a word to capitalise. A hyphenated compound is ONE word, so a shouted
- * SLOW-COOKED becomes *Slow-cooked*.
- *
- * This is deliberately code rather than a line in the extraction prompt: a
- * model instruction is a probabilistic fix for a deterministic problem, and it
- * costs a re-scored eval every time it is tuned.
+ * A word that begins with a digit is left as it is (`400g`), and a hyphenated
+ * compound is one word (SLOW-COOKED → Slow-cooked). Code rather than prompt,
+ * because the problem is deterministic.
  */
 export function titleCaseIfUncased(title: string): string {
   const letters = [...title].filter(isLetter);
@@ -274,8 +248,7 @@ export function titleCaseIfUncased(title: string): string {
   const lower = letters.every((c) => c === c.toLowerCase());
   if (!upper && !lower) return title;
 
-  // The capture group keeps the runs of whitespace, so the joined result is
-  // spaced exactly as the page spaced it.
+  // The capture group keeps the whitespace runs, so spacing is preserved.
   const parts = title.split(/(\s+)/);
   const words: number[] = [];
   parts.forEach((p, i) => {
@@ -368,12 +341,9 @@ function coerceLineItem(v: unknown): RawLineItem {
 }
 
 /**
- * A leading determiner on a chip label ("the kale") belongs to the sentence,
- * not the food's name — but it must never be DELETED, or the step loses a
- * word. Relocate it: append it to the preceding text token (inserting one when
- * the ref opens the step), and keep the label as the bare name. The prompt
- * asks for this split up front; this guard makes the sentence read back intact
- * whenever the model includes the article anyway.
+ * A leading determiner on a chip label ("the kale") belongs to the sentence.
+ * It is moved onto the preceding text token (inserting one when the ref opens
+ * the step), never deleted, and the label keeps the bare name.
  */
 const LEADING_DETERMINER = /^(?:the|a|an|some)\s+/i;
 
@@ -416,11 +386,9 @@ function coercePortion(v: unknown): RefPortion | null {
 
 /**
  * One ref entry → a flattened line index. A number is the legacy positional
- * form (committed runs replay through here) and passes straight through; a
- * string is a line KEY, resolved via the minted-key map — an unknown key
- * resolves to -1 ON PURPOSE, which the existing out-of-range machinery then
- * reports (`ref_out_of_range`) and demotes (`dropOutOfRangeRefs`), so a bad
- * key degrades exactly like a bad index always has.
+ * form and passes through; a string is a line key, resolved via the key map.
+ * An unknown key resolves to -1 so the out-of-range machinery reports and
+ * demotes it like any bad index.
  */
 type RefResolver = (r: unknown) => number | null;
 
@@ -442,11 +410,8 @@ function coerceToken(v: unknown, resolveRef: RefResolver): StepToken | null {
     return {
       t: "ref",
       refs,
-      // The chip words. `label` is the documented field, but the token schema
-      // is one loose shape for all three kinds, and models reliably put the
-      // words in `s` (the text-token field) instead — observed across runs;
-      // reading only `label` blanked every chip and the UI fell back to
-      // canonical names. Accept either; both are the model's own words.
+      // `label` is the documented field, but models reliably put the chip
+      // words in `s` instead. Accept either.
       label: cap(String(o.label ?? o.s ?? ""), CAPS.label),
       mention: coerceMention(o.mention),
       portion: coercePortion(o.portion),
@@ -457,15 +422,12 @@ function coerceToken(v: unknown, resolveRef: RefResolver): StepToken | null {
 
 /**
  * Normalises a provider's raw JSON into the frozen ExtractionResult. Missing
- * optional fields default the honest way (null / empty / false); a genuinely
- * unreadable payload throws `ExtractionParseError` (⇒ the scorer's JSON-invalid
- * bucket). Coercion never *adds* content — it only re-shapes what the model
- * emitted.
+ * optional fields default to null / empty / false; an unreadable payload
+ * throws `ExtractionParseError`. Coercion never adds content.
  */
 export function coerceExtractionResult(raw: unknown): ExtractionResult {
   const o = asRecord(raw);
-  // Line keys are read alongside the coercion and resolved to FLATTENED
-  // indices here — the key never leaves the adapter, so the payload contract
+  // Line keys are resolved to flattened indices here, so the payload contract
   // (positional refs) is unchanged. First occurrence wins on a duplicate key.
   const keyToIndex = new Map<string, number>();
   let flat = 0;
@@ -501,9 +463,7 @@ export function coerceExtractionResult(raw: unknown): ExtractionResult {
     : [];
   const servings = numOrNull(o.servings_base);
   return {
-    // The single choke point every import passes through, URL and photo
-    // alike — so a shouted page arrives cased like a title wherever it came
-    // from, and only ever from here.
+    // The one place every import's title is cased, URL and photo alike.
     title: titleCaseIfUncased(cap(String(o.title ?? ""), CAPS.title)),
     servings_base: servings === null ? null : Math.round(servings),
     servings_raw: strOrNull(o.servings_raw, CAPS.servings_raw),
@@ -523,15 +483,10 @@ export function coerceExtractionResult(raw: unknown): ExtractionResult {
 }
 
 // --- Structural never-invent validation --------------------------------------
-// The scorer owns *content* hallucination (got vs gold). Here we catch the
-// invariant violations that are detectable from the payload ALONE — the
-// self-inconsistencies a faithful extractor should never produce — and fold
-// them into parse_warnings so a comparison run can count them.
-//
-// Reporting is the rule; ONE issue is also repaired. An out-of-range step ref
-// is not merely inconsistent, it mis-points at a real ingredient, so
-// `validateExtractionResult` drops it rather than shipping it behind a warning.
-// Everything else is surfaced honestly and left for the human at reconciliation.
+// The scorer owns content hallucination. Here we catch the inconsistencies
+// detectable from the payload alone and fold them into parse_warnings. One is
+// also repaired: an out-of-range step ref would chip the wrong ingredient, so
+// `validateExtractionResult` drops it.
 
 /** Flatten line items across groups, in the order steps index into. */
 export function flattenLines(r: ExtractionResult): RawLineItem[] {
@@ -606,17 +561,11 @@ export function structuralIssues(r: ExtractionResult): StructuralIssue[] {
 }
 
 /**
- * Removes step refs that point outside the flattened line space, since a ref
- * that cannot resolve is the one structural issue that is actively DANGEROUS
- * downstream: `line_index` is positional, so a stale index does not fail — it
- * silently chips the wrong ingredient (or, once the app remaps to
- * line_item_ids, throws in the client). A ref token left with no valid refs is
- * demoted to the plain text of its label, which is what it would have been had
- * the model not tried to link it; an unlabelled one is dropped entirely.
- *
- * This is the one place the pipeline REMOVES model output. It is still
- * never-invent: nothing is added or guessed, and the drop is recorded in
- * parse_warnings by the caller.
+ * Removes step refs that point outside the flattened line space: `line_index`
+ * is positional, so a stale index would silently chip the wrong ingredient. A
+ * ref token left with no valid refs becomes the plain text of its label; an
+ * unlabelled one is dropped. Nothing is added, and the caller records the drop
+ * in parse_warnings.
  */
 function dropOutOfRangeRefs(r: ExtractionResult): ExtractionResult {
   const n = flattenLines(r).length;
@@ -636,10 +585,9 @@ function dropOutOfRangeRefs(r: ExtractionResult): ExtractionResult {
 }
 
 /**
- * Runs coercion + structural validation. Appends a single `parse_warnings`
- * summary when structural issues are found (so downstream sees the flag without
- * the adapter silently "fixing" the data — honest numbers), and DROPS the
- * unresolvable step refs (see {@link dropOutOfRangeRefs}). Returns the result.
+ * Runs coercion + structural validation. Appends one `parse_warnings` summary
+ * when structural issues are found and drops unresolvable step refs (see
+ * {@link dropOutOfRangeRefs}).
  */
 export function validateExtractionResult(
   r: ExtractionResult,

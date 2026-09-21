@@ -1,23 +1,16 @@
-// The receipt adapter — the same Haiku tier, the same plumbing, a different
-// document.
+// The receipt adapter: the same Haiku tier and plumbing as `claude.ts`.
 //
-// It shares everything that can be shared with `claude.ts`: THE PIN
-// (`CLAUDE_HAIKU_MODEL` — imported, never re-declared, so a receipt can never
-// drift onto a different model than a recipe), the streaming transport and its
-// idle timer (`streamJson`), the frame assembler, the per-op budgets, prompt
-// caching on the static system block, the phone-side-downscale safety net
-// (`resizeForUpload`), and native JSON-schema structured output.
+// It imports the model pin (`CLAUDE_HAIKU_MODEL`), so a receipt cannot drift
+// onto a different model than a recipe, and shares the streaming transport,
+// frame assembler, per-op budgets, prompt caching, `resizeForUpload` and
+// structured output.
 //
-// What is its own is the shape of the work:
+//   * `transcribe` returns one string per photo, split on the `[PHOTO BREAK]`
+//     the prompt asks for. The join is ours (`receipt_join.ts`).
+//   * `structure` reads the joined strip. It never sees the vocabulary and
+//     does not match (ADR-0004).
 //
-//   * `transcribe` returns ONE STRING PER PHOTO. The prompt asks for a
-//     `[PHOTO BREAK]` between segments and this splits on it, because the join
-//     is positional and ours (`receipt_join.ts`) — the model is never asked
-//     whether a repeated line is an overlap or a second banana.
-//   * `structure` reads the JOINED strip and prints what the paper printed. It
-//     is not shown the vocabulary and it does not match (ADR-0004).
-//
-// KEYLESS to construct and to `deno check`; a live call needs ANTHROPIC_API_KEY.
+// A live call needs ANTHROPIC_API_KEY; constructing the adapter does not.
 
 import type { ReceiptAdapter, ReceiptExtraction } from "../receipt_types.ts";
 import { ImportError } from "../errors.ts";
@@ -53,24 +46,14 @@ import {
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
 
-/**
- * Same ceiling as the recipe pipeline's, and for the same reason: an unreached
- * ceiling costs nothing, a reached one truncates JSON mid-object. A receipt is
- * a far smaller document than a multi-page recipe, so this is never approached.
- */
+/** Same ceiling as the recipe pipeline's; a receipt never approaches it. */
 const DEFAULT_MAX_TOKENS = 32_000;
 
 /**
- * The budgets are the recipe pipeline's, imported rather than re-chosen.
- *
- * That is a claim, so it is worth stating: a receipt transcribe emits less text
- * than a recipe transcribe (a till strip is short lines and few of them) and a
- * receipt structure emits a flat line list where a recipe emits groups, steps
- * and token arrays. Both calls here are strictly smaller than the calls those
- * numbers were sized for in `evals/runs/`, so the ladder in
- * `_shared/timeouts.test.ts` covers this function without a second set of rungs
- * to keep in step. If a receipt ever needs MORE than a recipe, it needs its own
- * constants and its own row in that test — not a nudge to these.
+ * The budgets are the recipe pipeline's, imported: both receipt calls emit
+ * less than the recipe calls those numbers were sized for, so the ladder in
+ * `_shared/timeouts.test.ts` covers this function. If a receipt ever needs
+ * more, it needs its own constants and its own row in that test.
  */
 export const RECEIPT_TRANSCRIBE_DEADLINE_MS = TRANSCRIBE_DEADLINE_MS;
 export const RECEIPT_STRUCTURE_DEADLINE_MS = SANITIZE_DEADLINE_MS;
@@ -85,11 +68,9 @@ interface AnthropicResponse {
 }
 
 /**
- * The verbatim response's text block. The twin of `claude.ts`'s private
- * `firstText`/`assertComplete` pair, separate only because the sentence a
- * person is shown when the answer was cut off has to name what they were
- * doing — "this receipt", not "this recipe" — and a shared one would name
- * neither.
+ * The verbatim response's text block. Separate from `claude.ts`'s
+ * `firstText`/`assertComplete` only so the cut-off message says "this
+ * receipt".
  */
 function receiptText(res: unknown): string {
   const typed = res as AnthropicResponse;
@@ -107,13 +88,10 @@ function receiptText(res: unknown): string {
 }
 
 /**
- * VERBATIM response → one transcription per photo. Split out so a saved
- * response can be replayed through the same decoder the live call used.
- *
- * `expected` is how many photos were sent. A model that dropped or merged a
- * break leaves us with a different count — which is a real reading of the
- * paper, not a failure, so the segments come back as they are and the
- * orchestrator notes the mismatch for the review.
+ * Verbatim response → one transcription per photo. Split out so a saved
+ * response replays through the same decoder. A dropped or merged break gives a
+ * different count than photos sent; the segments come back as they are and the
+ * orchestrator notes the mismatch.
  */
 export function decodeClaudeReceiptTranscribe(res: unknown): string[] {
   return receiptText(res)
@@ -122,7 +100,7 @@ export function decodeClaudeReceiptTranscribe(res: unknown): string[] {
     .filter((s) => s !== "");
 }
 
-/** VERBATIM response → the frozen `ReceiptExtraction`, coercion and all. */
+/** Verbatim response → the frozen `ReceiptExtraction`, coerced. */
 export function decodeClaudeReceiptStructure(res: unknown): ReceiptExtraction {
   const json = JSON.parse(extractJson(receiptText(res)));
   return validateReceiptExtraction(coerceReceiptExtraction(json));
@@ -134,7 +112,7 @@ export interface ClaudeReceiptAdapterOptions {
   maxTokens?: number;
   name?: string;
   idleTimeoutMs?: number;
-  /** Overrides BOTH per-op budgets with one number (benchmark lanes only). */
+  /** Overrides both per-op budgets with one number (benchmark lanes only). */
   deadlineMs?: number;
 }
 
@@ -147,7 +125,7 @@ export class ClaudeReceiptAdapter implements ReceiptAdapter {
   readonly #deadlineMs?: number;
   /** Optional benchmark observer; unset in production. */
   onCall?: ProviderCallSink;
-  /** Told on every delta while a call streams ⇒ the function's `heartbeat` frames. */
+  /** Told on every delta while a call streams; drives `heartbeat` frames. */
   onProgress?: () => void;
 
   constructor(opts: ClaudeReceiptAdapterOptions = {}) {
@@ -176,7 +154,7 @@ export class ClaudeReceiptAdapter implements ReceiptAdapter {
     };
   }
 
-  /** Haiku still takes the sampling params; reading paper is deterministic work. */
+  /** Haiku still takes the sampling params; pin temperature 0. */
   #sampling(): { temperature?: number } {
     return this.model.includes("haiku") ? { temperature: 0 } : {};
   }
@@ -231,9 +209,8 @@ export class ClaudeReceiptAdapter implements ReceiptAdapter {
         model: this.model,
         max_tokens: this.#maxTokens,
         ...this.#sampling(),
-        // Prompt caching (GA, no beta header): the system block is identical on
-        // every receipt this app will ever send, so it is a cache breakpoint
-        // and the volatile strip stays in the user turn after it.
+        // Prompt caching: the system block is identical on every receipt, so
+        // it is the cache breakpoint.
         system: [
           {
             type: "text",

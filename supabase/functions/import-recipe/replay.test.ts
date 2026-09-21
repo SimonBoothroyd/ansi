@@ -9,9 +9,8 @@ import {
 } from "./replay.ts";
 import { deriveUnitHints } from "../_shared/unit_hints.ts";
 
-// A run case in the saved-run shape, written by hand around an original
-// recipe: the real corpus is local-only (cookbook pages), so the test carries
-// its own fixture.
+// A hand-written run case in the saved-run shape: the real corpus is
+// local-only.
 const RUN_CASE = "./testdata/replay_case.json";
 
 const savedCase = (): unknown =>
@@ -80,8 +79,8 @@ Deno.test("replay — off unless the env var names something", () => {
 });
 
 Deno.test("replay — REFUSES to load where a real key can extract", () => {
-  // The lock that matters: a deployed environment always has the key, so even
-  // if the switch were somehow set there it can never serve a canned recipe.
+  // A deployed environment always has the key, so it can never serve a canned
+  // recipe even with the switch set.
   withEnv(
     { [REPLAY_FIXTURE_ENV]: "/does/not/matter", ANTHROPIC_API_KEY: "sk-ant-x" },
     () => {
