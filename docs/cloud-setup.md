@@ -550,6 +550,34 @@ or any dashboard-config walk. An entry headed **pending** is the exception: it
 names a migration that is merged but **not yet on cloud**, and it is replaced by
 the ordinary entry for the run that pushes it.
 
+### 2026-09-20 (night) — two function-only deploys after v0.24.1: receipt imports read again
+
+- **deploy-supabase 35548691861** (on `8e5ca098`): green; `db push` found the
+  database up to date, `import-receipt` redeployed, `import-recipe` unchanged.
+  Every receipt import had been failing at the structure step: Claude's
+  structured outputs refuse numeric constraints, and the line count's schema
+  said `minimum: 1`. The keyword is gone (coercion already clamps the count)
+  and a test walks every prompt schema for such keywords.
+- **deploy-supabase 35550926296** (on `d04be869`): green, same legs. The
+  `name_printed` instruction is reworded so the model keeps every word of a
+  printed name instead of picking the first (`ORG` for `ORG TAHINI`).
+- No migration, no reseed, no app release: both are server-only.
+  `cloud_verify.sh` was not run for this entry.
+
+### 2026-09-20 — v0.23.1 and v0.24.0 on cloud: 0049 and 0050
+
+- **deploy-supabase 35517516397** (on `c7d1761e`, the commit `v0.23.1` names):
+  green — `db push` applied `0049_recipe_measure_unit_family.sql`,
+  `import-receipt` redeployed (recall remembers "it is food"), `import-recipe`
+  unchanged, sync streams deployed. No reseed.
+- **deploy-supabase 35534417017** (on `e6bd89b3`, before `v0.24.0`): green —
+  `db push` applied `0050_receipt_line_count.sql`, `import-receipt` redeployed
+  carrying `count` and `each_cents`, sync streams deployed. No reseed. Both
+  receipt sync rules are `select *`, so `receipt_line.count` reaches devices
+  with the migration. `0050` is additive with a default of 1; a build
+  older than `v0.24.0` does not read the column.
+- `v0.24.1` needed no deploy. `cloud_verify.sh` was not run for this entry.
+
 ### 2026-09-19 (night) — v0.22.0 on cloud: 0048, the recipe measure's stream, and the cleaned shelf promoted
 
 - **deploy-supabase 35480151258** (owner-triggered on `5847385b`, with
