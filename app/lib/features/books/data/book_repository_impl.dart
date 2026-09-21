@@ -1,10 +1,8 @@
-/// [BookRepository] over the local PowerSync SQLite (offline in step 3).
+/// [BookRepository] over the local PowerSync SQLite.
 ///
-/// Reads assemble book / section / recipe rows into the Library aggregate and
-/// react to local writes via `watch`. Writes are small, targeted UPDATE/INSERT:
-/// never `INSERT ... ON CONFLICT`, which PowerSync's view-backed local tables
-/// reject — a regression test under `test/core/sync/` pins that. Deletes are
-/// soft (tombstone), spec §3.
+/// Reads assemble the Library aggregate and react to local writes via
+/// `watch`. Writes are targeted UPDATE/INSERT, never `INSERT ... ON CONFLICT`,
+/// which PowerSync's view-backed tables reject. Deletes are soft.
 library;
 
 import 'package:sqlite_async/sqlite_async.dart';
@@ -23,16 +21,14 @@ class SqliteBookRepository implements BookRepository {
 
   final SqliteConnection _db;
 
-  /// The household stamped on rows this repo writes (injected — the app passes
-  /// the signed-in household, tests pass their own).
+  /// The household stamped on rows this repo writes.
   final String _householdId;
 
   @override
   Stream<List<Book>> watchLibrary() {
-    // The watched query references all three source tables AND selects a column
-    // from each: SQLite drops a LEFT JOIN with no selected column, and a
-    // dropped join is a table PowerSync never registers as a trigger. The rows
-    // are ignored; each fire runs a full re-assemble via [_loadLibrary].
+    // The query selects a column from each of the three tables: SQLite drops
+    // a LEFT JOIN with no selected column, and PowerSync then never watches
+    // that table. The rows are ignored; each fire re-runs [_loadLibrary].
     return _db
         .watch(
           'SELECT b.id, s.id, r.id FROM book b '
@@ -52,21 +48,15 @@ class SqliteBookRepository implements BookRepository {
       'SELECT id, book_id, name FROM book_section WHERE deleted_at IS NULL '
       'ORDER BY sort_order, created_at',
     );
-    // The yield columns ride along (step 8.6 / D2): the editor's line picker
-    // offers its "Your recipes" rows straight off this tree, and a row that
-    // cannot see the yield says "no yield yet" about a recipe that states one
-    // — and hands the quantity sheet a target with no yield to do batch math
-    // against. `favorite` rides along for the same reason:
-    // the row shows a ★, and a tree that drops the column makes every recipe
-    // read as unstarred however the recipe page was tapped.
+    // The yield columns and `favorite` ride along: the line picker and the
+    // star read them straight off this tree.
     final recipeRows = await _db.getAll(
       'SELECT id, title, servings_base, book_id, section_id, favorite, '
       'yield_qty, yield_unit, yield_qty_2, yield_unit_2 FROM recipe '
       'WHERE deleted_at IS NULL ORDER BY created_at DESC',
     );
 
-    // Section-id → mutable recipe list, and the section's owning book, so we
-    // can route each recipe and know which section-ids are still live.
+    // Section id → recipe list, and each section's owning book.
     final sectionRecipes = <String, List<RecipeSummary>>{};
     final sectionBook = <String, String>{};
     for (final s in sectionRows) {
@@ -93,8 +83,8 @@ class SqliteBookRepository implements BookRepository {
         yieldUnit2: unitById(r['yield_unit_2'] as String? ?? ''),
       );
       final sectionId = r['section_id'] as String?;
-      // A live section in the *same* book claims the recipe; otherwise (no
-      // section, or a deleted one) it falls to the book's Unsectioned bucket.
+      // A live section in the same book claims the recipe; otherwise it
+      // falls to the book's Unsectioned bucket.
       if (sectionId != null && sectionBook[sectionId] == bookId) {
         sectionRecipes[sectionId]!.add(summary);
       } else {
@@ -199,9 +189,7 @@ class SqliteBookRepository implements BookRepository {
     required String fromBookId,
     required String toBookId,
   }) async {
-    // One statement, one transaction: the move and the un-filing are the same
-    // fact. `section_id` is nulled because a section belongs to the book it was
-    // named in — a recipe that kept it would point at another shelf's label.
+    // One statement: the move and the un-filing are the same fact.
     await _db.execute(
       'UPDATE recipe SET book_id = ?, section_id = NULL, updated_at = ? '
       'WHERE book_id = ? AND deleted_at IS NULL',

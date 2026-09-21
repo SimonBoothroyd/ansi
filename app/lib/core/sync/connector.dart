@@ -1,14 +1,8 @@
-/// PowerSync <-> Supabase backend connector: provides credentials and drains
-/// the local write queue up to Supabase.
+/// The PowerSync to Supabase connector: provides credentials and drains the
+/// local write queue through PostgREST.
 ///
-/// `fetchCredentials` hands PowerSync the sync-service endpoint plus the
-/// signed-in user's Supabase access token (whose `household_id` claim — added
-/// by the `add_household_claim` hook, migration 0007 — scopes what syncs down).
-///
-/// `uploadData` applies each queued local change to Supabase via PostgREST.
-/// Ansi never hard-deletes (deletes are soft tombstones, spec §3), so repos
-/// only ever emit inserts and updates; a stray delete is mapped to a soft
-/// delete rather than a DELETE the RLS grants would reject anyway.
+/// The access token's `household_id` claim scopes what syncs down. Deletes
+/// are soft tombstones, so a stray DELETE op is uploaded as a soft delete.
 library;
 
 import 'dart:convert';
@@ -20,9 +14,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/env.dart';
 import 'dropped_write.dart';
 
-/// Whether a PostgREST error means "this write is invalid" — retrying can't
-/// help, so we drop the offending transaction rather than block the queue.
-/// 22xxx = data exceptions, 23xxx = integrity, 42xxx = access/undefined.
+/// Whether a PostgREST error means the write is invalid, so retrying cannot
+/// help and the transaction is dropped. 22xxx = data exceptions, 23xxx =
+/// integrity, 42xxx = access/undefined.
 bool isFatalPostgrestError(PostgrestException e) {
   final code = e.code;
   if (code == null) return false;
@@ -31,19 +25,12 @@ bool isFatalPostgrestError(PostgrestException e) {
       code.startsWith('42');
 }
 
-/// The server's `jsonb` columns, per table — held in lockstep with
-/// `supabase/migrations` by `test/structure/jsonb_columns_test.dart`, which
-/// derives the set from the migrations (`ingredient.macros`, `recipe.steps`,
-/// `plan_entry.eaters`, `plan_entry.macros`, `ingredient.allowed_units`) and
-/// fails the build when this map falls behind.
+/// The server's `jsonb` columns a client writes, per table, held in lockstep
+/// with the migrations by `test/structure/jsonb_columns_test.dart`.
 ///
-/// PowerSync's local SQLite stores JSON values as TEXT, so a queued op carries
-/// e.g. `steps` as the *string* `'["step one"]'`. Uploading that string as-is
-/// makes Postgres store a jsonb **string** (`jsonb_typeof` = `string`), and
-/// when the row syncs back down every reader that expects an array/object
-/// crashes — or, quieter and worse, every server-side rule that asks
-/// `allowed_units ? unit` answers false. Every jsonb column a client writes
-/// belongs in this map; decode them to native structures before upload.
+/// Local SQLite stores JSON as TEXT. Uploaded as-is it becomes a jsonb
+/// string, which breaks every reader and every server-side `?` test, so these
+/// columns are decoded before upload.
 const Map<String, Set<String>> jsonbColumnsByTable = {
   'recipe': {'steps'},
   'plan_entry': {'eaters', 'macros'},
@@ -70,13 +57,9 @@ Map<String, dynamic> _decodeJsonbColumns(
 /// The PostgREST upsert payload for a PUT op: the row image with jsonb columns
 /// decoded, the row id, and `deleted_at` defaulted to null.
 ///
-/// The explicit null matters: a PUT's opData omits null columns, and PowerSync
-/// queues a local DELETE + re-INSERT of the same id as DELETE-then-PUT. The
-/// connector maps the DELETE to a server-side tombstone, so without
-/// `deleted_at: null` the following upsert would leave the tombstone in place
-/// and the row would stay deleted on every other device. A PUT means the row
-/// is live locally, so clearing the tombstone is always correct. An explicit
-/// local `deleted_at` value in the op still wins over the default.
+/// PowerSync queues a local DELETE + re-INSERT as DELETE-then-PUT and a PUT
+/// omits null columns, so without the explicit null the tombstone would stay.
+/// A local `deleted_at` in the op still wins.
 @visibleForTesting
 Map<String, dynamic> putPayload(CrudEntry op) => {
   'deleted_at': null,
@@ -96,9 +79,7 @@ class AnsiConnector extends PowerSyncBackendConnector {
 
   final SupabaseClient _supabase;
 
-  /// Where a discarded transaction is reported. The [debugPrint] below stays
-  /// beside it, not instead of it — a console line is for whoever is attached,
-  /// and this is for the person it happened to.
+  /// Where a discarded transaction is reported to the user.
   final DroppedWriteSink _onDropped;
 
   @override
@@ -138,9 +119,8 @@ class AnsiConnector extends PowerSyncBackendConnector {
       await transaction.complete();
     } on PostgrestException catch (e) {
       if (isFatalPostgrestError(e)) {
-        // Discarding keeps a single bad write from wedging the whole queue,
-        // but it is a permanent local/server divergence — never let it be
-        // silent.
+        // Dropping keeps one bad write from wedging the queue, but the two
+        // sides now diverge, so it is never silent.
         debugPrint(
           'sync: DROPPING crud transaction after fatal PostgREST error on '
           '${current?.table}/${current?.op.name} id=${current?.id} '

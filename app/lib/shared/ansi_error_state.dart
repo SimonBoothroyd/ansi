@@ -1,19 +1,12 @@
-/// The one thing a screen shows when the data it needs did not arrive.
-///
-/// It replaces six copies of the same shrug — *"Could not load the library."*,
-/// *"Could not load the week."*, and four more — each of which threw the
-/// exception it had been handed into a [debugPrint] and offered the user no
-/// reason and no way out.
-///
-/// Three things, in this order, because that is the order a person asks them
-/// in: **what** didn't load, **why**, and **what now**.
+/// What a screen shows when the data it needs did not arrive: what did not
+/// load, why, and what now.
 ///
 ///     Couldn’t load the week.
 ///     couldn’t reach the server
 ///     [Try again]  [Copy details]
 ///
-/// The reason is a mapped sentence (`describe_failure.dart`), never a raw
-/// `toString()`; the raw text lives behind Copy details.
+/// The reason is a mapped sentence (`describe_failure.dart`); the raw text
+/// lives behind Copy details.
 library;
 
 import 'package:flutter/services.dart';
@@ -34,18 +27,16 @@ class AnsiErrorState extends StatelessWidget {
     super.key,
   });
 
-  /// The thing that didn't load, as the user would name it: "the week", "this
-  /// recipe", "what this is used in".
+  /// The thing that did not load, as the user would name it: "the week".
   final String what;
   final Object error;
   final StackTrace? stackTrace;
 
-  /// Usually `() => ref.invalidate(theProvider)`. Absent only where retrying
-  /// genuinely cannot help.
+  /// Usually `() => ref.invalidate(theProvider)`. Null only where retrying
+  /// cannot help.
   final VoidCallback? onRetry;
 
-  /// A one-line form for a chip row or an inline slot, where a centred block
-  /// would be heavier than the thing it is reporting on.
+  /// A one-line form for a chip row or an inline slot.
   final bool compact;
 
   @override

@@ -1,11 +1,9 @@
-/// The sign-in gate (step 7). Everything else in the app lives behind it — the
-/// router redirects here whenever there's no Supabase session.
+/// The sign-in gate. The router redirects here whenever there is no Supabase
+/// session.
 ///
-/// Two ways in: a dev email/password (local Supabase, so onboarding + sync can
-/// be exercised end-to-end now) and "Continue with Google" (the spec's real
-/// auth, ADR-0002 — wired here, verified against a real Google project at cloud
-/// cutover). A successful sign-in flips the auth state; the router redirect and
-/// the session controller take it from there — this screen never navigates.
+/// Two ways in: a dev email/password and "Continue with Google" (ADR-0002). A
+/// successful sign-in flips the auth state; the router redirect and the
+/// session controller take it from there. This screen never navigates.
 library;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -35,12 +33,9 @@ class SignInView extends HookConsumerWidget {
 
     Future<void> run(Future<void> Function() action) async {
       if (busy.value) return;
-      // Drop the keyboard BEFORE the sign-in navigates away. A successful
-      // sign-in replaces this page while the keyboard is still up, and on
-      // Android the IME inset can then outlive the keyboard (the owner's
-      // Pixel: every tab shrunk by a keyboard height after signing in) — a
-      // field that is unfocused here hides the keyboard while the page that
-      // owns it is still around to hear the inset go back to zero.
+      // Drop the keyboard before the sign-in replaces this page: on Android
+      // the IME inset can otherwise outlive the keyboard and shrink every
+      // tab.
       FocusManager.instance.primaryFocus?.unfocus();
       busy.value = true;
       error.value = null;
@@ -158,15 +153,9 @@ class SignInView extends HookConsumerWidget {
                               Uri.base,
                               configured: Env.isConfigured,
                             ),
-                            // Native only. The default in-app browser sheet
-                            // does NOT dismiss itself when the io.ansi.app
-                            // deep link fires — the app signs in underneath
-                            // while the sheet sits on "loading" forever. The
-                            // external browser backgrounds itself when the
-                            // redirect foregrounds the app. In a browser there
-                            // is no sheet to launch: the tab navigates to
-                            // Google and back, so a launch mode would be a
-                            // setting about nothing.
+                            // Native only: the in-app browser sheet does not
+                            // dismiss itself when the deep link fires; the
+                            // external browser does. The web has no sheet.
                             authScreenLaunchMode: kIsWeb
                                 ? LaunchMode.platformDefault
                                 : LaunchMode.externalApplication,

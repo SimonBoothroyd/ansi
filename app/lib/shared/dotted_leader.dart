@@ -1,16 +1,8 @@
 /// The dotted rule that carries the eye from a name to the number set against
-/// it — the leader of a well-set table in the back of a cookbook.
+/// it, so facts can sit in a right-hand column.
 ///
-/// It exists so a fact can sit in a **column** instead of chasing the thing it
-/// belongs to: the Library's ledger puts every book's counts and every recipe's
-/// stats down one right-hand edge, and the leader is what keeps a short name
-/// and a long one pointing at the same place. Flutter has no dotted-line
-/// primitive, so a small [CustomPainter] draws it, exactly as
-/// `dashed_border_box.dart` draws the dashed box.
-///
-/// It is the flexible member of its row — it *is* an [Expanded] — so a caller
-/// writes it between two fixed cells and nothing else has to know how wide the
-/// gap turned out to be.
+/// A small [CustomPainter] draws it, as in `dashed_border_box.dart`. It is an
+/// [Expanded], written between two fixed cells.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -24,8 +16,7 @@ class AnsiDottedLeader extends StatelessWidget {
     super.key,
   });
 
-  /// The clear space either side of the dots, so the leader never touches the
-  /// letters it runs between.
+  /// The clear space either side of the dots.
   final double gap;
 
   final Color color;
@@ -36,9 +27,7 @@ class AnsiDottedLeader extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: gap),
       child: CustomPaint(
         painter: _DottedLinePainter(color),
-        // The line rides a hair above the baseline of the text either side of
-        // it, which is what a leader in print does: it is set to the row's
-        // middle and the row is centred on its own text.
+        // Set to the row's middle, a hair above the text's baseline.
         child: const SizedBox(height: 1, width: double.infinity),
       ),
     ),

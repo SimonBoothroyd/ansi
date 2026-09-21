@@ -1,12 +1,7 @@
-/// The persistent half of the error posture: **a banner reports a state**.
+/// The sync banner: reports a state that stays wrong until something changes.
+/// It renders nothing for the two healthy states.
 ///
-/// A toast is for an act that didn't happen; this is for a condition that is
-/// true right now and stays true until something changes. It renders nothing
-/// for the two healthy states, so the app is quiet until it isn't.
-///
-/// Hosted **once**, by the tab shell, above the routed child — never per
-/// screen. That is what makes "changes aren't reaching the other phone" a fact
-/// about the app rather than a fact about whichever tab you happened to open.
+/// Hosted once, by the tab shell, above the routed child.
 library;
 
 import 'dart:async';
@@ -33,7 +28,7 @@ class AnsiSyncBanner extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final health = ref.watch(syncHealthProvider).asData?.value;
     return switch (health) {
-      // Settled and waiting are both the system working. Nothing to say.
+      // Settled and waiting are healthy.
       null || SyncSettled() || SyncWaiting() => const SizedBox.shrink(),
       SyncStalled(:final queued, :final since) => _Banner(
         tone: SyncTone.warn,
@@ -67,7 +62,7 @@ String _refusedBody(List<DroppedWrite> drops) {
       : 'The oldest was a $subject. They’re still on this phone.';
 }
 
-/// The table name in the user's vocabulary. A person never typed `plan_entry`.
+/// The table name in the user's vocabulary.
 String _readableTable(String table) => switch (table) {
   'recipe' => 'recipe edit',
   'recipe_line' || 'recipe_group' => 'recipe edit',
@@ -79,9 +74,8 @@ String _readableTable(String table) => switch (table) {
   _ => 'change',
 };
 
-/// The detail behind "What happened": the table, the operation and the server's
-/// own code — the same string the connector's [debugPrint] carries, shown to
-/// the person it happened to instead of to a console nobody is reading.
+/// The detail behind "What happened": the table, the operation and the
+/// server's code, as the connector's [debugPrint] carries them.
 Future<void> showDroppedWriteSheet(
   BuildContext context,
   List<DroppedWrite> drops,

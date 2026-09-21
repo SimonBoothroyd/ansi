@@ -1,13 +1,8 @@
-/// The `⋯` that opens a menu — the same glyph, at the same weight, wherever a
-/// thing has more to offer than fits beside it.
+/// The `⋯` that opens a menu.
 ///
-/// The default is a ghost icon button, which is what a menu deserves: a tap
-/// target the size of a finger. [AnsiMoreTrigger.inline] is the bare glyph for
-/// a dense row that already ends in two other controls, where a button's own
-/// padding would push them off the edge.
-///
-/// It draws the trigger only. What the menu holds — and hiding it before an
-/// item acts — stays with the [FPopoverMenu] that owns it.
+/// The default is a ghost icon button. [AnsiMoreTrigger.inline] is the bare
+/// glyph for a dense row. It draws the trigger only; the [FPopoverMenu] that
+/// owns it holds the menu.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -47,9 +42,7 @@ class AnsiMoreTrigger extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (_bare) {
-      // The gap stays OUTSIDE the tap. It is the space between this control
-      // and the one before it, and a hover ground that reached into it would
-      // read as one wide target rather than as the `⋯`.
+      // The gap stays outside the tap and its hover ground.
       return Padding(
         padding: const EdgeInsets.only(left: gap),
         child: AnsiTap(
@@ -60,10 +53,8 @@ class AnsiMoreTrigger extends StatelessWidget {
         ),
       );
     }
-    // The button shape is left to Forui. `FButtonVariant.ghost` already hovers
-    // with `secondary` under `secondaryForeground` — the same two tokens
-    // [AnsiTap] uses — and rings with the theme's outline, so re-drawing it as
-    // an [AnsiTap] would buy nothing and would re-size a phone control.
+    // Forui's ghost variant already hovers and rings with the tokens
+    // [AnsiTap] uses.
     return FButton.icon(
       variant: FButtonVariant.ghost,
       size: compact ? FButtonSizeVariant.sm : FButtonSizeVariant.md,

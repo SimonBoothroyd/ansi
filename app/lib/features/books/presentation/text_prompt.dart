@@ -11,11 +11,8 @@ import '../../../shared/ansi_modals.dart';
 
 /// Prompts for one line of text.
 ///
-/// [clean] is the kind of name being typed, when one is: the prompt has no
-/// leave moment of its own — confirming IS leaving — so it is where a book or
-/// a section name gets [cleanName]ed. A prompt that is not naming something
-/// (a meal's label, a category coined on the spot) passes nothing and gets the
-/// text verbatim.
+/// [clean] is the kind of name being typed; confirming is where a book or
+/// section name gets [cleanName]ed. Without it the text is returned verbatim.
 Future<String?> promptForText(
   BuildContext context, {
   required String title,

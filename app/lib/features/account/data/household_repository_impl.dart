@@ -1,12 +1,8 @@
-/// [HouseholdRepository] over the local PowerSync SQLite, plus the one RPC the
-/// phone cannot do itself.
+/// [HouseholdRepository] over the local PowerSync SQLite, plus one RPC.
 ///
-/// The read is a watched one-row query — the household's own row, which every
-/// surface that draws a week reads through `weekShapeProvider`. The write is
-/// not a write at all: `setWeekStart` calls `set_household_week_start`, which
-/// flips the column and re-homes the household's weeks in one server
-/// transaction, and the new column value arrives back by sync. Nothing here
-/// ever writes `household` locally.
+/// The read is a watched one-row query. `setWeekStart` calls
+/// `set_household_week_start`, and the new value arrives back by sync;
+/// nothing here writes `household` locally.
 library;
 
 import 'package:sqlite_async/sqlite_async.dart';
@@ -15,8 +11,7 @@ import '../../../core/week_shape.dart';
 import '../domain/household_repository.dart';
 
 /// Calls the server's `set_household_week_start` RPC. A function rather than a
-/// client, so a test can fake the network boundary the way the session
-/// controller's `ensureOnboarded` does.
+/// client, so a test can fake the network boundary.
 typedef FlipWeekStart = Future<void> Function(String householdId, int startsOn);
 
 class SqliteHouseholdRepository implements HouseholdRepository {
@@ -42,8 +37,7 @@ class SqliteHouseholdRepository implements HouseholdRepository {
         final value = rows.isEmpty
             ? null
             : rows.first['week_starts_on'] as int?;
-        // An absent row and an absent column mean the same thing: nobody has
-        // said otherwise, so the week starts on Monday.
+        // An absent row or column means Monday.
         return value == null ||
                 value < DateTime.monday ||
                 value > DateTime.sunday

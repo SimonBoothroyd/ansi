@@ -1,7 +1,6 @@
-/// One selection anatomy for the ingredient and recipe pickers: an
-/// [AnsiSheetShell] with a TOP-anchored search field, a slot for source tabs /
-/// context strips above the list, and a footer slot (add-new, the eating
-/// footer).
+/// The selection anatomy the ingredient and recipe pickers share: an
+/// [AnsiSheetShell] with a top-anchored search field, a slot above the list
+/// and a footer slot.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -36,8 +35,7 @@ class PickerShell extends StatelessWidget {
   final ValueChanged<String> onQueryChanged;
   final bool searchAutofocus;
 
-  /// Rendered between the search field and the list (source tabs, the
-  /// already-this-week strip).
+  /// Rendered between the search field and the list (source tabs, a strip).
   final Widget? aboveList;
 
   /// The scrolling result area (gets the remaining height).
@@ -70,12 +68,8 @@ class PickerShell extends StatelessWidget {
   }
 }
 
-/// The `DID YOU MEAN` band header — the pickers' own section-header idiom, in
-/// the caution colour, so a guessed row can never be read as a found one.
-///
-/// One header for all three pickers: whatever the corpus, a guess is labelled
-/// the same way. It appears only when NOTHING was spelled right, so the band
-/// it opens is the whole list rather than a tail under real hits.
+/// The `DID YOU MEAN` band header, in the caution colour. It appears only
+/// when nothing was spelled right, so the band it opens is the whole list.
 class DidYouMeanHeader extends StatelessWidget {
   const DidYouMeanHeader({super.key});
 

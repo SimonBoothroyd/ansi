@@ -1,10 +1,8 @@
-/// Riverpod wiring for the household row — and [weekShape], the one answer
-/// anywhere in the app to "which day does the week start on?".
+/// Riverpod wiring for the household row, and [weekShape]: which day the week
+/// starts on.
 ///
-/// [weekShape] is SYNCHRONOUS on purpose. Every grid, label, key and derivation
-/// reads it, and none of them has a sensible loading state: a week drawn
-/// Monday-first for the half-second before the row arrives is the default this
-/// household would have had anyway, and it re-draws when the row lands.
+/// [weekShape] is synchronous because its readers have no loading state; it
+/// is Monday until the row arrives, then re-draws.
 library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -24,8 +22,8 @@ HouseholdRepository householdRepository(Ref ref) => SqliteHouseholdRepository(
   flipWeekStart: ref.watch(flipWeekStartProvider),
 );
 
-/// The `set_household_week_start` RPC (migration 0043) as a function, so the
-/// widget that offers the flip can be tested without a Supabase client.
+/// The `set_household_week_start` RPC as a function, so the widget that
+/// offers the flip can be tested without a Supabase client.
 @Riverpod(keepAlive: true)
 FlipWeekStart flipWeekStart(Ref ref) {
   final supabase = ref.watch(supabaseClientProvider);
@@ -39,12 +37,8 @@ FlipWeekStart flipWeekStart(Ref ref) {
 Stream<WeekShape> weekShapeStream(Ref ref) =>
     ref.watch(householdRepositoryProvider).watchWeekShape();
 
-/// The household's week shape, as a plain value.
-///
-/// Monday until the row arrives — and equally for a device that cannot reach
-/// its own database yet. That is not a swallowed error: the shape has exactly
-/// one honest default, the surfaces that read it have no loading state, and a
-/// database that never opens has a louder failure than a Monday-first grid.
+/// The household's week shape, as a plain value. Monday until the row
+/// arrives, or while the database cannot be reached.
 @Riverpod(keepAlive: true)
 WeekShape weekShape(Ref ref) =>
     ref.watch(weekShapeStreamProvider).value ?? WeekShape.monday;

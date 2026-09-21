@@ -1,9 +1,5 @@
-/// The one drag idiom: the grip that starts a reorder, and the paper a row is
-/// lifted onto while it crosses the list.
-///
-/// It lives here rather than beside any one list because three of them use it
-/// — the recipe editor's lines, the import review's cards, and an
-/// ingredient's measures — and a second copy is how two of them drift apart.
+/// The drag idiom the reorderable lists share: the grip that starts a
+/// reorder, and the paper a row is lifted onto while it drags.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -11,11 +7,9 @@ import 'package:forui/forui.dart';
 
 import '../core/theme/ansi_tokens.dart';
 
-/// The explicit drag handle a reorderable row wears.
-///
-/// A list of tappable rows that also moved on hold is how a scroll becomes an
-/// accidental move, so the gesture gets a glyph of its own and nothing else
-/// starts it. [index] is the row's position in the flat list it drags within.
+/// The explicit drag handle a reorderable row wears; nothing else starts a
+/// drag, so a scroll cannot become a move. [index] is the row's position in
+/// the flat list it drags within.
 class DragGrip extends StatelessWidget {
   const DragGrip({required this.index, super.key});
 
@@ -38,9 +32,7 @@ class DragGrip extends StatelessWidget {
   );
 }
 
-/// The row under the finger while it drags: the same row, lifted onto paper so
-/// it reads over the list it is crossing. Both line lists decorate with it, so
-/// a drag looks the same wherever it happens.
+/// The row under the finger while it drags, lifted onto paper.
 Widget liftedRow(Widget child, int index, Animation<double> animation) =>
     DecoratedBox(
       decoration: BoxDecoration(

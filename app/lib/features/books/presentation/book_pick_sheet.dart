@@ -1,10 +1,7 @@
-/// "Move them to…" — the door the delete refusal opens.
+/// "Move them to…": the door the delete refusal opens.
 ///
-/// Without it the refusal is a wall in front of the one action that would
-/// clear it. Picking a target says what it will do before it does it, because
-/// the move also un-files every recipe: sections belong to the book they were
-/// named in, so nothing may be silently re-filed under a label from another
-/// shelf.
+/// The sheet says what the move will do first, because it also un-files every
+/// recipe: sections belong to the book they were named in.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -28,8 +25,8 @@ Future<Book?> showBookPickSheet(
 }) {
   return showAnsiSheet<Book>(
     context: context,
-    // The root navigator, not the tab shell's branch navigator: a sheet that
-    // stops at the branch bounds leaves the nav bar lit and tappable beside it.
+    // The root navigator: a sheet on the branch navigator leaves the nav bar
+    // tappable beside it.
     builder: (_) =>
         _BookPickSheet(moving: moving, from: from, candidates: candidates),
   );
@@ -70,7 +67,7 @@ class _BookPickSheetState extends State<_BookPickSheet> {
             onTap: () => setState(() => _target = book),
           ),
         const SizedBox(height: 6),
-        // Honest, one sentence, before the tap — never a silent data shuffle.
+        // One sentence saying what the tap will do.
         Text(
           target == null
               ? 'Pick a shelf. Their sections stay behind.'

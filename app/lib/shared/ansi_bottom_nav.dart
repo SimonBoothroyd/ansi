@@ -1,8 +1,5 @@
-/// The app's bottom nav bar (design board: Library · Week · Cook · Shop).
-///
-/// One instance, owned by the tab shell — not one per tab screen. It reads and
-/// drives the [StatefulNavigationShell], so a tap changes a branch index and
-/// nothing about the bar itself moves or rebuilds.
+/// The app's bottom nav bar (Library · Week · Cook · Shop). One instance,
+/// owned by the tab shell; it reads and drives the [StatefulNavigationShell].
 library;
 
 import 'package:flutter/widgets.dart';
@@ -20,8 +17,7 @@ class AnsiBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return FBottomNavigationBar(
       index: shell.currentIndex,
-      // Re-tapping the selected tab sends that branch back to its root — the
-      // iOS "tap the tab you are on to go to the top" convention.
+      // Re-tapping the selected tab sends that branch back to its root.
       onChange: (i) =>
           shell.goBranch(i, initialLocation: i == shell.currentIndex),
       children: const [
@@ -46,10 +42,8 @@ class _NavItem extends StatelessWidget {
       icon: Icon(icon),
       label: Text(
         label.toUpperCase(),
-        // Colour and weight are deliberately absent: Forui resolves the
-        // selected variant (muted → primary, 400 → 700) into an ancestor
-        // DefaultTextStyle, and a Text's own value would win over it, leaving
-        // the label grey while its icon greened.
+        // No colour or weight: Forui resolves the selected variant into an
+        // ancestor DefaultTextStyle, which a Text's own value would override.
         style: ansiMonoInherit(size: 10, letterSpacing: 0.5),
       ),
     );

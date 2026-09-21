@@ -1,13 +1,7 @@
-/// `−  value  +` — the row that changes a number by a step.
+/// `−  value  +`: the row that changes a number by a step.
 ///
-/// The app steps servings, shelf-life days, timer minutes and a scale factor,
-/// and the buttons are the same buttons every time: one Forui icon button
-/// either side, disabled where the step is not available, so a stepper at its
-/// floor greys out rather than silently doing nothing.
-///
-/// What differs between the four is only what sits between them — a bare
-/// number, a two-line reading, a placeholder word for "unset" — so the middle
-/// is a widget the caller draws.
+/// One Forui icon button either side, disabled where the step is not
+/// available. The middle is a widget the caller draws.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -27,14 +21,14 @@ class AnsiStepperRow extends StatelessWidget {
   /// What the row reads, between the two buttons.
   final Widget value;
 
-  /// Null at the floor, null at the ceiling: a dead button says so.
+  /// Null at the floor or the ceiling, which disables the button.
   final VoidCallback? onDecrement;
   final VoidCallback? onIncrement;
 
   /// What the row names, before the minus.
   final Widget? leading;
 
-  /// What follows the plus — a unit word, usually.
+  /// What follows the plus, usually a unit word.
   final Widget? trailing;
 
   /// The compact size, for a row that holds two steppers side by side.

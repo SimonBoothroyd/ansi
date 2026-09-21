@@ -1,23 +1,10 @@
-/// The chrome around the whole app on a wide window: the sidebar (or the icon
-/// rail), drawn once, beside every page.
+/// The chrome around the whole app on a wide window: the sidebar or the icon
+/// rail, drawn once beside every page.
 ///
-/// It is the builder of the router's outer `ShellRoute`, so it sits **outside**
-/// the navigator that holds the tab shell and every pushed page. Three things
-/// follow from that position, and they are the reason for it:
-///
-/// * **A push keeps the chrome.** The sidebar takes no part in a route
-///   transition, so it cannot slide in over itself, fade, or appear twice while
-///   a page animates.
-/// * **It is one instance.** The lit destination is read from the location
-///   rather than handed down by the tab shell, so the lit form and the neutral
-///   form are the same widget with a different index — not two sidebars that
-///   have to agree.
-/// * **Nothing lit means you are not in the tab loop.** A pushed page draws its
-///   own back control; the sidebar goes quiet behind it. On a phone the bar
-///   being gone says the same thing, and a sidebar cannot go away.
-///
-/// At [AnsiShell.bar] it draws nothing at all: it returns the navigator
-/// untouched, so the phone's tree is exactly what it was.
+/// It builds the router's outer `ShellRoute`, outside the navigator that holds
+/// the tab shell and pushed pages, so a push keeps the chrome. The lit
+/// destination is read from the location; nothing lit means a pushed page.
+/// At [AnsiShell.bar] it returns the navigator untouched.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -37,15 +24,13 @@ class AnsiWideShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final form = AnsiShell.of(context);
     if (!form.beside) return child;
-    // The router rebuilds this builder on every location change, so reading the
-    // location here is enough to keep the lit destination current.
+    // The router rebuilds this builder on every location change.
     final lit = ansiBranchLocations.indexOf(
       GoRouter.of(context).state.uri.path,
     );
     return FScaffold(
-      // The page inside owns its own padding and its own keyboard inset — the
-      // tab shell's scaffold, or a pushed page's. A scaffold that subtracted
-      // the inset here as well would subtract it twice.
+      // The page inside owns its padding and keyboard inset; subtracting the
+      // inset here too would subtract it twice.
       childPad: false,
       resizeToAvoidBottomInset: false,
       sidebar: AnsiSideNav(form: form, index: lit < 0 ? null : lit),

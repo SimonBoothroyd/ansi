@@ -1,10 +1,7 @@
-/// Books domain entities — the read aggregate the Library screen renders.
+/// Books domain entities: the read aggregate the Library renders (pure Dart).
 ///
-/// PURE DART (invariant 2): no `package:flutter`. A [Book] holds ordered
-/// [BookSection]s (user-named groupings like "Weeknight"), each holding the
-/// [RecipeSummary]s filed under it, plus a synthetic [Book.unsectioned] bucket
-/// for recipes with no section. Sections are their own database rows carrying a
-/// `sort_order`; the repository assembles them into this aggregate.
+/// A [Book] holds ordered [BookSection]s, each holding the [RecipeSummary]s
+/// filed under it, plus a synthetic [Book.unsectioned] bucket.
 library;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -19,18 +16,16 @@ abstract class Book with _$Book {
     required String id,
     required String name,
 
-    /// Ordered, user-named sections. Empty sections are kept (they still show
-    /// as a labelled, recipe-less row).
+    /// Ordered, user-named sections. Empty sections are kept.
     @Default(<BookSection>[]) List<BookSection> sections,
 
-    /// Recipes in this book with no `section_id` (or a deleted section).
-    /// Rendered under an "Unsectioned" label; not a real database row.
+    /// Recipes in this book with no `section_id` (or a deleted section). Not
+    /// a database row.
     @Default(<RecipeSummary>[]) List<RecipeSummary> unsectioned,
   }) = _Book;
 }
 
-/// A user-named section within a book. [name] is always set (unlike an
-/// ingredient group, a section exists to carry a label the user typed).
+/// A user-named section within a book. [name] is always set.
 @freezed
 abstract class BookSection with _$BookSection {
   const factory BookSection({

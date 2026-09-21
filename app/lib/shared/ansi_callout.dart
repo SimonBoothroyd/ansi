@@ -1,15 +1,9 @@
-/// A tinted note beside an icon: the app's one way of saying "read this".
+/// A tinted note beside an icon.
 ///
-/// Two shapes, one anatomy. The default is a **boxed** callout — the amber
-/// block under a gap card, the blue freezer note — bordered and rounded,
-/// living inside the content it comments on. [AnsiCallout.banner] is the
-/// **full-bleed** one the shell hangs at the top of the app: edge to edge, a
-/// hairline underneath instead of a border around, because it is a fact about
-/// the app rather than about the card it happens to sit above.
-///
-/// The [AnsiTone] carries the palette, so a caution is the same amber
-/// everywhere and a hold is the same blue. The wording is the caller's; the
-/// wash, the border, the icon size and the indent are not.
+/// The default is a boxed callout, bordered and rounded, inside the content it
+/// comments on. [AnsiCallout.banner] is the full-bleed band the shell hangs at
+/// the top of the app, with a hairline underneath. The [AnsiTone] carries the
+/// palette; the wording is the caller's.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -28,8 +22,8 @@ class AnsiCallout extends StatelessWidget {
     super.key,
   }) : _full = false;
 
-  /// The shell's own band: full width, a hairline under it, and its action as
-  /// a word at the end of the row rather than a button below the text.
+  /// The shell's band: full width, a hairline under it, and its action as a
+  /// word at the end of the row.
   const AnsiCallout.banner({
     required this.tone,
     required this.icon,
@@ -43,14 +37,13 @@ class AnsiCallout extends StatelessWidget {
   final AnsiTone tone;
   final IconData icon;
 
-  /// The headline, in the tone's ink. Null leaves [body] alone beside the
-  /// icon — the one-line note shape.
+  /// The headline, in the tone's ink. Null leaves [body] alone beside the icon.
   final String? title;
 
   final String body;
 
-  /// The one thing to do about it, if there is one — "Set the yield", "Try
-  /// now". Drawn under the text when boxed, at the end of the row when full.
+  /// The one thing to do about it, if any. Drawn under the text when boxed,
+  /// at the end of the row when full.
   final String? action;
   final VoidCallback? onAction;
 

@@ -1,14 +1,9 @@
 /// The app's local PowerSync database.
 ///
-/// [openAnsiDatabase] runs once in `bootstrap.dart`; the open database is
-/// injected into [powerSyncDatabase] via a `ProviderScope` override. Two views
-/// onto it:
-/// - [powerSyncDatabase] is the concrete [PowerSyncDatabase] — the session
-///   controller needs it to call `.connect()` / `.disconnectAndClear()` as auth
-///   changes (step 7).
-/// - [database] is the same object as the narrower [SqliteConnection] query
-///   surface repositories depend on. Tests override [database] directly with an
-///   in-memory connection (they never touch [powerSyncDatabase]).
+/// [openAnsiDatabase] runs once in `bootstrap.dart` and is injected into
+/// [powerSyncDatabase], the concrete type the session controller connects and
+/// clears. [database] is the same object as the [SqliteConnection] query
+/// surface repositories use; tests override it with an in-memory connection.
 library;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -22,12 +17,11 @@ import 'schema.dart';
 
 part 'database.g.dart';
 
-/// Opens (and initialises) the local PowerSync database. No `.connect()` here —
-/// the session controller connects (with the step-7 connector) once the
-/// signed-in household is resolved, and disconnects on sign-out.
+/// Opens and initialises the local PowerSync database. It does not connect;
+/// the session controller does, once the household is resolved.
 Future<PowerSyncDatabase> openAnsiDatabase() async {
-  // On web there is no filesystem: PowerSync takes a bare name and persists via
-  // OPFS/IndexedDB. On native we place the file under the app support dir.
+  // The web has no filesystem: PowerSync takes a bare name and persists via
+  // OPFS/IndexedDB. Native places the file under the app support dir.
   final String dbPath;
   if (kIsWeb) {
     dbPath = 'ansi.db';
@@ -40,16 +34,13 @@ Future<PowerSyncDatabase> openAnsiDatabase() async {
   return db;
 }
 
-/// The open [PowerSyncDatabase]. Has no default — `bootstrap.dart` overrides it
-/// with the result of [openAnsiDatabase]. Repo tests don't use it.
+/// The open [PowerSyncDatabase]. No default: `bootstrap.dart` overrides it
+/// with the result of [openAnsiDatabase].
 @Riverpod(keepAlive: true)
 PowerSyncDatabase powerSyncDatabase(Ref ref) =>
     throw UnimplementedError('powerSyncDatabase provider must be overridden');
 
-/// The open database, as the common [SqliteConnection] type so repositories and
-/// their tests depend on the query surface, not on PowerSync specifically.
-///
-/// Derives from [powerSyncDatabase] in the app; a test overrides *this*
-/// provider directly with an in-memory connection.
+/// The open database as a [SqliteConnection], so repositories and their tests
+/// depend on the query surface only. A test overrides this provider directly.
 @Riverpod(keepAlive: true)
 SqliteConnection database(Ref ref) => ref.watch(powerSyncDatabaseProvider);

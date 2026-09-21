@@ -14,27 +14,23 @@ abstract final class Env {
   static bool get isConfigured =>
       supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
 
-  /// The defines by the name a `--dart-define` flag uses, so an error message
-  /// can quote what the caller actually has to fix.
+  /// The defines by their `--dart-define` names, for error messages.
   static Map<String, String> get defines => {
     'SUPABASE_URL': supabaseUrl,
     'SUPABASE_ANON_KEY': supabaseAnonKey,
     'POWERSYNC_URL': powersyncUrl,
   };
 
-  /// Throws a [StateError] when the app is only *half* configured.
+  /// Throws a [StateError] when the app is only half configured.
   ///
-  /// All-blank is the supported local/dev mode ([isConfigured] is false and the
-  /// import feature falls back to its canned payload). All-set is production.
-  /// Anything between is a foot-gun: an empty `SUPABASE_ANON_KEY` alongside a
-  /// real URL built and "initialised" happily, then bounced OAuth three screens
-  /// later with a bare 401 ("No API key found in request"). Call this before
-  /// `Supabase.initialize`.
+  /// All-blank is the supported local/dev mode and all-set is production. A
+  /// blank key beside a real URL initialises, then fails OAuth later with a
+  /// bare 401. Call this before `Supabase.initialize`.
   static void assertDefinesUsable() => checkDefines(defines);
 }
 
-/// The guard behind [Env.assertDefinesUsable], over an explicit map so it is
-/// testable — the real defines are compile-time constants a test cannot set.
+/// The guard behind [Env.assertDefinesUsable], over an explicit map so a test
+/// can drive it.
 @visibleForTesting
 void checkDefines(Map<String, String> defines) {
   final blank = [

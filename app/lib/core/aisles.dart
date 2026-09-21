@@ -1,18 +1,11 @@
-/// The aisle order — PURE DART.
+/// The aisle order (pure Dart), shared by the shopping list and the
+/// ingredients manager.
 ///
-/// One walk through a shop, said once. The shopping list groups what to buy by
-/// it and the ingredients manager groups the vocabulary by it, and somebody who
-/// learned the order on one screen should not meet a different one two taps
-/// away. It lives in `core/` because neither feature may reach into the other
-/// for a shared rule.
-///
-/// An ingredient's stored `category` is free text — a household can coin one —
-/// so the order is a *preference*, never a whitelist: a category nobody here
-/// named still gets a group, sorted after the known aisles.
+/// A stored `category` is free text, so the order is a preference, not a
+/// whitelist: an unknown category still gets a group, after the known aisles.
 library;
 
-/// The known aisles, in shop-walk order. Lower-cased, because that is how a
-/// stored `category` is keyed ([aisleKey]).
+/// The known aisles, in shop-walk order, lower-cased as [aisleKey] keys them.
 const kAisleOrder = <String>[
   'produce',
   'meat',
@@ -25,8 +18,7 @@ const kAisleOrder = <String>[
 ];
 
 /// The key an ingredient with no category groups under. It opens with a NUL,
-/// which no stored category carries, so it sorts ahead of every coined aisle —
-/// "Other" is where you look once the named sections have run out.
+/// which no stored category carries, so it sorts ahead of every coined aisle.
 const kUncategorisedAisle = '\u0000other';
 
 /// The group key for a stored `category`: trimmed and lower-cased, or
@@ -36,8 +28,8 @@ String aisleKey(String? category) {
   return (c == null || c.isEmpty) ? kUncategorisedAisle : c;
 }
 
-/// The display label for a key from [aisleKey] — "spices & seasoning" reads
-/// "Spices & Seasoning", and the uncategorised key reads "Other".
+/// The display label for a key from [aisleKey], in Title Case; the
+/// uncategorised key reads "Other".
 String aisleLabel(String key) => key == kUncategorisedAisle
     ? 'Other'
     : key

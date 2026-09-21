@@ -1,6 +1,5 @@
-/// [BookCollapseStore] over [SharedPreferences] — the shape
-/// `SharedPrefsHouseholdCache` already uses: one prefixed key per folded book,
-/// swept on sign-out with the rest of [DevicePrefs.sweptOnSignOut].
+/// [BookCollapseStore] over [SharedPreferences]: one prefixed key per folded
+/// book, swept on sign-out with [DevicePrefs.sweptOnSignOut].
 library;
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -24,8 +23,7 @@ class SharedPrefsBookCollapseStore implements BookCollapseStore {
   @override
   Future<void> write(String bookId, {required bool collapsed}) async {
     final prefs = await SharedPreferences.getInstance();
-    // Expanded is the default, so it is stored as the ABSENCE of a key rather
-    // than as `false` — nothing accumulates for books you only ever open.
+    // Expanded is stored as the absence of a key.
     if (collapsed) {
       await prefs.setBool('$_prefix$bookId', true);
     } else {

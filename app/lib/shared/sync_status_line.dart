@@ -1,34 +1,9 @@
-/// A one-line, quiet readout of [syncHealthProvider] for a screen where the
-/// answer matters *in the moment*.
+/// A one-line readout of [syncHealthProvider] for Shop, the one screen two
+/// phones drive at once.
 ///
-/// Today that is Shop, and only Shop. Every other surface in Ansi is operated
-/// by one person at a time; the shopping list is the one screen two phones
-/// drive simultaneously, in a supermarket, while walking apart. A tick that has
-/// not reached the other phone is not a background sync detail there — it is
-/// the feature failing, silently, in the aisle, in exactly the place where
-/// connectivity is worst.
-///
-/// It shares its provider with the Library `⋯` menu's line (`sync_health_row`)
-/// and with the shell's banner (`sync_banner`) by construction, so the readouts
-/// cannot disagree. What differs is the noun and the register: the banner says
-/// *something is wrong*, this says *where you stand right now*.
-///
-/// It says nothing when there is nothing to say — with one exception. After a
-/// queue it *showed* drains it says **"Synced · just now"** for a few seconds
-/// and then goes quiet again. That is the confirmation a shopper actually
-/// wants ("it got there") without a permanent status bar on a grocery list.
-///
-/// Two rules keep it from moving the list under a walking thumb, which is what
-/// a strip that comes and goes above a scroll does. **Its height is always
-/// reserved**: an empty slot fades in and out, and the rows below never
-/// travel. And a queue has to **outlive [waitingGrace]** before it is worth a
-/// word — a tick that uploads in a fifth of a second is the system working,
-/// not news, and the "Synced" that would follow it is not said either.
-///
-/// Explicitly **not** built: per-item pending marks. A queue is the system
-/// working, and a dot on forty rows makes nothing look like something. The
-/// count carries it — *which* two ticks are outstanding is not actionable,
-/// since you cannot re-tick a tick and the fix for all of them is the same.
+/// It is quiet unless a queue outlives [waitingGrace], then says "Synced"
+/// briefly once that queue drains. Its height is always reserved so the rows
+/// below never move. There are no per-item pending marks.
 library;
 
 import 'dart:async';
@@ -46,12 +21,8 @@ import 'sync_words.dart';
 /// How long "Synced · just now" lingers after the queue drains.
 const settledLinger = Duration(seconds: 4);
 
-/// How long a queue must last before the line says so.
-///
-/// A tick's `ps_crud` row, its upload and the status that follows it are a
-/// round trip on a good connection, and the derivation behind them is itself
-/// throttled at 300 ms. Below this the queue is invisible to the person who
-/// made it, and a strip that appeared for it would only be a flinch.
+/// How long a queue must last before the line says so. A tick that uploads
+/// faster than this is not worth a word.
 const waitingGrace = Duration(milliseconds: 700);
 
 /// How long the slot takes to fade its content in or out.
@@ -63,11 +34,8 @@ class AnsiSyncStatusLine extends HookConsumerWidget {
   /// Singular; pluralised for the count. Shop passes `'tick'`.
   final String noun;
 
-  /// One steady thing at the end of the strip — the Shop's trip estimate.
-  ///
-  /// It rides OUTSIDE the fade: the sync words come and go (they are news),
-  /// and what the trip comes to is not news, it is where you stand. The slot
-  /// was already always drawn, so this costs no height and moves no row.
+  /// One steady thing at the end of the strip: the Shop's trip estimate. It
+  /// sits outside the fade.
   final Widget? trailing;
 
   @override
@@ -76,13 +44,11 @@ class AnsiSyncStatusLine extends HookConsumerWidget {
     final settled = health is SyncSettled;
     final waiting = health is SyncWaiting;
 
-    // Whether the queue that is ending was ever on screen. It starts true so
-    // that a screen opened onto an already-settled app still confirms once;
-    // entering a queue clears it, and only the grace timer sets it again.
+    // Whether the ending queue was ever shown. Starts true so a screen opened
+    // onto a settled app confirms once; only the grace timer sets it again.
     final queueWasShown = useRef(true);
 
-    // A queue earns its strip by lasting. One-shot timer keyed on the
-    // transition INTO waiting, cancelled when the queue drains first.
+    // One-shot timer keyed on the transition INTO waiting.
     final showWaiting = useState(false);
     useEffect(() {
       if (!waiting) {
@@ -97,11 +63,8 @@ class AnsiSyncStatusLine extends HookConsumerWidget {
       return timer.cancel;
     }, [waiting]);
 
-    // "Synced" is worth saying only just after something the shopper watched
-    // landed, so the line is driven by a one-shot timer keyed on the
-    // transition INTO settled — never a `Timer.periodic` started in build,
-    // and always disposed. The flag is consumed here: one queue, one
-    // confirmation.
+    // One-shot timer keyed on the transition INTO settled, always disposed.
+    // The flag is consumed here: one queue, one confirmation.
     final showSettled = useState(false);
     useEffect(() {
       if (!settled) {
@@ -122,17 +85,14 @@ class AnsiSyncStatusLine extends HookConsumerWidget {
         ? null
         : syncLine(health, noun: noun, now: DateTime.now());
     final text = switch (health) {
-      // The banner above already says this one, loudly. Don't say it twice.
+      // The banner above already says this one.
       null || SyncRefused() => null,
       SyncSettled() => showSettled.value ? line!.text : null,
       SyncWaiting() => showWaiting.value ? line!.text : null,
       _ => line!.text,
     };
 
-    // The slot is drawn whether or not it is saying anything: this sits above
-    // the Shop list's scroll, and a strip that collapsed would walk every row
-    // up the screen under the thumb that ticked one. A blank line holds the
-    // same height as a full one, so there is nothing to compute.
+    // The slot is drawn even when blank, so the list below never moves.
     final trailing = this.trailing;
     return Container(
       width: double.infinity,

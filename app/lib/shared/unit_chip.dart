@@ -1,16 +1,8 @@
-/// The unit chip — the one pill a unit is picked with — and the small sheet
+/// The unit chip, the one pill a unit is picked with, and the small sheet
 /// that offers a list of them.
 ///
-/// It sits in `shared/` because three surfaces ride it and none of them owns
-/// it: the ingredient quantity sheet's dock (`UnitChipRow`) builds a row from
-/// an admission set and its measures, the component quantity sheet builds its
-/// own row over batch math, and `AmountAndUnitField` wears a single chip as
-/// the unit half of a sentence. The same object, not three skins that drift.
-///
-/// **There is no unit dropdown anywhere.** A unit is picked from the units
-/// this row can say, as chips — which is why the sentence control opens
-/// [showUnitPickSheet] rather than a select: the offer is the same offer, in a
-/// room small enough for a sentence to point at.
+/// Shared by the ingredient and component quantity sheets' docks and by
+/// `AmountAndUnitField`. There is no unit dropdown anywhere.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -21,20 +13,15 @@ import '../core/units/units.dart';
 import 'ansi_modals.dart';
 import 'ansi_sheet_shell.dart';
 
-/// The height of a chip in a dock — the row above a keypad, and the pick
-/// sheet's own [Wrap]. A chip inside a line of prose is trimmed to
-/// `kInlineControlHeight` instead, which is the sentence's height, not the
-/// dock's.
+/// The height of a chip in a dock or the pick sheet. A chip inside a line of
+/// prose is trimmed to `kInlineControlHeight` instead.
 const double kUnitChipHeight = 34;
 
 /// Offers [units] as chips and resolves to the one tapped, or null when the
 /// sheet is dismissed.
 ///
-/// The offer is the caller's list in the caller's order, and these lists are
-/// **catalog** units — what a serving may be said in, what a basis can reach,
-/// what a yield may be stated in. So there is no measure to lead with and no
-/// imprecise divider to draw: a host holding an ingredient and its measures
-/// wants the dock (`UnitChipRow`), not this.
+/// The offer is the caller's list of catalog units in the caller's order. A
+/// host holding an ingredient and its measures wants `UnitChipRow` instead.
 Future<Unit?> showUnitPickSheet(
   BuildContext context, {
   required List<Unit> units,
@@ -47,9 +34,7 @@ Future<Unit?> showUnitPickSheet(
     scrollable: true,
     children: [
       const SizedBox(height: 14),
-      // A Wrap, not the dock's scrolling row: nothing here is docked over a
-      // keypad, so every unit on offer can be seen at once rather than
-      // hidden past a fold.
+      // A Wrap, not a scrolling row: every unit on offer is visible at once.
       Wrap(
         runSpacing: 8,
         children: [
@@ -68,12 +53,8 @@ Future<Unit?> showUnitPickSheet(
   ),
 );
 
-/// One chip of a unit offer: a label in a pill that fills in when it is the
-/// chosen one.
-///
-/// It sizes to its label and takes its height from whatever encloses it, so
-/// the same chip reads as a dock chip at [kUnitChipHeight] and as the unit
-/// half of a sentence at `kInlineControlHeight`.
+/// One chip of a unit offer, filled in when chosen. It sizes to its label and
+/// takes its height from whatever encloses it.
 class UnitChip extends StatelessWidget {
   const UnitChip({
     required this.onTap,
@@ -94,8 +75,7 @@ class UnitChip extends StatelessWidget {
   final bool accent;
   final Widget? dot;
 
-  /// A subtle annotation after the label ("not in filter") — the admitted
-  /// off-filter selection reads as such without being hidden.
+  /// A subtle annotation after the label ("not in filter").
   final String? suffix;
   final VoidCallback onTap;
 

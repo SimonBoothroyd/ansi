@@ -1,16 +1,8 @@
-/// The words for [SyncHealth] — written once, so the Library and the Shop list
-/// cannot say different things about the same fact.
+/// The words for [SyncHealth], shared by the Library and the Shop list. Only
+/// the noun differs: "changes" in the Library menu, "ticks" on the list.
 ///
-/// The only thing that differs between the two readouts is the **noun**:
-/// "changes" in the Library `⋯` menu, "ticks" on the shopping list, because on
-/// that screen the thing at stake is a check-off and the other person is
-/// already in the user's head.
-///
-/// Two words never appear here. **"Offline"** — being offline is not a state
-/// this app reports; it reports waiting (fine) and stalled (not fine), and both
-/// are true whether the cause is a tunnel, an expired token or a 502. And
-/// **"failed"** — a person can act on "aren't reaching the other phone" and
-/// cannot act on "failed".
+/// The copy never says "offline" or "failed": it reports waiting and stalled,
+/// whatever the cause.
 library;
 
 import '../core/sync/sync_health.dart';
@@ -21,8 +13,7 @@ enum SyncTone {
   /// Everything is up. Muted; a fact, not a status.
   calm,
 
-  /// Something is queued or in flight. Still muted — **never** styled as an
-  /// error, because a queue is the offline-first design working.
+  /// Something is queued or in flight. Muted, never styled as an error.
   busy,
 
   /// Stalled past the threshold. Amber, and worth a tap.
@@ -33,9 +24,7 @@ enum SyncTone {
 }
 
 /// One line of copy for [health], in [noun]'s plural where it needs one.
-///
-/// The returned `text` is null where the honest answer is to say nothing at
-/// all — a screen with no news should show no line.
+/// `text` is null when there is nothing to say.
 ({String? text, SyncTone tone}) syncLine(
   SyncHealth health, {
   required DateTime now,
@@ -47,9 +36,7 @@ enum SyncTone {
         : 'Synced · ${relativeSyncTime(lastSyncedAt, now)}',
     tone: SyncTone.calm,
   ),
-  // Drawn only because the user is standing still watching for it: it turns a
-  // half-second flicker of "2 ticks waiting" into something that reads as
-  // progress.
+  // Turns a brief "2 ticks waiting" flicker into visible progress.
   SyncWaiting(uploading: true) => (text: 'Sending…', tone: SyncTone.busy),
   SyncWaiting(:final queued) => (
     text: '$queued ${plural(queued, noun)} waiting',
@@ -70,11 +57,8 @@ enum SyncTone {
   ),
 };
 
-/// "just now" · "6 min ago" · "14:32" · "yesterday".
-///
-/// Minutes while the answer is still "a moment ago", a wall clock for today
-/// (which is what someone comparing two phones actually wants), and a plain
-/// word beyond that.
+/// "just now" · "6 min ago" · "14:32" · "yesterday": minutes at first, a wall
+/// clock for today, a plain word beyond that.
 String relativeSyncTime(DateTime at, DateTime now) {
   final elapsed = now.difference(at);
   if (elapsed.inSeconds < 60) return 'just now';

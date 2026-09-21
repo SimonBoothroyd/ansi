@@ -1,11 +1,7 @@
-/// A dashed herb-green outline box — the "add" affordance used across the app
-/// (Library's "+ new section", the Week's "+ Add a meal"). Flutter has no
-/// dashed border primitive, so a small [CustomPainter] draws it.
+/// A dashed herb-green outline box, the app's "add" affordance. Flutter has
+/// no dashed border primitive, so a small [CustomPainter] draws it.
 ///
-/// [DashedAction] is the whole affordance: the box, an icon and a mono label,
-/// tappable. Reach for it rather than re-assembling the row — the Library
-/// alone offers five of them (new section, new book, and the two doors on both
-/// an empty shelf and a search that found nothing).
+/// [DashedAction] is the whole affordance: the box, an icon and a mono label.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -36,12 +32,8 @@ class DashedBorderBox extends StatelessWidget {
 
 /// A dashed row that invites: an icon, a mono label, one tap target.
 ///
-/// The icon is a real [IconData], never a "＋" glyph — the bundled fonts lack
-/// U+FF0B and the string form renders as tofu.
-///
-/// [enabled] false greys the whole row and makes the tap inert — an add-new
-/// footer waiting on a typed name, or one already busy opening its form, says
-/// so in place rather than disappearing.
+/// The icon is an [IconData], never a "＋" glyph, which the bundled fonts
+/// lack. [enabled] false greys the row and makes the tap inert.
 class DashedAction extends StatelessWidget {
   const DashedAction({
     required this.icon,

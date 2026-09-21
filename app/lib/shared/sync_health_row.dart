@@ -1,13 +1,7 @@
-/// The Library `⋯` menu's footer line — sync health, one tap away.
+/// The Library `⋯` menu's footer line: sync health.
 ///
-/// Findable when wondered about, invisible when not, which is the right weight
-/// for a fact that is boring 99.9% of the time. It costs no header space, needs
-/// no route, and moves to `/account` whole — one widget, one provider — the day
-/// a second thing wants to live there.
-///
-/// Non-interactive while healthy: a row that does nothing should not look like
-/// a button. When it isn't healthy it turns amber and becomes the way through
-/// to doing something about it.
+/// Non-interactive while healthy. When unhealthy it turns amber and becomes
+/// the way through to acting on it.
 library;
 
 import 'dart:async';
@@ -23,8 +17,7 @@ import 'sync_banner.dart';
 import 'sync_status_line.dart' show syncToneColor;
 import 'sync_words.dart';
 
-/// Mixes in [FItemMixin] so it can sit in the menu's own item group rather than
-/// being a foreign widget bolted underneath it.
+/// Mixes in [FItemMixin] so it can sit in the menu's own item group.
 class SyncHealthRow extends ConsumerWidget with FItemMixin {
   const SyncHealthRow({super.key});
 

@@ -1,10 +1,7 @@
-/// The books persistence contract — PURE DART (invariant 2). The data layer
-/// implements it over PowerSync's local SQLite; ViewModels depend only on this.
+/// The books persistence contract (pure Dart). ViewModels depend only on this.
 ///
-/// The Library is the whole aggregate: every book, its ordered sections, and
-/// the recipe summaries filed under each (plus each book's unsectioned ones).
-/// Mutations are small and targeted (create/rename/reorder a section, file a
-/// recipe) — unlike recipes, there is no whole-aggregate replace-on-save.
+/// The Library is the whole aggregate: every book, its ordered sections and
+/// the recipe summaries filed under each. Mutations are small and targeted.
 library;
 
 import 'book.dart';
@@ -14,9 +11,8 @@ abstract interface class BookRepository {
   /// Books and sections are ordered by `sort_order`; recipes newest-first.
   Stream<List<Book>> watchLibrary();
 
-  /// Ensures a default book exists (creating "Our Cookbook" if the household
-  /// has none) and adopts any book-less recipes into it. Idempotent — a no-op
-  /// once a book exists. Returns the default (or first existing) book.
+  /// Ensures a default book exists and adopts any book-less recipes into it.
+  /// Idempotent. Returns the default (or first existing) book.
   Future<Book> ensureDefaultBook();
 
   /// Creates a new book; returns its id.
@@ -25,30 +21,24 @@ abstract interface class BookRepository {
   /// Renames a book.
   Future<void> renameBook(String bookId, String name);
 
-  /// Reorders every book to match [orderedBookIds] — the section-reorder
-  /// method without the parent scope.
+  /// Reorders every book to match [orderedBookIds].
   Future<void> reorderBooks(List<String> orderedBookIds);
 
-  /// How many live recipes are filed in [bookId].
-  ///
-  /// Read at the moment of the tap so the delete refusal names a count that is
-  /// true *now* (the `usedIn` precedent), never the cached Library tree.
+  /// How many live recipes are filed in [bookId], read fresh so a delete
+  /// refusal names a true count.
   Future<int> countRecipesIn(String bookId);
 
-  /// Re-files every live recipe in [fromBookId] into [toBookId], clearing their
-  /// `section_id`: sections belong to the book they were named in, so a moved
-  /// recipe lands unsectioned rather than pointing at a shelf it left.
+  /// Re-files every live recipe in [fromBookId] into [toBookId], clearing
+  /// `section_id`: sections belong to the book they were named in.
   Future<void> moveBookContents({
     required String fromBookId,
     required String toBookId,
   });
 
-  /// Soft-deletes a book and its sections.
+  /// Soft-deletes a book and its sections; never cascades to recipes.
   ///
-  /// A book is a shelf, not a container: this never cascades to recipes.
-  /// Callers must refuse the delete when [countRecipesIn] is non-zero, and when
-  /// it is the household's last book — [ensureDefaultBook] would re-mint one on
-  /// the next launch, and a book that reappears is worse than a refusal.
+  /// Callers must refuse when [countRecipesIn] is non-zero, and when it is the
+  /// household's last book: [ensureDefaultBook] would re-mint one.
   Future<void> deleteBook(String bookId);
 
   /// Creates a new section at the end of [bookId]; returns its id.

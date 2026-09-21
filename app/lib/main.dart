@@ -1,5 +1,5 @@
 import 'bootstrap.dart';
 
-/// App entrypoint. All real startup lives in [bootstrap] so it can be reused by
-/// integration tests and alternate entrypoints (e.g. a `main_dev.dart`).
+/// App entrypoint. Startup lives in [bootstrap] so integration tests and
+/// alternate entrypoints can reuse it.
 void main() => bootstrap();

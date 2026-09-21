@@ -7,24 +7,18 @@ import 'package:forui/forui.dart';
 import '../core/theme/ansi_theme.dart';
 import '../core/theme/ansi_tokens.dart';
 
-/// The line the app prints wherever it changed a **word** a person wrote.
+/// The line printed wherever the app changed a word a person wrote: it says
+/// what the word was and puts it back in one tap.
 ///
-/// The app rewrites a word in two places, for the same reason: a method chip
-/// whose line was re-matched, and an ingredient name the form recognised as a
-/// recipe line. Both are the app deciding it knows the noun better than the
-/// typist did, and both owe the same manners — say what the word was, and make
-/// putting it back one tap. Casing and spacing changes are *not* this: they
-/// alter no word, so they are silent.
-///
-/// Drawn under the thing that moved: the step card, or the name field.
+/// Used under a re-matched method chip and under a recognised ingredient
+/// name. Casing and spacing changes are silent.
 class WasWordLine extends StatelessWidget {
   const WasWordLine({required this.oldWord, required this.onKeep, super.key});
 
-  /// The word as the person wrote it — printed in quotes.
+  /// The word as the person wrote it, printed in quotes.
   final String oldWord;
 
-  /// Puts [oldWord] back. What that means belongs to the caller: the editor
-  /// relabels the chip, the ingredient form restores and pins the typed name.
+  /// Puts [oldWord] back; what that means belongs to the caller.
   final VoidCallback onKeep;
 
   @override
@@ -32,10 +26,8 @@ class WasWordLine extends StatelessWidget {
     padding: const EdgeInsets.only(top: 6),
     child: Row(
       children: [
-        // The old word is whatever the page printed — "the sauce and cheese"
-        // is a real one — and the revert beside it has to stay reachable
-        // whatever its length, on a card as narrow as the review's. So the
-        // word yields and the action keeps its width.
+        // The old word can be long, so it yields and the action keeps its
+        // width.
         Expanded(
           child: Text(
             'was “$oldWord”',

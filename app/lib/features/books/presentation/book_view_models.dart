@@ -1,9 +1,8 @@
 /// Riverpod ViewModels for the books UI.
 ///
-/// [library] is a thin stream off the repository. Mutations don't need their
-/// own notifier — views call the keep-alive [bookRepositoryProvider] directly,
-/// which stays valid across the async gaps a dialog introduces (a short-lived
-/// notifier would be disposed before its callback ran).
+/// [library] is a thin stream off the repository. Views mutate through the
+/// keep-alive [bookRepositoryProvider] directly: a short-lived notifier would
+/// be disposed across a dialog's async gap.
 library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -18,19 +17,17 @@ part 'book_view_models.g.dart';
 Stream<List<Book>> library(Ref ref) =>
     ref.watch(bookRepositoryProvider).watchLibrary();
 
-/// Which books are folded shut on this device (D3).
+/// Which books are folded shut on this device.
 ///
-/// Keep-alive, and not optional: the toggle lands after a frame, and every
-/// Library mutation beside it lands after an async dialog — a short-lived
-/// notifier would be disposed before its callback ran. Hydrated once from the
-/// store; each toggle writes through so the fold survives a relaunch.
+/// Keep-alive, because toggles land after an async gap. Hydrated once from
+/// the store; each toggle writes through.
 @Riverpod(keepAlive: true)
 class FoldedBooks extends _$FoldedBooks {
   @override
   Future<Set<String>> build() => ref.watch(bookCollapseStoreProvider).read();
 
   /// Folds [bookId] shut, or opens it again. Optimistic: the set flips before
-  /// the write lands, because a chevron that waits on disk reads as broken.
+  /// the write lands.
   Future<void> toggle(String bookId) async {
     final next = {...state.asData?.value ?? const <String>{}};
     final collapsed = !next.remove(bookId);

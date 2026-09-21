@@ -1,7 +1,5 @@
 /// A bordered row you pick one of: a name, a tick when it is the pick, and a
-/// herb outline instead of a fill so the unpicked rows stay legible.
-///
-/// The two filing sheets pick a shelf this way.
+/// herb outline instead of a fill. The two filing sheets use it.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -24,12 +22,10 @@ class AnsiSelectRow extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  /// The quiet mono aside a row can carry — "here now", the shelf the recipe
-  /// is on already.
+  /// A quiet mono aside, e.g. "here now".
   final String? note;
 
-  /// False greys the row and refuses the tap: a "move" that moves nothing is
-  /// a tap that lies about what it did.
+  /// False greys the row and refuses the tap.
   final bool enabled;
 
   @override

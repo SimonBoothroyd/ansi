@@ -1,8 +1,8 @@
 import 'dart:ui';
 
-/// Design tokens from the "Ansi" design board (docs/product-specs/design-board.html).
-/// Pure colour constants — no Flutter widget imports — so they can be mapped
-/// into a Forui theme in `ansi_theme.dart` without coupling.
+/// Design tokens from the design board
+/// (docs/product-specs/design-board.html). Pure colour constants with no
+/// widget imports; `ansi_theme.dart` maps them into a Forui theme.
 abstract final class AnsiColors {
   static const surface = Color(0xFFFFFFFF);
   static const paper = Color(0xFFF4F6F1);
@@ -19,35 +19,28 @@ abstract final class AnsiColors {
   static const aging = Color(0xFFE1A63A);
   static const gone = Color(0xFFC64B36);
 
-  // A frozen hold — a light, icy blue in the freezer note's hue, saturated
-  // just enough to read on the neutral bar. Not part of the freshness scale:
-  // freezing pauses aging rather than advancing it.
+  // A frozen hold. Not on the freshness scale: freezing pauses aging.
   static const frozen = Color(0xFF83B4D2);
 
-  // The caution family: the board's amber wash, its border and its ink. One
-  // family, so a gap warning, a stalled-sync banner and an `incomplete` badge
-  // are visibly the same voice rather than three shades of nearly-amber.
+  // The caution family: the amber wash, its border and its ink, shared by
+  // every warning.
   static const caution = Color(0xFFFBF3E3);
   static const cautionLine = Color(0xFFF0DCB0);
   static const cautionInk = Color(0xFF7A5A16);
 
-  // The chill family: the freezer note's blue. Not a warning — a hold.
+  // The chill family: the freezer note's blue. A hold, not a warning.
   static const chill = Color(0xFFEAF1F5);
   static const chillLine = Color(0xFFD2E2EC);
   static const chillInk = Color(0xFF3B6076);
 
-  // The alarm family: the wash behind a refusal. Its ink is [gone], the
-  // freshness scale's own red, because the thing being reported is the same.
+  // The alarm family: the wash behind a refusal. Its ink is [gone].
   static const alarm = Color(0xFFFBEEEA);
   static const alarmLine = Color(0xFFE7C3BA);
 }
 
-/// The confetti's eight kitchen colours — the one deliberate break from the
-/// two-ink palette, and used in exactly one place: the burst that plays when
-/// this phone ticks the last row of the shopping list. Nothing else in the app
-/// draws in them, so a fourth ink anywhere else is still a decision, not a
-/// precedent. [herb] and [herbDeep] are the palette's own greens; the other
-/// six are the food's.
+/// The confetti's eight colours, used only by the burst that plays when the
+/// last shopping row is ticked. [herb] and [herbDeep] are the palette's own
+/// greens.
 abstract final class AnsiConfetti {
   static const herb = AnsiColors.herb;
   static const tomato = Color(0xFFD9482B);
@@ -71,15 +64,14 @@ abstract final class AnsiConfetti {
   ];
 }
 
-/// Corner radii, by the shape a thing is: a pill, a card, or a box that holds
-/// a note. Three numbers so a fourth is a decision rather than a typo.
+/// Corner radii, by the shape a thing is: a pill, a card, or a note box.
 abstract final class AnsiRadii {
   static const pill = 999.0;
   static const card = 12.0;
   static const box = 10.0;
 }
 
-/// The voice a callout speaks in — a caution, a hold, or a refusal.
+/// The voice a callout speaks in: a caution, a hold, or a refusal.
 enum AnsiTone {
   caution(AnsiColors.caution, AnsiColors.cautionLine, AnsiColors.cautionInk),
   chill(AnsiColors.chill, AnsiColors.chillLine, AnsiColors.chillInk),

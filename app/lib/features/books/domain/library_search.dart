@@ -1,16 +1,7 @@
-/// Searching the Library by recipe title — PURE DART (invariant 2).
+/// Searching the Library by recipe title (pure Dart).
 ///
-/// The whole aggregate is already in memory (the Library screen streams
-/// `List<Book>`), so a search is a fold over it rather than SQL. A live query
-/// replaces the tree with these flat rows: filing is the subtitle precisely
-/// *because* the tree is not on screen — two recipes called "Ragù" in two books
-/// are otherwise the same row twice.
-///
-/// **Titles only in v1, said out loud.** "Recipes with almonds" is a different
-/// query shape — a `recipe_line_item → ingredient` join, and after 8.6 a
-/// transitive one through `sub_recipe_id` — and a hit on a field the row does
-/// not show needs a "matched: almonds" line to explain itself, which is a new
-/// row anatomy. It ships as its own slice.
+/// The aggregate is already in memory, so a search is a fold over it. Results
+/// are flat rows with the filing as subtitle. Titles only.
 library;
 
 import '../../../core/search/search_query.dart';
@@ -19,17 +10,14 @@ import '../../ingredients/domain/normalize.dart' show matchTextForms;
 import '../../recipes/domain/recipe.dart' show RecipeSummary;
 import 'book.dart';
 
-/// Filing context (book · section) for a recipe — the flat row's subtitle, and
-/// the recipe picker's.
+/// Filing context (book · section) for a recipe: the flat row's subtitle.
 typedef Filing = ({String book, String? section});
 
 /// A recipe plus where it is filed.
 typedef FiledRecipe = ({RecipeSummary recipe, Filing filing});
 
-/// Where every recipe in [library] is filed, by recipe id.
-///
-/// One function, two callers: this list and the planning picker's rows. A
-/// second copy is how a "book · section" that disagrees with itself starts.
+/// Where every recipe in [library] is filed, by recipe id. Shared with the
+/// planning picker's rows.
 Map<String, Filing> filingByRecipe(List<Book> library) {
   final map = <String, Filing>{};
   for (final b in library) {
@@ -47,10 +35,8 @@ Map<String, Filing> filingByRecipe(List<Book> library) {
 
 /// Whether a Library search is showing guesses rather than spellings.
 ///
-/// [searchLibrary] keeps only the rows at the best tier the corpus reached
-/// (search & matching v1, D2/D3): a list is all spellings or all guesses,
-/// never a guess trailing under a spelling. When the best tier is
-/// [SearchTier.typo] the caller labels the list "did you mean".
+/// [searchLibrary] keeps only the rows at the best tier reached. When that
+/// tier is [SearchTier.typo] the caller labels the list "did you mean".
 bool librarySearchIsGuess(List<Book> books, String query) =>
     _bestTier(books, query) == SearchTier.typo;
 
@@ -65,13 +51,8 @@ SearchTier? _bestTier(List<Book> books, String query) => bestTier([
 /// Every recipe in [books] whose title answers [query], flattened, each
 /// carrying its filing.
 ///
-/// Ordering: a hit that is an exact prefix of the title's FIRST word leads
-/// ("chicken" → "Chicken Stock" before "Weeknight Chicken Curry"); the rest
-/// keep the tree's own order (book order, then section order), so the flat
-/// list is never arbitrary.
-///
-/// An empty (or whitespace-only) query returns nothing — the tree renders
-/// instead. The flat list is a search result, never the browse view.
+/// A hit that prefixes the title's first word leads; the rest keep the tree's
+/// order. A blank query returns nothing.
 List<FiledRecipe> searchLibrary(List<Book> books, String query) {
   final tokens = searchTokens(query);
   if (tokens.isEmpty) return const [];
@@ -100,9 +81,8 @@ List<FiledRecipe> searchLibrary(List<Book> books, String query) {
   return [...leading, ...rest];
 }
 
-/// Whether the query's first token is a prefix of the title's first word —
-/// in the token's own spelling or its singular, so "onions" leads with
-/// *Onion Soup* the way the tier that found it already folds them together.
+/// Whether the query's first token, as typed or singularised, is a prefix of
+/// the title's first word.
 bool _startsFirstWord(String title, List<String> tokens) {
   final words = normalizeSearchQuery(title).split(' ');
   if (words.isEmpty) return false;

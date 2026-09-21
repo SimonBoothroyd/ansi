@@ -1,23 +1,18 @@
-/// The `SharedPreferences` keys this app writes PER DEVICE — never synced, and
+/// The `SharedPreferences` keys this app writes per device: never synced, and
 /// swept together on sign-out.
 ///
-/// Anything here is a *viewing* or *connection* fact about this phone, not
-/// household data: syncing it would mean one member's tap changing the other's
-/// screen under last-write-wins. Keeping the prefixes in one place is what lets
-/// `SharedPrefsHouseholdCache.clear` sweep a feature's keys without `core/`
-/// importing that feature (root AGENTS.md: `core/` never imports a feature).
-///
-/// Nothing here needs migrating — a key for a dead id is inert.
+/// These are viewing or connection facts about this phone, not household
+/// data. The prefixes live here so `SharedPrefsHouseholdCache.clear` can sweep
+/// a feature's keys without `core/` importing that feature.
 library;
 
 abstract final class DevicePrefs {
   /// `+ userId` → the household that user resolved to on this device, so a
-  /// signed-in relaunch reaches the Library without awaiting the onboarding
-  /// RPC.
+  /// relaunch need not await the onboarding RPC.
   static const householdIdPrefix = 'ansi.household_id.';
 
   /// `+ bookId` → `true` while that book is folded shut on this device.
-  /// Absent means expanded: a household's first book must not arrive folded.
+  /// Absent means expanded.
   static const bookCollapsedPrefix = 'ansi.book_collapsed.';
 
   /// Every prefix above, in the order sign-out sweeps them.

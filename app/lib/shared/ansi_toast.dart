@@ -1,21 +1,9 @@
-/// The app's toasts — the transient half of the error posture.
+/// The app's toasts. A toast reports an act that did not happen; a state that
+/// stays wrong is the sync banner's.
 ///
-/// **A toast reports an act. A banner reports a state.** If the user did
-/// something and it didn't happen, it is a toast, with a way to try again. If
-/// something is *currently* wrong and stays wrong until acted on, it is the
-/// sync banner, not this.
-///
-/// A toast sits **bottom-centre**, above the tab bar, so it never covers a
-/// header action, and it is never drawn wider than the measure a page sits in.
-/// Both are set once on the theme's toaster style
-/// (`core/theme/ansi_theme.dart`), so no function here restates them. A toast
-/// needs an `FToaster` ancestor, which `app.dart` installs once beside
-/// `FTheme`. A widget test that pumps a bare screen must use `pumpAnsiApp`
-/// (`test/helpers/pump_app.dart`) or `showFToast` throws.
-///
-/// The words are the design's, not a developer's: never "Error", never
-/// "Failed", never an exception's `toString()`. See
-/// `docs/design-docs/errors-and-sync-health.md`.
+/// Position and width are set once on the theme's toaster style. A toast needs
+/// the `FToaster` ancestor `app.dart` installs, so a widget test must use
+/// `pumpAnsiApp`. See `docs/design-docs/errors-and-sync-health.md`.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -23,28 +11,18 @@ import 'package:forui/forui.dart';
 
 import '../core/theme/ansi_theme.dart';
 
-/// Long enough to read a sentence and reach for Retry; short enough that a
-/// failure the user has already moved past does not follow them around.
+/// Long enough to read a sentence and reach for Retry.
 const _toastDuration = Duration(seconds: 6);
 
-/// A context below the app's one `FToaster`, for a caller that has none of its
-/// own — the zone handler, which runs outside the widget tree entirely.
-///
-/// `app.dart` mounts it inside the toaster; it is null until the first frame.
+/// A context below the app's one `FToaster`, for a caller outside the widget
+/// tree (the zone handler). Null until the first frame.
 final ansiToastAnchor = GlobalKey(debugLabel: 'ansi toast anchor');
 
 /// Reports that one thing the user asked for did not happen.
 ///
-/// [what] is a lowercase verb phrase in the user's own noun completing
-/// "Couldn't ___." — "save the recipe", "add Tuesday's dinner", "delete that
-/// section". Never a table name, never a method name.
-///
-/// One line and a Retry: [what] is the whole message. A failure that needs a
-/// paragraph is a state, and a state is the sync banner's.
-///
-/// [onRetry] runs the same write again. It is offered by default because a
-/// local write that threw once usually succeeds on a second attempt; pass null
-/// only where re-running would be wrong.
+/// [what] is a lowercase verb phrase completing "Couldn't ___." in the user's
+/// own nouns. [onRetry] runs the same write again; pass null only where
+/// re-running would be wrong.
 void showAnsiFailureToast(
   BuildContext context, {
   required String what,
@@ -70,13 +48,9 @@ void showAnsiFailureToast(
   );
 }
 
-/// Reports that something threw where nobody was expecting it.
-///
-/// Primary, not destructive: this is information, not alarm — the app kept
-/// going, and a user action that failed already had its own honest surface via
-/// [showAnsiFailureToast]. The rate limiting lives in the caller
-/// (`core/observability/crash_sink.dart`), because an exception thrown inside
-/// `build` repeats every frame.
+/// Reports that something threw where nobody was expecting it. Primary, not
+/// destructive. The caller rate-limits
+/// (`core/observability/crash_sink.dart`).
 void showAnsiProblemToast(
   BuildContext context, {
   required VoidCallback onCopyDetails,
@@ -99,22 +73,12 @@ void showAnsiProblemToast(
   );
 }
 
-/// Reports that something the user removed is **recoverable**, and offers the
-/// way back.
+/// Reports that something the user removed is recoverable, and carries the
+/// undo. The one exception to "no success toasts"
+/// (`docs/design-docs/errors-and-sync-health.md`, D1).
 ///
-/// This is the one deliberate exception to "no success toasts"
-/// (`docs/design-docs/errors-and-sync-health.md`, D1): it is not reporting
-/// that a write succeeded — it is **carrying the undo**, which is the only
-/// reason it exists. It is also what buys the removals that ask nothing first:
-/// a `−` on every dish row of a resting screen is defensible only because the
-/// act is trivially reversible, and this is what makes it so.
-///
-/// [what] is what went, in the user's own nouns — "Removed Chicken Curry from
-/// Monday." [detail] names what would come back ("dinner · Ada & Jun · 1¾
-/// portions"), because an undo you cannot audit is a promise, not a control.
-///
-/// Primary, not destructive: nothing is wrong. The red is reserved for
-/// [showAnsiFailureToast], where something actually failed.
+/// [what] is what went, in the user's own nouns; [detail] names what would
+/// come back. Primary, not destructive.
 void showAnsiUndoToast(
   BuildContext context, {
   required String what,

@@ -1,21 +1,9 @@
 /// A pill you can pick: a label in a rounded outline that fills in when it is
 /// the chosen one.
 ///
-/// The app picks with pills in four places — the week's per-eater lens, the
-/// portion-factor picks, the picker tabs, and the add-item sheet's two modes —
-/// and they were four widgets drawing the same shape with four paddings. The
-/// shape is here; what stays a caller's business is the wording, the tone and
-/// whether the row shares its width.
-///
-/// **Two tones, and they mean different things.** [AnsiChipTone.herb] is a
-/// *filter*: the herb wash says "this is what you are looking at", and the
-/// unpicked chips beside it are still live choices. [AnsiChipTone.ink] is a
-/// *tab*: solid ink says "this is the page you are on", and the others are
-/// where you are not. A filter that painted itself like a tab would claim the
-/// screen belongs to it.
-///
-/// Not every pill in the app is one of these: a unit chip and the mode chip
-/// carry their own trailing anatomy, and they stay their own widgets.
+/// [AnsiChipTone.herb] is a filter: the unpicked chips beside it are still
+/// live choices. [AnsiChipTone.ink] is a tab: the page you are on. Unit chips
+/// and the mode chip are their own widgets.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -42,16 +30,13 @@ class AnsiChip extends StatelessWidget {
   final VoidCallback onTap;
   final AnsiChipTone tone;
 
-  /// Something small in front of the label — an eater's avatar, not a glyph
-  /// the label could have said itself.
+  /// Something small in front of the label, such as an eater's avatar.
   final Widget? icon;
 
-  /// Mono for a chip whose label is a number or a machine word (`×¾`,
-  /// `Recent`); sans for a chip that names a person or a thing.
+  /// Mono for a number or a machine word (`×¾`, `Recent`); sans for a name.
   final bool mono;
 
-  /// Takes an equal share of its row rather than sizing to the label — the
-  /// two-mode row, where the pair reads as one control.
+  /// Takes an equal share of its row rather than sizing to the label.
   final bool expand;
 
   @override

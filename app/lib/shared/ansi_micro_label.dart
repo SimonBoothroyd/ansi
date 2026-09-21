@@ -1,8 +1,5 @@
 /// The uppercase micro-label that names a field: `YIELD`, `WHO'S EATING`.
-///
-/// It is [ansiLabel] — mono 11, letter-spaced 1.5 — plus the gap to the field
-/// under it, because the gap is part of naming a thing: a label floating
-/// equidistant between two fields names neither.
+/// It is [ansiLabel] plus the gap to the field under it.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -22,15 +19,12 @@ class AnsiMicroLabel extends StatelessWidget {
 
   final String text;
 
-  /// The qualifier that rides beside the name (`MAKES · optional`), in a
-  /// quieter mono — and in [suffixColor] when it is flagging something.
+  /// The qualifier beside the name (`MAKES · optional`), in a quieter mono,
+  /// or in [suffixColor] when it flags something.
   final String? suffix;
 
-  /// A qualifier that has grown into a sentence ("enter them as the label
-  /// reads"), demoted to its own line UNDER the label. In [ansiLabel]'s
-  /// letter-spaced uppercase it would wrap onto two lines on a phone and read
-  /// at the same weight as the heading above it; beside the label it would
-  /// crowd the name out. So it goes below, one weight down.
+  /// A sentence-length qualifier, on its own line under the label, where it
+  /// neither wraps in uppercase nor crowds the name.
   final String? hint;
 
   final Color suffixColor;

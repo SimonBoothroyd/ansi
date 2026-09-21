@@ -1,16 +1,8 @@
-/// "Move to…" — re-filing ONE recipe, from the Library.
+/// "Move to…": re-filing one recipe, from the Library.
 ///
-/// The act already existed in bulk: the delete refusal's door is
-/// `moveBookContents`, every recipe in a book re-filed and announced before it
-/// acts. This is that sentence in the singular — and it belongs here rather
-/// than in the editor, because re-shelving is a LIBRARY act and the editor is
-/// the one screen where the shelves are not visible.
-///
-/// Unlike the bulk move, a single recipe can land IN a section: nothing is
-/// being re-filed under a label from another shelf, because the person is
-/// picking the label. Crossing into a book without choosing one of its
-/// sections still means unsectioned, for the reason it always has — a section
-/// belongs to the book it was named in.
+/// Unlike the bulk `moveBookContents`, a single recipe can land in a section,
+/// because the person picks it. A book chosen without a section means
+/// unsectioned.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -23,7 +15,7 @@ import '../../../shared/ansi_select_row.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../domain/book.dart';
 
-/// A shelf a recipe can be moved to, and how to say it out loud.
+/// A shelf a recipe can be moved to, and its spoken label.
 typedef FilingTarget = ({String bookId, String? sectionId, String label});
 
 /// Offers every shelf in [books] as the new home for [title], with the shelf
@@ -38,8 +30,8 @@ Future<FilingTarget?> showRecipeMoveSheet(
 }) {
   return showAnsiSheet<FilingTarget>(
     context: context,
-    // The root navigator, not the tab shell's branch navigator: a sheet that
-    // stops at the branch bounds leaves the nav bar lit and tappable beside it.
+    // The root navigator: a sheet on the branch navigator leaves the nav bar
+    // tappable beside it.
     builder: (_) => _RecipeMoveSheet(
       title: title,
       books: books,
@@ -96,8 +88,8 @@ class _RecipeMoveSheetState extends State<_RecipeMoveSheet> {
                       ),
                     ),
                   ),
-                  // Every shelf inside the book, the bucket first: a book
-                  // with no sections still has exactly one place to land.
+                  // The bucket first: a book with no sections still has one
+                  // place to land.
                   AnsiSelectRow(
                     label: 'Unsectioned',
                     selected:
@@ -132,8 +124,7 @@ class _RecipeMoveSheetState extends State<_RecipeMoveSheet> {
           ),
         ),
         const SizedBox(height: 10),
-        // Honest, one sentence, before the tap — the bulk move's grammar in
-        // the singular.
+        // One sentence saying what the tap will do.
         Text(
           target == null
               ? 'Pick a shelf.'

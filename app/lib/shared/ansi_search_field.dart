@@ -1,14 +1,7 @@
-/// The app's one search field.
+/// The app's one search field: an [FTextField] with a magnifier prefix.
 ///
-/// The [FTextField] + magnifier-prefix anatomy every search surface shares,
-/// once. Reuse the FIELD, not a shell — `PickerShell` stays a *sheet* shell,
-/// and the Library's search is a field on a screen you are already looking at.
-///
-/// It carries the app's type here rather than at five call sites: Forui sizes
-/// a field's text off `typography.sm`, which on the touch ramp is 16 — two
-/// steps above every other sans the app draws — and hangs a prefix icon at the
-/// border with no inset of its own, so the magnifier sat tight against the
-/// left edge while the text began a content padding in.
+/// It sets the text size and the icon inset here because Forui's defaults
+/// draw the text at 16 and hang the prefix icon at the border.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -30,9 +23,8 @@ class AnsiSearchField extends StatelessWidget {
 
   final String hint;
 
-  /// Drive the field from a controller when the SCREEN branches on what the
-  /// field says (the ingredients manager's pattern) rather than on a query
-  /// stored somewhere else.
+  /// For a screen that branches on what the field says rather than on a
+  /// query stored elsewhere.
   final TextEditingController? controller;
 
   final ValueChanged<String>? onChanged;
@@ -49,9 +41,8 @@ class AnsiSearchField extends StatelessWidget {
           ? FTextFieldControl.managed(controller: controller)
           : FTextFieldControl.managed(onChange: (v) => onChanged?.call(v.text)),
       prefixBuilder: (context, style, variants) => Padding(
-        // The magnifier's own inset: the field's content padding, so the icon
-        // starts where the text would have started without it. Only the start
-        // is set — Material keeps its own small gap after a prefix icon.
+        // The field's content padding, so the icon starts where the text
+        // would. Only the start is set; Material keeps a gap after a prefix.
         padding: EdgeInsetsDirectional.only(
           start: style.contentPadding.resolve(Directionality.of(context)).left,
         ),
@@ -64,10 +55,8 @@ class AnsiSearchField extends StatelessWidget {
   }
 }
 
-/// The app's sans at the row size, for the content and the hint alike.
-///
-/// A delta rather than a replacement: Forui's own inks stay, so the hint is
-/// still `mutedForeground` and a disabled field still greys out.
+/// The app's sans at the row size, for the content and the hint. A delta, so
+/// Forui's own inks stay.
 FTextFieldStyleDelta _style() {
   final sans = ansiSans(size: _kSearchTextSize);
   final text = TextStyleDelta.delta(

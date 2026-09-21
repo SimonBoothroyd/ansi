@@ -1,23 +1,9 @@
-/// The one label-and-amount form every measure is stated in — an ingredient's
-/// own count words, and a recipe's own words for one of what it makes.
+/// The label-and-amount form every measure is stated in, shared by the
+/// ingredient's and the recipe's measure lists.
 ///
-/// It lives here rather than beside either list because the two are the same
-/// fact one level apart (a word, and what one of it comes to), and a second
-/// copy is how two forms that must read identically drift: the ingredient's
-/// `can (400 g)` and the recipe's `blob` are typed into the same run, in the
-/// same order, with the button in the same place.
-///
-/// Its three controls sit on one run at [kInlineControlHeight]: the label field
-/// is the small variant trimmed to it, the amount and its unit are
-/// [AmountAndUnitField], and the button is the `xs` the density sentence ends
-/// with.
-///
-/// **Save stills the slots' own scrollers first.** A field keeps its caret in
-/// view by animating its internal scroll, and Save is the tap that can take the
-/// whole form out of the tree — the measures editor's open row closes on it. A
-/// scroll still running over a subtree that has gone dispatches into it and
-/// trips a framework assertion, so the tap stops both slots before the host
-/// hears about it.
+/// Its three controls sit on one run at [kInlineControlHeight]. Save stops the
+/// slots' caret scrollers first: the host may remove the form on that tap, and
+/// a scroll still running over a removed subtree trips a framework assertion.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -54,38 +40,31 @@ class MeasureForm extends HookWidget {
   final String headline;
   final String saveLabel;
 
-  /// Names this form's own fields (`add` / `edit`), because two of them are on
-  /// screen together — the row being edited sits in the list, above the add
-  /// form — and a test has to be able to say which one it means. The keys are
-  /// `<slot>-measure-label`, `-amount` and `-unit`.
+  /// Names this form's fields (`add` / `edit`), since both can be on screen.
+  /// The keys are `<slot>-measure-label`, `-amount` and `-unit`.
   final String slot;
 
-  /// What the amount may be said in. The caller decides: an ingredient's
-  /// measure is weighed in something its basis can reach, and a recipe's word
-  /// only in a family its `makes` states.
+  /// What the amount may be said in; the caller decides.
   final List<Unit> units;
   final Unit unit;
   final String? error;
   final bool autofocus;
 
-  /// The two slots, as the controllers the host holds. The host owns the text
-  /// because it is the one that has to **empty** it — a field rebuilt to say
-  /// something new drags its focus, its keyboard and any scroll-into-view it
-  /// had in flight out of the tree with it.
+  /// The two slots' controllers. The host owns the text because it empties
+  /// it; rebuilding a field to change its text would drop focus.
   final TextEditingController label;
   final TextEditingController amount;
 
   /// Focused when the host wants the keyboard back in the first slot.
   final FocusNode? labelFocus;
 
-  /// What the empty label slot suggests — the host's own example word.
+  /// The empty label slot's hint.
   final String hint;
 
   final ValueChanged<Unit> onUnit;
   final VoidCallback onSave;
 
-  /// The line under the fields when nothing is wrong — the add form's
-  /// provenance note, the edit form's way back out.
+  /// The line under the fields when nothing is wrong.
   final Widget footer;
 
   @override
@@ -93,8 +72,7 @@ class MeasureForm extends HookWidget {
     final labelScroll = useScrollController();
     final amountScroll = useScrollController();
 
-    // The tap the host may answer by removing this form — see the library
-    // note. Stilling a slot that is not scrolling costs nothing.
+    // The host may remove this form on the tap; see the library note.
     void save() {
       for (final scroll in [labelScroll, amountScroll]) {
         if (scroll.hasClients) scroll.position.jumpTo(scroll.position.pixels);
@@ -105,8 +83,7 @@ class MeasureForm extends HookWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Icon + text, never the raw "＋" glyph (missing from the bundled
-        // fonts — renders as tofu).
+        // Icon + text: the "＋" glyph is missing from the bundled fonts.
         Row(
           children: [
             Icon(icon, size: 12, color: AnsiColors.herb),
@@ -118,9 +95,7 @@ class MeasureForm extends HookWidget {
         Row(
           children: [
             Expanded(
-              // The small variant, trimmed to the run's height: a full-height
-              // field beside a 32 pt control is what made this row read as
-              // two rows stacked rather than as one line.
+              // The small variant, trimmed to the run's height.
               child: FTextField(
                 key: ValueKey('$slot-measure-label'),
                 autofocus: autofocus,
@@ -150,8 +125,7 @@ class MeasureForm extends HookWidget {
               onSubmit: save,
             ),
             const SizedBox(width: 8),
-            // The density sentence's button, to the point: `sm` floors at
-            // 40 pt on a touch platform, which is a row of its own.
+            // `xs`: `sm` floors at 40 pt on a touch platform.
             FButton(
               size: FButtonSizeVariant.xs,
               style: const FButtonStyleDelta.delta(
