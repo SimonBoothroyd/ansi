@@ -222,7 +222,8 @@ const lineSchema = {
     printed_text: { type: "string" },
     name_printed: { type: "string" },
     amount_printed: { type: "string" },
-    count: { type: "integer", minimum: 1 },
+    // No `minimum`: structured outputs reject numeric constraints. Coercion clamps it.
+    count: { type: "integer" },
     each_printed: { type: ["string", "null"] },
     discount_printed: { type: ["string", "null"] },
     kind: { type: "string", enum: ["item", "not_food", "tax", "fee"] },
