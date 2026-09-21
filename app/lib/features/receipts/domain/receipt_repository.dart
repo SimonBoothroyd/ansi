@@ -1,14 +1,9 @@
-/// The two receipt seams — PURE DART (invariant 2).
+/// The two receipt seams. Pure Dart.
 ///
-/// [ReceiptImportRepository] is the server: photos in, a [ReceiptPayload]
-/// out, narrated as it goes. It is the receipt twin of `ImportRepository`'s
-/// extract→match half, and it is deliberately a seam rather than a direct
-/// call, so every screen can be driven from a replay payload with no network
-/// and no billed model call behind it.
-///
-/// [ReceiptRepository] is the ledger: the receipts the household has kept,
-/// and the one write that adds another. Reads are watched queries over the
-/// local PowerSync SQLite, like every other read in the app.
+/// [ReceiptImportRepository] is the server: photos in, a [ReceiptPayload] out,
+/// narrated as it goes. A seam so every screen can be driven from a replay
+/// payload with no network. [ReceiptRepository] is the ledger: watched reads
+/// over the local PowerSync SQLite, and the writes.
 library;
 
 import 'receipt_payload.dart';
@@ -23,19 +18,13 @@ class ReceiptPhotos {
   final List<String> imagePaths;
 }
 
-/// It is a SEAM, not a function: the app carries two implementations — the
-/// edge function and the replay payload — and a third in every test, and
-/// naming the seam is what lets a screen be driven without a server.
+/// A seam rather than a function: the app has two implementations (the edge
+/// function and the replay payload) and tests add more.
 // ignore: one_member_abstracts
 abstract interface class ReceiptImportRepository {
-  /// Reads [photos] into a receipt.
-  ///
-  /// [onProgress] is called as the server reports each stage; it is a
-  /// courtesy and never the result, so an implementation with nothing to
-  /// report still answers with the same payload.
-  ///
-  /// Throws with a sentence a person can act on — the same four failure
-  /// shapes the recipe import has, because they are the same four failures.
+  /// Reads [photos] into a receipt. [onProgress] is called as the server
+  /// reports each stage; an implementation with nothing to report still answers
+  /// with the same payload. Throws with a sentence a person can act on.
   Future<ReceiptPayload> readReceipt(
     ReceiptPhotos photos, {
     void Function(ReceiptProgress)? onProgress,
@@ -43,35 +32,29 @@ abstract interface class ReceiptImportRepository {
 }
 
 abstract interface class ReceiptRepository {
-  /// Every receipt the household has kept, newest first, with the two counts
-  /// a ledger row prints. Watched, so a shop saved on the other phone lands
-  /// without a refresh.
+  /// Every receipt the household has kept, newest first, with the two counts a
+  /// ledger row prints. Watched.
   Stream<List<ReceiptLedgerRow>> watchReceipts();
 
-  /// One receipt and its live lines, for the review a ledger row opens.
-  /// Emits null when the id names nothing — a receipt deleted on the
-  /// other phone is not an error, it is gone.
+  /// One receipt and its live lines. Emits null when the id names nothing, e.g.
+  /// a receipt deleted on another device.
   Stream<StoredReceipt?> watchReceipt(String receiptId);
 
-  /// Writes one receipt and all of its lines in a single transaction, minting
-  /// any measure a line's *keep as a measure* asked for first, and returns
-  /// the new receipt's id.
+  /// Writes one receipt and all of its lines in a single transaction, first
+  /// minting any measure a line's *keep as a measure* asked for. Returns the
+  /// new receipt's id. Plain INSERTs, never `ON CONFLICT`: the local tables are
+  /// views.
   ///
-  /// Plain INSERTs, never `ON CONFLICT`: the local tables are SQLite views.
-  ///
-  /// Throws [ArgumentError] for an empty store or a receipt with no lines —
-  /// the honesty rules hold at the repository, not only at the screen.
+  /// Throws [ArgumentError] for an empty store or a receipt with no lines.
   Future<String> saveReceipt(ReceiptWrite write);
 
-  /// Rewrites the saved receipt [receiptId] as [write] says it now stands:
-  /// the store and the date move, a line carrying its
-  /// [ReceiptLineWrite.lineId] is updated in place, a line without one is
-  /// new, and each of [ReceiptWrite.droppedLineIds] is tombstoned. A receipt
-  /// no longer live is left alone.
+  /// Rewrites the saved receipt [receiptId] as [write] says: the store and date
+  /// move, a line with a [ReceiptLineWrite.lineId] is updated in place, one
+  /// without is new, and each of [ReceiptWrite.droppedLineIds] is tombstoned. A
+  /// receipt no longer live is left alone.
   ///
-  /// The printed totals and every line's printed words are the paper's and
-  /// stand; a hand-typed receipt printed none, so its subtotal follows its
-  /// lines. Refuses what [saveReceipt] refuses.
+  /// Printed totals and printed words stand; a hand-typed receipt's subtotal
+  /// follows its lines. Refuses what [saveReceipt] refuses.
   Future<void> updateReceipt(String receiptId, ReceiptWrite write);
 
   /// Takes the receipt back — it and its lines are tombstoned, so every price
@@ -79,9 +62,8 @@ abstract interface class ReceiptRepository {
   Future<void> deleteReceipt(String receiptId);
 }
 
-/// One ledger row as the query answers it — the receipt's own columns plus
-/// the counts, which are cheaper to ask the database for than to carry every
-/// line up for.
+/// One ledger row as the query answers it: the receipt's columns plus the
+/// counts.
 typedef ReceiptLedgerRow = ({
   String id,
   String store,
@@ -108,9 +90,8 @@ typedef StoredReceipt = ({
   List<StoredReceiptLine> lines,
 });
 
-/// One stored line, with the two words the review prints beside it — the
-/// matched row's name and the pack's measure label — resolved by the join
-/// rather than copied into the line.
+/// One stored line, with the matched row's name and the pack's measure label
+/// resolved by the join.
 typedef StoredReceiptLine = ({
   String id,
   String? ingredientId,

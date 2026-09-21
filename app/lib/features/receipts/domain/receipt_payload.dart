@@ -1,31 +1,18 @@
-/// What `import-receipt` answers with — PURE DART (invariant 2), the Dart
-/// mirror of the frozen wire contract.
+/// What `import-receipt` answers with: the Dart mirror of the frozen wire
+/// contract. Pure Dart.
 ///
-/// It is the receipt twin of `import/domain/reconciliation_payload.dart` and
-/// carries the same promise: **the server reads the paper and proposes; it
-/// decides nothing.** Every figure here is something the receipt printed or
-/// something the match cascade offered, and a line the model could not place
-/// arrives flagged rather than guessed (ADR-0004, import spec §4.4).
+/// The server reads the paper and proposes; it decides nothing (ADR-0004).
+/// Before reading the fields:
 ///
-/// Three shapes are worth knowing before reading the fields:
+/// - A discount rides beside the line's cents; what was paid is
+///   [ReceiptLineOut.paidCents].
+/// - A by-weight line carries its own pack in [ReceiptLineOut.weight].
+/// - The count (`8 @ $2.99`) rides on the line, never on the pack
+///   ([ReceiptLineOut.count]).
+/// - A `kind` that is not `item` can never be a price.
 ///
-/// * **A discount rides beside the line's cents, never inside them.** The
-///   paper printed both figures and both are kept; what was PAID is
-///   [ReceiptLineOut.paidCents], and that is what a price is derived from.
-/// * **A by-weight line carries its own pack.** `1.32 lb @ 1.99/lb` says what
-///   the cents bought, so the review asks nothing — [ReceiptLineOut.weight]
-///   is the pack, in the unit the paper printed it in.
-/// * **A count rides on the line, never on the pack.** The sub-row under an
-///   item (`8 @ $2.99`) says how MANY; the pack says what one of them comes
-///   in. A price divides by both ([ReceiptLineOut.count]).
-/// * **A `kind` that is not `item` can never be a price.** Paper towels, the
-///   bag fee and the tax line count toward what the trip cost and toward
-///   nothing else.
-///
-/// Decoding is **total and forgiving**: a field this build does not
-/// understand is ignored, and a missing one reads as absent rather than as a
-/// zero. A payload that cannot be read at all throws, and the reading screen
-/// says so — that is the one honest answer to a stream that is not a receipt.
+/// Decoding is forgiving: unknown fields are ignored and a missing one reads as
+/// absent, never zero. A payload that cannot be read at all throws.
 library;
 
 import 'package:meta/meta.dart';
@@ -53,9 +40,7 @@ class ReceiptPayload {
     return ReceiptPayload(
       storePrinted: _text(json['store_printed']),
       purchasedAtPrinted: _text(json['purchased_at_printed']),
-      // The receipt's own wall time, with no zone on it: the paper says when
-      // the shop happened where the shop happened, and re-reading that in the
-      // device's zone would file a late-evening shop on the wrong day.
+      // The receipt's own wall time, with no zone; see [_wallTime].
       purchasedAt: _wallTime(_text(json['purchased_at'])),
       subtotalCents: _cents(printed['subtotal_cents']),
       taxCents: _cents(printed['tax_cents']),
@@ -76,9 +61,8 @@ class ReceiptPayload {
     );
   }
 
-  /// The store as the header printed it — `TRADER JOE'S #135`. It is not the
-  /// household's word for the shop: the review offers the chips and this sits
-  /// under them as the paper's own line.
+  /// The store as the header printed it (`TRADER JOE'S #135`), shown under the
+  /// household's store chips.
   final String? storePrinted;
 
   /// The date and time as printed, verbatim, for the same reason.
@@ -92,16 +76,14 @@ class ReceiptPayload {
   final int? taxCents;
   final int? totalCents;
 
-  /// What the server made the lines add up to. The review recomputes it from
-  /// the lines it actually holds ([ReceiptPayload] is a proposal, and lines
-  /// get dropped), so this is a cross-check rather than the figure on screen.
+  /// What the server made the lines add up to. A cross-check only: the review
+  /// recomputes from the lines it holds.
   final int linesSumCents;
 
   final List<ReceiptLineOut> lines;
 
-  /// Where one photo was joined to the next, by position — never by item
-  /// identity, because a receipt honestly prints the same item twice when two
-  /// were bought.
+  /// Where one photo was joined to the next, by position; a receipt can print
+  /// the same item twice.
   final List<ReceiptPhotoJoin> photoJoins;
 
   /// What the reader could not read, in its own words — drawn at the top of
@@ -164,31 +146,22 @@ class ReceiptLineOut {
   /// photograph there is no other way to check what was read.
   final String printedText;
 
-  /// The words that name the thing, with the figures taken off — what an
-  /// unmatched card is titled with, because the money already has its own
-  /// column. Null from a server that does not send it, and the card then
-  /// falls back to [printedText].
+  /// The words that name the thing, figures removed, which title an unmatched
+  /// card. When null the card falls back to [printedText].
   final String? namePrinted;
 
-  /// What the line rang up as, as printed. A [ReceiptKind.fee] may be
-  /// negative — a discount the reader could not attach to an item is kept as
-  /// its own line so the receipt still adds up.
+  /// What the line rang up as, as printed. A [ReceiptKind.fee] may be negative:
+  /// a discount the reader could not attach to an item.
   final int cents;
 
-  /// How many of the thing the line rang up — the count printed on the
-  /// sub-row under it (`Qty 4  $2.39 ea`, `8 @ $2.99`). One unless the paper
-  /// said otherwise.
-  ///
-  /// [cents] already includes them all. What the count is for is the PRICE:
-  /// eight blocks of tofu for $23.92 is the price of eight blocks, and
-  /// dividing that by one pack would make each block cost eight times what it
-  /// did. A by-weight line is one of whatever was weighed.
+  /// How many of the thing the line rang up (`Qty 4  $2.39 ea`, `8 @ $2.99`);
+  /// one unless the paper said otherwise. [cents] already covers them all, and
+  /// a price divides by the count. A by-weight line counts one.
   final int count;
 
-  /// The per-one figure printed beside the count, in cents. Null where the
-  /// sub-row printed none. Nothing is derived from it — what was paid is
-  /// [paidCents] — and a line where it disagrees with the printed total
-  /// arrives [lowConfidence] with a note.
+  /// The per-one figure printed beside the count, in cents, or null. Nothing is
+  /// derived from it; a line where it disagrees with the printed total arrives
+  /// [lowConfidence] with a note.
   final int? eachCents;
 
   /// The deduction printed under the item, kept beside [cents] rather than
@@ -219,11 +192,9 @@ class ReceiptLineOut {
   int get paidCents => cents - discountCents;
 }
 
-/// A line's printed weight — `1.32 lb @ $1.99/lb`.
-///
-/// [unit] is a `units.dart` catalog id or null for a word this build's catalog
-/// does not carry. A null unit is not a failure: the line keeps its cents and
-/// simply cannot price itself, which the card says.
+/// A line's printed weight, `1.32 lb @ $1.99/lb`. [unit] is a `units.dart`
+/// catalog id, or null for a word the catalog lacks; the line then cannot price
+/// itself.
 @immutable
 class ReceiptWeight {
   const ReceiptWeight({required this.amount, this.unit, this.rateCents = 0});
@@ -237,9 +208,7 @@ class ReceiptWeight {
   final double amount;
   final Unit? unit;
 
-  /// The printed per-unit rate, kept because the paper printed it. Nothing is
-  /// derived from it: what the line cost is [ReceiptLineOut.paidCents], and
-  /// `cents ÷ weight` is the figure a price reads.
+  /// The printed per-unit rate, in cents. Nothing is derived from it.
   final int rateCents;
 
   /// Whether this weight can stand as a pack — a positive amount in a unit
@@ -271,14 +240,10 @@ class ReceiptMatch {
   /// is an offer the person taps, never a resolution (ADR-0004).
   final bool auto;
 
-  /// True where this is the HOUSEHOLD's own past answer for these printed
-  /// words, recalled from its saved receipt lines, rather than the cascade's
-  /// reading of them. It arrives `auto` at confidence 1, because somebody said
-  /// it — and the card says so, because the one `auto` that can be wrong for a
-  /// reason a person can see is worth seeing.
-  ///
-  /// It is not a vocabulary word and never becomes one: a receipt's words are
-  /// one store's abbreviations.
+  /// True when this match is the household's own past answer for these printed
+  /// words, recalled from its saved receipt lines. It arrives `auto` at
+  /// confidence 1, and the card says it was remembered. It never becomes a
+  /// vocabulary word.
   final bool remembered;
 }
 
@@ -325,12 +290,9 @@ class ReceiptPhotoJoin {
   final int overlapLines;
 }
 
-/// What the paper says a line IS, on the wire.
-///
-/// It maps onto the stored `receipt_line.kind` (`ingredients/domain/price
-/// .dart`) one for one, and a kind this build does not recognise reads as
-/// `not_food` — the one reading that can never fabricate a price out of a row
-/// nobody here understands.
+/// What the paper says a line is, on the wire. Maps one for one onto the stored
+/// `receipt_line.kind`; an unrecognised kind reads as `not_food`, which can
+/// never become a price.
 enum ReceiptKind {
   item('item'),
   notFood('not_food'),
@@ -365,9 +327,8 @@ String? _text(Object? value) {
 
 int? _cents(Object? value) => value is num ? value.round() : null;
 
-/// A wire count: a whole number of things, at least one. Anything else — a
-/// missing field, a fraction, a zero — reads as one, because the count is a
-/// DIVISOR and there is no honest way to divide by the rest.
+/// A wire count: a whole number, at least one. Anything else reads as one,
+/// because the count is a divisor.
 int _count(Object? value) {
   final n = _cents(value);
   return n == null || n < 1 ? 1 : n;
@@ -375,12 +336,9 @@ int _count(Object? value) {
 
 double? _number(Object? value) => value is num ? value.toDouble() : null;
 
-/// The receipt's `purchased_at` — an ISO local wall time with no zone.
-///
-/// It is read as a **plain** [DateTime] (not UTC): the paper's `05:42 PM` is
-/// the time at the till, and stamping a zone on it would move a late shop
-/// into the next day on one phone and not on the other. The ledger files it
-/// by that wall time, which is what the household means by "Sunday's shop".
+/// The receipt's `purchased_at`: an ISO local wall time with no zone. Read as a
+/// plain [DateTime], not UTC, so a late shop files on the same day on every
+/// device.
 DateTime? _wallTime(String? text) {
   if (text == null) return null;
   final parsed = DateTime.tryParse(text);

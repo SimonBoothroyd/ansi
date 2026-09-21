@@ -1,37 +1,17 @@
-/// One line of a receipt, as a card — the recipe review's own component,
-/// carrying **money where a recipe line carries an amount**.
+/// One line of a receipt as a card: the recipe review's component, carrying
+/// money where a recipe line carries an amount.
 ///
-/// Collapsed, a settled line is one sentence with the sum first: `$3.49 ·
-/// Bananas, organic · bag (454 g) · 77¢ / 100 g`, and `$23.92 · Tofu · 8 ×
-/// block (16 oz) · 66¢ / 100 g` where the paper's sub-row said how many. The
-/// note under the name is how many, the pack, and what they come to per
-/// basis, which is the whole chain a reader needs to check the figure. A
-/// discount printed under the item is folded into that sum and shown as a
-/// deduction on the same line, because what you paid is the price.
+/// Collapsed, a settled line reads sum first: `$23.92 · Tofu · 8 × block (16
+/// oz) · 66¢ / 100 g`. A printed discount is folded into the sum and shown as a
+/// deduction. Two flags have their own doors: "say what the pack is"
+/// ([showReceiptPackSheet]) and "match an ingredient" (did-you-mean chips, the
+/// picker, and Not food, which folds the line under the list).
 ///
-/// Two flags a recipe line never raises, each with its own door:
-///
-/// * **Say what the pack is** — a matched row that neither sold by weight
-///   here nor has a pack yet. The door is the price sheet's *for* field
-///   ([showReceiptPackSheet]), with *keep as a measure* under it.
-/// * **Match an ingredient** — the did-you-mean chips, the picker, and **Not
-///   food**, which folds the line under the list where it still counts toward
-///   the total and never toward a price.
-///
-/// **The vocabulary learns nothing here.** Confirming a match writes no alias
-/// and there is no learning path anywhere on this screen. What carries between
-/// shops is the household's own answers: the pack, on the row, and the match,
-/// which the server recalls per printed name off this household's own saved
-/// receipt lines. A line that arrived on a recalled answer says
-/// `as you matched it last time` beside its chosen row — that one `auto` can
-/// be wrong for a reason a person can see, and changing it IS the correction.
-///
-/// **An answer answers every line that is this line again.** A receipt prints
-/// one item six times when six were bought, so the open card says
-/// `×6 on this receipt` before the doors rather than after them
-/// ([sameLineAgainNote]) — apply-and-tell, so six cards settling at once is
-/// what the person was told would happen. The drop and the PRICE chip are
-/// corrections to the paper and stay on their own line.
+/// Confirming a match writes no alias. What carries between shops is the pack
+/// on the row and the match the server recalls per printed name; a recalled
+/// match says `as you matched it last time`. An answer applies to every
+/// identical line on the receipt, and the open card says so first
+/// ([sameLineAgainNote]); the drop and the price chip stay per line.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -69,9 +49,8 @@ class ReceiptLineCard extends ConsumerWidget {
   /// The matched vocabulary row, or null where the line names none.
   final Ingredient? row;
 
-  /// Whether the receipt itself was typed by hand on an ingredient's page.
-  /// Its lines printed nothing either, and the header already says so, so
-  /// `added by hand` would be a second voice saying the same thing.
+  /// Whether the receipt was typed by hand on an ingredient's page. The header
+  /// already says so, so lines omit `added by hand`.
   final bool manual;
 
   /// Whether a person added this line in the review rather than the reader
@@ -231,10 +210,9 @@ class _Expanded extends ConsumerWidget {
               ),
             ],
           ),
-          // A line added by hand and never saved has no row behind it and no
-          // paper it came off: taking it back is simply taking it off the
-          // list. Every other line is dropped — greyed, undoable, and a
-          // tombstone at Save if a row holds it.
+          // An unsaved hand-added line has no row behind it, so removing it
+          // takes it off the list. Every other line is dropped: greyed,
+          // undoable, tombstoned at Save.
           onRemove: byHand && draft.lineId == null
               ? () => controller.removeLine(draft.index)
               : () => controller.drop(draft.index),
@@ -257,10 +235,9 @@ class _Expanded extends ConsumerWidget {
               style: ansiMono(size: 10.5, color: AnsiColors.muted),
             ),
           ),
-        // The figure is a door on EVERY line, not only on one the reader gave
-        // up on: a `$4.99` read as `$4.49` is wrong without being zero, and
-        // the join card can only say that something is — this is where it is
-        // put right. A line with no figure gets the louder door below.
+        // The figure is editable on every line: a `$4.99` read as `$4.49` is
+        // wrong without being zero. A line with no figure gets the louder door
+        // below.
         if (!amountMissing) ...[
           const SizedBox(height: 10),
           LineCardRow(
@@ -327,10 +304,8 @@ class _Expanded extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
-          // Beside the pack, because the two answer one question together:
-          // the pack is what ONE of them comes in, and this is how many. The
-          // count is the paper's, so it is a correction like the figure above
-          // and never rides to the line's twins.
+          // Beside the pack: the pack is what one comes in, this is how many. A
+          // correction to the paper, so it never rides to the line's twins.
           LineCardRow(
             label: 'COUNT',
             child: LineCardAmountChip(
@@ -360,9 +335,8 @@ class _Expanded extends ConsumerWidget {
   }
 
   Future<void> _pick(BuildContext context, int index) async {
-    // The container and the host are captured BEFORE the sheet's await: this
-    // card is a row of a viewport, the sheet's keyboard shrinks it, and a
-    // `ref` used after the row is unmounted throws (Riverpod 3).
+    // The container and host are captured before the sheet's await: the
+    // keyboard can unmount this card, and a `ref` used after unmount throws.
     final container = ProviderScope.containerOf(context, listen: false);
     final picked = await showIngredientPicker(
       context,
@@ -374,10 +348,8 @@ class _Expanded extends ConsumerWidget {
         .matchLine(index, picked);
   }
 
-  /// The money door — for a figure the reader could not make out, and for
-  /// one it made out wrong. It is a prompt rather than a sheet: there is one
-  /// number to read off the paper, and the pack sheet's whole apparatus would
-  /// be furniture around it.
+  /// The money door, for a figure the reader missed or misread. A prompt rather
+  /// than a sheet, since there is one number to type.
   Future<void> _setCents(BuildContext context, ReceiptLineDraft draft) async {
     final container = ProviderScope.containerOf(context, listen: false);
     final typed = await promptForText(
@@ -470,9 +442,8 @@ List<Measure> _pendingMeasures(
   ];
 }
 
-/// The chip the pack was entered on, resolved against the row's measures —
-/// what the pack sheet reopens on. Null where the line has no pack yet, and
-/// the sheet then opens on its own default.
+/// The chip the pack was entered on, resolved against the row's measures, for
+/// reopening the pack sheet. Null when the line has no pack yet.
 UnitChoice? _choiceOf(ReceiptLineDraft draft, List<Measure> measures) {
   final unit = draft.packUnit;
   if (unit != null) return UnitOption(unit);
@@ -525,14 +496,9 @@ class _Suggestions extends ConsumerWidget {
   );
 }
 
-/// The matched row, with the way to change it — the recipe review's own
-/// chosen-row line.
-///
-/// A [remembered] row says where the answer came from. It is the one kind of
-/// resolved line that can be wrong for a reason a person can see — the
-/// household said it, about a receipt that may have been read differently —
-/// and it is said HERE, beside `tap to change`, because changing it is the
-/// whole fix: the correction becomes the most recent answer.
+/// The matched row, with the way to change it. A [remembered] row says where
+/// the answer came from, beside `tap to change`: changing it becomes the most
+/// recent answer.
 class _ChosenRow extends StatelessWidget {
   const _ChosenRow({
     required this.name,
@@ -588,12 +554,9 @@ class _ChosenRow extends StatelessWidget {
   );
 }
 
-/// `from receipt:  TJ ORG BANANAS  3.49` — the paper's own words, always
-/// visible. From a photograph there is no other way to check what was read.
-///
-/// Where the paper printed nothing because nobody read this line off it, the
-/// line says `added by hand` in the same muted mono — the same fact in the
-/// same place, so a reader checking a card always knows where it came from.
+/// `from receipt:  TJ ORG BANANAS  3.49`: the paper's own words, always
+/// visible. A line nobody read off paper says `added by hand` in the same
+/// place.
 class ReceiptSourceLine extends StatelessWidget {
   const ReceiptSourceLine({
     required this.draft,
@@ -644,9 +607,8 @@ class ReceiptAttentionTag extends StatelessWidget {
   );
 }
 
-/// The "as deleted" card: the line stays on screen, greyed and plainly
-/// labelled, with the undo beside it. Nothing is written until Save, so this
-/// state IS the whole deletion — reversible, visible, and out of the count.
+/// The dropped card: greyed and labelled, with undo beside it. Nothing is
+/// written until Save.
 class _DroppedLine extends StatelessWidget {
   const _DroppedLine({required this.draft, required this.onUndo});
 

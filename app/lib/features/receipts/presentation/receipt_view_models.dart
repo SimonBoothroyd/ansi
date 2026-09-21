@@ -1,15 +1,9 @@
-/// The scan session: photos → the reading checklist → the review → Save.
+/// The receipt scan session: photos, the reading checklist, the review, Save.
 ///
-/// One controller holds the whole sitting, exactly as the recipe import's
-/// does, and for the same reason: **nothing is written until Save**, so the
-/// review is state and not a half-written row. Backing out of the screen
-/// leaves the ledger as it was.
-///
-/// It is `autoDispose` (the default), so a person can leave mid-read — and in
-/// Riverpod 3 writing `state` on a disposed notifier throws, in release too.
-/// Every post-await assignment here is guarded by [Ref.mounted], and every
-/// repository is read BEFORE the first await, because `ref` does not survive
-/// this notifier's disposal.
+/// One controller holds the whole sitting and nothing is written until Save.
+/// The notifier is `autoDispose`, and writing `state` on a disposed notifier
+/// throws, so every post-await assignment is guarded by [Ref.mounted] and every
+/// repository is read before the first await.
 library;
 
 import 'dart:async';
@@ -54,9 +48,8 @@ class ReceiptIdle extends ReceiptScanState {
   const ReceiptIdle();
 }
 
-/// `import-receipt` is running. [rows] is the checklist the server's own
-/// events built; empty until the plan arrives, because before then there is
-/// nothing true to draw.
+/// `import-receipt` is running. [rows] is the checklist built from the server's
+/// events; empty until the plan arrives.
 class ReceiptReading extends ReceiptScanState {
   const ReceiptReading(this.rows);
 
@@ -81,10 +74,8 @@ class ReceiptReviewing extends ReceiptScanState {
     this.error,
   }) : openedAt = openedAt ?? purchasedAt;
 
-  /// The saved receipt this review is open on, or null for a scan nobody has
-  /// saved yet. It is the ONE difference between the two: the same screen
-  /// confirms a fresh read and corrects a kept one, and Save writes a new
-  /// receipt or rewrites this one accordingly.
+  /// The saved receipt this review is open on, or null for an unsaved scan.
+  /// Save rewrites it or writes a new one accordingly.
   final String? receiptId;
 
   /// How the receipt came to be — `photo`, or `manual` for a price typed on
@@ -111,27 +102,22 @@ class ReceiptReviewing extends ReceiptScanState {
   /// scan's.
   final DateTime purchasedAt;
 
-  /// What [purchasedAt] was when the review opened — read off the paper, or
-  /// the day of the scan. It never moves, so the screen can tell a date
-  /// somebody chose from one nobody has looked at.
+  /// What [purchasedAt] was when the review opened. It never moves, so the
+  /// screen can tell a chosen date from an untouched one.
   final DateTime openedAt;
 
-  /// The matched vocabulary rows, by id — what the cards read a basis and a
-  /// density off. A row the device cannot find is simply absent, and its line
-  /// reads as unmatched, which is the honest thing for a match at a row
-  /// retired since the server answered.
+  /// The matched vocabulary rows, by id. A row the device cannot find is
+  /// absent, and its line reads as unmatched.
   final Map<String, Ingredient> rows;
 
   final Map<String, List<Measure>> measuresById;
 
-  /// A store named through `＋` but not written anywhere yet. It belongs in
-  /// the chip row from the moment it is typed and becomes a remembered word
-  /// only when Save lands the receipt that used it.
+  /// A store named through `＋` in this sitting. It joins the chip row at once
+  /// and is remembered only when Save lands.
   final List<String> coinedStores;
 
-  /// Why the last Save or Delete did not happen, drawn over Save. A write
-  /// that fails changes nothing else: every answer is still here — a read is
-  /// billed for — and Save is still there to try again. Any edit clears it.
+  /// Why the last Save or Delete did not happen, drawn over Save. Any edit
+  /// clears it.
   final String? error;
 
   /// The review unchanged, with [message] over its Save.
@@ -150,9 +136,8 @@ class ReceiptReviewing extends ReceiptScanState {
     error: message,
   );
 
-  /// The review's one map — the header count, the flags, the join and Save
-  /// all read this. A hand-typed receipt printed nothing, so its lines are
-  /// held against nothing.
+  /// The review's one map: the header count, the flags, the join and Save all
+  /// read it. A hand-typed receipt has no printed totals to check against.
   ReceiptReviewMap get map => receiptReviewMap(
     drafts,
     printedSubtotalCents: isManual ? null : payload.subtotalCents,
@@ -283,10 +268,8 @@ class ReceiptScanController extends _$ReceiptScanController {
       final measureRepo = ref.read(measureRepositoryProvider);
       final priceRepo = ref.read(priceRepositoryProvider);
       final payload = await reader.readReceipt(photos, onProgress: _onProgress);
-      // Asked of the REPOSITORY, not of the store-words provider: that
-      // provider is a stream, and at the moment a scan starts it has usually
-      // not emitted yet — reading it would open the chips on nothing and
-      // hold Save shut over a household that has shopped for months.
+      // Asked of the repository, not the store-words provider: that stream has
+      // usually not emitted when a scan starts.
       final stores = await _storeWords(priceRepo);
       final drafts = initialReceiptDrafts(payload);
       final landed = await _landPacks(
@@ -301,13 +284,11 @@ class ReceiptScanController extends _$ReceiptScanController {
         drafts: landed.drafts,
         rows: landed.rows,
         measuresById: landed.measuresById,
-        // The store the paper printed is NOT the household's word for it. The
-        // chip row opens on the word this household used last, and the
-        // printed line sits under it as what the paper said.
+        // The chip row opens on the household's own word for the store; the
+        // printed line sits under it.
         store: _storeFor(payload, stores),
-        // The receipt's own date where it printed one, and the day of the
-        // scan where it did not — which the review says, rather than
-        // inventing a Sunday.
+        // The receipt's printed date, else the day of the scan, which the
+        // review says.
         purchasedAt: payload.purchasedAt ?? DateTime.now(),
       );
     } on Object catch (e) {
@@ -319,12 +300,9 @@ class ReceiptScanController extends _$ReceiptScanController {
     }
   }
 
-  /// Opens the review on the SAVED receipt [receiptId] — the same state a
-  /// scan opens, built from the rows instead of from a payload, so a kept
-  /// receipt is corrected on the screen it was confirmed on.
-  ///
-  /// No pack is landed here: a stored line's pack is what was said at the
-  /// time, and re-deriving it from a later shop would re-price this one.
+  /// Opens the review on the saved receipt [receiptId], in the same state a
+  /// scan opens. No pack is landed: re-deriving a stored pack from a later shop
+  /// would re-price this one.
   Future<void> open(String receiptId) async {
     final current = state;
     if (current is ReceiptReviewing && current.receiptId == receiptId) return;
@@ -405,9 +383,9 @@ class ReceiptScanController extends _$ReceiptScanController {
     }
   }
 
-  /// The household word the chips open on: the one whose letters the paper's
-  /// header carries, else the most recent. A store never seen before is the
-  /// `＋`, and until somebody taps it the review holds Save.
+  /// The household word the chips open on: the one the paper's header carries,
+  /// else the most recent. With none, the review holds Save until a store is
+  /// named.
   static String _storeFor(ReceiptPayload payload, List<String> stores) {
     final printed = payload.storePrinted?.toLowerCase() ?? '';
     for (final word in stores) {
@@ -459,21 +437,17 @@ class ReceiptScanController extends _$ReceiptScanController {
     );
   }
 
-  /// The line at [index] and every line that is it again, as they stand NOW —
-  /// read before an answer is applied, because the answer is what stops them
-  /// being identical to anything unanswered.
+  /// The line at [index] and its identical twins, read before an answer is
+  /// applied, since the answer ends their being identical.
   Set<int> _answeredWith(int index) {
     final s = state;
     return s is ReceiptReviewing ? linesAnsweredWith(s.drafts, index) : {index};
   }
 
-  /// Answers *Match an ingredient*: the line takes [row], and then the pack
-  /// it can state without asking — the paper's printed weight, else the pack
-  /// its own printed words were last bought in as this row, else the pack this
-  /// row was last bought in anywhere.
-  ///
-  /// The match is applied FIRST and never waits on the reads: it is the
-  /// person's act, and a lookup must not be able to lose it.
+  /// Matches the line to [row], then lands the pack it can state without
+  /// asking: the paper's printed weight, else the pack its printed words were
+  /// last bought in as this row, else the row's last pack anywhere. The match
+  /// is applied first and never waits on the reads.
   Future<void> matchLine(int index, Ingredient row) async {
     final s = state;
     if (s is! ReceiptReviewing) return;
@@ -488,9 +462,7 @@ class ReceiptScanController extends _$ReceiptScanController {
     final measureRepo = ref.read(measureRepositoryProvider);
     final priceRepo = ref.read(priceRepositoryProvider);
     final measures = await _measuresFor(row.id, measureRepo);
-    // The answered lines' own printed words, asked for in ONE read: twins each
-    // carry the words their card is titled with, and they all land the pack
-    // filed under them.
+    // The answered lines' printed words, in one read.
     final byName = await _packsByPrintedName(
       s.drafts.where((d) => answered.contains(d.index)),
       priceRepo,
@@ -518,14 +490,9 @@ class ReceiptScanController extends _$ReceiptScanController {
     );
   }
 
-  /// *add a line* — a line the reader missed, said by hand: matched to [row]
-  /// at [cents], counting one, with the pack [row] was last bought in.
-  ///
-  /// The line is added FIRST and never waits on the reads, exactly as a match
-  /// is: it is the person's act. There is no printed name to recall a pack
-  /// under, so that step is simply not there — the row's own last price is the
-  /// only carry-over, and a line that reaches none asks for its pack like any
-  /// other matched line.
+  /// Adds a line the reader missed: matched to [row] at [cents], counting one,
+  /// with the pack [row] was last bought in. The line is added first and never
+  /// waits on the read.
   Future<void> addLine(Ingredient row, int cents) async {
     final s = state;
     if (s is! ReceiptReviewing || cents <= 0) return;
@@ -553,9 +520,8 @@ class ReceiptScanController extends _$ReceiptScanController {
     );
   }
 
-  /// Takes back a line added by hand in this sitting: no row holds it, so
-  /// there is nothing to tombstone and nothing to leave on screen greyed —
-  /// it simply goes. A line already saved is dropped like any other.
+  /// Removes a line added by hand in this sitting outright; no row holds it. A
+  /// saved line is dropped like any other.
   void removeLine(int index) {
     final s = state;
     if (s is! ReceiptReviewing) return;
@@ -567,12 +533,8 @@ class ReceiptScanController extends _$ReceiptScanController {
     );
   }
 
-  /// The vocabulary row behind a did-you-mean chip, read fresh.
-  ///
-  /// The chip carries the server's id and its word for the row; the match has
-  /// to be made against the row **this device** can still find, because a row
-  /// retired since the server answered has no name to print and nothing
-  /// honest to price. Null is the answer for one, and the chip does nothing.
+  /// The vocabulary row behind a did-you-mean chip, read fresh. Null when this
+  /// device can no longer find the row, and the chip then does nothing.
   Future<Ingredient?> rowFor(String ingredientId) async {
     final s = state;
     if (s is ReceiptReviewing) {
@@ -586,19 +548,13 @@ class ReceiptScanController extends _$ReceiptScanController {
     }
   }
 
-  /// The *Set the amount* door's answer: what a line the reader could not
-  /// make out actually rang up as, read off the paper by a person.
-  ///
-  /// Only the printed figure moves. The deduction printed under the item is
-  /// the paper's and is left exactly where it was.
+  /// Sets what a line rang up as, typed by hand. Only the printed figure moves;
+  /// the printed deduction stays.
   void setCents(int index, int cents) =>
       _updateLine(index, (d) => d.withCents(cents));
 
-  /// The COUNT chip's answer: how many of the thing this line rang up.
-  ///
-  /// It rides on ONE line, like the figure and unlike the match: the count is
-  /// a correction to what the paper said about this occurrence, and a receipt
-  /// that printed the same words twice printed two counts of its own.
+  /// Sets how many of the thing this line rang up. It applies to one line only,
+  /// unlike a match: twins each printed their own count.
   void setCount(int index, int count) {
     if (count < 1) return;
     _updateLine(index, (d) => d.copyWith(count: count));
@@ -648,10 +604,7 @@ class ReceiptScanController extends _$ReceiptScanController {
     (d) => d.copyWith(kind: ReceiptKind.notFood, clearMatch: true),
   );
 
-  /// *It is food* — a line under the fold comes back as an item, whether the
-  /// paper called it one or a person folded it. There is nothing else it
-  /// could come back as: the fold holds exactly the lines that are not food,
-  /// and saying one of them is food is the only thing the door means.
+  /// A folded line comes back as a food item.
   void unfold(int index) => _updateLines(
     _answeredWith(index),
     (d) => d.copyWith(kind: ReceiptKind.item),
@@ -662,13 +615,9 @@ class ReceiptScanController extends _$ReceiptScanController {
   void undrop(int index) =>
       _updateLine(index, (d) => d.copyWith(dropped: false));
 
-  /// Writes the receipt and its lines. Refuses quietly while the map says a
-  /// line still needs somebody, or while every line is dropped — the button is
-  /// already shut, and `saveReceipt` re-asserts the store at the seam.
-  ///
-  /// A write that fails returns to this same review with the reason over
-  /// Save: nothing a person answered, and nothing the read was billed for, is
-  /// thrown away by a failure they can try again.
+  /// Writes the receipt and its lines. Does nothing while the map says a line
+  /// still needs an answer or every line is dropped. A failed write returns to
+  /// this review with the reason over Save and every answer kept.
   Future<void> save() async {
     final s = state;
     if (s is! ReceiptReviewing) return;
@@ -702,9 +651,9 @@ class ReceiptScanController extends _$ReceiptScanController {
     }
   }
 
-  /// The pack every arriving line can state without asking, with the rows, the
-  /// measures, the packs filed under the printed names and the rows' latest
-  /// prices each read ONCE for the whole receipt rather than per line.
+  /// The pack every arriving line can state without asking. The rows, measures,
+  /// packs by printed name and latest prices are each read once for the whole
+  /// receipt.
   Future<_LandedPacks> _landPacks(
     List<ReceiptLineDraft> drafts, {
     required IngredientRepository vocabRepo,
@@ -729,9 +678,8 @@ class ReceiptScanController extends _$ReceiptScanController {
       );
       latest = await priceRepo.watchLatestPrices().first;
     } on Object {
-      // A read that fails leaves every line exactly as the server proposed
-      // it: the review still works, and the cards simply ask for the packs
-      // they could otherwise have stated.
+      // A failed read leaves every line as the server proposed it; the cards
+      // then ask for their packs.
       return _nothingLanded(drafts);
     }
     return (
@@ -769,11 +717,9 @@ class ReceiptScanController extends _$ReceiptScanController {
     }
   }
 
-  /// The pack each of [drafts]'s printed names was last bought in — ONE read
-  /// for the whole receipt, however many lines carry words.
-  ///
-  /// A read that fails answers with nothing, and every line falls through to
-  /// the pack its row was last bought in: a carry-over lost, never a wrong one.
+  /// The pack each of [drafts]'s printed names was last bought in, in one read.
+  /// A failed read answers with nothing, and lines fall back to their row's
+  /// last pack.
   static Future<Map<String, PackLastBoughtAs>> _packsByPrintedName(
     Iterable<ReceiptLineDraft> drafts,
     PriceRepository repo,

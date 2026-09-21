@@ -23,15 +23,11 @@ class SqliteReceiptRepository implements ReceiptRepository {
 
   /// The ledger list.
   ///
-  /// The two counts and the lines' sum come from a LEFT JOIN and a GROUP BY
-  /// rather than from correlated subqueries: the join is what puts
-  /// `receipt_line` in the watch's trigger set, so a line saved on the other
-  /// phone moves this list. SQLite drops a join nothing selects from, and the
-  /// aggregates over `l` are that selection.
-  ///
-  /// The SELECT is spelled out in full rather than shared as a fragment —
-  /// `watch_coverage_test` reads these queries as literals, and an
-  /// interpolated string is invisible to it.
+  /// The counts and the lines' sum come from a LEFT JOIN and GROUP BY, not
+  /// correlated subqueries: the join puts `receipt_line` in the watch's trigger
+  /// set, and the aggregates over `l` are the selection that stops SQLite
+  /// dropping it. The SELECT is a full literal because `watch_coverage_test`
+  /// cannot see an interpolated fragment.
   @override
   Stream<List<ReceiptLedgerRow>> watchReceipts() {
     return _db
@@ -71,12 +67,9 @@ class SqliteReceiptRepository implements ReceiptRepository {
         );
   }
 
-  /// One receipt with its lines.
-  ///
-  /// Every joined table contributes a selected column, which is the LEFT-JOIN
-  /// watch trap itself: SQLite drops a join nothing selects from, so an
-  /// unselected `ingredient` would leave this page stale when a matched row
-  /// was renamed under it.
+  /// One receipt with its lines. Every joined table contributes a selected
+  /// column: SQLite drops an unselected LEFT JOIN, and the watch would then
+  /// miss that table.
   @override
   Stream<StoredReceipt?> watchReceipt(String receiptId) {
     return _db
@@ -187,9 +180,8 @@ class SqliteReceiptRepository implements ReceiptRepository {
       );
       // Deleted on another phone: there is nothing left to edit.
       if (receipt == null) return;
-      // UPDATE, never an upsert: the local tables are SQLite views. Printed
-      // totals are the paper's and stand; a hand-typed receipt printed none,
-      // so its subtotal follows its lines.
+      // UPDATE, never an upsert: the local tables are views. Printed totals
+      // stand; a hand-typed receipt's subtotal follows its lines.
       final manual =
           ReceiptSource.fromDb(receipt['source'] as String?) ==
           ReceiptSource.manual;
@@ -256,13 +248,12 @@ class SqliteReceiptRepository implements ReceiptRepository {
     }
   }
 
-  /// Writes one line of [receiptId] — an UPDATE where the line is already a
-  /// row ([ReceiptLineWrite.lineId]), a plain INSERT where it is new. Never
-  /// `ON CONFLICT`: the local tables are SQLite views and a view rejects
-  /// UPSERT.
+  /// Writes one line of [receiptId]: an UPDATE when the line is already a row
+  /// ([ReceiptLineWrite.lineId]), else a plain INSERT. Never `ON CONFLICT`,
+  /// which the local views reject.
   ///
   /// [mintedWords] is what this save has already minted, keyed by ingredient
-  /// and word, so six identical lines mint one measure. It lives for one
+  /// and word, so identical lines mint one measure. It lives for one
   /// transaction.
   Future<void> _writeLine(
     SqliteWriteContext tx,
@@ -271,9 +262,8 @@ class SqliteReceiptRepository implements ReceiptRepository {
     String stamp,
     Map<(String, String), _Minted> mintedWords,
   ) async {
-    // The one place an import mints a measure, and only where the household's
-    // own tap asked for it. It happens BEFORE the line, so the line can point
-    // at the word rather than at the unit it was typed in.
+    // The one place a receipt save mints a measure, and only when the household
+    // asked. It runs before the line so the line can point at it.
     var measureId = line.measureId;
     final mint = line.mintMeasureLabel?.trim();
     final basis = line.packBasisAmount;
@@ -316,9 +306,8 @@ class SqliteReceiptRepository implements ReceiptRepository {
     // A pack minted as a measure is stored as a COUNT of it, so the word is
     // the measure's own and never a second copy.
     final minted = measureId != null && measureId != line.measureId;
-    // Only a food line is ever counted (0050), and it is held HERE as well as
-    // in the mapping: a local table is a view with no CHECK behind it, so a
-    // count on a bag fee would pass on the phone and stall the upload queue
+    // Only a food line is counted. Held here as well as in the mapping: the
+    // local view has no CHECK, and a bad count would stall the upload queue
     // against Postgres.
     final counted = line.kind == ReceiptLineKind.item && line.count >= 1
         ? line.count
@@ -336,15 +325,12 @@ class SqliteReceiptRepository implements ReceiptRepository {
       line.sortOrder,
     ];
     if (line.lineId case final id?) {
-      // `printed_text` and `name_printed` are the PAPER's and no edit moves
-      // them. The name is also what the receipt door recalls past answers by,
-      // and a name that moved under an answer would file it somewhere nobody
-      // asked about.
+      // `printed_text` and `name_printed` are the paper's and no edit moves
+      // them; the name is also the recall key for past answers.
       //
-      // The `IS NOT` tail is what makes a re-save of an unchanged line write
-      // nothing at all: recall reads the newest `updated_at`, so re-stamping
-      // a line nobody touched would make an old receipt's stale match the
-      // latest answer — and it would queue an upload op saying nothing.
+      // The `IS NOT` tail makes a re-save of an unchanged line write nothing.
+      // Recall reads the newest `updated_at`, so re-stamping an untouched line
+      // would make a stale match the latest answer.
       await tx.execute(
         'UPDATE receipt_line SET ingredient_id = ?, cents = ?, count = ?, '
         'discount_cents = ?, kind = ?, pack_basis_amount = ?, '
@@ -369,9 +355,8 @@ class SqliteReceiptRepository implements ReceiptRepository {
         _uuid.v4(),
         _householdId,
         receiptId,
-        // A line nobody read off paper — added by hand in the review, or a
-        // typed price — is stored with NO printed words, never with an empty
-        // pair of them: the column means "what the paper said".
+        // A line nobody read off paper is stored with null printed words, never
+        // empty strings.
         if (line.printedText.isEmpty) null else line.printedText,
         line.namePrinted,
         ...said,

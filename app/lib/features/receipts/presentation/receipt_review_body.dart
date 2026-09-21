@@ -1,16 +1,10 @@
-/// The receipt review: what the paper says about itself, then every line.
+/// The receipt review: the receipt's own facts, then every line.
 ///
-/// The header is the receipt's own facts — the store as a **chip word** with
-/// the paper's printed header under it, the date it was bought, the printed
-/// totals, and the join card holding the lines' sum against the printed
-/// subtotal. Below them the lines, money first, with the two kinds that are
-/// not food folded under the list.
-///
-/// **The join card is a flag, not a refusal.** A receipt whose lines do not
-/// add up to its printed subtotal is still a receipt and still saves — the
-/// total is the paper's and stands — but it is counted in the header exactly
-/// as a line's flag is, because a sum that does not close means a line is
-/// missing or doubled and somebody should look.
+/// The header holds the store as a chip word with the printed header under it,
+/// the date, the printed totals, and the join card comparing the lines' sum
+/// with the printed subtotal. Non-food lines fold under the list. The join card
+/// is a flag, not a refusal: a receipt that does not add up still saves, and is
+/// counted in the header like a line's flag.
 library;
 
 import 'dart:async';
@@ -228,9 +222,8 @@ class _StoreChips extends ConsumerWidget {
   }
 }
 
-/// When the shop happened, and the door to correct it: the date decides which
-/// week the receipt files under. An undated receipt opens on the scan day and
-/// says so.
+/// When the shop happened, and the door to correct it. An undated receipt opens
+/// on the scan day and says so.
 class _Bought extends ConsumerWidget {
   const _Bought({required this.state});
 
@@ -407,13 +400,8 @@ class _SectionRule extends StatelessWidget {
   );
 }
 
-/// *add a line* — for the row the reader missed.
-///
-/// The reader loses a line to a fold in the paper or a torn strip, and the join
-/// card is what says so; this is where the line is put back. Two questions,
-/// each on the door the screen already uses for it: the ingredient picker (the
-/// card's *Something else*) and the money prompt (the card's PRICE chip).
-/// Backing out of either adds nothing, so the door itself writes nothing.
+/// *add a line*, for a row the reader missed: the ingredient picker, then the
+/// money prompt. Backing out of either adds nothing.
 class _AddLineDoor extends StatelessWidget {
   const _AddLineDoor();
 
@@ -425,12 +413,9 @@ class _AddLineDoor extends StatelessWidget {
     onTap: () => unawaited(_addLine(context)),
   );
 
-  /// The picker, then the money, then the line.
-  ///
-  /// The container and the host are captured BEFORE the first await: the
-  /// picker's keyboard shrinks this viewport, so the door itself can be
-  /// unmounted by the time either answer arrives, and the second door is
-  /// opened on the overlay that outlives it.
+  /// The picker, then the money, then the line. The container and host are
+  /// captured before the first await: the picker's keyboard can unmount this
+  /// door, and the second prompt opens on the overlay that outlives it.
   static Future<void> _addLine(BuildContext context) async {
     final container = ProviderScope.containerOf(context, listen: false);
     final host = hostContextOf(context);
@@ -530,9 +515,8 @@ class _SaveBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final map = state.map;
     final named = state.store.trim().isNotEmpty;
-    // Every line dropped writes no receipt at all — the ledger refuses one,
-    // and `canSave` is where that is decided, so the button reads the map
-    // rather than counting the drafts a second time.
+    // With every line dropped there is no receipt to write; `canSave` decides,
+    // so the button reads the map.
     final empty = map.keptCount == 0;
     // A kept receipt has nothing to save until something has moved.
     final open = map.canSave && named && (!state.isSaved || state.edited);

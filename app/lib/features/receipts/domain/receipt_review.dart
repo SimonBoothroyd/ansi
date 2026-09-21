@@ -1,32 +1,12 @@
-/// The receipt review as one map — PURE DART (invariant 2).
+/// The receipt review as one map. Pure Dart (invariant 2).
 ///
-/// Everything the screen says about a scanned receipt is read from here: the
-/// header's count, each card's amber flag, the join card, and what Save is
-/// called. They read **one** map, so the header can never say three while the
-/// button says two.
-///
-/// Three rules shape it, and each is a refusal rather than a guess
-/// (invariant 3):
-///
-/// * **A line is a price only when it says what the cents bought.** A matched
-///   food line with no pack is kept, counted in the receipt's total, and is
-///   simply not a price — the card asks for the pack and holds Save.
-/// * **The join is a flag, never a refusal.** The lines' sum against the
-///   printed subtotal (or, where none printed, the total less tax) is a fact
-///   worth showing; a receipt whose join lost a
-///   line is still a receipt, and its printed total still stands. It is
-///   counted in the header exactly as a line's flag is.
-/// * **The vocabulary learns nothing.** A receipt's words are one store's
-///   abbreviations, so confirming a match writes no alias and there is no
-///   learning path in this folder. What carries between shops is the
-///   household's own answers, and neither is a vocabulary word: the **pack**
-///   (a matched line with no printed weight opens on the pack its own printed
-///   words were last bought in, else the one the row was last bought in), and
-///   the **match**, which the server recalls per printed name off this
-///   household's own saved receipt lines. Both are filed under the same key —
-///   the printed name — because that is what names one product at one shop. A
-///   line that arrived on a recalled answer is [ReceiptLineDraft.remembered]
-///   and the card says so.
+/// The header's count, each card's flag, the join card and the Save label all
+/// read [ReceiptReviewMap], so they cannot disagree. A matched food line with
+/// no pack is kept in the total but is not a price, and holds Save. The join
+/// (lines against the printed subtotal) is a flag, never a gate. Confirming a
+/// match writes no alias; what carries between shops is the pack ([landPack])
+/// and the server-recalled match ([ReceiptLineDraft.remembered]), both keyed by
+/// the printed name.
 library;
 
 import 'package:meta/meta.dart';
@@ -47,11 +27,9 @@ enum ReceiptLineIssue {
   /// Food, and nobody has said what it is.
   unmatched,
 
-  /// The reader could not make out what the line rang up as, and says so
-  /// (`cents: 0` with the model's own doubt beside it). A food line with no
-  /// figure is **not** a free one: it is a line somebody has to read off the
-  /// paper, and until they do it holds Save and drags the join open, which is
-  /// exactly what a figure nobody could read should do.
+  /// The reader could not make out the figure (`cents: 0` plus the model's
+  /// doubt). Not a free line: it holds Save until somebody reads it off the
+  /// paper.
   amountMissing,
 
   /// Matched food whose row neither sells by weight here nor has a pack: the
@@ -72,11 +50,8 @@ String? receiptAttentionLabel(List<ReceiptLineIssue> issues) {
   return null;
 }
 
-/// One line of the receipt as the review holds it: what the paper printed,
-/// and what the person has said about it.
-///
-/// Immutable — every edit produces a new one, so the screen rebuilds from a
-/// value rather than from a mutation nobody can see.
+/// One line of the receipt as the review holds it: what the paper printed and
+/// what the person has said about it. Immutable.
 @immutable
 class ReceiptLineDraft {
   const ReceiptLineDraft({
@@ -108,9 +83,8 @@ class ReceiptLineDraft {
   /// lines of a receipt print identically when two of a thing were bought.
   final int index;
 
-  /// The stored row behind this line, when the review is open on a SAVED
-  /// receipt — what lets Save update the row rather than write a second one.
-  /// Null on every line of a fresh scan.
+  /// The stored row behind this line on a saved receipt, so Save updates it.
+  /// Null on a fresh scan.
   final String? lineId;
 
   final String printedText;
@@ -120,14 +94,9 @@ class ReceiptLineDraft {
   final String? namePrinted;
   final int cents;
 
-  /// How many of the thing this line rang up — the count printed on the
-  /// sub-row under it (`8 @ $2.99`), read off the paper and editable on the
-  /// card. One unless the paper said otherwise.
-  ///
-  /// [cents] already includes them all, so nothing the receipt adds up to
-  /// moves with it. What moves is the price: the cents bought
-  /// `count × packBasisAmount`, because the pack is what ONE of them comes in
-  /// and the count is a fact about this shop alone.
+  /// How many the line rang up (`8 @ $2.99`); one unless the paper said
+  /// otherwise. [cents] already covers them all, so the price is [cents] over
+  /// `count × packBasisAmount`.
   final int count;
   final int discountCents;
 
@@ -153,45 +122,31 @@ class ReceiptLineDraft {
   /// is the word, and a second copy of it would drift.
   final String? packLabel;
 
-  /// The word to mint as a measure on this row at Save — the *keep as a
-  /// measure* toggle's answer. Null when the person left it off, which is the
-  /// ordinary case.
-  ///
-  /// **This is the one place a household's tap mints a measure from an
-  /// import.** The pipeline itself mints none, as it never has.
+  /// The word to mint as a measure on this row at Save, or null. The only place
+  /// an import mints a measure, and only on a tap.
   final String? keepAsMeasure;
 
   final List<ReceiptSuggestion> suggestions;
   final bool lowConfidence;
 
-  /// Whether this line arrived on the household's OWN past answer for its
-  /// printed words rather than on the cascade's reading of them. The card says
-  /// so beside the chosen row, because a remembered match is the one kind of
-  /// resolved line that can be wrong for a reason a person can see — and
-  /// changing it is the fix, since the correction becomes the most recent
-  /// answer. A match the person changes is theirs, so it stops being
+  /// Whether the match arrived from the household's own past answer for these
+  /// printed words. The card says so; a match the person changes stops being
   /// remembered.
   final bool remembered;
 
   final int photo;
 
-  /// Dropped here: the line stays on screen, greyed, out of every figure and
-  /// out of the count, until Save makes it real — the recipe review's own
-  /// posture.
+  /// Dropped: stays on screen greyed, out of every figure, until Save.
   final bool dropped;
 
   /// What was handed over for this line.
   int get paidCents => cents - discountCents;
 
-  /// Whether nothing on this line came off the paper — a line the reader
-  /// missed and a person added by hand, in this sitting or an earlier one. The
-  /// card says so where a scanned line prints the paper's own words.
+  /// Whether nothing on this line came off the paper: a line added by hand.
   bool get saidByHand => printedText.isEmpty && namePrinted == null;
 
-  /// What this line names, for a card's title: the matched row, else the
-  /// paper's words for the thing, else the whole printed line. The figures
-  /// stay off the title where they can — the card says the money once, in its
-  /// own column, and the verbatim line is under it either way.
+  /// The card's title: the matched row, else the paper's name for the thing,
+  /// else the whole printed line.
   String get displayName =>
       ingredientName ??
       namePrinted ??
@@ -206,12 +161,8 @@ class ReceiptLineDraft {
       (packBasisAmount ?? 0) > 0 &&
       paidCents > 0;
 
-  /// This line with the figure a person read off the paper.
-  ///
-  /// It is its own method rather than a [copyWith] field because `cents` is
-  /// the one thing on a draft that came from the PAPER: changing it is
-  /// correcting a transcription, not answering a question, and it should read
-  /// that way at the call site.
+  /// This line with the figure a person read off the paper. Separate from
+  /// [copyWith] so correcting a transcription reads as such at the call site.
   ReceiptLineDraft withCents(int cents) => ReceiptLineDraft(
     index: index,
     lineId: lineId,
@@ -285,12 +236,9 @@ class ReceiptLineDraft {
   );
 }
 
-/// The payload's lines as the review first holds them.
-///
-/// An `auto` match starts the line resolved; a `suggest` one starts it
-/// unmatched with its chips offered, because a suggestion is an offer and
-/// never a resolution (ADR-0004). No pack is resolved here — that needs the
-/// vocabulary, and [landPack] does it a line at a time.
+/// The payload's lines as the review first holds them. An `auto` match starts
+/// resolved; a `suggest` starts unmatched with its chips offered (ADR-0004).
+/// Packs are resolved later by [landPack].
 List<ReceiptLineDraft> initialReceiptDrafts(ReceiptPayload payload) => [
   for (final line in payload.lines)
     ReceiptLineDraft(
@@ -311,14 +259,9 @@ List<ReceiptLineDraft> initialReceiptDrafts(ReceiptPayload payload) => [
     ),
 ];
 
-/// A line the reader missed, said by hand: nothing off the paper, and matched
-/// to the row the person picked at the money they read off it.
-///
-/// Its index is one past the highest in the review, because the index is a
-/// line's identity here and a position would be reused by the next drop. It
-/// carries no printed words, which is also what keeps it out of the twins: two
-/// lines added by hand are two lines, and an answer on one is not an answer on
-/// the other ([isSameLineAgain]).
+/// A line the reader missed, added by hand and matched to the picked row. Its
+/// index is one past the review's highest, since the index is a line's
+/// identity. With no printed words it is never a twin ([isSameLineAgain]).
 ReceiptLineDraft handAddedLine(
   List<ReceiptLineDraft> drafts, {
   required Ingredient row,
@@ -332,31 +275,17 @@ ReceiptLineDraft handAddedLine(
   ingredientName: row.canonicalName,
 );
 
-/// [draft] with the pack it can state without asking anybody.
+/// [draft] with the pack it can state without asking, from the first of:
 ///
-/// Three sources, in order, and no fourth:
+/// 1. The paper's own weight (`1.32 lb @ $1.99/lb`), resolved through the row's
+/// basis by [packInBasis]. 2. The pack these printed words were last bought in
+/// ([sameName]): one store's words name one product. 3. The pack this row was
+/// last bought in ([last]).
 ///
-/// 1. **The paper's own weight.** `1.32 lb @ $1.99/lb` says what the cents
-///    bought, so the line prices itself — resolved through the row's basis by
-///    the same density gate the price sheet uses ([packInBasis]).
-/// 2. **The pack these printed words were last bought in** ([sameName]). One
-///    store's words name one product: `ORG TRICOLOR QUINOA` is the 16 oz bag
-///    from the shop that prints it that way, whatever size the other shop
-///    sells. A household alternating two shops would otherwise open on the
-///    wrong size every other week.
-/// 3. **The pack this row was last bought in** ([last]) — the answer for
-///    words this household has not bought under before. A bottle of sriracha
-///    is the same bottle this week; entering it once is what keeps the second
-///    receipt from asking again.
-///
-/// At either carry-over step the basis figure comes from the stored
-/// observation, **never re-derived**, so a measure re-weighed since cannot
-/// re-price this shop. The words carry only while they can still be said: a
-/// measure deleted since, or a pack stored with no unit, carries as the basis
-/// figure in the basis unit.
-///
-/// A line that reaches none of the three keeps no pack and raises *Say what the
-/// pack is*. Nothing is invented at any step.
+/// A carried pack takes its basis figure from the stored observation, never
+/// re-derived, so a measure re-weighed since cannot re-price this shop. If its
+/// measure is gone or it has no unit, it carries as the basis figure in the
+/// basis unit. Otherwise the line keeps no pack and the card asks for one.
 ReceiptLineDraft landPack(
   ReceiptLineDraft draft, {
   required Ingredient? ingredient,
@@ -408,19 +337,13 @@ ReceiptLineDraft landPack(
   );
 }
 
-/// [sameName]'s pack where it really is the pack THESE words bought THIS row,
-/// else null and the row's latest price answers instead.
+/// [sameName]'s pack where it really is the pack these words bought this row,
+/// else null so the row's latest price answers. Three refusals:
 ///
-/// Three refusals, each of them a name that does not stand for what the caller
-/// takes it to stand for:
-///
-/// * **A line with no printed words** — read by a server older than the column
-///   — is filed under nothing, so there is nothing of its own to recall.
-/// * **Words last bought as another row.** The household has re-pointed them
-///   since, and the size of somebody else's pack is not a fact about this one.
-/// * **A pack of nothing**, which no read can build (`observationFrom` is the
-///   gate) and this refuses anyway: a zero here must not swallow the row's own
-///   latest price, which may well be a real pack.
+/// - A line with no printed words is filed under nothing.
+/// - Words last bought as another row: that pack is not a fact about this one.
+/// - A zero pack (`observationFrom` should already gate it) must not swallow
+///   the row's own latest price.
 PriceObservation? _underTheseWords(
   ReceiptLineDraft draft,
   Ingredient ingredient,
@@ -442,21 +365,10 @@ String? _labelOf(String measureId, List<Measure> measures) {
   return null;
 }
 
-/// Whether [other] is [line] again — the same printed words at the same
-/// figure, standing exactly where [line] stands now.
-///
-/// A receipt honestly prints one item six times when six were bought, and
-/// every one of them wants the same answer. Three fences keep that from
-/// becoming an overwrite:
-///
-/// * **Standing where it stands.** A twin somebody has already answered
-///   differently — matched to another row, packed another way — is no longer
-///   the same line, so an answer given here cannot reach it.
-/// * **A dropped line is nobody's twin**, in either direction. It is leaving,
-///   and a doubled line is dropped precisely because the other one is staying.
-/// * **A line sold by weight answers for itself.** Its printed weight IS its
-///   pack, so a pack said on one is not a fact about the other, however alike
-///   the two read.
+/// Whether [other] is [line] again: the same printed words at the same figure,
+/// with the same answers so far. A twin already answered differently, a dropped
+/// line, and a line sold by weight (its printed weight is its pack) are never
+/// twins.
 bool isSameLineAgain(ReceiptLineDraft line, ReceiptLineDraft other) =>
     other.index != line.index &&
     !line.dropped &&
@@ -478,13 +390,9 @@ bool isSameLineAgain(ReceiptLineDraft line, ReceiptLineDraft other) =>
     other.measureId == line.measureId &&
     other.keepAsMeasure == line.keepAsMeasure;
 
-/// The index of the line at [index] and of every line that is it again — the
-/// lines one answer answers. Just [index] where the line stands alone.
-///
-/// What rides along is an ANSWER: the match, the pack, *Not food*. What never
-/// does is a correction to the paper — a dropped line or a re-read figure is
-/// about one occurrence, and a doubled line is dropped precisely because its
-/// twin is staying.
+/// The indexes of the line at [index] and its twins: the lines one answer
+/// answers. Answers (match, pack, `Not food`) ride along; corrections to the
+/// paper (a drop, a re-read figure) never do.
 Set<int> linesAnsweredWith(List<ReceiptLineDraft> drafts, int index) {
   final line = drafts.where((d) => d.index == index).firstOrNull;
   if (line == null) return {index};
@@ -496,8 +404,7 @@ Set<int> linesAnsweredWith(List<ReceiptLineDraft> drafts, int index) {
 }
 
 /// `×6 on this receipt — an answer here answers them all`, or null where the
-/// line stands alone. Said on the open card BEFORE the answer, so six cards
-/// moving at once is what the person was told would happen.
+/// line stands alone.
 String? sameLineAgainNote(List<ReceiptLineDraft> drafts, int index) {
   final count = linesAnsweredWith(drafts, index).length;
   return count < 2
@@ -505,9 +412,7 @@ String? sameLineAgainNote(List<ReceiptLineDraft> drafts, int index) {
       : '×$count on this receipt — an answer here answers them all';
 }
 
-/// What [draft] still wants. A dropped line reports nothing — it is leaving,
-/// and a line that is not food is under the fold, where it counts toward the
-/// trip and toward nothing else.
+/// What [draft] still wants. Dropped and non-food lines report nothing.
 List<ReceiptLineIssue> receiptLineIssues(ReceiptLineDraft draft) {
   if (draft.dropped || !draft.kind.isFood) return const [];
   return [
@@ -520,10 +425,7 @@ List<ReceiptLineIssue> receiptLineIssues(ReceiptLineDraft draft) {
   ];
 }
 
-/// The whole review as one figure: the flags, the sums and the join.
-///
-/// One value, computed once per rebuild, so the header, the cards, the join
-/// card and Save cannot disagree.
+/// The whole review as one value: the flags, the sums and the join.
 @immutable
 class ReceiptReviewMap {
   const ReceiptReviewMap({
@@ -562,17 +464,12 @@ class ReceiptReviewMap {
   /// How many lines still need the person — what Save is gated on.
   int get outstanding => issuesByIndex.length;
 
-  /// What the header counts: the lines, **and the join card when it does not
-  /// close**. A sum that is a line short is something somebody should look
-  /// at, so it is counted; it is not something Save waits for, because the
-  /// printed total is the paper's and stands either way.
+  /// What the header counts: outstanding lines, plus one when the join does not
+  /// close. Save does not wait for the join.
   int get headerCount => outstanding + (joinCloses ? 0 : 1);
 
-  /// What the paper says the lines should come to: its subtotal, else its
-  /// total less the tax — a strip with no subtotal line (Trader Joe's prints
-  /// none) still states the figure, one subtraction away. Null only when the
-  /// paper printed neither, and then there is nothing to hold the lines
-  /// against.
+  /// What the paper says the lines should come to: its subtotal, else total
+  /// less tax. Null when it printed neither.
   int? get expectedLinesCents =>
       printedSubtotalCents ??
       (printedTotalCents == null ? null : printedTotalCents! - taxCents);
@@ -590,9 +487,8 @@ class ReceiptReviewMap {
   /// the lines plus the tax they did not include.
   int get totalCents => printedTotalCents ?? (linesCents + taxCents);
 
-  /// Whether Save may open — every kept line answered, and the join is a flag
-  /// rather than a gate. A receipt with nothing left is not one: the
-  /// repository refuses it, so Save stays shut rather than throwing.
+  /// Whether Save may open: every kept line answered and at least one kept (the
+  /// repository refuses an empty receipt).
   bool get canSave => outstanding == 0 && keptCount > 0;
 }
 
@@ -642,17 +538,12 @@ ReceiptReviewMap receiptReviewMap(
 String joinSumLine(ReceiptReviewMap map) =>
     'The lines add up to ${formatMoney(map.linesCents)}';
 
-/// What the join card says underneath — the paper agreeing, or how far apart
-/// they are and what to look for.
-///
-/// It is a **flag, never a refusal**: the receipt saves either way, because
-/// the printed total is the paper's and stands.
+/// The join card's note: the paper agrees, or how far apart the sums are and
+/// what to look for.
 String joinNote(ReceiptReviewMap map) {
   final expected = map.expectedLinesCents;
   if (expected == null) return 'the receipt printed no subtotal and no total';
-  // Which of the paper's figures the lines were held against, said only when
-  // it is the derived one — a reader checking the join needs to know the
-  // number is not printed anywhere on the strip.
+  // Said only when the expected figure was derived, not printed on the strip.
   final derived = map.printedSubtotalCents == null;
   if (map.joinCloses) {
     return derived
@@ -666,21 +557,14 @@ String joinNote(ReceiptReviewMap map) {
       'line is missing, doubled or misread';
 }
 
-/// `Save receipt · $84.12`, or what is still owed.
-/// The `line(s)` is the recipe review's own spelling, deliberately: the two
-/// Save bars answer the same question and a reader moving between them should
-/// not meet two grammars for it.
-///
-/// [saved] is the review open on a receipt already kept: the same button,
-/// named for what it then does.
+/// `Save receipt · $84.12`, or what is still owed, in the recipe review's
+/// `line(s)` spelling. [saved] names the button for a receipt already kept.
 String receiptSaveLabel(ReceiptReviewMap map, {bool saved = false}) {
   if (map.canSave) {
     return '${saved ? 'Save changes' : 'Save receipt'} · '
         '${formatMoney(map.totalCents)}';
   }
-  // Nothing outstanding and nothing kept is the dropped-every-line receipt:
-  // counting the lines that need you would say zero. The screen says this and
-  // only this; the sentence under Save names the way back.
+  // Every line dropped: counting outstanding lines would say zero.
   if (map.keptCount == 0) return 'Nothing left to save';
   return '${map.outstanding} line(s) need you';
 }
@@ -694,12 +578,8 @@ String? foldedHeading(ReceiptReviewMap map) => map.foldedCount == 0
 String? taxHeading(ReceiptReviewMap map) =>
     map.taxCents == 0 ? null : 'Tax · ${formatMoney(map.taxCents)}';
 
-/// `8 × block (16 oz) · 66¢ / 100 g` — what a priced card reads under the
-/// name.
-///
-/// How many, then the pack in the words it was said in, then the unit price
-/// the two come to. A line whose pack nobody has stated has nothing to say
-/// here and returns null; the card draws its flag instead.
+/// `8 × block (16 oz) · 66¢ / 100 g`: the count, the pack as said, and the unit
+/// price. Null when the line has no pack.
 String? packAndUnitPrice(ReceiptLineDraft draft, {required MacrosBasis basis}) {
   final pack = draft.packBasisAmount;
   if (pack == null || !(pack > 0)) return null;
@@ -720,23 +600,17 @@ String? packAndUnitPrice(ReceiptLineDraft draft, {required MacrosBasis basis}) {
   };
 }
 
-/// `8 × ` before the pack, and nothing at all on the ordinary line that rang
-/// up one of the thing. It is [countTimes] — the same spelling the ingredient
-/// page restates a price with, so the two never drift.
+/// `8 × ` before the pack, nothing for a count of one. Shares [countTimes] with
+/// the ingredient page.
 String countPrefix(ReceiptLineDraft draft) => countTimes(draft.count);
 
 /// `× 8` — the COUNT chip's own label, beside the PACK chip on the open card.
 /// It is drawn whatever the count is: the chip is the door to change it.
 String countChipLabel(int count) => '× ${formatAmount(count.toDouble())}';
 
-/// `bag (454 g)`, `1.32 lb`, `482 g` — the pack as the person or the paper
-/// said it.
-///
-/// A pack named as one of the row's measures prints the word AND what it
-/// weighs, because the word alone tells a reader nothing about the figure
-/// beside it — unless the word already says its size, which is the house
-/// style for two sizes of one container ([measureWordWithSize]). A pack typed
-/// as a plain amount already is its own reading.
+/// `bag (454 g)`, `1.32 lb`, `482 g`: the pack as it was said. A measure prints
+/// its word and weight, unless the word already says its size
+/// ([measureWordWithSize]).
 String? packWords(ReceiptLineDraft draft, {required MacrosBasis basis}) {
   final label = draft.packLabel;
   if (label != null) {
@@ -751,15 +625,11 @@ String? packWords(ReceiptLineDraft draft, {required MacrosBasis basis}) {
   return unit == null ? formatAmount(amount) : _said(amount, unit);
 }
 
-/// `1.32 lb`, `454 g` — an amount printed in the unit it was said in, through
-/// the app's one amount rule ([formatAmountIn]: metric reads decimal, every
-/// kitchen unit keeps its fractions).
+/// An amount in the unit it was said in, through [formatAmountIn].
 String _said(double amount, Unit unit) =>
     '${formatAmountIn(amount, unit)} ${unit.label}';
 
-/// `−55¢ off` — the deduction printed under an item, said on the same line as
-/// what was paid, because what you paid is the price. Null where there was
-/// none.
+/// `−55¢ off`: the deduction printed under an item, or null.
 String? discountWords(ReceiptLineDraft draft) => draft.discountCents == 0
     ? null
     : '−${formatMoney(draft.discountCents)} off';
