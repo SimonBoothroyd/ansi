@@ -210,19 +210,14 @@ MealSetMacros servedMealMacros(
   membersById: membersById,
 );
 
-/// Sums `perServing × servings` over [entries].
+/// Sums `perServing × servings` over [entries]; day and week totals both come
+/// from here, so a week is never a sum of rounded days.
 ///
 /// Under Everyone ([lensMemberId] null) `servings` is [demandPortions]. Under a
-/// person's lens an entry is in scope only if they eat it, and `servings` is
-/// their own factor, scaled by `override ÷ Σ factors` when an override is set.
-/// An entry with no eaters stays in scope under a lens and is excluded with a
-/// reason.
-///
-/// [summaryFor] returns a recipe's per-serving summary (null when gone or not
-/// loaded). An ingredient meal is weighed from the nutrition it carries and a
-/// meal out from its stated figures; both multiply by `servings` like a dish.
-/// Day and week totals both come from this function, so a week is never a sum
-/// of rounded days.
+/// lens an entry counts only if that member eats it, at their own factor scaled
+/// by `override ÷ Σ factors`; an entry with no eaters stays in scope and is
+/// excluded with a reason. [summaryFor] returns a recipe's per-serving summary,
+/// or null when gone or not loaded.
 MealSetMacros sumPlannedMacros(
   Iterable<PlanEntry> entries, {
   required RecipeMacroSummary? Function(String recipeId) summaryFor,

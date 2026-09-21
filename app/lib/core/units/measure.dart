@@ -92,7 +92,7 @@ T? measureAlreadyNamed<T extends LabelledMeasure>(
 }
 
 /// The provenance families a [Measure.source] can carry, for at-a-glance
-/// display (7.7). [unknown] covers pre-0010 rows and unrecognized strings.
+/// display. [unknown] covers rows with no source and unrecognized strings.
 enum MeasureSourceKind { usdaPortion, borrowed, typical, manual, unknown }
 
 /// One named measure of one ingredient: `n` of it are `n × amount` of the

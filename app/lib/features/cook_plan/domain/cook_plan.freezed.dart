@@ -565,20 +565,13 @@ as List<CoveredMeal>,
 mixin _$ComponentDemand {
 
  String get parentRecipeId; String get parentTitle;/// The demanding parent session's cook day (0..6 from the week's first
-/// day) — the day this
-/// batch has to be ready *by*.
+/// day): the day this batch must be ready by.
  int get cookDay;/// Batches of the sub-recipe, already multiplied through the parent
 /// session's own scale factor.
  double get batches; String? get via;/// What the demanding line printed, unscaled.
- double? get quantity;/// The target's own word the demanding line was said in — the WHOLE
-/// measure, not merely its label, because a card says what one of the word
-/// comes to on the way to the batch share (`3 blob → 45 g → 0.15 of a
-/// batch`). That middle step is the fact the word carries, and the one a
-/// cook checks when the share looks wrong.
-///
-/// Null when the line named no word, and null the moment the word has GONE
-/// from the target — which is exactly the state a card must not print a
-/// number for.
+ double? get quantity;/// The target's own word the demanding line was said in, whole so a card
+/// can print what one of it comes to. Null when the line named no word or
+/// the target no longer has it.
  RecipeMeasure? get measure;
 /// Create a copy of ComponentDemand
 /// with the given fields replaced by the non-null parameter values.
@@ -783,8 +776,7 @@ class _ComponentDemand extends ComponentDemand {
 @override final  String parentRecipeId;
 @override final  String parentTitle;
 /// The demanding parent session's cook day (0..6 from the week's first
-/// day) — the day this
-/// batch has to be ready *by*.
+/// day): the day this batch must be ready by.
 @override final  int cookDay;
 /// Batches of the sub-recipe, already multiplied through the parent
 /// session's own scale factor.
@@ -792,15 +784,9 @@ class _ComponentDemand extends ComponentDemand {
 @override final  String? via;
 /// What the demanding line printed, unscaled.
 @override final  double? quantity;
-/// The target's own word the demanding line was said in — the WHOLE
-/// measure, not merely its label, because a card says what one of the word
-/// comes to on the way to the batch share (`3 blob → 45 g → 0.15 of a
-/// batch`). That middle step is the fact the word carries, and the one a
-/// cook checks when the share looks wrong.
-///
-/// Null when the line named no word, and null the moment the word has GONE
-/// from the target — which is exactly the state a card must not print a
-/// number for.
+/// The target's own word the demanding line was said in, whole so a card
+/// can print what one of it comes to. Null when the line named no word or
+/// the target no longer has it.
 @override final  RecipeMeasure? measure;
 
 /// Create a copy of ComponentDemand
@@ -871,7 +857,7 @@ mixin _$CookSession {
 
  String get recipeId; String get recipeTitle; double get servingsBase; int get cookDay; int? get keepsForDays; bool get freezable; int? get freezerDays;/// The meals this batch covers, ascending by day (may include repeats on a
 /// day — e.g. a lunch and a dinner of the same dish).
- List<CoveredMeal> get covers;/// The component demands this batch answers (step 8.6). Non-empty exactly
+ List<CoveredMeal> get covers;/// The component demands this batch answers. Non-empty exactly
 /// for a component session.
  List<ComponentDemand> get demands;
 /// Create a copy of CookSession
@@ -1094,10 +1080,10 @@ class _CookSession extends CookSession {
   return EqualUnmodifiableListView(_covers);
 }
 
-/// The component demands this batch answers (step 8.6). Non-empty exactly
+/// The component demands this batch answers. Non-empty exactly
 /// for a component session.
  final  List<ComponentDemand> _demands;
-/// The component demands this batch answers (step 8.6). Non-empty exactly
+/// The component demands this batch answers. Non-empty exactly
 /// for a component session.
 @override@JsonKey() List<ComponentDemand> get demands {
   if (_demands is EqualUnmodifiableListView) return _demands;
@@ -1457,16 +1443,10 @@ mixin _$ComponentDemandSource {
 
  String get recipeId; String get title; int get cookDay;/// The demanding line's catalog unit, null when it was said in one of the
 /// target's own words ([measureLabel]).
- Unit? get unit; double? get quantity;/// The target's own word the demanding line said it in, when the target
-/// still has that word — so the card quotes `3 blob`.
-///
-/// Null when the line named no word AND when the word is the very thing
-/// that has gone: a gap card that cannot say what the line asked for
-/// drops the clause rather than printing the number against a unit the
-/// line never meant.
- String? get measureLabel;/// Whether the line named a word at all. With a null [measureLabel] it is
-/// what tells "this line says cups" apart from "this line says a word
-/// nobody here has".
+ Unit? get unit; double? get quantity;/// The target's own word the demanding line was said in, when the target
+/// still has it. Null when the line named no word or the word has gone.
+ String? get measureLabel;/// Whether the line named a word at all; tells a missing word apart from a
+/// catalog unit when [measureLabel] is null.
  bool get saysAMeasure;
 /// Create a copy of ComponentDemandSource
 /// with the given fields replaced by the non-null parameter values.
@@ -1675,17 +1655,11 @@ class _ComponentDemandSource implements ComponentDemandSource {
 /// target's own words ([measureLabel]).
 @override final  Unit? unit;
 @override final  double? quantity;
-/// The target's own word the demanding line said it in, when the target
-/// still has that word — so the card quotes `3 blob`.
-///
-/// Null when the line named no word AND when the word is the very thing
-/// that has gone: a gap card that cannot say what the line asked for
-/// drops the clause rather than printing the number against a unit the
-/// line never meant.
+/// The target's own word the demanding line was said in, when the target
+/// still has it. Null when the line named no word or the word has gone.
 @override final  String? measureLabel;
-/// Whether the line named a word at all. With a null [measureLabel] it is
-/// what tells "this line says cups" apart from "this line says a word
-/// nobody here has".
+/// Whether the line named a word at all; tells a missing word apart from a
+/// catalog unit when [measureLabel] is null.
 @override@JsonKey() final  bool saysAMeasure;
 
 /// Create a copy of ComponentDemandSource

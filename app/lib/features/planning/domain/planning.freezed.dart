@@ -14,12 +14,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Member {
 
- String get id; String get displayName;/// The person's usual portion as a multiple of one recipe serving: `0.75`
-/// for someone who eats three-quarters of a serving. A standing fact about
-/// the person, spent wherever a demand is counted — the cook plan, the
-/// shopping list and the macro lens all read it through [demandPortions].
-/// Quarter steps from 0.25 to 3; the default `1` makes a member weigh
-/// exactly one head.
+ String get id; String get displayName;/// The person's usual portion as a multiple of one recipe serving, in
+/// quarter steps from 0.25 to 3. Read through [demandPortions].
  double get portionFactor;
 /// Create a copy of Member
 /// with the given fields replaced by the non-null parameter values.
@@ -219,12 +215,8 @@ class _Member extends Member {
 
 @override final  String id;
 @override final  String displayName;
-/// The person's usual portion as a multiple of one recipe serving: `0.75`
-/// for someone who eats three-quarters of a serving. A standing fact about
-/// the person, spent wherever a demand is counted — the cook plan, the
-/// shopping list and the macro lens all read it through [demandPortions].
-/// Quarter steps from 0.25 to 3; the default `1` makes a member weigh
-/// exactly one head.
+/// The person's usual portion as a multiple of one recipe serving, in
+/// quarter steps from 0.25 to 3. Read through [demandPortions].
 @override@JsonKey() final  double portionFactor;
 
 /// Create a copy of Member
@@ -289,37 +281,22 @@ as double,
 /// @nodoc
 mixin _$PlanEntry {
 
- String get id; int get dayOfWeek; String get mealSlot;/// The dish, when this meal is one. Null exactly when one of
-/// [ingredientId] / [label] is set (the XOR).
- String? get recipeId; String? get recipeTitle;/// The thing this meal IS, when it is a bare ingredient. Null exactly when
-/// one of [recipeId] / [label] is set.
- String? get ingredientId; String? get ingredientName;/// The words a meal eaten out IS — "Office lunch". Null exactly when one
-/// of [recipeId] / [ingredientId] is set. There is nothing behind these
-/// words: no recipe, no vocabulary row, nothing to open.
- String? get label;/// What ONE portion of a meal eaten out was worth, as STATED. Null means
-/// not stated — never zero (invariant 3): the week names such a meal as
-/// uncounted rather than weighing it at nothing. Always null on the other
-/// two kinds, whose figures come from their recipe's lines or their
-/// vocabulary row.
- Macros? get macros;/// The amount of ONE portion of an ingredient meal. Null (with [unit]) on
-/// a meal that states no amount — which contributes nothing to a total and
-/// says so, rather than being completed by a guess (invariant 3). Always
-/// null on a recipe meal and on a meal eaten out.
- double? get quantity; Unit? get unit;/// The persisted `measure_id`, verbatim — kept even while [measure] is
-/// unresolved (the row has not synced, or was soft-deleted) so a re-save
-/// never wipes the FK, exactly as a recipe line's does.
- String? get measureId;/// The resolved named measure the amount is counted in ("1 bar"), when it
-/// is. [unit] then holds the honest count fallback (`piece`).
- Measure? get measure;/// The vocab row's macros / basis / density, denormalised for the same
-/// reason [recipeTitle] is: the week's macro sum is a pure function of the
-/// week it already loaded, and reading it a second way — a whole-vocabulary
-/// watch behind the Week screen — would be a second place to drift.
-///
-/// Null on a recipe meal, and null on an ingredient meal whose row has not
-/// synced; `ingredientPortionMacros` (week_macros.dart) tells that apart
-/// from a row that is present but a stub, and names each.
- IngredientNutrition? get nutrition; List<String> get eaterIds;/// How many portions to cook for. Null means "track the eater count"; a
-/// number is an explicit override for big/small appetites (spec §8).
+ String get id; int get dayOfWeek; String get mealSlot;/// The dish, when this meal is a recipe.
+ String? get recipeId; String? get recipeTitle;/// The vocabulary row, when this meal is a bare ingredient.
+ String? get ingredientId; String? get ingredientName;/// The words of a meal eaten out, e.g. "Office lunch".
+ String? get label;/// One portion's stated macros for a meal eaten out. Null means not stated,
+/// never zero. Always null on the other two kinds.
+ Macros? get macros;/// The amount of one portion of an ingredient meal. Null (with [unit])
+/// states no amount and contributes nothing to a total. Always null on the
+/// other two kinds.
+ double? get quantity; Unit? get unit;/// The persisted `measure_id`, kept even while [measure] is unresolved so a
+/// re-save never wipes the FK.
+ String? get measureId;/// The resolved named measure ("1 bar"); [unit] then holds the count
+/// fallback (`piece`).
+ Measure? get measure;/// The vocab row's macros, basis and density, denormalised so the week's
+/// macro sum needs no second watch. Null on a recipe meal and on an
+/// ingredient meal whose row has not synced.
+ IngredientNutrition? get nutrition; List<String> get eaterIds;/// How many portions to cook for; null tracks the eater count.
  int? get portions;
 /// Create a copy of PlanEntry
 /// with the given fields replaced by the non-null parameter values.
@@ -533,45 +510,31 @@ class _PlanEntry extends PlanEntry {
 @override final  String id;
 @override final  int dayOfWeek;
 @override final  String mealSlot;
-/// The dish, when this meal is one. Null exactly when one of
-/// [ingredientId] / [label] is set (the XOR).
+/// The dish, when this meal is a recipe.
 @override final  String? recipeId;
 @override final  String? recipeTitle;
-/// The thing this meal IS, when it is a bare ingredient. Null exactly when
-/// one of [recipeId] / [label] is set.
+/// The vocabulary row, when this meal is a bare ingredient.
 @override final  String? ingredientId;
 @override final  String? ingredientName;
-/// The words a meal eaten out IS — "Office lunch". Null exactly when one
-/// of [recipeId] / [ingredientId] is set. There is nothing behind these
-/// words: no recipe, no vocabulary row, nothing to open.
+/// The words of a meal eaten out, e.g. "Office lunch".
 @override final  String? label;
-/// What ONE portion of a meal eaten out was worth, as STATED. Null means
-/// not stated — never zero (invariant 3): the week names such a meal as
-/// uncounted rather than weighing it at nothing. Always null on the other
-/// two kinds, whose figures come from their recipe's lines or their
-/// vocabulary row.
+/// One portion's stated macros for a meal eaten out. Null means not stated,
+/// never zero. Always null on the other two kinds.
 @override final  Macros? macros;
-/// The amount of ONE portion of an ingredient meal. Null (with [unit]) on
-/// a meal that states no amount — which contributes nothing to a total and
-/// says so, rather than being completed by a guess (invariant 3). Always
-/// null on a recipe meal and on a meal eaten out.
+/// The amount of one portion of an ingredient meal. Null (with [unit])
+/// states no amount and contributes nothing to a total. Always null on the
+/// other two kinds.
 @override final  double? quantity;
 @override final  Unit? unit;
-/// The persisted `measure_id`, verbatim — kept even while [measure] is
-/// unresolved (the row has not synced, or was soft-deleted) so a re-save
-/// never wipes the FK, exactly as a recipe line's does.
+/// The persisted `measure_id`, kept even while [measure] is unresolved so a
+/// re-save never wipes the FK.
 @override final  String? measureId;
-/// The resolved named measure the amount is counted in ("1 bar"), when it
-/// is. [unit] then holds the honest count fallback (`piece`).
+/// The resolved named measure ("1 bar"); [unit] then holds the count
+/// fallback (`piece`).
 @override final  Measure? measure;
-/// The vocab row's macros / basis / density, denormalised for the same
-/// reason [recipeTitle] is: the week's macro sum is a pure function of the
-/// week it already loaded, and reading it a second way — a whole-vocabulary
-/// watch behind the Week screen — would be a second place to drift.
-///
-/// Null on a recipe meal, and null on an ingredient meal whose row has not
-/// synced; `ingredientPortionMacros` (week_macros.dart) tells that apart
-/// from a row that is present but a stub, and names each.
+/// The vocab row's macros, basis and density, denormalised so the week's
+/// macro sum needs no second watch. Null on a recipe meal and on an
+/// ingredient meal whose row has not synced.
 @override final  IngredientNutrition? nutrition;
  final  List<String> _eaterIds;
 @override@JsonKey() List<String> get eaterIds {
@@ -580,8 +543,7 @@ class _PlanEntry extends PlanEntry {
   return EqualUnmodifiableListView(_eaterIds);
 }
 
-/// How many portions to cook for. Null means "track the eater count"; a
-/// number is an explicit override for big/small appetites (spec §8).
+/// How many portions to cook for; null tracks the eater count.
 @override final  int? portions;
 
 /// Create a copy of PlanEntry

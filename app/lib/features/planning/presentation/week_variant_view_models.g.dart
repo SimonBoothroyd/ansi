@@ -9,20 +9,17 @@ part of 'week_variant_view_models.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 /// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's first
-/// day
-/// as `YYYY-MM-DD` — the query param the door opens the editor with.
+/// day as `YYYY-MM-DD`.
 
 @ProviderFor(WeekVariantDraft)
 const weekVariantDraftProvider = WeekVariantDraftFamily._();
 
 /// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's first
-/// day
-/// as `YYYY-MM-DD` — the query param the door opens the editor with.
+/// day as `YYYY-MM-DD`.
 final class WeekVariantDraftProvider
     extends $AsyncNotifierProvider<WeekVariantDraft, WeekVariant> {
   /// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's first
-  /// day
-  /// as `YYYY-MM-DD` — the query param the door opens the editor with.
+  /// day as `YYYY-MM-DD`.
   const WeekVariantDraftProvider._({
     required WeekVariantDraftFamily super.from,
     required (String, String) super.argument,
@@ -62,8 +59,7 @@ final class WeekVariantDraftProvider
 String _$weekVariantDraftHash() => r'5b9b13b8a51e3b5654fa913b9c12e9bbb1f9234b';
 
 /// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's first
-/// day
-/// as `YYYY-MM-DD` — the query param the door opens the editor with.
+/// day as `YYYY-MM-DD`.
 
 final class WeekVariantDraftFamily extends $Family
     with
@@ -84,8 +80,7 @@ final class WeekVariantDraftFamily extends $Family
       );
 
   /// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's first
-  /// day
-  /// as `YYYY-MM-DD` — the query param the door opens the editor with.
+  /// day as `YYYY-MM-DD`.
 
   WeekVariantDraftProvider call(String recipeId, String weekKey) =>
       WeekVariantDraftProvider._(argument: (recipeId, weekKey), from: this);
@@ -95,8 +90,7 @@ final class WeekVariantDraftFamily extends $Family
 }
 
 /// Week mode's draft for one `(recipe, week)`. [weekKey] is the week's first
-/// day
-/// as `YYYY-MM-DD` — the query param the door opens the editor with.
+/// day as `YYYY-MM-DD`.
 
 abstract class _$WeekVariantDraft extends $AsyncNotifier<WeekVariant> {
   late final _$args = ref.$arg as (String, String);

@@ -33,8 +33,8 @@ import 'cook_view_models.dart';
 class CookView extends ConsumerWidget {
   const CookView({this.weekKey, super.key});
 
-  /// The tab root's stable anchor: the header no longer names the screen, so
-  /// the smoke test waits on this key instead of a title.
+  /// The tab root's stable anchor: the header does not name the screen, so the
+  /// smoke test waits on this key.
   static const rootKey = ValueKey('cook-root');
 
   /// `?week=YYYY-MM-DD`: the week this tab was opened at. It only seats the
@@ -120,7 +120,7 @@ class CookView extends ConsumerWidget {
           if (recipe.componentSessions.isNotEmpty)
             _ComponentCard(recipe: recipe),
         ],
-        // Components the plan could not derive: a named gap, never a ×1 (D3).
+        // Components the plan could not derive: a named gap, never a ×1.
         for (final gap in data.gaps) _GapCard(gap: gap),
       ],
     );

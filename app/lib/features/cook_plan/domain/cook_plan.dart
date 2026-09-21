@@ -117,7 +117,7 @@ abstract class CookSession with _$CookSession {
     /// day — e.g. a lunch and a dinner of the same dish).
     @Default(<CoveredMeal>[]) List<CoveredMeal> covers,
 
-    /// The component demands this batch answers (step 8.6). Non-empty exactly
+    /// The component demands this batch answers. Non-empty exactly
     /// for a component session.
     @Default(<ComponentDemand>[]) List<ComponentDemand> demands,
   }) = _CookSession;
@@ -204,7 +204,7 @@ abstract class RecipeCookPlan with _$RecipeCookPlan {
   ];
 
   /// The sessions cooked because another recipe lists this one as a component
-  /// (batch-denominated, step 8.6).
+  /// (batch-denominated).
   List<CookSession> get componentSessions => [
     for (final s in sessions)
       if (s.isComponent) s,
@@ -356,7 +356,7 @@ List<CookSession> clusterComponentSessions({
         recipeId: recipeId,
         recipeTitle: title,
         servingsBase: servingsBase,
-        // On or before the earliest demanding parent's cook day (D3).
+        // On or before the earliest demanding parent's cook day.
         cookDay: cluster.first.cookDay,
         keepsForDays: keeps,
         freezable: freezable,
@@ -685,7 +685,7 @@ typedef _PlannedRoot = ({String recipeId, String title, int cookDay});
     for (final line in recipe.components) {
       final target = components[line.subRecipeId];
       // A dangling link derives nothing and flags nothing: the line renders
-      // the text it stored, with plain-text semantics (D5).
+      // the text it stored, with plain-text semantics.
       if (target == null) continue;
 
       // The word the line says, when the target still has it; null otherwise.

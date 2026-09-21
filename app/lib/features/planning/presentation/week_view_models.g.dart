@@ -8,18 +8,12 @@ part of 'week_view_models.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// The wall clock, as a seam: production reads [DateTime.now]; a test
-/// overrides this with a fixed or scripted clock and drives [Today] across a
-/// midnight it chooses. Keep-alive because [Today] is, and a keep-alive
-/// provider may only depend on keep-alive providers (riverpod_lint).
+/// The wall clock, overridable in tests. Keep-alive because [Today] is.
 
 @ProviderFor(clock)
 const clockProvider = ClockProvider._();
 
-/// The wall clock, as a seam: production reads [DateTime.now]; a test
-/// overrides this with a fixed or scripted clock and drives [Today] across a
-/// midnight it chooses. Keep-alive because [Today] is, and a keep-alive
-/// provider may only depend on keep-alive providers (riverpod_lint).
+/// The wall clock, overridable in tests. Keep-alive because [Today] is.
 
 final class ClockProvider
     extends
@@ -29,10 +23,7 @@ final class ClockProvider
           DateTime Function()
         >
     with $Provider<DateTime Function()> {
-  /// The wall clock, as a seam: production reads [DateTime.now]; a test
-  /// overrides this with a fixed or scripted clock and drives [Today] across a
-  /// midnight it chooses. Keep-alive because [Today] is, and a keep-alive
-  /// provider may only depend on keep-alive providers (riverpod_lint).
+  /// The wall clock, overridable in tests. Keep-alive because [Today] is.
   const ClockProvider._()
     : super(
         from: null,
@@ -69,50 +60,26 @@ final class ClockProvider
 
 String _$clockHash() => r'3f65ad34ac6fcd532de9004042bdf2ed2bd85b13';
 
-/// The current LOCAL calendar day — midnight, local time, date-only.
+/// The current local calendar day (midnight, date-only).
 ///
-/// A `DateTime.now()` read once in a provider is stale from midnight until
-/// something else rebuilds the tree, which the TODAY pill made visible. This
-/// re-fires twice over: one [Timer] armed for the next local midnight, whose
-/// callback re-arms it (a 23- or 25-hour DST day is simply a different wait),
-/// and an [AppLifecycleListener] for resume, because a phone asleep in a
-/// pocket suspends timers and may wake past several midnights. Keep-alive so
-/// the timer outlives the screens that read it; both hooks are released in
-/// `onDispose`, which also runs if [clock] is ever overridden mid-flight.
-///
-/// The state is a value, so listeners are told only when the day actually
-/// changes — a resume at 3 pm on the same day is silent.
+/// Re-fires from a [Timer] armed for the next local midnight and from an
+/// [AppLifecycleListener] on resume, since a sleeping phone suspends timers.
+/// Listeners are told only when the day changes.
 
 @ProviderFor(Today)
 const todayProvider = TodayProvider._();
 
-/// The current LOCAL calendar day — midnight, local time, date-only.
+/// The current local calendar day (midnight, date-only).
 ///
-/// A `DateTime.now()` read once in a provider is stale from midnight until
-/// something else rebuilds the tree, which the TODAY pill made visible. This
-/// re-fires twice over: one [Timer] armed for the next local midnight, whose
-/// callback re-arms it (a 23- or 25-hour DST day is simply a different wait),
-/// and an [AppLifecycleListener] for resume, because a phone asleep in a
-/// pocket suspends timers and may wake past several midnights. Keep-alive so
-/// the timer outlives the screens that read it; both hooks are released in
-/// `onDispose`, which also runs if [clock] is ever overridden mid-flight.
-///
-/// The state is a value, so listeners are told only when the day actually
-/// changes — a resume at 3 pm on the same day is silent.
+/// Re-fires from a [Timer] armed for the next local midnight and from an
+/// [AppLifecycleListener] on resume, since a sleeping phone suspends timers.
+/// Listeners are told only when the day changes.
 final class TodayProvider extends $NotifierProvider<Today, DateTime> {
-  /// The current LOCAL calendar day — midnight, local time, date-only.
+  /// The current local calendar day (midnight, date-only).
   ///
-  /// A `DateTime.now()` read once in a provider is stale from midnight until
-  /// something else rebuilds the tree, which the TODAY pill made visible. This
-  /// re-fires twice over: one [Timer] armed for the next local midnight, whose
-  /// callback re-arms it (a 23- or 25-hour DST day is simply a different wait),
-  /// and an [AppLifecycleListener] for resume, because a phone asleep in a
-  /// pocket suspends timers and may wake past several midnights. Keep-alive so
-  /// the timer outlives the screens that read it; both hooks are released in
-  /// `onDispose`, which also runs if [clock] is ever overridden mid-flight.
-  ///
-  /// The state is a value, so listeners are told only when the day actually
-  /// changes — a resume at 3 pm on the same day is silent.
+  /// Re-fires from a [Timer] armed for the next local midnight and from an
+  /// [AppLifecycleListener] on resume, since a sleeping phone suspends timers.
+  /// Listeners are told only when the day changes.
   const TodayProvider._()
     : super(
         from: null,
@@ -142,19 +109,11 @@ final class TodayProvider extends $NotifierProvider<Today, DateTime> {
 
 String _$todayHash() => r'e4062fd47b074ebf11218806499ea11996d0ab42';
 
-/// The current LOCAL calendar day — midnight, local time, date-only.
+/// The current local calendar day (midnight, date-only).
 ///
-/// A `DateTime.now()` read once in a provider is stale from midnight until
-/// something else rebuilds the tree, which the TODAY pill made visible. This
-/// re-fires twice over: one [Timer] armed for the next local midnight, whose
-/// callback re-arms it (a 23- or 25-hour DST day is simply a different wait),
-/// and an [AppLifecycleListener] for resume, because a phone asleep in a
-/// pocket suspends timers and may wake past several midnights. Keep-alive so
-/// the timer outlives the screens that read it; both hooks are released in
-/// `onDispose`, which also runs if [clock] is ever overridden mid-flight.
-///
-/// The state is a value, so listeners are told only when the day actually
-/// changes — a resume at 3 pm on the same day is silent.
+/// Re-fires from a [Timer] armed for the next local midnight and from an
+/// [AppLifecycleListener] on resume, since a sleeping phone suspends timers.
+/// Listeners are told only when the day changes.
 
 abstract class _$Today extends $Notifier<DateTime> {
   DateTime build();
@@ -175,23 +134,20 @@ abstract class _$Today extends $Notifier<DateTime> {
   }
 }
 
-/// The first day of the week containing [Today]. Moves with it, so it is right
-/// across midnight and after a resume; the week on screen does not — that is
-/// [ViewedWeekStart]'s job, and it is deliberately left alone.
+/// The first day of the week containing [Today]. Moves at midnight; the week on
+/// screen ([ViewedWeekStart]) does not.
 
 @ProviderFor(currentWeekStart)
 const currentWeekStartProvider = CurrentWeekStartProvider._();
 
-/// The first day of the week containing [Today]. Moves with it, so it is right
-/// across midnight and after a resume; the week on screen does not — that is
-/// [ViewedWeekStart]'s job, and it is deliberately left alone.
+/// The first day of the week containing [Today]. Moves at midnight; the week on
+/// screen ([ViewedWeekStart]) does not.
 
 final class CurrentWeekStartProvider
     extends $FunctionalProvider<DateTime, DateTime, DateTime>
     with $Provider<DateTime> {
-  /// The first day of the week containing [Today]. Moves with it, so it is right
-  /// across midnight and after a resume; the week on screen does not — that is
-  /// [ViewedWeekStart]'s job, and it is deliberately left alone.
+  /// The first day of the week containing [Today]. Moves at midnight; the week on
+  /// screen ([ViewedWeekStart]) does not.
   const CurrentWeekStartProvider._()
     : super(
         from: null,
@@ -227,30 +183,21 @@ final class CurrentWeekStartProvider
 
 String _$currentWeekStartHash() => r'f90ef269509924d46414be561d6be2ab81e255c3';
 
-/// The first day of the week on screen. Defaults to the week containing today;
-/// the header switcher moves it and Cook/Shop derive from it (D3).
-///
-/// It watches the household's [WeekShape], so flipping the first day re-seats
-/// the screen on the window containing today under the new shape — which is
-/// what "this week" means the moment the weeks move.
+/// The first day of the week on screen; Cook and Shop derive from it. Defaults
+/// to the week containing today, and re-seats there when the household's
+/// [WeekShape] changes.
 
 @ProviderFor(ViewedWeekStart)
 const viewedWeekStartProvider = ViewedWeekStartProvider._();
 
-/// The first day of the week on screen. Defaults to the week containing today;
-/// the header switcher moves it and Cook/Shop derive from it (D3).
-///
-/// It watches the household's [WeekShape], so flipping the first day re-seats
-/// the screen on the window containing today under the new shape — which is
-/// what "this week" means the moment the weeks move.
+/// The first day of the week on screen; Cook and Shop derive from it. Defaults
+/// to the week containing today, and re-seats there when the household's
+/// [WeekShape] changes.
 final class ViewedWeekStartProvider
     extends $NotifierProvider<ViewedWeekStart, DateTime> {
-  /// The first day of the week on screen. Defaults to the week containing today;
-  /// the header switcher moves it and Cook/Shop derive from it (D3).
-  ///
-  /// It watches the household's [WeekShape], so flipping the first day re-seats
-  /// the screen on the window containing today under the new shape — which is
-  /// what "this week" means the moment the weeks move.
+  /// The first day of the week on screen; Cook and Shop derive from it. Defaults
+  /// to the week containing today, and re-seats there when the household's
+  /// [WeekShape] changes.
   const ViewedWeekStartProvider._()
     : super(
         from: null,
@@ -280,12 +227,9 @@ final class ViewedWeekStartProvider
 
 String _$viewedWeekStartHash() => r'6033277c1b4b16b4747df0761ee78702dae19961';
 
-/// The first day of the week on screen. Defaults to the week containing today;
-/// the header switcher moves it and Cook/Shop derive from it (D3).
-///
-/// It watches the household's [WeekShape], so flipping the first day re-seats
-/// the screen on the window containing today under the new shape — which is
-/// what "this week" means the moment the weeks move.
+/// The first day of the week on screen; Cook and Shop derive from it. Defaults
+/// to the week containing today, and re-seats there when the household's
+/// [WeekShape] changes.
 
 abstract class _$ViewedWeekStart extends $Notifier<DateTime> {
   DateTime build();
@@ -306,21 +250,21 @@ abstract class _$ViewedWeekStart extends $Notifier<DateTime> {
   }
 }
 
-/// The viewed week with its meals, or null while it has no row yet — which
-/// means "seven empty days", not "a different screen" (D5).
+/// The viewed week with its meals, or null while it has no row (seven empty
+/// days).
 
 @ProviderFor(viewedWeek)
 const viewedWeekProvider = ViewedWeekProvider._();
 
-/// The viewed week with its meals, or null while it has no row yet — which
-/// means "seven empty days", not "a different screen" (D5).
+/// The viewed week with its meals, or null while it has no row (seven empty
+/// days).
 
 final class ViewedWeekProvider
     extends
         $FunctionalProvider<AsyncValue<WeekPlan?>, WeekPlan?, Stream<WeekPlan?>>
     with $FutureModifier<WeekPlan?>, $StreamProvider<WeekPlan?> {
-  /// The viewed week with its meals, or null while it has no row yet — which
-  /// means "seven empty days", not "a different screen" (D5).
+  /// The viewed week with its meals, or null while it has no row (seven empty
+  /// days).
   const ViewedWeekProvider._()
     : super(
         from: null,
@@ -348,14 +292,12 @@ final class ViewedWeekProvider
 
 String _$viewedWeekHash() => r'50ef21a8dbfa2471f53e93b9489410ae325561d8';
 
-/// The household eater roster, live — a portion factor set on either phone
-/// reaches every Portions row and the Household sheet as it lands.
+/// The household eater roster, live.
 
 @ProviderFor(members)
 const membersProvider = MembersProvider._();
 
-/// The household eater roster, live — a portion factor set on either phone
-/// reaches every Portions row and the Household sheet as it lands.
+/// The household eater roster, live.
 
 final class MembersProvider
     extends
@@ -365,8 +307,7 @@ final class MembersProvider
           Stream<List<Member>>
         >
     with $FutureModifier<List<Member>>, $StreamProvider<List<Member>> {
-  /// The household eater roster, live — a portion factor set on either phone
-  /// reaches every Portions row and the Household sheet as it lands.
+  /// The household eater roster, live.
   const MembersProvider._()
     : super(
         from: null,
@@ -395,14 +336,14 @@ final class MembersProvider
 
 String _$membersHash() => r'b6ee66656f2fed1b10e5fa8dbab1a42d1b36f9e7';
 
-/// The most recent planned week before the VIEWED one — what "copy last week"
-/// would copy, so it is relative to the week you are standing on.
+/// The most recent planned week before the viewed one — what "copy last week"
+/// copies.
 
 @ProviderFor(lastWeek)
 const lastWeekProvider = LastWeekProvider._();
 
-/// The most recent planned week before the VIEWED one — what "copy last week"
-/// would copy, so it is relative to the week you are standing on.
+/// The most recent planned week before the viewed one — what "copy last week"
+/// copies.
 
 final class LastWeekProvider
     extends
@@ -412,8 +353,8 @@ final class LastWeekProvider
           FutureOr<WeekPlan?>
         >
     with $FutureModifier<WeekPlan?>, $FutureProvider<WeekPlan?> {
-  /// The most recent planned week before the VIEWED one — what "copy last week"
-  /// would copy, so it is relative to the week you are standing on.
+  /// The most recent planned week before the viewed one — what "copy last week"
+  /// copies.
   const LastWeekProvider._()
     : super(
         from: null,
@@ -441,14 +382,12 @@ final class LastWeekProvider
 
 String _$lastWeekHash() => r'479d2029464fa14268bc41325cff5c8127ec3e3f';
 
-/// Most recent planned date per recipe, across every week — the picker
-/// rows' "last planned" recency (7.7).
+/// Most recent planned date per recipe, for the picker's "last planned".
 
 @ProviderFor(lastPlannedByRecipe)
 const lastPlannedByRecipeProvider = LastPlannedByRecipeProvider._();
 
-/// Most recent planned date per recipe, across every week — the picker
-/// rows' "last planned" recency (7.7).
+/// Most recent planned date per recipe, for the picker's "last planned".
 
 final class LastPlannedByRecipeProvider
     extends
@@ -460,8 +399,7 @@ final class LastPlannedByRecipeProvider
     with
         $FutureModifier<Map<String, DateTime>>,
         $StreamProvider<Map<String, DateTime>> {
-  /// Most recent planned date per recipe, across every week — the picker
-  /// rows' "last planned" recency (7.7).
+  /// Most recent planned date per recipe, for the picker's "last planned".
   const LastPlannedByRecipeProvider._()
     : super(
         from: null,
@@ -491,16 +429,12 @@ final class LastPlannedByRecipeProvider
 String _$lastPlannedByRecipeHash() =>
     r'4e7109b55cb289637548d7dd0a8b5a6682669edc';
 
-/// Every override on the viewed week, keyed by recipe id — what the dish
-/// row's "edited for this week" mark and the cook card's sub-line read, and
-/// what the editor's own draft starts from.
+/// Every override on the viewed week, keyed by recipe id.
 
 @ProviderFor(viewedWeekOverrides)
 const viewedWeekOverridesProvider = ViewedWeekOverridesProvider._();
 
-/// Every override on the viewed week, keyed by recipe id — what the dish
-/// row's "edited for this week" mark and the cook card's sub-line read, and
-/// what the editor's own draft starts from.
+/// Every override on the viewed week, keyed by recipe id.
 
 final class ViewedWeekOverridesProvider
     extends
@@ -512,9 +446,7 @@ final class ViewedWeekOverridesProvider
     with
         $FutureModifier<Map<String, List<LineOverride>>>,
         $StreamProvider<Map<String, List<LineOverride>>> {
-  /// Every override on the viewed week, keyed by recipe id — what the dish
-  /// row's "edited for this week" mark and the cook card's sub-line read, and
-  /// what the editor's own draft starts from.
+  /// Every override on the viewed week, keyed by recipe id.
   const ViewedWeekOverridesProvider._()
     : super(
         from: null,
@@ -628,21 +560,18 @@ final class WeekRecipePlacementFamily extends $Family
   String toString() => r'weekRecipePlacementProvider';
 }
 
-/// The week [weekKey] names, with its meals — a sibling of [viewedWeek] keyed
-/// by the link rather than by what is on screen.
+/// The week [weekKey] names, with its meals.
 
 @ProviderFor(weekPlanFor)
 const weekPlanForProvider = WeekPlanForFamily._();
 
-/// The week [weekKey] names, with its meals — a sibling of [viewedWeek] keyed
-/// by the link rather than by what is on screen.
+/// The week [weekKey] names, with its meals.
 
 final class WeekPlanForProvider
     extends
         $FunctionalProvider<AsyncValue<WeekPlan?>, WeekPlan?, Stream<WeekPlan?>>
     with $FutureModifier<WeekPlan?>, $StreamProvider<WeekPlan?> {
-  /// The week [weekKey] names, with its meals — a sibling of [viewedWeek] keyed
-  /// by the link rather than by what is on screen.
+  /// The week [weekKey] names, with its meals.
   const WeekPlanForProvider._({
     required WeekPlanForFamily super.from,
     required String super.argument,
@@ -688,8 +617,7 @@ final class WeekPlanForProvider
 
 String _$weekPlanForHash() => r'feff1a1d7e4bb252111f99ece37797fde6945a9b';
 
-/// The week [weekKey] names, with its meals — a sibling of [viewedWeek] keyed
-/// by the link rather than by what is on screen.
+/// The week [weekKey] names, with its meals.
 
 final class WeekPlanForFamily extends $Family
     with $FunctionalFamilyOverride<Stream<WeekPlan?>, String> {
@@ -702,8 +630,7 @@ final class WeekPlanForFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// The week [weekKey] names, with its meals — a sibling of [viewedWeek] keyed
-  /// by the link rather than by what is on screen.
+  /// The week [weekKey] names, with its meals.
 
   WeekPlanForProvider call(String weekKey) =>
       WeekPlanForProvider._(argument: weekKey, from: this);
@@ -802,22 +729,14 @@ final class WeekOverridesForFamily extends $Family
   String toString() => r'weekOverridesForProvider';
 }
 
-/// The re-summed figures for the recipes the week [weekKey] names varies — the
-/// sibling of [variantRecipeMacros] keyed by the link rather than by the week
-/// on screen, for the recipe page opened from a week that plans it.
-///
-/// A recipe the week does not vary is absent, and its reader falls back to the
-/// Library's figure, which is exactly right for it.
+/// [variantRecipeMacros] for the week [weekKey] names. A recipe the week does
+/// not vary is absent.
 
 @ProviderFor(weekVariantMacrosFor)
 const weekVariantMacrosForProvider = WeekVariantMacrosForFamily._();
 
-/// The re-summed figures for the recipes the week [weekKey] names varies — the
-/// sibling of [variantRecipeMacros] keyed by the link rather than by the week
-/// on screen, for the recipe page opened from a week that plans it.
-///
-/// A recipe the week does not vary is absent, and its reader falls back to the
-/// Library's figure, which is exactly right for it.
+/// [variantRecipeMacros] for the week [weekKey] names. A recipe the week does
+/// not vary is absent.
 
 final class WeekVariantMacrosForProvider
     extends
@@ -829,12 +748,8 @@ final class WeekVariantMacrosForProvider
     with
         $FutureModifier<Map<String, RecipeMacroSummary>>,
         $StreamProvider<Map<String, RecipeMacroSummary>> {
-  /// The re-summed figures for the recipes the week [weekKey] names varies — the
-  /// sibling of [variantRecipeMacros] keyed by the link rather than by the week
-  /// on screen, for the recipe page opened from a week that plans it.
-  ///
-  /// A recipe the week does not vary is absent, and its reader falls back to the
-  /// Library's figure, which is exactly right for it.
+  /// [variantRecipeMacros] for the week [weekKey] names. A recipe the week does
+  /// not vary is absent.
   const WeekVariantMacrosForProvider._({
     required WeekVariantMacrosForFamily super.from,
     required String super.argument,
@@ -882,12 +797,8 @@ final class WeekVariantMacrosForProvider
 String _$weekVariantMacrosForHash() =>
     r'f13c84664dd41e7bbf0f07ac82f3c6e53cc6f43d';
 
-/// The re-summed figures for the recipes the week [weekKey] names varies — the
-/// sibling of [variantRecipeMacros] keyed by the link rather than by the week
-/// on screen, for the recipe page opened from a week that plans it.
-///
-/// A recipe the week does not vary is absent, and its reader falls back to the
-/// Library's figure, which is exactly right for it.
+/// [variantRecipeMacros] for the week [weekKey] names. A recipe the week does
+/// not vary is absent.
 
 final class WeekVariantMacrosForFamily extends $Family
     with
@@ -904,12 +815,8 @@ final class WeekVariantMacrosForFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// The re-summed figures for the recipes the week [weekKey] names varies — the
-  /// sibling of [variantRecipeMacros] keyed by the link rather than by the week
-  /// on screen, for the recipe page opened from a week that plans it.
-  ///
-  /// A recipe the week does not vary is absent, and its reader falls back to the
-  /// Library's figure, which is exactly right for it.
+  /// [variantRecipeMacros] for the week [weekKey] names. A recipe the week does
+  /// not vary is absent.
 
   WeekVariantMacrosForProvider call(String weekKey) =>
       WeekVariantMacrosForProvider._(argument: weekKey, from: this);
@@ -918,14 +825,12 @@ final class WeekVariantMacrosForFamily extends $Family
   String toString() => r'weekVariantMacrosForProvider';
 }
 
-/// The same for COST (ADR-0017) — a week that ticks an optional line in pays
-/// for it, so the panel's Cost reading has to be the week's own.
+/// The same for cost (ADR-0017).
 
 @ProviderFor(weekVariantCostsFor)
 const weekVariantCostsForProvider = WeekVariantCostsForFamily._();
 
-/// The same for COST (ADR-0017) — a week that ticks an optional line in pays
-/// for it, so the panel's Cost reading has to be the week's own.
+/// The same for cost (ADR-0017).
 
 final class WeekVariantCostsForProvider
     extends
@@ -937,8 +842,7 @@ final class WeekVariantCostsForProvider
     with
         $FutureModifier<Map<String, RecipeCostSummary>>,
         $StreamProvider<Map<String, RecipeCostSummary>> {
-  /// The same for COST (ADR-0017) — a week that ticks an optional line in pays
-  /// for it, so the panel's Cost reading has to be the week's own.
+  /// The same for cost (ADR-0017).
   const WeekVariantCostsForProvider._({
     required WeekVariantCostsForFamily super.from,
     required String super.argument,
@@ -986,8 +890,7 @@ final class WeekVariantCostsForProvider
 String _$weekVariantCostsForHash() =>
     r'752a5c75f744ba0da433a75a1d762d1b7d68fc19';
 
-/// The same for COST (ADR-0017) — a week that ticks an optional line in pays
-/// for it, so the panel's Cost reading has to be the week's own.
+/// The same for cost (ADR-0017).
 
 final class WeekVariantCostsForFamily extends $Family
     with
@@ -1004,8 +907,7 @@ final class WeekVariantCostsForFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// The same for COST (ADR-0017) — a week that ticks an optional line in pays
-  /// for it, so the panel's Cost reading has to be the week's own.
+  /// The same for cost (ADR-0017).
 
   WeekVariantCostsForProvider call(String weekKey) =>
       WeekVariantCostsForProvider._(argument: weekKey, from: this);
@@ -1014,16 +916,14 @@ final class WeekVariantCostsForFamily extends $Family
   String toString() => r'weekVariantCostsForProvider';
 }
 
-/// Per-recipe cost summaries **for the viewed week** — the Library's figure
-/// underneath, the week's own on top, exactly as [weekRecipeMacros] layers the
-/// macros.
+/// Per-recipe cost summaries for the viewed week: the Library's figure,
+/// overlaid by the week's own where it varies the recipe.
 
 @ProviderFor(weekRecipeCosts)
 const weekRecipeCostsProvider = WeekRecipeCostsProvider._();
 
-/// Per-recipe cost summaries **for the viewed week** — the Library's figure
-/// underneath, the week's own on top, exactly as [weekRecipeMacros] layers the
-/// macros.
+/// Per-recipe cost summaries for the viewed week: the Library's figure,
+/// overlaid by the week's own where it varies the recipe.
 
 final class WeekRecipeCostsProvider
     extends
@@ -1033,9 +933,8 @@ final class WeekRecipeCostsProvider
           Map<String, RecipeCostSummary>
         >
     with $Provider<Map<String, RecipeCostSummary>> {
-  /// Per-recipe cost summaries **for the viewed week** — the Library's figure
-  /// underneath, the week's own on top, exactly as [weekRecipeMacros] layers the
-  /// macros.
+  /// Per-recipe cost summaries for the viewed week: the Library's figure,
+  /// overlaid by the week's own where it varies the recipe.
   const WeekRecipeCostsProvider._()
     : super(
         from: null,
@@ -1121,41 +1020,23 @@ final class VariantRecipeCostsProvider
 String _$variantRecipeCostsHash() =>
     r'cf3ad59962a25379df74a9faf610af8b5d500c0b';
 
-/// What the viewed week costs to cook under [lens] — the band's second line.
-///
-/// The same entries, the same portions and the same lens as [weekMacros]: the
-/// two lines of the band describe one week or they describe none.
-///
-/// It reads two price sources because a week plans two priceable things: the
-/// recipes' own summaries, already costed line by line, and the latest price of
-/// every vocabulary row, which is what a planned bare ingredient is weighed
-/// against.
+/// What the viewed week costs to cook under [lens], over the same entries and
+/// portions as [weekMacros]. Recipes are priced from their summaries, bare
+/// ingredients from the latest vocabulary prices.
 
 @ProviderFor(weekCost)
 const weekCostProvider = WeekCostFamily._();
 
-/// What the viewed week costs to cook under [lens] — the band's second line.
-///
-/// The same entries, the same portions and the same lens as [weekMacros]: the
-/// two lines of the band describe one week or they describe none.
-///
-/// It reads two price sources because a week plans two priceable things: the
-/// recipes' own summaries, already costed line by line, and the latest price of
-/// every vocabulary row, which is what a planned bare ingredient is weighed
-/// against.
+/// What the viewed week costs to cook under [lens], over the same entries and
+/// portions as [weekMacros]. Recipes are priced from their summaries, bare
+/// ingredients from the latest vocabulary prices.
 
 final class WeekCostProvider
     extends $FunctionalProvider<PlannedCost, PlannedCost, PlannedCost>
     with $Provider<PlannedCost> {
-  /// What the viewed week costs to cook under [lens] — the band's second line.
-  ///
-  /// The same entries, the same portions and the same lens as [weekMacros]: the
-  /// two lines of the band describe one week or they describe none.
-  ///
-  /// It reads two price sources because a week plans two priceable things: the
-  /// recipes' own summaries, already costed line by line, and the latest price of
-  /// every vocabulary row, which is what a planned bare ingredient is weighed
-  /// against.
+  /// What the viewed week costs to cook under [lens], over the same entries and
+  /// portions as [weekMacros]. Recipes are priced from their summaries, bare
+  /// ingredients from the latest vocabulary prices.
   const WeekCostProvider._({
     required WeekCostFamily super.from,
     required String? super.argument,
@@ -1209,15 +1090,9 @@ final class WeekCostProvider
 
 String _$weekCostHash() => r'7d2f0dd2743245d426b74a761a70736004e3d337';
 
-/// What the viewed week costs to cook under [lens] — the band's second line.
-///
-/// The same entries, the same portions and the same lens as [weekMacros]: the
-/// two lines of the band describe one week or they describe none.
-///
-/// It reads two price sources because a week plans two priceable things: the
-/// recipes' own summaries, already costed line by line, and the latest price of
-/// every vocabulary row, which is what a planned bare ingredient is weighed
-/// against.
+/// What the viewed week costs to cook under [lens], over the same entries and
+/// portions as [weekMacros]. Recipes are priced from their summaries, bare
+/// ingredients from the latest vocabulary prices.
 
 final class WeekCostFamily extends $Family
     with $FunctionalFamilyOverride<PlannedCost, String?> {
@@ -1230,15 +1105,9 @@ final class WeekCostFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// What the viewed week costs to cook under [lens] — the band's second line.
-  ///
-  /// The same entries, the same portions and the same lens as [weekMacros]: the
-  /// two lines of the band describe one week or they describe none.
-  ///
-  /// It reads two price sources because a week plans two priceable things: the
-  /// recipes' own summaries, already costed line by line, and the latest price of
-  /// every vocabulary row, which is what a planned bare ingredient is weighed
-  /// against.
+  /// What the viewed week costs to cook under [lens], over the same entries and
+  /// portions as [weekMacros]. Recipes are priced from their summaries, bare
+  /// ingredients from the latest vocabulary prices.
 
   WeekCostProvider call(String? lens) =>
       WeekCostProvider._(argument: lens, from: this);
@@ -1247,24 +1116,16 @@ final class WeekCostFamily extends $Family
   String toString() => r'weekCostProvider';
 }
 
-/// Per-recipe macro summaries **for the viewed week**, indexed by recipe id.
-///
-/// The Library's figure underneath, the week's own on top. A recipe the week
-/// does not vary is still exactly what `watchRecipes` computed — the same
-/// figure the picker rows and the recipe panel show — and a recipe it does
-/// vary is re-summed over the week's effective lines, because the Library's
-/// number is wrong for this week and right everywhere else.
+/// Per-recipe macro summaries for the viewed week, by recipe id: the Library's
+/// figure, re-summed over the week's effective lines where it varies the
+/// recipe.
 
 @ProviderFor(weekRecipeMacros)
 const weekRecipeMacrosProvider = WeekRecipeMacrosProvider._();
 
-/// Per-recipe macro summaries **for the viewed week**, indexed by recipe id.
-///
-/// The Library's figure underneath, the week's own on top. A recipe the week
-/// does not vary is still exactly what `watchRecipes` computed — the same
-/// figure the picker rows and the recipe panel show — and a recipe it does
-/// vary is re-summed over the week's effective lines, because the Library's
-/// number is wrong for this week and right everywhere else.
+/// Per-recipe macro summaries for the viewed week, by recipe id: the Library's
+/// figure, re-summed over the week's effective lines where it varies the
+/// recipe.
 
 final class WeekRecipeMacrosProvider
     extends
@@ -1274,13 +1135,9 @@ final class WeekRecipeMacrosProvider
           Map<String, RecipeMacroSummary>
         >
     with $Provider<Map<String, RecipeMacroSummary>> {
-  /// Per-recipe macro summaries **for the viewed week**, indexed by recipe id.
-  ///
-  /// The Library's figure underneath, the week's own on top. A recipe the week
-  /// does not vary is still exactly what `watchRecipes` computed — the same
-  /// figure the picker rows and the recipe panel show — and a recipe it does
-  /// vary is re-summed over the week's effective lines, because the Library's
-  /// number is wrong for this week and right everywhere else.
+  /// Per-recipe macro summaries for the viewed week, by recipe id: the Library's
+  /// figure, re-summed over the week's effective lines where it varies the
+  /// recipe.
   const WeekRecipeMacrosProvider._()
     : super(
         from: null,
@@ -1319,14 +1176,12 @@ final class WeekRecipeMacrosProvider
 
 String _$weekRecipeMacrosHash() => r'1dadcaa8c3e79ed4381c5b4fc1e9541f50e84eca';
 
-/// The re-summed figures for the recipes the viewed week varies — usually
-/// none, in which case the map above is the Library's, untouched.
+/// The re-summed figures for the recipes the viewed week varies.
 
 @ProviderFor(variantRecipeMacros)
 const variantRecipeMacrosProvider = VariantRecipeMacrosProvider._();
 
-/// The re-summed figures for the recipes the viewed week varies — usually
-/// none, in which case the map above is the Library's, untouched.
+/// The re-summed figures for the recipes the viewed week varies.
 
 final class VariantRecipeMacrosProvider
     extends
@@ -1338,8 +1193,7 @@ final class VariantRecipeMacrosProvider
     with
         $FutureModifier<Map<String, RecipeMacroSummary>>,
         $StreamProvider<Map<String, RecipeMacroSummary>> {
-  /// The re-summed figures for the recipes the viewed week varies — usually
-  /// none, in which case the map above is the Library's, untouched.
+  /// The re-summed figures for the recipes the viewed week varies.
   const VariantRecipeMacrosProvider._()
     : super(
         from: null,
@@ -1369,34 +1223,22 @@ final class VariantRecipeMacrosProvider
 String _$variantRecipeMacrosHash() =>
     r'e6ddb6b66e2e9c6151a9146f1d16399466c9c103';
 
-/// What the last copy carried, and what it left behind — held for the week it
-/// is about, so moving off that week and back does not re-announce it.
-///
-/// A **state**, not a toast: it reports a part of an act that did not happen,
-/// it stays true until the person does something about it, and it names rows
-/// they may want to open. Cleared by reading it once the week moves.
+/// What the last copy carried and left behind, held for the week it is about. A
+/// state rather than a toast, so it stays until the week moves.
 
 @ProviderFor(LastCopyReport)
 const lastCopyReportProvider = LastCopyReportProvider._();
 
-/// What the last copy carried, and what it left behind — held for the week it
-/// is about, so moving off that week and back does not re-announce it.
-///
-/// A **state**, not a toast: it reports a part of an act that did not happen,
-/// it stays true until the person does something about it, and it names rows
-/// they may want to open. Cleared by reading it once the week moves.
+/// What the last copy carried and left behind, held for the week it is about. A
+/// state rather than a toast, so it stays until the week moves.
 final class LastCopyReportProvider
     extends
         $NotifierProvider<
           LastCopyReport,
           ({CopyLastWeekResult result, DateTime weekStart})?
         > {
-  /// What the last copy carried, and what it left behind — held for the week it
-  /// is about, so moving off that week and back does not re-announce it.
-  ///
-  /// A **state**, not a toast: it reports a part of an act that did not happen,
-  /// it stays true until the person does something about it, and it names rows
-  /// they may want to open. Cleared by reading it once the week moves.
+  /// What the last copy carried and left behind, held for the week it is about. A
+  /// state rather than a toast, so it stays until the week moves.
   const LastCopyReportProvider._()
     : super(
         from: null,
@@ -1431,12 +1273,8 @@ final class LastCopyReportProvider
 
 String _$lastCopyReportHash() => r'608644f5bdeaa870518ce8fcad952377f6e244ec';
 
-/// What the last copy carried, and what it left behind — held for the week it
-/// is about, so moving off that week and back does not re-announce it.
-///
-/// A **state**, not a toast: it reports a part of an act that did not happen,
-/// it stays true until the person does something about it, and it names rows
-/// they may want to open. Cleared by reading it once the week moves.
+/// What the last copy carried and left behind, held for the week it is about. A
+/// state rather than a toast, so it stays until the week moves.
 
 abstract class _$LastCopyReport
     extends $Notifier<({CopyLastWeekResult result, DateTime weekStart})?> {
@@ -1466,14 +1304,12 @@ abstract class _$LastCopyReport
   }
 }
 
-/// The roster keyed by id — the portion factors every demand and lens share is
-/// weighted by.
+/// The roster keyed by id.
 
 @ProviderFor(membersById)
 const membersByIdProvider = MembersByIdProvider._();
 
-/// The roster keyed by id — the portion factors every demand and lens share is
-/// weighted by.
+/// The roster keyed by id.
 
 final class MembersByIdProvider
     extends
@@ -1483,8 +1319,7 @@ final class MembersByIdProvider
           Map<String, Member>
         >
     with $Provider<Map<String, Member>> {
-  /// The roster keyed by id — the portion factors every demand and lens share is
-  /// weighted by.
+  /// The roster keyed by id.
   const MembersByIdProvider._()
     : super(
         from: null,
@@ -1521,17 +1356,17 @@ final class MembersByIdProvider
 
 String _$membersByIdHash() => r'e952de3b656972111633e5164c675f4d045e7674';
 
-/// The viewed week's macros under [lens] (null = Everyone) — D4.
+/// The viewed week's macros under [lens] (null = Everyone).
 
 @ProviderFor(weekMacros)
 const weekMacrosProvider = WeekMacrosFamily._();
 
-/// The viewed week's macros under [lens] (null = Everyone) — D4.
+/// The viewed week's macros under [lens] (null = Everyone).
 
 final class WeekMacrosProvider
     extends $FunctionalProvider<MealSetMacros, MealSetMacros, MealSetMacros>
     with $Provider<MealSetMacros> {
-  /// The viewed week's macros under [lens] (null = Everyone) — D4.
+  /// The viewed week's macros under [lens] (null = Everyone).
   const WeekMacrosProvider._({
     required WeekMacrosFamily super.from,
     required String? super.argument,
@@ -1585,7 +1420,7 @@ final class WeekMacrosProvider
 
 String _$weekMacrosHash() => r'5af7d3bbf0074e72f8990e0feaf2710491279159';
 
-/// The viewed week's macros under [lens] (null = Everyone) — D4.
+/// The viewed week's macros under [lens] (null = Everyone).
 
 final class WeekMacrosFamily extends $Family
     with $FunctionalFamilyOverride<MealSetMacros, String?> {
@@ -1598,7 +1433,7 @@ final class WeekMacrosFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// The viewed week's macros under [lens] (null = Everyone) — D4.
+  /// The viewed week's macros under [lens] (null = Everyone).
 
   WeekMacrosProvider call(String? lens) =>
       WeekMacrosProvider._(argument: lens, from: this);
@@ -1607,41 +1442,20 @@ final class WeekMacrosFamily extends $Family
   String toString() => r'weekMacrosProvider';
 }
 
-/// One MEAL's macros under [lens], as served to the people eating it — the
-/// same reading again, at the narrowest scope there is (the wide Week's day
-/// pane prints one under each dish).
-///
-/// Keyed by the entry's id rather than handed the entry, so the figure follows
-/// the live week: change the portions or the eaters and this re-reads the row
-/// the write produced, exactly as the day total does. An id the week no longer
-/// has reads as an empty set — `no meals` — which is the honest answer for a
-/// meal that has just been removed.
+/// One meal's macros under [lens], as served. Keyed by entry id so it follows
+/// the live week; an id the week no longer has reads as an empty set.
 
 @ProviderFor(mealMacros)
 const mealMacrosProvider = MealMacrosFamily._();
 
-/// One MEAL's macros under [lens], as served to the people eating it — the
-/// same reading again, at the narrowest scope there is (the wide Week's day
-/// pane prints one under each dish).
-///
-/// Keyed by the entry's id rather than handed the entry, so the figure follows
-/// the live week: change the portions or the eaters and this re-reads the row
-/// the write produced, exactly as the day total does. An id the week no longer
-/// has reads as an empty set — `no meals` — which is the honest answer for a
-/// meal that has just been removed.
+/// One meal's macros under [lens], as served. Keyed by entry id so it follows
+/// the live week; an id the week no longer has reads as an empty set.
 
 final class MealMacrosProvider
     extends $FunctionalProvider<MealSetMacros, MealSetMacros, MealSetMacros>
     with $Provider<MealSetMacros> {
-  /// One MEAL's macros under [lens], as served to the people eating it — the
-  /// same reading again, at the narrowest scope there is (the wide Week's day
-  /// pane prints one under each dish).
-  ///
-  /// Keyed by the entry's id rather than handed the entry, so the figure follows
-  /// the live week: change the portions or the eaters and this re-reads the row
-  /// the write produced, exactly as the day total does. An id the week no longer
-  /// has reads as an empty set — `no meals` — which is the honest answer for a
-  /// meal that has just been removed.
+  /// One meal's macros under [lens], as served. Keyed by entry id so it follows
+  /// the live week; an id the week no longer has reads as an empty set.
   const MealMacrosProvider._({
     required MealMacrosFamily super.from,
     required (String, String?) super.argument,
@@ -1695,15 +1509,8 @@ final class MealMacrosProvider
 
 String _$mealMacrosHash() => r'f0fa893ccf164c5e79b92b5ab95e617aa3ed3eb2';
 
-/// One MEAL's macros under [lens], as served to the people eating it — the
-/// same reading again, at the narrowest scope there is (the wide Week's day
-/// pane prints one under each dish).
-///
-/// Keyed by the entry's id rather than handed the entry, so the figure follows
-/// the live week: change the portions or the eaters and this re-reads the row
-/// the write produced, exactly as the day total does. An id the week no longer
-/// has reads as an empty set — `no meals` — which is the honest answer for a
-/// meal that has just been removed.
+/// One meal's macros under [lens], as served. Keyed by entry id so it follows
+/// the live week; an id the week no longer has reads as an empty set.
 
 final class MealMacrosFamily extends $Family
     with $FunctionalFamilyOverride<MealSetMacros, (String, String?)> {
@@ -1716,15 +1523,8 @@ final class MealMacrosFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// One MEAL's macros under [lens], as served to the people eating it — the
-  /// same reading again, at the narrowest scope there is (the wide Week's day
-  /// pane prints one under each dish).
-  ///
-  /// Keyed by the entry's id rather than handed the entry, so the figure follows
-  /// the live week: change the portions or the eaters and this re-reads the row
-  /// the write produced, exactly as the day total does. An id the week no longer
-  /// has reads as an empty set — `no meals` — which is the honest answer for a
-  /// meal that has just been removed.
+  /// One meal's macros under [lens], as served. Keyed by entry id so it follows
+  /// the live week; an id the week no longer has reads as an empty set.
 
   MealMacrosProvider call(String entryId, String? lens) =>
       MealMacrosProvider._(argument: (entryId, lens), from: this);
@@ -1733,20 +1533,20 @@ final class MealMacrosFamily extends $Family
   String toString() => r'mealMacrosProvider';
 }
 
-/// One day's macros under [lens] — the SAME function over a narrower set, so
-/// the week is never a sum of rounded day totals.
+/// One day's macros under [lens], from the same function as the week's so the
+/// week is never a sum of rounded days.
 
 @ProviderFor(dayMacros)
 const dayMacrosProvider = DayMacrosFamily._();
 
-/// One day's macros under [lens] — the SAME function over a narrower set, so
-/// the week is never a sum of rounded day totals.
+/// One day's macros under [lens], from the same function as the week's so the
+/// week is never a sum of rounded days.
 
 final class DayMacrosProvider
     extends $FunctionalProvider<MealSetMacros, MealSetMacros, MealSetMacros>
     with $Provider<MealSetMacros> {
-  /// One day's macros under [lens] — the SAME function over a narrower set, so
-  /// the week is never a sum of rounded day totals.
+  /// One day's macros under [lens], from the same function as the week's so the
+  /// week is never a sum of rounded days.
   const DayMacrosProvider._({
     required DayMacrosFamily super.from,
     required (int, String?) super.argument,
@@ -1800,8 +1600,8 @@ final class DayMacrosProvider
 
 String _$dayMacrosHash() => r'96e3a0a1cb4d45a3ac815badb9f5058bdf2b94de';
 
-/// One day's macros under [lens] — the SAME function over a narrower set, so
-/// the week is never a sum of rounded day totals.
+/// One day's macros under [lens], from the same function as the week's so the
+/// week is never a sum of rounded days.
 
 final class DayMacrosFamily extends $Family
     with $FunctionalFamilyOverride<MealSetMacros, (int, String?)> {
@@ -1814,8 +1614,8 @@ final class DayMacrosFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// One day's macros under [lens] — the SAME function over a narrower set, so
-  /// the week is never a sum of rounded day totals.
+  /// One day's macros under [lens], from the same function as the week's so the
+  /// week is never a sum of rounded days.
 
   DayMacrosProvider call(int dayOfWeek, String? lens) =>
       DayMacrosProvider._(argument: (dayOfWeek, lens), from: this);

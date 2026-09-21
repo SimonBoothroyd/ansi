@@ -75,7 +75,7 @@ String coversLine(CookSession session, WeekShape shape) {
   return 'covers $meals · $portions';
 }
 
-// --- Component sessions and gaps (step 8.6 / D3, board frame f) --------------
+// --- Component sessions and gaps ---------------------------------------------
 
 /// A component card's title: *"Romesco Aioli · for Sausage Sliders"* — the
 /// sub-recipe, and the planned recipes whose lines called for it.
