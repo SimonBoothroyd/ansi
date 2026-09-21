@@ -130,7 +130,7 @@ ingredients/
   name in the field. `declineUsdaPrefill` (*Not this food*) is the one USDA act
   that writes on its own, leaving `source = usda_declined`.
 - **No machine matches on its own.** `usda_food` never syncs
-  ([ADR-0005](../../../../docs/decisions/0005-usda-as-global-reference-table.md));
+  ([ADR-0005](../../../../docs/decisions/0005-two-tier-vocabulary.md));
   the app asks the read-only `probe_usda` RPC. `source_score` is coverage, not
   confidence — shown, never acted on.
 - **The food is named, never keyed.** Surfaces print `source_label`, not an

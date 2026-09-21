@@ -858,13 +858,12 @@ One ledger, and every money figure in the app is derived from it at read time
   null, `pack_amount` is the count of it and `measure_id` carries the word.
   The two must be able to disagree: a household that re-weighs its `bag` is
   saying what a bag is today, and last month's $3.49 bought last month's bag.
-- **The count is not part of the pack.** Both of the household's shops print
-  how many on a sub-row UNDER the item (`8 @ $2.99`), and that sub-row
-  attaches to the line rather than becoming one: `count` (≥ 1, only ever more
-  than one on an item line). `cents` already includes them all, so nothing the
-  receipt adds up to moves — what moves is the price, which divides by
-  `count × pack_basis_amount`. The pack is what ONE of them comes in and
-  carries to the next receipt; the count arrives fresh from the paper.
+- **The count is not part of the pack.** A how-many sub-row under an item
+  (`8 @ $2.99`) attaches to the line as `count` (≥ 1, only ever more than one
+  on an item line). `cents` already includes them all; the price divides by
+  `count × pack_basis_amount`. The pack is what ONE comes in and carries to the
+  next receipt; the count arrives fresh from the paper
+  ([import-and-matching.md §12.3a](./import-and-matching.md#123a-the-count-sub-row)).
 - **`ingredient_id` is the household's answer, not the vocabulary's.** It is
   set in review, and the same column is what a later receipt's match memory
   reads back — a `SELECT` over this household's own lines, per
@@ -1047,18 +1046,14 @@ one set of sentences so they cannot tell two stories about one row, and the
 reading posture adds no fact the form does not already hold. Honest numbers
 hold here too — a row with no panel reads **needs macros**, never four zeros.
 
-**Price is one group with two hosts.** Both postures draw the same widget, last
-and in the same place: what the row cost latest, what was paid before it, and
-one `add a price` door — every line a tap onto the sheet that entered it.
-Changing what a thing costs is *editing* it, so the section is on the form as
-well as the fact sheet rather than only on the page somebody may not have
-opened. It is the **one section the form's dock does not hold**: the price
-sheet writes its own one-line receipt the moment Done is tapped, so the form
-carries a line saying exactly that. A price is not held for Save, and backing
-out of the form does not take it back — what it wrote is a receipt, and a
-receipt is not a draft. On `/ingredients/new` there is no row to hang an event
-on, so the group states that and offers no door; a price is never a condition
-of the first Save.
+**Price is one group with two hosts.** The fact sheet and the form draw the
+same widget, last: what the row cost latest, what was paid before it, and one
+`add a price` door — every line a tap onto the sheet that entered it. It is the
+**one section the form's dock does not hold**: the price sheet writes its own
+one-line receipt when Done is tapped, the form carries a line saying so, and
+backing out of the form does not take it back. `/ingredients/new` has no row to
+hang a price on, so the group says that and offers no door; a price is never a
+condition of the first Save.
 
 **`On receipts` shows what the receipt door remembers.** The importer recalls
 this household's own past answers per printed name
@@ -1346,17 +1341,13 @@ divided by zero. The week band is labelled **PLANNED** and says outright that
 it is the sum of what is planned, not a daily target — a week that only plans
 dinners averages a dinner.
 
-**What a thing costs (shipped):** a **price** is an event, not a column. It is
-cents paid for a **stated pack**, at a store, on a date — kept as a line of a
-`receipt`, so a hand-typed price is a one-line receipt of its own and a
-photographed one is the same fact read off paper. Every figure the app prints
-is derived from that at read time: `77¢ / 100 g` is never written back, so a
-pack re-weighed or a discount corrected moves every screen at once. Latest
-wins — no average, no sale flag, no forecast — and the pack is kept **twice**,
-in the words it was bought in (`1 lb`, `bag (454 g)`) and in the row's basis,
-which is the only figure a price is derived from. Money is integer cents; what
-was paid is the printed figure less any discount. The whole doctrine, and the
-inventory question it refuses to answer, is
+**What a thing costs (shipped):** a **price** is an event, not a column: cents
+paid for a **stated pack**, at a store, on a date, kept as a line of a
+`receipt` — a hand-typed price is a one-line receipt of its own. Every figure
+is derived at read time (`77¢ / 100 g` is never written back), so a corrected
+pack or discount moves every screen at once. Latest wins — no average, no sale
+flag, no forecast. Money is integer cents; what was paid is the printed figure
+less any discount. The doctrine is
 [ADR-0017](../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md).
 
 - **A recipe costs its lines** (`Macros | Cost` on the same panel, the line
@@ -1418,14 +1409,13 @@ and a printed weight or rate where there was one.
   66¢ / 100 g` — and the COUNT chip beside PACK corrects it. It never rides to
   a twin, because a line that rang up four is not a line that rang up one.
 - **A figure nobody could read holds Save**, loudly: it is not a free line.
-- **A line the reader missed is added by hand.** A fold in the strip loses a
-  line, and the join card is what says so; the foot of the Lines list carries a
-  dashed *add a line* on both hosts. The ingredient picker, then *What did this
-  line cost?*, and the line lands open, matched, counting one, on the pack the
-  row was last bought in. It printed nothing, so it stores no printed words, the
-  match memory learns nothing from it, two of them are never twins, and the card
-  reads `added by hand`. From there it is a line like any other: in the lines'
-  sum, in the join, holding Save until it has a pack, and a price once it does.
+- **A line the reader missed is added by hand.** The foot of the Lines list
+  carries a dashed *add a line* on both hosts: the ingredient picker, then
+  *What did this line cost?*, and the line lands open, matched, counting one,
+  on the pack the row was last bought in. It stores no printed words, so the
+  match memory learns nothing from it, two of them are never twins, and the
+  card reads `added by hand`. Otherwise it is a line like any other: in the
+  lines' sum, holding Save until it has a pack, and a price once it does.
 - **One answer answers every line that is that line again.** Six identical
   tubs print six identical lines; the match, the pack, *Not food* and *it is
   food* land on every twin standing exactly where this line stands, and the
