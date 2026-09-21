@@ -1,31 +1,10 @@
-/// The app's tab shell: one [AnsiBottomNav], four branch Navigators, and the
+/// The app's tab shell: one [AnsiBottomNav], four branch Navigators, and an
 /// opacity-only cross-fade between them.
 ///
-/// The bar lives here rather than on the four tab screens, so a tab switch
-/// cannot animate it: the root Navigator's page list does not change, no route
-/// transition runs, and the bar is never rebuilt or moved. Switching a tab is
-/// an index change inside this widget.
-///
-/// The branch children keep their slot in a [Stack] and are never reordered,
-/// so each tab holds its own Navigator, scroll offsets and view state (D7).
-///
-/// Back on a non-Library tab returns to the Library tab, and a second back
-/// leaves the app (D3-b — the Android convention, one step, cannot loop). The
-/// rule is stated here rather than inherited from whatever `context.go` left on
-/// the stack.
-///
-/// While the bar is under the content the whole shell sits in one
-/// [AnsiMeasure], so on a wide window the tabs, the banner and the bar stay one
-/// centred column together — a bar stretched over a desktop monitor while its
-/// content is 640 wide is two layouts, not one. This is the tabs' single wrap:
-/// no tab root wraps itself.
-///
-/// Once the chrome moves **beside** the content the bar is gone and so is that
-/// wrap: the sidebar is drawn by the outer shell, once and outside every
-/// Navigator (`core/router/app_router.dart`), and each branch root measures its
-/// own pane through the router's [AnsiPane]. That is what lets a tab root ask
-/// for the whole pane — the Week's two panes, the Library's shelf — instead of
-/// being capped by a wrap it cannot see.
+/// A tab switch is an index change here, so the bar never animates and each
+/// branch keeps its Navigator and state. While the bar is under the content
+/// the whole shell sits in one [AnsiMeasure]; beside it, each branch root
+/// measures its own pane through the router's [AnsiPane].
 library;
 
 import 'package:flutter/widgets.dart';
@@ -36,13 +15,10 @@ import 'ansi_bottom_nav.dart';
 import 'ansi_layout.dart';
 import 'sync_banner.dart';
 
-/// The branch the app treats as home: back from anywhere else lands here first.
+/// The home branch: back from any other tab lands here first.
 const kHomeBranch = 0;
 
-/// How long the content cross-fade takes.
-///
-/// Set to [Duration.zero] to compare against a hard cut — that is the "no
-/// animation" option, one constant away and with no structural change.
+/// How long the content cross-fade takes. [Duration.zero] is a hard cut.
 const kTabFade = Duration(milliseconds: 120);
 
 class AnsiTabShell extends StatelessWidget {
@@ -52,11 +28,8 @@ class AnsiTabShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => PopScope(
-    // Only the home tab lets a back out of the app. Everywhere else the pop is
-    // intercepted and spent on returning here, so leaving takes two backs from
-    // any tab and never more. `canPop: false` still lets Android start its
-    // predictive animation — Flutter routes it through PredictiveBackRoute —
-    // so the gesture keeps its preview.
+    // Only the home tab lets a back out of the app; elsewhere the pop returns
+    // here. `canPop: false` still allows Android's predictive-back preview.
     canPop: shell.currentIndex == kHomeBranch,
     onPopInvokedWithResult: (didPop, _) {
       if (!didPop) shell.goBranch(kHomeBranch);
@@ -67,8 +40,7 @@ class AnsiTabShell extends StatelessWidget {
   );
 }
 
-/// The shell with its bar under the content: the phone's form, and what a
-/// window up to `lg` keeps.
+/// The shell with its bar under the content, up to `lg`.
 class _BarShell extends StatelessWidget {
   const _BarShell({required this.shell});
 
@@ -76,15 +48,13 @@ class _BarShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => FScaffold(
-    // Each tab screen has its own FScaffold inside the branch, which
-    // applies the page padding already; leaving it on here would double it.
+    // Each tab screen's own FScaffold already applies the page padding.
     childPad: false,
     footer: AnsiBottomNav(shell: shell),
     child: Column(
       children: [
-        // The sync banner belongs to the app, not to a tab, so it lives
-        // here exactly once, above every branch. It draws nothing at all
-        // while sync is healthy — which is almost always.
+        // The sync banner, once, above every branch. It draws nothing while
+        // sync is healthy.
         const AnsiSyncBanner(),
         Expanded(child: shell),
       ],
@@ -92,12 +62,8 @@ class _BarShell extends StatelessWidget {
   );
 }
 
-/// The shell as a content pane: no bar, no measure, and the sidebar drawn
-/// around it by the outer shell.
-///
-/// The banner stays the pane's full width rather than sitting in a branch's
-/// measure: it is the app's own band, like the sidebar, and it draws nothing at
-/// all while sync is healthy.
+/// The shell as a content pane: no bar, no measure; the outer shell draws
+/// the sidebar. The banner spans the pane's full width.
 class _PaneShell extends StatelessWidget {
   const _PaneShell({required this.shell});
 
@@ -115,8 +81,8 @@ class _PaneShell extends StatelessWidget {
   );
 }
 
-/// Fades between the branch children in place: opacity only, no translation and
-/// no scale, so Library→Shop and Shop→Library are the same animation (D1.1).
+/// Fades between the branch children in place: opacity only, so every
+/// switch is the same animation.
 Widget crossFadeBranchContainer(
   BuildContext context,
   StatefulNavigationShell shell,
@@ -128,9 +94,8 @@ class _CrossFadeBranches extends StatefulWidget {
 
   final int index;
 
-  /// One entry per branch, index-aligned with the shell's branches and in a
-  /// fixed order. go_router hands over a placeholder for a branch that has not
-  /// been visited yet, so the length is stable for the app's lifetime.
+  /// One entry per branch, index-aligned and in a fixed order. go_router
+  /// supplies a placeholder for an unvisited branch, so the length is stable.
   final List<Widget> children;
 
   @override
@@ -160,8 +125,8 @@ class _CrossFadeBranchesState extends State<_CrossFadeBranches>
   @override
   void initState() {
     super.initState();
-    // The fade ending changes which branches are on stage (see [_onStage]),
-    // and an animation finishing does not rebuild anything on its own.
+    // The fade ending changes which branches are on stage ([_onStage]), and
+    // an animation finishing does not rebuild on its own.
     _controller.addStatusListener(_onFadeStatus);
   }
 
@@ -186,26 +151,20 @@ class _CrossFadeBranchesState extends State<_CrossFadeBranches>
     super.dispose();
   }
 
-  /// Zero for a branch that is neither on screen nor on its way off it — the
-  /// [FadeTransition] then paints nothing, while the subtree stays mounted.
+  /// Zero for a branch neither shown nor fading out; its subtree stays
+  /// mounted.
   Animation<double> _opacityFor(int index) {
     if (index == widget.index) return _fadeIn;
     if (index == _outgoing) return _fadeOut;
     return const AlwaysStoppedAnimation<double>(0);
   }
 
-  /// Whether a branch takes part in this frame: the one being shown, plus the
-  /// one fading out while the fade runs.
+  /// Whether a branch takes part in this frame: the one shown, plus the one
+  /// fading out.
   ///
-  /// Everything else goes [Offstage] — not to save work (an invisible branch
-  /// already paints nothing) but so it leaves the *visible* tree: an offstage
-  /// subtree is skipped by hit tests, by the semantics tree a screen reader
-  /// walks, and by the default `find.*` in a test. Without it the three tabs
-  /// you are not looking at answer for text on the one you are.
-  ///
-  /// It costs nothing in state: `RenderOffstage` still lays its child out with
-  /// the same constraints, so scroll offsets and every view state survive
-  /// (D7) — it only stops painting and hit-testing it.
+  /// The rest go [Offstage] so hit tests, semantics and a test's `find.*`
+  /// skip them. `RenderOffstage` still lays its child out, so scroll offsets
+  /// and view state survive.
   bool _onStage(int index) =>
       index == widget.index || (index == _outgoing && _controller.isAnimating);
 

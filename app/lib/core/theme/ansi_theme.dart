@@ -1,35 +1,10 @@
-/// The app's Forui theme, built from the Ansi design tokens.
+/// The app's Forui theme ([ansiThemeData]) and the Material host theme
+/// ([ansiHostTheme]) behind it.
 ///
-/// The Ansi visual identity lives in the [FThemeData] returned by
-/// [ansiThemeData]; `app.dart` applies it via Forui's `FTheme`. A tiny Material
-/// [ansiHostTheme] tints the `MaterialApp.router` host (the WidgetsApp
-/// go_router needs) so nothing flashes un-themed behind the Forui tree.
-///
-/// Typography follows the design board's three roles:
-/// * **serif** ([ansiSerif]) — recipe titles and lowercase group headers, at
-///   the five sizes [AnsiType] names,
-/// * **sans** ([ansiSansFamily], reached through [ansiSans]) — all interface
-///   text: every button label, menu item, tab, field and dialog,
-/// * **mono** ([ansiMono]) — data: quantities, units, scale factors, and the
-///   letter-spaced uppercase micro-labels ([ansiLabel]).
-///
-/// **All three faces ship with the app; none is downloaded.** Spectral and IBM
-/// Plex Mono are bundled by `pubspec.yaml`; Inter is bundled by Forui, so the
-/// app asks for it by the package name Flutter registers it under rather than
-/// shipping a second copy of the same family. Each role still carries a
-/// fallback list behind its face, for a glyph the face itself lacks.
-///
-/// **Every role names its own family, and the interface role names it twice.**
-/// A [TextStyle] with only a `fontFamilyFallback` inherits its *primary* family
-/// from whatever [DefaultTextStyle] it lands under — a fallback answers for a
-/// missing glyph, never for a missing family — so interface text written that
-/// way is Inter only where an ancestor happened to say so, and the host's
-/// Material default (Roboto, or the platform's own face where Roboto is not
-/// installed) anywhere else. So [ansiSans] states the family, and so does the
-/// [FTypography] every Forui widget builds its own styles from: the app's
-/// interface face is a fact about the app, not about Forui's current default
-/// or about where a widget was mounted. `ansi_type_is_on_the_theme_test.dart`
-/// resolves it on a button, a menu item, a tab and a dialog.
+/// Three type roles: serif ([ansiSerif]) for titles, sans ([ansiSans]) for
+/// interface text, mono ([ansiMono]) for data. All faces are bundled. Every
+/// role names its own family: a style with only a fallback list inherits its
+/// primary family from the nearest [DefaultTextStyle].
 library;
 
 import 'package:flutter/material.dart';
@@ -54,11 +29,8 @@ FThemeData ansiThemeData() {
   final typography = FTypography.inherit(
     colors: colors,
     touch: true,
-    // Redundant only in the sense the lint means: it is the same string Forui
-    // defaults to, and saying it is the entire point. Every button label,
-    // menu item, tab and dialog in the app is drawn from this typography, and
-    // an unstated face makes the app's interface a fact about Forui's current
-    // default rather than about the app.
+    // The same string Forui defaults to, stated so the interface face does
+    // not depend on Forui's default.
     // ignore: avoid_redundant_argument_values
     fontFamily: ansiSansFamily,
   );
@@ -76,21 +48,11 @@ FThemeData ansiThemeData() {
   );
 }
 
-/// The two answers every tappable thing in the app owes a mouse and a keyboard,
-/// stated once on the theme rather than fifty times at the call sites.
+/// Every Forui tappable's pointer and focus answers, stated once.
 ///
-/// **A click cursor.** Forui's [FTappableStyle] defaults to
-/// `MouseCursor.defer`, which on the web means the arrow never changes — so a
-/// `⋯`, a sidebar item and a ghost button all read as text. Every Forui
-/// tappable resolves its cursor from here, so one line gives the whole app a
-/// pointer; a disabled one keeps the plain arrow, which is the honest word for
-/// *not a door*.
-///
-/// **A ring you can see.** Forui's default is 1 px, 3 px clear. At 1 px, herb
-/// on paper, a focused control is a rumour. 2 px at 2 px clear is the board's
-/// ring: thick enough to find by eye while tabbing, tight enough that it does
-/// not read as a second selected state. `AnsiTap` (`shared/ansi_tap.dart`)
-/// inherits it and re-states only the radius.
+/// Forui's cursor defaults to `MouseCursor.defer`, which on the web never
+/// leaves the arrow; here an enabled tappable gets the click cursor. The
+/// focus ring is 2 px at 2 px clear, where Forui's 1 px is hard to see.
 FStyle _style(FColors colors, FTypography typography) =>
     FStyle.inherit(
       colors: colors,
@@ -111,18 +73,10 @@ FStyle _style(FColors colors, FTypography typography) =>
       ),
     );
 
-/// The header's own glyphs — the back chevron, the `⋯`, the `＋` — answering a
-/// pointer in the same two colours as everything else.
+/// The header's glyphs on hover: the ink steps to `secondaryForeground`.
 ///
-/// `FHeaderAction` is an `FTappable` already: it hovers, it rings, and after
-/// [_style] it has a cursor. What it hovered *with* was `colors.hover(ink)`, a
-/// lightening of near-black that on paper is invisible — the owner's "no
-/// response" — and `FHeaderActionStyle` has no ground in its contract to tint
-/// instead. So here the glyph carries the whole answer: its ink steps to
-/// `secondaryForeground`, the same herb-deep an `AnsiTap` moves its glyph to.
-/// Deliberately not a fork of Forui's header action with a ground bolted on:
-/// the two tokens *are* the shared style, and this is them in the one shape
-/// that cannot hold a ground.
+/// `FHeaderActionStyle` has no ground to tint, and Forui's default hover
+/// lightens near-black, which is invisible on paper.
 FVariantsDelta<
   FHeaderVariantConstraint,
   FHeaderVariant,
@@ -149,18 +103,8 @@ _headerStyles() {
   ]);
 }
 
-/// The toast: bottom-centre, and never wider than the measure.
-///
-/// Both are facts about the app rather than about one call site, so they are
-/// stated here once — `showFToast` falls back to `toastAlignment` when a caller
-/// names no alignment, and the cap rides on every toast variant.
-///
-/// **Bottom-centre**, because a toast at the top of the window would sit over a
-/// screen's header, which is where every header action lives. **Capped at the
-/// measure** — `breakpoints.sm`, the width every page is drawn in
-/// (`shared/ansi_layout.dart`) — because a toast wider than the column it
-/// reports on reads as a second, competing layout. On a phone neither this cap
-/// nor Forui's own is ever reached.
+/// The toast: bottom-centre, clear of header actions, and capped at the
+/// measure (`breakpoints.sm`).
 FToasterStyleDelta _toasterStyle(FThemeData base) => FToasterStyleDelta.delta(
   toastAlignment: FToastAlignment.bottomCenter,
   toastStyles: FVariantsDelta.delta([
@@ -174,16 +118,9 @@ FToasterStyleDelta _toasterStyle(FThemeData base) => FToasterStyleDelta.delta(
   ]),
 );
 
-/// The bottom bar's selected item, stepped herb → herbDeep.
-///
-/// With the week switcher as every tab's title, the lit tab carries the whole
-/// "where am I", so the two states have to be separable at a glance. Forui's
-/// default puts them 1.31:1 apart (selected = primary, herb 6.50:1 on the bar's
-/// white; unselected = mutedForeground, muted 4.97:1). herbDeep is 9.34:1 on
-/// surface and 1.88:1 from muted — the same darkening `secondaryForeground`
-/// already uses, so no new colour enters the palette. Only the selected
-/// variant's colour changes; its weight (700 / bold) and the unselected state
-/// stay Forui's. `test/core/theme/ansi_theme_test.dart` measures both ratios.
+/// The bottom bar's selected item in herbDeep, so it is separable from the
+/// muted unselected items at a glance. Weight and the unselected state stay
+/// Forui's. `test/core/theme/ansi_theme_test.dart` measures the contrast.
 FBottomNavigationBarStyleDelta _bottomNavStyle() =>
     FBottomNavigationBarStyleDelta.delta(
       itemStyle: FBottomNavigationBarItemStyleDelta.delta(
@@ -208,16 +145,8 @@ ThemeData ansiHostTheme() => ThemeData(
   useMaterial3: true,
 );
 
-/// The interface face, under the name Flutter registers it with.
-///
-/// Inter is bundled — by Forui rather than by `pubspec.yaml`, because the app
-/// would otherwise ship a second copy of the same family — and a font a
-/// package declares is registered as `packages/<package>/<family>`. That
-/// prefix is the whole name: asking for plain `Inter` finds nothing.
-///
-/// It is stated here, and handed to [FTypography] in [ansiThemeData], rather
-/// than left to Forui's default. The two agree today; the point is that the
-/// app's interface face stops being a fact about Forui's defaults.
+/// The interface face. Inter is bundled by Forui, and a package's font is
+/// registered as `packages/<package>/<family>`; plain `Inter` finds nothing.
 const String ansiSansFamily = 'packages/forui/Inter';
 
 const List<String> _serifStack = ['Spectral', 'Georgia', 'serif'];
@@ -228,39 +157,28 @@ const List<String> _sansStack = [
   'sans-serif',
 ];
 
-/// The serif's sizes, one per **role** rather than one per call site.
+/// The serif's sizes, one per role.
 ///
-/// A title's size follows from *what the title is*, so two screens showing
-/// the same kind of thing cannot drift a pixel apart. A number chosen at a
-/// call site says how big this one is and nothing about why, which gives the
-/// next screen to draw a recipe's name nothing to copy but a guess.
-///
-/// Pass one of these to [ansiSerif] and nothing else:
+/// Pass one of these to [ansiSerif]:
 /// `test/structure/serif_sizes_come_from_the_scale_test.dart` fails on a
-/// numeric literal anywhere outside this file. A new size is a new role, and a
-/// new role is a line here with the places it is used.
+/// numeric literal outside this file.
 abstract final class AnsiType {
-  /// The one big in-body hero title a page is named by: the recipe page, the
-  /// ingredient page, and the wordmark on the sign-in and connecting screens.
+  /// A page's in-body hero title, and the wordmark on the gate screens.
   static const double display = 33;
 
-  /// A title over a body that is not the app bar's: a book page's name, the
-  /// wide Week's day name.
+  /// A title over a body: a book page's name, the wide Week's day name.
   static const double title = 24;
 
-  /// A header bar's title ([ansiHeaderTitle]), a sheet's or dialog's title, a
-  /// book's name wherever it heads its recipes, the sidebar's wordmark, and
-  /// the sentence an empty or failed screen leads with.
+  /// Header bar, sheet and dialog titles ([ansiHeaderTitle]), a book's name
+  /// over its recipes, and an empty screen's lead sentence.
   static const double heading = 20;
 
-  /// A recipe's name in a list, a dish on the Week, a planned slot, a day
-  /// heading on the phone, a section title inside a form, and the italic
-  /// heading that names a group of ingredient lines.
+  /// A recipe's name in a list, a dish on the Week, a day heading on the
+  /// phone, a form's section title.
   static const double row = 17;
 
-  /// A dense line that is one of many: the Library ledger's recipe row, a
-  /// book page's index entry, the wide Week agenda's day, a pickable row in a
-  /// filing sheet, and the italic label that divides a list into sections.
+  /// A dense line that is one of many: a ledger recipe row, an index entry,
+  /// a section label.
   static const double small = 15;
 }
 
@@ -278,13 +196,8 @@ TextStyle ansiSerif({
   fontWeight: weight,
 );
 
-/// The serif's face and metrics as a *delta*, for the few places the text is
-/// drawn by a Forui component rather than by a [Text] of ours.
-///
-/// A component owns the ink of its own content and hint — a text field greys
-/// its placeholder, lights its value — so a style that replaced them wholesale
-/// would flatten those states. This changes the face and the size and leaves
-/// every colour the component chose alone.
+/// The serif's face and size as a delta, for text drawn by a Forui component.
+/// It leaves the component's own colours alone.
 TextStyleDelta ansiSerifDelta({required double size}) => TextStyleDelta.delta(
   fontFamily: 'Spectral',
   fontFamilyFallback: _serifStack,
@@ -292,18 +205,12 @@ TextStyleDelta ansiSerifDelta({required double size}) => TextStyleDelta.delta(
   height: 1.15,
 );
 
-/// The app-bar page title — one consistent serif across every screen's header
-/// (design board `.ttl`), so the top bars read as one family. Use it for the
-/// `FHeader`/`FHeader.nested` title on every screen. The recipe page is the
-/// deliberate exception: a large in-body hero title instead of a bar title.
+/// The header bar title, for every `FHeader`. The recipe page uses an
+/// in-body hero title instead.
 TextStyle ansiHeaderTitle() => ansiSerif(size: AnsiType.heading);
 
-/// A sans style for interface text and ingredient/step body copy.
-///
-/// It names [ansiSansFamily] itself. A style that carried only the fallback
-/// list would take its primary family from the nearest [DefaultTextStyle] —
-/// Inter under a Forui surface, the Material host's face outside one — and the
-/// same sentence would be set in two faces depending on where it was drawn.
+/// A sans style for interface text and body copy. Names [ansiSansFamily]
+/// itself so the face does not depend on where it is drawn.
 TextStyle ansiSans({
   required double size,
   Color color = AnsiColors.ink,
@@ -318,15 +225,10 @@ TextStyle ansiSans({
   fontWeight: weight,
 );
 
-/// IBM Plex Mono's cap height, as a fraction of the font size (the face's own
-/// `OS/2.sCapHeight`, 698/1000 em). A digit's ink runs from the baseline up to
-/// exactly this.
-///
-/// It is the measurement a glyph set among figures is centred on. The
-/// alternative — the font's ascent/descent midpoint, which is what
-/// `PlaceholderAlignment.middle` uses — sits above the digits and moves with
-/// [TextStyle.height], so one glyph rides at a different altitude on every
-/// line the app draws.
+/// IBM Plex Mono's cap height as a fraction of the font size
+/// (`OS/2.sCapHeight`). A glyph set among figures is centred on it, because
+/// `PlaceholderAlignment.middle` sits above the digits and moves with
+/// [TextStyle.height].
 const double kMonoCapHeight = 0.698;
 
 /// A monospace style for data (quantities, units, scale factors).
@@ -340,12 +242,8 @@ TextStyle ansiMono({
   letterSpacing: letterSpacing,
 ).copyWith(color: color, fontWeight: weight);
 
-/// [ansiMono] with no colour and no weight of its own, so both are inherited
-/// from an ancestor [DefaultTextStyle].
-///
-/// A [Text]'s own style wins over the inherited one field by field, so a widget
-/// whose selected/unselected colouring is driven from above — a Forui bottom
-/// nav item, say — must leave those two fields unset or it opts itself out.
+/// [ansiMono] with no colour or weight, so an ancestor [DefaultTextStyle]
+/// (a Forui bottom nav item, say) can drive both.
 TextStyle ansiMonoInherit({required double size, double letterSpacing = 0}) =>
     TextStyle(
       fontFamily: 'IBM Plex Mono',

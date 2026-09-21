@@ -1,12 +1,6 @@
-/// The ONE vocabulary for an honestly-incomplete macro summary — the amber
-/// `incomplete` badge (design board `.badge-inc`) and the note that says why.
-///
-/// Three surfaces render the same [RecipeMacroSummary]: the recipe picker's
-/// rows, the confirm sheet's picked card, and the recipe page's macro panel
-/// (step 9). Invariant 3 is only credible if they all refuse in the *same
-/// words* — a panel that said "macros unavailable" while the picker said
-/// "1 stub line" would read as two different failures. They live here so
-/// they cannot drift (the same reason `MethodStepText` was hoisted).
+/// The one vocabulary for an incomplete macro summary: the amber
+/// `incomplete` badge and the note that says why. Shared so every surface
+/// rendering a [RecipeMacroSummary] refuses in the same words.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -17,28 +11,19 @@ import '../core/units/macros.dart';
 import '../core/words.dart';
 import '../features/recipes/domain/recipe_macros.dart';
 
-/// Why a summary is incomplete, for the row note: `no ingredients yet`,
-/// `1 stub line`, `2 stub lines · 1 line needs a piece weight · 1
-/// unconvertible`,
-/// `1 sub-recipe unresolved`, `1 ingredient removed` — never an empty string
-/// (a reasonless badge would leave a dangling separator).
+/// Why a summary is incomplete, for the row note: `1 stub line`, `1 line
+/// needs a piece weight · 1 unconvertible`, `1 sub-recipe unresolved`. Never
+/// an empty string.
 ///
-/// **"needs a piece weight" is its own reason**, not part of "unconvertible".
-/// A bare count — "2 pieces" on a row with no piece weight — is the one
-/// incomplete cause a household fixes with a single number on the INGREDIENT
-/// (ADR-0015), and calling it a failed conversion described the wrong
-/// problem: nothing was ever weighed.
+/// "needs a piece weight" is its own reason: a bare count is fixed with one
+/// number on the ingredient (ADR-0015), not a failed conversion.
 String incompleteNote(RecipeMacroSummary summary) {
   if (summary.noLines) return 'no ingredients yet';
-  // Seam D6's one guard: every line was imprecise, so nothing was weighed.
-  // `0 kcal` there would be a fabrication — the same shape as no ingredients
-  // at all, and it gets its own words rather than being folded into a bucket
-  // that names a defect.
+  // Every line was imprecise, so nothing was weighed; `0 kcal` would be a
+  // fabrication.
   if (summary.nothingWeighable) return 'nothing weighable yet';
-  // A retired row costs the total exactly what a stub costs it, so the walk
-  // counts both in `stubLines` — but they are not the same sentence, and the
-  // reason list is where the two are told apart. A broken link is named FIRST:
-  // it is the one cause here that says the recipe points at nothing.
+  // `stubLines` counts retired rows too; they are named apart here, and
+  // first, because a broken link points at nothing.
   final removed = [
     for (final n in summary.notes)
       if (n.reason == MacroLineReason.removedIngredient) n,
@@ -55,33 +40,25 @@ String incompleteNote(RecipeMacroSummary summary) {
     if (counts > 1) '$counts lines need a piece weight',
     if (summary.unconvertibleLines > 0)
       '${summary.unconvertibleLines} unconvertible',
-    // Step 8.6 / D8 — the two sub-recipe reasons, in the same voice as the
-    // rest so no surface has to invent its own words for a nested refusal.
+    // The two sub-recipe reasons.
     if (unresolved > 0)
       '$unresolved ${plural(unresolved, 'sub-recipe')} unresolved',
     if (subIncomplete > 0)
       '$subIncomplete ${plural(subIncomplete, 'sub-recipe')} incomplete',
   ];
-  // Every line joined and there are lines — the only remaining cause is a
-  // non-positive serving count (the DB check makes this near-unreachable).
+  // Lines exist and all joined, so the only cause left is a non-positive
+  // serving count.
   return parts.isEmpty ? 'servings not set' : parts.join(' · ');
 }
 
-/// What ONE excluded line is waiting on — the per-line half of the same
-/// vocabulary (seam **D5**). The panel's list, a row's marker and the picker
-/// row all read this, so `Cucumber · needs a piece weight` says the same
-/// thing wherever it appears.
+/// What one excluded line is waiting on: `Cucumber · needs a piece weight`.
 ///
-/// [MacroLineReason.imprecise] has no wording of its own here: an imprecise
-/// line is named by the WORD THE SOURCE PRINTED ("handful", "to taste"), not
-/// by a defect — see [impreciseNotCountedNames]. [MacroLineReason.optional] is
-/// the recipe page's own tag word, which is the same claim in the same voice.
-/// `Cucumber · needs a piece weight` names the ingredient's missing fact, so
-/// the marker opens the ingredient (ADR-0015).
+/// [MacroLineReason.imprecise] has no wording here: such a line is named by
+/// the word the source printed (see [impreciseNotCountedNames]).
 String incompleteLineNote(MacroLineReason reason) => switch (reason) {
   MacroLineReason.stubIngredient => 'stub ingredient',
   MacroLineReason.unknownIngredient => 'not in your ingredients yet',
-  // A row that WAS here — so not "yet", and the fix is the line, not the row.
+  // The fix is the line, not the row.
   MacroLineReason.removedIngredient => 'ingredient removed · pick again',
   MacroLineReason.needsWeight => 'needs a piece weight',
   MacroLineReason.needsDensity => 'needs a density',
@@ -92,35 +69,22 @@ String incompleteLineNote(MacroLineReason reason) => switch (reason) {
   MacroLineReason.optional => 'optional',
 };
 
-/// The two reasons a line leaves a total BY RULE rather than by failure —
-/// named under the total in a labelled row of its own
-/// ([impreciseNotCountedNames], [optionalNotCountedNames]), never marked as
-/// fixable.
+/// The reasons a line leaves a total by rule rather than by failure. Named
+/// under the total, never marked as fixable.
 const Set<MacroLineReason> byRuleReasons = {
   MacroLineReason.imprecise,
   MacroLineReason.optional,
 };
 
-/// The lines a summary is WAITING ON — everything a household could fix. The
-/// imprecise and optional ones are excluded by rule, not by failure, so they
-/// are named under the total by [impreciseNotCountedNames] and
-/// [optionalNotCountedNames] instead.
+/// The lines a household could fix: everything not in [byRuleReasons].
 List<MacroLineNote> fixableNotes(RecipeMacroSummary summary) => [
   for (final note in summary.notes)
     if (!byRuleReasons.contains(note.reason)) note,
 ];
 
-/// `Cilantro · handful, Kosher Salt · to taste` — the imprecise lines a real
-/// total prints UNDER itself, every time, under the label `NOT COUNTED`.
-///
-/// This is half the honesty argument: nothing is invented, because zero grams
-/// were claimed; and nothing is silent, because a reader can see precisely
-/// what the figure does and does not cover. The unit word is the line's own
-/// printed one ("handful", "to taste"), never a category name — the source
-/// said it, so the panel says it.
-///
-/// Null when no line was excluded for being imprecise: a caller draws no row
-/// then, rather than a label with nothing after it.
+/// `Cilantro · handful, Kosher Salt · to taste`: the imprecise lines a total
+/// prints under itself, labelled `NOT COUNTED`, each with the unit word its
+/// source printed. Null when there are none.
 String? impreciseNotCountedNames(List<MacroLineNote> notes) {
   final names = [
     for (final n in notes)
@@ -130,15 +94,8 @@ String? impreciseNotCountedNames(List<MacroLineNote> notes) {
   return names.isEmpty ? null : names.join(', ');
 }
 
-/// `Lime, Coriander` — the optional lines a real total left out, under the
-/// label `OPTIONAL`.
-///
-/// The other half of [impreciseNotCountedNames]'s argument, and the reason
-/// the two are separate strings rather than one sentence: they are excluded
-/// for two different reasons, and a reader deciding whether to trust the
-/// number is asking which lines are which.
-///
-/// Null when no line was excluded for being optional.
+/// `Lime, Coriander`: the optional lines a total left out, labelled
+/// `OPTIONAL`. Null when there are none.
 String? optionalNotCountedNames(List<MacroLineNote> notes) {
   final names = [
     for (final n in notes)
@@ -147,16 +104,11 @@ String? optionalNotCountedNames(List<MacroLineNote> notes) {
   return names.isEmpty ? null : names.join(', ');
 }
 
-/// `fibre not counted · 2 lines without it: Onion, Stock` — why a total that
-/// is whole in every other respect states no fibre.
+/// `fibre not counted · 2 lines without it: Onion, Stock`: why an otherwise
+/// whole total states no fibre ([Macros.fiber] is optional per ingredient).
 ///
-/// Fibre is optional per ingredient ([Macros.fiber]), so this is the same
-/// claim [impreciseNotCountedNames] makes about a pinch, one figure narrower:
-/// the lines are all IN the total, nothing about them needs fixing, and the
-/// one number they cannot support is named rather than quietly dropped.
-///
-/// Null when there is no total yet, when the total states fibre, or when
-/// nothing was missing it — a caller renders nothing then.
+/// Null when there is no total, when the total states fibre, or when no
+/// line was missing it.
 String? fiberNotCountedNote(RecipeMacroSummary summary) {
   final total = summary.perServing;
   if (total == null || total.fiber != null) return null;
@@ -166,17 +118,11 @@ String? fiberNotCountedNote(RecipeMacroSummary summary) {
       '${plural(names.length, 'line')} without it: ${names.join(', ')}';
 }
 
-/// The one caption under the named rows: why those lines are out, in the
-/// panel's plain voice.
-///
-/// One sentence for both rows rather than one per row. The rows above have
-/// already said which lines are which; what a reader needs after them is the
-/// single claim they share — this is a rule, not a fault, and nothing here is
-/// waiting to be fixed.
+/// The one caption under the named rows: these lines are out by rule.
 const notCountedCaption =
     'Imprecise and optional lines are left out by rule, not by failure.';
 
-/// The amber `incomplete` badge (design board `.badge-inc`).
+/// The amber `incomplete` badge.
 class IncompleteBadge extends StatelessWidget {
   const IncompleteBadge({super.key});
 

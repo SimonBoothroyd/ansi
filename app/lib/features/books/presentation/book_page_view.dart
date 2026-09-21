@@ -1,23 +1,9 @@
-/// One book on a page of its own — the tree the Library's card holds, given a
-/// URL (design board: **Book**).
+/// One book on a page of its own, at `/books/:id`.
 ///
-/// **Nothing in the app links here.** The Library's ledger lists every section
-/// and every recipe of every book, so there is no fact left for a second screen
-/// to give — the page stays because `/books/:id` is a URL somebody can paste or
-/// bookmark, and because the phone's card may yet want a door onto it.
-///
-/// It is a pushed page, so the tab bar is gone and back returns to the Library:
-/// the bar being absent is what says you have left the tab loop. Nothing here
-/// folds — the page *is* the book already open — and every control the card
-/// offered comes along unchanged, because they are the same widgets
-/// (`book_rows.dart`): the section `＋`, the section `⋯`, the row's `⋯`, and the
-/// book's own menu, which on this page is the header bar's trailing action.
-///
-/// At [AnsiLayout.expanded] the sections become an index down the left and the
-/// recipes keep the measure beside it. The index is an **index, not a filter**:
-/// tapping a name scrolls the one list to that section, so a reader always has
-/// the whole book in its own order — a filter would answer a question nobody
-/// asked, and hide the section above the one they wanted.
+/// Nothing in the app links here; the page exists so the URL works. It
+/// shares every control with the Library card (`book_rows.dart`). At
+/// [AnsiLayout.expanded] the sections become an index down the left that
+/// scrolls the one list; it does not filter.
 library;
 
 import 'dart:async';
@@ -38,10 +24,6 @@ import 'book_rows.dart';
 import 'book_view_models.dart';
 
 /// How wide the section index is drawn at [AnsiLayout.expanded].
-///
-/// Fixed, like every other size in the app: a section name is a few words and a
-/// count is two digits, so the column that holds them does not need to be
-/// derived from the window.
 const double kSectionIndexWidth = 200;
 
 class BookPageView extends ConsumerWidget {
@@ -66,9 +48,8 @@ class BookPageView extends ConsumerWidget {
           onRetry: () => ref.invalidate(libraryProvider),
         ),
       ),
-      // The Library aggregate is one watched query the app already keeps live,
-      // so the page reads the book out of it rather than adding a second query
-      // for one row. A book deleted from its own page simply stops being in it.
+      // Read the book out of the Library aggregate the app already watches.
+      // A book deleted from its own page stops being in it.
       data: (books) {
         final book = books.where((b) => b.id == bookId).firstOrNull;
         if (book == null) {
@@ -88,7 +69,7 @@ class BookPageView extends ConsumerWidget {
   }
 }
 
-/// Back and nothing else — what a page with no book to name can offer.
+/// Back and nothing else, for a page with no book to name.
 class _BackOnly extends StatelessWidget {
   const _BackOnly();
 
@@ -97,9 +78,8 @@ class _BackOnly extends StatelessWidget {
       const FHeader.nested(prefixes: [_BackAction()]);
 }
 
-/// The page's own back control: pops to whatever opened it, and falls back to
-/// the Library on a cold deep link, where there is genuinely nothing beneath —
-/// the one rule, from the one place (`shared/ansi_back.dart`).
+/// The page's back control: pops, or falls back to the Library on a cold
+/// deep link (`shared/ansi_back.dart`).
 class _BackAction extends StatelessWidget {
   const _BackAction();
 
@@ -113,8 +93,7 @@ class _BookBody extends StatelessWidget {
 
   final Book book;
 
-  /// The whole library — what the book menu's reorder moves against, and what
-  /// its delete counts before refusing.
+  /// The whole library: what the book menu's reorder and delete read.
   final List<Book> books;
 
   @override
@@ -131,9 +110,7 @@ class _BookBody extends StatelessWidget {
   }
 }
 
-/// The book's name and what it holds. No herb band: on the shelf the band is
-/// what makes a tile a book, and here the page is the book, so the name is the
-/// page's title.
+/// The book's name and what it holds, as the page's title.
 class _BookHero extends StatelessWidget {
   const _BookHero({required this.book});
 
@@ -156,11 +133,8 @@ class _BookHero extends StatelessWidget {
   );
 }
 
-/// The sections a book offers, in the order it keeps them, with the synthetic
-/// Unsectioned bucket last — the Library card's own order.
-///
-/// An entry's `id` is null for that bucket, exactly as [BookSectionBlock]'s
-/// section is.
+/// A book's sections in order, with the synthetic Unsectioned bucket last.
+/// That bucket's `id` is null, as [BookSectionBlock]'s section is.
 List<({String? id, String name, int count})> bookIndexEntries(Book book) => [
   for (final section in book.sections)
     (id: section.id, name: section.name, count: section.recipes.length),
@@ -168,7 +142,7 @@ List<({String? id, String name, int count})> bookIndexEntries(Book book) => [
     (id: null, name: 'Unsectioned', count: book.unsectioned.length),
 ];
 
-/// The sections as the phone draws them: the hero, then one block each.
+/// The phone's layout: the hero, then one block per section.
 class _OneColumn extends StatelessWidget {
   const _OneColumn({required this.book});
 
@@ -187,8 +161,8 @@ class _OneColumn extends StatelessWidget {
   );
 }
 
-/// The blocks a book's body is made of, shared by both layouts: every section
-/// in order, Unsectioned last, and the first-run doors when the shelf is bare.
+/// The body's blocks, shared by both layouts: every section in order,
+/// Unsectioned last, or the first-run doors when the shelf is bare.
 List<Widget> _sections(Book book, {Map<String?, Key>? keys}) => [
   for (final section in book.sections)
     BookSectionBlock(key: keys?[section.id], book: book, section: section),
@@ -201,12 +175,8 @@ List<Widget> _sections(Book book, {Map<String?, Key>? keys}) => [
   if (book.sections.isEmpty && book.unsectioned.isEmpty) EmptyShelf(book: book),
 ];
 
-/// The index beside the recipes, at [AnsiLayout.expanded].
-///
-/// The list is one scrollable holding the whole book; the index scrolls it and
-/// lights whichever section is at the top of it. That is why this is a
-/// [StatefulWidget] and not a notifier: it is scroll position, which belongs to
-/// the widget that owns the controller and dies with it.
+/// The index beside the recipes, at [AnsiLayout.expanded]. The index scrolls
+/// the one list and lights the section at its top.
 class _Panes extends StatefulWidget {
   const _Panes({required this.book});
 
@@ -219,13 +189,12 @@ class _Panes extends StatefulWidget {
 class _PanesState extends State<_Panes> {
   final _scroll = ScrollController();
 
-  /// One key per section block, so the index can scroll to it. Keyed by section
-  /// id (null for Unsectioned) and kept across rebuilds — a fresh key would
-  /// rebuild the block and lose the row states inside it.
+  /// One key per section block (null for Unsectioned) for the index to
+  /// scroll to. Kept across rebuilds so the rows inside keep their state.
   final _keys = <String?, GlobalKey>{};
 
-  /// The section the list is showing, or null before the first scroll — then
-  /// the first entry is lit, which is what is on screen.
+  /// The section the list is showing; null before the first scroll, when the
+  /// first entry is lit.
   String? _lit;
   bool _litIsSet = false;
 
@@ -247,16 +216,10 @@ class _PanesState extends State<_Panes> {
 
   /// Lights the last section that has reached the top of the list.
   ///
-  /// Each section is asked what offset would put *it* at the top
-  /// ([RenderAbstractViewport.getOffsetToReveal] — the number
-  /// [Scrollable.ensureVisible] scrolls to), and the last one already at or
-  /// above the current offset is the one on screen. Asked that way rather than
-  /// by measuring where a block is painted, because a scrolled sliver child's
-  /// paint transform answers in the list's own layout space and never moves.
-  ///
-  /// A section scrolled far above the viewport can be unbuilt, and then it has
-  /// nothing to ask — harmless: the one at the top is by definition built, so
-  /// it is still the last match.
+  /// Uses [RenderAbstractViewport.getOffsetToReveal] rather than painted
+  /// positions, because a sliver child's paint transform is in the list's
+  /// layout space and never moves. An unbuilt section above the viewport is
+  /// skipped harmlessly.
   void _readScroll() {
     if (!_scroll.hasClients) return;
     final offset = _scroll.offset;
@@ -292,9 +255,8 @@ class _PanesState extends State<_Panes> {
       );
       return;
     }
-    // A section far enough down the list has not been built, so there is no
-    // context to scroll to. Jumping to the end builds the tail; the section is
-    // then there to land on, one frame later.
+    // A section far down the list is not built, so there is no context to
+    // scroll to. Jumping to the end builds the tail for the next frame.
     _scroll.jumpTo(_scroll.position.maxScrollExtent);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final built = _keys[id]?.currentContext;
@@ -367,9 +329,8 @@ class _PanesState extends State<_Panes> {
   }
 }
 
-/// One name in the index: what it is called, what it holds, and whether the
-/// list is showing it. Unsectioned is [quiet] — it is a bucket, not a name
-/// somebody typed.
+/// One name in the index: name, count, and whether it is lit. Unsectioned
+/// is [quiet].
 class _IndexRow extends StatelessWidget {
   const _IndexRow({
     required this.name,

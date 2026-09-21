@@ -1,46 +1,25 @@
-/// Tidying the names a person types — PURE DART.
+/// Tidying the names a person types. Pure Dart.
 ///
-/// A name typed into an editor arrives with the debris of typing: a stray
-/// leading space, a double space where a word was rewritten, a full stop at
-/// the end because the finger was already there. None of it is meaningful, and
-/// all of it survives into every list, every search and every printed line.
-/// [cleanName] is the one place that debris is removed, so the Library, the
-/// ingredients manager and the recipe page cannot disagree about what a name
-/// looks like.
-///
-/// **It only ever adds capitals.** Case is evidence: `BBQ`, `pH`, `McIntosh`
-/// and `Cream Of Tartar` are all things a person meant, and a rule that
-/// lowercases them to fit a house style is a rule that corrupts data to look
-/// tidy. So the only case change here is uppercasing a letter that is
-/// lowercase — never the reverse.
-///
-/// Its counterpart, `suggestIngredientName`, is where a *word* may change; it
-/// is told, not silent, and lives beside the normalizer whose vocabulary it
-/// borrows (`features/ingredients/domain/suggest_name.dart`).
+/// [cleanName] removes stray whitespace and a trailing stop so every surface
+/// agrees on what a name looks like. It only ever adds capitals: `BBQ`, `pH`
+/// and `McIntosh` are kept as typed. A change of word is
+/// `suggestIngredientName`'s job
+/// (`features/ingredients/domain/suggest_name.dart`).
 library;
 
 /// The kinds of name a person types, and how much each may be recased.
-///
-/// There are **two**, because only two behaviours are honest. Everything a
-/// household names — an ingredient, a recipe, a book, a section — is a label
-/// on a shelf and reads as one, so they all get the same Title Case:
-/// `Smoky Bean Stew` sits beside `Cream of Tartar` and `Desserts` without
-/// one of them looking like a sentence somebody forgot to finish. An alias is
-/// stored lowercase by the vocabulary (`supabase/seed/snapshot.jsonl`), so
-/// recasing it would only be undone.
+/// Everything a household names gets Title Case; an alias is stored
+/// lowercase by the vocabulary, so it is not recased.
 enum NameKind {
-  /// A name a household gives something — Title Case, small words excepted.
+  /// A name a household gives something: Title Case, small words excepted.
   title,
 
-  /// An alias — whitespace and trailing punctuation only, no recasing.
+  /// An alias: whitespace and trailing punctuation only, no recasing.
   alias,
 }
 
-/// The words Title Case leaves alone when they are not the first word.
-///
-/// Short, and deliberately not a general English list: these are the words
-/// that actually turn up inside food names. A longer list buys nothing and
-/// starts making decisions about words a person may have meant.
+/// The words Title Case leaves lowercase when not first. Deliberately short:
+/// only words that turn up inside food names.
 const _smallWords = {
   'of',
   'and',
@@ -57,15 +36,10 @@ const _smallWords = {
 
 final _whitespace = RegExp(r'\s+');
 
-/// [raw] with the debris of typing removed, cased for [kind].
+/// [raw] tidied and cased for [kind]: trim, collapse whitespace runs to one
+/// space, drop a single trailing `.` or `,`, then recase.
 ///
-/// In order: trim, collapse every run of whitespace (tabs and newlines
-/// included) to one space, drop a single trailing `.` or `,`, then recase.
-///
-/// The trailing stop is dropped only when it stands alone — `Etc...` keeps its
-/// ellipsis and `1, 2,,` keeps its commas — which is both the kinder reading
-/// and what makes this function **idempotent**: `cleanName(cleanName(x)) ==
-/// cleanName(x)` for every input and kind.
+/// A run of stops (`Etc...`) is kept, which makes the function idempotent.
 String cleanName(String raw, NameKind kind) {
   final collapsed = raw.trim().replaceAll(_whitespace, ' ');
   final trimmed = _dropTrailingStop(collapsed).trim();
@@ -81,20 +55,15 @@ String _dropTrailingStop(String s) {
   final last = s[s.length - 1];
   if (last != '.' && last != ',') return s;
   final before = s[s.length - 2];
-  // A run of stops is a deliberate mark, not a slip of the finger.
+  // A run of stops is deliberate.
   if (before == '.' || before == ',') return s;
   return s.substring(0, s.length - 1);
 }
 
-/// Every word's first letter uppercased, except a [_smallWords] entry that is
-/// not the first word.
-///
-/// A word is a space-separated token; each hyphenated part of one is capped in
-/// its own right, so `stir-fry sauce` reads `Stir-Fry Sauce`.
-///
-/// Only the HEAD is a label. What follows a comma is a qualifier the kitchen
-/// writes lowercase (`Chicken Thigh, boneless`, `Mango, ripe`), and it is left
-/// exactly as typed.
+/// Uppercases every word's first letter, except a [_smallWords] entry that
+/// is not first. Each hyphenated part is capped (`Stir-Fry Sauce`). Only the
+/// head is cased: what follows a comma is a qualifier, left as typed
+/// (`Chicken Thigh, boneless`).
 String _titleCase(String s) {
   final comma = s.indexOf(',');
   if (comma >= 0) {
@@ -110,14 +79,11 @@ String _titleCase(String s) {
   ].join(' ');
 }
 
-/// [s] with its first *letter* uppercased and everything else untouched.
+/// [s] with its first letter uppercased and everything else untouched.
 ///
-/// Leading punctuation is stepped over, so `(optional)` caps the `o`. A letter
-/// is anything whose upper and lower cases differ — the same test `chipWord`
-/// makes, which keeps digits, glyphs and CJK out of it without a table.
-///
-/// A letter whose uppercase is longer than itself (`ß` → `SS`) is left as
-/// typed: growing a word is not recasing it.
+/// Leading punctuation is stepped over. A letter is anything whose upper and
+/// lower cases differ. A letter whose uppercase is longer (`ß` → `SS`) is
+/// left as typed.
 String _upperFirstLetter(String s) {
   final runes = s.runes.toList();
   for (var i = 0; i < runes.length; i++) {

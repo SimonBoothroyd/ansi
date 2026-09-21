@@ -1,28 +1,9 @@
-/// The ONE vocabulary for a cost — PURE DART, the money twin of
+/// The one vocabulary for a cost. Pure Dart; the money twin of
 /// `incomplete_macros.dart`.
 ///
-/// Five surfaces print a cost: the recipe panel's Cost reading, the figures
-/// under each line, the week's band, the shop's sync line and the shop's rows.
-/// They have to say the same things in the same words, so they say them from
-/// here.
-///
-/// Two spellings, and they mean different things. **A figure read off one
-/// price is printed plain** — `$13.16 · $1.10 / 100 g · TJ's, Sep` — because
-/// the chain behind it is right there and a reader can follow it to the
-/// receipt line that made it. **A figure summed over many prices wears `≈`**
-/// — `≈ $71 to cook`, `≈ $2.42` — because a price is the latest one seen and
-/// not a quote, and the sum of a week's worth of them is an estimate of what
-/// the trip will come to, never a bill. The panel's cells wear neither: its
-/// third cell says `prices from Sep` outright, which is the same caveat said
-/// in words rather than in a glyph.
-///
-/// **A floor is a third thing, and it says so in words too.** When some of a
-/// recipe's lines are priced and some are not, what the priced ones come to is
-/// printed as `at least …` — never as the cost, and never with `≈`, which
-/// would hedge the one part of the figure that is exact and leave the reader
-/// to guess which way the doubt runs. What is uncertain there is not the
-/// arithmetic; it is the lines nobody has priced, and they are named
-/// underneath.
+/// A figure read off one price prints plain. A figure summed over many
+/// prices wears `≈`. A sum with a known gap prints `at least …` and never
+/// `≈`: the arithmetic is exact, the gap is what is unknown.
 library;
 
 import '../core/money.dart';
@@ -32,21 +13,17 @@ import '../features/ingredients/domain/price.dart';
 import '../features/recipes/domain/recipe_cost.dart';
 import '../features/shopping/domain/shopping_cost.dart';
 
-/// `≈ $2.42` — one row's estimate. See the library note.
+/// `≈ $2.42`: one row's estimate.
 String approxMoney(double cents) => '≈ ${formatMoneyRounded(cents)}';
 
-/// `≈ $71` — an estimate standing for a whole LIST, to the dollar
-/// ([formatMoneyWhole]).
+/// `≈ $71`: a whole list's estimate, to the dollar ([formatMoneyWhole]).
 String approxMoneyWhole(double cents) => '≈ ${formatMoneyWhole(cents)}';
 
-/// What ONE line carries when it has no cost, in the words its reason implies
-/// — the per-line half of the refusal, and the same shape
-/// `incompleteLineNote` gives a macro reason.
+/// What one line prints when it has no cost.
 String costLineNote(CostLineReason reason) => switch (reason) {
   CostLineReason.noPrice => 'no price yet',
-  // Not "no density": the same line may be missing a piece weight or an
-  // amount, and the cost panel is not the place that teaches the ingredient
-  // form — the macro reading beside it already names the exact fact.
+  // Not "no density": the missing fact may also be a piece weight or an
+  // amount, and the macro reading beside it names which.
   CostLineReason.noPathToBasis => 'no way to price this amount',
   CostLineReason.priceOffBasis => 'priced in another unit',
   CostLineReason.subRecipeUnresolved => 'sub-recipe has no yield',
@@ -54,38 +31,29 @@ String costLineNote(CostLineReason reason) => switch (reason) {
   CostLineReason.imprecise || CostLineReason.optional => 'not counted',
 };
 
-/// `$1.29 a can`, `$3.99 a jar`, `$1.10 / 100 g` — the unit price a line's
-/// figure was read from.
+/// `$1.29 a can`, `$1.10 / 100 g`: the unit price behind a line's figure.
 ///
-/// A pack the household NAMED prints as that pack: you buy a can, and `$1.29
-/// a can` is the figure a person can check against a shelf. A pack typed as a
-/// plain amount has no word to print, so it reads per 100 of the basis, which
-/// is the figure the ingredient page shows.
+/// A named pack prints as that pack; a pack typed as a plain amount reads
+/// per 100 of the basis.
 String unitPriceWord(PriceObservation price) {
   final label = price.packLabel;
   if (label != null) return '${formatMoney(price.paidCents)} a $label';
   return switch (price.per100) {
     Ok(:final value) => formatPricePer100(value),
-    // Unreachable from an observation (it is built only from a positive pack
-    // and a positive payment), and a refusal is never printed as a number.
+    // Unreachable: an observation has a positive pack and payment.
     Err() => 'no price yet',
   };
 }
 
-/// `TJ's, Sep` — where and when the price was seen.
+/// `TJ's, Sep`: where and when the price was seen.
 String priceProvenance(PriceObservation price) =>
     '${price.store}, ${formatMonthShort(price.purchasedAt)}';
 
-/// `$13.16 · $1.10 / 100 g · TJ's, Sep` — a line's whole chain: what it comes
-/// to at the amount shown, the unit price behind it, and where that price came
-/// from.
+/// `$13.16 · $1.10 / 100 g · TJ's, Sep`: a line's figure at the amount
+/// shown, its unit price and its provenance.
 ///
-/// [factor] is the page's servings scaler, the same multiplication the amount
-/// beside it went through — the stored figure is never re-derived here.
-///
-/// A component line has no pack behind it, so it prints its figure alone: what
-/// it costs is a recipe's cost, and the chain continues on that recipe's own
-/// page.
+/// [factor] is the page's servings scaler. A component line has no pack, so
+/// it prints its figure alone.
 String lineCostText(CostLine line, {double factor = 1}) {
   final cents = formatMoneyRounded(line.cents * factor);
   final price = line.price;
@@ -93,10 +61,8 @@ String lineCostText(CostLine line, {double factor = 1}) {
   return '$cents · ${unitPriceWord(price)} · ${priceProvenance(price)}';
 }
 
-/// `Chopped tomatoes · no price yet` — the panel's `UNPRICED` row.
-///
-/// Null when nothing is unpriced, so a caller draws no row rather than a label
-/// with nothing after it.
+/// `Chopped tomatoes · no price yet`: the panel's `UNPRICED` row. Null when
+/// nothing is unpriced.
 String? unpricedNames(RecipeCostSummary summary) {
   final names = [
     for (final n in summary.unpriced) '${n.name} · ${costLineNote(n.reason)}',
@@ -104,18 +70,11 @@ String? unpricedNames(RecipeCostSummary summary) {
   return names.isEmpty ? null : names.join(', ');
 }
 
-/// `at least $1.65 a serving · at least $6.60 the recipe` — what a partly
-/// priced recipe's priced lines already come to.
+/// `at least $1.65 a serving · at least $6.60 the recipe`: what a partly
+/// priced recipe's priced lines come to.
 ///
-/// Null unless [RecipeCostSummary.partlyPriced]: a recipe that is whole prints
-/// its cells, and one with nothing priced has no floor worth printing — `at
-/// least $0` reads as free rather than as unknown.
-///
-/// **Both halves wear the words.** The strip's two cells are `a serving` and
-/// `the recipe`, and this is those cells said in a sentence, so each figure
-/// carries its own `at least`: a bare `$1.65 a serving` beside a floor would be
-/// read as what a serving costs, and what a serving costs is exactly what is
-/// not known yet. The order is the cells' own.
+/// Null unless [RecipeCostSummary.partlyPriced]. Each figure carries its own
+/// `at least`, so neither reads as the actual cost.
 String? costFloor(RecipeCostSummary summary) {
   if (!summary.partlyPriced) return null;
   final perServing = summary.pricedPerServingCents;
@@ -125,7 +84,7 @@ String? costFloor(RecipeCostSummary summary) {
   return 'at least ${formatMoneyRounded(perServing)} a serving · $recipe';
 }
 
-/// `Smoked paprika · Whole Foods, Jul` — the panel's `OLDEST` row, drawn only
+/// `Smoked paprika · Whole Foods, Jul`: the panel's `OLDEST` row, drawn only
 /// when the oldest price's month differs from the newest's.
 String? oldestPriceLine(RecipeCostSummary summary) {
   final oldest = summary.oldest;
@@ -134,8 +93,8 @@ String? oldestPriceLine(RecipeCostSummary summary) {
       : '${oldest.name} · ${priceProvenance(oldest.price)}';
 }
 
-/// `Parsley · handful, Kosher Salt · to taste` — the imprecise lines under a
-/// cost total, in exactly the grammar the macro reading prints them in.
+/// `Parsley · handful, Kosher Salt · to taste`: the imprecise lines under a
+/// cost total, in the macro reading's grammar.
 String? impreciseCostNames(RecipeCostSummary summary) {
   final names = [
     for (final n in summary.notCounted)
@@ -145,7 +104,7 @@ String? impreciseCostNames(RecipeCostSummary summary) {
   return names.isEmpty ? null : names.join(', ');
 }
 
-/// `Lime, Coriander` — the optional lines under a cost total.
+/// `Lime, Coriander`: the optional lines under a cost total.
 String? optionalCostNames(RecipeCostSummary summary) {
   final names = [
     for (final n in summary.notCounted)
@@ -154,8 +113,7 @@ String? optionalCostNames(RecipeCostSummary summary) {
   return names.isEmpty ? null : names.join(', ');
 }
 
-/// Why a cost summary has no figure, in one line — the cost twin of
-/// `incompleteNote`, and the words the panel prints where its cells would be.
+/// Why a cost summary has no figure, in one line.
 String costRefusal(RecipeCostSummary summary) {
   if (summary.noLines) return 'no ingredients yet';
   if (summary.nothingCountable) return 'nothing to price yet';
@@ -164,34 +122,16 @@ String costRefusal(RecipeCostSummary summary) {
   return 'servings not set';
 }
 
-/// `at least $71` — a summed figure with a known gap in it, to the dollar.
-///
-/// The aggregate twin of [costFloor]'s wording, by the same rule: a sum that
-/// skipped something is a floor, so it says so in words and wears no `≈`. The
-/// two together would contradict each other, because `≈` hedges the
-/// arithmetic and the arithmetic is the exact part.
+/// `at least $71`: a summed figure with a known gap, to the dollar. Never
+/// combined with `≈`.
 String atLeastMoneyWhole(double cents) => 'at least ${formatMoneyWhole(cents)}';
 
-/// `≈ $71 to cook · 3 lines unpriced` — the week band's cost line, which
-/// reads `at least $71 to cook · 3 lines unpriced` whenever a meal was left
-/// out.
+/// The week band's cost line: `≈ $71 to cook`, or `at least $71 to cook ·
+/// 3 lines unpriced` when a meal was left out.
 ///
-/// [cents] is what the priced meals come to; [unpriced] is how many distinct
-/// lines kept the rest of the week out of that figure. Null when there is
-/// neither — a week that plans nothing says nothing here.
-///
-/// **A meal with one unpriced line drops out whole** (`sumPlannedCost`), so
-/// the moment [unpriced] is anything the figure is missing entire meals
-/// rather than rounding. Naming the gap beside a number is not the same as
-/// saying what the number IS, and it is the number that understates the week
-/// — so it says `at least`. With every planned line priced the line reads
-/// exactly as before: `≈`, because a week at the latest prices is an estimate
-/// and never a bill.
-///
-/// The wording is all that moves. What is summed stays the meals that
-/// resolved: folding recipes' own floors in was weighed and refused, because
-/// the figure would then mix whole meals with parts of meals and no reader
-/// could say which.
+/// [cents] is what the priced meals come to; [unpriced] counts the distinct
+/// lines that kept a meal out. A meal with one unpriced line drops out whole
+/// (`sumPlannedCost`). Null when there is neither.
 String? weekCostLine({double? cents, int unpriced = 0}) {
   final figure = cents == null
       ? null
@@ -205,20 +145,11 @@ String? weekCostLine({double? cents, int unpriced = 0}) {
   return parts.isEmpty ? null : parts.join(' · ');
 }
 
-/// `≈ $58 still to buy`, and `at least $58 still to buy · 2 rows unpriced`
-/// where the walk holds a row nothing can price — the shop's trip estimate,
-/// on the sync line.
+/// The shop's trip estimate: `≈ $58 still to buy`, or `at least $58 still to
+/// buy · 2 rows unpriced`.
 ///
-/// It counts the UNTICKED rows only: what is in the basket has been picked up,
-/// and the question the line answers is what is left. Null when nothing on the
-/// list can be priced, because `≈ $0` would read as a free trip rather than as
-/// an unpriced one.
-///
-/// The week band's rule applied to the shop's own version of the same defect
-/// (owner): an unpriceable row adds nothing to the sum, so the figure
-/// understates the walk. The rows each say `no price yet` under their own
-/// grams, which is where a person goes to fix it; this count is what tells
-/// them the total is waiting on something.
+/// Counts unticked rows only. Null when nothing on the list can be priced,
+/// because `≈ $0` would read as a free trip.
 String? tripEstimate(TripCost trip) {
   final cents = trip.cents;
   if (cents == null) return null;

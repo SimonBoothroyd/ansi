@@ -1,20 +1,9 @@
-/// Whether this phone's writes are reaching the other one — as ONE provider,
-/// quiet until it is not.
+/// Whether this device's writes are reaching the server, as one provider.
 ///
-/// PowerSync publishes `connected · uploading · lastSyncedAt · hasSynced ·
-/// uploadError · downloadError`, and `getUploadQueueStats()` knows the queue
-/// depth. This file is the one place that reads them, so there is exactly one
-/// answer anywhere in the app to "has my week left the device".
-///
-/// **Four states, and only four** ([SyncHealth]). The distinction that matters
-/// most is between *waiting* and *stalled*: this app is offline-first by
-/// design, so a queue is the system working, and styling it as a problem would
-/// be the one thing Ansi must never do. The word "offline" appears nowhere in
-/// what any of this renders — being offline is not a state the app reports.
-///
-/// Every readout — the Library `⋯` menu's footer line, the Shop list's status
-/// line, the shell's banner — watches [syncHealthProvider]. They cannot
-/// disagree, because there is nothing for them to disagree about.
+/// The only reader of PowerSync's status and upload queue; every readout
+/// watches [syncHealthProvider]. Four states ([SyncHealth]). A queue is the
+/// offline-first design working, so waiting is never styled as a problem and
+/// the app never says "offline".
 library;
 
 import 'dart:async';
@@ -27,13 +16,9 @@ import 'dropped_write.dart';
 
 part 'sync_health.g.dart';
 
-/// How long uploads must have been getting nowhere before the app says so.
-///
-/// Deliberately minutes, not seconds: a token refresh, a backgrounded app and
-/// a lift ride all produce upload errors that heal themselves within seconds,
-/// and a banner for those is a banner nobody reads. And a threshold rather
-/// than a count, because one op failing for an hour is worse than fifty ops
-/// queued for ten seconds.
+/// How long uploads must have been failing before the app says so. Minutes,
+/// because token refreshes and backgrounding cause errors that heal in
+/// seconds.
 const stallThreshold = Duration(minutes: 5);
 
 /// How often the provider re-derives with nothing new to go on, so a stall
@@ -52,9 +37,8 @@ final class SyncSettled extends SyncHealth {
   final DateTime? lastSyncedAt;
 }
 
-/// Writes are queued and nothing is wrong. **Not an error**: the app is
-/// offline-first, and a queue draining a minute from now is the design working.
-/// Rendered muted, never red, never with a warning icon.
+/// Writes are queued and nothing is wrong. Not an error: rendered muted,
+/// never red.
 final class SyncWaiting extends SyncHealth {
   const SyncWaiting({
     required this.queued,
@@ -64,8 +48,7 @@ final class SyncWaiting extends SyncHealth {
 
   final int queued;
 
-  /// PowerSync is pushing right now. Not a fifth state — a display flourish,
-  /// worth drawing only where someone is standing still watching for it.
+  /// PowerSync is pushing right now. A display detail, not a fifth state.
   final bool uploading;
   final DateTime? lastSyncedAt;
 }
@@ -77,33 +60,24 @@ final class SyncStalled extends SyncHealth {
 
   final int queued;
 
-  /// When the writes stopped landing — see [deriveSyncHealth] for why this is
-  /// the *earlier* of "last successful sync" and "uploads started failing".
+  /// When the writes stopped landing; see [deriveSyncHealth].
   final DateTime since;
 }
 
-/// A transaction was refused and discarded. Data loss, and the only state that
-/// bypasses the threshold entirely.
+/// A transaction was refused and discarded. Data loss; bypasses the
+/// threshold.
 final class SyncRefused extends SyncHealth {
   const SyncRefused(this.drops);
 
   final List<DroppedWrite> drops;
 }
 
-/// Turns the three inputs into one state. Pure, so the words the app says can
-/// be pinned by a unit test rather than by a running sync engine.
+/// Turns the three inputs into one state. Pure, so it is unit-testable.
 ///
-/// **Which clock the stall runs on.** `ps_crud` carries no timestamps, so the
-/// age of the oldest queued op is not knowable; two things are. [lastSyncedAt]
-/// says when anything last got through, and [uploadFailingSince] says when the
-/// current run of upload errors began. The stall clock takes the **earlier**
-/// of the two, which is what makes both cases right:
-///
-/// * A cold start with a three-day-old queue has a three-day-old
-///   [lastSyncedAt], so the banner shows immediately rather than five minutes
-///   after launch.
-/// * An app whose downloads are healthy keeps refreshing [lastSyncedAt], so
-///   the failing-uploads clock governs and the threshold does its job.
+/// `ps_crud` carries no timestamps, so the stall clock is the earlier of
+/// [lastSyncedAt] and [uploadFailingSince]: a cold start with an old queue
+/// stalls at once, while healthy downloads leave the failing-uploads clock
+/// in charge.
 SyncHealth deriveSyncHealth({
   required int queued,
   required DateTime? lastSyncedAt,
@@ -113,7 +87,7 @@ SyncHealth deriveSyncHealth({
   bool uploading = false,
   Duration threshold = stallThreshold,
 }) {
-  // Loss outranks everything: it is the one state waiting cannot resolve.
+  // Loss outranks everything: waiting cannot resolve it.
   if (drops.isNotEmpty) return SyncRefused(drops);
   if (queued == 0) return SyncSettled(lastSyncedAt);
   if (uploadFailingSince != null) {
@@ -132,10 +106,8 @@ SyncHealth deriveSyncHealth({
   );
 }
 
-/// The app's single answer to "are my changes getting through?".
-///
-/// Keep-alive: the banner and the two quiet lines live on different screens,
-/// and the "since" timestamp must survive a tab switch.
+/// The app's single answer to "are my changes getting through?". Keep-alive
+/// so the "since" timestamp survives a tab switch.
 @Riverpod(keepAlive: true)
 Stream<SyncHealth> syncHealth(Ref ref) {
   final db = ref.watch(powerSyncDatabaseProvider);
@@ -145,21 +117,14 @@ Stream<SyncHealth> syncHealth(Ref ref) {
 
 /// Whether the sync connection is live right now.
 ///
-/// **Not a fifth health state**, and never rendered as one — "offline" stays a
-/// thing this app does not say about itself. It exists for the one control
-/// that cannot act without the server: flipping the household's first day of
-/// the week runs a transaction over every week the household has planned, so
-/// the chips go inert with a reason rather than tappable and failing.
-///
-/// PowerSync publishes `connected` on its status, and the status is readable
-/// synchronously, so the stream leads with where the device stands and then
-/// follows every change.
+/// Not a health state and never rendered as one. It exists for the one
+/// control that needs the server: changing the household's week start. Leads
+/// with the current status, then follows every change.
 @Riverpod(keepAlive: true)
 Stream<bool> serverReachable(Ref ref) =>
     watchServerReachable(ref.watch(powerSyncDatabaseProvider));
 
-/// [serverReachableProvider]'s body, with the database passed in so a test can
-/// drive it without a provider container.
+/// [serverReachableProvider]'s body, with the database passed in for tests.
 Stream<bool> watchServerReachable(PowerSyncDatabase db) async* {
   var last = db.currentStatus.connected;
   yield last;
@@ -170,8 +135,7 @@ Stream<bool> watchServerReachable(PowerSyncDatabase db) async* {
   }
 }
 
-/// [syncHealthProvider]'s body, with the database passed in so a test can drive
-/// it against a real PowerSync queue without a provider container.
+/// [syncHealthProvider]'s body, with the database passed in for tests.
 Stream<SyncHealth> watchSyncHealth(
   PowerSyncDatabase db, {
   List<DroppedWrite> drops = const [],
@@ -185,8 +149,8 @@ Stream<SyncHealth> watchSyncHealth(
   Future<void> emit() async {
     if (closed) return;
     final status = db.currentStatus;
-    // The run of failures, not this one: a cleared error resets the clock, so
-    // a token refresh that heals itself never accumulates toward the banner.
+    // The clock runs from the start of a run of failures; a cleared error
+    // resets it.
     if (status.uploadError != null) {
       uploadFailingSince ??= clock();
     } else {
@@ -206,10 +170,8 @@ Stream<SyncHealth> watchSyncHealth(
     );
   }
 
-  // Three reasons to re-derive. `ps_crud` changes do NOT come through
-  // statusStream — PowerSync drives its own upload trigger off exactly this
-  // watch — and neither does the passage of time, which is what turns waiting
-  // into stalled.
+  // Three reasons to re-derive. `ps_crud` changes do not come through
+  // statusStream, and neither does the passage of time.
   final subscriptions = <StreamSubscription<void>>[
     db.statusStream.listen((_) => unawaited(emit())),
     db

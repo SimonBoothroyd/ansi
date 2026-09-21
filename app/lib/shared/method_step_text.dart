@@ -1,20 +1,9 @@
-/// The ONE renderer for a tokenized method step — prose interleaved with
-/// ingredient and timer chips, produced by the pure [foldMethod] (never
-/// render-time text matching, ADR-0004).
+/// The one renderer for a tokenized method step: prose interleaved with
+/// ingredient and timer chips from the pure [foldMethod] (ADR-0004).
 ///
-/// The recipe page and the import review screen show the same method with the
-/// same chips. The only thing that legitimately varies between them is the
-/// prose type size — and, on the recipe page alone, whether a chip can be
-/// *ticked off*. Every knob for that is null by default, so a surface that
-/// hands none of them over renders exactly what it always did.
-///
-/// **Two struck states, and they must not read alike.** A chip can be crossed
-/// off by the cook ([MethodStepText.struckChips], [MethodStepText.stepStruck])
-/// — *I have added that* — or left out by the week
-/// ([MethodStepText.weekExcluded]) — *we are not cooking that this time*. The
-/// first is muted **and** ruled through, the Shop's own "got it" style; the
-/// second is muted only. One is a thing you did, the other a thing the plan
-/// says, and a cook glancing back at a step has to be able to tell them apart.
+/// Two struck states that must not read alike: ticked off by the cook is
+/// muted and ruled through; left out by the week
+/// ([MethodStepText.weekExcluded]) is muted only.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -27,22 +16,12 @@ import '../features/recipes/domain/method_step.dart';
 import '../features/recipes/domain/recipe.dart';
 
 /// Renders [step]'s tokens, deriving each chip's live amount from [lineById]
-/// (scaled by [factor]). [textSize] is the prose size; the chips size with it.
+/// scaled by [factor]. [textSize] is the prose size; the chips size with it.
 ///
-/// ## Ticking off
-///
-/// A chip is addressed by its **ordinal in the step** — the nth ingredient chip
-/// in reading order, counting a collective's constituents as the chips they
-/// are and skipping timers, which are never tappable. That ordinal is the whole
-/// identity: the caller holds the set, so a chip identifies itself by where it
-/// is rather than by a line id, and two chips on the same line tick
-/// independently (a cook adds the garlic twice).
-///
-/// [stepStruck] is the step's own answer and it wins over every chip in it,
-/// because text decoration does not cross into a [WidgetSpan]: a struck step
-/// whose chips stayed live would be a ruled sentence with bright words in it.
-/// It does not *clear* the chips' own state — striking a step and un-striking
-/// it leaves each chip exactly as the cook had it.
+/// A chip is addressed by its ordinal among the step's ingredient chips
+/// (constituents counted, timers skipped), so two chips on one line tick
+/// independently. [stepStruck] overrides every chip, because text decoration
+/// does not cross into a [WidgetSpan]; it does not clear the chips' own state.
 class MethodStepText extends StatelessWidget {
   const MethodStepText({
     required this.step,
@@ -61,21 +40,16 @@ class MethodStepText extends StatelessWidget {
   final double factor;
   final double textSize;
 
-  /// The ordinals of the chips the cook has ticked off. Null on a surface that
-  /// does not tick anything off.
+  /// The ordinals of the chips ticked off. Null where nothing ticks off.
   final Set<int>? struckChips;
 
-  /// Whether the whole step is ticked off — its prose ruled through and every
-  /// chip in it struck with it.
+  /// Whether the whole step is ticked off.
   final bool stepStruck;
 
-  /// Ticks the chip at that ordinal. Null leaves every chip inert, with no tap
-  /// target, no cursor and no focus stop — which is what the import review and
-  /// the editor's preview want.
+  /// Ticks the chip at that ordinal. Null leaves every chip inert.
   final ValueChanged<int>? onToggleChip;
 
-  /// The line ids a week leaves out. Their chips read muted, never ruled
-  /// through: see the library doc on the two struck states.
+  /// The line ids a week leaves out. Their chips read muted, never ruled.
   final Set<String> weekExcluded;
 
   @override
@@ -106,9 +80,8 @@ class MethodStepText extends StatelessWidget {
             chip += constituents.length;
             break;
           }
-          // The portion/quantity rides on the label chip; the constituents
-          // that follow are names only — and they, not the prose, are what
-          // abuts this chip, so there is nothing to deduplicate against.
+          // The portion rides on the label chip; the constituents that follow
+          // are names only.
           children.add(
             _chip(
               MethodChip(
@@ -121,9 +94,7 @@ class MethodStepText extends StatelessWidget {
                     : amount,
                 textSize: textSize,
                 struck: _struck(chip),
-                // A mixture is out only when everything in it is out — one
-                // excluded constituent leaves the mixture itself live, and
-                // says so on the constituent's own chip.
+                // A mixture is out only when every constituent is out.
                 weekStruck: lineIds.isNotEmpty && lineIds.every(_excluded),
                 onTap: _toggle(chip),
               ),
@@ -160,14 +131,11 @@ class MethodStepText extends StatelessWidget {
     return onToggle == null ? null : () => onToggle(chip);
   }
 
-  /// A blank-labelled collective as the run it actually is — `Kale, Avocado,
-  /// Garlic` — full-size chips, no parentheses (there is no label to bracket),
-  /// any step-named portion riding on the first.
+  /// A blank-labelled collective as a run of chips: `Kale, Avocado, Garlic`.
   ///
-  /// One span per chip with real text between them, never one chip label
-  /// holding every name: a chip is one atomic box to the line breaker, so a
-  /// seven-ingredient catch-all would run straight off a phone screen instead
-  /// of wrapping. Same mechanics as [_constituentSpans].
+  /// One span per chip with real text between them: a chip is one atomic box
+  /// to the line breaker, so a single chip holding every name would overflow
+  /// instead of wrapping.
   Iterable<InlineSpan> _collectiveRun(
     List<String> names,
     List<String> lineIds,
@@ -189,12 +157,8 @@ class MethodStepText extends StatelessWidget {
     }
   }
 
-  /// A collective chip's constituents as `(a b c)`.
-  ///
-  /// One span per chip with real whitespace between them, never a single
-  /// WidgetSpan holding a Row: a WidgetSpan is an atomic box to the line
-  /// breaker, so a packed run of eight constituents would overflow the step
-  /// instead of wrapping onto the next line.
+  /// A collective chip's constituents as `(a b c)`, one span per chip so the
+  /// run wraps (see [_collectiveRun]).
   Iterable<InlineSpan> _constituentSpans(
     List<String> constituents,
     List<String> lineIds,
@@ -220,26 +184,17 @@ class MethodStepText extends StatelessWidget {
       WidgetSpan(alignment: PlaceholderAlignment.middle, child: chip);
 }
 
-/// The imprecise unit words a chip can print as its amount — `pinch`, `dash`,
-/// `handful`, `to taste`. An imprecise line has no number, so the fold gives
-/// the chip its unit's word.
+/// The imprecise unit words a chip prints as its amount, having no number.
 final _impreciseWords = {
   for (final unit in kAllUnits)
     if (unit.family == UnitFamily.imprecise) unit.label.toLowerCase(),
 };
 
-/// [amount], unless the prose that follows the chip already says it.
+/// [amount], unless it is an imprecise word the very next prose opens with,
+/// which would read "salt to taste to taste".
 ///
-/// An imprecise line's amount IS a phrase of the sentence, and a source step
-/// usually writes it out: with the pill printed too, "Season with salt to
-/// taste" reads *salt to taste to taste*. The rule is narrow on purpose — only
-/// an imprecise word, and only when the very next prose opens with it — so a
-/// chip whose sentence does not repeat the word keeps its pill and nothing is
-/// lost.
-///
-/// It lives here rather than in `foldMethod` because it is a fact about two
-/// adjacent spans, and the fold is a per-token map: the renderer is the first
-/// place that holds the chip and the prose after it at once.
+/// Here rather than in `foldMethod` because it needs the chip and the prose
+/// after it together.
 String? _unrepeatedAmount(String? amount, MethodSpan? next) {
   if (amount == null) return null;
   if (!_impreciseWords.contains(amount.toLowerCase())) return amount;
@@ -252,23 +207,11 @@ String? _unrepeatedAmount(String? amount, MethodSpan? next) {
 
 /// One inline chip.
 ///
-/// An **ingredient** chip is the ingredient's word set bold in `herbDeep`,
-/// with — when the fold derived one — its live [amount] in a small herb-soft
-/// mono pill after it. No box around the word: a step is a sentence, and a
-/// boxed noun in the middle of one breaks the reading. The pill is the marked
-/// thing because the number is the part that is live, moving with the scaler.
-/// Nothing pads the chip sideways either, so the comma after it hugs the word.
-///
-/// A [timer] chip keeps its outlined paper pill and clock glyph: it is not a
-/// word in the sentence, it is a measurement the step hands you. It is also
-/// the one chip that never ticks off: a duration is not a thing you add.
-///
-/// **[struck]** is the cook's tick — the word muted and ruled through, the
-/// pill's ground dropping from the herb wash to the hairline. **[weekStruck]**
-/// is the week leaving the line out — the same muting, and deliberately no
-/// rule, so the two never read as one another. The geometry does not move
-/// under either: a struck chip occupies the pixels it did, because a sentence
-/// that reflows as you tick through it is a sentence you lose your place in.
+/// An ingredient chip is its word in bold `herbDeep`, unboxed, with its live
+/// [amount] in a small mono pill. A [timer] chip keeps its outlined pill and
+/// clock glyph and never ticks off. [struck] mutes and rules through;
+/// [weekStruck] only mutes. Neither moves the geometry, so the step never
+/// reflows as it is ticked through.
 class MethodChip extends StatelessWidget {
   const MethodChip({
     required this.label,
@@ -286,20 +229,18 @@ class MethodChip extends StatelessWidget {
   final bool timer;
   final double textSize;
 
-  /// Ticked off by the cook this session: muted **and** ruled through.
+  /// Ticked off by the cook: muted and ruled through.
   final bool struck;
 
-  /// Left out by the week this page was opened from: muted only.
+  /// Left out by the week: muted only.
   final bool weekStruck;
 
-  /// Toggles [struck]. Null leaves the chip inert — no target, no cursor, no
-  /// focus stop.
+  /// Toggles [struck]. Null leaves the chip inert.
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    // A ref the fold could name neither from its label nor from its line item
-    // would render as a bare number — say so instead of showing a naked digit.
+    // A ref the fold could not name would render as a bare number.
     final text = label.trim().isEmpty && !timer ? 'ingredient' : label;
     if (timer) return _timer(text);
 
@@ -339,8 +280,8 @@ class MethodChip extends StatelessWidget {
     );
     final onTap = this.onTap;
     if (onTap == null) return chip;
-    // Labelled, so the sweep that bans a bare tap around a lone glyph does not
-    // apply — and a word-wide target needs no growing on a phone.
+    // Labelled, so the structural ban on a bare tap around a lone glyph does
+    // not apply.
     return FTappable(
       onPress: onTap,
       semanticsLabel: text,

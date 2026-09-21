@@ -1,11 +1,7 @@
-/// The grammar of a book's contents — its `⋯`, its sections, and the recipe
-/// rows filed under them.
+/// A book's contents: its `⋯`, its sections, and the recipe rows under them.
 ///
-/// Three surfaces draw the same book: the Library's card on a phone, the
-/// ledger's heading row and lines on a desk, and the book page either of them
-/// opens. They share these widgets rather than each keeping a copy of the menu,
-/// the count line and the row, so an item added to a menu here is offered at
-/// every door and none of them can drift.
+/// Shared by the Library card, the ledger and the book page so the menus and
+/// count lines cannot drift.
 library;
 
 import 'dart:async';
@@ -37,18 +33,15 @@ import 'book_view_models.dart';
 import 'recipe_move_sheet.dart';
 import 'text_prompt.dart';
 
-/// "New section", from the book `⋯` — its one door since 0028 E3 retired the
-/// card's dashed twin. The invitation D5 was protecting ("name it anything")
-/// lives in the prompt's own hint, which is where a person actually reads it.
+/// "New section", from the book `⋯`.
 Future<void> promptForNewSection(
   BuildContext context,
   WidgetRef ref,
   String bookId,
 ) async {
-  // The prompt's keyboard shrinks the Library under it, so the card row that
-  // opened it can be unmounted by the time Add is tapped: the write goes
-  // through handles that outlive the row (`hostContextOf`), never a `ref`
-  // after the await and never a `context.mounted` bail that drops the name.
+  // The keyboard can unmount the row that opened the prompt, so the write
+  // goes through handles captured here (`hostContextOf`), never a `ref` or a
+  // `context.mounted` bail after the await.
   final container = ProviderScope.containerOf(context, listen: false);
   final host = hostContextOf(context);
   final name = await promptForText(
@@ -66,19 +59,10 @@ Future<void> promptForNewSection(
   );
 }
 
-/// The book header's `⋯` — [SectionMenu]'s menu one level up (D4).
+/// The book's `⋯`: [SectionMenu]'s items one level up, reorder included.
 ///
-/// Same [FPopoverMenu], same items in the same order, so nothing new is
-/// learned. Reorder is deliberately the sections' clunky Move up / Move down:
-/// books do not get drag-and-drop while sections still lack it.
-///
-/// The menu is one object with three triggers, because a book is offered from
-/// three places: the card's herb band, where the glyph is drawn in the surface
-/// ink over the fill; the book page's own header bar, where it is the
-/// scaffold's trailing action beside the back chevron; and the ledger's heading
-/// row, where it is the bare glyph at the end of the counts column. Only the
-/// trigger differs — the items, their order and what each one writes are the
-/// same, which is the whole reason there is one widget.
+/// One menu with three triggers: the card's herb band, the book page's
+/// header bar, and the ledger's heading row.
 class BookMenu extends ConsumerWidget {
   const BookMenu({required this.book, required this.books, super.key})
     : _trigger = _Trigger.band;
@@ -87,8 +71,7 @@ class BookMenu extends ConsumerWidget {
   const BookMenu.headerBar({required this.book, required this.books, super.key})
     : _trigger = _Trigger.headerBar;
 
-  /// The bare `⋯`, for a heading row that ends in a column of numbers and has
-  /// no room for a button's own padding.
+  /// The bare `⋯`, for a heading row with no room for a button's padding.
   const BookMenu.inline({required this.book, required this.books, super.key})
     : _trigger = _Trigger.inline;
 
@@ -124,8 +107,8 @@ class BookMenu extends ConsumerWidget {
               title: const Text('Rename'),
               onPress: () async {
                 unawaited(controller.hide());
-                // The prompt's keyboard can unmount this header row; the
-                // write continues through handles that outlive it.
+                // The keyboard can unmount this row; write through handles
+                // that outlive it.
                 final container = ProviderScope.containerOf(
                   context,
                   listen: false,
@@ -204,37 +187,29 @@ class BookMenu extends ConsumerWidget {
   }
 }
 
-/// Where a [BookMenu]'s `⋯` is hung — the only thing that differs between the
-/// three doors onto one menu.
+/// Where a [BookMenu]'s `⋯` is hung.
 enum _Trigger { band, headerBar, inline }
 
-/// Deleting a book: refuse with a count and a door, or confirm (D4).
+/// Deleting a book: refuse with a count and a door, or confirm.
 ///
-/// The 8.5/8.6 ruling verbatim — "it holds 42 recipes" is something a person
-/// can act on, "failed" is not. A book is a shelf, not a container, so this
-/// never cascades to the recipes; and the count is read from the REPOSITORY at
-/// the moment of the tap, like `usedIn`, never from the cached tree.
+/// Never cascades to the recipes. The count is read from the repository at
+/// the tap, not from the cached tree.
 Future<void> confirmDeleteBook(
   BuildContext context,
   WidgetRef ref,
   Book book,
   List<Book> books,
 ) async {
-  // Keep-alive, read before the first await: every branch below crosses a
-  // dialog, and a throwaway notifier would be disposed before its callback ran.
-  // The container and the host context outlive the header row that opened
-  // the menu (`hostContextOf`): every dialog after the first await opens
-  // from the host, and the write goes through the container — never a `ref`
-  // after an await, never a `context.mounted` bail that drops a confirmed
-  // delete or move.
+  // Read the keep-alive repo, the container and the host before the first
+  // await: every branch crosses a dialog, and the row that opened the menu
+  // may be gone (`hostContextOf`).
   final repo = ref.read(bookRepositoryProvider);
   final container = ProviderScope.containerOf(context, listen: false);
   final host = hostContextOf(context);
 
   if (books.length <= 1) {
-    // Separate on purpose: `ensureDefaultBook()` would re-mint a book on the
-    // next launch, and a book that reappears after you delete it is worse than
-    // being told no.
+    // Refuse the last book: `ensureDefaultBook()` would re-mint one on the
+    // next launch.
     await refuseAnsi(
       host.context,
       title: 'Can’t delete “${book.name}”',
@@ -294,10 +269,8 @@ Future<void> confirmDeleteBook(
   );
 }
 
-/// The first-run shelf: the app opens on this, so it offers the two doors in
-/// place rather than sending you to find a menu. Both doors carry the book,
-/// exactly as the section `＋` does — a recipe started from an empty shelf
-/// files onto that shelf, not onto whichever book sorts first.
+/// The first-run shelf: two doors in place, both carrying the book so the
+/// recipe files onto this shelf.
 class EmptyShelf extends StatelessWidget {
   const EmptyShelf({required this.book, super.key});
 
@@ -346,12 +319,10 @@ class EmptyShelf extends StatelessWidget {
   }
 }
 
-/// What a book says it holds — `42 recipes · 3 sections`.
+/// What a book says it holds: `42 recipes · 3 sections`.
 ///
-/// A fold that hides how much it hides is a fold you stop trusting, so the
-/// line reads the same open or shut. An empty shelf says **"no recipes yet"**,
-/// never `0 recipes`, and a book with no sections omits that half entirely — a
-/// zero that renders looks like a bug.
+/// An empty shelf says "no recipes yet", never `0 recipes`, and a book with
+/// no sections omits that half.
 String bookCountLine(Book book) {
   final recipes =
       book.unsectioned.length +
@@ -366,42 +337,22 @@ String bookCountLine(Book book) {
   ].join(' · ');
 }
 
-/// What a section says it holds — `4 recipes`, or `no recipes yet` on one
-/// nobody has filed into.
-///
-/// [bookCountLine]'s grammar one level down, and for the same reason: a zero
-/// that renders looks like a bug. It is the fact that lets a section label sit
-/// in the ledger's own counts column beside the book's.
+/// What a section says it holds: `4 recipes`, or `no recipes yet`.
 String sectionCountLine(int count) =>
     count == 0 ? 'no recipes yet' : '$count ${plural(count, 'recipe')}';
 
-/// The voice a section label wears wherever it is drawn — italic Spectral,
-/// herb-deep for a name somebody typed and muted for the synthetic
-/// `Unsectioned` bucket, which is a bucket and not a name.
-///
-/// One style from one place, because three surfaces set it: the phone's block,
-/// the book page's, and the ledger's heading line. A section that read as a
-/// different kind of thing on a desk would be the tree relabelled.
+/// A section label's style: italic serif, herb-deep for a typed name and
+/// muted for the synthetic `Unsectioned` bucket.
 TextStyle ansiSectionLabel({required bool named}) => ansiSerif(
   size: AnsiType.small,
   color: named ? AnsiColors.herbDeep : AnsiColors.muted,
   weight: FontWeight.w400,
 ).copyWith(fontStyle: FontStyle.italic);
 
-/// What a recipe row says under its title — `serves 4 · 520 kcal · 28 g
-/// protein`, or `serves 2` on its own.
+/// A recipe row's second line: `serves 4 · 520 kcal · 28 g protein`.
 ///
-/// **Honest numbers, or silence** (invariant 3). A recipe whose macros are
-/// incomplete prints the serves and stops: no `—`, no `incomplete` badge, no
-/// nag. The badge belongs where a person is *choosing* what to cook — the
-/// picker row wears one and says which lines it is waiting on — and a browsing
-/// row that nagged on every stub is the exact thing this line's ancestor was
-/// refused for. Silence here costs nothing: the recipe page says why.
-///
-/// `kcal` and `protein` are the two the recipe page's per-serving panel leads
-/// with, so the two surfaces agree about what matters; carb and fat stay on the
-/// page. [RecipeSummary.macros] is already per-serving and already computed in
-/// the same watch the library reads, so this line costs no query.
+/// A recipe with incomplete macros prints the serves and stops: no dash, no
+/// badge. [RecipeSummary.macros] is already per-serving.
 String recipeStatsLine(RecipeSummary recipe) {
   final serves = 'serves ${formatQuantity(recipe.servingsBase)}';
   final perServing = recipe.macros?.perServing;
@@ -446,9 +397,7 @@ class BookSectionBlock extends ConsumerWidget {
                   style: ansiSectionLabel(named: section != null),
                 ),
               ),
-              // E2: the two doors that make a recipe, on the row that knows
-              // where the recipe goes. `Unsectioned` gets one too — it has no
-              // `⋯`, and it is the door for "this book, no section".
+              // `Unsectioned` gets the `＋` too: it files into the book alone.
               SectionAddMenu(book: book, section: section),
               if (section != null) SectionMenu(book: book, section: section),
             ],
@@ -474,20 +423,11 @@ class BookSectionBlock extends ConsumerWidget {
   }
 }
 
-/// One section as a **ledger heading line**: its name in the same italic the
-/// card's block sets, a dotted leader into the counts column, what it holds,
-/// and the two controls the phone's label carries — the `＋` that files a
-/// recipe into this section and the section's own `⋯`.
+/// One section as a ledger heading line: name, dotted leader, count, the
+/// `＋` and the section's `⋯`.
 ///
-/// [BookSectionBlock] is a *block*: a hairline, a label, and the rows inside
-/// it. This is one line, because the ledger lists every section of every book
-/// in one long list and each recipe under it is a line of its own — so a block
-/// would be a shrink-wrapped list inside a list. Same label, same menus, same
-/// order; only the container is gone.
-///
-/// [section] is null for the synthetic `Unsectioned` bucket, which comes last
-/// and carries no `⋯`: there is nothing to rename, reorder or delete about a
-/// bucket, exactly as on the card.
+/// A line rather than a [BookSectionBlock] because the ledger is one flat
+/// list. [section] is null for the `Unsectioned` bucket, which has no `⋯`.
 class BookSectionLine extends StatelessWidget {
   const BookSectionLine({
     required this.book,
@@ -499,12 +439,10 @@ class BookSectionLine extends StatelessWidget {
   final Book book;
   final BookSection? section;
 
-  /// How many recipes are filed under it — the fact that puts this label in the
-  /// same right-hand column as the book's own count line.
+  /// How many recipes are filed under it.
   final int count;
 
-  /// The widest a section name is set before it gives way, as a book's name and
-  /// a recipe's title are: the count is a fact, the name is a label.
+  /// The widest a section name is set before it is clipped.
   static const double nameMax = 400;
 
   @override
@@ -533,20 +471,15 @@ class BookSectionLine extends StatelessWidget {
   }
 }
 
-/// The `＋` on a section label — the header menu's wording, on a row that knows
-/// its book and its section.
-///
-/// The header `＋` could only ever promise "a recipe, somewhere"; this one
-/// carries `?book=&section=` so the editor opens already filed. `section` is
-/// null on the synthetic Unsectioned bucket, which files into the book alone.
+/// The `＋` on a section label. Carries `?book=&section=` so the editor opens
+/// already filed; `section` is null on the `Unsectioned` bucket.
 class SectionAddMenu extends StatelessWidget {
   const SectionAddMenu({required this.book, this.section, super.key});
 
   final Book book;
   final BookSection? section;
 
-  /// `/recipes/new` and `/import` take the same two parameters, so the door
-  /// that opens is the only thing that differs between the items.
+  /// `/recipes/new` and `/import` take the same two parameters.
   String _route(String path) => Uri(
     path: path,
     queryParameters: {
@@ -584,8 +517,7 @@ class SectionAddMenu extends StatelessWidget {
         onTap: controller.toggle,
         semanticsLabel: 'File a recipe here',
         color: AnsiColors.herb,
-        // The touch target the glyph does not have on its own, on a row
-        // whose other control is a `⋯` of the same weight.
+        // The touch target the glyph lacks on its own.
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         child: const Icon(FLucideIcons.plus, size: 15),
       ),
@@ -597,9 +529,7 @@ class SectionMenu extends ConsumerWidget {
   const SectionMenu({required this.book, required this.section, super.key})
     : _inline = false;
 
-  /// The bare `⋯`, for the ledger's section line — which ends in a column of
-  /// numbers, a `＋` and this, and has no room for a button's own padding. The
-  /// menu and its items are the phone's, exactly as [BookMenu.inline] is.
+  /// The bare `⋯`, for the ledger's section line.
   const SectionMenu.inline({
     required this.book,
     required this.section,
@@ -704,37 +634,11 @@ class SectionMenu extends ConsumerWidget {
   }
 }
 
-/// One recipe: the title on its own line, then [recipeStatsLine] under it, with
-/// the ★ and the `⋯` in the corner.
+/// One recipe: the title, [recipeStatsLine] under it, and the ★ and `⋯`.
 ///
-/// The star REPORTS ONLY (D6). [RecipeSummary.favorite] has existed since 0011
-/// and the picker has a Favorites tab, so a library that cannot show a star
-/// makes the recipe page's star feel like it went nowhere — but toggling stays
-/// on the recipe page, and this row keeps its single tap target. Absent when
-/// false, never a hollow outline on every line: the stub badge's rule.
-///
-/// **The macro badge this row once refused is now its second line, and the
-/// refusal is superseded.** What was refused was a *badge on every row* — "on
-/// honest numbers most rows would show a number nobody asked for, or an
-/// `incomplete` nag". A second line that simply says less when it knows less is
-/// a different object: it never nags, and it buys the title the whole first
-/// line back, which is what the number was costing. See [recipeStatsLine].
-///
-/// Still refused: a "keeps 4 d" chip — shelf life is a *planning* fact, which
-/// is why the picker row carries it and a browsing row doesn't.
-///
-/// No `›`: the whole row was already the door, and the chevron was competing
-/// with the `⋯` for the same corner.
-///
-/// [filing] is set only on a search result, where the tree that would have said
-/// where this lives is not on screen.
-///
-/// **[LibraryRecipeRow.ledger] is the same row set as one line**, for the
-/// Library's wide body: the title, a dotted leader, and [recipeStatsLine] in
-/// the ledger's own right-hand column, with the ★ and the `⋯` after it. It
-/// does not *drop* the second line — it sets it — which is the difference
-/// between this and the tile that was refused for listing bare titles. Same
-/// menu, same star rule, same single tap onto the recipe.
+/// The star reports only; toggling lives in the `⋯`, so the row's tap only
+/// opens the recipe. It is absent when false. [filing] is set only on a
+/// search result. [LibraryRecipeRow.ledger] sets the same facts on one line.
 class LibraryRecipeRow extends StatelessWidget {
   const LibraryRecipeRow({
     required this.recipe,
@@ -744,10 +648,8 @@ class LibraryRecipeRow extends StatelessWidget {
     super.key,
   }) : _ledger = false;
 
-  /// The one-line form, for the ledger.
-  ///
-  /// No [filing]: a ledger line is drawn under the book it is filed in, so the
-  /// line that says where it lives would be repeating the heading above it.
+  /// The one-line form, for the ledger. No [filing]: the heading above
+  /// already says where it lives.
   const LibraryRecipeRow.ledger({
     required this.recipe,
     this.bookId,
@@ -762,16 +664,13 @@ class LibraryRecipeRow extends StatelessWidget {
   /// Drawn as one ledger line rather than the phone's two-line row.
   final bool _ledger;
 
-  /// The widest a title is set before it gives way — the leader may shrink to a
-  /// stub, but the stats are a whole fact and are never half-printed.
+  /// The widest a title is set before it is clipped; the stats never are.
   static const double titleMax = 460;
 
   String get _title => recipe.title.isEmpty ? 'Untitled recipe' : recipe.title;
 
-  /// Where this row is filed, when the tree knows — the shelf "Move to…"
-  /// marks as `here now` and refuses to move to. A search result carries the
-  /// filing's NAMES but not its ids, so both are null there and every shelf
-  /// is offered.
+  /// Where this row is filed: the shelf "Move to…" marks as `here now`. Null
+  /// on a search result, which carries names but not ids.
   final String? bookId;
   final String? sectionId;
 
@@ -785,7 +684,7 @@ class LibraryRecipeRow extends StatelessWidget {
     );
   }
 
-  /// The phone's row: the title over its own second line, the ★ and the `⋯`.
+  /// The phone's two-line row.
   Widget _stack(Filing? filing) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 8),
     child: Row(
@@ -818,12 +717,8 @@ class LibraryRecipeRow extends StatelessWidget {
     ),
   );
 
-  /// The ledger's line: the same facts, set across one line into the column of
-  /// numbers the whole body is ruled to.
-  ///
-  /// The title is the cell that gives way — capped at [titleMax] and clipped —
-  /// because a stats line half-printed is a wrong number, and a title clipped
-  /// is a title you still recognise.
+  /// The ledger's line. The title is capped at [titleMax] and clipped; the
+  /// stats are never half-printed.
   Widget _line() => Padding(
     padding: const EdgeInsets.symmetric(vertical: 5),
     child: Row(
@@ -852,10 +747,7 @@ class LibraryRecipeRow extends StatelessWidget {
   );
 }
 
-/// The recipe row's own `⋯`, rather than a long-press nobody finds.
-///
-/// The ★ only REPORTS on the row and the toggle lives in here, one deliberate
-/// tap away — so the row's own tap means exactly one thing, open the recipe.
+/// The recipe row's `⋯`, which holds the ★ toggle.
 class _RecipeRowMenu extends ConsumerWidget {
   const _RecipeRowMenu({
     required this.recipe,
@@ -868,8 +760,8 @@ class _RecipeRowMenu extends ConsumerWidget {
   final String? sectionId;
 
   Future<void> _move(BuildContext context, WidgetRef ref) async {
-    // The row can be unmounted under the sheet (a fold, or a sync landing), so
-    // the write goes through handles captured before the await.
+    // The row can be unmounted under the sheet, so capture the handles
+    // before the await.
     final container = ProviderScope.containerOf(context, listen: false);
     final host = hostContextOf(context);
     final books = ref.read(libraryProvider).asData?.value ?? const [];

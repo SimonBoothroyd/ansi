@@ -1,24 +1,9 @@
-/// The wide chrome: the four destinations beside the content instead of under
-/// it, with Account as the quiet footer door.
+/// The wide chrome: the bottom bar's four destinations beside the content,
+/// with Account as the footer door.
 ///
-/// The same four destinations as the bottom bar (`shared/ansi_bottom_nav.dart`),
-/// in the same order and with the same Lucide icons — one loop, drawn twice
-/// because a bar and a sidebar are different shapes, not different navigations.
-///
-/// **It is drawn once, outside every Navigator** (`core/router/app_router.dart`
-/// builds it in the outer shell), which is what lets a pushed page keep the
-/// chrome without the chrome taking part in the push: nothing animates, nothing
-/// rebuilds, and there is never a second copy sliding over the first.
-///
-/// **A null [AnsiSideNav.index] is the neutral form** — the sidebar with
-/// nothing lit, which is what a pushed page wears. On a phone the bar being
-/// gone is the signal that you have left the tab loop; on a desk the sidebar
-/// cannot leave, so *nothing lit* carries the same sentence, and the page draws
-/// its own back control.
-///
-/// Account is a footer item rather than a fifth destination: it is not a phase
-/// of the loop. On wide it is also the ONLY household door — the Library header
-/// does not draw a second one.
+/// Drawn once, outside every Navigator (`core/router/app_router.dart`), so a
+/// push never animates it. A null [AnsiSideNav.index] lights nothing, which
+/// is what a pushed page wears.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -29,17 +14,14 @@ import '../core/theme/ansi_tokens.dart';
 import 'ansi_layout.dart';
 import 'guarded_navigation.dart';
 
-/// The full sidebar's width. The board's number: wide enough for `Library` at
-/// the item's own size, narrow enough to leave a 1280 window a real pane.
+/// The full sidebar's width.
 const double kAnsiSidebarWidth = 188;
 
-/// The icon rail's width, for 1024–1279 — an iPad in landscape, where 188 px of
-/// labels would cost a sixth of the window.
+/// The icon rail's width, for 1024–1279.
 const double kAnsiRailWidth = 64;
 
-/// The household door's location. Spelled here rather than imported from the
-/// account feature: `shared/` does not reach into `features/`, and every other
-/// location in this file is a literal too.
+/// The household door's location. A literal: `shared/` does not import
+/// `features/`.
 const _accountRoute = '/account';
 
 /// The four destinations: the app's loop, in the bar's order.
@@ -50,8 +32,8 @@ const _destinations = <({IconData icon, String label, String route})>[
   (icon: FLucideIcons.shoppingBasket, label: 'Shop', route: '/shop'),
 ];
 
-/// The branch locations, index-aligned with the shell's branches — what a
-/// location is checked against to decide which destination is lit.
+/// The branch locations, index-aligned with the shell's branches; a location
+/// is checked against them to decide which destination is lit.
 List<String> get ansiBranchLocations => [
   for (final d in _destinations) d.route,
 ];
@@ -85,15 +67,9 @@ class AnsiSideNav extends StatelessWidget {
     header: _Wordmark(rail: _rail),
     footer: FSidebarGroup(
       children: [
-        // The one door to the household on wide, and quiet: it is where you go
-        // to change something about the app, not a phase of the loop.
-        //
-        // **A push, unlike the four destinations below.** Account is a pushed
-        // PAGE rather than a destination, so it lands on top of where you were
-        // — exactly as the phone's Library-header door pushes it — and its own
-        // chevron then has something to pop. A `go` here replaced the whole
-        // match list with that one page, so the page's back had nothing under
-        // it and did nothing at all (`shared/ansi_back.dart`).
+        // A push, unlike the destinations: Account is a page over where you
+        // were, so its back chevron has something to pop. A `go` would
+        // replace the stack and leave back with nothing under it.
         _Item(
           icon: FLucideIcons.users,
           label: 'Account',
@@ -111,10 +87,8 @@ class AnsiSideNav extends StatelessWidget {
               label: d.label,
               rail: _rail,
               selected: i == index,
-              // `go`, not a push: a destination is where you are, not a page
-              // over where you were — and from a pushed page it is also how
-              // the page is left behind. The tab shell keeps every branch's
-              // Navigator and state either way.
+              // `go`, not a push: a destination replaces the stack, which is
+              // also how a pushed page is left behind.
               onPress: () => context.goOnce(d.route),
             ),
         ],
@@ -128,9 +102,8 @@ class AnsiSideNav extends StatelessWidget {
   );
 
   FSidebarItemStyleDelta get _itemStyle => FSidebarItemStyleDelta.delta(
-    // The rail's padding is what centres an 18 px icon in 64: 10 of group
-    // padding each side leaves a 44 px item, and 13 of item padding leaves
-    // exactly the icon.
+    // Centres an 18 px icon in 64: 10 of group padding and 13 of item
+    // padding each side.
     padding: EdgeInsetsGeometryDelta.value(
       EdgeInsets.symmetric(horizontal: _rail ? 13 : 10, vertical: 10),
     ),
@@ -142,27 +115,23 @@ class AnsiSideNav extends StatelessWidget {
     ]),
     textStyle: FVariantsDelta.delta([
       FVariantOperation.all(const TextStyleDelta.delta(fontSize: 13)),
-      // The lit destination reads herb-deep, the step the bar's selected item
-      // already takes; the herb-soft ground alone is a 1.3:1 difference.
+      // The lit destination reads herb-deep, as the bar's selected item does;
+      // the herb-soft ground alone is a 1.3:1 difference.
       FVariantOperation.exact({
         FTappableVariantConstraint.selected,
       }, const TextStyleDelta.delta(color: AnsiColors.herbDeep)),
     ]),
-    // The rail's ground is paper, and an item at rest is part of it: Forui's
-    // default paints the surface colour under every item, which on paper reads
-    // as five white pills. Only the lit one, and whatever the pointer is over,
-    // gets a shape of its own.
+    // Forui paints the surface colour under every item, which on paper reads
+    // as white pills. Only the lit or hovered item gets a ground.
     backgroundColor: FVariantsValueDelta.delta([
       FVariantValueDeltaOperation.base(const Color(0x00000000)),
     ]),
-    // The focus ring is the theme's now — 2 px herb, 2 px clear, the same one
-    // every swept glyph wears (`core/theme/ansi_theme.dart`) — so the sidebar
-    // no longer states its own lift here.
+    // The focus ring is the theme's (`core/theme/ansi_theme.dart`).
   );
 }
 
-/// A destination, or the footer door: an [FSidebarItem] whose label is a
-/// tooltip instead of a line of text once the chrome is a rail.
+/// A destination or the footer door: an [FSidebarItem] whose label becomes
+/// a tooltip on the rail.
 class _Item extends StatelessWidget {
   const _Item({
     required this.icon,
@@ -187,8 +156,7 @@ class _Item extends StatelessWidget {
       onPress: onPress,
     );
     if (!rail) return item;
-    // Hover OR focus raises it, so the rail answers a pointer and a keyboard
-    // with the same word.
+    // Hover or focus raises the tooltip.
     return FTooltip(
       childAnchor: Alignment.centerRight,
       tipAnchor: Alignment.centerLeft,
@@ -198,8 +166,8 @@ class _Item extends StatelessWidget {
   }
 }
 
-/// `Ansi.` over the destinations — the app's name, in the app's serif, with the
-/// full stop in herb. The rail keeps the initial and the stop.
+/// `Ansi.` over the destinations, the full stop in herb. The rail keeps the
+/// initial and the stop.
 class _Wordmark extends StatelessWidget {
   const _Wordmark({required this.rail});
 

@@ -1,21 +1,9 @@
-/// Navigation config (go_router). Routes register as features land.
+/// Navigation config (go_router).
 ///
-/// A two-stage auth gate wraps everything (step 7):
-/// - No Supabase session → `/sign-in`.
-/// - Signed in but the [SessionController] isn't [SessionReady] yet (still
-///   onboarding/connecting, or failed — the connecting screen shows the error)
-///   → `/connecting`. This is what keeps a repo-reading screen from building
-///   before the household exists.
-/// - Fully ready → the app.
-///
-/// A deep link that hits a gate is preserved in a `?from=` query parameter and
-/// restored once the session is ready.
-///
-/// The redirect re-runs on Supabase auth changes AND on [SessionController]
-/// state changes (the `refresh` notifier).
-///
-/// **The URL is the route** — see [ansiUrlFollowsEveryPush] and
-/// `docs/design-docs/navigation.md` §7.
+/// A two-stage gate wraps every route: no Supabase session → `/sign-in`;
+/// signed in but [SessionController] not yet [SessionReady] → `/connecting`.
+/// A gated deep link is carried in `?from=` and restored once ready. See
+/// `docs/design-docs/navigation.md`.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -46,47 +34,21 @@ import '../sync/session.dart';
 
 part 'app_router.g.dart';
 
-/// The navigator that holds every page of the app proper — the tab shell and
-/// each page pushed over it — inside the outer shell that draws the wide
-/// chrome.
+/// The shell navigator: holds the tab shell and every page pushed over it.
 ///
-/// It is the app's **shell navigator**, and `shared/ansi_modals.dart` opens
-/// every sheet and dialog on it. Above it sits only the root navigator, holding
-/// the two gates and this one shell page. A modal up there would cover the
-/// sidebar as well, but it would also sit above the *pages*: a picker that
-/// pushes the flesh-out form over itself (the add-new chain) would have the
-/// form land underneath the picker. One navigator for modals and for pushed
-/// pages keeps that chain in one order.
+/// `shared/ansi_modals.dart` opens sheets and dialogs on it, not on the root:
+/// a root modal would sit above the pages, so a form pushed from a picker
+/// would land underneath that picker.
 final ansiShellNavigatorKey = GlobalKey<NavigatorState>(
   debugLabel: 'ansi shell',
 );
 
-/// A full-screen page, in its pane.
+/// A full-screen page wrapped in its [AnsiPane], so a route states its width
+/// and a screen never measures itself.
 ///
-/// Every route builds through this, so the wrap that decides a page's width is
-/// written once here instead of at the top of fifteen screens — and a screen
-/// cannot forget it.
-///
-/// [fullWidth] is the opt-out for a view whose honest form uses the whole
-/// content pane rather than the measure, once the chrome is beside the content
-/// — the book page's section index beside its recipes, the manager's two panes.
-/// It changes nothing below that band: while the bar is still under the content
-/// the window *is* the pane, so the page is centred in the measure like every
-/// other one.
-///
-/// [measure] is how wide the page is capped, for the page that keeps one wrap
-/// but is not one column at its widest — `/recipes/:id`, whose Ingredients and
-/// Method are read side by side. It takes [ansiWideMeasureWidth] rather than a
-/// number, so the cap stays the layout file's business and never the router's.
-///
-/// [measureOf] is the same answer when it depends on the route's own query:
-/// `/recipes/:id/edit` is the two-column editor, except with `?week=`, which is
-/// one column at the measure and has no second column to make. The number is
-/// still the layout file's; only which of its two the page takes is read here,
-/// where the query already is.
-///
-/// Both are facts about the route, which is why they are stated here: a screen
-/// does not measure itself ([AnsiPane]).
+/// [fullWidth] gives the page the whole content pane once the chrome is beside
+/// the content. [measure] caps the page wider than one column;
+/// [measureOf] is the same cap chosen from the route's query.
 GoRoute _page({
   required String path,
   required String name,
@@ -122,34 +84,16 @@ GoRoute _branch({
   ),
 );
 
-/// `/ingredients` and `/ingredients/:id` — two locations of **one page**: the
-/// vocabulary, and the vocabulary with a row picked out of it.
+/// `/ingredients` and `/ingredients/:id`, built as one page.
 ///
-/// `/ingredients/:id`'s READING posture is the fact sheet pushed over the list
-/// on a phone, and the manager's two panes with that row lit once the chrome is
-/// beside the content — a cold deep link included, so a shared URL opens what
-/// the person who sent it was looking at. Its EDITING posture (`?edit=1`) is
-/// the form, in the measure, at every width: a door that exists to change one
-/// field is not a reason to redraw the page it was opened from.
-///
-/// **Both locations are built here, and that is the point.** On a desk a pick
-/// restates from one to the other, and two builders would put
-/// [IngredientListView] at two different depths — directly under the pane on
-/// one, under this widget on the other. The element in that slot is then thrown
-/// away and rebuilt on the first pick, taking the screen's whole state with it:
-/// where the vocabulary was scrolled to, what was typed in the search field,
-/// and which posture the pane was opened in. One widget of one shape is what
-/// makes a pick a restatement rather than a reload.
-///
-/// Below the wide band there is nothing here to decide: the route is declared
-/// `fullWidth`, so [AnsiPane] has already centred whatever this returns in the
-/// measure. From it, the pane hands over the whole width and the form asks for
-/// the measure back.
+/// On a desk a pick restates one location as the other. Two builders would
+/// put [IngredientListView] at two depths, so the first pick would rebuild it
+/// and lose its scroll, search and posture. `?edit=1` is the form, in the
+/// measure, at every width.
 class _IngredientPage extends StatelessWidget {
   const _IngredientPage({this.id, this.edit = false});
 
-  /// Null on `/ingredients`, where the manager is the whole page and the pane
-  /// beside it is waiting to be given a row.
+  /// Null on `/ingredients`.
   final String? id;
   final bool edit;
 
@@ -164,45 +108,21 @@ class _IngredientPage extends StatelessWidget {
   }
 }
 
-/// Makes the browser's address bar name the page you are looking at.
+/// Makes the browser's address bar follow pushed pages.
 ///
-/// go_router reports the location of the *matched* route list to the engine and
-/// **ignores anything reached through the imperative API** — `push`,
-/// `pushReplacement`, `replace` — unless this one global is flipped
-/// (`GoRouter.optionURLReflectsImperativeAPIs`, default `false`). Every page in
-/// this app above the four tab roots is pushed (§ the pushed-pages list in
-/// `navigation.md`), so with the default the bar kept reporting whichever tab
-/// root the push landed on: open a recipe, then its editor, and the bar still
-/// said `/`. Flutter's own hash strategy then drops the `#` for `/` entirely
-/// (`HashUrlStrategy.prepareExternalUrl`), which is why the owner's screenshot
-/// shows a bare host while `/recipes/:id/edit` is on screen.
-///
-/// Each push still got its own history *entry* (go_router reports with
-/// `replace: false`), and go_router serialises the whole match list into
-/// `history.state` — so back and forward worked while the bar and a refresh,
-/// which can only read the URL, did not. That is the owner's "refresh loses
-/// where I am sometimes": it was lost on a pushed page and kept on a tab root.
-///
-/// go_router's own doc comment advises against this flag *because a pushed
-/// route is not always deep-linkable*. In this app it always is: every pushed
-/// route resolves from a cold start, and `ansi_back_test.dart` pins exactly
-/// that for each one, from both arrivals. The caveat does not apply here, and
-/// the flag is what makes the two agree.
+/// go_router ignores `push`/`replace` when reporting the URL unless
+/// `GoRouter.optionURLReflectsImperativeAPIs` is set, so a refresh on a pushed
+/// page would land on its tab root. The flag is safe here because every pushed
+/// route resolves from a cold start (pinned by `ansi_back_test.dart`).
 void ansiUrlFollowsEveryPush() {
   GoRouter.optionURLReflectsImperativeAPIs = true;
 }
 
-/// The auth gate, as a function of the location and the two facts about the
-/// session — so it can be read, and tested, without a Supabase client.
+/// The auth gate as a pure function of the location and the session facts.
 ///
-/// Returns the location to redirect to, or null to let [state] through.
-///
-/// It never drops a deep link. A location that is not a gate and not `/` is
-/// carried through both gates in `?from=`, and returned to the moment the
-/// session is ready — so a cold `#/recipes/9` on a browser refresh lands on
-/// that recipe rather than on the Library, however long the session takes to
-/// come back. `?from=` is captured from `state.uri`, query and all, so a
-/// `#/recipes/:id/edit?week=…` survives whole.
+/// Returns the location to redirect to, or null to let [state] through. A
+/// non-gate location other than `/` is carried through both gates in `?from=`
+/// (query included) and restored once the session is ready.
 String? ansiGate(
   GoRouterState state, {
   required bool signedIn,
@@ -210,8 +130,7 @@ String? ansiGate(
 }) {
   final loc = state.matchedLocation;
   final atGate = loc == '/sign-in' || loc == '/connecting';
-  // The location to return to after the gates: carried through them via
-  // `?from=`, captured when a non-gate location first gets redirected.
+  // Where to return after the gates.
   final from = state.uri.queryParameters['from'];
   final dest = atGate ? from : (loc == '/' ? null : state.uri.toString());
   String gate(String path) => dest == null
@@ -228,7 +147,7 @@ String? ansiGate(
 @Riverpod(keepAlive: true)
 GoRouter router(Ref ref) {
   ansiUrlFollowsEveryPush();
-  // Fires the redirect on either auth changes or session-readiness changes.
+  // Re-runs the redirect on auth and on session-readiness changes.
   final refresh = ValueNotifier<int>(0);
   final sub = Supabase.instance.client.auth.onAuthStateChange.listen(
     (_) => refresh.value++,
@@ -257,29 +176,15 @@ GoRouter router(Ref ref) {
         name: 'connecting',
         builder: (state) => const ConnectingView(),
       ),
-      // One shell around the whole app: the tab shell AND every page pushed
-      // over it. On a phone it draws nothing — the tabs own the bar and a
-      // pushed page covers it. On wide it draws the sidebar, once and OUTSIDE
-      // this navigator, which is what lets a push keep the chrome: the
-      // sidebar takes no part in the transition, so it cannot slide, fade or
-      // appear twice. Its own navigator key is also the one modals open on
-      // (see [ansiShellNavigatorKey]).
+      // One shell around the tab shell and every pushed page. On wide it
+      // draws the sidebar outside this navigator, so a push never animates
+      // the chrome. Modals open on its key ([ansiShellNavigatorKey]).
       ShellRoute(
         navigatorKey: ansiShellNavigatorKey,
         builder: (context, state, child) => AnsiWideShell(child: child),
         routes: [
-          // The four tabs are branches of one shell, so switching a tab changes
-          // an index inside a single unchanged page: the bar never moves, and
-          // each tab keeps its own Navigator and its own state. Not
-          // `.indexedStack` — that convenience constructor hard-wires its
-          // container and leaves no hook for the cross-fade.
-          //
-          // All four roots take the pane: the Library's shelf, the Week's day
-          // pane and agenda, Cook's two-up and the Shop's list with its
-          // provenance pane are each a pane's worth of design, and each caps
-          // itself where its
-          // own drawing says. It is the same opt-out a pushed page uses, so
-          // there is one rule here and not two.
+          // Not `.indexedStack`: that constructor leaves no hook for the
+          // cross-fade. All four roots take the pane and cap themselves.
           StatefulShellRoute(
             builder: (context, state, shell) => AnsiTabShell(shell: shell),
             navigatorContainerBuilder: crossFadeBranchContainer,
@@ -294,11 +199,9 @@ GoRouter router(Ref ref) {
                   ),
                 ],
               ),
-              // The three week tabs each name the week on screen in their own
-              // `?week=`, and the Week also names the day its pane stands on —
-              // the two facts that would otherwise be lost on a refresh
-              // ([WeekInTheLocation]). `?week=` is the same `YYYY-MM-DD` week
-              // key `/recipes/:id` already takes.
+              // The week tabs keep the week on screen in `?week=`
+              // (`YYYY-MM-DD`), and the Week also its day, so a refresh
+              // keeps both ([WeekInTheLocation]).
               StatefulShellBranch(
                 routes: [
                   _branch(
@@ -337,35 +240,21 @@ GoRouter router(Ref ref) {
               ),
             ],
           ),
-          // Everything below stays a sibling of the tab shell rather than a
-          // child of a branch: pushed on the shell Navigator, so it covers the
-          // bar and keeps the platform's own push transition and back gesture
-          // (D2). On wide the outer shell keeps drawing the sidebar beside it,
-          // with nothing lit.
+          // Siblings of the tab shell, pushed on the shell Navigator: they
+          // cover the bar and keep the platform transition and back gesture.
           _page(
             path: '/import',
             name: 'import',
-            // The review USES the width: from expanded up it is the source
-            // page, the lines and one line's form as three columns, so it
-            // takes the whole pane and caps itself where its own drawing says
-            // (see [WideReviewBody]).
+            // Three columns from expanded up ([WideReviewBody]).
             fullWidth: true,
             builder: (state) => ImportView(
               initialBookId: state.uri.queryParameters['book'],
               initialSectionId: state.uri.queryParameters['section'],
             ),
           ),
-          // The receipts: the ledger, one saved receipt, and the scan in
-          // flight. `/receipts/review` is declared BEFORE `/receipts/:id` so
-          // `review` is a route and not an id — the same order
-          // `/recipes/new` takes.
-          //
-          // The scan holds the whole sitting on one route, as `/import`
-          // does: intake, the reading checklist and the review are three
-          // states of one screen, and nothing is written until Save, so
-          // there is no half-saved receipt for a second route to address.
-          // All three keep the measure — a receipt is a column by nature,
-          // and the width buys it nothing.
+          // `/receipts/review` is declared before `/receipts/:id` so `review`
+          // is not read as an id. The scan is one route: nothing is written
+          // until Save.
           _page(
             path: '/receipts',
             name: 'receipts',
@@ -382,12 +271,8 @@ GoRouter router(Ref ref) {
             builder: (state) =>
                 StoredReceiptView(receiptId: state.pathParameters['id']!),
           ),
-          // One book on a page of its own. Pushed like the rest, so it covers
-          // the bar and back returns to the Library — and deep-linkable, which
-          // is the point of a book having a URL at all. It is a page that USES
-          // the width: once the chrome is beside the content its sections are
-          // an index beside the recipes, so it takes the whole pane there
-          // (see [_page]).
+          // One book. Its sections are an index beside the recipes once the
+          // chrome is beside the content, so it takes the pane.
           _page(
             path: '/books/:id',
             name: 'book',
@@ -395,32 +280,21 @@ GoRouter router(Ref ref) {
             builder: (state) =>
                 BookPageView(bookId: state.pathParameters['id']!),
           ),
-          // `/account` (the household, this device, the session) and
-          // `/ingredients` (the vocabulary manager) are pushed like `/import`,
-          // never a fifth tab: the four tabs are the loop, and neither an
-          // account nor a vocabulary is a phase of it.
+          // `/account` and `/ingredients` are pushed pages, not tabs.
           _page(
             path: '/account',
             name: 'account',
             builder: (state) => const AccountView(),
           ),
-          // The manager and one row both draw their own columns once the chrome
-          // is beside the content, so they take the pane there — and the pane
-          // keeps centring them in the measure below it.
+          // The manager and a row draw their own columns on wide.
           _page(
             path: '/ingredients',
             name: 'ingredients',
             fullWidth: true,
             builder: (state) => const _IngredientPage(),
           ),
-          // `/ingredients/new` — the ONE door to making an ingredient. It is
-          // the same form, with no row behind it yet: nothing is written until
-          // Save, so backing out leaves nothing. `?name=` prefills it, which
-          // is what a picker hands over so the words already typed into its
-          // search become the row without retyping.
-          //
-          // Declared BEFORE `/ingredients/:id` so `new` is a route and not an
-          // id.
+          // The one door to making an ingredient; `?name=` prefills it.
+          // Declared before `/ingredients/:id` so `new` is not read as an id.
           _page(
             path: '/ingredients/new',
             name: 'ingredient-new',
@@ -428,10 +302,7 @@ GoRouter router(Ref ref) {
               name: state.uri.queryParameters['name'] ?? '',
             ),
           ),
-          // `?edit=1` opens the editing posture instead of the fact sheet —
-          // what a door that exists to CHANGE a field hands over (a recipe's
-          // macro fix marker, the import review's piece-weight door, the
-          // manager's stub band). Everything else lands on the row as it reads
+          // `?edit=1` opens the form instead of the fact sheet
           // ([_IngredientPage]).
           _page(
             path: '/ingredients/:id',
@@ -442,17 +313,12 @@ GoRouter router(Ref ref) {
               edit: state.uri.queryParameters[kEditPostureQueryParam] == '1',
             ),
           ),
-          // `?title=` prefills the draft — what the Library's "nothing matches"
-          // state hands over, so a search for a recipe you were about to write
-          // becomes the recipe. `?book=&section=` file it — what a section's
-          // `＋` hands over, so the recipe lands on the shelf that was tapped
-          // instead of in the default book. `?handback=1` is the line picker's
-          // door: Save pops the recipe back to the line waiting on it.
+          // `?title=` prefills the draft, `?book=&section=` file it, and
+          // `?handback=1` pops the saved recipe back to the waiting line.
           _page(
             path: '/recipes/new',
             name: 'recipe-new',
-            // The editor's two columns, at the recipe page's own cap — a new
-            // recipe is written in the same form an existing one is edited in.
+            // Two columns, at the recipe page's cap.
             measure: ansiWideMeasureWidth,
             builder: (state) => RecipeEditorView(
               initialTitle: state.uri.queryParameters['title'],
@@ -462,38 +328,24 @@ GoRouter router(Ref ref) {
                   state.uri.queryParameters[kHandBackQueryParam] == '1',
             ),
           ),
-          // `?week=YYYY-MM-DD` says the page was opened FROM a week that plans
-          // this recipe — the Week's dish row and the Cook card's title both
-          // carry it. Read exactly as `/recipes/:id/edit` reads it below. It
-          // changes nothing about the page itself; it is what lets the page
-          // offer the week door beside its own Edit, and the page re-checks it
-          // against the week before it does.
+          // `?week=YYYY-MM-DD`: opened from a week that plans this recipe, so
+          // the page offers the week door. The page re-checks it.
           _page(
             path: '/recipes/:id',
             name: 'recipe',
-            // The one page so far whose expanded form uses the width without
-            // taking the pane: Ingredients and Method are two columns read
-            // together, so it is capped wider than the measure and never
-            // stretched.
+            // Ingredients and Method side by side: capped, never stretched.
             measure: ansiWideMeasureWidth,
             builder: (state) => RecipeView(
               recipeId: state.pathParameters['id']!,
               weekKey: state.uri.queryParameters['week'],
             ),
           ),
-          // `?week=YYYY-MM-DD` opens the editor in WEEK MODE — the same list,
-          // saving a diff against the recipe instead of the recipe (exec plan
-          // 0043). It is a query param rather than a route because the mode
-          // is a fact about what Save writes, exactly as `?title=` is a fact
-          // about what the draft starts from.
+          // `?week=YYYY-MM-DD` opens the editor in week mode: Save writes a
+          // diff against the recipe instead of the recipe.
           _page(
             path: '/recipes/:id/edit',
             name: 'recipe-edit',
-            // The editor is the recipe page's own two columns — the lines and
-            // the method, written side by side — so it takes the same cap.
-            // Week mode inside the same path is not: it draws no header form
-            // and no method, so there is no second column and its honest wide
-            // form is one column at the measure.
+            // Two columns, except week mode, which has no method column.
             measureOf: (state) => state.uri.queryParameters['week'] == null
                 ? ansiWideMeasureWidth
                 : ansiMeasureWidth,

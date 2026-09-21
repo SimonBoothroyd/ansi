@@ -1,13 +1,9 @@
-/// PowerSync client-side schema — the local SQLite mirror.
+/// PowerSync client-side schema: the local SQLite mirror.
 ///
-/// Every table here is **synced**: the session controller connects the database
-/// with `AnsiConnector` once a user is signed in, so local writes queue for
-/// upload and the server's rows stream down. Each table mirrors its migration
-/// and is scoped to the household (the sync rules in `docker/powersync.yaml`
-/// filter every bucket to the JWT's `household_id`).
-///
-/// Every table gets an implicit `id` TEXT primary key — do not declare it.
-/// `usda_food` and the match indexes never live on-device (ADR-0004/0005).
+/// Every table is synced and household-scoped (sync rules in
+/// `docker/powersync.yaml`), and mirrors its migration. Each gets an implicit
+/// `id` TEXT primary key; do not declare it. `usda_food` and the match
+/// indexes never live on-device (ADR-0004, ADR-0005).
 library;
 
 import 'package:powersync/powersync.dart';
@@ -50,10 +46,9 @@ const schema = Schema([
       'section_id',
     ), // → book_section.id (nullable; null = Unsectioned)
     Column.integer('favorite'), // 0/1 — the picker's Favorites tab (step 7.7)
-    // What one batch MAKES (step 8.6 / 0017) — "makes 1 cup", "makes 8 piece".
-    // Nullable and independent of servings_base; the optional second pair
-    // states the same batch in a DIFFERENT unit family ("250 g · 16 tbsp"),
-    // which is the only mass↔volume bridge a recipe has.
+    // What one batch makes ("makes 1 cup"). Nullable and independent of
+    // servings_base. The optional second pair states the same batch in a
+    // different unit family, the recipe's only mass↔volume bridge.
     Column.real('yield_qty'),
     Column.text('yield_unit'),
     Column.real('yield_qty_2'),
@@ -67,16 +62,10 @@ const schema = Schema([
     Column.integer('sort_order'),
     ..._audit,
   ]),
-  // A household word for one of what a recipe MAKES — "blob", "ladle",
-  // "patty" (0048) — so a component line in another recipe can say "3 blob"
-  // of it. It is a named AMOUNT, exactly like an ingredient_measure: a blob is
-  // 15 g, so `3 blob` is 45 g and the batch share comes from there through the
-  // recipe's own same-family yield. `unit` is a units.dart id (mass, volume or
-  // count); a recipe has no single basis, so each word carries its own. The
-  // amount is absolute, so re-stating `makes` re-states the share and scaling a
-  // parent multiplies the LINE, never this. Duplicate labels are legal and
-  // merge on read, oldest canonical — an offline duplicate must never fail
-  // upload.
+  // A household word for one of what a recipe makes ("blob" = 15 g), so a
+  // component line can say "3 blob". `unit` is a units.dart id; the amount is
+  // absolute. Duplicate labels are legal and merge on read, oldest canonical,
+  // so an offline duplicate never fails upload.
   Table('recipe_measure', [
     Column.text('household_id'),
     Column.text('recipe_id'),
@@ -90,37 +79,30 @@ const schema = Schema([
     Column.text('household_id'),
     Column.text('group_id'),
     Column.text('ingredient_id'),
-    // → recipe.id (nullable, step 8.6 / 0017). A line is an ingredient OR a
-    // sub-recipe component, never both and never neither (the server's XOR
+    // → recipe.id. A line is an ingredient XOR a sub-recipe component (server
     // check); a component line never carries a measure_id.
     Column.text('sub_recipe_id'),
     Column.real('quantity'),
-    // A units.dart id, and null exactly when `recipe_measure_id` is set
-    // (0048): a line says its amount in a unit OR in the sub-recipe's own
-    // word, never both and never neither. Every other line has one — the
-    // server's XOR keeps 0003's NOT NULL for all of them.
+    // A units.dart id; null exactly when `recipe_measure_id` is set.
     Column.text('unit'),
     Column.text('measure_id'), // → ingredient_measure.id (nullable, step 7.6)
-    // → recipe_measure.id (nullable, 0048): the sub-recipe's own word this
-    // component is counted in ("3 blob"). Only a component line carries one,
-    // only beside a quantity, and only a measure of the very recipe
-    // `sub_recipe_id` names. A line whose measure has been tombstoned is
-    // UNRESOLVED — it is never re-read as a count of the yield.
+    // → recipe_measure.id: the sub-recipe's own word this component is
+    // counted in. A line whose measure is tombstoned is unresolved, never
+    // re-read as a count of the yield.
     Column.text('recipe_measure_id'),
     Column.text('note'),
     Column.integer('sort_order'),
-    // 0/1: the recipe says this line may be left out. Excluded from macros and
-    // the shop list and NAMED there; the cook plan ignores it. Same 0/1 shape
-    // as `favorite` and `freezable`.
+    // 0/1: may be left out. Excluded from macros and the shop list and named
+    // there; the cook plan ignores it.
     Column.integer('optional'),
     ..._audit,
   ]),
 
-  // Week planning (step 4). The active week and its planned meals.
+  // The active week and its planned meals.
   Table('week_plan', [
     Column.text('household_id'),
-    // ISO date of the day this week begins on — the household's own first
-    // day (`household.week_starts_on`), not always a Monday.
+    // ISO date of the week's first day (`household.week_starts_on`), not
+    // always a Monday.
     Column.text('week_start_date'),
     Column.text('label'),
     ..._audit,
@@ -130,32 +112,25 @@ const schema = Schema([
     Column.text('week_plan_id'),
     Column.integer('day_of_week'), // offset from week_start_date, 0..6
     Column.text('meal_slot'), // free text, not a preset enum
-    // A meal is a recipe, a bare ingredient OR words eaten out — never two of
-    // them and never none (the server's three-way XOR check). All three
-    // columns are nullable here, so every reader must branch on the KIND: a
-    // null `recipe_id` means "look at the other two", never "skip".
+    // A meal is a recipe, a bare ingredient or words eaten out: exactly one
+    // (server XOR check). All three are nullable, so readers branch on kind.
     Column.text('recipe_id'),
     Column.text('ingredient_id'), // → ingredient.id
     Column.text('label'), // the words a meal eaten out IS
-    // The amount of ONE portion of an ingredient meal; null on a recipe meal,
-    // whose amount is its `portions`, and on a meal eaten out, which states
-    // its macros instead.
+    // The amount of one portion of an ingredient meal; null otherwise.
     Column.real('quantity'),
     Column.text('unit'),
     Column.text('measure_id'), // → ingredient_measure.id (nullable)
-    // Macros of ONE portion of a meal eaten out, as stated — the vocabulary's
-    // `{kcal, protein, carb, fat}` shape, per portion rather than per 100.
-    // Null means not stated, and the week names the refusal.
+    // Macros of one portion of a meal eaten out, `{kcal, protein, carb,
+    // fat}`. Null means not stated.
     Column.text('macros'),
     Column.text('eaters'), // JSON array of household_member ids
     Column.integer('portions'), // null → defaults to |eaters|
     Column.integer('sort_order'),
     ..._audit,
   ]),
-  // One delta against a recipe line for ONE planned week (0040). Keyed on
-  // (week_plan, recipe) — every day that plans the recipe that week cooks the
-  // same lines, so the cook plan still batches them into one pot. Amounts are
-  // absolute: the recipe moving later leaves this week where it was put.
+  // One delta against a recipe line for one planned week, keyed on
+  // (week_plan, recipe). Amounts are absolute.
   Table('week_recipe_line_override', [
     Column.text('household_id'),
     Column.text('week_plan_id'), // → week_plan.id
@@ -165,22 +140,20 @@ const schema = Schema([
     // 'include' | 'exclude' | 'replace' | 'add'.
     Column.text('action'),
     Column.text('ingredient_id'),
-    // Ships as a column only in v1 — the component graph knows no week.
+    // Stored only: the component graph knows no week.
     Column.text('sub_recipe_id'),
     Column.real('quantity'),
     Column.text('unit'),
     Column.text('measure_id'),
-    // → recipe_measure.id (nullable, 0048) — the sub-recipe's own word THIS
-    // WEEK's amount is counted in, under the same rules as the recipe line's.
+    // → recipe_measure.id, under the recipe line's rules.
     Column.text('recipe_measure_id'),
     Column.text('note'),
     Column.integer('sort_order'),
     ..._audit,
   ]),
 
-  // Shopping list (step 6). Only the parts of the list that can't be re-derived
-  // from the cook plan: check-off state + manual/free-text contributions. The
-  // `cook_session` contributions are derived live (spec §4), never stored.
+  // Only what cannot be re-derived from the cook plan: check-off state and
+  // manual/free-text entries. `cook_session` contributions are derived live.
   Table('shopping_list_entry', [
     Column.text('household_id'),
     Column.text('ingredient_id'), // null for a free-text (non-food) item
@@ -188,10 +161,8 @@ const schema = Schema([
     Column.text('category'), // aisle group for a free-text item
     Column.integer('checked'), // 0/1 — check-off is on the entry
     Column.text('unit'), // preferred display unit (nullable)
-    // The first day of the week this entry belongs to — every entry carries
-    // one, a free-text non-food item included. Null is only a legacy row an
-    // older client wrote; the server stamps those onto the week they were
-    // created in.
+    // The first day of the entry's week. Null only on a legacy row, which
+    // the server stamps onto the week it was created in.
     Column.text('week_start_date'),
     ..._audit,
   ]),
@@ -207,17 +178,14 @@ const schema = Schema([
     ..._audit,
   ]),
 
-  // The price ledger (0044). One shop, or one hand-typed price — a typed
-  // price is a `manual` receipt with one line, so the two are the same fact
-  // read the same way. Money is integer cents, USD; the per-basis figure a
-  // screen reads is derived from the line and never stored.
+  // The price ledger. A hand-typed price is a `manual` receipt with one
+  // line. Money is integer cents, USD; per-basis figures are derived.
   Table('receipt', [
     Column.text('household_id'),
     Column.text('store'), // a chip word, not a row: there is no store table
     Column.text('purchased_at'), // the SHOP's date, never the scan's
-    // As printed, when the paper printed one — null on a hand-typed price and
-    // never re-derived from the lines, because the sum of the lines against
-    // the printed subtotal is the reconcile figure the review shows.
+    // As printed; null on a hand-typed price. Never re-derived from the
+    // lines: the review reconciles against it.
     Column.integer('subtotal_cents'),
     Column.integer('tax_cents'),
     Column.integer('total_cents'),
@@ -227,32 +195,24 @@ const schema = Schema([
   Table('receipt_line', [
     Column.text('household_id'),
     Column.text('receipt_id'),
-    // → ingredient.id (nullable): a non-food line, a tax line, and a line
-    // whose ingredient was retired out from under it (the server detaches it).
+    // → ingredient.id. Null on a non-food line, a tax line, and a line whose
+    // ingredient was retired.
     Column.text('ingredient_id'),
     Column.text('printed_text'), // what the paper said; null when typed
-    // The paper's words for the THING, figures off — what an unmatched card is
-    // titled with, and what the receipt door recalls this household's own past
-    // answers by. Never a vocabulary word, and never learned as one.
+    // The paper's words for the thing, figures off. Never a vocabulary word.
     Column.text('name_printed'),
     Column.integer('cents'), // paid, after the discount; a fee may be negative
     Column.integer('discount_cents'),
-    // How many of the thing this line rang up — the count printed on the
-    // sub-row under it ("8 @ $2.99"). 1 unless the paper said otherwise, and
-    // only ever more on an item line. `cents` already includes them all; the
-    // count is what a price DIVIDES by, beside the pack (0050).
+    // How many rang up ("8 @ $2.99"); 1 unless printed. `cents` includes
+    // them all; a price divides by the count and the pack.
     Column.integer('count'),
     Column.text('kind'), // 'item' | 'not_food' | 'tax' | 'fee'
-    // What the cents bought, in the INGREDIENT's basis unit (g or ml) — the
-    // same denomination `ingredient_measure.basis_amount` uses. Null where
-    // nobody has said what the pack is: the line is kept, and it is simply
-    // not a price yet. Every figure a screen derives comes from THIS.
+    // What the cents bought, in the ingredient's basis unit (g or ml). Null
+    // means the line is not a price yet. Every derived figure reads this.
     Column.real('pack_basis_amount'),
-    // The pack as ENTERED, which is what the ledger prints: an amount in a
-    // catalog unit (`pack_unit` a units.dart id), or a COUNT of the row's own
-    // measure when `pack_unit` is null and `measure_id` is set. Nothing is
-    // derived from it — a measure re-weighed later must not re-price a shop
-    // that already happened.
+    // The pack as entered, for display: an amount in `pack_unit` (a
+    // units.dart id), or a count of `measure_id` when `pack_unit` is null.
+    // Nothing is derived from it.
     Column.real('pack_amount'),
     Column.text('pack_unit'),
     Column.text('measure_id'), // → ingredient_measure.id — the pack's WORD
@@ -260,9 +220,8 @@ const schema = Schema([
     ..._audit,
   ]),
 
-  // Vocab — synced from the server (step 7). Owned by the household; the server
-  // holds USDA-resolved macros/density, which now ride down. `macros` is the
-  // server's JSONB serialized to text. `usda_food` is never here (ADR-0005).
+  // Household vocabulary. `macros` is the server's JSONB serialized to text.
+  // `usda_food` is never here (ADR-0005).
   Table('ingredient', [
     Column.text('household_id'),
     Column.text('canonical_name'),
@@ -271,26 +230,21 @@ const schema = Schema([
     Column.real('density_g_per_ml'),
     Column.text('macros'), // JSON {kcal, protein, carb, fat}; null when stub
     Column.text('macros_basis'), // 'g' | 'ml' — the per-100 basis (step 7.7)
-    // Explicit allowed-unit list (JSON array of unit ids, ADR-0008 / 0012);
-    // null → the client derives the same defaults.
+    // JSON array of unit ids (ADR-0008); null → the client derives defaults.
     Column.text('allowed_units'),
-    // What ONE of this row weighs, in the basis unit (0039 / ADR-0015) — the
-    // count fact the way `density_g_per_ml` is the volume fact; `piece` is
-    // sayable only while it is set. `piece_source` says where it came from
-    // ('manual' / 'borrowed from <label>' / 'seed:typical').
+    // What one of this row weighs, in the basis unit (ADR-0015); `piece` is
+    // sayable only while set. `piece_source` is 'manual', 'borrowed from
+    // <label>' or 'seed:typical'.
     Column.real('piece_basis_amount'),
     Column.text('piece_source'),
     Column.text('status'),
     Column.text('source'),
     // The USDA food a prefill copied from, and how much of the query its
-    // description covered (0027) — written beside `source` by the prefill
-    // writers so the form can name the match offline. Null where nothing filled
-    // the row or the fill predates 0027.
+    // description covered, so the form can name the match offline.
     Column.text('source_label'),
     Column.real('source_score'),
-    // 0/1 (0034): a human has overridden the numbers the lookup filled —
-    // macros, basis or density. Only a write that touches one of those sets
-    // it; a rename never does, and a fresh pick clears it.
+    // 0/1: a human overrode the looked-up macros, basis or density. A rename
+    // never sets it; a fresh pick clears it.
     Column.integer('source_edited'),
     Column.text('match_text'),
     ..._audit,
@@ -303,9 +257,8 @@ const schema = Schema([
     Column.text('source'),
     ..._audit,
   ]),
-  // Named per-ingredient measures ("potato, large = 299 g") — the honest
-  // count↔basis bridge (step 7.6; basis-aware amounts since 7.8/0012: the
-  // amount is in the ingredient's macros_basis unit). Synced with the vocab.
+  // Named per-ingredient measures ("potato, large = 299 g"). The amount is
+  // in the ingredient's macros_basis unit.
   Table('ingredient_measure', [
     Column.text('household_id'),
     Column.text('ingredient_id'),
@@ -316,14 +269,9 @@ const schema = Schema([
     ..._audit,
   ]),
 
-  // Household members — synced (step 7). Created server-side at onboarding
-  // (`ensure_onboarded`, migration 0007); the client reads them (eaters on a
-  // plan_entry reference these ids) and writes exactly one column,
-  // `portion_factor` (0026 — the Household sheet; the server grants UPDATE on
-  // that column alone). `auth_user_id` stays server-only: the sync rule for
-  // this table selects an explicit column list that excludes it
-  // (docker/powersync.yaml) — what a rule SELECTs is exactly what ships to the
-  // device, so omitting the column here alone would not keep it off the wire.
+  // Created server-side at onboarding. The client writes one column,
+  // `portion_factor`. `auth_user_id` stays off the wire because the sync
+  // rule's column list excludes it; omitting it here alone would not.
   Table('household_member', [
     Column.text('household_id'),
     Column.text('display_name'),
@@ -332,16 +280,12 @@ const schema = Schema([
     ..._audit,
   ]),
 
-  // The household itself — synced so its name is available offline. The
-  // server-only columns its `select *` sync rule ships (`is_template`,
-  // `backfilled_at`) are simply not declared here: the client view exposes
-  // exactly the declared columns and ignores the rest of the row JSON.
+  // Server-only columns the `select *` sync rule ships are not declared, so
+  // the client view ignores them.
   //
-  // `week_starts_on` is the ISO weekday the household's week begins on
-  // (1=Mon..7=Sun). The phone only ever READS it: flipping it re-homes every
-  // week the household has planned, which is one server transaction
-  // (`set_household_week_start`), so a local write would put this device's
-  // keys out of step with its own rows.
+  // `week_starts_on` is the ISO weekday (1=Mon..7=Sun). Read-only here:
+  // changing it re-homes every planned week in one server transaction
+  // (`set_household_week_start`).
   Table('household', [
     Column.text('name'),
     Column.integer('week_starts_on'),
