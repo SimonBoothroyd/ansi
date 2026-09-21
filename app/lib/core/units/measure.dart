@@ -1,26 +1,9 @@
-/// Named ingredient measures — the honest count↔basis bridge (spec §4,
-/// steps 7.6–7.8).
+/// Named ingredient measures: a word for one thing, pinned to an amount in the
+/// ingredient's basis unit ("clove = 3 g"). See ADR-0008.
 ///
-/// Pure Dart, no `package:flutter` (enforced in CI), same as `units.dart`.
-///
-/// A [Measure] names a real-world unit of ONE ingredient and pins its amount
-/// **in the ingredient's basis unit** (ADR-0008): "potato, large = 299 g",
-/// "can (400 ml) = 400 ml", "clove = 3 g". Where a density describes a
-/// substance (g per ml, any amount), a measure describes a *thing* — so it
-/// is the right bridge for count foods, which a liquid density can never
-/// describe. The basis ([MacrosBasis], the ingredient's canonical
-/// dimension) decides which family the stored amount lives in: per-g
-/// ingredients' measures map to mass, per-ml ones to volume.
-///
-/// Honesty rules (invariant 3):
-///
-/// - No measure ⇒ no invented amount: a plain count stays a count.
-/// - Measures bridge to the **basis family only**. Reaching the other
-///   mass/volume family still requires the ingredient's density, exactly
-///   like any quantity of that family — a measure never smuggles in a
-///   cross-family conversion of its own.
-/// - A non-positive (or NaN) `amount` is bad data and converts like a
-///   missing density does: a typed [Failure], never `Infinity` or `0`.
+/// Pure Dart. A measure bridges to the basis family only; crossing mass↔volume
+/// still needs the ingredient's density. A non-positive or NaN amount is a
+/// typed [Failure], never a fabricated number.
 library;
 
 import 'package:meta/meta.dart';
@@ -46,13 +29,11 @@ typedef StoredMeasure<T extends LabelledMeasure> = ({
   Object? createdAt,
 });
 
-/// [rows] with duplicates merged: the oldest row of each label kept, ordered
-/// `sort_order` then age then id.
+/// [rows] with duplicate labels merged: the oldest row of each label kept,
+/// ordered `sort_order`, then age, then id.
 ///
-/// No unique index guards a label, because two phones offline can both coin
-/// one word and neither write is wrong; the newer row is hidden on read, and
-/// every device hides the same one. The key is the label exactly as stored —
-/// [measureAlreadyNamed] is what stops a person minting `Blob` beside `blob`.
+/// No unique index guards a label (two offline phones can coin the same word),
+/// so the newer row is hidden on read. The key is the label exactly as stored.
 List<T> mergeByLabel<T extends LabelledMeasure>(
   Iterable<StoredMeasure<T>> rows,
 ) {
@@ -81,12 +62,11 @@ int _byAge(
   return byCreated != 0 ? byCreated : a.measure.id.compareTo(b.measure.id);
 }
 
-/// `created_at` as a comparable key: the instant in canonical UTC ISO-8601, or
-/// the raw text where it does not parse.
+/// `created_at` as a comparable key: canonical UTC ISO-8601, or the raw text
+/// where it does not parse.
 ///
-/// The column is TEXT and writers differ (`…T…Z` here, `… …Z` from Postgres),
-/// so a bare string compare picks the wrong oldest. A value with no zone is
-/// read as UTC, or devices in different zones would disagree.
+/// The column is TEXT and writers format it differently, so a bare string
+/// compare picks the wrong oldest. A value with no zone is read as UTC.
 String _createdKey(Object? raw) {
   final s = raw as String? ?? '';
   final parsed = DateTime.tryParse(s);
@@ -98,9 +78,7 @@ String _createdKey(Object? raw) {
 }
 
 /// The first of [measures] already carrying [label], ignoring case, or null.
-///
-/// Looser than [mergeByLabel] on purpose: that hides what the database let
-/// through, this refuses what a person would read as the same word.
+/// Looser than [mergeByLabel]: it refuses what a person reads as the same word.
 T? measureAlreadyNamed<T extends LabelledMeasure>(
   String label,
   Iterable<T> measures,
@@ -118,11 +96,9 @@ T? measureAlreadyNamed<T extends LabelledMeasure>(
 enum MeasureSourceKind { usdaPortion, borrowed, typical, manual, unknown }
 
 /// One named measure of one ingredient: `n` of it are `n × amount` of the
-/// ingredient's basis unit ([basis] — g or ml, ADR-0008).
+/// ingredient's basis unit ([basis]).
 ///
-/// Value-equal on all fields; [id] is the persisted `ingredient_measure.id`
-/// (referenced by `recipe_line_item.measure_id` /
-/// `shopping_list_contribution.measure_id`).
+/// [id] is the persisted `ingredient_measure.id`.
 @immutable
 class Measure implements LabelledMeasure {
   const Measure({
@@ -141,30 +117,22 @@ class Measure implements LabelledMeasure {
   @override
   final String label;
 
-  /// Amount of one of this measure, in the ingredient's basis unit
-  /// (`basis_amount`, migration 0012). Must be positive to convert; a
-  /// non-positive value is rejected at conversion time (mirroring how a
-  /// non-positive density is), never silently used.
+  /// Amount of one of this measure, in the ingredient's basis unit. A
+  /// non-positive value is rejected at conversion time.
   final double amount;
 
-  /// Which basis unit [amount] is denominated in — the ingredient's
-  /// `macros_basis` (the row itself stores no basis: the ingredient's is
-  /// the single fact, joined in by every reader so the two can't disagree).
+  /// The unit [amount] is denominated in: the ingredient's `macros_basis`,
+  /// joined in by the reader (the row stores none).
   final MacrosBasis basis;
 
   @override
   final int sortOrder;
 
-  /// Where the amount comes from (step 7.6 provenance, displayed from
-  /// 7.7): `usda_fdc:<fdc_id> (<portion>)` for pipeline-derived weights
-  /// (`… — borrowed` when a variety borrows a representative food's
-  /// portion), `manual` for user-authored rows, `seed:typical` for the few
-  /// curated hand rows, null for rows predating the column.
+  /// Where the amount comes from: `usda_fdc:<fdc_id> (<portion>)`, `manual`,
+  /// `seed:typical`, or null.
   final String? source;
 
-  /// [source] classified for display. The raw machine string stays in the data;
-  /// anything user-facing shows the humanized kind: "USDA portion" /
-  /// "borrowed" / "typical" / "yours".
+  /// [source] classified for display.
   MeasureSourceKind get sourceKind {
     final s = source;
     if (s == null) return MeasureSourceKind.unknown;
@@ -195,61 +163,33 @@ class Measure implements LabelledMeasure {
   String toString() => 'Measure($label = $amount ${basis.baseUnit.id})';
 }
 
-/// How far two amounts may sit apart and still be **the same fact**: one part
-/// in a hundred, either side.
-///
-/// The app has exactly one tolerance for that, and both doors that ask the
-/// question use it — an ingredient measure against the row's piece weight
-/// (`wholeMeasureOf`, ADR-0016) and a recipe measure against the whole of what
-/// a batch makes (`wholeMeasureOfRecipe`, ADR-0018). One number, so "the same
-/// measure" means the same thing wherever it is said.
+/// How far two amounts may sit apart and still be the same fact: 1 % either
+/// side. Shared by `wholeMeasureOf` (ADR-0016) and `wholeMeasureOfRecipe`
+/// (ADR-0018).
 const kWholeMeasureTolerance = 0.01;
 
-/// [label] as the household wrote it: trimmed, with any run of inner
-/// whitespace read as one space.
+/// [label] as the household wrote it: trimmed, inner whitespace runs collapsed
+/// to one space. Case is never changed.
 ///
-/// **Case is theirs.** Nothing here lower-cases: the measures editor never
-/// has, and a silent case change is the kind of edit that makes a person doubt
-/// what else was changed. The seed's own style — all lower case, singular, a
-/// container word carrying its shelf size (`can (14.5 oz)`) — is a thing the
-/// doors *suggest*, not a thing this function imposes.
-///
-/// Both kinds of word are read by it, at every door either is authored at: a
-/// row's measures editor, *keep as a measure* on a receipt's pack, a recipe's
-/// MEASURES list, the ＋ on a component's dock. Otherwise ` Can ` and `Can`
-/// become two rows of one word, which the merge-on-read rule then hides one of
-/// rather than fixing.
+/// Every door that authors a measure label reads it through this, so ` Can `
+/// and `Can` do not become two rows.
 String measureLabelAsAuthored(String label) =>
     label.trim().replaceAll(RegExp(r'\s+'), ' ');
 
 // --- A measure's word, printed with what one of it comes to ------------------
 
-/// `jar (340 g)` — [word] with the basis amount behind it, or the word alone
-/// where it already says its size.
-///
-/// A measure's word tells a reader nothing about the figure beside it, so
-/// every door that prints one prints what one of it weighs too: a receipt's
-/// pack, the price ledger's line, a picker's chosen chip. The household's own
-/// style, though, is to put the size IN the word where a container comes in
-/// two of them (`can (14.5 oz)` beside `can (28 oz)`) — and appending to that
-/// says the size twice, in two unit systems: `can (14.5 oz) (411 g)`.
-///
-/// One function rather than three, because the judgement is one judgement and
-/// a door that grew its own copy would answer differently the first time the
-/// rule moved.
+/// `jar (340 g)`: [word] with the basis amount behind it, or the word alone
+/// where it already states its size (`can (14.5 oz)`).
 String measureWordWithSize(String word, double basisAmount, Unit basisUnit) =>
     measureWordStatesSize(word)
     ? word
     : '$word (${formatAmountIn(basisAmount, basisUnit)} ${basisUnit.label})';
 
-/// Whether [word] already states the size of what it names: a bracketed group
-/// that reads as an amount followed by a catalog unit — `can (14.5 oz)`,
-/// `bag (1 lb)`, `carton (32 fl oz)`.
+/// Whether [word] already states a size: a bracketed amount followed by a
+/// catalog unit, e.g. `can (14.5 oz)`.
 ///
-/// Deliberately narrow, because the cost of being wide is a reader left with
-/// no figure at all. `head, large` brackets nothing and `can (drained)`
-/// brackets something that is not a size, so both still take the weight
-/// appended; a bare `jar` always does.
+/// Deliberately narrow: `can (drained)` and `head, large` still take the weight
+/// appended.
 bool measureWordStatesSize(String word) {
   for (final bracketed in _bracketed.allMatches(word)) {
     final inside = _amountThenUnit.firstMatch(bracketed.group(1)!.trim());
@@ -266,18 +206,12 @@ final _bracketed = RegExp(r'\(([^()]*)\)');
 /// it — so `14.5 oz`, `14.5oz` and `½ lb` all split where a reader splits them.
 final _amountThenUnit = RegExp(r'^([^A-Za-z]+)([A-Za-z][A-Za-z ]*)$');
 
-/// Converts [amount] of [measure] into [to], via the measure's stored basis
-/// amount.
+/// Converts [amount] of [measure] into [to] via the measure's basis amount.
 ///
-/// - To a unit of the basis family: `amount × measure.amount`, then the
-///   ratio table (no density needed — the measure IS the bridge).
-/// - Across the mass↔volume boundary: only with [densityGPerMl] (the
-///   measure yields a basis-family quantity; crossing still needs the
-///   ingredient's density) — without one, `unit/no_density`.
-/// - To [UnitFamily.count] or [UnitFamily.imprecise]: `unit/incompatible` —
-///   a measure is not interchangeable with a bare count.
-/// - A non-positive/NaN [Measure.amount] is `measure/invalid_amount`:
-///   dividing or multiplying by it would fabricate a number (invariant 3).
+/// Within the basis family no density is needed; crossing mass↔volume needs
+/// [densityGPerMl] (`unit/no_density` without). Count and imprecise targets are
+/// `unit/incompatible`; a non-positive or NaN [Measure.amount] is
+/// `measure/invalid_amount`.
 Result<Quantity> convertMeasure(
   double amount,
   Measure measure, {
@@ -300,13 +234,8 @@ Result<Quantity> convertMeasure(
   );
 }
 
-/// Converts a basis-family (or, with [densityGPerMl], cross-family)
-/// quantity [q] into a count of [measure] — "674 g ≈ 2.25 × potato, large".
-///
-/// The inverse of [convertMeasure], with the same honesty rules: an invalid
-/// basis amount is `measure/invalid_amount`; crossing mass↔volume needs a
-/// density; count and imprecise quantities never resolve into a measure
-/// (`unit/incompatible`).
+/// Converts quantity [q] into a count of [measure] ("674 g ≈ 2.25 × potato,
+/// large"). The inverse of [convertMeasure], with the same failures.
 Result<double> amountInMeasure(
   Quantity q,
   Measure measure, {

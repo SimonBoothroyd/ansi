@@ -1,22 +1,9 @@
-/// What a unit picker may offer — PURE DART.
+/// What a unit picker may offer. Pure Dart.
 ///
-/// A picker's entry is one of three things, and they are not the same kind of
-/// fact: a catalog [Unit] (`g`, `cup` — offered on everything), a named
-/// [Measure] of one ingredient (`clove`, `can (400 g)` — a word for that row
-/// alone), or a [RecipeMeasure] of one recipe (`blob`, `loaf` — a word for
-/// that recipe alone). Sealed, so a picker switches exhaustively and a new
-/// kind of word cannot be silently rendered as a stale `else`.
-///
-/// It lives under the units rather than in a feature because three features
-/// now offer the same row: an ingredient's quantity dock, a receipt's pack,
-/// and a sub-recipe component's amount. A type owned by one of them would
-/// make the other two import it, which is the import the layering rule exists
-/// to stop.
-///
-/// Which entries a given surface offers, and in what order, is NOT decided
-/// here: `features/ingredients/domain/allowed_units.dart` answers it for an
-/// ingredient and `features/recipes/domain/component_units.dart` for a
-/// component line. This file is the vocabulary those answers are written in.
+/// Sealed over a catalog [Unit], a named [Measure] of one ingredient and a
+/// [RecipeMeasure] of one recipe, so pickers switch exhaustively. Which entries
+/// a surface offers is decided by `allowed_units.dart` (ingredients) and
+/// `component_units.dart` (component lines).
 library;
 
 import 'package:meta/meta.dart';
@@ -54,9 +41,8 @@ final class MeasureOption extends UnitChoice {
 
   final Measure measure;
 
-  /// The word with what one of it comes to behind it — and the word alone
-  /// where it already says its size ([measureWordWithSize]), so `can (14.5
-  /// oz)` is not read back as `can (14.5 oz) (411 g)`.
+  /// The word with what one of it comes to behind it, or the word alone where
+  /// it already states its size ([measureWordWithSize]).
   @override
   String get label => measureWordWithSize(
     measure.label,
@@ -72,14 +58,8 @@ final class MeasureOption extends UnitChoice {
   int get hashCode => measure.id.hashCode;
 }
 
-/// One of the target recipe's own words for a share of a batch — the chip a
-/// component line says `3 blob` with.
-///
-/// The [label] is the **bare word**, where a [MeasureOption] carries its weight
-/// in brackets. An ingredient measure explains itself against a catalog unit
-/// the reader already knows (`clove (3 g)`); a recipe measure has no such unit
-/// to be said in — what one comes to is a share of a batch, and that is said
-/// once on the conversion line above the row rather than nine times inside it.
+/// One of the target recipe's own words for a share of a batch. The [label] is
+/// the bare word; what one comes to is said once on the conversion line.
 final class RecipeMeasureOption extends UnitChoice {
   const RecipeMeasureOption(this.measure);
 
@@ -96,33 +76,21 @@ final class RecipeMeasureOption extends UnitChoice {
   int get hashCode => measure.id.hashCode;
 }
 
-/// What a surface **about an ingredient** does when handed a
-/// [RecipeMeasureOption]: nothing, loudly.
-///
-/// `blob` is a word for a recipe. An ingredient's doors — its quantity dock, a
-/// receipt's pack, a top-up, an import line — are never offered one
-/// (`allowedUnitChoicesFor` cannot produce one), so a branch reaching here is
-/// a wiring mistake in this app, not a shape the data can take. It throws
-/// rather than falling back, because every fallback available would be a
-/// fabricated amount: the alternative to this line is a silent `piece`.
+/// What an ingredient surface does when handed a [RecipeMeasureOption]: throw.
+/// `allowedUnitChoicesFor` cannot produce one, and any fallback would fabricate
+/// an amount.
 Never notAWordForAnIngredient(RecipeMeasure measure) => throw StateError(
   'a recipe measure (“${measure.label}”) is not a word for an ingredient',
 );
 
-/// The mirror: what a surface **about a recipe** does when handed a
-/// [MeasureOption].
-///
-/// `clove` is a word for one row of the vocabulary; it says nothing about a
-/// batch of anything (ADR-0008), which is why `componentUnitChoices` cannot
-/// produce one. Same reasoning as [notAWordForAnIngredient], same refusal to
-/// invent a fallback: every unit available to stand in here would be a number
-/// nobody stated.
+/// What a recipe surface does when handed a [MeasureOption]: throw, for the
+/// same reason as [notAWordForAnIngredient]. `componentUnitChoices` cannot
+/// produce one.
 Never notAWordForARecipe(Measure measure) => throw StateError(
   'an ingredient measure (“${measure.label}”) is not a word for a recipe',
 );
 
 /// A unit picker's full offer: the filtered `choices`, plus `offFilter` when
-/// the stored selection had to be admitted from outside the filter (it is
-/// also the last element of `choices`) so the UI can style it subtly
-/// ("not in filter") rather than hide it.
+/// the stored selection was admitted from outside the filter (it is also the
+/// last of `choices`) so the UI can mark it.
 typedef UnitChoiceOffer = ({List<UnitChoice> choices, UnitChoice? offFilter});

@@ -1,14 +1,9 @@
-/// Macro-nutrient values and their stored basis — PURE DART (invariant 2),
-/// beside `units.dart`/`measure.dart` as part of the honest-numbers
-/// vocabulary (spec §4, step 7.7).
+/// Macro-nutrient values and their stored basis. Pure Dart.
 ///
-/// The vocab stores macros **with the basis the label read them in**
-/// (per-100 g or per-100 ml — `ingredient.macros_basis`, migration 0011):
-/// liquid labels read per 100 ml and densities are sparse, so converting at
-/// entry can't be the design. Consumers bridge at computation time instead —
-/// a quantity in the basis's own family computes directly; cross-basis needs
-/// the ingredient's density; otherwise the total is honestly `incomplete`
-/// (invariant 3 — never a fabricated number).
+/// Macros are stored in the basis the label read them in (per 100 g or per 100
+/// ml, `ingredient.macros_basis`). Consumers bridge at computation time: the
+/// basis family computes directly, the other needs the ingredient's density,
+/// and otherwise the total is incomplete.
 library;
 
 import 'dart:convert';
@@ -17,9 +12,9 @@ import 'package:meta/meta.dart';
 
 import 'units.dart';
 
-/// Energy + macro-nutrients of 100 units (g or ml — see [MacrosBasis]) of an
-/// ingredient. Mirrors the server's `{kcal, protein, carb, fat}` jsonb, plus
-/// the optional `fiber` key described on [fiber].
+/// Energy and macro-nutrients of 100 units (g or ml, see [MacrosBasis]) of an
+/// ingredient. Mirrors the server's `{kcal, protein, carb, fat}` jsonb plus the
+/// optional [fiber].
 @immutable
 class Macros {
   const Macros({
@@ -30,13 +25,9 @@ class Macros {
     this.fiber,
   });
 
-  /// Parses the vocab row's serialized jsonb, or null when it is absent or
-  /// malformed — a row without complete macros is treated exactly like a
-  /// stub (invariant 3: no zeros invented for missing keys).
-  ///
-  /// The `fiber` key is read when it is there and a number, and its absence
-  /// costs the row nothing: the four are the panel, fibre is a fifth fact a
-  /// source either states or does not ([fiber]).
+  /// Parses the row's serialized jsonb, or null when it is absent or malformed;
+  /// no zeros are invented for missing keys. `fiber` is read when present and
+  /// its absence costs nothing.
   static Macros? tryParse(String? json) {
     if (json == null || json.isEmpty) return null;
     final Object? decoded;
@@ -63,18 +54,12 @@ class Macros {
     );
   }
 
-  /// The per-100 macros a label printed per serving asserts.
+  /// The per-100 macros asserted by a label [printed] per serving, scaled by
+  /// `100 / serving`.
   ///
-  /// A US Nutrition Facts panel reads "1 Tbsp (14 g) · 100 kcal"; the row
-  /// stores per 100 of its [basis], so the [printed] figures are scaled
-  /// by `100 / serving`. [serving] is the serving's amount in [basis]'s base
-  /// unit (14 for a 14 g serving on a per-100 g row). The result is
-  /// **unrounded** on purpose (M-D3): the label's own rounding scales with
-  /// it, and rounding again would compound a rounding that was never ours.
-  ///
-  /// Returns null — never a fabricated number (invariant 3) — when [serving]
-  /// is not a positive finite amount: a zero or missing serving weight has
-  /// no per-100 reading at all.
+  /// [serving] is the serving's amount in [basis]'s base unit (14 for a 14 g
+  /// serving). The result is unrounded so the label's rounding is not
+  /// compounded. Null when [serving] is not positive and finite.
   static Macros? per100From({
     required double serving,
     required MacrosBasis basis,
@@ -91,15 +76,9 @@ class Macros {
   final double carb;
   final double fat;
 
-  /// Grams of dietary fibre — **optional**, and the only one of the five that
-  /// is. The four above are all-or-none ([tryParse]); a source states fibre or
-  /// it does not, and a row without it is complete, not a stub.
-  ///
-  /// Null therefore means "not stated", never "none": the sum rule in
-  /// [operator +] is that a total carries fibre only when EVERY addend did,
-  /// because adding a stated 3 g to an unstated figure would print a fibre
-  /// total that is short by an unknown amount — the fabricated number
-  /// invariant 3 forbids.
+  /// Grams of dietary fibre, the only optional figure. Null means "not stated",
+  /// never "none", so a sum ([operator +]) carries fibre only when every addend
+  /// did.
   final double? fiber;
 
   /// The `macros` jsonb shape — the four keys always, `fiber` only when it is
@@ -126,9 +105,8 @@ class Macros {
     );
   }
 
-  /// This macro set scaled by [factor] (e.g. a 250 g line of a per-100 g
-  /// ingredient is `× 2.5`). An unstated fibre stays unstated — scaling
-  /// nothing gives nothing.
+  /// This macro set scaled by [factor] (a 250 g line of a per-100 g ingredient
+  /// is `× 2.5`). An unstated fibre stays unstated.
   Macros scaledBy(double factor) => Macros(
     kcal: kcal * factor,
     protein: protein * factor,
@@ -172,9 +150,7 @@ enum MacrosBasis {
   /// target when a line's quantity joins a macro total.
   Unit get baseUnit => this == MacrosBasis.perG ? g : ml;
 
-  /// Parses the stored value; anything unexpected falls back to per-100 g
-  /// (the column's default and check constraint make this unreachable in
-  /// practice).
+  /// Parses the stored value; anything unexpected falls back to per-100 g.
   static MacrosBasis fromDb(String? value) =>
       value == 'ml' ? MacrosBasis.perMl : MacrosBasis.perG;
 }

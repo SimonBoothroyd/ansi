@@ -1,27 +1,14 @@
-/// Portion counts said the way a kitchen says them — PURE DART.
+/// Portion counts as a kitchen says them. Pure Dart.
 ///
-/// A portion count became fractional with the per-member portion factor: "my
-/// wife eats ¾ what I do" makes a meal for both `1¾ portions`, and the ruling
-/// (P-D4) is that the fraction is PRINTED as one — `½ ¾ ¼` glyphs, never
-/// `1.75`, never rounded silently to a whole. Every surface that says a portion
-/// count — the meal editor, the cook session row, the whole-batch nudge, the
-/// per-person macro lens — goes through [formatFraction] / [formatPortions] so
-/// they cannot drift into three spellings of the same number.
-///
-/// Only the quarter glyphs are used (`¼ ½ ¾`, Latin-1, present in every
-/// bundled face). The factor is set in quarter steps and any sum of quarters
-/// is a quarter, so those cover every demand the household can state; a value
-/// that is NOT a quarter (a person's share under an override — `3 × ¾ ⁄ 1¾ =
-/// 1.29`, or a leftover against a `serves 2.5` recipe) prints as a trimmed
-/// decimal, because the bundled faces (Spectral, Inter, IBM Plex Mono) carry
-/// no other vulgar-fraction glyph.
+/// Every surface that prints a portion count goes through [formatFraction] /
+/// [formatPortions]. Portion factors move in quarter steps, so only `¼ ½ ¾` are
+/// used; any other value prints as a trimmed decimal.
 library;
 
 import 'number_format.dart';
 
-/// `1¾`, `½`, `2`, `1.29` — a count with its quarter as a glyph, a whole
-/// number plain, and anything else as at most two trimmed decimals. Never
-/// `1.75`, never `2.0`.
+/// `1¾`, `½`, `2`, `1.29`: a quarter as a glyph, a whole number plain, anything
+/// else as at most two trimmed decimals.
 String formatFraction(double value) {
   final sign = value < 0 ? '-' : '';
   final abs = value.abs();
@@ -39,9 +26,8 @@ String formatFraction(double value) {
   return '$sign${formatAmount(abs)}';
 }
 
-/// `1 portion`, `¾ portion`, `1¾ portions`, `4 portions` — [formatFraction]
-/// with the noun. A count of one or less than one is singular ("half a
-/// portion"); everything above one is plural.
+/// `1 portion`, `¾ portion`, `1¾ portions`: [formatFraction] with the noun,
+/// singular at one or below.
 String formatPortions(double count) {
   final noun = count > 0 && count <= 1 + _tolerance ? 'portion' : 'portions';
   return '${formatFraction(count)} $noun';
