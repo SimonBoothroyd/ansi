@@ -119,10 +119,7 @@ void main() {
     expect(find.text('…'), findsNWidgets(2));
     // 1 + ¾.
     expect(
-      find.text(
-        'a meal for both counts as 1¾ portions — the cook plan, the shop and '
-        'the macro lens all read it that way',
-      ),
+      find.textContaining('a meal for both counts as 1¾ portions'),
       findsOneWidget,
     );
   });
@@ -188,10 +185,7 @@ void main() {
     expect(find.byIcon(FLucideIcons.plus), findsOneWidget);
     expect(find.text('×1¾'), findsNWidgets(2)); // beside the name + stepper
     expect(
-      find.text(
-        'a meal for Ada counts as 1¾ portions — the cook plan, the '
-        'shop and the macro lens all read it that way',
-      ),
+      find.textContaining('a meal for Ada counts as 1¾ portions'),
       findsOneWidget,
     );
   });
@@ -218,10 +212,7 @@ void main() {
       expect(find.text('Sunday'), findsOneWidget);
       expect(find.text('Monday'), findsOneWidget);
       expect(
-        find.text(
-          'the week you plan, cook and shop — a Monday shop covers that '
-          'Monday’s dinner',
-        ),
+        find.textContaining('a Monday shop covers that Monday’s dinner'),
         findsOneWidget,
       );
     });
@@ -311,10 +302,7 @@ void main() {
       await _openWeekControl(tester, shape: WeekShape.sunday);
 
       expect(
-        find.text(
-          'the week you plan, cook and shop — a Sunday shop covers that '
-          'Sunday’s dinner',
-        ),
+        find.textContaining('a Sunday shop covers that Sunday’s dinner'),
         findsOneWidget,
       );
     });

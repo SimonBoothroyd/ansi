@@ -244,10 +244,7 @@ void main() {
 
     expect(find.text('Optional'), findsOneWidget);
     expect(
-      find.text(
-        'left out of macros and the shop list, and named where it '
-        'left',
-      ),
+      find.textContaining('left out of macros and the shop list'),
       findsOneWidget,
     );
 

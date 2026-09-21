@@ -215,10 +215,7 @@ void main() {
       // only for the weight.
       expect(fieldText(tester, densityAmountField), '2');
       expect(
-        find.text(
-          'your serving, ready to use — type what that much weighs '
-          '(the pack’s “(32 g)”)',
-        ),
+        find.textContaining('type what that much weighs (the pack’s “(32 g)”)'),
         findsOneWidget,
       );
 

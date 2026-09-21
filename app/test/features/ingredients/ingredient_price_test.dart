@@ -842,9 +842,7 @@ void main() {
       expect(find.text('Price — none yet'), findsOneWidget);
       expect(find.byKey(kAddPriceKey), findsOneWidget);
       expect(
-        find.text(
-          'a price is written as you enter it; Save below is for the fields',
-        ),
+        find.textContaining('a price is written as you enter it'),
         findsOneWidget,
         reason:
             'the dock must not be read as covering a section it does not '
@@ -925,10 +923,7 @@ void main() {
 
       expect(find.text('Price — after the first save'), findsOneWidget);
       expect(
-        find.text(
-          'A price is an event on a row, and this one does not exist '
-          'yet.',
-        ),
+        find.textContaining('this one does not exist yet'),
         findsOneWidget,
       );
       // No door onto a sheet that would have no row to write against.

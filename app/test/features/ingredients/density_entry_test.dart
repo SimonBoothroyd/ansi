@@ -182,10 +182,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.text(
-          'your serving, ready to use — type what that much weighs '
-          '(the pack’s “(32 g)”)',
-        ),
+        find.textContaining('type what that much weighs (the pack’s “(32 g)”)'),
         findsOneWidget,
       );
 

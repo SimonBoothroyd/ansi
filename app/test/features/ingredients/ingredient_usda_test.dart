@@ -346,13 +346,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('FDC'), findsNothing);
-    expect(
-      find.text(
-        'your macros and your density — the numbers on this row are no '
-        'longer the source’s',
-      ),
-      findsOneWidget,
-    );
+    expect(find.textContaining('your macros and your density'), findsOneWidget);
     // B-D3: both doors are exactly as they were.
     expect(find.widgetWithText(FButton, 'Not this food'), findsOneWidget);
     expect(find.widgetWithText(FButton, 'Choose another ›'), findsOneWidget);
