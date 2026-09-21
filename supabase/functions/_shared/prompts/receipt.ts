@@ -16,7 +16,7 @@
 // through the deterministic cascade afterwards, and a receipt's abbreviations
 // are exactly the input that cascade was built to be uncertain about out loud.
 //
-// The one thing it is asked to divide is a line into "the words that name the
+// The one thing it is asked to divide is a line into "every word that names the
 // thing" and "the numbers" (`name_printed`). That is not a match and not a
 // guess at our catalogue: it is the same characters with the money taken off,
 // and it is what keeps `TJ ORG BANANAS 3.49` from being trigram-compared
@@ -106,10 +106,24 @@ THE HEADER:
 
 THE LINES — one object per printed line, in printed order, none dropped:
 - printed_text: the line VERBATIM, exactly as it appears, money included.
-- name_printed: the same line with the money, the weight and the rate taken
-  off — just the words that name the thing ("TJ ORG BANANAS"). Same characters,
-  same abbreviations, nothing expanded. Empty string when the line is nothing
-  but figures.
+- name_printed: EVERY word that names the product, exactly as printed — brand
+  prefix, abbreviations, qualifiers, all of them, in order. A name is usually
+  SEVERAL words and is NEVER cut down to its first word: "ORG TAHINI", never
+  "ORG". Nothing expanded, nothing corrected. Take off only what is not the
+  name: the money, a weight and its rate, a count sub-row, and a till's tax or
+  department letter printed AFTER the price (" F", " FT"). NOTHING printed
+  BEFORE the name is ever taken off — a leading "T ", "A-" or code is the line
+  as printed, so it stays. A printed size the product is named by ("CUCUMBERS
+  PERSIAN 1 LB") is name too; that is your judgement, and unsure means keep the
+  words.
+    "ORG TAHINI $4.79" -> "ORG TAHINI"
+    "TOFU SPR FRM HGH PRTN OR $23.92" -> "TOFU SPR FRM HGH PRTN OR"
+    "365WFM OG UNSWT SOY MILK $3.09 F" -> "365WFM OG UNSWT SOY MILK"
+    "OG RED ONION $2.18 F" + "Qty 0.73 lb @ $2.99/lb" -> "OG RED ONION"
+    "A-AVOCADO HASS LARGE EAC $1.49" -> "A-AVOCADO HASS LARGE EAC"
+    "T HOL BROOM CINNAMON MINI 1.29" -> "T HOL BROOM CINNAMON MINI"
+    "YELLOW ONIONS 1.32 lb @ 1.99/lb 2.63" -> "YELLOW ONIONS"
+  Empty string when the line is nothing but figures.
 - amount_printed: this line's own money figure, as printed ("3.49", "$3.49",
   "-0.55"). Keep the sign the paper printed. Never a figure you worked out.
 - count / each_printed — for a COUNT SUB-ROW printed directly under an item:
