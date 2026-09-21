@@ -271,8 +271,7 @@ class _WideShopState extends ConsumerState<_WideShop> {
 /// row rather than hunting for a background colour. Only one row carries it.
 const kShopReadingRowKey = ValueKey('shop-reading-row');
 
-/// How wide the provenance pane is drawn — the one measurement this screen's
-/// wide frame adds, and the same 360 the board's pane is drawn at.
+/// How wide the provenance pane is drawn on a wide screen.
 const kProvenancePaneWidth = 360.0;
 
 /// The breakdown held open beside the walk: the row, its total, the
@@ -733,8 +732,8 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
         () => repo.setEntryChecked(entryId: entryId, checked: !item.checked),
       );
     } else {
-      // The tick belongs to the week on screen (0018 / D3) — checking Flour
-      // while looking at next week must not tick this week's Flour.
+      // The tick belongs to the week on screen: checking Flour while looking at
+      // next week must not tick this week's Flour.
       await ref.write(
         context,
         what,
@@ -1018,8 +1017,8 @@ class _ProvenanceLine extends StatelessWidget {
   }
 }
 
-/// The design-board check box: a rounded square, filled herb-green with a white
-/// tick when on.
+/// The check box: a rounded square, filled herb-green with a white tick when
+/// on.
 class _CheckBox extends StatelessWidget {
   const _CheckBox({required this.checked, super.key});
 

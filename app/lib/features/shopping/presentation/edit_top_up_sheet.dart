@@ -1,18 +1,11 @@
-/// Edit or remove a single manual top-up (a `manual` contribution).
+/// Edit or remove one manual top-up, opened from a manual line in an item's
+/// breakdown.
 ///
-/// Opened from a manual line in an item's provenance breakdown. Since 7.7 it
-/// IS the shared quantity + unit-chip surface (frame b): pre-filled quantity
-/// and selection, the chip row instead of a dropdown, plus a Remove
-/// affordance. **Save** edits the contribution in place; **Remove**
-/// soft-deletes just that top-up (the item's cook contributions and
-/// check-off stay). Writes through the keep-alive
-/// [shoppingRepositoryProvider].
-///
-/// A top-up whose stored `measure_id` doesn't resolve (row unsynced or
-/// soft-deleted) renders as its honest count fallback with a pending note,
-/// and **Save keeps the id verbatim** unless the user explicitly picks a
-/// chip — mirroring the recipe editor, so an unrelated edit never wipes the
-/// FK for every device (invariant 3's degrade-don't-destroy).
+/// It is the shared quantity sheet with a Remove affordance: Save edits the
+/// contribution in place, Remove soft-deletes only that top-up. A stored
+/// `measure_id` that does not resolve renders as its count fallback with a
+/// note, and Save keeps the id unless the user picks a chip, so an unrelated
+/// edit never wipes the FK.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -28,9 +21,9 @@ import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../data/shopping_providers.dart';
 import '../domain/shopping.dart';
 
-/// Opens the edit/remove sheet for [contribution] (a manual top-up on
-/// [itemName], whose vocab row is [ingredientId] — null for a free-text
-/// item). No-op if the contribution has no persisted id.
+/// Opens the sheet for [contribution], a manual top-up on [itemName];
+/// [ingredientId] is null for a free-text item. No-op if the contribution has
+/// no persisted id.
 Future<void> showEditTopUpSheet(
   BuildContext context, {
   required String itemName,

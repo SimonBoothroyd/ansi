@@ -1,13 +1,8 @@
-/// The "add item or top up an ingredient" sheet (design board).
+/// The "add item or top up an ingredient" sheet.
 ///
-/// Two modes, toggled at the top:
-///   * **Item** — a free-text non-food staple ("paper towels") → a free-text
-///     shopping entry.
-///   * **Top up** — search the vocab, pick an ingredient, add a manual quantity
-///     → a `manual` contribution merged into that ingredient's total.
-///
-/// Both write through the keep-alive [shoppingRepositoryProvider]; the list
-/// re-derives from the overlay change.
+/// Two modes: **Item** adds a free-text non-food entry; **Top up** picks an
+/// ingredient and adds a `manual` contribution to its total. Both write through
+/// [shoppingRepositoryProvider], and the list re-derives.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -130,8 +125,8 @@ class _FreeTextBody extends HookConsumerWidget {
   }
 }
 
-/// Search the vocab (picker v2 rows — frame a), pick an ingredient, then
-/// quantify it on the shared quantity + unit-chip sheet (frame b).
+/// Search the vocab, pick an ingredient, then quantify it on the shared
+/// quantity sheet.
 class _TopUpBody extends HookConsumerWidget {
   const _TopUpBody();
 
@@ -140,11 +135,10 @@ class _TopUpBody extends HookConsumerWidget {
     final search = useIngredientSearch(ref, context);
 
     Future<void> pick(Ingredient ing) async {
-      // The quantity sheet brings the keyboard, which shrinks this sheet's
-      // list under it — the tapped row can be unmounted by the time Add
+      // The quantity sheet's keyboard can unmount the tapped row before Add
       // top-up is pressed. Resolve everything the write needs first, through
-      // handles that outlive the row (`hostContextOf`); never a `ref` after
-      // the await, never a `context.mounted` bail that drops the top-up.
+      // handles that outlive the row (`hostContextOf`); never use `ref` after
+      // the await or bail on `context.mounted`, which would drop the top-up.
       final container = ProviderScope.containerOf(context, listen: false);
       final host = hostContextOf(context);
       final result = await showQuantityUnitSheet(
@@ -183,9 +177,8 @@ class _TopUpBody extends HookConsumerWidget {
           ),
         },
       );
-      // This sheet is the root navigator's top route again once the quantity
-      // sheet has popped, so the host pops it whether or not the row lives.
-      // The host outlives the row — see [hostContextOf].
+      // This sheet is the top route again once the quantity sheet has popped,
+      // so the host pops it whether or not the row lives (see [hostContextOf]).
       // ignore: use_build_context_synchronously
       if (added) Navigator.of(host.context).pop();
     }
@@ -210,10 +203,9 @@ class _TopUpBody extends HookConsumerWidget {
           ),
         ),
         const SizedBox(height: 8),
-        // The add-new chain: the ingredient form pushed over THIS sheet, then
-        // back — and only then does the row arrive here, so the quantity sheet
-        // that [pick] opens offers the units the form just set. The router this
-        // needs is the app's own; the sheet sits under it like every modal.
+        // The add-new chain: the ingredient form is pushed over this sheet, and
+        // the row arrives only after it pops, so the quantity sheet [pick]
+        // opens offers the units the form set.
         AddNewIngredientRow(query: search.query, onCreated: pick),
       ],
     );

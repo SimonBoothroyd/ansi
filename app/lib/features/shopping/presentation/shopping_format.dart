@@ -12,9 +12,8 @@ import '../domain/shopping.dart';
 String formatTotal(Quantity q) =>
     '${formatQuantityIn(q.amount, q.unit)} ${q.unit.label}';
 
-/// The week menu row's trailing label on the Shop tab — what that week holds in
-/// this tab's own derivation, `6 items` / `1 item` / `nothing to buy`, never
-/// the Week's meal count.
+/// The week menu row's trailing label on the Shop tab: `6 items` / `1 item` /
+/// `nothing to buy`.
 String formatItemCount(int items) => switch (items) {
   0 => 'nothing to buy',
   1 => '1 item',
@@ -31,11 +30,9 @@ String formatPieceCount(PieceTotal p) =>
     '${p.approx ? '≈ ' : ''}${formatQuantity(p.count)} ${pieces.label}';
 
 /// An item's rolled-up total for the right-hand column. A piece-weighted row
-/// reads its count of pieces ("2½ piece"); an item every contribution asked
-/// for in one measure reads in that measure ("1 can (400 g), drained") — each
-/// is what goes in the basket. Otherwise the honest subtotals join with " + "
-/// (a mass and a volume that couldn't be merged), and a numberless non-food
-/// staple renders as an em dash.
+/// reads its count ("2½ piece"); an item asked for in one measure reads in it
+/// ("1 can (400 g), drained"). Otherwise the subtotals join with " + ", and a
+/// numberless staple renders as an em dash.
 String itemTotal(ShoppingItem item) {
   final inPieces = item.pieceTotal;
   if (inPieces != null) return formatPieceCount(inPieces);
@@ -48,11 +45,9 @@ String itemTotal(ShoppingItem item) {
 }
 
 /// The small line under an item's total: what a piece- or measure-counted row
-/// weighs ("400 g") — with the round-up after it when that count is
-/// fractional ("167.5 g → buy 3"), because you buy whole limes and whole cans
-/// alike — or the whole-unit round-up hint. Empty when the row has none of
-/// these. Never a replacement for [itemTotal] — always beside it (invariant
-/// 3).
+/// weighs ("400 g"), with the round-up after a fractional count ("167.5 g → buy
+/// 3"), or the whole-unit hint. Empty when none apply. Always beside
+/// [itemTotal], never instead of it.
 String itemSecondary(ShoppingItem item) {
   final inPieces = item.pieceTotal;
   final measured = item.measureTotal;
@@ -66,23 +61,13 @@ String itemSecondary(ShoppingItem item) {
   return hint == null ? '' : wholeUnitHintText(hint);
 }
 
-/// [itemSecondary] with what the row costs on the end — `550 g · ≈ $2.42`,
-/// or `350 g · no price yet` (ADR-0017).
+/// [itemSecondary] with the row's cost on the end: `550 g · ≈ $2.42`, or `350 g
+/// · no price yet` (ADR-0017). `≈` because a price is the latest seen, not a
+/// quote.
 ///
-/// The estimate wears `≈` because a price is the latest one seen and not a
-/// quote. A row that cannot be priced SAYS so rather than leaving a gap: a
-/// silent row would read as a free one, and the shopper is the person who can
-/// fix it.
-///
-/// **[anyPriced] is what makes that a gap rather than a nag.** A household
-/// that has entered no prices at all is not missing anything — it simply has
-/// not started — and forty rows each saying `no price yet` would be the app
-/// asking for data on a screen somebody is using in an aisle. The words appear
-/// the moment one row on the trip HAS a price, which is when a blank row
-/// genuinely is a hole in the figure above it.
-///
-/// A free-text item and a numberless staple say nothing either way — neither
-/// is a vocabulary row with an amount, so neither has a price to be missing.
+/// `no price yet` appears only when [anyPriced]: a household with no prices at
+/// all is not nagged row by row. A free-text item and a numberless staple say
+/// nothing either way.
 String itemSecondaryWithCost(
   ShoppingItem item, {
   double? cents,
@@ -96,9 +81,8 @@ String itemSecondaryWithCost(
   return [if (base.isNotEmpty) base, if (money.isNotEmpty) money].join(' · ');
 }
 
-/// A provenance line's quantity ("300 g", or "2 potato, large" when counted
-/// in a measure), or empty when it carries none. A line keeps its own words
-/// whatever the item's total ended up in.
+/// A provenance line's quantity ("300 g", or "2 potato, large" when counted in
+/// a measure), or empty when it carries none.
 String contributionQuantity(ShoppingContribution c) {
   final q = c.quantity;
   if (q == null) return '';
@@ -109,10 +93,9 @@ String contributionQuantity(ShoppingContribution c) {
   return '${formatQuantityIn(q, unit)} ${unit.label}';
 }
 
-/// The whole-unit round-up hint under a count-food's total: "2.25 piece →
-/// buy 3", or "≈ 2.25 potato, large → buy 3" when the count was derived from
-/// a mass total via the measure's gram weight. Always beside the honest
-/// total, never instead of it (invariant 3).
+/// The whole-unit hint under a count-food's total: "2.25 piece → buy 3", or "≈
+/// 2.25 potato, large → buy 3" when the count was derived from a mass total.
+/// Always beside the total.
 String wholeUnitHintText(WholeUnitHint h) =>
     '${h.approx ? '≈ ' : ''}${formatQuantity(h.count)} ${h.unitLabel} '
     '→ buy ${h.buy}';

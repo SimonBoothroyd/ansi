@@ -1,19 +1,12 @@
-/// Confetti of the food itself — the burst that plays when this phone ticks
-/// the last row of the shopping list.
+/// Food confetti: the burst that plays when this phone ticks the last row of
+/// the shopping list.
 ///
-/// About thirty pieces — Lucide glyphs the app already ships (a leaf, an ear
-/// of wheat, a carrot), a filled circle for a berry, and plain rounded strips
-/// — in the eight [AnsiConfetti] colours, burst from the box just ticked, arc
-/// up and out across the whole width of the screen, hang at the apex, then
-/// fall past the bottom, turning, and fade over the last stretch. One painter
-/// driven by one animation; the pieces are dealt once from a seed so a burst
-/// is the same shape every frame, and each piece leaves a little after the
-/// last so the burst reads as a scatter rather than a ring.
-///
-/// [playConfettiBurst] is the door: it drops one [ConfettiBurst] into the
-/// root overlay above everything on screen, ignoring pointers, and takes it
-/// down when the last piece has fallen — so the list re-flowing underneath
-/// (the row leaving its aisle for the basket) never moves the confetti.
+/// About thirty pieces (Lucide food glyphs, a filled circle, rounded strips) in
+/// the [AnsiConfetti] colours burst from the ticked box, arc up and out, hang,
+/// then fall past the bottom and fade. One painter, one animation; pieces are
+/// dealt once from a seed. [playConfettiBurst] puts one [ConfettiBurst] in the
+/// root overlay, ignoring pointers, and removes it when done, so the list
+/// re-flowing underneath never moves it.
 library;
 
 import 'dart:math';
@@ -84,12 +77,10 @@ const kConfettiDuration = Duration(milliseconds: 1720);
 /// How far a piece falls past its apex when the screen's edge is not further.
 const kConfettiFall = 420.0;
 
-/// Deals the burst's pieces from [seed] — the same seed deals the same burst.
-///
-/// The spread is the board's: about ±175 px across, 55 to 260 px up, a turn
-/// of up to most of a circle either way, and a start anywhere in the first
-/// [kConfettiMaxDelay]. Strips are the most common piece, so the glyphs read
-/// as food against them rather than as a font sample.
+/// Deals the burst's pieces from [seed]; the same seed deals the same burst.
+/// Spread: about ±175 px across, 55 to 260 px up, up to most of a turn either
+/// way, starting anywhere in the first [kConfettiMaxDelay]. Strips are the most
+/// common piece.
 List<ConfettiPiece> dealConfetti(int seed) {
   final random = Random(seed);
   double between(double a, double b) => a + random.nextDouble() * (b - a);
@@ -115,14 +106,10 @@ ConfettiShape _shapeFor(double roll) => switch (roll) {
   _ => ConfettiShape.carrot,
 };
 
-/// The board's `cel-pop` keyframes, one piece at [t] of its own flight.
-///
-/// A pop to 8 % (fade in, over-scale, a third of the way out), the rise to
-/// the apex by 45 % on an ease-out that slows into it, a short hang, then
-/// gravity from 50 % to the end — down to [fall] below the apex with the
-/// drift carrying on and the turn more than doubling — fading over the last
-/// 15 %. [fall] is at least [kConfettiFall]; the painter stretches it to the
-/// bottom of the screen so nothing is left lying on the list.
+/// One piece at [t] of its own flight: a pop to 8 %, the rise to the apex by 45
+/// % on an ease-out, a short hang, then gravity from 50 % down to [fall] below
+/// the apex, fading over the last 15 %. [fall] is at least [kConfettiFall]; the
+/// painter stretches it to the bottom of the screen.
 ConfettiFrame confettiFrameAt(
   ConfettiPiece piece,
   double t, {
@@ -161,8 +148,8 @@ ConfettiFrame confettiFrameAt(
   );
 }
 
-/// The burst, drawn: fills whatever it is given, ignores pointers, and paints
-/// [dealConfetti]'s pieces from [origin] as [animation] runs 0 → 1 across
+/// The burst, drawn: fills its box, ignores pointers, and paints
+/// [dealConfetti]'s pieces from [origin] as [animation] runs 0 → 1 over
 /// [kConfettiDuration].
 class ConfettiBurst extends StatelessWidget {
   const ConfettiBurst({
@@ -269,10 +256,9 @@ class ConfettiPainter extends CustomPainter {
       old.origin != origin || old.pieces != pieces;
 }
 
-/// Plays one burst from [origin] — global coordinates, a box's
-/// `localToGlobal` — above everything on screen, and takes it down when the
-/// last piece has fallen. The root overlay, so a tab's body re-flowing
-/// underneath (or scrolling) never moves it; pointers pass straight through.
+/// Plays one burst from [origin] (global coordinates) in the root overlay,
+/// above everything and transparent to pointers, and removes it when the last
+/// piece has fallen.
 void playConfettiBurst(
   BuildContext context, {
   required Offset origin,

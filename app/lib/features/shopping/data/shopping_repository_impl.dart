@@ -1,15 +1,11 @@
 /// [ShoppingRepository] over the local PowerSync SQLite.
 ///
-/// The list is derived live: the week's cook plan ([buildCookPlan]) expands
-/// each recipe's lines by its session factor, bare-ingredient meals are walked
-/// from the week's entries, and the week-scoped overlay of check-offs and
-/// manual rows goes on top ([buildShoppingList]). A retired ingredient buys
-/// nothing and is named in [ShoppingList.retiredIngredients].
-///
-/// The watch query selects a column from every table the load reads: SQLite
-/// drops an unselected LEFT JOIN before PowerSync sees it
-/// (`watch_coverage_test.dart`). Writes go through views, which reject UPSERT,
-/// so entry creation is find-or-create with a plain INSERT.
+/// The list is derived live: the cook plan ([buildCookPlan]) expands recipe
+/// lines by session factor, bare-ingredient meals come from the week's entries,
+/// and the week-scoped overlay goes on top ([buildShoppingList]). The watch
+/// query selects a column from every table it reads, because SQLite drops an
+/// unselected LEFT JOIN (`watch_coverage_test.dart`). Writes go through views,
+/// which reject UPSERT.
 library;
 
 import 'dart:convert';
@@ -64,7 +60,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
   /// the signed-in household, tests pass their own).
   final String _householdId;
 
-  /// The household's week, used to name a breakdown line's day.
+  /// The household's week, for naming a breakdown line's day.
   final WeekShape _weekShape;
 
   String _weekKey(DateTime weekStart) => isoDateOf(weekStart);
@@ -104,7 +100,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
   Future<ShoppingList> _load(String weekKey) async {
     final (cook, unresolved, optional, retiredLines) =
         await _deriveCookContributions(weekKey);
-    // The week's OWN entries, not only its cook sessions (step 8.14 / A-D4).
+    // The week's own entries, not only its cook sessions.
     final (planned, retiredPlanned) = await _derivePlannedIngredients(weekKey);
     final (entries, manual) = await _loadOverlay(weekKey);
     final meta = await _loadIngredientMeta({
@@ -396,7 +392,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
     }
 
     // The parents whose lists are short because a component could not be
-    // derived — the echo that keeps the silence legible (D4).
+    // derived.
     final titles = {for (final r in plan.recipes) r.recipeId: r.title};
     final unresolved = <UnresolvedComponentNote>[
       for (final e in plan.unresolvedComponentsByParent.entries)

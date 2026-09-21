@@ -1,32 +1,22 @@
-/// The shopping-list read/write contract — PURE DART (invariant 2). The data
-/// layer implements it over PowerSync's local SQLite; ViewModels depend only on
-/// this.
+/// The shopping-list read/write contract. Pure Dart.
 ///
-/// The list is DERIVED (spec §4): cook contributions come live from the batch
-/// cook plan. Only the overlay is written — check-off state and manual /
-/// free-text contributions (`setIngredientChecked` / `setEntryChecked` /
-/// `addTopUp` / `addFreeTextItem` / `removeEntry`). The read reacts to any
-/// change to the week, a covered recipe, or the overlay.
-///
-/// **The overlay is week-scoped.** Since Cook and Shop follow the week you are
-/// LOOKING AT, everything written here has to say which week's list it is on:
-/// `setIngredientChecked`, `addTopUp` and `addFreeTextItem` all take the week,
-/// and the read only ever returns that week's entries.
+/// The list is derived: cook contributions come live from the batch cook plan.
+/// Only the overlay is written (check-off state, manual top-ups and free-text
+/// items), and it is week-scoped: every write names the week, and the read
+/// returns only that week's entries.
 library;
 
 import '../../../core/units/units.dart';
 import 'shopping.dart';
 
 abstract interface class ShoppingRepository {
-  /// The derived shopping list for the week beginning [weekStart] (the week's
-  /// own first day),
-  /// reacting to plan/recipe/overlay changes. Emits an empty [ShoppingList]
-  /// when nothing is planned and nothing has been added.
+  /// The derived shopping list for the week beginning [weekStart], reacting to
+  /// plan, recipe and overlay changes. Emits an empty [ShoppingList] when
+  /// nothing is planned or added.
   Stream<ShoppingList> watchShoppingList(DateTime weekStart);
 
-  /// Checks/unchecks an ingredient line on the list for [weekStart], lazily
-  /// creating its entry (a purely derived ingredient has no entry until it is
-  /// first touched). The entry is stamped with that week.
+  /// Checks or unchecks an ingredient on the list for [weekStart], creating its
+  /// entry on first touch, stamped with that week.
   Future<void> setIngredientChecked({
     required String ingredientId,
     required bool checked,
@@ -39,12 +29,9 @@ abstract interface class ShoppingRepository {
     required bool checked,
   });
 
-  /// Adds a manual top-up to an ingredient on the list for [weekStart]
-  /// (find-or-create its entry within that week).
-  ///
-  /// With [measureId], the top-up is counted in that named measure ("2 ×
-  /// potato, large"); [unit] must then be the count unit the row stores as
-  /// its honest fallback (`pieces`).
+  /// Adds a manual top-up to an ingredient on the list for [weekStart], finding
+  /// or creating its entry within that week. With [measureId] the top-up is
+  /// counted in that measure, and [unit] must be the count unit (`pieces`).
   Future<void> addTopUp({
     required String ingredientId,
     required double quantity,
@@ -67,11 +54,7 @@ abstract interface class ShoppingRepository {
   Future<void> removeContribution({required String contributionId});
 
   /// Adds a free-text non-food item ("paper towels") to the list for
-  /// [weekStart]. [category] is optional.
-  ///
-  /// Week-scoped exactly like [addTopUp]: you added it while shopping for one
-  /// week, so it belongs to that week's list and does not follow you into the
-  /// next one.
+  /// [weekStart]. [category] is optional. Week-scoped like [addTopUp].
   Future<void> addFreeTextItem({
     required String text,
     required DateTime weekStart,

@@ -95,8 +95,8 @@ enum RetiredIngredientSite {
   /// A recipe line: the pick is in that recipe, whose editor re-points it.
   recipeLine,
 
-  /// A bare-INGREDIENT meal on the week (migration 0033): there is no recipe
-  /// to edit, so the pick is in the plan, on the entry itself.
+  /// A bare-ingredient meal on the week: there is no recipe to edit, so the
+  /// pick is in the plan, on the entry itself.
   planEntry,
 }
 
@@ -693,7 +693,7 @@ ShoppingList buildShoppingList({
     ];
 
     // An entry with no live contribution of any kind is a stale check-off (its
-    // recipe or its snack was removed) — skip it (lifecycle note, 0006 SQL).
+    // recipe or its snack was removed), so skip it.
     if (cooks.isEmpty && snacks.isEmpty && manuals.isEmpty) continue;
 
     final m = meta[id];

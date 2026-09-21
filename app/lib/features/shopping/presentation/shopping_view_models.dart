@@ -1,11 +1,9 @@
 /// Riverpod ViewModels for the Shop screen.
 ///
-/// [currentShoppingList] streams the derived shopping list for the **viewed**
-/// week — the same week start the Week and Cook screens show (D3). Mutations
-/// (check-off, top-up, add item) are fire-and-forget calls the view makes on
-/// the keep-alive [shoppingRepositoryProvider] directly — never a throwaway
-/// notifier held across an async gap, which Riverpod disposes underneath the
-/// call.
+/// [currentShoppingList] streams the derived list for the viewed week.
+/// Mutations are fire-and-forget calls the view makes on the keep-alive
+/// [shoppingRepositoryProvider] directly, never through a throwaway notifier
+/// held across an async gap, which Riverpod disposes mid-call.
 library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -26,13 +24,8 @@ Stream<ShoppingList> currentShoppingList(Ref ref) => ref
     .watchShoppingList(ref.watch(viewedWeekStartProvider));
 
 /// What the rest of the trip comes to, and how many rows it could not price
-/// — the figure on the sync line and the caveat that rides with it
-/// (ADR-0017).
-///
-/// The UNTICKED rows only: what is in the basket has been picked up, and the
-/// question the line answers is what is left. The figure is null when not one
-/// row can be priced, because `≈ $0` would read as a free trip rather than an
-/// unpriced one.
+/// (ADR-0017). Unticked rows only. The figure is null when no row can be
+/// priced.
 @riverpod
 TripCost shopTripCost(Ref ref) {
   final list = ref.watch(currentShoppingListProvider).asData?.value;
