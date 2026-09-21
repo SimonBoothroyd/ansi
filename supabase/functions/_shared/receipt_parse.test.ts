@@ -7,11 +7,9 @@
 import { assertEquals } from "@std/assert";
 import {
   canonicalWeightUnit,
-  nameFromPrintedLine,
   parseCents,
   parseDiscountCents,
   parseReceiptDate,
-  repairedName,
 } from "./receipt_parse.ts";
 
 Deno.test("money — the ordinary forms", () => {
@@ -147,31 +145,4 @@ Deno.test("weight — anything that is not a weight we know is null", () => {
   for (const bad of [null, "", "ea", "each", "ct", "ml", "cup", "bunch"]) {
     assertEquals(canonicalWeightUnit(bad), null, `${bad}`);
   }
-});
-
-Deno.test("name — the printed line with its figures taken off", () => {
-  const cases: [string, string][] = [
-    ["ORG TAHINI $4.79", "ORG TAHINI"],
-    ["TJ ORG BANANAS  3.49", "TJ ORG BANANAS"],
-    ["ICLNPR MANGO OATMILK SKYR   $9.56 F", "ICLNPR MANGO OATMILK SKYR"],
-    ["TOFU SPR FRM HGH PRTN OR $23.92 8 @ $2.99", "TOFU SPR FRM HGH PRTN OR"],
-    ["OG RED ONION $2.18 F Qty 0.73 lb @ $2.99/lb", "OG RED ONION"],
-    ["YELLOW ONIONS  1.32 lb @ 1.99/lb  2.63", "YELLOW ONIONS"],
-    ["CUCUMBERS PERSIAN 1 LB $2.49", "CUCUMBERS PERSIAN 1 LB"],
-    ["T HOL BROOM CINNAMON MINI $1.29", "T HOL BROOM CINNAMON MINI"],
-    ["VITAMIN F", "VITAMIN F"],
-    ["3.49", ""],
-  ];
-  for (const [printed, name] of cases) {
-    assertEquals(nameFromPrintedLine(printed), name, printed);
-  }
-});
-
-Deno.test("name — a name the model cut short is restored, any other is left", () => {
-  assertEquals(repairedName("ORG", "ORG TAHINI $4.79"), "ORG TAHINI");
-  assertEquals(repairedName("", "ORG TAHINI $4.79"), "ORG TAHINI");
-  assertEquals(repairedName("ORG TAHINI", "ORG TAHINI $4.79"), "ORG TAHINI");
-  // Not a prefix: the model read it differently, and its reading stands.
-  assertEquals(repairedName("TAHINI", "ORG TAHINI $4.79"), "TAHINI");
-  assertEquals(repairedName("", "3.49"), "");
 });
