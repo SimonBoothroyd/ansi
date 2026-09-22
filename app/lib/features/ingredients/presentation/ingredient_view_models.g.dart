@@ -64,7 +64,7 @@ final class IngredientFormProvider
   }
 }
 
-String _$ingredientFormHash() => r'7bc11317fe0677f623abe69e01b7f72e4a5db367';
+String _$ingredientFormHash() => r'b04baa25d8e97a3e15a8f0d4097f2eccdac27ffd';
 
 /// The form's ViewModel — one per ingredient id, and one for the create form
 /// (a null id, which is what makes this the app's one add flow).

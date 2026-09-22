@@ -50,6 +50,7 @@ import 'density_entry.dart';
 import 'draft_card.dart';
 import 'ingredient_facts.dart';
 import 'ingredient_view_models.dart';
+import 'label_photo_door.dart';
 import 'macro_fields.dart';
 import 'macro_line_text.dart';
 import 'macros_doubt_line.dart';
@@ -858,6 +859,15 @@ class _DetailForm extends ConsumerWidget {
       form.applyUsdaPick(pick);
     }
 
+    // The label door. The sheet needs a context, so the photo is chosen here
+    // and the path goes back to the ViewModel, which reads it and says on the
+    // form's own line if it could not.
+    Future<void> readLabel() async {
+      final path = await pickLabelPhoto(context, ref);
+      if (path == null) return;
+      await form.readLabelFromPhoto(path);
+    }
+
     // Puts the form down: back to the fact sheet on a row that exists. A create
     // pops with the row for the caller awaiting it, or falls back to the
     // manager on a cold deep link.
@@ -1020,9 +1030,11 @@ class _DetailForm extends ConsumerWidget {
           // shifts every sibling and silently resets its state.
           _StatusStrip(ingredient: ing, creating: creating),
 
-          // The two prefill doors. The scan is a stub's door (a draft fills
+          // The three prefill doors. The scan is a stub's door (a draft fills
           // only empty fields); the lookup is every row's, hidden only where
-          // the card below already offers `Choose another ›`.
+          // the card below already offers `Choose another ›`; the label is
+          // every row's and never hides, because a second photo is the fix
+          // for a first one that read badly.
           _FillItIn(
             // No scan door on the web: there is no camera or detector.
             scan: stub && !kIsWeb
@@ -1037,6 +1049,10 @@ class _DetailForm extends ConsumerWidget {
                     label: 'Look up in USDA',
                     onTap: busy ? null : pickUsda,
                   ),
+            label: _GhostButton(
+              label: 'Read a label',
+              onTap: busy ? null : readLabel,
+            ),
           ),
 
           if (draft.scanned != null && draft.scanApplied != null)
@@ -1126,6 +1142,16 @@ class _DetailForm extends ConsumerWidget {
               ),
               // The same fact for a scanned row, with no doors to offer.
               _BarcodeProvenance(ingredient: sourcedRow, basis: draft.basis),
+              // And for a row read off a photographed label, which offers
+              // exactly one: putting the fields back.
+              _LabelProvenance(
+                ingredient: sourcedRow,
+                pending: draft.sourcePending,
+                basis: draft.basis,
+                onUndo: busy || draft.labelUndo == null
+                    ? null
+                    : form.undoLabelFill,
+              ),
 
               const _Label(
                 'MACROS',
@@ -1565,6 +1591,88 @@ class _BarcodeProvenance extends StatelessWidget {
         '${ingredient.sourceEdited ? 'edited · ' : ''}Filled from a barcode · '
         'per 100 ${basis.dbValue}\n$label',
         style: ansiMono(size: 10, color: AnsiColors.muted),
+      ),
+    );
+  }
+}
+
+/// The nutrition label this row was read from. A photo names no food, so
+/// there is nothing to print but the fact and which 100 the figures are per.
+///
+/// While the fill is still only in the fields it wears the pending card's
+/// tense and offers the undo; once saved it is one muted line, like a scan's.
+class _LabelProvenance extends StatelessWidget {
+  const _LabelProvenance({
+    required this.ingredient,
+    required this.pending,
+    required this.basis,
+    required this.onUndo,
+  });
+
+  /// The row with the draft's stamp folded in
+  /// (`IngredientFormDraft.sourcedRow`).
+  final Ingredient ingredient;
+
+  /// The stamp is the draft's and no Save has written it yet.
+  final bool pending;
+
+  /// The draft's basis, named so the reader knows which 100 the figures are
+  /// per.
+  final MacrosBasis basis;
+
+  /// Puts the fields back the way the read found them. Null while busy, or
+  /// once there is nothing left to undo.
+  final VoidCallback? onUndo;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isLabelFilled(ingredient.source)) return const SizedBox.shrink();
+    // The muted line is the same either way: the figures came off a photograph
+    // and the label is the thing to check them against.
+    const line = 'read from a photo — check it against the label';
+    if (!pending) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 16),
+        child: Text(
+          '${ingredient.sourceEdited ? 'edited · ' : ''}Filled from a label · '
+          'per 100 ${basis.dbValue}\n$line',
+          style: ansiMono(size: 10, color: AnsiColors.muted),
+        ),
+      );
+    }
+    return Container(
+      margin: const EdgeInsets.only(top: 20),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AnsiColors.paper,
+        border: Border.all(color: AnsiColors.aging),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // The dock's verb, not a warning: nothing is wrong, it is just
+              // not the row's yet.
+              const Icon(FLucideIcons.save, size: 13, color: AnsiColors.aging),
+              const SizedBox(width: 6),
+              Text(
+                'From a label · not saved',
+                style: ansiSans(size: 13, weight: FontWeight.w600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(line, style: ansiMono(size: 10, color: AnsiColors.muted)),
+          const SizedBox(height: 8),
+          FButton(
+            size: FButtonSizeVariant.sm,
+            variant: FButtonVariant.outline,
+            onPress: onUndo,
+            child: const Text('Undo the fill'),
+          ),
+        ],
       ),
     );
   }
@@ -2341,9 +2449,13 @@ class _StatusStrip extends StatelessWidget {
 }
 
 /// The doors that fill a row from a source, side by side. Each is a slot the
-/// host fills or leaves empty; with both empty the block draws nothing.
+/// host fills or leaves empty; with all of them empty the block draws nothing.
 class _FillItIn extends StatelessWidget {
-  const _FillItIn({required this.scan, required this.usda});
+  const _FillItIn({
+    required this.scan,
+    required this.usda,
+    required this.label,
+  });
 
   /// The barcode door, or null on a row with nothing empty to fill.
   final Widget? scan;
@@ -2352,23 +2464,35 @@ class _FillItIn extends StatelessWidget {
   /// another ›`. A declined row keeps it.
   final Widget? usda;
 
+  /// The label-photo door. Every row's: a panel can be read onto a row that
+  /// already has its name, its aisle and everything but its figures.
+  final Widget? label;
+
   @override
   Widget build(BuildContext context) {
-    if (scan == null && usda == null) return const SizedBox.shrink();
+    final doors = [
+      if (scan != null) scan!,
+      if (usda != null) usda!,
+      if (label != null) label!,
+    ];
+    if (doors.isEmpty) return const SizedBox.shrink();
+    // Two to a row: three of these labels across a phone would each be cut in
+    // half. A lone door on the second row takes the width, as a lone door on
+    // the first always has.
     return Padding(
       padding: const EdgeInsets.only(top: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 6,
         children: [
           Text('FILL IT IN FROM', style: ansiLabel()),
-          const SizedBox(height: 6),
-          Row(
-            spacing: 8,
-            children: [
-              if (scan != null) Expanded(child: scan!),
-              if (usda != null) Expanded(child: usda!),
-            ],
-          ),
+          for (var i = 0; i < doors.length; i += 2)
+            Row(
+              spacing: 8,
+              children: [
+                for (final door in doors.skip(i).take(2)) Expanded(child: door),
+              ],
+            ),
         ],
       ),
     );

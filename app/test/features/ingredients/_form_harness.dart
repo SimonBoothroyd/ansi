@@ -16,10 +16,14 @@ import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/import/data/photo_intake.dart';
 import 'package:ansi/features/ingredients/barcode/barcode_add.dart';
 import 'package:ansi/features/ingredients/barcode/barcode_scan_sheet.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
+import 'package:ansi/features/ingredients/data/label_read_provider.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
+import 'package:ansi/features/ingredients/domain/label_read_repository.dart';
+import 'package:ansi/features/ingredients/domain/label_reading.dart';
 import 'package:ansi/features/ingredients/domain/usda_probe.dart';
 import 'package:ansi/features/ingredients/presentation/density_entry.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart';
@@ -413,6 +417,10 @@ Widget host(
   FakePriceRepo? prices,
   UsdaProbe? probe,
   OffLookup? lookup,
+  // The label door's two seams. Both are provider overrides, because the door
+  // reads them from inside the form rather than taking them as parameters.
+  LabelReadRepository? labelReader,
+  PhotoIntakeService? intake,
   // Hands the built router back, so a suite can ask what the address bar
   // says. On wide that IS the assertion: the manager's selection is its
   // location, not a flag inside a widget.
@@ -477,6 +485,9 @@ Widget host(
       ),
       priceRepositoryProvider.overrideWithValue(prices ?? FakePriceRepo()),
       usdaProbeProvider.overrideWithValue(probe ?? const SilentUsdaProbe()),
+      if (labelReader case final r?)
+        labelReadRepositoryProvider.overrideWithValue(r),
+      if (intake case final i?) photoIntakeProvider.overrideWithValue(i),
     ],
     child: MaterialApp.router(
       routerConfig: router,
@@ -692,6 +703,39 @@ Future<void> scanOnForm(WidgetTester tester, String barcode) async {
   await tester.enterText(scanField, barcode);
   await tester.pump();
   await tester.tap(find.text('Look up'));
+  await tester.pumpAndSettle();
+}
+
+/// A label reader that answers every photo with [reading], or throws [fails].
+/// It records what it was handed, so a suite can assert the door passed on the
+/// photo the intake produced.
+class FakeLabelReader implements LabelReadRepository {
+  FakeLabelReader({this.reading, this.fails});
+
+  final LabelReading? reading;
+  final Exception? fails;
+  final List<String> asked = [];
+
+  @override
+  Future<LabelReading> readLabel(String photoPath) async {
+    asked.add(photoPath);
+    if (fails case final e?) throw e;
+    return reading!;
+  }
+}
+
+/// A photo intake that hands back [paths] whichever door is tapped, touching
+/// no camera and no cropper.
+PhotoIntakeService intakeAnswering(List<String> paths) => PhotoIntakeService(
+  pickImages: (_) async => paths,
+  cropImage: (path) async => path,
+);
+
+/// Opens the form's label door and takes the photo the intake is holding.
+Future<void> readLabelOnForm(WidgetTester tester) async {
+  await tester.tap(find.text('Read a label'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Take a photo'));
   await tester.pumpAndSettle();
 }
 

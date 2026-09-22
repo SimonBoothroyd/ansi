@@ -27,13 +27,15 @@ mixin _$Ingredient {
  String? get pieceSource;/// Distinct live measure labels, for the picker row's "N measures" hint.
 /// Populated by list reads; 0 otherwise.
  int get measureCount;/// The row's provenance stamp: `seed`, `manual`, `import_stub`,
-/// `usda_fdc:<fdc_id>`, `off:<barcode>`, or [usdaDeclinedSource]. Shown,
-/// never treated as truth; a machine-supplied one still waits for a human
-/// confirm. Null when the caller did not select it.
+/// `usda_fdc:<fdc_id>`, `off:<barcode>`, [labelPhotoSource], or
+/// [usdaDeclinedSource]. Shown, never treated as truth; a
+/// machine-supplied one still waits for a human confirm. Null when the
+/// caller did not select it.
  String? get source;/// The food the row was filled from, named: `usda_food.description` for a
 /// pick, the pack's brand and product for a scan. Lets every surface say
 /// which food filled the row, offline. Survives a decline. Null when
-/// nothing filled the row; surfaces then say nothing.
+/// nothing filled the row, and null on a photographed label, which names
+/// no food — the person had already named the row.
  String? get sourceLabel;/// How much of the query the matched USDA description covered, 0..1 (the
 /// idf-weighted coverage `probe_usda` returns). Stored so `UsdaMatchFit`
 /// reads the same offline. Shown, never acted on. Null on a barcode row;
@@ -287,14 +289,16 @@ class _Ingredient implements Ingredient {
 /// Populated by list reads; 0 otherwise.
 @override@JsonKey() final  int measureCount;
 /// The row's provenance stamp: `seed`, `manual`, `import_stub`,
-/// `usda_fdc:<fdc_id>`, `off:<barcode>`, or [usdaDeclinedSource]. Shown,
-/// never treated as truth; a machine-supplied one still waits for a human
-/// confirm. Null when the caller did not select it.
+/// `usda_fdc:<fdc_id>`, `off:<barcode>`, [labelPhotoSource], or
+/// [usdaDeclinedSource]. Shown, never treated as truth; a
+/// machine-supplied one still waits for a human confirm. Null when the
+/// caller did not select it.
 @override final  String? source;
 /// The food the row was filled from, named: `usda_food.description` for a
 /// pick, the pack's brand and product for a scan. Lets every surface say
 /// which food filled the row, offline. Survives a decline. Null when
-/// nothing filled the row; surfaces then say nothing.
+/// nothing filled the row, and null on a photographed label, which names
+/// no food — the person had already named the row.
 @override final  String? sourceLabel;
 /// How much of the query the matched USDA description covered, 0..1 (the
 /// idf-weighted coverage `probe_usda` returns). Stored so `UsdaMatchFit`

@@ -89,6 +89,11 @@ const _allowed = <String, String>{
   'lib/features/ingredients/presentation/ingredient_view_models.dart:'
           'declineUsdaPrefill':
       'same: the provenance card wraps `form.declineUsda` in ref.writeOk.',
+  'lib/features/ingredients/presentation/ingredient_view_models.dart:'
+          'readLabel':
+      'not a write at all — `read-label` issues no SQL, held by its own '
+      'no_write.test.ts — and the form notifier catches every failure onto '
+      '`draft.message`, which the dock renders inline above Save.',
   'lib/features/planning/presentation/week_variant_view_models.dart:'
           'saveOverrides':
       'held by the week-mode draft notifier; its only caller — the editor '

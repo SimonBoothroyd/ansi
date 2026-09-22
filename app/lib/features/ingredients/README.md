@@ -23,6 +23,7 @@ showQuantityUnitSheet  quantity_unit_sheet.dart   every quantity + unit in the a
 showUsdaPickSheet      usda_pick_sheet.dart       the USDA short-list
 showPriceSheet         price_sheet.dart           enter, edit or delete a price
 scanBarcodeForDraft    barcode/barcode_add.dart   the barcode module's one door
+pickLabelPhoto         label_photo_door.dart      the label door's photo intake
 ```
 
 `/ingredients` is a pushed route from the Library's ingredients shelf, not a
@@ -49,12 +50,17 @@ ingredients/
     price_repository.dart       the price ledger's reads and writes, ReceiptName
     usda_probe.dart             the probe interface
     apply_draft.dart            how a barcode draft lands on the form
+    label_reading.dart          one photographed label, read — the Dart half
+                                of `_shared/label_types.ts`
+    label_read_repository.dart  the label reader's seam
   data/
     ingredient_repository_impl.dart  SqliteIngredientRepository
     measure_repository_impl.dart     measures, merge-on-read for duplicate labels
     price_repository_impl.dart       the ledger's watched reads and its writes
     name_holder.dart                 nameHolderFor — the namespace question as SQL
     usda_probe_impl.dart             the `probe_usda` RPC
+    remote_label_repository.dart     the `read-label` edge function
+    label_read_provider.dart         that reader, or a refusal when unconfigured
     ingredient_providers.dart        keepAlive repo providers + watch streams
   presentation/
     ingredient_list_view.dart    the manager list
@@ -73,6 +79,7 @@ ingredients/
                                  panel-disagrees line
     macros_format.dart, macro_line_text.dart    the macro line as string and
                                  widget; the one display rounding rule
+    label_photo_door.dart        pickLabelPhoto — camera or gallery, one photo
     usda_pick_sheet.dart, draft_card.dart       USDA short-list; barcode result
     price_sheet.dart, price_fields.dart         the price sheet; StoreChipRow,
                                  PackField, PriceDerivedLine (shared with
@@ -123,6 +130,28 @@ ingredients/
 - **A rename rewrites `match_text`** through `normalizeMatchText` in the same
   statement. `test/features/ingredients/normalize_vectors.json` pins the Dart
   and TS normalizers together.
+
+### Reading a label
+
+`Read a label` is the third door in the form's `FILL IT IN FROM` row, and the
+one for a pack no database knows. It opens the app's own photo intake — camera
+or gallery, so a screenshot of another tab counts — takes **one** photo of the
+nutrition panel and posts it to the `read-label` edge function, which returns
+what the panel PRINTED and nothing else: the serving as printed, the five
+macros per serving, and a per-100 column only where the label prints one. Every
+figure is nullable, and a null is "not printed, or not legible" — never a zero
+and never a derivation. Where the label printed a per-100 column that column
+fills the fields directly, because deriving per 100 from the serving would
+round the label's own number away; where it printed only a per-serving column
+the form enters per-serving mode and `Macros.per100From` does the arithmetic,
+exactly as a typed-in panel does. A figure the label did not print leaves its
+field alone, unless the reading moved the mode or the basis, where the text
+that is there is about a different hundred. The fill is a draft like every
+other: the card says `From a label · not saved`, `Undo the fill` puts the
+fields back, and the Save stamps `source = label_photo` with no label and no
+score, because a photograph names no food. What could not be read is said on
+the form's own feedback line rather than hidden. Server side:
+[`supabase/functions/read-label`](../../../../supabase/functions/read-label/README.md).
 
 ### USDA and the barcode
 

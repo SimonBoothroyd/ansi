@@ -47,15 +47,17 @@ abstract class Ingredient with _$Ingredient {
     @Default(0) int measureCount,
 
     /// The row's provenance stamp: `seed`, `manual`, `import_stub`,
-    /// `usda_fdc:<fdc_id>`, `off:<barcode>`, or [usdaDeclinedSource]. Shown,
-    /// never treated as truth; a machine-supplied one still waits for a human
-    /// confirm. Null when the caller did not select it.
+    /// `usda_fdc:<fdc_id>`, `off:<barcode>`, [labelPhotoSource], or
+    /// [usdaDeclinedSource]. Shown, never treated as truth; a
+    /// machine-supplied one still waits for a human confirm. Null when the
+    /// caller did not select it.
     String? source,
 
     /// The food the row was filled from, named: `usda_food.description` for a
     /// pick, the pack's brand and product for a scan. Lets every surface say
     /// which food filled the row, offline. Survives a decline. Null when
-    /// nothing filled the row; surfaces then say nothing.
+    /// nothing filled the row, and null on a photographed label, which names
+    /// no food — the person had already named the row.
     String? sourceLabel,
 
     /// How much of the query the matched USDA description covered, 0..1 (the
@@ -71,19 +73,22 @@ abstract class Ingredient with _$Ingredient {
   }) = _Ingredient;
 }
 
-/// Whether [source] is a lookup's stamp: a USDA pick (`usda_fdc:<id>`) or a
-/// barcode read (`off:<barcode>`). Only these rows can be flagged
-/// [Ingredient.sourceEdited].
+/// Whether [source] is a lookup's stamp: a USDA pick (`usda_fdc:<id>`), a
+/// barcode read (`off:<barcode>`) or a photographed label. Only these rows can
+/// be flagged [Ingredient.sourceEdited].
 bool isLookupFilled(String? source) =>
-    isUsdaPrefilled(source) || isBarcodeFilled(source);
+    isUsdaPrefilled(source) || isBarcodeFilled(source) || isLabelFilled(source);
 
 /// The line the ingredients list and the import review print under a
 /// machine-filled row's name, or null. Not used by the picker.
 ///
 /// Reads `usda · «description»` for a pick and `barcode · «brand and product»`
-/// for a scan; the key inside the stamp is never printed. A row with no label,
-/// or a declined one, gets no line.
+/// for a scan; the key inside the stamp is never printed. A photographed label
+/// names no food, so it prints the kind alone. A row with no label, or a
+/// declined one, gets no line.
 String? sourceProvenanceLine(Ingredient ingredient) {
+  final edited = ingredient.sourceEdited ? 'edited · ' : '';
+  if (isLabelFilled(ingredient.source)) return '${edited}label photo';
   final label = ingredient.sourceLabel;
   if (label == null || label.isEmpty) return null;
   final String kind;
@@ -108,6 +113,14 @@ bool isUsdaPrefilled(String? source) =>
 /// Whether [source] marks a row filled from a barcode scan (`off:<barcode>`).
 /// Surfaces print [Ingredient.sourceLabel], never the code.
 bool isBarcodeFilled(String? source) => source?.startsWith('off:') ?? false;
+
+/// The `source` a nutrition label read from a photograph leaves behind. It
+/// carries no key, because a photo identifies nothing that could be looked up
+/// again — the figures are the whole of what it brought.
+const labelPhotoSource = 'label_photo';
+
+/// Whether [source] marks a row filled from a photographed nutrition label.
+bool isLabelFilled(String? source) => source == labelPhotoSource;
 
 /// The `source` a person's *Not this food* leaves behind. Distinct from
 /// `manual` so the form's provenance line can say a USDA pick was unlinked.
