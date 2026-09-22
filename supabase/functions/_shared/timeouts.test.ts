@@ -22,6 +22,7 @@ import {
   SANITIZE_DEADLINE_MS,
   TRANSCRIBE_DEADLINE_MS,
 } from "./adapters/claude.ts";
+import { LABEL_DEADLINE_MS } from "./adapters/claude_label.ts";
 import { HEARTBEAT_INTERVAL_MS } from "../import-recipe/index.ts";
 import {
   FETCH_TIMEOUT_MS,
@@ -154,6 +155,19 @@ Deno.test("the client outlasts the worst case the pipeline can reach", () => {
   );
   // Or the total rung could never be the one that fires.
   assert(CLIENT_SILENCE_MS < CLIENT_TOTAL_DEADLINE_MS);
+});
+
+Deno.test("the label door buys no heartbeat, so its one call fits the idle timeout", () => {
+  // `read-label` answers with a plain JSON body: no stages, no heartbeat, and
+  // therefore nothing to keep the gateway from seeing one long silence. Its
+  // whole worst case has to fit where the import doors' does not.
+  const labelWorstCaseMs = LABEL_DEADLINE_MS + OVERHEAD_MS;
+  assert(
+    labelWorstCaseMs < PLATFORM_IDLE_TIMEOUT_MS,
+    `reading a label worst case ${labelWorstCaseMs}ms does not fit inside ` +
+      `the platform's ${PLATFORM_IDLE_TIMEOUT_MS}ms idle timeout — that door ` +
+      `sends no heartbeat, so it has to`,
+  );
 });
 
 Deno.test("the link path — intake plus one model call — is the lighter door", () => {

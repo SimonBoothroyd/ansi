@@ -12,7 +12,11 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
   paid, line by line). What both need — the household gate, the photo cost caps,
   the SSE frame shape, the failure wordings, the adapters, the cascade — lives in
   `_shared/`, so a change to "how big may a photo be" cannot answer differently
-  at the two doors. Both are deployed BY NAME in `deploy-supabase.yml`.
+  at the two doors. A third, `read-label/`, shares the gate, the caps, the model
+  pin and the failure shapes and nothing else: one photo of a nutrition panel,
+  one model call, a plain JSON answer, and **no SQL at all** — it matches
+  nothing, because the person had already named the row (`no_write.test.ts`).
+  All three are deployed BY NAME in `deploy-supabase.yml`.
 - `seed/` — two seeds with different owners. The **household vocabulary** is
   an export of the owner's live household (`seed/snapshot.jsonl`) turned into
   one `../seed_vocab.sql` by `seed/scripts/gen_seed.ts` — the direction is

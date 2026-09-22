@@ -2,6 +2,7 @@
 // refusal only shows against the live API — so the schemas are checked here.
 import { assertEquals } from "@std/assert";
 import * as receipt from "./receipt.ts";
+import * as label from "./label.ts";
 import * as extraction from "./extraction.ts";
 import * as recipe from "../adapters/schema.ts";
 
@@ -39,7 +40,8 @@ function offenders(node: unknown, path: string, out: string[]): void {
 
 Deno.test("no prompt schema uses a keyword structured outputs refuse", () => {
   const found: string[] = [];
-  for (const [file, mod] of Object.entries({ receipt, extraction, recipe })) {
+  const modules = { receipt, label, extraction, recipe };
+  for (const [file, mod] of Object.entries(modules)) {
     for (const [name, value] of Object.entries(mod)) {
       if (name.endsWith("_SCHEMA")) offenders(value, `${file}.${name}`, found);
     }
