@@ -238,12 +238,14 @@ The column list is generated from the migrations —
   says nothing rather than inventing a name. `source_score` is the USDA half of
   it — the query's coverage of the matched description, so the form can say how
   well the food fits the name typed. A scan is an exact-key fetch and carries
-  no score. Both are written offline-first, so the form and the lists print
-  them with no network.
+  no score, and a photographed label carries neither — a photo names no food,
+  and the person had already named the row. Both are written offline-first, so
+  the form and the lists print them with no network.
 - `source` is **provenance, and it is load-bearing**: `seed` (the template
   vocab), `manual` (made through `/ingredients/new`, from the manager or a
   picker), `import_stub` (created at an import commit), `usda_fdc:<id>` (a food picked from the USDA search),
-  `off:<barcode>` (a barcode scan). Until 0029 a server trigger read it to
+  `off:<barcode>` (a barcode scan), `label_photo` (a nutrition panel read off a
+  photograph). Until 0029 a server trigger read it to
   decide whether a row was its business; **nothing matches to USDA on its own
   any more** (plan 0029), so a `usda_fdc:<id>` stamp always means a person
   picked that food. `seed` (whose density-less tail is audited, not
@@ -1027,7 +1029,11 @@ USDA reference set only when a person opens the form's `Fill it in from ▸ Look
 up in USDA`, searches it and picks a food; the pick fills the *draft* — the
 description, the density and the macros — and one Save writes the row with
 everything else on the form ([ADR-0011](../decisions/0011-one-save-one-write.md)).
-A barcode scan fills the draft the same way from Open Food Facts. The phone
+A barcode scan fills the draft the same way from Open Food Facts, and
+`Fill it in from ▸ Read a label` fills it from a photograph — or a screenshot —
+of the pack's own nutrition panel, read by the `read-label` edge function,
+which returns only the figures the panel printed, so one it does not state
+stays empty rather than becoming a number nobody could find again. The phone
 never reads the reference set directly (ADR-0005): the search is a read-only
 server function. Filling in is never promotion: **macros gate `complete`, density does not, and
 confirming is an explicit human act** in the flesh-out form (reversible —

@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Ingredient detail</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: matches code 2026-09-20 — the same one column, centred at 640 and drawn beside the vocabulary in a 720 pane from 1024 up (<a href="./ingredients-manager.html">manager</a>); the price sheet is the same sheet, as a dialog from 640</p>
+    <p class="view-status">built · matches code 2026-09-21 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../exec-plans/active/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: matches code 2026-09-21 — the same one column, centred at 640 and drawn beside the vocabulary in a 720 pane from 1024 up (<a href="./ingredients-manager.html">manager</a>); the price sheet is the same sheet, as a dialog from 640</p>
     <p class="view-blurb"><b>One route, two postures.</b> A row that exists opens as a <b>fact sheet</b> — four groups (Identity, Nutrition, Units &amp; measures, Price), plus <b>On receipts</b> on a row a receipt has carried, with each field’s value stated instead of offered, no dock, and <code>Edit</code> in the header’s <code>⋯</code> exactly where the recipe page keeps it. <code>Edit</code> turns the four into <b>the form</b>; Save and back turn it back. <b>Price is one group drawn by both postures</b> — the same lines, the same door, the same sheet — because changing what a thing costs is editing it, and somebody who opens the editor to fix a price should not have to back out of it to find one. It is the one section the dock does not hold: the sheet writes its own receipt the moment Done is tapped, and the group says so on the form rather than letting <i>nothing is written until Save</i> be read as covering it. <code>/ingredients/new</code> opens the form directly — there is nothing yet to read — and so does every door that exists to <i>change</i> a field.</p>
 </header>
 
@@ -238,6 +238,7 @@
             <p class="flabel">Fill it in from</p>
             <div class="frow" style="display:flex;gap:8px">
                 <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Scan a barcode</div>
+                <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Read a label</div>
             </div>
 
             <div style="margin:22px 20px 0"><p class="grp-h">Identity</p></div>
@@ -257,7 +258,7 @@
                 <div style="display:flex;gap:8px;margin-top:9px"><span class="ghostbtn" style="margin-top:0">Not this food</span><span class="ghostbtn" style="margin-top:0">Choose another ›</span></div>
             </div>
             <p class="conv-note" style="margin:-6px 20px 12px"><b>Not drawn on arrival.</b> This card appears only <i>after</i> a pick — a stub you have not searched has no card, and the <span style="font-family:'IBM Plex Mono',monospace">Fill it in from</span> row above is the whole offer. It reads <b>the draft</b>: a pick is on the card before it is on the row, in the tense that says so.</p>
-            <p class="conv-note" style="margin:-6px 20px 12px"><b>Each door is drawn where it has something to offer</b>, and the block is gone when neither does. <span style="font-family:'IBM Plex Mono',monospace">Scan a barcode</span> is a stub&rsquo;s — a draft fills what is EMPTY, and nothing on a complete row is. <span style="font-family:'IBM Plex Mono',monospace">Look up in USDA</span> is every row&rsquo;s, and closes only where the card below already carries <span style="font-family:'IBM Plex Mono',monospace">Choose another &rsaquo;</span> for the food that filled it.</p>
+            <p class="conv-note" style="margin:-6px 20px 12px"><b>Each door is drawn where it has something to offer</b>, and the block is gone when none of them does. <span style="font-family:'IBM Plex Mono',monospace">Scan a barcode</span> is a stub&rsquo;s — a draft fills what is EMPTY, and nothing on a complete row is. <span style="font-family:'IBM Plex Mono',monospace">Look up in USDA</span> is every row&rsquo;s, and closes only where the card below already carries <span style="font-family:'IBM Plex Mono',monospace">Choose another &rsaquo;</span> for the food that filled it. <span style="font-family:'IBM Plex Mono',monospace">Read a label</span> is every row&rsquo;s too and never closes: a second photograph is the fix for a first one that read badly. Two to a row, because three of these labels across a phone would each be cut in half.</p>
             <p class="flabel" style="margin-bottom:2px">Macros</p>
             <p class="conv-note" style="margin:0 20px 6px">as the label reads &middot; fibre optional</p>
             <div class="frow"><div class="seg"><span class="segopt on">per 100 g</span><span class="segopt">per 100 ml</span><span class="segopt">per serving</span></div></div>
@@ -614,6 +615,9 @@
                 <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Scan a barcode</div>
                 <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Look up in USDA</div>
             </div>
+            <div class="frow" style="display:flex;gap:8px;margin-top:6px">
+                <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Read a label</div>
+            </div>
 
             <div style="margin:22px 20px 0"><p class="grp-h">Identity</p></div>
             <p class="flabel">Canonical name</p>
@@ -680,6 +684,48 @@
     </div>
 
     <div class="frame">
+        <p class="frame-name"><b>Read off a label</b> · one photo of the panel, for a pack no database knows &mdash; the card wears the same tense as a pick, with one door instead of two</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl">Oatcakes</span><span class="dots">&ctdot;</span></div>
+            <div class="state" style="margin-top:4px">
+                <div class="sh" style="font-weight:400;font-size:12px;color:var(--muted)"><span class="sdot"></span><span>Still a stub &mdash; left out of macro totals until confirmed.</span></div>
+            </div>
+
+            <p class="flabel">Fill it in from</p>
+            <div class="frow" style="display:flex;gap:8px">
+                <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Scan a barcode</div>
+                <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Look up in USDA</div>
+            </div>
+            <div class="frow" style="display:flex;gap:8px;margin-top:6px">
+                <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Read a label</div>
+            </div>
+
+            <div style="margin:22px 20px 0"><p class="grp-h">Nutrition</p></div>
+            <div class="state warn" style="margin-top:16px">
+                <div class="sh" style="font-weight:400"><span style="font-size:13px">From a label &middot; not saved</span></div>
+                <div class="sb" style="font-family:'IBM Plex Mono',monospace;font-size:10px">read from a photo &mdash; check it against the label</div>
+                <div style="display:flex;gap:8px;margin-top:9px"><span class="ghostbtn" style="margin-top:0">Undo the fill</span></div>
+            </div>
+            <p class="flabel" style="margin-bottom:2px">Macros</p>
+            <p class="conv-note" style="margin:0 20px 6px">as the label reads &middot; fibre optional</p>
+            <div class="frow"><div class="seg"><span class="segopt on">per 100 g</span><span class="segopt">per 100 ml</span><span class="segopt">per serving</span></div></div>
+            <div class="frow"><div class="macro-fields"><div class="mi"><div class="miv">377</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">14</div><div class="mil">protein</div></div><div class="mi"><div class="miv">62</div><div class="mil">carb</div></div><div class="mi"><div class="miv">6</div><div class="mil">fat</div></div><div class="mi"><div class="miv">11</div><div class="mil">fibre</div></div></div></div>
+            <div class="dock" style="margin-top:14px">
+                <p class="conv-note" style="margin:0 0 9px">Read from a photo &mdash; nothing is saved until you tap Save.</p>
+                <div style="display:flex;gap:8px">
+                    <span class="btn ghost" style="margin:0;flex:0 0 88px">Save</span>
+                    <span class="btn primary" style="margin:0;flex:1">Mark complete</span>
+                </div>
+            </div>
+
+            <p class="conv-note" style="margin-top:12px"><b>Amber, for the same reason the pick&rsquo;s card is</b>: these figures are in the fields and nowhere else, and the dock&rsquo;s Save is what makes them the row&rsquo;s. <b>Undo the fill</b> puts the macro half back exactly as the read found it &mdash; the mode, the basis, the serving and every field &mdash; and takes the stamp off. Nothing was written, so there is nothing to clear.</p>
+            <p class="conv-note"><b>One door, not two.</b> There is no <i>Not this food</i>, because a photograph names no food to refuse: the person had already named the row, and what came back is figures. Once saved the card is one muted line like a scan&rsquo;s &mdash; <span style="font-family:'IBM Plex Mono',monospace">Filled from a label &middot; per 100 g</span> over the same second line &mdash; and the stamp is <span style="font-family:'IBM Plex Mono',monospace">label_photo</span> with no <code>source_label</code> and no <code>source_score</code>.</p>
+            <p class="conv-note"><b>Which column filled these fields is the label&rsquo;s choice, not ours.</b> This pack printed a <i>per 100 g</i> column, so that column IS the fields and the mode stays per 100 &mdash; deriving per 100 from the 30 g serving would round the pack&rsquo;s own 377 away. A US panel prints no such column, so the form lands in <span style="font-family:'IBM Plex Mono',monospace">per serving</span> with the printed serving in the row above the figures, and the per-100 the row stores is the same arithmetic a typed-in panel goes through.</p>
+            <p class="conv-note"><b>A figure the panel does not print stays empty.</b> Never a zero, and never a number worked out: a label with no fibre row leaves fibre alone, and energy printed only in kilojoules leaves kcal empty and says so on the line above Save. What could not be read is said there too, rather than hidden.</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
         <p class="frame-name"><b>Filled from USDA, <i>edited here</i></b> · the card's third state — the food still named, and one line saying which numbers are yours</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl">Chex Cereal</span><span class="dots">⋯</span></div>
@@ -715,6 +761,9 @@
             <div class="frow" style="display:flex;gap:8px">
                 <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Scan a barcode</div>
                 <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Look up in USDA</div>
+            </div>
+            <div class="frow" style="display:flex;gap:8px;margin-top:6px">
+                <div class="fin" style="flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px">Read a label</div>
             </div>
             <p class="conv-note" style="margin:-6px 20px 12px"><b>A refusal is not a dead end.</b> The plain lookup door stands on a declined row — the card is a record of what was said no to, and the door is the way forward. It is the state that had neither: a row stamped by something else (a pack) after a decline drew no card and, once complete, no block either.</p>
             <p class="flabel" style="margin-bottom:2px">Macros</p>

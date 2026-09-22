@@ -102,14 +102,15 @@ jobs:
         run: supabase db push
 
       # Functions ship separately from the schema; `db push` never touches them.
-      # Both import doors, by name: `functions deploy` with no argument would
-      # ship whatever happens to be in the folder, and the two are named here so
-      # adding a third is a deliberate line in this file rather than a surprise
-      # in a deploy.
-      - name: 3 · Deploy the import edge functions
+      # Every model door, by name: `functions deploy` with no argument would
+      # ship whatever happens to be in the folder, and each is named here so
+      # adding one is a deliberate line in this file rather than a surprise in
+      # a deploy.
+      - name: 3 · Deploy the model edge functions
         run: |
           supabase functions deploy import-recipe
           supabase functions deploy import-receipt
+          supabase functions deploy read-label
 
       # The committed streams YAML is the source of truth for what devices are
       # allowed to sync; a schema deploy without a matching streams deploy is
@@ -168,7 +169,7 @@ jobs:
             echo "### deploy-supabase finished"
             echo
             echo "Applied to \`$PROJECT_REF\`: **migrations** (\`db push\`), the"
-            echo "**import-recipe** and **import-receipt** functions, and the **PowerSync sync streams**"
+            echo "**import-recipe**, **import-receipt** and **read-label** functions, and the **PowerSync sync streams**"
             echo "(\`docker/powersync-cloud.streams.yaml\` → instance \`$POWERSYNC_INSTANCE_ID\`)."
             echo
             echo "**Not applied — do these by hand if this deploy included"

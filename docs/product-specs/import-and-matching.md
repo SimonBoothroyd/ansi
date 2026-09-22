@@ -1160,3 +1160,51 @@ The fixtures behind all of it are **synthetic and say so in the file**: this
 repo is public and a real receipt carries a card's last four and a loyalty
 number. The owner's own live in a gitignored `__fixtures__/local/`, the same
 pattern the extraction corpus uses under `evals/`.
+
+---
+
+## 13. Nutrition labels — one image, one call, no pipeline
+
+The third model door, [`read-label`](../../supabase/functions/read-label/README.md),
+is the ingredient form's `Fill it in from ▸ Read a label`. It exists because the
+owner was typing macros in by hand off another tab, and because a great many
+packs are in neither USDA's reference set nor Open Food Facts — but every one of
+them has a panel printed on the back.
+
+It borrows this pipeline's household gate and allowlist, its Haiku pin, its
+photo caps and its failure shapes, and then stops borrowing. There is no
+transcribe tier, because a label IS the structure. There is no cascade, because
+the person already named the row — nothing here is matched, so ADR-0004 has
+nothing to say about it. There is no stream: one image and one call fit inside
+the platform's idle cut-off, which `_shared/timeouts.test.ts` asserts rather
+than assumes, so the answer is a plain JSON body. And there is no SQL at all —
+`read-label/no_write.test.ts` refuses a statement verb, the driver or the
+connection string's name in any file the door owns.
+
+**It reports what the panel printed, and only that.** The serving as printed,
+the five macros per serving, and a per-100 column *only where the label prints
+one* — EU packs usually do, US Nutrition Facts panels usually do not. Every
+figure is nullable and a null means "not printed, or not legible": never a zero
+and never a derivation. The prompt says so in as many words, and the two cases
+that make it concrete are a kilojoule-only energy row (null kcal plus a note,
+not a division by 4.184) and a pack with no per-100 column at all (null, not a
+per-100 figure worked out from the serving). A computed column would be
+indistinguishable from a printed one, and would be believed.
+
+The arithmetic stays where it is tested. Where the label printed a per-100
+column, that column fills the form's fields directly — deriving per 100 from the
+serving would round the pack's own number away. Where it printed only a
+per-serving column, the form enters per-serving mode and `Macros.per100From`
+does the same conversion a typed-in panel goes through. What the model could not
+read comes back as `notes` and is said on the form's feedback line, not hidden.
+
+The fill is a draft, like the USDA pick and the barcode scan before it: the card
+reads `From a label · not saved`, `Undo the fill` puts the fields back, and the
+Save stamps `source = label_photo` — with no `source_label` and no
+`source_score`, because a photograph names no food. Nothing learns and nothing
+else is written (ADR-0011).
+
+The contract is `_shared/label_types.ts`, mirrored by hand in Dart at
+`app/lib/features/ingredients/domain/label_reading.dart`, the same arrangement
+§4.4 and §12.5 describe. Both ends coerce identically, because null is what
+tells the form to leave a field alone.

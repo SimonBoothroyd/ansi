@@ -418,7 +418,9 @@ live: the step-8 sim suite against a local stack that predated migration 0013 �
 `make db-reset` locally, `db push` on cloud, is the cure and the prevention.)
 
 ```bash
-supabase functions deploy import-recipe          # deploys the function
+supabase functions deploy import-recipe          # each door, by name
+supabase functions deploy import-receipt
+supabase functions deploy read-label
 supabase secrets set ANTHROPIC_API_KEY=sk-ant-…  # PLACEHOLDER — paste the real key
 supabase secrets set IMPORT_ALLOWED_HOUSEHOLDS=<household uuid>
 ```
