@@ -619,7 +619,9 @@ class _StubBand extends StatelessWidget {
                         if (isUsdaPrefilled(s.source))
                           'usda prefilled'
                         else if (isBarcodeFilled(s.source))
-                          'barcode prefilled',
+                          'barcode prefilled'
+                        else if (isLabelFilled(s.source))
+                          'label prefilled',
                       ].join(' · '),
                       style: ansiMono(size: 10, color: AnsiColors.muted),
                     ),
