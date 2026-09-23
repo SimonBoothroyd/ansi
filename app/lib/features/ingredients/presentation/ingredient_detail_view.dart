@@ -51,6 +51,7 @@ import 'draft_card.dart';
 import 'ingredient_facts.dart';
 import 'ingredient_view_models.dart';
 import 'label_photo_door.dart';
+import 'label_read_progress.dart';
 import 'macro_fields.dart';
 import 'macro_line_text.dart';
 import 'macros_doubt_line.dart';
@@ -944,6 +945,404 @@ class _DetailForm extends ConsumerWidget {
       ...draft.measuresAdded,
     ];
 
+    final dock = _ActionBar(
+      creating: creating,
+      stub: stub,
+      canComplete: !busy && draft.completable,
+      // Why the disabled CTA waits, else what a save said or a delete
+      // refused.
+      message: draft.dockLine,
+      // Only the button leaves; other callers use the save as a flush. On a
+      // new row Save is the completion. A taken name disables it.
+      onSave: busy || draft.nameCollision != null
+          ? null
+          : creating
+          ? completeRow
+          : () async {
+              final saved = await save();
+              if (saved != null && context.mounted) leave(saved);
+            },
+      onComplete: completeRow,
+    );
+
+    final fields = ListView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+      children: [
+        // Slots, not conditional children: an unkeyed insertion in a ListView
+        // shifts every sibling and silently resets its state.
+        _StatusStrip(ingredient: ing, creating: creating),
+
+        // The three prefill doors. The scan is a stub's door (a draft fills
+        // only empty fields); the lookup is every row's, hidden only where
+        // the card below already offers `Choose another ›`; the label is
+        // every row's and never hides, because a second photo is the fix
+        // for a first one that read badly.
+        _FillItIn(
+          // No scan door on the web: there is no camera or detector.
+          scan: stub && !kIsWeb
+              ? _GhostButton(label: 'Scan a barcode', onTap: busy ? null : scan)
+              : null,
+          usda: isUsdaPrefilled(sourcedRow.source)
+              ? null
+              : _GhostButton(
+                  label: 'Look up in USDA',
+                  onTap: busy ? null : pickUsda,
+                ),
+          label: _GhostButton(
+            label: 'Read a label',
+            onTap: busy ? null : readLabel,
+          ),
+        ),
+
+        if (draft.scanned != null && draft.scanApplied != null)
+          _ScanResult(
+            draft: draft.scanned!,
+            applied: draft.scanApplied!,
+            packAdded: draft.packAdded,
+            // The pack size is an offer: tapped, it lands in the draft like
+            // any measure.
+            onAddPack: () async =>
+                form.addPackMeasure(sortOrder: measures.length),
+          )
+        else
+          const SizedBox.shrink(),
+
+        // Field order: name, aliases, category and default unit, macros,
+        // density.
+        _Group(
+          title: 'Identity',
+          children: [
+            const _Label('CANONICAL NAME'),
+            _CanonicalNameField(
+              name: draft.name,
+              seed: draft.nameSeed,
+              onChanged: form.setName,
+              onLeave: form.leaveNameField,
+            ),
+            if (draft.nameWas != null)
+              WasWordLine(oldWord: draft.nameWas!, onKeep: form.keepName),
+            // The namespace's two answers, never both: taken, or nearly
+            // somebody else's.
+            if (draft.nameCollision case final taken?)
+              _AlreadyAnIngredient(taken)
+            else if (draft.nameNearMatches.isNotEmpty)
+              _DidYouMean(
+                matches: draft.nameNearMatches,
+                // On an existing row near names are information only; this
+                // form never merges.
+                onUse: creating ? useInstead : null,
+              ),
+
+            const _Label('ALSO KNOWN AS'),
+            _AliasEditor(
+              aliases: [
+                // Decorative emptiness: an alias that did not load is
+                // re-added harmlessly, because `saveForm` is find-or-create
+                // on match_text.
+                for (final a
+                    in (creating
+                            ? null
+                            : ref
+                                  .watch(ingredientAliasesProvider(ing.id))
+                                  .asData
+                                  ?.value) ??
+                        const <IngredientAlias>[])
+                  if (!draft.aliasesRemoved.contains(a.id)) a,
+                ...draft.aliasesAdded,
+              ],
+              onAdd: form.addAlias,
+              onRemove: form.removeAlias,
+            ),
+
+            const _Label('CATEGORY'),
+            _CategoryPicker(selected: draft.category, onPick: form.setCategory),
+          ],
+        ),
+
+        _Group(
+          title: 'Nutrition',
+          children: [
+            // A slot. Reads the draft's provenance so a fresh pick is named
+            // at once.
+            _UsdaProvenance(
+              ingredient: sourcedRow,
+              pending: draft.sourcePending,
+              onDecline: busy
+                  ? null
+                  : () => ref.writeOk(
+                      context,
+                      'undo the USDA fill',
+                      form.declineUsda,
+                    ),
+              onChooseAnother: busy ? null : pickUsda,
+            ),
+            // The same fact for a scanned row, with no doors to offer.
+            _BarcodeProvenance(ingredient: sourcedRow, basis: draft.basis),
+            // And for a row read off a photographed label, which offers
+            // exactly one: putting the fields back.
+            _LabelProvenance(
+              ingredient: sourcedRow,
+              pending: draft.sourcePending,
+              basis: draft.basis,
+              notes: draft.labelNotes,
+              onUndo: busy || draft.labelUndo == null
+                  ? null
+                  : form.undoLabelFill,
+            ),
+
+            const _Label('MACROS', hint: 'as the label reads · fibre optional'),
+            // Per 100 of the basis, or per serving. Each leg unfocuses first,
+            // because a mode change rebuilds the four fields around fresh
+            // controllers.
+            Row(
+              children: [
+                AnsiModeChip(
+                  label: 'per 100 g',
+                  selected:
+                      !draft.perServing && draft.basis == MacrosBasis.perG,
+                  onTap: () => _leaveFields(() {
+                    form.setBasis(MacrosBasis.perG);
+                  }),
+                ),
+                const SizedBox(width: 6),
+                AnsiModeChip(
+                  label: 'per 100 ml',
+                  selected:
+                      !draft.perServing && draft.basis == MacrosBasis.perMl,
+                  onTap: () => _leaveFields(() {
+                    form.setBasis(MacrosBasis.perMl);
+                  }),
+                ),
+                const SizedBox(width: 6),
+                AnsiModeChip(
+                  label: 'per serving',
+                  selected: draft.perServing,
+                  onTap: () => _leaveFields(form.setPerServing),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Three slots that hold their positions in either mode. The
+            // serving unit sets the basis, so the admission chips follow it
+            // live.
+            if (draft.perServing)
+              Padding(
+                // Breathing room before the figures: the serving is the
+                // sentence's subject, and the four are its predicate.
+                padding: const EdgeInsets.only(bottom: 10),
+                child: ServingRow(
+                  key: ValueKey('serving-row-${draft.servingSeed}'),
+                  draft: draft.serving,
+                  onAmount: form.setServingAmount,
+                  onUnit: form.setServingUnit,
+                ),
+              )
+            else
+              const SizedBox.shrink(),
+            // Keyed by row-version, which changes only when the macros were
+            // re-seeded.
+            MacroFields(
+              key: ValueKey('macro-fields-${draft.macroSeed}'),
+              draft: draft.macros,
+              onChanged: form.setMacros,
+            ),
+            // The derived per-100 line, and on a scanned row the pack's
+            // per-serving against its per-100 column; else the nudge that
+            // per-serving mode exists.
+            if (draft.perServing) ...[
+              StoredPer100Line(
+                serving: draft.serving,
+                printed: draft.printedMacros,
+              ),
+              ScannedServingLine(
+                serving: draft.serving,
+                printed: draft.printedMacros,
+                per100: draft.scannedPer100,
+              ),
+            ] else if (draft.scannedPer100NeedsServingHint)
+              const ScannedPerServingNudge()
+            else
+              ScannedServingLine(
+                serving: draft.serving,
+                printed: draft.serving.packPrinted,
+                per100: draft.printedMacros,
+              ),
+            // The doubt is about what will be stored, so it shows in every
+            // mode.
+            MacrosDoubtLine(stored: draft.storedMacros),
+          ],
+        ),
+
+        // Density, piece weight, admission, default unit and measures are one
+        // group, so a stranded default is repaired in the section that flags
+        // it.
+        _Group(
+          title: 'Units & measures',
+          children: [
+            const _Label('DEFAULT UNIT'),
+            _UnitChoiceRow(
+              // Keyed so a test can ask this row — and only this row —
+              // which of its chips are locked.
+              key: const ValueKey('default-unit-row'),
+              ingredient: draftRow,
+              selected: draft.defaultUnit,
+              onPick: form.setDefaultUnit,
+            ),
+            // A stored default the rules no longer support is flagged, never
+            // rewritten.
+            _StrandedDefaultNote(
+              ingredient: draftRow,
+              onFix: () => ref.write<Ingredient?>(
+                context,
+                'save ${ing.canonicalName}',
+                form.fixStrandedDefault,
+              ),
+            ),
+
+            // The piece weight (ADR-0015), only under a count default. It
+            // goes in the draft.
+            if (draft.defaultUnit.family == UnitFamily.count)
+              PieceWeightEntry(
+                ingredient: draftRow,
+                saveLabel: 'Add',
+                onSave: (amount) async {
+                  form.draftPieceWeight(amount);
+                  return true;
+                },
+                onRemove: () async {
+                  form.removePieceWeight();
+                  return true;
+                },
+              ),
+
+            const _Label('ALLOWED UNITS', hint: 'what a line may say'),
+            _AdmissionChips(
+              ingredient: draftRow,
+              selected: draft.allowed,
+              onToggle: form.toggleUnit,
+            ),
+
+            // The entry draws its own DENSITY label, so the section does
+            // not repeat one above it.
+            DensityEntry(
+              // `draftRow`, so the headline and the removal warning show the
+              // held density.
+              ingredient: draftRow,
+              // The row's own serving, so the sentence reopens in the unit
+              // the fact sheet states this density in.
+              serving: servingMeasureOf(measures),
+              redirectedSpoon: draft.redirectedSpoon,
+              // The serving above is offered as the density's left-hand side.
+              servingPrefill: draft.densityPrefill,
+              // Goes in the draft; the form's Save lands it.
+              saveLabel: 'Add',
+              onSave: (gPerMl) async {
+                form.draftDensity(gPerMl);
+                return true;
+              },
+              onRemove: () async {
+                form.removeDensity();
+                return true;
+              },
+            ),
+
+            const _Label('MEASURES', hint: 'count-like, in the basis'),
+            // Load-bearing emptiness: an errored stream drawn as empty would
+            // let the next Save write the narrowed set back.
+            if (measuresAsync case AsyncError(:final error, :final stackTrace))
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: AnsiErrorState(
+                  compact: true,
+                  what: 'the measures',
+                  error: error,
+                  stackTrace: stackTrace,
+                  onRetry: () =>
+                      ref.invalidate(ingredientMeasuresProvider(ing.id)),
+                ),
+              )
+            else
+              MeasuresEditor(
+                ingredient: ing,
+                measures: measures,
+                // It adds to the draft here; the docked Save lands it.
+                addLabel: 'Add',
+                // A stored measure a recipe still uses is refused here, not
+                // at Save.
+                onDelete: (m) async {
+                  if (!await mayDeleteMeasure(context, ref, m)) return;
+                  form.removeMeasure(m.id);
+                },
+                // Goes in the draft; the editor has already validated it.
+                onAdd: (label, amount) async => MeasureAdded(
+                  form.draftMeasure(label, amount, sortOrder: measures.length),
+                ),
+                // A drafted measure is re-stated in the draft. A stored one
+                // is a live row, so its correction writes at once, under the
+                // guard.
+                onEdit: (m, label, amount) async {
+                  final drafted = form.editDraftMeasure(m.id, label, amount);
+                  if (drafted != null) return MeasureAdded(drafted);
+                  final landed = await ref.write(
+                    context,
+                    'save that measure',
+                    () async {
+                      final repo = ref.read(measureRepositoryProvider);
+                      try {
+                        if (label != m.label) {
+                          await repo.renameMeasure(m.id, label);
+                        }
+                        if (amount != m.amount) {
+                          await repo.setMeasureAmount(m.id, amount);
+                        }
+                        // ArgumentError is renameMeasure's documented
+                        // validation contract.
+                        // ignore: avoid_catching_errors
+                      } on ArgumentError catch (e) {
+                        return MeasureRefused('${e.message}');
+                      }
+                      return MeasureAdded(
+                        Measure(
+                          id: m.id,
+                          label: label,
+                          amount: amount,
+                          basis: m.basis,
+                          sortOrder: m.sortOrder,
+                          source: m.source,
+                        ),
+                      );
+                    },
+                  );
+                  return landed ?? const MeasureNotAdded();
+                },
+                // Drafted rows carry their position to Save; stored ones are
+                // re-stamped now.
+                onReorder: (ids) async {
+                  form.reorderDraftMeasures(ids);
+                  if (creating) return;
+                  await ref.write(
+                    context,
+                    'reorder those measures',
+                    () => ref
+                        .read(measureRepositoryProvider)
+                        .reorderMeasures(ing.id, ids),
+                  );
+                },
+                // The form selects no measure; the watched provider
+                // re-renders the list.
+                onAdded: (_) {},
+                // A volume-named label is a density (ADR-0008 §2): redirect
+                // to that section.
+                onVolumeLabel: form.redirectSpoon,
+              ),
+          ],
+        ),
+
+        // The stored row, not the draft: the price sheet writes at once.
+        _PriceGroup(ingredient: ing, editing: true, creating: creating),
+      ],
+    );
+
     return FScaffold(
       childPad: false,
       header: _header(
@@ -990,429 +1389,17 @@ class _DetailForm extends ConsumerWidget {
             ),
         ],
       ),
-      // Pinned, so Save and Delete are reachable from any scroll position.
-      footer: _ActionBar(
-        creating: creating,
-        stub: stub,
-        canComplete: !busy && draft.completable,
-        // What a save said, what a delete refused, or what the disabled CTA
-        // waits for.
-        message:
-            draft.message ??
-            (creating
-                ? draft.refusal ??
-                      (draft.storedMacros == null
-                          ? 'needs macros'
-                          : 'saving it counts it in conversions and macro '
-                                'totals')
-                : stub
-                ? (draft.storedMacros == null
-                      ? 'needs macros'
-                      : 'completing it counts it in conversions and macro '
-                            'totals')
-                : null),
-        // Only the button leaves; other callers use the save as a flush. On a
-        // new row Save is the completion. A taken name disables it.
-        onSave: busy || draft.nameCollision != null
-            ? null
-            : creating
-            ? completeRow
-            : () async {
-                final saved = await save();
-                if (saved != null && context.mounted) leave(saved);
-              },
-        onComplete: completeRow,
-      ),
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+      // Pinned, so Save and Delete are reachable from any scroll position. Gone
+      // while a label is read: the reading screen is the whole page until the
+      // figures land.
+      footer: draft.readingLabel ? null : dock,
+      // The recipe import's reading screen, over the form rather than in
+      // place of it, so the fields and the scroll are where they were left.
+      child: Stack(
         children: [
-          // Slots, not conditional children: an unkeyed insertion in a ListView
-          // shifts every sibling and silently resets its state.
-          _StatusStrip(ingredient: ing, creating: creating),
-
-          // The three prefill doors. The scan is a stub's door (a draft fills
-          // only empty fields); the lookup is every row's, hidden only where
-          // the card below already offers `Choose another ›`; the label is
-          // every row's and never hides, because a second photo is the fix
-          // for a first one that read badly.
-          _FillItIn(
-            // No scan door on the web: there is no camera or detector.
-            scan: stub && !kIsWeb
-                ? _GhostButton(
-                    label: 'Scan a barcode',
-                    onTap: busy ? null : scan,
-                  )
-                : null,
-            usda: isUsdaPrefilled(sourcedRow.source)
-                ? null
-                : _GhostButton(
-                    label: 'Look up in USDA',
-                    onTap: busy ? null : pickUsda,
-                  ),
-            label: _GhostButton(
-              label: 'Read a label',
-              onTap: busy ? null : readLabel,
-            ),
-          ),
-
-          if (draft.scanned != null && draft.scanApplied != null)
-            _ScanResult(
-              draft: draft.scanned!,
-              applied: draft.scanApplied!,
-              packAdded: draft.packAdded,
-              // The pack size is an offer: tapped, it lands in the draft like
-              // any measure.
-              onAddPack: () async =>
-                  form.addPackMeasure(sortOrder: measures.length),
-            )
-          else
-            const SizedBox.shrink(),
-
-          // Field order: name, aliases, category and default unit, macros,
-          // density.
-          _Group(
-            title: 'Identity',
-            children: [
-              const _Label('CANONICAL NAME'),
-              _CanonicalNameField(
-                name: draft.name,
-                seed: draft.nameSeed,
-                onChanged: form.setName,
-                onLeave: form.leaveNameField,
-              ),
-              if (draft.nameWas != null)
-                WasWordLine(oldWord: draft.nameWas!, onKeep: form.keepName),
-              // The namespace's two answers, never both: taken, or nearly
-              // somebody else's.
-              if (draft.nameCollision case final taken?)
-                _AlreadyAnIngredient(taken)
-              else if (draft.nameNearMatches.isNotEmpty)
-                _DidYouMean(
-                  matches: draft.nameNearMatches,
-                  // On an existing row near names are information only; this
-                  // form never merges.
-                  onUse: creating ? useInstead : null,
-                ),
-
-              const _Label('ALSO KNOWN AS'),
-              _AliasEditor(
-                aliases: [
-                  // Decorative emptiness: an alias that did not load is
-                  // re-added harmlessly, because `saveForm` is find-or-create
-                  // on match_text.
-                  for (final a
-                      in (creating
-                              ? null
-                              : ref
-                                    .watch(ingredientAliasesProvider(ing.id))
-                                    .asData
-                                    ?.value) ??
-                          const <IngredientAlias>[])
-                    if (!draft.aliasesRemoved.contains(a.id)) a,
-                  ...draft.aliasesAdded,
-                ],
-                onAdd: form.addAlias,
-                onRemove: form.removeAlias,
-              ),
-
-              const _Label('CATEGORY'),
-              _CategoryPicker(
-                selected: draft.category,
-                onPick: form.setCategory,
-              ),
-            ],
-          ),
-
-          _Group(
-            title: 'Nutrition',
-            children: [
-              // A slot. Reads the draft's provenance so a fresh pick is named
-              // at once.
-              _UsdaProvenance(
-                ingredient: sourcedRow,
-                pending: draft.sourcePending,
-                onDecline: busy
-                    ? null
-                    : () => ref.writeOk(
-                        context,
-                        'undo the USDA fill',
-                        form.declineUsda,
-                      ),
-                onChooseAnother: busy ? null : pickUsda,
-              ),
-              // The same fact for a scanned row, with no doors to offer.
-              _BarcodeProvenance(ingredient: sourcedRow, basis: draft.basis),
-              // And for a row read off a photographed label, which offers
-              // exactly one: putting the fields back.
-              _LabelProvenance(
-                ingredient: sourcedRow,
-                pending: draft.sourcePending,
-                basis: draft.basis,
-                onUndo: busy || draft.labelUndo == null
-                    ? null
-                    : form.undoLabelFill,
-              ),
-
-              const _Label(
-                'MACROS',
-                hint: 'as the label reads · fibre optional',
-              ),
-              // Per 100 of the basis, or per serving. Each leg unfocuses first,
-              // because a mode change rebuilds the four fields around fresh
-              // controllers.
-              Row(
-                children: [
-                  AnsiModeChip(
-                    label: 'per 100 g',
-                    selected:
-                        !draft.perServing && draft.basis == MacrosBasis.perG,
-                    onTap: () => _leaveFields(() {
-                      form.setBasis(MacrosBasis.perG);
-                    }),
-                  ),
-                  const SizedBox(width: 6),
-                  AnsiModeChip(
-                    label: 'per 100 ml',
-                    selected:
-                        !draft.perServing && draft.basis == MacrosBasis.perMl,
-                    onTap: () => _leaveFields(() {
-                      form.setBasis(MacrosBasis.perMl);
-                    }),
-                  ),
-                  const SizedBox(width: 6),
-                  AnsiModeChip(
-                    label: 'per serving',
-                    selected: draft.perServing,
-                    onTap: () => _leaveFields(form.setPerServing),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              // Three slots that hold their positions in either mode. The
-              // serving unit sets the basis, so the admission chips follow it
-              // live.
-              if (draft.perServing)
-                Padding(
-                  // Breathing room before the figures: the serving is the
-                  // sentence's subject, and the four are its predicate.
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: ServingRow(
-                    key: ValueKey('serving-row-${draft.servingSeed}'),
-                    draft: draft.serving,
-                    onAmount: form.setServingAmount,
-                    onUnit: form.setServingUnit,
-                  ),
-                )
-              else
-                const SizedBox.shrink(),
-              // Keyed by row-version, which changes only when the macros were
-              // re-seeded.
-              MacroFields(
-                key: ValueKey('macro-fields-${draft.macroSeed}'),
-                draft: draft.macros,
-                onChanged: form.setMacros,
-              ),
-              // The derived per-100 line, and on a scanned row the pack's
-              // per-serving against its per-100 column; else the nudge that
-              // per-serving mode exists.
-              if (draft.perServing) ...[
-                StoredPer100Line(
-                  serving: draft.serving,
-                  printed: draft.printedMacros,
-                ),
-                ScannedServingLine(
-                  serving: draft.serving,
-                  printed: draft.printedMacros,
-                  per100: draft.scannedPer100,
-                ),
-              ] else if (draft.scannedPer100NeedsServingHint)
-                const ScannedPerServingNudge()
-              else
-                ScannedServingLine(
-                  serving: draft.serving,
-                  printed: draft.serving.packPrinted,
-                  per100: draft.printedMacros,
-                ),
-              // The doubt is about what will be stored, so it shows in every
-              // mode.
-              MacrosDoubtLine(stored: draft.storedMacros),
-            ],
-          ),
-
-          // Density, piece weight, admission, default unit and measures are one
-          // group, so a stranded default is repaired in the section that flags
-          // it.
-          _Group(
-            title: 'Units & measures',
-            children: [
-              const _Label('DEFAULT UNIT'),
-              _UnitChoiceRow(
-                // Keyed so a test can ask this row — and only this row —
-                // which of its chips are locked.
-                key: const ValueKey('default-unit-row'),
-                ingredient: draftRow,
-                selected: draft.defaultUnit,
-                onPick: form.setDefaultUnit,
-              ),
-              // A stored default the rules no longer support is flagged, never
-              // rewritten.
-              _StrandedDefaultNote(
-                ingredient: draftRow,
-                onFix: () => ref.write<Ingredient?>(
-                  context,
-                  'save ${ing.canonicalName}',
-                  form.fixStrandedDefault,
-                ),
-              ),
-
-              // The piece weight (ADR-0015), only under a count default. It
-              // goes in the draft.
-              if (draft.defaultUnit.family == UnitFamily.count)
-                PieceWeightEntry(
-                  ingredient: draftRow,
-                  saveLabel: 'Add',
-                  onSave: (amount) async {
-                    form.draftPieceWeight(amount);
-                    return true;
-                  },
-                  onRemove: () async {
-                    form.removePieceWeight();
-                    return true;
-                  },
-                ),
-
-              const _Label('ALLOWED UNITS', hint: 'what a line may say'),
-              _AdmissionChips(
-                ingredient: draftRow,
-                selected: draft.allowed,
-                onToggle: form.toggleUnit,
-              ),
-
-              // The entry draws its own DENSITY label, so the section does
-              // not repeat one above it.
-              DensityEntry(
-                // `draftRow`, so the headline and the removal warning show the
-                // held density.
-                ingredient: draftRow,
-                // The row's own serving, so the sentence reopens in the unit
-                // the fact sheet states this density in.
-                serving: servingMeasureOf(measures),
-                redirectedSpoon: draft.redirectedSpoon,
-                // The serving above is offered as the density's left-hand side.
-                servingPrefill: draft.densityPrefill,
-                // Goes in the draft; the form's Save lands it.
-                saveLabel: 'Add',
-                onSave: (gPerMl) async {
-                  form.draftDensity(gPerMl);
-                  return true;
-                },
-                onRemove: () async {
-                  form.removeDensity();
-                  return true;
-                },
-              ),
-
-              const _Label('MEASURES', hint: 'count-like, in the basis'),
-              // Load-bearing emptiness: an errored stream drawn as empty would
-              // let the next Save write the narrowed set back.
-              if (measuresAsync case AsyncError(
-                :final error,
-                :final stackTrace,
-              ))
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: AnsiErrorState(
-                    compact: true,
-                    what: 'the measures',
-                    error: error,
-                    stackTrace: stackTrace,
-                    onRetry: () =>
-                        ref.invalidate(ingredientMeasuresProvider(ing.id)),
-                  ),
-                )
-              else
-                MeasuresEditor(
-                  ingredient: ing,
-                  measures: measures,
-                  // It adds to the draft here; the docked Save lands it.
-                  addLabel: 'Add',
-                  // A stored measure a recipe still uses is refused here, not
-                  // at Save.
-                  onDelete: (m) async {
-                    if (!await mayDeleteMeasure(context, ref, m)) return;
-                    form.removeMeasure(m.id);
-                  },
-                  // Goes in the draft; the editor has already validated it.
-                  onAdd: (label, amount) async => MeasureAdded(
-                    form.draftMeasure(
-                      label,
-                      amount,
-                      sortOrder: measures.length,
-                    ),
-                  ),
-                  // A drafted measure is re-stated in the draft. A stored one
-                  // is a live row, so its correction writes at once, under the
-                  // guard.
-                  onEdit: (m, label, amount) async {
-                    final drafted = form.editDraftMeasure(m.id, label, amount);
-                    if (drafted != null) return MeasureAdded(drafted);
-                    final landed = await ref.write(
-                      context,
-                      'save that measure',
-                      () async {
-                        final repo = ref.read(measureRepositoryProvider);
-                        try {
-                          if (label != m.label) {
-                            await repo.renameMeasure(m.id, label);
-                          }
-                          if (amount != m.amount) {
-                            await repo.setMeasureAmount(m.id, amount);
-                          }
-                          // ArgumentError is renameMeasure's documented
-                          // validation contract.
-                          // ignore: avoid_catching_errors
-                        } on ArgumentError catch (e) {
-                          return MeasureRefused('${e.message}');
-                        }
-                        return MeasureAdded(
-                          Measure(
-                            id: m.id,
-                            label: label,
-                            amount: amount,
-                            basis: m.basis,
-                            sortOrder: m.sortOrder,
-                            source: m.source,
-                          ),
-                        );
-                      },
-                    );
-                    return landed ?? const MeasureNotAdded();
-                  },
-                  // Drafted rows carry their position to Save; stored ones are
-                  // re-stamped now.
-                  onReorder: (ids) async {
-                    form.reorderDraftMeasures(ids);
-                    if (creating) return;
-                    await ref.write(
-                      context,
-                      'reorder those measures',
-                      () => ref
-                          .read(measureRepositoryProvider)
-                          .reorderMeasures(ing.id, ids),
-                    );
-                  },
-                  // The form selects no measure; the watched provider
-                  // re-renders the list.
-                  onAdded: (_) {},
-                  // A volume-named label is a density (ADR-0008 §2): redirect
-                  // to that section.
-                  onVolumeLabel: form.redirectSpoon,
-                ),
-            ],
-          ),
-
-          // The stored row, not the draft: the price sheet writes at once.
-          _PriceGroup(ingredient: ing, editing: true, creating: creating),
+          fields,
+          if (draft.readingLabel)
+            const Positioned.fill(child: LabelReadProgress()),
         ],
       ),
     );
@@ -1607,6 +1594,7 @@ class _LabelProvenance extends StatelessWidget {
     required this.pending,
     required this.basis,
     required this.onUndo,
+    this.notes = const [],
   });
 
   /// The row with the draft's stamp folded in
@@ -1619,6 +1607,9 @@ class _LabelProvenance extends StatelessWidget {
   /// The draft's basis, named so the reader knows which 100 the figures are
   /// per.
   final MacrosBasis basis;
+
+  /// What the read could not make out, said on the card it belongs to.
+  final List<String> notes;
 
   /// Puts the fields back the way the read found them. Null while busy, or
   /// once there is nothing left to undo.
@@ -1665,6 +1656,14 @@ class _LabelProvenance extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(line, style: ansiMono(size: 10, color: AnsiColors.muted)),
+          for (final note in notes)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                note,
+                style: ansiMono(size: 10, color: AnsiColors.cautionInk),
+              ),
+            ),
           const SizedBox(height: 8),
           FButton(
             size: FButtonSizeVariant.sm,

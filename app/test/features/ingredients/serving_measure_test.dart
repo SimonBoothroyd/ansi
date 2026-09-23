@@ -96,6 +96,23 @@ void main() {
       ));
     });
 
+    test('the line’s own heading is read past, as a label prints it', () {
+      // The reader returns the serving line verbatim, heading and all.
+      expect(readPrintedServing('Serving size 1/3 cup (40g)'), (
+        said: (amount: 1 / 3, unit: cup),
+        bracketed: (amount: 40.0, unit: g),
+      ));
+      expect(readPrintedServing('Serving: 2 tbsp (32 g)'), (
+        said: (amount: 2.0, unit: tbsp),
+        bracketed: (amount: 32.0, unit: g),
+      ));
+      // A heading with no measure after it is still no measure.
+      expect(readPrintedServing('Serving size (40g)'), (
+        said: null,
+        bracketed: (amount: 40.0, unit: g),
+      ));
+    });
+
     test('each half stands alone — a line with only one reading this app '
         'knows returns only that one', () {
       // "1 serving" is no unit, so the bracket is the whole reading.

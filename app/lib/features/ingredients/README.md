@@ -74,6 +74,8 @@ ingredients/
                                  delete gate while a recipe uses one
     density_entry.dart, piece_weight_entry.dart "1 tbsp weighs __ g" and
                                  "1 piece weighs __ g", shared by both hosts
+    label_read_progress.dart     the reading screen over the form while a
+                                 label is read
     macro_fields.dart, serving_row.dart, macros_doubt_line.dart
                                  the macro keypad, per-serving mode, the
                                  panel-disagrees line
@@ -146,11 +148,29 @@ round the label's own number away; where it printed only a per-serving column
 the form enters per-serving mode and `Macros.per100From` does the arithmetic,
 exactly as a typed-in panel does. A figure the label did not print leaves its
 field alone, unless the reading moved the mode or the basis, where the text
-that is there is about a different hundred. The fill is a draft like every
-other: the card says `From a label · not saved`, `Undo the fill` puts the
-fields back, and the Save stamps `source = label_photo` with no label and no
-score, because a photograph names no food. What could not be read is said on
-the form's own feedback line rather than hidden. Server side:
+that is there is about a different hundred.
+
+While the photo is read, the recipe import's reading screen
+(`StageChecklist`, one row — `label_read_progress.dart`) covers the whole form
+and takes its taps, and the dock is gone; the fields and the scroll are where
+they were left when it lifts.
+
+A serving line that states a volume and its weight — `1/3 cup (40g)` — is kept
+in whichever of its two readings the macros' basis is in (the grams on a
+per-100 g row, the cup on a per-100 ml row), so the per-100 the row stores is
+per that serving in the row's own basis. The same line **is** a density, and it
+lands in the draft beside the macros with no Add to tap — but only onto a form
+holding no density, because one somebody already has is not the label's to
+replace. The line's heading (`Serving size`) is read past
+(`readPrintedServing`).
+
+The fill is a draft like every other: the card says `From a label · not
+saved`, `Undo the fill` puts the fields and the density back, and the Save
+stamps `source = label_photo` with no label and no score, because a photograph
+names no food. What could not be read is said on that card rather than hidden.
+The dock carries no note about the photo: its line is
+`IngredientFormDraft.dockLine`, where why Save is refused always wins over a
+feedback message. Server side:
 [`supabase/functions/read-label`](../../../../supabase/functions/read-label/README.md).
 
 ### USDA and the barcode

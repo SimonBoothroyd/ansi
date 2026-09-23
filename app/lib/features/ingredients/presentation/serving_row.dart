@@ -17,6 +17,7 @@ import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/amount_and_unit.dart';
 import '../../../shared/format.dart';
+import '../../../shared/inline_amount_field.dart';
 import '../domain/serving_measure.dart';
 import 'macros_format.dart';
 
@@ -131,7 +132,7 @@ class ServingRow extends StatelessWidget {
       AmountAndUnitField(
         amountKey: const ValueKey('serving-amount'),
         unitKey: const ValueKey('serving-unit'),
-        amountWidth: 52,
+        amountWidth: kInlineAmountWidth,
         amount: draft.amountText,
         unit: draft.unit,
         units: kServingUnits,

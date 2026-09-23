@@ -9,11 +9,17 @@
 // ignore_for_file: scoped_providers_should_specify_dependencies
 library;
 
+import 'dart:async';
+
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/import/data/remote_import_repository.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
+import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/ingredients/domain/label_reading.dart';
+import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart';
+import 'package:ansi/features/ingredients/presentation/label_read_progress.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/fake_ingredient_repository.dart';
@@ -75,11 +81,16 @@ void main() {
       WidgetTester tester, {
       LabelReading? reading,
       Exception? fails,
+      Completer<void>? gate,
     }) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final repo = FakeIngredientRepo(const [oatcakes]);
-      final reader = FakeLabelReader(reading: reading, fails: fails);
+      final reader = FakeLabelReader(
+        reading: reading,
+        fails: fails,
+        gate: gate,
+      );
       await tester.pumpWidget(
         host(
           repo,
@@ -243,6 +254,88 @@ void main() {
       await open(tester, reading: partial);
       await readLabelOnForm(tester);
       expect(find.textContaining('The fibre row was cut off'), findsOneWidget);
+    });
+
+    testWidgets('while the label is read, the reading screen covers the form '
+        'and takes its taps', (tester) async {
+      final gate = Completer<void>();
+      await open(tester, reading: usLabel, gate: gate);
+      await tester.tap(find.text('Read a label'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Take a photo'));
+      // The spinner never settles while the read is in flight.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // The import's own checklist row, not a line on the dock.
+      expect(find.byType(LabelReadProgress), findsOneWidget);
+      expect(find.text('Reading the label…'), findsOneWidget);
+      // The dock is gone, so there is no Save to press mid-read.
+      expect(find.byKey(kFormSaveKey), findsNothing);
+      // The screen is opaque to taps, so nothing under it can be edited.
+      expect(
+        tester
+            .widget<AbsorbPointer>(
+              find.descendant(
+                of: find.byType(LabelReadProgress),
+                matching: find.byType(AbsorbPointer),
+              ),
+            )
+            .absorbing,
+        isTrue,
+      );
+
+      gate.complete();
+      await tester.pumpAndSettle();
+      expect(find.byType(LabelReadProgress), findsNothing);
+      expect(find.byKey(kFormSaveKey), findsOneWidget);
+      expect(macroFieldText(tester, 'kcal'), '230');
+    });
+
+    testWidgets('the dock says no word about the photo, and why Save is '
+        'refused is never hidden', (tester) async {
+      // A panel with fat cut off: three of four figures, which the form
+      // refuses rather than zero-filling.
+      const threeOfFour = LabelReading(
+        serving: LabelServing(amount: 55, unitPrinted: 'g'),
+        perServing: LabelMacros(kcal: 230, protein: 3, carb: 37),
+        notes: ['The fat row was cut off at the edge of the photo.'],
+      );
+      await open(tester, reading: threeOfFour);
+      await readLabelOnForm(tester);
+
+      expect(find.textContaining('Read from a photo'), findsNothing);
+      expect(
+        find.textContaining('Enter all four macros, or leave them all blank'),
+        findsOneWidget,
+      );
+      // What could not be read is on the label's card, not on the dock.
+      expect(find.textContaining('The fat row was cut off'), findsOneWidget);
+    });
+
+    testWidgets('a serving line that weighs a spoon lands the density with '
+        'the figures — no Add to tap', (tester) async {
+      final (repo, _) = await open(tester, reading: usLabel);
+      await readLabelOnForm(tester);
+
+      // 2/3 cup weighs 55 g: 0.349 g/ml, held by the draft and headlined.
+      expect(find.text('0.349 g/ml'), findsOneWidget);
+      expect(
+        find.text(
+          'both halves come from the pack’s serving line — check them '
+          'against it',
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(kFormSaveKey));
+      await tester.pumpAndSettle();
+      final edit = repo.savedForms.single;
+      expect(
+        (edit.density as DensitySet).gPerMl,
+        closeTo(55 / (236.5882365 * 2 / 3), 1e-9),
+      );
+      expect(edit.row.macros!.kcal, closeTo(230 * 100 / 55, 0.001));
     });
   });
 }

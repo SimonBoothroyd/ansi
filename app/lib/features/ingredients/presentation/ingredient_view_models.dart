@@ -29,6 +29,7 @@ import '../domain/name_namespace.dart';
 import '../domain/serving_measure.dart';
 import '../domain/suggest_name.dart';
 import '../domain/usda_probe.dart';
+import 'density_entry.dart';
 import 'ingredient_facts.dart';
 import 'macros_format.dart';
 import 'serving_row.dart';
@@ -113,6 +114,7 @@ abstract class LabelFillUndo with _$LabelFillUndo {
     required bool perServing,
     required MacrosBasis basis,
     required ServingDraft serving,
+    required DensityChange density,
     MacroDraft? per100Macros,
     String? pendingSource,
     String? pendingSourceLabel,
@@ -179,6 +181,16 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     /// there is nothing to undo. Set by [IngredientForm.applyLabel], spent by
     /// [IngredientForm.undoLabelFill], cleared by a Save.
     LabelFillUndo? labelUndo,
+
+    /// What the last label read said it could not read, in the reader's own
+    /// words. Shown on the label's card, never on the dock, so it cannot hide
+    /// why Save is refused. Cleared with the fill it describes.
+    @Default(<String>[]) List<String> labelNotes,
+
+    /// True while a photographed label is being read. The form is covered
+    /// by the reading screen until it lands, so nothing typed meanwhile is
+    /// overwritten by the reading.
+    @Default(false) bool readingLabel,
 
     /// The last barcode scan: the draft the card shows, what [applyDraft]
     /// decided about it, and whether its pack offer was taken.
@@ -384,6 +396,25 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
   /// Whether this form would land a row that counts: nothing refused, and
   /// macros on a basis. The same gate `Mark complete` applies to a stub.
   bool get completable => refusal == null && storedMacros != null;
+
+  /// The dock's one line. While the form cannot be saved or completed, the
+  /// reason is the line — no feedback message may stand in front of it.
+  String? get dockLine {
+    final blocker = refusal ?? (storedMacros == null ? 'needs macros' : null);
+    if (creating) {
+      return blocker ??
+          message ??
+          'saving it counts it in conversions and macro totals';
+    }
+    if (stub) {
+      return refusal ??
+          message ??
+          (storedMacros == null
+              ? 'needs macros'
+              : 'completing it counts it in conversions and macro totals');
+    }
+    return refusal ?? message;
+  }
 }
 
 /// The form's ViewModel — one per ingredient id, and one for the create form
@@ -851,7 +882,7 @@ class IngredientForm extends _$IngredientForm {
   /// draft. A failure says so on the form's own feedback line and changes
   /// nothing else.
   Future<void> readLabelFromPhoto(String photoPath) async {
-    state = state.copyWith(busy: true, message: 'Reading the label…');
+    state = state.copyWith(busy: true, readingLabel: true, message: null);
     try {
       final reading = await ref
           .read(labelReadRepositoryProvider)
@@ -863,7 +894,9 @@ class IngredientForm extends _$IngredientForm {
       // The reader's exceptions ARE the sentence a person is shown.
       state = state.copyWith(message: '$e');
     } finally {
-      if (ref.mounted) state = state.copyWith(busy: false);
+      if (ref.mounted) {
+        state = state.copyWith(busy: false, readingLabel: false);
+      }
     }
   }
 
@@ -878,16 +911,15 @@ class IngredientForm extends _$IngredientForm {
   /// serving amount, exactly as a typed-in panel does.
   void applyLabel(LabelReading reading) {
     final per100 = reading.per100;
-    final servingUnit = reading.serving.unit;
-    final servingAmount = reading.serving.amount;
+    // A per-100 column names its own basis; otherwise the form's stands.
+    final serving = _labelServing(
+      reading.serving,
+      basis: per100?.basis ?? state.basis,
+    );
 
     final printed = per100?.macros ?? reading.perServing;
     final perServing = per100 == null;
-    final basis =
-        per100?.basis ??
-        (servingUnit == null
-            ? state.basis
-            : ServingDraft(unit: servingUnit).basis);
+    final basis = per100?.basis ?? serving?.basis ?? state.basis;
 
     // A figure the label did not print leaves its field alone — unless the
     // reading moved the mode or the basis, where whatever is in the field is
@@ -909,6 +941,7 @@ class IngredientForm extends _$IngredientForm {
         perServing: state.perServing,
         basis: state.basis,
         serving: state.serving,
+        density: state.density,
         per100Macros: state.per100Macros,
         pendingSource: state.pendingSource,
         pendingSourceLabel: state.pendingSourceLabel,
@@ -928,24 +961,63 @@ class IngredientForm extends _$IngredientForm {
       pendingSource: labelPhotoSource,
       pendingSourceLabel: null,
       pendingSourceScore: null,
-      message: _labelMessage(reading.notes),
+      labelNotes: reading.notes,
+      message: null,
     );
 
     // The serving is replaced only where the label said one this kitchen can
     // read; a serving printed in words we do not keep leaves the row's own.
-    if (servingAmount != null && servingUnit != null) {
-      next = next.copyWith(
-        serving: ServingDraft(
-          amountText: macroFieldSeed(servingAmount),
-          unit: servingUnit,
-          // The label's line verbatim, so the density sentence can be offered
-          // its other half.
-          packPrintedText: reading.serving.textPrinted,
-        ),
-        servingSeed: next.servingSeed + 1,
-      );
+    if (serving != null) {
+      next = next.copyWith(serving: serving, servingSeed: next.servingSeed + 1);
+    }
+
+    // "1/3 cup (40g)" weighs a volume in one breath: the pack has stated the
+    // density, so it lands in the draft beside the macros. Only onto a form
+    // holding none — a density somebody already has is not the label's to
+    // replace, and the sentence below still offers this one.
+    if (next.densityValue == null) {
+      final offer = next.densityPrefill;
+      final grams = offer?.grams;
+      final gPerMl = offer == null || grams == null
+          ? null
+          : densityForPair(offer.amount, offer.unit, grams, g);
+      if (gPerMl != null) next = next.copyWith(density: DensitySet(gPerMl));
     }
     state = next.copyWith(allowed: _admissionFor(next.editedRow, next.allowed));
+  }
+
+  /// The serving a label reading lands as, or null when it printed none this
+  /// kitchen can read. A pack that states its serving twice — "1/3 cup (40g)"
+  /// — is kept in whichever reading [basis] is in, so a per-100 ml row reads
+  /// the cup and a per-100 g row the grams, and the basis moves only when the
+  /// label gave no reading in it.
+  ServingDraft? _labelServing(
+    LabelServing printed, {
+    required MacrosBasis basis,
+  }) {
+    final text = printed.textPrinted;
+    final amount = printed.amount;
+    final unit = printed.unit;
+    final said = amount == null || unit == null
+        ? null
+        : (amount: amount, unit: unit);
+    final both = readPrintedServing(text);
+    ({double amount, Unit unit})? inFamily(UnitFamily family) {
+      for (final r in [said, both.said, both.bracketed]) {
+        if (r != null && r.unit.family == family) return r;
+      }
+      return null;
+    }
+
+    final chosen = inFamily(basis.baseUnit.family) ?? said;
+    if (chosen == null) return null;
+    return ServingDraft(
+      amountText: macroFieldSeed(chosen.amount),
+      unit: chosen.unit,
+      // The label's line verbatim, so the density sentence can be offered
+      // its other half.
+      packPrintedText: text,
+    );
   }
 
   /// Puts the macro half back the way the last label read found it, and takes
@@ -961,11 +1033,13 @@ class IngredientForm extends _$IngredientForm {
       basis: undo.basis,
       serving: undo.serving,
       servingSeed: state.servingSeed + 1,
+      density: undo.density,
       per100Macros: undo.per100Macros,
       pendingSource: undo.pendingSource,
       pendingSourceLabel: undo.pendingSourceLabel,
       pendingSourceScore: undo.pendingSourceScore,
       labelUndo: null,
+      labelNotes: const <String>[],
       message:
           'Undone — the label’s figures are off the form, and nothing was '
           'saved.',
@@ -977,13 +1051,6 @@ class IngredientForm extends _$IngredientForm {
   /// one, else what was already there.
   static String _labelField(double? printed, String kept) =>
       printed == null ? kept : macroFieldSeed(printed);
-
-  /// The feedback line a read leaves. What the model could not read is said
-  /// here rather than hidden, because the fields cannot show an absence.
-  static String _labelMessage(List<String> notes) {
-    const said = 'Read from a photo — nothing is saved until you tap Save.';
-    return notes.isEmpty ? said : '$said ${notes.join(' ')}';
-  }
 
   /// Lands a barcode draft through the shared rule, against the form's own
   /// draft. Never confirms the row.
@@ -1203,6 +1270,7 @@ class IngredientForm extends _$IngredientForm {
         pendingSourceScore: null,
         // The fill is the row's now; undoing it would be an edit, not an undo.
         labelUndo: null,
+        labelNotes: const <String>[],
         density: const DensityUnchanged(),
         pieceWeight: const PieceWeightUnchanged(),
         measuresAdded: const [],

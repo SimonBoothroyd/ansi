@@ -10,6 +10,7 @@
 // ignore_for_file: scoped_providers_should_specify_dependencies
 library;
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:ansi/core/theme/ansi_theme.dart';
@@ -710,15 +711,19 @@ Future<void> scanOnForm(WidgetTester tester, String barcode) async {
 /// It records what it was handed, so a suite can assert the door passed on the
 /// photo the intake produced.
 class FakeLabelReader implements LabelReadRepository {
-  FakeLabelReader({this.reading, this.fails});
+  FakeLabelReader({this.reading, this.fails, this.gate});
 
   final LabelReading? reading;
   final Exception? fails;
+
+  /// Held open, the read stays in flight until the test completes it.
+  final Completer<void>? gate;
   final List<String> asked = [];
 
   @override
   Future<LabelReading> readLabel(String photoPath) async {
     asked.add(photoPath);
+    if (gate case final g?) await g.future;
     if (fails case final e?) throw e;
     return reading!;
   }

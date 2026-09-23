@@ -19,6 +19,7 @@ import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/amount_and_unit.dart';
 import '../../../shared/format.dart';
+import '../../../shared/inline_amount_field.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 import 'ingredient_facts.dart';
@@ -238,9 +239,7 @@ class DensityEntry extends HookWidget {
                 seed: amountSeed.value,
                 amountKey: const ValueKey('density-amount'),
                 unitKey: const ValueKey('density-amount-unit'),
-                // Narrow slots: a serving is `2` or `0.25`, and the sentence
-                // needs the width.
-                amountWidth: 34,
+                amountWidth: kInlineAmountWidth,
                 amount: formatQuantityIn(amount.value, spoon.value),
                 unit: spoon.value,
                 units: _units,
@@ -262,7 +261,7 @@ class DensityEntry extends HookWidget {
                 seed: amountSeed.value,
                 amountKey: const ValueKey('density-grams'),
                 unitKey: const ValueKey('density-grams-unit'),
-                amountWidth: 34,
+                amountWidth: kInlineWeightWidth,
                 // A weight seeded from the stored density prints as a scale
                 // reading (`156.15 g`), not as a fraction.
                 amount: input.value == null
@@ -306,6 +305,9 @@ class DensityEntry extends HookWidget {
                 servingPrefill!.grams == null
                     ? 'your serving, ready to use — type what that much '
                           'weighs (the pack’s “(32 g)”)'
+                    : _prefillHeld(servingPrefill!, density)
+                    ? 'both halves come from the pack’s serving line — '
+                          'check them against it'
                     : 'both halves come from the pack’s serving line — check '
                           'them, then tap $saveLabel',
                 style: ansiMono(size: 10, color: AnsiColors.muted),
@@ -371,6 +373,18 @@ double? densityForPair(double a, Unit ua, double b, Unit ub) {
     if (inGrams case Ok(value: final w)) return w.amount / v.amount;
   }
   return null;
+}
+
+/// Whether [density] is already the one [offer] states — the host landed the
+/// pack's serving line itself, so there is nothing left to tap.
+bool _prefillHeld(
+  ({double amount, Unit unit, double? grams}) offer,
+  double? density,
+) {
+  final grams = offer.grams;
+  if (density == null || grams == null) return false;
+  final offered = densityForPair(offer.amount, offer.unit, grams, g);
+  return offered != null && (offered - density).abs() < 1e-9;
 }
 
 /// `2 tbsp` — a side of the sentence as the refusal quotes it back, said the

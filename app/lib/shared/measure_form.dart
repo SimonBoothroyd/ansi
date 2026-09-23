@@ -116,7 +116,7 @@ class MeasureForm extends HookWidget {
             AmountAndUnitField(
               amountKey: ValueKey('$slot-measure-amount'),
               unitKey: ValueKey('$slot-measure-unit'),
-              amountWidth: 40,
+              amountWidth: kInlineWeightWidth,
               controller: amount,
               scrollController: amountScroll,
               unit: unit,

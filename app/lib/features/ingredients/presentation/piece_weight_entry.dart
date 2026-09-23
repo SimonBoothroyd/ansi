@@ -19,6 +19,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/amount_and_unit.dart';
+import '../../../shared/inline_amount_field.dart';
 import '../domain/allowed_units.dart';
 import '../domain/ingredient.dart';
 import 'ingredient_facts.dart' show pieceWeightSourceSuffix;
@@ -154,7 +155,7 @@ class PieceWeightEntry extends HookWidget {
               AmountAndUnitField(
                 amountKey: const ValueKey('piece-weight-field'),
                 unitKey: const ValueKey('piece-weight-unit'),
-                amountWidth: 40,
+                amountWidth: kInlineWeightWidth,
                 amount: '',
                 unit: unit.value,
                 units: basisConvertibleUnits(ingredient),

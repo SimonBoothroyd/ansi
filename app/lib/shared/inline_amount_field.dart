@@ -11,6 +11,15 @@ import 'package:forui/forui.dart';
 /// beside it, and every neighbour a host puts on the same run.
 const double kInlineControlHeight = 32;
 
+/// The width of a slot holding a kitchen amount — `⅔`, `1½`, `250` — at the
+/// field's own text size.
+const double kInlineAmountWidth = 52;
+
+/// The width of a slot holding a scale reading — up to `1234.5` — at the
+/// field's own text size. What something weighs is typed off a scale or a
+/// pack, so it gets the digits a scale shows.
+const double kInlineWeightWidth = 76;
+
 class InlineAmountField extends StatelessWidget {
   const InlineAmountField({
     required this.onSubmit,

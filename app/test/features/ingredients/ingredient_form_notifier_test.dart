@@ -14,6 +14,7 @@ import 'package:ansi/features/ingredients/barcode/ingredient_draft.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
+import 'package:ansi/features/ingredients/domain/label_reading.dart';
 import 'package:ansi/features/ingredients/domain/usda_probe.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_view_models.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -1196,5 +1197,169 @@ void main() {
       'Still used by 1 recipe (1 line) and 1 line in your plan. '
       'Change those lines first.',
     );
+  });
+
+  group('a label that weighs its serving — "1/3 cup (40g)"', () {
+    /// A US panel whose serving line states a volume and its weight. The
+    /// reader keeps the metric amount (the prompt's rule) and the line
+    /// verbatim, heading and all.
+    const granola = LabelReading(
+      serving: LabelServing(
+        amount: 40,
+        unitPrinted: 'g',
+        textPrinted: 'Serving size 1/3 cup (40g)',
+      ),
+      perServing: LabelMacros(kcal: 180, protein: 4, carb: 26, fat: 7),
+    );
+    // What a third of a US cup is, through the catalog.
+    const thirdCupMl = 236.5882365 / 3;
+
+    test('the density lands in the draft, and Save writes it with macros per '
+        '100 g of the 40 g serving', () async {
+      final repo = FakeIngredientRepo([_bareStub]);
+      final open = await _open(repo, id: 'bare');
+      open.form.applyLabel(granola);
+
+      final draft = open.at();
+      expect(draft.perServing, isTrue);
+      expect(draft.basis, MacrosBasis.perG);
+      expect(draft.serving.amount, 40);
+      expect(draft.serving.unit, g);
+      expect(draft.densityValue, closeTo(40 / thirdCupMl, 1e-9));
+      // A density admits the other family, so cup is sayable at once.
+      expect(draft.allowed, contains(cup));
+
+      await open.form.save();
+      final edit = repo.savedForms.single;
+      expect((edit.density as DensitySet).gPerMl, closeTo(0.5072, 0.0001));
+      expect(edit.row.macrosBasis, MacrosBasis.perG);
+      expect(edit.row.macros!.kcal, closeTo(180 * 100 / 40, 1e-9));
+      expect(edit.row.macros!.fat, closeTo(7 * 100 / 40, 1e-9));
+      expect(edit.serving!.amount, 40);
+    });
+
+    test('a per-100 ml row keeps its basis: the serving is the cup, and the '
+        'macros are per 100 ml of it', () async {
+      const oatDrink = Ingredient(
+        id: 'drink',
+        canonicalName: 'Oat drink',
+        defaultUnit: ml,
+        macrosBasis: MacrosBasis.perMl,
+        status: IngredientStatus.stub,
+        source: 'manual',
+      );
+      final repo = FakeIngredientRepo([oatDrink]);
+      final open = await _open(repo, id: 'drink');
+      open.form.applyLabel(granola);
+
+      final draft = open.at();
+      expect(draft.basis, MacrosBasis.perMl);
+      expect(draft.serving.unit, cup);
+      expect(draft.serving.amount, closeTo(1 / 3, 1e-9));
+      expect(draft.densityValue, closeTo(40 / thirdCupMl, 1e-9));
+
+      await open.form.save();
+      final edit = repo.savedForms.single;
+      expect(edit.row.macrosBasis, MacrosBasis.perMl);
+      expect(edit.row.macros!.kcal, closeTo(180 * 100 / thirdCupMl, 1e-6));
+      expect(edit.serving!.amount, closeTo(thirdCupMl, 1e-6));
+    });
+
+    test(
+      'a density the form already holds is not the label’s to replace',
+      () async {
+        final repo = FakeIngredientRepo([
+          _bareStub.copyWith(densityGPerMl: 0.6),
+        ]);
+        final open = await _open(repo, id: 'bare');
+        open.form.applyLabel(granola);
+        expect(open.at().densityValue, 0.6);
+        expect(open.at().density, isA<DensityUnchanged>());
+      },
+    );
+
+    test('Undo the fill takes the density back out with the figures', () async {
+      final repo = FakeIngredientRepo([_bareStub]);
+      final open = await _open(repo, id: 'bare');
+      open.form.applyLabel(granola);
+      open.form.undoLabelFill();
+      expect(open.at().densityValue, isNull);
+      expect(open.at().allowed, isNot(contains(cup)));
+    });
+
+    test(
+      'a serving line with no weight beside the spoon drafts no density',
+      () async {
+        const spoonOnly = LabelReading(
+          serving: LabelServing(
+            amount: 2,
+            unitPrinted: 'tbsp',
+            textPrinted: 'Serving size 2 tbsp',
+          ),
+          perServing: LabelMacros(kcal: 90, protein: 0, carb: 1, fat: 10),
+        );
+        final repo = FakeIngredientRepo([_bareStub]);
+        final open = await _open(repo, id: 'bare');
+        open.form.applyLabel(spoonOnly);
+        expect(open.at().densityValue, isNull);
+      },
+    );
+  });
+
+  group('the dock line', () {
+    test('a label read leaves no note of its own on the dock', () async {
+      final repo = FakeIngredientRepo([_bareStub]);
+      final open = await _open(repo, id: 'bare');
+      open.form.applyLabel(
+        const LabelReading(
+          serving: LabelServing(amount: 30, unitPrinted: 'g'),
+          perServing: LabelMacros(kcal: 113, protein: 4, carb: 18, fat: 2),
+          notes: ['The fibre row was cut off.'],
+        ),
+      );
+      expect(open.at().message, isNull);
+      expect(open.at().labelNotes, ['The fibre row was cut off.']);
+    });
+
+    test('why Save is refused wins over any feedback message', () async {
+      final repo = FakeIngredientRepo(const []);
+      final open = await _open(repo, initialName: 'Granola');
+      // A create with no category, and a message standing on the line.
+      open.form.applyLabel(
+        const LabelReading(
+          serving: LabelServing(amount: 30, unitPrinted: 'g'),
+          perServing: LabelMacros(kcal: 113, protein: 4, carb: 18, fat: 2),
+        ),
+      );
+      open.form.undoLabelFill();
+      final draft = open.at();
+      expect(draft.message, startsWith('Undone'));
+      expect(draft.refusal, startsWith('Which aisle is it in?'));
+      expect(draft.dockLine, draft.refusal);
+    });
+
+    test('with no refusal and no macros, a create still says so', () async {
+      final repo = FakeIngredientRepo(const []);
+      final open = await _open(repo, initialName: 'Granola');
+      open.form.setCategory('pantry');
+      expect(open.at().dockLine, 'needs macros');
+    });
+
+    test('once the form can save, the feedback message is the line', () async {
+      final repo = FakeIngredientRepo(const []);
+      final open = await _open(repo, initialName: 'Granola');
+      open.form
+        ..setCategory('pantry')
+        ..applyLabel(
+          const LabelReading(
+            serving: LabelServing(amount: 30, unitPrinted: 'g'),
+            perServing: LabelMacros(kcal: 113, protein: 4, carb: 18, fat: 2),
+          ),
+        );
+      expect(
+        open.at().dockLine,
+        'saving it counts it in conversions and macro totals',
+      );
+    });
   });
 }

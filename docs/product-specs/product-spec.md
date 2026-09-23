@@ -1033,7 +1033,10 @@ A barcode scan fills the draft the same way from Open Food Facts, and
 `Fill it in from ▸ Read a label` fills it from a photograph — or a screenshot —
 of the pack's own nutrition panel, read by the `read-label` edge function,
 which returns only the figures the panel printed, so one it does not state
-stays empty rather than becoming a number nobody could find again. The phone
+stays empty rather than becoming a number nobody could find again; a serving
+line that weighs a volume (`1/3 cup (40g)`) also fills the density, onto a
+form holding none. The form is covered by the import's reading screen until the
+figures land. The phone
 never reads the reference set directly (ADR-0005): the search is a read-only
 server function. Filling in is never promotion: **macros gate `complete`, density does not, and
 confirming is an explicit human act** in the flesh-out form (reversible —

@@ -62,21 +62,28 @@ Measure? servingMeasureOf(Iterable<Measure> measures) {
 /// Both readings a pack's serving line states: the `2 tbsp` it says and the `(7
 /// g)` it converts that to. Each half is null when its words are not a measure
 /// this app knows ("1 serving"). Nothing is converted: both figures are the
-/// pack's.
+/// pack's. The line's own heading — `Serving size 1/3 cup (40g)`, as a label
+/// prints it — is not part of the measure and is read past.
 ({({double amount, Unit unit})? said, ({double amount, Unit unit})? bracketed})
 readPrintedServing(String? servingSize) {
   if (servingSize == null) return (said: null, bracketed: null);
   final open = servingSize.indexOf('(');
   final close = open == -1 ? -1 : servingSize.indexOf(')', open + 1);
+  final said = open == -1 ? servingSize : servingSize.substring(0, open);
   return (
-    said: parseServingPhrase(
-      open == -1 ? servingSize : servingSize.substring(0, open),
-    ),
+    said: parseServingPhrase(said.replaceFirst(_servingHeading, '')),
     bracketed: close == -1
         ? null
         : parseServingPhrase(servingSize.substring(open + 1, close)),
   );
 }
+
+/// The words a serving line opens with before its first figure: `Serving
+/// size`, `Serving:`. Letters and punctuation only, so a line that opens on its
+/// amount is untouched.
+final _servingHeading = RegExp(
+  r'^[a-zA-Z :.\-]*(?=[0-9\u00bc-\u00be\u2150-\u215e])',
+);
 
 /// `2 tbsp`, `¼ cup`, `1/4 cup`, `1 1/2 fl oz`, `1 Cup` → an amount and a
 /// catalog unit, or null. The numeric head is read by [parseAmount], so
