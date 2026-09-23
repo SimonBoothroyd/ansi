@@ -9,6 +9,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
+import 'density_said.dart';
 
 part 'ingredient.freezed.dart';
 
@@ -23,6 +24,12 @@ abstract class Ingredient with _$Ingredient {
     required IngredientStatus status,
     String? category,
     double? densityGPerMl,
+
+    /// The sentence [densityGPerMl] was said as ("⅓ cup weighs 40 g"), as
+    /// stored. Read it through [densitySaidOf], which drops one that no longer
+    /// states the stored number. Null when the density came from a door that
+    /// said no sentence.
+    DensitySaid? densitySaid,
     Macros? macros,
     @Default(MacrosBasis.perG) MacrosBasis macrosBasis,
 

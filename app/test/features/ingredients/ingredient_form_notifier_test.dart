@@ -12,6 +12,7 @@ import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/barcode/ingredient_draft.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
+import 'package:ansi/features/ingredients/domain/density_said.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/ingredients/domain/label_reading.dart';
@@ -117,6 +118,10 @@ Future<_OpenForm> _open(
   );
 }
 
+/// "1 ml weighs [gPerMl] g" — a sentence whose number is [gPerMl] exactly.
+DensitySaid _saysGPerMl(double gPerMl) =>
+    DensitySaid(amount: 1, unit: ml, weighs: gPerMl, weighsUnit: g);
+
 void main() {
   group('the draft the form holds', () {
     test(
@@ -207,7 +212,7 @@ void main() {
       final repo = FakeIngredientRepo([_mango]);
       final (:form, :at) = await _open(repo, id: 'mango');
 
-      form.draftDensity(0.66);
+      form.draftDensity(_saysGPerMl(0.66));
       expect(at().densityValue, 0.66);
       expect(at().allowed, contains(ml));
 
@@ -624,7 +629,7 @@ void main() {
         ..setMacros(
           const MacroDraft(kcal: '60', protein: '1', carb: '15', fat: '0'),
         )
-        ..draftDensity(0.66);
+        ..draftDensity(_saysGPerMl(0.66));
       await form.addAlias('mangoes');
       final measure = form.draftMeasure('whole', 200, sortOrder: 0);
 
@@ -678,7 +683,7 @@ void main() {
       final repo = FakeIngredientRepo([_mango]);
       final (:form, at: _) = await _open(repo, id: 'mango');
       await form.addAlias('mangoes');
-      form.draftDensity(0.66);
+      form.draftDensity(_saysGPerMl(0.66));
 
       await form.save();
       await form.save();
@@ -1232,6 +1237,8 @@ void main() {
       await open.form.save();
       final edit = repo.savedForms.single;
       expect((edit.density as DensitySet).gPerMl, closeTo(0.5072, 0.0001));
+      // Kept as the pack said it, not as the number worked out from it.
+      expect((edit.density as DensitySet).said?.sentence, '⅓ cup weighs 40 g');
       expect(edit.row.macrosBasis, MacrosBasis.perG);
       expect(edit.row.macros!.kcal, closeTo(180 * 100 / 40, 1e-9));
       expect(edit.row.macros!.fat, closeTo(7 * 100 / 40, 1e-9));
@@ -1265,18 +1272,17 @@ void main() {
       expect(edit.serving!.amount, closeTo(thirdCupMl, 1e-6));
     });
 
-    test(
-      'a density the form already holds is not the label’s to replace',
-      () async {
-        final repo = FakeIngredientRepo([
-          _bareStub.copyWith(densityGPerMl: 0.6),
-        ]);
-        final open = await _open(repo, id: 'bare');
-        open.form.applyLabel(granola);
-        expect(open.at().densityValue, 0.6);
-        expect(open.at().density, isA<DensityUnchanged>());
-      },
-    );
+    test('a label replaces the density the form held, and Undo the fill '
+        'puts that one back', () async {
+      final repo = FakeIngredientRepo([_bareStub.copyWith(densityGPerMl: 0.6)]);
+      final open = await _open(repo, id: 'bare');
+      open.form.applyLabel(granola);
+      expect(open.at().densityValue, closeTo(40 / thirdCupMl, 1e-9));
+      expect(open.at().densitySaidValue?.sentence, '⅓ cup weighs 40 g');
+      open.form.undoLabelFill();
+      expect(open.at().densityValue, 0.6);
+      expect(open.at().density, isA<DensityUnchanged>());
+    });
 
     test('Undo the fill takes the density back out with the figures', () async {
       final repo = FakeIngredientRepo([_bareStub]);

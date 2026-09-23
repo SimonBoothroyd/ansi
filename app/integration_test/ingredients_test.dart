@@ -392,9 +392,10 @@ void main() {
       await centerOn(tester, densityAdd);
       await tester.tap(densityAdd);
       await tester.pumpAndSettle();
-      // The headline follows the DRAFT, and the row is still bare: one write,
-      // and it has not happened yet.
-      await pumpUntilFound(tester, find.text('1.01 g/ml'));
+      // The headline follows the DRAFT — the sentence as said, the g/ml
+      // derived from it — and the row is still bare: one write, and it has not
+      // happened yet.
+      await pumpUntilFound(tester, find.text('1 tbsp weighs 15 g · 1.01 g/ml'));
       expect(
         await storedDensity(),
         isNull,
@@ -411,11 +412,23 @@ void main() {
 
       await stack.waitForSyncRoundTrip(tester);
       final unlocked = await db.get(
-        'SELECT density_g_per_ml, allowed_units, '
+        'SELECT density_g_per_ml, allowed_units, density_amount, density_unit, '
+        'density_weighs_amount, density_weighs_unit, '
         'json_type(allowed_units) AS shape FROM ingredient WHERE id = ?',
         [stubId],
       );
       expect((unlocked['density_g_per_ml'] as num).toDouble(), spoonDensity);
+      // The sentence survives the server round trip beside the number (0053).
+      expect(
+        [
+          (unlocked['density_amount'] as num).toDouble(),
+          unlocked['density_unit'],
+          (unlocked['density_weighs_amount'] as num).toDouble(),
+          unlocked['density_weighs_unit'],
+        ],
+        [1.0, 'tbsp', 15.0, 'g'],
+        reason: 'a density keeps the sentence it was said as',
+      );
       expect(
         unlocked['shape'],
         'array',
@@ -441,7 +454,8 @@ void main() {
       // field be deleted rather than merely hidden. The re-opened form drew
       // the entry afresh, so the chip is centred and picked explicitly rather
       // than assumed. The row now HAS a density, so the block is folded to
-      // `1.01 g/ml · change` (C-D3) and the sentence is one tap away.
+      // `1 tbsp weighs 15 g · 1.01 g/ml · change` and the sentence is one tap
+      // away.
       await scrollTo(tester, find.text('· change'));
       await centerOn(tester, find.text('· change'));
       await tester.tap(find.text('· change'));

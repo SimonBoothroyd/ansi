@@ -291,7 +291,6 @@ class _ReadPosture extends ConsumerWidget {
     );
     final macroFigures = macrosFactFigures(ing, serving: serving);
     final per100 = per100Fact(ing, serving: serving);
-    final densityAside = densityAsideFact(ing, serving: serving);
 
     return FScaffold(
       childPad: false,
@@ -407,11 +406,7 @@ class _ReadPosture extends ConsumerWidget {
                 _Fact(pieceWeight),
               ],
               const _Label('DENSITY'),
-              _Fact(
-                densityFact(ing, serving: serving),
-                muted: ing.densityGPerMl == null,
-              ),
-              if (densityAside != null) _Fact(densityAside, muted: true),
+              _Fact(densityFact(ing), muted: ing.densityGPerMl == null),
               const _Label('MEASURES', hint: 'count-like, in the basis'),
               // Load-bearing emptiness: an errored stream is not "no measures".
               if (measuresAsync case AsyncError(
@@ -1269,8 +1264,8 @@ class _DetailForm extends ConsumerWidget {
               servingPrefill: draft.densityPrefill,
               // Goes in the draft; the form's Save lands it.
               saveLabel: 'Add',
-              onSave: (gPerMl) async {
-                form.draftDensity(gPerMl);
+              onSave: (said) async {
+                form.draftDensity(said);
                 return true;
               },
               onRemove: () async {

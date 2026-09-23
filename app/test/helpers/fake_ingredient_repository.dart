@@ -15,6 +15,7 @@ import 'dart:async';
 
 import 'package:ansi/core/result/result.dart';
 import 'package:ansi/features/ingredients/domain/allowed_units.dart';
+import 'package:ansi/features/ingredients/domain/density_said.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/ingredients/domain/name_namespace.dart';
@@ -60,8 +61,11 @@ class ReadOnlyIngredientRepo implements IngredientRepository {
   Stream<int> watchVocabularyCount() => Stream.value(0);
 
   @override
-  Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async =>
-      null;
+  Future<Ingredient?> setDensity(
+    String ingredientId,
+    double gPerMl, {
+    DensitySaid? said,
+  }) async => null;
 
   @override
   Future<Ingredient?> clearDensity(String ingredientId) =>
@@ -213,11 +217,16 @@ class FakeIngredientRepo implements IngredientRepository {
   Future<List<Ingredient>> recentlyUsed({int limit = 8}) async => const [];
 
   @override
-  Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async {
+  Future<Ingredient?> setDensity(
+    String ingredientId,
+    double gPerMl, {
+    DensitySaid? said,
+  }) async {
     final current = _find(ingredientId);
     if (current == null) return null;
     final updated = current.copyWith(
       densityGPerMl: gPerMl,
+      densitySaid: said,
       allowedUnits: [
         ...{
           ...current.allowedUnits ?? allowedUnitsFor(current),
@@ -274,6 +283,7 @@ class FakeIngredientRepo implements IngredientRepository {
       status: current.status,
       category: current.category,
       densityGPerMl: current.densityGPerMl,
+      densitySaid: current.densitySaid,
       macros: current.macros,
       macrosBasis: current.macrosBasis,
       allowedUnits: kept.toList(),
@@ -371,6 +381,7 @@ class FakeIngredientRepo implements IngredientRepository {
       status: edit.macros == null ? IngredientStatus.stub : current.status,
       category: edit.category,
       densityGPerMl: current.densityGPerMl,
+      densitySaid: current.densitySaid,
       macros: edit.macros,
       macrosBasis: edit.macrosBasis,
       allowedUnits: edit.allowedUnits.toList(),
@@ -454,8 +465,8 @@ class FakeIngredientRepo implements IngredientRepository {
     if (row == null) return const Ok(null);
     var updated = row;
     switch (edit.density) {
-      case DensitySet(:final gPerMl):
-        updated = updated.copyWith(densityGPerMl: gPerMl);
+      case DensitySet(:final gPerMl, :final said):
+        updated = updated.copyWith(densityGPerMl: gPerMl, densitySaid: said);
       case DensityCleared():
         // copyWith reads null as "unchanged" (freezed), so the clear is built
         // field-by-field — the same reason `_writeRow` above does.
@@ -501,6 +512,7 @@ class FakeIngredientRepo implements IngredientRepository {
           status: updated.status,
           category: updated.category,
           densityGPerMl: updated.densityGPerMl,
+          densitySaid: updated.densitySaid,
           macros: updated.macros,
           macrosBasis: updated.macrosBasis,
           allowedUnits: updated.allowedUnits,

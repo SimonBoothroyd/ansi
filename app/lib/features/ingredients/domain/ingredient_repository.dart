@@ -10,6 +10,7 @@ import 'package:meta/meta.dart';
 import '../../../core/result/result.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
+import 'density_said.dart';
 import 'ingredient.dart';
 import 'name_namespace.dart';
 
@@ -134,9 +135,23 @@ class DensityUnchanged extends DensityChange {
 }
 
 class DensitySet extends DensityChange {
-  const DensitySet(this.gPerMl);
+  /// A bare number, from a door that said no sentence (a USDA pick).
+  const DensitySet(this.gPerMl) : said = null;
+
+  const DensitySet._(this.gPerMl, this.said);
+
+  /// The sentence as said, with the number derived from it here — the one
+  /// place a said density becomes g/ml. Null when [said] states none.
+  static DensitySet? fromSaid(DensitySaid said) {
+    final gPerMl = said.gPerMl;
+    return gPerMl == null ? null : DensitySet._(gPerMl, said);
+  }
 
   final double gPerMl;
+
+  /// The sentence [gPerMl] was said as, stored beside it; null when the door
+  /// said none.
+  final DensitySaid? said;
 }
 
 class DensityCleared extends DensityChange {
@@ -237,10 +252,16 @@ abstract interface class IngredientRepository {
   Future<Map<String, Ingredient>> byIds(Set<String> ids);
 
   /// Stores [gPerMl] as the density (ADR-0008) and unions the units it unlocks
-  /// into the explicit `allowed_units` in the same write. Returns the updated
-  /// row, or null when [ingredientId] does not resolve. Throws [ArgumentError]
-  /// for a non-positive or NaN [gPerMl] (invariant 3).
-  Future<Ingredient?> setDensity(String ingredientId, double gPerMl);
+  /// into the explicit `allowed_units` in the same write. [said] is the
+  /// sentence it was said as, stored beside it; null clears any sentence the
+  /// row held. Returns the updated row, or null when [ingredientId] does not
+  /// resolve. Throws [ArgumentError] for a non-positive or NaN [gPerMl]
+  /// (invariant 3).
+  Future<Ingredient?> setDensity(
+    String ingredientId,
+    double gPerMl, {
+    DensitySaid? said,
+  });
 
   /// Deletes the density and, in the same write, removes the units only it
   /// admitted (`densityStrippedUnits`). The one place the admission list

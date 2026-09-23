@@ -5,6 +5,7 @@ import 'package:ansi/core/result/result.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/data/ingredient_repository_impl.dart';
+import 'package:ansi/features/ingredients/domain/density_said.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/ingredients/domain/normalize.dart';
@@ -491,6 +492,90 @@ void main() {
 
     test('null for an unknown id', () async {
       expect(await repo.setDensity('nope', 1), isNull);
+    });
+  });
+
+  group('a density keeps the sentence it was said as (0053)', () {
+    const thirdCupWeighs40g = DensitySaid(
+      amount: 1 / 3,
+      unit: cup,
+      weighs: 40,
+      weighsUnit: g,
+    );
+
+    Future<Map<String, Object?>> said(String id) => db.get(
+      'SELECT density_amount, density_unit, density_weighs_amount, '
+      'density_weighs_unit, density_g_per_ml FROM ingredient WHERE id = ?',
+      [id],
+    );
+
+    test('setDensity stores the sentence beside the number derived from '
+        'it, and reads it back as said', () async {
+      final gPerMl = thirdCupWeighs40g.gPerMl!;
+      final updated = await repo.setDensity(
+        '1',
+        gPerMl,
+        said: thirdCupWeighs40g,
+      );
+      expect(densitySaidOf(updated!)?.sentence, '⅓ cup weighs 40 g');
+      final row = await said('1');
+      expect(row['density_amount'], closeTo(1 / 3, 1e-12));
+      expect(row['density_unit'], 'cup');
+      expect(row['density_weighs_amount'], 40);
+      expect(row['density_weighs_unit'], 'g');
+      expect(row['density_g_per_ml'], closeTo(0.50721, 1e-5));
+    });
+
+    test('a number with no sentence clears the one the row held', () async {
+      await repo.setDensity(
+        '1',
+        thirdCupWeighs40g.gPerMl!,
+        said: thirdCupWeighs40g,
+      );
+      final updated = await repo.setDensity('1', 0.59);
+      expect(densitySaidOf(updated!), isNull);
+      expect((await said('1'))['density_unit'], isNull);
+    });
+
+    test('clearDensity takes the sentence with the number', () async {
+      await repo.setDensity(
+        '1',
+        thirdCupWeighs40g.gPerMl!,
+        said: thirdCupWeighs40g,
+      );
+      await repo.clearDensity('1');
+      final row = await said('1');
+      expect(row['density_g_per_ml'], isNull);
+      expect(row['density_amount'], isNull);
+      expect(row['density_weighs_unit'], isNull);
+    });
+
+    test('the form writes the sentence in its one Save', () async {
+      final saved = await repo.saveRow(
+        '1',
+        IngredientFormEdit(
+          row: _edit(name: 'Onion', allowed: const {g, cup}),
+          density: DensitySet.fromSaid(thirdCupWeighs40g)!,
+        ),
+      );
+      expect(densitySaidOf(saved!), thirdCupWeighs40g);
+    });
+
+    test('a number rewritten without its sentence — an older build, or the '
+        'server — is read back as the number alone', () async {
+      await repo.setDensity(
+        '1',
+        thirdCupWeighs40g.gPerMl!,
+        said: thirdCupWeighs40g,
+      );
+      // What a build that predates the columns writes: the number, alone.
+      await db.execute(
+        "UPDATE ingredient SET density_g_per_ml = 0.9 WHERE id = '1'",
+      );
+      final row = (await repo.byId('1'))!;
+      expect(row.densitySaid, isNotNull);
+      expect(densitySaidOf(row), isNull);
+      expect(row.densityGPerMl, 0.9);
     });
   });
 

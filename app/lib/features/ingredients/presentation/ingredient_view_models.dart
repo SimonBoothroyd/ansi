@@ -22,6 +22,7 @@ import '../data/ingredient_providers.dart';
 import '../data/label_read_provider.dart';
 import '../domain/allowed_units.dart';
 import '../domain/apply_draft.dart';
+import '../domain/density_said.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
 import '../domain/label_reading.dart';
@@ -29,7 +30,6 @@ import '../domain/name_namespace.dart';
 import '../domain/serving_measure.dart';
 import '../domain/suggest_name.dart';
 import '../domain/usda_probe.dart';
-import 'density_entry.dart';
 import 'ingredient_facts.dart';
 import 'macros_format.dart';
 import 'serving_row.dart';
@@ -240,6 +240,14 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     DensityUnchanged() => row.densityGPerMl,
   };
 
+  /// The sentence the density is said as, AS THE FORM HOLDS IT; null for a
+  /// density with none (a USDA pick) or no density.
+  DensitySaid? get densitySaidValue => switch (density) {
+    DensitySet(:final said) => said,
+    DensityCleared() => null,
+    DensityUnchanged() => row.densitySaid,
+  };
+
   /// The piece weight AS THE FORM HOLDS IT, in the basis unit.
   double? get pieceWeightValue => switch (pieceWeight) {
     PieceWeightSet(:final amount) => amount,
@@ -254,6 +262,7 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     defaultUnit: defaultUnit,
     macrosBasis: basis,
     densityGPerMl: densityValue,
+    densitySaid: densitySaidValue,
     pieceBasisAmount: pieceWeightValue,
   );
 
@@ -720,7 +729,12 @@ class IngredientForm extends _$IngredientForm {
 
   // --- Density -------------------------------------------------------------
 
-  void draftDensity(double gPerMl) => _withDensity(DensitySet(gPerMl));
+  /// The density as said; the number is derived from the sentence. A sentence
+  /// that states no density drafts nothing.
+  void draftDensity(DensitySaid said) {
+    final set = DensitySet.fromSaid(said);
+    if (set != null) _withDensity(set);
+  }
 
   void removeDensity() => _withDensity(const DensityCleared());
 
@@ -971,17 +985,22 @@ class IngredientForm extends _$IngredientForm {
       next = next.copyWith(serving: serving, servingSeed: next.servingSeed + 1);
     }
 
-    // "1/3 cup (40g)" weighs a volume in one breath: the pack has stated the
-    // density, so it lands in the draft beside the macros. Only onto a form
-    // holding none — a density somebody already has is not the label's to
-    // replace, and the sentence below still offers this one.
-    if (next.densityValue == null) {
-      final offer = next.densityPrefill;
-      final grams = offer?.grams;
-      final gPerMl = offer == null || grams == null
-          ? null
-          : densityForPair(offer.amount, offer.unit, grams, g);
-      if (gPerMl != null) next = next.copyWith(density: DensitySet(gPerMl));
+    // "1/3 cup (40g)" weighs a volume in one breath: the pack has said the
+    // density, so it lands in the draft beside the macros, as said. It
+    // replaces a density the form held — the label is the newer reading — and
+    // Undo the fill puts that one back.
+    final offer = next.densityPrefill;
+    final grams = offer?.grams;
+    if (offer != null && grams != null) {
+      final set = DensitySet.fromSaid(
+        DensitySaid(
+          amount: offer.amount,
+          unit: offer.unit,
+          weighs: grams,
+          weighsUnit: g,
+        ),
+      );
+      if (set != null) next = next.copyWith(density: set);
     }
     state = next.copyWith(allowed: _admissionFor(next.editedRow, next.allowed));
   }

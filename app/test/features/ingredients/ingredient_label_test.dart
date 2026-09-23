@@ -318,8 +318,9 @@ void main() {
       final (repo, _) = await open(tester, reading: usLabel);
       await readLabelOnForm(tester);
 
-      // 2/3 cup weighs 55 g: 0.349 g/ml, held by the draft and headlined.
-      expect(find.text('0.349 g/ml'), findsOneWidget);
+      // Held by the draft and headlined as the pack said it, with the g/ml
+      // derived from it beside.
+      expect(find.text('⅔ cup weighs 55 g · 0.349 g/ml'), findsOneWidget);
       expect(
         find.text(
           'both halves come from the pack’s serving line — check them '

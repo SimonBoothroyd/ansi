@@ -666,13 +666,15 @@ class _MeasureManager extends HookConsumerWidget {
           serving: servingMeasureOf(measures),
           redirectedSpoon: redirected.value,
           // This host has no Save of its own, so it commits on tap.
-          onSave: (gPerMl) async {
+          onSave: (said) async {
+            final gPerMl = said.gPerMl;
+            if (gPerMl == null) return false;
             final updated = await ref.write(
               context,
               'save that density',
               () => ref
                   .read(ingredientRepositoryProvider)
-                  .setDensity(ingredient.id, gPerMl),
+                  .setDensity(ingredient.id, gPerMl, said: said),
             );
             if (updated == null) return false;
             redirected.value = null;

@@ -11,7 +11,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 
-import '../../../core/result/result.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
@@ -21,6 +20,7 @@ import '../../../shared/amount_and_unit.dart';
 import '../../../shared/format.dart';
 import '../../../shared/inline_amount_field.dart';
 import '../domain/allowed_units.dart';
+import '../domain/density_said.dart';
 import '../domain/ingredient.dart';
 import 'ingredient_facts.dart';
 
@@ -53,9 +53,10 @@ class DensityEntry extends HookWidget {
   final ({double amount, Unit unit, double? grams})? servingPrefill;
 
   /// The host decides when a density lands (ADR-0011). This widget validates
-  /// the input and computes the number; the quantity sheet's host writes at
-  /// once, the form's host holds it in its draft. Returns whether it landed.
-  final Future<bool> Function(double gPerMl) onSave;
+  /// the sentence and hands it over as said; the number is derived from it
+  /// when it is stored. The quantity sheet's host writes at once, the form's
+  /// host holds it in its draft. Returns whether it landed.
+  final Future<bool> Function(DensitySaid said) onSave;
 
   /// The mirror write: the number goes and the cross-family units it unlocked
   /// lock again. The host lands it.
@@ -83,23 +84,28 @@ class DensityEntry extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The sentence opens in the unit [densityReading] states the density in, so
-    // it reads as the fact sheet does.
+    // The sentence opens as it was said. A density stored with no sentence
+    // opens in the unit [densityReading] states it in.
+    final said = densitySaidOf(ingredient);
     final read = densityReading(ingredient, serving: serving);
-    final storedWeight = densityReadingWeight(ingredient, serving: serving);
-    final spoon = useState<Unit>(read.unit);
+    final openUnit = said?.unit ?? read.unit;
+    final openAmount = said?.amount ?? read.amount;
+    final openWeight =
+        said?.weighs ?? densityReadingWeight(ingredient, serving: serving);
+    final openWeightUnit = said?.weighsUnit ?? g;
+    final spoon = useState<Unit>(openUnit);
     // How many of that spoon the sentence is about. One unless the row's own
     // serving says otherwise, because one is what a density means.
-    final amount = useState<double>(read.amount);
+    final amount = useState<double>(openAmount);
     final amountSeed = useState(0);
-    final input = useState<double?>(storedWeight);
+    final input = useState<double?>(openWeight);
     // Whether somebody has typed, picked a unit, or been handed a redirect or
     // serving offer. Until then the row's own reading may land as its queries
     // arrive; afterwards nothing rewrites the sentence.
     final aimed = useState(false);
     // What the weight is stated in. `g` is the common case and stays the
     // default; an American label prints ounces and now says so.
-    final weightUnit = useState<Unit>(g);
+    final weightUnit = useState<Unit>(openWeightUnit);
     final error = useState<String?>(null);
     // Deleting a density also strips what it unlocked, so the affordance asks
     // once rather than acting on a stray tap.
@@ -112,12 +118,13 @@ class DensityEntry extends HookWidget {
     // once the sentence has been aimed.
     useEffect(() {
       if (aimed.value) return null;
-      spoon.value = read.unit;
-      amount.value = read.amount;
-      input.value = storedWeight;
+      spoon.value = openUnit;
+      amount.value = openAmount;
+      input.value = openWeight;
+      weightUnit.value = openWeightUnit;
       amountSeed.value++;
       return null;
-    }, [read.unit, read.amount, storedWeight]);
+    }, [openUnit, openAmount, openWeight, openWeightUnit]);
     // A redirect (a volume unit typed as a measure label) pre-picks that unit.
     useEffect(() {
       final r = redirectedSpoon;
@@ -157,10 +164,16 @@ class DensityEntry extends HookWidget {
 
     Future<void> save() async {
       final v = input.value;
-      final gPerMl = v == null
+      final said = v == null
           ? null
-          : densityForPair(amount.value, spoon.value, v, weightUnit.value);
-      if (gPerMl == null || !(gPerMl > 0)) {
+          : DensitySaid(
+              amount: amount.value,
+              unit: spoon.value,
+              weighs: v,
+              weighsUnit: weightUnit.value,
+            );
+      final gPerMl = said?.gPerMl;
+      if (said == null || gPerMl == null || !(gPerMl > 0)) {
         error.value = spoon.value.family == weightUnit.value.family
             ? 'one side is a volume and the other a weight — '
                   '“1 cup weighs 240 g”, or “30 ml weighs 1 oz”'
@@ -169,7 +182,7 @@ class DensityEntry extends HookWidget {
         return;
       }
       error.value = null;
-      final landed = await onSave(gPerMl);
+      final landed = await onSave(said);
       if (!context.mounted || !landed) return;
       confirmingRemoval.value = false;
       // The section does not fold when a number lands: collapsing would pull
@@ -189,8 +202,9 @@ class DensityEntry extends HookWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // The headline and the stored number. Folded, this row is the whole
-        // section: `DENSITY 0.13 g/ml · change`.
+        // The headline: the sentence as said and the number derived from it,
+        // or the number alone where nothing was said. Folded, this row is the
+        // whole section: `DENSITY ⅓ cup weighs 40 g · 0.507 g/ml · change`.
         Padding(
           padding: const EdgeInsets.only(top: _leadingSpace),
           child: Row(
@@ -201,7 +215,7 @@ class DensityEntry extends HookWidget {
                 child: Text(
                   density == null
                       ? 'none yet — unlocks volume⇄weight'
-                      : '${formatDensity(density)} g/ml',
+                      : densityFact(ingredient),
                   style: ansiMono(
                     size: 10,
                     color: density == null
@@ -348,31 +362,6 @@ class DensityEntry extends HookWidget {
       ],
     );
   }
-}
-
-/// The density the sentence "[a] [ua] weighs [b] [ub]" states, in g/ml, with
-/// the volume and the weight in either order. Null when both units are of one
-/// family, a unit is neither mass nor volume, or an amount is not positive.
-double? densityForPair(double a, Unit ua, double b, Unit ub) {
-  // `!(x > 0)` (rather than `x <= 0`) also catches NaN.
-  if (!(a > 0) || !(b > 0)) return null;
-  final ({double amount, Unit unit}) volume;
-  final ({double amount, Unit unit}) mass;
-  if (ua.family == UnitFamily.volume && ub.family == UnitFamily.mass) {
-    volume = (amount: a, unit: ua);
-    mass = (amount: b, unit: ub);
-  } else if (ua.family == UnitFamily.mass && ub.family == UnitFamily.volume) {
-    volume = (amount: b, unit: ub);
-    mass = (amount: a, unit: ua);
-  } else {
-    return null;
-  }
-  final inMl = convert(Quantity(volume.amount, volume.unit), to: ml);
-  final inGrams = convert(Quantity(mass.amount, mass.unit), to: g);
-  if (inMl case Ok(value: final v) when v.amount > 0) {
-    if (inGrams case Ok(value: final w)) return w.amount / v.amount;
-  }
-  return null;
 }
 
 /// Whether [density] is already the one [offer] states — the host landed the

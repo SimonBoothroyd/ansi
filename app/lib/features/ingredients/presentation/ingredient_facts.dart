@@ -16,6 +16,7 @@ import '../../../core/units/units.dart';
 import '../../../core/words.dart';
 import '../../../shared/format.dart';
 import '../domain/allowed_units.dart';
+import '../domain/density_said.dart';
 import '../domain/ingredient.dart';
 import '../domain/price.dart';
 import '../domain/price_repository.dart';
@@ -85,41 +86,27 @@ String categoryFact(Ingredient ingredient) {
 String allowedUnitsFact(Ingredient ingredient) =>
     allowedUnitsFor(ingredient).map((u) => u.label).join(' · ');
 
-/// The stated density as the sentence it was entered as and the stored number:
-/// `1 cup weighs 156.15 g · 0.66 g/ml`. A row with none says what the density
-/// entry's headline says. A row whose serving is a volume reads it in that
-/// unit, with the g/ml as [densityAsideFact].
-String densityFact(Ingredient ingredient, {Measure? serving}) {
+/// The stated density as the sentence it was said as and the number derived
+/// from it: `⅓ cup weighs 40 g · 0.507 g/ml`. A density stored with no
+/// sentence (a USDA pick, the seed) is the number alone, `0.66 g/ml` — the app
+/// does not word a sentence nobody said. A row with none says what the density
+/// entry's headline says.
+String densityFact(Ingredient ingredient) {
   final density = ingredient.densityGPerMl;
   if (density == null) return 'none yet — unlocks volume⇄weight';
-  final read = densityReading(ingredient, serving: serving);
-  final grams = densityReadingWeight(ingredient, serving: serving);
   final stated = '${formatDensity(density)} g/ml';
-  if (grams == null) return stated;
-  final phrase = formatServingPhrase(read.amount, read.unit);
-  final sentence = '$phrase weighs ${formatQuantityIn(grams, g)} g';
-  // `1 ml weighs 1.08 g` IS `1.08 g/ml`, so a row read in millilitres has no
-  // aside to carry — it would print the same number twice in one line.
-  if (read.unit == ml && read.amount == 1) return sentence;
-  return read.fromServing ? sentence : '$sentence · $stated';
-}
-
-/// `1.08 g/ml` — the aside under a serving-shaped density sentence, or null
-/// where [densityFact] already carries the number.
-String? densityAsideFact(Ingredient ingredient, {Measure? serving}) {
-  final density = ingredient.densityGPerMl;
-  if (density == null ||
-      !densityReading(ingredient, serving: serving).fromServing) {
-    return null;
-  }
-  return '${formatDensity(density)} g/ml';
+  final said = densitySaidOf(ingredient);
+  if (said == null) return stated;
+  // `1 ml weighs 1.08 g` IS `1.08 g/ml`: the number would be printed twice.
+  final perMl = said.amount == 1 && said.unit == ml && said.weighsUnit == g;
+  return perMl ? said.sentence : '${said.sentence} · $stated';
 }
 
 /// Which amount and unit this row's density is said in, read by both the fact
 /// sheet and the density entry: the row's serving when it is a volume, else its
 /// default unit when that is a volume, else [kDensityReadingUnit].
-/// `fromServing` says whether the first leg won; the fact sheet then moves the
-/// `g/ml` into an aside.
+/// `fromServing` says whether the first leg won. Only the density entry reads
+/// this, to open its sentence on a density stored with none of its own.
 ({double amount, Unit unit, bool fromServing}) densityReading(
   Ingredient ingredient, {
   Measure? serving,

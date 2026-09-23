@@ -162,9 +162,9 @@ A serving line that states a volume and its weight — `1/3 cup (40g)` — is ke
 in whichever of its two readings the macros' basis is in (the grams on a
 per-100 g row, the cup on a per-100 ml row), so the per-100 the row stores is
 per that serving in the row's own basis. The same line **is** a density, and it
-lands in the draft beside the macros with no Add to tap — but only onto a form
-holding no density, because one somebody already has is not the label's to
-replace. The line's heading (`Serving size`) is read past
+lands in the draft beside the macros with no Add to tap, as said, replacing a
+density the form held — the label is the newer reading, and `Undo the fill`
+puts the old one back. The line's heading (`Serving size`) is read past
 (`readPrintedServing`).
 
 The fill is a draft like every other: the card says `From a label · not
@@ -201,6 +201,19 @@ feedback message. Server side:
   then the beverages category. A basis never implies a density.
 
 ### Units
+
+- **A density is kept as it was said** (migration 0053): `⅓ cup weighs 40 g`,
+  in four columns (`density_amount`, `density_unit`, `density_weighs_amount`,
+  `density_weighs_unit`, `DensitySaid`) beside `density_g_per_ml`, which is
+  derived from them at write time and is still the only number a conversion
+  reads. Every write of the number writes the sentence too, so they cannot
+  part: the density entry and a label read say one; a USDA pick, the seed and
+  a bare `setDensity` say none and clear any held. The fact sheet and the
+  entry's headline read `⅓ cup weighs 40 g · 0.507 g/ml`, and the entry
+  reopens in those words. A density with no sentence reads as the g/ml alone —
+  no surface words a sentence nobody said. An older build writes the number
+  alone; `densitySaidOf` then finds a sentence that no longer states the stored
+  number and shows the number instead.
 
 - **Admission is explicit and per-ingredient**
   ([ADR-0008](../../../../docs/decisions/0008-unit-admission-model.md)).

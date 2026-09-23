@@ -10,6 +10,7 @@ library;
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/ingredients/domain/density_said.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/presentation/density_entry.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart';
@@ -26,7 +27,9 @@ import '_form_harness.dart';
 /// sentences produce, spelled out so a change to any of them is a change a
 /// reader has to agree to.
 const mangoMacroLine = '60 kcal · 1P 15C 0F /100 g';
-const mangoDensity = '1 cup weighs 156.15 g · 0.66 g/ml';
+// Mango's density was stored as a number, with no sentence: it reads back as
+// the number, never as a sentence the app worded itself.
+const mangoDensity = '0.66 g/ml';
 const mangoPieceWeight = '1 piece weighs 200 g';
 
 void main() {
@@ -275,7 +278,15 @@ void main() {
       defaultUnit: ml,
       status: IngredientStatus.complete,
       category: 'pantry',
-      densityGPerMl: 1.0820182,
+      // 2 tbsp weighs 32 g, as the jar prints it — and the g/ml derived from
+      // that sentence.
+      densityGPerMl: 1.082048726458976,
+      densitySaid: DensitySaid(
+        amount: 2,
+        unit: tbsp,
+        weighs: 32,
+        weighsUnit: g,
+      ),
       macros: Macros(kcal: 642.464, protein: 23.669, carb: 23.669, fat: 54.101),
       macrosBasis: MacrosBasis.perMl,
       measureCount: 1,
@@ -310,10 +321,9 @@ void main() {
       // The derivation is under it, for the reader who wants what the totals
       // actually use.
       expect(find.text('per 100 ml · 642 kcal · 24P 24C 54F'), findsOneWidget);
-      // The density reads back as the sentence it was entered as, with the
-      // ratio as the aside rather than as the sentence.
-      expect(find.text('2 tbsp weighs 32 g'), findsOneWidget);
-      expect(find.text('1.08 g/ml'), findsOneWidget);
+      // The density reads back as the sentence it was said as, with the
+      // number derived from it beside.
+      expect(find.text('2 tbsp weighs 32 g · 1.08 g/ml'), findsOneWidget);
       // And the serving is NOT one of this row's measures: it is stated
       // above, in Nutrition, and listing it here said the same thing a third
       // time on one screen.
@@ -322,7 +332,7 @@ void main() {
     });
 
     testWidgets('with no serving on the row, the macros read per 100 and the '
-        'density in the row’s own default unit', (tester) async {
+        'density as it was said', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
@@ -335,11 +345,9 @@ void main() {
 
       expect(macroText('642 kcal · 24P 24C 54F /100 ml'), findsOneWidget);
       expect(find.textContaining('per 100 ml · 642 kcal'), findsNothing);
-      // This jar is counted in millilitres, so that is the word its density
-      // is said in — and `1 ml weighs 1.08 g` IS `1.08 g/ml`, so there is no
-      // aside repeating it. A row with nothing friendlier than the cup still
-      // reads `1 cup weighs 156.15 g · 0.66 g/ml`.
-      expect(find.text('1 ml weighs 1.08 g'), findsOneWidget);
+      // The density is the sentence it was said as whatever the serving is —
+      // the serving no longer rewords it.
+      expect(find.text('2 tbsp weighs 32 g · 1.08 g/ml'), findsOneWidget);
     });
   });
 

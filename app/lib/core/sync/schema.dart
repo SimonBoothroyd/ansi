@@ -228,6 +228,13 @@ const schema = Schema([
     Column.text('category'),
     Column.text('default_unit'),
     Column.real('density_g_per_ml'),
+    // The sentence the density was said as (0053): "[amount] [unit] weighs
+    // [weighs_amount] [weighs_unit]", unit ids as `recipe_line.unit` holds.
+    // All four or none; the g/ml above is derived from them at write time.
+    Column.real('density_amount'),
+    Column.text('density_unit'),
+    Column.real('density_weighs_amount'),
+    Column.text('density_weighs_unit'),
     Column.text('macros'), // JSON {kcal, protein, carb, fat}; null when stub
     Column.text('macros_basis'), // 'g' | 'ml' — the per-100 basis (step 7.7)
     // JSON array of unit ids (ADR-0008); null → the client derives defaults.

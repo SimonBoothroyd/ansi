@@ -19,6 +19,7 @@ import '../../../core/search/search_rank.dart';
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
 import '../domain/allowed_units.dart';
+import '../domain/density_said.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
 import '../domain/name_namespace.dart';
@@ -244,7 +245,11 @@ class SqliteIngredientRepository implements IngredientRepository {
   }
 
   @override
-  Future<Ingredient?> setDensity(String ingredientId, double gPerMl) async {
+  Future<Ingredient?> setDensity(
+    String ingredientId,
+    double gPerMl, {
+    DensitySaid? said,
+  }) async {
     // `!(x > 0)` (rather than `x <= 0`) also catches NaN.
     if (!(gPerMl > 0)) {
       throw ArgumentError.value(gPerMl, 'gPerMl', 'must be a positive number');
@@ -271,13 +276,15 @@ class SqliteIngredientRepository implements IngredientRepository {
           ? 1
           : null;
       await tx.execute(
-        'UPDATE ingredient SET density_g_per_ml = ?, allowed_units = ?, '
+        'UPDATE ingredient SET density_g_per_ml = ?, $_densitySaidColumns, '
+        'allowed_units = ?, '
         // A human density write flags a lookup-filled row as edited, as the
         // form's Save does.
         'source_edited = COALESCE(?, source_edited), updated_at = ? '
         'WHERE id = ?',
         [
           gPerMl,
+          ..._densitySaidParameters(said),
           jsonEncode([for (final u in unlocked) u.id]),
           edited,
           now,
@@ -305,7 +312,8 @@ class SqliteIngredientRepository implements IngredientRepository {
       if (current.densityGPerMl == null) return true; // nothing to delete
       final edited = isLookupFilled(current.source) ? 1 : null;
       await tx.execute(
-        'UPDATE ingredient SET density_g_per_ml = NULL, allowed_units = ?, '
+        'UPDATE ingredient SET density_g_per_ml = NULL, $_noDensitySaid, '
+        'allowed_units = ?, '
         // Deleting a lookup's density overrides its numbers, so it flags the
         // row. [declineUsdaPrefill] differs: it rejects the match outright.
         'source_edited = COALESCE(?, source_edited), updated_at = ? '
@@ -322,6 +330,24 @@ class SqliteIngredientRepository implements IngredientRepository {
     if (!updated) return null;
     return byId(ingredientId);
   }
+
+  /// The four columns a density's sentence is kept in (0053), as SET
+  /// assignments. Every write of `density_g_per_ml` writes them too, so a
+  /// sentence never outlives the number it said.
+  static const _densitySaidColumns =
+      'density_amount = ?, density_unit = ?, density_weighs_amount = ?, '
+      'density_weighs_unit = ?';
+
+  static const _noDensitySaid =
+      'density_amount = NULL, density_unit = NULL, '
+      'density_weighs_amount = NULL, density_weighs_unit = NULL';
+
+  static List<Object?> _densitySaidParameters(DensitySaid? said) => [
+    said?.amount,
+    said?.unit.id,
+    said?.weighs,
+    said?.weighsUnit.id,
+  ];
 
   /// The admission list once [current]'s density is gone: the cross-family
   /// units go with it, the basis and default-unit families stay (see
@@ -348,7 +374,8 @@ class SqliteIngredientRepository implements IngredientRepository {
       // what was refused. `source_edited` returns to 0: with no fill left there
       // is nothing to override.
       await tx.execute(
-        'UPDATE ingredient SET density_g_per_ml = NULL, macros = NULL, '
+        'UPDATE ingredient SET density_g_per_ml = NULL, $_noDensitySaid, '
+        'macros = NULL, '
         "allowed_units = ?, source = ?, source_score = NULL, status = 'stub', "
         'source_edited = 0, updated_at = ? WHERE id = ?',
         [
@@ -663,16 +690,16 @@ class SqliteIngredientRepository implements IngredientRepository {
       );
 
       switch (density) {
-        case DensitySet(:final gPerMl):
+        case DensitySet(:final gPerMl, :final said):
           await tx.execute(
-            'UPDATE ingredient SET density_g_per_ml = ?, updated_at = ? '
-            'WHERE id = ?',
-            [gPerMl, now, id],
+            'UPDATE ingredient SET density_g_per_ml = ?, '
+            '$_densitySaidColumns, updated_at = ? WHERE id = ?',
+            [gPerMl, ..._densitySaidParameters(said), now, id],
           );
         case DensityCleared():
           await tx.execute(
-            'UPDATE ingredient SET density_g_per_ml = NULL, updated_at = ? '
-            'WHERE id = ?',
+            'UPDATE ingredient SET density_g_per_ml = NULL, $_noDensitySaid, '
+            'updated_at = ? WHERE id = ?',
             [now, id],
           );
         case DensityUnchanged():
@@ -922,6 +949,12 @@ class SqliteIngredientRepository implements IngredientRepository {
         : IngredientStatus.stub,
     category: r['category'] as String?,
     densityGPerMl: (r['density_g_per_ml'] as num?)?.toDouble(),
+    densitySaid: DensitySaid.fromColumns(
+      amount: r['density_amount'] as num?,
+      unit: r['density_unit'] as String?,
+      weighs: r['density_weighs_amount'] as num?,
+      weighsUnit: r['density_weighs_unit'] as String?,
+    ),
     macros: Macros.tryParse(r['macros'] as String?),
     macrosBasis: MacrosBasis.fromDb(r['macros_basis'] as String?),
     allowedUnits: _parseAllowedUnits(r['allowed_units'] as String?),

@@ -9,6 +9,9 @@ assertions in `begin … rollback` so runs leave no residue.
   cross-household insert rejection per table); `usda_food` is denied to client
   roles but readable by `service_role`. New table? Add one setup row + one
   `iso_case` row.
+- `density_as_said.sql` — a density's sentence (0053): the four columns are
+  nullable, whole or absent and never zero, and a bare `density_g_per_ml`
+  write (what an older build sends) still lands over a row that holds one.
 - `onboarding.sql` — `ensure_onboarded()` (0007, hardened in 0008): advisory
   lock taken; the template household is never joinable and stays member-less;
   join fills the open seat; a third user gets a fresh household; the template

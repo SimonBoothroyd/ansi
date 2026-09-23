@@ -350,7 +350,11 @@ The column list is generated from the migrations —
     re-selectable and is never rewritten.
 - **A density is stated in the density sentence and nowhere else.** That
   sentence takes an amount now — "2 tbsp weighs 32 g", as a pack prints it —
-  and reads back the same way, with the stored `g/ml` as the aside. When the
+  and the row **keeps the sentence as said** beside the `g/ml` derived from it
+  (migration 0053), so it reads back the same way, `2 tbsp weighs 32 g ·
+  1.08 g/ml`, on the fact sheet, the entry's headline and the reopened
+  sentence. A density that arrived with no sentence (a USDA pick, the seed)
+  reads as the `g/ml` alone; nothing words a sentence nobody said. When the
   row's serving is a volume, the sentence is offered that amount and unit as
   its left-hand side.
   - **A US serving line is a density statement, and both halves are kept.**
@@ -401,7 +405,7 @@ An `ingredient_measure` row names one countable thing and says what it weighs:
   drag** — the first row is the ingredient's *typical* measure, which is what
   fronts the chip row — soft-deletes unwanted ones,
   and sits beside the DENSITY entry ("1 tbsp weighs N g", which folds to
-  `0.13 g/ml · change` once the row states a number).
+  `1 tbsp weighs 2 g · 0.13 g/ml · change` once the row states one).
   - **A measure a recipe still uses cannot be deleted.** The FKs carry no
     `on delete` and a delete is a tombstone, so the lines naming it would
     simply stop counting — dropped from the macro totals, degraded to a bare
