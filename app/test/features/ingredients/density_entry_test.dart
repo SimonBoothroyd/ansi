@@ -286,9 +286,12 @@ void main() {
       // 0.66 g/ml × 4.93 ml × 2, printed as a scale reading rather than as
       // `6 1/2` — the metric split, in the slot its own picker says `g`.
       expect(fieldText(tester, densityField), '6.51');
-      // The fact sheet words no sentence nobody said: this density was stored
-      // as a number alone, so it is read back as one.
-      expect(densityFact(flakes), '0.66 g/ml');
+      // Stored as a number alone, so the fact sheet works the sentence out in
+      // the same words the entry opens on.
+      expect(
+        densityFact(flakes, serving: flakesServing),
+        '2 tsp weighs 6.51 g · 0.66 g/ml',
+      );
     });
 
     testWidgets('a row with no serving reopens in its own default unit where '
@@ -306,9 +309,8 @@ void main() {
         findsOneWidget,
       );
       expect(fieldText(tester, densityField), '0.92');
-      // The editor needs a sentence to open on; the fact sheet does not word
-      // one nobody said.
-      expect(densityFact(oil), '0.92 g/ml');
+      // `1 ml weighs 0.92 g` IS `0.92 g/ml`, so the number is not repeated.
+      expect(densityFact(oil), '1 ml weighs 0.92 g');
     });
 
     testWidgets('a row that names neither reopens on the cup a person can '
@@ -328,7 +330,8 @@ void main() {
         findsOneWidget,
       );
       expect(fieldText(tester, densityField), '156.15');
-      expect(densityFact(mango), '0.66 g/ml');
+      // Worked out, and rounded as a scale reads: 156.15 g is 156 g.
+      expect(densityFact(mango), '1 cup weighs 156 g · 0.66 g/ml');
     });
 
     testWidgets('a density said as a sentence reopens in exactly those words, '
@@ -417,7 +420,7 @@ void main() {
       await tester.pumpWidget(densityHost(mango));
       await tester.pumpAndSettle();
 
-      expect(find.text('0.66 g/ml'), findsOneWidget);
+      expect(find.text('1 cup weighs 156 g · 0.66 g/ml'), findsOneWidget);
       expect(find.text('· change'), findsOneWidget);
       // The sentence is not the everyday height of this section.
       expect(find.text('weighs'), findsNothing);
@@ -462,7 +465,7 @@ void main() {
 
       // The headline follows the row, the sentence stays where the typing
       // was, and the affordance the number unlocks joins it.
-      expect(find.text('0.66 g/ml'), findsOneWidget);
+      expect(find.text('1 cup weighs 156 g · 0.66 g/ml'), findsOneWidget);
       expect(find.text('weighs'), findsOneWidget);
       expect(find.text('remove the density'), findsOneWidget);
       expect(find.text('· change'), findsNothing);

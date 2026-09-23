@@ -23,10 +23,6 @@ import '../domain/price_repository.dart';
 import '../domain/serving_measure.dart';
 import 'macros_format.dart';
 
-/// The volume unit a stored density is read back in when the row names no
-/// friendlier one.
-const kDensityReadingUnit = cup;
-
 /// `60 kcal · 1P 0F 15C /100 g`, or `needs macros` on a row with none. A row
 /// that states a serving leads with the label's line (`190 kcal · 7P 16F 7C per
 /// 2 tbsp`); the per-100 figures follow as [per100Fact].
@@ -86,42 +82,20 @@ String categoryFact(Ingredient ingredient) {
 String allowedUnitsFact(Ingredient ingredient) =>
     allowedUnitsFor(ingredient).map((u) => u.label).join(' · ');
 
-/// The stated density as the sentence it was said as and the number derived
-/// from it: `⅓ cup weighs 40 g · 0.507 g/ml`. A density stored with no
-/// sentence (a USDA pick, the seed) is the number alone, `0.66 g/ml` — the app
-/// does not word a sentence nobody said. A row with none says what the density
-/// entry's headline says.
-String densityFact(Ingredient ingredient) {
+/// The density as the fact sheet and the density entry's headline state it:
+/// the sentence and the g/ml after it, `⅓ cup weighs 40 g · 0.507 g/ml` — as
+/// said when the row keeps the sentence, worked out when it does not
+/// ([densitySentenceOf]). A row with none says what the entry's headline says.
+String densityFact(Ingredient ingredient, {Measure? serving}) {
   final density = ingredient.densityGPerMl;
   if (density == null) return 'none yet — unlocks volume⇄weight';
   final stated = '${formatDensity(density)} g/ml';
-  final said = densitySaidOf(ingredient);
-  if (said == null) return stated;
+  final shown = densitySentenceOf(ingredient, serving: serving);
+  if (shown == null) return stated;
+  final said = shown.sentence;
   // `1 ml weighs 1.08 g` IS `1.08 g/ml`: the number would be printed twice.
   final perMl = said.amount == 1 && said.unit == ml && said.weighsUnit == g;
   return perMl ? said.sentence : '${said.sentence} · $stated';
-}
-
-/// Which amount and unit this row's density is said in, read by both the fact
-/// sheet and the density entry: the row's serving when it is a volume, else its
-/// default unit when that is a volume, else [kDensityReadingUnit].
-/// `fromServing` says whether the first leg won. Only the density entry reads
-/// this, to open its sentence on a density stored with none of its own.
-({double amount, Unit unit, bool fromServing}) densityReading(
-  Ingredient ingredient, {
-  Measure? serving,
-}) {
-  final stated = serving == null
-      ? null
-      : servingFromMeasureLabel(serving.label);
-  if (stated != null && stated.unit.family == UnitFamily.volume) {
-    return (amount: stated.amount, unit: stated.unit, fromServing: true);
-  }
-  final byDefault = ingredient.defaultUnit;
-  if (byDefault.family == UnitFamily.volume) {
-    return (amount: 1, unit: byDefault, fromServing: false);
-  }
-  return (amount: 1, unit: kDensityReadingUnit, fromServing: false);
 }
 
 /// What a stored density weighs in the unit this row says it in. Null on a row

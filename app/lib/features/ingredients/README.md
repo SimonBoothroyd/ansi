@@ -210,10 +210,13 @@ feedback message. Server side:
   part: the density entry and a label read say one; a USDA pick, the seed and
   a bare `setDensity` say none and clear any held. The fact sheet and the
   entry's headline read `⅓ cup weighs 40 g · 0.507 g/ml`, and the entry
-  reopens in those words. A density with no sentence reads as the g/ml alone —
-  no surface words a sentence nobody said. An older build writes the number
-  alone; `densitySaidOf` then finds a sentence that no longer states the stored
-  number and shows the number instead.
+  reopens in those words. A density with no sentence (the seed, a USDA pick, a
+  bare number) is worked out instead — `1 cup weighs 156 g · 0.66 g/ml`, in
+  the row's volume serving, else its volume default unit, else the cup, the
+  weight rounded as a scale reads (`kitchenGrams`). `densitySentenceOf` is the
+  one function that decides, and it keeps the said sentence whenever it still
+  states the stored number; an older build that wrote the number alone gets
+  the worked-out one.
 
 - **Admission is explicit and per-ingredient**
   ([ADR-0008](../../../../docs/decisions/0008-unit-admission-model.md)).

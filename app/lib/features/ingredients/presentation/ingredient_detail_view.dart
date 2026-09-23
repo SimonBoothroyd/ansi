@@ -406,7 +406,10 @@ class _ReadPosture extends ConsumerWidget {
                 _Fact(pieceWeight),
               ],
               const _Label('DENSITY'),
-              _Fact(densityFact(ing), muted: ing.densityGPerMl == null),
+              _Fact(
+                densityFact(ing, serving: serving),
+                muted: ing.densityGPerMl == null,
+              ),
               const _Label('MEASURES', hint: 'count-like, in the basis'),
               // Load-bearing emptiness: an errored stream is not "no measures".
               if (measuresAsync case AsyncError(

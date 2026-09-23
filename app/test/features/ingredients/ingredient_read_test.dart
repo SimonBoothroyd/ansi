@@ -27,9 +27,9 @@ import '_form_harness.dart';
 /// sentences produce, spelled out so a change to any of them is a change a
 /// reader has to agree to.
 const mangoMacroLine = '60 kcal · 1P 15C 0F /100 g';
-// Mango's density was stored as a number, with no sentence: it reads back as
-// the number, never as a sentence the app worded itself.
-const mangoDensity = '0.66 g/ml';
+// Mango's density was stored as a number, with no sentence: the sentence is
+// worked out in the cup, the weight rounded as a scale reads.
+const mangoDensity = '1 cup weighs 156 g · 0.66 g/ml';
 const mangoPieceWeight = '1 piece weighs 200 g';
 
 void main() {
@@ -384,7 +384,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(DensityEntry),
-          matching: find.text('0.66 g/ml'),
+          matching: find.text(mangoDensity),
         ),
         findsOneWidget,
       );

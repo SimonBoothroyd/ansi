@@ -9,9 +9,12 @@
 /// seed, an older build) carries none, and every surface then shows the g/ml.
 library;
 
+import 'dart:math' as math;
+
 import 'package:meta/meta.dart';
 
 import '../../../core/result/result.dart';
+import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import 'ingredient.dart';
 import 'serving_measure.dart';
@@ -95,6 +98,72 @@ DensitySaid? densitySaidOf(Ingredient ingredient) {
   final said = ingredient.densitySaid;
   if (said == null || !said.agreesWith(ingredient.densityGPerMl)) return null;
   return said;
+}
+
+/// The volume unit a density with no sentence of its own is worded in when the
+/// row names no volume of its own.
+const kDensityReadingUnit = cup;
+
+/// Which amount and unit a density with no sentence of its own is worded in:
+/// the row's serving when it is a volume, else its default unit when that is a
+/// volume, else [kDensityReadingUnit]. `fromServing` says whether the first leg
+/// won.
+({double amount, Unit unit, bool fromServing}) densityReading(
+  Ingredient ingredient, {
+  Measure? serving,
+}) {
+  final stated = serving == null
+      ? null
+      : servingFromMeasureLabel(serving.label);
+  if (stated != null && stated.unit.family == UnitFamily.volume) {
+    return (amount: stated.amount, unit: stated.unit, fromServing: true);
+  }
+  final byDefault = ingredient.defaultUnit;
+  if (byDefault.family == UnitFamily.volume) {
+    return (amount: 1, unit: byDefault, fromServing: false);
+  }
+  return (amount: 1, unit: kDensityReadingUnit, fromServing: false);
+}
+
+/// The sentence a row's density is shown as, and whether it was worked out.
+///
+/// As said whenever the stored sentence still states the stored number
+/// ([densitySaidOf]). Otherwise — a seeded row, a USDA pick, a bare number, an
+/// older build's write — it is worked out from the g/ml in the unit
+/// [densityReading] picks, with the weight rounded to what a kitchen scale
+/// reads ([kitchenGrams]): `1 cup weighs 156 g`. Null on a row with no
+/// density, or one no volume can be worded for.
+({DensitySaid sentence, bool derived})? densitySentenceOf(
+  Ingredient ingredient, {
+  Measure? serving,
+}) {
+  final density = ingredient.densityGPerMl;
+  if (density == null || !(density > 0)) return null;
+  final said = densitySaidOf(ingredient);
+  if (said != null) return (sentence: said, derived: false);
+  final read = densityReading(ingredient, serving: serving);
+  final perUnit = volumeWeightFromDensity(read.unit, density);
+  if (perUnit == null) return null;
+  return (
+    sentence: DensitySaid(
+      amount: read.amount,
+      unit: read.unit,
+      weighs: kitchenGrams(perUnit * read.amount),
+      weighsUnit: g,
+    ),
+    derived: true,
+  );
+}
+
+/// [grams] rounded to three significant figures and at most two decimals, so
+/// a worked-out weight reads as a scale would show it: 156.15 → 156, 13.62 →
+/// 13.6, 6.508 → 6.51, 0.924 → 0.92.
+double kitchenGrams(double grams) {
+  if (!(grams > 0)) return grams;
+  final magnitude = (math.log(grams) / math.ln10).floor();
+  final decimals = (2 - magnitude).clamp(0, 2);
+  final scale = math.pow(10, decimals);
+  return (grams * scale).round() / scale;
 }
 
 /// The density the sentence "[a] [ua] weighs [b] [ub]" states, in g/ml, with

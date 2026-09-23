@@ -354,7 +354,8 @@ The column list is generated from the migrations —
   (migration 0053), so it reads back the same way, `2 tbsp weighs 32 g ·
   1.08 g/ml`, on the fact sheet, the entry's headline and the reopened
   sentence. A density that arrived with no sentence (a USDA pick, the seed)
-  reads as the `g/ml` alone; nothing words a sentence nobody said. When the
+  is worked out in the row's own volume, else the cup, and rounded as a scale
+  reads: `1 cup weighs 156 g · 0.66 g/ml`. When the
   row's serving is a volume, the sentence is offered that amount and unit as
   its left-hand side.
   - **A US serving line is a density statement, and both halves are kept.**

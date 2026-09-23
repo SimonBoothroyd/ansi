@@ -88,4 +88,44 @@ void main() {
     expect(densitySaidOf(_row(said: _thirdCup)), isNull);
     expect(densitySaidOf(_row(density: 0.66)), isNull);
   });
+
+  group('densitySentenceOf — as said, else worked out', () {
+    test('a stored sentence that still states the number is shown as said', () {
+      final shown = densitySentenceOf(
+        _row(density: _thirdCup.gPerMl, said: _thirdCup),
+      );
+      expect(shown?.sentence, _thirdCup);
+      expect(shown?.derived, isFalse);
+    });
+
+    test('a number with no sentence is worded in the cup, weight rounded', () {
+      final shown = densitySentenceOf(_row(density: 0.66))!;
+      expect(shown.derived, isTrue);
+      expect(shown.sentence.sentence, '1 cup weighs 156 g');
+    });
+
+    test('a stale sentence (an older build moved the number) is replaced by '
+        'the worked-out one', () {
+      final shown = densitySentenceOf(_row(density: 0.9, said: _thirdCup))!;
+      expect(shown.derived, isTrue);
+      expect(shown.sentence.sentence, '1 cup weighs 213 g');
+    });
+
+    test('a volume default unit is the word it is worked out in', () {
+      final oil = _row(density: 0.92).copyWith(defaultUnit: tbsp);
+      expect(densitySentenceOf(oil)!.sentence.sentence, '1 tbsp weighs 13.6 g');
+    });
+
+    test('no density, no sentence', () {
+      expect(densitySentenceOf(_row()), isNull);
+    });
+  });
+
+  test('kitchenGrams reads as a scale does', () {
+    expect(kitchenGrams(156.1482), 156);
+    expect(kitchenGrams(13.617), 13.6);
+    expect(kitchenGrams(6.5078), 6.51);
+    expect(kitchenGrams(0.9243), 0.92);
+    expect(kitchenGrams(1234.56), 1235);
+  });
 }
