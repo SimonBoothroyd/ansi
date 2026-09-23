@@ -22,6 +22,7 @@ import 'package:ansi/features/ingredients/barcode/barcode_add.dart';
 import 'package:ansi/features/ingredients/barcode/barcode_scan_sheet.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/data/label_read_provider.dart';
+import 'package:ansi/features/ingredients/domain/density_said.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/label_read_repository.dart';
 import 'package:ansi/features/ingredients/domain/label_reading.dart';
@@ -633,7 +634,7 @@ Widget densityHost(
   String saveLabel = 'Add',
   Ingredient? landsAs,
   Measure? serving,
-  ({double amount, Unit unit, double? grams})? servingPrefill,
+  DensityOffer? servingPrefill,
   VoidCallback? onSaved,
 }) {
   var shown = ingredient;

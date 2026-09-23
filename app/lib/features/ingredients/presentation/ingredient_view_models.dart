@@ -296,9 +296,11 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
   }
 
   /// What the density sentence is offered: a volume left-hand side, and the
-  /// grams when the pack printed a weight beside it ("2 tbsp (7 g)"). Null when
-  /// the serving has no volume reading. An offer only (ADR-0008 §2).
-  ({double amount, Unit unit, double? grams})? get densityPrefill {
+  /// weight the pack printed beside it, in the unit it printed it in ("2 tbsp
+  /// (7 g)", "1/4 cup (1 oz)"). Where the serving is in grams — the reader's
+  /// choice when a pack prints both — the grams win. Null when the serving has
+  /// no volume reading. An offer only (ADR-0008 §2).
+  DensityOffer? get densityPrefill {
     final printed = readPrintedServing(serving.packPrintedText);
     final said = serving.amount;
     final typed = said == null ? null : (amount: said, unit: serving.unit);
@@ -315,12 +317,7 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     return (
       amount: volume.amount,
       unit: volume.unit,
-      grams: mass == null
-          ? null
-          : switch (convert(Quantity(mass.amount, mass.unit), to: g)) {
-              Ok(:final value) when value.amount > 0 => value.amount,
-              Ok() || Err() => null,
-            },
+      weighs: mass == null || !(mass.amount > 0) ? null : mass,
     );
   }
 
@@ -990,14 +987,14 @@ class IngredientForm extends _$IngredientForm {
     // replaces a density the form held — the label is the newer reading — and
     // Undo the fill puts that one back.
     final offer = next.densityPrefill;
-    final grams = offer?.grams;
-    if (offer != null && grams != null) {
+    final weighs = offer?.weighs;
+    if (offer != null && weighs != null) {
       final set = DensitySet.fromSaid(
         DensitySaid(
           amount: offer.amount,
           unit: offer.unit,
-          weighs: grams,
-          weighsUnit: g,
+          weighs: weighs.amount,
+          weighsUnit: weighs.unit,
         ),
       );
       if (set != null) next = next.copyWith(density: set);

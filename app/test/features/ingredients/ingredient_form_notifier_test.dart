@@ -263,7 +263,7 @@ void main() {
       // The density section is offered the serving as its left-hand side. A
       // serving nobody read off a pack states no weight, so the sentence's
       // other half is still the person's to type.
-      expect(at().densityPrefill, (amount: 1.0, unit: cup, grams: null));
+      expect(at().densityPrefill, (amount: 1.0, unit: cup, weighs: null));
     });
 
     test(
@@ -1017,11 +1017,11 @@ void main() {
       expect(at().serving.amountText, '7');
       expect(at().serving.unit, g);
       final offer = at().densityPrefill!;
-      expect(offer, (amount: 2.0, unit: tbsp, grams: 7.0));
+      expect(offer, (amount: 2.0, unit: tbsp, weighs: (amount: 7.0, unit: g)));
       // 7 g per 2 tbsp is 0.237 g/ml — what the sentence will read once it is
       // tapped. NOTHING has written it: the offer is an offer (ADR-0008 §2,
       // ADR-0011), and the draft still says the row has no density.
-      expect(offer.grams! / (2 * 14.78676478125), closeTo(0.237, 5e-4));
+      expect(offer.weighs!.amount / (2 * 14.78676478125), closeTo(0.237, 5e-4));
       expect(at().densityValue, isNull);
       expect(at().density, isA<DensityUnchanged>());
     });
@@ -1047,7 +1047,11 @@ void main() {
       );
 
       expect(at().serving.packPrintedText, '2 Tbsp (32 g)');
-      expect(at().densityPrefill, (amount: 2.0, unit: tbsp, grams: 32.0));
+      expect(at().densityPrefill, (
+        amount: 2.0,
+        unit: tbsp,
+        weighs: (amount: 32.0, unit: g),
+      ));
     });
 
     test('a mass serving with no spoon anywhere offers nothing — what a gram '
@@ -1282,6 +1286,57 @@ void main() {
       open.form.undoLabelFill();
       expect(open.at().densityValue, 0.6);
       expect(open.at().density, isA<DensityUnchanged>());
+    });
+
+    test('a serving weighed ONLY in ounces keeps the ounce: "¼ cup weighs '
+        '1 oz"', () async {
+      // Whichever reading the reader keeps — the cup or the ounce — the line
+      // weighs the cup in ounces, and that is the sentence stored.
+      for (final reading in const [
+        LabelReading(
+          serving: LabelServing(
+            amount: 1,
+            unitPrinted: 'oz',
+            textPrinted: 'Serving size 1/4 cup (1 oz)',
+          ),
+          perServing: LabelMacros(kcal: 160, protein: 6, carb: 5, fat: 14),
+        ),
+        LabelReading(
+          serving: LabelServing(
+            amount: 0.25,
+            unitPrinted: 'cup',
+            textPrinted: 'Serving size 1/4 cup (1 oz)',
+          ),
+          perServing: LabelMacros(kcal: 160, protein: 6, carb: 5, fat: 14),
+        ),
+      ]) {
+        final repo = FakeIngredientRepo([_bareStub]);
+        final open = await _open(repo, id: 'bare');
+        open.form.applyLabel(reading);
+        final said = open.at().densitySaidValue!;
+        expect(said.sentence, '¼ cup weighs 1 oz');
+        expect(
+          open.at().densityValue,
+          closeTo(28.349523125 / (236.5882365 / 4), 1e-9),
+        );
+      }
+    });
+
+    test('a serving printed in both ounces and grams keeps the grams the '
+        'reader chose', () async {
+      final repo = FakeIngredientRepo([_bareStub]);
+      final open = await _open(repo, id: 'bare');
+      open.form.applyLabel(
+        const LabelReading(
+          serving: LabelServing(
+            amount: 28,
+            unitPrinted: 'g',
+            textPrinted: 'Serving size 1/4 cup (1 oz/28g)',
+          ),
+          perServing: LabelMacros(kcal: 160, protein: 6, carb: 5, fat: 14),
+        ),
+      );
+      expect(open.at().densitySaidValue!.sentence, '¼ cup weighs 28 g');
     });
 
     test('Undo the fill takes the density back out with the figures', () async {

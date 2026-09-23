@@ -169,7 +169,7 @@ void main() {
       await tester.pumpWidget(
         densityHost(
           curryLeaves,
-          servingPrefill: (amount: 2.0, unit: tbsp, grams: null),
+          servingPrefill: (amount: 2.0, unit: tbsp, weighs: null),
         ),
       );
       await tester.pumpAndSettle();
@@ -192,6 +192,33 @@ void main() {
       expect(find.text('= 1.08 g/ml'), findsOneWidget);
     });
 
+    testWidgets(
+      'a pack that printed the weight in ounces offers it in ounces',
+      (tester) async {
+        filterForuiSemanticsAssertions();
+        phoneWidth(tester);
+        await tester.pumpWidget(
+          densityHost(
+            curryLeaves,
+            servingPrefill: (
+              amount: 0.25,
+              unit: cup,
+              weighs: (amount: 1.0, unit: oz),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(fieldText(tester, densityField), '1');
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('density-grams-unit')),
+            matching: find.text('oz'),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
     testWidgets('a pack that printed the weight beside the spoon fills the '
         'whole sentence — and still writes nothing', (tester) async {
       filterForuiSemanticsAssertions();
@@ -200,7 +227,11 @@ void main() {
       await tester.pumpWidget(
         densityHost(
           curryLeaves,
-          servingPrefill: (amount: 2.0, unit: tbsp, grams: 7.0),
+          servingPrefill: (
+            amount: 2.0,
+            unit: tbsp,
+            weighs: (amount: 7.0, unit: g),
+          ),
           onSaved: () => landed++,
         ),
       );

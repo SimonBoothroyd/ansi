@@ -164,7 +164,10 @@ per-100 g row, the cup on a per-100 ml row), so the per-100 the row stores is
 per that serving in the row's own basis. The same line **is** a density, and it
 lands in the draft beside the macros with no Add to tap, as said, replacing a
 density the form held — the label is the newer reading, and `Undo the fill`
-puts the old one back. The line's heading (`Serving size`) is read past
+puts the old one back. The weight is kept in the unit the pack printed it in:
+`1/4 cup (1 oz)` is `¼ cup weighs 1 oz`, while a line printing both
+(`1/4 cup (1 oz/28g)`) keeps the grams the reader chose. The line's heading
+(`Serving size`) is read past
 (`readPrintedServing`).
 
 The fill is a draft like every other: the card says `From a label · not

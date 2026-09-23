@@ -92,6 +92,16 @@ class DensitySaid {
   String toString() => 'DensitySaid($sentence)';
 }
 
+/// A density sentence offered from a pack's serving line, before anybody has
+/// confirmed it: the volume it is about and, when the pack printed one beside
+/// it, what that weighs in the unit the pack printed it in (`1 oz` stays an
+/// ounce).
+typedef DensityOffer = ({
+  double amount,
+  Unit unit,
+  ({double amount, Unit unit})? weighs,
+});
+
 /// The sentence [ingredient]'s density was said as, or null when it has none
 /// or the stored sentence no longer states the stored number.
 DensitySaid? densitySaidOf(Ingredient ingredient) {

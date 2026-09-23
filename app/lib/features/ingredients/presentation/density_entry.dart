@@ -50,7 +50,7 @@ class DensityEntry extends HookWidget {
   /// The form's own serving when it is a volume in this sentence's unit list,
   /// offered as the left-hand side, with the pack's printed weight beside it.
   /// An offer only: nothing is saved until the button is pressed.
-  final ({double amount, Unit unit, double? grams})? servingPrefill;
+  final DensityOffer? servingPrefill;
 
   /// The host decides when a density lands (ADR-0011). This widget validates
   /// the sentence and hands it over as said; the number is derived from it
@@ -149,7 +149,10 @@ class DensityEntry extends HookWidget {
       amount.value = offered.amount;
       // The pack printed the weight too, so the whole sentence is offered. The
       // button still lands it.
-      if (offered.grams case final grams?) input.value = grams;
+      if (offered.weighs case final weighs?) {
+        input.value = weighs.amount;
+        weightUnit.value = weighs.unit;
+      }
       amountSeed.value++;
       // An offer aims the sentence: the row's own reading stops landing in it.
       aimed.value = true;
@@ -316,7 +319,7 @@ class DensityEntry extends HookWidget {
               // Says what to do with what is in the slots, not where they came
               // from.
               child: Text(
-                servingPrefill!.grams == null
+                servingPrefill!.weighs == null
                     ? 'your serving, ready to use — type what that much '
                           'weighs (the pack’s “(32 g)”)'
                     : _prefillHeld(servingPrefill!, density)
@@ -366,13 +369,15 @@ class DensityEntry extends HookWidget {
 
 /// Whether [density] is already the one [offer] states — the host landed the
 /// pack's serving line itself, so there is nothing left to tap.
-bool _prefillHeld(
-  ({double amount, Unit unit, double? grams}) offer,
-  double? density,
-) {
-  final grams = offer.grams;
-  if (density == null || grams == null) return false;
-  final offered = densityForPair(offer.amount, offer.unit, grams, g);
+bool _prefillHeld(DensityOffer offer, double? density) {
+  final weighs = offer.weighs;
+  if (density == null || weighs == null) return false;
+  final offered = densityForPair(
+    offer.amount,
+    offer.unit,
+    weighs.amount,
+    weighs.unit,
+  );
   return offered != null && (offered - density).abs() < 1e-9;
 }
 
