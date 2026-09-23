@@ -334,6 +334,7 @@ final class BasePrice extends UnitPrice {
     required this.packBasisAmount,
     required this.basis,
     required this.setAt,
+    this.store,
     this.packAmount,
     this.packUnit,
     this.measureId,
@@ -341,6 +342,10 @@ final class BasePrice extends UnitPrice {
   });
 
   final String ingredientId;
+
+  /// Where it is paid, as the household's store word, or null when it names
+  /// no shop.
+  final String? store;
 
   /// What was paid for one pack.
   final int cents;
@@ -388,6 +393,7 @@ BasePrice? basePriceFrom({
   required double? packBasisAmount,
   required MacrosBasis basis,
   required DateTime? setAt,
+  String? store,
   double? packAmount,
   Unit? packUnit,
   String? measureId,
@@ -406,6 +412,8 @@ BasePrice? basePriceFrom({
     packBasisAmount: packBasisAmount,
     basis: basis,
     setAt: setAt,
+    // A blank word names no shop.
+    store: (store ?? '').trim().isEmpty ? null : store!.trim(),
     packAmount: packAmount,
     packUnit: packUnit,
     measureId: measureId,

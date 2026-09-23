@@ -557,6 +557,20 @@ void main() {
       );
     });
 
+    test('a blank store names no shop, and a word is kept trimmed', () {
+      BasePrice? at(String? store) => basePriceFrom(
+        ingredientId: 'i1',
+        cents: 349,
+        packBasisAmount: 454,
+        basis: MacrosBasis.perG,
+        setAt: DateTime.utc(2026, 9, 13),
+        store: store,
+      );
+      expect(at(null)!.store, isNull);
+      expect(at('  ')!.store, isNull);
+      expect(at(" TJ's ")!.store, "TJ's");
+    });
+
     test('its key is the row, and never a receipt line', () {
       expect(read()!.key, 'base:i1');
     });

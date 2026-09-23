@@ -257,6 +257,8 @@ const schema = Schema([
     Column.text('base_price_pack_unit'),
     Column.text('base_price_measure_id'),
     Column.text('base_price_set_at'),
+    // Where it is paid, as a store word (0052). Optional.
+    Column.text('base_price_store'),
     ..._audit,
   ]),
   Table('ingredient_alias', [

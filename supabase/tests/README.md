@@ -79,11 +79,11 @@ assertions in `begin … rollback` so runs leave no residue.
   happy path, again as `authenticated`; that a line whose word has since gone
   stays editable and keeps its number, because it is unresolved rather than re-read as a count; and the
   boundary — RLS on, no delete policy, in the `powersync` publication.
-- `base_price.sql` — a row's base price (0051): the six `base_price_*`
-  columns on `ingredient` are nullable (a build that predates them writes a
+- `base_price.sql` — a row's base price (0051) and its store (0052): the
+  seven `base_price_*` columns on `ingredient` are nullable (a build that predates them writes a
   row exactly as before); a base price is whole or absent (cents, basis pack
   and date together), a pack unit needs an amount, and neither cents nor a
-  pack may be zero; the pack as entered and the basis figure may disagree; and
+  pack may be zero; a store only beside a price; the pack as entered and the basis figure may disagree; and
   a `manual` receipt — what an older build still writes for a typed price — is
   still accepted. The migration's backfill (newest live manual line → base
   price, manual receipts soft-deleted) runs over production rows once and is

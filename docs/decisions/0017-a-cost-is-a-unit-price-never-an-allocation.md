@@ -61,8 +61,10 @@ a receipt to a meal.**
    the ledger or the week's *spent* — and it never outranks a price paid,
    however recently it was set: what was paid is the better fact, and the base
    price is what stands in until something has been. The choice is made in one
-   function (`costPriceOf`) that every cost reads through. A figure read off a
-   base price names it where a paid one names its shop (`base price, Sep`).
+   function (`costPriceOf`) that every cost reads through. A base price may
+   name the store it is paid at (migration 0052), and a figure read off it then
+   names that store exactly as a paid one names its shop (`TJ's, Sep`); one
+   that names none says `base price, Sep`.
 
 2. **A recipe costs its lines.** Each line's amount is converted to the
    ingredient's basis unit through **the same conversion the macros use**

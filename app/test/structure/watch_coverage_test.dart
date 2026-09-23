@@ -217,11 +217,13 @@ void main() {
         // Every watched table must contribute a SELECTed column, or SQLite
         // drops its join and PowerSync never sees the table. Aliased columns
         // (`alias.col`) are checked; a bare-`SELECT *`-style single-table
-        // query trivially selects from its only table.
-        final selectClause = sql.substring(
-          0,
-          sql.toUpperCase().indexOf(' FROM '),
-        );
+        // query trivially selects from its only table. Each SELECT list in
+        // the statement counts — the arms of a UNION and a subquery's own
+        // list read their tables as surely as the outer one does.
+        final selectClause = RegExp(
+          'SELECT (.*?) FROM ',
+          caseSensitive: false,
+        ).allMatches(sql).map((m) => m.group(1)).join(' ');
         final tables = _tables(sql);
         if (tables.length > 1) {
           for (final t in tables.entries) {

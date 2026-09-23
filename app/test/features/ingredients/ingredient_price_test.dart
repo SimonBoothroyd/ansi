@@ -16,6 +16,7 @@ library;
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/core/words.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_detail_view.dart';
@@ -81,12 +82,14 @@ BasePrice basePrice({
   Unit? packUnit,
   String? measureId = 'm-bag',
   String? packLabel = 'bag',
+  String? store,
 }) => BasePrice(
   ingredientId: 'banana',
   cents: cents,
   packBasisAmount: pack,
   basis: MacrosBasis.perG,
   setAt: DateTime.utc(2026, 9, 13),
+  store: store,
   packAmount: packAmount,
   packUnit: packUnit,
   measureId: measureId,
@@ -513,27 +516,67 @@ void main() {
       );
     });
 
-    testWidgets('a base price asks for no store — it is no shop', (
+    testWidgets('the store is optional — Done opens without one', (
       tester,
     ) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
+      final prices = FakePriceRepo(stores: const ["TJ's", 'Whole Foods']);
       await tester.pumpWidget(
         host(
           FakeIngredientRepo(const [bananas]),
           at: ingredientDetailRoute('banana'),
-          prices: FakePriceRepo(),
+          prices: prices,
         ),
       );
       await tester.pumpAndSettle();
       await openTheSheet(tester);
       await enterPrice(tester, paid: '3.49', pack: '454');
 
-      expect(find.text('AT'), findsNothing);
-      expect(derivedText(tester), '= 77¢ / 100 g');
+      // The receipts' own store words, and nothing picked for you.
+      expect(find.text('AT'), findsOneWidget);
+      expect(find.widgetWithText(UnitChip, "TJ's"), findsOneWidget);
+      expect(find.widgetWithText(UnitChip, 'Whole Foods'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FButton, 'Done'));
+      await tester.pumpAndSettle();
+      expect(prices.setCalls.single.store, isNull);
+    });
+
+    testWidgets('a picked store is written with the base price, and a second '
+        'tap takes it off', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final prices = FakePriceRepo(stores: const ["TJ's", 'Whole Foods']);
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [bananas]),
+          at: ingredientDetailRoute('banana'),
+          prices: prices,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await openTheSheet(tester);
+      await enterPrice(tester, paid: '3.49', pack: '454');
+
+      await tester.tap(find.widgetWithText(UnitChip, "TJ's"));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(UnitChip, 'Whole Foods'));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(UnitChip, 'Whole Foods'));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(UnitChip, "TJ's"));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FButton, 'Done'));
+      await tester.pumpAndSettle();
+
+      expect(prices.setCalls.single.store, "TJ's");
+      // The page names the shop, as a receipt price does.
       expect(
-        tester.widget<FButton>(find.widgetWithText(FButton, 'Done')).onPress,
-        isNotNull,
+        find.text(
+          r"77¢ / 100 g · $3.49 for 454 g · TJ's · set "
+          '${formatDayMonth(prices.base!.setAt)}',
+        ),
+        findsOneWidget,
       );
     });
 
@@ -591,15 +634,14 @@ void main() {
       // The row's own measures lead, then the catalog units it admits.
       expect(find.widgetWithText(UnitChip, 'bag'), findsOneWidget);
       expect(find.widgetWithText(UnitChip, 'kg'), findsOneWidget);
-      // No `+` inside the sheet: the pack is a purchase, not a vocabulary
-      // edit, so the chip row draws no manage chip, and a base price names no
-      // store to coin.
+      // One `+` inside the sheet — the store row's. The pack is a purchase,
+      // not a vocabulary edit, so the chip row draws no manage chip.
       expect(
         find.descendant(
           of: find.byType(PriceEditor),
           matching: find.byIcon(FLucideIcons.plus),
         ),
-        findsNothing,
+        findsOneWidget,
       );
     });
   });
@@ -640,6 +682,37 @@ void main() {
       expect(tester.widget<EditableText>(paidField.at(1)).controller.text, '1');
       expect(derivedText(tester), '= 77¢ / 100 g');
       expect(find.byKey(kPriceDeleteKey), findsOneWidget);
+    });
+
+    testWidgets('a stored store is on the Base line, and the sheet reopens on '
+        'it', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallScreen(tester);
+      final prices = FakePriceRepo(base: basePrice(store: "TJ's"));
+      await tester.pumpWidget(
+        host(
+          FakeIngredientRepo(const [bananas]),
+          at: ingredientDetailRoute('banana'),
+          prices: prices,
+          measures: FakeMeasureRepo(const [bagMeasure]),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(r"77¢ / 100 g · $3.49 for bag (454 g) · TJ's · set 13 Sep"),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(kBasePriceKey));
+      await tester.pumpAndSettle();
+      expect(find.text(r"editing $3.49 · TJ's · set 13 Sep"), findsOneWidget);
+      // Offered even though no receipt names it, so it can be seen and
+      // cleared.
+      expect(find.widgetWithText(UnitChip, "TJ's"), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FButton, 'Done'));
+      await tester.pumpAndSettle();
+      expect(prices.setCalls.single.store, "TJ's");
     });
 
     testWidgets('Done replaces the base price, and writes nothing else', (

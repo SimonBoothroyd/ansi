@@ -238,8 +238,9 @@ Doctrine is
 - **Two kinds of price, one shape.** A price PAID is a `receipt_line`
   (migration 0044, `PriceObservation`). A row's **base price** is on the
   `ingredient` row itself (migration 0051, `BasePrice`): what the household
-  usually pays for a pack, typed on the ingredient page, on no receipt, so it
-  never reaches the receipts ledger or the week's spend. Both are a
+  usually pays for a pack, and optionally where (`base_price_store`, 0052),
+  typed on the ingredient page, on no receipt, so it never reaches the
+  receipts ledger or the week's spend. Both are a
   `UnitPrice`, and the per-basis figure of either is derived at read time by
   `pricePer100` — paid over `count × pack_basis_amount` (a base price is one
   pack) — and never stored.
@@ -262,8 +263,12 @@ Doctrine is
   ingredient or nothing paid mean no observation, and an unreadable base price
   is none; the Price group says `— none yet`.
 - **The sheet writes the base price and nothing else.** `PriceEditor` asks
-  what was paid and for what pack — no store, because a base price is no shop
-  — and Done is `setBasePrice`, an UPDATE of the row; Delete is
+  what was paid, for what pack, and — optionally — at which store, from the
+  same `StoreChipRow` and store words the receipt review uses (a second tap on
+  the picked chip clears it). A cost read off a base price names its store as
+  a receipt price names its shop (`TJ's, Sep`), and `base price, Sep` where it
+  names none. `watchStores` offers both the receipts' stores and the base
+  prices'. Done is `setBasePrice`, an UPDATE of the row; Delete is
   `clearBasePrice`, which clears it whole. A price paid is corrected on its
   receipt: its line opens `/receipts/:id`. Nothing writes a `manual` receipt;
   one an older build wrote reads as an ordinary receipt.

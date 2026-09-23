@@ -45,12 +45,13 @@ String unitPriceWord(UnitPrice price) {
   };
 }
 
-/// `TJ's, Sep`: where and when the price was paid, or `base price, Sep` for
-/// the row's own base price, which no shop stands behind.
+/// `TJ's, Sep`: where and when the price was paid. A base price names its
+/// store the same way, and `base price, Sep` where it names none.
 String priceProvenance(UnitPrice price) => switch (price) {
   PriceObservation(:final store, :final purchasedAt) =>
     '$store, ${formatMonthShort(purchasedAt)}',
-  BasePrice(:final setAt) => 'base price, ${formatMonthShort(setAt)}',
+  BasePrice(:final store, :final setAt) =>
+    '${store ?? 'base price'}, ${formatMonthShort(setAt)}',
 };
 
 /// `$13.16 · $1.10 / 100 g · TJ's, Sep`: a line's figure at the amount

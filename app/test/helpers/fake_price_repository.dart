@@ -17,6 +17,7 @@ typedef SetBase = ({
   String ingredientId,
   int cents,
   double packBasisAmount,
+  String? store,
   double? packAmount,
   String? packUnitId,
   String? measureId,
@@ -139,12 +140,14 @@ class FakePriceRepo implements PriceRepository {
     required String ingredientId,
     required int cents,
     required double packBasisAmount,
+    String? store,
     double? packAmount,
     String? packUnitId,
     String? measureId,
   }) async {
     if (throws) throw StateError('no');
     setCalls.add((
+      store: store,
       ingredientId: ingredientId,
       cents: cents,
       packBasisAmount: packBasisAmount,
@@ -158,6 +161,7 @@ class FakePriceRepo implements PriceRepository {
       packBasisAmount: packBasisAmount,
       basis: basis,
       setAt: DateTime.now().toUtc(),
+      store: store,
       packAmount: packAmount,
       packUnit: unitById(packUnitId ?? ''),
       measureId: measureId,

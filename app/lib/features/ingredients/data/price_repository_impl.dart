@@ -66,6 +66,7 @@ class SqlitePriceRepository implements PriceRepository {
     setAt: r['base_price_set_at'] == null
         ? null
         : receiptInstant(r['base_price_set_at']),
+    store: r['base_price_store'] as String?,
     packAmount: (r['base_price_pack_amount'] as num?)?.toDouble(),
     packUnit: unitById((r['base_price_pack_unit'] as String?) ?? ''),
     measureId: r['base_price_measure_id'] as String?,
@@ -147,7 +148,8 @@ class SqlitePriceRepository implements PriceRepository {
           'SELECT i.id AS row_id, i.macros_basis, i.base_price_cents, '
           'i.base_price_pack_basis_amount, i.base_price_pack_amount, '
           'i.base_price_pack_unit, i.base_price_measure_id, '
-          'i.base_price_set_at, bm.label AS base_measure_label, '
+          'i.base_price_set_at, i.base_price_store, '
+          'bm.label AS base_measure_label, '
           'l.id, l.receipt_id, l.ingredient_id, l.printed_text, '
           'l.cents, l.discount_cents, l.count, l.kind, l.pack_basis_amount, '
           'l.pack_amount, l.pack_unit, l.measure_id, l.sort_order, '
@@ -197,7 +199,8 @@ class SqlitePriceRepository implements PriceRepository {
           'SELECT i.id AS row_id, i.macros_basis, i.base_price_cents, '
           'i.base_price_pack_basis_amount, i.base_price_pack_amount, '
           'i.base_price_pack_unit, i.base_price_measure_id, '
-          'i.base_price_set_at, bm.label AS base_measure_label '
+          'i.base_price_set_at, i.base_price_store, '
+          'bm.label AS base_measure_label '
           'FROM ingredient i '
           'LEFT JOIN ingredient_measure bm ON bm.id = i.base_price_measure_id '
           'AND bm.deleted_at IS NULL '
@@ -312,15 +315,23 @@ class SqlitePriceRepository implements PriceRepository {
     return packs;
   }
 
+  /// A base price's store is a word the household has used, so it is offered
+  /// back beside the receipts' — dated by when the base price was set.
   @override
   Stream<List<String>> watchStores() {
     return _db
         .watch(
-          'SELECT r.store AS store, MAX(r.purchased_at) AS last_seen '
-          'FROM receipt r '
-          "WHERE r.deleted_at IS NULL AND TRIM(r.store) <> '' "
-          'GROUP BY r.store '
-          'ORDER BY last_seen DESC, r.store',
+          'SELECT w.store AS store, MAX(w.seen) AS last_seen FROM ( '
+          'SELECT r.store AS store, r.purchased_at AS seen FROM receipt r '
+          'WHERE r.deleted_at IS NULL '
+          'UNION ALL '
+          'SELECT i.base_price_store AS store, i.base_price_set_at AS seen '
+          'FROM ingredient i WHERE i.deleted_at IS NULL '
+          'AND i.base_price_store IS NOT NULL '
+          ') w '
+          "WHERE TRIM(w.store) <> '' "
+          'GROUP BY w.store '
+          'ORDER BY last_seen DESC, w.store',
         )
         .map((rows) => [for (final r in rows) r['store'] as String]);
   }
@@ -330,6 +341,7 @@ class SqlitePriceRepository implements PriceRepository {
     required String ingredientId,
     required int cents,
     required double packBasisAmount,
+    String? store,
     double? packAmount,
     String? packUnitId,
     String? measureId,
@@ -358,7 +370,7 @@ class SqlitePriceRepository implements PriceRepository {
       'UPDATE ingredient SET base_price_cents = ?, '
       'base_price_pack_basis_amount = ?, base_price_pack_amount = ?, '
       'base_price_pack_unit = ?, base_price_measure_id = ?, '
-      'base_price_set_at = ?, updated_at = ? '
+      'base_price_set_at = ?, base_price_store = ?, updated_at = ? '
       'WHERE id = ? AND deleted_at IS NULL',
       [
         cents,
@@ -367,6 +379,8 @@ class SqlitePriceRepository implements PriceRepository {
         packUnitId,
         measureId,
         setAt,
+        // A blank word names no shop.
+        if ((store ?? '').trim().isEmpty) null else store!.trim(),
         stamp,
         ingredientId,
       ],
@@ -381,7 +395,7 @@ class SqlitePriceRepository implements PriceRepository {
       'UPDATE ingredient SET base_price_cents = NULL, '
       'base_price_pack_basis_amount = NULL, base_price_pack_amount = NULL, '
       'base_price_pack_unit = NULL, base_price_measure_id = NULL, '
-      'base_price_set_at = NULL, updated_at = ? '
+      'base_price_set_at = NULL, base_price_store = NULL, updated_at = ? '
       'WHERE id = ?',
       [stamp, ingredientId],
     );
@@ -415,7 +429,8 @@ Future<Map<String, UnitPrice>> loadCostPrices(SqliteConnection db) async =>
         'SELECT i.id AS row_id, i.macros_basis, i.base_price_cents, '
         'i.base_price_pack_basis_amount, i.base_price_pack_amount, '
         'i.base_price_pack_unit, i.base_price_measure_id, '
-        'i.base_price_set_at, bm.label AS base_measure_label, '
+        'i.base_price_set_at, i.base_price_store, '
+        'bm.label AS base_measure_label, '
         'l.id, l.receipt_id, l.ingredient_id, l.printed_text, '
         'l.cents, l.discount_cents, l.count, l.kind, l.pack_basis_amount, '
         'l.pack_amount, l.pack_unit, l.measure_id, l.sort_order, '

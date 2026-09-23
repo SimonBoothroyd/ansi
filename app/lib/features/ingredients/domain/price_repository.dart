@@ -49,7 +49,8 @@ abstract interface class PriceRepository {
   );
 
   /// The store words this household has used, most recently first, for the
-  /// price sheet's chip row. There is no store table.
+  /// price sheet's and the receipt review's chip rows: every live receipt's
+  /// store and every base price's. There is no store table.
   Stream<List<String>> watchStores();
 
   /// Sets [ingredientId]'s base price, replacing any it had. An UPDATE of the
@@ -58,13 +59,15 @@ abstract interface class PriceRepository {
   /// [cents] is what was paid and [packBasisAmount] what it bought, in the
   /// row's basis unit; the caller resolves the pack through `packInBasis`
   /// first. [packAmount] with [packUnitId] or [measureId] is the pack as
-  /// entered (`packAsEntered`). The date it was set is now.
+  /// entered (`packAsEntered`). [store] is where it is paid, trimmed; blank
+  /// or null names none. The date it was set is now.
   ///
   /// Throws [ArgumentError] for a non-positive [cents] or [packBasisAmount].
   Future<void> setBasePrice({
     required String ingredientId,
     required int cents,
     required double packBasisAmount,
+    String? store,
     double? packAmount,
     String? packUnitId,
     String? measureId,

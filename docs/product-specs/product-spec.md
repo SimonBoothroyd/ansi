@@ -854,8 +854,9 @@ in the app derived from them at read time
   what the match memory is keyed by.
 - `ingredient.base_price_cents · base_price_pack_basis_amount ·
   base_price_pack_amount · base_price_pack_unit · base_price_measure_id ·
-  base_price_set_at` ← the row's **base price**: what the household usually
-  pays for a pack, typed on the ingredient page and on no receipt, so it never
+  base_price_set_at · base_price_store` ← the row's **base price**: what the
+  household usually pays for a pack, and optionally at which store (a word
+  from the same chips a receipt's store is picked from), typed on the ingredient page and on no receipt, so it never
   reaches the ledger or a week's *spent*. The pack is kept in the same two
   denominations a line keeps it in. Whole or absent (a constraint).
 - **Which price a cost reads** is one rule, `costPriceOf`: the newest price

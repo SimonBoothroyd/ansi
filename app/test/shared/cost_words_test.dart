@@ -65,7 +65,23 @@ void main() {
       expect(lineCostText(const CostLine(cents: 250)), r'$2.50');
     });
 
-    test('a base price names no shop — it says what it is', () {
+    test('a base price names its store the way a receipt price does', () {
+      final base = BasePrice(
+        ingredientId: 'parsley',
+        cents: 199,
+        packBasisAmount: 60,
+        basis: MacrosBasis.perG,
+        setAt: DateTime.utc(2026, 9, 3),
+        store: "TJ's",
+        packLabel: 'bunch',
+      );
+      expect(
+        lineCostText(CostLine(cents: 50, price: base)),
+        r"50¢ · $1.99 a bunch · TJ's, Sep",
+      );
+    });
+
+    test('a base price with no store says what it is', () {
       final base = BasePrice(
         ingredientId: 'parsley',
         cents: 199,

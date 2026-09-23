@@ -1,4 +1,4 @@
--- pgTAP: a row's base price (0051).
+-- pgTAP: a row's base price (0051) and the store it is paid at (0052).
 --
 -- A price typed on an ingredient page lives on the row, not on a receipt.
 -- What is defended here:
@@ -8,6 +8,7 @@
 --   * the WHOLE — cents, the basis pack and the date travel together, a pack
 --     unit needs an amount, and neither the cents nor either pack amount can
 --     be zero;
+--   * the STORE — optional, and only on a row that states a base price;
 --   * the WORDS — the pack as entered and the basis figure may disagree, as
 --     a receipt line's may (0046);
 --   * the OLD DOOR — a `manual` receipt is still accepted, so the last
@@ -18,7 +19,7 @@
 -- over rows seeded at 0050, not here, where the tables start empty.
 
 begin;
-select plan(14);
+select plan(17);
 
 insert into household (id, name) values
  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','House B');
@@ -103,6 +104,26 @@ select lives_ok(
             base_price_pack_amount = null, base_price_measure_id = null
       where id = 'bbbbbbbb-0000-0000-0000-000000000401' $$,
   'a base price is taken back by clearing it whole'
+);
+
+-- 3b · The store (0052): optional, and only beside a price.
+
+select col_is_null('public', 'ingredient', 'base_price_store',
+  'a base price need not name a shop');
+
+select throws_ok(
+  $$ update ingredient set base_price_store = 'TJ''s'
+      where id = 'bbbbbbbb-0000-0000-0000-000000000401' $$,
+  '23514', null,
+  'a store with no price names where nothing is paid'
+);
+
+select lives_ok(
+  $$ update ingredient set base_price_cents = 199,
+            base_price_pack_basis_amount = 60, base_price_set_at = now(),
+            base_price_store = 'TJ''s'
+      where id = 'bbbbbbbb-0000-0000-0000-000000000401' $$,
+  'a base price names the shop it is paid at'
 );
 
 -- 4 · The old door stays open.

@@ -1,10 +1,12 @@
-/// The price sheet (*paid* … *for* …): the one place a price is typed, and
-/// what it types is the row's base price.
+/// The price sheet (*paid* … *for* … *at*): the one place a price is typed,
+/// and what it types is the row's base price.
 ///
 /// The pack is picked from the quantity sheet's chip row ([UnitChipRow]); the
 /// dock shows the derived figure (`= 77¢ / 100 g`) or the refusal
-/// (`priceRefusal`). Done sets the row's [BasePrice] — never a receipt, and so
-/// never a shop in the ledger or the week's spend. Opened on the stored base
+/// (`priceRefusal`); the store is optional, a word from the household's chips
+/// ([StoreChipRow], the receipt review's own). Done sets the row's
+/// [BasePrice] — never a receipt, and so never a shop in the ledger or the
+/// week's spend. Opened on the stored base
 /// price, a Delete sits under Done. A price paid on a receipt is corrected on
 /// its receipt, never here.
 library;
@@ -78,6 +80,10 @@ class PriceEditor extends HookConsumerWidget {
     final packAmount = useState<double?>(null);
     final choice = useState<UnitChoice?>(null);
     final busy = useState(false);
+    // Optional: null names no shop. Tapping the picked chip again clears it.
+    final store = useState<String?>(null);
+    // A store named through `＋` in this sitting joins the chip row at once.
+    final coined = useState<List<String>>(const []);
     final paidField = useTextEditingController();
     final packField = useTextEditingController();
     // The stored price is copied into the fields once, after the row's measures
@@ -87,6 +93,8 @@ class PriceEditor extends HookConsumerWidget {
 
     final measuresAsync = ref.watch(ingredientMeasuresProvider(ingredient.id));
     final measures = measuresAsync.asData?.value ?? const <Measure>[];
+    final remembered =
+        ref.watch(priceStoresProvider).asData?.value ?? const <String>[];
     final prices =
         ref.watch(ingredientPricesProvider(ingredient.id)).asData?.value ??
         const <PriceObservation>[];
@@ -113,6 +121,7 @@ class PriceEditor extends HookConsumerWidget {
       };
       paidCents.value = stored.cents;
       paidField.text = dollarsTyped(stored.cents);
+      store.value = stored.store;
       return null;
     }, [measuresAsync]);
 
@@ -130,6 +139,25 @@ class PriceEditor extends HookConsumerWidget {
             packChoice: packChoice,
           );
     final canSave = !busy.value && derived is Ok<PricePer100>;
+
+    final stores = <String>[
+      ...coined.value,
+      for (final word in remembered)
+        if (!coined.value.contains(word)) word,
+    ];
+    // A stored store the chips no longer offer is still drawn, so it can be
+    // seen and cleared.
+    if (store.value case final word? when !stores.contains(word)) {
+      stores.insert(0, word);
+    }
+
+    void nameAStore(String word) {
+      // The sheet can be dismissed while the prompt is up; touching hook
+      // state then would throw.
+      if (!context.mounted) return;
+      coined.value = [word, ...coined.value];
+      store.value = word;
+    }
 
     Future<void> save() async {
       final pack = packInBasis(
@@ -149,6 +177,7 @@ class PriceEditor extends HookConsumerWidget {
         () => repository.setBasePrice(
           ingredientId: ingredient.id,
           cents: paidCents.value!,
+          store: store.value,
           packBasisAmount: pack.value,
           packAmount: entered.amount,
           packUnitId: entered.unitId,
@@ -238,6 +267,15 @@ class PriceEditor extends HookConsumerWidget {
           choice: packChoice,
           onAmount: (amount) => packAmount.value = amount,
           onSelect: (picked) => choice.value = picked,
+        ),
+
+        const SizedBox(height: 16),
+        const AnsiMicroLabel('AT'),
+        StoreChipRow(
+          stores: stores,
+          selected: store.value,
+          onSelect: (word) => store.value = store.value == word ? null : word,
+          onCoined: nameAStore,
         ),
 
         const SizedBox(height: 18),

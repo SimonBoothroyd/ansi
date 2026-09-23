@@ -645,6 +645,58 @@ void main() {
       expect(base.packLabel, 'bag');
     });
 
+    test('names its store, trimmed, and a blank one names none', () async {
+      await repo.setBasePrice(
+        ingredientId: 'banana',
+        cents: 349,
+        packBasisAmount: 454,
+        store: "  TJ's ",
+      );
+      expect((await repo.watchBasePrice('banana').first)!.store, "TJ's");
+      expect(
+        ((await repo.watchCostPrices().first)['banana']! as BasePrice).store,
+        "TJ's",
+      );
+
+      await repo.setBasePrice(
+        ingredientId: 'banana',
+        cents: 349,
+        packBasisAmount: 454,
+        store: '   ',
+      );
+      final row = await db.get(
+        'SELECT base_price_store FROM ingredient WHERE id = ?',
+        ['banana'],
+      );
+      expect(row['base_price_store'], isNull);
+    });
+
+    test('its store joins the household’s store words, once', () async {
+      await _seedReceipt(
+        db,
+        id: 'r-aug',
+        store: 'Whole Foods',
+        purchasedAt: '2026-08-02T10:00:00Z',
+      );
+      await _seedReceipt(
+        db,
+        id: 'r-jul',
+        store: "TJ's",
+        purchasedAt: '2026-07-02T10:00:00Z',
+      );
+      await repo.setBasePrice(
+        ingredientId: 'banana',
+        cents: 349,
+        packBasisAmount: 454,
+        store: "TJ's",
+      );
+      // Set today, so it is the most recent use of the word.
+      expect(await repo.watchStores().first, ["TJ's", 'Whole Foods']);
+
+      await repo.clearBasePrice('banana');
+      expect(await repo.watchStores().first, ['Whole Foods', "TJ's"]);
+    });
+
     test('a second one replaces the first', () async {
       await repo.setBasePrice(
         ingredientId: 'banana',
@@ -681,7 +733,7 @@ void main() {
       final row = await db.get(
         'SELECT base_price_cents, base_price_pack_basis_amount, '
         'base_price_pack_amount, base_price_pack_unit, base_price_measure_id, '
-        'base_price_set_at FROM ingredient WHERE id = ?',
+        'base_price_set_at, base_price_store FROM ingredient WHERE id = ?',
         ['banana'],
       );
       expect(row.values, everyElement(isNull));
